@@ -523,7 +523,9 @@ impl<L: ClientLink> CommandContext for Server<L> {
         nbt: Option<Compound>,
     ) -> Result<(), Component> {
         let failed = |key: &str| Component::translatable(key, Vec::new());
-        let (entity, random) = self.summon_entity(kind, position, nbt).map_err(failed)?;
+        let (entity, random) = self
+            .summon_entity(kind, position, nbt, SpawnReason::Command)
+            .map_err(failed)?;
         let name = name_of_entity(&entity);
         let mut birth = Birth::of(CreatureSpawnReason::Command)
             .with_random(random)
@@ -654,6 +656,7 @@ impl<L: ClientLink> Server<L> {
         kind: Kind,
         position: Vec3,
         nbt: Option<Compound>,
+        reason: SpawnReason,
     ) -> Result<(Entity, LegacyRandom), &'static str> {
         let block = position.block();
         if !(-20_000_000..20_000_000).contains(&block.y)
@@ -682,7 +685,7 @@ impl<L: ClientLink> Server<L> {
             spawn::finalize_spawn(
                 &mut entity,
                 &environment,
-                SpawnReason::Command,
+                reason,
                 None,
                 &mut ServerRandom(&mut self.rng),
                 &mut own,
