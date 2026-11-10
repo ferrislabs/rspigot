@@ -105,6 +105,7 @@ pub struct Server<L> {
     pub(crate) running: bool,
     pub(crate) entities: EntityWorld,
     pub(crate) falls: ScheduledFalls,
+    pub(crate) fluids: crate::fluids::ScheduledFluids,
     pub(crate) rng: StdRng,
     pub(crate) spawning: Spawning,
     pub(crate) plugins: Registry,
@@ -168,6 +169,7 @@ impl<L: ClientLink> Server<L> {
             running: true,
             entities: EntityWorld::default(),
             falls: ScheduledFalls::default(),
+            fluids: crate::fluids::ScheduledFluids::default(),
             rng: StdRng::from_os_rng(),
             spawning,
             plugins: Registry::default(),
@@ -849,6 +851,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_plugins();
         self.tick_open_menus();
         self.tick_falling_blocks();
+        self.tick_fluids();
         self.update_tracking();
         self.notify_poses();
         self.sync_vitals();

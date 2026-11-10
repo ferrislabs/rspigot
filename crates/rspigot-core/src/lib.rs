@@ -24,6 +24,7 @@ pub(crate) mod explosion;
 mod fall;
 mod falling;
 mod fire;
+mod fluids;
 pub mod health;
 mod input;
 mod interact;

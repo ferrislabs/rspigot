@@ -192,6 +192,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn on_place(&mut self, pos: BlockPos) {
+        self.fluid_changed(pos);
         let Some(kind) = self.block_or_air(pos).kind() else {
             return;
         };
@@ -205,6 +206,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn update_shape(&mut self, pos: BlockPos, direction: Face) {
+        self.fluid_changed(pos);
         let state = self.block_or_air(pos);
         let Some(kind) = state.kind() else {
             return;

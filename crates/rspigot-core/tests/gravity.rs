@@ -154,6 +154,9 @@ impl ChunkGenerator for Terrain {
             chunk.set_block(BlockPos::new(tx, 64, tz), Torch::DEFAULT_STATE);
             chunk.set_block(BlockPos::new(tx, 65, tz), Stone::DEFAULT_STATE);
             chunk.set_block(BlockPos::new(tx, 66, tz), Sand::DEFAULT_STATE);
+            for (dx, dz) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                chunk.set_block(BlockPos::new(tx + dx, 64, tz + dz), Stone::DEFAULT_STATE);
+            }
             let (px, pz) = POOL;
             let water = BlockKind::Water.default_state();
             chunk.set_block(BlockPos::new(px, 64, pz), water);
