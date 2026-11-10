@@ -8,12 +8,13 @@ use rspigot_domain::entity::{Aabb, Entity, EntityState, save};
 use rspigot_domain::item::{HOTBAR_START, ItemStack, OFFHAND_SLOT, same_item_same_components};
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::random::RandomSource;
+use rspigot_domain::spawn::SpawnReason;
 use rspigot_domain::text::Component;
-use rspigot_domain::{EntityId, ItemId, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, EntityId, ItemId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::{EquipmentSlot, ItemKind};
 
-use crate::events::{Animation, ClientEvent, EquipmentSlot as WireSlot, Hand};
+use crate::events::{Animation, ClientEvent, Direction, EquipmentSlot as WireSlot, Hand};
 use crate::loot::{self, LootContext};
 use crate::mob_actions::new_mob;
 use crate::plugins::events::{
@@ -454,6 +455,69 @@ impl<L: ClientLink> Server<L> {
         self.spawn_entity(
             child,
             Birth::of(CreatureSpawnReason::SpawnerEgg)
+                .by(id)
+                .then(Spawned::Hatched {
+                    player: id,
+                    slot,
+                    item: stack.clone(),
+                }),
+        );
+        true
+    }
+
+    pub(crate) fn spawn_from_egg_on_block(
+        &mut self,
+        id: PlayerId,
+        slot: usize,
+        stack: &ItemStack,
+        pos: BlockPos,
+        face: Direction,
+        clicked: BlockStateId,
+    ) -> bool {
+        let Some(kind) = Kind::from_spawn_egg(stack.item.0) else {
+            return false;
+        };
+        let passable = clicked.collision_shape().is_empty();
+        let target = if passable {
+            pos
+        } else {
+            let (dx, dy, dz) = face.offset();
+            pos.offset(dx, dy, dz)
+        };
+        if !self.within_reach(id, pos) || self.is_protected(id, target) {
+            return false;
+        }
+        let lift = if !passable && face == Direction::Up {
+            let top = clicked
+                .collision_shape()
+                .iter()
+                .map(|shape| shape.max_y)
+                .fold(0.0, f64::max);
+            (top - 1.0).min(0.0)
+        } else {
+            0.0
+        };
+        let position = Vec3::new(
+            f64::from(target.x) + 0.5,
+            f64::from(target.y) + lift,
+            f64::from(target.z) + 0.5,
+        );
+        let Ok((mut entity, random)) =
+            self.summon_entity(kind, position, None, SpawnReason::SpawnItemUse)
+        else {
+            return false;
+        };
+        if let Some(name) = stack
+            .components
+            .get(CUSTOM_NAME)
+            .and_then(save::component_from_tag)
+        {
+            entity.base.set_custom_name(Some(name));
+        }
+        self.spawn_entity(
+            entity,
+            Birth::of(CreatureSpawnReason::SpawnerEgg)
+                .with_random(random)
                 .by(id)
                 .then(Spawned::Hatched {
                     player: id,

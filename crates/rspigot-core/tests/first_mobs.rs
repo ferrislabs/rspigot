@@ -7,8 +7,8 @@ use rspigot_core::admin::{AdminLists, ListEntry};
 use rspigot_core::chunks::ChunkManagerConfig;
 use rspigot_core::config::{GameConfig, LevelData};
 use rspigot_core::events::{
-    ClientEvent, EntityKind, EntityStatus, EquipmentSlot as WireSlot, Hand, Inbound, MetadataValue,
-    PlayerInput, VariantKind,
+    ClientEvent, Direction, EntityKind, EntityStatus, EquipmentSlot as WireSlot, Hand, Inbound,
+    MetadataValue, PlayerInput, VariantKind,
 };
 use rspigot_core::ports::{ChunkGenerator, ChunkStore, ClientLink, EntityStore, StoreError};
 use rspigot_core::server::Server;
@@ -647,6 +647,31 @@ fn a_spawn_egg_used_on_an_adult_spawns_a_baby() {
     );
     let events = alice.drain();
     assert!(metadata(&events, baby, 16).contains(&MetadataValue::Boolean(true)));
+    assert_eq!(holding(&alice, ItemKind::CowSpawnEgg), 1);
+}
+
+#[test]
+fn a_spawn_egg_used_on_a_block_spawns_the_mob_above_it() {
+    let mut server = server();
+    let mut alice = join(&mut server, "Alice");
+    give(&mut server, &mut alice, "minecraft:cow_spawn_egg", 2);
+    alice.drain();
+    input(
+        &mut server,
+        alice.id,
+        PlayerInput::UseItemOn {
+            hand: Hand::Main,
+            pos: BlockPos::new(0, 63, 2),
+            face: Direction::Up,
+            cursor: Vec3::new(0.5, 1.0, 0.5),
+            inside_block: false,
+            sequence: 1,
+        },
+    );
+    pump(&mut server, &mut alice, 2);
+    let cows = server.entities_of(Kind::Cow);
+    assert_eq!(cows.len(), 1);
+    assert_eq!(cows[0].position, Vec3::new(0.5, 64.0, 2.5));
     assert_eq!(holding(&alice, ItemKind::CowSpawnEgg), 1);
 }
 

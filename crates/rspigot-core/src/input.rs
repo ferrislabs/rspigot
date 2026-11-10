@@ -470,6 +470,13 @@ impl<L: ClientLink> Server<L> {
         {
             return;
         }
+        if let Some(held) = &stack
+            && !matches!(game_mode, GameMode::Adventure | GameMode::Spectator)
+            && self.spawn_from_egg_on_block(id, slot, held, pos, face, clicked)
+        {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+            return;
+        }
         let kind = stack.as_ref().and_then(|s| BlockKind::from_item(s.item.0));
         let (Some(stack), Some(kind)) = (stack, kind) else {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));

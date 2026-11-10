@@ -17,6 +17,7 @@ use crate::plugins::steps::{Birth, Spawned};
 use crate::plugins::{EntityDetails, EntityOrder, EntityView, ItemSpec};
 use crate::ports::ClientLink;
 use crate::server::Server;
+use rspigot_domain::spawn::SpawnReason;
 
 impl<L: ClientLink> Server<L> {
     pub(super) fn apply_entity_order(&mut self, connection: u64, id: EntityId, order: EntityOrder) {
@@ -127,7 +128,9 @@ impl<L: ClientLink> Server<L> {
     ) -> Result<(), String> {
         let kind = entity_kind(kind)?;
         let position = self.loaded_position(position)?;
-        let (entity, random) = self.summon_entity(kind, position, None).map_err(refusal)?;
+        let (entity, random) = self
+            .summon_entity(kind, position, None, SpawnReason::Command)
+            .map_err(refusal)?;
         self.spawn_entity(
             entity,
             Birth::of(CreatureSpawnReason::Custom)
