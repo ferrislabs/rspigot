@@ -980,3 +980,42 @@ fn an_ignited_creeper_out_of_activation_range_still_explodes() {
             .any(|e| matches!(e, ClientEvent::Explode { .. }))
     );
 }
+
+fn use_held(server: &mut Server<Link>, client: &Client) {
+    input(
+        server,
+        client.id,
+        PlayerInput::UseItem {
+            hand: Hand::Main,
+            sequence: 1,
+            rotation: Rotation::new(0.0, 0.0),
+        },
+    );
+}
+
+#[test]
+fn a_golden_apple_is_eaten_after_its_delay_even_when_full() {
+    let mut server = server();
+    let mut alice = join(&mut server, "Alice");
+    give(&mut server, &mut alice, "minecraft:golden_apple", 2);
+    alice.drain();
+    use_held(&mut server, &alice);
+    pump(&mut server, &mut alice, 20);
+    assert_eq!(holding(&alice, ItemKind::GoldenApple), 2);
+    pump(&mut server, &mut alice, 20);
+    assert_eq!(holding(&alice, ItemKind::GoldenApple), 1);
+    let (food, saturation, _) = server.player_food(alice.id).unwrap();
+    assert_eq!(food, 20);
+    assert!(saturation > 10.0);
+    assert!(sounds(&alice.drain()).contains(&"minecraft:entity.player.burp"));
+}
+
+#[test]
+fn bread_is_not_eaten_with_a_full_food_bar() {
+    let mut server = server();
+    let mut alice = join(&mut server, "Alice");
+    give(&mut server, &mut alice, "minecraft:bread", 2);
+    use_held(&mut server, &alice);
+    pump(&mut server, &mut alice, 40);
+    assert_eq!(holding(&alice, ItemKind::Bread), 2);
+}

@@ -53,7 +53,7 @@ struct Shot {
     owner: uuid::Uuid,
 }
 
-fn hand_slot<L>(player: &Player<L>, hand: Hand) -> usize {
+pub(crate) fn hand_slot<L>(player: &Player<L>, hand: Hand) -> usize {
     match hand {
         Hand::Main => HOTBAR_START + usize::from(player.inventory.selected_hotbar),
         Hand::Off => OFFHAND_SLOT,
@@ -101,6 +101,8 @@ impl<L: ClientLink> Server<L> {
             .is_some_and(|stack| stack.item == ItemKind::Bow.id());
         if is_bow && find_ammo(player).is_some() {
             player.using_item = Some(UsingItem { hand, since: tick });
+        } else if !is_bow {
+            player.using_item = crate::eating::starts_eating(player, hand, tick);
         }
     }
 

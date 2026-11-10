@@ -836,6 +836,7 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_health();
+        self.tick_eating();
         self.tick_delayed_destroys();
         self.tick_spawning();
         self.tick_entities();

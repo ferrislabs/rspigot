@@ -14,6 +14,7 @@ mod context;
 mod cooking;
 mod drops;
 mod durability;
+mod eating;
 mod effects;
 pub mod entities;
 mod environment;
