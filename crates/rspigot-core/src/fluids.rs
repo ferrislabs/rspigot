@@ -19,7 +19,7 @@ const SOURCES_TO_FILL: i32 = 2;
 const SOURCES_TO_LEAK: i32 = 3;
 const FIZZ_SOUND: &str = "minecraft:block.lava.extinguish";
 const HORIZONTAL: [Face; 4] = [Face::North, Face::South, Face::West, Face::East];
-const LAVA_REACTS: [Face; 5] = [Face::Down, Face::North, Face::South, Face::West, Face::East];
+const LAVA_REACTS: [Face; 5] = [Face::Down, Face::South, Face::North, Face::East, Face::West];
 const NEVER_HOLDS: [&str; 7] = [
     "door",
     "sign",
@@ -182,7 +182,7 @@ impl<L: ClientLink> Server<L> {
         let Some(flow) = self.world.chunks.block(pos).and_then(Flow::of) else {
             return;
         };
-        let delay = if self.lava_meets_water(pos, flow) {
+        let delay = if self.lava_reaction(pos, flow).is_some() {
             1
         } else {
             flow.liquid.delay()
@@ -227,21 +227,38 @@ impl<L: ClientLink> Server<L> {
         self.spread(pos, flow);
     }
 
-    fn lava_meets_water(&self, pos: BlockPos, flow: Flow) -> bool {
-        flow.liquid == Liquid::Lava
-            && LAVA_REACTS.into_iter().any(|face| {
-                matches!(self.cell(step(pos, face)), Cell::Fluid(other) if other.liquid == Liquid::Water)
-            })
+    fn lava_reaction(&self, pos: BlockPos, flow: Flow) -> Option<BlockKind> {
+        if flow.liquid != Liquid::Lava {
+            return None;
+        }
+        let on_soul_soil = self
+            .world
+            .chunks
+            .block(step(pos, Face::Down))
+            .and_then(BlockStateId::kind)
+            == Some(BlockKind::SoulSoil);
+        LAVA_REACTS.into_iter().find_map(|face| {
+            let next = step(pos, face);
+            if matches!(self.cell(next), Cell::Fluid(other) if other.liquid == Liquid::Water) {
+                Some(if flow.is_source() {
+                    BlockKind::Obsidian
+                } else {
+                    BlockKind::Cobblestone
+                })
+            } else if on_soul_soil
+                && self.world.chunks.block(next).and_then(BlockStateId::kind)
+                    == Some(BlockKind::BlueIce)
+            {
+                Some(BlockKind::Basalt)
+            } else {
+                None
+            }
+        })
     }
 
     fn solidify_lava(&mut self, pos: BlockPos, flow: Flow) -> bool {
-        if !self.lava_meets_water(pos, flow) {
+        let Some(result) = self.lava_reaction(pos, flow) else {
             return false;
-        }
-        let result = if flow.is_source() {
-            BlockKind::Obsidian
-        } else {
-            BlockKind::Cobblestone
         };
         self.set_block(pos, result.default_state());
         self.fizz(pos);
