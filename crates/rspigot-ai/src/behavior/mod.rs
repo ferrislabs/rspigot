@@ -42,7 +42,11 @@ pub use sensors::{
 };
 pub use shuffling::ShufflingList;
 pub use sinks::{AnimalPanic, LookAtTargetSink, MoveToTargetSink, RandomLookAround, Swim};
-pub use support::{EntityFilter, MobPredicate, UniformInt};
+pub use support::{
+    EntityFilter, MobPredicate, UniformInt, get_entity,
+    is_other_target_much_further_away_than_current_attack_target, is_within_attack_range,
+    living_from_uuid_memory, look_at_entity, nearest_target,
+};
 pub use tracker::PositionTracker;
 pub use walk::{
     AwayFrom, BabyFollowAdult, GoToTargetLocation, GoToWantedItem, InteractWith, RandomStroll,

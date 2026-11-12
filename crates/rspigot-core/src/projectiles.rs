@@ -89,7 +89,7 @@ impl<L: ClientLink> Server<L> {
             .entities
             .store
             .get(shooter)
-            .is_some_and(|entity| entity.base.kind == Kind::Pillager)
+            .is_some_and(|entity| matches!(entity.base.kind, Kind::Pillager | Kind::Piglin))
         {
             self.crossbow_attack(shooter, target);
             return;

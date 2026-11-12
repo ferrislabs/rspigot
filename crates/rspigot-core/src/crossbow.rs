@@ -5,7 +5,7 @@ use rspigot_ai::{CrossbowAction, Hand as AiHand};
 use rspigot_domain::crossbow;
 use rspigot_domain::entity::arrow::{self, ArrowState, Pickup};
 use rspigot_domain::entity::living::slot_index;
-use rspigot_domain::entity::species::pillager;
+use rspigot_domain::entity::species::{piglin, pillager};
 use rspigot_domain::entity::{Entity, EntityState};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::random::RandomSource;
@@ -57,9 +57,14 @@ impl<L: ClientLink> Server<L> {
         match action {
             CrossbowAction::SetCharging(charging) => {
                 if let Some(entity) = self.entities.store.get_mut(id) {
-                    pillager::set_charging_crossbow(&mut entity.base, charging);
+                    if entity.base.kind == Kind::Piglin {
+                        piglin::set_charging_crossbow(&mut entity.base, charging);
+                    } else {
+                        pillager::set_charging_crossbow(&mut entity.base, charging);
+                    }
                 }
             }
+            CrossbowAction::ClearCharged => self.crossbow_clear_charged(id),
             CrossbowAction::Release { hand, ticks } => {
                 self.crossbow_use_step(id, slot_of(hand), ticks);
             }
@@ -236,6 +241,29 @@ impl<L: ClientLink> Server<L> {
         crossbow::set_charged(&mut weapon, &loaded);
         self.set_equipment_stack(id, slot, Some(weapon));
         true
+    }
+
+    fn crossbow_clear_charged(&mut self, id: EntityId) {
+        let Some(living) = self
+            .entities
+            .store
+            .get(id)
+            .and_then(|entity| entity.living())
+        else {
+            return;
+        };
+        let held = [EquipmentSlot::Mainhand, EquipmentSlot::Offhand]
+            .into_iter()
+            .find_map(|slot| {
+                living
+                    .equipment(slot)
+                    .filter(|stack| is_crossbow(stack))
+                    .map(|stack| (slot, stack.clone()))
+            });
+        if let Some((slot, mut weapon)) = held {
+            crossbow::set_charged(&mut weapon, &[]);
+            self.set_equipment_stack(id, slot, Some(weapon));
+        }
     }
 
     pub(crate) fn crossbow_attack(&mut self, id: EntityId, target: EntityId) {

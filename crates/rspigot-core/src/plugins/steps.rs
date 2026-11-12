@@ -559,7 +559,7 @@ pub(crate) enum Spawned {
     },
     Converted {
         old: EntityId,
-        event: i32,
+        event: Option<i32>,
     },
     Answered {
         connection: u64,
@@ -660,6 +660,7 @@ pub(crate) struct MobAttackFollow {
     pub(crate) knockback: f32,
     pub(crate) yaw: f32,
     pub(crate) golem: bool,
+    pub(crate) hoglin: bool,
 }
 
 #[derive(Debug, Clone, Copy)]

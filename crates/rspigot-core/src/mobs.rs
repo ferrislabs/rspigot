@@ -1,7 +1,7 @@
 use rand::Rng;
 use rspigot_ai::{
-    AiWorld, BlockView as AiView, Facts, GoalSettings, Hand, LastDamage, Living, MobAi, MobBody,
-    MobView, TargetKind,
+    AiWorld, BlockView as AiView, Facts, GoalSettings, Hand, LastDamage, Living, MemoryModuleType,
+    MobAi, MobBody, MobView, TargetKind,
 };
 use rspigot_domain::damage::{DamageTag, DamageType};
 use rspigot_domain::entity::ageable::{self, AgeableState};
@@ -61,6 +61,8 @@ const ARMOR_SLOTS: std::ops::Range<usize> = 5..9;
 const HEAD_SLOT: usize = 5;
 const GAZE_DISGUISE: rspigot_ai::TemptItems =
     rspigot_ai::TemptItems::Tag("minecraft:gaze_disguise_equipment");
+const PIGLIN_SAFE_ARMOR: rspigot_ai::TemptItems =
+    rspigot_ai::TemptItems::Tag("minecraft:piglin_safe_armor");
 const NO_DESPAWN_DISTANCE: f64 = 32.0;
 const ACTIVATION_HEIGHT: f64 = 256.0;
 const IMMUNITY_RECHECK: i64 = 20;
@@ -219,6 +221,18 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
         has_target: false,
         scared: false,
         facts: Facts {
+            piglin_safe_armor: ARMOR_SLOTS
+                .filter(|slot| {
+                    player
+                        .inventory
+                        .get(*slot)
+                        .is_some_and(|stack| PIGLIN_SAFE_ARMOR.matches(Some(stack.item)))
+                })
+                .count()
+                > 0,
+            cannot_be_hunted: false,
+            sees_player_holding_loved_item: false,
+            hunted_recently: false,
             uuid: player.profile.id.0,
             tamed: false,
             owner: None,
@@ -291,6 +305,24 @@ fn entity_facts(
             .is_some_and(|source| retaliable(source, game_time)),
         tick_count: base.tick_count,
         gaze_disguise: false,
+        piglin_safe_armor: [
+            EquipmentSlot::Feet,
+            EquipmentSlot::Legs,
+            EquipmentSlot::Chest,
+            EquipmentSlot::Head,
+        ]
+        .into_iter()
+        .any(|slot| {
+            state
+                .equipment(slot)
+                .is_some_and(|stack| PIGLIN_SAFE_ARMOR.matches(Some(stack.item)))
+        }),
+        cannot_be_hunted: matches!(
+            state.mob.as_ref().map(|mob| mob.species),
+            Some(Species::Hoglin(hoglin)) if hoglin.cannot_be_hunted
+        ),
+        sees_player_holding_loved_item: false,
+        hunted_recently: false,
     }
 }
 
@@ -362,6 +394,12 @@ fn with_mob_facts(mut living: Living, entries: &FxHashMap<EntityId, MobEntry>) -
     if let Some(entry) = entries.get(&living.id) {
         living.panicking = entry.ai.is_panicking();
         living.has_target = entry.ai.target().is_some();
+        if let Some(brain) = entry.ai.behavior_brain() {
+            let memories = brain.memories();
+            living.facts.hunted_recently = memories.has_value(MemoryModuleType::HuntedRecently);
+            living.facts.sees_player_holding_loved_item =
+                memories.has_value(MemoryModuleType::NearestPlayerHoldingWantedItem);
+        }
     }
     living
 }
@@ -739,6 +777,9 @@ impl<L: ClientLink> Server<L> {
         let mut ai = MobAi::new(kind, seed, settings);
         if let Some(random) = self.entities.mobs.spawn_randoms.remove(&id) {
             ai.brain_mut().random = random;
+        }
+        if let Some(entity) = self.entities.store.get(id) {
+            Self::load_mob_brain(entity, &mut ai);
         }
         let mut restored_target = false;
         if let Some(target) = self.entities.mobs.initial_targets.remove(&id) {
@@ -1585,6 +1626,7 @@ impl<L: ClientLink> Server<L> {
             );
         }
         state.dying = true;
+        self.stop_mob_brain(id);
         if let Some((owner, message)) = owner_message {
             self.push(Audience::One(owner), ClientEvent::system(message));
         }
@@ -1629,7 +1671,8 @@ impl<L: ClientLink> Server<L> {
 
     fn drop_all_death_loot(&mut self, id: EntityId, source: &DamageSource) {
         let mob_drops = self.config.rules.mob_drops;
-        let held = self.kind_death_item(id);
+        let mut held: Vec<ItemStack> = self.kind_death_item(id).into_iter().collect();
+        held.extend(self.kind_death_extra_drops(id));
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
@@ -1656,7 +1699,7 @@ impl<L: ClientLink> Server<L> {
             .or_else(|| rspigot_data::loot::entity_table(entity.base.kind.id().0));
         let this = loot_facts(entity);
         let damage = self.damage_facts(source);
-        let mut drops: Vec<ItemStack> = held.into_iter().collect();
+        let mut drops: Vec<ItemStack> = held;
         let mut slots = Vec::new();
         if drop_loot {
             if let Some(table) = table {
@@ -1894,6 +1937,15 @@ impl<L: ClientLink> Server<L> {
         {
             return self.iron_golem_hurt_target(attacker, target);
         }
+        if matches!(
+            self.entities
+                .store
+                .get(attacker)
+                .map(|entity| entity.base.kind),
+            Some(Kind::Hoglin | Kind::Zoglin)
+        ) {
+            return self.hoglin_hurt_target(attacker, target);
+        }
         self.panda_bite(attacker);
         let Some(source_entity) = self.mob_source(attacker) else {
             return false;
@@ -1920,6 +1972,7 @@ impl<L: ClientLink> Server<L> {
             knockback,
             yaw,
             golem: false,
+            hoglin: false,
         };
         self.strike(None, victim, &source, damage, AfterHurt::MobAttack(follow))
     }
@@ -1931,9 +1984,14 @@ impl<L: ClientLink> Server<L> {
             knockback,
             yaw,
             golem,
+            hoglin,
         } = follow;
         if golem {
             self.iron_golem_finish_attack(attacker, target, hurt);
+            return;
+        }
+        if hoglin {
+            self.hoglin_finish_attack(attacker, target, hurt);
             return;
         }
         if !hurt {

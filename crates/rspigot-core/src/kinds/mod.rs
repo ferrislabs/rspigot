@@ -17,9 +17,11 @@ mod enderman;
 mod endermite;
 mod fox;
 mod ghast;
+mod hoglin;
 mod iron_golem;
 mod ocelot;
 mod panda;
+mod piglin;
 mod pillager;
 mod polar_bear;
 mod rabbit;
@@ -63,14 +65,17 @@ impl<L: ClientLink> Server<L> {
             Kind::Ocelot => self.ocelot_view(entity, view),
             Kind::Witch => self.witch_view(entity, view),
             Kind::Pillager => self.pillager_view(entity, view),
+            Kind::Hoglin | Kind::Zoglin => self.hoglin_view(entity, view),
+            Kind::Piglin | Kind::PiglinBrute => self.piglin_view(entity, view),
             _ => {}
         }
     }
 
-    pub(crate) fn kind_registered(&self, id: EntityId, ai: &mut rspigot_ai::MobAi) {
+    pub(crate) fn kind_registered(&mut self, id: EntityId, ai: &mut rspigot_ai::MobAi) {
         match self.kind_of(id) {
             Some(Kind::Rabbit) => self.rabbit_registered(id, ai),
             Some(Kind::Ocelot) => self.ocelot_registered(id, ai),
+            Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_registered(id, ai),
             _ => {}
         }
     }
@@ -118,6 +123,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
             Some(Kind::Ocelot) => self.ocelot_post_tick(id),
+            Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_post_tick(id),
+            Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
             _ => {}
         }
     }
@@ -139,6 +146,13 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn kind_death_extra_drops(&mut self, id: EntityId) -> Vec<ItemStack> {
+        match self.kind_of(id) {
+            Some(Kind::Piglin) => self.piglin_death_drops(id),
+            _ => Vec::new(),
+        }
+    }
+
     pub(crate) fn kind_target_cleared(&mut self, id: EntityId) {
         if self.kind_of(id) == Some(Kind::Fox) {
             self.fox_target_cleared(id);
@@ -156,6 +170,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Fox) => self.fox_ambient(id),
             Some(Kind::Wolf) => self.wolf_ambient_voice(id),
             Some(Kind::Cat) => self.cat_ambient_voice(id),
+            Some(Kind::Hoglin | Kind::Zoglin | Kind::Piglin | Kind::PiglinBrute) => {
+                self.brain_ambient_voice(id);
+            }
             _ => {
                 let game_time = self.world.level.game_time;
                 self.play_mob_voice(id, |entity| {
@@ -180,6 +197,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_custom_ai_step(id),
             Some(Kind::Rabbit) => self.rabbit_custom_ai_step(id),
             Some(Kind::Ocelot) => self.ocelot_custom_ai_step(id),
+            Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_custom_ai_step(id),
+            Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_custom_ai_step(id),
             _ => {}
         }
     }
@@ -213,6 +232,7 @@ impl<L: ClientLink> Server<L> {
             }
             Some(Kind::Rabbit) => self.rabbit_interact(player, target, hand, held),
             Some(Kind::Ocelot) => self.ocelot_interact(player, target, hand, held),
+            Some(Kind::Piglin) => self.piglin_interact(player, target, hand, held),
             _ => None,
         }
     }
@@ -275,6 +295,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_after_hurt(id, source, dead),
             Some(Kind::Ocelot) => self.ocelot_after_hurt(id, source, dead),
             Some(Kind::Shulker) => self.shulker_after_hurt(id, source, dead),
+            Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_after_hurt(id, source, dead),
+            Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
             _ => {}
         }
     }
