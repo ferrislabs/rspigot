@@ -658,6 +658,11 @@ pub(crate) struct ArrowFollow {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct ThrownFollow {
+    pub(crate) projectile: EntityId,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct BurnFollow {
     pub(crate) position: Vec3,
     pub(crate) player: bool,
@@ -679,6 +684,7 @@ pub(crate) enum AfterHurt {
     Sweep(SweepFollow),
     MobAttack(MobAttackFollow),
     Arrow(ArrowFollow),
+    Thrown(ThrownFollow),
     Burn(BurnFollow),
     Blast(BlastFollow),
 }
@@ -808,6 +814,13 @@ pub(crate) struct GatherStep {
     pub(crate) fox: EntityId,
     pub(crate) item: EntityId,
     pub(crate) stack: ItemStack,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct FormStep {
+    pub(crate) entity: EntityId,
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
 }
 
 #[derive(Debug)]
@@ -967,6 +980,7 @@ pub(crate) enum Continuation {
     Gather(Box<GatherStep>),
     MobPickup(Box<MobPickupStep>),
     ChangeBlock(Box<ChangeStep>),
+    Form(FormStep),
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
     EntityExplode(Box<ExplodeStep>),
@@ -1066,6 +1080,7 @@ impl Continuation {
                 EventKind::EntityPickupItem
             }
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
+            Self::Form(_) => EventKind::EntityBlockForm,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } => EventKind::EntityInteract,
             Self::EntityExplode(_) => EventKind::EntityExplode,
@@ -1143,6 +1158,7 @@ impl Continuation {
                     *enderman == id
                 }
             },
+            Self::Form(step) => step.entity == id,
             Self::EggBreak { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
             Self::Prime(step) => step.creeper == id,
@@ -1179,6 +1195,7 @@ impl Continuation {
                     _ => false,
                 }
             }
+            (Self::Form(one), Self::Form(other)) => one.pos == other.pos,
             (Self::EggBreak { mob: one, .. }, Self::EggBreak { mob: other, .. }) => one == other,
             (Self::Prime(one), Self::Prime(other)) => one.creeper == other.creeper,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
@@ -1222,7 +1239,9 @@ impl Continuation {
             | Self::Gather(_)
             | Self::MobPickup(_) => true,
             Self::ChangeBlock(step) => matches!(step.change, Grief::Fall { .. }),
-            Self::EggBreak { .. } | Self::Prime(_) | Self::ProjectileHit { .. } => true,
+            Self::EggBreak { .. } | Self::Form(_) | Self::Prime(_) | Self::ProjectileHit { .. } => {
+                true
+            }
             Self::Aim(step) => step.deferred,
             Self::Breed(_) => true,
             _ => matches!(

@@ -846,6 +846,12 @@ impl<L: ClientLink> Server<L> {
                 self.finish_change(*step, cancelled);
                 Vec::new()
             }
+            Continuation::Form(step) => {
+                if !cancelled {
+                    self.finish_snow_trail(step);
+                }
+                Vec::new()
+            }
             Continuation::Regrow(sheep) => {
                 if !cancelled {
                     self.regrow_wool(sheep);

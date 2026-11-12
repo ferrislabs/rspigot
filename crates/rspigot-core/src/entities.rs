@@ -264,7 +264,7 @@ impl<L: ClientLink> Server<L> {
         let visible = self.sees(player, entity, tracked.range);
         let tracking = player.tracked.contains(&id);
         if visible && !tracking {
-            let data = self.arrow_owner_id(entity);
+            let data = self.projectile_owner_id(entity);
             let events = pairing_events(entity, &tracked.tracker, data);
             if let Some(player) = self.players.get_mut(&player_id) {
                 player.tracked.insert(id);
@@ -362,6 +362,7 @@ impl<L: ClientLink> Server<L> {
                 }
                 EntityState::Orb(_) => self.tick_orb(id),
                 EntityState::Arrow(_) => self.tick_arrow(id),
+                EntityState::Thrown(_) => self.tick_thrown(id),
                 EntityState::Inert(_) => {}
             }
             self.entities.store.reindex(id);
