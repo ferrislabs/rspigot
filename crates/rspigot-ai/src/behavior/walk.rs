@@ -4,7 +4,7 @@ use rspigot_entities::EntityKind;
 use crate::behavior::control::{BehaviorCx, Trigger};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue, WalkTarget};
 use crate::behavior::support::{
-    EntityFilter, UniformInt, dist_sqr, get_entity, get_walk_target, look_at_entity,
+    EntityFilter, MobPredicate, UniformInt, dist_sqr, get_entity, get_walk_target, look_at_entity,
     set_walk_target,
 };
 use crate::behavior::tracker::PositionTracker;
@@ -419,8 +419,9 @@ impl Trigger for SetWalkTargetAwayFrom {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GoToWantedItem {
+    predicate: MobPredicate,
     speed_modifier: f32,
     interrupt_ongoing_walk: bool,
     max_dist_to_walk: i32,
@@ -428,7 +429,22 @@ pub struct GoToWantedItem {
 
 impl GoToWantedItem {
     pub fn new(speed_modifier: f32, interrupt_ongoing_walk: bool, max_dist_to_walk: i32) -> Self {
+        Self::when(
+            MobPredicate::Always,
+            speed_modifier,
+            interrupt_ongoing_walk,
+            max_dist_to_walk,
+        )
+    }
+
+    pub fn when(
+        predicate: MobPredicate,
+        speed_modifier: f32,
+        interrupt_ongoing_walk: bool,
+        max_dist_to_walk: i32,
+    ) -> Self {
         Self {
+            predicate,
             speed_modifier,
             interrupt_ongoing_walk,
             max_dist_to_walk,
@@ -464,6 +480,7 @@ impl Trigger for GoToWantedItem {
             .brain
             .memories
             .has_value(MemoryModuleType::ItemPickupCooldownTicks)
+            || !self.predicate.test(cx)
         {
             return false;
         }

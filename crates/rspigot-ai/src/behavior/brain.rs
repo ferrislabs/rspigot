@@ -191,6 +191,24 @@ impl<C> ActivityData<C> {
         )
     }
 
+    pub fn from_pairs_erasing(
+        activity: Activity,
+        behaviors: Vec<(i32, C)>,
+        memory_that_must_have_value_and_will_be_erased_after: MemoryModuleType,
+    ) -> Self {
+        Self {
+            activity,
+            behaviors,
+            conditions: vec![(
+                memory_that_must_have_value_and_will_be_erased_after,
+                MemoryStatus::ValuePresent,
+            )],
+            memories_to_erase_when_stopped: vec![
+                memory_that_must_have_value_and_will_be_erased_after,
+            ],
+        }
+    }
+
     pub fn from_pairs(activity: Activity, behaviors: Vec<(i32, C)>) -> Self {
         Self::with_conditions(activity, behaviors, Vec::new())
     }
@@ -300,6 +318,18 @@ impl<C: BehaviorControl> BehaviorBrain<C> {
                 None => by_activity.push((activity, vec![behavior])),
             }
         }
+    }
+
+    pub fn activity_behaviors(&self, activity: Activity) -> Vec<(i32, &C)> {
+        self.behaviors
+            .iter()
+            .flat_map(|(priority, by_activity)| {
+                by_activity
+                    .iter()
+                    .filter(move |(candidate, _)| *candidate == activity)
+                    .flat_map(move |(_, list)| list.iter().map(move |c| (*priority, c)))
+            })
+            .collect()
     }
 
     pub fn remove_all_behaviors(&mut self) {

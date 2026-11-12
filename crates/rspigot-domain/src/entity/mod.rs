@@ -101,6 +101,8 @@ impl Entity {
         }
         match mob.species {
             species::Species::Zombie(_) => species::zombie_is_baby(&self.base),
+            species::Species::Piglin(_) => species::piglin::is_baby(&self.base),
+            species::Species::Hoglin(_) => species::hoglin::is_zoglin_baby(&self.base),
             _ => false,
         }
     }

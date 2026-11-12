@@ -7,7 +7,7 @@ use rspigot_domain::entity::{Aabb, EntityBase};
 use rspigot_domain::poi::{Occupancy, PoiRecord};
 use rspigot_domain::{BlockPos, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind;
-use rspigot_items::EquipmentSlot;
+use rspigot_items::{EquipmentSlot, ItemKind};
 use uuid::Uuid;
 
 use crate::BlockView;
@@ -15,6 +15,21 @@ use crate::BlockView;
 pub const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
 pub const TEMPT_RANGE: &str = "minecraft:tempt_range";
 const WOLF_SITTING_MAX_HEAD_X_ROT: f32 = 20.0;
+const CROSSBOW_RANGE: i32 = 8;
+const BOW_RANGE: i32 = 15;
+
+fn is_kinetic_weapon(kind: ItemKind) -> bool {
+    matches!(
+        kind,
+        ItemKind::WoodenSpear
+            | ItemKind::StoneSpear
+            | ItemKind::CopperSpear
+            | ItemKind::IronSpear
+            | ItemKind::GoldenSpear
+            | ItemKind::DiamondSpear
+            | ItemKind::NetheriteSpear
+    )
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Facts {
@@ -33,6 +48,10 @@ pub struct Facts {
     pub sitting: bool,
     pub llama_strength: i32,
     pub gaze_disguise: bool,
+    pub piglin_safe_armor: bool,
+    pub cannot_be_hunted: bool,
+    pub sees_player_holding_loved_item: bool,
+    pub hunted_recently: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -332,6 +351,8 @@ impl Default for ShulkerFacts {
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct KindFacts {
+    pub piglin: crate::PiglinFacts,
+    pub hoglin: crate::HoglinFacts,
     pub wolf: crate::WolfFacts,
     pub cat: crate::CatFacts,
     pub fox: crate::FoxFacts,
@@ -512,6 +533,22 @@ impl MobView {
 
     pub fn is_holding(&self, item: ItemId) -> bool {
         self.main_hand == Some(item) || self.off_hand == Some(item)
+    }
+
+    pub fn can_use_non_melee_weapon(&self, item: ItemId) -> bool {
+        self.kind == EntityKind::Piglin
+            && (item == ItemKind::Crossbow.id() || item.kind().is_some_and(is_kinetic_weapon))
+    }
+
+    pub fn projectile_range(&self, item: ItemId) -> Option<i32> {
+        if !self.can_use_non_melee_weapon(item) {
+            return None;
+        }
+        match item.kind() {
+            Some(ItemKind::Crossbow) => Some(CROSSBOW_RANGE),
+            Some(ItemKind::Bow) => Some(BOW_RANGE),
+            _ => None,
+        }
     }
 
     pub fn eye_y(&self) -> f64 {

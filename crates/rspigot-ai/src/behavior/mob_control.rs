@@ -17,6 +17,12 @@ use crate::behavior::walk::{
     SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract, SetWalkTargetAwayFrom,
     SetWalkTargetFromLookTarget, StrollAroundPoi, StrollToPoi,
 };
+use crate::piglin::{
+    BackUpIfTooClose, BecomePassiveIfMemoryPresent, CROSSBOW_ATTACK_DURATION, CopyMemoryWithExpiry,
+    CrossbowAttack, RememberIfHoglinWasKilled, StartAdmiringItemIfSeen,
+    StartCelebratingIfTargetDead, StartHuntingHoglin, StopAdmiringIfItemTooFarAway,
+    StopAdmiringIfTiredOfTryingToReachItem, StopHoldingItemIfNoLongerAdmiring,
+};
 use crate::world::AiWorld;
 
 const LOOK_SINK_MIN_DURATION: i32 = 45;
@@ -139,6 +145,7 @@ mob_behaviors! {
     RandomLookAround(RandomLookAround),
     AnimalMakeLove(AnimalMakeLove),
     FollowTemptation(FollowTemptation),
+    CrossbowAttack(CrossbowAttack),
 }
 
 macro_rules! mob_triggers {
@@ -200,6 +207,16 @@ mob_triggers! {
     SetWalkTargetFromAttackTargetIfTargetOutOfReach(SetWalkTargetFromAttackTargetIfTargetOutOfReach),
     EraseMemoryIf(EraseMemoryIf),
     StopBeingAngryIfTargetDead(StopBeingAngryIfTargetDead),
+    BecomePassiveIfMemoryPresent(BecomePassiveIfMemoryPresent),
+    BackUpIfTooClose(BackUpIfTooClose),
+    CopyMemoryWithExpiry(CopyMemoryWithExpiry),
+    StartCelebratingIfTargetDead(StartCelebratingIfTargetDead),
+    StartHuntingHoglin(StartHuntingHoglin),
+    RememberIfHoglinWasKilled(RememberIfHoglinWasKilled),
+    StartAdmiringItemIfSeen(StartAdmiringItemIfSeen),
+    StopAdmiringIfItemTooFarAway(StopAdmiringIfItemTooFarAway),
+    StopAdmiringIfTiredOfTryingToReachItem(StopAdmiringIfTiredOfTryingToReachItem),
+    StopHoldingItemIfNoLongerAdmiring(StopHoldingItemIfNoLongerAdmiring),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -293,6 +310,14 @@ impl MobControl {
 
     pub fn follow_temptation(behavior: FollowTemptation) -> Self {
         Self::behavior(MobBehavior::FollowTemptation(behavior))
+    }
+
+    pub fn crossbow_attack() -> Self {
+        Self::behavior_for(
+            MobBehavior::CrossbowAttack(CrossbowAttack::new()),
+            CROSSBOW_ATTACK_DURATION,
+            CROSSBOW_ATTACK_DURATION,
+        )
     }
 
     pub fn count_down_cooldown_ticks(cooldown_ticks: MemoryModuleType) -> Self {

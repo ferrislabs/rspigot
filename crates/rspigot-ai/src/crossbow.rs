@@ -38,6 +38,7 @@ impl Default for CrossbowFacts {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CrossbowAction {
     SetCharging(bool),
+    ClearCharged,
     Release { hand: Hand, ticks: i32 },
 }
 

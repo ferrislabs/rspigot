@@ -477,7 +477,11 @@ impl<L: ClientLink> Server<L> {
         };
         self.close_open_menu(id, true);
         open.inventory = self.inventory_of(open.backing);
+        let guarded = open.backing.lid != Lid::None;
         self.ask_open(id, pos, open);
+        if guarded {
+            self.anger_nearby_piglins(id, true);
+        }
         true
     }
 

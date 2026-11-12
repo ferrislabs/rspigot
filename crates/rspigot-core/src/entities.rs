@@ -231,6 +231,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(cause) = cause {
             self.notify_removal(id, cause);
         }
+        self.stop_mob_brain(id);
         let mut entity = self.entities.store.remove(id)?;
         entity.base.removal = Some(reason);
         self.entities.tracked.remove(&id);
@@ -552,7 +553,7 @@ impl<L: ClientLink> Server<L> {
         let (kept, saved): (Vec<EntityId>, Vec<Compound>) = ids
             .iter()
             .filter_map(|id| self.entities.store.get(*id))
-            .filter_map(|entity| Some((entity.base.id, save::save_entity(entity, world_uuid)?)))
+            .filter_map(|entity| Some((entity.base.id, self.entity_nbt(entity, world_uuid)?)))
             .unzip();
         let merge = !unload && !self.world.chunks.is_loaded(pos);
         if unload {
@@ -642,7 +643,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn saved_entity(&self, id: EntityId) -> Option<Compound> {
-        save::save_entity(self.entities.store.get(id)?, None)
+        self.entity_nbt(self.entities.store.get(id)?, None)
     }
 
     pub fn entities_of(&self, kind: Kind) -> Vec<EntitySnapshot> {

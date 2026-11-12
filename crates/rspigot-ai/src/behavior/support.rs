@@ -4,6 +4,7 @@ use rspigot_entities::EntityKind;
 use crate::behavior::control::BehaviorCx;
 use crate::behavior::memory::{MemoryModuleType, MemoryValue, WalkTarget};
 use crate::behavior::tracker::PositionTracker;
+use crate::piglin::{HoglinCondition, PiglinCondition};
 use crate::random::RandomSource;
 use crate::world::{AiWorld, Living};
 
@@ -30,6 +31,7 @@ impl UniformInt {
 pub enum EntityFilter {
     Any,
     Kind(EntityKind),
+    SeesNoPlayerHoldingLovedItem,
 }
 
 impl EntityFilter {
@@ -37,6 +39,7 @@ impl EntityFilter {
         match self {
             Self::Any => true,
             Self::Kind(kind) => entity.kind == kind,
+            Self::SeesNoPlayerHoldingLovedItem => !entity.facts.sees_player_holding_loved_item,
         }
     }
 }
@@ -48,6 +51,8 @@ pub enum MobPredicate {
     IsBaby,
     HasMemory(MemoryModuleType),
     Not(Box<MobPredicate>),
+    Hoglin(HoglinCondition),
+    Piglin(PiglinCondition),
 }
 
 impl MobPredicate {
@@ -62,6 +67,8 @@ impl MobPredicate {
             Self::IsBaby => cx.ai.mob.baby,
             Self::HasMemory(memory) => cx.brain.memories.has_value(*memory),
             Self::Not(inner) => !inner.test(cx),
+            Self::Hoglin(condition) => condition.test(cx),
+            Self::Piglin(condition) => condition.test(cx),
         }
     }
 }
@@ -112,6 +119,68 @@ pub fn is_within_melee_range<W: AiWorld>(cx: &BehaviorCx<'_, '_, W>, target: &Li
     crate::combat::within_melee_range(cx.ai.mob, target)
 }
 
-pub fn is_within_attack_range<W: AiWorld>(cx: &BehaviorCx<'_, '_, W>, target: &Living) -> bool {
+pub fn is_within_attack_range<W: AiWorld>(
+    cx: &BehaviorCx<'_, '_, W>,
+    target: &Living,
+    projectile_attack_range_margin: i32,
+) -> bool {
+    let mob = cx.ai.mob;
+    if let Some(range) = mob.main_hand.and_then(|item| mob.projectile_range(item)) {
+        let reach = f64::from(range - projectile_attack_range_margin);
+        return mob.distance_to_sqr(target.position) < reach * reach;
+    }
     is_within_melee_range(cx, target)
+}
+
+pub fn is_holding_usable_non_melee_weapon<W: AiWorld>(cx: &BehaviorCx<'_, '_, W>) -> bool {
+    let mob = cx.ai.mob;
+    [mob.main_hand, mob.off_hand]
+        .into_iter()
+        .flatten()
+        .any(|item| mob.can_use_non_melee_weapon(item))
+}
+
+pub fn nearest_target<W: AiWorld>(
+    cx: &BehaviorCx<'_, '_, W>,
+    current: Option<Living>,
+    candidate: Living,
+) -> Living {
+    match current {
+        Some(current) => {
+            let mob = cx.ai.mob;
+            if mob.distance_to_sqr(candidate.position) <= mob.distance_to_sqr(current.position) {
+                candidate
+            } else {
+                current
+            }
+        }
+        None => candidate,
+    }
+}
+
+pub fn is_other_target_much_further_away_than_current_attack_target<W: AiWorld>(
+    cx: &BehaviorCx<'_, '_, W>,
+    other: &Living,
+    how_much_further_away: f64,
+) -> bool {
+    let Some(current) =
+        get_entity(cx, MemoryModuleType::AttackTarget).and_then(|id| cx.ai.world.living(id))
+    else {
+        return false;
+    };
+    let mob = cx.ai.mob;
+    mob.distance_to_sqr(current.position) + how_much_further_away * how_much_further_away
+        < mob.distance_to_sqr(other.position)
+}
+
+pub fn living_from_uuid_memory<W: AiWorld>(
+    cx: &BehaviorCx<'_, '_, W>,
+    memory: MemoryModuleType,
+) -> Option<Living> {
+    let uuid = cx
+        .brain
+        .memories
+        .get(memory)
+        .and_then(MemoryValue::as_uuid)?;
+    cx.ai.world.living_by_uuid(uuid)
 }

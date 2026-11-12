@@ -21,7 +21,7 @@ pub struct FarAwayFacts {
 
 pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<bool> {
     Some(match kind.mob_spawn()?.remove_when_far_away {
-        MobClass::Mob => true,
+        MobClass::Mob | MobClass::Hoglin => true,
         MobClass::Cat => !facts.tame && facts.tick_count > OCELOT_PERSISTENT_TICKS,
         MobClass::Ocelot => !facts.trusting && facts.tick_count > OCELOT_PERSISTENT_TICKS,
         MobClass::Animal

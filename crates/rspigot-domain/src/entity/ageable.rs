@@ -295,6 +295,8 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
         EntityKind::ZombifiedPiglin => dims(0.49, 0.98, 0.78),
         EntityKind::ZombieVillager => dims(0.49, 0.98, 0.67),
         EntityKind::PolarBear => dims(0.7, 0.7, 0.34375),
+        EntityKind::Hoglin | EntityKind::Zoglin => dims(0.75, 0.85, 0.625),
+        EntityKind::Piglin => dims(0.49, 0.98, 0.78),
         _ => dims(
             adult.width * 0.5,
             adult.height * 0.5,

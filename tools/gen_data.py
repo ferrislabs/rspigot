@@ -87,6 +87,12 @@ def normalize_id(value):
     return value
 
 
+def enchantment_max_level(enchantment):
+    path = os.path.join(DEFAULT_DATAPACK, "enchantment", enchantment.split(":", 1)[1] + ".json")
+    with open(path) as handle:
+        return json.load(handle)["max_level"]
+
+
 def wrapped(tokens, indent):
     lines = []
     line = ""
@@ -415,6 +421,7 @@ EXTRA_TABLES = [
     ("minecraft:gameplay/cat_morning_gift", "minecraft:gift"),
     ("minecraft:gameplay/chicken_lay", "minecraft:gift"),
     ("minecraft:gameplay/panda_sneeze", "minecraft:gift"),
+    ("minecraft:gameplay/piglin_bartering", "minecraft:barter"),
     ("minecraft:shearing/sheep", "minecraft:shearing"),
     ("minecraft:shearing/snow_golem", "minecraft:shearing"),
     ("minecraft:till/rooted_dirt", "minecraft:block_interact"),
@@ -1102,6 +1109,19 @@ class LootBuilder:
             if potion not in self.ids["minecraft:potion"]:
                 fail("unknown potion %s in %s" % (potion, self.where))
             body = rs_call("FunctionKind::SetPotion", [rs_str(potion)])
+        elif kind == "minecraft:enchant_randomly":
+            expect_keys(value, {"type", "condition", "options", "only_compatible"}, self.where)
+            options = value.get("options")
+            if not isinstance(options, str) or options.startswith("#"):
+                fail("unsupported enchant_randomly options in %s" % self.where)
+            enchantment = normalize_id(options)
+            if enchantment not in self.enchantments:
+                fail("unknown enchantment %s in %s" % (enchantment, self.where))
+            max_level = enchantment_max_level(enchantment)
+            body = rs_struct(
+                "FunctionKind::EnchantRandomly",
+                [("enchantment", rs_str(enchantment)), ("max_level", rs_int(max_level))],
+            )
         elif kind == "minecraft:set_ominous_bottle_amplifier":
             expect_keys(value, {"type", "condition", "amplifier"}, self.where)
             body = rs_call("FunctionKind::SetOminousBottleAmplifier", [self.int_provider(value["amplifier"])])

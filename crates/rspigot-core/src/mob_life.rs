@@ -44,6 +44,7 @@ const BURN_IN_DAYLIGHT: &str = "minecraft:burn_in_daylight";
 const BURN_LIGHT: f32 = 0.5;
 const BURN_ROLL: f32 = 30.0;
 const BURN_OFFSET: f32 = 0.4;
+const ZOMBIFIED_NAUSEA_TICKS: u32 = 200;
 
 pub(crate) fn type_in_tag(kind: Kind, tag: &str) -> bool {
     rspigot_data::tags::tag("minecraft:entity_type", tag)
@@ -184,7 +185,7 @@ impl<L: ClientLink> Server<L> {
             return !self.explode_creeper(id);
         }
         if let Some((kind, event)) = convert {
-            self.convert_mob(id, kind, event);
+            self.convert_mob(id, kind, Some(event));
             return self.entities.store.get(id).is_some();
         }
         true
@@ -227,7 +228,7 @@ impl<L: ClientLink> Server<L> {
             now,
         );
         if step == ConversionStep::Convert {
-            self.convert_mob(id, converts_to, event);
+            self.convert_mob(id, converts_to, Some(event));
         }
     }
 
@@ -586,7 +587,7 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
-    pub(crate) fn convert_mob(&mut self, id: EntityId, kind: Kind, event: i32) {
+    pub(crate) fn convert_mob(&mut self, id: EntityId, kind: Kind, event: Option<i32>) {
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
@@ -594,6 +595,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let old_base = entity.base.clone();
+        let baby = entity.is_baby();
         let Some(old_living) = entity.living().cloned() else {
             return;
         };
@@ -633,7 +635,6 @@ impl<L: ClientLink> Server<L> {
             let _ = state.effects.apply(*effect);
         }
         let old_mob = old_living.mob.clone();
-        let baby = old_base.kind.extends("Zombie") && species::zombie_is_baby(&old_base);
         if let (Some(new_mob), Some(old_mob)) = (&mut state.mob, &old_mob) {
             new_mob.can_pick_up_loot = old_mob.can_pick_up_loot;
             new_mob.persistence_required = old_mob.persistence_required;
@@ -646,6 +647,9 @@ impl<L: ClientLink> Server<L> {
         }
         if baby && species::is_zombie(kind) {
             species::set_zombie_baby(&mut base, &mut state.attributes, true);
+        }
+        if baby {
+            species::hoglin::set_zoglin_baby(&mut base, &mut state.attributes, true);
         }
         living::set_left_handed(&mut base, living::is_left_handed(&old_base));
         living::set_no_ai(&mut base, living::is_no_ai(&old_base));
@@ -660,19 +664,29 @@ impl<L: ClientLink> Server<L> {
                 &mut own,
             );
         }
-        let converted = Entity::new(base, EntityState::Living(Box::new(state)));
-        let reason = if kind == Kind::Stray {
-            CreatureSpawnReason::Frozen
-        } else {
-            CreatureSpawnReason::Drowned
+        let reason = match kind {
+            Kind::Stray => CreatureSpawnReason::Frozen,
+            Kind::Zoglin | Kind::ZombifiedPiglin => {
+                if let Some(nausea) = EffectId::from_name("minecraft:nausea") {
+                    let _ = state.effects.apply(EffectInstance::new(
+                        nausea,
+                        EffectDuration::Ticks(ZOMBIFIED_NAUSEA_TICKS),
+                        0,
+                        true,
+                    ));
+                }
+                CreatureSpawnReason::PiglinZombified
+            }
+            _ => CreatureSpawnReason::Drowned,
         };
+        let converted = Entity::new(base, EntityState::Living(Box::new(state)));
         self.spawn_entity(
             converted,
             Birth::of(reason).then(Spawned::Converted { old: id, event }),
         );
     }
 
-    pub(crate) fn finish_conversion(&mut self, old: EntityId, event: i32) {
+    pub(crate) fn finish_conversion(&mut self, old: EntityId, event: Option<i32>) {
         if !self.living_entity_alive(old) {
             return;
         }
@@ -689,7 +703,7 @@ impl<L: ClientLink> Server<L> {
             RemovalReason::Discarded,
             Some(EntityRemoveCause::Transformation),
         );
-        if !silent {
+        if let Some(event) = event.filter(|_| !silent) {
             self.level_event(event, pos, 0);
         }
     }

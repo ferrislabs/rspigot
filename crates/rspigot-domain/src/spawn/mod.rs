@@ -5,6 +5,7 @@ pub mod fox;
 pub mod generation;
 mod ghast;
 pub mod natural;
+mod piglin;
 pub mod placement;
 mod polar_bear;
 pub mod rules;
