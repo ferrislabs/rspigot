@@ -378,6 +378,7 @@ pub struct KindFacts {
     pub goat: crate::GoatFacts,
     pub armadillo: crate::ArmadilloFacts,
     pub breeze: crate::BreezeFacts,
+    pub creaking: crate::CreakingFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

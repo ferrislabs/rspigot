@@ -53,6 +53,8 @@ pub enum MobPredicate {
     Not(Box<MobPredicate>),
     Hoglin(HoglinCondition),
     Piglin(PiglinCondition),
+    CreakingActive,
+    CreakingCanMove,
 }
 
 impl MobPredicate {
@@ -69,6 +71,8 @@ impl MobPredicate {
             Self::Not(inner) => !inner.test(cx),
             Self::Hoglin(condition) => condition.test(cx),
             Self::Piglin(condition) => condition.test(cx),
+            Self::CreakingActive => cx.ai.brain.creaking.active,
+            Self::CreakingCanMove => cx.ai.brain.creaking.can_move,
         }
     }
 }
