@@ -2,6 +2,7 @@ pub mod admin;
 mod beacon;
 mod block_tools;
 mod bow;
+mod bullet;
 mod campfire;
 mod chests;
 pub mod chunks;

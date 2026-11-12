@@ -513,11 +513,18 @@ pub(crate) struct PrimeStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct ShulkerHop {
+    pub(crate) face: rspigot_blocks::Face,
+    pub(crate) breed: Option<(Vec3, rspigot_domain::entity::Aabb)>,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct RelocateStep {
     pub(crate) entity: EntityId,
     pub(crate) to: Vec3,
     pub(crate) command: bool,
     pub(crate) from: Option<Vec3>,
+    pub(crate) shulker: Option<ShulkerHop>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -670,6 +677,12 @@ pub(crate) struct ThrownFollow {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct BulletFollow {
+    pub(crate) projectile: EntityId,
+    pub(crate) target: EntityId,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct HurtingFollow {
     pub(crate) projectile: EntityId,
     pub(crate) target: EntityId,
@@ -708,6 +721,7 @@ pub(crate) enum AfterHurt {
     Arrow(ArrowFollow),
     Thrown(ThrownFollow),
     Hurting(HurtingFollow),
+    Bullet(BulletFollow),
     Burn(BurnFollow),
     Blast(BlastFollow),
 }

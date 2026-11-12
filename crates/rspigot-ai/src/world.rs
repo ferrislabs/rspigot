@@ -1,3 +1,4 @@
+use rspigot_blocks::Face;
 use rspigot_domain::entity::fluid::FluidContact;
 use rspigot_domain::entity::living::{self, LivingState};
 use rspigot_domain::entity::tamable;
@@ -281,6 +282,23 @@ pub trait AiWorld: BlockView {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ShulkerFacts {
+    pub attach_face: Face,
+    pub raw_peek: i32,
+    pub can_stay: bool,
+}
+
+impl Default for ShulkerFacts {
+    fn default() -> Self {
+        Self {
+            attach_face: Face::Down,
+            raw_peek: 0,
+            can_stay: true,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct KindFacts {
     pub wolf: crate::WolfFacts,
@@ -293,6 +311,7 @@ pub struct KindFacts {
     pub iron_golem: crate::IronGolemFacts,
     pub raider: crate::RaiderFacts,
     pub crossbow: crate::CrossbowFacts,
+    pub shulker: ShulkerFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -356,6 +375,8 @@ pub struct MobView {
     pub leashed: bool,
     pub passenger: bool,
     pub player_created: bool,
+    pub team: bool,
+    pub custom_box: Option<Aabb>,
     pub species: KindFacts,
 }
 
@@ -438,6 +459,8 @@ impl MobView {
             leashed: false,
             passenger: false,
             player_created: false,
+            team: false,
+            custom_box: base.custom_box,
             species: KindFacts::default(),
         }
     }
@@ -445,6 +468,8 @@ impl MobView {
     pub fn max_head_x_rot(&self) -> f32 {
         if self.kind == EntityKind::Wolf && self.sitting {
             WOLF_SITTING_MAX_HEAD_X_ROT
+        } else if self.kind == EntityKind::Shulker {
+            rspigot_domain::entity::species::shulker::MAX_HEAD_ROTATION
         } else {
             crate::control::MAX_HEAD_X_ROT
         }
@@ -467,7 +492,10 @@ impl MobView {
     }
 
     pub fn bounds(&self) -> Aabb {
-        Aabb::of_size(self.position, self.width, self.height)
+        match self.custom_box {
+            Some(relative) => relative.move_by(self.position),
+            None => Aabb::of_size(self.position, self.width, self.height),
+        }
     }
 
     pub fn distance_to_sqr(&self, point: Vec3) -> f64 {

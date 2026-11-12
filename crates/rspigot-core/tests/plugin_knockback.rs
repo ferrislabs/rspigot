@@ -107,7 +107,11 @@ fn a_sprinting_hit_knocks_back_twice_by_the_attacker() {
 
 #[test]
 fn a_sweep_knocks_every_swept_target_twice() {
-    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::EntityKnockback)]);
+    let mut s = scene_on(
+        server(PluginSettings::default()).with_rng_seed(0),
+        &["Alice"],
+        vec![observe(1, EventKind::EntityKnockback)],
+    );
     let alice = s.players[0].clone();
     s.server.handle(Inbound::Console(
         "give Alice minecraft:diamond_sword".to_owned(),

@@ -24,6 +24,7 @@ pub(crate) struct Mock {
     pub bright: bool,
     pub universal_anger: bool,
     pub blocks: HashMap<BlockPos, StateId>,
+    pub peaceful: bool,
 }
 
 impl BlockView for Mock {
@@ -65,7 +66,7 @@ impl AiWorld for Mock {
     }
 
     fn difficulty(&self) -> i32 {
-        2
+        if self.peaceful { 0 } else { 2 }
     }
 
     fn game_time(&self) -> i64 {

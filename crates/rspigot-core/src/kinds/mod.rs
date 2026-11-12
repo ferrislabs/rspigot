@@ -23,6 +23,7 @@ mod panda;
 mod pillager;
 mod polar_bear;
 mod rabbit;
+mod shulker;
 mod silverfish;
 mod snow_golem;
 mod witch;
@@ -56,6 +57,7 @@ impl<L: ClientLink> Server<L> {
             Kind::IronGolem => self.iron_golem_view(entity, view),
             Kind::Blaze => self.blaze_view(entity, view),
             Kind::Ghast => self.ghast_view(entity, view),
+            Kind::Shulker => self.shulker_view(entity, view),
             Kind::ZombifiedPiglin => self.zombified_piglin_view(entity, view),
             Kind::Rabbit => self.rabbit_view(entity, view),
             Kind::Ocelot => self.ocelot_view(entity, view),
@@ -111,6 +113,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Silverfish) => self.silverfish_post_tick(id),
             Some(Kind::IronGolem) => self.iron_golem_post_tick(id),
             Some(Kind::SnowGolem) => self.snow_golem_post_tick(id),
+            Some(Kind::Shulker) => self.shulker_post_tick(id),
             Some(Kind::Blaze) => self.blaze_post_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
@@ -231,6 +234,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Silverfish) => self.silverfish_hurt_amount(id, source, amount),
             Some(Kind::IronGolem) => self.iron_golem_hurt_amount(id, source, amount),
             Some(Kind::Ghast) => self.ghast_hurt_amount(id, source, amount),
+            Some(Kind::Shulker) => self.shulker_hurt_amount(id, source, amount),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_hurt_amount(id, source, amount),
             Some(Kind::Rabbit) => self.rabbit_hurt_amount(id, source, amount),
             Some(Kind::Ocelot) => self.ocelot_hurt_amount(id, source, amount),
@@ -270,7 +274,15 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_after_hurt(id, source, dead),
             Some(Kind::Rabbit) => self.rabbit_after_hurt(id, source, dead),
             Some(Kind::Ocelot) => self.ocelot_after_hurt(id, source, dead),
+            Some(Kind::Shulker) => self.shulker_after_hurt(id, source, dead),
             _ => {}
+        }
+    }
+
+    pub(crate) fn kind_hurt_sound(&mut self, id: EntityId) -> bool {
+        match self.kind_of(id) {
+            Some(Kind::Shulker) => self.shulker_hurt_sound(id),
+            _ => false,
         }
     }
 }

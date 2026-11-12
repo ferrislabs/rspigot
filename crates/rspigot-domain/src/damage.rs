@@ -30,6 +30,7 @@ pub enum DamageType {
     Lava,
     Arrow,
     Thrown,
+    MobProjectile,
     Fireball,
     UnattributedFireball,
     WitherSkull,
@@ -95,6 +96,7 @@ impl DamageType {
             Self::Lava => "minecraft:lava",
             Self::Arrow => "minecraft:arrow",
             Self::Thrown => "minecraft:thrown",
+            Self::MobProjectile => "minecraft:mob_projectile",
             Self::Fireball => "minecraft:fireball",
             Self::UnattributedFireball => "minecraft:unattributed_fireball",
             Self::WitherSkull => "minecraft:wither_skull",
@@ -125,6 +127,7 @@ impl DamageType {
             Self::Lava => "lava",
             Self::Arrow => "arrow",
             Self::Thrown => "thrown",
+            Self::MobProjectile => "mob",
             Self::Fireball => "fireball",
             Self::UnattributedFireball => "onFire",
             Self::WitherSkull => "witherSkull",
@@ -141,6 +144,7 @@ impl DamageType {
             | Self::Lava
             | Self::Arrow
             | Self::Thrown
+            | Self::MobProjectile
             | Self::Fireball
             | Self::UnattributedFireball
             | Self::WitherSkull
@@ -246,6 +250,18 @@ mod tests {
         assert_eq!(DamageType::Thrown.name(), "minecraft:thrown");
         assert_eq!(DamageType::Thrown.message_id(), "thrown");
         assert_eq!(DamageType::Thrown.exhaustion(), 0.1);
+    }
+
+    #[test]
+    fn the_mob_projectile_damage_type_is_registered_as_a_projectile_with_the_mob_message() {
+        let kind = DamageType::MobProjectile;
+        assert!(kind.registry_id().is_some());
+        assert_eq!(kind.name(), "minecraft:mob_projectile");
+        assert_eq!(kind.message_id(), "mob");
+        assert_eq!(kind.exhaustion(), 0.1);
+        assert!(kind.in_tag("minecraft:is_projectile"));
+        assert!(!kind.is(DamageTag::BypassesArmor));
+        assert!(!kind.is(DamageTag::IsFire));
     }
 
     #[test]

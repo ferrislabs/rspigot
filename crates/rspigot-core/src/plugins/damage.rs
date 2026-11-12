@@ -51,6 +51,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
             match kind {
                 DamageType::Arrow
                 | DamageType::Thrown
+                | DamageType::MobProjectile
                 | DamageType::Fireball
                 | DamageType::UnattributedFireball
                 | DamageType::WitherSkull => EntityDamageCause::Projectile,
@@ -294,6 +295,7 @@ impl<L: ClientLink> Server<L> {
             AfterHurt::Arrow(follow) => self.finish_arrow_hit(follow, outcome.hurt()),
             AfterHurt::Thrown(follow) => self.finish_thrown_hit(follow),
             AfterHurt::Hurting(follow) => self.finish_hurting_hit(follow, outcome.hurt()),
+            AfterHurt::Bullet(follow) => self.finish_bullet_hit(follow, outcome.hurt()),
             AfterHurt::Burn(follow) => {
                 if outcome.hurt() {
                     self.burn_sound(follow);
@@ -317,13 +319,27 @@ impl<L: ClientLink> Server<L> {
 
     fn ask_hurt_projectile(&self, id: EntityId, amount: f32) -> Option<f32> {
         let entity = self.entities.store.get(id)?;
-        (entity.base.kind == rspigot_entities::EntityKind::Fireball
-            && matches!(entity.state, EntityState::Hurting(_))
-            && !entity.base.is_removed())
-        .then_some(amount)
+        let shootable = match entity.base.kind {
+            rspigot_entities::EntityKind::Fireball => {
+                matches!(entity.state, EntityState::Hurting(_))
+            }
+            rspigot_entities::EntityKind::ShulkerBullet => {
+                matches!(entity.state, EntityState::Bullet(_))
+            }
+            _ => false,
+        };
+        (shootable && !entity.base.is_removed()).then_some(amount)
     }
 
     fn apply_hurt_projectile(&mut self, id: EntityId, source: &DamageSource) -> bool {
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| entity.base.kind == rspigot_entities::EntityKind::ShulkerBullet)
+        {
+            return self.bullet_shot_down(id);
+        }
         let Some(attacker) = source.causing.as_ref().and_then(|causing| causing.player) else {
             return false;
         };

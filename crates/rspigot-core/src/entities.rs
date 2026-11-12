@@ -72,6 +72,7 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::BlockPos(pos) => MetadataValue::BlockPos(*pos),
                 SyncedValue::Variant(kind, id) => MetadataValue::Variant(*kind, *id),
                 SyncedValue::Long(v) => MetadataValue::Long(*v),
+                SyncedValue::Direction(face) => MetadataValue::Direction(*face as u8),
                 SyncedValue::OptionalEntity(v) => MetadataValue::OptionalEntity(*v),
                 SyncedValue::OptionalBlockState(v) => {
                     MetadataValue::OptionalBlockState(v.map(|state| u32::from(state.0)))
@@ -369,6 +370,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Arrow(_) => self.tick_arrow(id),
                 EntityState::Thrown(_) => self.tick_thrown(id),
                 EntityState::Hurting(_) => self.tick_hurting(id),
+                EntityState::Bullet(_) => self.tick_bullet(id),
                 EntityState::Inert(_) => {}
             }
             self.entities.store.reindex(id);
