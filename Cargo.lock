@@ -1447,6 +1447,7 @@ dependencies = [
  "rspigot-domain",
  "rspigot-entities",
  "rspigot-items",
+ "rspigot-nbt",
  "uuid",
 ]
 
