@@ -14,6 +14,12 @@ pub enum VariantKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StateKind {
+    Sniffer,
+    Armadillo,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Pose {
     Standing,
     FallFlying,
@@ -37,6 +43,8 @@ pub enum SyncedValue {
     BlockPos(BlockPos),
     Variant(VariantKind, u32),
     Long(i64),
+    State(StateKind, i32),
+    OptionalUnsignedInt(Option<u32>),
     Direction(Face),
     OptionalEntity(Option<Uuid>),
     OptionalBlockState(Option<BlockStateId>),
@@ -163,6 +171,20 @@ impl SyncedData {
         match self.get(index) {
             Some(SyncedValue::Long(v)) => *v,
             _ => 0,
+        }
+    }
+
+    pub fn state(&self, index: u8) -> i32 {
+        match self.get(index) {
+            Some(SyncedValue::State(_, id)) => *id,
+            _ => 0,
+        }
+    }
+
+    pub fn optional_unsigned_int(&self, index: u8) -> Option<u32> {
+        match self.get(index) {
+            Some(SyncedValue::OptionalUnsignedInt(v)) => *v,
+            _ => None,
         }
     }
 
