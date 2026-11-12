@@ -116,6 +116,9 @@ impl ChunkGenerator for Terrain {
             at(&mut chunk, 13, 64, 10, water);
             at(&mut chunk, 1, 64, 15, lava);
             at(&mut chunk, 2, 64, 15, water);
+            at(&mut chunk, 14, 63, 4, BlockKind::SoulSoil.default_state());
+            at(&mut chunk, 14, 64, 4, lava);
+            at(&mut chunk, 15, 64, 4, BlockKind::BlueIce.default_state());
             at(&mut chunk, 1, 64, 8, lava);
             at(&mut chunk, 3, 64, 8, water);
         }
@@ -358,4 +361,19 @@ fn flowing_lava_that_meets_water_becomes_cobblestone() {
         state.and_then(BlockStateId::kind),
         Some(BlockKind::Cobblestone)
     );
+}
+
+#[test]
+fn lava_on_soul_soil_beside_blue_ice_becomes_basalt() {
+    let mut server = server();
+    let (alice, link) = creative(&mut server);
+    trigger(
+        &mut server,
+        alice,
+        Vec3::new(14.5, 64.0, 2.5),
+        BlockPos::new(14, 63, 5),
+    );
+    let events = settled(&mut server, &link, 10);
+    let state = block_at(&events, BlockPos::new(14, 64, 4));
+    assert_eq!(state.and_then(BlockStateId::kind), Some(BlockKind::Basalt));
 }
