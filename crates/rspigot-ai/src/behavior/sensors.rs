@@ -180,13 +180,23 @@ pub enum ItemWish {
     #[default]
     Never,
     Any,
+    Piglin,
+    PiglinBrute,
 }
 
 impl ItemWish {
-    fn wants(self, _item: &DroppedItem) -> bool {
+    fn wants<W: AiWorld>(
+        self,
+        cx: &AiContext<'_, W>,
+        memories: &Memories,
+        item: &DroppedItem,
+    ) -> bool {
         match self {
             Self::Never => false,
             Self::Any => true,
+            Self::Piglin | Self::PiglinBrute => {
+                crate::piglin::wants_to_pickup(cx.mob, memories, item.item)
+            }
         }
     }
 }
@@ -219,15 +229,17 @@ impl Sensor for NearestItemSensor {
         let eyes = cx.mob.eye_position();
         let limit = ITEM_MAX_DISTANCE * ITEM_MAX_DISTANCE;
         let found = items.iter().find(|item| {
-            self.wish.wants(item) && cx.mob.distance_to_sqr(item.position) < limit && {
-                let height = item.bounds.max_y - item.bounds.min_y;
-                let to = rspigot_domain::Vec3::new(
-                    item.position.x,
-                    item.position.y + height * ITEM_EYE_HEIGHT_FACTOR,
-                    item.position.z,
-                );
-                has_line_of_sight_between(cx.world, eyes, to)
-            }
+            self.wish.wants(cx, memories, item)
+                && cx.mob.distance_to_sqr(item.position) < limit
+                && {
+                    let height = item.bounds.max_y - item.bounds.min_y;
+                    let to = rspigot_domain::Vec3::new(
+                        item.position.x,
+                        item.position.y + height * ITEM_EYE_HEIGHT_FACTOR,
+                        item.position.z,
+                    );
+                    has_line_of_sight_between(cx.world, eyes, to)
+                }
         });
         memories.set_option(
             MemoryModuleType::NearestVisibleWantedItem,

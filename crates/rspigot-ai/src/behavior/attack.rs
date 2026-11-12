@@ -1,11 +1,12 @@
-use crate::action::MobAction;
+use crate::action::{MobAction, TargetReason};
 use crate::behavior::control::{BehaviorCx, Trigger};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue, WalkTarget};
 use crate::behavior::support::{
-    MobPredicate, get_entity, is_within_attack_range, is_within_melee_range, look_at_entity,
-    set_walk_target,
+    MobPredicate, get_entity, is_holding_usable_non_melee_weapon, is_within_attack_range,
+    is_within_melee_range, look_at_entity, set_walk_target,
 };
 use crate::behavior::tracker::PositionTracker;
+use crate::piglin::NetherFinder;
 use crate::targeting;
 use crate::world::{AiWorld, Hand, Living};
 
@@ -14,12 +15,14 @@ const TIRED_OF_TRYING_TO_REACH_TICKS: i64 = 200;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetFinder {
     Memory(MemoryModuleType),
+    Nether(NetherFinder),
 }
 
 impl TargetFinder {
-    fn find<W: AiWorld>(self, cx: &BehaviorCx<'_, '_, W>) -> Option<Living> {
+    fn find<W: AiWorld>(self, cx: &mut BehaviorCx<'_, '_, W>) -> Option<Living> {
         match self {
             Self::Memory(memory) => get_entity(cx, memory).and_then(|id| cx.ai.world.living(id)),
+            Self::Nether(finder) => finder.find(cx),
         }
     }
 }
@@ -61,13 +64,24 @@ impl Trigger for StartAttacking {
         if !targeting::mob_can_attack(cx.ai.mob, cx.ai.world, &target) {
             return false;
         }
-        cx.brain.memories.set(
-            MemoryModuleType::AttackTarget,
-            MemoryValue::Entity(target.id),
-        );
-        cx.brain
-            .memories
-            .erase(MemoryModuleType::CantReachWalkTargetSince);
+        let reason = if target.player {
+            TargetReason::ClosestPlayer
+        } else {
+            TargetReason::ClosestEntity
+        };
+        let previous = get_entity(cx, MemoryModuleType::AttackTarget);
+        if cx
+            .ai
+            .request_brain_target(previous, Some(target.id), reason)
+        {
+            cx.brain.memories.set(
+                MemoryModuleType::AttackTarget,
+                MemoryValue::Entity(target.id),
+            );
+            cx.brain
+                .memories
+                .erase(MemoryModuleType::CantReachWalkTargetSince);
+        }
         true
     }
 }
@@ -76,12 +90,14 @@ impl Trigger for StartAttacking {
 pub enum StopAttackCondition {
     #[default]
     Never,
+    NotNearestValid(NetherFinder),
 }
 
 impl StopAttackCondition {
-    fn test<W: AiWorld>(self, _cx: &BehaviorCx<'_, '_, W>, _target: &Living) -> bool {
+    fn test<W: AiWorld>(self, cx: &mut BehaviorCx<'_, '_, W>, target: &Living) -> bool {
         match self {
             Self::Never => false,
+            Self::NotNearestValid(finder) => !finder.is_nearest_valid_attack_target(cx, target),
         }
     }
 }
@@ -136,7 +152,7 @@ impl StopAttackingIfTargetInvalid {
             .is_some_and(|since| cx.ai.world.game_time() - since > TIRED_OF_TRYING_TO_REACH_TICKS)
     }
 
-    fn still_valid<W: AiWorld>(&self, cx: &BehaviorCx<'_, '_, W>, target: &Living) -> bool {
+    fn still_valid<W: AiWorld>(&self, cx: &mut BehaviorCx<'_, '_, W>, target: &Living) -> bool {
         targeting::mob_can_attack(cx.ai.mob, cx.ai.world, target)
             && (!self.can_grow_tired_of_trying_to_reach_target
                 || !Self::is_tired_of_trying_to_reach_target(cx))
@@ -152,10 +168,16 @@ impl Trigger for StopAttackingIfTargetInvalid {
         if target.is_some_and(|target| self.still_valid(cx, &target)) {
             return true;
         }
-        match self.on_target_erased {
-            TargetErased::Nothing => {}
+        let previous = get_entity(cx, MemoryModuleType::AttackTarget);
+        if cx
+            .ai
+            .request_brain_target(previous, None, TargetReason::Unknown)
+        {
+            match self.on_target_erased {
+                TargetErased::Nothing => {}
+            }
+            cx.brain.memories.erase(MemoryModuleType::AttackTarget);
         }
-        cx.brain.memories.erase(MemoryModuleType::AttackTarget);
         true
     }
 }
@@ -201,7 +223,10 @@ impl Trigger for MeleeAttack {
         else {
             return false;
         };
-        if !self.can_attack.test(cx) || !is_within_melee_range(cx, &target) {
+        if !self.can_attack.test(cx)
+            || is_holding_usable_non_melee_weapon(cx)
+            || !is_within_melee_range(cx, &target)
+        {
             return false;
         }
         let visible = cx
@@ -261,7 +286,7 @@ impl Trigger for SetWalkTargetFromAttackTargetIfTargetOutOfReach {
             .get(MemoryModuleType::NearestVisibleLivingEntities)
             .and_then(MemoryValue::as_visible)
             .is_some_and(|visible| visible.contains_entity(cx.ai, &cx.brain.memories, target.id));
-        if visible && is_within_attack_range(cx, &target) {
+        if visible && is_within_attack_range(cx, &target, 1) {
             cx.brain.memories.erase(MemoryModuleType::WalkTarget);
             return true;
         }

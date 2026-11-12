@@ -4,6 +4,7 @@ use crate::behavior::sensors::{
     NearestLivingEntitySensor, PlayerSensor, TemptingSensor,
 };
 use crate::brain::AiContext;
+use crate::piglin::{HoglinSensor, PiglinBruteSensor, PiglinSensor};
 use crate::random::RandomSource;
 use crate::targeting::TargetingConditions;
 use crate::world::{AiWorld, Living};
@@ -76,6 +77,9 @@ pub enum SensorKind {
     IsInWater(IsInWaterSensor),
     NearestAdult(AdultSensor),
     Tempting(TemptingSensor),
+    HoglinSpecific(HoglinSensor),
+    PiglinSpecific(PiglinSensor),
+    PiglinBruteSpecific(PiglinBruteSensor),
 }
 
 impl SensorKind {
@@ -89,6 +93,9 @@ impl SensorKind {
             Self::IsInWater(_) => SensorType::IsInWater,
             Self::NearestAdult(_) => SensorType::NearestAdult,
             Self::Tempting(sensor) => sensor.sensor_type(),
+            Self::HoglinSpecific(_) => SensorType::HoglinSpecificSensor,
+            Self::PiglinSpecific(_) => SensorType::PiglinSpecificSensor,
+            Self::PiglinBruteSpecific(_) => SensorType::PiglinBruteSpecificSensor,
         }
     }
 }
@@ -104,6 +111,9 @@ impl Sensor for SensorKind {
             Self::IsInWater(sensor) => sensor.scan_rate(),
             Self::NearestAdult(sensor) => sensor.scan_rate(),
             Self::Tempting(sensor) => sensor.scan_rate(),
+            Self::HoglinSpecific(sensor) => sensor.scan_rate(),
+            Self::PiglinSpecific(sensor) => sensor.scan_rate(),
+            Self::PiglinBruteSpecific(sensor) => sensor.scan_rate(),
         }
     }
 
@@ -117,6 +127,9 @@ impl Sensor for SensorKind {
             Self::IsInWater(sensor) => sensor.requires(),
             Self::NearestAdult(sensor) => sensor.requires(),
             Self::Tempting(sensor) => sensor.requires(),
+            Self::HoglinSpecific(sensor) => sensor.requires(),
+            Self::PiglinSpecific(sensor) => sensor.requires(),
+            Self::PiglinBruteSpecific(sensor) => sensor.requires(),
         }
     }
 
@@ -130,6 +143,9 @@ impl Sensor for SensorKind {
             Self::IsInWater(sensor) => sensor.do_tick(cx, memories),
             Self::NearestAdult(sensor) => sensor.do_tick(cx, memories),
             Self::Tempting(sensor) => sensor.do_tick(cx, memories),
+            Self::HoglinSpecific(sensor) => sensor.do_tick(cx, memories),
+            Self::PiglinSpecific(sensor) => sensor.do_tick(cx, memories),
+            Self::PiglinBruteSpecific(sensor) => sensor.do_tick(cx, memories),
         }
     }
 }

@@ -4,8 +4,9 @@ use rspigot_domain::entity::species::fox;
 use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::EntityKind;
 
+use crate::action::BrainMessage;
 use crate::action::{MobAction, TargetReason, TargetRequest};
-use crate::behavior::{BehaviorBrain, MobControl};
+use crate::behavior::{BehaviorBrain, BehaviorCx, MemoryModuleType, MemoryValue, MobControl};
 use crate::blocks::BreakDoorGoal;
 use crate::combat::{MeleeAttackGoal, RangedBowAttackGoal};
 use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl, MoveStyle};
@@ -57,6 +58,11 @@ impl Brain {
         if kind.extends("Animal") {
             profile.set_malus(PathType::FireInNeighbor, 16.0);
             profile.set_malus(PathType::Fire, -1.0);
+        }
+        if matches!(kind, EntityKind::Piglin | EntityKind::PiglinBrute) {
+            profile.set_malus(PathType::FireInNeighbor, 16.0);
+            profile.set_malus(PathType::Fire, -1.0);
+            profile.can_open_doors = true;
         }
         if kind == EntityKind::Chicken {
             profile.set_malus(PathType::Water, 0.0);
@@ -143,6 +149,21 @@ impl<W: AiWorld> AiContext<'_, W> {
         if !self.brain.defer_targets {
             self.brain.target = to;
         }
+    }
+
+    pub fn request_brain_target(
+        &mut self,
+        from: Option<EntityId>,
+        to: Option<EntityId>,
+        reason: TargetReason,
+    ) -> bool {
+        self.brain.target_requests.push(TargetRequest {
+            from,
+            to,
+            reason,
+            tempt: false,
+        });
+        !self.brain.defer_targets
     }
 
     fn path_profile(&mut self) -> MobProfile {
@@ -413,6 +434,17 @@ impl MobAi {
     }
 
     pub fn set_target(&mut self, target: Option<EntityId>) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            let memories = behavior.memories_mut();
+            match target {
+                Some(target) => {
+                    memories.set(MemoryModuleType::AttackTarget, MemoryValue::Entity(target));
+                    memories.erase(MemoryModuleType::CantReachWalkTargetSince);
+                }
+                None => memories.erase(MemoryModuleType::AttackTarget),
+            }
+            return;
+        }
         self.brain.target = target;
     }
 
@@ -437,7 +469,85 @@ impl MobAi {
     }
 
     pub fn target(&self) -> Option<EntityId> {
-        self.brain.target
+        match self.behavior.as_ref() {
+            Some(behavior) => behavior
+                .memories()
+                .get(MemoryModuleType::AttackTarget)
+                .and_then(MemoryValue::as_entity),
+            None => self.brain.target,
+        }
+    }
+
+    pub fn deliver<W: AiWorld>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+        message: BrainMessage,
+    ) {
+        let Some(behavior) = self.behavior.as_mut() else {
+            return;
+        };
+        let mut context = AiContext {
+            mob,
+            world,
+            brain: &mut self.brain,
+            body,
+        };
+        let mut cx = BehaviorCx {
+            ai: &mut context,
+            brain: behavior.state_mut(),
+        };
+        crate::piglin::deliver(&mut cx, message);
+    }
+
+    pub fn piglin_wants_to_pickup(&self, mob: &MobView, item: rspigot_domain::ItemId) -> bool {
+        self.behavior
+            .as_ref()
+            .is_some_and(|behavior| crate::piglin::wants_to_pickup(mob, behavior.memories(), item))
+    }
+
+    pub fn random_nearby_position<W: AiWorld>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+        horizontal: i32,
+        vertical: i32,
+    ) -> Option<Vec3> {
+        let mut context = AiContext {
+            mob,
+            world,
+            brain: &mut self.brain,
+            body,
+        };
+        crate::random_pos::land_pos(&mut context, horizontal, vertical)
+    }
+
+    pub fn piglin_can_admire(&self, mob: &MobView, held: rspigot_domain::ItemId) -> bool {
+        self.behavior
+            .as_ref()
+            .is_some_and(|behavior| crate::piglin::can_admire(mob, behavior.memories(), held))
+    }
+
+    pub fn ambient_sound<W: AiWorld>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+    ) -> Option<&'static str> {
+        let behavior = self.behavior.as_mut()?;
+        let mut context = AiContext {
+            mob,
+            world,
+            brain: &mut self.brain,
+            body,
+        };
+        let cx = BehaviorCx {
+            ai: &mut context,
+            brain: behavior.state_mut(),
+        };
+        crate::piglin::ambient_sound(&cx)
     }
 
     pub fn can_float(&self) -> bool {
@@ -510,6 +620,7 @@ impl MobAi {
         context.tick_navigation();
         if let Some(behavior) = self.behavior.as_mut() {
             behavior.tick(&mut context);
+            crate::piglin::after_brain_tick(behavior, &mut context);
         }
         if mob.kind == EntityKind::Fox {
             self.settle_fox(mob);
