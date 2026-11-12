@@ -28,6 +28,34 @@ pub fn mob_light_magic_value(world: &impl AiWorld, mob: &MobView) -> f32 {
     light_magic_value(world, mob.eye_position().block())
 }
 
+const HOGLIN_REPELLENT_DISTANCE: f64 = 8.0;
+const CRIMSON_NYLIUM_WALK_VALUE: f32 = 10.0;
+
+fn context_walk_target_value<W: AiWorld>(context: &AiContext<'_, W>, pos: BlockPos) -> f32 {
+    if context.mob.kind != EntityKind::Hoglin {
+        return walk_target_value(context.mob.kind, context.world, pos);
+    }
+    let near_repellent = context.brain.repellent.is_some_and(|repellent| {
+        let (dx, dy, dz) = (
+            f64::from(repellent.x - pos.x),
+            f64::from(repellent.y - pos.y),
+            f64::from(repellent.z - pos.z),
+        );
+        dx * dx + dy * dy + dz * dz < HOGLIN_REPELLENT_DISTANCE * HOGLIN_REPELLENT_DISTANCE
+    });
+    if near_repellent {
+        -1.0
+    } else if context
+        .world
+        .state(pos.offset(0, -1, 0))
+        .is_some_and(|state| state.kind() == Some(BlockKind::CrimsonNylium))
+    {
+        CRIMSON_NYLIUM_WALK_VALUE
+    } else {
+        0.0
+    }
+}
+
 pub fn walk_target_value(kind: EntityKind, world: &impl AiWorld, pos: BlockPos) -> f32 {
     if kind.extends("Animal") {
         let below = world.state(pos.offset(0, -1, 0));
@@ -119,7 +147,7 @@ fn generate<W: AiWorld>(
     supplier: impl FnMut(&mut AiContext<'_, W>) -> Option<BlockPos>,
 ) -> Option<Vec3> {
     generate_scored(context, supplier, |context, pos| {
-        f64::from(walk_target_value(context.mob.kind, context.world, pos))
+        f64::from(context_walk_target_value(context, pos))
     })
 }
 
@@ -316,7 +344,7 @@ pub fn land_pos<W: AiWorld>(
     vertical: i32,
 ) -> Option<Vec3> {
     land_pos_scored(context, horizontal, vertical, |context, pos| {
-        f64::from(walk_target_value(context.mob.kind, context.world, pos))
+        f64::from(context_walk_target_value(context, pos))
     })
 }
 

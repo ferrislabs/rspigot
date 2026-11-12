@@ -103,6 +103,7 @@ impl Sensor for HoglinSensor {
 
     fn do_tick<W: AiWorld>(&mut self, cx: &mut AiContext<'_, W>, memories: &mut Memories) {
         let repellent = find_nearest_repellent(cx, HOGLIN_REPELLENTS, false);
+        cx.brain.repellent = repellent;
         memories.set_option(
             MemoryModuleType::NearestRepellent,
             repellent.map(MemoryValue::Block),
