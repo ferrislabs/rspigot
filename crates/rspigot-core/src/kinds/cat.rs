@@ -220,18 +220,6 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn cat_hiss(&mut self, id: EntityId) {
-        let Some(entity) = self.entities.store.get(id) else {
-            return;
-        };
-        let sound = species::sound_set(&entity.base, VariantFamily::Cat, entity.is_baby())
-            .and_then(|set| set.hiss);
-        if let Some(sound) = sound {
-            self.make_voice(id, sound);
-        }
-    }
-
     fn make_voice(&mut self, id: EntityId, sound: &'static str) {
         let Some(entity) = self.entities.store.get(id) else {
             return;
