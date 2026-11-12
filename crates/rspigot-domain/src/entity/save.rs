@@ -11,6 +11,7 @@ use super::ageable::{self, AgeableState};
 use super::arrow::{self, ArrowState};
 use super::base::{EntityBase, MAX_AIR_SUPPLY, RemovalReason};
 use super::falling::FallingState;
+use super::hurting::{self, HurtingState};
 use super::item::{self, ItemState};
 use super::living::{
     self, EQUIPMENT_SLOTS, LivingState, MobState, health, is_left_handed, is_no_ai, set_health,
@@ -129,6 +130,15 @@ const ARROW_KEYS: [&str; 14] = [
     "weapon",
 ];
 const THROWN_KEYS: [&str; 4] = ["Owner", "LeftOwner", "HasBeenShot", "Item"];
+const HURTING_KEYS: [&str; 7] = [
+    "Owner",
+    "LeftOwner",
+    "HasBeenShot",
+    "acceleration_power",
+    "Item",
+    "ExplosionPower",
+    "dangerous",
+];
 const ITEM_KEYS: [&str; 6] = ["Health", "Age", "PickupDelay", "Thrower", "Owner", "Item"];
 const ORB_KEYS: [&str; 4] = ["Health", "Age", "Value", "Count"];
 const FALLING_KEYS: [&str; 8] = [
@@ -164,7 +174,8 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::ExperienceOrb
             | EntityKind::Arrow
             | EntityKind::Snowball
-    ) || (kind.extends("Mob") && kind != EntityKind::EnderDragon)
+    ) || hurting::is_hurting_projectile(kind)
+        || (kind.extends("Mob") && kind != EntityKind::EnderDragon)
 }
 
 fn doubles(v: Vec3) -> Tag {
@@ -723,6 +734,8 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Silverfish(state) => species::silverfish::read(nbt, base, state),
         Species::IronGolem(state) => species::iron_golem::read(nbt, base, state),
         Species::SnowGolem(state) => species::snow_golem::read(nbt, base, state),
+        Species::Blaze(state) => species::blaze::read(nbt, base, state),
+        Species::Ghast(state) => species::ghast::read(nbt, base, state),
         Species::Rabbit(state) => {
             species::rabbit::read(nbt, base, &mut living.attributes, state);
         }
@@ -774,6 +787,53 @@ fn write_thrown(base: &EntityBase, state: &ThrownState, out: &mut Compound) {
     out.insert("HasBeenShot", bool_tag(state.has_been_shot));
     let stack = thrown::item(base).unwrap_or_else(thrown::default_item);
     out.insert("Item", item_stack_to_nbt(&stack));
+}
+
+fn read_hurting(nbt: &Compound, base: &mut EntityBase, state: &mut HurtingState) {
+    state.owner = nbt.get("Owner").and_then(read_uuid);
+    state.left_owner = nbt.get_bool("LeftOwner").unwrap_or(false);
+    state.has_been_shot = nbt.get_bool("HasBeenShot").unwrap_or(false);
+    state.acceleration_power = nbt
+        .get_f64("acceleration_power")
+        .unwrap_or(hurting::INITIAL_ACCELERATION_POWER);
+    if hurting::is_fireball(base.kind) {
+        let stack = nbt
+            .get_compound("Item")
+            .and_then(item_stack_from_nbt)
+            .unwrap_or_else(hurting::default_item);
+        hurting::set_item(base, &stack);
+    }
+    if base.kind == EntityKind::Fireball {
+        state.explosion_power = nbt
+            .get_i64("ExplosionPower")
+            .map_or(hurting::DEFAULT_EXPLOSION_POWER, |power| {
+                i64::from(power as i8) as i32
+            });
+    }
+    if base.kind == EntityKind::WitherSkull {
+        hurting::set_dangerous(base, nbt.get_bool("dangerous").unwrap_or(false));
+    }
+}
+
+fn write_hurting(base: &EntityBase, state: &HurtingState, out: &mut Compound) {
+    if let Some(owner) = state.owner {
+        out.insert("Owner", uuid_tag(owner));
+    }
+    if state.left_owner {
+        out.insert("LeftOwner", true);
+    }
+    out.insert("HasBeenShot", bool_tag(state.has_been_shot));
+    out.insert("acceleration_power", state.acceleration_power);
+    if hurting::is_fireball(base.kind) {
+        let stack = hurting::item(base).unwrap_or_else(hurting::default_item);
+        out.insert("Item", item_stack_to_nbt(&stack));
+    }
+    if base.kind == EntityKind::Fireball {
+        out.insert("ExplosionPower", state.explosion_power as i8);
+    }
+    if base.kind == EntityKind::WitherSkull {
+        out.insert("dangerous", bool_tag(hurting::is_dangerous(base)));
+    }
 }
 
 fn write_arrow(base: &EntityBase, state: &ArrowState, out: &mut Compound) {
@@ -840,6 +900,8 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Silverfish(_) => species::silverfish::KEYS,
         Species::IronGolem(_) => species::iron_golem::KEYS,
         Species::SnowGolem(_) => species::snow_golem::KEYS,
+        Species::Blaze(_) => species::blaze::KEYS,
+        Species::Ghast(_) => species::ghast::KEYS,
         Species::Rabbit(_) => species::rabbit::KEYS,
         Species::Ocelot(_) => species::ocelot::KEYS,
         Species::Plain => &[],
@@ -885,6 +947,9 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityKind::Snowball => {
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Thrown(Box::new(ThrownState::new(&mut base, seed)))
+        }
+        _ if hurting::is_hurting_projectile(kind) => {
+            EntityState::Hurting(Box::new(HurtingState::new(&mut base)))
         }
         _ => EntityState::Living(Box::new(LivingState::new(&mut base, 0.0))),
     };
@@ -946,6 +1011,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Thrown(thrown_state) => {
             read_thrown(nbt, &mut base, thrown_state);
             &[&ENTITY_KEYS, &THROWN_KEYS]
+        }
+        EntityState::Hurting(hurting_state) => {
+            read_hurting(nbt, &mut base, hurting_state);
+            &[&ENTITY_KEYS, &HURTING_KEYS]
         }
         EntityState::Inert(_) => &[],
     };
@@ -1250,6 +1319,8 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Silverfish(state) => species::silverfish::write(base, state, out),
         Species::IronGolem(state) => species::iron_golem::write(base, state, out),
         Species::SnowGolem(state) => species::snow_golem::write(base, state, out),
+        Species::Blaze(state) => species::blaze::write(base, state, out),
+        Species::Ghast(state) => species::ghast::write(base, state, out),
         Species::Rabbit(state) => species::rabbit::write(base, state, out),
         Species::Ocelot(state) => species::ocelot::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
@@ -1308,6 +1379,9 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         EntityState::Arrow(arrow_state) => write_arrow(&entity.base, arrow_state, &mut out),
         EntityState::Thrown(thrown_state) => {
             write_thrown(&entity.base, thrown_state, &mut out);
+        }
+        EntityState::Hurting(hurting_state) => {
+            write_hurting(&entity.base, hurting_state, &mut out);
         }
         EntityState::Inert(_) => {}
     }

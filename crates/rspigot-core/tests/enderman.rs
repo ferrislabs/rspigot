@@ -190,7 +190,7 @@ fn a_stared_enderman_turns_on_the_player_and_becomes_creepy() {
 
 #[test]
 fn in_daylight_an_idle_enderman_eventually_teleports_away() {
-    let mut s = calm(Vec::new());
+    let mut s = scene_on(calm_server().with_rng_seed(0), &["Alice"], Vec::new());
     ground(&mut s);
     console(&mut s, "time set 1000");
     console(&mut s, "summon minecraft:enderman 0.5 64 6.5");

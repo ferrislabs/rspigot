@@ -1,5 +1,6 @@
 mod action;
 mod animal;
+mod blaze;
 mod blocks;
 mod brain;
 mod cat;
@@ -10,6 +11,7 @@ mod enderman;
 mod evade;
 mod finder;
 mod fox;
+mod ghast;
 mod goal;
 mod goals;
 mod heap;
@@ -29,11 +31,13 @@ mod random;
 mod random_pos;
 mod ranged;
 mod registry;
+mod restriction;
 mod scan;
 #[cfg(test)]
 mod scene;
 mod sensing;
 mod silverfish;
+mod sweep;
 mod tame;
 mod targeting;
 mod view;
@@ -47,6 +51,7 @@ pub use action::{MobAction, TargetReason, TargetRequest};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };
+pub use blaze::{BlazeAction, BlazeAttackGoal};
 pub use blocks::{
     BreakDoorGoal, MoveThroughVillageGoal, RemoveTurtleEggGoal, ZOMBIE_ATTACK_DOOR_EVENT,
     ZOMBIE_BREAK_DOOR_EVENT, egg_poof,
@@ -60,7 +65,7 @@ pub use combat::{
 };
 pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
-    MoveControl, Operation, rotate_towards,
+    MoveControl, MoveStyle, Operation, can_reach, rotate_towards,
 };
 pub use enderman::{
     EndermanAction, EndermanFacts, EndermanGoal, TELEPORT_EVENT, find_teleport,
@@ -70,6 +75,10 @@ pub use enderman::{
 pub use evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 pub use finder::PathFinder;
 pub use fox::{FoxAction, FoxFacts, FoxGoal, TrustedRef, is_path_clear};
+pub use ghast::{
+    GhastAction, GhastGoal, GhastLookGoal, GhastShootFireballGoal, RandomFloatAroundGoal,
+    face_movement_direction, suitable_fly_to_position,
+};
 pub use goal::{
     Flag, Flags, Goal, GoalSelector, WrappedGoal, adjusted_tick_delay, reduced_tick_delay,
 };
@@ -97,6 +106,7 @@ pub use random_pos::{
 pub use random_pos::{pos_away, pos_towards};
 pub use ranged::RangedAttackGoal;
 pub use registry::{GoalSettings, ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER};
+pub use restriction::MoveTowardsRestrictionGoal;
 pub use scan::{closer_to_center_than, manhattan_ordered};
 pub use sensing::{Sensing, clip_misses};
 pub use silverfish::{

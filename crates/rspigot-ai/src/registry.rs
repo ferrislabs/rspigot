@@ -2,12 +2,15 @@ use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 
 use crate::animal::{BreedGoal, EatBlockGoal, FollowParentGoal, PanicGoal};
+use crate::blaze::BlazeAttackGoal;
 use crate::blocks::{MoveThroughVillageGoal, RemoveTurtleEggGoal};
 use crate::brain::Brain;
 use crate::combat::{
     HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, OcelotAttackGoal, SwellGoal,
 };
+use crate::control::MoveStyle;
 use crate::evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
+use crate::ghast::{GhastGoal, GhastLookGoal, GhastShootFireballGoal, RandomFloatAroundGoal};
 use crate::goal::GoalSelector;
 use crate::goals::{
     ClimbOnTopOfPowderSnowGoal, FloatGoal, LookAtPlayerGoal, MobGoal, NearestAttackableTargetGoal,
@@ -15,6 +18,7 @@ use crate::goals::{
 };
 use crate::rabbit::RaidGardenGoal;
 use crate::ranged::RangedAttackGoal;
+use crate::restriction::MoveTowardsRestrictionGoal;
 use crate::world::TargetKind;
 use crate::{
     cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
@@ -425,6 +429,42 @@ pub fn register_goals(
                 ),
             );
         }
+        EntityKind::Blaze => {
+            add.goal(4, MobGoal::BlazeAttack(BlazeAttackGoal::default()));
+            add.goal(
+                5,
+                MobGoal::MoveTowardsRestriction(MoveTowardsRestrictionGoal::new(1.0)),
+            );
+            add.stroll_rarely_in_water(7, 1.0, 0.0);
+            add.look(8, 8.0);
+            add.look_around(8);
+            add.target_goal(1, MobGoal::HurtByTarget(HurtByTargetGoal::alerting(&[])));
+            add.target(
+                2,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+        }
+        EntityKind::Ghast => {
+            add.brain.movement.set_style(MoveStyle::Ghast);
+            add.goal(
+                5,
+                MobGoal::Ghast(GhastGoal::RandomFloatAround(RandomFloatAroundGoal::new())),
+            );
+            add.goal(7, MobGoal::Ghast(GhastGoal::Look(GhastLookGoal)));
+            add.goal(
+                7,
+                MobGoal::Ghast(GhastGoal::ShootFireball(GhastShootFireballGoal::default())),
+            );
+            add.target(
+                1,
+                NearestAttackableTargetGoal::with(
+                    TargetKind::Player,
+                    10,
+                    true,
+                    TargetFilter::WithinFourBlocksVertically,
+                ),
+            );
+        }
         _ => {}
     }
 }
@@ -468,6 +508,8 @@ mod tests {
 
     use super::*;
     use crate::brain::MobAi;
+    use crate::control::MoveStyle;
+    use crate::ghast::{GhastGoal, GhastLookGoal, GhastShootFireballGoal, RandomFloatAroundGoal};
     use crate::goal::{Flag, Goal};
     use crate::mock::{Harness, Mock, first_draw_zero, living, seed_where};
 
@@ -518,6 +560,124 @@ mod tests {
                 ))
             )]
         );
+    }
+
+    #[test]
+    fn the_blaze_registers_the_vanilla_goals_and_targets() {
+        let (goals, targets) = lists(EntityKind::Blaze);
+        assert_eq!(
+            goals,
+            vec![
+                (4, MobGoal::BlazeAttack(BlazeAttackGoal::default())),
+                (
+                    5,
+                    MobGoal::MoveTowardsRestriction(MoveTowardsRestrictionGoal::new(1.0))
+                ),
+                (
+                    7,
+                    MobGoal::Stroll(RandomStrollGoal::water_avoiding_with(1.0, 0.0))
+                ),
+                (8, MobGoal::LookAtPlayer(LookAtPlayerGoal::new(8.0))),
+                (
+                    8,
+                    MobGoal::RandomLookAround(RandomLookAroundGoal::default())
+                ),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![
+                (1, MobGoal::HurtByTarget(HurtByTargetGoal::alerting(&[]))),
+                (
+                    2,
+                    MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::new(
+                        TargetKind::Player,
+                        true,
+                    ))
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn the_blaze_avoids_water_and_walks_through_fire_but_pays_for_lava() {
+        let ai = MobAi::new(EntityKind::Blaze, 1, GoalSettings::default());
+        let profile = &ai.brain().profile;
+        assert_eq!(profile.malus(crate::PathType::Water), -1.0);
+        assert_eq!(profile.malus(crate::PathType::Lava), 8.0);
+        assert_eq!(profile.malus(crate::PathType::Fire), 0.0);
+        assert_eq!(profile.malus(crate::PathType::FireInNeighbor), 0.0);
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Ground);
+    }
+
+    #[test]
+    fn the_ghast_registers_the_vanilla_goals_targets_and_flying_control() {
+        let (goals, targets) = lists(EntityKind::Ghast);
+        assert_eq!(
+            goals,
+            vec![
+                (
+                    5,
+                    MobGoal::Ghast(GhastGoal::RandomFloatAround(RandomFloatAroundGoal::new()))
+                ),
+                (7, MobGoal::Ghast(GhastGoal::Look(GhastLookGoal))),
+                (
+                    7,
+                    MobGoal::Ghast(GhastGoal::ShootFireball(GhastShootFireballGoal::default()))
+                ),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![(
+                1,
+                MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::with(
+                    TargetKind::Player,
+                    10,
+                    true,
+                    TargetFilter::WithinFourBlocksVertically,
+                ))
+            )]
+        );
+        let ai = MobAi::new(EntityKind::Ghast, 1, GoalSettings::default());
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Ghast);
+    }
+
+    #[test]
+    fn the_ghast_only_targets_players_within_four_blocks_vertically() {
+        let seed = seed_where(first_draw_zero(10));
+        let world = Mock {
+            players: vec![
+                living(2, EntityKind::Player, Vec3::new(10.5, 85.5, 0.5)),
+                living(3, EntityKind::Player, Vec3::new(30.5, 82.0, 0.5)),
+            ],
+            ..Mock::default()
+        };
+        let mut harness = Harness::new(EntityKind::Ghast, Vec3::new(0.5, 80.0, 0.5), world, seed);
+        let mut goal = NearestAttackableTargetGoal::with(
+            TargetKind::Player,
+            10,
+            true,
+            TargetFilter::WithinFourBlocksVertically,
+        );
+        assert!(harness.run(|context| goal.can_use(context)));
+        harness.run(|context| goal.start(context));
+        assert_eq!(harness.brain.target_requests.len(), 1);
+        assert_eq!(harness.brain.target_requests[0].to, Some(EntityId(3)));
+        harness.world.players[0].position.y = 83.0;
+        harness.world.players[0].bounds =
+            rspigot_domain::entity::Aabb::of_size(harness.world.players[0].position, 0.6, 1.8);
+        harness.brain.target_requests.clear();
+        harness.brain.random = crate::random::MobRandom::new(seed);
+        let mut again = NearestAttackableTargetGoal::with(
+            TargetKind::Player,
+            10,
+            true,
+            TargetFilter::WithinFourBlocksVertically,
+        );
+        assert!(harness.run(|context| again.can_use(context)));
+        harness.run(|context| again.start(context));
+        assert_eq!(harness.brain.target_requests[0].to, Some(EntityId(2)));
     }
 
     #[test]

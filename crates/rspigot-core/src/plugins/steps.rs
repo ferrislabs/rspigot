@@ -501,9 +501,10 @@ pub(crate) struct ShotStep {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PrimeStep {
-    pub(crate) creeper: EntityId,
+    pub(crate) source: EntityId,
     pub(crate) radius: f32,
     pub(crate) fire: bool,
+    pub(crate) projectile: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -605,6 +606,7 @@ pub(crate) enum Struck {
     Player(PlayerId),
     Mob(EntityId),
     Item(EntityId),
+    Projectile(EntityId),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -663,6 +665,21 @@ pub(crate) struct ThrownFollow {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct HurtingFollow {
+    pub(crate) projectile: EntityId,
+    pub(crate) target: EntityId,
+    pub(crate) owner: Option<EntityId>,
+    pub(crate) saved_fire: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct IgniteStep {
+    pub(crate) projectile: EntityId,
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct BurnFollow {
     pub(crate) position: Vec3,
     pub(crate) player: bool,
@@ -685,6 +702,7 @@ pub(crate) enum AfterHurt {
     MobAttack(MobAttackFollow),
     Arrow(ArrowFollow),
     Thrown(ThrownFollow),
+    Hurting(HurtingFollow),
     Burn(BurnFollow),
     Blast(BlastFollow),
 }
@@ -981,6 +999,7 @@ pub(crate) enum Continuation {
     MobPickup(Box<MobPickupStep>),
     ChangeBlock(Box<ChangeStep>),
     Form(FormStep),
+    Ignite(IgniteStep),
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
     EntityExplode(Box<ExplodeStep>),
@@ -1081,6 +1100,7 @@ impl Continuation {
             }
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
+            Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } => EventKind::EntityInteract,
             Self::EntityExplode(_) => EventKind::EntityExplode,
@@ -1135,7 +1155,7 @@ impl Continuation {
                 matches!(step.birth.then, Spawned::Converted { old, .. } if old == id)
             }
             Self::Hurt(step) | Self::Strike(step) => {
-                matches!(step.victim, Struck::Mob(victim) | Struck::Item(victim) if victim == id)
+                matches!(step.victim, Struck::Mob(victim) | Struck::Item(victim) | Struck::Projectile(victim) if victim == id)
             }
             Self::MobDeath(step) => step.victim == id,
             Self::Potion(PotionStep { holder, .. })
@@ -1159,9 +1179,10 @@ impl Continuation {
                 }
             },
             Self::Form(step) => step.entity == id,
+            Self::Ignite(step) => step.projectile == id,
             Self::EggBreak { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
-            Self::Prime(step) => step.creeper == id,
+            Self::Prime(step) => step.source == id,
             Self::Relocate(step) => step.entity == id,
             Self::ProjectileHit { arrow, target } => *arrow == id || *target == id,
             Self::Aim(step) => step.mob == id,
@@ -1196,8 +1217,9 @@ impl Continuation {
                 }
             }
             (Self::Form(one), Self::Form(other)) => one.pos == other.pos,
+            (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
             (Self::EggBreak { mob: one, .. }, Self::EggBreak { mob: other, .. }) => one == other,
-            (Self::Prime(one), Self::Prime(other)) => one.creeper == other.creeper,
+            (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
             (Self::Aim(one), Self::Aim(other)) => {
                 one.deferred && one.mob == other.mob && one.seeker == other.seeker
@@ -1239,9 +1261,11 @@ impl Continuation {
             | Self::Gather(_)
             | Self::MobPickup(_) => true,
             Self::ChangeBlock(step) => matches!(step.change, Grief::Fall { .. }),
-            Self::EggBreak { .. } | Self::Form(_) | Self::Prime(_) | Self::ProjectileHit { .. } => {
-                true
-            }
+            Self::EggBreak { .. }
+            | Self::Form(_)
+            | Self::Ignite(_)
+            | Self::Prime(_)
+            | Self::ProjectileHit { .. } => true,
             Self::Aim(step) => step.deferred,
             Self::Breed(_) => true,
             _ => matches!(

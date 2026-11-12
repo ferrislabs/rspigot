@@ -54,7 +54,9 @@ pub(crate) fn spawn_kind(entity: &Entity) -> EventKind {
     match &entity.state {
         EntityState::Living(_) if entity.base.kind != Kind::Player => EventKind::CreatureSpawn,
         EntityState::Item(_) => EventKind::ItemSpawn,
-        EntityState::Arrow(_) | EntityState::Thrown(_) => EventKind::ProjectileLaunch,
+        EntityState::Arrow(_) | EntityState::Thrown(_) | EntityState::Hurting(_) => {
+            EventKind::ProjectileLaunch
+        }
         _ => EventKind::EntitySpawn,
     }
 }

@@ -149,8 +149,12 @@ impl<L: ClientLink> Server<L> {
             Continuation::Hurt(step) | Continuation::Strike(step) => match step.then {
                 crate::plugins::AfterHurt::Arrow(follow) => follow.arrow == projectile,
                 crate::plugins::AfterHurt::Thrown(follow) => follow.projectile == projectile,
+                crate::plugins::AfterHurt::Hurting(follow) => follow.projectile == projectile,
                 _ => false,
             },
+            Continuation::Ignite(step) => step.projectile == projectile,
+            Continuation::Prime(step) => step.projectile && step.source == projectile,
+            Continuation::EntityExplode(step) => step.discard == Some(projectile),
             _ => false,
         })
     }
@@ -168,8 +172,11 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let thrown = matches!(entity.state, EntityState::Thrown(_));
+        let hurting = matches!(entity.state, EntityState::Hurting(_));
         if thrown {
             self.thrown_hit_entity(arrow, target);
+        } else if hurting {
+            self.hurting_hit_entity(arrow, target);
         } else if self.living_entity_alive(target) {
             self.arrow_hit_entity(arrow, target);
         }

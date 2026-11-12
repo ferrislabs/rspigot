@@ -67,6 +67,14 @@ const VELOCITY_THRESHOLD: f64 = 0.003;
 const AIR_FRICTION: f32 = 0.91;
 const AIR_DRAG: f32 = 0.98;
 const FLYING_SPEED: f32 = 0.02;
+const FLYING_WATER_DRAG: f64 = 0.8_f32 as f64;
+const FLYING_LAVA_DRAG: f64 = 0.5;
+const FLYING_AIR_DRAG: f64 = 0.91_f32 as f64;
+const GHAST_FLYING_SPEEDS: FlyingSpeeds = FlyingSpeeds {
+    water: 0.02,
+    lava: 0.02,
+    air: 0.02,
+};
 const SLOW_FALLING_GRAVITY: f64 = 0.01;
 const LEVITATION_SPEED: f64 = 0.05;
 const LEVITATION_BLEND: f64 = 0.2;
@@ -410,6 +418,7 @@ pub struct HurtSource<'a> {
     pub direct: Option<&'a Component>,
     pub living_cause: bool,
     pub creative_attacker: bool,
+    pub reflected_fireball: bool,
 }
 
 impl HurtSource<'_> {
@@ -420,6 +429,7 @@ impl HurtSource<'_> {
             direct: None,
             living_cause: false,
             creative_attacker: false,
+            reflected_fireball: false,
         }
     }
 }
@@ -695,12 +705,14 @@ pub fn is_invulnerable(base: &EntityBase) -> bool {
 
 pub fn is_invulnerable_to(base: &EntityBase, source: &HurtSource<'_>) -> bool {
     let kind = source.kind;
+    let reflected = base.kind == EntityKind::Ghast && source.reflected_fireball;
     base.is_removed()
         || (is_invulnerable(base)
             && !kind.is(DamageTag::BypassesInvulnerability)
             && !source.creative_attacker)
-        || (kind.is(DamageTag::IsFire) && base.kind.fire_immune())
-        || (kind.is(DamageTag::IsFall) && fall_damage_immune(base.kind))
+        || (!reflected
+            && ((kind.is(DamageTag::IsFire) && base.kind.fire_immune())
+                || (kind.is(DamageTag::IsFall) && fall_damage_immune(base.kind))))
 }
 
 fn after_magic(living: &LivingState, kind: DamageType, amount: f32) -> f32 {
@@ -1193,12 +1205,43 @@ pub fn set_sprinting(base: &mut EntityBase, living: &mut LivingState, sprinting:
     }
 }
 
+pub fn travel_flying<V: BlockView>(
+    base: &mut EntityBase,
+    living: &mut LivingState,
+    view: &V,
+    input: Vec3,
+    speeds: FlyingSpeeds,
+) -> Option<Landing> {
+    let traits = living.move_traits(base);
+    let (speed, drag) = if base.fluid.in_water {
+        (speeds.water, FLYING_WATER_DRAG)
+    } else if base.fluid.in_lava() {
+        (speeds.lava, FLYING_LAVA_DRAG)
+    } else {
+        (speeds.air, FLYING_AIR_DRAG)
+    };
+    base.velocity = base.velocity + input_vector(input, speed, base.yaw);
+    let landing = move_entity(base, view, base.velocity, &traits);
+    base.velocity = base.velocity.scale(drag);
+    landing
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FlyingSpeeds {
+    pub water: f32,
+    pub lava: f32,
+    pub air: f32,
+}
+
 pub fn travel<V: BlockView>(
     base: &mut EntityBase,
     living: &mut LivingState,
     view: &V,
     input: Vec3,
 ) -> Option<Landing> {
+    if base.kind == EntityKind::Ghast {
+        return travel_flying(base, living, view, input, GHAST_FLYING_SPEEDS);
+    }
     if base.fluid.in_liquid() {
         travel_in_fluid(base, living, view, input)
     } else {
@@ -1347,6 +1390,65 @@ mod tests {
         );
         assert_eq!(final_damage(&mut living, DamageType::Starve, -3.0), 0.0);
         assert_eq!(living.absorption, 1.5);
+    }
+
+    fn ghast() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Ghast);
+        base.position = Vec3::new(0.5, 80.0, 0.5);
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    #[test]
+    fn a_ghast_flies_without_gravity_and_slows_by_nine_tenths_in_the_air() {
+        let (mut base, mut living) = ghast();
+        base.velocity = Vec3::new(1.0, 0.5, 0.0);
+        travel(&mut base, &mut living, &Air, Vec3::ZERO);
+        let drag = f64::from(0.91f32);
+        assert_eq!(base.velocity, Vec3::new(drag, 0.5 * drag, 0.0));
+        assert!((base.position.x - 1.5).abs() < 1.0e-9);
+        assert!((base.position.y - 80.5).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn a_ghast_in_water_slows_to_four_fifths() {
+        let (mut base, mut living) = ghast();
+        base.fluid.in_water = true;
+        base.velocity = Vec3::new(1.0, 0.0, 0.0);
+        travel(&mut base, &mut living, &Air, Vec3::ZERO);
+        assert_eq!(base.velocity.x, f64::from(0.8f32));
+    }
+
+    #[test]
+    fn the_ghast_flying_input_is_added_at_a_fiftieth_along_the_facing() {
+        let (mut base, mut living) = ghast();
+        base.yaw = 0.0;
+        travel(&mut base, &mut living, &Air, Vec3::new(0.0, 0.0, 1.0));
+        let expected = f64::from(0.02f32) * f64::from(0.91f32);
+        assert!(
+            (base.velocity.z - expected).abs() < 1.0e-12,
+            "{:?}",
+            base.velocity
+        );
+    }
+
+    #[test]
+    fn a_ghast_is_immune_to_fireballs_except_the_ones_a_player_reflected() {
+        let (base, _) = ghast();
+        let plain = HurtSource::plain(DamageType::Fireball);
+        assert!(is_invulnerable_to(&base, &plain));
+        let reflected = HurtSource {
+            reflected_fireball: true,
+            ..plain
+        };
+        assert!(!is_invulnerable_to(&base, &reflected));
+        let (mut sealed, _) = ghast();
+        sealed.invulnerable = true;
+        assert!(is_invulnerable_to(&sealed, &reflected));
+        let (zombie_base, _) = zombie();
+        assert!(!is_invulnerable_to(&zombie_base, &plain));
+        let blaze = EntityBase::new(EntityId(2), Uuid::from_u128(2), EntityKind::Blaze);
+        assert!(is_invulnerable_to(&blaze, &reflected));
     }
 
     #[test]

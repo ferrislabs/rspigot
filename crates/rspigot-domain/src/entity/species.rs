@@ -11,10 +11,12 @@ use crate::effect::{AttributeModifier, AttributeOperation};
 use crate::random::RandomSource;
 use crate::{BiomeId, biome};
 
+pub mod blaze;
 pub mod cat;
 pub mod enderman;
 pub mod endermite;
 pub mod fox;
+pub mod ghast;
 pub mod iron_golem;
 pub mod ocelot;
 pub mod panda;
@@ -162,7 +164,7 @@ impl Default for CreeperState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Species {
     #[default]
     Plain,
@@ -183,6 +185,8 @@ pub enum Species {
     Silverfish(silverfish::SilverfishState),
     IronGolem(iron_golem::IronGolemState),
     SnowGolem(snow_golem::SnowGolemState),
+    Blaze(blaze::BlazeState),
+    Ghast(ghast::GhastState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
 }
@@ -322,6 +326,12 @@ impl Species {
         }
         if kind == EntityKind::SnowGolem {
             return Self::SnowGolem(snow_golem::define(base));
+        }
+        if kind == EntityKind::Blaze {
+            return Self::Blaze(blaze::define(base));
+        }
+        if kind == EntityKind::Ghast {
+            return Self::Ghast(ghast::define(base));
         }
         if kind == EntityKind::Rabbit {
             return Self::Rabbit(rabbit::define(base));

@@ -78,7 +78,8 @@ fn a_calm_piglin_leaves_a_nearby_player_alone() {
 
 #[test]
 fn an_angry_piglin_hunts_its_player_with_one_loud_first_cry_and_a_speed_bonus() {
-    let mut s = ready(scene(&["Alice"]));
+    let server = server(PluginSettings::default()).with_rng_seed(0);
+    let mut s = ready(scene_on(server, &["Alice"], Vec::new()));
     s.players[0].link.take();
     let piglin = summon(
         &mut s,

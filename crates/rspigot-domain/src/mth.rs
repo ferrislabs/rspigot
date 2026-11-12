@@ -155,6 +155,18 @@ pub fn atan2(y: f64, x: f64) -> f64 {
     angle
 }
 
+pub fn view_vector(pitch: f32, yaw: f32) -> crate::Vec3 {
+    let x = f64::from(pitch * DEG_TO_RAD);
+    let y = f64::from(-yaw * DEG_TO_RAD);
+    let (cos_y, sin_y) = (cos(y), sin(y));
+    let (cos_x, sin_x) = (cos(x), sin(x));
+    crate::Vec3::new(
+        f64::from(sin_y * cos_x),
+        f64::from(-sin_x),
+        f64::from(cos_y * cos_x),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

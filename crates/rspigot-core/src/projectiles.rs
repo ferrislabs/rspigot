@@ -192,6 +192,7 @@ impl<L: ClientLink> Server<L> {
         match &entity.state {
             EntityState::Arrow(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             EntityState::Thrown(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
+            EntityState::Hurting(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             _ => entity.add_entity_data(),
         }
     }
@@ -590,7 +591,7 @@ impl<L: ClientLink> Server<L> {
         self.mob_source(id)
     }
 
-    fn fire_ticks_of(&self, id: EntityId) -> i32 {
+    pub(crate) fn fire_ticks_of(&self, id: EntityId) -> i32 {
         if let Some(player) = self.players.values().find(|p| p.entity_id == id) {
             return player.vitals.fire_ticks;
         }
@@ -600,7 +601,7 @@ impl<L: ClientLink> Server<L> {
             .map_or(0, |e| e.base.remaining_fire_ticks)
     }
 
-    fn restore_fire_ticks(&mut self, id: EntityId, ticks: i32) {
+    pub(crate) fn restore_fire_ticks(&mut self, id: EntityId, ticks: i32) {
         if let Some(player) = self.players.values_mut().find(|p| p.entity_id == id) {
             player.vitals.fire_ticks = ticks;
             return;

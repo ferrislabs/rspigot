@@ -49,7 +49,11 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
         ),
         _ if damager => (
             match kind {
-                DamageType::Arrow | DamageType::Thrown => EntityDamageCause::Projectile,
+                DamageType::Arrow
+                | DamageType::Thrown
+                | DamageType::Fireball
+                | DamageType::UnattributedFireball
+                | DamageType::WitherSkull => EntityDamageCause::Projectile,
                 DamageType::FallingAnvil
                 | DamageType::FallingBlock
                 | DamageType::FallingStalactite => EntityDamageCause::FallingBlock,
@@ -97,7 +101,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn struck_entity(&self, victim: Struck) -> Option<EntityId> {
         match victim {
             Struck::Player(id) => self.players.get(&id).map(|player| player.entity_id),
-            Struck::Mob(id) | Struck::Item(id) => Some(id),
+            Struck::Mob(id) | Struck::Item(id) | Struck::Projectile(id) => Some(id),
         }
     }
 
@@ -118,6 +122,7 @@ impl<L: ClientLink> Server<L> {
             Struck::Player(id) => self.ask_hurt_player(id, source, amount),
             Struck::Mob(id) => self.ask_hurt_mob(id, source, amount),
             Struck::Item(id) => self.ask_hurt_item(id, amount),
+            Struck::Projectile(id) => self.ask_hurt_projectile(id, amount),
         };
         let (Some(amount), Some(subject)) = (asked, self.struck_entity(victim)) else {
             self.after_hurt(then, Outcome::Missed);
@@ -182,7 +187,7 @@ impl<L: ClientLink> Server<L> {
         let final_damage = f64::from(match victim {
             Struck::Player(id) => self.player_final_damage(id, source.kind, amount),
             Struck::Mob(id) => self.mob_final_damage(id, source.kind, amount),
-            Struck::Item(_) => amount,
+            Struck::Item(_) | Struck::Projectile(_) => amount,
         });
         let damage = f64::from(amount);
         let damage_source = self.damage_view(source);
@@ -251,6 +256,7 @@ impl<L: ClientLink> Server<L> {
                 Struck::Player(id) => self.apply_hurt_player(id, source, amount),
                 Struck::Mob(id) => self.apply_hurt_mob(id, source, amount),
                 Struck::Item(id) => self.apply_hurt_item(id, amount),
+                Struck::Projectile(id) => self.apply_hurt_projectile(id, source),
             };
             if hurt { Outcome::Hurt } else { Outcome::Missed }
         };
@@ -281,6 +287,7 @@ impl<L: ClientLink> Server<L> {
             AfterHurt::MobAttack(follow) => self.finish_mob_attack(follow, outcome.hurt()),
             AfterHurt::Arrow(follow) => self.finish_arrow_hit(follow, outcome.hurt()),
             AfterHurt::Thrown(follow) => self.finish_thrown_hit(follow),
+            AfterHurt::Hurting(follow) => self.finish_hurting_hit(follow, outcome.hurt()),
             AfterHurt::Burn(follow) => {
                 if outcome.hurt() {
                     self.burn_sound(follow);
@@ -300,6 +307,27 @@ impl<L: ClientLink> Server<L> {
             && !entity.base.is_removed()
             && self.config.rules.mob_griefing)
             .then_some(floored(amount))
+    }
+
+    fn ask_hurt_projectile(&self, id: EntityId, amount: f32) -> Option<f32> {
+        let entity = self.entities.store.get(id)?;
+        (entity.base.kind == rspigot_entities::EntityKind::Fireball
+            && matches!(entity.state, EntityState::Hurting(_))
+            && !entity.base.is_removed())
+        .then_some(amount)
+    }
+
+    fn apply_hurt_projectile(&mut self, id: EntityId, source: &DamageSource) -> bool {
+        let Some(attacker) = source.causing.as_ref().and_then(|causing| causing.player) else {
+            return false;
+        };
+        let Some(player) = self.players.get(&attacker) else {
+            return false;
+        };
+        let (uuid, rotation) = (player.profile.id.0, player.rotation);
+        let look = rspigot_domain::mth::view_vector(rotation.pitch, rotation.yaw);
+        self.deflect_projectile(id, uuid, look);
+        false
     }
 
     fn apply_hurt_item(&mut self, id: EntityId, amount: f32) -> bool {
