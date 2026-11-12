@@ -124,6 +124,17 @@ impl<L: ClientLink> Server<L> {
             MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
             MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),
             MobAction::ForgetAndRefreshAnger(mob) => self.forget_and_refresh_anger(mob),
+            MobAction::SetMemory { mob, memory, value } => {
+                if let Some(brain) = self
+                    .entities
+                    .mobs
+                    .entries
+                    .get_mut(&mob)
+                    .and_then(|entry| entry.ai.behavior_brain_mut())
+                {
+                    brain.memories_mut().set_option(memory, value);
+                }
+            }
             MobAction::BreakDoor(pos) => {
                 self.set_block(pos, BlockStateId::AIR);
                 self.level_event(rspigot_ai::ZOMBIE_BREAK_DOOR_EVENT, pos, 0);
