@@ -692,6 +692,17 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
                 species::ignite(base);
             }
         }
+        Species::Wolf(state) => species::wolf::read(nbt, base, state),
+        Species::Cat(state) => species::cat::read(nbt, base, state),
+        Species::Fox(state) => species::fox::read(nbt, base, state),
+        Species::Panda(state) => species::panda::read(nbt, base, state),
+        Species::PolarBear(state) => species::polar_bear::read(nbt, base, state),
+        Species::Enderman(state) => species::enderman::read(nbt, base, state),
+        Species::Endermite(state) => species::endermite::read(nbt, base, state),
+        Species::Silverfish(state) => species::silverfish::read(nbt, base, state),
+        Species::IronGolem(state) => species::iron_golem::read(nbt, base, state),
+        Species::Rabbit(state) => species::rabbit::read(nbt, base, state),
+        Species::Ocelot(state) => species::ocelot::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -764,6 +775,17 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Zombie(_) => &ZOMBIE_KEYS,
         Species::Skeleton(_) => &SKELETON_KEYS,
         Species::Creeper(_) => &CREEPER_KEYS,
+        Species::Wolf(_) => species::wolf::KEYS,
+        Species::Cat(_) => species::cat::KEYS,
+        Species::Fox(_) => species::fox::KEYS,
+        Species::Panda(_) => species::panda::KEYS,
+        Species::PolarBear(_) => species::polar_bear::KEYS,
+        Species::Enderman(_) => species::enderman::KEYS,
+        Species::Endermite(_) => species::endermite::KEYS,
+        Species::Silverfish(_) => species::silverfish::KEYS,
+        Species::IronGolem(_) => species::iron_golem::KEYS,
+        Species::Rabbit(_) => species::rabbit::KEYS,
+        Species::Ocelot(_) => species::ocelot::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1151,6 +1173,17 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
             out.insert("ExplosionRadius", creeper.explosion_radius as i8);
             out.insert("ignited", bool_tag(species::is_ignited(base)));
         }
+        Species::Wolf(state) => species::wolf::write(base, state, out),
+        Species::Cat(state) => species::cat::write(base, state, out),
+        Species::Fox(state) => species::fox::write(base, state, out),
+        Species::Panda(state) => species::panda::write(base, state, out),
+        Species::PolarBear(state) => species::polar_bear::write(base, state, out),
+        Species::Enderman(state) => species::enderman::write(base, state, out),
+        Species::Endermite(state) => species::endermite::write(base, state, out),
+        Species::Silverfish(state) => species::silverfish::write(base, state, out),
+        Species::IronGolem(state) => species::iron_golem::write(base, state, out),
+        Species::Rabbit(state) => species::rabbit::write(base, state, out),
+        Species::Ocelot(state) => species::ocelot::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }

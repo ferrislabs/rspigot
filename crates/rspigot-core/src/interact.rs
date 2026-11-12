@@ -582,6 +582,9 @@ impl<L: ClientLink> Server<L> {
         let Some(kind) = self.entities.store.get(target).map(|e| e.base.kind) else {
             return Interaction::Pass;
         };
+        if let Some(result) = self.kind_interact(id, target, hand, held.as_ref()) {
+            return result;
+        }
         let Some(stack) = held else {
             return Interaction::Pass;
         };
@@ -792,7 +795,7 @@ impl<L: ClientLink> Server<L> {
         self.hurt_held(id, hand, 1);
     }
 
-    fn animal_interact(
+    pub(crate) fn animal_interact(
         &mut self,
         id: PlayerId,
         target: EntityId,

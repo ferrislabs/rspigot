@@ -637,6 +637,14 @@ pub enum MobGoal {
     FollowOwner(FollowOwnerGoal),
     OwnerTarget(OwnerTargetGoal),
     ResetUniversalAnger(ResetUniversalAngerGoal),
+    Wolf(crate::WolfGoal),
+    Cat(crate::CatGoal),
+    Fox(crate::FoxGoal),
+    Panda(crate::PandaGoal),
+    PolarBear(crate::PolarBearGoal),
+    Enderman(crate::EndermanGoal),
+    Silverfish(crate::SilverfishGoal),
+    IronGolem(crate::IronGolemGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -669,6 +677,14 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::RestrictSun(_)
             | Self::BreakDoor(_)
             | Self::ResetUniversalAnger(_) => Flags::NONE,
+            Self::Wolf(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Cat(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Fox(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Panda(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::PolarBear(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Enderman(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -702,6 +718,14 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::FollowOwner(goal) => goal.can_use(context),
             Self::OwnerTarget(goal) => goal.can_use(context),
             Self::ResetUniversalAnger(goal) => goal.can_use(context),
+            Self::Wolf(goal) => Goal::can_use(goal, context),
+            Self::Cat(goal) => Goal::can_use(goal, context),
+            Self::Fox(goal) => Goal::can_use(goal, context),
+            Self::Panda(goal) => Goal::can_use(goal, context),
+            Self::PolarBear(goal) => Goal::can_use(goal, context),
+            Self::Enderman(goal) => Goal::can_use(goal, context),
+            Self::Silverfish(goal) => Goal::can_use(goal, context),
+            Self::IronGolem(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -735,6 +759,28 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::FollowOwner(goal) => goal.can_continue_to_use(context),
             Self::OwnerTarget(goal) => goal.memory().can_continue_to_use(context),
             Self::ResetUniversalAnger(goal) => goal.can_use(context),
+            Self::Wolf(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Cat(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Fox(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Panda(goal) => Goal::can_continue_to_use(goal, context),
+            Self::PolarBear(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Enderman(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Silverfish(goal) => Goal::can_continue_to_use(goal, context),
+            Self::IronGolem(goal) => Goal::can_continue_to_use(goal, context),
+        }
+    }
+
+    fn is_interruptable(&self) -> bool {
+        match self {
+            Self::Wolf(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Cat(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Fox(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Panda(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::PolarBear(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Enderman(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            _ => true,
         }
     }
 
@@ -768,6 +814,14 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::FollowOwner(goal) => goal.start(context),
             Self::OwnerTarget(goal) => goal.start(context),
             Self::ResetUniversalAnger(goal) => goal.start(context),
+            Self::Wolf(goal) => Goal::start(goal, context),
+            Self::Cat(goal) => Goal::start(goal, context),
+            Self::Fox(goal) => Goal::start(goal, context),
+            Self::Panda(goal) => Goal::start(goal, context),
+            Self::PolarBear(goal) => Goal::start(goal, context),
+            Self::Enderman(goal) => Goal::start(goal, context),
+            Self::Silverfish(goal) => Goal::start(goal, context),
+            Self::IronGolem(goal) => Goal::start(goal, context),
         }
     }
 
@@ -801,10 +855,48 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::FollowOwner(goal) => goal.stop(context),
             Self::OwnerTarget(goal) => goal.memory().stop(context),
             Self::ResetUniversalAnger(_) => {}
+            Self::Wolf(goal) => Goal::stop(goal, context),
+            Self::Cat(goal) => Goal::stop(goal, context),
+            Self::Fox(goal) => Goal::stop(goal, context),
+            Self::Panda(goal) => Goal::stop(goal, context),
+            Self::PolarBear(goal) => Goal::stop(goal, context),
+            Self::Enderman(goal) => Goal::stop(goal, context),
+            Self::Silverfish(goal) => Goal::stop(goal, context),
+            Self::IronGolem(goal) => Goal::stop(goal, context),
         }
     }
 
     fn requires_update_every_tick(&self) -> bool {
+        match self {
+            Self::Wolf(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Cat(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Fox(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Panda(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::PolarBear(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Enderman(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            _ => self.requires_update_every_tick_base(),
+        }
+    }
+
+    fn tick(&mut self, context: &mut AiContext<'_, W>) {
+        match self {
+            Self::Wolf(goal) => Goal::tick(goal, context),
+            Self::Cat(goal) => Goal::tick(goal, context),
+            Self::Fox(goal) => Goal::tick(goal, context),
+            Self::Panda(goal) => Goal::tick(goal, context),
+            Self::PolarBear(goal) => Goal::tick(goal, context),
+            Self::Enderman(goal) => Goal::tick(goal, context),
+            Self::Silverfish(goal) => Goal::tick(goal, context),
+            Self::IronGolem(goal) => Goal::tick(goal, context),
+            _ => self.tick_base(context),
+        }
+    }
+}
+
+impl MobGoal {
+    fn requires_update_every_tick_base(&self) -> bool {
         matches!(
             self,
             Self::Float(_)
@@ -820,7 +912,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
         )
     }
 
-    fn tick(&mut self, context: &mut AiContext<'_, W>) {
+    fn tick_base<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         match self {
             Self::Float(goal) => goal.tick(context),
             Self::ClimbOnTopOfPowderSnow(goal) => goal.tick(context),
@@ -849,7 +941,15 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::MoveThroughVillage(_)
             | Self::SitWhenOrdered(_)
             | Self::OwnerTarget(_)
-            | Self::ResetUniversalAnger(_) => {}
+            | Self::ResetUniversalAnger(_)
+            | Self::Wolf(_)
+            | Self::Cat(_)
+            | Self::Fox(_)
+            | Self::Panda(_)
+            | Self::PolarBear(_)
+            | Self::Enderman(_)
+            | Self::Silverfish(_)
+            | Self::IronGolem(_) => {}
         }
     }
 }

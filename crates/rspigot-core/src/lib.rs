@@ -29,6 +29,7 @@ pub mod health;
 mod input;
 mod interact;
 mod items;
+mod kinds;
 mod lectern;
 pub mod lighting;
 pub mod loot;

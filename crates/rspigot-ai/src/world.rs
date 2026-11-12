@@ -170,6 +170,18 @@ pub trait AiWorld: BlockView {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct KindFacts {
+    pub wolf: crate::WolfFacts,
+    pub cat: crate::CatFacts,
+    pub fox: crate::FoxFacts,
+    pub panda: crate::PandaFacts,
+    pub polar_bear: crate::PolarBearFacts,
+    pub enderman: crate::EndermanFacts,
+    pub silverfish: crate::SilverfishFacts,
+    pub iron_golem: crate::IronGolemFacts,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MobView {
     pub id: EntityId,
@@ -227,6 +239,7 @@ pub struct MobView {
     pub anger_target: Option<EntityId>,
     pub leashed: bool,
     pub passenger: bool,
+    pub species: KindFacts,
 }
 
 pub fn attribute(kind: EntityKind, living: &LivingState, name: &str) -> f64 {
@@ -304,6 +317,7 @@ impl MobView {
             anger_target: None,
             leashed: false,
             passenger: false,
+            species: KindFacts::default(),
         }
     }
 

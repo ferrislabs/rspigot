@@ -800,6 +800,7 @@ impl<L: ClientLink> Server<L> {
             view.anger_target = neutral.target.and_then(|uuid| world.resolve(uuid));
         }
         view.leashed = entity.extra.contains_key(LEASH);
+        self.kind_view(entity, &mut view);
         Some(view)
     }
 
@@ -857,6 +858,7 @@ impl<L: ClientLink> Server<L> {
         for action in actions {
             self.apply_mob_action(id, action);
         }
+        self.kind_custom_ai_step(id);
         let view = ChunkView {
             chunks: &self.world.chunks,
             height: self.world.dimension.height,
@@ -1154,7 +1156,8 @@ impl<L: ClientLink> Server<L> {
             return None;
         }
         state.no_action_time = 0;
-        Some(living::floored(amount))
+        let amount = self.kind_hurt_amount(id, source, living::floored(amount))?;
+        Some(amount)
     }
 
     pub(crate) fn mob_final_damage(&self, id: EntityId, kind: DamageType, amount: f32) -> f32 {
@@ -1256,6 +1259,7 @@ impl<L: ClientLink> Server<L> {
         if !dead {
             self.zombie_reinforcements(id, source);
         }
+        self.kind_after_hurt(id, source, dead);
         true
     }
 

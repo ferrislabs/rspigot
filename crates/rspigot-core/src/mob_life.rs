@@ -90,6 +90,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn species_pre_tick(&mut self, id: EntityId) -> bool {
+        if !self.kind_pre_tick(id) {
+            return false;
+        }
         let now = self.current_tick() as i64;
         let Some(Entity {
             base,
@@ -143,6 +146,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn species_post_tick(&mut self, id: EntityId) {
+        self.kind_post_tick(id);
         let now = self.current_tick() as i64;
         let Some(Entity {
             base,

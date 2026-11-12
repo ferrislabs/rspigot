@@ -62,7 +62,7 @@ pub fn set_item_slot(living: &mut LivingState, slot: EquipmentSlot, item: Option
     living.equipment[slot_index(slot)] = item;
 }
 
-fn mob_finalize(
+pub(crate) fn mob_finalize(
     base: &mut EntityBase,
     living: &mut LivingState,
     group: Option<SpawnGroupData>,
@@ -86,7 +86,7 @@ fn mob_finalize(
     group
 }
 
-fn ageable_finalize(
+pub(crate) fn ageable_finalize(
     base: &mut EntityBase,
     living: &mut LivingState,
     group: Option<SpawnGroupData>,
@@ -488,6 +488,33 @@ pub fn finalize_spawn(
             zombie_finalize(base, living, environment, reason, group, level, own)
         }
         Some(Species::Skeleton(_)) => skeleton_finalize(base, living, environment, group, level),
+        Some(Species::Wolf(_)) => species::wolf::finalize(base, living, environment, group, level),
+        Some(Species::Cat(_)) => species::cat::finalize(base, living, environment, group, level),
+        Some(Species::Fox(_)) => species::fox::finalize(base, living, environment, group, level),
+        Some(Species::Panda(_)) => {
+            species::panda::finalize(base, living, environment, group, level)
+        }
+        Some(Species::PolarBear(_)) => {
+            species::polar_bear::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Enderman(_)) => {
+            species::enderman::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Endermite(_)) => {
+            species::endermite::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Silverfish(_)) => {
+            species::silverfish::finalize(base, living, environment, group, level)
+        }
+        Some(Species::IronGolem(_)) => {
+            species::iron_golem::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Rabbit(_)) => {
+            species::rabbit::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Ocelot(_)) => {
+            species::ocelot::finalize(base, living, environment, group, level)
+        }
         _ if kind == EntityKind::Spider => spider_finalize(base, living, environment, group, level),
         _ if kind.extends("AgeableMob") => ageable_finalize(base, living, group, level),
         _ => mob_finalize(base, living, group, level),

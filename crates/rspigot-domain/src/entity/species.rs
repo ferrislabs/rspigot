@@ -10,6 +10,18 @@ use crate::effect::{AttributeModifier, AttributeOperation};
 use crate::random::RandomSource;
 use crate::{BiomeId, biome};
 
+pub mod cat;
+pub mod enderman;
+pub mod endermite;
+pub mod fox;
+pub mod iron_golem;
+pub mod ocelot;
+pub mod panda;
+pub mod polar_bear;
+pub mod rabbit;
+pub mod silverfish;
+pub mod wolf;
+
 pub const PIG_DATA_BOOST_TIME: u8 = 18;
 pub const DATA_WOOL: u8 = 18;
 pub const ZOMBIE_DATA_BABY: u8 = 16;
@@ -156,6 +168,17 @@ pub enum Species {
     Zombie(ZombieState),
     Skeleton(SkeletonState),
     Creeper(CreeperState),
+    Wolf(wolf::WolfState),
+    Cat(cat::CatState),
+    Fox(fox::FoxState),
+    Panda(panda::PandaState),
+    PolarBear(polar_bear::PolarBearState),
+    Enderman(enderman::EndermanState),
+    Endermite(endermite::EndermiteState),
+    Silverfish(silverfish::SilverfishState),
+    IronGolem(iron_golem::IronGolemState),
+    Rabbit(rabbit::RabbitState),
+    Ocelot(ocelot::OcelotState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<Farm> {
@@ -240,6 +263,39 @@ impl Species {
             base.data
                 .define(CREEPER_DATA_IGNITED, SyncedValue::Boolean(false));
             return Self::Creeper(CreeperState::default());
+        }
+        if kind == EntityKind::Wolf {
+            return Self::Wolf(wolf::define(base));
+        }
+        if kind == EntityKind::Cat {
+            return Self::Cat(cat::define(base));
+        }
+        if kind == EntityKind::Fox {
+            return Self::Fox(fox::define(base));
+        }
+        if kind == EntityKind::Panda {
+            return Self::Panda(panda::define(base));
+        }
+        if kind == EntityKind::PolarBear {
+            return Self::PolarBear(polar_bear::define(base));
+        }
+        if kind == EntityKind::Enderman {
+            return Self::Enderman(enderman::define(base));
+        }
+        if kind == EntityKind::Endermite {
+            return Self::Endermite(endermite::define(base));
+        }
+        if kind == EntityKind::Silverfish {
+            return Self::Silverfish(silverfish::define(base));
+        }
+        if kind == EntityKind::IronGolem {
+            return Self::IronGolem(iron_golem::define(base));
+        }
+        if kind == EntityKind::Rabbit {
+            return Self::Rabbit(rabbit::define(base));
+        }
+        if kind == EntityKind::Ocelot {
+            return Self::Ocelot(ocelot::define(base));
         }
         Self::Plain
     }

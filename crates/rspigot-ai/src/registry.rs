@@ -15,6 +15,7 @@ use crate::goals::{
 };
 use crate::rabbit::RaidGardenGoal;
 use crate::world::TargetKind;
+use crate::{cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf};
 
 pub const ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER: bool = true;
 pub const WEAPON_PRIORITY: i32 = 4;
@@ -34,63 +35,63 @@ impl Default for GoalSettings {
     }
 }
 
-struct Goals<'a> {
-    goals: &'a mut GoalSelector<MobGoal>,
-    targets: &'a mut GoalSelector<MobGoal>,
-    brain: &'a mut Brain,
+pub(crate) struct Goals<'a> {
+    pub(crate) goals: &'a mut GoalSelector<MobGoal>,
+    pub(crate) targets: &'a mut GoalSelector<MobGoal>,
+    pub(crate) brain: &'a mut Brain,
 }
 
 impl Goals<'_> {
-    fn goal(&mut self, priority: i32, goal: MobGoal) {
+    pub(crate) fn goal(&mut self, priority: i32, goal: MobGoal) {
         self.goals.add_goal(priority, goal);
     }
 
-    fn target_goal(&mut self, priority: i32, goal: MobGoal) {
+    pub(crate) fn target_goal(&mut self, priority: i32, goal: MobGoal) {
         self.targets.add_goal(priority, goal);
     }
 
-    fn float(&mut self, priority: i32) {
+    pub(crate) fn float(&mut self, priority: i32) {
         self.brain.profile.can_float = true;
         self.goal(priority, MobGoal::Float(FloatGoal));
     }
 
-    fn tempt(&mut self, priority: i32, speed: f64, items: TemptItems) {
+    pub(crate) fn tempt(&mut self, priority: i32, speed: f64, items: TemptItems) {
         self.goal(priority, MobGoal::Tempt(TemptGoal::new(speed, items)));
     }
 
-    fn stroll(&mut self, priority: i32, speed: f64) {
+    pub(crate) fn stroll(&mut self, priority: i32, speed: f64) {
         self.goal(
             priority,
             MobGoal::Stroll(RandomStrollGoal::water_avoiding(speed)),
         );
     }
 
-    fn stroll_rarely_in_water(&mut self, priority: i32, speed: f64, probability: f32) {
+    pub(crate) fn stroll_rarely_in_water(&mut self, priority: i32, speed: f64, probability: f32) {
         self.goal(
             priority,
             MobGoal::Stroll(RandomStrollGoal::water_avoiding_with(speed, probability)),
         );
     }
 
-    fn look(&mut self, priority: i32, distance: f32) {
+    pub(crate) fn look(&mut self, priority: i32, distance: f32) {
         self.goal(
             priority,
             MobGoal::LookAtPlayer(LookAtPlayerGoal::new(distance)),
         );
     }
 
-    fn look_around(&mut self, priority: i32) {
+    pub(crate) fn look_around(&mut self, priority: i32) {
         self.goal(
             priority,
             MobGoal::RandomLookAround(RandomLookAroundGoal::default()),
         );
     }
 
-    fn target(&mut self, priority: i32, goal: NearestAttackableTargetGoal) {
+    pub(crate) fn target(&mut self, priority: i32, goal: NearestAttackableTargetGoal) {
         self.target_goal(priority, MobGoal::NearestAttackableTarget(goal));
     }
 
-    fn animal(
+    pub(crate) fn animal(
         &mut self,
         panic: f64,
         breed: i32,
@@ -372,6 +373,15 @@ pub fn register_goals(
                 ),
             );
         }
+
+        EntityKind::Wolf => wolf::register(&mut add, kind),
+        EntityKind::Cat => cat::register(&mut add, kind),
+        EntityKind::Fox => fox::register(&mut add, kind),
+        EntityKind::Panda => panda::register(&mut add, kind),
+        EntityKind::PolarBear => polar_bear::register(&mut add, kind),
+        EntityKind::Enderman => enderman::register(&mut add, kind),
+        EntityKind::Silverfish => silverfish::register(&mut add, kind),
+        EntityKind::IronGolem => iron_golem::register(&mut add, kind),
         _ => {}
     }
 }
