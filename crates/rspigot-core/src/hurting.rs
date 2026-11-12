@@ -425,7 +425,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn owner_is_living(&self, owner: EntityId) -> bool {
+    pub(crate) fn owner_is_living(&self, owner: EntityId) -> bool {
         self.players
             .values()
             .any(|player| player.entity_id == owner)
@@ -436,7 +436,7 @@ impl<L: ClientLink> Server<L> {
                 .is_some_and(|entity| entity.living().is_some())
     }
 
-    fn is_living_target(&self, target: EntityId) -> bool {
+    pub(crate) fn is_living_target(&self, target: EntityId) -> bool {
         self.owner_is_living(target)
     }
 

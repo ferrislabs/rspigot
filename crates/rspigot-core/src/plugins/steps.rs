@@ -670,6 +670,12 @@ pub(crate) struct ThrownFollow {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct BulletFollow {
+    pub(crate) projectile: EntityId,
+    pub(crate) target: EntityId,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct HurtingFollow {
     pub(crate) projectile: EntityId,
     pub(crate) target: EntityId,
@@ -708,6 +714,7 @@ pub(crate) enum AfterHurt {
     Arrow(ArrowFollow),
     Thrown(ThrownFollow),
     Hurting(HurtingFollow),
+    Bullet(BulletFollow),
     Burn(BurnFollow),
     Blast(BlastFollow),
 }
