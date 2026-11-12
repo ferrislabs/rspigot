@@ -1238,6 +1238,16 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
         base.set_pitch(body.pitch);
     }
     base.fall_distance = body.fall_distance;
+    state.discard_friction = body.discard_friction;
+    if body.pose != mob.pose {
+        base.set_pose(body.pose);
+        let baby = state
+            .mob
+            .as_ref()
+            .and_then(|mob| mob.ageable.as_ref())
+            .is_some_and(|ageable| ageable::is_baby(base, ageable));
+        ageable::refresh_dimensions(base, baby);
+    }
     living::set_aggressive(base, body.aggressive);
     if base.kind == Kind::Creeper {
         species::set_swell_dir(base, body.swell_dir);
