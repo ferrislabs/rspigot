@@ -6,6 +6,7 @@ mod data;
 pub mod falling;
 pub mod fire;
 pub mod fluid;
+pub mod hurting;
 pub mod item;
 pub mod living;
 pub mod neutral;
@@ -48,6 +49,7 @@ pub enum EntityState {
     Item(ItemState),
     Arrow(Box<arrow::ArrowState>),
     Thrown(Box<thrown::ThrownState>),
+    Hurting(Box<hurting::HurtingState>),
     Falling(FallingState),
     Living(Box<LivingState>),
     Orb(OrbState),
