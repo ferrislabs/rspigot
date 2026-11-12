@@ -333,6 +333,18 @@ fn variants_share_the_goals_of_their_base_mob() {
 }
 
 #[test]
+fn wither_skeleton_also_hunts_piglins_and_always_melees() {
+    let settings = GoalSettings::default();
+    let skeleton = MobAi::new(EntityKind::Skeleton, 1, settings);
+    let wither = MobAi::new(EntityKind::WitherSkeleton, 1, settings);
+    assert_eq!(goals(&wither), goals(&skeleton));
+    let mut expected = targets(&skeleton);
+    expected.push((3, "nearest_target"));
+    expected.sort_by_key(|(priority, _)| *priority);
+    assert_eq!(targets(&wither), expected);
+}
+
+#[test]
 fn bow_power_grows_with_the_draw_time() {
     assert_eq!(bow_power(0), 0.0);
     assert!((bow_power(10) - (0.25 + 1.0) / 3.0).abs() < 1.0e-6);
