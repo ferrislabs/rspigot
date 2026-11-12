@@ -842,6 +842,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_mob_pickup(*step, cancelled);
                 Vec::new()
             }
+            Continuation::PiglinPickup(step) => {
+                self.finish_piglin_pickup(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Barter(step) => {
+                self.finish_barter(*step, cancelled);
+                Vec::new()
+            }
             Continuation::ChangeBlock(step) => {
                 self.finish_change(*step, cancelled);
                 Vec::new()

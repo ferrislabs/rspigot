@@ -387,3 +387,94 @@ fn a_brute_hunts_any_player_even_one_in_gold() {
     s.tick(80);
     assert_eq!(s.server.mob_target(brute), alice);
 }
+
+fn drop_gold(s: &mut Scene, at: &str) {
+    console(
+        s,
+        &format!(
+            "summon minecraft:item {at} {{Item:{{id:\"minecraft:gold_ingot\",count:1}},PickupDelay:0s}}"
+        ),
+    );
+}
+
+#[test]
+fn a_barter_is_announced_and_a_plugin_can_cancel_it() {
+    let mut s = waiting_scene(vec![deciding(1, EventKind::PiglinBarter)]);
+    stream_chunk_of(&mut s, BlockPos::new(4, 64, 4));
+    let piglin = summon(
+        &mut s,
+        Kind::Piglin,
+        "4.5 64 4.5",
+        "{IsImmuneToZombification:1b,IsBaby:0b}",
+    );
+    drop_gold(&mut s, "4.5 64 4.5");
+    for _ in 0..400 {
+        s.tick(1);
+        if !asked_for(&s.plugin, EventKind::PiglinBarter).is_empty() {
+            break;
+        }
+    }
+    let asked = asked_for(&s.plugin, EventKind::PiglinBarter).remove(0);
+    let EventPayload::PiglinBarter(event) = &asked.payload else {
+        panic!("a piglin barter");
+    };
+    assert_eq!(event.entity.id, piglin);
+    assert_eq!(event.input.key, "minecraft:gold_ingot");
+    assert!(!event.outcome.is_empty());
+    let before = s.server.ground_items().len();
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(20);
+    assert_eq!(s.server.ground_items().len(), before);
+}
+
+#[test]
+fn a_barter_that_is_allowed_throws_the_loot() {
+    let mut s = waiting_scene(vec![deciding(1, EventKind::PiglinBarter)]);
+    stream_chunk_of(&mut s, BlockPos::new(4, 64, 4));
+    summon(
+        &mut s,
+        Kind::Piglin,
+        "4.5 64 4.5",
+        "{IsImmuneToZombification:1b,IsBaby:0b}",
+    );
+    drop_gold(&mut s, "4.5 64 4.5");
+    for _ in 0..400 {
+        s.tick(1);
+        if !asked_for(&s.plugin, EventKind::PiglinBarter).is_empty() {
+            break;
+        }
+    }
+    let asked = asked_for(&s.plugin, EventKind::PiglinBarter).remove(0);
+    rule_on(&mut s.server, 1, asked.id, false, None);
+    s.tick(5);
+    assert!(!s.server.ground_items().is_empty());
+}
+
+#[test]
+fn a_cancelled_pickup_leaves_the_gold_where_it_lies() {
+    let mut s = waiting_scene(vec![deciding(1, EventKind::EntityPickupItem)]);
+    stream_chunk_of(&mut s, BlockPos::new(4, 64, 4));
+    let piglin = summon(
+        &mut s,
+        Kind::Piglin,
+        "4.5 64 4.5",
+        "{IsImmuneToZombification:1b,IsBaby:0b}",
+    );
+    drop_gold(&mut s, "4.5 64 4.5");
+    for _ in 0..200 {
+        s.tick(1);
+        let asked = asked_for(&s.plugin, EventKind::EntityPickupItem);
+        if let Some(event) = asked.iter().find(|event| {
+            matches!(&event.payload, EventPayload::EntityPickupItem(pickup) if pickup.entity.id == piglin)
+        }) {
+            rule_on(&mut s.server, 1, event.id, true, None);
+            break;
+        }
+    }
+    s.tick(5);
+    let saved = s.server.saved_entity(piglin).unwrap();
+    let off = saved
+        .get_compound("equipment")
+        .and_then(|equipment| equipment.get("offhand").cloned());
+    assert!(off.is_none(), "{off:?}");
+}
