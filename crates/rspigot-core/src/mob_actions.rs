@@ -131,6 +131,7 @@ impl<L: ClientLink> Server<L> {
             MobAction::Goat(action) => self.goat_action(id, action),
             MobAction::Armadillo(action) => self.armadillo_action(id, action),
             MobAction::Breeze(action) => self.breeze_action(id, action),
+            MobAction::Creaking(action) => self.creaking_action(id, action),
             MobAction::Piglin(action) => self.piglin_action(id, action),
             MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
             MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),

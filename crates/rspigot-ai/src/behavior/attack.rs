@@ -100,6 +100,7 @@ pub enum StopAttackCondition {
     #[default]
     Never,
     NotNearestValid(NetherFinder),
+    NotInNearestAttackablePlayers,
     NotAttackableRecently {
         invocations: i32,
         positives_left: i32,
@@ -118,6 +119,15 @@ impl StopAttackCondition {
         match self {
             Self::Never => false,
             Self::NotNearestValid(finder) => !finder.is_nearest_valid_attack_target(cx, target),
+            Self::NotInNearestAttackablePlayers => {
+                !(target.player
+                    && cx
+                        .brain
+                        .memories
+                        .get(MemoryModuleType::NearestVisibleAttackablePlayers)
+                        .and_then(MemoryValue::as_entities)
+                        .is_some_and(|players| players.contains(&target.id)))
+            }
             Self::NotAttackableRecently {
                 invocations,
                 positives_left,

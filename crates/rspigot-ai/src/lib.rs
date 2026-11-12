@@ -11,6 +11,7 @@ mod cat;
 mod classify;
 mod combat;
 mod control;
+mod creaking;
 mod crossbow;
 mod enderman;
 mod evade;
@@ -109,6 +110,7 @@ pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
     MoveControl, MoveStyle, Operation, can_reach, rotate_towards,
 };
+pub use creaking::{CreakingAction, CreakingFacts, CreakingState};
 pub use crossbow::{
     CrossbowAction, CrossbowFacts, CrossbowGoal, CrossbowState, DEFAULT_CHARGE_TICKS,
     HoldGroundAttackGoal, RangedCrossbowAttackGoal,

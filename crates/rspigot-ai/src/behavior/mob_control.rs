@@ -280,6 +280,10 @@ impl MobControl {
         Self::behavior(MobBehavior::Swim(Swim::new(chance)))
     }
 
+    pub fn creaking_swim(chance: f32) -> Self {
+        Self::behavior(MobBehavior::Swim(Swim::creaking(chance)))
+    }
+
     pub fn look_at_target_sink(min_duration: i32, max_duration: i32) -> Self {
         Self::behavior_for(
             MobBehavior::LookAtTargetSink(LookAtTargetSink),

@@ -5,9 +5,9 @@ use rspigot_entities::SoundSource;
 use crate::behavior::{MemoryModuleType, MemoryValue};
 use crate::world::Hand;
 use crate::{
-    ArmadilloAction, BlazeAction, BreezeAction, CatAction, CrossbowAction, EndermanAction,
-    FoxAction, GhastAction, GoatAction, IronGolemAction, PandaAction, PolarBearAction,
-    RaiderAction, ShulkerAction, SilverfishAction, WolfAction,
+    ArmadilloAction, BlazeAction, BreezeAction, CatAction, CreakingAction, CrossbowAction,
+    EndermanAction, FoxAction, GhastAction, GoatAction, IronGolemAction, PandaAction,
+    PolarBearAction, RaiderAction, ShulkerAction, SilverfishAction, WolfAction,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,6 +150,7 @@ pub enum MobAction {
     Goat(GoatAction),
     Armadillo(ArmadilloAction),
     Breeze(BreezeAction),
+    Creaking(CreakingAction),
     Message {
         to: EntityId,
         message: BrainMessage,

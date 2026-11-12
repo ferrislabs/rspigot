@@ -7,6 +7,7 @@ use crate::behavior::{
 };
 use crate::brain::AiContext;
 use crate::breeze;
+use crate::creaking;
 use crate::goat;
 use crate::random::RandomSource;
 use crate::world::AiWorld;
@@ -19,6 +20,7 @@ pub fn after_brain_tick<W: AiWorld>(
         EntityKind::Goat => goat::update_activity(brain),
         EntityKind::Armadillo => armadillo::update_activity(brain),
         EntityKind::Breeze => breeze::update_activity(brain),
+        EntityKind::Creaking => creaking::update_activity(brain, ai.brain.creaking.can_move),
         _ => {}
     }
 }
@@ -36,6 +38,11 @@ pub fn brain_for(
                 armadillo::armadillo_activities(),
             ),
             EntityKind::Breeze => (&[], breeze::breeze_sensors(), breeze::breeze_activities()),
+            EntityKind::Creaking => (
+                &[],
+                creaking::creaking_sensors(),
+                creaking::creaking_activities(),
+            ),
             _ => return None,
         };
     let mut brain = BehaviorBrain::new(

@@ -768,6 +768,7 @@ mod tests {
                 EntityKind::CaveSpider,
                 EntityKind::Chicken,
                 EntityKind::Cow,
+                EntityKind::Creaking,
                 EntityKind::Creeper,
                 EntityKind::Enderman,
                 EntityKind::Endermite,
