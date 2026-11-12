@@ -14,6 +14,7 @@ use crate::{BiomeId, biome};
 pub mod armadillo;
 pub mod blaze;
 pub mod cat;
+pub mod creaking;
 pub mod enderman;
 pub mod endermite;
 pub mod fox;
@@ -204,6 +205,7 @@ pub enum Species {
     Piglin(piglin::PiglinState),
     Goat(goat::GoatState),
     Armadillo(armadillo::ArmadilloState),
+    Creaking(creaking::CreakingState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -390,6 +392,9 @@ impl Species {
         }
         if kind == EntityKind::Armadillo {
             return Self::Armadillo(armadillo::define(base));
+        }
+        if kind == EntityKind::Creaking {
+            return Self::Creaking(creaking::define(base));
         }
         Self::Plain
     }

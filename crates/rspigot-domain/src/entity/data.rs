@@ -58,6 +58,7 @@ pub enum SyncedValue {
     Direction(Face),
     OptionalEntity(Option<Uuid>),
     OptionalBlockState(Option<BlockStateId>),
+    OptionalBlockPos(Option<BlockPos>),
     VillagerData {
         kind: u32,
         profession: u32,

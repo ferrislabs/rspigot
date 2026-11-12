@@ -760,6 +760,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Goat(state) => species::goat::read(nbt, base, state),
         Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
+        Species::Creaking(state) => species::creaking::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -967,6 +968,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Piglin(_) => species::piglin::KEYS,
         Species::Goat(_) => species::goat::KEYS,
         Species::Armadillo(_) => species::armadillo::KEYS,
+        Species::Creaking(_) => species::creaking::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1401,6 +1403,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Piglin(state) => species::piglin::write(base, state, out),
         Species::Goat(state) => species::goat::write(base, state, out),
         Species::Armadillo(state) => species::armadillo::write(base, state, out),
+        Species::Creaking(state) => species::creaking::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
