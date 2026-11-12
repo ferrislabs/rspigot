@@ -34,7 +34,15 @@ pub struct RaiderFacts {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RaiderAction {
     StopPatrolling,
-    SetPatrolTarget { mob: EntityId, target: BlockPos },
+    SetPatrolTarget {
+        mob: EntityId,
+        target: BlockPos,
+    },
+    ShoutTarget {
+        mob: EntityId,
+        target: EntityId,
+        aggressive: bool,
+    },
 }
 
 fn y_rot(vector: Vec3, angle: f32) -> Vec3 {

@@ -7,6 +7,7 @@ mod cat;
 mod classify;
 mod combat;
 mod control;
+mod crossbow;
 mod enderman;
 mod evade;
 mod finder;
@@ -67,6 +68,10 @@ pub use combat::{
 pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
     MoveControl, MoveStyle, Operation, can_reach, rotate_towards,
+};
+pub use crossbow::{
+    CrossbowAction, CrossbowFacts, CrossbowGoal, CrossbowState, DEFAULT_CHARGE_TICKS,
+    HoldGroundAttackGoal, RangedCrossbowAttackGoal,
 };
 pub use enderman::{
     EndermanAction, EndermanFacts, EndermanGoal, TELEPORT_EVENT, find_teleport,
