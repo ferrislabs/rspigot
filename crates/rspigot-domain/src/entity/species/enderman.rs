@@ -18,7 +18,7 @@ pub const DATA_CARRY_STATE: u8 = 16;
 pub const DATA_CREEPY: u8 = 17;
 pub const DATA_STARED_AT: u8 = 18;
 pub const ATTACKING_MODIFIER: &str = "minecraft:attacking";
-pub const ATTACKING_SPEED_BONUS: f64 = 0.15;
+pub const ATTACKING_SPEED_BONUS: f64 = 0.15_f32 as f64;
 pub const CARRIED_BLOCK_KEY: &str = "carriedBlockState";
 pub const KEYS: &[&str] = &[CARRIED_BLOCK_KEY];
 const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
@@ -210,6 +210,10 @@ mod tests {
             living
                 .attributes
                 .has_modifier(MOVEMENT_SPEED, ATTACKING_MODIFIER)
+        );
+        assert_eq!(
+            living.attribute(MOVEMENT_SPEED),
+            f64::from(0.3_f32) + f64::from(0.15_f32)
         );
         let Some(Species::Enderman(state)) = living.mob.as_ref().map(|mob| mob.species) else {
             panic!("not an enderman");

@@ -380,7 +380,7 @@ fn take_tick<W: AiWorld>(context: &mut AiContext<'_, W>) {
         f64::from(mth::floor(mob.position.z)) + 0.5,
     );
     let to = Vec3::new(f64::from(x) + 0.5, f64::from(y) + 0.5, f64::from(z) + 0.5);
-    let reaches = holdable::first_outline_hit(world, from, to) == Some(pos);
+    let reaches = holdable::first_outline_hit(world, from, to).is_none_or(|hit| hit == pos);
     if has_tag(state, HOLDABLE_TAG)
         && reaches
         && let Some(kind) = state.kind()

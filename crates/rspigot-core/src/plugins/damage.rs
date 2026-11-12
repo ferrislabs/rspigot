@@ -254,6 +254,9 @@ impl<L: ClientLink> Server<L> {
             };
             if hurt { Outcome::Hurt } else { Outcome::Missed }
         };
+        if let Struck::Mob(id) = victim {
+            self.kind_hurt_settled(id, source);
+        }
         self.after_hurt(then, outcome);
         outcome.hurt()
     }

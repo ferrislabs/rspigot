@@ -149,16 +149,24 @@ impl<L: ClientLink> Server<L> {
         Some(amount)
     }
 
-    pub(crate) fn enderman_after_hurt(&mut self, id: EntityId, source: &DamageSource, dead: bool) {
+    pub(crate) fn enderman_hurt_settled(&mut self, id: EntityId, source: &DamageSource) {
         if source.living_cause() {
             return;
         }
         let mut random = self.mob_random(id);
         let teleports = random.next_int(NON_LIVING_TELEPORT_ODDS) != 0;
         self.store_mob_random(id, random);
-        if teleports && !dead {
+        if teleports {
             self.enderman_teleport(id);
         }
+    }
+
+    pub(crate) fn enderman_after_hurt(
+        &mut self,
+        _id: EntityId,
+        _source: &DamageSource,
+        _dead: bool,
+    ) {
     }
 
     pub(crate) fn enderman_action(&mut self, id: EntityId, action: EndermanAction) {

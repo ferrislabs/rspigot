@@ -341,6 +341,20 @@ fn it_takes_holdable_blocks_only_when_griefing_is_allowed() {
 }
 
 #[test]
+fn a_block_in_its_own_cell_is_taken_as_the_ray_has_nowhere_to_go() {
+    let mut field = Field::flat();
+    let poppy = BlockPos::new(0, 64, 0);
+    field.blocks.insert(poppy, BlockKind::Poppy.default_state());
+    let (mut base, state) = mob(EntityKind::Enderman, Vec3::new(0.5, 64.0, 0.5));
+    let mut ai = MobAi::new(EntityKind::Enderman, 5, GoalSettings::default());
+    let actions = actions_over(&mut ai, &mut base, &state, &field, 4000, |_| {});
+    assert!(actions.iter().any(|action| matches!(
+        action,
+        MobAction::Enderman(EndermanAction::TakeBlock { pos, .. }) if *pos == poppy
+    )));
+}
+
+#[test]
 fn a_covered_block_is_not_taken() {
     let mut field = Field::flat();
     let target = BlockPos::new(2, 64, 0);

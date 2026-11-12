@@ -4,7 +4,7 @@ use common::*;
 use rspigot_core::config::PluginSettings;
 use rspigot_core::events::{ClientEvent, EntityStatus, Inbound, MetadataValue, PlayerInput};
 use rspigot_core::plugins::{
-    Answer, BlockOrder, EventKind, EventPayload, GameRule, Order, Question, WorldOrder,
+    Answer, BlockOrder, EntityOrder, EventKind, EventPayload, GameRule, Order, Question, WorldOrder,
 };
 use rspigot_domain::{BlockPos, EntityId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
@@ -239,6 +239,42 @@ fn arrows_never_hurt_an_enderman_they_make_it_teleport() {
     }
     assert!(teleported);
     assert_eq!(only(&s, Kind::Enderman).health, health);
+}
+
+#[test]
+fn every_hit_without_an_attacker_tries_to_teleport_even_inside_the_invulnerability_window() {
+    let mut s = calm(Vec::new());
+    ground(&mut s);
+    console(&mut s, "summon minecraft:enderman 0.5 64 6.5");
+    let enderman = only(&s, Kind::Enderman).id;
+    let mut teleports = 0;
+    for _ in 0..100 {
+        s.act(Order::Entity {
+            entity: enderman,
+            order: EntityOrder::Damage(1.0),
+        });
+        s.tick(1);
+        teleports += s.players[0]
+            .link
+            .take()
+            .iter()
+            .filter(|event| {
+                matches!(
+                    event,
+                    ClientEvent::EntityStatus {
+                        status: EntityStatus::Event(46),
+                        ..
+                    }
+                )
+            })
+            .count();
+    }
+    let landed = 40.0 - only(&s, Kind::Enderman).health.expect("a living mob");
+    assert!(
+        teleports as f32 > landed,
+        "{teleports} teleports for {landed} landed hits"
+    );
+    assert!(teleports > 0);
 }
 
 #[test]

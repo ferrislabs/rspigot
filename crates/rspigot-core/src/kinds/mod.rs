@@ -231,6 +231,12 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn kind_hurt_settled(&mut self, id: EntityId, source: &DamageSource) {
+        if let Some(Kind::Enderman) = self.kind_of(id) {
+            self.enderman_hurt_settled(id, source);
+        }
+    }
+
     pub(crate) fn kind_after_hurt(&mut self, id: EntityId, source: &DamageSource, dead: bool) {
         match self.kind_of(id) {
             Some(Kind::Wolf) => self.wolf_after_hurt(id, source, dead),
