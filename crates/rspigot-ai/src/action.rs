@@ -4,8 +4,8 @@ use rspigot_entities::SoundSource;
 
 use crate::world::Hand;
 use crate::{
-    CatAction, EndermanAction, FoxAction, IronGolemAction, PandaAction, PolarBearAction,
-    SilverfishAction, WolfAction,
+    BlazeAction, CatAction, EndermanAction, FoxAction, GhastAction, IronGolemAction, PandaAction,
+    PolarBearAction, SilverfishAction, WolfAction,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,4 +81,6 @@ pub enum MobAction {
     Enderman(EndermanAction),
     Silverfish(SilverfishAction),
     IronGolem(IronGolemAction),
+    Blaze(BlazeAction),
+    Ghast(GhastAction),
 }

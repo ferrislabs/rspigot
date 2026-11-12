@@ -19,6 +19,7 @@ use crate::neutral::ResetUniversalAngerGoal;
 use crate::rabbit::RaidGardenGoal;
 use crate::random_pos::{self, mob_light_magic_value};
 use crate::ranged::RangedAttackGoal;
+use crate::restriction::MoveTowardsRestrictionGoal;
 use crate::tame::{FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal};
 use crate::targeting::{self, TargetingConditions};
 use crate::world::{AiWorld, Living, MobView, TargetKind, inflate};
@@ -39,6 +40,7 @@ const TARGET_INTERVAL: i32 = 10;
 const UNSEEN_MEMORY_TICKS: i32 = 60;
 const SPIDER_LIGHT_LIMIT: f32 = 0.5;
 const FLOAT_CHANCE: f32 = 0.8;
+const GHAST_TARGET_HEIGHT: f64 = 4.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FloatGoal;
@@ -523,6 +525,7 @@ pub enum TargetFilter {
     SchoolingFish,
     Enemy,
     EnemyNonCreeper,
+    WithinFourBlocksVertically,
     Prey,
     MobIsAdult,
 }
@@ -537,6 +540,9 @@ impl TargetFilter {
                 target.kind == EntityKind::Chicken || target.kind == EntityKind::Rabbit
             }
             Self::SchoolingFish => target.kind.extends("AbstractSchoolingFish"),
+            Self::WithinFourBlocksVertically => {
+                (target.position.y - mob.position.y).abs() <= GHAST_TARGET_HEIGHT
+            }
             Self::Enemy => crate::iron_golem::is_enemy(target.kind),
             Self::EnemyNonCreeper => {
                 crate::iron_golem::is_enemy(target.kind) && target.kind != EntityKind::Creeper
@@ -724,6 +730,8 @@ pub enum MobGoal {
     MeleeAttack(MeleeAttackGoal),
     RangedBowAttack(RangedBowAttackGoal),
     RangedAttack(RangedAttackGoal),
+    BlazeAttack(crate::blaze::BlazeAttackGoal),
+    MoveTowardsRestriction(MoveTowardsRestrictionGoal),
     Swell(SwellGoal),
     LeapAtTarget(LeapAtTargetGoal),
     HurtByTarget(HurtByTargetGoal),
@@ -747,6 +755,7 @@ pub enum MobGoal {
     Enderman(crate::EndermanGoal),
     Silverfish(crate::SilverfishGoal),
     IronGolem(crate::IronGolemGoal),
+    Ghast(crate::ghast::GhastGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -759,7 +768,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::Swell(_)
             | Self::AvoidEntity(_)
             | Self::FleeSun(_)
-            | Self::MoveThroughVillage(_) => movement,
+            | Self::MoveThroughVillage(_)
+            | Self::MoveTowardsRestriction(_) => movement,
             Self::LookAtPlayer(_) => Flags::of(Flag::Look),
             Self::RandomLookAround(_)
             | Self::Tempt(_)
@@ -767,7 +777,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::MeleeAttack(_)
             | Self::OcelotAttack(_)
             | Self::RangedBowAttack(_)
-            | Self::RangedAttack(_) => movement.with(Flag::Look),
+            | Self::RangedAttack(_)
+            | Self::BlazeAttack(_) => movement.with(Flag::Look),
             Self::EatBlock(_) => movement.with(Flag::Look).with(Flag::Jump),
             Self::SitWhenOrdered(_) => movement.with(Flag::Jump),
             Self::FollowOwner(_) => movement.with(Flag::Look),
@@ -788,6 +799,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Enderman(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Ghast(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -809,6 +821,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::MeleeAttack(goal) => goal.can_use(context),
             Self::RangedBowAttack(goal) => goal.can_use(context),
             Self::RangedAttack(goal) => goal.can_use(context),
+            Self::BlazeAttack(goal) => Goal::can_use(goal, context),
+            Self::MoveTowardsRestriction(goal) => goal.can_use(context),
             Self::Swell(goal) => goal.can_use(context),
             Self::LeapAtTarget(goal) => goal.can_use(context),
             Self::HurtByTarget(goal) => goal.can_use(context),
@@ -830,6 +844,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Enderman(goal) => Goal::can_use(goal, context),
             Self::Silverfish(goal) => Goal::can_use(goal, context),
             Self::IronGolem(goal) => Goal::can_use(goal, context),
+            Self::Ghast(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -853,6 +868,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::MeleeAttack(goal) => goal.can_continue_to_use(context),
             Self::RangedBowAttack(goal) => goal.can_continue_to_use(context),
             Self::RangedAttack(goal) => goal.can_continue_to_use(context),
+            Self::BlazeAttack(goal) => Goal::can_continue_to_use(goal, context),
+            Self::MoveTowardsRestriction(goal) => goal.can_continue_to_use(context),
             Self::Swell(goal) => goal.can_use(context),
             Self::LeapAtTarget(goal) => goal.can_continue_to_use(context),
             Self::HurtByTarget(goal) => goal.memory().can_continue_to_use(context),
@@ -871,6 +888,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Enderman(goal) => Goal::can_continue_to_use(goal, context),
             Self::Silverfish(goal) => Goal::can_continue_to_use(goal, context),
             Self::IronGolem(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Ghast(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
 
@@ -884,6 +902,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Enderman(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             _ => true,
         }
     }
@@ -895,6 +914,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::OcelotAttack(_)
             | Self::RangedAttack(_)
             | Self::Breed(_) => {}
+            Self::BlazeAttack(goal) => Goal::start(goal, context),
+            Self::MoveTowardsRestriction(goal) => goal.start(context),
             Self::MoveThroughVillage(goal) => goal.start(context),
             Self::RaidGarden(goal) => goal.start(context),
             Self::HurtByTarget(goal) => goal.start(context),
@@ -927,6 +948,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Enderman(goal) => Goal::start(goal, context),
             Self::Silverfish(goal) => Goal::start(goal, context),
             Self::IronGolem(goal) => Goal::start(goal, context),
+            Self::Ghast(goal) => Goal::start(goal, context),
         }
     }
 
@@ -937,7 +959,9 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::RaidGarden(_)
             | Self::RandomLookAround(_)
             | Self::LeapAtTarget(_)
+            | Self::MoveTowardsRestriction(_)
             | Self::FleeSun(_) => {}
+            Self::BlazeAttack(goal) => Goal::stop(goal, context),
             Self::MoveThroughVillage(goal) => goal.stop(context),
             Self::Stroll(goal) => goal.stop(context),
             Self::LookAtPlayer(goal) => goal.stop(),
@@ -969,6 +993,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Enderman(goal) => Goal::stop(goal, context),
             Self::Silverfish(goal) => Goal::stop(goal, context),
             Self::IronGolem(goal) => Goal::stop(goal, context),
+            Self::Ghast(goal) => Goal::stop(goal, context),
         }
     }
 
@@ -982,6 +1007,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Enderman(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::BlazeAttack(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             _ => self.requires_update_every_tick_base(),
         }
     }
@@ -996,6 +1023,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Enderman(goal) => Goal::tick(goal, context),
             Self::Silverfish(goal) => Goal::tick(goal, context),
             Self::IronGolem(goal) => Goal::tick(goal, context),
+            Self::Ghast(goal) => Goal::tick(goal, context),
+            Self::BlazeAttack(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
         }
     }
@@ -1050,6 +1079,9 @@ impl MobGoal {
             | Self::SitWhenOrdered(_)
             | Self::OwnerTarget(_)
             | Self::ResetUniversalAnger(_)
+            | Self::BlazeAttack(_)
+            | Self::MoveTowardsRestriction(_)
+            | Self::Ghast(_)
             | Self::Wolf(_)
             | Self::Cat(_)
             | Self::Fox(_)

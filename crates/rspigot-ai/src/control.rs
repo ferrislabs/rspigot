@@ -1,9 +1,12 @@
 use rspigot_domain::entity::EntityBase;
 use rspigot_domain::entity::living::LivingState;
 use rspigot_domain::entity::physics::has_tag;
+use rspigot_domain::entity::{Aabb, raycast};
 use rspigot_domain::{BlockPos, Vec3, mth};
 
 use crate::BlockView;
+use crate::random::{MobRandom, RandomSource};
+use crate::sweep::all_blocks_intersected_between;
 use crate::world::MOVEMENT_SPEED;
 
 pub const MAX_HEAD_X_ROT: f32 = 40.0;
@@ -17,6 +20,12 @@ const DELAY_UNTIL_FACING_FORWARD: i32 = 10;
 const TIME_TO_FACE_FORWARD: f32 = 10.0;
 const STRAFE_SPEED_MODIFIER: f64 = 0.25;
 const HOP_WATER_SPEED: f64 = 1.5;
+const FLYING_SPEED: &str = "minecraft:flying_speed";
+const GHAST_FLOAT_BASE: i32 = 2;
+const GHAST_FLOAT_RANGE: i32 = 5;
+const GHAST_THRUST_NUMERATOR: f64 = 5.0;
+const GHAST_THRUST_DENOMINATOR: f64 = 3.0;
+const SHAPE_REACH_MARGIN: f64 = 1.0e-7;
 
 pub fn rotate_towards(from: f32, to: f32, max: f32) -> f32 {
     let difference = mth::degrees_difference(from, to);
@@ -132,8 +141,17 @@ pub enum Operation {
     Jumping,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum MoveStyle {
+    #[default]
+    Ground,
+    Ghast,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct MoveControl {
+    style: MoveStyle,
+    float_duration: i32,
     wanted: Vec3,
     speed_modifier: f64,
     strafe_forwards: f32,
@@ -155,7 +173,114 @@ fn rotlerp(current: f32, target: f32, max: f32) -> f32 {
     rotated
 }
 
+fn collided_with_shape_moving_from(
+    base: &EntityBase,
+    from: Vec3,
+    to: Vec3,
+    shapes: &[Aabb],
+) -> bool {
+    let size = Aabb::of_size(from, base.dimensions.width, base.dimensions.height);
+    let center = size.center();
+    let end = center + (to - from);
+    let margin = |extent: f64| extent * 0.5 - SHAPE_REACH_MARGIN;
+    let (x, y, z) = (
+        margin(size.max_x - size.min_x),
+        margin(size.max_y - size.min_y),
+        margin(size.max_z - size.min_z),
+    );
+    shapes.iter().any(|shape| {
+        let grown = Aabb::new(
+            shape.min_x - x,
+            shape.min_y - y,
+            shape.min_z - z,
+            shape.max_x + x,
+            shape.max_y + y,
+            shape.max_z + z,
+        );
+        raycast::contains(&grown, end)
+            || raycast::contains(&grown, center)
+            || raycast::clip_box(&grown, center, end).is_some()
+    })
+}
+
+fn block_traversal_possible(
+    base: &EntityBase,
+    view: &impl BlockView,
+    from: Vec3,
+    to: Vec3,
+    pos: BlockPos,
+) -> bool {
+    let Some(state) = view.state(pos).filter(|state| !state.is_air()) else {
+        return true;
+    };
+    let origin = Vec3::new(f64::from(pos.x), f64::from(pos.y), f64::from(pos.z));
+    let shapes: Vec<Aabb> = state
+        .collision_shape()
+        .iter()
+        .map(|shape| {
+            Aabb::new(
+                shape.min_x,
+                shape.min_y,
+                shape.min_z,
+                shape.max_x,
+                shape.max_y,
+                shape.max_z,
+            )
+            .move_by(origin)
+        })
+        .collect();
+    !collided_with_shape_moving_from(base, from, to, &shapes)
+}
+
+pub fn can_reach(base: &EntityBase, view: &impl BlockView, delta: Vec3) -> bool {
+    let current = base.bounding_box();
+    let moved = current.move_by(delta);
+    let from = base.position;
+    let to = from + delta;
+    all_blocks_intersected_between(from, to, &moved, |pos| {
+        current.intersects(&Aabb::block(pos)) || block_traversal_possible(base, view, from, to, pos)
+    })
+}
+
 impl MoveControl {
+    pub fn style(&self) -> MoveStyle {
+        self.style
+    }
+
+    pub fn set_style(&mut self, style: MoveStyle) {
+        self.style = style;
+    }
+
+    pub fn float_duration(&self) -> i32 {
+        self.float_duration
+    }
+
+    pub fn tick_ghast(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        view: &impl BlockView,
+        random: &mut MobRandom,
+    ) {
+        if self.operation != Operation::MoveTo {
+            return;
+        }
+        let ticks = self.float_duration;
+        self.float_duration -= 1;
+        if ticks > 0 {
+            return;
+        }
+        self.float_duration += random.next_int(GHAST_FLOAT_RANGE) + GHAST_FLOAT_BASE;
+        let delta = self.wanted - base.position;
+        if can_reach(base, view, delta) {
+            let thrust =
+                living.attribute(FLYING_SPEED) * GHAST_THRUST_NUMERATOR / GHAST_THRUST_DENOMINATOR;
+            base.velocity = base.velocity + delta.normalize().scale(thrust);
+        } else {
+            self.operation = Operation::Wait;
+        }
+    }
+
     pub fn has_wanted(&self) -> bool {
         self.operation == Operation::MoveTo
     }
@@ -512,6 +637,114 @@ mod tests {
             body.client_tick(&mut base, &mut living);
         }
         assert_eq!(living.body_yaw, 160.0);
+    }
+
+    fn ghast() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Ghast);
+        base.position = Vec3::new(0.5, 80.0, 0.5);
+        base.old_position = base.position;
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    struct Air;
+
+    impl BlockView for Air {
+        fn state(&self, _pos: BlockPos) -> Option<StateId> {
+            Some(StateId::AIR)
+        }
+    }
+
+    struct Wall(BlockPos);
+
+    impl BlockView for Wall {
+        fn state(&self, pos: BlockPos) -> Option<StateId> {
+            Some(if pos.x == self.0.x {
+                BlockKind::Stone.default_state()
+            } else {
+                StateId::AIR
+            })
+        }
+    }
+
+    #[test]
+    fn the_ghast_control_is_idle_without_a_wanted_position() {
+        let (mut base, mut living) = ghast();
+        let mut movement = MoveControl::default();
+        movement.set_style(MoveStyle::Ghast);
+        let mut random = MobRandom::new(1);
+        movement.tick_ghast(&mut base, &mut living, &Air, &mut random);
+        assert_eq!(base.velocity, Vec3::ZERO);
+        assert_eq!(movement.float_duration(), 0);
+    }
+
+    #[test]
+    fn the_ghast_control_pushes_a_third_of_five_flying_speeds_along_the_way_every_few_ticks() {
+        let (mut base, mut living) = ghast();
+        let mut movement = MoveControl::default();
+        movement.set_style(MoveStyle::Ghast);
+        movement.set_wanted_position(Vec3::new(10.5, 80.0, 0.5), 1.0);
+        let mut random = MobRandom::new(7);
+        let mut mirror = random.clone();
+        movement.tick_ghast(&mut base, &mut living, &Air, &mut random);
+        let thrust = 0.06 * 5.0 / 3.0;
+        assert_eq!(base.velocity, Vec3::new(thrust, 0.0, 0.0));
+        let duration = mirror.next_int(5) + 2;
+        assert_eq!(movement.float_duration(), -1 + duration);
+        assert_eq!(movement.operation(), Operation::MoveTo);
+        for _ in 0..duration - 1 {
+            movement.tick_ghast(&mut base, &mut living, &Air, &mut random);
+            assert_eq!(base.velocity, Vec3::new(thrust, 0.0, 0.0));
+        }
+        assert_eq!(movement.float_duration(), 0);
+        movement.tick_ghast(&mut base, &mut living, &Air, &mut random);
+        assert_eq!(base.velocity.x, thrust * 2.0);
+        assert!(movement.float_duration() >= 1);
+    }
+
+    #[test]
+    fn the_ghast_control_gives_up_when_a_wall_is_in_the_way() {
+        let (mut base, mut living) = ghast();
+        let mut movement = MoveControl::default();
+        movement.set_style(MoveStyle::Ghast);
+        movement.set_wanted_position(Vec3::new(10.5, 80.0, 0.5), 1.0);
+        let mut random = MobRandom::new(7);
+        movement.tick_ghast(
+            &mut base,
+            &mut living,
+            &Wall(BlockPos::new(5, 80, 0)),
+            &mut random,
+        );
+        assert_eq!(base.velocity, Vec3::ZERO);
+        assert_eq!(movement.operation(), Operation::Wait);
+        assert!(!movement.has_wanted());
+    }
+
+    #[test]
+    fn a_ghast_can_reach_through_the_blocks_it_already_overlaps_but_not_through_a_wall() {
+        let (base, _) = ghast();
+        assert!(can_reach(&base, &Air, Vec3::new(8.0, 0.0, 0.0)));
+        assert!(can_reach(&base, &Air, Vec3::ZERO));
+        assert!(!can_reach(
+            &base,
+            &Wall(BlockPos::new(5, 80, 0)),
+            Vec3::new(8.0, 0.0, 0.0)
+        ));
+        assert!(can_reach(
+            &base,
+            &Wall(BlockPos::new(0, 80, 0)),
+            Vec3::new(0.0, 0.0, 0.5)
+        ));
+        assert!(can_reach(
+            &base,
+            &Wall(BlockPos::new(-5, 80, 0)),
+            Vec3::new(8.0, 0.0, 0.0)
+        ));
+    }
+
+    #[test]
+    fn the_style_defaults_to_the_ground_control() {
+        assert_eq!(MoveControl::default().style(), MoveStyle::Ground);
     }
 
     #[test]
