@@ -1262,6 +1262,13 @@ impl Encoder {
                                     kind: registry_variant(*kind),
                                     id: *id as i32,
                                 },
+                                MetadataValue::Long(v) => EntityDataValue::Long(*v),
+                                MetadataValue::OptionalEntity(v) => {
+                                    EntityDataValue::OptionalLivingEntity(*v)
+                                }
+                                MetadataValue::OptionalBlockState(v) => {
+                                    EntityDataValue::OptionalBlockState(v.map(|state| state as i32))
+                                }
                             },
                         })
                         .collect(),

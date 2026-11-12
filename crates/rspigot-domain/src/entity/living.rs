@@ -7,11 +7,13 @@ use super::ageable::AgeableState;
 use super::base::EntityBase;
 use super::data::{Pose, SyncedValue};
 use super::fluid;
+use super::neutral::{self, NeutralState};
 use super::physics::{
     self, BlockView, Landing, MoveTraits, apply_inside_blocks, block_jump_factor, friction,
     has_tag, move_entity, movement_affecting_pos,
 };
 use super::species::Species;
+use super::tamable::{self, TamableState};
 use crate::attribute;
 use crate::combat::{CombatEntry, CombatTracker};
 use crate::damage::{self, DamageTag, DamageType, java_clamp};
@@ -303,6 +305,8 @@ pub struct MobState {
     pub home_pos: BlockPos,
     pub home_radius: i32,
     pub ageable: Option<AgeableState>,
+    pub neutral: Option<NeutralState>,
+    pub tamable: Option<TamableState>,
     pub species: Species,
 }
 
@@ -318,6 +322,8 @@ impl Default for MobState {
             home_pos: BlockPos::new(0, 0, 0),
             home_radius: -1,
             ageable: None,
+            neutral: None,
+            tamable: None,
             species: Species::Plain,
         }
     }
@@ -425,6 +431,17 @@ impl LivingState {
         if let Some(mob) = &mut mob {
             if kind.extends("AgeableMob") {
                 mob.ageable = Some(AgeableState::new(base));
+            }
+            if kind.extends("TamableAnimal") {
+                tamable::define(base);
+                mob.tamable = Some(TamableState::default());
+            }
+            if neutral::is_neutral(kind) {
+                if let Some(index) = neutral::synced_end_time_index(kind) {
+                    base.data
+                        .define(index, SyncedValue::Long(neutral::NO_ANGER_END_TIME));
+                }
+                mob.neutral = Some(NeutralState::default());
             }
             mob.species = Species::new(base);
         }

@@ -1,8 +1,10 @@
 use rspigot_data::variants::Farm;
 
-use crate::BlockPos;
+use uuid::Uuid;
+
 use crate::item::ItemStack;
 use crate::text::Component;
+use crate::{BlockPos, BlockStateId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum VariantKind {
@@ -33,6 +35,9 @@ pub enum SyncedValue {
     Item(Option<ItemStack>),
     BlockPos(BlockPos),
     Variant(VariantKind, u32),
+    Long(i64),
+    OptionalEntity(Option<Uuid>),
+    OptionalBlockState(Option<BlockStateId>),
 }
 
 impl SyncedValue {
@@ -144,6 +149,27 @@ impl SyncedData {
         match self.get(index) {
             Some(SyncedValue::Float(v)) => *v,
             _ => 0.0,
+        }
+    }
+
+    pub fn long(&self, index: u8) -> i64 {
+        match self.get(index) {
+            Some(SyncedValue::Long(v)) => *v,
+            _ => 0,
+        }
+    }
+
+    pub fn entity(&self, index: u8) -> Option<Uuid> {
+        match self.get(index) {
+            Some(SyncedValue::OptionalEntity(v)) => *v,
+            _ => None,
+        }
+    }
+
+    pub fn block_state(&self, index: u8) -> Option<BlockStateId> {
+        match self.get(index) {
+            Some(SyncedValue::OptionalBlockState(v)) => *v,
+            _ => None,
         }
     }
 

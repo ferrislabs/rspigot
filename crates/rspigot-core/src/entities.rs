@@ -71,6 +71,11 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::Item(stack) => MetadataValue::Item(stack.clone()),
                 SyncedValue::BlockPos(pos) => MetadataValue::BlockPos(*pos),
                 SyncedValue::Variant(kind, id) => MetadataValue::Variant(*kind, *id),
+                SyncedValue::Long(v) => MetadataValue::Long(*v),
+                SyncedValue::OptionalEntity(v) => MetadataValue::OptionalEntity(*v),
+                SyncedValue::OptionalBlockState(v) => {
+                    MetadataValue::OptionalBlockState(v.map(|state| u32::from(state.0)))
+                }
             },
         })
         .collect()
