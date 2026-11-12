@@ -851,7 +851,7 @@ fn read_hurting(nbt: &Compound, base: &mut EntityBase, state: &mut HurtingState)
     state.has_been_shot = nbt.get_bool("HasBeenShot").unwrap_or(false);
     state.acceleration_power = nbt
         .get_f64("acceleration_power")
-        .unwrap_or(hurting::INITIAL_ACCELERATION_POWER);
+        .unwrap_or(state.acceleration_power);
     if hurting::is_fireball(base.kind) {
         let stack = nbt
             .get_compound("Item")

@@ -37,6 +37,7 @@ pub enum DamageType {
     WitherSkull,
     Explosion,
     PlayerExplosion,
+    WindCharge,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -104,6 +105,7 @@ impl DamageType {
             Self::WitherSkull => "minecraft:wither_skull",
             Self::Explosion => "minecraft:explosion",
             Self::PlayerExplosion => "minecraft:player_explosion",
+            Self::WindCharge => "minecraft:wind_charge",
         }
     }
 
@@ -135,6 +137,7 @@ impl DamageType {
             Self::WitherSkull => "witherSkull",
             Self::Explosion => "explosion",
             Self::PlayerExplosion => "explosion.player",
+            Self::WindCharge => "mob",
         }
     }
 
@@ -151,7 +154,8 @@ impl DamageType {
             | Self::UnattributedFireball
             | Self::WitherSkull
             | Self::Explosion
-            | Self::PlayerExplosion => 0.1,
+            | Self::PlayerExplosion
+            | Self::WindCharge => 0.1,
             _ => 0.0,
         }
     }
