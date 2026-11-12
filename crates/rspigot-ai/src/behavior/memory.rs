@@ -8,6 +8,7 @@ use crate::behavior::nbt::PackedMemories;
 use crate::behavior::sensor::is_entity_targetable;
 use crate::behavior::tracker::PositionTracker;
 use crate::brain::AiContext;
+use crate::path::Path;
 use crate::world::{AiWorld, LastDamage, Living};
 
 pub const NO_EXPIRY: i64 = i64::MAX;
@@ -214,7 +215,11 @@ impl WalkTarget {
         speed_modifier: f32,
         close_enough_dist: i32,
     ) -> Self {
-        Self::block(position.block(), speed_modifier, close_enough_dist)
+        Self {
+            target: PositionTracker::of_position(position),
+            speed_modifier,
+            close_enough_dist,
+        }
     }
 
     pub fn entity(target: EntityId, speed_modifier: f32, close_enough_dist: i32) -> Self {
@@ -242,6 +247,7 @@ pub enum MemoryValue {
     WalkTarget(WalkTarget),
     Tracker(PositionTracker),
     HurtBy(LastDamage),
+    Path(Path),
 }
 
 impl MemoryValue {
@@ -305,6 +311,27 @@ impl MemoryValue {
     pub fn as_tracker(&self) -> Option<&PositionTracker> {
         match self {
             Self::Tracker(tracker) => Some(tracker),
+            _ => None,
+        }
+    }
+
+    pub fn as_uuid(&self) -> Option<Uuid> {
+        match self {
+            Self::Uuid(uuid) => Some(*uuid),
+            _ => None,
+        }
+    }
+
+    pub fn as_block(&self) -> Option<BlockPos> {
+        match self {
+            Self::Block(pos) => Some(*pos),
+            _ => None,
+        }
+    }
+
+    pub fn as_path(&self) -> Option<&Path> {
+        match self {
+            Self::Path(path) => Some(path),
             _ => None,
         }
     }

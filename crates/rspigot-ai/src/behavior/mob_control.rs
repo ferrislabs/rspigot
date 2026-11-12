@@ -1,8 +1,26 @@
-use crate::behavior::control::{
-    Behavior, BehaviorControl, BehaviorCx, DoNothing, Gate, Status, Timed,
+use crate::behavior::attack::{
+    EraseMemoryIf, MeleeAttack, SetWalkTargetFromAttackTargetIfTargetOutOfReach, StartAttacking,
+    StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead,
 };
+use crate::behavior::control::{
+    Behavior, BehaviorControl, BehaviorCx, DoNothing, Gate, OneShot, OrderPolicy, RunningPolicy,
+    Sequence, Status, Timed, Trigger, TriggerGate,
+};
+use crate::behavior::love::{AnimalMakeLove, FollowTemptation, MAKE_LOVE_DURATION};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue};
+use crate::behavior::sinks::{
+    AnimalPanic, LookAtTargetSink, MoveToTargetSink, RandomLookAround, Swim,
+};
+use crate::behavior::support::MobPredicate;
+use crate::behavior::walk::{
+    BabyFollowAdult, GoToTargetLocation, GoToWantedItem, InteractWith, RandomStroll,
+    SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract, SetWalkTargetAwayFrom,
+    SetWalkTargetFromLookTarget, StrollAroundPoi, StrollToPoi,
+};
 use crate::world::AiWorld;
+
+const LOOK_SINK_MIN_DURATION: i32 = 45;
+const LOOK_SINK_MAX_DURATION: i32 = 90;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CountDownCooldownTicks {
@@ -52,53 +70,136 @@ impl Behavior for CountDownCooldownTicks {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum MobBehavior {
-    CountDownCooldownTicks(CountDownCooldownTicks),
+macro_rules! mob_behaviors {
+    ($($variant:ident($ty:ty)),* $(,)?) => {
+        #[derive(Debug, Clone, PartialEq)]
+        pub enum MobBehavior {
+            $($variant($ty),)*
+        }
+
+        impl Behavior for MobBehavior {
+            fn entry_condition(&self) -> &[Condition] {
+                match self {
+                    $(Self::$variant(behavior) => behavior.entry_condition(),)*
+                }
+            }
+
+            fn check_extra_start_conditions<W: AiWorld>(
+                &mut self,
+                cx: &mut BehaviorCx<'_, '_, W>,
+            ) -> bool {
+                match self {
+                    $(Self::$variant(behavior) => behavior.check_extra_start_conditions(cx),)*
+                }
+            }
+
+            fn start<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
+                match self {
+                    $(Self::$variant(behavior) => behavior.start(cx, now),)*
+                }
+            }
+
+            fn can_still_use<W: AiWorld>(
+                &mut self,
+                cx: &mut BehaviorCx<'_, '_, W>,
+                now: i64,
+            ) -> bool {
+                match self {
+                    $(Self::$variant(behavior) => behavior.can_still_use(cx, now),)*
+                }
+            }
+
+            fn tick<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
+                match self {
+                    $(Self::$variant(behavior) => behavior.tick(cx, now),)*
+                }
+            }
+
+            fn stop<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
+                match self {
+                    $(Self::$variant(behavior) => behavior.stop(cx, now),)*
+                }
+            }
+
+            fn timed_out(&self, end_timestamp: i64, now: i64) -> bool {
+                match self {
+                    $(Self::$variant(behavior) => behavior.timed_out(end_timestamp, now),)*
+                }
+            }
+        }
+    };
 }
 
-impl Behavior for MobBehavior {
-    fn entry_condition(&self) -> &[Condition] {
-        match self {
-            Self::CountDownCooldownTicks(behavior) => behavior.entry_condition(),
-        }
-    }
+mob_behaviors! {
+    CountDownCooldownTicks(CountDownCooldownTicks),
+    Swim(Swim),
+    LookAtTargetSink(LookAtTargetSink),
+    MoveToTargetSink(MoveToTargetSink),
+    AnimalPanic(AnimalPanic),
+    RandomLookAround(RandomLookAround),
+    AnimalMakeLove(AnimalMakeLove),
+    FollowTemptation(FollowTemptation),
+}
 
-    fn check_extra_start_conditions<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>) -> bool {
-        match self {
-            Self::CountDownCooldownTicks(behavior) => behavior.check_extra_start_conditions(cx),
+macro_rules! mob_triggers {
+    ($($variant:ident($ty:ty)),* $(,)?) => {
+        #[derive(Debug, Clone, PartialEq)]
+        pub enum MobTrigger {
+            $($variant($ty),)*
+            Condition(MobPredicate),
+            Sequence(Box<Sequence<MobTrigger, OneShot<MobTrigger>>>),
+            Gate(TriggerGate<OneShot<MobTrigger>>),
         }
-    }
 
-    fn start<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
-        match self {
-            Self::CountDownCooldownTicks(behavior) => behavior.start(cx, now),
+        impl MobTrigger {
+            pub fn conditions(&self) -> Vec<Condition> {
+                match self {
+                    $(Self::$variant(trigger) => trigger.conditions(),)*
+                    Self::Condition(_) | Self::Sequence(_) | Self::Gate(_) => Vec::new(),
+                }
+            }
         }
-    }
 
-    fn can_still_use<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) -> bool {
-        match self {
-            Self::CountDownCooldownTicks(behavior) => behavior.can_still_use(cx, now),
-        }
-    }
+        impl Trigger for MobTrigger {
+            fn trigger<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) -> bool {
+                match self {
+                    $(Self::$variant(trigger) => trigger.trigger(cx, now),)*
+                    Self::Condition(predicate) => predicate.test(cx),
+                    Self::Sequence(sequence) => sequence.trigger(cx, now),
+                    Self::Gate(gate) => gate.trigger(cx, now),
+                }
+            }
 
-    fn tick<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
-        match self {
-            Self::CountDownCooldownTicks(behavior) => behavior.tick(cx, now),
+            fn required_memories(&self) -> Vec<MemoryModuleType> {
+                match self {
+                    Self::Sequence(sequence) => sequence.required_memories(),
+                    Self::Gate(gate) => gate.required_memories(),
+                    _ => Vec::new(),
+                }
+            }
         }
-    }
+    };
+}
 
-    fn stop<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
-        match self {
-            Self::CountDownCooldownTicks(behavior) => behavior.stop(cx, now),
-        }
-    }
-
-    fn timed_out(&self, end_timestamp: i64, now: i64) -> bool {
-        match self {
-            Self::CountDownCooldownTicks(behavior) => behavior.timed_out(end_timestamp, now),
-        }
-    }
+mob_triggers! {
+    SetWalkTargetFromLookTarget(SetWalkTargetFromLookTarget),
+    SetEntityLookTarget(SetEntityLookTarget),
+    SetEntityLookTargetSometimes(SetEntityLookTargetSometimes),
+    RandomStroll(RandomStroll),
+    BabyFollowAdult(BabyFollowAdult),
+    SetWalkTargetAwayFrom(SetWalkTargetAwayFrom),
+    GoToWantedItem(GoToWantedItem),
+    GoToTargetLocation(GoToTargetLocation),
+    SetLookAndInteract(SetLookAndInteract),
+    InteractWith(InteractWith),
+    StrollToPoi(StrollToPoi),
+    StrollAroundPoi(StrollAroundPoi),
+    StartAttacking(StartAttacking),
+    StopAttackingIfTargetInvalid(StopAttackingIfTargetInvalid),
+    MeleeAttack(MeleeAttack),
+    SetWalkTargetFromAttackTargetIfTargetOutOfReach(SetWalkTargetFromAttackTargetIfTargetOutOfReach),
+    EraseMemoryIf(EraseMemoryIf),
+    StopBeingAngryIfTargetDead(StopBeingAngryIfTargetDead),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -106,46 +207,130 @@ pub enum MobControl {
     DoNothing(DoNothing),
     Gate(Gate<MobControl>),
     Timed(Timed<MobBehavior>),
+    OneShot(OneShot<MobTrigger>),
+}
+
+impl MobControl {
+    pub fn behavior(behavior: MobBehavior) -> Self {
+        Self::Timed(Timed::new(behavior))
+    }
+
+    pub fn behavior_for(behavior: MobBehavior, min_duration: i32, max_duration: i32) -> Self {
+        Self::Timed(Timed::with_duration(behavior, min_duration, max_duration))
+    }
+
+    pub fn one_shot(trigger: MobTrigger) -> Self {
+        Self::OneShot(Self::declared(trigger))
+    }
+
+    pub fn declared(trigger: MobTrigger) -> OneShot<MobTrigger> {
+        OneShot::new(trigger.conditions(), trigger)
+    }
+
+    pub fn trigger_if(predicate: MobPredicate, behavior: OneShot<MobTrigger>) -> Self {
+        let sequence = Sequence::new(MobTrigger::Condition(predicate), behavior);
+        Self::OneShot(OneShot::new(
+            Vec::new(),
+            MobTrigger::Sequence(Box::new(sequence)),
+        ))
+    }
+
+    pub fn trigger_one_shuffled(weighted: Vec<(OneShot<MobTrigger>, i32)>) -> Self {
+        let gate = TriggerGate::new(weighted, OrderPolicy::Shuffled, RunningPolicy::RunOne);
+        Self::OneShot(OneShot::new(Vec::new(), MobTrigger::Gate(gate)))
+    }
+
+    pub fn swim(chance: f32) -> Self {
+        Self::behavior(MobBehavior::Swim(Swim::new(chance)))
+    }
+
+    pub fn look_at_target_sink(min_duration: i32, max_duration: i32) -> Self {
+        Self::behavior_for(
+            MobBehavior::LookAtTargetSink(LookAtTargetSink),
+            min_duration,
+            max_duration,
+        )
+    }
+
+    pub fn default_look_at_target_sink() -> Self {
+        Self::look_at_target_sink(LOOK_SINK_MIN_DURATION, LOOK_SINK_MAX_DURATION)
+    }
+
+    pub fn move_to_target_sink() -> Self {
+        Self::move_to_target_sink_for(
+            MoveToTargetSink::min_timeout(),
+            MoveToTargetSink::max_timeout(),
+        )
+    }
+
+    pub fn move_to_target_sink_for(min_timeout: i32, max_timeout: i32) -> Self {
+        Self::behavior_for(
+            MobBehavior::MoveToTargetSink(MoveToTargetSink::new()),
+            min_timeout,
+            max_timeout,
+        )
+    }
+
+    pub fn animal_panic(speed_multiplier: f32) -> Self {
+        Self::behavior_for(
+            MobBehavior::AnimalPanic(AnimalPanic::new(speed_multiplier)),
+            AnimalPanic::min_duration(),
+            AnimalPanic::max_duration(),
+        )
+    }
+
+    pub fn random_look_around(behavior: RandomLookAround) -> Self {
+        Self::behavior(MobBehavior::RandomLookAround(behavior))
+    }
+
+    pub fn animal_make_love(behavior: AnimalMakeLove) -> Self {
+        Self::behavior_for(
+            MobBehavior::AnimalMakeLove(behavior),
+            MAKE_LOVE_DURATION,
+            MAKE_LOVE_DURATION,
+        )
+    }
+
+    pub fn follow_temptation(behavior: FollowTemptation) -> Self {
+        Self::behavior(MobBehavior::FollowTemptation(behavior))
+    }
+
+    pub fn count_down_cooldown_ticks(cooldown_ticks: MemoryModuleType) -> Self {
+        Self::behavior(MobBehavior::CountDownCooldownTicks(
+            CountDownCooldownTicks::new(cooldown_ticks),
+        ))
+    }
+}
+
+macro_rules! delegate {
+    ($self:ident, $control:ident => $call:expr) => {
+        match $self {
+            Self::DoNothing($control) => $call,
+            Self::Gate($control) => $call,
+            Self::Timed($control) => $call,
+            Self::OneShot($control) => $call,
+        }
+    };
 }
 
 impl BehaviorControl for MobControl {
     fn status(&self) -> Status {
-        match self {
-            Self::DoNothing(control) => control.status(),
-            Self::Gate(control) => control.status(),
-            Self::Timed(control) => control.status(),
-        }
+        delegate!(self, control => control.status())
     }
 
     fn required_memories(&self) -> Vec<MemoryModuleType> {
-        match self {
-            Self::DoNothing(control) => control.required_memories(),
-            Self::Gate(control) => control.required_memories(),
-            Self::Timed(control) => control.required_memories(),
-        }
+        delegate!(self, control => BehaviorControl::required_memories(control))
     }
 
     fn try_start<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) -> bool {
-        match self {
-            Self::DoNothing(control) => control.try_start(cx, now),
-            Self::Gate(control) => control.try_start(cx, now),
-            Self::Timed(control) => control.try_start(cx, now),
-        }
+        delegate!(self, control => control.try_start(cx, now))
     }
 
     fn tick_or_stop<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
-        match self {
-            Self::DoNothing(control) => control.tick_or_stop(cx, now),
-            Self::Gate(control) => control.tick_or_stop(cx, now),
-            Self::Timed(control) => control.tick_or_stop(cx, now),
-        }
+        delegate!(self, control => control.tick_or_stop(cx, now))
     }
 
     fn do_stop<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
-        match self {
-            Self::DoNothing(control) => control.do_stop(cx, now),
-            Self::Gate(control) => control.do_stop(cx, now),
-            Self::Timed(control) => control.do_stop(cx, now),
-        }
+        delegate!(self, control => control.do_stop(cx, now))
     }
 }

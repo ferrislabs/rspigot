@@ -1,7 +1,7 @@
 use crate::behavior::memory::{Memories, MemoryModuleType, MemoryValue};
 use crate::behavior::sensors::{
-    DummySensor, HurtBySensor, IsInWaterSensor, NearestItemSensor, NearestLivingEntitySensor,
-    PlayerSensor,
+    AdultSensor, DummySensor, HurtBySensor, IsInWaterSensor, NearestItemSensor,
+    NearestLivingEntitySensor, PlayerSensor, TemptingSensor,
 };
 use crate::brain::AiContext;
 use crate::random::RandomSource;
@@ -74,6 +74,8 @@ pub enum SensorKind {
     NearestPlayers(PlayerSensor),
     HurtBy(HurtBySensor),
     IsInWater(IsInWaterSensor),
+    NearestAdult(AdultSensor),
+    Tempting(TemptingSensor),
 }
 
 impl SensorKind {
@@ -85,6 +87,8 @@ impl SensorKind {
             Self::NearestPlayers(_) => SensorType::NearestPlayers,
             Self::HurtBy(_) => SensorType::HurtBy,
             Self::IsInWater(_) => SensorType::IsInWater,
+            Self::NearestAdult(_) => SensorType::NearestAdult,
+            Self::Tempting(sensor) => sensor.sensor_type(),
         }
     }
 }
@@ -98,6 +102,8 @@ impl Sensor for SensorKind {
             Self::NearestPlayers(sensor) => sensor.scan_rate(),
             Self::HurtBy(sensor) => sensor.scan_rate(),
             Self::IsInWater(sensor) => sensor.scan_rate(),
+            Self::NearestAdult(sensor) => sensor.scan_rate(),
+            Self::Tempting(sensor) => sensor.scan_rate(),
         }
     }
 
@@ -109,6 +115,8 @@ impl Sensor for SensorKind {
             Self::NearestPlayers(sensor) => sensor.requires(),
             Self::HurtBy(sensor) => sensor.requires(),
             Self::IsInWater(sensor) => sensor.requires(),
+            Self::NearestAdult(sensor) => sensor.requires(),
+            Self::Tempting(sensor) => sensor.requires(),
         }
     }
 
@@ -120,6 +128,8 @@ impl Sensor for SensorKind {
             Self::NearestPlayers(sensor) => sensor.do_tick(cx, memories),
             Self::HurtBy(sensor) => sensor.do_tick(cx, memories),
             Self::IsInWater(sensor) => sensor.do_tick(cx, memories),
+            Self::NearestAdult(sensor) => sensor.do_tick(cx, memories),
+            Self::Tempting(sensor) => sensor.do_tick(cx, memories),
         }
     }
 }

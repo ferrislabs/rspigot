@@ -265,6 +265,25 @@ pub fn land_pos_towards<W: AiWorld>(
     towards: Vec3,
 ) -> Option<Vec3> {
     let direction = towards - context.mob.position;
+    land_pos_in_direction(context, horizontal, vertical, direction)
+}
+
+pub fn land_pos_away<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+    away_from: Vec3,
+) -> Option<Vec3> {
+    let direction = context.mob.position - away_from;
+    land_pos_in_direction(context, horizontal, vertical, direction)
+}
+
+fn land_pos_in_direction<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+    direction: Vec3,
+) -> Option<Vec3> {
     let restricted = context.mob.is_restricted(f64::from(horizontal));
     generate(context, |context| {
         let offset = direction_within_radians(

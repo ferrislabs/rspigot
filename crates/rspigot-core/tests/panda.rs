@@ -133,7 +133,8 @@ fn grove() -> Server<Link> {
         Arc::new(NoStore),
         Arc::new(BambooGrove),
         StatusBoard::new(20),
-    );
+    )
+    .with_rng_seed(1);
     server.wait_for_spawn(Duration::from_secs(10));
     server
 }
@@ -149,7 +150,8 @@ impl Zoo {
             server(PluginSettings {
                 decision_ticks: 1_000,
                 ..PluginSettings::default()
-            }),
+            })
+            .with_rng_seed(1),
             handlers,
         )
     }
