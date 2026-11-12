@@ -1,7 +1,7 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1340] = [
+pub(crate) static TABLES: [(&str, LootTable); 1343] = [
     (
         "minecraft:blocks/acacia_button",
         LootTable {
@@ -31072,6 +31072,27 @@ pub(crate) static TABLES: [(&str, LootTable); 1340] = [
         },
     ),
     (
+        "minecraft:brush/armadillo",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(1003),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
         "minecraft:charged_creeper/creeper",
         LootTable {
             pools: &[Pool {
@@ -36487,6 +36508,27 @@ pub(crate) static TABLES: [(&str, LootTable); 1340] = [
         },
     ),
     (
+        "minecraft:gameplay/armadillo_shed",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(1003),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
         "minecraft:gameplay/cat_morning_gift",
         LootTable {
             pools: &[Pool {
@@ -36994,6 +37036,38 @@ pub(crate) static TABLES: [(&str, LootTable); 1340] = [
                             weight: 40,
                             quality: 0,
                             output: Output::Item(1537),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/sniffer_digging",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1436),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1437),
                         }),
                     },
                 ],
@@ -37782,17 +37856,17 @@ pub(crate) static BLOCK_TABLES: [u16; 1286] = [
 ];
 
 pub(crate) static ENTITY_TABLES: [u16; 161] = [
-    65535, 65535, 1207, 65535, 1208, 1209, 65535, 1210, 65535, 65535, 1211, 1212, 65535, 65535,
-    1213, 65535, 1214, 1215, 65535, 1216, 1217, 1218, 1219, 65535, 65535, 65535, 1220, 1221, 1222,
-    65535, 1223, 1224, 1225, 65535, 65535, 65535, 1226, 1227, 65535, 1228, 65535, 1229, 1231, 1232,
-    1230, 65535, 65535, 1233, 65535, 65535, 65535, 65535, 65535, 65535, 65535, 1234, 1235, 65535,
-    1236, 1241, 1237, 65535, 1238, 1239, 1240, 1242, 65535, 1243, 1244, 1245, 65535, 1246, 65535,
-    65535, 65535, 65535, 65535, 65535, 65535, 1247, 65535, 1248, 65535, 65535, 1249, 65535, 65535,
-    1250, 1251, 1252, 65535, 65535, 1253, 65535, 65535, 65535, 65535, 1254, 1255, 1256, 1257, 1258,
-    1259, 1260, 1261, 1263, 65535, 65535, 65535, 65535, 1264, 1265, 1266, 1267, 1268, 1285, 65535,
-    1286, 1287, 1288, 1289, 65535, 1290, 65535, 1291, 65535, 65535, 1292, 65535, 65535, 1293, 1294,
-    1295, 1296, 1297, 65535, 65535, 65535, 1298, 65535, 1299, 1300, 1301, 1302, 1303, 1304, 1305,
-    65535, 1306, 1307, 1308, 65535, 1309, 1310, 1311, 1312, 1313, 1314, 1315, 1262, 65535,
+    65535, 65535, 1208, 65535, 1209, 1210, 65535, 1211, 65535, 65535, 1212, 1213, 65535, 65535,
+    1214, 65535, 1215, 1216, 65535, 1217, 1218, 1219, 1220, 65535, 65535, 65535, 1221, 1222, 1223,
+    65535, 1224, 1225, 1226, 65535, 65535, 65535, 1227, 1228, 65535, 1229, 65535, 1230, 1232, 1233,
+    1231, 65535, 65535, 1234, 65535, 65535, 65535, 65535, 65535, 65535, 65535, 1235, 1236, 65535,
+    1237, 1242, 1238, 65535, 1239, 1240, 1241, 1243, 65535, 1244, 1245, 1246, 65535, 1247, 65535,
+    65535, 65535, 65535, 65535, 65535, 65535, 1248, 65535, 1249, 65535, 65535, 1250, 65535, 65535,
+    1251, 1252, 1253, 65535, 65535, 1254, 65535, 65535, 65535, 65535, 1255, 1256, 1257, 1258, 1259,
+    1260, 1261, 1262, 1264, 65535, 65535, 65535, 65535, 1265, 1266, 1267, 1268, 1269, 1286, 65535,
+    1287, 1288, 1289, 1290, 65535, 1291, 65535, 1292, 65535, 65535, 1293, 65535, 65535, 1294, 1295,
+    1296, 1297, 1298, 65535, 65535, 65535, 1299, 65535, 1300, 1301, 1302, 1303, 1304, 1305, 1306,
+    65535, 1307, 1308, 1309, 65535, 1310, 1311, 1312, 1313, 1314, 1315, 1316, 1263, 65535,
 ];
 
 pub(crate) static SMELTING: [(u16, u16); 163] = [

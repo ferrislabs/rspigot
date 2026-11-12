@@ -418,6 +418,9 @@ TABLE_TYPES = {
 
 EXTRA_TABLES = [
     ("minecraft:charged_creeper/root", "minecraft:entity"),
+    ("minecraft:brush/armadillo", "minecraft:entity_interact"),
+    ("minecraft:gameplay/armadillo_shed", "minecraft:gift"),
+    ("minecraft:gameplay/sniffer_digging", "minecraft:gift"),
     ("minecraft:gameplay/cat_morning_gift", "minecraft:gift"),
     ("minecraft:gameplay/chicken_lay", "minecraft:gift"),
     ("minecraft:gameplay/panda_sneeze", "minecraft:gift"),
