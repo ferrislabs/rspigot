@@ -1,5 +1,5 @@
 use rspigot_domain::EntityId;
-use rspigot_domain::entity::Entity;
+use rspigot_domain::entity::{Entity, EntityState};
 
 use crate::plugins::decisions::Continuation;
 use crate::plugins::events::{EntityShootBow, EntityShootBowPatch, Face, ProjectileHit};
@@ -143,12 +143,14 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    pub(crate) fn arrow_waits(&self, arrow: EntityId) -> bool {
+    pub(crate) fn projectile_waits(&self, projectile: EntityId) -> bool {
         self.decisions.anywhere(|then| match then {
-            Continuation::ProjectileHit { arrow: waiting, .. } => *waiting == arrow,
-            Continuation::Hurt(step) | Continuation::Strike(step) => {
-                matches!(step.then, crate::plugins::AfterHurt::Arrow(follow) if follow.arrow == arrow)
-            }
+            Continuation::ProjectileHit { arrow: waiting, .. } => *waiting == projectile,
+            Continuation::Hurt(step) | Continuation::Strike(step) => match step.then {
+                crate::plugins::AfterHurt::Arrow(follow) => follow.arrow == projectile,
+                crate::plugins::AfterHurt::Thrown(follow) => follow.projectile == projectile,
+                _ => false,
+            },
             _ => false,
         })
     }
@@ -159,10 +161,16 @@ impl<L: ClientLink> Server<L> {
         target: EntityId,
         cancelled: bool,
     ) {
-        if cancelled || self.entities.store.get(arrow).is_none() {
+        if cancelled {
             return;
         }
-        if self.living_entity_alive(target) {
+        let Some(entity) = self.entities.store.get(arrow) else {
+            return;
+        };
+        let thrown = matches!(entity.state, EntityState::Thrown(_));
+        if thrown {
+            self.thrown_hit_entity(arrow, target);
+        } else if self.living_entity_alive(target) {
             self.arrow_hit_entity(arrow, target);
         }
     }

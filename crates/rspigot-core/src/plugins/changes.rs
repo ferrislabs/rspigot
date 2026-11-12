@@ -1,10 +1,10 @@
 use rspigot_domain::BlockPos;
 use rspigot_domain::BlockStateId;
 
-use crate::plugins::block::{data_of, material_of};
+use crate::plugins::block::{data_of, material_of, snapshot_of};
 use crate::plugins::decisions::Continuation;
-use crate::plugins::events::EntityChangeBlock;
-use crate::plugins::steps::{ChangeStep, Grief};
+use crate::plugins::events::{EntityBlockForm, EntityChangeBlock};
+use crate::plugins::steps::{ChangeStep, FormStep, Grief};
 use crate::plugins::{EntityView, EventPayload};
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -34,6 +34,18 @@ impl<L: ClientLink> Server<L> {
         } else {
             self.fire(lane, then, describe);
         }
+    }
+
+    pub(crate) fn form_block(&mut self, entity: EntityView, step: FormStep) {
+        let lane = self.lane_for(None, entity.id);
+        let FormStep { pos, state, .. } = step;
+        self.fire(lane, Continuation::Form(step), move |_| {
+            Some(EventPayload::EntityBlockForm(EntityBlockForm {
+                block: pos,
+                entity,
+                new_state: snapshot_of(pos, state),
+            }))
+        });
     }
 
     pub(super) fn finish_change(&mut self, step: ChangeStep, cancelled: bool) {

@@ -59,6 +59,15 @@ impl<L: ClientLink> Server<L> {
         target: EntityId,
         power: f32,
     ) {
+        if self
+            .entities
+            .store
+            .get(shooter)
+            .is_some_and(|entity| entity.base.kind == Kind::SnowGolem)
+        {
+            self.snow_golem_throw(shooter, target);
+            return;
+        }
         let Some(target) = self.entity_box(target) else {
             return;
         };
@@ -130,7 +139,7 @@ impl<L: ClientLink> Server<L> {
         self.entity_sound(shooter, SKELETON_SHOOT, 1.0, pitch);
     }
 
-    fn entity_box(&self, id: EntityId) -> Option<(Vec3, f64, Aabb)> {
+    pub(crate) fn entity_box(&self, id: EntityId) -> Option<(Vec3, f64, Aabb)> {
         if let Some(player) = self.players.values().find(|p| p.entity_id == id) {
             let height = player.height();
             return Some((
@@ -171,7 +180,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn owner_entity(&self, owner: Option<uuid::Uuid>) -> Option<EntityId> {
+    pub(crate) fn owner_entity(&self, owner: Option<uuid::Uuid>) -> Option<EntityId> {
         let owner = owner?;
         if let Some(player) = self.players.values().find(|p| p.profile.id.0 == owner) {
             return Some(player.entity_id);
@@ -179,14 +188,15 @@ impl<L: ClientLink> Server<L> {
         self.entities.store.by_uuid(owner)
     }
 
-    pub(crate) fn arrow_owner_id(&self, entity: &Entity) -> i32 {
+    pub(crate) fn projectile_owner_id(&self, entity: &Entity) -> i32 {
         match &entity.state {
             EntityState::Arrow(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
+            EntityState::Thrown(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             _ => entity.add_entity_data(),
         }
     }
 
-    fn hit_candidates(
+    pub(crate) fn hit_candidates(
         &self,
         arrow_id: EntityId,
         owner: Option<EntityId>,
@@ -298,7 +308,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn tick_arrow(&mut self, id: EntityId) {
-        if self.arrow_waits(id) {
+        if self.projectile_waits(id) {
             return;
         }
         let despawn = self.config.mobs.arrow_despawn_rate;
@@ -406,7 +416,7 @@ impl<L: ClientLink> Server<L> {
                     return;
                 }
                 self.ask_projectile_hit(id, hit.target);
-                if self.arrow_waits(id) {
+                if self.projectile_waits(id) {
                     return;
                 }
             }
