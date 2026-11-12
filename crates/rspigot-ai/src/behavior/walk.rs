@@ -1,4 +1,5 @@
 use rspigot_domain::{BlockPos, Vec3};
+use rspigot_entities::EntityKind;
 
 use crate::behavior::control::{BehaviorCx, Trigger};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue, WalkTarget};
@@ -9,6 +10,7 @@ use crate::behavior::support::{
 use crate::behavior::tracker::PositionTracker;
 use crate::random::RandomSource;
 use crate::random_pos;
+use crate::scan::closer_to_center_than;
 use crate::world::AiWorld;
 
 const AWAY_HORIZONTAL: i32 = 16;
@@ -546,6 +548,235 @@ impl Trigger for GoToTargetLocation {
                     close_enough_dist: self.close_enough_dist,
                 },
             );
+        }
+        true
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SetLookAndInteract {
+    kind: EntityKind,
+    interaction_range_sqr: i32,
+}
+
+impl SetLookAndInteract {
+    pub fn new(kind: EntityKind, interaction_range: i32) -> Self {
+        Self {
+            kind,
+            interaction_range_sqr: interaction_range * interaction_range,
+        }
+    }
+
+    pub fn conditions(&self) -> Vec<Condition> {
+        vec![
+            (MemoryModuleType::LookTarget, MemoryStatus::Registered),
+            (
+                MemoryModuleType::InteractionTarget,
+                MemoryStatus::ValueAbsent,
+            ),
+            (
+                MemoryModuleType::NearestVisibleLivingEntities,
+                MemoryStatus::ValuePresent,
+            ),
+        ]
+    }
+}
+
+impl Trigger for SetLookAndInteract {
+    fn trigger<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, _now: i64) -> bool {
+        let limit = f64::from(self.interaction_range_sqr);
+        let Some(target) = closest_in_range(cx, EntityFilter::Kind(self.kind), limit) else {
+            return false;
+        };
+        cx.brain.memories.set(
+            MemoryModuleType::InteractionTarget,
+            MemoryValue::Entity(target.id),
+        );
+        look_at_entity(cx, target.id);
+        true
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct InteractWith {
+    kind: EntityKind,
+    interaction_range_sqr: i32,
+    interaction_target: MemoryModuleType,
+    speed_modifier: f32,
+    stop_distance: i32,
+}
+
+impl InteractWith {
+    pub fn new(
+        kind: EntityKind,
+        interaction_range: i32,
+        interaction_target: MemoryModuleType,
+        speed_modifier: f32,
+        stop_distance: i32,
+    ) -> Self {
+        Self {
+            kind,
+            interaction_range_sqr: interaction_range * interaction_range,
+            interaction_target,
+            speed_modifier,
+            stop_distance,
+        }
+    }
+
+    pub fn conditions(&self) -> Vec<Condition> {
+        vec![
+            (self.interaction_target, MemoryStatus::Registered),
+            (MemoryModuleType::LookTarget, MemoryStatus::Registered),
+            (MemoryModuleType::WalkTarget, MemoryStatus::ValueAbsent),
+            (
+                MemoryModuleType::NearestVisibleLivingEntities,
+                MemoryStatus::ValuePresent,
+            ),
+        ]
+    }
+}
+
+impl Trigger for InteractWith {
+    fn trigger<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, _now: i64) -> bool {
+        let kind = self.kind;
+        let any_valid = cx
+            .brain
+            .memories
+            .get(MemoryModuleType::NearestVisibleLivingEntities)
+            .and_then(MemoryValue::as_visible)
+            .is_some_and(|visible| {
+                visible.contains(cx.ai, &cx.brain.memories, |entity| entity.kind == kind)
+            });
+        if !any_valid {
+            return false;
+        }
+        let limit = f64::from(self.interaction_range_sqr);
+        if let Some(target) = closest_in_range(cx, EntityFilter::Kind(kind), limit) {
+            cx.brain
+                .memories
+                .set(self.interaction_target, MemoryValue::Entity(target.id));
+            look_at_entity(cx, target.id);
+            set_walk_target(
+                cx,
+                WalkTarget {
+                    target: PositionTracker::of_entity(target.id, false),
+                    speed_modifier: self.speed_modifier,
+                    close_enough_dist: self.stop_distance,
+                },
+            );
+        }
+        true
+    }
+}
+
+const POI_RETRY_TICKS: i64 = 80;
+const POI_AROUND_RETRY_TICKS: i64 = 180;
+const POI_STROLL_HORIZONTAL: i32 = 8;
+const POI_STROLL_VERTICAL: i32 = 6;
+
+fn near_poi<W: AiWorld>(
+    cx: &BehaviorCx<'_, '_, W>,
+    memory: MemoryModuleType,
+    max_distance_from_poi: i32,
+) -> Option<BlockPos> {
+    let global = cx.brain.memories.get(memory)?.as_global_pos()?;
+    (global.dimension == cx.ai.world.dimension()
+        && closer_to_center_than(
+            global.pos,
+            cx.ai.mob.position,
+            f64::from(max_distance_from_poi),
+        ))
+    .then_some(global.pos)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StrollToPoi {
+    memory: MemoryModuleType,
+    speed_modifier: f32,
+    close_enough_dist: i32,
+    max_distance_from_poi: i32,
+    next_ok_start_time: i64,
+}
+
+impl StrollToPoi {
+    pub fn new(
+        memory: MemoryModuleType,
+        speed_modifier: f32,
+        close_enough_dist: i32,
+        max_distance_from_poi: i32,
+    ) -> Self {
+        Self {
+            memory,
+            speed_modifier,
+            close_enough_dist,
+            max_distance_from_poi,
+            next_ok_start_time: 0,
+        }
+    }
+
+    pub fn conditions(&self) -> Vec<Condition> {
+        vec![
+            (MemoryModuleType::WalkTarget, MemoryStatus::Registered),
+            (self.memory, MemoryStatus::ValuePresent),
+        ]
+    }
+}
+
+impl Trigger for StrollToPoi {
+    fn trigger<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) -> bool {
+        let Some(pos) = near_poi(cx, self.memory, self.max_distance_from_poi) else {
+            return false;
+        };
+        if now > self.next_ok_start_time {
+            set_walk_target(
+                cx,
+                WalkTarget::block(pos, self.speed_modifier, self.close_enough_dist),
+            );
+            self.next_ok_start_time = now + POI_RETRY_TICKS;
+        }
+        true
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct StrollAroundPoi {
+    memory: MemoryModuleType,
+    speed_modifier: f32,
+    max_distance_from_poi: i32,
+    next_ok_start_time: i64,
+}
+
+impl StrollAroundPoi {
+    pub fn new(memory: MemoryModuleType, speed_modifier: f32, max_distance_from_poi: i32) -> Self {
+        Self {
+            memory,
+            speed_modifier,
+            max_distance_from_poi,
+            next_ok_start_time: 0,
+        }
+    }
+
+    pub fn conditions(&self) -> Vec<Condition> {
+        vec![
+            (MemoryModuleType::WalkTarget, MemoryStatus::Registered),
+            (self.memory, MemoryStatus::ValuePresent),
+        ]
+    }
+}
+
+impl Trigger for StrollAroundPoi {
+    fn trigger<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) -> bool {
+        if near_poi(cx, self.memory, self.max_distance_from_poi).is_none() {
+            return false;
+        }
+        if now > self.next_ok_start_time {
+            let target = random_pos::land_pos(cx.ai, POI_STROLL_HORIZONTAL, POI_STROLL_VERTICAL)
+                .map(|position| WalkTarget::position(position, self.speed_modifier, 1));
+            cx.brain.memories.set_option(
+                MemoryModuleType::WalkTarget,
+                target.map(MemoryValue::WalkTarget),
+            );
+            self.next_ok_start_time = now + POI_AROUND_RETRY_TICKS;
         }
         true
     }

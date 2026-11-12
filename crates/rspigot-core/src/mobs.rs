@@ -482,6 +482,7 @@ pub(crate) struct MobWorld<'a> {
     players: &'a [Living],
     open_chests: &'a [crate::containers::Backing],
     difficulty: i32,
+    dimension: &'a str,
     game_time: i64,
     day_time: i64,
     sky_darken: i32,
@@ -659,6 +660,10 @@ impl AiWorld for MobWorld<'_> {
             has_pickup_delay: state.pickup_delay > 0,
             alive: !entity.base.is_removed(),
         })
+    }
+
+    fn dimension(&self) -> &str {
+        self.dimension
     }
 
     fn living_by_uuid(&self, uuid: Uuid) -> Option<Living> {
@@ -921,6 +926,7 @@ impl<L: ClientLink> Server<L> {
             players: &self.entities.mobs.players,
             open_chests: &self.entities.mobs.open_chests,
             difficulty: i32::from(self.world.difficulty.id()),
+            dimension: self.world.dimension.key.as_str(),
             game_time: self.world.level.game_time,
             day_time: self.world.level.day_time,
             sky_darken,
