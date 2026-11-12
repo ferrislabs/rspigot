@@ -52,6 +52,12 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         return species::sound_set(base, farm, entity.is_baby())?.ambient;
     }
     match base.kind {
+        Kind::Enderman => Some(if species::enderman::is_creepy(base) {
+            "minecraft:entity.enderman.scream"
+        } else {
+            "minecraft:entity.enderman.ambient"
+        }),
+        Kind::Endermite => Some("minecraft:entity.endermite.ambient"),
         Kind::Sheep => Some("minecraft:entity.sheep.ambient"),
         Kind::Zombie => Some("minecraft:entity.zombie.ambient"),
         Kind::ZombieVillager => Some("minecraft:entity.zombie_villager.ambient"),

@@ -137,6 +137,7 @@ fn is_persistent(entity: &Entity) -> bool {
                 .as_ref()
                 .is_some_and(|mob| mob.persistence_required)
                 || entity.extra.contains_key(LEASH)
+                || rspigot_domain::entity::species::enderman::carries_block(&entity.base)
         }
         EntityState::Inert(nbt) => {
             nbt.get_bool(PERSISTENCE_REQUIRED).unwrap_or(false) || nbt.contains_key(LEASH)
@@ -493,7 +494,8 @@ impl<L: ClientLink> Server<L> {
                 .mob
                 .as_ref()
                 .is_some_and(|mob| mob.persistence_required),
-            requires_custom_persistence: entity.extra.contains_key(LEASH),
+            requires_custom_persistence: entity.extra.contains_key(LEASH)
+                || rspigot_domain::entity::species::enderman::carries_block(&entity.base),
             no_action_time: living.no_action_time,
             chicken_jockey: matches!(
                 living.mob.as_ref().map(|mob| &mob.species),
@@ -754,6 +756,8 @@ mod tests {
                 EntityKind::Chicken,
                 EntityKind::Cow,
                 EntityKind::Creeper,
+                EntityKind::Enderman,
+                EntityKind::Endermite,
                 EntityKind::Fox,
                 EntityKind::Husk,
                 EntityKind::IronGolem,
@@ -783,6 +787,21 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn a_carried_block_makes_an_enderman_persistent() {
+        use rspigot_domain::entity::species::enderman;
+        use rspigot_domain::entity::{Entity, EntityBase, LivingState};
+        let mut base = EntityBase::new(EntityId(1), uuid::Uuid::from_u128(1), EntityKind::Enderman);
+        let living = LivingState::new(&mut base, 0.0);
+        let mut entity = Entity::new(base, EntityState::Living(Box::new(living)));
+        assert!(!is_persistent(&entity));
+        enderman::set_carried_block(
+            &mut entity.base,
+            Some(rspigot_blocks::BlockKind::Dirt.default_state()),
+        );
+        assert!(is_persistent(&entity));
     }
 
     #[test]

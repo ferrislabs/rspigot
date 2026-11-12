@@ -70,6 +70,9 @@ pub fn check_predicate(
         SpawnPredicate::Silverfish => {
             super::silverfish::check_spawn_rules(level, kind, reason, pos)
         }
+        SpawnPredicate::Endermite => {
+            super::endermite::check_endermite_spawn_rules(level, kind, reason, pos)
+        }
         _ => return None,
     })
 }
@@ -116,6 +119,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::PolarBear
                 | SpawnPredicate::ZombifiedPiglin
                 | SpawnPredicate::Silverfish
+                | SpawnPredicate::Endermite
         )
     });
     let walk = match spawn.check_spawn_rules {
@@ -129,6 +133,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Monster
                     | MobClass::Silverfish
                     | MobClass::Giant
+                    | MobClass::Enderman
             )
         ),
         _ => false,
@@ -238,6 +243,7 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::Monster => -(level.light_level_dependent_magic_value(pos) - 0.5),
         MobClass::Silverfish => super::silverfish::walk_target_value(level, pos),
         MobClass::Giant => level.light_level_dependent_magic_value(pos) - 0.5,
+        MobClass::Enderman => 0.0,
         _ => return None,
     })
 }
@@ -397,6 +403,22 @@ mod tests {
             pos
         ));
         assert!(rules_ported(EntityKind::Stray));
+    }
+
+    #[test]
+    fn endermen_have_ported_rules_and_a_neutral_walk_target() {
+        assert!(rules_ported(EntityKind::Enderman));
+        assert!(rules_ported(EntityKind::Endermite));
+        let level = Level::floor(Stone::DEFAULT_STATE, 63);
+        assert_eq!(
+            walk_target_value(&level, EntityKind::Enderman, BlockPos::new(4, 64, 4)),
+            Some(0.0)
+        );
+        assert!(mob_check_spawn_rules(
+            &level,
+            EntityKind::Enderman,
+            Vec3::new(4.5, 64.0, 4.5)
+        ));
     }
 
     #[test]

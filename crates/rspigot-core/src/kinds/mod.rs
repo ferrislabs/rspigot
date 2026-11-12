@@ -30,6 +30,7 @@ pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::Sou
         _ => None,
     }
 }
+pub(crate) use enderman::carried_block_drops;
 
 impl<L: ClientLink> Server<L> {
     fn kind_of(&self, id: EntityId) -> Option<Kind> {
@@ -105,8 +106,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn kind_ai_step(&mut self, id: EntityId) {
-        if self.kind_of(id) == Some(Kind::Fox) {
-            self.fox_ai_step(id);
+        match self.kind_of(id) {
+            Some(Kind::Fox) => self.fox_ai_step(id),
+            Some(Kind::Enderman) => self.enderman_ai_step(id),
+            _ => {}
         }
     }
 
@@ -120,6 +123,12 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn kind_target_cleared(&mut self, id: EntityId) {
         if self.kind_of(id) == Some(Kind::Fox) {
             self.fox_target_cleared(id);
+        }
+    }
+
+    pub(crate) fn kind_target_changed(&mut self, id: EntityId, target: Option<EntityId>) {
+        if let Some(Kind::Enderman) = self.kind_of(id) {
+            self.enderman_target_changed(id, target);
         }
     }
 

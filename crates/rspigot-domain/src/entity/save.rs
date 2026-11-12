@@ -109,6 +109,7 @@ const TRANSIENT_MODIFIERS: &[&str] = &[
     species::cat::SPRINTING_MODIFIER,
     species::zombified_piglin::ATTACKING_MODIFIER,
     species::rabbit::EVIL_MODIFIER,
+    species::enderman::ATTACKING_MODIFIER,
 ];
 const ARROW_KEYS: [&str; 14] = [
     "Owner",

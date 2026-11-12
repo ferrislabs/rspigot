@@ -101,6 +101,9 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         for request in requests {
+            if !deferred {
+                self.kind_target_changed(id, request.to);
+            }
             let seeker = if request.tempt {
                 Seeker::Tempt
             } else {
@@ -172,6 +175,7 @@ impl<L: ClientLink> Server<L> {
                 }
             },
         }
+        self.kind_target_changed(mob, target);
     }
 
     pub(super) fn finish_aim(

@@ -62,6 +62,24 @@ impl<L: ClientLink> Server<L> {
                 next,
                 pos,
             } => self.finish_wake_friend(silverfish, origin, next, pos, cancelled),
+            Grief::EndermanTake {
+                enderman,
+                pos,
+                carried,
+            } => {
+                if !cancelled {
+                    self.finish_enderman_take(enderman, pos, carried);
+                }
+            }
+            Grief::EndermanPlace {
+                enderman,
+                pos,
+                state,
+            } => {
+                if !cancelled {
+                    self.finish_enderman_place(enderman, pos, state);
+                }
+            }
         }
     }
 }

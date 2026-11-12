@@ -30,6 +30,7 @@ pub struct Facts {
     pub tick_count: i32,
     pub sitting: bool,
     pub llama_strength: i32,
+    pub gaze_disguise: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -173,6 +174,14 @@ pub trait AiWorld: BlockView {
 
     fn mob_griefing(&self) -> bool {
         true
+    }
+
+    fn raw_brightness_undarkened(&self, pos: BlockPos) -> i32 {
+        self.raw_brightness(pos)
+    }
+
+    fn any_entity_in(&self, _area: &Aabb, _except: EntityId) -> bool {
+        false
     }
 
     fn universal_anger(&self) -> bool {

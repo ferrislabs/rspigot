@@ -13,6 +13,7 @@ mod fox;
 mod goal;
 mod goals;
 mod heap;
+mod holdable;
 mod iron_golem;
 #[cfg(test)]
 mod mock;
@@ -28,6 +29,8 @@ mod random;
 mod random_pos;
 mod registry;
 mod scan;
+#[cfg(test)]
+mod scene;
 mod sensing;
 mod silverfish;
 mod tame;
@@ -57,7 +60,11 @@ pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
     MoveControl, Operation, rotate_towards,
 };
-pub use enderman::{EndermanAction, EndermanFacts, EndermanGoal};
+pub use enderman::{
+    EndermanAction, EndermanFacts, EndermanGoal, TELEPORT_EVENT, find_teleport,
+    find_teleport_towards, is_being_stared_by, is_looking_at_me, random_teleport, teleport_roll,
+    teleport_towards_roll,
+};
 pub use evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 pub use finder::PathFinder;
 pub use fox::{FoxAction, FoxFacts, FoxGoal, TrustedRef, is_path_clear};

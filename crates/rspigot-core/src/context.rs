@@ -593,6 +593,16 @@ fn selection_box(selector: &Selector, origin: Vec3) -> Option<Aabb> {
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn relocate(&mut self, id: EntityId, position: Vec3, command: bool) {
+        self.relocate_tracked(id, position, command, None);
+    }
+
+    pub(crate) fn relocate_tracked(
+        &mut self,
+        id: EntityId,
+        position: Vec3,
+        command: bool,
+        from: Option<Vec3>,
+    ) {
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
@@ -603,6 +613,7 @@ impl<L: ClientLink> Server<L> {
             entity: id,
             to: position,
             command,
+            from,
         };
         self.fire(lane, Continuation::Relocate(step), move |server| {
             let entity = server.entity_view(id)?;
@@ -649,6 +660,9 @@ impl<L: ClientLink> Server<L> {
             base.needs_sync = true;
         }
         self.entities.store.reindex(id);
+        if let Some(from) = step.from {
+            self.enderman_teleported(id, from);
+        }
     }
 
     pub(crate) fn summon_entity(

@@ -1,5 +1,6 @@
 mod biome;
 pub mod despawn;
+pub mod endermite;
 pub mod fox;
 pub mod generation;
 pub mod natural;

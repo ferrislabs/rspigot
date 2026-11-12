@@ -381,6 +381,22 @@ pub fn register_goals(
         EntityKind::PolarBear => polar_bear::register(&mut add, kind),
         EntityKind::ZombifiedPiglin => zombified_piglin::register(&mut add),
         EntityKind::Enderman => enderman::register(&mut add, kind),
+        EntityKind::Endermite => {
+            add.float(1);
+            add.goal(
+                1,
+                MobGoal::ClimbOnTopOfPowderSnow(ClimbOnTopOfPowderSnowGoal),
+            );
+            add.goal(2, MobGoal::MeleeAttack(MeleeAttackGoal::new(1.0, false)));
+            add.stroll(3, 1.0);
+            add.look(7, 8.0);
+            add.look_around(8);
+            add.target_goal(1, MobGoal::HurtByTarget(HurtByTargetGoal::alerting(&[])));
+            add.target(
+                2,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+        }
         EntityKind::Silverfish => silverfish::register(&mut add, kind),
         EntityKind::IronGolem => iron_golem::register(&mut add, kind),
         _ => {}

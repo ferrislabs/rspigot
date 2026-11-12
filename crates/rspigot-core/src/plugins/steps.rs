@@ -511,6 +511,7 @@ pub(crate) struct RelocateStep {
     pub(crate) entity: EntityId,
     pub(crate) to: Vec3,
     pub(crate) command: bool,
+    pub(crate) from: Option<Vec3>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -782,6 +783,16 @@ pub(crate) enum Grief {
         origin: BlockPos,
         next: u32,
         pos: BlockPos,
+    },
+    EndermanTake {
+        enderman: EntityId,
+        pos: BlockPos,
+        carried: BlockStateId,
+    },
+    EndermanPlace {
+        enderman: EntityId,
+        pos: BlockPos,
+        state: BlockStateId,
     },
 }
 
@@ -1109,6 +1120,9 @@ impl Continuation {
                 Grief::Berries { fox, .. } => *fox == id,
                 Grief::Merge { silverfish, .. } | Grief::WakeFriends { silverfish, .. } => {
                     *silverfish == id
+                }
+                Grief::EndermanTake { enderman, .. } | Grief::EndermanPlace { enderman, .. } => {
+                    *enderman == id
                 }
             },
             Self::EggBreak { mob, .. } => *mob == id,

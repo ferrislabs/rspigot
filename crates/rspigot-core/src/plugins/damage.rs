@@ -64,6 +64,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 DamageType::Fall => EntityDamageCause::Fall,
                 DamageType::InFire => EntityDamageCause::Fire,
                 DamageType::Starve => EntityDamageCause::Starvation,
+                DamageType::Drown => EntityDamageCause::Drowning,
                 DamageType::Wither => EntityDamageCause::Wither,
                 DamageType::OnFire => EntityDamageCause::FireTick,
                 DamageType::Magic => EntityDamageCause::Magic,

@@ -58,6 +58,9 @@ use crate::spawning::LEASH;
 
 const OFFHAND_SLOT: usize = 45;
 const ARMOR_SLOTS: std::ops::Range<usize> = 5..9;
+const HEAD_SLOT: usize = 5;
+const GAZE_DISGUISE: rspigot_ai::TemptItems =
+    rspigot_ai::TemptItems::Tag("minecraft:gaze_disguise_equipment");
 const NO_DESPAWN_DISTANCE: f64 = 32.0;
 const ACTIVATION_HEIGHT: f64 = 256.0;
 const IMMUNITY_RECHECK: i64 = 20;
@@ -232,6 +235,10 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
                 .last_source
                 .is_some_and(|source| retaliable(source, game_time)),
             tick_count: player.vitals.tick_count as i32,
+            gaze_disguise: player
+                .inventory
+                .get(HEAD_SLOT)
+                .is_some_and(|stack| GAZE_DISGUISE.matches(Some(stack.item))),
         },
     }
 }
@@ -282,6 +289,7 @@ fn entity_facts(
             .last_source
             .is_some_and(|source| retaliable(source, game_time)),
         tick_count: base.tick_count,
+        gaze_disguise: false,
     }
 }
 
@@ -554,6 +562,31 @@ impl AiWorld for MobWorld<'_> {
             .count() as i32
     }
 
+    fn any_entity_in(&self, area: &Aabb, except: EntityId) -> bool {
+        self.players
+            .iter()
+            .any(|player| !player.spectator && player.bounds.intersects(area))
+            || self.store.iter().any(|entity| {
+                entity.base.id != except
+                    && !entity.base.is_removed()
+                    && entity.base.bounding_box().intersects(area)
+            })
+    }
+
+    fn raw_brightness_undarkened(&self, pos: BlockPos) -> i32 {
+        if pos.x < -WORLD_BORDER
+            || pos.z < -WORLD_BORDER
+            || pos.x >= WORLD_BORDER
+            || pos.z >= WORLD_BORDER
+        {
+            return MAX_LIGHT as i32;
+        }
+        let Some(chunk) = self.view.chunks.get(pos.chunk()) else {
+            return 0;
+        };
+        light_level(chunk, pos, true).max(light_level(chunk, pos, false))
+    }
+
     fn bright_outside(&self) -> bool {
         self.has_day_cycle && self.sky_darken < BRIGHT_SKY_DARKEN
     }
@@ -658,6 +691,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(target) = self.entities.mobs.initial_targets.remove(&id) {
             ai.set_target(Some(target));
             restored_target = true;
+            self.kind_target_changed(id, Some(target));
         }
         if kind == Kind::Cat {
             ai.reassess_cat_tame_goals(cat_tame);
@@ -686,6 +720,7 @@ impl<L: ClientLink> Server<L> {
             if let Some(target) = found {
                 ai.set_target(Some(target));
                 restored_target = true;
+                self.kind_target_changed(id, Some(target));
             }
         }
         if let Some(living) = self.entities.store.get_mut(id).and_then(|e| e.living_mut()) {
@@ -903,6 +938,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn mob_server_ai_step(&mut self, id: EntityId) {
+        self.kind_ai_step(id);
         let sky_darken = sky_darken(&self.world.level);
         let bright = self.entities.store.get(id).is_some_and(|entity| {
             entity.base.kind.extends("Monster") && self.light_at_eyes(entity) > BRIGHT_LIMIT
@@ -1521,6 +1557,9 @@ impl<L: ClientLink> Server<L> {
                     explosion_radius: None,
                 };
                 drops.extend(loot::table_drops(table, &context, &mut self.rng));
+            }
+            if let Some(carried) = species::enderman::carried_block(&entity.base) {
+                drops.extend(crate::kinds::carried_block_drops(carried, &mut self.rng));
             }
             slots = self.planned_equipment_drops(id, killed_by_player);
             drops.extend(slots.iter().map(|drop| drop.dropped.clone()));
