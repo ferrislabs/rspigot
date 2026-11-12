@@ -17,6 +17,7 @@ mod enderman;
 mod endermite;
 mod fox;
 mod ghast;
+mod goat;
 mod hoglin;
 mod iron_golem;
 mod ocelot;
@@ -39,6 +40,7 @@ pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::Sou
     }
 }
 pub(crate) use enderman::carried_block_drops;
+pub(crate) use goat::{GoatSound, voice as goat_voice};
 pub(crate) use snow_golem::readiness_for_shearing;
 
 impl<L: ClientLink> Server<L> {
@@ -66,6 +68,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Witch => self.witch_view(entity, view),
             Kind::Pillager => self.pillager_view(entity, view),
             Kind::Hoglin | Kind::Zoglin => self.hoglin_view(entity, view),
+            Kind::Goat => self.goat_view(entity, view),
             Kind::Piglin | Kind::PiglinBrute => self.piglin_view(entity, view),
             _ => {}
         }
@@ -76,6 +79,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_registered(id, ai),
             Some(Kind::Ocelot) => self.ocelot_registered(id, ai),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_registered(id, ai),
+            Some(Kind::Goat) => self.goat_registered(id, ai),
             _ => {}
         }
     }
@@ -199,6 +203,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ocelot) => self.ocelot_custom_ai_step(id),
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_custom_ai_step(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_custom_ai_step(id),
+            Some(Kind::Goat) => self.goat_custom_ai_step(id),
             _ => {}
         }
     }
@@ -301,9 +306,17 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn kind_death_sound(&mut self, id: EntityId) -> bool {
+        match self.kind_of(id) {
+            Some(Kind::Goat) => self.goat_voice_sound(id, GoatSound::Death),
+            _ => false,
+        }
+    }
+
     pub(crate) fn kind_hurt_sound(&mut self, id: EntityId) -> bool {
         match self.kind_of(id) {
             Some(Kind::Shulker) => self.shulker_hurt_sound(id),
+            Some(Kind::Goat) => self.goat_voice_sound(id, GoatSound::Hurt),
             _ => false,
         }
     }

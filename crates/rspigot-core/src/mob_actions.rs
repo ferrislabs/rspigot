@@ -123,6 +123,12 @@ impl<L: ClientLink> Server<L> {
             MobAction::AmbientSound => self.play_ambient_sound(id),
             MobAction::Voice(sound) => self.play_mob_voice(id, move |_| Some(sound)),
             MobAction::Message { to, message } => self.brain_message(to, message),
+            MobAction::Sound {
+                sound,
+                volume,
+                pitch,
+            } => self.entity_sound(id, sound, volume, pitch),
+            MobAction::Goat(action) => self.goat_action(id, action),
             MobAction::Piglin(action) => self.piglin_action(id, action),
             MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
             MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),
@@ -355,6 +361,7 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Wolf
                 | Kind::Cat
                 | Kind::Panda
+                | Kind::Goat
         ) {
             return None;
         }
@@ -426,6 +433,9 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == Kind::Panda {
             self.panda_offspring(parent, partner, &mut child);
+        }
+        if kind == Kind::Goat {
+            self.goat_offspring(&mut child, parent, partner, random);
         }
         Some(child)
     }

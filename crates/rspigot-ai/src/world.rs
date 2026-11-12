@@ -368,6 +368,7 @@ pub struct KindFacts {
     pub raider: crate::RaiderFacts,
     pub crossbow: crate::CrossbowFacts,
     pub shulker: ShulkerFacts,
+    pub goat: crate::GoatFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -440,6 +441,8 @@ pub struct MobView {
     pub jump_strength: f64,
     pub gravity: f64,
     pub jump_boost_power: f32,
+    pub speed_effect_level: i32,
+    pub slowness_effect_level: i32,
     pub species: KindFacts,
 }
 
@@ -452,6 +455,12 @@ pub fn attribute(kind: EntityKind, living: &LivingState, name: &str) -> f64 {
 
 const JUMP_BOOST_STEP: f32 = 0.1;
 const SLOW_FALLING_GRAVITY: f64 = 0.01;
+
+fn effect_level(living: &LivingState, name: &str) -> i32 {
+    living
+        .effect(name)
+        .map_or(0, |effect| i32::from(effect.amplifier) + 1)
+}
 
 fn gravity(base: &EntityBase, living: &LivingState) -> f64 {
     if base.is_no_gravity() {
@@ -548,6 +557,8 @@ impl MobView {
             jump_boost_power: living.effect("minecraft:jump_boost").map_or(0.0, |effect| {
                 JUMP_BOOST_STEP * (effect.amplifier as f32 + 1.0)
             }),
+            speed_effect_level: effect_level(living, "minecraft:speed"),
+            slowness_effect_level: effect_level(living, "minecraft:slowness"),
             species: KindFacts::default(),
         }
     }

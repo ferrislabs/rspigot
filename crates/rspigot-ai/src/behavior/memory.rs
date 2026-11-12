@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 
-use rspigot_domain::{BlockPos, EntityId};
+use rspigot_domain::{BlockPos, EntityId, Vec3};
 use uuid::Uuid;
 
 use crate::behavior::nbt::PackedMemories;
@@ -216,7 +216,7 @@ impl WalkTarget {
         close_enough_dist: i32,
     ) -> Self {
         Self {
-            target: PositionTracker::of_position(position),
+            target: PositionTracker::of_block(position.block()),
             speed_modifier,
             close_enough_dist,
         }
@@ -240,6 +240,7 @@ pub enum MemoryValue {
     GlobalPos(GlobalPos),
     GlobalPosList(Vec<GlobalPos>),
     Block(BlockPos),
+    Position(Vec3),
     Uuid(Uuid),
     Entity(EntityId),
     Entities(Vec<EntityId>),
@@ -318,6 +319,13 @@ impl MemoryValue {
     pub fn as_uuid(&self) -> Option<Uuid> {
         match self {
             Self::Uuid(uuid) => Some(*uuid),
+            _ => None,
+        }
+    }
+
+    pub fn as_position(&self) -> Option<Vec3> {
+        match self {
+            Self::Position(position) => Some(*position),
             _ => None,
         }
     }

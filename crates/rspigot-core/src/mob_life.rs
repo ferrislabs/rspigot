@@ -93,6 +93,10 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         }
         Kind::Panda => Some(species::panda::ambient_sound(base)),
         Kind::Pillager => Some(species::pillager::AMBIENT_SOUND),
+        Kind::Goat => Some(crate::kinds::goat_voice(
+            entity,
+            crate::kinds::GoatSound::Ambient,
+        )),
         _ => None,
     }
 }

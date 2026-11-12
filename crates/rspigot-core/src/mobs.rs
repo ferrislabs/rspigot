@@ -1532,7 +1532,7 @@ impl<L: ClientLink> Server<L> {
             }
         }
         if dead {
-            if outcome == HurtOutcome::Full {
+            if outcome == HurtOutcome::Full && !self.kind_death_sound(id) {
                 self.make_entity_sound(id, |sounds| sounds.death, |set| set.death);
             }
             self.charged_creeper_drops(source.causing.as_ref().map(|c| c.entity), id);
