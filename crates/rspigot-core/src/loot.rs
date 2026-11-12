@@ -18,6 +18,7 @@ const ITEM_REGISTRY: &str = "minecraft:item";
 const ENTITY_REGISTRY: &str = "minecraft:entity_type";
 const POTION_CONTENTS: &str = "minecraft:potion_contents";
 const OMINOUS_BOTTLE_AMPLIFIER: &str = "minecraft:ominous_bottle_amplifier";
+const STORED_ENCHANTMENTS: &str = "minecraft:stored_enchantments";
 const MAX_OMINOUS_AMPLIFIER: i32 = 4;
 const MAX_NESTING: usize = 32;
 
@@ -539,6 +540,24 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 };
                 contents.insert("potion", potion);
                 stack.components.insert(POTION_CONTENTS, contents);
+            }
+            FunctionKind::EnchantRandomly {
+                enchantment,
+                max_level,
+            } => {
+                let level = self.rng.random_range(1..=max_level.max(1));
+                let key = if stack.item == ItemKind::Book.id().0 {
+                    stack.item = ItemKind::EnchantedBook.id().0;
+                    STORED_ENCHANTMENTS
+                } else {
+                    ENCHANTMENTS
+                };
+                let mut levels = match stack.components.remove(key) {
+                    Some(Tag::Compound(levels)) => levels,
+                    _ => Compound::new(),
+                };
+                levels.insert(enchantment, level);
+                stack.components.insert(key, levels);
             }
             FunctionKind::SetOminousBottleAmplifier(amplifier) => {
                 let level = self.int(amplifier).clamp(0, MAX_OMINOUS_AMPLIFIER);
@@ -1317,6 +1336,52 @@ mod tests {
         assert_eq!(discs, RUNS as u32);
         let plain = entity_tally(EntityKind::Creeper, &creeper, &generic_kill(), None);
         assert!(plain.keys().all(|(name, _)| *name == "minecraft:gunpowder"));
+    }
+
+    #[test]
+    fn a_random_enchantment_goes_on_the_item_or_turns_a_book_into_an_enchanted_one() {
+        let function = Function {
+            condition: None,
+            kind: FunctionKind::EnchantRandomly {
+                enchantment: "minecraft:soul_speed",
+                max_level: 3,
+            },
+        };
+        let loot = table(
+            vec![
+                leaf(Output::Item(item("minecraft:iron_boots")), 1),
+                leaf(Output::Item(item("minecraft:book")), 1),
+            ],
+            vec![function],
+        );
+        let context = LootContext::default();
+        let mut boots = false;
+        let mut books = false;
+        for seed in 0..40 {
+            for stack in table_drops(loot, &context, &mut StdRng::seed_from_u64(seed)) {
+                let (key, enchanted_book) = if stack.item == ItemKind::EnchantedBook.id() {
+                    (STORED_ENCHANTMENTS, true)
+                } else {
+                    (ENCHANTMENTS, false)
+                };
+                boots |= !enchanted_book;
+                books |= enchanted_book;
+                let level = stack
+                    .components
+                    .get_compound(key)
+                    .and_then(|levels| levels.get_i32("minecraft:soul_speed"))
+                    .expect("enchanted");
+                assert!((1..=3).contains(&level));
+            }
+        }
+        assert!(boots && books);
+    }
+
+    #[test]
+    fn the_piglin_bartering_table_is_generated() {
+        let table = rspigot_data::loot::table("minecraft:gameplay/piglin_bartering")
+            .expect("bartering table");
+        assert_eq!(table.pools.len(), 1);
     }
 
     #[test]
