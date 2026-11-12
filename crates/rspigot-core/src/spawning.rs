@@ -69,7 +69,7 @@ impl Spawning {
     }
 }
 
-fn dimension_spawns(dimension: &Dimension) -> &'static DimensionSpawns {
+pub(crate) fn dimension_spawns(dimension: &Dimension) -> &'static DimensionSpawns {
     rspigot_data::spawns::dimension(dimension.dimension_type.as_str())
         .or_else(|| rspigot_data::spawns::dimension(OVERWORLD))
         .unwrap_or(&OVERWORLD_FALLBACK)

@@ -14,7 +14,7 @@ use crate::plugins::events::{
     EntityExhaustion, EntityExhaustionPatch, EntityExhaustionReason, EntityRegainHealth,
     EntityRegainHealthPatch, EntityRegainHealthRegainReason, FoodLevelChange, FoodLevelChangePatch,
 };
-use crate::plugins::steps::{ExhaustStep, FoodStep, MobRegainStep, RegainStep};
+use crate::plugins::steps::{ExhaustStep, FoodStep, GolemRepair, MobRegainStep, RegainStep};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -59,6 +59,17 @@ impl<L: ClientLink> Server<L> {
         amount: f32,
         reason: EntityRegainHealthRegainReason,
     ) {
+        self.heal_mob_then(cause, id, amount, reason, None);
+    }
+
+    pub(crate) fn heal_mob_then(
+        &mut self,
+        cause: Option<PlayerId>,
+        id: EntityId,
+        amount: f32,
+        reason: EntityRegainHealthRegainReason,
+        repair: Option<GolemRepair>,
+    ) {
         let alive =
             self.entities.store.get(id).is_some_and(|entity| {
                 entity.living().is_some() && living::health(&entity.base) > 0.0
@@ -67,7 +78,11 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let lane = self.lane_for(cause, id);
-        let step = MobRegainStep { target: id, amount };
+        let step = MobRegainStep {
+            target: id,
+            amount,
+            repair,
+        };
         self.fire(lane, Continuation::MobRegain(step), move |server| {
             let entity = server.entity_view(id)?;
             Some(EventPayload::EntityRegainHealth(EntityRegainHealth {
@@ -89,6 +104,8 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let amount = patch.amount.map_or(step.amount, |amount| amount as f32);
+        let mut before = 0.0;
+        let mut after = 0.0;
         if let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -96,9 +113,17 @@ impl<L: ClientLink> Server<L> {
         }) = self.entities.store.get_mut(step.target)
         {
             let health = living::health(base);
+            before = health;
+            after = health;
             if health > 0.0 {
                 living::set_health(base, state, health + amount);
+                after = living::health(base);
             }
+        }
+        if let Some(repair) = step.repair
+            && after != before
+        {
+            self.finish_golem_repair(step.target, repair);
         }
     }
 

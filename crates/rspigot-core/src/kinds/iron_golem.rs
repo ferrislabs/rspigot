@@ -22,7 +22,8 @@ use crate::commands::Target;
 use crate::events::{ClientEvent, EquipmentSlot as WireSlot, Hand};
 use crate::health::{DamageSource, attributes};
 use crate::interact::Interaction;
-use crate::plugins::steps::{AfterHurt, MobAttackFollow, Struck};
+use crate::plugins::events::EntityRegainHealthRegainReason;
+use crate::plugins::steps::{AfterHurt, GolemRepair, MobAttackFollow, Struck};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -126,18 +127,26 @@ impl<L: ClientLink> Server<L> {
             return None;
         };
         let before = living::health(base);
-        if before > 0.0 {
-            living::set_health(base, state, before + IRON_INGOT_HEAL_AMOUNT);
-        }
-        if living::health(base) == before {
+        let full = before >= state.max_health() as f32;
+        self.heal_mob_then(
+            Some(player),
+            target,
+            IRON_INGOT_HEAL_AMOUNT,
+            EntityRegainHealthRegainReason::Custom,
+            Some(GolemRepair { player, hand }),
+        );
+        if full || before <= 0.0 {
             return None;
         }
+        Some(Interaction::Predicted)
+    }
+
+    pub(crate) fn finish_golem_repair(&mut self, target: EntityId, repair: GolemRepair) {
         let mut random = self.mob_random(target);
         let pitch = 1.0 + (random.next_float() - random.next_float()) * REPAIR_PITCH_SPREAD;
         self.store_mob_random(target, random);
         self.entity_sound(target, REPAIR_SOUND, 1.0, pitch);
-        self.consume_held(player, hand, 1);
-        Some(Interaction::Predicted)
+        self.consume_held(repair.player, repair.hand, 1);
     }
 
     fn golem_crackiness(&mut self, id: EntityId) -> Option<Crackiness> {

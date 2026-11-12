@@ -713,6 +713,13 @@ pub(crate) struct RegainStep {
 pub(crate) struct MobRegainStep {
     pub(crate) target: EntityId,
     pub(crate) amount: f32,
+    pub(crate) repair: Option<GolemRepair>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct GolemRepair {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
 }
 
 #[derive(Debug, Clone, Copy)]

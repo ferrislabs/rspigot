@@ -486,6 +486,7 @@ pub(crate) struct MobWorld<'a> {
     rules: GameRules,
     has_day_cycle: bool,
     thundering: bool,
+    ambient_light: f32,
 }
 
 impl MobWorld<'_> {
@@ -591,6 +592,10 @@ impl AiWorld for MobWorld<'_> {
         self.store.get(id).is_some_and(|entity| {
             entity.base.kind == Kind::Panda && species::panda::is_aggressive(&entity.base)
         })
+    }
+
+    fn ambient_light(&self) -> f32 {
+        self.ambient_light
     }
 
     fn bright_outside(&self) -> bool {
@@ -885,6 +890,7 @@ impl<L: ClientLink> Server<L> {
             rules: self.config.rules,
             has_day_cycle: self.world.dimension.has_skylight,
             thundering: self.world.level.raining && self.world.level.thundering,
+            ambient_light: ambient_light_of(&self.world.dimension),
         }
     }
 
@@ -1912,9 +1918,21 @@ pub struct MobDamageSnapshot {
     pub equipment: Vec<(rspigot_items::EquipmentSlot, ItemStack)>,
 }
 
+pub(crate) fn ambient_light_of(dimension: &rspigot_domain::world::Dimension) -> f32 {
+    crate::spawning::dimension_spawns(dimension).ambient_light
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_ambient_light_follows_the_dimension() {
+        use rspigot_domain::world::Dimension;
+        assert_eq!(ambient_light_of(&Dimension::overworld()), 0.0);
+        assert_eq!(ambient_light_of(&Dimension::nether()), 0.1);
+        assert_eq!(ambient_light_of(&Dimension::end()), 0.25);
+    }
 
     #[test]
     fn sky_darkens_at_night_following_the_day_timeline() {
