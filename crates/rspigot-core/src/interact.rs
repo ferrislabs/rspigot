@@ -78,6 +78,8 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Fox => "minecraft:fox_food",
         Kind::Wolf => "minecraft:wolf_food",
         Kind::Cat => "minecraft:cat_food",
+        Kind::Rabbit => "minecraft:rabbit_food",
+        Kind::Ocelot => "minecraft:ocelot_food",
         _ => return None,
     })
 }

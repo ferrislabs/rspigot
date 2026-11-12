@@ -350,20 +350,15 @@ pub fn register_goals(
                     TemptItems::Tag("minecraft:ocelot_food"),
                 )),
             );
-            add.goal(
-                4,
-                MobGoal::AvoidEntity(AvoidEntityGoal::unless_trusting(
-                    TargetKind::Player,
-                    16.0,
-                    0.8,
-                    1.33,
-                )),
-            );
             add.goal(7, MobGoal::LeapAtTarget(LeapAtTargetGoal::new(0.3)));
             add.goal(8, MobGoal::OcelotAttack(OcelotAttackGoal::default()));
             add.goal(9, MobGoal::Breed(BreedGoal::new(0.8)));
-            add.stroll_rarely_in_water(10, 0.8, 1.0e-5);
+            add.stroll_rarely_in_water(10, 0.8, 1.000_000_1e-5);
             add.look(11, 10.0);
+            add.goal(
+                OCELOT_AVOID_PRIORITY,
+                MobGoal::AvoidEntity(ocelot_avoid_players()),
+            );
             add.target(
                 1,
                 NearestAttackableTargetGoal::new(TargetKind::Class("Chicken"), false),
@@ -390,4 +385,37 @@ pub fn register_goals(
         EntityKind::IronGolem => iron_golem::register(&mut add, kind),
         _ => {}
     }
+}
+
+pub(crate) const OCELOT_AVOID_PRIORITY: i32 = 4;
+const KILLER_MELEE_PRIORITY: i32 = 4;
+const KILLER_MELEE_SPEED: f64 = 1.4;
+
+pub(crate) fn ocelot_avoid_players() -> AvoidEntityGoal {
+    AvoidEntityGoal::unless_trusting(TargetKind::Player, 16.0, 0.8, 1.33)
+}
+
+pub(crate) fn add_killer_bunny_goals(
+    goals: &mut GoalSelector<MobGoal>,
+    targets: &mut GoalSelector<MobGoal>,
+) {
+    goals.add_goal(
+        KILLER_MELEE_PRIORITY,
+        MobGoal::MeleeAttack(MeleeAttackGoal::new(KILLER_MELEE_SPEED, true)),
+    );
+    targets.add_goal(1, MobGoal::HurtByTarget(HurtByTargetGoal::alerting(&[])));
+    targets.add_goal(
+        2,
+        MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::new(
+            TargetKind::Player,
+            true,
+        )),
+    );
+    targets.add_goal(
+        2,
+        MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::new(
+            TargetKind::Class("Wolf"),
+            true,
+        )),
+    );
 }

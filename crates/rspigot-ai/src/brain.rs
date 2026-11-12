@@ -10,7 +10,7 @@ use crate::combat::{MeleeAttackGoal, RangedBowAttackGoal};
 use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl};
 use crate::goal::{Flag, GoalSelector};
 use crate::goals::MobGoal;
-use crate::random::{MobRandom, RandomSource};
+use crate::random::MobRandom;
 use crate::registry;
 use crate::sensing::Sensing;
 use crate::targeting;
@@ -39,9 +39,9 @@ pub struct Brain {
     pub defer_targets: bool,
     pub target_requests: Vec<TargetRequest>,
     pub tempt_verdict: Option<Option<EntityId>>,
-    pub more_carrot_ticks: i32,
     pub fox: crate::FoxFacts,
     pub can_break_doors: bool,
+    pub hop: Option<crate::rabbit::RabbitHop>,
     follow_range: f64,
 }
 
@@ -59,7 +59,7 @@ impl Brain {
         if kind == EntityKind::Chicken {
             profile.set_malus(PathType::Water, 0.0);
         }
-        Self {
+        let mut brain = Self {
             random: MobRandom::new(seed),
             look: LookControl::default(),
             movement: MoveControl::default(),
@@ -73,11 +73,15 @@ impl Brain {
             defer_targets: false,
             target_requests: Vec::new(),
             tempt_verdict: None,
-            more_carrot_ticks: 0,
             fox: crate::FoxFacts::default(),
             can_break_doors: false,
+            hop: None,
             follow_range,
+        };
+        if kind == EntityKind::Rabbit {
+            brain.enable_hop();
         }
+        brain
     }
 }
 
@@ -238,6 +242,8 @@ enum GoalChange {
     Weapon { bow: bool, interval: i32 },
     BreakDoors(bool),
     CatTame(bool),
+    Trusting(bool),
+    KillerBunny,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -275,6 +281,14 @@ impl MobAi {
             NORMAL_BOW_INTERVAL
         };
         self.pending.push(GoalChange::Weapon { bow, interval });
+    }
+
+    pub fn reassess_trusting(&mut self, trusting: bool) {
+        self.pending.push(GoalChange::Trusting(trusting));
+    }
+
+    pub fn become_killer_bunny(&mut self) {
+        self.pending.push(GoalChange::KillerBunny);
     }
 
     pub fn set_can_break_doors(&mut self, can_break_doors: bool) {
@@ -373,6 +387,7 @@ impl MobAi {
 
     pub fn think<W: AiWorld>(&mut self, mob: &MobView, world: &W, body: &mut MobBody) {
         self.brain.sensing.tick();
+        self.brain.movement.set_in_water(mob.fluid.in_water);
         if self.brain.follow_range != mob.follow_range {
             self.brain.follow_range = mob.follow_range;
             self.brain
@@ -393,6 +408,7 @@ impl MobAi {
         };
         apply_pending(
             &mut self.goals,
+            &mut self.targets,
             std::mem::take(&mut self.pending),
             &mut context,
         );
@@ -405,10 +421,6 @@ impl MobAi {
             self.goals.tick(&mut context);
         }
         context.tick_navigation();
-        if self.brain.more_carrot_ticks > 0 {
-            let decay = self.brain.random.next_int(3);
-            self.brain.more_carrot_ticks = (self.brain.more_carrot_ticks - decay).max(0);
-        }
         if mob.kind == EntityKind::Fox {
             self.settle_fox(mob);
         }
@@ -437,6 +449,7 @@ impl MobAi {
 
     pub fn act(&mut self, base: &mut EntityBase, living: &mut LivingState, view: &impl BlockView) {
         let brain = &mut self.brain;
+        brain.hop_move_pre_tick(base, living);
         let profile = &brain.profile;
         let state = MobState {
             position: base.position,
@@ -456,7 +469,12 @@ impl MobAi {
         } else {
             brain.look.tick(base, living, navigating);
         }
-        brain.jump.tick(living);
+        if brain.hop.is_some() {
+            brain.hop_jump_tick(base, living);
+            brain.hop_tune_jump(base, living);
+        } else {
+            brain.jump.tick(living);
+        }
     }
 
     pub fn block_changed<W: AiWorld>(&mut self, pos: BlockPos, mob: &MobView, world: &W) {
@@ -490,6 +508,7 @@ impl MobAi {
 
 fn apply_pending<W: AiWorld>(
     goals: &mut GoalSelector<MobGoal>,
+    targets: &mut GoalSelector<MobGoal>,
     pending: Vec<GoalChange>,
     context: &mut AiContext<'_, W>,
 ) {
@@ -528,6 +547,19 @@ fn apply_pending<W: AiWorld>(
             GoalChange::BreakDoors(false) => {
                 goals.remove_goals(context, |goal| matches!(goal, MobGoal::BreakDoor(_)));
             }
+            GoalChange::Trusting(trusting) => {
+                goals.remove_goals(
+                    context,
+                    |goal| matches!(goal, MobGoal::AvoidEntity(avoid) if avoid.is_trust_gated()),
+                );
+                if !trusting {
+                    goals.add_goal(
+                        registry::OCELOT_AVOID_PRIORITY,
+                        MobGoal::AvoidEntity(registry::ocelot_avoid_players()),
+                    );
+                }
+            }
+            GoalChange::KillerBunny => registry::add_killer_bunny_goals(goals, targets),
         }
     }
 }

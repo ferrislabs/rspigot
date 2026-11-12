@@ -29,6 +29,7 @@ const CHICKEN_LAY: &str = "minecraft:gameplay/chicken_lay";
 const AMBIENT_CHANCE: i32 = 1000;
 const ANIMAL_AMBIENT_INTERVAL: i32 = 120;
 const MOB_AMBIENT_INTERVAL: i32 = 80;
+const OCELOT_AMBIENT_INTERVAL: i32 = 900;
 const SPAWN_ITEM_DELAY: u16 = 10;
 const BABY_PITCH: f32 = 1.5;
 const BABY_ZOMBIE_VILLAGER_PITCH: f32 = 2.0;
@@ -68,6 +69,8 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         ),
         Kind::Skeleton => Some("minecraft:entity.skeleton.ambient"),
         Kind::Spider => Some("minecraft:entity.spider.ambient"),
+        Kind::Rabbit => Some("minecraft:entity.rabbit.ambient"),
+        Kind::Ocelot => Some("minecraft:entity.ocelot.ambient"),
         _ => None,
     }
 }
@@ -87,7 +90,9 @@ pub(crate) fn variant_sound(
 }
 
 fn ambient_interval(kind: Kind) -> i32 {
-    if kind.extends("Animal") {
+    if kind == Kind::Ocelot {
+        OCELOT_AMBIENT_INTERVAL
+    } else if kind.extends("Animal") {
         ANIMAL_AMBIENT_INTERVAL
     } else {
         MOB_AMBIENT_INTERVAL

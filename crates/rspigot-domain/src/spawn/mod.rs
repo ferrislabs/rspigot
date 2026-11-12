@@ -83,6 +83,10 @@ pub enum SpawnGroupData {
         variant: u32,
         group_size: i32,
     },
+    Rabbit {
+        group_size: i32,
+        variant: i32,
+    },
 }
 
 impl SpawnGroupData {

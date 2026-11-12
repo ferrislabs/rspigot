@@ -79,7 +79,7 @@ pub use path::{Path, PathNode};
 pub use path_type::PathType;
 pub use polar_bear::{PolarBearAction, PolarBearFacts, PolarBearGoal};
 pub use profile::{MobProfile, MobState, combat_fall_distance};
-pub use rabbit::{MORE_CARROT_TICKS, RaidGardenGoal};
+pub use rabbit::{HopSound, MORE_CARROT_TICKS, RabbitHop, RaidGardenGoal};
 pub use random::{MobRandom, RandomSource};
 pub use random_pos::{
     default_pos, is_solid, is_stable_destination, land_pos, light_magic_value,

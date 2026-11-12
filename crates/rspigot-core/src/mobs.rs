@@ -711,6 +711,7 @@ impl<L: ClientLink> Server<L> {
                 _ => {}
             }
         }
+        self.kind_registered(id, &mut ai);
         self.entities.mobs.entries.insert(
             id,
             MobEntry {
@@ -1395,8 +1396,9 @@ impl<L: ClientLink> Server<L> {
         };
         let position = entity.base.position;
         let volume = sounds.volume.get(state.baby, reward::cube_size(entity));
+        let source = crate::kinds::kind_sound_source(entity).unwrap_or(sounds.source);
         let pitch = self.voice_pitch(sounds.pitch, state.baby);
-        self.play_sound(None, position, sound, sounds.source, volume, pitch);
+        self.play_sound(None, position, sound, source, volume, pitch);
     }
 
     pub(crate) fn entity_sound(
@@ -1412,11 +1414,13 @@ impl<L: ClientLink> Server<L> {
         if entity.base.is_silent() {
             return;
         }
-        let source = entity
-            .base
-            .kind
-            .sounds()
-            .map_or(rspigot_entities::SoundSource::Neutral, |s| s.source);
+        let source = crate::kinds::kind_sound_source(entity).unwrap_or_else(|| {
+            entity
+                .base
+                .kind
+                .sounds()
+                .map_or(rspigot_entities::SoundSource::Neutral, |s| s.source)
+        });
         let position = entity.base.position;
         self.play_sound(None, position, sound, source, volume, pitch);
     }
@@ -1824,6 +1828,7 @@ impl<L: ClientLink> Server<L> {
             living.damage.last_hurt_mob = target_entity;
             living.damage.last_hurt_mob_at = tick_count;
         }
+        self.kind_attack_sound(attacker);
     }
 
     pub fn mob_damage(&self, id: EntityId) -> Option<MobDamageSnapshot> {

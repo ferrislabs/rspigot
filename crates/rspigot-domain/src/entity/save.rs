@@ -108,6 +108,7 @@ const TRANSIENT_MODIFIERS: &[&str] = &[
     species::BABY_SPEED_MODIFIER,
     species::cat::SPRINTING_MODIFIER,
     species::zombified_piglin::ATTACKING_MODIFIER,
+    species::rabbit::EVIL_MODIFIER,
 ];
 const ARROW_KEYS: [&str; 14] = [
     "Owner",
@@ -710,7 +711,9 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Endermite(state) => species::endermite::read(nbt, base, state),
         Species::Silverfish(state) => species::silverfish::read(nbt, base, state),
         Species::IronGolem(state) => species::iron_golem::read(nbt, base, state),
-        Species::Rabbit(state) => species::rabbit::read(nbt, base, state),
+        Species::Rabbit(state) => {
+            species::rabbit::read(nbt, base, &mut living.attributes, state);
+        }
         Species::Ocelot(state) => species::ocelot::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }

@@ -77,9 +77,6 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn finish_tame(&mut self, step: TameStep, cancelled: bool) {
-        let Some(owner) = self.players.get(&step.owner).map(|p| p.profile.id.0) else {
-            return;
-        };
         let alive = self
             .entities
             .store
@@ -93,6 +90,18 @@ impl<L: ClientLink> Server<L> {
         if !alive {
             return;
         }
+        if self
+            .entities
+            .store
+            .get(step.target)
+            .is_some_and(|entity| entity.base.kind == rspigot_entities::EntityKind::Ocelot)
+        {
+            self.finish_ocelot_trust(step, cancelled);
+            return;
+        }
+        let Some(owner) = self.players.get(&step.owner).map(|p| p.profile.id.0) else {
+            return;
+        };
         if cancelled {
             self.mob_entity_event(step.target, TAME_FAILURE_EVENT);
             return;

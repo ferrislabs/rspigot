@@ -3,7 +3,7 @@ use rspigot_ai::{Hand, MobAction, TargetReason, is_edible_for_sheep};
 use rspigot_blocks::BlockKind;
 use rspigot_domain::entity::ageable::{self, PARENT_AGE_AFTER_BREEDING, SHEEP_REGROWTH_SECONDS};
 use rspigot_domain::entity::living::{self, LivingState};
-use rspigot_domain::entity::species;
+use rspigot_domain::entity::species::{self, rabbit};
 use rspigot_domain::entity::{Entity, EntityBase, EntityState};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::random::{LegacyRandom, RandomSource};
@@ -201,7 +201,8 @@ impl<L: ClientLink> Server<L> {
         self.change_block(rabbit, pos, to, Grief::Raid { rabbit: id, pos }, refused);
     }
 
-    pub(crate) fn finish_raid(&mut self, pos: BlockPos) {
+    pub(crate) fn finish_raid(&mut self, pos: BlockPos, rabbit: EntityId) {
+        self.rabbit_ate_carrot(rabbit);
         let Some(state) = self
             .world
             .chunks
@@ -354,8 +355,25 @@ impl<L: ClientLink> Server<L> {
         let partner_color = species::wool_color(&partner_entity.base);
         let partner_fox = species::fox::variant(&partner_entity.base);
         let partner_kind = partner_entity.base.kind;
+        let rabbit_parents = (kind == Kind::Rabbit).then(|| {
+            (
+                rabbit::variant(&parent_entity.base),
+                rabbit::variant(&partner_entity.base),
+                self.biome_at(parent_entity.base.position.block()),
+            )
+        });
         let base = self.new_entity_base(kind);
         let mut child = new_mob(base);
+        if let (Some((own, other, biome)), EntityState::Living(state)) =
+            (rabbit_parents, &mut child.state)
+        {
+            let fallback = {
+                let mut level = crate::mobs::ServerRandom(&mut self.rng);
+                rabbit::random_variant(biome, &mut level)
+            };
+            let chosen = rabbit::offspring_variant(fallback, own, other, random);
+            rabbit::set_variant(&mut child.base, &mut state.attributes, chosen);
+        }
         if let Some((farm, variant)) = parent_variant
             && partner_kind == kind
         {

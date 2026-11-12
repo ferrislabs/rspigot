@@ -24,6 +24,13 @@ mod silverfish;
 mod wolf;
 mod zombified_piglin;
 
+pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::SoundSource> {
+    match entity.base.kind {
+        Kind::Rabbit => Some(rabbit::sound_source(entity)),
+        _ => None,
+    }
+}
+
 impl<L: ClientLink> Server<L> {
     fn kind_of(&self, id: EntityId) -> Option<Kind> {
         self.entities.store.get(id).map(|entity| entity.base.kind)
@@ -44,6 +51,20 @@ impl<L: ClientLink> Server<L> {
             Kind::Rabbit => self.rabbit_view(entity, view),
             Kind::Ocelot => self.ocelot_view(entity, view),
             _ => {}
+        }
+    }
+
+    pub(crate) fn kind_registered(&self, id: EntityId, ai: &mut rspigot_ai::MobAi) {
+        match self.kind_of(id) {
+            Some(Kind::Rabbit) => self.rabbit_registered(id, ai),
+            Some(Kind::Ocelot) => self.ocelot_registered(id, ai),
+            _ => {}
+        }
+    }
+
+    pub(crate) fn kind_attack_sound(&mut self, id: EntityId) {
+        if let Some(Kind::Rabbit) = self.kind_of(id) {
+            self.rabbit_attack_sound(id);
         }
     }
 

@@ -93,6 +93,10 @@ impl AvoidEntityGoal {
         self.gate == AvoidGate::NotTame
     }
 
+    pub(crate) fn is_trust_gated(&self) -> bool {
+        self.gate == AvoidGate::NotTrusting
+    }
+
     fn open<W: AiWorld>(&self, context: &AiContext<'_, W>) -> bool {
         match self.gate {
             AvoidGate::Open => true,

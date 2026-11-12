@@ -81,6 +81,13 @@ const DOLPHIN_SLOW_DOWN: f32 = 0.96;
 const FLUID_VERTICAL_DRAG: f64 = 0.800_000_011_920_929;
 const LIQUID_JUMP_IMPULSE: f64 = 0.039_999_999_105_930_33;
 const NO_JUMP_DELAY: i32 = 10;
+const FLAG_SPRINTING: u8 = 8;
+const SPRINT_JUMP_BOOST: f64 = 0.2;
+const SPRINT_SPEED_BONUS: f64 = 0.300_000_011_920_928_96;
+const SPRINTING_MODIFIER: &str = "minecraft:sprinting";
+const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
+const HOP_SPEED: f32 = 0.1;
+const HOP_HORIZONTAL_LIMIT: f64 = 0.01;
 const JUMP_OUT_STEP: f64 = 0.600_000_023_841_857_9;
 const JUMP_OUT_SPEED: f64 = 0.300_000_011_920_929;
 const MIN_JUMP_POWER: f32 = 1.0e-5;
@@ -344,6 +351,21 @@ pub struct DamageMemory {
     pub combat: CombatTracker,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct JumpTuning {
+    pub multiplier: f32,
+    pub hop: Option<f32>,
+}
+
+impl Default for JumpTuning {
+    fn default() -> Self {
+        Self {
+            multiplier: 1.0,
+            hop: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct LivingState {
     pub absorption: f32,
@@ -363,6 +385,8 @@ pub struct LivingState {
     pub yya: f32,
     pub zza: f32,
     pub no_jump_delay: i32,
+    pub jump_tuning: JumpTuning,
+    pub jumped: bool,
     pub no_action_time: i32,
     pub last_hurt: f32,
     pub damage: DamageMemory,
@@ -468,6 +492,8 @@ impl LivingState {
             yya: 0.0,
             zza: 0.0,
             no_jump_delay: 0,
+            jump_tuning: JumpTuning::default(),
+            jumped: false,
             no_action_time: 0,
             last_hurt: 0.0,
             damage: DamageMemory::default(),
@@ -1096,6 +1122,13 @@ fn jump<V: BlockView>(base: &mut EntityBase, living: &mut LivingState, view: &V,
         jump_in_liquid(base, living, can_float);
     } else if (base.on_ground || (in_water && height <= threshold)) && living.no_jump_delay == 0 {
         jump_from_ground(base, living, view);
+        living.jumped = true;
+        if let Some(lift) = living.jump_tuning.hop
+            && base.velocity.horizontal_distance_sqr() < HOP_HORIZONTAL_LIMIT
+        {
+            let boost = input_vector(Vec3::new(0.0, f64::from(lift), 1.0), HOP_SPEED, base.yaw);
+            base.velocity = base.velocity + boost;
+        }
         living.no_jump_delay = NO_JUMP_DELAY;
     }
 }
@@ -1113,7 +1146,10 @@ pub fn jump_power(base: &EntityBase, living: &mut LivingState, view: &impl Block
     let boost = living.effect("minecraft:jump_boost").map_or(0.0, |effect| {
         JUMP_BOOST_STEP * (effect.amplifier as f32 + 1.0)
     });
-    living.attribute(JUMP_STRENGTH) as f32 * block_jump_factor(base, view) + boost
+    living.attribute(JUMP_STRENGTH) as f32
+        * living.jump_tuning.multiplier
+        * block_jump_factor(base, view)
+        + boost
 }
 
 pub fn jump_from_ground(base: &mut EntityBase, living: &mut LivingState, view: &impl BlockView) {
@@ -1123,7 +1159,38 @@ pub fn jump_from_ground(base: &mut EntityBase, living: &mut LivingState, view: &
     }
     let v = base.velocity;
     base.velocity = Vec3::new(v.x, f64::from(power).max(v.y), v.z);
+    if is_sprinting(base) {
+        let radians = base.yaw * mth::DEG_TO_RAD;
+        base.velocity = base.velocity
+            + Vec3::new(
+                -f64::from(mth::sin(f64::from(radians))) * SPRINT_JUMP_BOOST,
+                0.0,
+                f64::from(mth::cos(f64::from(radians))) * SPRINT_JUMP_BOOST,
+            );
+    }
     base.needs_sync = true;
+}
+
+pub fn is_sprinting(base: &EntityBase) -> bool {
+    base.data
+        .flag(super::base::DATA_SHARED_FLAGS, FLAG_SPRINTING)
+}
+
+pub fn set_sprinting(base: &mut EntityBase, living: &mut LivingState, sprinting: bool) {
+    base.set_shared_flag(FLAG_SPRINTING, sprinting);
+    living
+        .attributes
+        .remove_modifier(MOVEMENT_SPEED, SPRINTING_MODIFIER);
+    if sprinting {
+        living.attributes.add_modifier(
+            MOVEMENT_SPEED,
+            AttributeModifier {
+                id: Cow::Borrowed(SPRINTING_MODIFIER),
+                amount: SPRINT_SPEED_BONUS,
+                operation: crate::effect::AttributeOperation::AddMultipliedTotal,
+            },
+        );
+    }
 }
 
 pub fn travel<V: BlockView>(
@@ -1301,5 +1368,65 @@ mod tests {
             HurtOutcome::Partial
         );
         assert_eq!(health(&base), 14.0);
+    }
+
+    struct Air;
+
+    impl BlockView for Air {
+        fn block(&self, _pos: BlockPos) -> Option<crate::BlockStateId> {
+            None
+        }
+    }
+
+    #[test]
+    fn sprinting_sets_the_flag_and_the_transient_speed_modifier() {
+        let (mut base, mut living) = zombie();
+        let walking = living.attribute(MOVEMENT_SPEED);
+        set_sprinting(&mut base, &mut living, true);
+        assert!(is_sprinting(&base));
+        let sprinting = living.attribute(MOVEMENT_SPEED);
+        assert!((sprinting - walking * 1.3).abs() < 1.0e-6);
+        set_sprinting(&mut base, &mut living, false);
+        assert!(!is_sprinting(&base));
+        assert_eq!(living.attribute(MOVEMENT_SPEED), walking);
+    }
+
+    #[test]
+    fn a_sprinting_jump_pushes_forward_along_the_yaw() {
+        let (mut base, mut living) = zombie();
+        base.yaw = 0.0;
+        set_sprinting(&mut base, &mut living, true);
+        jump_from_ground(&mut base, &mut living, &Air);
+        assert!(base.velocity.y > 0.0);
+        assert!((base.velocity.z - 0.2).abs() < 1.0e-9);
+        assert!(base.velocity.x.abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn the_jump_multiplier_scales_the_power() {
+        let (base, mut living) = zombie();
+        let plain = jump_power(&base, &mut living, &Air);
+        living.jump_tuning.multiplier = 0.5;
+        let scaled = jump_power(&base, &mut living, &Air);
+        assert!((scaled - plain * 0.5).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn a_hop_adds_a_forward_and_upward_push_only_when_nearly_still() {
+        let (mut base, mut living) = zombie();
+        base.on_ground = true;
+        living.jumping = true;
+        living.jump_tuning.hop = Some(1.5);
+        let _ = finish_ai_step(&mut base, &mut living, &Air, false);
+        assert!(living.jumped);
+        let still = base.velocity;
+        let (mut moving, mut living2) = zombie();
+        moving.on_ground = true;
+        moving.velocity = Vec3::new(0.0, 0.0, 0.5);
+        living2.jumping = true;
+        living2.jump_tuning.hop = Some(1.5);
+        let _ = finish_ai_step(&mut moving, &mut living2, &Air, false);
+        assert!(still.y > moving.velocity.y - 1.0e-9);
+        assert!(still.z > 0.0);
     }
 }

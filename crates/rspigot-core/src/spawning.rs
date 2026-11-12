@@ -6,7 +6,7 @@ use rspigot_data::spawns::DimensionSpawns;
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::difficulty::{DifficultyInstance, moon_brightness};
 use rspigot_domain::entity::spawn::{SpawnEnvironment, finalize_spawn};
-use rspigot_domain::entity::species::Species;
+use rspigot_domain::entity::species::{Species, ocelot};
 use rspigot_domain::entity::{
     Aabb, BlockView, Entity, EntityBase, EntityState, RemovalReason, save,
 };
@@ -490,7 +490,10 @@ impl<L: ClientLink> Server<L> {
                 living.mob.as_ref().map(|mob| &mob.species),
                 Some(Species::Chicken(chicken)) if chicken.jockey
             ),
-            trusting: false,
+            trusting: matches!(
+                living.mob.as_ref().map(|mob| &mob.species),
+                Some(Species::Ocelot(_))
+            ) && ocelot::is_trusting(&entity.base),
             tame: entity.base.kind.extends("TamableAnimal")
                 && rspigot_domain::entity::tamable::is_tame(&entity.base),
             tick_count: entity.base.tick_count,

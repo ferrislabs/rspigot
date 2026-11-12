@@ -16,6 +16,7 @@ const HEAD_STABLE_ANGLE: f32 = 15.0;
 const DELAY_UNTIL_FACING_FORWARD: i32 = 10;
 const TIME_TO_FACE_FORWARD: f32 = 10.0;
 const STRAFE_SPEED_MODIFIER: f64 = 0.25;
+const HOP_WATER_SPEED: f64 = 1.5;
 
 pub fn rotate_towards(from: f32, to: f32, max: f32) -> f32 {
     let difference = mth::degrees_difference(from, to);
@@ -138,6 +139,9 @@ pub struct MoveControl {
     strafe_forwards: f32,
     strafe_right: f32,
     operation: Operation,
+    hop: bool,
+    in_water: bool,
+    next_jump_speed: f64,
 }
 
 fn rotlerp(current: f32, target: f32, max: f32) -> f32 {
@@ -168,7 +172,27 @@ impl MoveControl {
         self.speed_modifier
     }
 
+    pub fn enable_hop(&mut self) {
+        self.hop = true;
+    }
+
+    pub fn set_in_water(&mut self, in_water: bool) {
+        self.in_water = in_water;
+    }
+
+    pub fn next_jump_speed(&self) -> f64 {
+        self.next_jump_speed
+    }
+
     pub fn set_wanted_position(&mut self, position: Vec3, speed_modifier: f64) {
+        let speed_modifier = if self.hop && self.in_water {
+            HOP_WATER_SPEED
+        } else {
+            speed_modifier
+        };
+        if self.hop && speed_modifier > 0.0 {
+            self.next_jump_speed = speed_modifier;
+        }
         self.wanted = position;
         self.speed_modifier = speed_modifier;
         if self.operation != Operation::Jumping {
@@ -301,6 +325,10 @@ impl JumpControl {
 
     pub fn is_jumping(&self) -> bool {
         self.jump
+    }
+
+    pub fn take(&mut self) -> bool {
+        std::mem::take(&mut self.jump)
     }
 
     pub fn tick(&mut self, living: &mut LivingState) {

@@ -45,9 +45,9 @@ impl<L: ClientLink> Server<L> {
             }
             Grief::Land(landing) => self.finish_land(*landing, cancelled),
             Grief::Graze { sheep, pos, below } => self.finish_graze(sheep, pos, below, cancelled),
-            Grief::Raid { pos, .. } => {
+            Grief::Raid { pos, rabbit } => {
                 if !cancelled {
-                    self.finish_raid(pos);
+                    self.finish_raid(pos, rabbit);
                 }
             }
             Grief::Berries { fox, pos, glow } => {
