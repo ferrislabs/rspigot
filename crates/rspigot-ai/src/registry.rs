@@ -14,6 +14,7 @@ use crate::goals::{
     RandomLookAroundGoal, RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
 };
 use crate::rabbit::RaidGardenGoal;
+use crate::ranged::RangedAttackGoal;
 use crate::world::TargetKind;
 use crate::{
     cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
@@ -22,6 +23,9 @@ use crate::{
 pub const ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER: bool = true;
 pub const WEAPON_PRIORITY: i32 = 4;
 pub const BREAK_DOOR_PRIORITY: i32 = 1;
+const SNOW_GOLEM_ATTACK_SPEED: f64 = 1.25;
+const SNOW_GOLEM_ATTACK_INTERVAL: i32 = 20;
+const SNOW_GOLEM_ATTACK_RADIUS: f32 = 10.0;
 const ZOMBIE_ALERT_IGNORED: &[EntityKind] = &[EntityKind::ZombifiedPiglin];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -399,6 +403,28 @@ pub fn register_goals(
         }
         EntityKind::Silverfish => silverfish::register(&mut add, kind),
         EntityKind::IronGolem => iron_golem::register(&mut add, kind),
+        EntityKind::SnowGolem => {
+            add.goal(
+                1,
+                MobGoal::RangedAttack(RangedAttackGoal::new(
+                    SNOW_GOLEM_ATTACK_SPEED,
+                    SNOW_GOLEM_ATTACK_INTERVAL,
+                    SNOW_GOLEM_ATTACK_RADIUS,
+                )),
+            );
+            add.stroll_rarely_in_water(2, 1.0, 1.000_000_1e-5);
+            add.look(3, 6.0);
+            add.look_around(4);
+            add.target(
+                1,
+                NearestAttackableTargetGoal::with(
+                    TargetKind::Class("Mob"),
+                    10,
+                    true,
+                    TargetFilter::Enemy,
+                ),
+            );
+        }
         _ => {}
     }
 }
@@ -434,4 +460,102 @@ pub(crate) fn add_killer_bunny_goals(
             true,
         )),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use rspigot_domain::{EntityId, Vec3};
+
+    use super::*;
+    use crate::brain::MobAi;
+    use crate::goal::{Flag, Goal};
+    use crate::mock::{Harness, Mock, first_draw_zero, living, seed_where};
+
+    type Registered = Vec<(i32, MobGoal)>;
+
+    fn lists(kind: EntityKind) -> (Registered, Registered) {
+        let ai = MobAi::new(kind, 1, GoalSettings::default());
+        let collect = |selector: &GoalSelector<MobGoal>| {
+            selector
+                .goals()
+                .iter()
+                .map(|wrapped| (wrapped.priority(), wrapped.goal().clone()))
+                .collect()
+        };
+        (collect(ai.goals()), collect(ai.targets()))
+    }
+
+    #[test]
+    fn the_snow_golem_registers_the_vanilla_goals_and_targets() {
+        let (goals, targets) = lists(EntityKind::SnowGolem);
+        assert_eq!(
+            goals,
+            vec![
+                (
+                    1,
+                    MobGoal::RangedAttack(RangedAttackGoal::new(1.25, 20, 10.0))
+                ),
+                (
+                    2,
+                    MobGoal::Stroll(RandomStrollGoal::water_avoiding_with(1.0, 1.000_000_1e-5))
+                ),
+                (3, MobGoal::LookAtPlayer(LookAtPlayerGoal::new(6.0))),
+                (
+                    4,
+                    MobGoal::RandomLookAround(RandomLookAroundGoal::default())
+                ),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![(
+                1,
+                MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::with(
+                    TargetKind::Class("Mob"),
+                    10,
+                    true,
+                    TargetFilter::Enemy,
+                ))
+            )]
+        );
+    }
+
+    #[test]
+    fn the_ranged_attack_claims_move_and_look() {
+        let goal = MobGoal::RangedAttack(RangedAttackGoal::new(1.25, 20, 10.0));
+        let flags = Goal::<crate::brain::AiContext<'_, Mock>>::flags(&goal);
+        assert!(flags.contains(Flag::Move) && flags.contains(Flag::Look));
+        assert!(!flags.contains(Flag::Jump));
+        assert!(Goal::<crate::brain::AiContext<'_, Mock>>::requires_update_every_tick(&goal));
+    }
+
+    #[test]
+    fn the_snow_golem_targets_enemies_and_nothing_else() {
+        let seed = seed_where(first_draw_zero(10));
+        let world = Mock {
+            others: vec![
+                living(2, EntityKind::Cow, Vec3::new(3.5, 64.0, 0.5)),
+                living(3, EntityKind::Villager, Vec3::new(2.5, 64.0, 0.5)),
+                living(4, EntityKind::Zombie, Vec3::new(6.5, 64.0, 0.5)),
+                living(5, EntityKind::IronGolem, Vec3::new(2.5, 64.0, 1.5)),
+            ],
+            ..Mock::default()
+        };
+        let mut harness = Harness::new(
+            EntityKind::SnowGolem,
+            Vec3::new(0.5, 64.0, 0.5),
+            world,
+            seed,
+        );
+        let mut goal = NearestAttackableTargetGoal::with(
+            TargetKind::Class("Mob"),
+            10,
+            true,
+            TargetFilter::Enemy,
+        );
+        assert!(harness.run(|context| goal.can_use(context)));
+        harness.run(|context| goal.start(context));
+        assert_eq!(harness.brain.target_requests.len(), 1);
+        assert_eq!(harness.brain.target_requests[0].to, Some(EntityId(4)));
+    }
 }
