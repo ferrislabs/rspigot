@@ -2,6 +2,7 @@ mod aabb;
 pub mod ageable;
 pub mod arrow;
 mod base;
+pub mod bullet;
 mod data;
 pub mod falling;
 pub mod fire;
@@ -50,6 +51,7 @@ pub enum EntityState {
     Arrow(Box<arrow::ArrowState>),
     Thrown(Box<thrown::ThrownState>),
     Hurting(Box<hurting::HurtingState>),
+    Bullet(Box<bullet::BulletState>),
     Falling(FallingState),
     Living(Box<LivingState>),
     Orb(OrbState),

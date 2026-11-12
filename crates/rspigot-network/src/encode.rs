@@ -49,9 +49,9 @@ use rspigot_protocol::play::slot::{
 };
 use rspigot_protocol::play::types::HolderSet;
 use rspigot_protocol::play::types::{
-    ByteBitSet, ChunkPos as WireChunkPos, Difficulty as WireDifficulty, GameMode as WireGameMode,
-    GlobalPos, Hand as WireHand, Holder, LpVec3, Pose as WirePose, PositionMoveRotation, Relatives,
-    SoundSource as WireSoundSource, Vec3 as WireVec3,
+    ByteBitSet, ChunkPos as WireChunkPos, Difficulty as WireDifficulty, Direction as WireDirection,
+    GameMode as WireGameMode, GlobalPos, Hand as WireHand, Holder, LpVec3, Pose as WirePose,
+    PositionMoveRotation, Relatives, SoundSource as WireSoundSource, Vec3 as WireVec3,
 };
 use rspigot_protocol::play::wire::write_var;
 use rspigot_protocol::play::world::{ClockState, ClockUpdate, GameEventKind};
@@ -450,6 +450,17 @@ fn equipment_break_event(slot: CoreSlot) -> i8 {
         CoreSlot::Feet => 52,
         CoreSlot::Body => 65,
         CoreSlot::Saddle => 68,
+    }
+}
+
+fn direction_of(index: u8) -> WireDirection {
+    match index {
+        0 => WireDirection::Down,
+        1 => WireDirection::Up,
+        2 => WireDirection::North,
+        3 => WireDirection::South,
+        4 => WireDirection::West,
+        _ => WireDirection::East,
     }
 }
 
@@ -1267,6 +1278,9 @@ impl Encoder {
                                     id: *id as i32,
                                 },
                                 MetadataValue::Long(v) => EntityDataValue::Long(*v),
+                                MetadataValue::Direction(face) => {
+                                    EntityDataValue::Direction(direction_of(*face))
+                                }
                                 MetadataValue::OptionalEntity(v) => {
                                     EntityDataValue::OptionalLivingEntity(*v)
                                 }
@@ -2553,6 +2567,24 @@ mod tests {
                 vec![9, 19, 8, 1, 20, 18, 5, 9, 3, 0xFF]
             )]
         );
+    }
+
+    #[test]
+    fn shulker_attach_face_metadata_golden_bytes() {
+        let faces = [(0u8, 0u8), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5)];
+        for (index, wire) in faces {
+            let event = ClientEvent::EntityMetadata {
+                entity: EntityId(9),
+                entries: vec![MetadataEntry {
+                    index: 16,
+                    value: MetadataValue::Direction(index),
+                }],
+            };
+            assert_eq!(
+                encode(event),
+                vec![(id::SET_ENTITY_DATA, vec![9, 16, 12, wire, 0xFF])]
+            );
+        }
     }
 
     #[test]
