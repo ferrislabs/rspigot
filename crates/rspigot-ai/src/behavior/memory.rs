@@ -302,6 +302,13 @@ impl MemoryValue {
         }
     }
 
+    pub fn as_hurt_by(&self) -> Option<LastDamage> {
+        match self {
+            Self::HurtBy(damage) => Some(*damage),
+            _ => None,
+        }
+    }
+
     pub fn as_walk_target(&self) -> Option<&WalkTarget> {
         match self {
             Self::WalkTarget(target) => Some(target),

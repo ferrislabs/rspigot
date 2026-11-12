@@ -6,6 +6,7 @@ mod behavior;
 mod blaze;
 mod blocks;
 mod brain;
+mod breeze;
 mod cat;
 mod classify;
 mod combat;
@@ -92,6 +93,12 @@ pub use blocks::{
     ZOMBIE_BREAK_DOOR_EVENT, egg_poof,
 };
 pub use brain::{AiContext, Brain, CONTROL_FLAG_INTERVAL, MobAi, mob_tick};
+pub use breeze::{
+    BreezeAction, BreezeAttackEntitySensor, BreezeFacts, LongJump as BreezeLongJump,
+    Shoot as BreezeShoot, ShootWhenStuck as BreezeShootWhenStuck, Slide as BreezeSlide,
+    SlideToTargetSink as BreezeSlideToTargetSink, ambient_sound as breeze_ambient_sound,
+    firing_y_position as breeze_firing_y_position,
+};
 pub use cat::{CatAction, CatFacts, CatGoal};
 pub use combat::{
     HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, MeleeKind, OcelotAttackGoal,

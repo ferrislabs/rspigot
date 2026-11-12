@@ -763,6 +763,7 @@ mod tests {
                 EntityKind::Armadillo,
                 EntityKind::Blaze,
                 EntityKind::Bogged,
+                EntityKind::Breeze,
                 EntityKind::Cat,
                 EntityKind::CaveSpider,
                 EntityKind::Chicken,
