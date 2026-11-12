@@ -17,6 +17,12 @@ pub enum PositionTracker {
     },
 }
 
+const ENTITY_EYE_HEIGHT_FACTOR: f64 = 0.85;
+
+fn item_eye_height(item: &crate::world::DroppedItem) -> f64 {
+    (item.bounds.max_y - item.bounds.min_y) * ENTITY_EYE_HEIGHT_FACTOR
+}
+
 impl PositionTracker {
     pub fn of_block(pos: BlockPos) -> Self {
         Self::Block {
@@ -60,15 +66,26 @@ impl PositionTracker {
                 track_eye_height,
                 ..
             } => {
-                let living = world.living(id)?;
+                if let Some(living) = world.living(id) {
+                    return Some(if track_eye_height {
+                        Vec3::new(
+                            living.position.x,
+                            living.position.y + living.eye_height,
+                            living.position.z,
+                        )
+                    } else {
+                        living.position
+                    });
+                }
+                let item = world.dropped_item(id)?;
                 Some(if track_eye_height {
                     Vec3::new(
-                        living.position.x,
-                        living.position.y + living.eye_height,
-                        living.position.z,
+                        item.position.x,
+                        item.position.y + item_eye_height(&item),
+                        item.position.z,
                     )
                 } else {
-                    living.position
+                    item.position
                 })
             }
         }
@@ -82,11 +99,23 @@ impl PositionTracker {
                 target_eye_height,
                 ..
             } => {
-                let living = world.living(id)?;
+                if let Some(living) = world.living(id) {
+                    return Some(if target_eye_height {
+                        Vec3::new(living.position.x, living.eye_y(), living.position.z).block()
+                    } else {
+                        living.position.block()
+                    });
+                }
+                let item = world.dropped_item(id)?;
                 Some(if target_eye_height {
-                    Vec3::new(living.position.x, living.eye_y(), living.position.z).block()
+                    Vec3::new(
+                        item.position.x,
+                        item.position.y + item_eye_height(&item),
+                        item.position.z,
+                    )
+                    .block()
                 } else {
-                    living.position.block()
+                    item.position.block()
                 })
             }
         }
@@ -101,7 +130,7 @@ impl PositionTracker {
             Self::Block { .. } => true,
             Self::Entity { id, .. } => {
                 let Some(living) = cx.world.living(id) else {
-                    return false;
+                    return cx.world.dropped_item(id).is_some();
                 };
                 if !living.alive {
                     return false;
