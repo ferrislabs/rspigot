@@ -129,6 +129,7 @@ impl<L: ClientLink> Server<L> {
                 pitch,
             } => self.entity_sound(id, sound, volume, pitch),
             MobAction::Goat(action) => self.goat_action(id, action),
+            MobAction::Armadillo(action) => self.armadillo_action(id, action),
             MobAction::Piglin(action) => self.piglin_action(id, action),
             MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
             MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),
@@ -362,6 +363,7 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Cat
                 | Kind::Panda
                 | Kind::Goat
+                | Kind::Armadillo
         ) {
             return None;
         }

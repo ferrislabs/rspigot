@@ -525,6 +525,7 @@ impl MobAi {
             brain: behavior.state_mut(),
         };
         crate::piglin::deliver(&mut cx, message);
+        crate::animals::deliver(&mut cx, message);
     }
 
     pub fn piglin_wants_to_pickup(&self, mob: &MobView, item: rspigot_domain::ItemId) -> bool {

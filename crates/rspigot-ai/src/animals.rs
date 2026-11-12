@@ -1,6 +1,10 @@
 use rspigot_entities::EntityKind;
 
-use crate::behavior::{ActivityData, BehaviorBrain, MemoryModuleType, MobControl, PackedMemories};
+use crate::action::BrainMessage;
+use crate::armadillo;
+use crate::behavior::{
+    ActivityData, BehaviorBrain, BehaviorCx, MemoryModuleType, MobControl, PackedMemories,
+};
 use crate::brain::AiContext;
 use crate::goat;
 use crate::random::RandomSource;
@@ -10,8 +14,10 @@ pub fn after_brain_tick<W: AiWorld>(
     brain: &mut BehaviorBrain<MobControl>,
     ai: &mut AiContext<'_, W>,
 ) {
-    if ai.mob.kind == EntityKind::Goat {
-        goat::update_activity(brain);
+    match ai.mob.kind {
+        EntityKind::Goat => goat::update_activity(brain),
+        EntityKind::Armadillo => armadillo::update_activity(brain),
+        _ => {}
     }
 }
 
@@ -22,6 +28,11 @@ pub fn brain_for(
     let (memories, sensors, activities): (&[MemoryModuleType], _, Vec<ActivityData<MobControl>>) =
         match kind {
             EntityKind::Goat => (&[], goat::goat_sensors(), goat::goat_activities()),
+            EntityKind::Armadillo => (
+                &[],
+                armadillo::armadillo_sensors(),
+                armadillo::armadillo_activities(),
+            ),
             _ => return None,
         };
     Some(BehaviorBrain::new(
@@ -31,4 +42,8 @@ pub fn brain_for(
         &PackedMemories::default(),
         random,
     ))
+}
+
+pub fn deliver<W: AiWorld>(cx: &mut BehaviorCx<'_, '_, W>, message: BrainMessage) {
+    armadillo::deliver(cx, message);
 }

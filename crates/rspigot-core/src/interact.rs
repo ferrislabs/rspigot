@@ -81,6 +81,7 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Rabbit => "minecraft:rabbit_food",
         Kind::Ocelot => "minecraft:ocelot_food",
         Kind::Goat => "minecraft:goat_food",
+        Kind::Armadillo => "minecraft:armadillo_food",
         _ => return None,
     })
 }
@@ -844,7 +845,8 @@ impl<L: ClientLink> Server<L> {
             return Interaction::Pass;
         };
         let age = ageable.age;
-        let can_love = ageable.can_fall_in_love();
+        let can_love = ageable.can_fall_in_love()
+            && !(kind == Kind::Armadillo && species::armadillo::is_scared(&entity.base));
         let can_age_up = ageable::can_age_up(&entity.base, ageable);
         let is_food = food_tag(kind).is_some_and(|tag| item_tag(stack.item, tag));
         let uuid = self.players.get(&id).map(|p| p.profile.id.0);

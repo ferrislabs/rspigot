@@ -1,3 +1,4 @@
+use crate::armadillo::{ArmadilloBallUp, ArmadilloPanic, RollOutWithoutDanger};
 use crate::behavior::attack::{
     EraseMemoryIf, MeleeAttack, SetWalkTargetFromAttackTargetIfTargetOutOfReach, StartAttacking,
     StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead,
@@ -152,6 +153,8 @@ mob_behaviors! {
     LongJumpToRandomPos(LongJumpToRandomPos),
     RamTarget(RamTarget),
     PrepareRamNearestTarget(PrepareRamNearestTarget),
+    ArmadilloBallUp(ArmadilloBallUp),
+    ArmadilloPanic(ArmadilloPanic),
 }
 
 macro_rules! mob_triggers {
@@ -223,6 +226,7 @@ mob_triggers! {
     StopAdmiringIfItemTooFarAway(StopAdmiringIfItemTooFarAway),
     StopAdmiringIfTiredOfTryingToReachItem(StopAdmiringIfTiredOfTryingToReachItem),
     StopHoldingItemIfNoLongerAdmiring(StopHoldingItemIfNoLongerAdmiring),
+    ArmadilloRollOut(RollOutWithoutDanger),
 }
 
 #[derive(Debug, Clone, PartialEq)]
