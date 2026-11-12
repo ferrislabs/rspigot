@@ -1,5 +1,5 @@
 use rand::Rng;
-use rspigot_data::variants::Farm;
+use rspigot_data::variants::VariantFamily;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::ageable;
 use rspigot_domain::entity::fire;
@@ -63,7 +63,11 @@ pub(crate) fn variant_sound(
 ) -> Option<Option<&'static str>> {
     let mob = entity.living()?.mob.as_ref()?;
     let farm = mob.species.farm()?;
-    let set = species::sound_set(&entity.base, farm, entity.is_baby() && farm != Farm::Cow)?;
+    let set = species::sound_set(
+        &entity.base,
+        farm,
+        entity.is_baby() && farm != VariantFamily::Cow,
+    )?;
     Some(pick(&set))
 }
 

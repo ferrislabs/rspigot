@@ -633,7 +633,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
     }
     read_tamable(nbt, base, mob);
     read_neutral(nbt, base, mob);
-    if let Some(farm) = mob.species.farm() {
+    if let Some(farm) = mob.species.variant_family() {
         if let Some(id) = nbt
             .get_str("variant")
             .and_then(|name| farm.variant_index(name))
@@ -767,6 +767,9 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
     }
     if mob.neutral.is_some() {
         keys.push(&NEUTRAL_KEYS);
+    }
+    if matches!(mob.species, Species::Wolf(_) | Species::Cat(_)) {
+        keys.push(&FARM_KEYS);
     }
     keys.push(match mob.species {
         Species::Cow | Species::Pig => &FARM_KEYS,
@@ -1126,7 +1129,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
             out.insert("angry_at", uuid_tag(target));
         }
     }
-    if let Some(farm) = mob.species.farm() {
+    if let Some(farm) = mob.species.variant_family() {
         out.insert(
             "variant",
             species::variant_name(farm, species::variant(base, farm)),
@@ -1256,6 +1259,7 @@ pub fn entity_position(nbt: &Compound) -> Option<Vec3> {
 mod tests {
     use super::*;
     use crate::text::NamedColor;
+    use rspigot_data::variants::VariantFamily;
 
     fn cow_nbt() -> Compound {
         Compound::new()
@@ -1318,6 +1322,61 @@ mod tests {
             .with("Sitting", true)
             .with("anger_end_time", 4000i64)
             .with("angry_at", uuid_tag(Uuid::from_u128(5)))
+    }
+
+    #[test]
+    fn wolf_and_cat_variants_round_trip_through_nbt() {
+        for (id, variant, sound, family) in [
+            (
+                "minecraft:wolf",
+                "minecraft:ashen",
+                "minecraft:grumpy",
+                VariantFamily::Wolf,
+            ),
+            (
+                "minecraft:cat",
+                "minecraft:calico",
+                "minecraft:royal",
+                VariantFamily::Cat,
+            ),
+        ] {
+            let nbt = Compound::new()
+                .with("id", id)
+                .with("Pos", doubles(Vec3::new(0.5, 64.0, 0.5)))
+                .with("UUID", uuid_tag(Uuid::from_u128(7)))
+                .with("variant", variant)
+                .with("sound_variant", sound);
+            let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+            assert_eq!(
+                species::variant_name(family, species::variant(&entity.base, family)),
+                variant
+            );
+            assert_eq!(
+                species::sound_variant_name(family, species::sound_variant(&entity.base, family)),
+                sound
+            );
+            let saved = save_entity(&entity, None).unwrap();
+            assert_eq!(saved.get_str("variant"), Some(variant));
+            assert_eq!(saved.get_str("sound_variant"), Some(sound));
+            assert_eq!(saved.iter().filter(|(k, _)| *k == "variant").count(), 1);
+            let fresh = load_entity(
+                &Compound::new()
+                    .with("id", id)
+                    .with("Pos", doubles(Vec3::new(0.5, 64.0, 0.5)))
+                    .with("UUID", uuid_tag(Uuid::from_u128(8))),
+                EntityId(2),
+                Uuid::from_u128(2),
+            )
+            .unwrap();
+            let saved = save_entity(&fresh, None).unwrap();
+            let default = if family == VariantFamily::Wolf {
+                "minecraft:pale"
+            } else {
+                "minecraft:black"
+            };
+            assert_eq!(saved.get_str("variant"), Some(default));
+            assert_eq!(saved.get_str("sound_variant"), Some("minecraft:classic"));
+        }
     }
 
     #[test]

@@ -8,6 +8,7 @@ use super::ageable::{self, BABY_START_AGE};
 use super::base::EntityBase;
 use super::living::{self, FOLLOW_RANGE, LivingState, MAX_HEALTH, RANDOM_SPAWN_BONUS, slot_index};
 use super::species::{self, Species};
+use super::variants::VariantContext;
 use super::{Entity, EntityState};
 use crate::BiomeId;
 use crate::difficulty::DifficultyInstance;
@@ -471,7 +472,11 @@ pub fn finalize_spawn(
     match species {
         Some(Species::Cow | Species::Pig | Species::Chicken(_)) => {
             if let Some(farm) = species.and_then(|s| s.farm()) {
-                if let Some(id) = species::select_variant(farm, environment.biome, level) {
+                if let Some(id) = species::select_variant(
+                    farm,
+                    &VariantContext::in_biome(environment.biome),
+                    level,
+                ) {
                     species::set_variant(base, farm, id);
                 }
                 let sound = species::pick_sound_variant(farm, level);
@@ -560,7 +565,7 @@ mod tests {
             &mut own,
         );
         assert_eq!(
-            species::variant(&cow.base, rspigot_data::variants::Farm::Cow),
+            species::variant(&cow.base, rspigot_data::variants::VariantFamily::Cow),
             0
         );
         assert_eq!(

@@ -13,7 +13,7 @@ use rspigot_core::events::{
 use rspigot_core::ports::{ChunkGenerator, ChunkStore, ClientLink, EntityStore, StoreError};
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
-use rspigot_data::variants::Farm;
+use rspigot_data::variants::VariantFamily;
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::item::{ItemStack, Slot};
@@ -972,13 +972,53 @@ fn summoned_farm_animals_get_their_biome_variant_and_pair_it() {
     let colour = saved(&server, sheep).get_i32("Color").unwrap();
     let mut bob = join(&mut server, "Bob");
     let events = bob.drain();
-    assert!(
-        metadata(&events, cow, 18)
-            .contains(&MetadataValue::Variant(VariantKind::Mob(Farm::Cow), 2))
-    );
+    assert!(metadata(&events, cow, 18).contains(&MetadataValue::Variant(
+        VariantKind::Mob(VariantFamily::Cow),
+        2
+    )));
     if colour != 0 {
         assert!(metadata(&events, sheep, 18).contains(&MetadataValue::Byte(colour as i8)));
     }
+}
+
+#[test]
+fn wolf_and_cat_variants_are_sent_in_their_metadata() {
+    let mut server = server();
+    let mut alice = join(&mut server, "Alice");
+    let wolf = summon(
+        &mut server,
+        &mut alice,
+        "/summon wolf 0.5 64 2.5 {variant:\"minecraft:ashen\",sound_variant:\"minecraft:grumpy\"}",
+        Kind::Wolf,
+    );
+    let cat = summon(
+        &mut server,
+        &mut alice,
+        "/summon cat 2.5 64 2.5 {variant:\"minecraft:calico\",sound_variant:\"minecraft:royal\"}",
+        Kind::Cat,
+    );
+    let mut bob = join(&mut server, "Bob");
+    let events = bob.drain();
+    assert!(
+        metadata(&events, wolf, 23).contains(&MetadataValue::Variant(
+            VariantKind::Mob(VariantFamily::Wolf),
+            0
+        ))
+    );
+    assert!(
+        metadata(&events, wolf, 24).contains(&MetadataValue::Variant(
+            VariantKind::Sound(VariantFamily::Wolf),
+            4
+        ))
+    );
+    assert!(metadata(&events, cat, 20).contains(&MetadataValue::Variant(
+        VariantKind::Mob(VariantFamily::Cat),
+        3
+    )));
+    assert!(metadata(&events, cat, 24).contains(&MetadataValue::Variant(
+        VariantKind::Sound(VariantFamily::Cat),
+        1
+    )));
 }
 
 #[test]

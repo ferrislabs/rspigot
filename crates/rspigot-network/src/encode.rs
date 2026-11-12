@@ -10,7 +10,7 @@ use rspigot_core::events::{
     Pose as CorePose, PositionPath as CorePath, SoundSource as CoreSoundSource, SpawnInfo,
     VariantKind,
 };
-use rspigot_data::variants::Farm;
+use rspigot_data::variants::VariantFamily;
 use rspigot_domain::chunk::{
     ChunkColumn, HeightmapKind as DomainHeightmap, LightArray as DomainLight,
 };
@@ -559,12 +559,16 @@ fn commands(tree: &CommandTree) -> cb::Commands {
 
 fn registry_variant(kind: VariantKind) -> RegistryVariant {
     match kind {
-        VariantKind::Mob(Farm::Cow) => RegistryVariant::Cow,
-        VariantKind::Sound(Farm::Cow) => RegistryVariant::CowSound,
-        VariantKind::Mob(Farm::Pig) => RegistryVariant::Pig,
-        VariantKind::Sound(Farm::Pig) => RegistryVariant::PigSound,
-        VariantKind::Mob(Farm::Chicken) => RegistryVariant::Chicken,
-        VariantKind::Sound(Farm::Chicken) => RegistryVariant::ChickenSound,
+        VariantKind::Mob(VariantFamily::Cow) => RegistryVariant::Cow,
+        VariantKind::Sound(VariantFamily::Cow) => RegistryVariant::CowSound,
+        VariantKind::Mob(VariantFamily::Pig) => RegistryVariant::Pig,
+        VariantKind::Sound(VariantFamily::Pig) => RegistryVariant::PigSound,
+        VariantKind::Mob(VariantFamily::Chicken) => RegistryVariant::Chicken,
+        VariantKind::Sound(VariantFamily::Chicken) => RegistryVariant::ChickenSound,
+        VariantKind::Mob(VariantFamily::Wolf) => RegistryVariant::Wolf,
+        VariantKind::Sound(VariantFamily::Wolf) => RegistryVariant::WolfSound,
+        VariantKind::Mob(VariantFamily::Cat) => RegistryVariant::Cat,
+        VariantKind::Sound(VariantFamily::Cat) => RegistryVariant::CatSound,
     }
 }
 
@@ -2451,19 +2455,19 @@ mod tests {
                 },
                 MetadataEntry {
                     index: 18,
-                    value: MetadataValue::Variant(VariantKind::Mob(Farm::Cow), 2),
+                    value: MetadataValue::Variant(VariantKind::Mob(VariantFamily::Cow), 2),
                 },
                 MetadataEntry {
                     index: 19,
-                    value: MetadataValue::Variant(VariantKind::Sound(Farm::Cow), 1),
+                    value: MetadataValue::Variant(VariantKind::Sound(VariantFamily::Cow), 1),
                 },
                 MetadataEntry {
                     index: 20,
-                    value: MetadataValue::Variant(VariantKind::Sound(Farm::Pig), 2),
+                    value: MetadataValue::Variant(VariantKind::Sound(VariantFamily::Pig), 2),
                 },
                 MetadataEntry {
                     index: 19,
-                    value: MetadataValue::Variant(VariantKind::Mob(Farm::Chicken), 0),
+                    value: MetadataValue::Variant(VariantKind::Mob(VariantFamily::Chicken), 0),
                 },
                 MetadataEntry {
                     index: 18,
@@ -2478,6 +2482,38 @@ mod tests {
                 vec![
                     9, 16, 8, 1, 18, 23, 2, 19, 24, 1, 20, 29, 2, 19, 30, 0, 18, 0, 0x1E, 0xFF
                 ]
+            )]
+        );
+    }
+
+    #[test]
+    fn wolf_and_cat_variant_metadata_golden_bytes() {
+        let event = ClientEvent::EntityMetadata {
+            entity: EntityId(9),
+            entries: vec![
+                MetadataEntry {
+                    index: 23,
+                    value: MetadataValue::Variant(VariantKind::Mob(VariantFamily::Wolf), 3),
+                },
+                MetadataEntry {
+                    index: 24,
+                    value: MetadataValue::Variant(VariantKind::Sound(VariantFamily::Wolf), 2),
+                },
+                MetadataEntry {
+                    index: 20,
+                    value: MetadataValue::Variant(VariantKind::Mob(VariantFamily::Cat), 1),
+                },
+                MetadataEntry {
+                    index: 24,
+                    value: MetadataValue::Variant(VariantKind::Sound(VariantFamily::Cat), 1),
+                },
+            ],
+        };
+        assert_eq!(
+            encode(event),
+            vec![(
+                id::SET_ENTITY_DATA,
+                vec![9, 23, 25, 3, 24, 26, 2, 20, 21, 1, 24, 22, 1, 0xFF]
             )]
         );
     }

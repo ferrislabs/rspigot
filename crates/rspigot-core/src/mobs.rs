@@ -1073,10 +1073,12 @@ fn loot_facts(entity: &Entity) -> LootEntity {
         facts.sheared = Some(species::is_sheared(&entity.base));
     }
     if kind == Kind::Chicken {
-        let variant = species::variant(&entity.base, rspigot_data::variants::Farm::Chicken);
+        let variant =
+            species::variant(&entity.base, rspigot_data::variants::VariantFamily::Chicken);
         facts.components.push((
             "minecraft:chicken/variant",
-            species::variant_name(rspigot_data::variants::Farm::Chicken, variant).to_owned(),
+            species::variant_name(rspigot_data::variants::VariantFamily::Chicken, variant)
+                .to_owned(),
         ));
     }
     if kind == Kind::Frog {

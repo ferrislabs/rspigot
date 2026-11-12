@@ -22,6 +22,7 @@ mod store;
 pub mod tamable;
 pub mod tracker;
 mod tracking_range;
+pub mod variants;
 
 use rspigot_nbt::Compound;
 

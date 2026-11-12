@@ -1,4 +1,4 @@
-use rspigot_data::variants::Farm;
+use rspigot_data::variants::VariantFamily;
 
 use uuid::Uuid;
 
@@ -8,8 +8,8 @@ use crate::{BlockPos, BlockStateId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum VariantKind {
-    Mob(Farm),
-    Sound(Farm),
+    Mob(VariantFamily),
+    Sound(VariantFamily),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
