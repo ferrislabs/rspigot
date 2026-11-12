@@ -511,12 +511,6 @@ impl<L: ClientLink> Server<L> {
             });
         }
         if let Some(cause) = &source.causing
-            && cause.player.is_none()
-            && cause.kind.living()
-        {
-            player.vitals.last_hurt_mob = Some(cause.entity);
-        }
-        if let Some(cause) = &source.causing
             && cause.kind.living()
             && !kind.is(DamageTag::NoAnger)
         {
@@ -696,6 +690,7 @@ impl<L: ClientLink> Server<L> {
             tracing::info!("{}", crate::console::console_text(&message));
             self.push(Audience::All, ClientEvent::system(message));
         }
+        self.forgive_dead_player(id);
         let keep_inventory = patch.keep_inventory.unwrap_or(step.keep);
         let dropped: &[(usize, ItemStack)] = if step.keep { &[] } else { &step.inventory };
         let drops = patch.drops.apply_with(
@@ -920,12 +915,25 @@ impl<L: ClientLink> Server<L> {
         let floor = f64::from(self.world.dimension.height.min_y - VOID_DEPTH);
         let ids: Vec<PlayerId> = self.players.keys().copied().collect();
         for &id in &ids {
+            let Some(player) = self.players.get(&id) else {
+                continue;
+            };
+            let hurt_mob = player.vitals.last_hurt_mob;
+            let hurt_by_mob = player.vitals.last_hurt_by_mob;
+            let hurt_mob_gone = hurt_mob.is_some_and(|mob| !self.living_entity_alive(mob));
+            let hurt_by_gone = hurt_by_mob.is_some_and(|mob| !self.living_entity_alive(mob));
             let Some(player) = self.players.get_mut(&id) else {
                 continue;
             };
             let vitals = &mut player.vitals;
             vitals.tick_count = vitals.tick_count.wrapping_add(1);
             vitals.damage_cooldown = vitals.damage_cooldown.saturating_sub(1);
+            if hurt_mob_gone {
+                vitals.last_hurt_mob = None;
+            }
+            if hurt_by_gone {
+                vitals.last_hurt_by_mob = None;
+            }
             if vitals.last_hurt_by_mob.is_some()
                 && vitals.tick_count as i32 - vitals.last_hurt_by_mob_at
                     > rspigot_domain::entity::living::MOB_HURT_MEMORY
@@ -1197,6 +1205,18 @@ impl<L: ClientLink> Server<L> {
 
     pub fn player_health(&self, id: PlayerId) -> Option<f32> {
         self.players.get(&id).map(|p| p.vitals.health)
+    }
+
+    pub fn player_last_hurt_mob(&self, id: PlayerId) -> Option<(Option<EntityId>, i32)> {
+        self.players
+            .get(&id)
+            .map(|p| (p.vitals.last_hurt_mob, p.vitals.last_hurt_mob_at))
+    }
+
+    pub fn player_last_hurt_by_mob(&self, id: PlayerId) -> Option<(Option<EntityId>, i32)> {
+        self.players
+            .get(&id)
+            .map(|p| (p.vitals.last_hurt_by_mob, p.vitals.last_hurt_by_mob_at))
     }
 
     pub fn player_food(&self, id: PlayerId) -> Option<(i32, f32, f32)> {

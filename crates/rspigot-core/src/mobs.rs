@@ -1482,6 +1482,7 @@ impl<L: ClientLink> Server<L> {
             self.players.get(&player).map(|p| Component::text(p.name()))
         });
         let victim = self.entity_name(id);
+        let owner_message = self.owner_death_message(id, credit.as_ref());
         let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -1508,7 +1509,30 @@ impl<L: ClientLink> Server<L> {
             );
         }
         state.dying = true;
+        if let Some((owner, message)) = owner_message {
+            self.push(Audience::One(owner), ClientEvent::system(message));
+        }
         self.drop_all_death_loot(id, source);
+    }
+
+    fn owner_death_message(
+        &self,
+        id: EntityId,
+        credit: Option<&Component>,
+    ) -> Option<(PlayerId, Component)> {
+        if !self.config.rules.show_death_messages {
+            return None;
+        }
+        let entity = self.entities.store.get(id)?;
+        let state = entity.living()?;
+        state.mob.as_ref()?.tamable?;
+        let owner = tamable::owner(&entity.base)?;
+        let player = self.players.values().find(|p| p.profile.id.0 == owner)?;
+        let victim = self.entity_name(id)?;
+        Some((
+            player.id,
+            state.damage.combat.death_message(&victim, credit),
+        ))
     }
 
     fn damage_facts(&self, source: &DamageSource) -> LootDamage {

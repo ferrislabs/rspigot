@@ -147,6 +147,30 @@ impl<L: ClientLink> Server<L> {
         ))
     }
 
+    fn note_hurt_mob(&mut self, attacker: EntityId, target: EntityId) {
+        let living = self.players.values().any(|p| p.entity_id == target)
+            || self
+                .entities
+                .store
+                .get(target)
+                .is_some_and(|entity| entity.living().is_some());
+        let victim = living.then_some(target);
+        if let Some(player) = self.players.values_mut().find(|p| p.entity_id == attacker) {
+            player.vitals.last_hurt_mob = victim;
+            player.vitals.last_hurt_mob_at = player.vitals.tick_count as i32;
+            return;
+        }
+        if let Some(Entity {
+            base,
+            state: EntityState::Living(living),
+            ..
+        }) = self.entities.store.get_mut(attacker)
+        {
+            living.damage.last_hurt_mob = victim;
+            living.damage.last_hurt_mob_at = base.tick_count;
+        }
+    }
+
     fn owner_entity(&self, owner: Option<uuid::Uuid>) -> Option<EntityId> {
         let owner = owner?;
         if let Some(player) = self.players.values().find(|p| p.profile.id.0 == owner) {
@@ -442,14 +466,8 @@ impl<L: ClientLink> Server<L> {
         let Some(direct) = arrow_source else {
             return;
         };
-        if let Some(owner) = owner_id
-            && let Some(living) = self
-                .entities
-                .store
-                .get_mut(owner)
-                .and_then(|e| e.living_mut())
-        {
-            living.damage.last_hurt_mob = Some(target);
+        if let Some(owner) = owner_id {
+            self.note_hurt_mob(owner, target);
         }
         let saved_fire = self.fire_ticks_of(target);
         let holder = self

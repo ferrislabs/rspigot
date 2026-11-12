@@ -1,4 +1,5 @@
 use rspigot_ai::{AiWorld, TargetReason, valid_mob_target};
+use rspigot_domain::entity::Aabb;
 use rspigot_domain::entity::living;
 use rspigot_domain::entity::neutral::{self, NeutralState};
 use rspigot_domain::entity::tamable;
@@ -19,6 +20,8 @@ use crate::server::{Audience, Server};
 
 pub const TAME_SUCCESS_EVENT: i8 = 7;
 pub const TAME_FAILURE_EVENT: i8 = 6;
+const FORGIVE_RANGE_XZ: f64 = 32.0;
+const FORGIVE_RANGE_Y: f64 = 10.0;
 
 fn mob_living_mut(entity: &mut Entity) -> Option<&mut LivingState> {
     entity.living_mut()
@@ -177,6 +180,42 @@ impl<L: ClientLink> Server<L> {
             state.end_time = neutral::NO_ANGER_END_TIME;
             let state = *state;
             neutral::sync(&mut entity.base, &state);
+        }
+    }
+
+    pub(crate) fn forgive_dead_player(&mut self, player: PlayerId) {
+        if !self.config.rules.forgive_dead_players {
+            return;
+        }
+        let Some(found) = self.players.get(&player) else {
+            return;
+        };
+        let uuid = found.profile.id.0;
+        let origin = found.position.block();
+        let area = Aabb::new(
+            f64::from(origin.x) - FORGIVE_RANGE_XZ,
+            f64::from(origin.y) - FORGIVE_RANGE_Y,
+            f64::from(origin.z) - FORGIVE_RANGE_XZ,
+            f64::from(origin.x) + 1.0 + FORGIVE_RANGE_XZ,
+            f64::from(origin.y) + 1.0 + FORGIVE_RANGE_Y,
+            f64::from(origin.z) + 1.0 + FORGIVE_RANGE_XZ,
+        );
+        let angry: Vec<EntityId> = self
+            .entities
+            .store
+            .iter()
+            .filter(|entity| {
+                entity
+                    .living()
+                    .and_then(|state| state.mob.as_ref())
+                    .and_then(|mob| mob.neutral)
+                    .is_some_and(|anger| anger.target == Some(uuid))
+                    && entity.base.bounding_box().intersects(&area)
+            })
+            .map(|entity| entity.base.id)
+            .collect();
+        for id in angry {
+            self.stop_being_angry(id);
         }
     }
 

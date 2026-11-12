@@ -241,10 +241,13 @@ impl<L: ClientLink> Server<L> {
             return false;
         }
         let kind: DamageType = source.kind;
-        let final_damage = living::final_damage(&mut state.clone(), kind, amount);
+        let mut worn = living::final_damage(&mut state.clone(), kind, amount);
+        if cooling {
+            worn -= state.last_hurt;
+        }
         let position = entity.base.position;
         let before = (damage_value(&armor), max_damage(&armor).unwrap_or_default());
-        self.damage_mob_equipment(id, EquipmentSlot::Body, final_damage.ceil() as i32);
+        self.damage_mob_equipment(id, EquipmentSlot::Body, worn.ceil() as i32);
         let after = self
             .entities
             .store
@@ -402,6 +405,25 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    fn refresh_body_armor(&mut self, id: EntityId, armor: ItemStack) {
+        let Some(living) = self
+            .entities
+            .store
+            .get_mut(id)
+            .and_then(|entity| entity.living_mut())
+        else {
+            return;
+        };
+        living.equipment[living::slot_index(EquipmentSlot::Body)] = Some(armor.clone());
+        self.push(
+            Audience::Trackers(id),
+            ClientEvent::EntityEquipment {
+                entity: id,
+                slots: vec![(crate::entities::wire_slot(EquipmentSlot::Body), Some(armor))],
+            },
+        );
+    }
+
     fn set_body_armor(&mut self, id: EntityId, armor: Option<ItemStack>) {
         let Some(living) = self
             .entities
@@ -542,7 +564,7 @@ impl<L: ClientLink> Server<L> {
                     let unit =
                         (max_damage(armor).unwrap_or_default() as f32 * ARMOR_REPAIR_UNIT) as i32;
                     set_damage_value(&mut repaired, (damage_value(armor) - unit).max(0));
-                    self.set_body_armor(target, Some(repaired));
+                    self.refresh_body_armor(target, repaired);
                     return Some(Interaction::Predicted);
                 }
                 let result = match held {

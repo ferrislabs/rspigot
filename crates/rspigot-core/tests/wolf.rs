@@ -1,6 +1,7 @@
 mod common;
 
 use common::*;
+use rspigot_core::commands::Target;
 use rspigot_core::config::PluginSettings;
 use rspigot_core::events::{ClientEvent, EntityStatus, Hand, Inbound, PlayerInput};
 use rspigot_core::plugins::{Answer, EventKind, HandlerSpec, Question};
@@ -485,4 +486,135 @@ fn an_angry_wolf_goes_for_the_player_it_is_angry_at_until_they_turn_creative() {
     assert_eq!(s.server.mob_target(wolf), None);
     assert_eq!(nbt(&s, wolf).get_i64("anger_end_time"), Some(-1));
     assert!(!nbt(&s, wolf).contains_key("angry_at"));
+}
+
+fn zombie_beside(s: &mut Scene) -> EntityId {
+    console(s, "summon minecraft:zombie 3.5 64 1.5 {NoAI:1b}");
+    s.server
+        .entities_of(Kind::Zombie)
+        .last()
+        .map(|entity| entity.id)
+        .unwrap()
+}
+
+#[test]
+fn armor_hurt_during_the_cooldown_only_takes_the_extra_damage() {
+    let mut s = waiting_scene(vec![]);
+    let wolf = tame_wolf(&mut s, "");
+    let zombie = zombie_beside(&mut s);
+    s.tick(20);
+    attack(&mut s, wolf);
+    console(&mut s, "give Alice minecraft:wolf_armor");
+    interact(&mut s, wolf);
+    s.tick(1);
+    assert_eq!(armor_damage(&s, wolf), 0);
+    assert!(!s.server.do_hurt_target(zombie, Target::Entity(wolf)));
+    assert_eq!(armor_damage(&s, wolf), 1);
+}
+
+#[test]
+fn repairing_the_armor_keeps_its_drop_chance() {
+    let mut s = waiting_scene(vec![]);
+    console(&mut s, "give Alice minecraft:armadillo_scute 1");
+    let wolf = tame_wolf(
+        &mut s,
+        ",Sitting:1b,drop_chances:{body:0.25f},equipment:{body:{id:\"minecraft:wolf_armor\",count:1,components:{\"minecraft:damage\":40}}}",
+    );
+    interact(&mut s, wolf);
+    assert_eq!(armor_damage(&s, wolf), 32);
+    assert_eq!(
+        nbt(&s, wolf)
+            .get_compound("drop_chances")
+            .and_then(|chances| chances.get_f64("body")),
+        Some(0.25)
+    );
+}
+
+#[test]
+fn a_mob_hurting_the_owner_is_not_what_the_owner_last_hit() {
+    let mut s = waiting_scene(vec![]);
+    let zombie = zombie_beside(&mut s);
+    let alice = s.players[0].id;
+    let entity = s.server.player_entity_id(alice).unwrap();
+    assert!(s.server.do_hurt_target(zombie, Target::Player(alice)));
+    assert_eq!(s.server.player_last_hurt_mob(alice), Some((None, 0)));
+    assert_eq!(
+        s.server.player_last_hurt_by_mob(alice).map(|(mob, _)| mob),
+        Some(Some(zombie))
+    );
+    let _ = entity;
+}
+
+#[test]
+fn the_owner_forgets_an_attacker_that_died() {
+    let mut s = waiting_scene(vec![]);
+    let zombie = zombie_beside(&mut s);
+    let alice = s.players[0].id;
+    assert!(s.server.do_hurt_target(zombie, Target::Player(alice)));
+    s.tick(1);
+    assert_eq!(
+        s.server.player_last_hurt_by_mob(alice).map(|(mob, _)| mob),
+        Some(Some(zombie))
+    );
+    console(&mut s, "kill @e[type=zombie]");
+    s.tick(1);
+    assert_eq!(
+        s.server.player_last_hurt_by_mob(alice).map(|(mob, _)| mob),
+        Some(None)
+    );
+}
+
+#[test]
+fn a_wolf_forgives_a_player_who_died() {
+    let mut s = waiting_scene(vec![]);
+    let owner = owner_of_alice(&s);
+    let wolf = summon(
+        &mut s,
+        &format!(
+            "summon minecraft:wolf 3.5 64 3.5 {{NoAI:1b,anger_end_time:99999999L,angry_at:{owner}}}"
+        ),
+    );
+    let bystander = summon(
+        &mut s,
+        "summon minecraft:wolf 5.5 64 3.5 {NoAI:1b,anger_end_time:99999999L}",
+    );
+    assert_eq!(nbt(&s, wolf).get_i64("anger_end_time"), Some(99999999));
+    console(&mut s, "kill Alice");
+    s.tick(2);
+    assert_eq!(nbt(&s, wolf).get_i64("anger_end_time"), Some(-1));
+    assert!(!nbt(&s, wolf).contains_key("angry_at"));
+    assert_eq!(nbt(&s, bystander).get_i64("anger_end_time"), Some(99999999));
+}
+
+#[test]
+fn the_owner_hears_how_a_tame_wolf_died() {
+    let mut s = waiting_scene(vec![]);
+    let wolf = tame_wolf(&mut s, "");
+    let zombie = zombie_beside(&mut s);
+    s.players[0].link.take();
+    s.tick(1);
+    s.players[0].link.take();
+    assert!(s.server.do_hurt_target(zombie, Target::Entity(wolf)));
+    console(&mut s, "kill @e[type=wolf]");
+    let messages = texts(&s.players[0]);
+    assert!(
+        messages
+            .iter()
+            .any(|(text, overlay)| !overlay && text.contains("death.attack")),
+        "{messages:?}"
+    );
+}
+
+#[test]
+fn a_wild_wolf_dies_without_telling_anyone() {
+    let mut s = waiting_scene(vec![]);
+    wild_wolf(&mut s, "");
+    s.tick(1);
+    s.players[0].link.take();
+    console(&mut s, "kill @e[type=wolf]");
+    assert!(
+        texts(&s.players[0])
+            .iter()
+            .all(|(text, _)| !text.contains("death."))
+    );
 }
