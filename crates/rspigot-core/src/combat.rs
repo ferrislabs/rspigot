@@ -207,6 +207,13 @@ impl<L: ClientLink> Server<L> {
         self.attack(id, victim);
     }
 
+    fn is_deflectable(&self, entity: EntityId) -> bool {
+        self.entities
+            .store
+            .get(entity)
+            .is_some_and(|entity| entity.base.kind == rspigot_entities::EntityKind::Fireball)
+    }
+
     fn struck_target(target: Target) -> Struck {
         match target {
             Target::Player(player) => Struck::Player(player),
@@ -305,9 +312,13 @@ impl<L: ClientLink> Server<L> {
             yaw,
             sweep: sweep.then_some((1.0 + sweep_ratio * strike.damage) * scale),
         };
+        let struck = match victim.target {
+            Target::Entity(entity) if self.is_deflectable(entity) => Struck::Projectile(entity),
+            target => Self::struck_target(target),
+        };
         self.strike(
             Some(id),
-            Self::struck_target(victim.target),
+            struck,
             &source,
             strike.damage,
             AfterHurt::Attack(Box::new(follow)),

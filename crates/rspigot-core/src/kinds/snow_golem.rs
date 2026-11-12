@@ -29,7 +29,6 @@ const CANNOT_SUPPORT_SNOW: &str = "minecraft:cannot_support_snow_layer";
 const SUPPORT_OVERRIDE_SNOW: &str = "minecraft:support_override_snow_layer";
 const FULL_LAYERS: &str = "8";
 const FACE_EPSILON: f64 = 1.0e-7;
-const WATER_DAMAGE: f32 = 1.0;
 
 fn in_block_tag(state: BlockStateId, tag: &str) -> bool {
     state.kind().is_some_and(|kind| {
@@ -126,7 +125,7 @@ impl<L: ClientLink> Server<L> {
         self.entity_sound(shooter, SHOOT_SOUND, 1.0, pitch);
     }
 
-    fn entity_eye(&self, id: EntityId) -> Option<(Vec3, f64)> {
+    pub(crate) fn entity_eye(&self, id: EntityId) -> Option<(Vec3, f64)> {
         if let Some(player) = self.players.values().find(|p| p.entity_id == id) {
             return Some((player.position, player.position.y + player.eye_height()));
         }
@@ -154,17 +153,7 @@ impl<L: ClientLink> Server<L> {
                 self.form_snow_trail(id, pos);
             }
         }
-        self.snow_golem_water_damage(id);
-    }
-
-    fn snow_golem_water_damage(&mut self, id: EntityId) {
-        let Some(entity) = self.entities.store.get(id) else {
-            return;
-        };
-        let wet = entity.base.fluid.in_water || self.is_in_rain(&entity.base);
-        if wet && self.living_entity_alive(id) {
-            self.hurt_mob(id, &DamageSource::new(DamageType::Drown), WATER_DAMAGE);
-        }
+        self.water_sensitive_damage(id);
     }
 
     fn form_snow_trail(&mut self, id: EntityId, pos: BlockPos) {
