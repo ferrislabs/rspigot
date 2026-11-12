@@ -1,3 +1,4 @@
+use crate::armadillo::ArmadilloScareSensor;
 use crate::behavior::memory::{Memories, MemoryModuleType, MemoryValue};
 use crate::behavior::sensors::{
     AdultSensor, DummySensor, HurtBySensor, IsInWaterSensor, NearestItemSensor,
@@ -80,6 +81,7 @@ pub enum SensorKind {
     HoglinSpecific(HoglinSensor),
     PiglinSpecific(PiglinSensor),
     PiglinBruteSpecific(PiglinBruteSensor),
+    ArmadilloScareDetected(ArmadilloScareSensor),
 }
 
 impl SensorKind {
@@ -96,6 +98,7 @@ impl SensorKind {
             Self::HoglinSpecific(_) => SensorType::HoglinSpecificSensor,
             Self::PiglinSpecific(_) => SensorType::PiglinSpecificSensor,
             Self::PiglinBruteSpecific(_) => SensorType::PiglinBruteSpecificSensor,
+            Self::ArmadilloScareDetected(_) => SensorType::ArmadilloScareDetected,
         }
     }
 }
@@ -114,6 +117,7 @@ impl Sensor for SensorKind {
             Self::HoglinSpecific(sensor) => sensor.scan_rate(),
             Self::PiglinSpecific(sensor) => sensor.scan_rate(),
             Self::PiglinBruteSpecific(sensor) => sensor.scan_rate(),
+            Self::ArmadilloScareDetected(sensor) => sensor.scan_rate(),
         }
     }
 
@@ -130,6 +134,7 @@ impl Sensor for SensorKind {
             Self::HoglinSpecific(sensor) => sensor.requires(),
             Self::PiglinSpecific(sensor) => sensor.requires(),
             Self::PiglinBruteSpecific(sensor) => sensor.requires(),
+            Self::ArmadilloScareDetected(sensor) => sensor.requires(),
         }
     }
 
@@ -146,6 +151,7 @@ impl Sensor for SensorKind {
             Self::HoglinSpecific(sensor) => sensor.do_tick(cx, memories),
             Self::PiglinSpecific(sensor) => sensor.do_tick(cx, memories),
             Self::PiglinBruteSpecific(sensor) => sensor.do_tick(cx, memories),
+            Self::ArmadilloScareDetected(sensor) => sensor.do_tick(cx, memories),
         }
     }
 }

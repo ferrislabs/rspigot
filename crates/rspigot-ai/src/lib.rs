@@ -1,6 +1,7 @@
 mod action;
 mod animal;
 mod animals;
+mod armadillo;
 mod behavior;
 mod blaze;
 mod blocks;
@@ -57,6 +58,10 @@ mod zombified_piglin;
 pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequest};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
+};
+pub use armadillo::{
+    ArmadilloAction, ArmadilloBallUp, ArmadilloFacts, ArmadilloPanic, ArmadilloScareSensor,
+    RollOutWithoutDanger, can_stay_rolled_up, is_scared_by,
 };
 pub use behavior::{
     ALLOWED_ANGLES, Activity, ActivityData, AdultSensor, AnimalMakeLove, AnimalPanic, AwayFrom,

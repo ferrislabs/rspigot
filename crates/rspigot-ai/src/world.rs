@@ -52,6 +52,8 @@ pub struct Facts {
     pub cannot_be_hunted: bool,
     pub sees_player_holding_loved_item: bool,
     pub hunted_recently: bool,
+    pub sprinting: bool,
+    pub passenger: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -166,6 +168,7 @@ pub struct MobBody {
     pub fall_distance: f64,
     pub pose: Pose,
     pub discard_friction: bool,
+    pub armadillo: crate::ArmadilloFacts,
 }
 
 impl MobBody {
@@ -181,6 +184,7 @@ impl MobBody {
             fall_distance: mob.fall_distance,
             pose: mob.pose,
             discard_friction: mob.discard_friction,
+            armadillo: mob.species.armadillo,
         }
     }
 }
@@ -369,6 +373,7 @@ pub struct KindFacts {
     pub crossbow: crate::CrossbowFacts,
     pub shulker: ShulkerFacts,
     pub goat: crate::GoatFacts,
+    pub armadillo: crate::ArmadilloFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
