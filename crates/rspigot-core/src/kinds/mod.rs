@@ -11,10 +11,12 @@ use crate::interact::Interaction;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
+mod blaze;
 mod cat;
 mod enderman;
 mod endermite;
 mod fox;
+mod ghast;
 mod iron_golem;
 mod ocelot;
 mod panda;
@@ -35,7 +37,7 @@ pub(crate) use enderman::carried_block_drops;
 pub(crate) use snow_golem::readiness_for_shearing;
 
 impl<L: ClientLink> Server<L> {
-    fn kind_of(&self, id: EntityId) -> Option<Kind> {
+    pub(crate) fn kind_of(&self, id: EntityId) -> Option<Kind> {
         self.entities.store.get(id).map(|entity| entity.base.kind)
     }
 
@@ -50,6 +52,8 @@ impl<L: ClientLink> Server<L> {
             Kind::Endermite => self.endermite_view(entity, view),
             Kind::Silverfish => self.silverfish_view(entity, view),
             Kind::IronGolem => self.iron_golem_view(entity, view),
+            Kind::Blaze => self.blaze_view(entity, view),
+            Kind::Ghast => self.ghast_view(entity, view),
             Kind::ZombifiedPiglin => self.zombified_piglin_view(entity, view),
             Kind::Rabbit => self.rabbit_view(entity, view),
             Kind::Ocelot => self.ocelot_view(entity, view),
@@ -82,6 +86,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Endermite) => self.endermite_pre_tick(id),
             Some(Kind::Silverfish) => self.silverfish_pre_tick(id),
             Some(Kind::IronGolem) => self.iron_golem_pre_tick(id),
+            Some(Kind::Blaze) => self.blaze_pre_tick(id),
+            Some(Kind::Ghast) => self.ghast_pre_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_pre_tick(id),
             Some(Kind::Rabbit) => self.rabbit_pre_tick(id),
             Some(Kind::Ocelot) => self.ocelot_pre_tick(id),
@@ -101,6 +107,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Silverfish) => self.silverfish_post_tick(id),
             Some(Kind::IronGolem) => self.iron_golem_post_tick(id),
             Some(Kind::SnowGolem) => self.snow_golem_post_tick(id),
+            Some(Kind::Blaze) => self.blaze_post_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
             Some(Kind::Ocelot) => self.ocelot_post_tick(id),
@@ -112,6 +119,7 @@ impl<L: ClientLink> Server<L> {
         match self.kind_of(id) {
             Some(Kind::Fox) => self.fox_ai_step(id),
             Some(Kind::Enderman) => self.enderman_ai_step(id),
+            Some(Kind::Blaze) => self.blaze_ai_step(id),
             _ => {}
         }
     }
@@ -160,6 +168,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Endermite) => self.endermite_custom_ai_step(id),
             Some(Kind::Silverfish) => self.silverfish_custom_ai_step(id),
             Some(Kind::IronGolem) => self.iron_golem_custom_ai_step(id),
+            Some(Kind::Blaze) => self.blaze_custom_ai_step(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_custom_ai_step(id),
             Some(Kind::Rabbit) => self.rabbit_custom_ai_step(id),
             Some(Kind::Ocelot) => self.ocelot_custom_ai_step(id),
@@ -216,6 +225,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Endermite) => self.endermite_hurt_amount(id, source, amount),
             Some(Kind::Silverfish) => self.silverfish_hurt_amount(id, source, amount),
             Some(Kind::IronGolem) => self.iron_golem_hurt_amount(id, source, amount),
+            Some(Kind::Ghast) => self.ghast_hurt_amount(id, source, amount),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_hurt_amount(id, source, amount),
             Some(Kind::Rabbit) => self.rabbit_hurt_amount(id, source, amount),
             Some(Kind::Ocelot) => self.ocelot_hurt_amount(id, source, amount),

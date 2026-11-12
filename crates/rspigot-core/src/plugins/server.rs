@@ -852,6 +852,10 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Ignite(step) => {
+                self.finish_ignite(step, cancelled);
+                Vec::new()
+            }
             Continuation::Regrow(sheep) => {
                 if !cancelled {
                     self.regrow_wool(sheep);

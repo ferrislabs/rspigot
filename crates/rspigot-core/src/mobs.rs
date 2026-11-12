@@ -1138,6 +1138,9 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     if body.yaw != mob.yaw {
         base.set_yaw(body.yaw);
     }
+    if body.body_yaw != mob.body_yaw {
+        state.body_yaw = body.body_yaw;
+    }
     if body.pitch != mob.pitch {
         base.set_pitch(body.pitch);
     }
@@ -1202,6 +1205,14 @@ fn hurt_source_of(source: &DamageSource) -> HurtSource<'_> {
         direct: source.direct.as_ref().map(|d| &d.name),
         living_cause: source.living_cause(),
         creative_attacker: source.creative_attacker(),
+        reflected_fireball: source
+            .direct
+            .as_ref()
+            .is_some_and(|direct| direct.kind == Kind::Fireball)
+            && source
+                .causing
+                .as_ref()
+                .is_some_and(|causing| causing.kind == Kind::Player),
     }
 }
 
@@ -1773,6 +1784,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn mob_landed(&mut self, id: EntityId, landing: Landing) {
+        if self.kind_of(id) == Some(Kind::Ghast) {
+            return;
+        }
         let Some(impact) = fall_impact(landing.state, landing.distance, false) else {
             return;
         };

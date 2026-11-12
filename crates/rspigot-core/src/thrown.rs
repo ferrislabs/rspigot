@@ -14,7 +14,7 @@ use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
 #[derive(Debug, Clone, Copy)]
-enum Strike {
+pub(crate) enum Strike {
     Miss,
     Block(raycast::BlockHit),
     Entity(EntityId),
@@ -119,7 +119,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn find_strike(
+    pub(crate) fn find_strike(
         &self,
         id: EntityId,
         owner: Option<uuid::Uuid>,
