@@ -161,7 +161,7 @@ pub fn register_goals(
             add.look(6, 6.0);
             add.look_around(7);
         }
-        EntityKind::Zombie => {
+        EntityKind::Zombie | EntityKind::Husk => {
             add.goal(
                 4,
                 MobGoal::RemoveTurtleEgg(RemoveTurtleEggGoal::new(1.0, 3)),
@@ -268,7 +268,7 @@ pub fn register_goals(
             );
             add.target_goal(2, MobGoal::HurtByTarget(HurtByTargetGoal::new()));
         }
-        EntityKind::Spider => {
+        EntityKind::Spider | EntityKind::CaveSpider => {
             add.brain.navigation.set_climber(true);
             add.float(1);
             add.goal(

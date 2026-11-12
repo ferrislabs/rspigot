@@ -315,6 +315,24 @@ fn monster_goals_follow_vanilla_priorities() {
 }
 
 #[test]
+fn variants_share_the_goals_of_their_base_mob() {
+    let settings = GoalSettings::default();
+    for (variant, base) in [
+        (EntityKind::Husk, EntityKind::Zombie),
+        (EntityKind::CaveSpider, EntityKind::Spider),
+    ] {
+        let variant = MobAi::new(variant, 1, settings);
+        let base = MobAi::new(base, 1, settings);
+        assert_eq!(goals(&variant), goals(&base));
+        assert_eq!(targets(&variant), targets(&base));
+        assert_eq!(
+            variant.brain().navigation.is_climber(),
+            base.brain().navigation.is_climber()
+        );
+    }
+}
+
+#[test]
 fn bow_power_grows_with_the_draw_time() {
     assert_eq!(bow_power(0), 0.0);
     assert!((bow_power(10) - (0.25 + 1.0) / 3.0).abs() < 1.0e-6);

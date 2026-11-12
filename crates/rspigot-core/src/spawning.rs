@@ -712,9 +712,11 @@ mod tests {
         assert_eq!(
             spawning,
             vec![
+                EntityKind::CaveSpider,
                 EntityKind::Chicken,
                 EntityKind::Cow,
                 EntityKind::Creeper,
+                EntityKind::Husk,
                 EntityKind::Pig,
                 EntityKind::Sheep,
                 EntityKind::Skeleton,
