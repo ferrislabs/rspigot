@@ -27,6 +27,7 @@ mod profile;
 mod rabbit;
 mod random;
 mod random_pos;
+mod ranged;
 mod registry;
 mod scan;
 #[cfg(test)]
@@ -94,6 +95,7 @@ pub use random_pos::{
     mob_light_magic_value, move_up_out_of_solid, random_direction, walk_target_value,
 };
 pub use random_pos::{pos_away, pos_towards};
+pub use ranged::RangedAttackGoal;
 pub use registry::{GoalSettings, ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER};
 pub use scan::{closer_to_center_than, manhattan_ordered};
 pub use sensing::{Sensing, clip_misses};
