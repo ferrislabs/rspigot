@@ -20,6 +20,10 @@ use crate::behavior::walk::{
     SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract, SetWalkTargetAwayFrom,
     SetWalkTargetFromLookTarget, StrollAroundPoi, StrollToPoi,
 };
+use crate::breeze::{
+    LongJump as BreezeLongJump, Shoot as BreezeShoot, ShootWhenStuck as BreezeShootWhenStuck,
+    Slide as BreezeSlide, SlideToTargetSink,
+};
 use crate::piglin::{
     BackUpIfTooClose, BecomePassiveIfMemoryPresent, CROSSBOW_ATTACK_DURATION, CopyMemoryWithExpiry,
     CrossbowAttack, RememberIfHoglinWasKilled, StartAdmiringItemIfSeen,
@@ -155,6 +159,11 @@ mob_behaviors! {
     PrepareRamNearestTarget(PrepareRamNearestTarget),
     ArmadilloBallUp(ArmadilloBallUp),
     ArmadilloPanic(ArmadilloPanic),
+    BreezeShoot(BreezeShoot),
+    BreezeLongJump(BreezeLongJump),
+    BreezeShootWhenStuck(BreezeShootWhenStuck),
+    BreezeSlide(BreezeSlide),
+    BreezeSlideToTarget(SlideToTargetSink),
 }
 
 macro_rules! mob_triggers {
@@ -269,6 +278,10 @@ impl MobControl {
 
     pub fn swim(chance: f32) -> Self {
         Self::behavior(MobBehavior::Swim(Swim::new(chance)))
+    }
+
+    pub fn creaking_swim(chance: f32) -> Self {
+        Self::behavior(MobBehavior::Swim(Swim::creaking(chance)))
     }
 
     pub fn look_at_target_sink(min_duration: i32, max_duration: i32) -> Self {

@@ -476,6 +476,16 @@ fn pose(p: CorePose) -> WirePose {
         CorePose::Crouching => WirePose::Crouching,
         CorePose::LongJumping => WirePose::LongJumping,
         CorePose::Dying => WirePose::Dying,
+        CorePose::Croaking => WirePose::Croaking,
+        CorePose::UsingTongue => WirePose::UsingTongue,
+        CorePose::Sitting => WirePose::Sitting,
+        CorePose::Roaring => WirePose::Roaring,
+        CorePose::Sniffing => WirePose::Sniffing,
+        CorePose::Emerging => WirePose::Emerging,
+        CorePose::Digging => WirePose::Digging,
+        CorePose::Sliding => WirePose::Sliding,
+        CorePose::Shooting => WirePose::Shooting,
+        CorePose::Inhaling => WirePose::Inhaling,
     }
 }
 
@@ -1282,6 +1292,9 @@ impl Encoder {
                                 MetadataValue::BlockPos(pos) => {
                                     EntityDataValue::BlockPos(position(*pos))
                                 }
+                                MetadataValue::OptionalBlockPos(pos) => {
+                                    EntityDataValue::OptionalBlockPos(pos.map(position))
+                                }
                                 MetadataValue::Variant(kind, id) => EntityDataValue::Variant {
                                     kind: registry_variant(*kind),
                                     id: *id as i32,
@@ -1590,17 +1603,19 @@ impl Encoder {
                 knockback,
                 large,
                 play_sound,
+                gust,
             } => {
-                let particle = if *large {
-                    "minecraft:explosion_emitter"
-                } else {
-                    "minecraft:explosion"
+                let particle = match (gust, *large) {
+                    (Some(_), true) => "minecraft:gust_emitter_large",
+                    (Some(_), false) => "minecraft:gust_emitter_small",
+                    (None, true) => "minecraft:explosion_emitter",
+                    (None, false) => "minecraft:explosion",
                 };
                 let (Some(particle), Some(sound)) = (
                     particle_options(particle, &ParticleData::None),
                     rspigot_data::registries::static_index(
                         "minecraft:sound_event",
-                        "minecraft:entity.generic.explode",
+                        gust.unwrap_or("minecraft:entity.generic.explode"),
                     )
                     .and_then(|id| i32::try_from(id).ok()),
                 ) else {
@@ -1608,6 +1623,7 @@ impl Encoder {
                 };
                 let block_particles = [("minecraft:poof", 0.5), ("minecraft:smoke", 1.0)]
                     .into_iter()
+                    .filter(|_| gust.is_none())
                     .filter_map(|(name, scaling)| {
                         Some(cb::ExplosionParticle {
                             particle: particle_options(name, &ParticleData::None)?,
@@ -2734,6 +2750,7 @@ mod tests {
             knockback: None,
             large: false,
             play_sound: true,
+            gust: None,
         };
         let particle = |name: &str| registry_id("minecraft:particle_type", name);
         let sound = rspigot_data::registries::static_index(
@@ -2759,6 +2776,38 @@ mod tests {
         expected.extend_from_slice(&1.0f32.to_be_bytes());
         expected.extend_from_slice(&1.0f32.to_be_bytes());
         expected.push(1);
+        expected.push(1);
+        assert_eq!(encode(event), vec![(id::EXPLODE, expected)]);
+    }
+
+    #[test]
+    fn a_wind_burst_carries_the_gust_particle_and_its_own_sound_without_block_particles_golden_bytes()
+     {
+        let event = ClientEvent::Explode {
+            center: Vec3::new(0.5, 64.0, 2.5),
+            radius: 3.0,
+            block_count: 0,
+            knockback: None,
+            large: true,
+            play_sound: true,
+            gust: Some("minecraft:entity.breeze.wind_burst"),
+        };
+        let particle = |name: &str| registry_id("minecraft:particle_type", name);
+        let sound = rspigot_data::registries::static_index(
+            "minecraft:sound_event",
+            "minecraft:entity.breeze.wind_burst",
+        )
+        .unwrap();
+        let mut expected = Vec::new();
+        expected.extend_from_slice(&0.5f64.to_be_bytes());
+        expected.extend_from_slice(&64.0f64.to_be_bytes());
+        expected.extend_from_slice(&2.5f64.to_be_bytes());
+        expected.extend_from_slice(&3.0f32.to_be_bytes());
+        expected.extend_from_slice(&0i32.to_be_bytes());
+        expected.push(0);
+        expected.push(particle("minecraft:gust_emitter_large"));
+        write_var(i32::try_from(sound).unwrap() + 1, &mut expected);
+        expected.push(0);
         expected.push(1);
         assert_eq!(encode(event), vec![(id::EXPLODE, expected)]);
     }

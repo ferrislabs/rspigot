@@ -29,6 +29,16 @@ pub enum Pose {
     Crouching,
     LongJumping,
     Dying,
+    Croaking,
+    UsingTongue,
+    Sitting,
+    Roaring,
+    Sniffing,
+    Emerging,
+    Digging,
+    Sliding,
+    Shooting,
+    Inhaling,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,6 +58,7 @@ pub enum SyncedValue {
     Direction(Face),
     OptionalEntity(Option<Uuid>),
     OptionalBlockState(Option<BlockStateId>),
+    OptionalBlockPos(Option<BlockPos>),
     VillagerData {
         kind: u32,
         profession: u32,

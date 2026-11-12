@@ -88,6 +88,14 @@ pub fn can_attack(world: &impl AiWorld, target: &Living) -> bool {
 }
 
 pub fn mob_can_attack(mob: &MobView, world: &impl AiWorld, target: &Living) -> bool {
+    if mob.kind == EntityKind::Breeze {
+        return match mob.species.breeze.attack_target {
+            Some(current) => target.id == current,
+            None => {
+                (target.player || target.kind == EntityKind::IronGolem) && can_attack(world, target)
+            }
+        };
+    }
     can_attack(world, target) && !refuses(mob, target)
 }
 

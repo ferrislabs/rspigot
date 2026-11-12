@@ -46,6 +46,7 @@ pub struct Brain {
     pub hop: Option<crate::rabbit::RabbitHop>,
     pub panda: crate::PandaBrain,
     pub repellent: Option<BlockPos>,
+    pub creaking: crate::CreakingState,
     follow_range: f64,
 }
 
@@ -67,6 +68,9 @@ impl Brain {
         }
         if kind == EntityKind::Chicken {
             profile.set_malus(PathType::Water, 0.0);
+        }
+        if kind == EntityKind::Creaking {
+            profile.can_float = true;
         }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
@@ -93,6 +97,7 @@ impl Brain {
             hop: None,
             panda: crate::PandaBrain::default(),
             repellent: None,
+            creaking: crate::CreakingState::default(),
             follow_range,
         };
         if kind == EntityKind::Rabbit {
@@ -577,6 +582,26 @@ impl MobAi {
         crate::piglin::ambient_sound(&cx)
     }
 
+    fn update_creaking_home(&mut self, mob: &MobView) {
+        if mob.kind != EntityKind::Creaking {
+            return;
+        }
+        let home = mob.species.creaking.home_pos;
+        if home.is_some() && self.brain.profile.creaking_home.is_none() {
+            let profile = &mut self.brain.profile;
+            profile.set_malus(PathType::Damaging, 8.0);
+            profile.set_malus(PathType::PowderSnow, 8.0);
+            profile.set_malus(PathType::Lava, 8.0);
+            profile.set_malus(PathType::Fire, 0.0);
+            profile.set_malus(PathType::FireInNeighbor, 0.0);
+        }
+        self.brain.profile.creaking_home = home;
+    }
+
+    pub fn creaking_state(&self) -> crate::CreakingState {
+        self.brain.creaking
+    }
+
     pub fn can_float(&self) -> bool {
         self.brain.profile.can_float
     }
@@ -614,7 +639,16 @@ impl MobAi {
             self.brain.profile.width = mob.width;
             self.brain.profile.height = mob.height;
         }
+        let mut breeze_view;
+        let mob = if mob.kind == EntityKind::Breeze {
+            breeze_view = *mob;
+            breeze_view.species.breeze.attack_target = self.target();
+            &breeze_view
+        } else {
+            mob
+        };
         self.brain.fox = mob.species.fox;
+        self.update_creaking_home(mob);
         self.brain.look.set_max_head_x_rot(mob.max_head_x_rot());
         if mob.kind == EntityKind::Shulker {
             self.brain
@@ -644,7 +678,18 @@ impl MobAi {
             self.targets.tick(&mut context);
             self.goals.tick(&mut context);
         }
-        context.tick_navigation();
+        if mob.kind == EntityKind::Creaking
+            && let Some(behavior) = self.behavior.as_mut()
+        {
+            let mut cx = BehaviorCx {
+                ai: &mut context,
+                brain: behavior.state_mut(),
+            };
+            crate::creaking::apply_can_move(&mut cx);
+        }
+        if context.brain.creaking.can_move || mob.kind != EntityKind::Creaking {
+            context.tick_navigation();
+        }
         if let Some(behavior) = self.behavior.as_mut() {
             behavior.tick(&mut context);
             crate::piglin::after_brain_tick(behavior, &mut context);
@@ -685,7 +730,11 @@ impl MobAi {
             on_ground: base.on_ground,
             in_floatable_fluid: base.fluid.in_water,
         };
-        if (base.kind != EntityKind::Fox || fox::can_move(base)) && brain.panda.can_move() {
+        let frozen = base.kind == EntityKind::Creaking && !brain.creaking.can_move;
+        if (base.kind != EntityKind::Fox || fox::can_move(base))
+            && brain.panda.can_move()
+            && !frozen
+        {
             match brain.movement.style() {
                 MoveStyle::Ground => {
                     brain
@@ -703,6 +752,10 @@ impl MobAi {
             }
         }
         let navigating = brain.navigation.is_in_progress();
+        if frozen {
+            brain.jump = JumpControl::default();
+            return;
+        }
         if base.kind == EntityKind::Fox {
             crate::fox::tick_look(&mut brain.look, base, living, navigating);
         } else {
@@ -735,7 +788,9 @@ impl MobAi {
     }
 
     pub fn turn_body(&mut self, base: &mut EntityBase, living: &mut LivingState) {
-        if base.kind == EntityKind::Shulker {
+        if base.kind == EntityKind::Shulker
+            || (base.kind == EntityKind::Creaking && !self.brain.creaking.can_move)
+        {
             return;
         }
         self.brain.body.client_tick(base, living);
