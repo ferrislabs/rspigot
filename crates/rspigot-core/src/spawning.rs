@@ -517,6 +517,10 @@ impl<L: ClientLink> Server<L> {
                 Some(Species::Zombie(zombie))
                     if zombie.villager.is_some_and(|villager| villager.keeps_when_far(&entity.base))
             ),
+            patrolling: matches!(
+                living.mob.as_ref().map(|mob| &mob.species),
+                Some(Species::Witch(witch)) if witch.raider.patrolling
+            ),
         };
         let distance = nearest_distance_sqr(&self.spawning.players, entity.base.position);
         let difficulty = self.world.difficulty;

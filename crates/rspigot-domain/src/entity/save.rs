@@ -112,6 +112,7 @@ const TRANSIENT_MODIFIERS: &[&str] = &[
     species::zombified_piglin::ATTACKING_MODIFIER,
     species::rabbit::EVIL_MODIFIER,
     species::enderman::ATTACKING_MODIFIER,
+    species::witch::DRINK_MODIFIER,
 ];
 const ARROW_KEYS: [&str; 14] = [
     "Owner",
@@ -174,6 +175,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::ExperienceOrb
             | EntityKind::Arrow
             | EntityKind::Snowball
+            | EntityKind::SplashPotion
     ) || hurting::is_hurting_projectile(kind)
         || (kind.extends("Mob") && kind != EntityKind::EnderDragon)
 }
@@ -740,6 +742,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
             species::rabbit::read(nbt, base, &mut living.attributes, state);
         }
         Species::Ocelot(state) => species::ocelot::read(nbt, base, state),
+        Species::Witch(state) => species::witch::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -773,7 +776,7 @@ fn read_thrown(nbt: &Compound, base: &mut EntityBase, state: &mut ThrownState) {
     let stack = nbt
         .get_compound("Item")
         .and_then(item_stack_from_nbt)
-        .unwrap_or_else(thrown::default_item);
+        .unwrap_or_else(|| thrown::default_item_of(base.kind));
     thrown::set_item(base, &stack);
 }
 
@@ -785,7 +788,7 @@ fn write_thrown(base: &EntityBase, state: &ThrownState, out: &mut Compound) {
         out.insert("LeftOwner", true);
     }
     out.insert("HasBeenShot", bool_tag(state.has_been_shot));
-    let stack = thrown::item(base).unwrap_or_else(thrown::default_item);
+    let stack = thrown::item(base).unwrap_or_else(|| thrown::default_item_of(base.kind));
     out.insert("Item", item_stack_to_nbt(&stack));
 }
 
@@ -904,6 +907,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Ghast(_) => species::ghast::KEYS,
         Species::Rabbit(_) => species::rabbit::KEYS,
         Species::Ocelot(_) => species::ocelot::KEYS,
+        Species::Witch(_) => species::witch::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -944,7 +948,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Arrow(Box::new(ArrowState::new(&mut base, seed)))
         }
-        EntityKind::Snowball => {
+        EntityKind::Snowball | EntityKind::SplashPotion => {
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Thrown(Box::new(ThrownState::new(&mut base, seed)))
         }
@@ -1323,6 +1327,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Ghast(state) => species::ghast::write(base, state, out),
         Species::Rabbit(state) => species::rabbit::write(base, state, out),
         Species::Ocelot(state) => species::ocelot::write(base, state, out),
+        Species::Witch(state) => species::witch::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }

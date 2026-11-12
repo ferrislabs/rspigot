@@ -1198,13 +1198,17 @@ fn sound_state<V: rspigot_domain::entity::BlockView>(entity: &Entity, view: &V) 
     }
 }
 
-fn hurt_source_of(source: &DamageSource) -> HurtSource<'_> {
+fn hurt_source_of(source: &DamageSource, victim: EntityId) -> HurtSource<'_> {
     HurtSource {
         kind: source.kind,
         causing: source.causing.as_ref().map(|c| &c.name),
         direct: source.direct.as_ref().map(|d| &d.name),
         living_cause: source.living_cause(),
         creative_attacker: source.creative_attacker(),
+        self_inflicted: source
+            .causing
+            .as_ref()
+            .is_some_and(|causing| causing.entity == victim),
         reflected_fireball: source
             .direct
             .as_ref()
@@ -1310,7 +1314,7 @@ impl<L: ClientLink> Server<L> {
         source: &DamageSource,
         amount: f32,
     ) -> Option<f32> {
-        let hurt_source = hurt_source_of(source);
+        let hurt_source = hurt_source_of(source, id);
         self.panda_stand_up(id);
         let Some(Entity {
             base,
@@ -1328,13 +1332,19 @@ impl<L: ClientLink> Server<L> {
         Some(amount)
     }
 
-    pub(crate) fn mob_final_damage(&self, id: EntityId, kind: DamageType, amount: f32) -> f32 {
+    pub(crate) fn mob_final_damage(
+        &self,
+        id: EntityId,
+        kind: DamageType,
+        self_inflicted: bool,
+        amount: f32,
+    ) -> f32 {
         self.entities
             .store
             .get(id)
             .and_then(Entity::living)
             .map_or(0.0, |state| {
-                living::final_damage(&mut state.clone(), kind, amount)
+                living::final_damage(&mut state.clone(), kind, self_inflicted, amount)
             })
     }
 
@@ -1355,7 +1365,7 @@ impl<L: ClientLink> Server<L> {
             .as_ref()
             .filter(|c| c.kind.living())
             .map(|c| c.entity);
-        let hurt_source = hurt_source_of(source);
+        let hurt_source = hurt_source_of(source, id);
         let Some(Entity {
             base,
             state: EntityState::Living(state),
