@@ -400,6 +400,14 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let outcome = living::base_tick(base, state);
+        self.tick_mob_effects(id);
+        let Some(Entity {
+            state: EntityState::Living(state),
+            ..
+        }) = self.entities.store.get_mut(id)
+        else {
+            return;
+        };
         let spent = state.effects.countdown();
         for effect in spent {
             self.potion(

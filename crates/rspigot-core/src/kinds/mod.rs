@@ -122,6 +122,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Fox) => self.fox_ai_step(id),
             Some(Kind::Enderman) => self.enderman_ai_step(id),
             Some(Kind::Blaze) => self.blaze_ai_step(id),
+            Some(Kind::Witch) => self.witch_ai_step(id),
             _ => {}
         }
     }

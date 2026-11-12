@@ -4,6 +4,7 @@ use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
 use crate::effect::{EffectDuration, EffectId, EffectInstance};
+use crate::entity::Aabb;
 use crate::item::ItemStack;
 use crate::mth;
 
@@ -133,6 +134,11 @@ pub fn ends_within(instance: &EffectInstance, ticks: u32) -> bool {
         EffectDuration::Infinite => false,
         EffectDuration::Ticks(duration) => duration <= ticks,
     }
+}
+
+pub fn splash_intensity(potion: &Aabb, target: &Aabb, margin: f64) -> Option<f64> {
+    let distance = potion.distance_to_sqr_box(&target.inflate(margin));
+    (distance < SPLASH_REACH_SQR).then(|| 1.0 - distance.sqrt() / INTENSITY_RADIUS)
 }
 
 pub fn heal_amount(amplifier: u8, scale: f64) -> f32 {
@@ -445,6 +451,25 @@ mod tests {
         assert!(!ends_within(&instance, MIN_SPLASH_DURATION));
         instance.duration = EffectDuration::Infinite;
         assert!(!ends_within(&instance, MIN_SPLASH_DURATION));
+    }
+
+    #[test]
+    fn the_splash_intensity_falls_linearly_to_zero_four_blocks_away() {
+        let potion = Aabb::new(0.0, 0.0, 0.0, 0.25, 0.25, 0.25);
+        let at = |x: f64| Aabb::new(x, 0.0, 0.0, x + 0.6, 1.8, 0.6);
+        assert_eq!(splash_intensity(&potion, &at(0.1), 0.0), Some(1.0));
+        assert_eq!(splash_intensity(&potion, &at(2.25), 0.0), Some(0.5));
+        assert_eq!(splash_intensity(&potion, &at(3.25), 0.0), Some(0.25));
+        assert_eq!(splash_intensity(&potion, &at(4.25), 0.0), None);
+        assert_eq!(splash_intensity(&potion, &at(4.5), 0.0), None);
+    }
+
+    #[test]
+    fn the_target_box_is_inflated_by_the_projectile_margin_before_measuring() {
+        let potion = Aabb::new(0.0, 0.0, 0.0, 0.25, 0.25, 0.25);
+        let target = Aabb::new(2.25, 0.0, 0.0, 2.85, 1.8, 0.6);
+        assert_eq!(splash_intensity(&potion, &target, 0.0), Some(0.5));
+        assert_eq!(splash_intensity(&potion, &target, 1.0), Some(0.75));
     }
 
     #[test]
