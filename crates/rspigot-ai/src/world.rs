@@ -1,14 +1,29 @@
 use rspigot_domain::entity::fluid::FluidContact;
 use rspigot_domain::entity::living::{self, LivingState};
+use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{Aabb, EntityBase};
 use rspigot_domain::{BlockPos, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind;
 use rspigot_items::EquipmentSlot;
+use uuid::Uuid;
 
 use crate::BlockView;
 
 pub const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
 pub const TEMPT_RANGE: &str = "minecraft:tempt_range";
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Facts {
+    pub uuid: Uuid,
+    pub tamed: bool,
+    pub owner: Option<EntityId>,
+    pub sleeping: bool,
+    pub last_hurt_by_mob: Option<EntityId>,
+    pub last_hurt_by_mob_at: i32,
+    pub last_hurt_mob: Option<EntityId>,
+    pub last_hurt_mob_at: i32,
+    pub retaliable: bool,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Living {
@@ -36,6 +51,7 @@ pub struct Living {
     pub panicking: bool,
     pub has_target: bool,
     pub scared: bool,
+    pub facts: Facts,
 }
 
 impl Living {
@@ -145,6 +161,10 @@ pub trait AiWorld: BlockView {
         false
     }
 
+    fn can_harm_player(&self, _attacker: EntityId, _victim: EntityId) -> bool {
+        true
+    }
+
     fn peaceful(&self) -> bool {
         self.difficulty() == 0
     }
@@ -198,6 +218,15 @@ pub struct MobView {
     pub was_in_powder_snow: bool,
     pub evil: bool,
     pub trusting: bool,
+    pub uuid: Uuid,
+    pub tamed: bool,
+    pub ordered_to_sit: bool,
+    pub sitting: bool,
+    pub owner: Option<EntityId>,
+    pub angry: bool,
+    pub anger_target: Option<EntityId>,
+    pub leashed: bool,
+    pub passenger: bool,
 }
 
 pub fn attribute(kind: EntityKind, living: &LivingState, name: &str) -> f64 {
@@ -210,6 +239,9 @@ pub fn attribute(kind: EntityKind, living: &LivingState, name: &str) -> f64 {
 impl MobView {
     pub fn of(base: &EntityBase, living: &LivingState) -> Self {
         let dimensions = base.dimensions;
+        let tamable_state = living.mob.as_ref().and_then(|mob| mob.tamable);
+        let tame = tamable_state.is_some();
+        let ordered_to_sit = tamable_state.is_some_and(|state| state.ordered_to_sit);
         let (home_pos, home_radius) = living
             .mob
             .as_ref()
@@ -263,6 +295,15 @@ impl MobView {
             was_in_powder_snow: base.was_in_powder_snow,
             evil: false,
             trusting: false,
+            uuid: base.uuid,
+            tamed: tame && tamable::is_tame(base),
+            ordered_to_sit,
+            sitting: tame && tamable::is_in_sitting_pose(base),
+            owner: None,
+            angry: false,
+            anger_target: None,
+            leashed: false,
+            passenger: false,
         }
     }
 

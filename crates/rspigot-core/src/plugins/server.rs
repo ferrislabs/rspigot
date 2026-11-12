@@ -882,6 +882,10 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Tame(step) => {
+                self.finish_tame(step, cancelled);
+                Vec::new()
+            }
             Continuation::Dye(step) => {
                 self.finish_dye(*step, cancelled, patch_of!(patch, SheepDyeWool));
                 Vec::new()

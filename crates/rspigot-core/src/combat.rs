@@ -394,6 +394,7 @@ impl<L: ClientLink> Server<L> {
         }
         if let Some(attacker) = self.players.get_mut(&id) {
             attacker.vitals.last_hurt_mob = Some(victim.entity);
+            attacker.vitals.last_hurt_mob_at = attacker.vitals.tick_count as i32;
         }
         if victim.living {
             self.damage_weapon(id);

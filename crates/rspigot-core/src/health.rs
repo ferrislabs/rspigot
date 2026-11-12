@@ -188,6 +188,10 @@ pub struct Vitals {
     pub equipment: Vec<(ItemSlot, ItemId)>,
     pub experience: PlayerExperience,
     pub last_hurt_mob: Option<EntityId>,
+    pub last_hurt_mob_at: i32,
+    pub last_hurt_by_mob: Option<EntityId>,
+    pub last_hurt_by_mob_at: i32,
+    pub last_source: Option<(DamageType, i64)>,
     pub fire_ticks: i32,
     pub arrow_count: i32,
     pub remove_arrow_time: i32,
@@ -231,6 +235,10 @@ impl Default for Vitals {
             equipment: Vec::new(),
             experience: PlayerExperience::default(),
             last_hurt_mob: None,
+            last_hurt_mob_at: 0,
+            last_hurt_by_mob: None,
+            last_hurt_by_mob_at: 0,
+            last_source: None,
             fire_ticks: 0,
             arrow_count: 0,
             remove_arrow_time: 0,
@@ -507,6 +515,17 @@ impl<L: ClientLink> Server<L> {
             && cause.kind.living()
         {
             player.vitals.last_hurt_mob = Some(cause.entity);
+        }
+        if let Some(cause) = &source.causing
+            && cause.kind.living()
+            && !kind.is(DamageTag::NoAnger)
+        {
+            let at = player.vitals.tick_count as i32;
+            player.vitals.last_hurt_by_mob = Some(cause.entity);
+            player.vitals.last_hurt_by_mob_at = at;
+        }
+        if dealt != 0.0 {
+            player.vitals.last_source = Some((kind, now as i64));
         }
         if let Some(attacker) = source.attacker()
             && let Some(other) = self.players.get_mut(&attacker)
@@ -907,6 +926,12 @@ impl<L: ClientLink> Server<L> {
             let vitals = &mut player.vitals;
             vitals.tick_count = vitals.tick_count.wrapping_add(1);
             vitals.damage_cooldown = vitals.damage_cooldown.saturating_sub(1);
+            if vitals.last_hurt_by_mob.is_some()
+                && vitals.tick_count as i32 - vitals.last_hurt_by_mob_at
+                    > rspigot_domain::entity::living::MOB_HURT_MEMORY
+            {
+                vitals.last_hurt_by_mob = None;
+            }
             vitals.load_timeout = if player.loaded {
                 0
             } else {

@@ -440,6 +440,12 @@ pub(crate) struct LoveStep {
     pub(crate) item: Option<ItemStack>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct TameStep {
+    pub(crate) target: EntityId,
+    pub(crate) owner: PlayerId,
+}
+
 #[derive(Debug)]
 pub(crate) struct DyeStep {
     pub(crate) player: PlayerId,
@@ -898,15 +904,23 @@ pub(crate) enum Continuation {
     PickupItem(Box<PickupStep>),
     ChangeBlock(Box<ChangeStep>),
     Regrow(EntityId),
-    EggBreak { mob: EntityId, pos: BlockPos },
+    EggBreak {
+        mob: EntityId,
+        pos: BlockPos,
+    },
     EntityExplode(Box<ExplodeStep>),
     Prime(PrimeStep),
     Relocate(RelocateStep),
     Shoot(Box<ShotStep>),
-    ProjectileHit { arrow: EntityId, target: EntityId },
+    ProjectileHit {
+        arrow: EntityId,
+        target: EntityId,
+    },
     Aim(AimStep),
     Breed(Box<BreedStep>),
     Love(Box<LoveStep>),
+    #[allow(dead_code)]
+    Tame(TameStep),
     Dye(Box<DyeStep>),
     Window(Box<WindowPacket>),
     Click(EventKind, Box<WindowClick>),
@@ -1002,6 +1016,7 @@ impl Continuation {
             Self::Aim(_) => EventKind::EntityTargetLivingEntity,
             Self::Breed(_) => EventKind::EntityBreed,
             Self::Love(_) => EventKind::EntityEnterLoveMode,
+            Self::Tame(_) => EventKind::EntityTame,
             Self::Dye(_) => EventKind::SheepDyeWool,
             Self::Window(_) => EventKind::InventoryClick,
             Self::Click(kind, _) => *kind,
@@ -1066,6 +1081,7 @@ impl Continuation {
             Self::Aim(step) => step.mob == id,
             Self::Breed(step) => step.parent == id || step.partner == id,
             Self::Love(step) => step.target == id,
+            Self::Tame(step) => step.target == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::InteractEntity(step) => step.target == id,

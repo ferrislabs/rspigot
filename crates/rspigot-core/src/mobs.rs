@@ -1,6 +1,7 @@
 use rand::Rng;
 use rspigot_ai::{
-    AiWorld, BlockView as AiView, GoalSettings, Hand, Living, MobAi, MobBody, MobView, TargetKind,
+    AiWorld, BlockView as AiView, Facts, GoalSettings, Hand, Living, MobAi, MobBody, MobView,
+    TargetKind,
 };
 use rspigot_domain::damage::{DamageTag, DamageType};
 use rspigot_domain::entity::ageable::{self, AgeableState};
@@ -8,9 +9,11 @@ use rspigot_domain::entity::fire;
 use rspigot_domain::entity::living::{
     self, ATTACK_DAMAGE, ATTACK_KNOCKBACK, EQUIPMENT_SLOTS, HurtOutcome, HurtSource,
 };
+use rspigot_domain::entity::neutral;
 use rspigot_domain::entity::physics::{Landing, water_height};
 use rspigot_domain::entity::reward::EquipmentDrop;
 use rspigot_domain::entity::species::{self, Species};
+use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{
     Aabb, ActivationType, Entities, Entity, EntityState, FLAG_INVISIBLE, RemovalReason,
     activation_type, reward,
@@ -30,6 +33,7 @@ use rspigot_entities::{
 use rspigot_items::EquipmentSlot;
 use rspigot_items::ItemKind;
 use rustc_hash::FxHashMap;
+use uuid::Uuid;
 
 use crate::chunks::ChunkManager;
 use crate::commands::Target;
@@ -49,6 +53,7 @@ use crate::plugins::{
 };
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use crate::spawning::LEASH;
 
 const OFFHAND_SLOT: usize = 45;
 const ARMOR_SLOTS: std::ops::Range<usize> = 5..9;
@@ -71,6 +76,8 @@ const THUNDER_SKY_ALPHA: f32 = 0.527_343_75;
 const BRIGHT_SKY_DARKEN: i32 = 4;
 const BRIGHT_LIMIT: f32 = 0.5;
 const DAMAGE_SOURCE_MEMORY: i64 = 40;
+const RETALIATION_MEMORY: i64 = 100;
+const NO_WOLF_RETALIATION: &str = "minecraft:no_wolf_retaliation";
 const PANIC_CAUSES: &str = "minecraft:panic_causes";
 pub const DEFAULT_KNOCKBACK: f64 = 0.400_000_005_960_464_5;
 pub const MIN_KNOCKBACK_DIRECTION: f64 = 9.999_999_747_378_752e-6;
@@ -170,7 +177,7 @@ fn armor_cover(filled: usize) -> f32 {
     filled as f32 / ARMOR_SLOTS.len() as f32
 }
 
-fn player_target<L>(player: &Player<L>) -> Living {
+fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
     let abilities = player.abilities();
     let held = player
         .inventory
@@ -204,10 +211,66 @@ fn player_target<L>(player: &Player<L>) -> Living {
         panicking: false,
         has_target: false,
         scared: false,
+        facts: Facts {
+            uuid: player.profile.id.0,
+            tamed: false,
+            owner: None,
+            sleeping: false,
+            last_hurt_by_mob: player.vitals.last_hurt_by_mob,
+            last_hurt_by_mob_at: player.vitals.last_hurt_by_mob_at,
+            last_hurt_mob: player.vitals.last_hurt_mob,
+            last_hurt_mob_at: player.vitals.last_hurt_mob_at,
+            retaliable: player
+                .vitals
+                .last_source
+                .is_some_and(|source| retaliable(source, game_time)),
+        },
     }
 }
 
-fn entity_target(entity: &Entity) -> Option<Living> {
+fn retaliable(source: (DamageType, i64), game_time: i64) -> bool {
+    let (kind, at) = source;
+    game_time - at <= RETALIATION_MEMORY && !kind.in_tag(NO_WOLF_RETALIATION)
+}
+
+fn entity_facts(
+    entity: &Entity,
+    state: &LivingState,
+    game_time: i64,
+    resolve: &impl Fn(Uuid) -> Option<EntityId>,
+) -> Facts {
+    let base = &entity.base;
+    let tame =
+        state.mob.as_ref().is_some_and(|mob| mob.tamable.is_some()) && tamable::is_tame(base);
+    Facts {
+        uuid: base.uuid,
+        tamed: tame,
+        owner: tame
+            .then(|| tamable::owner(base))
+            .flatten()
+            .and_then(resolve),
+        sleeping: matches!(
+            base.data.get(rspigot_domain::entity::DATA_POSE),
+            Some(rspigot_domain::entity::SyncedValue::Pose(
+                rspigot_domain::entity::Pose::Sleeping
+            ))
+        ),
+        last_hurt_by_mob: state.damage.last_hurt_by_mob,
+        last_hurt_by_mob_at: state.damage.last_hurt_by_mob_at,
+        last_hurt_mob: state.damage.last_hurt_mob,
+        last_hurt_mob_at: state.damage.last_hurt_mob_at,
+        retaliable: state
+            .damage
+            .last_source
+            .is_some_and(|source| retaliable(source, game_time)),
+    }
+}
+
+fn entity_target(
+    entity: &Entity,
+    game_time: i64,
+    resolve: &impl Fn(Uuid) -> Option<EntityId>,
+) -> Option<Living> {
     let state = entity.living()?;
     let base = &entity.base;
     let dimensions = base.kind.dimensions();
@@ -263,6 +326,7 @@ fn entity_target(entity: &Entity) -> Option<Living> {
         panicking: false,
         has_target: false,
         scared: false,
+        facts: entity_facts(entity, state, game_time, resolve),
     })
 }
 
@@ -395,6 +459,16 @@ pub(crate) struct MobWorld<'a> {
     has_day_cycle: bool,
 }
 
+impl MobWorld<'_> {
+    pub(crate) fn resolve(&self, uuid: Uuid) -> Option<EntityId> {
+        self.players
+            .iter()
+            .find(|player| player.facts.uuid == uuid)
+            .map(|player| player.id)
+            .or_else(|| self.store.by_uuid(uuid))
+    }
+}
+
 impl AiView for MobWorld<'_> {
     fn state(&self, pos: BlockPos) -> Option<BlockStateId> {
         self.view.state(pos)
@@ -426,9 +500,10 @@ impl AiWorld for MobWorld<'_> {
         if let Some(player) = self.players.iter().find(|player| player.id == id) {
             return Some(*player);
         }
+        let resolve = |uuid| self.resolve(uuid);
         self.store
             .get(id)
-            .and_then(entity_target)
+            .and_then(|entity| entity_target(entity, self.game_time, &resolve))
             .map(|living| with_mob_facts(living, self.entries))
     }
 
@@ -441,11 +516,12 @@ impl AiWorld for MobWorld<'_> {
                 .copied()
                 .collect();
         }
+        let resolve = |uuid| self.resolve(uuid);
         self.store
             .iter()
             .filter(|entity| kind.matches(entity.base.kind))
             .filter(|entity| entity.base.bounding_box().intersects(area))
-            .filter_map(entity_target)
+            .filter_map(|entity| entity_target(entity, self.game_time, &resolve))
             .map(|living| with_mob_facts(living, self.entries))
             .collect()
     }
@@ -515,6 +591,30 @@ impl<L: ClientLink> Server<L> {
             ai.set_target(Some(target));
         }
         let hard = self.world.difficulty == Difficulty::Hard;
+        let game_time = self.world.level.game_time;
+        let mut remembered = None;
+        if let Some(Entity {
+            base,
+            state: EntityState::Living(living),
+            ..
+        }) = self.entities.store.get_mut(id)
+            && let Some(anger) = living.mob.as_mut().and_then(|mob| mob.neutral.as_mut())
+        {
+            anger.resolve_legacy(game_time);
+            neutral::sync(base, anger);
+            remembered = anger.target;
+        }
+        if let Some(uuid) = remembered {
+            let found = self
+                .players
+                .values()
+                .find(|player| player.profile.id.0 == uuid)
+                .map(|player| player.entity_id)
+                .or_else(|| self.entities.store.by_uuid(uuid));
+            if let Some(target) = found {
+                ai.set_target(Some(target));
+            }
+        }
         if let Some(living) = self.entities.store.get_mut(id).and_then(|e| e.living_mut()) {
             let bow = living
                 .equipment(EquipmentSlot::Mainhand)
@@ -543,11 +643,12 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn refresh_mob_players(&mut self) {
+        let game_time = self.world.level.game_time;
         let mut players: Vec<Living> = self
             .players
             .values()
             .filter(|player| !player.vitals.removed)
-            .map(player_target)
+            .map(|player| player_target(player, game_time))
             .collect();
         players.sort_by_key(|player| player.id);
         self.entities.mobs.players = players;
@@ -662,7 +763,7 @@ impl<L: ClientLink> Server<L> {
         rspigot_ai::light_magic_value(&world, pos)
     }
 
-    fn mob_view(&self, id: EntityId) -> Option<MobView> {
+    pub(crate) fn mob_view(&self, id: EntityId) -> Option<MobView> {
         let entity = self.entities.store.get(id)?;
         let state = entity.living()?;
         let base = &entity.base;
@@ -688,6 +789,17 @@ impl<L: ClientLink> Server<L> {
         view.swell_dir = species::swell_dir(base);
         view.light = self.light_at_eyes(entity);
         view.swinging = state.swing.is_some();
+        let world = self.mob_world(sky_darken(&self.world.level));
+        view.owner = view
+            .tamed
+            .then(|| tamable::owner(base))
+            .flatten()
+            .and_then(|uuid| world.resolve(uuid));
+        if let Some(neutral) = &mob.neutral {
+            view.angry = neutral.is_angry(self.world.level.game_time);
+            view.anger_target = neutral.target.and_then(|uuid| world.resolve(uuid));
+        }
+        view.leashed = entity.extra.contains_key(LEASH);
         Some(view)
     }
 

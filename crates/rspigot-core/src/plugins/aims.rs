@@ -29,6 +29,13 @@ const fn reason_of(reason: TargetReason) -> EntityTargetReason {
         TargetReason::ReinforcementTarget => EntityTargetReason::ReinforcementTarget,
         TargetReason::ForgotTarget => EntityTargetReason::ForgotTarget,
         TargetReason::Tempt => EntityTargetReason::Tempt,
+        TargetReason::TargetAttackedOwner => EntityTargetReason::TargetAttackedOwner,
+        TargetReason::OwnerAttackedTarget => EntityTargetReason::OwnerAttackedTarget,
+        TargetReason::RandomTarget => EntityTargetReason::RandomTarget,
+        TargetReason::DefendVillage => EntityTargetReason::DefendVillage,
+        TargetReason::Collision => EntityTargetReason::Collision,
+        TargetReason::PigZombieTarget => EntityTargetReason::PigZombieTarget,
+        TargetReason::FollowLeader => EntityTargetReason::FollowLeader,
         TargetReason::Unknown => EntityTargetReason::Unknown,
     }
 }
@@ -116,6 +123,26 @@ impl<L: ClientLink> Server<L> {
             tempt: false,
         };
         self.target_event(mob, request, Seeker::Mob, deferred);
+    }
+
+    pub(crate) fn forget_target(&mut self, mob: EntityId, reason: TargetReason) {
+        let Some(view) = self.entity_view(mob) else {
+            return;
+        };
+        let Some(from) = self.mob_target(mob) else {
+            return;
+        };
+        let deferred = self.defers_targets();
+        if !deferred {
+            self.point_mob(mob, None);
+        }
+        let request = TargetRequest {
+            from: Some(from),
+            to: None,
+            reason,
+            tempt: false,
+        };
+        self.target_event(view, request, Seeker::Mob, deferred);
     }
 
     fn mob_known(&self, mob: EntityId) -> bool {

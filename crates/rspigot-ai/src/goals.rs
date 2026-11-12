@@ -14,10 +14,12 @@ use crate::combat::{
 use crate::control::{MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT};
 use crate::evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 use crate::goal::{Flag, Flags, Goal, adjusted_tick_delay, reduced_tick_delay};
+use crate::neutral::ResetUniversalAngerGoal;
 use crate::rabbit::RaidGardenGoal;
 use crate::random_pos::{self, mob_light_magic_value};
+use crate::tame::{FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal};
 use crate::targeting::{self, TargetingConditions};
-use crate::world::{AiWorld, Living, TargetKind, inflate};
+use crate::world::{AiWorld, Living, MobView, TargetKind, inflate};
 
 const ITEM_TAGS: &str = "minecraft:item";
 const ENTITY_TAGS: &str = "minecraft:entity_type";
@@ -450,13 +452,15 @@ impl TemptGoal {
 pub enum TargetFilter {
     Any,
     BabyOnLand,
+    AngryAt,
 }
 
 impl TargetFilter {
-    fn accepts(self, target: &Living) -> bool {
+    fn accepts<W: AiWorld>(self, mob: &MobView, world: &W, target: &Living) -> bool {
         match self {
             Self::Any => true,
             Self::BabyOnLand => target.baby && !target.in_water,
+            Self::AngryAt => targeting::is_angry_at(mob, world, target),
         }
     }
 }
@@ -468,6 +472,7 @@ pub struct NearestAttackableTargetGoal {
     must_see: bool,
     filter: TargetFilter,
     needs_darkness: bool,
+    non_tame: bool,
     found: Option<Living>,
     unseen_ticks: i32,
 }
@@ -484,8 +489,16 @@ impl NearestAttackableTargetGoal {
             must_see,
             filter,
             needs_darkness: false,
+            non_tame: false,
             found: None,
             unseen_ticks: 0,
+        }
+    }
+
+    pub fn non_tame(kind: TargetKind, must_see: bool, filter: TargetFilter) -> Self {
+        Self {
+            non_tame: true,
+            ..Self::with(kind, TARGET_INTERVAL, must_see, filter)
         }
     }
 
@@ -500,23 +513,33 @@ impl NearestAttackableTargetGoal {
         let conditions = TargetingConditions::for_combat().range(context.mob.follow_range);
         let origin = context.mob.eye_position();
         let filter = self.filter;
+        let mob = context.mob;
+        let world = context.world;
         self.found = if self.kind == TargetKind::Player {
-            targeting::nearest_player(context, conditions, |t| filter.accepts(t), origin)
+            targeting::nearest_player(
+                context,
+                conditions,
+                |t| filter.accepts(mob, world, t),
+                origin,
+            )
         } else {
-            let follow = context.mob.follow_range;
-            let area = inflate(&context.mob.bounds(), follow, follow, follow);
-            let candidates = context.world.living_of(self.kind, &area);
+            let follow = mob.follow_range;
+            let area = inflate(&mob.bounds(), follow, follow, follow);
+            let candidates = world.living_of(self.kind, &area);
             targeting::nearest(
                 context,
                 candidates,
                 conditions,
-                |t| filter.accepts(t),
+                |t| filter.accepts(mob, world, t),
                 origin,
             )
         };
     }
 
     fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        if self.non_tame && context.mob.tamed {
+            return false;
+        }
         if self.needs_darkness
             && mob_light_magic_value(context.world, context.mob) >= SPIDER_LIGHT_LIMIT
         {
@@ -530,10 +553,20 @@ impl NearestAttackableTargetGoal {
     }
 
     fn can_continue_to_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        if self.non_tame {
+            let mob = context.mob;
+            let world = context.world;
+            let Some(found) = self.found.and_then(|found| world.living(found.id)) else {
+                return false;
+            };
+            let conditions = TargetingConditions::for_combat().range(mob.follow_range);
+            let filter = self.filter;
+            return conditions.test(context, &found, |t| filter.accepts(mob, world, t));
+        }
         let Some(target) = context.target() else {
             return false;
         };
-        if !targeting::can_attack(context.world, &target) {
+        if !targeting::mob_can_attack(context.mob, context.world, &target) {
             return false;
         }
         let follow = context.mob.follow_range;
@@ -600,6 +633,10 @@ pub enum MobGoal {
     MoveThroughVillage(MoveThroughVillageGoal),
     OcelotAttack(OcelotAttackGoal),
     RaidGarden(RaidGardenGoal),
+    SitWhenOrdered(SitWhenOrderedToGoal),
+    FollowOwner(FollowOwnerGoal),
+    OwnerTarget(OwnerTargetGoal),
+    ResetUniversalAnger(ResetUniversalAngerGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -621,11 +658,17 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::OcelotAttack(_)
             | Self::RangedBowAttack(_) => movement.with(Flag::Look),
             Self::EatBlock(_) => movement.with(Flag::Look).with(Flag::Jump),
+            Self::SitWhenOrdered(_) => movement.with(Flag::Jump),
+            Self::FollowOwner(_) => movement.with(Flag::Look),
+            Self::OwnerTarget(_) => Flags::of(Flag::Target),
             Self::LeapAtTarget(_) | Self::RemoveTurtleEgg(_) | Self::RaidGarden(_) => {
                 movement.with(Flag::Jump)
             }
             Self::NearestAttackableTarget(_) | Self::HurtByTarget(_) => Flags::of(Flag::Target),
-            Self::FollowParent(_) | Self::RestrictSun(_) | Self::BreakDoor(_) => Flags::NONE,
+            Self::FollowParent(_)
+            | Self::RestrictSun(_)
+            | Self::BreakDoor(_)
+            | Self::ResetUniversalAnger(_) => Flags::NONE,
         }
     }
 
@@ -655,6 +698,10 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::RemoveTurtleEgg(goal) => goal.can_use(context),
             Self::BreakDoor(goal) => goal.can_use(context),
             Self::MoveThroughVillage(goal) => goal.can_use(context),
+            Self::SitWhenOrdered(goal) => goal.can_use(context),
+            Self::FollowOwner(goal) => goal.can_use(context),
+            Self::OwnerTarget(goal) => goal.can_use(context),
+            Self::ResetUniversalAnger(goal) => goal.can_use(context),
         }
     }
 
@@ -684,6 +731,10 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::RestrictSun(goal) => goal.can_use(context),
             Self::RemoveTurtleEgg(goal) => goal.can_continue_to_use(context),
             Self::BreakDoor(goal) => !goal.passed() && goal.can_continue_to_use(context),
+            Self::SitWhenOrdered(goal) => goal.can_continue_to_use(context),
+            Self::FollowOwner(goal) => goal.can_continue_to_use(context),
+            Self::OwnerTarget(goal) => goal.memory().can_continue_to_use(context),
+            Self::ResetUniversalAnger(goal) => goal.can_use(context),
         }
     }
 
@@ -713,6 +764,10 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::RestrictSun(goal) => goal.start(context),
             Self::RemoveTurtleEgg(goal) => goal.start(context),
             Self::BreakDoor(goal) => goal.start(context),
+            Self::SitWhenOrdered(goal) => goal.start(context),
+            Self::FollowOwner(goal) => goal.start(context),
+            Self::OwnerTarget(goal) => goal.start(context),
+            Self::ResetUniversalAnger(goal) => goal.start(context),
         }
     }
 
@@ -742,6 +797,10 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::RestrictSun(goal) => goal.stop(context),
             Self::RemoveTurtleEgg(goal) => goal.stop(context),
             Self::BreakDoor(goal) => goal.stop(context),
+            Self::SitWhenOrdered(goal) => goal.stop(context),
+            Self::FollowOwner(goal) => goal.stop(context),
+            Self::OwnerTarget(goal) => goal.memory().stop(context),
+            Self::ResetUniversalAnger(_) => {}
         }
     }
 
@@ -780,13 +839,17 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::AvoidEntity(goal) => goal.tick(context),
             Self::RemoveTurtleEgg(goal) => goal.tick(context),
             Self::BreakDoor(goal) => goal.tick(context),
+            Self::FollowOwner(goal) => goal.tick(context),
             Self::Stroll(_)
             | Self::NearestAttackableTarget(_)
             | Self::LeapAtTarget(_)
             | Self::HurtByTarget(_)
             | Self::FleeSun(_)
             | Self::RestrictSun(_)
-            | Self::MoveThroughVillage(_) => {}
+            | Self::MoveThroughVillage(_)
+            | Self::SitWhenOrdered(_)
+            | Self::OwnerTarget(_)
+            | Self::ResetUniversalAnger(_) => {}
         }
     }
 }

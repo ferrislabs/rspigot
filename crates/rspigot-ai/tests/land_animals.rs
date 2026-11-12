@@ -2,8 +2,8 @@ use std::cell::Cell;
 use std::collections::HashMap;
 
 use rspigot_ai::{
-    AiWorld, GoalSettings, Living, MORE_CARROT_TICKS, MobAction, MobAi, MobBody, MobGoal, MobView,
-    TargetKind,
+    AiWorld, Facts, GoalSettings, Living, MORE_CARROT_TICKS, MobAction, MobAi, MobBody, MobGoal,
+    MobView, TargetKind,
 };
 use rspigot_blocks::{BlockKind, StateId};
 use rspigot_domain::entity::living::LivingState;
@@ -115,6 +115,7 @@ fn living(id: i32, kind: EntityKind, position: Vec3) -> Living {
         panicking: false,
         has_target: false,
         scared: false,
+        facts: Facts::default(),
     }
 }
 

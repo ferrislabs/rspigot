@@ -41,7 +41,7 @@ use crate::plugins::{Birth, Continuation};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
-const LEASH: &str = "leash";
+pub(crate) const LEASH: &str = "leash";
 const PERSISTENCE_REQUIRED: &str = "PersistenceRequired";
 const OVERWORLD: &str = "minecraft:overworld";
 const PLAYER_WIDTH: f32 = 0.6;

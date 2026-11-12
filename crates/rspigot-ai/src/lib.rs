@@ -11,6 +11,7 @@ mod goal;
 mod goals;
 mod heap;
 mod navigation;
+mod neutral;
 mod path;
 mod path_type;
 mod profile;
@@ -20,6 +21,7 @@ mod random_pos;
 mod registry;
 mod scan;
 mod sensing;
+mod tame;
 mod targeting;
 mod view;
 mod walk;
@@ -55,6 +57,7 @@ pub use navigation::{
     MobTick, MoveTarget, Navigation, can_cut_corner, find_surface_position, ground_y, temp_mob_pos,
     waypoint_distance,
 };
+pub use neutral::ResetUniversalAngerGoal;
 pub use path::{Path, PathNode};
 pub use path_type::PathType;
 pub use profile::{MobProfile, MobState, combat_fall_distance};
@@ -68,9 +71,17 @@ pub use random_pos::{pos_away, pos_towards};
 pub use registry::{GoalSettings, ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER};
 pub use scan::{closer_to_center_than, manhattan_ordered};
 pub use sensing::{Sensing, clip_misses};
-pub use targeting::{TargetingConditions, can_attack, nearest, nearest_player, valid_target};
+pub use tame::{
+    FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal, should_try_teleport_to_owner,
+    try_to_teleport_to_owner, unable_to_move_to_owner, wants_to_attack,
+};
+pub use targeting::{
+    TargetingConditions, can_attack, goal_can_attack, is_angry_at, mob_can_attack, nearest,
+    nearest_player, valid_mob_target, valid_player_target, valid_target,
+};
 pub use view::BlockView;
 pub use walk::{block_path_type, mob_path_type};
 pub use world::{
-    AiWorld, Hand, Living, MOVEMENT_SPEED, MobBody, MobView, TEMPT_RANGE, TargetKind, inflate,
+    AiWorld, Facts, Hand, Living, MOVEMENT_SPEED, MobBody, MobView, TEMPT_RANGE, TargetKind,
+    inflate,
 };

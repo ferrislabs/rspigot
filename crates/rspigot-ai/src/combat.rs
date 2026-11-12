@@ -595,7 +595,7 @@ impl TargetMemory {
         let Some(target) = target else {
             return false;
         };
-        if !targeting::can_attack(context.world, &target) {
+        if !targeting::mob_can_attack(context.mob, context.world, &target) {
             return false;
         }
         let follow = context.mob.follow_range;

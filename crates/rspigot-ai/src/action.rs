@@ -1,5 +1,5 @@
 use rspigot_domain::particle::Particle;
-use rspigot_domain::{BlockPos, EntityId};
+use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::SoundSource;
 
 use crate::world::Hand;
@@ -13,6 +13,13 @@ pub enum TargetReason {
     ReinforcementTarget,
     ForgotTarget,
     Tempt,
+    TargetAttackedOwner,
+    OwnerAttackedTarget,
+    RandomTarget,
+    DefendVillage,
+    Collision,
+    PigZombieTarget,
+    FollowLeader,
     Unknown,
 }
 
@@ -59,4 +66,7 @@ pub enum MobAction {
     },
     BreakDoor(BlockPos),
     RaidCarrot(BlockPos),
+    SetSitting(bool),
+    TeleportTo(Vec3),
+    ForgetAndRefreshAnger(EntityId),
 }

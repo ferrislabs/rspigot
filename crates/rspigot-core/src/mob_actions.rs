@@ -107,6 +107,9 @@ impl<L: ClientLink> Server<L> {
                     stage: stage as i8,
                 },
             ),
+            MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
+            MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),
+            MobAction::ForgetAndRefreshAnger(mob) => self.forget_and_refresh_anger(mob),
             MobAction::BreakDoor(pos) => {
                 self.set_block(pos, BlockStateId::AIR);
                 self.level_event(rspigot_ai::ZOMBIE_BREAK_DOOR_EVENT, pos, 0);

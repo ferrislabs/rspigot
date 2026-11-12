@@ -105,12 +105,12 @@ impl<W: AiWorld> AiContext<'_, W> {
     pub fn target(&self) -> Option<Living> {
         let id = self.brain.target?;
         let living = self.world.living(id)?;
-        targeting::valid_target(self.world, living)
+        targeting::valid_mob_target(self.mob, self.world, living)
     }
 
     pub fn set_target(&mut self, target: Option<Living>, reason: TargetReason) {
         let to = target
-            .and_then(|living| targeting::valid_target(self.world, living))
+            .and_then(|living| targeting::valid_mob_target(self.mob, self.world, living))
             .map(|living| living.id);
         let from = self.brain.target;
         if to == from {
@@ -308,6 +308,10 @@ impl MobAi {
 
     pub fn targets(&self) -> &GoalSelector<MobGoal> {
         &self.targets
+    }
+
+    pub fn targets_mut(&mut self) -> &mut GoalSelector<MobGoal> {
+        &mut self.targets
     }
 
     pub fn brain(&self) -> &Brain {

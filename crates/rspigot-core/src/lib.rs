@@ -48,3 +48,4 @@ mod sound;
 mod spawning;
 pub mod status;
 pub mod streaming;
+mod tamable;
