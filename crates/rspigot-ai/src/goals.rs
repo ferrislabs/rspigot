@@ -756,6 +756,8 @@ pub enum MobGoal {
     Silverfish(crate::SilverfishGoal),
     IronGolem(crate::IronGolemGoal),
     Ghast(crate::ghast::GhastGoal),
+    Raider(crate::raider::RaiderGoal),
+    WitchTarget(crate::raider::NearestAttackableWitchTargetGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -800,6 +802,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Raider(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -845,6 +849,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::can_use(goal, context),
             Self::IronGolem(goal) => Goal::can_use(goal, context),
             Self::Ghast(goal) => Goal::can_use(goal, context),
+            Self::Raider(goal) => Goal::can_use(goal, context),
+            Self::WitchTarget(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -889,6 +895,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::can_continue_to_use(goal, context),
             Self::IronGolem(goal) => Goal::can_continue_to_use(goal, context),
             Self::Ghast(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Raider(goal) => Goal::can_continue_to_use(goal, context),
+            Self::WitchTarget(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
 
@@ -903,6 +911,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Raider(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             _ => true,
         }
     }
@@ -949,6 +959,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::start(goal, context),
             Self::IronGolem(goal) => Goal::start(goal, context),
             Self::Ghast(goal) => Goal::start(goal, context),
+            Self::Raider(goal) => Goal::start(goal, context),
+            Self::WitchTarget(goal) => Goal::start(goal, context),
         }
     }
 
@@ -994,6 +1006,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::stop(goal, context),
             Self::IronGolem(goal) => Goal::stop(goal, context),
             Self::Ghast(goal) => Goal::stop(goal, context),
+            Self::Raider(goal) => Goal::stop(goal, context),
+            Self::WitchTarget(goal) => Goal::stop(goal, context),
         }
     }
 
@@ -1008,6 +1022,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Raider(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::BlazeAttack(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             _ => self.requires_update_every_tick_base(),
         }
@@ -1024,6 +1040,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::tick(goal, context),
             Self::IronGolem(goal) => Goal::tick(goal, context),
             Self::Ghast(goal) => Goal::tick(goal, context),
+            Self::Raider(goal) => Goal::tick(goal, context),
+            Self::WitchTarget(goal) => Goal::tick(goal, context),
             Self::BlazeAttack(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
         }
@@ -1082,6 +1100,8 @@ impl MobGoal {
             | Self::BlazeAttack(_)
             | Self::MoveTowardsRestriction(_)
             | Self::Ghast(_)
+            | Self::Raider(_)
+            | Self::WitchTarget(_)
             | Self::Wolf(_)
             | Self::Cat(_)
             | Self::Fox(_)

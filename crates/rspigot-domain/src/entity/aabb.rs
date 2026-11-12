@@ -151,6 +151,30 @@ impl Aabb {
         self.inflate(-amount)
     }
 
+    pub fn inflate_by(&self, x: f64, y: f64, z: f64) -> Self {
+        Self::new(
+            self.min_x - x,
+            self.min_y - y,
+            self.min_z - z,
+            self.max_x + x,
+            self.max_y + y,
+            self.max_z + z,
+        )
+    }
+
+    pub fn distance_to_sqr_box(&self, other: &Self) -> f64 {
+        let dx = (other.min_x - self.max_x)
+            .max(self.min_x - other.max_x)
+            .max(0.0);
+        let dy = (other.min_y - self.max_y)
+            .max(self.min_y - other.max_y)
+            .max(0.0);
+        let dz = (other.min_z - self.max_z)
+            .max(self.min_z - other.max_z)
+            .max(0.0);
+        dx * dx + dy * dy + dz * dz
+    }
+
     pub fn intersects(&self, other: &Self) -> bool {
         self.min_x < other.max_x
             && self.max_x > other.min_x
@@ -196,5 +220,34 @@ mod tests {
             Axis::step_order(Vec3::new(0.5, 0.0, 0.5)),
             [Axis::Y, Axis::X, Axis::Z]
         );
+    }
+
+    #[test]
+    fn the_distance_between_boxes_is_zero_when_they_touch_or_overlap() {
+        let one = Aabb::new(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+        assert_eq!(
+            one.distance_to_sqr_box(&Aabb::new(0.5, 0.5, 0.5, 2.0, 2.0, 2.0)),
+            0.0
+        );
+        assert_eq!(
+            one.distance_to_sqr_box(&Aabb::new(1.0, 0.0, 0.0, 2.0, 1.0, 1.0)),
+            0.0
+        );
+    }
+
+    #[test]
+    fn the_distance_between_boxes_is_taken_between_their_nearest_faces() {
+        let one = Aabb::new(0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+        let apart = Aabb::new(4.0, 0.0, 5.0, 5.0, 1.0, 6.0);
+        assert_eq!(one.distance_to_sqr_box(&apart), 9.0 + 16.0);
+        assert_eq!(apart.distance_to_sqr_box(&one), 25.0);
+        let below = Aabb::new(0.0, -3.0, 0.0, 1.0, -2.0, 1.0);
+        assert_eq!(one.distance_to_sqr_box(&below), 4.0);
+    }
+
+    #[test]
+    fn inflating_by_axis_grows_each_side_by_its_own_amount() {
+        let grown = Aabb::new(0.0, 0.0, 0.0, 1.0, 1.0, 1.0).inflate_by(4.0, 2.0, 3.0);
+        assert_eq!(grown, Aabb::new(-4.0, -2.0, -3.0, 5.0, 3.0, 4.0));
     }
 }
