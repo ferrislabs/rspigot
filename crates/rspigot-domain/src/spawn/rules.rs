@@ -67,6 +67,9 @@ pub fn check_predicate(
         SpawnPredicate::PolarBear => {
             super::polar_bear::check_polar_bear_spawn_rules(level, reason, pos)
         }
+        SpawnPredicate::Silverfish => {
+            super::silverfish::check_spawn_rules(level, kind, reason, pos)
+        }
         _ => return None,
     })
 }
@@ -112,6 +115,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Wolf
                 | SpawnPredicate::PolarBear
                 | SpawnPredicate::ZombifiedPiglin
+                | SpawnPredicate::Silverfish
         )
     });
     let walk = match spawn.check_spawn_rules {
@@ -123,6 +127,8 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Animal
                     | MobClass::MushroomCow
                     | MobClass::Monster
+                    | MobClass::Silverfish
+                    | MobClass::Giant
             )
         ),
         _ => false,
@@ -230,6 +236,8 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
             }
         }
         MobClass::Monster => -(level.light_level_dependent_magic_value(pos) - 0.5),
+        MobClass::Silverfish => super::silverfish::walk_target_value(level, pos),
+        MobClass::Giant => level.light_level_dependent_magic_value(pos) - 0.5,
         _ => return None,
     })
 }

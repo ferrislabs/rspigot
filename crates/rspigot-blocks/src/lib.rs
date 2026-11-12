@@ -1,6 +1,7 @@
 #[rustfmt::skip]
 mod blocks;
 pub mod family;
+pub mod infested;
 #[rustfmt::skip]
 mod kind;
 #[rustfmt::skip]

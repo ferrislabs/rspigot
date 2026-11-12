@@ -89,7 +89,9 @@ pub use random_pos::{pos_away, pos_towards};
 pub use registry::{GoalSettings, ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER};
 pub use scan::{closer_to_center_than, manhattan_ordered};
 pub use sensing::{Sensing, clip_misses};
-pub use silverfish::{SilverfishAction, SilverfishFacts, SilverfishGoal};
+pub use silverfish::{
+    MergeWithStoneGoal, SilverfishAction, SilverfishFacts, SilverfishGoal, WakeUpFriendsGoal,
+};
 pub use tame::{
     FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal, should_try_teleport_to_owner,
     try_to_teleport_to_owner, unable_to_move_to_owner, wants_to_attack,

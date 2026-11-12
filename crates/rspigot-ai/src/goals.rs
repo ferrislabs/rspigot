@@ -107,6 +107,13 @@ impl RandomStrollGoal {
         }
     }
 
+    pub fn with_interval(speed_modifier: f64, interval: i32) -> Self {
+        Self {
+            interval,
+            ..Self::new(speed_modifier)
+        }
+    }
+
     pub fn water_avoiding(speed_modifier: f64) -> Self {
         Self {
             water_avoiding: Some(WATER_AVOIDING_PROBABILITY),
@@ -148,7 +155,7 @@ impl RandomStrollGoal {
         }
     }
 
-    fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         let this = *self;
         self.can_use_with(context, |context| this.position(context))
     }

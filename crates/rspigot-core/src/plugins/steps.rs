@@ -551,6 +551,7 @@ pub(crate) enum Spawned {
         connection: u64,
         request: u64,
     },
+    Poof,
 }
 
 #[derive(Debug)]
@@ -771,6 +772,16 @@ pub(crate) enum Grief {
         fox: EntityId,
         pos: BlockPos,
         glow: bool,
+    },
+    Merge {
+        silverfish: EntityId,
+        pos: BlockPos,
+    },
+    WakeFriends {
+        silverfish: EntityId,
+        origin: BlockPos,
+        next: u32,
+        pos: BlockPos,
     },
 }
 
@@ -1096,6 +1107,9 @@ impl Continuation {
                 Grief::Graze { sheep, .. } => *sheep == id,
                 Grief::Raid { rabbit, .. } => *rabbit == id,
                 Grief::Berries { fox, .. } => *fox == id,
+                Grief::Merge { silverfish, .. } | Grief::WakeFriends { silverfish, .. } => {
+                    *silverfish == id
+                }
             },
             Self::EggBreak { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),

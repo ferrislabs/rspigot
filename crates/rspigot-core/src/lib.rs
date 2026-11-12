@@ -26,6 +26,7 @@ mod falling;
 mod fire;
 mod fluids;
 pub mod health;
+mod infestation;
 mod input;
 mod interact;
 mod items;

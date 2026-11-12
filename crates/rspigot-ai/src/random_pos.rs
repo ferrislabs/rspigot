@@ -12,6 +12,7 @@ const RANDOM_POS_ATTEMPTS: usize = 10;
 pub(crate) const HALF_PI: f64 = 1.570_796_370_506_286_6;
 const SQRT_OF_TWO: f32 = std::f32::consts::SQRT_2;
 const GRASS_WALK_VALUE: f32 = 10.0;
+const INFESTED_WALK_VALUE: f32 = 10.0;
 
 pub fn light_magic_value(world: &impl AiWorld, pos: BlockPos) -> f32 {
     let level = world.raw_brightness(pos) as f32 / 15.0;
@@ -35,6 +36,14 @@ pub fn walk_target_value(kind: EntityKind, world: &impl AiWorld, pos: BlockPos) 
         } else {
             light_magic_value(world, pos) - 0.5
         }
+    } else if kind == EntityKind::Silverfish
+        && world
+            .state(pos.offset(0, -1, 0))
+            .is_some_and(rspigot_blocks::infested::is_compatible_host_block)
+    {
+        INFESTED_WALK_VALUE
+    } else if kind == EntityKind::Giant {
+        light_magic_value(world, pos) - 0.5
     } else if kind.extends("Monster") {
         -(light_magic_value(world, pos) - 0.5)
     } else {

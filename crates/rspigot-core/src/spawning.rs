@@ -227,6 +227,15 @@ impl<L: ClientLink> SpawnLevel for Server<L> {
     fn no_entity_collision(&self, area: &Aabb) -> bool {
         !self.entity_in(area, collides_with_spawns)
     }
+
+    fn survival_player_within(&self, center: Vec3, distance: f64) -> bool {
+        self.players.values().any(|player| {
+            !player.vitals.removed
+                && player.game_mode != GameMode::Spectator
+                && player.game_mode != GameMode::Creative
+                && player.position.distance_squared(center) < distance * distance
+        })
+    }
 }
 
 impl<L: ClientLink> RandomSource for Server<L> {
@@ -621,6 +630,10 @@ impl SpawnLevel for Generation<'_> {
     fn no_entity_collision(&self, _: &Aabb) -> bool {
         true
     }
+
+    fn survival_player_within(&self, _: Vec3, _: f64) -> bool {
+        false
+    }
 }
 
 impl RandomSource for Generation<'_> {
@@ -751,6 +764,7 @@ mod tests {
                 EntityKind::PolarBear,
                 EntityKind::Rabbit,
                 EntityKind::Sheep,
+                EntityKind::Silverfish,
                 EntityKind::Skeleton,
                 EntityKind::Spider,
                 EntityKind::Stray,

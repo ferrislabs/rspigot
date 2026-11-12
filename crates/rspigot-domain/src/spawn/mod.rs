@@ -6,6 +6,7 @@ pub mod natural;
 pub mod placement;
 mod polar_bear;
 pub mod rules;
+pub mod silverfish;
 pub mod state;
 pub mod wolf;
 mod zombified_piglin;
@@ -20,7 +21,7 @@ use crate::entity::physics::has_tag;
 use crate::entity::{Aabb, BlockView};
 use crate::random::{RandomSource, random_between_inclusive};
 use crate::world::{Difficulty, WorldHeight};
-use crate::{BiomeId, BlockPos, BlockStateId};
+use crate::{BiomeId, BlockPos, BlockStateId, Vec3};
 
 pub use biome::{noise_biome, zoomed_biome};
 
@@ -120,6 +121,7 @@ pub trait SpawnLevel: BlockView {
     fn top_height(&self, heightmap: SpawnHeightmap, x: i32, z: i32) -> i32;
     fn is_unobstructed(&self, area: &Aabb) -> bool;
     fn no_entity_collision(&self, area: &Aabb) -> bool;
+    fn survival_player_within(&self, center: Vec3, distance: f64) -> bool;
 
     fn raw_brightness(&self, pos: BlockPos, darken: i32) -> i32 {
         (self.sky_light(pos) - darken).max(self.block_light(pos))

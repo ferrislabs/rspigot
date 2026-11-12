@@ -346,6 +346,7 @@ impl<L: ClientLink> Server<L> {
             return false;
         };
         self.pop_block_loot(pos, &LootContext::block(state, None, None));
+        self.spawn_after_break(pos, state, None);
         self.set_block(pos, BlockStateId::AIR)
     }
 

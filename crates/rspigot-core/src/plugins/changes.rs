@@ -55,6 +55,13 @@ impl<L: ClientLink> Server<L> {
                     self.finish_berries(fox, pos, glow);
                 }
             }
+            Grief::Merge { silverfish, pos } => self.finish_merge(silverfish, pos, cancelled),
+            Grief::WakeFriends {
+                silverfish,
+                origin,
+                next,
+                pos,
+            } => self.finish_wake_friend(silverfish, origin, next, pos, cancelled),
         }
     }
 }
