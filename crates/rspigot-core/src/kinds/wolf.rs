@@ -241,7 +241,7 @@ impl<L: ClientLink> Server<L> {
             return false;
         }
         let kind: DamageType = source.kind;
-        let mut worn = living::final_damage(&mut state.clone(), kind, amount);
+        let mut worn = living::final_damage(&mut state.clone(), kind, false, amount);
         if cooling {
             worn -= state.last_hurt;
         }

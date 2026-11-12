@@ -1,5 +1,6 @@
 use std::num::NonZeroU8;
 
+use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 use uuid::Uuid;
 
@@ -7,6 +8,7 @@ use super::arrow;
 use super::base::EntityBase;
 use super::data::SyncedValue;
 use crate::item::ItemStack;
+use crate::potion;
 use crate::random::{LegacyRandom, RandomSource};
 use crate::{Vec3, mth};
 
@@ -33,10 +35,34 @@ pub fn default_item() -> ItemStack {
     ItemStack::new(ItemKind::Snowball.id(), NonZeroU8::MIN)
 }
 
+pub fn is_potion(kind: EntityKind) -> bool {
+    kind == EntityKind::SplashPotion
+}
+
+pub fn is_thrown(kind: EntityKind) -> bool {
+    kind == EntityKind::Snowball || is_potion(kind)
+}
+
+pub fn default_item_of(kind: EntityKind) -> ItemStack {
+    match kind {
+        EntityKind::SplashPotion => ItemStack::new(ItemKind::SplashPotion.id(), NonZeroU8::MIN),
+        _ => default_item(),
+    }
+}
+
+pub fn gravity(kind: EntityKind) -> f64 {
+    match kind {
+        EntityKind::SplashPotion => potion::GRAVITY,
+        _ => GRAVITY,
+    }
+}
+
 impl ThrownState {
     pub fn new(base: &mut EntityBase, seed: i64) -> Self {
-        base.data
-            .define(DATA_ITEM_STACK, SyncedValue::Item(Some(default_item())));
+        base.data.define(
+            DATA_ITEM_STACK,
+            SyncedValue::Item(Some(default_item_of(base.kind))),
+        );
         Self {
             owner: None,
             left_owner: false,
@@ -95,7 +121,7 @@ pub fn shoot(
 
 pub fn apply_gravity(base: &mut EntityBase) {
     if !base.is_no_gravity() {
-        base.velocity = base.velocity + Vec3::new(0.0, -GRAVITY, 0.0);
+        base.velocity = base.velocity + Vec3::new(0.0, -gravity(base.kind), 0.0);
     }
 }
 
@@ -258,6 +284,88 @@ mod tests {
                 .and_then(|item| item.get_str("id")),
             Some("minecraft:snowball")
         );
+        let again = load_entity(&saved, EntityId(1), Uuid::from_u128(1)).unwrap();
+        assert_eq!(save_entity(&again, None), Some(saved));
+    }
+
+    fn splash_potion() -> (EntityBase, ThrownState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::SplashPotion);
+        let state = ThrownState::new(&mut base, 9);
+        (base, state)
+    }
+
+    #[test]
+    fn a_splash_potion_carries_a_splash_potion_item_in_the_same_data_slot() {
+        let (base, _) = splash_potion();
+        assert_eq!(
+            item(&base).map(|stack| stack.item),
+            Some(ItemKind::SplashPotion.id())
+        );
+        assert!(is_potion(EntityKind::SplashPotion));
+        assert!(is_thrown(EntityKind::SplashPotion));
+        assert!(!is_potion(EntityKind::Snowball));
+    }
+
+    #[test]
+    fn a_splash_potion_falls_at_five_hundredths_and_slows_with_the_same_drag() {
+        let (mut base, _) = splash_potion();
+        base.velocity = Vec3::new(0.5, 0.2, -0.3);
+        let drag = f64::from(0.99f32);
+        let mut expected = base.velocity;
+        for _ in 0..40 {
+            apply_gravity(&mut base);
+            apply_inertia(&mut base);
+            expected = (expected + Vec3::new(0.0, -0.05, 0.0)).scale(drag);
+            assert_eq!(base.velocity, expected);
+        }
+    }
+
+    #[test]
+    fn a_splash_potion_launches_like_any_thrown_projectile() {
+        let (mut base, mut state) = splash_potion();
+        shoot(&mut base, &mut state, Vec3::new(0.0, 0.0, 5.0), 0.75, 0.0);
+        assert_eq!(base.velocity, Vec3::new(0.0, 0.0, f64::from(0.75f32)));
+        let mut random = LegacyRandom::new(5);
+        let mut mirror = LegacyRandom::new(5);
+        let spread = 0.0172275 * f64::from(8.0f32);
+        let jitter = Vec3::new(
+            mirror.triangle(0.0, spread),
+            mirror.triangle(0.0, spread),
+            mirror.triangle(0.0, spread),
+        );
+        let direction = Vec3::new(1.0, 2.0, 3.0);
+        assert_eq!(
+            movement_to_shoot(&mut random, direction, 0.75, 8.0),
+            (direction.normalize() + jitter).scale(f64::from(0.75f32))
+        );
+    }
+
+    #[test]
+    fn a_splash_potion_round_trips_its_potion_through_nbt() {
+        use crate::entity::save::{is_simulated, load_entity, save_entity};
+        use rspigot_nbt::Compound;
+        assert!(is_simulated(EntityKind::SplashPotion));
+        let nbt = Compound::new().with("id", "minecraft:splash_potion").with(
+            "Item",
+            Compound::new()
+                .with("id", "minecraft:splash_potion")
+                .with("count", 1)
+                .with(
+                    "components",
+                    Compound::new().with(
+                        "minecraft:potion_contents",
+                        Compound::new().with("potion", "minecraft:healing"),
+                    ),
+                ),
+        );
+        let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        let stack = match &entity.state {
+            crate::entity::EntityState::Thrown(_) => item(&entity.base).unwrap(),
+            _ => panic!("a splash potion loads as a thrown projectile"),
+        };
+        assert_eq!(stack.item, ItemKind::SplashPotion.id());
+        assert!(crate::potion::PotionContents::of(&stack).is(crate::potion::HEALING));
+        let saved = save_entity(&entity, None).unwrap();
         let again = load_entity(&saved, EntityId(1), Uuid::from_u128(1)).unwrap();
         assert_eq!(save_entity(&again, None), Some(saved));
     }

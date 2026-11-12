@@ -313,6 +313,24 @@ impl MobAi {
         self.pending.push(GoalChange::CatTame(tame));
     }
 
+    pub fn raider_ai_step(&mut self) {
+        let mut cooldown = None;
+        for goal in self.targets.goals_mut() {
+            if let MobGoal::Raider(crate::RaiderGoal::HealRaiders(heal)) = goal {
+                heal.decrement_cooldown();
+                cooldown = Some(heal.cooldown());
+            }
+        }
+        let Some(cooldown) = cooldown else {
+            return;
+        };
+        for goal in self.targets.goals_mut() {
+            if let MobGoal::WitchTarget(attack) = goal {
+                attack.set_can_attack(cooldown < 1);
+            }
+        }
+    }
+
     pub fn is_tempting(&self) -> bool {
         self.goals.goals().iter().any(|goal| {
             goal.is_running() && matches!(goal.goal(), MobGoal::Tempt(tempt) if tempt.is_running())

@@ -93,7 +93,7 @@ const FLAG_SPRINTING: u8 = 8;
 const SPRINT_JUMP_BOOST: f64 = 0.2;
 const SPRINT_SPEED_BONUS: f64 = 0.300_000_011_920_928_96;
 const SPRINTING_MODIFIER: &str = "minecraft:sprinting";
-const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
+pub const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
 const HOP_SPEED: f32 = 0.1;
 const HOP_HORIZONTAL_LIMIT: f64 = 0.01;
 const JUMP_OUT_STEP: f64 = 0.600_000_023_841_857_9;
@@ -419,6 +419,7 @@ pub struct HurtSource<'a> {
     pub living_cause: bool,
     pub creative_attacker: bool,
     pub reflected_fireball: bool,
+    pub self_inflicted: bool,
 }
 
 impl HurtSource<'_> {
@@ -430,6 +431,7 @@ impl HurtSource<'_> {
             living_cause: false,
             creative_attacker: false,
             reflected_fireball: false,
+            self_inflicted: false,
         }
     }
 }
@@ -694,6 +696,14 @@ pub fn is_dead_or_dying(base: &EntityBase, living: &LivingState) -> bool {
     living.dead || health(base) <= 0.0
 }
 
+pub fn is_sensitive_to_water(kind: rspigot_entities::EntityKind) -> bool {
+    use rspigot_entities::EntityKind;
+    matches!(
+        kind,
+        EntityKind::SnowGolem | EntityKind::Enderman | EntityKind::Strider | EntityKind::Blaze
+    )
+}
+
 pub fn fall_damage_immune(kind: rspigot_entities::EntityKind) -> bool {
     rspigot_data::tags::tag(ENTITY_TYPES, FALL_DAMAGE_IMMUNE)
         .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
@@ -728,6 +738,20 @@ fn after_magic(living: &LivingState, kind: DamageType, amount: f32) -> f32 {
     if amount <= 0.0 { 0.0 } else { amount }
 }
 
+fn species_absorb(
+    living: &LivingState,
+    kind: DamageType,
+    self_inflicted: bool,
+    amount: f32,
+) -> f32 {
+    match living.mob.as_ref().map(|mob| &mob.species) {
+        Some(Species::Witch(_)) => {
+            super::species::witch::magic_absorb(amount, kind, self_inflicted)
+        }
+        _ => amount,
+    }
+}
+
 pub fn actually_hurt(
     base: &mut EntityBase,
     living: &mut LivingState,
@@ -746,6 +770,7 @@ pub fn actually_hurt(
         amount = damage::after_armor(amount, armor, toughness);
     }
     amount = after_magic(living, kind, amount);
+    amount = species_absorb(living, kind, source.self_inflicted, amount);
     let max_absorption = living.attribute(MAX_ABSORPTION) as f32;
     let before = amount;
     amount = (amount - living.absorption).max(0.0);
@@ -791,7 +816,12 @@ fn helmeted(living: &LivingState, kind: DamageType, amount: f32) -> f32 {
     amount
 }
 
-pub fn final_damage(living: &mut LivingState, kind: DamageType, amount: f32) -> f32 {
+pub fn final_damage(
+    living: &mut LivingState,
+    kind: DamageType,
+    self_inflicted: bool,
+    amount: f32,
+) -> f32 {
     let mut amount = helmeted(living, kind, floored(amount));
     if !kind.is(DamageTag::BypassesArmor) {
         let armor = living.attribute(ARMOR).floor() as f32;
@@ -799,6 +829,7 @@ pub fn final_damage(living: &mut LivingState, kind: DamageType, amount: f32) -> 
         amount = damage::after_armor(amount, armor, toughness);
     }
     amount = after_magic(living, kind, amount);
+    amount = species_absorb(living, kind, self_inflicted, amount);
     (amount - living.absorption).max(0.0)
 }
 
@@ -1353,6 +1384,45 @@ mod tests {
         (base, living)
     }
 
+    fn witch() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Witch);
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    #[test]
+    fn a_witch_keeps_fifteen_percent_of_magic_and_nothing_of_its_own_damage() {
+        let hurt = |kind: DamageType, self_inflicted: bool| {
+            let (mut base, mut living) = witch();
+            let full = health(&base);
+            let source = HurtSource {
+                self_inflicted,
+                ..HurtSource::plain(kind)
+            };
+            actually_hurt(&mut base, &mut living, &source, 10.0, 0);
+            full - health(&base)
+        };
+        assert_eq!(hurt(DamageType::Magic, false), 10.0 * 0.15);
+        assert_eq!(hurt(DamageType::IndirectMagic, false), 10.0 * 0.15);
+        assert_eq!(hurt(DamageType::MobAttack, false), 10.0);
+        assert_eq!(hurt(DamageType::MobAttack, true), 0.0);
+        assert_eq!(hurt(DamageType::IndirectMagic, true), 0.0);
+        let (_, mut living) = witch();
+        assert_eq!(
+            final_damage(&mut living, DamageType::Magic, false, 10.0),
+            10.0 * 0.15
+        );
+        assert_eq!(
+            final_damage(&mut living, DamageType::Magic, true, 10.0),
+            0.0
+        );
+        let (_, mut zombie) = zombie();
+        assert_eq!(
+            final_damage(&mut zombie, DamageType::Magic, false, 10.0),
+            10.0
+        );
+    }
+
     #[test]
     fn polar_bears_slow_down_less_in_water_than_other_mobs() {
         assert_eq!(water_slow_down(EntityKind::PolarBear), 0.98);
@@ -1380,15 +1450,18 @@ mod tests {
         let armor = living.attribute(ARMOR);
         let expected = damage::after_armor(6.0, armor.floor() as f32, 0.0);
         assert_eq!(
-            final_damage(&mut living, DamageType::MobAttack, 6.0),
+            final_damage(&mut living, DamageType::MobAttack, false, 6.0),
             expected
         );
         living.absorption = 1.5;
         assert_eq!(
-            final_damage(&mut living, DamageType::MobAttack, 6.0),
+            final_damage(&mut living, DamageType::MobAttack, false, 6.0),
             expected - 1.5
         );
-        assert_eq!(final_damage(&mut living, DamageType::Starve, -3.0), 0.0);
+        assert_eq!(
+            final_damage(&mut living, DamageType::Starve, false, -3.0),
+            0.0
+        );
         assert_eq!(living.absorption, 1.5);
     }
 

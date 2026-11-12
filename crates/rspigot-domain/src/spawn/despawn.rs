@@ -1,5 +1,6 @@
 use rspigot_entities::{EntityKind, MobClass};
 
+use crate::entity::species::raider;
 use crate::random::RandomSource;
 use crate::world::Difficulty;
 
@@ -7,13 +8,15 @@ pub const NO_ACTION_DESPAWN_TIME: i32 = 600;
 pub const RANDOM_DESPAWN_CHANCE: i32 = 800;
 const OCELOT_PERSISTENT_TICKS: i32 = 2400;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct FarAwayFacts {
     pub chicken_jockey: bool,
     pub trusting: bool,
     pub tame: bool,
     pub tick_count: i32,
     pub villager_progress: bool,
+    pub patrolling: bool,
+    pub distance_sqr: f64,
 }
 
 pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<bool> {
@@ -28,6 +31,9 @@ pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<boo
         | MobClass::Allay => false,
         MobClass::Chicken => facts.chicken_jockey,
         MobClass::ZombieVillager => !facts.villager_progress,
+        MobClass::Raider => {
+            !(facts.patrolling && facts.distance_sqr <= raider::PATROL_KEEP_DISTANCE_SQR)
+        }
         _ => return None,
     })
 }
@@ -43,6 +49,7 @@ pub struct DespawnFacts {
     pub tame: bool,
     pub tick_count: i32,
     pub villager_progress: bool,
+    pub patrolling: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -74,6 +81,8 @@ pub fn check_despawn(
         tame: facts.tame,
         tick_count: facts.tick_count,
         villager_progress: facts.villager_progress,
+        patrolling: facts.patrolling,
+        distance_sqr: distance,
     };
     let far = || remove_when_far_away(kind, far_facts).unwrap_or(false);
     let despawn = i32::from(category.despawn_distance()).pow(2);
@@ -134,6 +143,7 @@ mod tests {
             tame: false,
             tick_count: 0,
             villager_progress: false,
+            patrolling: false,
         }
     }
 
@@ -264,6 +274,28 @@ mod tests {
             ..plain
         };
         assert!(!check_despawn(&cured, Difficulty::Normal, Some(1e6), &mut random).discard);
+    }
+
+    #[test]
+    fn witches_vanish_far_away_unless_they_patrol_within_one_hundred_and_twenty_eight_blocks() {
+        let mut random = Fixed(5);
+        let witch = facts(EntityKind::Witch);
+        assert!(check_despawn(&witch, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let patrolling = DespawnFacts {
+            patrolling: true,
+            ..witch
+        };
+        let near = 128.0 * 128.0;
+        assert!(!check_despawn(&patrolling, Difficulty::Normal, Some(near), &mut random).discard);
+        assert!(
+            check_despawn(
+                &patrolling,
+                Difficulty::Normal,
+                Some(near + 1.0),
+                &mut random
+            )
+            .discard
+        );
     }
 
     #[test]

@@ -825,6 +825,34 @@ pub(crate) enum Grief {
         pos: BlockPos,
         state: BlockStateId,
     },
+    Douse {
+        potion: EntityId,
+        pos: BlockPos,
+        to: BlockStateId,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum SplashHit {
+    Block {
+        pos: BlockPos,
+        face: rspigot_blocks::Face,
+    },
+    Entity(EntityId),
+}
+
+#[derive(Debug)]
+pub(crate) struct SplashStep {
+    pub(crate) potion: EntityId,
+    pub(crate) owner: Option<EntityId>,
+    pub(crate) hit: SplashHit,
+    pub(crate) effects: Vec<EffectInstance>,
+    pub(crate) scale: f32,
+    pub(crate) affected: Vec<(EntityId, f64)>,
+    pub(crate) color: i32,
+    pub(crate) instant: bool,
+    pub(crate) silent: bool,
+    pub(crate) pos: BlockPos,
 }
 
 #[derive(Debug)]
@@ -1003,6 +1031,7 @@ pub(crate) enum Continuation {
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
     EntityExplode(Box<ExplodeStep>),
+    Splash(Box<SplashStep>),
     Prime(PrimeStep),
     Relocate(RelocateStep),
     Shoot(Box<ShotStep>),
@@ -1104,6 +1133,7 @@ impl Continuation {
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } => EventKind::EntityInteract,
             Self::EntityExplode(_) => EventKind::EntityExplode,
+            Self::Splash(_) => EventKind::PotionSplash,
             Self::Prime(_) => EventKind::ExplosionPrime,
             Self::Relocate(_) => EventKind::EntityTeleport,
             Self::Shoot(_) => EventKind::EntityShootBow,
@@ -1177,11 +1207,13 @@ impl Continuation {
                 Grief::EndermanTake { enderman, .. } | Grief::EndermanPlace { enderman, .. } => {
                     *enderman == id
                 }
+                Grief::Douse { potion, .. } => *potion == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
             Self::EggBreak { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
+            Self::Splash(step) => step.potion == id,
             Self::Prime(step) => step.source == id,
             Self::Relocate(step) => step.entity == id,
             Self::ProjectileHit { arrow, target } => *arrow == id || *target == id,

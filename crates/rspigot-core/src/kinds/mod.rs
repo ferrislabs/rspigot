@@ -24,6 +24,7 @@ mod polar_bear;
 mod rabbit;
 mod silverfish;
 mod snow_golem;
+mod witch;
 mod wolf;
 mod zombified_piglin;
 
@@ -57,6 +58,7 @@ impl<L: ClientLink> Server<L> {
             Kind::ZombifiedPiglin => self.zombified_piglin_view(entity, view),
             Kind::Rabbit => self.rabbit_view(entity, view),
             Kind::Ocelot => self.ocelot_view(entity, view),
+            Kind::Witch => self.witch_view(entity, view),
             _ => {}
         }
     }
@@ -120,6 +122,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Fox) => self.fox_ai_step(id),
             Some(Kind::Enderman) => self.enderman_ai_step(id),
             Some(Kind::Blaze) => self.blaze_ai_step(id),
+            Some(Kind::Witch) => self.witch_ai_step(id),
             _ => {}
         }
     }
