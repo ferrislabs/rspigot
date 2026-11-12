@@ -118,6 +118,8 @@ impl<L: ClientLink> Server<L> {
             MobAction::Blaze(action) => self.blaze_action(id, action),
             MobAction::Ghast(action) => self.ghast_action(id, action),
             MobAction::Raider(action) => self.raider_action(id, action),
+            MobAction::Crossbow(action) => self.crossbow_action(id, action),
+            MobAction::AmbientSound => self.play_ambient_sound(id),
             MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
             MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),
             MobAction::ForgetAndRefreshAnger(mob) => self.forget_and_refresh_anger(mob),
