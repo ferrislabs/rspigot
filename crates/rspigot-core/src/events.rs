@@ -615,6 +615,7 @@ pub enum ClientEvent {
         knockback: Option<Vec3>,
         large: bool,
         play_sound: bool,
+        gust: Option<&'static str>,
     },
     LevelEvent {
         event: i32,
