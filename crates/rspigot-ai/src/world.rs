@@ -231,6 +231,10 @@ pub trait AiWorld: BlockView {
         true
     }
 
+    fn dimension(&self) -> &str {
+        "minecraft:overworld"
+    }
+
     fn living_by_uuid(&self, _uuid: Uuid) -> Option<Living> {
         None
     }

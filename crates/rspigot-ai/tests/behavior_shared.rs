@@ -1,13 +1,15 @@
 use rspigot_ai::{
-    AdultSensor, AiContext, AiWorld, AnimalMakeLove, AwayFrom, BabyFollowAdult, BehaviorControl,
-    BehaviorCx, Brain, BrainState, DroppedItem, EntityFilter, EraseMemoryIf, Facts,
-    FollowTemptation, GoToTargetLocation, GoToWantedItem, Hand, LastDamage, Living, MeleeAttack,
+    Activity, ActivityData, AdultSensor, AiContext, AiWorld, AnimalMakeLove, AwayFrom,
+    BabyFollowAdult, BehaviorBrain, BehaviorControl, BehaviorCx, Brain, BrainState, DoNothing,
+    DroppedItem, EntityFilter, EraseMemoryIf, Facts, FollowTemptation, Gate, GlobalPos,
+    GoToTargetLocation, GoToWantedItem, Hand, InteractWith, LastDamage, Living, MeleeAttack,
     MemoryModuleType, MemoryValue, MobAction, MobBehavior, MobBody, MobControl, MobPredicate,
-    MobRandom, MobTrigger, MobView, NearestVisibleLivingEntities, PositionTracker,
-    RandomLookAround, RandomSource, RandomStroll, Sensor, SensorKind, SensorType,
-    SetEntityLookTarget, SetEntityLookTargetSometimes, SetWalkTargetAwayFrom,
-    SetWalkTargetFromAttackTargetIfTargetOutOfReach, SetWalkTargetFromLookTarget, StartAttacking,
-    Status, StopAttackCondition, StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead,
+    MobRandom, MobTrigger, MobView, NearestLivingEntitySensor, NearestVisibleLivingEntities,
+    PackedMemories, PositionTracker, RandomLookAround, RandomSource, RandomStroll, Sensor,
+    SensorKind, SensorType, SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract,
+    SetWalkTargetAwayFrom, SetWalkTargetFromAttackTargetIfTargetOutOfReach,
+    SetWalkTargetFromLookTarget, StartAttacking, Status, StopAttackCondition,
+    StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead, StrollAroundPoi, StrollToPoi,
     TargetErased, TargetFinder, TargetKind, TemptDistance, TemptItems, TemptingSensor, Timed,
     UniformInt, WalkTarget,
 };
@@ -1797,4 +1799,287 @@ fn the_cooldown_countdown_and_one_shots_register_the_memories_they_declare() {
         walk.required_memories(),
         vec![MemoryModuleType::WalkTarget, MemoryModuleType::LookTarget]
     );
+}
+
+const INTERACT_MEMORIES: [MemoryModuleType; 4] = [
+    MemoryModuleType::LookTarget,
+    MemoryModuleType::InteractionTarget,
+    MemoryModuleType::WalkTarget,
+    MemoryModuleType::NearestVisibleLivingEntities,
+];
+
+#[test]
+fn set_look_and_interact_picks_the_closest_visible_entity_of_the_type_in_range() {
+    let mut bench = Bench::zombie(&INTERACT_MEMORIES);
+    let pig = living(5, EntityKind::Pig, Vec3::new(2.5, 64.0, 0.5));
+    let far = living(6, EntityKind::Cow, Vec3::new(9.5, 64.0, 0.5));
+    let near = living(7, EntityKind::Cow, Vec3::new(4.5, 64.0, 0.5));
+    bench.see(&[pig, near, far]);
+    let mut control = shot(MobTrigger::SetLookAndInteract(SetLookAndInteract::new(
+        EntityKind::Cow,
+        6,
+    )));
+    assert!(bench.start(&mut control, NOW));
+    assert_eq!(
+        bench.get(MemoryModuleType::InteractionTarget),
+        Some(&entity(7))
+    );
+    assert_eq!(
+        bench.look_target(),
+        Some(PositionTracker::of_entity(EntityId(7), true))
+    );
+    bench.stop(&mut control, NOW);
+    assert!(!bench.start(&mut control, NOW));
+}
+
+#[test]
+fn set_look_and_interact_needs_a_candidate_in_range() {
+    let mut bench = Bench::zombie(&INTERACT_MEMORIES);
+    bench.see(&[living(6, EntityKind::Cow, Vec3::new(9.5, 64.0, 0.5))]);
+    let mut control = shot(MobTrigger::SetLookAndInteract(SetLookAndInteract::new(
+        EntityKind::Cow,
+        6,
+    )));
+    assert!(!bench.start(&mut control, NOW));
+}
+
+fn interact_with() -> MobControl {
+    shot(MobTrigger::InteractWith(InteractWith::new(
+        EntityKind::Cow,
+        8,
+        MemoryModuleType::InteractionTarget,
+        0.6,
+        2,
+    )))
+}
+
+#[test]
+fn interact_with_walks_to_the_closest_matching_entity_and_remembers_it() {
+    let mut bench = Bench::zombie(&INTERACT_MEMORIES);
+    bench.see(&[
+        living(7, EntityKind::Cow, Vec3::new(4.5, 64.0, 0.5)),
+        living(6, EntityKind::Cow, Vec3::new(7.5, 64.0, 0.5)),
+    ]);
+    assert!(bench.start(&mut interact_with(), NOW));
+    assert_eq!(
+        bench.get(MemoryModuleType::InteractionTarget),
+        Some(&entity(7))
+    );
+    assert_eq!(
+        bench.look_target(),
+        Some(PositionTracker::of_entity(EntityId(7), true))
+    );
+    let walk = bench.walk_target().unwrap();
+    assert_eq!(walk.target, PositionTracker::of_entity(EntityId(7), false));
+    assert_eq!((walk.speed_modifier, walk.close_enough_dist), (0.6, 2));
+}
+
+#[test]
+fn interact_with_succeeds_without_effect_when_the_candidates_are_all_out_of_range() {
+    let mut bench = Bench::zombie(&INTERACT_MEMORIES);
+    bench.see(&[living(6, EntityKind::Cow, Vec3::new(12.5, 64.0, 0.5))]);
+    assert!(bench.start(&mut interact_with(), NOW));
+    assert!(bench.walk_target().is_none());
+    assert!(bench.get(MemoryModuleType::InteractionTarget).is_none());
+}
+
+#[test]
+fn interact_with_needs_a_matching_visible_entity_and_no_walk_target() {
+    let mut bench = Bench::zombie(&INTERACT_MEMORIES);
+    bench.see(&[living(6, EntityKind::Pig, Vec3::new(3.5, 64.0, 0.5))]);
+    assert!(!bench.start(&mut interact_with(), NOW));
+    bench.see(&[living(7, EntityKind::Cow, Vec3::new(3.5, 64.0, 0.5))]);
+    walk_to(&mut bench, 5, 64, 5, 1.0, 0);
+    assert!(!bench.start(&mut interact_with(), NOW));
+}
+
+fn home(dimension: &str, x: i32, z: i32) -> MemoryValue {
+    MemoryValue::GlobalPos(GlobalPos {
+        dimension: dimension.to_owned(),
+        pos: BlockPos::new(x, 64, z),
+    })
+}
+
+#[test]
+fn stroll_to_poi_walks_to_a_poi_in_range_and_retries_after_eighty_ticks() {
+    let mut bench = Bench::zombie(&[MemoryModuleType::WalkTarget, MemoryModuleType::Home]);
+    bench.set(MemoryModuleType::Home, home("minecraft:overworld", 6, 0));
+    let mut control = shot(MobTrigger::StrollToPoi(StrollToPoi::new(
+        MemoryModuleType::Home,
+        0.6,
+        2,
+        100,
+    )));
+    assert!(bench.start(&mut control, NOW));
+    let walk = bench.walk_target().unwrap();
+    assert_eq!((walk.speed_modifier, walk.close_enough_dist), (0.6, 2));
+    assert_eq!(
+        walk.target.current_block_position(&bench.world),
+        Some(BlockPos::new(6, 64, 0))
+    );
+    bench.state.memories.erase(MemoryModuleType::WalkTarget);
+    bench.stop(&mut control, NOW);
+    assert!(bench.start(&mut control, NOW + 80));
+    assert!(bench.walk_target().is_none());
+    bench.stop(&mut control, NOW + 80);
+    assert!(bench.start(&mut control, NOW + 81));
+    assert!(bench.walk_target().is_some());
+}
+
+#[test]
+fn stroll_to_poi_ignores_a_poi_that_is_too_far_or_in_another_dimension() {
+    let mut control = shot(MobTrigger::StrollToPoi(StrollToPoi::new(
+        MemoryModuleType::Home,
+        0.6,
+        2,
+        10,
+    )));
+    let mut far = Bench::zombie(&[MemoryModuleType::WalkTarget, MemoryModuleType::Home]);
+    far.set(MemoryModuleType::Home, home("minecraft:overworld", 30, 0));
+    assert!(!far.start(&mut control, NOW));
+    let mut nether = Bench::zombie(&[MemoryModuleType::WalkTarget, MemoryModuleType::Home]);
+    nether.set(MemoryModuleType::Home, home("minecraft:the_nether", 3, 0));
+    assert!(!nether.start(&mut control, NOW));
+    assert!(nether.walk_target().is_none());
+}
+
+#[test]
+fn stroll_around_poi_picks_a_nearby_spot_and_waits_one_hundred_eighty_ticks() {
+    let mut bench = Bench::zombie(&[MemoryModuleType::WalkTarget, MemoryModuleType::Home]);
+    bench.set(MemoryModuleType::Home, home("minecraft:overworld", 3, 0));
+    let mut control = shot(MobTrigger::StrollAroundPoi(StrollAroundPoi::new(
+        MemoryModuleType::Home,
+        0.6,
+        5,
+    )));
+    assert!(bench.start(&mut control, NOW));
+    let walk = bench.walk_target().expect("a stroll target");
+    assert_eq!((walk.speed_modifier, walk.close_enough_dist), (0.6, 1));
+    bench.state.memories.erase(MemoryModuleType::WalkTarget);
+    bench.stop(&mut control, NOW);
+    assert!(bench.start(&mut control, NOW + 180));
+    assert!(bench.walk_target().is_none());
+    let mut far = Bench::zombie(&[MemoryModuleType::WalkTarget, MemoryModuleType::Home]);
+    far.set(MemoryModuleType::Home, home("minecraft:overworld", 30, 0));
+    assert!(!far.start(&mut control, NOW));
+}
+
+fn hoglin_like_brain(random: &mut MobRandom) -> BehaviorBrain<MobControl> {
+    let core = ActivityData::create(
+        Activity::Core,
+        0,
+        vec![
+            MobControl::default_look_at_target_sink(),
+            MobControl::move_to_target_sink(),
+        ],
+    );
+    let idle = ActivityData::create(
+        Activity::Idle,
+        10,
+        vec![
+            MobControl::one_shot(MobTrigger::StartAttacking(StartAttacking::new(
+                TargetFinder::Memory(MemoryModuleType::NearestAttackable),
+            ))),
+            MobControl::Gate(Gate::run_one(vec![
+                (
+                    MobControl::one_shot(MobTrigger::RandomStroll(RandomStroll::stroll(0.4))),
+                    2,
+                ),
+                (MobControl::DoNothing(DoNothing::new(30, 60)), 1),
+            ])),
+        ],
+    );
+    let fight = ActivityData::create_erasing(
+        Activity::Fight,
+        10,
+        vec![
+            MobControl::one_shot(MobTrigger::SetWalkTargetFromAttackTargetIfTargetOutOfReach(
+                SetWalkTargetFromAttackTargetIfTargetOutOfReach::new(1.0),
+            )),
+            MobControl::trigger_if(
+                MobPredicate::IsAdult,
+                MobControl::declared(MobTrigger::MeleeAttack(MeleeAttack::new(40))),
+            ),
+            MobControl::one_shot(MobTrigger::StopAttackingIfTargetInvalid(
+                StopAttackingIfTargetInvalid::default(),
+            )),
+        ],
+        MemoryModuleType::AttackTarget,
+    );
+    BehaviorBrain::new(
+        &[
+            MemoryModuleType::NearestAttackable,
+            MemoryModuleType::AttackTarget,
+        ],
+        vec![SensorKind::NearestLivingEntities(NearestLivingEntitySensor)],
+        vec![core, idle, fight],
+        &PackedMemories::default(),
+        random,
+    )
+}
+
+fn run_brain(
+    bench: &mut Bench,
+    brain: &mut BehaviorBrain<MobControl>,
+    ticks: i64,
+) -> Vec<MobAction> {
+    let mut actions = Vec::new();
+    for _ in 0..ticks {
+        bench.world.time += 1;
+        let mut ai = AiContext {
+            mob: &bench.mob,
+            world: &bench.world,
+            brain: &mut bench.controls,
+            body: &mut bench.body,
+        };
+        brain.tick(&mut ai);
+        actions.append(&mut bench.controls.actions);
+    }
+    actions
+}
+
+#[test]
+fn a_brain_built_from_the_shared_behaviors_strolls_while_idle() {
+    let mut bench = Bench::zombie(&[]);
+    let mut brain = hoglin_like_brain(&mut bench.controls.random);
+    run_brain(&mut bench, &mut brain, 400);
+    assert!(brain.memories().is_registered(MemoryModuleType::WalkTarget));
+    assert!(brain.memories().is_registered(MemoryModuleType::Path));
+    assert!(brain.state().is_active(Activity::Idle) && !brain.state().is_active(Activity::Fight));
+}
+
+#[test]
+fn a_brain_built_from_the_shared_behaviors_fights_a_target_in_reach_on_a_cooldown() {
+    let mut bench = Bench::zombie(&[]);
+    let mut brain = hoglin_like_brain(&mut bench.controls.random);
+    bench
+        .world
+        .others
+        .push(living(3, EntityKind::Cow, Vec3::new(1.5, 64.0, 0.5)));
+    brain.memories_mut().set(
+        MemoryModuleType::AttackTarget,
+        MemoryValue::Entity(EntityId(3)),
+    );
+    brain
+        .state_mut()
+        .set_active_activity_if_possible(Activity::Fight);
+    let actions = run_brain(&mut bench, &mut brain, 130);
+    let attacks = actions
+        .iter()
+        .filter(|action| matches!(action, MobAction::Attack(EntityId(3))))
+        .count();
+    assert!((2..=4).contains(&attacks), "attacked {attacks} times");
+    assert!(brain.state().is_active(Activity::Fight));
+    bench.world.others[0].alive = false;
+    run_brain(&mut bench, &mut brain, 25);
+    assert!(
+        brain
+            .memories()
+            .get(MemoryModuleType::AttackTarget)
+            .is_none()
+    );
+    brain
+        .state_mut()
+        .set_active_activity_if_possible(Activity::Fight);
+    assert!(!brain.state().is_active(Activity::Fight));
 }

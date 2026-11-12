@@ -45,7 +45,7 @@ pub use sinks::{AnimalPanic, LookAtTargetSink, MoveToTargetSink, RandomLookAroun
 pub use support::{EntityFilter, MobPredicate, UniformInt};
 pub use tracker::PositionTracker;
 pub use walk::{
-    AwayFrom, BabyFollowAdult, GoToTargetLocation, GoToWantedItem, RandomStroll,
-    SetEntityLookTarget, SetEntityLookTargetSometimes, SetWalkTargetAwayFrom,
-    SetWalkTargetFromLookTarget,
+    AwayFrom, BabyFollowAdult, GoToTargetLocation, GoToWantedItem, InteractWith, RandomStroll,
+    SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract, SetWalkTargetAwayFrom,
+    SetWalkTargetFromLookTarget, StrollAroundPoi, StrollToPoi,
 };

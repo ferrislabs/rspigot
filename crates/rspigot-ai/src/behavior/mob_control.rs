@@ -13,8 +13,9 @@ use crate::behavior::sinks::{
 };
 use crate::behavior::support::MobPredicate;
 use crate::behavior::walk::{
-    BabyFollowAdult, GoToTargetLocation, GoToWantedItem, RandomStroll, SetEntityLookTarget,
-    SetEntityLookTargetSometimes, SetWalkTargetAwayFrom, SetWalkTargetFromLookTarget,
+    BabyFollowAdult, GoToTargetLocation, GoToWantedItem, InteractWith, RandomStroll,
+    SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract, SetWalkTargetAwayFrom,
+    SetWalkTargetFromLookTarget, StrollAroundPoi, StrollToPoi,
 };
 use crate::world::AiWorld;
 
@@ -189,6 +190,10 @@ mob_triggers! {
     SetWalkTargetAwayFrom(SetWalkTargetAwayFrom),
     GoToWantedItem(GoToWantedItem),
     GoToTargetLocation(GoToTargetLocation),
+    SetLookAndInteract(SetLookAndInteract),
+    InteractWith(InteractWith),
+    StrollToPoi(StrollToPoi),
+    StrollAroundPoi(StrollAroundPoi),
     StartAttacking(StartAttacking),
     StopAttackingIfTargetInvalid(StopAttackingIfTargetInvalid),
     MeleeAttack(MeleeAttack),
