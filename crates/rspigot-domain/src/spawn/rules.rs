@@ -49,7 +49,7 @@ pub fn check_predicate(
     Some(match predicate {
         SpawnPredicate::Mob => check_mob_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Animal => check_animal_spawn_rules(level, reason, pos),
-        SpawnPredicate::Mushroom => check_mushroom_spawn_rules(level, reason, pos),
+        SpawnPredicate::Mushroom => check_mushroom_spawn_rules(level, pos),
         SpawnPredicate::Monster => check_monster_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::AnyLightMonster => check_mob_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::SurfaceMonsters => {
@@ -172,12 +172,11 @@ pub fn check_animal_spawn_rules(
     check_spawnable_on(level, reason, pos, ANIMALS_SPAWNABLE_ON)
 }
 
-pub fn check_mushroom_spawn_rules(
-    level: &impl SpawnLevel,
-    reason: SpawnReason,
-    pos: BlockPos,
-) -> bool {
-    check_spawnable_on(level, reason, pos, MOOSHROOMS_SPAWNABLE_ON)
+pub fn check_mushroom_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    has_tag(
+        level.block_or_air(pos.offset(0, -1, 0)),
+        MOOSHROOMS_SPAWNABLE_ON,
+    ) && is_bright_enough_to_spawn(level, pos)
 }
 
 fn check_spawnable_on(
@@ -380,6 +379,19 @@ mod tests {
             &mut grass,
             EntityKind::Mooshroom,
             SpawnReason::Natural,
+            pos
+        ));
+    }
+
+    #[test]
+    fn mooshrooms_never_ignore_the_light_requirement() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut dark = Level::floor(Mycelium::DEFAULT_STATE, 63);
+        dark.sky = 0;
+        assert!(!check_spawn_rules(
+            &mut dark,
+            EntityKind::Mooshroom,
+            SpawnReason::TrialSpawner,
             pos
         ));
     }

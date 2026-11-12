@@ -750,7 +750,7 @@ impl<L: ClientLink> Server<L> {
                 Some(Species::Zombie(zombie))
                     if matches!(
                         kind,
-                        Kind::Zombie | Kind::ZombieVillager | Kind::ZombifiedPiglin
+                        Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
                     ) =>
                 {
                     ai.set_can_break_doors(zombie.can_break_doors);
@@ -1883,6 +1883,7 @@ impl<L: ClientLink> Server<L> {
             living.damage.last_hurt_mob_at = tick_count;
         }
         self.kind_attack_sound(attacker);
+        self.zombie_attack_effects(attacker, target);
     }
 
     pub fn mob_damage(&self, id: EntityId) -> Option<MobDamageSnapshot> {

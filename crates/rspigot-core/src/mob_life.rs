@@ -1,6 +1,7 @@
 use rand::Rng;
 use rspigot_data::variants::VariantFamily;
 use rspigot_domain::damage::DamageType;
+use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
 use rspigot_domain::entity::ageable;
 use rspigot_domain::entity::fire;
 use rspigot_domain::entity::living::{self, EQUIPMENT_SLOTS, slot_index};
@@ -15,14 +16,18 @@ use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource, VoicePitch};
 use rspigot_items::EquipmentSlot;
 
+use crate::commands::Target;
 use crate::events::{ClientEvent, EntityStatus};
 use crate::health::DamageSource;
 use crate::loot::{self, LootContext};
-use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause};
+use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause, EntityRemoveCause};
 use crate::plugins::{Birth, Combuster, Continuation, Holder, Spawned};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
+const ZOMBIE_IGNITE_CHANCE: f32 = 0.3;
+const ZOMBIE_IGNITE_SECONDS: i32 = 2;
+const HUSK_HUNGER_TICKS: i32 = 140;
 const CREEPER_PRIMED: &str = "minecraft:entity.creeper.primed";
 const CHICKEN_EGG: &str = "minecraft:entity.chicken.egg";
 const CHICKEN_LAY: &str = "minecraft:gameplay/chicken_lay";
@@ -60,6 +65,7 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         Kind::Endermite => Some("minecraft:entity.endermite.ambient"),
         Kind::Sheep => Some("minecraft:entity.sheep.ambient"),
         Kind::Zombie => Some("minecraft:entity.zombie.ambient"),
+        Kind::Husk => Some("minecraft:entity.husk.ambient"),
         Kind::ZombieVillager => Some("minecraft:entity.zombie_villager.ambient"),
         Kind::PolarBear => Some(if entity.is_baby() {
             "minecraft:entity.polar_bear.ambient_baby"
@@ -188,9 +194,14 @@ impl<L: ClientLink> Server<L> {
         else {
             return;
         };
-        if base.kind != Kind::Zombie {
+        if !matches!(base.kind, Kind::Zombie | Kind::Husk) {
             return;
         }
+        let (converts_to, event) = if base.kind == Kind::Husk {
+            (Kind::Zombie, species::HUSK_CONVERSION_EVENT)
+        } else {
+            (Kind::Drowned, species::DROWNED_CONVERSION_EVENT)
+        };
         let alive = !living::is_dead_or_dying(base, state) && !base.is_removed();
         let no_ai = living::is_no_ai(base);
         let eye_in_water = base.eye_in_water;
@@ -209,7 +220,7 @@ impl<L: ClientLink> Server<L> {
             now,
         );
         if step == ConversionStep::Convert {
-            self.convert_mob(id, Kind::Drowned, species::DROWNED_CONVERSION_EVENT);
+            self.convert_mob(id, converts_to, event);
         }
     }
 
@@ -447,6 +458,67 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn zombie_attack_effects(&mut self, attacker: EntityId, target: Target) {
+        let Some(entity) = self.entities.store.get(attacker) else {
+            return;
+        };
+        let kind = entity.base.kind;
+        if !matches!(
+            kind,
+            Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
+        ) {
+            return;
+        }
+        let bare = entity
+            .living()
+            .is_some_and(|living| living.equipment(EquipmentSlot::Mainhand).is_none());
+        if !bare {
+            return;
+        }
+        let effective = self.difficulty_at(entity.base.position.block()).effective;
+        let on_fire = fire::is_on_fire(&entity.base);
+        if on_fire {
+            let mut random = self.mob_random(attacker);
+            let ignite = random.next_float() < effective * ZOMBIE_IGNITE_CHANCE;
+            self.store_mob_random(attacker, random);
+            if ignite && let Some(source) = self.entity_view(attacker) {
+                let holder = match target {
+                    Target::Player(player) => Holder::Player(player),
+                    Target::Entity(entity) => Holder::Mob(entity),
+                };
+                self.combust(
+                    holder,
+                    (ZOMBIE_IGNITE_SECONDS * effective as i32) as f32,
+                    Combuster::Entity(source),
+                );
+            }
+        }
+        let living_target = match target {
+            Target::Player(_) => true,
+            Target::Entity(entity) => self
+                .entities
+                .store
+                .get(entity)
+                .is_some_and(|e| e.living().is_some()),
+        };
+        if kind == Kind::Husk
+            && living_target
+            && let Some(hunger) = EffectId::from_name("minecraft:hunger")
+        {
+            let ticks = (HUSK_HUNGER_TICKS * effective as i32).max(0) as u32;
+            let effect = EffectInstance::new(hunger, EffectDuration::Ticks(ticks), 0, true);
+            let cause = EntityPotionEffectCause::Attack;
+            match target {
+                Target::Player(player) => {
+                    self.apply_effect(player, effect, Some(cause));
+                }
+                Target::Entity(entity) => {
+                    self.apply_entity_effect(entity, effect, cause);
+                }
+            }
+        }
+    }
+
     pub(crate) fn damage_mob_equipment(&mut self, id: EntityId, slot: EquipmentSlot, amount: i32) {
         if amount == 0 {
             return;
@@ -570,7 +642,7 @@ impl<L: ClientLink> Server<L> {
         }
         living::set_left_handed(&mut base, living::is_left_handed(&old_base));
         living::set_no_ai(&mut base, living::is_no_ai(&old_base));
-        if kind == Kind::Drowned {
+        if species::is_zombie(kind) {
             let difficulty = self.difficulty_at(old_base.position.block());
             let mut own = LegacyRandom::new(self.rng.random());
             rspigot_domain::entity::spawn::zombie_handle_attributes(
@@ -679,7 +751,7 @@ impl<L: ClientLink> Server<L> {
         let kind = entity.base.kind;
         if !matches!(
             kind,
-            Kind::Zombie | Kind::ZombieVillager | Kind::ZombifiedPiglin
+            Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
         ) {
             return;
         }

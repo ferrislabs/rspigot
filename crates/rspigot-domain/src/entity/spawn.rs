@@ -403,6 +403,9 @@ fn zombie_finalize(
     }
     halloween_head(living, environment, level);
     zombie_handle_attributes(base, living, special, reason, own);
+    if base.kind == EntityKind::Husk && reason != SpawnReason::Conversion {
+        set_can_pick_up_loot(living, level.next_float() < PICK_UP_LOOT_CHANCE * special);
+    }
     Some(group)
 }
 
@@ -505,7 +508,10 @@ pub fn finalize_spawn(
         Some(Species::Zombie(_))
             if matches!(
                 kind,
-                EntityKind::Zombie | EntityKind::ZombieVillager | EntityKind::ZombifiedPiglin
+                EntityKind::Zombie
+                    | EntityKind::Husk
+                    | EntityKind::ZombieVillager
+                    | EntityKind::ZombifiedPiglin
             ) =>
         {
             zombie_finalize(base, living, environment, reason, group, level, own)
@@ -692,6 +698,36 @@ mod tests {
                 .attributes
                 .has_modifier(KNOCKBACK_RESISTANCE, RANDOM_SPAWN_BONUS)
         );
+    }
+
+    #[test]
+    fn husks_finalize_like_zombies_and_roll_pick_up_loot_twice() {
+        let env = environment("minecraft:desert", Difficulty::Hard);
+        let mut babies = 0;
+        for seed in 0..400 {
+            let mut husk = mob(EntityKind::Husk);
+            let mut level = LegacyRandom::new(seed);
+            let mut own = LegacyRandom::new(seed + 1000);
+            let group = finalize_spawn(
+                &mut husk,
+                &env,
+                SpawnReason::Natural,
+                None,
+                &mut level,
+                &mut own,
+            );
+            assert!(matches!(group, Some(SpawnGroupData::Zombie { .. })));
+            assert!(
+                husk.living()
+                    .unwrap()
+                    .attributes
+                    .has_modifier(KNOCKBACK_RESISTANCE, RANDOM_SPAWN_BONUS)
+            );
+            if husk.is_baby() {
+                babies += 1;
+            }
+        }
+        assert!((5..=45).contains(&babies), "{babies}");
     }
 
     #[test]

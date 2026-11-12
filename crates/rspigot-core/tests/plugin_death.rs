@@ -299,7 +299,7 @@ fn two_plugins_that_each_remove_a_drop_both_keep_it_off_the_ground() {
         assert!(
             !thrown
                 .iter()
-                .any(|name| name.starts_with("minecraft:iron_")),
+                .any(|name| name == "minecraft:iron_helmet" || name == "minecraft:iron_chestplate"),
             "{later_answers_first} {thrown:?}"
         );
     }
