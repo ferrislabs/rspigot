@@ -49,7 +49,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
         ),
         _ if damager => (
             match kind {
-                DamageType::Arrow => EntityDamageCause::Projectile,
+                DamageType::Arrow | DamageType::Thrown => EntityDamageCause::Projectile,
                 DamageType::FallingAnvil
                 | DamageType::FallingBlock
                 | DamageType::FallingStalactite => EntityDamageCause::FallingBlock,
@@ -280,6 +280,7 @@ impl<L: ClientLink> Server<L> {
             AfterHurt::Sweep(follow) => self.finish_sweep(follow, outcome.hurt()),
             AfterHurt::MobAttack(follow) => self.finish_mob_attack(follow, outcome.hurt()),
             AfterHurt::Arrow(follow) => self.finish_arrow_hit(follow, outcome.hurt()),
+            AfterHurt::Thrown(follow) => self.finish_thrown_hit(follow),
             AfterHurt::Burn(follow) => {
                 if outcome.hurt() {
                     self.burn_sound(follow);

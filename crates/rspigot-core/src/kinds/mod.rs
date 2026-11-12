@@ -21,6 +21,7 @@ mod panda;
 mod polar_bear;
 mod rabbit;
 mod silverfish;
+mod snow_golem;
 mod wolf;
 mod zombified_piglin;
 
@@ -31,6 +32,7 @@ pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::Sou
     }
 }
 pub(crate) use enderman::carried_block_drops;
+pub(crate) use snow_golem::readiness_for_shearing;
 
 impl<L: ClientLink> Server<L> {
     fn kind_of(&self, id: EntityId) -> Option<Kind> {
@@ -98,6 +100,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Endermite) => self.endermite_post_tick(id),
             Some(Kind::Silverfish) => self.silverfish_post_tick(id),
             Some(Kind::IronGolem) => self.iron_golem_post_tick(id),
+            Some(Kind::SnowGolem) => self.snow_golem_post_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
             Some(Kind::Ocelot) => self.ocelot_post_tick(id),
@@ -187,6 +190,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Endermite) => self.endermite_interact(player, target, hand, held),
             Some(Kind::Silverfish) => self.silverfish_interact(player, target, hand, held),
             Some(Kind::IronGolem) => self.iron_golem_interact(player, target, hand, held),
+            Some(Kind::SnowGolem) => self.snow_golem_interact(player, target, hand, held),
             Some(Kind::ZombifiedPiglin) => {
                 self.zombified_piglin_interact(player, target, hand, held)
             }

@@ -775,6 +775,7 @@ mod tests {
                 EntityKind::Sheep,
                 EntityKind::Silverfish,
                 EntityKind::Skeleton,
+                EntityKind::SnowGolem,
                 EntityKind::Spider,
                 EntityKind::Stray,
                 EntityKind::WitherSkeleton,

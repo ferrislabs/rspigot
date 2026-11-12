@@ -219,7 +219,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn player_swing(&mut self, id: PlayerId, hand: Hand, to_self: bool) {
+    pub(crate) fn player_swing(&mut self, id: PlayerId, hand: Hand, to_self: bool) {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
@@ -706,6 +706,10 @@ impl<L: ClientLink> Server<L> {
         if species::is_sheared(&entity.base) || entity.is_baby() {
             return Interaction::Consume;
         }
+        self.ask_shear(id, target, hand)
+    }
+
+    pub(crate) fn ask_shear(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {
         let Some(stack) = self.held(id, hand) else {
             return Interaction::Pass;
         };
@@ -742,8 +746,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn finish_shear(&mut self, step: ShearStep) {
         let ready = self.entities.store.get(step.target).is_some_and(|entity| {
             !entity.base.is_removed()
-                && !species::is_sheared(&entity.base)
-                && !entity.is_baby()
+                && crate::kinds::readiness_for_shearing(entity)
                 && entity
                     .living()
                     .is_some_and(|living| !living::is_dead_or_dying(&entity.base, living))
@@ -766,6 +769,10 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(target) else {
             return;
         };
+        if entity.base.kind == Kind::SnowGolem {
+            self.shear_snow_golem(id, target, hand);
+            return;
+        }
         let position = entity.base.position;
         let facts = crate::mobs::loot_facts_of(entity);
         self.play_sound(
