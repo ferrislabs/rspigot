@@ -1,4 +1,5 @@
 use rspigot_blocks::Face;
+use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::fluid::FluidContact;
 use rspigot_domain::entity::living::{self, LivingState};
 use rspigot_domain::entity::tamable;
@@ -42,6 +43,12 @@ pub struct DroppedItem {
     pub bounds: Aabb,
     pub has_pickup_delay: bool,
     pub alive: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LastDamage {
+    pub kind: DamageType,
+    pub entity: Option<EntityId>,
 }
 
 pub const NO_VILLAGE: i32 = rspigot_domain::poi::NO_VILLAGE;
@@ -165,6 +172,10 @@ pub trait AiWorld: BlockView {
     fn difficulty(&self) -> i32;
 
     fn game_time(&self) -> i64;
+
+    fn clock_time(&self) -> i64 {
+        self.game_time()
+    }
 
     fn raw_brightness(&self, pos: BlockPos) -> i32;
 
@@ -348,6 +359,7 @@ pub struct MobView {
     pub in_love: bool,
     pub last_hurt_by_mob: Option<EntityId>,
     pub last_hurt_by_mob_at: i32,
+    pub last_damage: Option<LastDamage>,
     pub panic: bool,
     pub panic_environmental: bool,
     pub on_fire: bool,
@@ -432,6 +444,7 @@ impl MobView {
             in_love: false,
             last_hurt_by_mob: living.damage.last_hurt_by_mob,
             last_hurt_by_mob_at: living.damage.last_hurt_by_mob_at,
+            last_damage: None,
             panic: false,
             panic_environmental: false,
             on_fire: false,
