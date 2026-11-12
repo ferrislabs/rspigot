@@ -14,6 +14,7 @@ mod navigation;
 mod path;
 mod path_type;
 mod profile;
+mod rabbit;
 mod random;
 mod random_pos;
 mod registry;
@@ -34,8 +35,8 @@ pub use blocks::{
 };
 pub use brain::{AiContext, Brain, CONTROL_FLAG_INTERVAL, MobAi, mob_tick};
 pub use combat::{
-    HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, MeleeKind, RangedBowAttackGoal, SwellGoal,
-    bow_power, default_attack_reach, within_melee_range,
+    HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, MeleeKind, OcelotAttackGoal,
+    RangedBowAttackGoal, SwellGoal, bow_power, default_attack_reach, within_melee_range,
 };
 pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
@@ -47,8 +48,8 @@ pub use goal::{
     Flag, Flags, Goal, GoalSelector, WrappedGoal, adjusted_tick_delay, reduced_tick_delay,
 };
 pub use goals::{
-    FloatGoal, LookAtPlayerGoal, MobGoal, NearestAttackableTargetGoal, RandomLookAroundGoal,
-    RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
+    ClimbOnTopOfPowderSnowGoal, FloatGoal, LookAtPlayerGoal, MobGoal, NearestAttackableTargetGoal,
+    RandomLookAroundGoal, RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
 };
 pub use navigation::{
     MobTick, MoveTarget, Navigation, can_cut_corner, find_surface_position, ground_y, temp_mob_pos,
@@ -57,6 +58,7 @@ pub use navigation::{
 pub use path::{Path, PathNode};
 pub use path_type::PathType;
 pub use profile::{MobProfile, MobState, combat_fall_distance};
+pub use rabbit::{MORE_CARROT_TICKS, RaidGardenGoal};
 pub use random::{MobRandom, RandomSource};
 pub use random_pos::{
     default_pos, is_solid, is_stable_destination, land_pos, light_magic_value,

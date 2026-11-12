@@ -19,10 +19,18 @@ pub enum AvoidFilter {
     NotScared,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AvoidGate {
+    Open,
+    NotEvil,
+    NotTrusting,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct AvoidEntityGoal {
     kind: TargetKind,
     filter: AvoidFilter,
+    gate: AvoidGate,
     max_distance: f32,
     walk_speed_modifier: f64,
     sprint_speed_modifier: f64,
@@ -35,6 +43,7 @@ impl AvoidEntityGoal {
         Self {
             kind,
             filter: AvoidFilter::Any,
+            gate: AvoidGate::Open,
             max_distance,
             walk_speed_modifier: walk,
             sprint_speed_modifier: sprint,
@@ -50,6 +59,28 @@ impl AvoidEntityGoal {
         }
     }
 
+    pub fn unless_evil(kind: TargetKind, max_distance: f32, walk: f64, sprint: f64) -> Self {
+        Self {
+            gate: AvoidGate::NotEvil,
+            ..Self::new(kind, max_distance, walk, sprint)
+        }
+    }
+
+    pub fn unless_trusting(kind: TargetKind, max_distance: f32, walk: f64, sprint: f64) -> Self {
+        Self {
+            gate: AvoidGate::NotTrusting,
+            ..Self::new(kind, max_distance, walk, sprint)
+        }
+    }
+
+    fn open<W: AiWorld>(&self, context: &AiContext<'_, W>) -> bool {
+        match self.gate {
+            AvoidGate::Open => true,
+            AvoidGate::NotEvil => !context.mob.evil,
+            AvoidGate::NotTrusting => !context.mob.trusting,
+        }
+    }
+
     fn accepts(&self, target: &Living) -> bool {
         let creative_or_spectator = target.player && (target.creative || target.spectator);
         !creative_or_spectator
@@ -59,7 +90,18 @@ impl AvoidEntityGoal {
             }
     }
 
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
+        (self.gate != AvoidGate::NotTrusting || !context.mob.trusting)
+            && !context.brain.navigation.is_done()
+    }
+
     pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        if !self.open(context) {
+            return false;
+        }
         let reach = f64::from(self.max_distance);
         let area = inflate(&context.mob.bounds(), reach, AVOID_HEIGHT, reach);
         let candidates = context.world.living_of(self.kind, &area);

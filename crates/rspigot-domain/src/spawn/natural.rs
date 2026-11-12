@@ -1,7 +1,7 @@
 use rspigot_data::spawns::Spawner;
 use rspigot_entities::{EntityKind, MobCategory, SpawnHeightmap};
 
-use super::despawn::remove_when_far_away;
+use super::despawn::{FarAwayFacts, remove_when_far_away};
 use super::placement::{is_redstone_conductor, is_spawn_position_ok};
 use super::rules::{
     check_spawn_obstruction, check_spawn_rules, is_max_group_size_reached, max_spawn_cluster_size,
@@ -188,7 +188,7 @@ pub fn is_valid_position_for_mob(
     distance: f64,
 ) -> bool {
     let despawn = f64::from(i32::from(kind.category().despawn_distance()).pow(2));
-    if distance > despawn && remove_when_far_away(kind, false).unwrap_or(false) {
+    if distance > despawn && remove_when_far_away(kind, FarAwayFacts::default()).unwrap_or(false) {
         return false;
     }
     let dimensions = kind.dimensions();

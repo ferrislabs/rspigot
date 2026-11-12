@@ -10,6 +10,9 @@ use crate::{BlockPos, Vec3};
 
 const ANIMALS_SPAWNABLE_ON: &str = "minecraft:animals_spawnable_on";
 const MOOSHROOMS_SPAWNABLE_ON: &str = "minecraft:mooshrooms_spawnable_on";
+const RABBITS_SPAWNABLE_ON: &str = "minecraft:rabbits_spawnable_on";
+const LEAVES: &str = "minecraft:leaves";
+const OCELOT_SPAWN_CHANCE: i32 = 3;
 const ANIMAL_MIN_BRIGHTNESS: i32 = 8;
 const SKY_LIGHT_ROLL: i32 = 32;
 const UNLIMITED_BLOCK_LIGHT: i32 = 15;
@@ -54,8 +57,17 @@ pub fn check_predicate(
                 && (reason.is_spawner() || can_see_sky(level, pos))
         }
         SpawnPredicate::Stray => check_stray_spawn_rules(level, kind, reason, pos),
+        SpawnPredicate::Rabbit => check_rabbit_spawn_rules(level, pos),
+        SpawnPredicate::Ocelot => level.next_int(OCELOT_SPAWN_CHANCE) != 0,
         _ => return None,
     })
+}
+
+fn check_rabbit_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    has_tag(
+        level.block_or_air(pos.offset(0, -1, 0)),
+        RABBITS_SPAWNABLE_ON,
+    ) && is_bright_enough_to_spawn(level, pos)
 }
 
 fn check_stray_spawn_rules(
@@ -86,6 +98,8 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::AnyLightMonster
                 | SpawnPredicate::SurfaceMonsters
                 | SpawnPredicate::Stray
+                | SpawnPredicate::Rabbit
+                | SpawnPredicate::Ocelot
         )
     });
     let walk = match spawn.check_spawn_rules {
@@ -103,10 +117,14 @@ pub fn rules_ported(kind: EntityKind) -> bool {
     };
     predicate
         && walk
-        && spawn.check_spawn_obstruction == MobClass::Mob
+        && matches!(
+            spawn.check_spawn_obstruction,
+            MobClass::Mob | MobClass::Ocelot
+        )
         && spawn.is_max_group_size_reached == MobClass::Mob
         && spawn.max_spawn_cluster_size.is_some()
-        && super::despawn::remove_when_far_away(kind, false).is_some()
+        && super::despawn::remove_when_far_away(kind, super::despawn::FarAwayFacts::default())
+            .is_some()
 }
 
 pub fn check_mob_spawn_rules(
@@ -243,8 +261,26 @@ pub fn contains_any_liquid(level: &impl SpawnLevel, area: &Aabb) -> bool {
 pub fn check_spawn_obstruction(level: &impl SpawnLevel, kind: EntityKind, area: &Aabb) -> bool {
     match kind.mob_spawn().map(|spawn| spawn.check_spawn_obstruction) {
         Some(MobClass::Mob) => !contains_any_liquid(level, area) && level.is_unobstructed(area),
+        Some(MobClass::Ocelot) => {
+            level.is_unobstructed(area)
+                && !contains_any_liquid(level, area)
+                && ocelot_can_stand(level, area)
+        }
         _ => false,
     }
+}
+
+fn ocelot_can_stand(level: &impl SpawnLevel, area: &Aabb) -> bool {
+    let pos = BlockPos::new(
+        ((area.min_x + area.max_x) / 2.0).floor() as i32,
+        area.min_y.floor() as i32,
+        ((area.min_z + area.max_z) / 2.0).floor() as i32,
+    );
+    if pos.y < level.sea_level() {
+        return false;
+    }
+    let below = level.block_or_air(pos.offset(0, -1, 0));
+    below.kind() == Some(BlockKind::GrassBlock) || has_tag(below, LEAVES)
 }
 
 pub fn max_spawn_cluster_size(kind: EntityKind) -> i32 {
@@ -267,7 +303,7 @@ pub fn no_collision(level: &impl SpawnLevel, area: &Aabb) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use rspigot_blocks::{Block, GrassBlock, Mycelium, Stone, Torch};
+    use rspigot_blocks::{Block, GrassBlock, Mycelium, OakLeaves, Sand, Stone, Torch};
 
     use super::*;
     use crate::spawn::testing::Level;
@@ -317,6 +353,104 @@ mod tests {
             pos
         ));
         assert!(rules_ported(EntityKind::Stray));
+    }
+
+    #[test]
+    fn rabbits_need_their_own_ground_and_light() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut sand = Level::floor(Sand::DEFAULT_STATE, 63);
+        assert!(check_spawn_rules(
+            &mut sand,
+            EntityKind::Rabbit,
+            SpawnReason::Natural,
+            pos
+        ));
+        sand.sky = 8;
+        assert!(!check_spawn_rules(
+            &mut sand,
+            EntityKind::Rabbit,
+            SpawnReason::Natural,
+            pos
+        ));
+        let mut stone = Level::floor(Stone::DEFAULT_STATE, 63);
+        assert!(!check_spawn_rules(
+            &mut stone,
+            EntityKind::Rabbit,
+            SpawnReason::Natural,
+            pos
+        ));
+        assert!(rules_ported(EntityKind::Rabbit));
+    }
+
+    #[test]
+    fn rabbits_ignore_the_light_exemption_of_spawners() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut sand = Level::floor(Sand::DEFAULT_STATE, 63);
+        sand.sky = 0;
+        assert!(!check_spawn_rules(
+            &mut sand,
+            EntityKind::Rabbit,
+            SpawnReason::Spawner,
+            pos
+        ));
+    }
+
+    #[test]
+    fn ocelots_spawn_two_times_out_of_three() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut level = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        level.rolls(&[0]);
+        assert!(!check_spawn_rules(
+            &mut level,
+            EntityKind::Ocelot,
+            SpawnReason::Natural,
+            pos
+        ));
+        level.rolls(&[1]);
+        assert!(check_spawn_rules(
+            &mut level,
+            EntityKind::Ocelot,
+            SpawnReason::Natural,
+            pos
+        ));
+        level.rolls(&[2]);
+        assert!(check_spawn_rules(
+            &mut level,
+            EntityKind::Ocelot,
+            SpawnReason::Natural,
+            pos
+        ));
+        assert!(rules_ported(EntityKind::Ocelot));
+    }
+
+    #[test]
+    fn ocelots_stand_on_grass_or_leaves_above_sea_level() {
+        let area = Aabb::of_size(Vec3::new(4.5, 64.0, 4.5), 0.6, 0.7);
+        let grass = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        assert!(check_spawn_obstruction(&grass, EntityKind::Ocelot, &area));
+        let stone = Level::floor(Stone::DEFAULT_STATE, 63);
+        assert!(!check_spawn_obstruction(&stone, EntityKind::Ocelot, &area));
+        let leaves = Level::floor(OakLeaves::DEFAULT_STATE, 63);
+        assert!(check_spawn_obstruction(&leaves, EntityKind::Ocelot, &area));
+        let low = Aabb::of_size(Vec3::new(4.5, 62.0, 4.5), 0.6, 0.7);
+        let below = Level::floor(GrassBlock::DEFAULT_STATE, 61);
+        assert!(!check_spawn_obstruction(&below, EntityKind::Ocelot, &low));
+    }
+
+    #[test]
+    fn ocelots_refuse_liquids_and_crowds_when_spawning() {
+        let area = Aabb::of_size(Vec3::new(4.5, 64.0, 4.5), 0.6, 0.7);
+        let mut level = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        level
+            .obstacles
+            .push(Aabb::of_size(Vec3::new(4.7, 64.0, 4.5), 0.6, 0.7));
+        assert!(!check_spawn_obstruction(&level, EntityKind::Ocelot, &area));
+        level.obstacles.clear();
+        level.set(
+            BlockPos::new(4, 64, 4),
+            rspigot_blocks::Water::DEFAULT_STATE,
+        );
+        assert!(!check_spawn_obstruction(&level, EntityKind::Ocelot, &area));
     }
 
     #[test]

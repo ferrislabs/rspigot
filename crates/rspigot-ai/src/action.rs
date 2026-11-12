@@ -58,4 +58,5 @@ pub enum MobAction {
         stage: i32,
     },
     BreakDoor(BlockPos),
+    RaidCarrot(BlockPos),
 }
