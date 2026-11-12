@@ -439,3 +439,188 @@ impl<L: ClientLink> Server<L> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+    use std::time::Duration;
+
+    use rspigot_blocks::{Block, Stone};
+    use rspigot_domain::chunk::ChunkColumn;
+    use rspigot_domain::text::Component;
+    use rspigot_domain::world::Dimension;
+    use rspigot_domain::{ChunkPos, Identifier};
+    use rspigot_nbt::Compound;
+
+    use super::*;
+    use crate::config::{GameConfig, LevelData};
+    use crate::events::ClientEvent;
+    use crate::ports::{ChunkGenerator, ChunkStore, EntityStore, StoreError};
+    use crate::status::StatusBoard;
+
+    struct Quiet;
+
+    impl ClientLink for Quiet {
+        fn send(&self, _: ClientEvent) {}
+
+        fn disconnect(&self, _: Component) {}
+
+        fn is_connected(&self) -> bool {
+            true
+        }
+    }
+
+    impl ChunkStore for Quiet {
+        fn load(&self, _: &Identifier, _: ChunkPos) -> Result<Option<ChunkColumn>, StoreError> {
+            Ok(None)
+        }
+
+        fn save(&self, _: &Identifier, _: &ChunkColumn) -> Result<(), StoreError> {
+            Ok(())
+        }
+
+        fn flush(&self) -> Result<(), StoreError> {
+            Ok(())
+        }
+    }
+
+    impl EntityStore for Quiet {
+        fn load_entities(
+            &self,
+            _: &Identifier,
+            _: ChunkPos,
+        ) -> Result<Option<Vec<Compound>>, StoreError> {
+            Ok(None)
+        }
+
+        fn save_entities(
+            &self,
+            _: &Identifier,
+            _: ChunkPos,
+            _: &[Compound],
+        ) -> Result<(), StoreError> {
+            Ok(())
+        }
+    }
+
+    impl ChunkGenerator for Quiet {
+        fn generate(&self, dimension: &Dimension, pos: ChunkPos) -> ChunkColumn {
+            let mut chunk = ChunkColumn::empty(pos, dimension.height, rspigot_domain::BiomeId(0));
+            for x in 0..16 {
+                for z in 0..16 {
+                    for y in 60..=63 {
+                        let at = BlockPos::new(pos.min_block_x() + x, y, pos.min_block_z() + z);
+                        chunk.set_block(at, Stone::DEFAULT_STATE);
+                    }
+                }
+            }
+            chunk
+        }
+
+        fn spawn_point(&self, _: &Dimension) -> Vec3 {
+            Vec3::new(0.5, 64.0, 0.5)
+        }
+    }
+
+    fn server_at(day_time: i64) -> Server<Quiet> {
+        let config = GameConfig {
+            chunk_workers: 1,
+            spawn_chunk_radius: 1,
+            ..GameConfig::default()
+        };
+        let level = LevelData {
+            day_time,
+            ..LevelData::default()
+        };
+        let mut server = Server::new(
+            config,
+            level,
+            Arc::new(Quiet),
+            Arc::new(Quiet),
+            StatusBoard::new(1),
+        )
+        .with_rng_seed(7);
+        server.wait_for_spawn(Duration::from_secs(10));
+        server
+    }
+
+    fn cat_in(server: &mut Server<Quiet>) -> EntityId {
+        let mut base = server.new_entity_base(Kind::Cat);
+        base.position = Vec3::new(0.5, 64.0, 0.5);
+        let cat = crate::mob_actions::new_mob(base);
+        server.place_entity(cat).expect("the cat is placed")
+    }
+
+    fn gifts(server: &Server<Quiet>) -> Vec<Vec3> {
+        server
+            .entities_of(Kind::Item)
+            .iter()
+            .map(|item| item.position)
+            .collect()
+    }
+
+    #[test]
+    fn a_morning_gift_drops_an_item_next_to_the_cat() {
+        let mut server = server_at(0);
+        let cat = cat_in(&mut server);
+        let mut rolls = 0;
+        while gifts(&server).is_empty() && rolls < 40 {
+            server.cat_action(cat, CatAction::MorningGift);
+            server.tick();
+            rolls += 1;
+        }
+        let dropped = gifts(&server);
+        assert!(!dropped.is_empty(), "no gift after {rolls} rolls");
+        let at = server
+            .entities
+            .store
+            .get(cat)
+            .expect("the cat stays")
+            .base
+            .position;
+        for item in dropped {
+            assert!((item.x - at.x).abs() <= 1.5 && (item.z - at.z).abs() <= 1.5);
+            assert!(item.y >= at.y.floor() && item.y <= at.y.floor() + 1.0);
+        }
+    }
+
+    #[test]
+    fn the_gift_table_only_holds_the_vanilla_morning_gifts() {
+        let mut server = server_at(0);
+        let cat = cat_in(&mut server);
+        for _ in 0..40 {
+            server.give_morning_gift(cat);
+        }
+        server.tick();
+        let allowed = [
+            "minecraft:rabbit_hide",
+            "minecraft:rabbit_foot",
+            "minecraft:chicken",
+            "minecraft:feather",
+            "minecraft:rotten_flesh",
+            "minecraft:string",
+            "minecraft:phantom_membrane",
+        ];
+        let seen: Vec<&str> = server
+            .entities
+            .store
+            .iter()
+            .filter(|entity| entity.base.kind == Kind::Item)
+            .filter_map(|entity| rspigot_domain::entity::item::stack(&entity.base))
+            .filter_map(|stack| stack.item.kind().map(ItemKind::name))
+            .collect();
+        assert!(!seen.is_empty());
+        assert!(seen.iter().all(|name| allowed.contains(name)), "{seen:?}");
+    }
+
+    #[test]
+    fn no_gift_falls_in_the_middle_of_the_day() {
+        let mut server = server_at(6000);
+        let cat = cat_in(&mut server);
+        for _ in 0..40 {
+            server.cat_action(cat, CatAction::MorningGift);
+            server.tick();
+        }
+        assert!(gifts(&server).is_empty());
+    }
+}
