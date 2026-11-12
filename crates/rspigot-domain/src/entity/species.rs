@@ -21,6 +21,7 @@ pub mod panda;
 pub mod polar_bear;
 pub mod rabbit;
 pub mod silverfish;
+pub mod snow_golem;
 pub mod wolf;
 pub mod zombie_villager;
 pub mod zombified_piglin;
@@ -181,6 +182,7 @@ pub enum Species {
     Endermite(endermite::EndermiteState),
     Silverfish(silverfish::SilverfishState),
     IronGolem(iron_golem::IronGolemState),
+    SnowGolem(snow_golem::SnowGolemState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
 }
@@ -317,6 +319,9 @@ impl Species {
         }
         if kind == EntityKind::IronGolem {
             return Self::IronGolem(iron_golem::define(base));
+        }
+        if kind == EntityKind::SnowGolem {
+            return Self::SnowGolem(snow_golem::define(base));
         }
         if kind == EntityKind::Rabbit {
             return Self::Rabbit(rabbit::define(base));
