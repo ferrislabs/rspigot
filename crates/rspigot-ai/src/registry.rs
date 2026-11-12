@@ -113,7 +113,7 @@ pub fn register_goals(
         brain,
     };
     match kind {
-        EntityKind::Cow => {
+        EntityKind::Cow | EntityKind::Mooshroom => {
             add.animal(
                 2.0,
                 2,

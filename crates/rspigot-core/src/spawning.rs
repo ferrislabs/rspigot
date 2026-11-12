@@ -717,6 +717,7 @@ mod tests {
                 EntityKind::Cow,
                 EntityKind::Creeper,
                 EntityKind::Husk,
+                EntityKind::Mooshroom,
                 EntityKind::Pig,
                 EntityKind::Sheep,
                 EntityKind::Skeleton,
