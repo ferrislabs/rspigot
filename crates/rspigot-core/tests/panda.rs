@@ -346,6 +346,18 @@ fn a_hurt_panda_stands_up() {
 }
 
 #[test]
+fn an_invulnerable_panda_still_stands_up_when_hit() {
+    let mut zoo = Zoo::new(Vec::new());
+    zoo.console("give Alice minecraft:bamboo 4");
+    let panda = zoo.summon((1.5, 64.0, 1.5), &calm(",NoAI:1b,Invulnerable:1b"));
+    feed_twice(&mut zoo, panda);
+    assert!(zoo.watch.flag(panda, SIT));
+    zoo.attack(panda);
+    zoo.tick(1);
+    assert!(!zoo.watch.flag(panda, SIT));
+}
+
+#[test]
 fn a_panda_that_eats_bamboo_loses_it_when_done_and_stands_up() {
     let mut zoo = Zoo::new(Vec::new());
     zoo.console("give Alice minecraft:bamboo 4");

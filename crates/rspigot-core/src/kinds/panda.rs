@@ -623,15 +623,20 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn panda_stand_up(&mut self, id: EntityId) {
+        if let Some(entity) = self.entities.store.get_mut(id)
+            && entity.base.kind == Kind::Panda
+        {
+            panda::sit(&mut entity.base, false);
+        }
+    }
+
     pub(crate) fn panda_hurt_amount(
         &mut self,
-        id: EntityId,
+        _id: EntityId,
         _source: &DamageSource,
         amount: f32,
     ) -> Option<f32> {
-        if let Some(entity) = self.entities.store.get_mut(id) {
-            panda::sit(&mut entity.base, false);
-        }
         Some(amount)
     }
 

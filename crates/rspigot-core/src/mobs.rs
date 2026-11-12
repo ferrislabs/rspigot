@@ -1294,6 +1294,7 @@ impl<L: ClientLink> Server<L> {
         amount: f32,
     ) -> Option<f32> {
         let hurt_source = hurt_source_of(source);
+        self.panda_stand_up(id);
         let Some(Entity {
             base,
             state: EntityState::Living(state),
