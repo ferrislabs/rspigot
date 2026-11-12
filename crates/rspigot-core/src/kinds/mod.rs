@@ -11,12 +11,14 @@ use crate::interact::Interaction;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
+mod armadillo;
 mod blaze;
 mod cat;
 mod enderman;
 mod endermite;
 mod fox;
 mod ghast;
+mod goat;
 mod hoglin;
 mod iron_golem;
 mod ocelot;
@@ -38,7 +40,9 @@ pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::Sou
         _ => None,
     }
 }
+pub(crate) use armadillo::ambient_sound as armadillo_ambient_sound;
 pub(crate) use enderman::carried_block_drops;
+pub(crate) use goat::{GoatSound, voice as goat_voice};
 pub(crate) use snow_golem::readiness_for_shearing;
 
 impl<L: ClientLink> Server<L> {
@@ -66,6 +70,8 @@ impl<L: ClientLink> Server<L> {
             Kind::Witch => self.witch_view(entity, view),
             Kind::Pillager => self.pillager_view(entity, view),
             Kind::Hoglin | Kind::Zoglin => self.hoglin_view(entity, view),
+            Kind::Goat => self.goat_view(entity, view),
+            Kind::Armadillo => self.armadillo_view(entity, view),
             Kind::Piglin | Kind::PiglinBrute => self.piglin_view(entity, view),
             _ => {}
         }
@@ -76,6 +82,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_registered(id, ai),
             Some(Kind::Ocelot) => self.ocelot_registered(id, ai),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_registered(id, ai),
+            Some(Kind::Goat) => self.goat_registered(id, ai),
             _ => {}
         }
     }
@@ -124,6 +131,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
             Some(Kind::Ocelot) => self.ocelot_post_tick(id),
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_post_tick(id),
+            Some(Kind::Armadillo) => self.armadillo_post_tick(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
             _ => {}
         }
@@ -199,6 +207,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ocelot) => self.ocelot_custom_ai_step(id),
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_custom_ai_step(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_custom_ai_step(id),
+            Some(Kind::Goat) => self.goat_custom_ai_step(id),
+            Some(Kind::Armadillo) => self.armadillo_custom_ai_step(id),
             _ => {}
         }
     }
@@ -233,6 +243,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_interact(player, target, hand, held),
             Some(Kind::Ocelot) => self.ocelot_interact(player, target, hand, held),
             Some(Kind::Piglin) => self.piglin_interact(player, target, hand, held),
+            Some(Kind::Armadillo) => self.armadillo_interact(player, target, hand, held),
             _ => None,
         }
     }
@@ -258,6 +269,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_hurt_amount(id, source, amount),
             Some(Kind::Rabbit) => self.rabbit_hurt_amount(id, source, amount),
             Some(Kind::Ocelot) => self.ocelot_hurt_amount(id, source, amount),
+            Some(Kind::Armadillo) => Some(self.armadillo_hurt_amount(id, amount)),
             _ => Some(amount),
         }
     }
@@ -297,13 +309,23 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Shulker) => self.shulker_after_hurt(id, source, dead),
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_after_hurt(id, source, dead),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
+            Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
             _ => {}
+        }
+    }
+
+    pub(crate) fn kind_death_sound(&mut self, id: EntityId) -> bool {
+        match self.kind_of(id) {
+            Some(Kind::Goat) => self.goat_voice_sound(id, GoatSound::Death),
+            _ => false,
         }
     }
 
     pub(crate) fn kind_hurt_sound(&mut self, id: EntityId) -> bool {
         match self.kind_of(id) {
             Some(Kind::Shulker) => self.shulker_hurt_sound(id),
+            Some(Kind::Goat) => self.goat_voice_sound(id, GoatSound::Hurt),
+            Some(Kind::Armadillo) => self.armadillo_hurt_sound(id),
             _ => false,
         }
     }

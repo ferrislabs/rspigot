@@ -291,7 +291,8 @@ mod tests {
     const BLOCK_TABLE_FILES: usize = 1201;
     const ENTITY_TABLE_FILES: usize = 109;
     const REFERENCED_TABLES: usize = 1;
-    const GAMEPLAY_TABLES: usize = 5;
+    const GAMEPLAY_TABLES: usize = 7;
+    const BRUSH_TABLES: usize = 1;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
     const SHEEP_COLOUR_TABLES: usize = 16;
     const CHARGED_CREEPER_TABLES: usize = 6;
@@ -373,6 +374,7 @@ mod tests {
                 + ENTITY_TABLE_FILES
                 + REFERENCED_TABLES
                 + GAMEPLAY_TABLES
+                + BRUSH_TABLES
                 + SHEEP_COLOUR_TABLES
                 + SNOW_GOLEM_SHEARING_TABLES
                 + CHARGED_CREEPER_TABLES
@@ -390,6 +392,9 @@ mod tests {
         assert!(table("minecraft:gameplay/fishing/fish").is_some());
         assert!(table("minecraft:gameplay/chicken_lay").is_some());
         assert!(table("minecraft:gameplay/piglin_bartering").is_some());
+        assert!(table("minecraft:gameplay/armadillo_shed").is_some());
+        assert!(table("minecraft:gameplay/sniffer_digging").is_some());
+        assert!(table("minecraft:brush/armadillo").is_some());
         assert!(table("minecraft:shearing/sheep").is_some());
         assert!(table("minecraft:shearing/snow_golem").is_some());
         assert_eq!(count("minecraft:shearing/sheep/"), SHEEP_COLOUR_TABLES);

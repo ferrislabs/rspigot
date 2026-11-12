@@ -233,6 +233,8 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             cannot_be_hunted: false,
             sees_player_holding_loved_item: false,
             hunted_recently: false,
+            sprinting: player.sprinting,
+            passenger: false,
             uuid: player.profile.id.0,
             tamed: false,
             owner: None,
@@ -323,6 +325,8 @@ fn entity_facts(
         ),
         sees_player_holding_loved_item: false,
         hunted_recently: false,
+        sprinting: false,
+        passenger: false,
     }
 }
 
@@ -1238,6 +1242,19 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
         base.set_pitch(body.pitch);
     }
     base.fall_distance = body.fall_distance;
+    if let Some(Species::Armadillo(armadillo)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        species::armadillo::switch_to_state(base, armadillo, body.armadillo.state);
+    }
+    state.discard_friction = body.discard_friction;
+    if body.pose != mob.pose {
+        base.set_pose(body.pose);
+        let baby = state
+            .mob
+            .as_ref()
+            .and_then(|mob| mob.ageable.as_ref())
+            .is_some_and(|ageable| ageable::is_baby(base, ageable));
+        ageable::refresh_dimensions(base, baby);
+    }
     living::set_aggressive(base, body.aggressive);
     if base.kind == Kind::Creeper {
         species::set_swell_dir(base, body.swell_dir);
@@ -1522,7 +1539,7 @@ impl<L: ClientLink> Server<L> {
             }
         }
         if dead {
-            if outcome == HurtOutcome::Full {
+            if outcome == HurtOutcome::Full && !self.kind_death_sound(id) {
                 self.make_entity_sound(id, |sounds| sounds.death, |set| set.death);
             }
             self.charged_creeper_drops(source.causing.as_ref().map(|c| c.entity), id);

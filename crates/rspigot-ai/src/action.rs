@@ -5,9 +5,9 @@ use rspigot_entities::SoundSource;
 use crate::behavior::{MemoryModuleType, MemoryValue};
 use crate::world::Hand;
 use crate::{
-    BlazeAction, CatAction, CrossbowAction, EndermanAction, FoxAction, GhastAction,
-    IronGolemAction, PandaAction, PolarBearAction, RaiderAction, ShulkerAction, SilverfishAction,
-    WolfAction,
+    ArmadilloAction, BlazeAction, CatAction, CrossbowAction, EndermanAction, FoxAction,
+    GhastAction, GoatAction, IronGolemAction, PandaAction, PolarBearAction, RaiderAction,
+    ShulkerAction, SilverfishAction, WolfAction,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,6 +67,10 @@ pub enum BrainMessage {
     },
     PiglinBruteHurtBy {
         attacker: EntityId,
+    },
+    ArmadilloHurt {
+        by_living: bool,
+        environmental: bool,
     },
     PiglinAngerFromPlayer {
         player: EntityId,
@@ -138,6 +142,13 @@ pub enum MobAction {
     Crossbow(CrossbowAction),
     AmbientSound,
     Voice(&'static str),
+    Sound {
+        sound: &'static str,
+        volume: f32,
+        pitch: f32,
+    },
+    Goat(GoatAction),
+    Armadillo(ArmadilloAction),
     Message {
         to: EntityId,
         message: BrainMessage,

@@ -758,6 +758,8 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
             species::piglin::read(nbt, base, &mut living.attributes, state);
             mob.can_pick_up_loot = nbt.get_bool("CanPickUpLoot").unwrap_or(true);
         }
+        Species::Goat(state) => species::goat::read(nbt, base, state),
+        Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -963,6 +965,8 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Pillager(_) => species::pillager::KEYS,
         Species::Hoglin(_) => species::hoglin::KEYS,
         Species::Piglin(_) => species::piglin::KEYS,
+        Species::Goat(_) => species::goat::KEYS,
+        Species::Armadillo(_) => species::armadillo::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1395,6 +1399,8 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Pillager(state) => species::pillager::write(base, state, out),
         Species::Hoglin(state) => species::hoglin::write(base, state, out),
         Species::Piglin(state) => species::piglin::write(base, state, out),
+        Species::Goat(state) => species::goat::write(base, state, out),
+        Species::Armadillo(state) => species::armadillo::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }

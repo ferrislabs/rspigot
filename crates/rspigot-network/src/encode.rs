@@ -8,7 +8,7 @@ use rspigot_core::events::{
     Abilities, Animation, ClientEvent, EntityKind, EntityStatus, EquipmentSlot as CoreSlot,
     GameEvent as CoreGameEvent, MetadataValue, MoveDelta, Movement, PlayerListEntry,
     Pose as CorePose, PositionPath as CorePath, SoundSource as CoreSoundSource, SpawnInfo,
-    VariantKind,
+    StateKind, VariantKind,
 };
 use rspigot_data::variants::VariantFamily;
 use rspigot_domain::chunk::{
@@ -42,7 +42,9 @@ use rspigot_protocol::play::entity::{
     SwingAnimationType, VecDelta,
 };
 use rspigot_protocol::play::inventory::{RecipePropertySet, SlotDisplay, StonecutterEntry};
-use rspigot_protocol::play::metadata::{EntityDataItem, EntityDataValue, RegistryVariant};
+use rspigot_protocol::play::metadata::{
+    EntityDataItem, EntityDataValue, EnumState, RegistryVariant,
+};
 use rspigot_protocol::play::player::{CommonPlayerSpawnInfo, PlayerInfoActions, PlayerInfoEntry};
 use rspigot_protocol::play::slot::{
     ComponentValue, DataComponentPatch, ItemStack as WireStack, ItemStackTemplate,
@@ -565,6 +567,13 @@ fn commands(tree: &CommandTree) -> cb::Commands {
             })
             .collect(),
         root_index: tree.root as i32,
+    }
+}
+
+fn enum_state(kind: StateKind) -> EnumState {
+    match kind {
+        StateKind::Sniffer => EnumState::Sniffer,
+        StateKind::Armadillo => EnumState::Armadillo,
     }
 }
 
@@ -1280,6 +1289,13 @@ impl Encoder {
                                 MetadataValue::Long(v) => EntityDataValue::Long(*v),
                                 MetadataValue::Direction(face) => {
                                     EntityDataValue::Direction(direction_of(*face))
+                                }
+                                MetadataValue::State(kind, id) => EntityDataValue::State {
+                                    kind: enum_state(*kind),
+                                    id: *id,
+                                },
+                                MetadataValue::OptionalUnsignedInt(v) => {
+                                    EntityDataValue::OptionalUnsignedInt(*v)
                                 }
                                 MetadataValue::OptionalEntity(v) => {
                                     EntityDataValue::OptionalLivingEntity(*v)
