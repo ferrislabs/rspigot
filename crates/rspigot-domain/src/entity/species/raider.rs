@@ -1,10 +1,16 @@
+use std::num::NonZeroU8;
+
+use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
 use crate::BlockPos;
 use crate::entity::base::EntityBase;
 use crate::entity::data::SyncedValue;
+use crate::entity::save::component_to_tag;
+use crate::item::ItemStack;
 use crate::random::RandomSource;
 use crate::spawn::SpawnReason;
+use crate::text::Component;
 
 pub const DATA_IS_CELEBRATING: u8 = 16;
 pub const KEYS: &[&str] = &[
@@ -13,6 +19,18 @@ pub const KEYS: &[&str] = &[
     "patrol_target",
     "PatrolLeader",
     "Patrolling",
+];
+pub const OMINOUS_BANNER_NAME: &str = "block.minecraft.ominous_banner";
+pub const OMINOUS_BANNER_DROP_CHANCE: f32 = 2.0;
+const OMINOUS_BANNER_LAYERS: [(&str, &str); 8] = [
+    ("minecraft:rhombus", "cyan"),
+    ("minecraft:stripe_bottom", "light_gray"),
+    ("minecraft:stripe_center", "gray"),
+    ("minecraft:border", "light_gray"),
+    ("minecraft:stripe_middle", "black"),
+    ("minecraft:half_horizontal", "light_gray"),
+    ("minecraft:circle", "light_gray"),
+    ("minecraft:border", "black"),
 ];
 pub const PATROL_LEADER_ODDS: f32 = 0.06;
 pub const PATROL_KEEP_DISTANCE_SQR: f64 = 16_384.0;
@@ -35,6 +53,36 @@ pub struct RaiderState {
     pub patrolling: bool,
     pub wave: i32,
     pub can_join_raid: bool,
+}
+
+pub fn ominous_banner() -> ItemStack {
+    let mut banner = ItemStack::new(ItemKind::WhiteBanner.id(), NonZeroU8::MIN);
+    let layers = OMINOUS_BANNER_LAYERS
+        .iter()
+        .map(|(pattern, color)| {
+            Tag::Compound(
+                Compound::new()
+                    .with("pattern", *pattern)
+                    .with("color", *color),
+            )
+        })
+        .collect();
+    banner
+        .components
+        .insert("minecraft:banner_patterns", Tag::List(layers));
+    banner.components.insert(
+        "minecraft:tooltip_display",
+        Compound::new().with(
+            "hidden_components",
+            Tag::List(vec![Tag::String("minecraft:banner_patterns".to_owned())]),
+        ),
+    );
+    banner.components.insert(
+        "minecraft:item_name",
+        component_to_tag(&Component::translatable(OMINOUS_BANNER_NAME, Vec::new())),
+    );
+    banner.components.insert("minecraft:rarity", "uncommon");
+    banner
 }
 
 pub fn idles_extra(kind: rspigot_entities::EntityKind, bright: bool) -> bool {

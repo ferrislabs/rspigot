@@ -6,6 +6,7 @@ pub mod click;
 pub mod combat;
 pub mod container_menu;
 pub mod crafting;
+pub mod crossbow;
 pub mod damage;
 pub mod difficulty;
 pub mod dye;

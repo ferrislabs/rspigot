@@ -24,7 +24,7 @@ impl<L: ClientLink> Server<L> {
     fn shooter_entity(&self, shooter: Shooter) -> Option<EntityId> {
         match shooter {
             Shooter::Player(id) => self.players.get(&id).map(|player| player.entity_id),
-            Shooter::Mob(id) => Some(id),
+            Shooter::Mob(id) | Shooter::Crossbow { mob: id, .. } => Some(id),
         }
     }
 
@@ -79,7 +79,7 @@ impl<L: ClientLink> Server<L> {
                 .players
                 .get(&id)
                 .is_some_and(|player| !player.vitals.is_dead()),
-            Shooter::Mob(_) => self.entities.store.get(entity).is_some(),
+            Shooter::Mob(_) | Shooter::Crossbow { .. } => self.entities.store.get(entity).is_some(),
         };
         if !present {
             return;
@@ -99,6 +99,7 @@ impl<L: ClientLink> Server<L> {
         match shooter {
             Shooter::Player(id) => self.bow_sound(id, force),
             Shooter::Mob(id) => self.skeleton_sound(id),
+            Shooter::Crossbow { mob, hand, wear } => self.crossbow_wear(mob, hand, wear),
         }
     }
 

@@ -23,6 +23,7 @@ pub struct GameRules {
     pub block_drops: bool,
     pub universal_anger: bool,
     pub forgive_dead_players: bool,
+    pub spawn_patrols: bool,
 }
 
 impl Default for GameRules {
@@ -39,6 +40,7 @@ impl Default for GameRules {
             block_drops: true,
             universal_anger: false,
             forgive_dead_players: true,
+            spawn_patrols: true,
         }
     }
 }
