@@ -1,6 +1,7 @@
 use crate::action::{MobAction, TargetReason};
 use crate::behavior::control::{BehaviorCx, Trigger};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue, WalkTarget};
+use crate::behavior::sensor::is_entity_attackable;
 use crate::behavior::support::{
     MobPredicate, get_entity, is_holding_usable_non_melee_weapon, is_within_attack_range,
     is_within_melee_range, look_at_entity, set_walk_target,
@@ -15,6 +16,7 @@ const TIRED_OF_TRYING_TO_REACH_TICKS: i64 = 200;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetFinder {
     Memory(MemoryModuleType),
+    HurtBySource,
     Nether(NetherFinder),
 }
 
@@ -22,6 +24,13 @@ impl TargetFinder {
     fn find<W: AiWorld>(self, cx: &mut BehaviorCx<'_, '_, W>) -> Option<Living> {
         match self {
             Self::Memory(memory) => get_entity(cx, memory).and_then(|id| cx.ai.world.living(id)),
+            Self::HurtBySource => cx
+                .brain
+                .memories
+                .get(MemoryModuleType::HurtBy)
+                .and_then(MemoryValue::as_hurt_by)
+                .and_then(|damage| damage.entity)
+                .and_then(|id| cx.ai.world.living(id)),
             Self::Nether(finder) => finder.find(cx),
         }
     }
@@ -91,13 +100,35 @@ pub enum StopAttackCondition {
     #[default]
     Never,
     NotNearestValid(NetherFinder),
+    NotAttackableRecently {
+        invocations: i32,
+        positives_left: i32,
+    },
 }
 
 impl StopAttackCondition {
-    fn test<W: AiWorld>(self, cx: &mut BehaviorCx<'_, '_, W>, target: &Living) -> bool {
+    pub fn not_attackable_recently(invocations: i32) -> Self {
+        Self::NotAttackableRecently {
+            invocations,
+            positives_left: 0,
+        }
+    }
+
+    fn test<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, target: &Living) -> bool {
         match self {
             Self::Never => false,
             Self::NotNearestValid(finder) => !finder.is_nearest_valid_attack_target(cx, target),
+            Self::NotAttackableRecently {
+                invocations,
+                positives_left,
+            } => {
+                if is_entity_attackable(cx.ai, &cx.brain.memories, target) {
+                    *positives_left = *invocations;
+                    return false;
+                }
+                *positives_left -= 1;
+                *positives_left < 0
+            }
         }
     }
 }
@@ -152,7 +183,7 @@ impl StopAttackingIfTargetInvalid {
             .is_some_and(|since| cx.ai.world.game_time() - since > TIRED_OF_TRYING_TO_REACH_TICKS)
     }
 
-    fn still_valid<W: AiWorld>(&self, cx: &mut BehaviorCx<'_, '_, W>, target: &Living) -> bool {
+    fn still_valid<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, target: &Living) -> bool {
         targeting::mob_can_attack(cx.ai.mob, cx.ai.world, target)
             && (!self.can_grow_tired_of_trying_to_reach_target
                 || !Self::is_tired_of_trying_to_reach_target(cx))

@@ -13,6 +13,7 @@ use crate::server::Server;
 
 mod armadillo;
 mod blaze;
+mod breeze;
 mod cat;
 mod enderman;
 mod endermite;
@@ -270,6 +271,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_hurt_amount(id, source, amount),
             Some(Kind::Ocelot) => self.ocelot_hurt_amount(id, source, amount),
             Some(Kind::Armadillo) => Some(self.armadillo_hurt_amount(id, amount)),
+            Some(Kind::Breeze) => self.breeze_hurt_amount(id, source, amount),
             _ => Some(amount),
         }
     }

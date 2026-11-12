@@ -20,6 +20,10 @@ use crate::behavior::walk::{
     SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract, SetWalkTargetAwayFrom,
     SetWalkTargetFromLookTarget, StrollAroundPoi, StrollToPoi,
 };
+use crate::breeze::{
+    LongJump as BreezeLongJump, Shoot as BreezeShoot, ShootWhenStuck as BreezeShootWhenStuck,
+    Slide as BreezeSlide, SlideToTargetSink,
+};
 use crate::piglin::{
     BackUpIfTooClose, BecomePassiveIfMemoryPresent, CROSSBOW_ATTACK_DURATION, CopyMemoryWithExpiry,
     CrossbowAttack, RememberIfHoglinWasKilled, StartAdmiringItemIfSeen,
@@ -155,6 +159,11 @@ mob_behaviors! {
     PrepareRamNearestTarget(PrepareRamNearestTarget),
     ArmadilloBallUp(ArmadilloBallUp),
     ArmadilloPanic(ArmadilloPanic),
+    BreezeShoot(BreezeShoot),
+    BreezeLongJump(BreezeLongJump),
+    BreezeShootWhenStuck(BreezeShootWhenStuck),
+    BreezeSlide(BreezeSlide),
+    BreezeSlideToTarget(SlideToTargetSink),
 }
 
 macro_rules! mob_triggers {

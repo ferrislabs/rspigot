@@ -614,6 +614,14 @@ impl MobAi {
             self.brain.profile.width = mob.width;
             self.brain.profile.height = mob.height;
         }
+        let mut breeze_view;
+        let mob = if mob.kind == EntityKind::Breeze {
+            breeze_view = *mob;
+            breeze_view.species.breeze.attack_target = self.target();
+            &breeze_view
+        } else {
+            mob
+        };
         self.brain.fox = mob.species.fox;
         self.brain.look.set_max_head_x_rot(mob.max_head_x_rot());
         if mob.kind == EntityKind::Shulker {

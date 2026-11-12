@@ -54,6 +54,7 @@ pub struct Facts {
     pub hunted_recently: bool,
     pub sprinting: bool,
     pub passenger: bool,
+    pub head_yaw: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -161,6 +162,7 @@ pub struct MobBody {
     pub velocity: Vec3,
     pub yaw: f32,
     pub body_yaw: f32,
+    pub head_yaw: f32,
     pub pitch: f32,
     pub aggressive: bool,
     pub swell_dir: i32,
@@ -177,6 +179,7 @@ impl MobBody {
             velocity: mob.velocity,
             yaw: mob.yaw,
             body_yaw: mob.body_yaw,
+            head_yaw: mob.head_yaw,
             pitch: mob.pitch,
             aggressive: mob.aggressive,
             swell_dir: mob.swell_dir,
@@ -374,6 +377,7 @@ pub struct KindFacts {
     pub shulker: ShulkerFacts,
     pub goat: crate::GoatFacts,
     pub armadillo: crate::ArmadilloFacts,
+    pub breeze: crate::BreezeFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -448,6 +452,7 @@ pub struct MobView {
     pub jump_boost_power: f32,
     pub speed_effect_level: i32,
     pub slowness_effect_level: i32,
+    pub levitating: bool,
     pub species: KindFacts,
 }
 
@@ -564,6 +569,7 @@ impl MobView {
             }),
             speed_effect_level: effect_level(living, "minecraft:speed"),
             slowness_effect_level: effect_level(living, "minecraft:slowness"),
+            levitating: living.effect("minecraft:levitation").is_some(),
             species: KindFacts::default(),
         }
     }

@@ -5,6 +5,7 @@ use crate::behavior::sensors::{
     NearestLivingEntitySensor, PlayerSensor, TemptingSensor,
 };
 use crate::brain::AiContext;
+use crate::breeze::BreezeAttackEntitySensor;
 use crate::piglin::{HoglinSensor, PiglinBruteSensor, PiglinSensor};
 use crate::random::RandomSource;
 use crate::targeting::TargetingConditions;
@@ -82,6 +83,7 @@ pub enum SensorKind {
     PiglinSpecific(PiglinSensor),
     PiglinBruteSpecific(PiglinBruteSensor),
     ArmadilloScareDetected(ArmadilloScareSensor),
+    BreezeAttackEntity(BreezeAttackEntitySensor),
 }
 
 impl SensorKind {
@@ -99,6 +101,7 @@ impl SensorKind {
             Self::PiglinSpecific(_) => SensorType::PiglinSpecificSensor,
             Self::PiglinBruteSpecific(_) => SensorType::PiglinBruteSpecificSensor,
             Self::ArmadilloScareDetected(_) => SensorType::ArmadilloScareDetected,
+            Self::BreezeAttackEntity(_) => SensorType::BreezeAttackEntitySensor,
         }
     }
 }
@@ -118,6 +121,7 @@ impl Sensor for SensorKind {
             Self::PiglinSpecific(sensor) => sensor.scan_rate(),
             Self::PiglinBruteSpecific(sensor) => sensor.scan_rate(),
             Self::ArmadilloScareDetected(sensor) => sensor.scan_rate(),
+            Self::BreezeAttackEntity(sensor) => sensor.scan_rate(),
         }
     }
 
@@ -135,6 +139,7 @@ impl Sensor for SensorKind {
             Self::PiglinSpecific(sensor) => sensor.requires(),
             Self::PiglinBruteSpecific(sensor) => sensor.requires(),
             Self::ArmadilloScareDetected(sensor) => sensor.requires(),
+            Self::BreezeAttackEntity(sensor) => sensor.requires(),
         }
     }
 
@@ -152,6 +157,7 @@ impl Sensor for SensorKind {
             Self::PiglinSpecific(sensor) => sensor.do_tick(cx, memories),
             Self::PiglinBruteSpecific(sensor) => sensor.do_tick(cx, memories),
             Self::ArmadilloScareDetected(sensor) => sensor.do_tick(cx, memories),
+            Self::BreezeAttackEntity(sensor) => sensor.do_tick(cx, memories),
         }
     }
 }
