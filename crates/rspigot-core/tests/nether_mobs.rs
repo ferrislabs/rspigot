@@ -2,7 +2,12 @@ mod common;
 
 use common::*;
 use rspigot_core::commands::Target;
+use rspigot_core::config::PluginSettings;
 use rspigot_core::events::Inbound;
+use rspigot_core::plugins::events::EntityTargetReason;
+use rspigot_core::plugins::{
+    Answer, EventKind, EventPayload, HandlerSpec, InventoryOrder, ItemSpec, Order, Question,
+};
 use rspigot_domain::{BlockPos, EntityId};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Compound;
@@ -240,4 +245,145 @@ fn a_brute_never_zombifies_into_anything_but_a_zombified_piglin() {
     s.tick(420);
     assert_eq!(count(&s, Kind::PiglinBrute), 0);
     assert_eq!(count(&s, Kind::ZombifiedPiglin), 1);
+}
+
+fn waiting_scene(handlers: Vec<HandlerSpec>) -> Scene {
+    let mut server = server(PluginSettings {
+        decision_ticks: 1_000,
+        ..PluginSettings::default()
+    });
+    let plugin = connect_with(&mut server, 1, "tester", handlers);
+    let alice = join(&mut server, "Alice");
+    server.deliver();
+    alice.link.take();
+    Scene {
+        server,
+        plugin,
+        players: vec![alice],
+    }
+}
+
+fn alice_entity(s: &mut Scene) -> EntityId {
+    let Answer::Player(state) = s.ask(Question::Player(s.players[0].id)) else {
+        panic!("expected Alice");
+    };
+    EntityId(state.player.entity_id)
+}
+
+fn targets(s: &Scene) -> Vec<(EntityTargetReason, Option<EntityId>)> {
+    fired(&s.plugin)
+        .into_iter()
+        .filter_map(|event| match event.payload {
+            EventPayload::EntityTargetLivingEntity(target) => {
+                Some((target.reason, target.target.map(|view| view.id)))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_zoglin_picking_a_player_reaches_target_handlers_with_the_closest_player_reason() {
+    let mut s = scene_with(
+        &["Alice"],
+        vec![observe(1, EventKind::EntityTargetLivingEntity)],
+    );
+    stream_chunk_of(&mut s, BlockPos::new(4, 64, 4));
+    let zoglin = summon(&mut s, Kind::Zoglin, "4.5 64 4.5", "{}");
+    let alice = alice_entity(&mut s);
+    for _ in 0..200 {
+        s.tick(1);
+        if !targets(&s).is_empty() {
+            break;
+        }
+    }
+    assert_eq!(
+        targets(&s).first(),
+        Some(&(EntityTargetReason::ClosestPlayer, Some(alice)))
+    );
+    assert_eq!(s.server.mob_target(zoglin), Some(alice));
+}
+
+#[test]
+fn a_waiting_brain_target_lands_after_the_verdict_and_a_cancel_keeps_the_mob_unaimed() {
+    let mut s = waiting_scene(vec![deciding(1, EventKind::EntityTargetLivingEntity)]);
+    stream_chunk_of(&mut s, BlockPos::new(4, 64, 4));
+    let zoglin = summon(&mut s, Kind::Zoglin, "4.5 64 4.5", "{}");
+    let alice = alice_entity(&mut s);
+    for _ in 0..200 {
+        s.tick(1);
+        if !asked_for(&s.plugin, EventKind::EntityTargetLivingEntity).is_empty() {
+            break;
+        }
+    }
+    let asked = asked_for(&s.plugin, EventKind::EntityTargetLivingEntity);
+    assert!(!asked.is_empty(), "no target was asked");
+    assert_eq!(s.server.mob_target(zoglin), None);
+    rule_on(&mut s.server, 1, asked[0].id, true, None);
+    assert_eq!(s.server.mob_target(zoglin), None);
+    for _ in 0..200 {
+        s.tick(1);
+        let pending = asked_for(&s.plugin, EventKind::EntityTargetLivingEntity);
+        if let Some(next) = pending.iter().find(|event| event.id != asked[0].id) {
+            rule_on(&mut s.server, 1, next.id, false, None);
+            break;
+        }
+    }
+    assert_eq!(s.server.mob_target(zoglin), Some(alice));
+}
+
+#[test]
+fn mining_gold_or_opening_a_chest_angers_the_idle_piglins_that_can_see_the_player() {
+    let mut s = ready(scene(&["Alice"]));
+    let alice = s.players[0].clone();
+    s.act(Order::Inventory {
+        player: alice.id,
+        order: InventoryOrder::Set {
+            slot: 39,
+            item: Some(ItemSpec::of("minecraft:golden_helmet", 1)),
+        },
+    });
+    let piglin = summon(&mut s, Kind::Piglin, "4.5 64 4.5", IMMUNE);
+    let far = summon(&mut s, Kind::Piglin, "60.5 64 60.5", IMMUNE);
+    s.tick(70);
+    assert!(ttl(&memories(&s, piglin), "minecraft:angry_at").is_none());
+    s.server.anger_nearby_piglins(s.players[0].id, true);
+    s.tick(2);
+    assert!(ttl(&memories(&s, piglin), "minecraft:angry_at").is_some());
+    assert!(ttl(&memories(&s, far), "minecraft:angry_at").is_none());
+}
+
+fn gold_helmet(s: &mut Scene) {
+    let alice = s.players[0].clone();
+    s.act(Order::Inventory {
+        player: alice.id,
+        order: InventoryOrder::Set {
+            slot: 39,
+            item: Some(ItemSpec::of("minecraft:golden_helmet", 1)),
+        },
+    });
+}
+
+#[test]
+fn a_piglin_hunts_a_player_without_gold_armor_and_ignores_one_who_wears_some() {
+    let mut bare = ready(scene(&["Alice"]));
+    let hunter = summon(&mut bare, Kind::Piglin, "6.5 64 6.5", IMMUNE);
+    let alice = bare.server.player_entity_id(bare.players[0].id);
+    bare.tick(80);
+    assert_eq!(bare.server.mob_target(hunter), alice);
+    let mut dressed = ready(scene(&["Alice"]));
+    gold_helmet(&mut dressed);
+    let calm = summon(&mut dressed, Kind::Piglin, "6.5 64 6.5", IMMUNE);
+    dressed.tick(80);
+    assert_eq!(dressed.server.mob_target(calm), None);
+}
+
+#[test]
+fn a_brute_hunts_any_player_even_one_in_gold() {
+    let mut s = ready(scene(&["Alice"]));
+    gold_helmet(&mut s);
+    let brute = summon(&mut s, Kind::PiglinBrute, "6.5 64 6.5", IMMUNE);
+    let alice = s.server.player_entity_id(s.players[0].id);
+    s.tick(80);
+    assert_eq!(s.server.mob_target(brute), alice);
 }

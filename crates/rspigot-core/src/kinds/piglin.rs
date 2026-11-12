@@ -42,6 +42,7 @@ const DROP_SPREAD: f64 = 0.2;
 const DROP_LIFT: f64 = 0.2;
 const REPLACED_DROP_MARGIN: f32 = 0.1;
 const MAX_STACK_FALLBACK: u8 = 64;
+const ANGER_REACH: f64 = 16.0;
 
 fn piglin_state(entity: &mut Entity) -> Option<&mut piglin::PiglinState> {
     match entity
@@ -270,6 +271,41 @@ impl<L: ClientLink> Server<L> {
         self.piglin_admire_gold_item(target);
         self.piglin_stop_walking(target);
         Some(Interaction::Predicted)
+    }
+
+    pub fn anger_nearby_piglins(&mut self, player: PlayerId, only_if_they_see_the_player: bool) {
+        let Some(entity) = self.player_entity_id(player) else {
+            return;
+        };
+        let Some(area) = self
+            .entities
+            .mobs
+            .players
+            .iter()
+            .find(|candidate| candidate.id == entity)
+            .map(|player| {
+                rspigot_ai::inflate(&player.bounds, ANGER_REACH, ANGER_REACH, ANGER_REACH)
+            })
+        else {
+            return;
+        };
+        let piglins: Vec<EntityId> = self
+            .entities
+            .store
+            .iter()
+            .filter(|other| other.base.kind == Kind::Piglin && !other.base.is_removed())
+            .filter(|other| other.base.bounding_box().intersects(&area))
+            .map(|other| other.base.id)
+            .collect();
+        for piglin in piglins {
+            self.brain_message(
+                piglin,
+                BrainMessage::PiglinAngerFromPlayer {
+                    player: entity,
+                    only_if_sees: only_if_they_see_the_player,
+                },
+            );
+        }
     }
 
     fn piglin_admire_gold_item(&mut self, id: EntityId) {

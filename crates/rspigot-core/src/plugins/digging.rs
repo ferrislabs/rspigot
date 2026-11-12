@@ -1,4 +1,6 @@
 use rspigot_domain::effect::EffectId;
+const GUARDED_BY_PIGLINS: &str = "minecraft:guarded_by_piglins";
+
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
@@ -388,6 +390,12 @@ impl<L: ClientLink> Server<L> {
         }
         let drop_items = patch.drop_items.unwrap_or(true);
         let exp = patch.exp_to_drop.unwrap_or(step.exp);
+        if step.state.kind().is_some_and(|kind| {
+            rspigot_data::tags::tag("minecraft:block", GUARDED_BY_PIGLINS)
+                .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
+        }) {
+            self.anger_nearby_piglins(id, false);
+        }
         self.set_block(pos, BlockStateId::AIR);
         self.ack_block(id, sequence);
         let survival = step.game_mode == GameMode::Survival;
