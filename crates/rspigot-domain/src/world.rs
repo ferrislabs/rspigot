@@ -88,6 +88,7 @@ pub struct Dimension {
     pub height: WorldHeight,
     pub has_skylight: bool,
     pub sea_level: i32,
+    pub piglins_zombify: bool,
 }
 
 impl Dimension {
@@ -98,6 +99,7 @@ impl Dimension {
             height: WorldHeight::OVERWORLD,
             has_skylight: true,
             sea_level: 63,
+            piglins_zombify: true,
         }
     }
 
@@ -108,6 +110,7 @@ impl Dimension {
             height: WorldHeight::NETHER,
             has_skylight: false,
             sea_level: 32,
+            piglins_zombify: false,
         }
     }
 
@@ -118,6 +121,7 @@ impl Dimension {
             height: WorldHeight::END,
             has_skylight: false,
             sea_level: 0,
+            piglins_zombify: true,
         }
     }
 }
