@@ -186,7 +186,13 @@ impl<L: ClientLink> Server<L> {
         let entity_type = entity.kind.clone();
         let final_damage = f64::from(match victim {
             Struck::Player(id) => self.player_final_damage(id, source.kind, amount),
-            Struck::Mob(id) => self.mob_final_damage(id, source.kind, amount),
+            Struck::Mob(id) => {
+                let self_inflicted = source
+                    .causing
+                    .as_ref()
+                    .is_some_and(|causing| causing.entity == id);
+                self.mob_final_damage(id, source.kind, self_inflicted, amount)
+            }
             Struck::Item(_) | Struck::Projectile(_) => amount,
         });
         let damage = f64::from(amount);

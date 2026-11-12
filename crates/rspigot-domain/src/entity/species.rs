@@ -22,8 +22,10 @@ pub mod ocelot;
 pub mod panda;
 pub mod polar_bear;
 pub mod rabbit;
+pub mod raider;
 pub mod silverfish;
 pub mod snow_golem;
+pub mod witch;
 pub mod wolf;
 pub mod zombie_villager;
 pub mod zombified_piglin;
@@ -189,6 +191,7 @@ pub enum Species {
     Ghast(ghast::GhastState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
+    Witch(witch::WitchState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -338,6 +341,9 @@ impl Species {
         }
         if kind == EntityKind::Ocelot {
             return Self::Ocelot(ocelot::define(base));
+        }
+        if kind == EntityKind::Witch {
+            return Self::Witch(witch::define(base));
         }
         Self::Plain
     }
