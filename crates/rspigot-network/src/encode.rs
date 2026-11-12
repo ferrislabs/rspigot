@@ -476,6 +476,16 @@ fn pose(p: CorePose) -> WirePose {
         CorePose::Crouching => WirePose::Crouching,
         CorePose::LongJumping => WirePose::LongJumping,
         CorePose::Dying => WirePose::Dying,
+        CorePose::Croaking => WirePose::Croaking,
+        CorePose::UsingTongue => WirePose::UsingTongue,
+        CorePose::Sitting => WirePose::Sitting,
+        CorePose::Roaring => WirePose::Roaring,
+        CorePose::Sniffing => WirePose::Sniffing,
+        CorePose::Emerging => WirePose::Emerging,
+        CorePose::Digging => WirePose::Digging,
+        CorePose::Sliding => WirePose::Sliding,
+        CorePose::Shooting => WirePose::Shooting,
+        CorePose::Inhaling => WirePose::Inhaling,
     }
 }
 

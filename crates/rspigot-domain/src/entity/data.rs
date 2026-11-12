@@ -29,6 +29,16 @@ pub enum Pose {
     Crouching,
     LongJumping,
     Dying,
+    Croaking,
+    UsingTongue,
+    Sitting,
+    Roaring,
+    Sniffing,
+    Emerging,
+    Digging,
+    Sliding,
+    Shooting,
+    Inhaling,
 }
 
 #[derive(Debug, Clone, PartialEq)]
