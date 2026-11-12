@@ -151,6 +151,7 @@ impl<L: ClientLink> Server<L> {
                 crate::plugins::AfterHurt::Arrow(follow) => follow.arrow == projectile,
                 crate::plugins::AfterHurt::Thrown(follow) => follow.projectile == projectile,
                 crate::plugins::AfterHurt::Hurting(follow) => follow.projectile == projectile,
+                crate::plugins::AfterHurt::Bullet(follow) => follow.projectile == projectile,
                 _ => false,
             },
             Continuation::Ignite(step) => step.projectile == projectile,
@@ -175,7 +176,10 @@ impl<L: ClientLink> Server<L> {
         };
         let thrown = matches!(entity.state, EntityState::Thrown(_));
         let hurting = matches!(entity.state, EntityState::Hurting(_));
-        if thrown {
+        let bullet = matches!(entity.state, EntityState::Bullet(_));
+        if bullet {
+            self.bullet_hit_entity(arrow, target);
+        } else if thrown {
             self.thrown_hit_entity(arrow, target);
         } else if hurting {
             self.hurting_hit_entity(arrow, target);

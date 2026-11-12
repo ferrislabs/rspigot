@@ -208,10 +208,13 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn is_deflectable(&self, entity: EntityId) -> bool {
-        self.entities
-            .store
-            .get(entity)
-            .is_some_and(|entity| entity.base.kind == rspigot_entities::EntityKind::Fireball)
+        self.entities.store.get(entity).is_some_and(|entity| {
+            matches!(
+                entity.base.kind,
+                rspigot_entities::EntityKind::Fireball
+                    | rspigot_entities::EntityKind::ShulkerBullet
+            )
+        })
     }
 
     fn struck_target(target: Target) -> Struck {
