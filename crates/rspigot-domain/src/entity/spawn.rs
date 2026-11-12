@@ -554,6 +554,9 @@ pub fn finalize_spawn(
             species::ocelot::finalize(base, living, environment, group, level)
         }
         Some(Species::Witch(_)) => species::witch::finalize(base, living, reason, group, level),
+        Some(Species::Pillager(_)) => {
+            species::pillager::finalize(base, living, reason, group, level)
+        }
         _ if kind == EntityKind::Spider => spider_finalize(base, living, environment, group, level),
         _ if kind.extends("AgeableMob") => ageable_finalize(base, living, group, level),
         _ => mob_finalize(base, living, group, level),
