@@ -646,6 +646,36 @@ impl AiWorld for MobWorld<'_> {
             .collect()
     }
 
+    fn dropped_item(&self, id: EntityId) -> Option<rspigot_ai::DroppedItem> {
+        let entity = self.store.get(id)?;
+        let EntityState::Item(state) = &entity.state else {
+            return None;
+        };
+        Some(rspigot_ai::DroppedItem {
+            id,
+            position: entity.base.position,
+            item: rspigot_domain::entity::item::stack(&entity.base)?.item,
+            bounds: entity.base.bounding_box(),
+            has_pickup_delay: state.pickup_delay > 0,
+            alive: !entity.base.is_removed(),
+        })
+    }
+
+    fn living_by_uuid(&self, uuid: Uuid) -> Option<Living> {
+        self.resolve(uuid).and_then(|id| self.living(id))
+    }
+
+    fn forgive_dead_players(&self) -> bool {
+        self.rules.forgive_dead_players
+    }
+
+    fn within_world_border(&self, pos: BlockPos) -> bool {
+        pos.x >= -WORLD_BORDER
+            && pos.z >= -WORLD_BORDER
+            && pos.x < WORLD_BORDER
+            && pos.z < WORLD_BORDER
+    }
+
     fn universal_anger(&self) -> bool {
         self.rules.universal_anger
     }

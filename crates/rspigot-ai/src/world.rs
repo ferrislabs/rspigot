@@ -223,6 +223,22 @@ pub trait AiWorld: BlockView {
         Vec::new()
     }
 
+    fn dropped_item(&self, _id: EntityId) -> Option<DroppedItem> {
+        None
+    }
+
+    fn within_world_border(&self, _pos: BlockPos) -> bool {
+        true
+    }
+
+    fn living_by_uuid(&self, _uuid: Uuid) -> Option<Living> {
+        None
+    }
+
+    fn forgive_dead_players(&self) -> bool {
+        true
+    }
+
     fn sections_to_village(&self, _pos: BlockPos) -> i32 {
         NO_VILLAGE
     }
