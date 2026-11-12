@@ -34,8 +34,7 @@ impl Sensing {
         }
         let from = mob.eye_position();
         let to = Vec3::new(target.position.x, target.eye_y(), target.position.z);
-        let visible =
-            from.distance_squared(to).sqrt() <= MAX_SIGHT_DISTANCE && clip_misses(view, from, to);
+        let visible = has_line_of_sight_between(view, from, to);
         if visible {
             self.seen.push(target.id);
         } else {
@@ -43,6 +42,10 @@ impl Sensing {
         }
         visible
     }
+}
+
+pub(crate) fn has_line_of_sight_between(view: &impl BlockView, from: Vec3, to: Vec3) -> bool {
+    from.distance_squared(to).sqrt() <= MAX_SIGHT_DISTANCE && clip_misses(view, from, to)
 }
 
 fn shape_hit(boxes: &[Aabb], from: Vec3, to: Vec3, pos: BlockPos) -> bool {
