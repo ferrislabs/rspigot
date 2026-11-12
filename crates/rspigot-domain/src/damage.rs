@@ -18,6 +18,7 @@ pub enum DamageType {
     Stalagmite,
     PlayerAttack,
     MobAttack,
+    MobAttackNoAggro,
     GenericKill,
     Generic,
     Starve,
@@ -84,6 +85,7 @@ impl DamageType {
             Self::Stalagmite => "minecraft:stalagmite",
             Self::PlayerAttack => "minecraft:player_attack",
             Self::MobAttack => "minecraft:mob_attack",
+            Self::MobAttackNoAggro => "minecraft:mob_attack_no_aggro",
             Self::GenericKill => "minecraft:generic_kill",
             Self::Generic => "minecraft:generic",
             Self::Starve => "minecraft:starve",
@@ -114,7 +116,7 @@ impl DamageType {
             Self::FallingStalactite => "fallingStalactite",
             Self::Stalagmite => "stalagmite",
             Self::PlayerAttack => "player",
-            Self::MobAttack => "mob",
+            Self::MobAttack | Self::MobAttackNoAggro => "mob",
             Self::GenericKill => "genericKill",
             Self::Generic => "generic",
             Self::Starve => "starve",
@@ -139,7 +141,7 @@ impl DamageType {
     pub const fn exhaustion(self) -> f32 {
         match self {
             Self::FallingAnvil | Self::FallingBlock | Self::FallingStalactite => 0.1,
-            Self::PlayerAttack | Self::MobAttack => 0.1,
+            Self::PlayerAttack | Self::MobAttack | Self::MobAttackNoAggro => 0.1,
             Self::InFire
             | Self::Lava
             | Self::Arrow
@@ -242,6 +244,17 @@ mod tests {
         assert_eq!(DamageType::PlayerAttack.registry_id(), Some(34));
         assert_eq!(DamageType::MobAttack.registry_id(), Some(28));
         assert_eq!(DamageType::Wither.registry_id(), Some(49));
+    }
+
+    #[test]
+    fn the_no_aggro_mob_attack_is_registered_with_the_mob_message_and_the_no_anger_tag() {
+        let kind = DamageType::MobAttackNoAggro;
+        assert!(kind.registry_id().is_some());
+        assert_eq!(kind.name(), "minecraft:mob_attack_no_aggro");
+        assert_eq!(kind.message_id(), "mob");
+        assert_eq!(kind.exhaustion(), 0.1);
+        assert!(kind.is(DamageTag::NoAnger));
+        assert!(!kind.is(DamageTag::NoKnockback));
     }
 
     #[test]

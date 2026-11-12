@@ -11,6 +11,8 @@ use crate::{BlockPos, Vec3};
 const ANIMALS_SPAWNABLE_ON: &str = "minecraft:animals_spawnable_on";
 const MOOSHROOMS_SPAWNABLE_ON: &str = "minecraft:mooshrooms_spawnable_on";
 const RABBITS_SPAWNABLE_ON: &str = "minecraft:rabbits_spawnable_on";
+const GOATS_SPAWNABLE_ON: &str = "minecraft:goats_spawnable_on";
+const ARMADILLO_SPAWNABLE_ON: &str = "minecraft:armadillo_spawnable_on";
 const LEAVES: &str = "minecraft:leaves";
 const OCELOT_SPAWN_CHANCE: i32 = 3;
 const ANIMAL_MIN_BRIGHTNESS: i32 = 8;
@@ -62,6 +64,8 @@ pub fn check_predicate(
             check_patrolling_monster_spawn_rules(level, kind, reason, pos)
         }
         SpawnPredicate::Rabbit => check_rabbit_spawn_rules(level, pos),
+        SpawnPredicate::Goat => check_bright_spawnable_on(level, pos, GOATS_SPAWNABLE_ON),
+        SpawnPredicate::Armadillo => check_bright_spawnable_on(level, pos, ARMADILLO_SPAWNABLE_ON),
         SpawnPredicate::Fox => super::fox::check_fox_spawn_rules(level, pos),
         SpawnPredicate::Ocelot => level.next_int(OCELOT_SPAWN_CHANCE) != 0,
         SpawnPredicate::Wolf => super::wolf::check_wolf_spawn_rules(level, pos),
@@ -86,10 +90,11 @@ pub fn check_predicate(
 }
 
 fn check_rabbit_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
-    has_tag(
-        level.block_or_air(pos.offset(0, -1, 0)),
-        RABBITS_SPAWNABLE_ON,
-    ) && is_bright_enough_to_spawn(level, pos)
+    check_bright_spawnable_on(level, pos, RABBITS_SPAWNABLE_ON)
+}
+
+fn check_bright_spawnable_on(level: &impl SpawnLevel, pos: BlockPos, tag: &str) -> bool {
+    has_tag(level.block_or_air(pos.offset(0, -1, 0)), tag) && is_bright_enough_to_spawn(level, pos)
 }
 
 pub fn check_patrolling_monster_spawn_rules(
@@ -132,6 +137,8 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Stray
                 | SpawnPredicate::PatrollingMonster
                 | SpawnPredicate::Rabbit
+                | SpawnPredicate::Goat
+                | SpawnPredicate::Armadillo
                 | SpawnPredicate::Fox
                 | SpawnPredicate::Ocelot
                 | SpawnPredicate::Wolf
@@ -596,6 +603,41 @@ mod tests {
             pos
         ));
         assert!(rules_ported(EntityKind::Wolf));
+    }
+
+    #[test]
+    fn goats_and_armadillos_need_their_own_ground_and_light() {
+        let pos = BlockPos::new(4, 64, 4);
+        for (kind, good, bad) in [
+            (EntityKind::Goat, Stone::DEFAULT_STATE, Sand::DEFAULT_STATE),
+            (
+                EntityKind::Armadillo,
+                GrassBlock::DEFAULT_STATE,
+                Stone::DEFAULT_STATE,
+            ),
+        ] {
+            let mut ground = Level::floor(good, 63);
+            assert!(
+                check_spawn_rules(&mut ground, kind, SpawnReason::Natural, pos),
+                "{kind:?}"
+            );
+            ground.sky = 8;
+            assert!(!check_spawn_rules(
+                &mut ground,
+                kind,
+                SpawnReason::Natural,
+                pos
+            ));
+            ground.sky = 15;
+            let mut wrong = Level::floor(bad, 63);
+            assert!(!check_spawn_rules(
+                &mut wrong,
+                kind,
+                SpawnReason::Natural,
+                pos
+            ));
+            assert!(rules_ported(kind), "{kind:?}");
+        }
     }
 
     #[test]

@@ -919,12 +919,17 @@ pub fn fall_damage(
     if fall_damage_immune(base.kind) {
         return 0;
     }
+    let reduction = if base.kind == EntityKind::Goat {
+        super::species::goat::EXTRA_FALL_DAMAGE_REDUCTION
+    } else {
+        0
+    };
     damage::fall_damage(
         distance,
         multiplier,
         living.attribute(SAFE_FALL_DISTANCE),
         living.attribute(FALL_DAMAGE_MULTIPLIER),
-    )
+    ) - reduction
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -1607,6 +1612,17 @@ mod tests {
         assert!((kept.y - (0.5 - 0.08)).abs() < 1.0e-9);
         let slowed = flying(false);
         assert!(slowed.x < 1.0 && slowed.z > -1.0);
+    }
+
+    #[test]
+    fn goats_take_ten_points_less_fall_damage_than_other_mobs() {
+        let (zombie_base, mut zombie_state) = zombie();
+        let mut goat_base = EntityBase::new(EntityId(2), Uuid::from_u128(2), EntityKind::Goat);
+        let mut goat_state = LivingState::new(&mut goat_base, 0.0);
+        let plain = fall_damage(&zombie_base, &mut zombie_state, 20.0, 1.0);
+        let goat = fall_damage(&goat_base, &mut goat_state, 20.0, 1.0);
+        assert_eq!(plain - goat, 10);
+        assert!(fall_damage(&goat_base, &mut goat_state, 6.0, 1.0) <= 0);
     }
 
     #[test]
