@@ -721,6 +721,7 @@ mod tests {
                 EntityKind::Sheep,
                 EntityKind::Skeleton,
                 EntityKind::Spider,
+                EntityKind::WitherSkeleton,
                 EntityKind::Zombie,
             ]
         );

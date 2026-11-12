@@ -199,7 +199,7 @@ pub fn register_goals(
                 ),
             );
         }
-        EntityKind::Skeleton => {
+        EntityKind::Skeleton | EntityKind::WitherSkeleton => {
             add.goal(2, MobGoal::RestrictSun(RestrictSunGoal));
             add.goal(3, MobGoal::FleeSun(FleeSunGoal::new(1.0)));
             add.goal(
@@ -232,6 +232,12 @@ pub fn register_goals(
                     TargetFilter::BabyOnLand,
                 ),
             );
+            if kind == EntityKind::WitherSkeleton {
+                add.target(
+                    3,
+                    NearestAttackableTargetGoal::new(TargetKind::Class("AbstractPiglin"), true),
+                );
+            }
             add.goal(
                 WEAPON_PRIORITY,
                 MobGoal::MeleeAttack(MeleeAttackGoal::skeleton(1.2)),
