@@ -802,6 +802,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_regain(step, cancelled, patch_of!(patch, EntityRegainHealth));
                 Vec::new()
             }
+            Continuation::MobRegain(step) => {
+                self.finish_mob_regain(step, cancelled, patch_of!(patch, EntityRegainHealth));
+                Vec::new()
+            }
             Continuation::Exhaust(step) => {
                 self.finish_exhaust(step, cancelled, patch_of!(patch, EntityExhaustion));
                 Vec::new()

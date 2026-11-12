@@ -37,7 +37,6 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn set_ordered_to_sit(&mut self, id: EntityId, ordered: bool) {
         if let Some(state) = self
             .entities
@@ -61,7 +60,6 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    #[allow(dead_code)]
     pub(crate) fn ask_tame(&mut self, player: PlayerId, target: EntityId) {
         let step = TameStep {
             target,
@@ -118,7 +116,13 @@ impl<L: ClientLink> Server<L> {
         self.species_tamed(id);
     }
 
-    pub(crate) fn species_tamed(&mut self, _id: EntityId) {}
+    pub(crate) fn species_tamed(&mut self, id: EntityId) {
+        if self.entities.store.get(id).map(|e| e.base.kind)
+            == Some(rspigot_entities::EntityKind::Wolf)
+        {
+            self.wolf_tamed(id);
+        }
+    }
 
     pub(crate) fn start_persistent_anger_timer(&mut self, id: EntityId) {
         let game_time = self.world.level.game_time;

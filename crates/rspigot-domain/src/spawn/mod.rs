@@ -6,6 +6,7 @@ pub mod natural;
 pub mod placement;
 pub mod rules;
 pub mod state;
+pub mod wolf;
 
 use rspigot_data::spawns::{BiomeSpawns, DimensionSpawns, SpawnCount, Spawner};
 use rspigot_entities::{EntityKind, MobCategory, SpawnHeightmap};
@@ -74,6 +75,10 @@ pub enum SpawnGroupData {
     },
     Fox {
         variant: crate::entity::species::fox::Variant,
+        group_size: i32,
+    },
+    WolfPack {
+        variant: u32,
         group_size: i32,
     },
 }

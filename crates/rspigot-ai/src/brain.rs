@@ -373,6 +373,7 @@ impl MobAi {
             self.brain.profile.height = mob.height;
         }
         self.brain.fox = mob.species.fox;
+        self.brain.look.set_max_head_x_rot(mob.max_head_x_rot());
         let mut context = AiContext {
             mob,
             world,

@@ -2,8 +2,8 @@ use std::cell::Cell;
 use std::collections::HashMap;
 
 use rspigot_ai::{
-    AiWorld, Facts, FollowOwnerGoal, GoalSettings, Living, MobAction, MobAi, MobBody, MobGoal,
-    MobView, NearestAttackableTargetGoal, OwnerTargetGoal, ResetUniversalAngerGoal,
+    AiWorld, Facts, FollowOwnerGoal, GoalSelector, GoalSettings, Living, MobAction, MobAi, MobBody,
+    MobGoal, MobView, NearestAttackableTargetGoal, OwnerTargetGoal, ResetUniversalAngerGoal,
     SitWhenOrderedToGoal, TargetFilter, TargetKind, is_angry_at,
 };
 use rspigot_blocks::{BlockKind, StateId};
@@ -177,7 +177,10 @@ fn running(ai: &MobAi, matches: impl Fn(&MobGoal) -> bool) -> bool {
 }
 
 fn blank_ai() -> MobAi {
-    MobAi::new(EntityKind::Wolf, 5, GoalSettings::default())
+    let mut ai = MobAi::new(EntityKind::Wolf, 5, GoalSettings::default());
+    *ai.goals_mut() = GoalSelector::new();
+    *ai.targets_mut() = GoalSelector::new();
+    ai
 }
 
 #[test]

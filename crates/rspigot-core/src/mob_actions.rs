@@ -331,6 +331,7 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Rabbit
                 | Kind::Ocelot
                 | Kind::Fox
+                | Kind::Wolf
         ) {
             return None;
         }
@@ -371,6 +372,9 @@ impl<L: ClientLink> Server<L> {
                 partner_fox
             };
             species::fox::set_variant(&mut child.base, chosen);
+        }
+        if kind == Kind::Wolf {
+            self.wolf_offspring(&mut child, parent, partner, random);
         }
         if kind == Kind::Sheep {
             let mut level = crate::mobs::ServerRandom(&mut self.rng);

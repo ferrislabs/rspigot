@@ -100,7 +100,7 @@ pub use targeting::{
 pub use view::BlockView;
 pub use village::{find_section_closest_to_village, sections_to_village};
 pub use walk::{block_path_type, mob_path_type};
-pub use wolf::{WolfAction, WolfFacts, WolfGoal};
+pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{
     AiWorld, DroppedItem, Facts, Hand, KindFacts, Living, MOVEMENT_SPEED, MobBody, MobView,
     NO_VILLAGE, TEMPT_RANGE, TargetKind, inflate,

@@ -7,7 +7,6 @@ use crate::action::{MobAction, TargetReason};
 use crate::animal::block_tag;
 use crate::brain::AiContext;
 use crate::combat::TargetMemory;
-use crate::control::MAX_HEAD_X_ROT;
 use crate::goal::adjusted_tick_delay;
 use crate::random::RandomSource;
 use crate::targeting::{self, TargetingConditions};
@@ -33,7 +32,7 @@ pub fn should_try_teleport_to_owner(mob: &MobView, owner: &Living) -> bool {
     mob.distance_to_sqr(owner.position) >= TELEPORT_DISTANCE_SQR
 }
 
-fn owner_of<W: AiWorld>(context: &AiContext<'_, W>) -> Option<Living> {
+pub(crate) fn owner_of<W: AiWorld>(context: &AiContext<'_, W>) -> Option<Living> {
     context
         .mob
         .owner
@@ -251,7 +250,7 @@ impl FollowOwnerGoal {
             context
                 .brain
                 .look
-                .set_look_at(at, OWNER_LOOK_SPEED, MAX_HEAD_X_ROT);
+                .set_look_at(at, OWNER_LOOK_SPEED, context.mob.max_head_x_rot());
         }
         self.time_to_recalc_path -= 1;
         if self.time_to_recalc_path <= 0 {

@@ -27,15 +27,32 @@ fn set_speed(living: &mut LivingState, speed: f32) {
     living.zza = speed;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LookControl {
     y_max_rot_speed: f32,
     x_max_rot_angle: f32,
     look_at_cooldown: i32,
     wanted: Vec3,
+    max_head_x_rot: f32,
+}
+
+impl Default for LookControl {
+    fn default() -> Self {
+        Self {
+            y_max_rot_speed: 0.0,
+            x_max_rot_angle: 0.0,
+            look_at_cooldown: 0,
+            wanted: Vec3::ZERO,
+            max_head_x_rot: MAX_HEAD_X_ROT,
+        }
+    }
 }
 
 impl LookControl {
+    pub fn set_max_head_x_rot(&mut self, max: f32) {
+        self.max_head_x_rot = max;
+    }
+
     pub fn set_look_at(&mut self, at: Vec3, y_max_rot_speed: f32, x_max_rot_angle: f32) {
         self.wanted = at;
         self.y_max_rot_speed = y_max_rot_speed;
@@ -44,7 +61,7 @@ impl LookControl {
     }
 
     pub fn look_at(&mut self, at: Vec3) {
-        self.set_look_at(at, HEAD_ROT_SPEED, MAX_HEAD_X_ROT);
+        self.set_look_at(at, HEAD_ROT_SPEED, self.max_head_x_rot);
     }
 
     pub fn is_looking_at_target(&self) -> bool {

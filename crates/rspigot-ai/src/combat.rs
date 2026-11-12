@@ -741,6 +741,12 @@ impl HurtByTargetGoal {
             {
                 continue;
             }
+            if mob.kind.extends("TamableAnimal")
+                && (mob.owner != other.facts.owner
+                    || (other.facts.tamed && other.facts.owner == Some(attacker)))
+            {
+                continue;
+            }
             context.act(MobAction::Alert {
                 mob: other.id,
                 target: attacker,

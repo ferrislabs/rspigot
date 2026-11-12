@@ -60,6 +60,7 @@ pub fn check_predicate(
         SpawnPredicate::Rabbit => check_rabbit_spawn_rules(level, pos),
         SpawnPredicate::Fox => super::fox::check_fox_spawn_rules(level, pos),
         SpawnPredicate::Ocelot => level.next_int(OCELOT_SPAWN_CHANCE) != 0,
+        SpawnPredicate::Wolf => super::wolf::check_wolf_spawn_rules(level, pos),
         _ => return None,
     })
 }
@@ -102,6 +103,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Rabbit
                 | SpawnPredicate::Fox
                 | SpawnPredicate::Ocelot
+                | SpawnPredicate::Wolf
         )
     });
     let walk = match spawn.check_spawn_rules {
@@ -404,6 +406,33 @@ mod tests {
             pos
         ));
         assert!(rules_ported(EntityKind::Rabbit));
+    }
+
+    #[test]
+    fn wolves_need_their_own_ground_and_light() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut grass = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        assert!(check_spawn_rules(
+            &mut grass,
+            EntityKind::Wolf,
+            SpawnReason::Natural,
+            pos
+        ));
+        grass.sky = 8;
+        assert!(!check_spawn_rules(
+            &mut grass,
+            EntityKind::Wolf,
+            SpawnReason::Natural,
+            pos
+        ));
+        let mut sand = Level::floor(Sand::DEFAULT_STATE, 63);
+        assert!(!check_spawn_rules(
+            &mut sand,
+            EntityKind::Wolf,
+            SpawnReason::Natural,
+            pos
+        ));
+        assert!(rules_ported(EntityKind::Wolf));
     }
 
     #[test]

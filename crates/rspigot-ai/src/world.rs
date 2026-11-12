@@ -12,6 +12,7 @@ use crate::BlockView;
 
 pub const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
 pub const TEMPT_RANGE: &str = "minecraft:tempt_range";
+const WOLF_SITTING_MAX_HEAD_X_ROT: f32 = 20.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Facts {
@@ -25,6 +26,8 @@ pub struct Facts {
     pub last_hurt_mob_at: i32,
     pub retaliable: bool,
     pub tick_count: i32,
+    pub sitting: bool,
+    pub llama_strength: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -287,6 +290,7 @@ pub struct MobView {
     pub last_hurt_by_mob: Option<EntityId>,
     pub last_hurt_by_mob_at: i32,
     pub panic: bool,
+    pub panic_environmental: bool,
     pub on_fire: bool,
     pub head_empty: bool,
     pub main_hand: Option<ItemId>,
@@ -366,6 +370,7 @@ impl MobView {
             last_hurt_by_mob: living.damage.last_hurt_by_mob,
             last_hurt_by_mob_at: living.damage.last_hurt_by_mob_at,
             panic: false,
+            panic_environmental: false,
             on_fire: false,
             head_empty: living.equipment(EquipmentSlot::Head).is_none(),
             main_hand: living.equipment(EquipmentSlot::Mainhand).map(|s| s.item),
@@ -391,6 +396,14 @@ impl MobView {
             passenger: false,
             player_created: false,
             species: KindFacts::default(),
+        }
+    }
+
+    pub fn max_head_x_rot(&self) -> f32 {
+        if self.kind == EntityKind::Wolf && self.sitting {
+            WOLF_SITTING_MAX_HEAD_X_ROT
+        } else {
+            crate::control::MAX_HEAD_X_ROT
         }
     }
 

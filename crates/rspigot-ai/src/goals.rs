@@ -12,7 +12,7 @@ use crate::combat::{
     HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, OcelotAttackGoal, RangedBowAttackGoal,
     SwellGoal,
 };
-use crate::control::{MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT};
+use crate::control::MAX_HEAD_Y_ROT;
 use crate::evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 use crate::goal::{Flag, Flags, Goal, adjusted_tick_delay, reduced_tick_delay};
 use crate::neutral::ResetUniversalAngerGoal;
@@ -463,7 +463,7 @@ impl TemptGoal {
         context
             .brain
             .look
-            .set_look_at(at, MAX_HEAD_Y_ROT + 20.0, MAX_HEAD_X_ROT);
+            .set_look_at(at, MAX_HEAD_Y_ROT + 20.0, context.mob.max_head_x_rot());
         if context.mob.distance_to_sqr(player.position) < self.stop_distance * self.stop_distance {
             context.stop_navigation();
         } else {
@@ -480,6 +480,7 @@ pub enum TargetFilter {
     ChickenOrRabbit,
     SchoolingFish,
     EnemyNonCreeper,
+    Prey,
 }
 
 impl TargetFilter {
@@ -495,6 +496,10 @@ impl TargetFilter {
             Self::EnemyNonCreeper => {
                 crate::iron_golem::is_enemy(target.kind) && target.kind != EntityKind::Creeper
             }
+            Self::Prey => matches!(
+                target.kind,
+                EntityKind::Sheep | EntityKind::Rabbit | EntityKind::Fox
+            ),
         }
     }
 }

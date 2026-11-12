@@ -1,9 +1,9 @@
 use rspigot_blocks::{BlockKind, StateFlags};
 use rspigot_domain::{BlockPos, EntityId, Vec3};
+use rspigot_entities::EntityKind;
 
 use crate::action::MobAction;
 use crate::brain::AiContext;
-use crate::control::MAX_HEAD_X_ROT;
 use crate::goal::adjusted_tick_delay;
 use crate::random::RandomSource;
 use crate::random_pos;
@@ -46,6 +46,8 @@ pub struct PanicGoal {
     wanted: Vec3,
     running: bool,
     rabbit: bool,
+    tamable: bool,
+    environmental: bool,
 }
 
 impl PanicGoal {
@@ -55,6 +57,22 @@ impl PanicGoal {
             wanted: Vec3::ZERO,
             running: false,
             rabbit: false,
+            tamable: false,
+            environmental: false,
+        }
+    }
+
+    pub fn tamable(speed_modifier: f64) -> Self {
+        Self {
+            tamable: true,
+            ..Self::new(speed_modifier)
+        }
+    }
+
+    pub fn tamable_environmental(speed_modifier: f64) -> Self {
+        Self {
+            environmental: true,
+            ..Self::tamable(speed_modifier)
         }
     }
 
@@ -92,7 +110,12 @@ impl PanicGoal {
     }
 
     pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
-        if !context.mob.panic {
+        let panic = if self.environmental {
+            context.mob.panic_environmental
+        } else {
+            context.mob.panic
+        };
+        if !panic {
             return false;
         }
         if context.mob.on_fire
@@ -118,6 +141,13 @@ impl PanicGoal {
     }
 
     pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        if self.tamable
+            && let Some(owner) = crate::tame::owner_of(context)
+            && !crate::tame::unable_to_move_to_owner(context.mob, Some(&owner))
+            && crate::tame::should_try_teleport_to_owner(context.mob, &owner)
+        {
+            crate::tame::try_to_teleport_to_owner(context, &owner);
+        }
         if !self.rabbit {
             return;
         }
@@ -167,7 +197,9 @@ impl BreedGoal {
             let can_mate = candidate.id != mob.id
                 && candidate.kind == mob.kind
                 && mob.in_love
-                && candidate.in_love;
+                && candidate.in_love
+                && (mob.kind != EntityKind::Wolf
+                    || (mob.tamed && candidate.facts.tamed && !candidate.facts.sitting));
             let distance = mob.distance_to_sqr(candidate.position);
             if can_mate && !candidate.panicking && distance < best {
                 best = distance;
@@ -208,7 +240,7 @@ impl BreedGoal {
         context
             .brain
             .look
-            .set_look_at(eye, BREED_LOOK_SPEED, MAX_HEAD_X_ROT);
+            .set_look_at(eye, BREED_LOOK_SPEED, context.mob.max_head_x_rot());
         context.move_to_entity(&partner, self.speed_modifier);
         self.love_time += 1;
         if self.love_time >= adjusted_tick_delay(false, BREED_DELAY)

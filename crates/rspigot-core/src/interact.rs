@@ -76,11 +76,12 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Sheep => "minecraft:sheep_food",
         Kind::Chicken => "minecraft:chicken_food",
         Kind::Fox => "minecraft:fox_food",
+        Kind::Wolf => "minecraft:wolf_food",
         _ => return None,
     })
 }
 
-fn dye_color(item: ItemId) -> Option<u8> {
+pub(crate) fn dye_color(item: ItemId) -> Option<u8> {
     let name = item.kind()?.name();
     DYES.iter()
         .position(|dye| *dye == name)
@@ -232,7 +233,7 @@ impl<L: ClientLink> Server<L> {
         self.push(Audience::Trackers(entity), event);
     }
 
-    fn held(&self, id: PlayerId, hand: Hand) -> Option<ItemStack> {
+    pub(crate) fn held(&self, id: PlayerId, hand: Hand) -> Option<ItemStack> {
         let player = self.players.get(&id)?;
         player
             .inventory
@@ -240,20 +241,20 @@ impl<L: ClientLink> Server<L> {
             .cloned()
     }
 
-    fn set_held(&mut self, id: PlayerId, hand: Hand, stack: Option<ItemStack>) {
+    pub(crate) fn set_held(&mut self, id: PlayerId, hand: Hand, stack: Option<ItemStack>) {
         if let Some(player) = self.players.get_mut(&id) {
             let slot = hand_slot(hand, player.inventory.selected_hotbar);
             player.inventory.set(slot, stack);
         }
     }
 
-    fn infinite_materials(&self, id: PlayerId) -> bool {
+    pub(crate) fn infinite_materials(&self, id: PlayerId) -> bool {
         self.players
             .get(&id)
             .is_some_and(|p| p.abilities().instant_build)
     }
 
-    fn shrink_held(&mut self, id: PlayerId, hand: Hand, amount: u8) {
+    pub(crate) fn shrink_held(&mut self, id: PlayerId, hand: Hand, amount: u8) {
         let Some(stack) = self.held(id, hand) else {
             return;
         };
@@ -271,7 +272,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn hurt_held(&mut self, id: PlayerId, hand: Hand, amount: i32) {
+    pub(crate) fn hurt_held(&mut self, id: PlayerId, hand: Hand, amount: i32) {
         self.wear(id, hand, amount);
     }
 

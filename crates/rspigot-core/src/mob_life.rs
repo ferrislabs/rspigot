@@ -45,7 +45,7 @@ pub(crate) fn type_in_tag(kind: Kind, tag: &str) -> bool {
 pub(crate) fn ambient_sound(entity: &Entity) -> Option<&'static str> {
     let base = &entity.base;
     let mob = entity.living()?.mob.as_ref()?;
-    if let Some(farm) = mob.species.farm() {
+    if let Some(farm) = mob.species.variant_family() {
         return species::sound_set(base, farm, entity.is_baby())?.ambient;
     }
     match base.kind {
@@ -62,7 +62,7 @@ pub(crate) fn variant_sound(
     pick: fn(&rspigot_data::variants::SoundSet) -> Option<&'static str>,
 ) -> Option<Option<&'static str>> {
     let mob = entity.living()?.mob.as_ref()?;
-    let farm = mob.species.farm()?;
+    let farm = mob.species.variant_family()?;
     let set = species::sound_set(
         &entity.base,
         farm,

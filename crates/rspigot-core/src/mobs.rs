@@ -80,6 +80,7 @@ const DAMAGE_SOURCE_MEMORY: i64 = 40;
 const RETALIATION_MEMORY: i64 = 100;
 const NO_WOLF_RETALIATION: &str = "minecraft:no_wolf_retaliation";
 const PANIC_CAUSES: &str = "minecraft:panic_causes";
+const PANIC_ENVIRONMENTAL_CAUSES: &str = "minecraft:panic_environmental_causes";
 pub const DEFAULT_KNOCKBACK: f64 = 0.400_000_005_960_464_5;
 pub const MIN_KNOCKBACK_DIRECTION: f64 = 9.999_999_747_378_752e-6;
 const KNOCKBACK_VERTICAL_CAP: f64 = 0.4;
@@ -221,6 +222,8 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             last_hurt_by_mob_at: player.vitals.last_hurt_by_mob_at,
             last_hurt_mob: player.vitals.last_hurt_mob,
             last_hurt_mob_at: player.vitals.last_hurt_mob_at,
+            sitting: false,
+            llama_strength: 0,
             retaliable: player
                 .vitals
                 .last_source
@@ -261,6 +264,12 @@ fn entity_facts(
         last_hurt_by_mob_at: state.damage.last_hurt_by_mob_at,
         last_hurt_mob: state.damage.last_hurt_mob,
         last_hurt_mob_at: state.damage.last_hurt_mob_at,
+        sitting: tame && tamable::is_in_sitting_pose(base),
+        llama_strength: if base.kind.extends("Llama") {
+            entity.extra.get_i32("Strength").unwrap_or(0)
+        } else {
+            0
+        },
         retaliable: state
             .damage
             .last_source
@@ -824,6 +833,10 @@ impl<L: ClientLink> Server<L> {
         view.panic = state.damage.last_source.is_some_and(|(kind, at)| {
             self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY && kind.in_tag(PANIC_CAUSES)
         });
+        view.panic_environmental = state.damage.last_source.is_some_and(|(kind, at)| {
+            self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY
+                && kind.in_tag(PANIC_ENVIRONMENTAL_CAUSES)
+        });
         view.using_item = state.using_item.map(|(slot, _)| {
             if slot == EquipmentSlot::Offhand {
                 Hand::Off
@@ -1232,6 +1245,9 @@ impl<L: ClientLink> Server<L> {
         source: &DamageSource,
         amount: f32,
     ) -> bool {
+        if self.kind_absorbs_hurt(id, source, amount) {
+            return false;
+        }
         let now = self.current_tick();
         let game_time = self.world.level.game_time;
         let kind = source.kind;

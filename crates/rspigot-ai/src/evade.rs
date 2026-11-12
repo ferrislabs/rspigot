@@ -128,6 +128,10 @@ impl AvoidEntityGoal {
         }
     }
 
+    pub(crate) fn to_avoid(&self) -> Option<EntityId> {
+        self.to_avoid
+    }
+
     pub(crate) fn can_continue_to_use<W: AiWorld>(
         &mut self,
         context: &mut AiContext<'_, W>,

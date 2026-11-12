@@ -702,6 +702,12 @@ pub(crate) struct RegainStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct MobRegainStep {
+    pub(crate) target: EntityId,
+    pub(crate) amount: f32,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct ExhaustStep {
     pub(crate) player: PlayerId,
     pub(crate) amount: f32,
@@ -908,6 +914,7 @@ pub(crate) enum Continuation {
     Strike(Box<HurtStep>),
     MobDeath(Box<LootStep>),
     Regain(RegainStep),
+    MobRegain(MobRegainStep),
     Exhaust(ExhaustStep),
     Food(FoodStep),
     Potion(PotionStep),
@@ -918,22 +925,15 @@ pub(crate) enum Continuation {
     Gather(Box<GatherStep>),
     ChangeBlock(Box<ChangeStep>),
     Regrow(EntityId),
-    EggBreak {
-        mob: EntityId,
-        pos: BlockPos,
-    },
+    EggBreak { mob: EntityId, pos: BlockPos },
     EntityExplode(Box<ExplodeStep>),
     Prime(PrimeStep),
     Relocate(RelocateStep),
     Shoot(Box<ShotStep>),
-    ProjectileHit {
-        arrow: EntityId,
-        target: EntityId,
-    },
+    ProjectileHit { arrow: EntityId, target: EntityId },
     Aim(AimStep),
     Breed(Box<BreedStep>),
     Love(Box<LoveStep>),
-    #[allow(dead_code)]
     Tame(TameStep),
     Dye(Box<DyeStep>),
     Window(Box<WindowPacket>),
@@ -1011,7 +1011,7 @@ impl Continuation {
             Self::EntityDrop(_) => EventKind::EntityDropItem,
             Self::Hurt(step) | Self::Strike(step) => step.kind,
             Self::MobDeath(_) => EventKind::EntityDeath,
-            Self::Regain(_) => EventKind::EntityRegainHealth,
+            Self::Regain(_) | Self::MobRegain(_) => EventKind::EntityRegainHealth,
             Self::Exhaust(_) => EventKind::EntityExhaustion,
             Self::Food(_) => EventKind::FoodLevelChange,
             Self::Potion(_) => EventKind::EntityPotionEffect,
@@ -1098,6 +1098,7 @@ impl Continuation {
             Self::Breed(step) => step.parent == id || step.partner == id,
             Self::Love(step) => step.target == id,
             Self::Tame(step) => step.target == id,
+            Self::MobRegain(step) => step.target == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::InteractEntity(step) => step.target == id,

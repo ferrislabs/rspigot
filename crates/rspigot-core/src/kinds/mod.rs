@@ -105,6 +105,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn play_ambient_sound(&mut self, id: EntityId) {
         match self.kind_of(id) {
             Some(Kind::Fox) => self.fox_ambient(id),
+            Some(Kind::Wolf) => self.wolf_ambient_voice(id),
             _ => self.play_mob_voice(id, crate::mob_life::ambient_sound),
         }
     }
@@ -173,6 +174,18 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_hurt_amount(id, source, amount),
             Some(Kind::Ocelot) => self.ocelot_hurt_amount(id, source, amount),
             _ => Some(amount),
+        }
+    }
+
+    pub(crate) fn kind_absorbs_hurt(
+        &mut self,
+        id: EntityId,
+        source: &DamageSource,
+        amount: f32,
+    ) -> bool {
+        match self.kind_of(id) {
+            Some(Kind::Wolf) => self.wolf_absorbs_hurt(id, source, amount),
+            _ => false,
         }
     }
 

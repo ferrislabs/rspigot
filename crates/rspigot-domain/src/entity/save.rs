@@ -1382,6 +1382,35 @@ mod tests {
     }
 
     #[test]
+    fn a_wolf_keeps_its_collar_and_body_armor() {
+        let nbt = wolf_nbt().with("CollarColor", 3i8).with(
+            "equipment",
+            Compound::new().with(
+                "body",
+                Compound::new()
+                    .with("id", "minecraft:wolf_armor")
+                    .with("count", 1),
+            ),
+        );
+        let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        let living = entity.living().unwrap();
+        assert_eq!(species::wolf::collar_color(&entity.base), 3);
+        assert!(
+            living
+                .equipment(rspigot_items::EquipmentSlot::Body)
+                .is_some()
+        );
+        assert!(entity.extra.is_empty());
+        let saved = save_entity(&entity, None).unwrap();
+        assert_eq!(saved.get_i64("CollarColor"), Some(3));
+        let body = saved
+            .get_compound("equipment")
+            .and_then(|equipment| equipment.get_compound("body"))
+            .and_then(|body| body.get_str("id"));
+        assert_eq!(body, Some("minecraft:wolf_armor"));
+    }
+
+    #[test]
     fn tamed_and_angry_mobs_keep_their_owner_and_anger() {
         let entity = load_entity(&wolf_nbt(), EntityId(1), Uuid::from_u128(1)).unwrap();
         assert!(tamable::is_tame(&entity.base));
