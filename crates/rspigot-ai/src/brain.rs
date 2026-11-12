@@ -430,6 +430,11 @@ impl MobAi {
         }
         self.brain.fox = mob.species.fox;
         self.brain.look.set_max_head_x_rot(mob.max_head_x_rot());
+        if mob.kind == EntityKind::Shulker {
+            self.brain
+                .look
+                .set_shulker_face(Some(mob.species.shulker.attach_face));
+        }
         if self.brain.panda.active {
             self.brain.panda.facts = mob.species.panda;
         }
@@ -539,6 +544,9 @@ impl MobAi {
     }
 
     pub fn turn_body(&mut self, base: &mut EntityBase, living: &mut LivingState) {
+        if base.kind == EntityKind::Shulker {
+            return;
+        }
         self.brain.body.client_tick(base, living);
     }
 

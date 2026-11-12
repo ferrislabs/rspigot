@@ -23,6 +23,7 @@ use crate::raider::{
 };
 use crate::ranged::RangedAttackGoal;
 use crate::restriction::MoveTowardsRestrictionGoal;
+use crate::shulker::{ShulkerAttackGoal, ShulkerGoal, ShulkerPeekGoal};
 use crate::world::TargetKind;
 use crate::{
     cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
@@ -48,6 +49,9 @@ const PILLAGER_CROSSBOW_RADIUS: f32 = 8.0;
 const PILLAGER_STROLL_SPEED: f64 = 0.6;
 const PILLAGER_LOOK_DISTANCE: f32 = 15.0;
 const PILLAGER_IGNORED_DAMAGE: &[&str] = &["Raider"];
+const SHULKER_LOOK_DISTANCE: f32 = 8.0;
+const SHULKER_LOOK_PROBABILITY: f32 = 0.02;
+const SHULKER_IGNORED_DAMAGE: &[&str] = &["Shulker"];
 const ZOMBIE_ALERT_IGNORED: &[EntityKind] = &[EntityKind::ZombifiedPiglin];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -483,6 +487,38 @@ pub fn register_goals(
                 ),
             );
         }
+        EntityKind::Shulker => {
+            add.goal(
+                1,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::horizontal(
+                    SHULKER_LOOK_DISTANCE,
+                    SHULKER_LOOK_PROBABILITY,
+                )),
+            );
+            add.goal(
+                4,
+                MobGoal::Shulker(ShulkerGoal::Attack(ShulkerAttackGoal::default())),
+            );
+            add.goal(
+                7,
+                MobGoal::Shulker(ShulkerGoal::Peek(ShulkerPeekGoal::default())),
+            );
+            add.look_around(8);
+            add.target_goal(
+                1,
+                MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(
+                    SHULKER_IGNORED_DAMAGE,
+                )),
+            );
+            add.target_goal(
+                2,
+                MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::shulker_nearest()),
+            );
+            add.target_goal(
+                3,
+                MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::shulker_defense()),
+            );
+        }
         EntityKind::Witch => {
             raider::register(&mut add);
             add.float(1);
@@ -631,6 +667,51 @@ mod tests {
                 .collect()
         };
         (collect(ai.goals()), collect(ai.targets()))
+    }
+
+    #[test]
+    fn the_shulker_registers_the_vanilla_goals_and_targets() {
+        let (goals, targets) = lists(EntityKind::Shulker);
+        assert_eq!(
+            goals,
+            vec![
+                (
+                    1,
+                    MobGoal::LookAtPlayer(LookAtPlayerGoal::horizontal(8.0, 0.02))
+                ),
+                (
+                    4,
+                    MobGoal::Shulker(ShulkerGoal::Attack(ShulkerAttackGoal::default()))
+                ),
+                (
+                    7,
+                    MobGoal::Shulker(ShulkerGoal::Peek(ShulkerPeekGoal::default()))
+                ),
+                (
+                    8,
+                    MobGoal::RandomLookAround(RandomLookAroundGoal::default())
+                ),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![
+                (
+                    1,
+                    MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(&[
+                        "Shulker"
+                    ]))
+                ),
+                (
+                    2,
+                    MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::shulker_nearest())
+                ),
+                (
+                    3,
+                    MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::shulker_defense())
+                ),
+            ]
+        );
     }
 
     #[test]

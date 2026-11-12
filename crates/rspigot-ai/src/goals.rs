@@ -231,6 +231,13 @@ impl LookAtPlayerGoal {
         }
     }
 
+    pub fn horizontal(look_distance: f32, probability: f32) -> Self {
+        Self {
+            only_horizontal: true,
+            ..Self::with_probability(look_distance, probability)
+        }
+    }
+
     pub fn at_mobs(look_distance: f32) -> Self {
         Self {
             at_mobs: true,
@@ -581,8 +588,16 @@ impl TargetFilter {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Special {
+    Plain,
+    ShulkerNearest,
+    ShulkerDefense,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NearestAttackableTargetGoal {
+    special: Special,
     kind: TargetKind,
     random_interval: i32,
     must_see: bool,
@@ -601,6 +616,7 @@ impl NearestAttackableTargetGoal {
 
     pub fn with(kind: TargetKind, interval: i32, must_see: bool, filter: TargetFilter) -> Self {
         Self {
+            special: Special::Plain,
             kind,
             random_interval: reduced_tick_delay(interval),
             must_see,
@@ -610,6 +626,25 @@ impl NearestAttackableTargetGoal {
             follow_scale: 1.0,
             found: None,
             unseen_ticks: 0,
+        }
+    }
+
+    pub fn shulker_nearest() -> Self {
+        Self {
+            special: Special::ShulkerNearest,
+            ..Self::new(TargetKind::Player, true)
+        }
+    }
+
+    pub fn shulker_defense() -> Self {
+        Self {
+            special: Special::ShulkerDefense,
+            ..Self::with(
+                TargetKind::Class("LivingEntity"),
+                TARGET_INTERVAL,
+                true,
+                TargetFilter::Enemy,
+            )
         }
     }
 
@@ -653,7 +688,12 @@ impl NearestAttackableTargetGoal {
                 origin,
             )
         } else {
-            let area = inflate(&mob.bounds(), follow, follow, follow);
+            let area = match self.special {
+                Special::Plain => inflate(&mob.bounds(), follow, follow, follow),
+                Special::ShulkerNearest | Special::ShulkerDefense => {
+                    crate::shulker::target_search_area(mob, follow)
+                }
+            };
             let candidates = world.living_of(self.kind, &area);
             targeting::nearest(
                 context,
@@ -668,6 +708,12 @@ impl NearestAttackableTargetGoal {
     pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         if self.non_tame && context.mob.tamed {
             return false;
+        }
+        match self.special {
+            Special::Plain => {}
+            Special::ShulkerNearest if context.world.peaceful() => return false,
+            Special::ShulkerDefense if !context.mob.team => return false,
+            Special::ShulkerNearest | Special::ShulkerDefense => {}
         }
         if self.needs_darkness
             && mob_light_magic_value(context.world, context.mob) >= SPIDER_LIGHT_LIMIT
@@ -781,6 +827,7 @@ pub enum MobGoal {
     Silverfish(crate::SilverfishGoal),
     IronGolem(crate::IronGolemGoal),
     Ghast(crate::ghast::GhastGoal),
+    Shulker(crate::shulker::ShulkerGoal),
     Raider(crate::raider::RaiderGoal),
     Crossbow(crate::crossbow::CrossbowGoal),
     WitchTarget(crate::raider::NearestAttackableWitchTargetGoal),
@@ -828,6 +875,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Shulker(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::flags(goal),
@@ -876,6 +924,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::can_use(goal, context),
             Self::IronGolem(goal) => Goal::can_use(goal, context),
             Self::Ghast(goal) => Goal::can_use(goal, context),
+            Self::Shulker(goal) => Goal::can_use(goal, context),
             Self::Raider(goal) => Goal::can_use(goal, context),
             Self::Crossbow(goal) => Goal::can_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_use(goal, context),
@@ -923,6 +972,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::can_continue_to_use(goal, context),
             Self::IronGolem(goal) => Goal::can_continue_to_use(goal, context),
             Self::Ghast(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Shulker(goal) => Goal::can_continue_to_use(goal, context),
             Self::Raider(goal) => Goal::can_continue_to_use(goal, context),
             Self::Crossbow(goal) => Goal::can_continue_to_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_continue_to_use(goal, context),
@@ -940,6 +990,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Shulker(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
@@ -989,6 +1040,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::start(goal, context),
             Self::IronGolem(goal) => Goal::start(goal, context),
             Self::Ghast(goal) => Goal::start(goal, context),
+            Self::Shulker(goal) => Goal::start(goal, context),
             Self::Raider(goal) => Goal::start(goal, context),
             Self::Crossbow(goal) => Goal::start(goal, context),
             Self::WitchTarget(goal) => Goal::start(goal, context),
@@ -1037,6 +1089,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::stop(goal, context),
             Self::IronGolem(goal) => Goal::stop(goal, context),
             Self::Ghast(goal) => Goal::stop(goal, context),
+            Self::Shulker(goal) => Goal::stop(goal, context),
             Self::Raider(goal) => Goal::stop(goal, context),
             Self::Crossbow(goal) => Goal::stop(goal, context),
             Self::WitchTarget(goal) => Goal::stop(goal, context),
@@ -1054,6 +1107,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Shulker(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
@@ -1073,6 +1127,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::tick(goal, context),
             Self::IronGolem(goal) => Goal::tick(goal, context),
             Self::Ghast(goal) => Goal::tick(goal, context),
+            Self::Shulker(goal) => Goal::tick(goal, context),
             Self::Raider(goal) => Goal::tick(goal, context),
             Self::Crossbow(goal) => Goal::tick(goal, context),
             Self::WitchTarget(goal) => Goal::tick(goal, context),
@@ -1134,6 +1189,7 @@ impl MobGoal {
             | Self::BlazeAttack(_)
             | Self::MoveTowardsRestriction(_)
             | Self::Ghast(_)
+            | Self::Shulker(_)
             | Self::Raider(_)
             | Self::Crossbow(_)
             | Self::WitchTarget(_)

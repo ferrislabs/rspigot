@@ -783,6 +783,7 @@ mod tests {
                 EntityKind::PolarBear,
                 EntityKind::Rabbit,
                 EntityKind::Sheep,
+                EntityKind::Shulker,
                 EntityKind::Silverfish,
                 EntityKind::Skeleton,
                 EntityKind::SnowGolem,
