@@ -194,6 +194,10 @@ pub struct MobView {
     pub swell_dir: i32,
     pub light: f32,
     pub swinging: bool,
+    pub in_powder_snow: bool,
+    pub was_in_powder_snow: bool,
+    pub evil: bool,
+    pub trusting: bool,
 }
 
 pub fn attribute(kind: EntityKind, living: &LivingState, name: &str) -> f64 {
@@ -255,6 +259,10 @@ impl MobView {
             swell_dir: 0,
             light: 0.0,
             swinging: false,
+            in_powder_snow: base.in_powder_snow,
+            was_in_powder_snow: base.was_in_powder_snow,
+            evil: false,
+            trusting: false,
         }
     }
 

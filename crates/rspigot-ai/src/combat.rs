@@ -245,6 +245,79 @@ impl MeleeAttackGoal {
     }
 }
 
+const OCELOT_ATTACK_COOLDOWN: i32 = 20;
+const OCELOT_GIVE_UP_SQR: f64 = 225.0;
+const OCELOT_POUNCE_SQR: f64 = 16.0;
+const OCELOT_STALK_SPEED: f64 = 0.8;
+const OCELOT_POUNCE_SPEED: f64 = 1.33;
+const OCELOT_SNEAK_SPEED: f64 = 0.6;
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct OcelotAttackGoal {
+    target: Option<EntityId>,
+    attack_time: i32,
+}
+
+impl OcelotAttackGoal {
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        let Some(target) = context.target() else {
+            return false;
+        };
+        self.target = Some(target.id);
+        true
+    }
+
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
+        let Some(target) = self.target.and_then(|id| context.world.living(id)) else {
+            return false;
+        };
+        if !target.alive {
+            return false;
+        }
+        if context.mob.distance_to_sqr(target.position) > OCELOT_GIVE_UP_SQR {
+            return false;
+        }
+        !(context.brain.navigation.is_done() && !self.can_use(context))
+    }
+
+    pub(crate) fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        self.target = None;
+        context.stop_navigation();
+    }
+
+    pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        let Some(target) = self.target.and_then(|id| context.world.living(id)) else {
+            return;
+        };
+        context
+            .brain
+            .look
+            .set_look_at(eye_of(&target), MELEE_LOOK_SPEED, MELEE_LOOK_SPEED);
+        let width = context.mob.width;
+        let reach = f64::from(width * 2.0 * width * 2.0);
+        let distance = context.mob.distance_to_sqr(target.position);
+        let speed = if reach < distance && distance < OCELOT_POUNCE_SQR {
+            OCELOT_POUNCE_SPEED
+        } else if distance < OCELOT_GIVE_UP_SQR {
+            OCELOT_SNEAK_SPEED
+        } else {
+            OCELOT_STALK_SPEED
+        };
+        context.move_to_entity(&target, speed);
+        self.attack_time = (self.attack_time - 1).max(0);
+        if reach < distance {
+            return;
+        }
+        if self.attack_time <= 0 {
+            self.attack_time = OCELOT_ATTACK_COOLDOWN;
+            context.act(MobAction::Attack(target.id));
+        }
+    }
+}
+
 pub fn bow_power(ticks: i32) -> f32 {
     let time = ticks as f32 / 20.0;
     let power = (time * time + time * 2.0) / 3.0;

@@ -28,7 +28,7 @@ const ADULT_EAT_CHANCE: i32 = 1000;
 pub const EAT_GRASS_EVENT: i8 = 10;
 const EDIBLE_FOR_SHEEP: &str = "minecraft:edible_for_sheep";
 
-fn block_tag(state: Option<rspigot_blocks::StateId>, tag: &str) -> bool {
+pub(crate) fn block_tag(state: Option<rspigot_blocks::StateId>, tag: &str) -> bool {
     state.and_then(|state| state.kind()).is_some_and(|kind| {
         rspigot_data::tags::tag("minecraft:block", tag)
             .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
@@ -40,6 +40,7 @@ pub struct PanicGoal {
     speed_modifier: f64,
     wanted: Vec3,
     running: bool,
+    rabbit: bool,
 }
 
 impl PanicGoal {
@@ -48,6 +49,14 @@ impl PanicGoal {
             speed_modifier,
             wanted: Vec3::ZERO,
             running: false,
+            rabbit: false,
+        }
+    }
+
+    pub fn rabbit(speed_modifier: f64) -> Self {
+        Self {
+            rabbit: true,
+            ..Self::new(speed_modifier)
         }
     }
 
@@ -101,6 +110,16 @@ impl PanicGoal {
 
     pub(crate) fn stop(&mut self) {
         self.running = false;
+    }
+
+    pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        if !self.rabbit {
+            return;
+        }
+        let speed = self.speed_modifier;
+        context.brain.navigation.set_speed_modifier(speed);
+        let wanted = context.brain.movement.wanted();
+        context.brain.movement.set_wanted_position(wanted, speed);
     }
 }
 

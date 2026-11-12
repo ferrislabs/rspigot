@@ -4,13 +4,16 @@ use rspigot_items::ItemKind;
 use crate::animal::{BreedGoal, EatBlockGoal, FollowParentGoal, PanicGoal};
 use crate::blocks::{MoveThroughVillageGoal, RemoveTurtleEggGoal};
 use crate::brain::Brain;
-use crate::combat::{HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, SwellGoal};
+use crate::combat::{
+    HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, OcelotAttackGoal, SwellGoal,
+};
 use crate::evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 use crate::goal::GoalSelector;
 use crate::goals::{
-    FloatGoal, LookAtPlayerGoal, MobGoal, NearestAttackableTargetGoal, RandomLookAroundGoal,
-    RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
+    ClimbOnTopOfPowderSnowGoal, FloatGoal, LookAtPlayerGoal, MobGoal, NearestAttackableTargetGoal,
+    RandomLookAroundGoal, RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
 };
+use crate::rabbit::RaidGardenGoal;
 use crate::world::TargetKind;
 
 pub const ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER: bool = true;
@@ -59,6 +62,13 @@ impl Goals<'_> {
         self.goal(
             priority,
             MobGoal::Stroll(RandomStrollGoal::water_avoiding(speed)),
+        );
+    }
+
+    fn stroll_rarely_in_water(&mut self, priority: i32, speed: f64, probability: f32) {
+        self.goal(
+            priority,
+            MobGoal::Stroll(RandomStrollGoal::water_avoiding_with(speed, probability)),
         );
     }
 
@@ -300,6 +310,66 @@ pub fn register_goals(
             add.target(
                 3,
                 NearestAttackableTargetGoal::spider(TargetKind::IronGolem),
+            );
+        }
+        EntityKind::Rabbit => {
+            add.float(1);
+            add.goal(
+                1,
+                MobGoal::ClimbOnTopOfPowderSnow(ClimbOnTopOfPowderSnowGoal),
+            );
+            add.goal(1, MobGoal::Panic(PanicGoal::rabbit(2.2)));
+            add.goal(2, MobGoal::Breed(BreedGoal::new(0.8)));
+            add.tempt(3, 1.0, TemptItems::Tag("minecraft:rabbit_food"));
+            for (kind, distance) in [
+                (TargetKind::Player, 8.0),
+                (TargetKind::Class("Wolf"), 10.0),
+                (TargetKind::Class("Monster"), 4.0),
+            ] {
+                add.goal(
+                    4,
+                    MobGoal::AvoidEntity(AvoidEntityGoal::unless_evil(kind, distance, 2.2, 2.2)),
+                );
+            }
+            add.goal(5, MobGoal::RaidGarden(RaidGardenGoal::default()));
+            add.stroll(6, 0.6);
+            add.look(11, 10.0);
+        }
+        EntityKind::Ocelot => {
+            add.float(1);
+            add.goal(
+                3,
+                MobGoal::Tempt(TemptGoal::scared_by_movement(
+                    0.6,
+                    TemptItems::Tag("minecraft:ocelot_food"),
+                )),
+            );
+            add.goal(
+                4,
+                MobGoal::AvoidEntity(AvoidEntityGoal::unless_trusting(
+                    TargetKind::Player,
+                    16.0,
+                    0.8,
+                    1.33,
+                )),
+            );
+            add.goal(7, MobGoal::LeapAtTarget(LeapAtTargetGoal::new(0.3)));
+            add.goal(8, MobGoal::OcelotAttack(OcelotAttackGoal::default()));
+            add.goal(9, MobGoal::Breed(BreedGoal::new(0.8)));
+            add.stroll_rarely_in_water(10, 0.8, 1.0e-5);
+            add.look(11, 10.0);
+            add.target(
+                1,
+                NearestAttackableTargetGoal::new(TargetKind::Class("Chicken"), false),
+            );
+            add.target(
+                1,
+                NearestAttackableTargetGoal::with(
+                    TargetKind::Turtle,
+                    10,
+                    false,
+                    TargetFilter::BabyOnLand,
+                ),
             );
         }
         _ => {}

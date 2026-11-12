@@ -744,6 +744,10 @@ pub(crate) enum Grief {
         pos: BlockPos,
         below: bool,
     },
+    Raid {
+        rabbit: EntityId,
+        pos: BlockPos,
+    },
 }
 
 #[derive(Debug)]
@@ -1052,6 +1056,7 @@ impl Continuation {
                 Grief::Fall { .. } => false,
                 Grief::Land(landing) => landing.falling == id,
                 Grief::Graze { sheep, .. } => *sheep == id,
+                Grief::Raid { rabbit, .. } => *rabbit == id,
             },
             Self::EggBreak { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
