@@ -10,6 +10,7 @@ use uuid::Uuid;
 use super::ageable::{self, AgeableState};
 use super::arrow::{self, ArrowState};
 use super::base::{EntityBase, MAX_AIR_SUPPLY, RemovalReason};
+use super::bullet::{self, BulletState};
 use super::falling::FallingState;
 use super::hurting::{self, HurtingState};
 use super::item::{self, ItemState};
@@ -140,6 +141,7 @@ const HURTING_KEYS: [&str; 7] = [
     "ExplosionPower",
     "dangerous",
 ];
+const BULLET_KEYS: [&str; 3] = ["Owner", "LeftOwner", "HasBeenShot"];
 const ITEM_KEYS: [&str; 6] = ["Health", "Age", "PickupDelay", "Thrower", "Owner", "Item"];
 const ORB_KEYS: [&str; 4] = ["Health", "Age", "Value", "Count"];
 const FALLING_KEYS: [&str; 8] = [
@@ -176,6 +178,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::Arrow
             | EntityKind::Snowball
             | EntityKind::SplashPotion
+            | EntityKind::ShulkerBullet
     ) || hurting::is_hurting_projectile(kind)
         || (kind.extends("Mob") && kind != EntityKind::EnderDragon)
 }
@@ -738,6 +741,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::SnowGolem(state) => species::snow_golem::read(nbt, base, state),
         Species::Blaze(state) => species::blaze::read(nbt, base, state),
         Species::Ghast(state) => species::ghast::read(nbt, base, state),
+        Species::Shulker(state) => species::shulker::read(nbt, base, state),
         Species::Rabbit(state) => {
             species::rabbit::read(nbt, base, &mut living.attributes, state);
         }
@@ -794,6 +798,42 @@ fn write_thrown(base: &EntityBase, state: &ThrownState, out: &mut Compound) {
     out.insert("HasBeenShot", bool_tag(state.has_been_shot));
     let stack = thrown::item(base).unwrap_or_else(|| thrown::default_item_of(base.kind));
     out.insert("Item", item_stack_to_nbt(&stack));
+}
+
+fn read_bullet(nbt: &Compound, state: &mut BulletState) {
+    state.owner = nbt.get("Owner").and_then(read_uuid);
+    state.left_owner = nbt.get_bool("LeftOwner").unwrap_or(false);
+    state.has_been_shot = nbt.get_bool("HasBeenShot").unwrap_or(false);
+    state.flight_steps = nbt.get_i32("Steps").unwrap_or(0);
+    state.target_delta = Vec3::new(
+        nbt.get_f64("TXD").unwrap_or(0.0),
+        nbt.get_f64("TYD").unwrap_or(0.0),
+        nbt.get_f64("TZD").unwrap_or(0.0),
+    );
+    state.move_direction = nbt
+        .get_i64("Dir")
+        .map(|id| bullet::from_legacy_id(id as i8));
+    state.target = nbt.get("Target").and_then(read_uuid);
+}
+
+fn write_bullet(state: &BulletState, out: &mut Compound) {
+    if let Some(owner) = state.owner {
+        out.insert("Owner", uuid_tag(owner));
+    }
+    if state.left_owner {
+        out.insert("LeftOwner", true);
+    }
+    out.insert("HasBeenShot", bool_tag(state.has_been_shot));
+    if let Some(target) = state.target {
+        out.insert("Target", uuid_tag(target));
+    }
+    out.insert("Steps", state.flight_steps);
+    out.insert("TXD", state.target_delta.x);
+    out.insert("TYD", state.target_delta.y);
+    out.insert("TZD", state.target_delta.z);
+    if let Some(direction) = state.move_direction {
+        out.insert("Dir", bullet::legacy_id(direction));
+    }
 }
 
 fn read_hurting(nbt: &Compound, base: &mut EntityBase, state: &mut HurtingState) {
@@ -909,6 +949,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::SnowGolem(_) => species::snow_golem::KEYS,
         Species::Blaze(_) => species::blaze::KEYS,
         Species::Ghast(_) => species::ghast::KEYS,
+        Species::Shulker(_) => species::shulker::KEYS,
         Species::Rabbit(_) => species::rabbit::KEYS,
         Species::Ocelot(_) => species::ocelot::KEYS,
         Species::Witch(_) => species::witch::KEYS,
@@ -959,6 +1000,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         }
         _ if hurting::is_hurting_projectile(kind) => {
             EntityState::Hurting(Box::new(HurtingState::new(&mut base)))
+        }
+        EntityKind::ShulkerBullet => {
+            let seed = fallback_uuid.as_u64_pair().0 as i64;
+            EntityState::Bullet(Box::new(BulletState::new(&mut base, seed)))
         }
         _ => EntityState::Living(Box::new(LivingState::new(&mut base, 0.0))),
     };
@@ -1024,6 +1069,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Hurting(hurting_state) => {
             read_hurting(nbt, &mut base, hurting_state);
             &[&ENTITY_KEYS, &HURTING_KEYS]
+        }
+        EntityState::Bullet(bullet_state) => {
+            read_bullet(nbt, bullet_state);
+            &[&ENTITY_KEYS, &BULLET_KEYS, bullet::KEYS]
         }
         EntityState::Inert(_) => &[],
     };
@@ -1330,6 +1379,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::SnowGolem(state) => species::snow_golem::write(base, state, out),
         Species::Blaze(state) => species::blaze::write(base, state, out),
         Species::Ghast(state) => species::ghast::write(base, state, out),
+        Species::Shulker(state) => species::shulker::write(base, state, out),
         Species::Rabbit(state) => species::rabbit::write(base, state, out),
         Species::Ocelot(state) => species::ocelot::write(base, state, out),
         Species::Witch(state) => species::witch::write(base, state, out),
@@ -1394,6 +1444,7 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         EntityState::Hurting(hurting_state) => {
             write_hurting(&entity.base, hurting_state, &mut out);
         }
+        EntityState::Bullet(bullet_state) => write_bullet(bullet_state, &mut out),
         EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {

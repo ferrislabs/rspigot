@@ -547,6 +547,9 @@ pub fn finalize_spawn(
         Some(Species::Ghast(_)) => {
             species::ghast::finalize(base, living, environment, group, level)
         }
+        Some(Species::Shulker(_)) => {
+            species::shulker::finalize(base, living, environment, group, level)
+        }
         Some(Species::Rabbit(_)) => {
             species::rabbit::finalize(base, living, environment, group, level)
         }

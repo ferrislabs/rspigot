@@ -1131,7 +1131,11 @@ pub fn finish_ai_step<V: BlockView>(
         f64::from(living.yya),
         f64::from(living.zza),
     );
-    let landing = if effective_ai(base, living) {
+    let frozen = base.kind == EntityKind::Shulker;
+    if frozen {
+        base.velocity = Vec3::ZERO;
+    }
+    let landing = if effective_ai(base, living) && !frozen {
         travel(base, living, view, input)
     } else {
         None

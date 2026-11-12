@@ -42,6 +42,7 @@ pub struct EntityBase {
     pub uuid: Uuid,
     pub kind: EntityKind,
     pub dimensions: EntityDimensions,
+    pub custom_box: Option<Aabb>,
     pub position: Vec3,
     pub old_position: Vec3,
     pub velocity: Vec3,
@@ -98,6 +99,7 @@ impl EntityBase {
             uuid,
             kind,
             dimensions: kind.dimensions(),
+            custom_box: None,
             position: Vec3::ZERO,
             old_position: Vec3::ZERO,
             velocity: Vec3::ZERO,
@@ -144,7 +146,10 @@ impl EntityBase {
     }
 
     pub fn bounding_box_at(&self, position: Vec3) -> Aabb {
-        Aabb::of_size(position, self.dimensions.width, self.dimensions.height)
+        match self.custom_box {
+            Some(relative) => relative.move_by(position),
+            None => Aabb::of_size(position, self.dimensions.width, self.dimensions.height),
+        }
     }
 
     pub fn eye_height(&self) -> f32 {
@@ -238,6 +243,11 @@ impl EntityBase {
     }
 
     pub fn snap_to(&mut self, position: Vec3, yaw: f32, pitch: f32) {
+        let position = if self.kind == EntityKind::Shulker {
+            super::species::shulker::snapped(position)
+        } else {
+            position
+        };
         self.position = position;
         self.set_yaw(yaw);
         self.set_pitch(pitch);

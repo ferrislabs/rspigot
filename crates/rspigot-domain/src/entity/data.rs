@@ -1,3 +1,4 @@
+use rspigot_blocks::Face;
 use rspigot_data::variants::VariantFamily;
 
 use uuid::Uuid;
@@ -36,6 +37,7 @@ pub enum SyncedValue {
     BlockPos(BlockPos),
     Variant(VariantKind, u32),
     Long(i64),
+    Direction(Face),
     OptionalEntity(Option<Uuid>),
     OptionalBlockState(Option<BlockStateId>),
     VillagerData {
@@ -161,6 +163,13 @@ impl SyncedData {
         match self.get(index) {
             Some(SyncedValue::Long(v)) => *v,
             _ => 0,
+        }
+    }
+
+    pub fn direction(&self, index: u8) -> Face {
+        match self.get(index) {
+            Some(SyncedValue::Direction(v)) => *v,
+            _ => Face::Down,
         }
     }
 
