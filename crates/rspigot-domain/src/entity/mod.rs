@@ -20,6 +20,7 @@ pub mod spawn;
 pub mod species;
 mod store;
 pub mod tamable;
+pub mod thrown;
 pub mod tracker;
 mod tracking_range;
 pub mod variants;
@@ -46,6 +47,7 @@ pub use tracking_range::{ActivationType, TrackingRanges, activation_type, tracki
 pub enum EntityState {
     Item(ItemState),
     Arrow(Box<arrow::ArrowState>),
+    Thrown(Box<thrown::ThrownState>),
     Falling(FallingState),
     Living(Box<LivingState>),
     Orb(OrbState),
