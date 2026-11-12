@@ -696,6 +696,14 @@ pub fn is_dead_or_dying(base: &EntityBase, living: &LivingState) -> bool {
     living.dead || health(base) <= 0.0
 }
 
+pub fn is_sensitive_to_water(kind: rspigot_entities::EntityKind) -> bool {
+    use rspigot_entities::EntityKind;
+    matches!(
+        kind,
+        EntityKind::SnowGolem | EntityKind::Enderman | EntityKind::Strider | EntityKind::Blaze
+    )
+}
+
 pub fn fall_damage_immune(kind: rspigot_entities::EntityKind) -> bool {
     rspigot_data::tags::tag(ENTITY_TYPES, FALL_DAMAGE_IMMUNE)
         .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())

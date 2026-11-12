@@ -291,6 +291,7 @@ pub struct KindFacts {
     pub enderman: crate::EndermanFacts,
     pub silverfish: crate::SilverfishFacts,
     pub iron_golem: crate::IronGolemFacts,
+    pub raider: crate::RaiderFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

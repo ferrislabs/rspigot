@@ -235,6 +235,20 @@ pub fn is_zombie(kind: EntityKind) -> bool {
 }
 
 impl Species {
+    pub fn raider(&self) -> Option<&raider::RaiderState> {
+        match self {
+            Self::Witch(state) => Some(&state.raider),
+            _ => None,
+        }
+    }
+
+    pub fn raider_mut(&mut self) -> Option<&mut raider::RaiderState> {
+        match self {
+            Self::Witch(state) => Some(&mut state.raider),
+            _ => None,
+        }
+    }
+
     pub fn farm(&self) -> Option<VariantFamily> {
         match self {
             Self::Cow => Some(VariantFamily::Cow),

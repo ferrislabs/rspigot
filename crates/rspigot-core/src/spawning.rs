@@ -784,6 +784,7 @@ mod tests {
                 EntityKind::SnowGolem,
                 EntityKind::Spider,
                 EntityKind::Stray,
+                EntityKind::Witch,
                 EntityKind::WitherSkeleton,
                 EntityKind::Wolf,
                 EntityKind::Zombie,

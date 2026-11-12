@@ -27,6 +27,7 @@ mod path_type;
 mod polar_bear;
 mod profile;
 mod rabbit;
+mod raider;
 mod random;
 mod random_pos;
 mod ranged;
@@ -98,6 +99,10 @@ pub use path_type::PathType;
 pub use polar_bear::{PolarBearAction, PolarBearFacts, PolarBearGoal};
 pub use profile::{MobProfile, MobState, combat_fall_distance};
 pub use rabbit::{HopSound, MORE_CARROT_TICKS, RabbitHop, RaidGardenGoal};
+pub use raider::{
+    LongDistancePatrolGoal, NearestAttackableWitchTargetGoal, NearestHealableRaiderTargetGoal,
+    RaiderAction, RaiderFacts, RaiderGoal,
+};
 pub use random::{MobRandom, RandomSource};
 pub use random_pos::{
     default_pos, is_solid, is_stable_destination, land_pos, light_magic_value,

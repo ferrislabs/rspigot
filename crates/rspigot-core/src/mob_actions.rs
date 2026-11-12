@@ -117,6 +117,7 @@ impl<L: ClientLink> Server<L> {
             MobAction::IronGolem(action) => self.iron_golem_action(id, action),
             MobAction::Blaze(action) => self.blaze_action(id, action),
             MobAction::Ghast(action) => self.ghast_action(id, action),
+            MobAction::Raider(action) => self.raider_action(id, action),
             MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
             MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),
             MobAction::ForgetAndRefreshAnger(mob) => self.forget_and_refresh_anger(mob),
