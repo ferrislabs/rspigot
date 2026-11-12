@@ -121,6 +121,14 @@ impl RandomStrollGoal {
         }
     }
 
+    pub fn with_settings(speed_modifier: f64, interval: i32, check_no_action_time: bool) -> Self {
+        Self {
+            interval,
+            check_no_action_time,
+            ..Self::new(speed_modifier)
+        }
+    }
+
     pub fn trigger(&mut self) {
         self.force_trigger = true;
     }
@@ -141,6 +149,15 @@ impl RandomStrollGoal {
     }
 
     fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        let this = *self;
+        self.can_use_with(context, |context| this.position(context))
+    }
+
+    pub(crate) fn can_use_with<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+        position: impl FnOnce(&mut AiContext<'_, W>) -> Option<Vec3>,
+    ) -> bool {
         if !self.force_trigger {
             if self.check_no_action_time && context.mob.no_action_time >= NO_ACTION_LIMIT {
                 return false;
@@ -150,7 +167,7 @@ impl RandomStrollGoal {
                 return false;
             }
         }
-        let Some(position) = self.position(context) else {
+        let Some(position) = position(context) else {
             return false;
         };
         self.wanted = position;
@@ -158,15 +175,18 @@ impl RandomStrollGoal {
         true
     }
 
-    fn can_continue_to_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
         !context.brain.navigation.is_done()
     }
 
-    fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         context.move_to_pos(self.wanted, self.speed_modifier);
     }
 
-    fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         context.stop_navigation();
     }
 }
@@ -459,6 +479,7 @@ pub enum TargetFilter {
     AngryAt,
     ChickenOrRabbit,
     SchoolingFish,
+    EnemyNonCreeper,
 }
 
 impl TargetFilter {
@@ -471,6 +492,9 @@ impl TargetFilter {
                 target.kind == EntityKind::Chicken || target.kind == EntityKind::Rabbit
             }
             Self::SchoolingFish => target.kind.extends("AbstractSchoolingFish"),
+            Self::EnemyNonCreeper => {
+                crate::iron_golem::is_enemy(target.kind) && target.kind != EntityKind::Creeper
+            }
         }
     }
 }
@@ -754,9 +778,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Tempt(goal) => goal.can_continue_to_use(context),
             Self::NearestAttackableTarget(goal) => goal.can_continue_to_use(context),
             Self::AvoidEntity(goal) => goal.can_continue_to_use(context),
-            Self::Panic(_) | Self::FleeSun(_) | Self::MoveThroughVillage(_) => {
-                !context.brain.navigation.is_done()
-            }
+            Self::Panic(_) | Self::FleeSun(_) => !context.brain.navigation.is_done(),
+            Self::MoveThroughVillage(goal) => goal.can_continue_to_use(context),
             Self::Breed(goal) => goal.can_continue_to_use(context),
             Self::FollowParent(goal) => goal.can_continue_to_use(context),
             Self::EatBlock(goal) => goal.eat_animation_tick() > 0,
@@ -802,8 +825,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Float(_)
             | Self::ClimbOnTopOfPowderSnow(_)
             | Self::OcelotAttack(_)
-            | Self::Breed(_)
-            | Self::MoveThroughVillage(_) => {}
+            | Self::Breed(_) => {}
+            Self::MoveThroughVillage(goal) => goal.start(context),
             Self::RaidGarden(goal) => goal.start(context),
             Self::HurtByTarget(goal) => goal.start(context),
             Self::Stroll(goal) => goal.start(context),
@@ -845,8 +868,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::RaidGarden(_)
             | Self::RandomLookAround(_)
             | Self::LeapAtTarget(_)
-            | Self::FleeSun(_)
-            | Self::MoveThroughVillage(_) => {}
+            | Self::FleeSun(_) => {}
+            Self::MoveThroughVillage(goal) => goal.stop(context),
             Self::Stroll(goal) => goal.stop(context),
             Self::LookAtPlayer(goal) => goal.stop(),
             Self::Tempt(goal) => goal.stop(context),

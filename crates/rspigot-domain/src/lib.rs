@@ -22,6 +22,7 @@ pub mod menu;
 pub mod mth;
 pub mod particle;
 pub mod player;
+pub mod poi;
 pub mod pos;
 pub mod random;
 pub mod recipes;
@@ -33,4 +34,4 @@ pub mod world;
 
 pub use ident::Identifier;
 pub use ids::{BiomeId, BlockStateId, EntityId, ItemId};
-pub use pos::{BlockPos, ChunkPos, Rotation, Vec3};
+pub use pos::{BlockPos, ChunkPos, Rotation, SectionPos, Vec3};

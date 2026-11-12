@@ -161,7 +161,6 @@ impl<L: ClientLink> Server<L> {
         self.start_persistent_anger_timer(id);
     }
 
-    #[allow(dead_code)]
     fn anger_of(&self, id: EntityId) -> Option<NeutralState> {
         self.entities
             .store
@@ -171,7 +170,6 @@ impl<L: ClientLink> Server<L> {
             .and_then(|mob| mob.neutral)
     }
 
-    #[allow(dead_code)]
     pub(crate) fn update_persistent_anger(
         &mut self,
         id: EntityId,
@@ -229,7 +227,6 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    #[allow(dead_code)]
     fn set_anger_target(&mut self, id: EntityId, target: Option<Uuid>) {
         if let Some(anger) = self
             .entities

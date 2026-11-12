@@ -637,6 +637,7 @@ pub(crate) struct MobAttackFollow {
     pub(crate) target: Target,
     pub(crate) knockback: f32,
     pub(crate) yaw: f32,
+    pub(crate) golem: bool,
 }
 
 #[derive(Debug, Clone, Copy)]

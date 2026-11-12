@@ -265,7 +265,7 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    fn consume_held(&mut self, id: PlayerId, hand: Hand, amount: u8) {
+    pub(crate) fn consume_held(&mut self, id: PlayerId, hand: Hand, amount: u8) {
         if !self.infinite_materials(id) {
             self.shrink_held(id, hand, amount);
         }

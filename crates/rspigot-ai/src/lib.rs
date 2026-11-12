@@ -14,6 +14,8 @@ mod goal;
 mod goals;
 mod heap;
 mod iron_golem;
+#[cfg(test)]
+mod mock;
 mod navigation;
 mod neutral;
 mod panda;
@@ -31,6 +33,7 @@ mod silverfish;
 mod tame;
 mod targeting;
 mod view;
+mod village;
 mod walk;
 mod wolf;
 mod world;
@@ -64,7 +67,7 @@ pub use goals::{
     ClimbOnTopOfPowderSnowGoal, FloatGoal, LookAtPlayerGoal, MobGoal, NearestAttackableTargetGoal,
     RandomLookAroundGoal, RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
 };
-pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal};
+pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal, is_enemy};
 pub use navigation::{
     MobTick, MoveTarget, Navigation, can_cut_corner, find_surface_position, ground_y, temp_mob_pos,
     waypoint_distance,
@@ -95,6 +98,7 @@ pub use targeting::{
     nearest_player, valid_mob_target, valid_player_target, valid_target,
 };
 pub use view::BlockView;
+pub use village::{find_section_closest_to_village, sections_to_village};
 pub use walk::{block_path_type, mob_path_type};
 pub use wolf::{WolfAction, WolfFacts, WolfGoal};
 pub use world::{

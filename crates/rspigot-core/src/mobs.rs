@@ -22,11 +22,12 @@ use rspigot_domain::entity::{EntityBase, LivingState};
 use rspigot_domain::item::{HOTBAR_START, ItemStack};
 use rspigot_domain::mth;
 use rspigot_domain::player::{GameMode, PlayerId};
+use rspigot_domain::poi::{Occupancy, PoiRecord};
 use rspigot_domain::random::LegacyRandom;
 use rspigot_domain::text::Component;
 use rspigot_domain::world::Difficulty;
 use rspigot_domain::world::WorldHeight;
-use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, SectionPos, Vec3};
 use rspigot_entities::{
     CreatureSound, CreatureSounds, EntityKind as Kind, SoundState, WaterContact,
 };
@@ -533,6 +534,20 @@ impl AiWorld for MobWorld<'_> {
         self.has_day_cycle && self.sky_darken < BRIGHT_SKY_DARKEN
     }
 
+    fn sections_to_village(&self, pos: BlockPos) -> i32 {
+        self.view
+            .chunks
+            .poi()
+            .sections_to_village(SectionPos::of(pos))
+    }
+
+    fn pois_in_range(&self, center: BlockPos, radius: i32, occupancy: Occupancy) -> Vec<PoiRecord> {
+        self.view
+            .chunks
+            .poi()
+            .in_range(|_| true, center, radius, occupancy)
+    }
+
     fn mob_griefing(&self) -> bool {
         self.rules.mob_griefing
     }
@@ -972,6 +987,14 @@ impl<L: ClientLink> Server<L> {
 
     pub fn mob_target(&self, id: EntityId) -> Option<EntityId> {
         self.entities.mobs.entries.get(&id)?.ai.target()
+    }
+
+    pub fn poi(&self) -> &rspigot_domain::poi::PoiManager {
+        self.world.chunks.poi()
+    }
+
+    pub fn poi_mut(&mut self) -> &mut rspigot_domain::poi::PoiManager {
+        self.world.chunks.poi_mut()
     }
 
     pub fn mob_ai(&self, id: EntityId) -> Option<&MobAi> {
@@ -1650,6 +1673,14 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn do_hurt_target(&mut self, attacker: EntityId, target: Target) -> bool {
+        if self
+            .entities
+            .store
+            .get(attacker)
+            .is_some_and(|entity| entity.base.kind == Kind::IronGolem)
+        {
+            return self.iron_golem_hurt_target(attacker, target);
+        }
         let Some(source_entity) = self.mob_source(attacker) else {
             return false;
         };
@@ -1674,6 +1705,7 @@ impl<L: ClientLink> Server<L> {
             target,
             knockback,
             yaw,
+            golem: false,
         };
         self.strike(None, victim, &source, damage, AfterHurt::MobAttack(follow))
     }
@@ -1684,7 +1716,12 @@ impl<L: ClientLink> Server<L> {
             target,
             knockback,
             yaw,
+            golem,
         } = follow;
+        if golem {
+            self.iron_golem_finish_attack(attacker, target, hurt);
+            return;
+        }
         if !hurt {
             return;
         }

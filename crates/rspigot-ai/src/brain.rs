@@ -41,6 +41,7 @@ pub struct Brain {
     pub tempt_verdict: Option<Option<EntityId>>,
     pub more_carrot_ticks: i32,
     pub fox: crate::FoxFacts,
+    pub can_break_doors: bool,
     follow_range: f64,
 }
 
@@ -74,6 +75,7 @@ impl Brain {
             tempt_verdict: None,
             more_carrot_ticks: 0,
             fox: crate::FoxFacts::default(),
+            can_break_doors: false,
             follow_range,
         }
     }
@@ -279,6 +281,7 @@ impl MobAi {
             return;
         }
         self.can_break_doors = can_break_doors;
+        self.brain.can_break_doors = can_break_doors;
         self.brain.profile.can_open_doors = can_break_doors;
         self.pending.push(GoalChange::BreakDoors(can_break_doors));
     }

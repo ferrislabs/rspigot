@@ -9,7 +9,7 @@ use crate::world::{AiWorld, MobView};
 use crate::{BlockView, block_path_type};
 
 const RANDOM_POS_ATTEMPTS: usize = 10;
-const HALF_PI: f64 = 1.570_796_370_506_286_6;
+pub(crate) const HALF_PI: f64 = 1.570_796_370_506_286_6;
 const SQRT_OF_TWO: f32 = std::f32::consts::SQRT_2;
 const GRASS_WALK_VALUE: f32 = 10.0;
 
@@ -247,6 +247,39 @@ pub fn move_up_out_of_solid(view: &impl BlockView, pos: BlockPos) -> BlockPos {
         above = above.offset(0, 1, 0);
     }
     above
+}
+
+pub fn land_pos_towards<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+    towards: Vec3,
+) -> Option<Vec3> {
+    let direction = towards - context.mob.position;
+    let restricted = context.mob.is_restricted(f64::from(horizontal));
+    generate(context, |context| {
+        let offset = direction_within_radians(
+            &mut context.brain.random,
+            f64::from(horizontal),
+            vertical,
+            (direction.x, direction.z),
+            HALF_PI,
+        )?;
+        let pos = toward_direction(
+            context.mob,
+            &mut context.brain.random,
+            f64::from(horizontal),
+            offset,
+        );
+        if is_outside_limits(context.world, pos)
+            || (restricted && !context.mob.is_within_home(pos))
+            || !is_stable_destination(context.world, pos)
+        {
+            return None;
+        }
+        let raised = move_up_out_of_solid(context.world, pos);
+        (!is_water(context.world, raised) && !has_malus(context, raised)).then_some(raised)
+    })
 }
 
 pub fn land_pos<W: AiWorld>(

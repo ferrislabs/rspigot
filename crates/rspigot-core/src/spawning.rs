@@ -731,6 +731,7 @@ mod tests {
                 EntityKind::Creeper,
                 EntityKind::Fox,
                 EntityKind::Husk,
+                EntityKind::IronGolem,
                 EntityKind::Mooshroom,
                 EntityKind::Ocelot,
                 EntityKind::Parched,

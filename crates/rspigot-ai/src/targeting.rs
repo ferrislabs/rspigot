@@ -92,7 +92,11 @@ pub fn mob_can_attack(mob: &MobView, world: &impl AiWorld, target: &Living) -> b
 }
 
 fn refuses(mob: &MobView, target: &Living) -> bool {
-    mob.tamed && mob.owner == Some(target.id)
+    if mob.tamed && mob.owner == Some(target.id) {
+        return true;
+    }
+    mob.kind == EntityKind::IronGolem
+        && ((mob.player_created && target.player) || target.kind == EntityKind::Creeper)
 }
 
 pub fn valid_player_target(world: &impl AiWorld, target: &Living) -> bool {

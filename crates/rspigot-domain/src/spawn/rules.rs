@@ -121,7 +121,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
         && walk
         && matches!(
             spawn.check_spawn_obstruction,
-            MobClass::Mob | MobClass::Ocelot
+            MobClass::Mob | MobClass::Ocelot | MobClass::IronGolem
         )
         && spawn.is_max_group_size_reached == MobClass::Mob
         && spawn.max_spawn_cluster_size.is_some()
@@ -268,8 +268,30 @@ pub fn check_spawn_obstruction(level: &impl SpawnLevel, kind: EntityKind, area: 
                 && !contains_any_liquid(level, area)
                 && ocelot_can_stand(level, area)
         }
+        Some(MobClass::IronGolem) => iron_golem_obstruction(level, area),
         _ => false,
     }
+}
+
+fn iron_golem_obstruction(level: &impl SpawnLevel, area: &Aabb) -> bool {
+    let pos = BlockPos::new(
+        ((area.min_x + area.max_x) / 2.0).floor() as i32,
+        area.min_y.floor() as i32,
+        ((area.min_z + area.max_z) / 2.0).floor() as i32,
+    );
+    if !super::placement::top_face_is_full(level.block_or_air(pos.offset(0, -1, 0))) {
+        return false;
+    }
+    let golem = EntityKind::IronGolem;
+    (1..3).all(|up| {
+        super::placement::is_valid_empty_spawn_block(
+            level.block_or_air(pos.offset(0, up, 0)),
+            golem,
+        )
+    }) && super::placement::is_valid_empty_spawn_block_ignoring_fluid(
+        level.block_or_air(pos),
+        golem,
+    ) && level.is_unobstructed(area)
 }
 
 fn ocelot_can_stand(level: &impl SpawnLevel, area: &Aabb) -> bool {
@@ -423,6 +445,98 @@ mod tests {
             pos
         ));
         assert!(rules_ported(EntityKind::Ocelot));
+    }
+
+    #[test]
+    fn iron_golem_rules_are_ported() {
+        assert!(rules_ported(EntityKind::IronGolem));
+    }
+
+    fn golem_area() -> Aabb {
+        Aabb::of_size(Vec3::new(4.5, 64.0, 4.5), 1.4, 2.7)
+    }
+
+    #[test]
+    fn iron_golems_need_a_full_top_face_below_and_two_clear_blocks_above() {
+        let area = golem_area();
+        let stone = Level::floor(Stone::DEFAULT_STATE, 63);
+        assert!(check_spawn_obstruction(
+            &stone,
+            EntityKind::IronGolem,
+            &area
+        ));
+        let bottom_slab = Level::floor(
+            rspigot_blocks::BlockKind::StoneSlab
+                .state_with(&[("type", "bottom")])
+                .unwrap(),
+            63,
+        );
+        assert!(!check_spawn_obstruction(
+            &bottom_slab,
+            EntityKind::IronGolem,
+            &area
+        ));
+        let top_slab = Level::floor(
+            rspigot_blocks::BlockKind::StoneSlab
+                .state_with(&[("type", "top")])
+                .unwrap(),
+            63,
+        );
+        assert!(check_spawn_obstruction(
+            &top_slab,
+            EntityKind::IronGolem,
+            &area
+        ));
+        let fence = Level::floor(rspigot_blocks::BlockKind::OakFence.default_state(), 63);
+        assert!(!check_spawn_obstruction(
+            &fence,
+            EntityKind::IronGolem,
+            &area
+        ));
+        let mut blocked = Level::floor(Stone::DEFAULT_STATE, 63);
+        blocked.set(BlockPos::new(4, 66, 4), Stone::DEFAULT_STATE);
+        assert!(!check_spawn_obstruction(
+            &blocked,
+            EntityKind::IronGolem,
+            &area
+        ));
+        let mut head = Level::floor(Stone::DEFAULT_STATE, 63);
+        head.set(BlockPos::new(4, 65, 4), Stone::DEFAULT_STATE);
+        assert!(!check_spawn_obstruction(
+            &head,
+            EntityKind::IronGolem,
+            &area
+        ));
+    }
+
+    #[test]
+    fn iron_golems_tolerate_fluid_at_the_feet_but_not_above() {
+        let area = golem_area();
+        let water = rspigot_blocks::BlockKind::Water.default_state();
+        let mut feet = Level::floor(Stone::DEFAULT_STATE, 63);
+        feet.set(BlockPos::new(4, 64, 4), water);
+        assert!(check_spawn_obstruction(&feet, EntityKind::IronGolem, &area));
+        let mut above = Level::floor(Stone::DEFAULT_STATE, 63);
+        above.set(BlockPos::new(4, 65, 4), water);
+        assert!(!check_spawn_obstruction(
+            &above,
+            EntityKind::IronGolem,
+            &area
+        ));
+    }
+
+    #[test]
+    fn a_mob_default_obstruction_rejects_liquid_but_the_golem_one_does_not_look_at_it() {
+        let area = golem_area();
+        let water = rspigot_blocks::BlockKind::Water.default_state();
+        let mut level = Level::floor(Stone::DEFAULT_STATE, 63);
+        level.set(BlockPos::new(4, 64, 4), water);
+        assert!(!check_spawn_obstruction(&level, EntityKind::Cow, &area));
+        assert!(check_spawn_obstruction(
+            &level,
+            EntityKind::IronGolem,
+            &area
+        ));
     }
 
     #[test]

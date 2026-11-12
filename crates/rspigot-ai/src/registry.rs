@@ -180,7 +180,10 @@ pub fn register_goals(
             add.look(8, 8.0);
             add.look_around(8);
             add.goal(3, MobGoal::MeleeAttack(MeleeAttackGoal::zombie(1.0)));
-            add.goal(6, MobGoal::MoveThroughVillage(MoveThroughVillageGoal));
+            add.goal(
+                6,
+                MobGoal::MoveThroughVillage(MoveThroughVillageGoal::new(1.0, true, 4)),
+            );
             add.stroll(7, 1.0);
             add.target_goal(
                 1,

@@ -2,6 +2,7 @@ use rspigot_domain::entity::fluid::FluidContact;
 use rspigot_domain::entity::living::{self, LivingState};
 use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{Aabb, EntityBase};
+use rspigot_domain::poi::{Occupancy, PoiRecord};
 use rspigot_domain::{BlockPos, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind;
 use rspigot_items::EquipmentSlot;
@@ -35,7 +36,7 @@ pub struct DroppedItem {
     pub alive: bool,
 }
 
-pub const NO_VILLAGE: i32 = 7;
+pub const NO_VILLAGE: i32 = rspigot_domain::poi::NO_VILLAGE;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Living {
@@ -193,6 +194,23 @@ pub trait AiWorld: BlockView {
         NO_VILLAGE
     }
 
+    fn pois_in_range(
+        &self,
+        _center: BlockPos,
+        _radius: i32,
+        _occupancy: Occupancy,
+    ) -> Vec<PoiRecord> {
+        Vec::new()
+    }
+
+    fn villagers_wanting_golem(&self, _area: &Aabb) -> Vec<Living> {
+        Vec::new()
+    }
+
+    fn villager_reputation(&self, _villager: EntityId, _player: EntityId) -> i32 {
+        0
+    }
+
     fn is_close_to_village(&self, pos: BlockPos, sections: i32) -> bool {
         sections <= 6 && self.sections_to_village(pos) <= sections
     }
@@ -292,6 +310,7 @@ pub struct MobView {
     pub anger_target: Option<EntityId>,
     pub leashed: bool,
     pub passenger: bool,
+    pub player_created: bool,
     pub species: KindFacts,
 }
 
@@ -370,6 +389,7 @@ impl MobView {
             anger_target: None,
             leashed: false,
             passenger: false,
+            player_created: false,
             species: KindFacts::default(),
         }
     }
