@@ -201,6 +201,24 @@ impl<W: AiWorld> AiContext<'_, W> {
             .create_path(self.world, &profile, &tick, pos, reach, follow)
     }
 
+    pub fn create_path_to_limited(
+        &mut self,
+        pos: BlockPos,
+        reach: i32,
+        max_path_length: f32,
+    ) -> Option<crate::Path> {
+        let profile = self.path_profile();
+        let tick = self.tick_state();
+        self.brain.navigation.create_path_limited(
+            self.world,
+            &profile,
+            &tick,
+            pos,
+            reach,
+            max_path_length,
+        )
+    }
+
     pub fn move_along(&mut self, path: Option<crate::Path>, speed_modifier: f64) -> bool {
         let profile = self.path_profile();
         let tick = self.tick_state();
@@ -313,6 +331,12 @@ impl MobAi {
         self.behavior.is_some()
             || !self.goals.goals().is_empty()
             || !self.targets.goals().is_empty()
+    }
+
+    pub fn init_goat_memories(&mut self, long_jump: i32, ram: i32) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            crate::goat::init_memories(behavior.memories_mut(), long_jump, ram);
+        }
     }
 
     pub fn behavior_brain(&self) -> Option<&BehaviorBrain<MobControl>> {
@@ -623,6 +647,7 @@ impl MobAi {
         if let Some(behavior) = self.behavior.as_mut() {
             behavior.tick(&mut context);
             crate::piglin::after_brain_tick(behavior, &mut context);
+            crate::animals::after_brain_tick(behavior, &mut context);
         }
         if mob.kind == EntityKind::Fox {
             self.settle_fox(mob);

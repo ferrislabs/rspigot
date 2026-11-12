@@ -292,6 +292,7 @@ impl<L: ClientLink> Server<L> {
             AfterHurt::Attack(follow) => self.finish_attack(*follow, outcome.hurt()),
             AfterHurt::Sweep(follow) => self.finish_sweep(follow, outcome.hurt()),
             AfterHurt::MobAttack(follow) => self.finish_mob_attack(follow, outcome.hurt()),
+            AfterHurt::Ram(follow) => self.finish_ram(follow),
             AfterHurt::Arrow(follow) => self.finish_arrow_hit(follow, outcome.hurt()),
             AfterHurt::Thrown(follow) => self.finish_thrown_hit(follow),
             AfterHurt::Hurting(follow) => self.finish_hurting_hit(follow, outcome.hurt()),

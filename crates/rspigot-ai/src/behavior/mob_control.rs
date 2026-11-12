@@ -6,8 +6,10 @@ use crate::behavior::control::{
     Behavior, BehaviorControl, BehaviorCx, DoNothing, Gate, OneShot, OrderPolicy, RunningPolicy,
     Sequence, Status, Timed, Trigger, TriggerGate,
 };
+use crate::behavior::long_jump::{LongJumpMidJump, LongJumpToRandomPos};
 use crate::behavior::love::{AnimalMakeLove, FollowTemptation, MAKE_LOVE_DURATION};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue};
+use crate::behavior::ram::{PrepareRamNearestTarget, RamTarget};
 use crate::behavior::sinks::{
     AnimalPanic, LookAtTargetSink, MoveToTargetSink, RandomLookAround, Swim,
 };
@@ -146,6 +148,10 @@ mob_behaviors! {
     AnimalMakeLove(AnimalMakeLove),
     FollowTemptation(FollowTemptation),
     CrossbowAttack(CrossbowAttack),
+    LongJumpMidJump(LongJumpMidJump),
+    LongJumpToRandomPos(LongJumpToRandomPos),
+    RamTarget(RamTarget),
+    PrepareRamNearestTarget(PrepareRamNearestTarget),
 }
 
 macro_rules! mob_triggers {

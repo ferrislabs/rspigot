@@ -80,6 +80,7 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Cat => "minecraft:cat_food",
         Kind::Rabbit => "minecraft:rabbit_food",
         Kind::Ocelot => "minecraft:ocelot_food",
+        Kind::Goat => "minecraft:goat_food",
         _ => return None,
     })
 }
@@ -601,10 +602,10 @@ impl<L: ClientLink> Server<L> {
         if kind == Kind::Creeper && item_tag(stack.item, "minecraft:creeper_igniters") {
             return self.ignite_creeper(id, target, hand, &stack);
         }
-        if kind == Kind::Cow && stack.item == ItemKind::Bucket.id() {
+        if matches!(kind, Kind::Cow | Kind::Goat) && stack.item == ItemKind::Bucket.id() {
             let baby = self.entities.store.get(target).is_some_and(Entity::is_baby);
             if !baby {
-                return self.milk_cow(id, target, hand);
+                return self.milk_animal(id, target, hand);
             }
         }
         if kind == Kind::Sheep && stack.item == ItemKind::Shears.id() {
@@ -649,18 +650,30 @@ impl<L: ClientLink> Server<L> {
         Interaction::Predicted
     }
 
-    fn milk_cow(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {
+    fn milk_animal(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {
         let Some(pos) = self.entity_position(target).map(Vec3::block) else {
             return Interaction::Pass;
         };
         if self.is_protected(id, pos) {
             return Interaction::Pass;
         }
+        let milking_sound =
+            self.entities
+                .store
+                .get(target)
+                .map_or("minecraft:entity.cow.milk", |entity| {
+                    match entity.base.kind {
+                        Kind::Goat => {
+                            crate::kinds::goat_voice(entity, crate::kinds::GoatSound::Milk)
+                        }
+                        _ => "minecraft:entity.cow.milk",
+                    }
+                });
         if let Some(position) = self.players.get(&id).map(|p| p.position) {
             self.play_sound(
                 Some(id),
                 position,
-                "minecraft:entity.cow.milk",
+                milking_sound,
                 SoundSource::Players,
                 1.0,
                 1.0,
@@ -907,6 +920,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn eating_sound(&mut self, target: EntityId) {
+        if self.kind_of(target) == Some(Kind::Goat) {
+            self.goat_eat_sound(target);
+            return;
+        }
         if self
             .entities
             .store

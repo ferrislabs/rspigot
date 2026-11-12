@@ -664,6 +664,14 @@ pub(crate) struct MobAttackFollow {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct RamFollow {
+    pub(crate) goat: EntityId,
+    pub(crate) target: Target,
+    pub(crate) strength: f64,
+    pub(crate) direction: (f64, f64),
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct ArrowFollow {
     pub(crate) arrow: EntityId,
     pub(crate) target: EntityId,
@@ -719,6 +727,7 @@ pub(crate) enum AfterHurt {
     Attack(Box<AttackFollow>),
     Sweep(SweepFollow),
     MobAttack(MobAttackFollow),
+    Ram(RamFollow),
     Arrow(ArrowFollow),
     Thrown(ThrownFollow),
     Hurting(HurtingFollow),
