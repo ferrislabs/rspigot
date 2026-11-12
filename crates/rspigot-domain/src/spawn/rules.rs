@@ -65,6 +65,9 @@ pub fn check_predicate(
         SpawnPredicate::Fox => super::fox::check_fox_spawn_rules(level, pos),
         SpawnPredicate::Ocelot => level.next_int(OCELOT_SPAWN_CHANCE) != 0,
         SpawnPredicate::Wolf => super::wolf::check_wolf_spawn_rules(level, pos),
+        SpawnPredicate::Piglin | SpawnPredicate::Hoglin => {
+            super::piglin::check_piglin_spawn_rules(level, pos)
+        }
         SpawnPredicate::ZombifiedPiglin => {
             super::zombified_piglin::check_zombified_piglin_spawn_rules(level, pos)
         }
@@ -134,6 +137,8 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Wolf
                 | SpawnPredicate::PolarBear
                 | SpawnPredicate::ZombifiedPiglin
+                | SpawnPredicate::Piglin
+                | SpawnPredicate::Hoglin
                 | SpawnPredicate::Silverfish
                 | SpawnPredicate::Endermite
                 | SpawnPredicate::Ghast
@@ -152,6 +157,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Giant
                     | MobClass::Pillager
                     | MobClass::Enderman
+                    | MobClass::Hoglin
             )
         ),
         _ => false,
@@ -262,6 +268,7 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::Giant => level.light_level_dependent_magic_value(pos) - 0.5,
         MobClass::Pillager => 0.0,
         MobClass::Enderman => 0.0,
+        MobClass::Hoglin => super::piglin::hoglin_walk_target_value(level, pos),
         _ => return None,
     })
 }
