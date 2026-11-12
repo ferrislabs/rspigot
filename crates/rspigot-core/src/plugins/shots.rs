@@ -9,7 +9,7 @@ use crate::plugins::{EventPayload, spec_of, view_of_entity};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
-fn face_of(face: rspigot_blocks::Face) -> Face {
+pub(crate) fn face_of(face: rspigot_blocks::Face) -> Face {
     match face {
         rspigot_blocks::Face::Down => Face::Down,
         rspigot_blocks::Face::Up => Face::Up,
@@ -155,6 +155,7 @@ impl<L: ClientLink> Server<L> {
             Continuation::Ignite(step) => step.projectile == projectile,
             Continuation::Prime(step) => step.projectile && step.source == projectile,
             Continuation::EntityExplode(step) => step.discard == Some(projectile),
+            Continuation::Splash(step) => step.potion == projectile,
             _ => false,
         })
     }

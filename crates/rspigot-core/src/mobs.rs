@@ -953,7 +953,10 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn mob_server_ai_step(&mut self, id: EntityId) {
         let sky_darken = sky_darken(&self.world.level);
         let bright = self.entities.store.get(id).is_some_and(|entity| {
-            entity.base.kind.extends("Monster") && self.light_at_eyes(entity) > BRIGHT_LIMIT
+            rspigot_domain::entity::species::raider::idles_extra(
+                entity.base.kind,
+                entity.base.kind.extends("Monster") && self.light_at_eyes(entity) > BRIGHT_LIMIT,
+            )
         });
         let Some(Entity {
             base,

@@ -68,6 +68,15 @@ impl<L: ClientLink> Server<L> {
             self.snow_golem_throw(shooter, target);
             return;
         }
+        if self
+            .entities
+            .store
+            .get(shooter)
+            .is_some_and(|entity| entity.base.kind == Kind::Witch)
+        {
+            self.witch_throw(shooter, target);
+            return;
+        }
         let Some(target) = self.entity_box(target) else {
             return;
         };

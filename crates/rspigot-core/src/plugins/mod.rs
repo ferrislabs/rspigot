@@ -81,6 +81,7 @@ pub use orders::{
 pub use patch::{ListDiff, SetDiff, Verdict};
 pub(crate) use registry::Registry;
 pub(crate) use session::{Arrival, Refusal};
+pub(crate) use shots::face_of;
 pub(crate) use spawns::{name_of_entity, view_of_entity};
 pub(crate) use steps::{
     AfterHurt, ArrowFollow, AttackFollow, Birth, BlastFollow, BurnFollow, DeathStep, Holder,

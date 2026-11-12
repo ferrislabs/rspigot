@@ -37,6 +37,10 @@ pub struct RaiderState {
     pub can_join_raid: bool,
 }
 
+pub fn idles_extra(kind: rspigot_entities::EntityKind, bright: bool) -> bool {
+    kind.extends("Monster") && (kind.extends("Raider") || bright)
+}
+
 pub fn define(base: &mut EntityBase) {
     base.data
         .define(DATA_IS_CELEBRATING, SyncedValue::Boolean(false));
@@ -124,6 +128,16 @@ pub fn write(state: &RaiderState, out: &mut Compound) {
 mod tests {
     use super::*;
     use crate::random::LegacyRandom;
+
+    #[test]
+    fn raiders_idle_faster_in_any_light_but_other_monsters_only_in_bright_light() {
+        use rspigot_entities::EntityKind;
+        assert!(idles_extra(EntityKind::Witch, false));
+        assert!(idles_extra(EntityKind::Pillager, false));
+        assert!(!idles_extra(EntityKind::Zombie, false));
+        assert!(idles_extra(EntityKind::Zombie, true));
+        assert!(!idles_extra(EntityKind::Cow, true));
+    }
 
     #[test]
     fn a_patrolling_raider_stays_within_one_hundred_and_twenty_eight_blocks() {

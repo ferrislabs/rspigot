@@ -2,6 +2,7 @@ use rand::Rng;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::thrown::{self, ThrownState};
 use rspigot_domain::entity::{Entity, EntityState, RemovalReason, arrow, fire, fluid, raycast};
+use rspigot_domain::item::ItemStack;
 use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
@@ -29,6 +30,18 @@ impl<L: ClientLink> Server<L> {
         power: f32,
         uncertainty: f32,
     ) {
+        self.launch_thrown_item(kind, owner, None, aim, power, uncertainty);
+    }
+
+    pub(crate) fn launch_thrown_item(
+        &mut self,
+        kind: Kind,
+        owner: EntityId,
+        item: Option<&ItemStack>,
+        aim: impl FnOnce(Vec3) -> Vec3,
+        power: f32,
+        uncertainty: f32,
+    ) {
         let Some(source) = self.entities.store.get(owner) else {
             return;
         };
@@ -43,6 +56,9 @@ impl<L: ClientLink> Server<L> {
         base.old_position = origin;
         let seed = self.rng.random::<i64>();
         let mut state = ThrownState::new(&mut base, seed);
+        if let Some(item) = item {
+            thrown::set_item(&mut base, item);
+        }
         state.owner = Some(owner_uuid);
         let direction = aim(origin);
         thrown::shoot(&mut base, &mut state, direction, power, uncertainty);
@@ -183,6 +199,15 @@ impl<L: ClientLink> Server<L> {
         if state_at.is_air() {
             return;
         }
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| thrown::is_potion(entity.base.kind))
+        {
+            self.potion_hit_block(id, hit);
+            return;
+        }
         self.finish_thrown(id);
     }
 
@@ -190,6 +215,10 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
+        if thrown::is_potion(entity.base.kind) {
+            self.potion_hit_entity(id, target);
+            return;
+        }
         if !self.living_entity_alive(target) {
             self.finish_thrown(id);
             return;
