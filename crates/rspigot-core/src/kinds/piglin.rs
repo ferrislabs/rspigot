@@ -18,13 +18,16 @@ use rspigot_entities::EntityKind as Kind;
 use rspigot_items::{EquipmentSlot, ItemKind};
 use rspigot_nbt::Tag;
 
-use crate::events::Hand;
+use crate::events::{ClientEvent, Hand};
 use crate::health::DamageSource;
 use crate::interact::Interaction;
 use crate::loot::{self, LootContext};
 use crate::mobs::{ServerRandom, sky_darken};
+use crate::plugins::events::{EntityPickupItem, PiglinBarter};
+use crate::plugins::steps::{BarterStep, PiglinPickupStep};
+use crate::plugins::{Continuation, EventKind, EventPayload, spec_of};
 use crate::ports::ClientLink;
-use crate::server::Server;
+use crate::server::{Audience, Server};
 
 const INVENTORY: &str = "Inventory";
 const BARTERING_TABLE: &str = "minecraft:gameplay/piglin_bartering";
@@ -577,7 +580,7 @@ impl<L: ClientLink> Server<L> {
         if adult {
             if bartering_enabled && barter {
                 let outcome = self.barter_response_items();
-                self.piglin_throw_items(id, outcome);
+                self.ask_barter(id, stack, outcome);
             } else if !barter && !self.piglin_equip_if_possible(id, &stack) {
                 self.piglin_put_in_inventory(id, stack);
             }
@@ -599,6 +602,37 @@ impl<L: ClientLink> Server<L> {
             }
             self.piglin_hold_in_main_hand(id, stack);
         }
+    }
+
+    fn ask_barter(&mut self, id: EntityId, input: ItemStack, outcome: Vec<ItemStack>) {
+        let Some(view) = self.entity_view(id) else {
+            return;
+        };
+        let described = self
+            .listened(EventKind::PiglinBarter)
+            .then(|| outcome.iter().map(spec_of).collect::<Vec<_>>());
+        let input = spec_of(&input);
+        let lane = self.lane_for(None, id);
+        let step = BarterStep {
+            piglin: id,
+            outcome,
+        };
+        self.fire(lane, Continuation::Barter(Box::new(step)), move |_| {
+            Some(EventPayload::PiglinBarter(PiglinBarter {
+                entity_type: view.kind.clone(),
+                entity: view,
+                input,
+                outcome: described?,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_barter(&mut self, step: BarterStep, cancelled: bool) {
+        let BarterStep { piglin, outcome } = step;
+        if cancelled || self.entities.store.get(piglin).is_none() {
+            return;
+        }
+        self.piglin_throw_items(piglin, outcome);
     }
 
     fn barter_response_items(&mut self) -> Vec<ItemStack> {
@@ -669,8 +703,69 @@ impl<L: ClientLink> Server<L> {
         let Some(stack) = self.item_stack_of(item) else {
             return;
         };
-        let nugget = stack.item == ItemKind::GoldNugget.id();
-        let picked = if nugget {
+        let whole = stack.item == ItemKind::GoldNugget.id();
+        self.ask_piglin_pickup(id, item, stack, whole);
+    }
+
+    fn ask_piglin_pickup(&mut self, id: EntityId, item: EntityId, stack: ItemStack, whole: bool) {
+        let remaining = if whole {
+            0
+        } else {
+            i32::from(stack.count.get()) - 1
+        };
+        let step = PiglinPickupStep {
+            collector: id,
+            item,
+            stack,
+            whole,
+        };
+        let lane = self.lane_for(None, id);
+        self.fire(
+            lane,
+            Continuation::PiglinPickup(Box::new(step)),
+            move |server| {
+                let entity = server.subject_view(id)?;
+                Some(EventPayload::EntityPickupItem(EntityPickupItem {
+                    entity_type: entity.kind.clone(),
+                    entity,
+                    item: server.entity_view(item)?,
+                    remaining,
+                }))
+            },
+        );
+    }
+
+    pub(crate) fn finish_piglin_pickup(&mut self, step: PiglinPickupStep, cancelled: bool) {
+        let PiglinPickupStep {
+            collector: id,
+            item,
+            stack,
+            whole,
+        } = step;
+        if self.item_stack_of(item).as_ref() != Some(&stack)
+            || self.entities.store.get(id).is_none()
+        {
+            return;
+        }
+        if cancelled {
+            if whole {
+                self.ask_piglin_pickup(id, item, stack, false);
+            }
+            return;
+        }
+        self.push(
+            Audience::Trackers(item),
+            ClientEvent::ItemPickup {
+                collected: item,
+                collector: id,
+                amount: if whole {
+                    i32::from(stack.count.get())
+                } else {
+                    1
+                },
+            },
+        );
+        let picked = if whole {
             self.remove_item(item);
             stack
         } else {

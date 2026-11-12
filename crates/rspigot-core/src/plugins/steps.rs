@@ -909,6 +909,20 @@ pub(crate) struct MobPickupStep {
     pub(crate) stack: ItemStack,
 }
 
+#[derive(Debug)]
+pub(crate) struct PiglinPickupStep {
+    pub(crate) collector: EntityId,
+    pub(crate) item: EntityId,
+    pub(crate) stack: ItemStack,
+    pub(crate) whole: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct BarterStep {
+    pub(crate) piglin: EntityId,
+    pub(crate) outcome: Vec<ItemStack>,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Push {
     Knock {
@@ -1045,6 +1059,8 @@ pub(crate) enum Continuation {
     PickupItem(Box<PickupStep>),
     Gather(Box<GatherStep>),
     MobPickup(Box<MobPickupStep>),
+    PiglinPickup(Box<PiglinPickupStep>),
+    Barter(Box<BarterStep>),
     ChangeBlock(Box<ChangeStep>),
     Form(FormStep),
     Ignite(IgniteStep),
@@ -1144,9 +1160,10 @@ impl Continuation {
             Self::Combust(step) => step.kind,
             Self::Knock(step) => step.kind,
             Self::ItemDespawn(_) => EventKind::ItemDespawn,
-            Self::PickupItem(_) | Self::Gather(_) | Self::MobPickup(_) => {
+            Self::PickupItem(_) | Self::Gather(_) | Self::MobPickup(_) | Self::PiglinPickup(_) => {
                 EventKind::EntityPickupItem
             }
+            Self::Barter(_) => EventKind::PiglinBarter,
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
             Self::Ignite(_) => EventKind::BlockIgnite,
@@ -1215,6 +1232,8 @@ impl Continuation {
             Self::PickupItem(step) => step.item == id || step.collector == id,
             Self::Gather(step) => step.item == id || step.fox == id,
             Self::MobPickup(step) => step.item == id || step.collector == id,
+            Self::PiglinPickup(step) => step.item == id || step.collector == id,
+            Self::Barter(step) => step.piglin == id,
             Self::ChangeBlock(step) => match &step.change {
                 Grief::Fall { .. } => false,
                 Grief::Land(landing) => landing.falling == id,
@@ -1292,6 +1311,9 @@ impl Continuation {
             (Self::MobPickup(one), Self::MobPickup(other)) => {
                 one.collector == other.collector && one.item == other.item
             }
+            (Self::PiglinPickup(one), Self::PiglinPickup(other)) => {
+                one.collector == other.collector && one.item == other.item
+            }
             (Self::Potion(one), Self::Potion(other)) => {
                 matches!((one.potion, other.potion), (Potion::Expire(a), Potion::Expire(b)) if a.effect == b.effect)
                     && one.holder == other.holder
@@ -1311,7 +1333,8 @@ impl Continuation {
             | Self::ItemDespawn(_)
             | Self::PickupItem(_)
             | Self::Gather(_)
-            | Self::MobPickup(_) => true,
+            | Self::MobPickup(_)
+            | Self::PiglinPickup(_) => true,
             Self::ChangeBlock(step) => matches!(step.change, Grief::Fall { .. }),
             Self::EggBreak { .. }
             | Self::Form(_)
