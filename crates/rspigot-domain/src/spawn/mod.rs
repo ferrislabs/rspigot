@@ -4,9 +4,11 @@ pub mod fox;
 pub mod generation;
 pub mod natural;
 pub mod placement;
+mod polar_bear;
 pub mod rules;
 pub mod state;
 pub mod wolf;
+mod zombified_piglin;
 
 use rspigot_data::spawns::{BiomeSpawns, DimensionSpawns, SpawnCount, Spawner};
 use rspigot_entities::{EntityKind, MobCategory, SpawnHeightmap};

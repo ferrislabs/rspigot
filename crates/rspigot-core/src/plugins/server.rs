@@ -894,6 +894,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_tame(step, cancelled);
                 Vec::new()
             }
+            Continuation::PigAnger(step) => {
+                self.finish_pig_zombie_anger(step, cancelled, patch_of!(patch, PigZombieAnger));
+                Vec::new()
+            }
             Continuation::Dye(step) => {
                 self.finish_dye(*step, cancelled, patch_of!(patch, SheepDyeWool));
                 Vec::new()

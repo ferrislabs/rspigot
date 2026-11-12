@@ -37,6 +37,7 @@ mod village;
 mod walk;
 mod wolf;
 mod world;
+mod zombified_piglin;
 
 pub use action::{MobAction, TargetReason, TargetRequest};
 pub use animal::{

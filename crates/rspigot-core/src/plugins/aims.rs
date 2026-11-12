@@ -53,6 +53,9 @@ impl<L: ClientLink> Server<L> {
         seeker: Seeker,
         deferred: bool,
     ) {
+        if request.from.is_none() && request.to.is_some() {
+            self.kind_acquired_target(mob.id);
+        }
         let reason = match (request.reason, request.to, request.from) {
             (TargetReason::Unknown, None, Some(from)) if self.living_entity_alive(from) => {
                 EntityTargetReason::ForgotTarget

@@ -1273,6 +1273,15 @@ impl Encoder {
                                 MetadataValue::OptionalBlockState(v) => {
                                     EntityDataValue::OptionalBlockState(v.map(|state| state as i32))
                                 }
+                                MetadataValue::VillagerData {
+                                    kind,
+                                    profession,
+                                    level,
+                                } => EntityDataValue::VillagerData {
+                                    kind: *kind as i32,
+                                    profession: *profession as i32,
+                                    level: *level,
+                                },
                             },
                         })
                         .collect(),
@@ -2514,6 +2523,34 @@ mod tests {
             vec![(
                 id::SET_ENTITY_DATA,
                 vec![9, 23, 25, 3, 24, 26, 2, 20, 21, 1, 24, 22, 1, 0xFF]
+            )]
+        );
+    }
+
+    #[test]
+    fn zombie_villager_data_metadata_golden_bytes() {
+        let event = ClientEvent::EntityMetadata {
+            entity: EntityId(9),
+            entries: vec![
+                MetadataEntry {
+                    index: 19,
+                    value: MetadataValue::Boolean(true),
+                },
+                MetadataEntry {
+                    index: 20,
+                    value: MetadataValue::VillagerData {
+                        kind: 5,
+                        profession: 9,
+                        level: 3,
+                    },
+                },
+            ],
+        };
+        assert_eq!(
+            encode(event),
+            vec![(
+                id::SET_ENTITY_DATA,
+                vec![9, 19, 8, 1, 20, 18, 5, 9, 3, 0xFF]
             )]
         );
     }

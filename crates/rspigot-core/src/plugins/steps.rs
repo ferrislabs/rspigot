@@ -441,6 +441,12 @@ pub(crate) struct LoveStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct PigAngerStep {
+    pub(crate) mob: EntityId,
+    pub(crate) anger: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct TameStep {
     pub(crate) target: EntityId,
     pub(crate) owner: PlayerId,
@@ -935,6 +941,7 @@ pub(crate) enum Continuation {
     Breed(Box<BreedStep>),
     Love(Box<LoveStep>),
     Tame(TameStep),
+    PigAnger(PigAngerStep),
     Dye(Box<DyeStep>),
     Window(Box<WindowPacket>),
     Click(EventKind, Box<WindowClick>),
@@ -1031,6 +1038,7 @@ impl Continuation {
             Self::Breed(_) => EventKind::EntityBreed,
             Self::Love(_) => EventKind::EntityEnterLoveMode,
             Self::Tame(_) => EventKind::EntityTame,
+            Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Dye(_) => EventKind::SheepDyeWool,
             Self::Window(_) => EventKind::InventoryClick,
             Self::Click(kind, _) => *kind,
@@ -1099,6 +1107,7 @@ impl Continuation {
             Self::Love(step) => step.target == id,
             Self::Tame(step) => step.target == id,
             Self::MobRegain(step) => step.target == id,
+            Self::PigAnger(step) => step.mob == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::InteractEntity(step) => step.target == id,

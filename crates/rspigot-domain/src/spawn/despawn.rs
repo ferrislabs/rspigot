@@ -13,6 +13,7 @@ pub struct FarAwayFacts {
     pub trusting: bool,
     pub tame: bool,
     pub tick_count: i32,
+    pub villager_progress: bool,
 }
 
 pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<bool> {
@@ -26,6 +27,7 @@ pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<boo
         | MobClass::WanderingTrader
         | MobClass::Allay => false,
         MobClass::Chicken => facts.chicken_jockey,
+        MobClass::ZombieVillager => !facts.villager_progress,
         _ => return None,
     })
 }
@@ -40,6 +42,7 @@ pub struct DespawnFacts {
     pub trusting: bool,
     pub tame: bool,
     pub tick_count: i32,
+    pub villager_progress: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -70,6 +73,7 @@ pub fn check_despawn(
         trusting: facts.trusting,
         tame: facts.tame,
         tick_count: facts.tick_count,
+        villager_progress: facts.villager_progress,
     };
     let far = || remove_when_far_away(kind, far_facts).unwrap_or(false);
     let despawn = i32::from(category.despawn_distance()).pow(2);
@@ -129,6 +133,7 @@ mod tests {
             trusting: false,
             tame: false,
             tick_count: 0,
+            villager_progress: false,
         }
     }
 
@@ -242,6 +247,27 @@ mod tests {
         assert!(check_despawn(&old, Difficulty::Normal, Some(1e6), &mut random).discard);
         let tame = DespawnFacts { tame: true, ..old };
         assert!(!check_despawn(&tame, Difficulty::Normal, Some(1e6), &mut random).discard);
+    }
+
+    #[test]
+    fn zombie_villagers_with_experience_or_a_cure_underway_never_fade() {
+        let mut random = Fixed(5);
+        let plain = facts(EntityKind::ZombieVillager);
+        assert!(check_despawn(&plain, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let cured = DespawnFacts {
+            villager_progress: true,
+            ..plain
+        };
+        assert!(!check_despawn(&cured, Difficulty::Normal, Some(1e6), &mut random).discard);
+    }
+
+    #[test]
+    fn polar_bears_never_fade_but_zombified_piglins_do() {
+        let mut random = Fixed(5);
+        let bear = facts(EntityKind::PolarBear);
+        assert!(!check_despawn(&bear, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let piglin = facts(EntityKind::ZombifiedPiglin);
+        assert!(check_despawn(&piglin, Difficulty::Normal, Some(1e6), &mut random).discard);
     }
 
     #[test]

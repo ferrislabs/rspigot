@@ -76,7 +76,7 @@ const RAIN_SKY_ALPHA: f32 = 0.3125;
 const THUNDER_SKY_ALPHA: f32 = 0.527_343_75;
 const BRIGHT_SKY_DARKEN: i32 = 4;
 const BRIGHT_LIMIT: f32 = 0.5;
-const DAMAGE_SOURCE_MEMORY: i64 = 40;
+pub(crate) const DAMAGE_SOURCE_MEMORY: i64 = 40;
 const RETALIATION_MEMORY: i64 = 100;
 const NO_WOLF_RETALIATION: &str = "minecraft:no_wolf_retaliation";
 const PANIC_CAUSES: &str = "minecraft:panic_causes";
@@ -654,8 +654,10 @@ impl<L: ClientLink> Server<L> {
         if let Some(random) = self.entities.mobs.spawn_randoms.remove(&id) {
             ai.brain_mut().random = random;
         }
+        let mut restored_target = false;
         if let Some(target) = self.entities.mobs.initial_targets.remove(&id) {
             ai.set_target(Some(target));
+            restored_target = true;
         }
         if kind == Kind::Cat {
             ai.reassess_cat_tame_goals(cat_tame);
@@ -683,6 +685,7 @@ impl<L: ClientLink> Server<L> {
                 .or_else(|| self.entities.store.by_uuid(uuid));
             if let Some(target) = found {
                 ai.set_target(Some(target));
+                restored_target = true;
             }
         }
         if let Some(living) = self.entities.store.get_mut(id).and_then(|e| e.living_mut()) {
@@ -697,7 +700,12 @@ impl<L: ClientLink> Server<L> {
                 Some(Species::Fox(fox)) if fox.hunts => {
                     ai.fox_target_goals(fox_red);
                 }
-                Some(Species::Zombie(zombie)) if kind == Kind::Zombie => {
+                Some(Species::Zombie(zombie))
+                    if matches!(
+                        kind,
+                        Kind::Zombie | Kind::ZombieVillager | Kind::ZombifiedPiglin
+                    ) =>
+                {
                     ai.set_can_break_doors(zombie.can_break_doors);
                 }
                 _ => {}
@@ -713,6 +721,9 @@ impl<L: ClientLink> Server<L> {
                 ambient_sound_time: 0,
             },
         );
+        if restored_target {
+            self.kind_acquired_target(id);
+        }
     }
 
     pub(crate) fn refresh_mob_players(&mut self) {

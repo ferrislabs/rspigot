@@ -76,6 +76,15 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::OptionalBlockState(v) => {
                     MetadataValue::OptionalBlockState(v.map(|state| u32::from(state.0)))
                 }
+                SyncedValue::VillagerData {
+                    kind,
+                    profession,
+                    level,
+                } => MetadataValue::VillagerData {
+                    kind: *kind,
+                    profession: *profession,
+                    level: *level,
+                },
             },
         })
         .collect()

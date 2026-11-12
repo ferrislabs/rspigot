@@ -22,6 +22,8 @@ pub mod polar_bear;
 pub mod rabbit;
 pub mod silverfish;
 pub mod wolf;
+pub mod zombie_villager;
+pub mod zombified_piglin;
 
 pub const PIG_DATA_BOOST_TIME: u8 = 18;
 pub const DATA_WOOL: u8 = 18;
@@ -128,6 +130,8 @@ pub struct SheepState {
 pub struct ZombieState {
     pub can_break_doors: bool,
     pub drowning: ConversionTracker,
+    pub piglin: zombified_piglin::ZombifiedPiglinState,
+    pub villager: Option<zombie_villager::ZombieVillagerState>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -265,7 +269,12 @@ impl Species {
                 .define(ZOMBIE_DATA_SPECIAL_TYPE, SyncedValue::Int(0));
             base.data
                 .define(ZOMBIE_DATA_DROWNED_CONVERSION, SyncedValue::Boolean(false));
-            return Self::Zombie(ZombieState::default());
+            let villager =
+                (kind == EntityKind::ZombieVillager).then(|| zombie_villager::define(base));
+            return Self::Zombie(ZombieState {
+                villager,
+                ..ZombieState::default()
+            });
         }
         if kind == EntityKind::Skeleton {
             base.data

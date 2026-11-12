@@ -444,7 +444,7 @@ impl<L: ClientLink> Server<L> {
         {
             child.base.set_custom_name(Some(name));
         }
-        if kind == Kind::Zombie {
+        if species::is_zombie(kind) {
             let special = self.difficulty_at(position.block()).special_multiplier();
             let mut random = self.mob_random(parent);
             let loot = random.next_float() < 0.55 * special;

@@ -515,6 +515,7 @@ pub enum TargetFilter {
     SchoolingFish,
     EnemyNonCreeper,
     Prey,
+    MobIsAdult,
 }
 
 impl TargetFilter {
@@ -534,6 +535,7 @@ impl TargetFilter {
                 target.kind,
                 EntityKind::Sheep | EntityKind::Rabbit | EntityKind::Fox
             ),
+            Self::MobIsAdult => !mob.baby,
         }
     }
 }
@@ -546,6 +548,7 @@ pub struct NearestAttackableTargetGoal {
     filter: TargetFilter,
     needs_darkness: bool,
     non_tame: bool,
+    follow_scale: f64,
     found: Option<Living>,
     unseen_ticks: i32,
 }
@@ -563,9 +566,21 @@ impl NearestAttackableTargetGoal {
             filter,
             needs_darkness: false,
             non_tame: false,
+            follow_scale: 1.0,
             found: None,
             unseen_ticks: 0,
         }
+    }
+
+    pub fn with_follow_scale(self, follow_scale: f64) -> Self {
+        Self {
+            follow_scale,
+            ..self
+        }
+    }
+
+    fn follow_distance(&self, mob: &MobView) -> f64 {
+        mob.follow_range * self.follow_scale
     }
 
     pub fn non_tame(kind: TargetKind, must_see: bool, filter: TargetFilter) -> Self {
@@ -583,7 +598,8 @@ impl NearestAttackableTargetGoal {
     }
 
     fn find_target<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
-        let conditions = TargetingConditions::for_combat().range(context.mob.follow_range);
+        let follow = self.follow_distance(context.mob);
+        let conditions = TargetingConditions::for_combat().range(follow);
         let origin = context.mob.eye_position();
         let filter = self.filter;
         let mob = context.mob;
@@ -596,7 +612,6 @@ impl NearestAttackableTargetGoal {
                 origin,
             )
         } else {
-            let follow = mob.follow_range;
             let area = inflate(&mob.bounds(), follow, follow, follow);
             let candidates = world.living_of(self.kind, &area);
             targeting::nearest(
@@ -609,7 +624,7 @@ impl NearestAttackableTargetGoal {
         };
     }
 
-    fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         if self.non_tame && context.mob.tamed {
             return false;
         }
@@ -635,7 +650,7 @@ impl NearestAttackableTargetGoal {
             let Some(found) = self.found.and_then(|found| world.living(found.id)) else {
                 return false;
             };
-            let conditions = TargetingConditions::for_combat().range(mob.follow_range);
+            let conditions = TargetingConditions::for_combat().range(self.follow_distance(mob));
             let filter = self.filter;
             return conditions.test(context, &found, |t| filter.accepts(mob, world, t));
         }
@@ -645,7 +660,7 @@ impl NearestAttackableTargetGoal {
         if !targeting::mob_can_attack(context.mob, context.world, &target) {
             return false;
         }
-        let follow = context.mob.follow_range;
+        let follow = self.follow_distance(context.mob);
         if context.mob.distance_to_sqr(target.position) > follow * follow {
             return false;
         }
@@ -668,7 +683,7 @@ impl NearestAttackableTargetGoal {
         true
     }
 
-    fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         let reason = if self.found.is_some_and(|found| found.player) {
             TargetReason::ClosestPlayer
         } else {
@@ -678,7 +693,7 @@ impl NearestAttackableTargetGoal {
         self.unseen_ticks = 0;
     }
 
-    fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         context.set_target(None, TargetReason::ForgotTarget);
     }
 }

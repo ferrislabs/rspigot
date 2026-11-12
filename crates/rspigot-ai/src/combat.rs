@@ -3,6 +3,7 @@ use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 
 use crate::Path;
+use crate::PolarBearAction;
 use crate::action::{MobAction, TargetReason};
 use crate::brain::AiContext;
 use crate::goal::{adjusted_tick_delay, reduced_tick_delay};
@@ -34,6 +35,9 @@ const LEAP_CARRY: f64 = 0.2;
 const ALERT_RANGE_Y: f64 = 10.0;
 const HURT_BY_MEMORY: i32 = 300;
 const UNSEEN_MEMORY: i32 = 60;
+const POLAR_BEAR_SPEED: f64 = 1.25;
+const POLAR_BEAR_WARNING_MARGIN: f32 = 3.0;
+const POLAR_BEAR_STAND_TICKS: i32 = 10;
 
 pub fn default_attack_reach() -> f64 {
     f64::from(2.04f32).sqrt() - f64::from(0.6f32)
@@ -71,6 +75,7 @@ pub enum MeleeKind {
     Skeleton,
     Spider,
     Fox,
+    PolarBear,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -124,6 +129,13 @@ impl MeleeAttackGoal {
         Self {
             kind: MeleeKind::Spider,
             ..Self::new(1.0, true)
+        }
+    }
+
+    pub fn polar_bear() -> Self {
+        Self {
+            kind: MeleeKind::PolarBear,
+            ..Self::new(POLAR_BEAR_SPEED, true)
         }
     }
 
@@ -188,6 +200,15 @@ impl MeleeAttackGoal {
     }
 
     pub(crate) fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        if self.kind == MeleeKind::PolarBear {
+            context.act(MobAction::PolarBear(PolarBearAction::SetStanding(false)));
+        }
+        if context
+            .target()
+            .is_some_and(|target| target.player && (target.creative || target.spectator))
+        {
+            context.set_target(None, TargetReason::Unknown);
+        }
         context.body.aggressive = false;
         context.stop_navigation();
     }
@@ -239,15 +260,36 @@ impl MeleeAttackGoal {
                 adjusted_tick_delay(true, self.ticks_until_next_path_recalculation);
         }
         self.ticks_until_next_attack = (self.ticks_until_next_attack - 1).max(0);
+        self.check_and_perform_attack(context, &target);
+    }
+
+    fn reset_attack_cooldown(&mut self) {
+        self.ticks_until_next_attack = adjusted_tick_delay(true, ATTACK_INTERVAL);
+    }
+
+    fn can_perform_attack<W: AiWorld>(
+        &self,
+        context: &mut AiContext<'_, W>,
+        target: &Living,
+    ) -> bool {
         let world = context.world;
-        if self.ticks_until_next_attack <= 0
-            && within_melee_range(context.mob, &target)
+        self.ticks_until_next_attack <= 0
+            && within_melee_range(context.mob, target)
             && context
                 .brain
                 .sensing
-                .has_line_of_sight(world, context.mob, &target)
-        {
-            self.ticks_until_next_attack = adjusted_tick_delay(true, ATTACK_INTERVAL);
+                .has_line_of_sight(world, context.mob, target)
+    }
+
+    fn check_and_perform_attack<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+        target: &Living,
+    ) {
+        if self.kind == MeleeKind::PolarBear {
+            self.polar_bear_attack(context, target);
+        } else if self.can_perform_attack(context, target) {
+            self.reset_attack_cooldown();
             if self.kind == MeleeKind::Fox {
                 context.act(MobAction::Attack(target.id));
                 context.act(MobAction::Fox(crate::FoxAction::Sound(FOX_BITE)));
@@ -255,6 +297,33 @@ impl MeleeAttackGoal {
             }
             context.act(MobAction::Swing(Hand::Main));
             context.act(MobAction::Attack(target.id));
+        }
+    }
+
+    fn polar_bear_attack<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>, target: &Living) {
+        let standing = |context: &mut AiContext<'_, W>, value: bool| {
+            context.act(MobAction::PolarBear(PolarBearAction::SetStanding(value)));
+        };
+        if self.can_perform_attack(context, target) {
+            self.reset_attack_cooldown();
+            context.act(MobAction::Attack(target.id));
+            standing(context, false);
+            return;
+        }
+        let width = (target.bounds.max_x - target.bounds.min_x) as f32;
+        let reach = (width + POLAR_BEAR_WARNING_MARGIN) * (width + POLAR_BEAR_WARNING_MARGIN);
+        if context.mob.distance_to_sqr(target.position) < f64::from(reach) {
+            if self.ticks_until_next_attack <= 0 {
+                standing(context, false);
+                self.reset_attack_cooldown();
+            }
+            if self.ticks_until_next_attack <= POLAR_BEAR_STAND_TICKS {
+                standing(context, true);
+                context.act(MobAction::PolarBear(PolarBearAction::Warn));
+            }
+        } else {
+            self.reset_attack_cooldown();
+            standing(context, false);
         }
     }
 }
@@ -650,6 +719,7 @@ pub struct HurtByTargetGoal {
     memory: TargetMemory,
     timestamp: i32,
     alert_others: Option<&'static [EntityKind]>,
+    polar_bear: bool,
 }
 
 impl Default for HurtByTargetGoal {
@@ -664,6 +734,14 @@ impl HurtByTargetGoal {
             memory: TargetMemory::new(true),
             timestamp: 0,
             alert_others: None,
+            polar_bear: false,
+        }
+    }
+
+    pub const fn polar_bear() -> Self {
+        Self {
+            polar_bear: true,
+            ..Self::new()
         }
     }
 
@@ -710,12 +788,20 @@ impl HurtByTargetGoal {
         self.timestamp = context.mob.last_hurt_by_mob_at;
         self.memory.unseen_memory_ticks = HURT_BY_MEMORY;
         if let Some(ignored) = self.alert_others {
-            Self::alert(context, ignored);
+            Self::alert(context, ignored, false);
         }
         self.memory.start();
+        if self.polar_bear && context.mob.baby {
+            Self::alert(context, &[], true);
+            self.memory.stop(context);
+        }
     }
 
-    fn alert<W: AiWorld>(context: &mut AiContext<'_, W>, ignored: &[EntityKind]) {
+    fn alert<W: AiWorld>(
+        context: &mut AiContext<'_, W>,
+        ignored: &[EntityKind],
+        adults_only: bool,
+    ) {
         let Some(attacker) = context.mob.last_hurt_by_mob else {
             return;
         };
@@ -737,6 +823,7 @@ impl HurtByTargetGoal {
             if other.id == mob.id
                 || other.spectator
                 || other.has_target
+                || (adults_only && other.baby)
                 || ignored.contains(&other.kind)
             {
                 continue;

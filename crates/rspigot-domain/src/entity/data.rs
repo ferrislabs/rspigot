@@ -38,6 +38,11 @@ pub enum SyncedValue {
     Long(i64),
     OptionalEntity(Option<Uuid>),
     OptionalBlockState(Option<BlockStateId>),
+    VillagerData {
+        kind: u32,
+        profession: u32,
+        level: i32,
+    },
 }
 
 impl SyncedValue {
@@ -176,6 +181,17 @@ impl SyncedData {
     pub fn variant(&self, index: u8) -> Option<u32> {
         match self.get(index) {
             Some(SyncedValue::Variant(_, id)) => Some(*id),
+            _ => None,
+        }
+    }
+
+    pub fn villager_data(&self, index: u8) -> Option<(u32, u32, i32)> {
+        match self.get(index) {
+            Some(SyncedValue::VillagerData {
+                kind,
+                profession,
+                level,
+            }) => Some((*kind, *profession, *level)),
             _ => None,
         }
     }

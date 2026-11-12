@@ -107,7 +107,12 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Fox) => self.fox_ambient(id),
             Some(Kind::Wolf) => self.wolf_ambient_voice(id),
             Some(Kind::Cat) => self.cat_ambient_voice(id),
-            _ => self.play_mob_voice(id, crate::mob_life::ambient_sound),
+            _ => {
+                let game_time = self.world.level.game_time;
+                self.play_mob_voice(id, |entity| {
+                    crate::mob_life::ambient_sound(entity, game_time)
+                });
+            }
         }
     }
 
@@ -126,6 +131,12 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_custom_ai_step(id),
             Some(Kind::Ocelot) => self.ocelot_custom_ai_step(id),
             _ => {}
+        }
+    }
+
+    pub(crate) fn kind_acquired_target(&mut self, id: EntityId) {
+        if let Some(Kind::ZombifiedPiglin) = self.kind_of(id) {
+            self.zombified_piglin_acquired_target(id);
         }
     }
 

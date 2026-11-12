@@ -12,7 +12,7 @@ use rspigot_domain::player::GameMode;
 use rspigot_domain::random::{LegacyRandom, RandomSource};
 use rspigot_domain::spawn::{SpawnLevel, SpawnReason, placement, rules};
 use rspigot_domain::{BlockPos, EntityId, Vec3};
-use rspigot_entities::{EntityKind as Kind, SoundSource};
+use rspigot_entities::{EntityKind as Kind, SoundSource, VoicePitch};
 use rspigot_items::EquipmentSlot;
 
 use crate::events::{ClientEvent, EntityStatus};
@@ -30,6 +30,8 @@ const AMBIENT_CHANCE: i32 = 1000;
 const ANIMAL_AMBIENT_INTERVAL: i32 = 120;
 const MOB_AMBIENT_INTERVAL: i32 = 80;
 const SPAWN_ITEM_DELAY: u16 = 10;
+const BABY_PITCH: f32 = 1.5;
+const BABY_ZOMBIE_VILLAGER_PITCH: f32 = 2.0;
 const ITEM_SPREAD: f64 = 0.2;
 const ITEM_LIFT: f64 = 0.2;
 const BURN_IN_DAYLIGHT: &str = "minecraft:burn_in_daylight";
@@ -42,7 +44,7 @@ pub(crate) fn type_in_tag(kind: Kind, tag: &str) -> bool {
         .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
 }
 
-pub(crate) fn ambient_sound(entity: &Entity) -> Option<&'static str> {
+pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static str> {
     let base = &entity.base;
     let mob = entity.living()?.mob.as_ref()?;
     if let Some(farm) = mob.species.variant_family() {
@@ -51,6 +53,19 @@ pub(crate) fn ambient_sound(entity: &Entity) -> Option<&'static str> {
     match base.kind {
         Kind::Sheep => Some("minecraft:entity.sheep.ambient"),
         Kind::Zombie => Some("minecraft:entity.zombie.ambient"),
+        Kind::ZombieVillager => Some("minecraft:entity.zombie_villager.ambient"),
+        Kind::PolarBear => Some(if entity.is_baby() {
+            "minecraft:entity.polar_bear.ambient_baby"
+        } else {
+            "minecraft:entity.polar_bear.ambient"
+        }),
+        Kind::ZombifiedPiglin => Some(
+            if mob.neutral.is_some_and(|anger| anger.is_angry(game_time)) {
+                "minecraft:entity.zombified_piglin.angry"
+            } else {
+                "minecraft:entity.zombified_piglin.ambient"
+            },
+        ),
         Kind::Skeleton => Some("minecraft:entity.skeleton.ambient"),
         Kind::Spider => Some("minecraft:entity.spider.ambient"),
         _ => None,
@@ -219,11 +234,14 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn play_mob_voice(
         &mut self,
         id: EntityId,
-        pick: fn(&Entity) -> Option<&'static str>,
+        pick: impl Fn(&Entity) -> Option<&'static str>,
     ) {
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
+        if entity.base.is_silent() {
+            return;
+        }
         let Some(sound) = pick(entity) else {
             return;
         };
@@ -235,7 +253,12 @@ impl<L: ClientLink> Server<L> {
         let mut random = self.mob_random(id);
         let spread = (random.next_float() - random.next_float()) * 0.2;
         self.store_mob_random(id, random);
-        let pitch = spread + if baby { 1.5 } else { 1.0 };
+        let baby_pitch = if sounds.pitch == VoicePitch::ZombieVillager {
+            BABY_ZOMBIE_VILLAGER_PITCH
+        } else {
+            BABY_PITCH
+        };
+        let pitch = spread + if baby { baby_pitch } else { 1.0 };
         self.entity_sound(id, sound, volume, pitch);
     }
 
@@ -640,7 +663,11 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;
         };
-        if entity.base.kind != Kind::Zombie {
+        let kind = entity.base.kind;
+        if !matches!(
+            kind,
+            Kind::Zombie | Kind::ZombieVillager | Kind::ZombifiedPiglin
+        ) {
             return;
         }
         let position = entity.base.position;
@@ -674,26 +701,26 @@ impl<L: ClientLink> Server<L> {
             };
             let (rx, ry, rz) = (x + offset(), y + offset(), z + offset());
             let pos = BlockPos::new(rx, ry, rz);
-            if !self.reinforcement_spot(pos) {
+            if !self.reinforcement_spot(kind, pos) {
                 continue;
             }
             let at = Vec3::new(f64::from(rx), f64::from(ry), f64::from(rz));
-            if !self.reinforcement_fits(at) {
+            if !self.reinforcement_fits(kind, at) {
                 continue;
             }
             self.store_mob_random(id, random);
-            self.spawn_reinforcement(id, at, target);
+            self.spawn_reinforcement(kind, id, at, target);
             return;
         }
         self.store_mob_random(id, random);
     }
 
-    fn reinforcement_spot(&mut self, pos: BlockPos) -> bool {
-        placement::is_spawn_position_ok(self, Kind::Zombie, pos)
-            && rules::check_spawn_rules(self, Kind::Zombie, SpawnReason::Reinforcement, pos)
+    fn reinforcement_spot(&mut self, kind: Kind, pos: BlockPos) -> bool {
+        placement::is_spawn_position_ok(self, kind, pos)
+            && rules::check_spawn_rules(self, kind, SpawnReason::Reinforcement, pos)
     }
 
-    fn reinforcement_fits(&self, at: Vec3) -> bool {
+    fn reinforcement_fits(&self, kind: Kind, at: Vec3) -> bool {
         let range = REINFORCEMENT_PLAYER_RANGE * REINFORCEMENT_PLAYER_RANGE;
         let near_player = self.players.values().any(|p| {
             !p.vitals.is_dead()
@@ -703,15 +730,15 @@ impl<L: ClientLink> Server<L> {
         if near_player {
             return false;
         }
-        let dimensions = Kind::Zombie.dimensions();
+        let dimensions = kind.dimensions();
         let area = Aabb::of_size(at, dimensions.width, dimensions.height);
         self.is_unobstructed(&area)
             && rules::no_collision(self, &area)
             && !rules::contains_any_liquid(self, &area)
     }
 
-    fn spawn_reinforcement(&mut self, caller: EntityId, at: Vec3, target: EntityId) {
-        let base = self.new_entity_base(Kind::Zombie);
+    fn spawn_reinforcement(&mut self, kind: Kind, caller: EntityId, at: Vec3, target: EntityId) {
+        let base = self.new_entity_base(kind);
         let mut zombie = crate::mob_actions::new_mob(base);
         zombie.base.snap_to(at, 0.0, 0.0);
         let environment = self.spawn_environment(at);

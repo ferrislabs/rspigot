@@ -104,9 +104,10 @@ const ZOMBIE_KEYS: [&str; 4] = [
 ];
 const SKELETON_KEYS: [&str; 2] = ["FreezingTime", "StrayConversionTime"];
 const CREEPER_KEYS: [&str; 4] = ["powered", "Fuse", "ExplosionRadius", "ignited"];
-const TRANSIENT_MODIFIERS: [&str; 2] = [
+const TRANSIENT_MODIFIERS: &[&str] = &[
     species::BABY_SPEED_MODIFIER,
     species::cat::SPRINTING_MODIFIER,
+    species::zombified_piglin::ATTACKING_MODIFIER,
 ];
 const ARROW_KEYS: [&str; 14] = [
     "Owner",
@@ -676,6 +677,9 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
                 ("InWaterTime", "DrownedConversionTime"),
                 species::ZOMBIE_DATA_DROWNED_CONVERSION,
             );
+            if let Some(villager) = &mut zombie.villager {
+                species::zombie_villager::read(nbt, base, villager);
+            }
         }
         Species::Skeleton(skeleton) => {
             skeleton.freezing = read_tracker(
@@ -775,6 +779,11 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
     }
     if matches!(mob.species, Species::Wolf(_) | Species::Cat(_)) {
         keys.push(&FARM_KEYS);
+    }
+    if let Species::Zombie(zombie) = &mob.species
+        && zombie.villager.is_some()
+    {
+        keys.push(species::zombie_villager::KEYS);
     }
     keys.push(match mob.species {
         Species::Cow | Species::Pig => &FARM_KEYS,
@@ -1165,6 +1174,9 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
                 base.data.boolean(species::ZOMBIE_DATA_DROWNED_CONVERSION),
                 base.eye_in_water,
             );
+            if let Some(villager) = &zombie.villager {
+                species::zombie_villager::write(base, villager, out);
+            }
         }
         Species::Skeleton(skeleton) => {
             write_tracker(

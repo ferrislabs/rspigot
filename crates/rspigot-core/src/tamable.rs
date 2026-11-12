@@ -6,6 +6,7 @@ use rspigot_domain::entity::{Entity, LivingState};
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::world::Difficulty;
 use rspigot_domain::{EntityId, Vec3};
+use rspigot_entities::EntityKind as Kind;
 use uuid::Uuid;
 
 use crate::events::{ClientEvent, EntityStatus};
@@ -126,6 +127,15 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn start_persistent_anger_timer(&mut self, id: EntityId) {
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| entity.base.kind == Kind::ZombifiedPiglin)
+        {
+            self.ask_pig_zombie_anger(id);
+            return;
+        }
         let game_time = self.world.level.game_time;
         let mut random = self.mob_random(id);
         if let Some(entity) = self.entities.store.get_mut(id)

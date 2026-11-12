@@ -494,6 +494,11 @@ impl<L: ClientLink> Server<L> {
             tame: entity.base.kind.extends("TamableAnimal")
                 && rspigot_domain::entity::tamable::is_tame(&entity.base),
             tick_count: entity.base.tick_count,
+            villager_progress: matches!(
+                living.mob.as_ref().map(|mob| &mob.species),
+                Some(Species::Zombie(zombie))
+                    if zombie.villager.is_some_and(|villager| villager.keeps_when_far(&entity.base))
+            ),
         };
         let distance = nearest_distance_sqr(&self.spawning.players, entity.base.position);
         let difficulty = self.world.difficulty;
@@ -740,6 +745,7 @@ mod tests {
                 EntityKind::Ocelot,
                 EntityKind::Parched,
                 EntityKind::Pig,
+                EntityKind::PolarBear,
                 EntityKind::Rabbit,
                 EntityKind::Sheep,
                 EntityKind::Skeleton,
@@ -748,6 +754,8 @@ mod tests {
                 EntityKind::WitherSkeleton,
                 EntityKind::Wolf,
                 EntityKind::Zombie,
+                EntityKind::ZombieVillager,
+                EntityKind::ZombifiedPiglin,
             ]
         );
         for kind in EntityKind::ALL {

@@ -15,7 +15,9 @@ use crate::goals::{
 };
 use crate::rabbit::RaidGardenGoal;
 use crate::world::TargetKind;
-use crate::{cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf};
+use crate::{
+    cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
+};
 
 pub const ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER: bool = true;
 pub const WEAPON_PRIORITY: i32 = 4;
@@ -172,7 +174,7 @@ pub fn register_goals(
             add.look(6, 6.0);
             add.look_around(7);
         }
-        EntityKind::Zombie | EntityKind::Husk => {
+        EntityKind::Zombie | EntityKind::Husk | EntityKind::ZombieVillager => {
             add.goal(
                 4,
                 MobGoal::RemoveTurtleEgg(RemoveTurtleEggGoal::new(1.0, 3)),
@@ -382,6 +384,7 @@ pub fn register_goals(
         EntityKind::Fox => fox::register(&mut add, kind),
         EntityKind::Panda => panda::register(&mut add, kind),
         EntityKind::PolarBear => polar_bear::register(&mut add, kind),
+        EntityKind::ZombifiedPiglin => zombified_piglin::register(&mut add),
         EntityKind::Enderman => enderman::register(&mut add, kind),
         EntityKind::Silverfish => silverfish::register(&mut add, kind),
         EntityKind::IronGolem => iron_golem::register(&mut add, kind),

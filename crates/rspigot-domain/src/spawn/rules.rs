@@ -61,6 +61,12 @@ pub fn check_predicate(
         SpawnPredicate::Fox => super::fox::check_fox_spawn_rules(level, pos),
         SpawnPredicate::Ocelot => level.next_int(OCELOT_SPAWN_CHANCE) != 0,
         SpawnPredicate::Wolf => super::wolf::check_wolf_spawn_rules(level, pos),
+        SpawnPredicate::ZombifiedPiglin => {
+            super::zombified_piglin::check_zombified_piglin_spawn_rules(level, pos)
+        }
+        SpawnPredicate::PolarBear => {
+            super::polar_bear::check_polar_bear_spawn_rules(level, reason, pos)
+        }
         _ => return None,
     })
 }
@@ -104,6 +110,8 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Fox
                 | SpawnPredicate::Ocelot
                 | SpawnPredicate::Wolf
+                | SpawnPredicate::PolarBear
+                | SpawnPredicate::ZombifiedPiglin
         )
     });
     let walk = match spawn.check_spawn_rules {
@@ -123,7 +131,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
         && walk
         && matches!(
             spawn.check_spawn_obstruction,
-            MobClass::Mob | MobClass::Ocelot | MobClass::IronGolem
+            MobClass::Mob | MobClass::Ocelot | MobClass::IronGolem | MobClass::ZombifiedPiglin
         )
         && spawn.is_max_group_size_reached == MobClass::Mob
         && spawn.max_spawn_cluster_size.is_some()
@@ -264,7 +272,9 @@ pub fn contains_any_liquid(level: &impl SpawnLevel, area: &Aabb) -> bool {
 
 pub fn check_spawn_obstruction(level: &impl SpawnLevel, kind: EntityKind, area: &Aabb) -> bool {
     match kind.mob_spawn().map(|spawn| spawn.check_spawn_obstruction) {
-        Some(MobClass::Mob) => !contains_any_liquid(level, area) && level.is_unobstructed(area),
+        Some(MobClass::Mob | MobClass::ZombifiedPiglin) => {
+            !contains_any_liquid(level, area) && level.is_unobstructed(area)
+        }
         Some(MobClass::Ocelot) => {
             level.is_unobstructed(area)
                 && !contains_any_liquid(level, area)

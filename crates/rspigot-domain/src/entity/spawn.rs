@@ -279,10 +279,14 @@ pub fn zombie_handle_attributes(
     reason: SpawnReason,
     own: &mut impl RandomSource,
 ) {
-    living.attributes.set_base(
-        SPAWN_REINFORCEMENTS,
-        own.next_double() * REINFORCEMENT_SPREAD,
-    );
+    let reinforcements = if base.kind == EntityKind::ZombifiedPiglin {
+        0.0
+    } else {
+        own.next_double() * REINFORCEMENT_SPREAD
+    };
+    living
+        .attributes
+        .set_base(SPAWN_REINFORCEMENTS, reinforcements);
     let knockback = own.next_double() * KNOCKBACK_BONUS;
     add_or_replace(
         living,
@@ -346,6 +350,9 @@ fn zombie_finalize(
     level: &mut impl RandomSource,
     own: &mut impl RandomSource,
 ) -> Option<SpawnGroupData> {
+    if base.kind == EntityKind::ZombieVillager {
+        species::zombie_villager::randomize_profession(base, own, environment.biome);
+    }
     let group = mob_finalize(base, living, group, level);
     let difficulty = environment.difficulty;
     let special = difficulty.special_multiplier();
@@ -372,19 +379,24 @@ fn zombie_finalize(
             zombie.can_break_doors = doors;
         }
         if reason != SpawnReason::Conversion {
-            populate_armor(living, &difficulty, level);
-            let chance = if difficulty.base == Difficulty::Hard {
-                HARD_WEAPON_CHANCE
-            } else {
-                WEAPON_CHANCE
-            };
-            if level.next_float() < chance {
-                let weapon = match level.next_int(6) {
-                    0 => ItemKind::IronSword,
-                    1 => ItemKind::IronSpear,
-                    _ => ItemKind::IronShovel,
-                };
+            if base.kind == EntityKind::ZombifiedPiglin {
+                let weapon = species::zombified_piglin::default_weapon(level);
                 set_item_slot(living, EquipmentSlot::Mainhand, Some(stack(weapon)));
+            } else {
+                populate_armor(living, &difficulty, level);
+                let chance = if difficulty.base == Difficulty::Hard {
+                    HARD_WEAPON_CHANCE
+                } else {
+                    WEAPON_CHANCE
+                };
+                if level.next_float() < chance {
+                    let weapon = match level.next_int(6) {
+                        0 => ItemKind::IronSword,
+                        1 => ItemKind::IronSpear,
+                        _ => ItemKind::IronShovel,
+                    };
+                    set_item_slot(living, EquipmentSlot::Mainhand, Some(stack(weapon)));
+                }
             }
             enchantment_rolls(living, &difficulty, level);
         }
@@ -490,7 +502,12 @@ pub fn finalize_spawn(
             species::set_wool_color(base, color);
             ageable_finalize(base, living, group, level)
         }
-        Some(Species::Zombie(_)) if kind == EntityKind::Zombie => {
+        Some(Species::Zombie(_))
+            if matches!(
+                kind,
+                EntityKind::Zombie | EntityKind::ZombieVillager | EntityKind::ZombifiedPiglin
+            ) =>
+        {
             zombie_finalize(base, living, environment, reason, group, level, own)
         }
         Some(Species::Skeleton(_)) => skeleton_finalize(base, living, environment, group, level),

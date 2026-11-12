@@ -75,6 +75,7 @@ const CLIMB_BOOST: f64 = 0.2;
 const APPLIED_INPUT_DECAY: f32 = 0.98;
 const FLUID_SPEED: f32 = 0.02;
 const WATER_SLOW_DOWN: f32 = 0.8;
+const POLAR_BEAR_WATER_SLOW_DOWN: f32 = 0.98;
 const WATER_EFFICIENT_SLOW_DOWN: f32 = 0.546_000_06;
 const DOLPHIN_SLOW_DOWN: f32 = 0.96;
 const FLUID_VERTICAL_DRAG: f64 = 0.800_000_011_920_929;
@@ -1138,6 +1139,14 @@ pub fn travel<V: BlockView>(
     }
 }
 
+fn water_slow_down(kind: EntityKind) -> f32 {
+    if kind == EntityKind::PolarBear {
+        POLAR_BEAR_WATER_SLOW_DOWN
+    } else {
+        WATER_SLOW_DOWN
+    }
+}
+
 fn fluid_falling_adjusted(gravity: f64, falling: bool, movement: Vec3) -> Vec3 {
     if gravity == 0.0 {
         return movement;
@@ -1163,7 +1172,7 @@ pub fn travel_in_fluid<V: BlockView>(
     let old_y = base.position.y;
     let gravity = living.effective_gravity(base);
     let landing = if base.fluid.in_water {
-        let mut slow_down = WATER_SLOW_DOWN;
+        let mut slow_down = water_slow_down(base.kind);
         let mut speed = FLUID_SPEED;
         let mut efficiency = living.attribute(WATER_MOVEMENT_EFFICIENCY) as f32;
         if !base.on_ground {
@@ -1232,6 +1241,12 @@ mod tests {
         let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Zombie);
         let living = LivingState::new(&mut base, 0.0);
         (base, living)
+    }
+
+    #[test]
+    fn polar_bears_slow_down_less_in_water_than_other_mobs() {
+        assert_eq!(water_slow_down(EntityKind::PolarBear), 0.98);
+        assert_eq!(water_slow_down(EntityKind::Zombie), 0.8);
     }
 
     #[test]
