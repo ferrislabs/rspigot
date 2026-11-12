@@ -206,7 +206,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         entry.ambient_sound_time = -ambient_interval(kind);
-        self.play_mob_voice(id, ambient_sound);
+        self.play_ambient_sound(id);
     }
 
     pub(crate) fn reset_ambient_sound(&mut self, id: EntityId) {

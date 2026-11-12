@@ -729,6 +729,7 @@ mod tests {
                 EntityKind::Chicken,
                 EntityKind::Cow,
                 EntityKind::Creeper,
+                EntityKind::Fox,
                 EntityKind::Husk,
                 EntityKind::Mooshroom,
                 EntityKind::Ocelot,

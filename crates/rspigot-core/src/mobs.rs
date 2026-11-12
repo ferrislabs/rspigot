@@ -224,6 +224,7 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
                 .vitals
                 .last_source
                 .is_some_and(|source| retaliable(source, game_time)),
+            tick_count: player.vitals.tick_count as i32,
         },
     }
 }
@@ -254,7 +255,7 @@ fn entity_facts(
             Some(rspigot_domain::entity::SyncedValue::Pose(
                 rspigot_domain::entity::Pose::Sleeping
             ))
-        ),
+        ) || (base.kind == Kind::Fox && species::fox::is_sleeping(base)),
         last_hurt_by_mob: state.damage.last_hurt_by_mob,
         last_hurt_by_mob_at: state.damage.last_hurt_by_mob_at,
         last_hurt_mob: state.damage.last_hurt_mob,
@@ -263,6 +264,7 @@ fn entity_facts(
             .damage
             .last_source
             .is_some_and(|source| retaliable(source, game_time)),
+        tick_count: base.tick_count,
     }
 }
 
@@ -457,6 +459,7 @@ pub(crate) struct MobWorld<'a> {
     sky_darken: i32,
     rules: GameRules,
     has_day_cycle: bool,
+    thundering: bool,
 }
 
 impl MobWorld<'_> {
@@ -534,6 +537,29 @@ impl AiWorld for MobWorld<'_> {
         self.rules.mob_griefing
     }
 
+    fn thundering(&self) -> bool {
+        self.thundering
+    }
+
+    fn items_in(&self, area: &Aabb) -> Vec<rspigot_ai::DroppedItem> {
+        self.store
+            .iter()
+            .filter_map(|entity| {
+                let EntityState::Item(state) = &entity.state else {
+                    return None;
+                };
+                let bounds = entity.base.bounding_box();
+                bounds.intersects(area).then_some(rspigot_ai::DroppedItem {
+                    id: entity.base.id,
+                    position: entity.base.position,
+                    bounds,
+                    has_pickup_delay: state.pickup_delay > 0,
+                    alive: !entity.base.is_removed(),
+                })
+            })
+            .collect()
+    }
+
     fn universal_anger(&self) -> bool {
         self.rules.universal_anger
     }
@@ -577,6 +603,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let kind = entity.base.kind;
+        let fox_red = species::fox::variant(&entity.base) == species::fox::Variant::Red;
         let activation = activation_type(kind);
         let ranges = self.config.activation;
         let seed = self.rng.random::<i64>();
@@ -624,6 +651,9 @@ impl<L: ClientLink> Server<L> {
                     chicken.egg_time = Some(species::next_egg_time(&mut ai.brain_mut().random));
                 }
                 Some(Species::Skeleton(_)) => ai.reassess_weapon(bow, hard),
+                Some(Species::Fox(fox)) if fox.hunts => {
+                    ai.fox_target_goals(fox_red);
+                }
                 Some(Species::Zombie(zombie)) if kind == Kind::Zombie => {
                     ai.set_can_break_doors(zombie.can_break_doors);
                 }
@@ -749,6 +779,7 @@ impl<L: ClientLink> Server<L> {
             sky_darken,
             rules: self.config.rules,
             has_day_cycle: self.world.dimension.has_skylight,
+            thundering: self.world.level.raining && self.world.level.thundering,
         }
     }
 
@@ -1368,6 +1399,7 @@ impl<L: ClientLink> Server<L> {
 
     fn drop_all_death_loot(&mut self, id: EntityId, source: &DamageSource) {
         let mob_drops = self.config.rules.mob_drops;
+        let held = self.kind_death_item(id);
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
@@ -1394,7 +1426,7 @@ impl<L: ClientLink> Server<L> {
             .or_else(|| rspigot_data::loot::entity_table(entity.base.kind.id().0));
         let this = loot_facts(entity);
         let damage = self.damage_facts(source);
-        let mut drops: Vec<ItemStack> = Vec::new();
+        let mut drops: Vec<ItemStack> = held.into_iter().collect();
         let mut slots = Vec::new();
         if drop_loot {
             if let Some(table) = table {

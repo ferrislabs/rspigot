@@ -324,7 +324,13 @@ impl<L: ClientLink> Server<L> {
         let kind = parent_entity.base.kind;
         if !matches!(
             kind,
-            Kind::Cow | Kind::Pig | Kind::Chicken | Kind::Sheep | Kind::Rabbit | Kind::Ocelot
+            Kind::Cow
+                | Kind::Pig
+                | Kind::Chicken
+                | Kind::Sheep
+                | Kind::Rabbit
+                | Kind::Ocelot
+                | Kind::Fox
         ) {
             return None;
         }
@@ -336,6 +342,7 @@ impl<L: ClientLink> Server<L> {
             .farm()
             .map(|farm| (farm, species::variant(&parent_entity.base, farm)));
         let parent_color = species::wool_color(&parent_entity.base);
+        let parent_fox = species::fox::variant(&parent_entity.base);
         let partner_entity = self.entities.store.get(partner)?;
         let partner_variant = partner_entity
             .living()
@@ -343,6 +350,7 @@ impl<L: ClientLink> Server<L> {
             .and_then(|mob| mob.species.farm())
             .map(|farm| species::variant(&partner_entity.base, farm));
         let partner_color = species::wool_color(&partner_entity.base);
+        let partner_fox = species::fox::variant(&partner_entity.base);
         let partner_kind = partner_entity.base.kind;
         let base = self.new_entity_base(kind);
         let mut child = new_mob(base);
@@ -355,6 +363,14 @@ impl<L: ClientLink> Server<L> {
                 partner_variant.unwrap_or(variant)
             };
             species::set_variant(&mut child.base, farm, chosen);
+        }
+        if kind == Kind::Fox && partner_kind == kind {
+            let chosen = if random.next_boolean() {
+                parent_fox
+            } else {
+                partner_fox
+            };
+            species::fox::set_variant(&mut child.base, chosen);
         }
         if kind == Kind::Sheep {
             let mut level = crate::mobs::ServerRandom(&mut self.rng);
@@ -378,6 +394,7 @@ impl<L: ClientLink> Server<L> {
         {
             ageable::set_baby(&mut child.base, ageable, true);
         }
+        self.fox_breeding_trust(parent, partner, &mut child);
         child.base.snap_to(position, 0.0, 0.0);
         let experience = random.next_int(BREED_EXPERIENCE) + 1;
         self.store_mob_random(parent, random);

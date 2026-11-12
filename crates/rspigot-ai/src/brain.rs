@@ -1,5 +1,6 @@
 use rspigot_domain::entity::EntityBase;
 use rspigot_domain::entity::living::LivingState;
+use rspigot_domain::entity::species::fox;
 use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::EntityKind;
 
@@ -39,6 +40,7 @@ pub struct Brain {
     pub target_requests: Vec<TargetRequest>,
     pub tempt_verdict: Option<Option<EntityId>>,
     pub more_carrot_ticks: i32,
+    pub fox: crate::FoxFacts,
     follow_range: f64,
 }
 
@@ -71,6 +73,7 @@ impl Brain {
             target_requests: Vec::new(),
             tempt_verdict: None,
             more_carrot_ticks: 0,
+            fox: crate::FoxFacts::default(),
             follow_range,
         }
     }
@@ -179,6 +182,10 @@ impl<W: AiWorld> AiContext<'_, W> {
     }
 
     pub fn move_to_entity(&mut self, target: &Living, speed_modifier: f64) -> bool {
+        self.move_to_entity_at(target.position, speed_modifier)
+    }
+
+    pub fn move_to_entity_at(&mut self, position: Vec3, speed_modifier: f64) -> bool {
         let profile = self.path_profile();
         let tick = self.tick_state();
         let follow = self.mob.follow_range;
@@ -186,7 +193,7 @@ impl<W: AiWorld> AiContext<'_, W> {
             self.world,
             &profile,
             &tick,
-            target.position,
+            position,
             speed_modifier,
             follow,
         )
@@ -362,6 +369,7 @@ impl MobAi {
             self.brain.profile.width = mob.width;
             self.brain.profile.height = mob.height;
         }
+        self.brain.fox = mob.species.fox;
         let mut context = AiContext {
             mob,
             world,
@@ -386,6 +394,30 @@ impl MobAi {
             let decay = self.brain.random.next_int(3);
             self.brain.more_carrot_ticks = (self.brain.more_carrot_ticks - decay).max(0);
         }
+        if mob.kind == EntityKind::Fox {
+            self.settle_fox(mob);
+        }
+    }
+
+    fn settle_fox(&mut self, mob: &MobView) {
+        let brain = &mut self.brain;
+        let retargeting = brain
+            .target_requests
+            .iter()
+            .any(|request| request.to.is_some());
+        if brain.target.is_none() && !brain.defer_targets && !retargeting {
+            brain.fox.set_defending(false);
+        }
+        if brain.fox.flags != mob.species.fox.flags {
+            let flags = brain.fox.flags;
+            brain
+                .actions
+                .insert(0, MobAction::Fox(crate::FoxAction::SetFlags(flags)));
+        }
+    }
+
+    pub fn fox_target_goals(&mut self, red: bool) {
+        crate::fox::add_target_goals(&mut self.targets, red);
     }
 
     pub fn act(&mut self, base: &mut EntityBase, living: &mut LivingState, view: &impl BlockView) {
@@ -396,13 +428,19 @@ impl MobAi {
             on_ground: base.on_ground,
             in_floatable_fluid: base.fluid.in_water,
         };
-        brain
-            .movement
-            .tick(base, living, view, &mut brain.jump, |pos| {
-                crate::walk::mob_path_type(view, profile, state, pos) == PathType::Walkable
-            });
+        if base.kind != EntityKind::Fox || fox::can_move(base) {
+            brain
+                .movement
+                .tick(base, living, view, &mut brain.jump, |pos| {
+                    crate::walk::mob_path_type(view, profile, state, pos) == PathType::Walkable
+                });
+        }
         let navigating = brain.navigation.is_in_progress();
-        brain.look.tick(base, living, navigating);
+        if base.kind == EntityKind::Fox {
+            crate::fox::tick_look(&mut brain.look, base, living, navigating);
+        } else {
+            brain.look.tick(base, living, navigating);
+        }
         brain.jump.tick(living);
     }
 

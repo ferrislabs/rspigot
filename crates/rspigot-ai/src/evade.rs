@@ -17,6 +17,14 @@ const HIDE_ATTEMPTS: usize = 10;
 pub enum AvoidFilter {
     Any,
     NotScared,
+    Fox(FoxAvoid),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FoxAvoid {
+    Player,
+    Wolf,
+    PolarBear,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -81,13 +89,43 @@ impl AvoidEntityGoal {
         }
     }
 
-    fn accepts(&self, target: &Living) -> bool {
-        let creative_or_spectator = target.player && (target.creative || target.spectator);
-        !creative_or_spectator
-            && match self.filter {
-                AvoidFilter::Any => true,
-                AvoidFilter::NotScared => !target.scared,
+    pub fn fox(
+        kind: TargetKind,
+        which: FoxAvoid,
+        max_distance: f32,
+        walk: f64,
+        sprint: f64,
+    ) -> Self {
+        Self {
+            filter: AvoidFilter::Fox(which),
+            ..Self::new(kind, max_distance, walk, sprint)
+        }
+    }
+
+    fn accepts<W: AiWorld>(&self, context: &AiContext<'_, W>, target: &Living) -> bool {
+        match self.filter {
+            AvoidFilter::Fox(which) => {
+                let fox = &context.brain.fox;
+                !fox.is_defending()
+                    && match which {
+                        FoxAvoid::Player => {
+                            !target.discrete
+                                && !(target.creative || target.spectator)
+                                && !fox.trusts(target.facts.uuid)
+                        }
+                        FoxAvoid::Wolf => !target.facts.tamed,
+                        FoxAvoid::PolarBear => true,
+                    }
             }
+            filter => {
+                let creative_or_spectator = target.player && (target.creative || target.spectator);
+                !creative_or_spectator
+                    && match filter {
+                        AvoidFilter::NotScared => !target.scared,
+                        _ => true,
+                    }
+            }
+        }
     }
 
     pub(crate) fn can_continue_to_use<W: AiWorld>(
@@ -109,7 +147,8 @@ impl AvoidEntityGoal {
         let origin = context.mob.position;
         let mut best: Option<(f64, Living)> = None;
         for candidate in candidates {
-            if !conditions.test(context, &candidate, |t| self.accepts(t)) {
+            if !self.accepts(context, &candidate) || !conditions.test(context, &candidate, |_| true)
+            {
                 continue;
             }
             let distance = candidate.position.distance_squared(origin);
@@ -170,6 +209,18 @@ impl FleeSunGoal {
             speed_modifier,
             wanted: Vec3::ZERO,
         }
+    }
+
+    pub(crate) fn wanted(&self) -> Vec3 {
+        self.wanted
+    }
+
+    pub(crate) fn set_wanted_pos<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        let Some(wanted) = Self::hide_pos(context) else {
+            return false;
+        };
+        self.wanted = wanted;
+        true
     }
 
     fn hide_pos<W: AiWorld>(context: &mut AiContext<'_, W>) -> Option<Vec3> {

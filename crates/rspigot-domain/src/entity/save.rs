@@ -523,7 +523,9 @@ fn read_living(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState) 
         }
     }
     if let Some(mob) = &mut living.mob {
-        mob.can_pick_up_loot = nbt.get_bool("CanPickUpLoot").unwrap_or(false);
+        mob.can_pick_up_loot = nbt
+            .get_bool("CanPickUpLoot")
+            .unwrap_or(mob.can_pick_up_loot);
         mob.persistence_required = nbt.get_bool("PersistenceRequired").unwrap_or(false);
         mob.drop_chances = [living::DEFAULT_DROP_CHANCE; 8];
         if let Some(chances) = nbt.get_compound("drop_chances") {

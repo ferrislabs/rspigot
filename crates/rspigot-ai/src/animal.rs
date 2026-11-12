@@ -28,6 +28,11 @@ const ADULT_EAT_CHANCE: i32 = 1000;
 pub const EAT_GRASS_EVENT: i8 = 10;
 const EDIBLE_FOR_SHEEP: &str = "minecraft:edible_for_sheep";
 
+pub(crate) fn kind_in_block_tag(kind: BlockKind, tag: &str) -> bool {
+    rspigot_data::tags::tag("minecraft:block", tag)
+        .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
+}
+
 pub(crate) fn block_tag(state: Option<rspigot_blocks::StateId>, tag: &str) -> bool {
     state.and_then(|state| state.kind()).is_some_and(|kind| {
         rspigot_data::tags::tag("minecraft:block", tag)
@@ -137,6 +142,10 @@ impl BreedGoal {
             partner: None,
             love_time: 0,
         }
+    }
+
+    pub(crate) fn partner(&self) -> Option<EntityId> {
+        self.partner
     }
 
     fn free_partner<W: AiWorld>(context: &mut AiContext<'_, W>) -> Option<Living> {

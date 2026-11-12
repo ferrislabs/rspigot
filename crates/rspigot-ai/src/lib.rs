@@ -56,7 +56,7 @@ pub use control::{
 pub use enderman::{EndermanAction, EndermanFacts, EndermanGoal};
 pub use evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 pub use finder::PathFinder;
-pub use fox::{FoxAction, FoxFacts, FoxGoal};
+pub use fox::{FoxAction, FoxFacts, FoxGoal, TrustedRef, is_path_clear};
 pub use goal::{
     Flag, Flags, Goal, GoalSelector, WrappedGoal, adjusted_tick_delay, reduced_tick_delay,
 };
@@ -98,6 +98,6 @@ pub use view::BlockView;
 pub use walk::{block_path_type, mob_path_type};
 pub use wolf::{WolfAction, WolfFacts, WolfGoal};
 pub use world::{
-    AiWorld, Facts, Hand, KindFacts, Living, MOVEMENT_SPEED, MobBody, MobView, TEMPT_RANGE,
-    TargetKind, inflate,
+    AiWorld, DroppedItem, Facts, Hand, KindFacts, Living, MOVEMENT_SPEED, MobBody, MobView,
+    NO_VILLAGE, TEMPT_RANGE, TargetKind, inflate,
 };

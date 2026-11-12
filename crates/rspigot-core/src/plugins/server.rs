@@ -830,6 +830,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_pickup(*step, cancelled);
                 Vec::new()
             }
+            Continuation::Gather(step) => {
+                self.finish_gather(*step, cancelled);
+                Vec::new()
+            }
             Continuation::ChangeBlock(step) => {
                 self.finish_change(*step, cancelled);
                 Vec::new()

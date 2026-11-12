@@ -50,6 +50,11 @@ impl<L: ClientLink> Server<L> {
                     self.finish_raid(pos);
                 }
             }
+            Grief::Berries { fox, pos, glow } => {
+                if !cancelled {
+                    self.finish_berries(fox, pos, glow);
+                }
+            }
         }
     }
 }

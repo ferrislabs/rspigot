@@ -754,6 +754,18 @@ pub(crate) enum Grief {
         rabbit: EntityId,
         pos: BlockPos,
     },
+    Berries {
+        fox: EntityId,
+        pos: BlockPos,
+        glow: bool,
+    },
+}
+
+#[derive(Debug)]
+pub(crate) struct GatherStep {
+    pub(crate) fox: EntityId,
+    pub(crate) item: EntityId,
+    pub(crate) stack: ItemStack,
 }
 
 #[derive(Debug)]
@@ -902,6 +914,7 @@ pub(crate) enum Continuation {
     Knock(KnockStep),
     ItemDespawn(EntityId),
     PickupItem(Box<PickupStep>),
+    Gather(Box<GatherStep>),
     ChangeBlock(Box<ChangeStep>),
     Regrow(EntityId),
     EggBreak {
@@ -1004,7 +1017,7 @@ impl Continuation {
             Self::Combust(step) => step.kind,
             Self::Knock(step) => step.kind,
             Self::ItemDespawn(_) => EventKind::ItemDespawn,
-            Self::PickupItem(_) => EventKind::EntityPickupItem,
+            Self::PickupItem(_) | Self::Gather(_) => EventKind::EntityPickupItem,
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } => EventKind::EntityInteract,
@@ -1067,11 +1080,13 @@ impl Continuation {
             | Self::Knock(KnockStep { target: holder, .. }) => *holder == Holder::Mob(id),
             Self::ItemDespawn(item) | Self::Regrow(item) => *item == id,
             Self::PickupItem(step) => step.item == id || step.collector == id,
+            Self::Gather(step) => step.item == id || step.fox == id,
             Self::ChangeBlock(step) => match &step.change {
                 Grief::Fall { .. } => false,
                 Grief::Land(landing) => landing.falling == id,
                 Grief::Graze { sheep, .. } => *sheep == id,
                 Grief::Raid { rabbit, .. } => *rabbit == id,
+                Grief::Berries { fox, .. } => *fox == id,
             },
             Self::EggBreak { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
@@ -1123,6 +1138,9 @@ impl Continuation {
             (Self::PickupItem(one), Self::PickupItem(other)) => {
                 one.player == other.player && one.item == other.item
             }
+            (Self::Gather(one), Self::Gather(other)) => {
+                one.fox == other.fox && one.item == other.item
+            }
             (Self::Potion(one), Self::Potion(other)) => {
                 matches!((one.potion, other.potion), (Potion::Expire(a), Potion::Expire(b)) if a.effect == b.effect)
                     && one.holder == other.holder
@@ -1138,7 +1156,7 @@ impl Continuation {
         match self {
             Self::Hurt(step) => step.repeats(),
             Self::Potion(step) => matches!(step.potion, Potion::Expire(_)),
-            Self::Combust(_) | Self::ItemDespawn(_) | Self::PickupItem(_) => true,
+            Self::Combust(_) | Self::ItemDespawn(_) | Self::PickupItem(_) | Self::Gather(_) => true,
             Self::ChangeBlock(step) => matches!(step.change, Grief::Fall { .. }),
             Self::EggBreak { .. } | Self::Prime(_) | Self::ProjectileHit { .. } => true,
             Self::Aim(step) => step.deferred,

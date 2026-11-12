@@ -2,6 +2,7 @@ use crate::action::{TargetReason, TargetRequest};
 use crate::random::RandomSource;
 use rspigot_blocks::BlockKind;
 use rspigot_domain::{EntityId, ItemId, Vec3};
+use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 
 use crate::animal::{BreedGoal, EatBlockGoal, FollowParentGoal, PanicGoal};
@@ -194,7 +195,7 @@ impl LookAtPlayerGoal {
         self.look_at
     }
 
-    fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         if context.brain.random.next_float() >= self.probability {
             return false;
         }
@@ -205,7 +206,10 @@ impl LookAtPlayerGoal {
         self.look_at.is_some()
     }
 
-    fn can_continue_to_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
         let Some(target) = self.look_at.and_then(|id| context.world.living(id)) else {
             return false;
         };
@@ -216,16 +220,16 @@ impl LookAtPlayerGoal {
         context.mob.distance_to_sqr(target.position) <= distance && self.look_time > 0
     }
 
-    fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         let ticks = 40 + context.brain.random.next_int(40);
         self.look_time = adjusted_tick_delay(false, ticks);
     }
 
-    fn stop(&mut self) {
+    pub(crate) fn stop(&mut self) {
         self.look_at = None;
     }
 
-    fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         let Some(target) = self.look_at.and_then(|id| context.world.living(id)) else {
             return;
         };
@@ -453,6 +457,8 @@ pub enum TargetFilter {
     Any,
     BabyOnLand,
     AngryAt,
+    ChickenOrRabbit,
+    SchoolingFish,
 }
 
 impl TargetFilter {
@@ -461,6 +467,10 @@ impl TargetFilter {
             Self::Any => true,
             Self::BabyOnLand => target.baby && !target.in_water,
             Self::AngryAt => targeting::is_angry_at(mob, world, target),
+            Self::ChickenOrRabbit => {
+                target.kind == EntityKind::Chicken || target.kind == EntityKind::Rabbit
+            }
+            Self::SchoolingFish => target.kind.extends("AbstractSchoolingFish"),
         }
     }
 }
@@ -552,7 +562,10 @@ impl NearestAttackableTargetGoal {
         self.found.is_some()
     }
 
-    fn can_continue_to_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
         if self.non_tame {
             let mob = context.mob;
             let world = context.world;

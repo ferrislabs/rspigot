@@ -23,7 +23,19 @@ pub struct Facts {
     pub last_hurt_mob: Option<EntityId>,
     pub last_hurt_mob_at: i32,
     pub retaliable: bool,
+    pub tick_count: i32,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DroppedItem {
+    pub id: EntityId,
+    pub position: Vec3,
+    pub bounds: Aabb,
+    pub has_pickup_delay: bool,
+    pub alive: bool,
+}
+
+pub const NO_VILLAGE: i32 = 7;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Living {
@@ -167,6 +179,47 @@ pub trait AiWorld: BlockView {
 
     fn peaceful(&self) -> bool {
         self.difficulty() == 0
+    }
+
+    fn thundering(&self) -> bool {
+        false
+    }
+
+    fn items_in(&self, _area: &Aabb) -> Vec<DroppedItem> {
+        Vec::new()
+    }
+
+    fn sections_to_village(&self, _pos: BlockPos) -> i32 {
+        NO_VILLAGE
+    }
+
+    fn is_close_to_village(&self, pos: BlockPos, sections: i32) -> bool {
+        sections <= 6 && self.sections_to_village(pos) <= sections
+    }
+
+    fn is_village(&self, pos: BlockPos) -> bool {
+        self.is_close_to_village(pos, 1)
+    }
+
+    fn motion_blocking_no_leaves_pos(&self, pos: BlockPos) -> BlockPos {
+        let blocks = |state: rspigot_blocks::StateId| {
+            !state.collision_shape().is_empty()
+                || state.flags().contains(rspigot_blocks::StateFlags::WATER)
+        };
+        let mut y = self.max_y();
+        while y >= self.min_y() {
+            let at = BlockPos::new(pos.x, y, pos.z);
+            let leaves = self.state(at).is_some_and(|state| {
+                state
+                    .kind()
+                    .is_some_and(|kind| crate::animal::kind_in_block_tag(kind, "minecraft:leaves"))
+            });
+            if !leaves && self.state(at).is_some_and(blocks) {
+                return BlockPos::new(pos.x, y + 1, pos.z);
+            }
+            y -= 1;
+        }
+        BlockPos::new(pos.x, self.min_y(), pos.z)
     }
 }
 

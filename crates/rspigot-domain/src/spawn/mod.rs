@@ -1,5 +1,6 @@
 mod biome;
 pub mod despawn;
+pub mod fox;
 pub mod generation;
 pub mod natural;
 pub mod placement;
@@ -70,6 +71,10 @@ pub enum SpawnGroupData {
     },
     SpiderEffects {
         effect: Option<EffectId>,
+    },
+    Fox {
+        variant: crate::entity::species::fox::Variant,
+        group_size: i32,
     },
 }
 

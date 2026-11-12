@@ -58,6 +58,7 @@ pub fn check_predicate(
         }
         SpawnPredicate::Stray => check_stray_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Rabbit => check_rabbit_spawn_rules(level, pos),
+        SpawnPredicate::Fox => super::fox::check_fox_spawn_rules(level, pos),
         SpawnPredicate::Ocelot => level.next_int(OCELOT_SPAWN_CHANCE) != 0,
         _ => return None,
     })
@@ -99,6 +100,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::SurfaceMonsters
                 | SpawnPredicate::Stray
                 | SpawnPredicate::Rabbit
+                | SpawnPredicate::Fox
                 | SpawnPredicate::Ocelot
         )
     });

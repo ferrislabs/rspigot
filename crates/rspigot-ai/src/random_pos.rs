@@ -107,7 +107,17 @@ fn toward_direction(
 
 fn generate<W: AiWorld>(
     context: &mut AiContext<'_, W>,
+    supplier: impl FnMut(&mut AiContext<'_, W>) -> Option<BlockPos>,
+) -> Option<Vec3> {
+    generate_scored(context, supplier, |context, pos| {
+        f64::from(walk_target_value(context.mob.kind, context.world, pos))
+    })
+}
+
+fn generate_scored<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
     mut supplier: impl FnMut(&mut AiContext<'_, W>) -> Option<BlockPos>,
+    scorer: impl Fn(&AiContext<'_, W>, BlockPos) -> f64,
 ) -> Option<Vec3> {
     let mut best = f64::NEG_INFINITY;
     let mut found = None;
@@ -115,7 +125,7 @@ fn generate<W: AiWorld>(
         let Some(pos) = supplier(context) else {
             continue;
         };
-        let value = f64::from(walk_target_value(context.mob.kind, context.world, pos));
+        let value = scorer(context, pos);
         if value > best {
             best = value;
             found = Some(pos);
@@ -244,22 +254,37 @@ pub fn land_pos<W: AiWorld>(
     horizontal: i32,
     vertical: i32,
 ) -> Option<Vec3> {
-    let restricted = context.mob.is_restricted(f64::from(horizontal));
-    generate(context, |context| {
-        let direction = random_direction(&mut context.brain.random, horizontal, vertical);
-        let pos = toward_direction(
-            context.mob,
-            &mut context.brain.random,
-            f64::from(horizontal),
-            direction,
-        );
-        if is_outside_limits(context.world, pos)
-            || (restricted && !context.mob.is_within_home(pos))
-            || !is_stable_destination(context.world, pos)
-        {
-            return None;
-        }
-        let raised = move_up_out_of_solid(context.world, pos);
-        (!is_water(context.world, raised) && !has_malus(context, raised)).then_some(raised)
+    land_pos_scored(context, horizontal, vertical, |context, pos| {
+        f64::from(walk_target_value(context.mob.kind, context.world, pos))
     })
+}
+
+pub fn land_pos_scored<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+    scorer: impl Fn(&AiContext<'_, W>, BlockPos) -> f64,
+) -> Option<Vec3> {
+    let restricted = context.mob.is_restricted(f64::from(horizontal));
+    generate_scored(
+        context,
+        |context| {
+            let direction = random_direction(&mut context.brain.random, horizontal, vertical);
+            let pos = toward_direction(
+                context.mob,
+                &mut context.brain.random,
+                f64::from(horizontal),
+                direction,
+            );
+            if is_outside_limits(context.world, pos)
+                || (restricted && !context.mob.is_within_home(pos))
+                || !is_stable_destination(context.world, pos)
+            {
+                return None;
+            }
+            let raised = move_up_out_of_solid(context.world, pos);
+            (!is_water(context.world, raised) && !has_malus(context, raised)).then_some(raised)
+        },
+        scorer,
+    )
 }

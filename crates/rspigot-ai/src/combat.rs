@@ -10,6 +10,7 @@ use crate::random::RandomSource;
 use crate::targeting::{self, TargetingConditions};
 use crate::world::{AiWorld, Hand, Living, MobBody, MobView, TargetKind};
 
+pub(crate) const FOX_BITE: &str = "minecraft:entity.fox.bite";
 const CAN_USE_COOLDOWN: i64 = 20;
 const ATTACK_INTERVAL: i32 = 20;
 const MELEE_LOOK_SPEED: f32 = 30.0;
@@ -69,6 +70,7 @@ pub enum MeleeKind {
     Zombie { raise_arm_ticks: i32 },
     Skeleton,
     Spider,
+    Fox,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -108,6 +110,13 @@ impl MeleeAttackGoal {
         Self {
             kind: MeleeKind::Skeleton,
             ..Self::new(speed_modifier, false)
+        }
+    }
+
+    pub fn fox(speed_modifier: f64) -> Self {
+        Self {
+            kind: MeleeKind::Fox,
+            ..Self::new(speed_modifier, true)
         }
     }
 
@@ -239,6 +248,11 @@ impl MeleeAttackGoal {
                 .has_line_of_sight(world, context.mob, &target)
         {
             self.ticks_until_next_attack = adjusted_tick_delay(true, ATTACK_INTERVAL);
+            if self.kind == MeleeKind::Fox {
+                context.act(MobAction::Attack(target.id));
+                context.act(MobAction::Fox(crate::FoxAction::Sound(FOX_BITE)));
+                return;
+            }
             context.act(MobAction::Swing(Hand::Main));
             context.act(MobAction::Attack(target.id));
         }

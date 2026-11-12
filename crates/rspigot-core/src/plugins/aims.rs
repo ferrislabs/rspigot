@@ -154,7 +154,12 @@ impl<L: ClientLink> Server<L> {
 
     fn point_mob(&mut self, mob: EntityId, target: Option<EntityId>) {
         match self.entities.mobs.entries.get_mut(&mob) {
-            Some(entry) => entry.ai.set_target(target),
+            Some(entry) => {
+                entry.ai.set_target(target);
+                if target.is_none() {
+                    self.kind_target_cleared(mob);
+                }
+            }
             None => match target {
                 Some(target) => {
                     self.entities.mobs.initial_targets.insert(mob, target);

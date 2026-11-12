@@ -73,7 +73,19 @@ impl LookControl {
     }
 
     pub fn tick(&mut self, base: &mut EntityBase, living: &LivingState, navigating: bool) {
-        base.set_pitch(0.0);
+        self.tick_with(base, living, navigating, true);
+    }
+
+    pub fn tick_with(
+        &mut self,
+        base: &mut EntityBase,
+        living: &LivingState,
+        navigating: bool,
+        reset_x_rot: bool,
+    ) {
+        if reset_x_rot {
+            base.set_pitch(0.0);
+        }
         if self.look_at_cooldown > 0 {
             self.look_at_cooldown -= 1;
             if let Some(yaw) = self.y_rot_d(base) {

@@ -75,6 +75,7 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Pig => "minecraft:pig_food",
         Kind::Sheep => "minecraft:sheep_food",
         Kind::Chicken => "minecraft:chicken_food",
+        Kind::Fox => "minecraft:fox_food",
         _ => return None,
     })
 }
@@ -413,6 +414,11 @@ impl<L: ClientLink> Server<L> {
         let Some(mut child) = child else {
             return false;
         };
+        if kind == Kind::Fox
+            && let Some(player) = self.players.get(&id)
+        {
+            species::fox::add_trusted(&mut child.base, player.profile.id.0);
+        }
         let EntityState::Living(state) = &mut child.state else {
             return false;
         };
@@ -890,6 +896,15 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn eating_sound(&mut self, target: EntityId) {
+        if self
+            .entities
+            .store
+            .get(target)
+            .is_some_and(|e| e.base.kind == Kind::Fox)
+        {
+            self.entity_sound(target, "minecraft:entity.fox.eat", 1.0, 1.0);
+            return;
+        }
         let is_pig = self
             .entities
             .store

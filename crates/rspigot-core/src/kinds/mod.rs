@@ -83,6 +83,32 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn kind_ai_step(&mut self, id: EntityId) {
+        if self.kind_of(id) == Some(Kind::Fox) {
+            self.fox_ai_step(id);
+        }
+    }
+
+    pub(crate) fn kind_death_item(&mut self, id: EntityId) -> Option<ItemStack> {
+        match self.kind_of(id) {
+            Some(Kind::Fox) => self.fox_death_item(id),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn kind_target_cleared(&mut self, id: EntityId) {
+        if self.kind_of(id) == Some(Kind::Fox) {
+            self.fox_target_cleared(id);
+        }
+    }
+
+    pub(crate) fn play_ambient_sound(&mut self, id: EntityId) {
+        match self.kind_of(id) {
+            Some(Kind::Fox) => self.fox_ambient(id),
+            _ => self.play_mob_voice(id, crate::mob_life::ambient_sound),
+        }
+    }
+
     pub(crate) fn kind_custom_ai_step(&mut self, id: EntityId) {
         match self.kind_of(id) {
             Some(Kind::Wolf) => self.wolf_custom_ai_step(id),
