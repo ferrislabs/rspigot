@@ -45,6 +45,7 @@ pub struct Brain {
     pub can_break_doors: bool,
     pub hop: Option<crate::rabbit::RabbitHop>,
     pub panda: crate::PandaBrain,
+    pub repellent: Option<BlockPos>,
     follow_range: f64,
 }
 
@@ -91,6 +92,7 @@ impl Brain {
             can_break_doors: false,
             hop: None,
             panda: crate::PandaBrain::default(),
+            repellent: None,
             follow_range,
         };
         if kind == EntityKind::Rabbit {
