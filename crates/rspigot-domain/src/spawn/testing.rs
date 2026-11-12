@@ -94,6 +94,10 @@ impl SpawnLevel for Level {
         WorldHeight::OVERWORLD
     }
 
+    fn sea_level(&self) -> i32 {
+        63
+    }
+
     fn sky_light(&self, _: BlockPos) -> i32 {
         self.sky
     }

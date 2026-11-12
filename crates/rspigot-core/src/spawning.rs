@@ -156,6 +156,10 @@ impl<L: ClientLink> SpawnLevel for Server<L> {
         self.world.dimension.height
     }
 
+    fn sea_level(&self) -> i32 {
+        self.world.dimension.sea_level
+    }
+
     fn sky_light(&self, pos: BlockPos) -> i32 {
         if !self.world.dimension.has_skylight {
             return 0;
@@ -486,6 +490,8 @@ impl<L: ClientLink> Server<L> {
                 living.mob.as_ref().map(|mob| &mob.species),
                 Some(Species::Chicken(chicken)) if chicken.jockey
             ),
+            trusting: false,
+            tick_count: entity.base.tick_count,
         };
         let distance = nearest_distance_sqr(&self.spawning.players, entity.base.position);
         let difficulty = self.world.difficulty;
@@ -523,6 +529,7 @@ impl<L: ClientLink> Server<L> {
 struct Generation<'a> {
     chunk: &'a ChunkColumn,
     has_skylight: bool,
+    sea_level: i32,
     dimension: &'static DimensionSpawns,
     zoom_seed: i64,
     difficulty: Difficulty,
@@ -539,6 +546,10 @@ impl BlockView for Generation<'_> {
 impl SpawnLevel for Generation<'_> {
     fn height(&self) -> WorldHeight {
         self.chunk.height()
+    }
+
+    fn sea_level(&self) -> i32 {
+        self.sea_level
     }
 
     fn sky_light(&self, pos: BlockPos) -> i32 {
@@ -678,6 +689,7 @@ pub(crate) fn original_mobs(
     let mut host = Generation {
         chunk,
         has_skylight: dimension.has_skylight,
+        sea_level: dimension.sea_level,
         dimension: dimension_spawns(dimension),
         zoom_seed: mobs.zoom_seed,
         difficulty: mobs.difficulty,
@@ -719,8 +731,10 @@ mod tests {
                 EntityKind::Creeper,
                 EntityKind::Husk,
                 EntityKind::Mooshroom,
+                EntityKind::Ocelot,
                 EntityKind::Parched,
                 EntityKind::Pig,
+                EntityKind::Rabbit,
                 EntityKind::Sheep,
                 EntityKind::Skeleton,
                 EntityKind::Spider,
