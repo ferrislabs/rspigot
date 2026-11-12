@@ -76,7 +76,12 @@ pub fn rules_ported(kind: EntityKind) -> bool {
         MobClass::Mob => true,
         MobClass::PathfinderMob => matches!(
             spawn.walk_target_value,
-            Some(MobClass::PathfinderMob | MobClass::Animal | MobClass::Monster)
+            Some(
+                MobClass::PathfinderMob
+                    | MobClass::Animal
+                    | MobClass::MushroomCow
+                    | MobClass::Monster
+            )
         ),
         _ => false,
     };
@@ -166,6 +171,13 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::PathfinderMob => 0.0,
         MobClass::Animal => {
             if level.block_or_air(pos.offset(0, -1, 0)).kind() == Some(BlockKind::GrassBlock) {
+                GRASS_WALK_TARGET
+            } else {
+                level.light_level_dependent_magic_value(pos) - 0.5
+            }
+        }
+        MobClass::MushroomCow => {
+            if level.block_or_air(pos.offset(0, -1, 0)).kind() == Some(BlockKind::Mycelium) {
                 GRASS_WALK_TARGET
             } else {
                 level.light_level_dependent_magic_value(pos) - 0.5
@@ -268,6 +280,21 @@ mod tests {
             SpawnReason::Natural,
             pos
         ));
+    }
+
+    #[test]
+    fn mooshrooms_prefer_to_walk_on_mycelium() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mycelium = Level::floor(Mycelium::DEFAULT_STATE, 63);
+        assert_eq!(
+            walk_target_value(&mycelium, EntityKind::Mooshroom, pos),
+            Some(GRASS_WALK_TARGET)
+        );
+        let stone = Level::floor(Stone::DEFAULT_STATE, 63);
+        assert!(
+            walk_target_value(&stone, EntityKind::Mooshroom, pos)
+                .is_some_and(|v| v < GRASS_WALK_TARGET)
+        );
     }
 
     #[test]
