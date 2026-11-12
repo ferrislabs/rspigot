@@ -761,6 +761,11 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Goat(state) => species::goat::read(nbt, base, state),
         Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
         Species::Creaking(state) => species::creaking::read(nbt, base, state),
+        Species::Villager(state) => {
+            if let Some(merchant) = mob.merchant.as_mut() {
+                species::villager::read(nbt, base, state, merchant);
+            }
+        }
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -969,6 +974,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Goat(_) => species::goat::KEYS,
         Species::Armadillo(_) => species::armadillo::KEYS,
         Species::Creaking(_) => species::creaking::KEYS,
+        Species::Villager(_) => species::villager::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1404,6 +1410,11 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Goat(state) => species::goat::write(base, state, out),
         Species::Armadillo(state) => species::armadillo::write(base, state, out),
         Species::Creaking(state) => species::creaking::write(base, state, out),
+        Species::Villager(state) => {
+            if let Some(merchant) = mob.merchant.as_deref() {
+                species::villager::write(base, state, merchant, out);
+            }
+        }
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }

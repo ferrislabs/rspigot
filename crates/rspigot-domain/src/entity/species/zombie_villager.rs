@@ -174,7 +174,7 @@ pub fn randomize_profession(base: &mut EntityBase, random: &mut impl RandomSourc
     finalize_type(base, biome);
 }
 
-fn parse_data(compound: &Compound) -> Option<(u32, u32, i32)> {
+pub(crate) fn parse_data(compound: &Compound) -> Option<(u32, u32, i32)> {
     let kind = match compound.get_str("type") {
         Some(name) => index_of(TYPE_REGISTRY, name)?,
         None => default_type(),
@@ -213,16 +213,22 @@ pub fn read(nbt: &Compound, base: &mut EntityBase, state: &mut ZombieVillagerSta
     }
 }
 
-pub fn write(base: &EntityBase, state: &ZombieVillagerState, out: &mut Compound) {
-    let (kind, profession, level) = villager_data(base);
-    let data = Compound::new()
+pub(crate) fn data_compound(kind: u32, profession: u32, level: i32) -> Compound {
+    Compound::new()
         .with("type", name_of(TYPE_REGISTRY, kind).unwrap_or(DEFAULT_TYPE))
         .with(
             "profession",
             name_of(PROFESSION_REGISTRY, profession).unwrap_or(NO_PROFESSION),
         )
-        .with("level", level);
-    out.insert("VillagerData", Tag::Compound(data));
+        .with("level", level)
+}
+
+pub fn write(base: &EntityBase, state: &ZombieVillagerState, out: &mut Compound) {
+    let (kind, profession, level) = villager_data(base);
+    out.insert(
+        "VillagerData",
+        Tag::Compound(data_compound(kind, profession, level)),
+    );
     out.insert("VillagerDataFinalized", is_finalized(base));
     out.insert(
         "ConversionTime",
