@@ -23,6 +23,7 @@ pub enum DamageType {
     Starve,
     Drown,
     Magic,
+    IndirectMagic,
     Wither,
     OnFire,
     InFire,
@@ -87,6 +88,7 @@ impl DamageType {
             Self::Starve => "minecraft:starve",
             Self::Drown => "minecraft:drown",
             Self::Magic => "minecraft:magic",
+            Self::IndirectMagic => "minecraft:indirect_magic",
             Self::Wither => "minecraft:wither",
             Self::OnFire => "minecraft:on_fire",
             Self::InFire => "minecraft:in_fire",
@@ -116,6 +118,7 @@ impl DamageType {
             Self::Starve => "starve",
             Self::Drown => "drown",
             Self::Magic => "magic",
+            Self::IndirectMagic => "indirectMagic",
             Self::Wither => "wither",
             Self::OnFire => "onFire",
             Self::InFire => "inFire",
@@ -271,6 +274,25 @@ mod tests {
         assert!(DamageType::UnattributedFireball.is(DamageTag::IsFire));
         assert!(!DamageType::WitherSkull.is(DamageTag::IsFire));
         assert!(!DamageType::Fireball.is(DamageTag::BypassesArmor));
+    }
+
+    #[test]
+    fn indirect_magic_is_registered_and_witches_resist_it_with_magic() {
+        assert!(DamageType::IndirectMagic.registry_id().is_some());
+        assert_eq!(DamageType::IndirectMagic.name(), "minecraft:indirect_magic");
+        assert_eq!(DamageType::IndirectMagic.message_id(), "indirectMagic");
+        assert_eq!(DamageType::IndirectMagic.exhaustion(), 0.0);
+        assert!(DamageType::IndirectMagic.is(DamageTag::BypassesArmor));
+        for kind in [DamageType::Magic, DamageType::IndirectMagic] {
+            assert!(kind.in_tag("minecraft:witch_resistant_to"));
+        }
+        for kind in [
+            DamageType::MobAttack,
+            DamageType::Arrow,
+            DamageType::Explosion,
+        ] {
+            assert!(!kind.in_tag("minecraft:witch_resistant_to"));
+        }
     }
 
     #[test]
