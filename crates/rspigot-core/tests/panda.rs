@@ -537,7 +537,14 @@ fn pandas_in_love_with_bamboo_nearby_breed_a_baby_with_genes() {
 
 #[test]
 fn a_baby_weak_panda_eventually_sneezes_and_the_sneeze_ends() {
-    let mut zoo = Zoo::new(Vec::new());
+    let mut zoo = Zoo::on(
+        server(PluginSettings {
+            decision_ticks: 1_000,
+            ..PluginSettings::default()
+        })
+        .with_rng_seed(0),
+        Vec::new(),
+    );
     let baby = zoo.summon(
         (1.5, 64.0, 1.5),
         "{Age:-24000,MainGene:\"weak\",HiddenGene:\"weak\",NoAI:0b}",
