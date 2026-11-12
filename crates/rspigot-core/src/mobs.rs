@@ -1,7 +1,7 @@
 use rand::Rng;
 use rspigot_ai::{
-    AiWorld, BlockView as AiView, Facts, GoalSettings, Hand, Living, MobAi, MobBody, MobView,
-    TargetKind,
+    AiWorld, BlockView as AiView, Facts, GoalSettings, Hand, LastDamage, Living, MobAi, MobBody,
+    MobView, TargetKind,
 };
 use rspigot_domain::damage::{DamageTag, DamageType};
 use rspigot_domain::entity::ageable::{self, AgeableState};
@@ -483,6 +483,7 @@ pub(crate) struct MobWorld<'a> {
     open_chests: &'a [crate::containers::Backing],
     difficulty: i32,
     game_time: i64,
+    day_time: i64,
     sky_darken: i32,
     rules: GameRules,
     has_day_cycle: bool,
@@ -655,6 +656,10 @@ impl AiWorld for MobWorld<'_> {
 
     fn game_time(&self) -> i64 {
         self.game_time
+    }
+
+    fn clock_time(&self) -> i64 {
+        self.day_time
     }
 
     fn raw_brightness(&self, pos: BlockPos) -> i32 {
@@ -887,6 +892,7 @@ impl<L: ClientLink> Server<L> {
             open_chests: &self.entities.mobs.open_chests,
             difficulty: i32::from(self.world.difficulty.id()),
             game_time: self.world.level.game_time,
+            day_time: self.world.level.day_time,
             sky_darken,
             rules: self.config.rules,
             has_day_cycle: self.world.dimension.has_skylight,
@@ -924,6 +930,12 @@ impl<L: ClientLink> Server<L> {
         view.panic_environmental = state.damage.last_source.is_some_and(|(kind, at)| {
             self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY
                 && kind.in_tag(PANIC_ENVIRONMENTAL_CAUSES)
+        });
+        view.last_damage = state.damage.last_source.and_then(|(kind, at)| {
+            (self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY).then_some(LastDamage {
+                kind,
+                entity: state.damage.last_source_entity,
+            })
         });
         view.using_item = state.using_item.map(|(slot, _)| {
             if slot == EquipmentSlot::Offhand {
@@ -1402,6 +1414,7 @@ impl<L: ClientLink> Server<L> {
             base.sync_velocity = true;
         }
         state.damage.last_source = Some((kind, game_time));
+        state.damage.last_source_entity = causing_living;
         let position = base.position;
         let dead = living::is_dead_or_dying(base, state);
         if let Some(attacker) = source.attacker()
