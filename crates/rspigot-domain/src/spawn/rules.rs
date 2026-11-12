@@ -9,6 +9,7 @@ use crate::world::Difficulty;
 use crate::{BlockPos, Vec3};
 
 const ANIMALS_SPAWNABLE_ON: &str = "minecraft:animals_spawnable_on";
+const MOOSHROOMS_SPAWNABLE_ON: &str = "minecraft:mooshrooms_spawnable_on";
 const ANIMAL_MIN_BRIGHTNESS: i32 = 8;
 const SKY_LIGHT_ROLL: i32 = 32;
 const UNLIMITED_BLOCK_LIGHT: i32 = 15;
@@ -45,6 +46,7 @@ pub fn check_predicate(
     Some(match predicate {
         SpawnPredicate::Mob => check_mob_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Animal => check_animal_spawn_rules(level, reason, pos),
+        SpawnPredicate::Mushroom => check_mushroom_spawn_rules(level, reason, pos),
         SpawnPredicate::Monster => check_monster_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::AnyLightMonster => check_mob_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::SurfaceMonsters => {
@@ -64,6 +66,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
             placement.predicate,
             SpawnPredicate::Mob
                 | SpawnPredicate::Animal
+                | SpawnPredicate::Mushroom
                 | SpawnPredicate::Monster
                 | SpawnPredicate::AnyLightMonster
                 | SpawnPredicate::SurfaceMonsters
@@ -73,7 +76,12 @@ pub fn rules_ported(kind: EntityKind) -> bool {
         MobClass::Mob => true,
         MobClass::PathfinderMob => matches!(
             spawn.walk_target_value,
-            Some(MobClass::PathfinderMob | MobClass::Animal | MobClass::Monster)
+            Some(
+                MobClass::PathfinderMob
+                    | MobClass::Animal
+                    | MobClass::MushroomCow
+                    | MobClass::Monster
+            )
         ),
         _ => false,
     };
@@ -104,11 +112,25 @@ pub fn check_animal_spawn_rules(
     reason: SpawnReason,
     pos: BlockPos,
 ) -> bool {
+    check_spawnable_on(level, reason, pos, ANIMALS_SPAWNABLE_ON)
+}
+
+pub fn check_mushroom_spawn_rules(
+    level: &impl SpawnLevel,
+    reason: SpawnReason,
+    pos: BlockPos,
+) -> bool {
+    check_spawnable_on(level, reason, pos, MOOSHROOMS_SPAWNABLE_ON)
+}
+
+fn check_spawnable_on(
+    level: &impl SpawnLevel,
+    reason: SpawnReason,
+    pos: BlockPos,
+    tag: &str,
+) -> bool {
     let bright = reason.ignores_light_requirements() || is_bright_enough_to_spawn(level, pos);
-    has_tag(
-        level.block_or_air(pos.offset(0, -1, 0)),
-        ANIMALS_SPAWNABLE_ON,
-    ) && bright
+    has_tag(level.block_or_air(pos.offset(0, -1, 0)), tag) && bright
 }
 
 pub fn is_dark_enough_to_spawn(level: &mut impl RandomLevel, pos: BlockPos) -> bool {
@@ -149,6 +171,13 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::PathfinderMob => 0.0,
         MobClass::Animal => {
             if level.block_or_air(pos.offset(0, -1, 0)).kind() == Some(BlockKind::GrassBlock) {
+                GRASS_WALK_TARGET
+            } else {
+                level.light_level_dependent_magic_value(pos) - 0.5
+            }
+        }
+        MobClass::MushroomCow => {
+            if level.block_or_air(pos.offset(0, -1, 0)).kind() == Some(BlockKind::Mycelium) {
                 GRASS_WALK_TARGET
             } else {
                 level.light_level_dependent_magic_value(pos) - 0.5
@@ -222,10 +251,51 @@ pub fn no_collision(level: &impl SpawnLevel, area: &Aabb) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use rspigot_blocks::{Block, GrassBlock, Stone, Torch};
+    use rspigot_blocks::{Block, GrassBlock, Mycelium, Stone, Torch};
 
     use super::*;
     use crate::spawn::testing::Level;
+
+    #[test]
+    fn mooshrooms_need_mycelium_and_light() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut mycelium = Level::floor(Mycelium::DEFAULT_STATE, 63);
+        assert!(check_spawn_rules(
+            &mut mycelium,
+            EntityKind::Mooshroom,
+            SpawnReason::Natural,
+            pos
+        ));
+        mycelium.sky = 8;
+        assert!(!check_spawn_rules(
+            &mut mycelium,
+            EntityKind::Mooshroom,
+            SpawnReason::Natural,
+            pos
+        ));
+        let mut grass = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        assert!(!check_spawn_rules(
+            &mut grass,
+            EntityKind::Mooshroom,
+            SpawnReason::Natural,
+            pos
+        ));
+    }
+
+    #[test]
+    fn mooshrooms_prefer_to_walk_on_mycelium() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mycelium = Level::floor(Mycelium::DEFAULT_STATE, 63);
+        assert_eq!(
+            walk_target_value(&mycelium, EntityKind::Mooshroom, pos),
+            Some(GRASS_WALK_TARGET)
+        );
+        let stone = Level::floor(Stone::DEFAULT_STATE, 63);
+        assert!(
+            walk_target_value(&stone, EntityKind::Mooshroom, pos)
+                .is_some_and(|v| v < GRASS_WALK_TARGET)
+        );
+    }
 
     #[test]
     fn animals_need_spawnable_ground_and_light() {
