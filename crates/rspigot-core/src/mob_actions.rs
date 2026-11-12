@@ -334,6 +334,7 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Fox
                 | Kind::Wolf
                 | Kind::Cat
+                | Kind::Panda
         ) {
             return None;
         }
@@ -402,6 +403,9 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == Kind::Cat {
             self.cat_offspring(&mut child, parent, partner, random);
+        }
+        if kind == Kind::Panda {
+            self.panda_offspring(parent, partner, &mut child);
         }
         Some(child)
     }

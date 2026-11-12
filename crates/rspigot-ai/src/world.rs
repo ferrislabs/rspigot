@@ -37,6 +37,7 @@ pub struct Facts {
 pub struct DroppedItem {
     pub id: EntityId,
     pub position: Vec3,
+    pub item: ItemId,
     pub bounds: Aabb,
     pub has_pickup_delay: bool,
     pub alive: bool,
@@ -256,6 +257,10 @@ pub trait AiWorld: BlockView {
             y -= 1;
         }
         BlockPos::new(pos.x, self.min_y(), pos.z)
+    }
+
+    fn aggressive_panda(&self, _id: EntityId) -> bool {
+        false
     }
 }
 

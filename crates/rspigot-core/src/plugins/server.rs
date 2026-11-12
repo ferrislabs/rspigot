@@ -838,6 +838,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_gather(*step, cancelled);
                 Vec::new()
             }
+            Continuation::MobPickup(step) => {
+                self.finish_mob_pickup(*step, cancelled);
+                Vec::new()
+            }
             Continuation::ChangeBlock(step) => {
                 self.finish_change(*step, cancelled);
                 Vec::new()

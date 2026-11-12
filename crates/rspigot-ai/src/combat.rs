@@ -720,6 +720,7 @@ pub struct HurtByTargetGoal {
     timestamp: i32,
     alert_others: Option<&'static [EntityKind]>,
     polar_bear: bool,
+    panda_alert: bool,
 }
 
 impl Default for HurtByTargetGoal {
@@ -735,12 +736,21 @@ impl HurtByTargetGoal {
             timestamp: 0,
             alert_others: None,
             polar_bear: false,
+            panda_alert: false,
         }
     }
 
     pub const fn polar_bear() -> Self {
         Self {
             polar_bear: true,
+            ..Self::new()
+        }
+    }
+
+    pub const fn panda_alerting() -> Self {
+        Self {
+            alert_others: Some(&[]),
+            panda_alert: true,
             ..Self::new()
         }
     }
@@ -788,11 +798,11 @@ impl HurtByTargetGoal {
         self.timestamp = context.mob.last_hurt_by_mob_at;
         self.memory.unseen_memory_ticks = HURT_BY_MEMORY;
         if let Some(ignored) = self.alert_others {
-            Self::alert(context, ignored, false);
+            Self::alert(context, ignored, false, self.panda_alert);
         }
         self.memory.start();
         if self.polar_bear && context.mob.baby {
-            Self::alert(context, &[], true);
+            Self::alert(context, &[], true, false);
             self.memory.stop(context);
         }
     }
@@ -801,6 +811,7 @@ impl HurtByTargetGoal {
         context: &mut AiContext<'_, W>,
         ignored: &[EntityKind],
         adults_only: bool,
+        panda: bool,
     ) {
         let Some(attacker) = context.mob.last_hurt_by_mob else {
             return;
@@ -832,6 +843,15 @@ impl HurtByTargetGoal {
                 && (mob.owner != other.facts.owner
                     || (other.facts.tamed && other.facts.owner == Some(attacker)))
             {
+                continue;
+            }
+            if panda {
+                if context.world.aggressive_panda(other.id) {
+                    context.act(MobAction::Panda(crate::PandaAction::Alert {
+                        mob: other.id,
+                        target: attacker,
+                    }));
+                }
                 continue;
             }
             context.act(MobAction::Alert {

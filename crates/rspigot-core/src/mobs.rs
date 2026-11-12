@@ -587,6 +587,12 @@ impl AiWorld for MobWorld<'_> {
         light_level(chunk, pos, true).max(light_level(chunk, pos, false))
     }
 
+    fn aggressive_panda(&self, id: EntityId) -> bool {
+        self.store.get(id).is_some_and(|entity| {
+            entity.base.kind == Kind::Panda && species::panda::is_aggressive(&entity.base)
+        })
+    }
+
     fn bright_outside(&self) -> bool {
         self.has_day_cycle && self.sky_darken < BRIGHT_SKY_DARKEN
     }
@@ -624,6 +630,7 @@ impl AiWorld for MobWorld<'_> {
                 bounds.intersects(area).then_some(rspigot_ai::DroppedItem {
                     id: entity.base.id,
                     position: entity.base.position,
+                    item: rspigot_domain::entity::item::stack(&entity.base)?.item,
                     bounds,
                     has_pickup_delay: state.pickup_delay > 0,
                     alive: !entity.base.is_removed(),
@@ -1778,6 +1785,7 @@ impl<L: ClientLink> Server<L> {
         {
             return self.iron_golem_hurt_target(attacker, target);
         }
+        self.panda_bite(attacker);
         let Some(source_entity) = self.mob_source(attacker) else {
             return false;
         };
@@ -1822,6 +1830,7 @@ impl<L: ClientLink> Server<L> {
         if !hurt {
             return;
         }
+        self.panda_attack_sound(attacker);
         if knockback > 0.0 {
             let (dx, dz) = mth::yaw_direction(yaw);
             let living_target = match target {

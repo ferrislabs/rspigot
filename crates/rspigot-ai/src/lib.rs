@@ -54,7 +54,8 @@ pub use brain::{AiContext, Brain, CONTROL_FLAG_INTERVAL, MobAi, mob_tick};
 pub use cat::{CatAction, CatFacts, CatGoal};
 pub use combat::{
     HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, MeleeKind, OcelotAttackGoal,
-    RangedBowAttackGoal, SwellGoal, bow_power, default_attack_reach, within_melee_range,
+    RangedBowAttackGoal, SwellGoal, bow_power, default_attack_reach, look_at_entity,
+    within_melee_range,
 };
 pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
@@ -81,7 +82,7 @@ pub use navigation::{
     waypoint_distance,
 };
 pub use neutral::ResetUniversalAngerGoal;
-pub use panda::{PandaAction, PandaFacts, PandaGoal};
+pub use panda::{PandaAction, PandaBrain, PandaFacts, PandaGoal};
 pub use path::{Path, PathNode};
 pub use path_type::PathType;
 pub use polar_bear::{PolarBearAction, PolarBearFacts, PolarBearGoal};

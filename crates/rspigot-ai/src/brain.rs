@@ -42,6 +42,7 @@ pub struct Brain {
     pub fox: crate::FoxFacts,
     pub can_break_doors: bool,
     pub hop: Option<crate::rabbit::RabbitHop>,
+    pub panda: crate::PandaBrain,
     follow_range: f64,
 }
 
@@ -76,6 +77,7 @@ impl Brain {
             fox: crate::FoxFacts::default(),
             can_break_doors: false,
             hop: None,
+            panda: crate::PandaBrain::default(),
             follow_range,
         };
         if kind == EntityKind::Rabbit {
@@ -316,10 +318,14 @@ impl MobAi {
     }
 
     pub fn is_panicking(&self) -> bool {
-        self.goals
-            .goals()
-            .iter()
-            .any(|goal| goal.is_running() && matches!(goal.goal(), MobGoal::Panic(_)))
+        self.goals.goals().iter().any(|goal| {
+            goal.is_running()
+                && match goal.goal() {
+                    MobGoal::Panic(_) => true,
+                    MobGoal::Panda(panda) => panda.is_panic(),
+                    _ => false,
+                }
+        })
     }
 
     pub fn eat_animation_tick(&self) -> i32 {
@@ -400,6 +406,9 @@ impl MobAi {
         }
         self.brain.fox = mob.species.fox;
         self.brain.look.set_max_head_x_rot(mob.max_head_x_rot());
+        if self.brain.panda.active {
+            self.brain.panda.facts = mob.species.panda;
+        }
         let mut context = AiContext {
             mob,
             world,
@@ -456,7 +465,7 @@ impl MobAi {
             on_ground: base.on_ground,
             in_floatable_fluid: base.fluid.in_water,
         };
-        if base.kind != EntityKind::Fox || fox::can_move(base) {
+        if (base.kind != EntityKind::Fox || fox::can_move(base)) && brain.panda.can_move() {
             brain
                 .movement
                 .tick(base, living, view, &mut brain.jump, |pos| {

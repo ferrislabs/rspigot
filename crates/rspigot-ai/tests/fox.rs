@@ -625,6 +625,7 @@ fn a_fox_picks_up_the_trail_of_dropped_items_only_with_an_empty_mouth() {
         id: EntityId(70),
         position: Vec3::new(6.5, 64.0, 0.5),
         bounds: Aabb::of_size(Vec3::new(6.5, 64.0, 0.5), 0.25, 0.25),
+        item: rspigot_domain::ItemId(1),
         has_pickup_delay: false,
         alive: true,
     };

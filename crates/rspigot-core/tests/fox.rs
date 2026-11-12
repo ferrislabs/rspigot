@@ -225,6 +225,7 @@ fn a_dead_fox_drops_what_it_holds_in_its_mouth() {
 #[test]
 fn a_fox_eats_the_food_in_its_mouth_after_thirty_seconds() {
     let mut s = ready();
+    console(&mut s, "time set 18000");
     let nbt = trusting(
         &s,
         "Sitting:1b,home_radius:4,home_pos:[I;1,64,1],equipment:{mainhand:{id:\"minecraft:bread\",count:1}}",

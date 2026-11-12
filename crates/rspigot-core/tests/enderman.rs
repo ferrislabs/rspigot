@@ -78,7 +78,12 @@ fn enclose(s: &mut Scene) {
     }
 }
 
+fn calm(handlers: Vec<rspigot_core::plugins::HandlerSpec>) -> Scene {
+    scene_on(calm_server(), &["Alice"], handlers)
+}
+
 fn ground(s: &mut Scene) {
+    console(s, "weather clear");
     console(s, "gamemode creative Alice");
     let alice = s.players[0].clone();
     send_input(&mut s.server, &alice, PlayerInput::Loaded);
@@ -88,7 +93,7 @@ fn ground(s: &mut Scene) {
 
 #[test]
 fn a_saved_carried_block_is_loaded_synchronised_and_saved_again() {
-    let mut s = scene(&["Alice"]);
+    let mut s = calm(Vec::new());
     ground(&mut s);
     console(
         &mut s,
@@ -106,7 +111,7 @@ fn a_saved_carried_block_is_loaded_synchronised_and_saved_again() {
 
 #[test]
 fn an_enderman_takes_a_holdable_block_after_asking_the_plugins() {
-    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::EntityChangeBlock)]);
+    let mut s = calm(vec![observe(1, EventKind::EntityChangeBlock)]);
     ground(&mut s);
     fill_dirt(&mut s);
     console(&mut s, "summon minecraft:enderman 0.5 64 6.5");
@@ -137,7 +142,7 @@ fn an_enderman_takes_a_holdable_block_after_asking_the_plugins() {
 
 #[test]
 fn without_mob_griefing_the_enderman_leaves_the_world_alone() {
-    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::EntityChangeBlock)]);
+    let mut s = calm(vec![observe(1, EventKind::EntityChangeBlock)]);
     s.act(Order::World(WorldOrder::SetGameRule(
         GameRule::MobGriefing,
         false,
@@ -155,7 +160,7 @@ fn without_mob_griefing_the_enderman_leaves_the_world_alone() {
 
 #[test]
 fn a_stared_enderman_turns_on_the_player_and_becomes_creepy() {
-    let mut s = scene(&["Alice"]);
+    let mut s = calm(Vec::new());
     ground(&mut s);
     console(&mut s, "gamemode survival Alice");
     console(&mut s, "summon minecraft:enderman 0.5 64 6.5");
@@ -185,8 +190,9 @@ fn a_stared_enderman_turns_on_the_player_and_becomes_creepy() {
 
 #[test]
 fn in_daylight_an_idle_enderman_eventually_teleports_away() {
-    let mut s = scene(&["Alice"]);
+    let mut s = calm(Vec::new());
     ground(&mut s);
+    console(&mut s, "time set 1000");
     console(&mut s, "summon minecraft:enderman 0.5 64 6.5");
     let mut teleported = false;
     for _ in 0..3_000 {
@@ -209,7 +215,7 @@ fn in_daylight_an_idle_enderman_eventually_teleports_away() {
 
 #[test]
 fn arrows_never_hurt_an_enderman_they_make_it_teleport() {
-    let mut s = scene(&["Alice"]);
+    let mut s = calm(Vec::new());
     ground(&mut s);
     console(&mut s, "summon minecraft:enderman 0.5 64 4.5");
     let before = only(&s, Kind::Enderman);
@@ -237,7 +243,7 @@ fn arrows_never_hurt_an_enderman_they_make_it_teleport() {
 
 #[test]
 fn endermites_expire_after_two_thousand_four_hundred_ticks() {
-    let mut s = scene(&["Alice"]);
+    let mut s = calm(Vec::new());
     ground(&mut s);
     console(
         &mut s,
@@ -251,7 +257,7 @@ fn endermites_expire_after_two_thousand_four_hundred_ticks() {
 
 #[test]
 fn persistent_endermites_do_not_expire() {
-    let mut s = scene(&["Alice"]);
+    let mut s = calm(Vec::new());
     ground(&mut s);
     console(
         &mut s,
@@ -266,7 +272,7 @@ fn unused(_: PluginSettings) {}
 
 #[test]
 fn a_carrying_enderman_eventually_sets_its_block_down_through_an_event() {
-    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::EntityChangeBlock)]);
+    let mut s = calm(vec![observe(1, EventKind::EntityChangeBlock)]);
     ground(&mut s);
     enclose(&mut s);
     console(

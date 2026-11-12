@@ -162,6 +162,11 @@ mod tests {
     #[test]
     fn animals_and_persistent_mobs_stay() {
         let mut random = Fixed(0);
+        let panda = DespawnFacts {
+            no_action_time: 700,
+            ..facts(EntityKind::Panda)
+        };
+        assert!(!check_despawn(&panda, Difficulty::Normal, Some(1e6), &mut random).discard);
         let cow = DespawnFacts {
             no_action_time: 700,
             ..facts(EntityKind::Cow)

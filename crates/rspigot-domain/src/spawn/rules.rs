@@ -687,6 +687,43 @@ mod tests {
     }
 
     #[test]
+    fn pandas_use_the_animal_rules_with_the_generated_placement() {
+        let placement = EntityKind::Panda
+            .mob_spawn()
+            .and_then(|spawn| spawn.placement)
+            .expect("panda placement");
+        assert_eq!(placement.predicate, SpawnPredicate::Animal);
+        assert_eq!(
+            placement.kind,
+            rspigot_entities::SpawnPlacementType::NoRestrictions
+        );
+        assert!(rules_ported(EntityKind::Panda));
+        let mut level = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        let pos = BlockPos::new(4, 64, 4);
+        assert!(check_spawn_rules(
+            &mut level,
+            EntityKind::Panda,
+            SpawnReason::Natural,
+            pos
+        ));
+        level.set(pos.offset(0, -1, 0), Stone::DEFAULT_STATE);
+        assert!(!check_spawn_rules(
+            &mut level,
+            EntityKind::Panda,
+            SpawnReason::Natural,
+            pos
+        ));
+        level.set(pos.offset(0, -1, 0), GrassBlock::DEFAULT_STATE);
+        level.sky = 4;
+        assert!(!check_spawn_rules(
+            &mut level,
+            EntityKind::Panda,
+            SpawnReason::Natural,
+            pos
+        ));
+    }
+
+    #[test]
     fn monsters_roll_against_sky_light_then_the_dimension_light_test() {
         let mut level = Level::floor(Stone::DEFAULT_STATE, 63);
         let pos = BlockPos::new(4, 64, 4);

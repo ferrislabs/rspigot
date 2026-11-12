@@ -18,6 +18,7 @@ pub enum AvoidFilter {
     Any,
     NotScared,
     Fox(FoxAvoid),
+    NoSpectators,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -64,6 +65,13 @@ impl AvoidEntityGoal {
     pub fn unless_scared(kind: TargetKind, max_distance: f32, walk: f64, sprint: f64) -> Self {
         Self {
             filter: AvoidFilter::NotScared,
+            ..Self::new(kind, max_distance, walk, sprint)
+        }
+    }
+
+    pub fn no_spectators(kind: TargetKind, max_distance: f32, walk: f64, sprint: f64) -> Self {
+        Self {
+            filter: AvoidFilter::NoSpectators,
             ..Self::new(kind, max_distance, walk, sprint)
         }
     }
@@ -134,6 +142,7 @@ impl AvoidEntityGoal {
                         FoxAvoid::PolarBear => true,
                     }
             }
+            AvoidFilter::NoSpectators => !target.spectator,
             filter => {
                 let creative_or_spectator = target.player && (target.creative || target.spectator);
                 !creative_or_spectator

@@ -55,6 +55,10 @@ pub(crate) struct Spawning {
 }
 
 impl Spawning {
+    pub(crate) fn has_ceiling(&self) -> bool {
+        self.dimension.has_ceiling
+    }
+
     pub(crate) fn new(seed: i64, dimension: &Dimension) -> Self {
         Self {
             zoom_seed: hashed_seed(seed),
@@ -763,6 +767,7 @@ mod tests {
                 EntityKind::IronGolem,
                 EntityKind::Mooshroom,
                 EntityKind::Ocelot,
+                EntityKind::Panda,
                 EntityKind::Parched,
                 EntityKind::Pig,
                 EntityKind::PolarBear,

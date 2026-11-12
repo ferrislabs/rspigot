@@ -529,9 +529,13 @@ fn read_living(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState) 
         }
     }
     if let Some(mob) = &mut living.mob {
-        mob.can_pick_up_loot = nbt
-            .get_bool("CanPickUpLoot")
-            .unwrap_or(mob.can_pick_up_loot);
+        let can_pick_up_loot = nbt.get_bool("CanPickUpLoot").unwrap_or(false);
+        let current_level = nbt
+            .get_i32("Bukkit.updateLevel")
+            .is_some_and(|level| level >= 1);
+        if current_level || can_pick_up_loot {
+            mob.can_pick_up_loot = can_pick_up_loot;
+        }
         mob.persistence_required = nbt.get_bool("PersistenceRequired").unwrap_or(false);
         mob.drop_chances = [living::DEFAULT_DROP_CHANCE; 8];
         if let Some(chances) = nbt.get_compound("drop_chances") {

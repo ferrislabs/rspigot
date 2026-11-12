@@ -1047,7 +1047,7 @@ impl<L: ClientLink> Server<L> {
         self.refresh_hands(id);
     }
 
-    fn ask_love(
+    pub(crate) fn ask_love(
         &mut self,
         id: PlayerId,
         target: EntityId,
