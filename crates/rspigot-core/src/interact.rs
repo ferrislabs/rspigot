@@ -59,12 +59,12 @@ pub(crate) enum Interaction {
 }
 
 impl Interaction {
-    fn consumes(self) -> bool {
+    pub(crate) fn consumes(self) -> bool {
         self != Self::Pass
     }
 }
 
-fn item_tag(item: ItemId, tag: &str) -> bool {
+pub(crate) fn item_tag(item: ItemId, tag: &str) -> bool {
     rspigot_data::tags::tag("minecraft:item", tag)
         .is_some_and(|ids| ids.binary_search(&u32::from(item.0)).is_ok())
 }
@@ -77,6 +77,7 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Chicken => "minecraft:chicken_food",
         Kind::Fox => "minecraft:fox_food",
         Kind::Wolf => "minecraft:wolf_food",
+        Kind::Cat => "minecraft:cat_food",
         _ => return None,
     })
 }

@@ -32,6 +32,18 @@ pub fn should_try_teleport_to_owner(mob: &MobView, owner: &Living) -> bool {
     mob.distance_to_sqr(owner.position) >= TELEPORT_DISTANCE_SQR
 }
 
+pub(crate) fn teleport_to_distant_owner<W: AiWorld>(context: &mut AiContext<'_, W>) {
+    let owner = owner_of(context);
+    if unable_to_move_to_owner(context.mob, owner.as_ref()) {
+        return;
+    }
+    if let Some(owner) = owner
+        && should_try_teleport_to_owner(context.mob, &owner)
+    {
+        try_to_teleport_to_owner(context, &owner);
+    }
+}
+
 pub(crate) fn owner_of<W: AiWorld>(context: &AiContext<'_, W>) -> Option<Living> {
     context
         .mob

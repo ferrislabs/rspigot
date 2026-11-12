@@ -20,11 +20,7 @@ use crate::events::{ClientEvent, Hand};
 use crate::health::DamageSource;
 use crate::interact::{Interaction, dye_color};
 use crate::mob_life::variant_sound;
-use crate::plugins::events::{
-    EntityRegainHealth, EntityRegainHealthPatch, EntityRegainHealthRegainReason,
-};
-use crate::plugins::steps::MobRegainStep;
-use crate::plugins::{Continuation, EventPayload};
+use crate::plugins::events::EntityRegainHealthRegainReason;
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -381,57 +377,6 @@ impl<L: ClientLink> Server<L> {
         self.play_mob_voice(id, pick);
     }
 
-    pub(crate) fn heal_mob(
-        &mut self,
-        player: PlayerId,
-        target: EntityId,
-        amount: f32,
-        reason: EntityRegainHealthRegainReason,
-    ) {
-        let alive = self
-            .entities
-            .store
-            .get(target)
-            .is_some_and(|entity| living::health(&entity.base) > 0.0);
-        if !alive {
-            return;
-        }
-        let lane = self.lane_for(Some(player), target);
-        let step = MobRegainStep { target, amount };
-        self.fire(lane, Continuation::MobRegain(step), move |server| {
-            let entity = server.entity_view(target)?;
-            Some(EventPayload::EntityRegainHealth(EntityRegainHealth {
-                amount: f64::from(amount),
-                entity_type: entity.kind.clone(),
-                entity,
-                regain_reason: reason,
-            }))
-        });
-    }
-
-    pub(crate) fn finish_mob_regain(
-        &mut self,
-        step: MobRegainStep,
-        cancelled: bool,
-        patch: EntityRegainHealthPatch,
-    ) {
-        if cancelled {
-            return;
-        }
-        let amount = patch.amount.map_or(step.amount, |amount| amount as f32);
-        if let Some(Entity {
-            base,
-            state: EntityState::Living(state),
-            ..
-        }) = self.entities.store.get_mut(step.target)
-        {
-            let health = living::health(base);
-            if health > 0.0 {
-                living::set_health(base, state, health + amount);
-            }
-        }
-    }
-
     fn use_player_item(&mut self, player: PlayerId, hand: Hand, stack: &ItemStack) {
         let count = stack.count.get();
         self.consume_held(player, hand, 1);
@@ -558,7 +503,12 @@ impl<L: ClientLink> Server<L> {
                     .map(|food| food.nutrition as f32);
                 self.use_player_item(player, hand, &stack);
                 let heal = nutrition.map_or(FOOD_DEFAULT_HEAL, |value| FOOD_HEAL_FACTOR * value);
-                self.heal_mob(player, target, heal, EntityRegainHealthRegainReason::Eating);
+                self.heal_mob(
+                    Some(player),
+                    target,
+                    heal,
+                    EntityRegainHealthRegainReason::Eating,
+                );
                 return Some(Interaction::Predicted);
             }
             let collar_dye = item.is_some_and(|item| item_in_tag(item, WOLF_COLLAR_DYES));

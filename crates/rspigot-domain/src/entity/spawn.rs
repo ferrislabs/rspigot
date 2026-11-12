@@ -53,6 +53,7 @@ pub struct SpawnEnvironment {
     pub biome: BiomeId,
     pub difficulty: DifficultyInstance,
     pub halloween: bool,
+    pub moon_brightness: f32,
 }
 
 fn stack(kind: ItemKind) -> ItemStack {
@@ -547,6 +548,7 @@ mod tests {
             biome: BiomeId(rspigot_data::registries::biome_id(biome).unwrap()),
             difficulty: DifficultyInstance::new(difficulty, 0, 0, 1.0),
             halloween: false,
+            moon_brightness: 0.0,
         }
     }
 
@@ -583,6 +585,52 @@ mod tests {
                 .attributes
                 .has_modifier(FOLLOW_RANGE, RANDOM_SPAWN_BONUS)
         );
+    }
+
+    #[test]
+    fn cats_get_a_variant_with_the_moon_and_a_sound_variant_at_spawn() {
+        use rspigot_data::variants::VariantFamily::Cat;
+        let all_black = Cat.variant_index("minecraft:all_black");
+        let mut full = environment("minecraft:plains", Difficulty::Normal);
+        full.moon_brightness = 1.0;
+        let mut black = 0;
+        let mut other = 0;
+        for seed in 0..80 {
+            let mut cat = mob(EntityKind::Cat);
+            let mut level = LegacyRandom::new(seed);
+            let mut own = LegacyRandom::new(seed + 1000);
+            finalize_spawn(
+                &mut cat,
+                &full,
+                SpawnReason::Natural,
+                None,
+                &mut level,
+                &mut own,
+            );
+            let variant = species::variant(&cat.base, Cat);
+            assert!(species::sound_variant(&cat.base, Cat) < Cat.sound_variants().len() as u32);
+            if Some(variant) == all_black {
+                black += 1;
+            } else {
+                other += 1;
+            }
+        }
+        assert!(black > 0 && other > 0);
+        let new_moon = environment("minecraft:plains", Difficulty::Normal);
+        for seed in 0..80 {
+            let mut cat = mob(EntityKind::Cat);
+            let mut level = LegacyRandom::new(seed);
+            let mut own = LegacyRandom::new(seed + 1000);
+            finalize_spawn(
+                &mut cat,
+                &new_moon,
+                SpawnReason::Natural,
+                None,
+                &mut level,
+                &mut own,
+            );
+            assert_ne!(Some(species::variant(&cat.base, Cat)), all_black);
+        }
     }
 
     #[test]

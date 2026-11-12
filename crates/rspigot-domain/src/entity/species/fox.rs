@@ -544,6 +544,7 @@ mod tests {
                 1.0,
             ),
             halloween: false,
+            moon_brightness: 0.0,
         };
         let mut level = LegacyRandom::new(5);
         let mut group = None;
@@ -576,6 +577,7 @@ mod tests {
                 1.0,
             ),
             halloween: false,
+            moon_brightness: 0.0,
         };
         let (mut base, mut living) = fox();
         let mut level = LegacyRandom::new(1);

@@ -141,12 +141,8 @@ impl PanicGoal {
     }
 
     pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
-        if self.tamable
-            && let Some(owner) = crate::tame::owner_of(context)
-            && !crate::tame::unable_to_move_to_owner(context.mob, Some(&owner))
-            && crate::tame::should_try_teleport_to_owner(context.mob, &owner)
-        {
-            crate::tame::try_to_teleport_to_owner(context, &owner);
+        if self.tamable {
+            crate::tame::teleport_to_distant_owner(context);
         }
         if !self.rabbit {
             return;
@@ -199,7 +195,8 @@ impl BreedGoal {
                 && mob.in_love
                 && candidate.in_love
                 && (mob.kind != EntityKind::Wolf
-                    || (mob.tamed && candidate.facts.tamed && !candidate.facts.sitting));
+                    || (mob.tamed && candidate.facts.tamed && !candidate.facts.sitting))
+                && (mob.kind != EntityKind::Cat || (mob.tamed && candidate.facts.tamed));
             let distance = mob.distance_to_sqr(candidate.position);
             if can_mate && !candidate.panicking && distance < best {
                 best = distance;

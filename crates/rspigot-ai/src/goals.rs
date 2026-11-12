@@ -328,6 +328,8 @@ pub struct TemptGoal {
     calm_down: i32,
     running: bool,
     scare: Scare,
+    non_tame: bool,
+    selected: Option<EntityId>,
     last_position: Vec3,
     last_pitch: f64,
     last_yaw: f64,
@@ -337,6 +339,7 @@ pub struct TemptGoal {
 enum Scare {
     Never,
     UnlessTrusting,
+    UnlessSelected,
 }
 
 impl TemptGoal {
@@ -349,6 +352,8 @@ impl TemptGoal {
             calm_down: 0,
             running: false,
             scare: Scare::Never,
+            non_tame: false,
+            selected: None,
             last_position: Vec3::ZERO,
             last_pitch: 0.0,
             last_yaw: 0.0,
@@ -362,6 +367,18 @@ impl TemptGoal {
         }
     }
 
+    pub fn cat(speed_modifier: f64, items: TemptItems) -> Self {
+        Self {
+            scare: Scare::UnlessSelected,
+            non_tame: true,
+            ..Self::new(speed_modifier, items)
+        }
+    }
+
+    pub fn selected(&self) -> Option<EntityId> {
+        self.selected
+    }
+
     pub fn player(&self) -> Option<EntityId> {
         self.player
     }
@@ -371,6 +388,10 @@ impl TemptGoal {
     }
 
     fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        self.find_player(context) && !(self.non_tame && context.mob.tamed)
+    }
+
+    fn find_player<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         if self.calm_down > 0 {
             self.calm_down -= 1;
             return false;
@@ -415,6 +436,7 @@ impl TemptGoal {
         match self.scare {
             Scare::Never => false,
             Scare::UnlessTrusting => !context.mob.trusting,
+            Scare::UnlessSelected => !(self.selected.is_some() && self.selected == self.player),
         }
     }
 
@@ -456,6 +478,18 @@ impl TemptGoal {
     }
 
     fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        self.follow_player(context);
+        if self.scare == Scare::UnlessSelected {
+            let random = &mut context.brain.random;
+            if self.selected.is_none() && random.next_int(adjusted_tick_delay(false, 600)) == 0 {
+                self.selected = self.player;
+            } else if random.next_int(adjusted_tick_delay(false, 500)) == 0 {
+                self.selected = None;
+            }
+        }
+    }
+
+    fn follow_player<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         let Some(player) = self.player.and_then(|id| context.world.living(id)) else {
             return;
         };

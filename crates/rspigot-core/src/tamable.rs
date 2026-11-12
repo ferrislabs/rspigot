@@ -122,6 +122,7 @@ impl<L: ClientLink> Server<L> {
         {
             self.wolf_tamed(id);
         }
+        self.cat_tamed(id);
     }
 
     pub(crate) fn start_persistent_anger_timer(&mut self, id: EntityId) {

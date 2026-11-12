@@ -206,6 +206,7 @@ mod tests {
                 0.0,
             ),
             halloween: false,
+            moon_brightness: 0.0,
         }
     }
 

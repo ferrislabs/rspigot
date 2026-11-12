@@ -227,7 +227,7 @@ fn a_fox_eats_the_food_in_its_mouth_after_thirty_seconds() {
     let mut s = ready();
     let nbt = trusting(
         &s,
-        "Sitting:1b,equipment:{mainhand:{id:\"minecraft:bread\",count:1}}",
+        "Sitting:1b,home_radius:4,home_pos:[I;1,64,1],equipment:{mainhand:{id:\"minecraft:bread\",count:1}}",
     );
     let fox = summon(&mut s, &nbt, 1.5, 1.5);
     assert_eq!(mouth(&s, fox).as_deref(), Some("minecraft:bread"));

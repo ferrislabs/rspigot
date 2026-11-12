@@ -125,6 +125,7 @@ pub(crate) struct MobTable {
     pub players: Vec<Living>,
     pub spawn_randoms: FxHashMap<EntityId, LegacyRandom>,
     pub initial_targets: FxHashMap<EntityId, EntityId>,
+    pub open_chests: Vec<crate::containers::Backing>,
 }
 
 fn range_of(activation: ActivationType, ranges: &ActivationRanges) -> i32 {
@@ -218,6 +219,8 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             tamed: false,
             owner: None,
             sleeping: false,
+            sleep_timer: 0,
+            cat_relaxing: false,
             last_hurt_by_mob: player.vitals.last_hurt_by_mob,
             last_hurt_by_mob_at: player.vitals.last_hurt_by_mob_at,
             last_hurt_mob: player.vitals.last_hurt_mob,
@@ -260,6 +263,10 @@ fn entity_facts(
                 rspigot_domain::entity::Pose::Sleeping
             ))
         ) || (base.kind == Kind::Fox && species::fox::is_sleeping(base)),
+        sleep_timer: 0,
+        cat_relaxing: entity.base.kind == Kind::Cat
+            && (rspigot_domain::entity::species::cat::is_lying(base)
+                || rspigot_domain::entity::species::cat::is_relax_state_one(base)),
         last_hurt_by_mob: state.damage.last_hurt_by_mob,
         last_hurt_by_mob_at: state.damage.last_hurt_by_mob_at,
         last_hurt_mob: state.damage.last_hurt_mob,
@@ -464,6 +471,7 @@ pub(crate) struct MobWorld<'a> {
     store: &'a Entities,
     entries: &'a FxHashMap<EntityId, MobEntry>,
     players: &'a [Living],
+    open_chests: &'a [crate::containers::Backing],
     difficulty: i32,
     game_time: i64,
     sky_darken: i32,
@@ -537,6 +545,13 @@ impl AiWorld for MobWorld<'_> {
             .filter_map(|entity| entity_target(entity, self.game_time, &resolve))
             .map(|living| with_mob_facts(living, self.entries))
             .collect()
+    }
+
+    fn chest_open_count(&self, pos: BlockPos) -> i32 {
+        self.open_chests
+            .iter()
+            .filter(|backing| backing.positions().any(|candidate| candidate == pos))
+            .count() as i32
     }
 
     fn bright_outside(&self) -> bool {
@@ -628,6 +643,7 @@ impl<L: ClientLink> Server<L> {
         }
         let kind = entity.base.kind;
         let fox_red = species::fox::variant(&entity.base) == species::fox::Variant::Red;
+        let cat_tame = kind == Kind::Cat && tamable::is_tame(&entity.base);
         let activation = activation_type(kind);
         let ranges = self.config.activation;
         let seed = self.rng.random::<i64>();
@@ -640,6 +656,9 @@ impl<L: ClientLink> Server<L> {
         }
         if let Some(target) = self.entities.mobs.initial_targets.remove(&id) {
             ai.set_target(Some(target));
+        }
+        if kind == Kind::Cat {
+            ai.reassess_cat_tame_goals(cat_tame);
         }
         let hard = self.world.difficulty == Difficulty::Hard;
         let game_time = self.world.level.game_time;
@@ -706,6 +725,13 @@ impl<L: ClientLink> Server<L> {
             .collect();
         players.sort_by_key(|player| player.id);
         self.entities.mobs.players = players;
+        self.entities.mobs.open_chests = self
+            .players
+            .values()
+            .filter_map(|player| player.open_menu.as_ref())
+            .map(|open| open.backing)
+            .filter(|backing| backing.entity.is_some() || backing.ender)
+            .collect();
     }
 
     pub(crate) fn activate_entities(&mut self) {
@@ -798,6 +824,7 @@ impl<L: ClientLink> Server<L> {
             store: &self.entities.store,
             entries: &self.entities.mobs.entries,
             players: &self.entities.mobs.players,
+            open_chests: &self.entities.mobs.open_chests,
             difficulty: i32::from(self.world.difficulty.id()),
             game_time: self.world.level.game_time,
             sky_darken,

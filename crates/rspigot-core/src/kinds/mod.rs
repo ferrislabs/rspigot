@@ -106,6 +106,7 @@ impl<L: ClientLink> Server<L> {
         match self.kind_of(id) {
             Some(Kind::Fox) => self.fox_ambient(id),
             Some(Kind::Wolf) => self.wolf_ambient_voice(id),
+            Some(Kind::Cat) => self.cat_ambient_voice(id),
             _ => self.play_mob_voice(id, crate::mob_life::ambient_sound),
         }
     }

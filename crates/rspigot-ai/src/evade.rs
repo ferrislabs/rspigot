@@ -32,6 +32,7 @@ enum AvoidGate {
     Open,
     NotEvil,
     NotTrusting,
+    NotTame,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -81,11 +82,23 @@ impl AvoidEntityGoal {
         }
     }
 
+    pub fn unless_tame(kind: TargetKind, max_distance: f32, walk: f64, sprint: f64) -> Self {
+        Self {
+            gate: AvoidGate::NotTame,
+            ..Self::new(kind, max_distance, walk, sprint)
+        }
+    }
+
+    pub fn is_tame_gated(&self) -> bool {
+        self.gate == AvoidGate::NotTame
+    }
+
     fn open<W: AiWorld>(&self, context: &AiContext<'_, W>) -> bool {
         match self.gate {
             AvoidGate::Open => true,
             AvoidGate::NotEvil => !context.mob.evil,
             AvoidGate::NotTrusting => !context.mob.trusting,
+            AvoidGate::NotTame => !context.mob.tamed,
         }
     }
 
@@ -137,6 +150,7 @@ impl AvoidEntityGoal {
         context: &mut AiContext<'_, W>,
     ) -> bool {
         (self.gate != AvoidGate::NotTrusting || !context.mob.trusting)
+            && (self.gate != AvoidGate::NotTame || !context.mob.tamed)
             && !context.brain.navigation.is_done()
     }
 

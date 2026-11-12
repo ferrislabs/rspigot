@@ -11,12 +11,14 @@ const OCELOT_PERSISTENT_TICKS: i32 = 2400;
 pub struct FarAwayFacts {
     pub chicken_jockey: bool,
     pub trusting: bool,
+    pub tame: bool,
     pub tick_count: i32,
 }
 
 pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<bool> {
     Some(match kind.mob_spawn()?.remove_when_far_away {
         MobClass::Mob => true,
+        MobClass::Cat => !facts.tame && facts.tick_count > OCELOT_PERSISTENT_TICKS,
         MobClass::Ocelot => !facts.trusting && facts.tick_count > OCELOT_PERSISTENT_TICKS,
         MobClass::Animal
         | MobClass::AbstractGolem
@@ -36,6 +38,7 @@ pub struct DespawnFacts {
     pub no_action_time: i32,
     pub chicken_jockey: bool,
     pub trusting: bool,
+    pub tame: bool,
     pub tick_count: i32,
 }
 
@@ -65,6 +68,7 @@ pub fn check_despawn(
     let far_facts = FarAwayFacts {
         chicken_jockey: facts.chicken_jockey,
         trusting: facts.trusting,
+        tame: facts.tame,
         tick_count: facts.tick_count,
     };
     let far = || remove_when_far_away(kind, far_facts).unwrap_or(false);
@@ -123,6 +127,7 @@ mod tests {
             no_action_time: 0,
             chicken_jockey: false,
             trusting: false,
+            tame: false,
             tick_count: 0,
         }
     }
@@ -220,6 +225,23 @@ mod tests {
             ..old
         };
         assert!(!check_despawn(&trusting, Difficulty::Normal, Some(1e6), &mut random).discard);
+    }
+
+    #[test]
+    fn wild_cats_fade_after_two_minutes_but_tame_ones_stay() {
+        let mut random = Fixed(5);
+        let young = DespawnFacts {
+            tick_count: 2400,
+            ..facts(EntityKind::Cat)
+        };
+        assert!(!check_despawn(&young, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let old = DespawnFacts {
+            tick_count: 2401,
+            ..facts(EntityKind::Cat)
+        };
+        assert!(check_despawn(&old, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let tame = DespawnFacts { tame: true, ..old };
+        assert!(!check_despawn(&tame, Difficulty::Normal, Some(1e6), &mut random).discard);
     }
 
     #[test]

@@ -20,6 +20,8 @@ pub struct Facts {
     pub tamed: bool,
     pub owner: Option<EntityId>,
     pub sleeping: bool,
+    pub sleep_timer: i32,
+    pub cat_relaxing: bool,
     pub last_hurt_by_mob: Option<EntityId>,
     pub last_hurt_by_mob_at: i32,
     pub last_hurt_mob: Option<EntityId>,
@@ -179,6 +181,10 @@ pub trait AiWorld: BlockView {
 
     fn can_harm_player(&self, _attacker: EntityId, _victim: EntityId) -> bool {
         true
+    }
+
+    fn chest_open_count(&self, _pos: BlockPos) -> i32 {
+        0
     }
 
     fn peaceful(&self) -> bool {

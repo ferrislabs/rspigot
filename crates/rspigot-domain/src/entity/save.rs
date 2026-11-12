@@ -104,7 +104,10 @@ const ZOMBIE_KEYS: [&str; 4] = [
 ];
 const SKELETON_KEYS: [&str; 2] = ["FreezingTime", "StrayConversionTime"];
 const CREEPER_KEYS: [&str; 4] = ["powered", "Fuse", "ExplosionRadius", "ignited"];
-const TRANSIENT_MODIFIERS: [&str; 1] = [species::BABY_SPEED_MODIFIER];
+const TRANSIENT_MODIFIERS: [&str; 2] = [
+    species::BABY_SPEED_MODIFIER,
+    species::cat::SPRINTING_MODIFIER,
+];
 const ARROW_KEYS: [&str; 14] = [
     "Owner",
     "LeftOwner",

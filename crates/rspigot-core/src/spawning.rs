@@ -491,6 +491,8 @@ impl<L: ClientLink> Server<L> {
                 Some(Species::Chicken(chicken)) if chicken.jockey
             ),
             trusting: false,
+            tame: entity.base.kind.extends("TamableAnimal")
+                && rspigot_domain::entity::tamable::is_tame(&entity.base),
             tick_count: entity.base.tick_count,
         };
         let distance = nearest_distance_sqr(&self.spawning.players, entity.base.position);
@@ -659,6 +661,7 @@ impl GenerationHost for Generation<'_> {
                 moon_brightness(0, self.has_skylight),
             ),
             halloween: is_halloween(today()),
+            moon_brightness: moon_brightness(0, self.has_skylight),
         };
         let mut own = LegacyRandom::new(rand::rng().random());
         let group = finalize_spawn(
@@ -725,6 +728,7 @@ mod tests {
             spawning,
             vec![
                 EntityKind::Bogged,
+                EntityKind::Cat,
                 EntityKind::CaveSpider,
                 EntityKind::Chicken,
                 EntityKind::Cow,

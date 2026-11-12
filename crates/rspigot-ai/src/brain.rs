@@ -237,6 +237,7 @@ impl<W: AiWorld> AiContext<'_, W> {
 enum GoalChange {
     Weapon { bow: bool, interval: i32 },
     BreakDoors(bool),
+    CatTame(bool),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -284,6 +285,16 @@ impl MobAi {
         self.brain.can_break_doors = can_break_doors;
         self.brain.profile.can_open_doors = can_break_doors;
         self.pending.push(GoalChange::BreakDoors(can_break_doors));
+    }
+
+    pub fn reassess_cat_tame_goals(&mut self, tame: bool) {
+        self.pending.push(GoalChange::CatTame(tame));
+    }
+
+    pub fn is_tempting(&self) -> bool {
+        self.goals.goals().iter().any(|goal| {
+            goal.is_running() && matches!(goal.goal(), MobGoal::Tempt(tempt) if tempt.is_running())
+        })
     }
 
     pub fn can_break_doors(&self) -> bool {
@@ -504,6 +515,15 @@ fn apply_pending<W: AiWorld>(
                     registry::BREAK_DOOR_PRIORITY,
                     MobGoal::BreakDoor(BreakDoorGoal::default()),
                 );
+            }
+            GoalChange::CatTame(tame) => {
+                goals.remove_goals(
+                    context,
+                    |goal| matches!(goal, MobGoal::AvoidEntity(avoid) if avoid.is_tame_gated()),
+                );
+                if !tame {
+                    goals.add_goal(crate::cat::AVOID_PRIORITY, crate::cat::avoid_players());
+                }
             }
             GoalChange::BreakDoors(false) => {
                 goals.remove_goals(context, |goal| matches!(goal, MobGoal::BreakDoor(_)));

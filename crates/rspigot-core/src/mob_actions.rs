@@ -332,6 +332,7 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Ocelot
                 | Kind::Fox
                 | Kind::Wolf
+                | Kind::Cat
         ) {
             return None;
         }
@@ -380,6 +381,9 @@ impl<L: ClientLink> Server<L> {
             let mut level = crate::mobs::ServerRandom(&mut self.rng);
             let color = species::mixed_wool_color(parent_color, partner_color, &mut level);
             species::set_wool_color(&mut child.base, color);
+        }
+        if kind == Kind::Cat {
+            self.cat_offspring(&mut child, parent, partner, random);
         }
         Some(child)
     }
