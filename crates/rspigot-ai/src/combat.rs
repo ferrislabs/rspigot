@@ -749,6 +749,14 @@ impl HurtByTargetGoal {
         }
     }
 
+    pub const fn ignoring_damage_from_alerting(classes: &'static [&'static str]) -> Self {
+        Self {
+            ignore_damage: classes,
+            alert_others: Some(&[]),
+            ..Self::new()
+        }
+    }
+
     pub const fn polar_bear() -> Self {
         Self {
             polar_bear: true,
