@@ -249,6 +249,26 @@ fn a_fox_eats_the_food_in_its_mouth_after_thirty_seconds() {
 }
 
 #[test]
+fn a_fox_counts_one_tick_per_tick_before_it_eats() {
+    let mut s = ready();
+    console(&mut s, "time set 18000");
+    let nbt = trusting(
+        &s,
+        "Sitting:1b,home_radius:4,home_pos:[I;1,64,1],equipment:{mainhand:{id:\"minecraft:bread\",count:1}}",
+    );
+    let fox = summon(&mut s, &nbt, 1.5, 1.5);
+    let mut ticks = 0;
+    while mouth(&s, fox).is_some() && ticks < 1000 {
+        s.tick(1);
+        ticks += 1;
+        if ticks % 20 == 0 {
+            stay_close(&mut s, fox);
+        }
+    }
+    assert!((600..1000).contains(&ticks), "ate after {ticks} ticks");
+}
+
+#[test]
 fn bred_foxes_trust_their_breeder_and_hunt_only_after_a_reload() {
     let mut s = ready();
     console(&mut s, "give Alice minecraft:sweet_berries 4");

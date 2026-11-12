@@ -57,6 +57,17 @@ fn look_angle(yaw: f32, pitch: f32) -> Vec3 {
     Vec3::new(f64::from(i * j), f64::from(k), f64::from(h * j))
 }
 
+fn ambient_voice(
+    first: Option<&'static str>,
+    second: Option<&'static str>,
+) -> Option<(&'static str, f32)> {
+    if first == Some(SCREECH_SOUND) {
+        first.map(|sound| (sound, SCREECH_VOLUME))
+    } else {
+        second.map(|sound| (sound, 1.0))
+    }
+}
+
 impl<L: ClientLink> Server<L> {
     fn fox_state_mut(&mut self, id: EntityId) -> Option<&mut fox::FoxState> {
         match self
@@ -483,12 +494,12 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn fox_ambient(&mut self, id: EntityId) {
         let first = self.fox_ambient_sound(id);
-        let chosen = if first == Some(SCREECH_SOUND) {
-            first
+        let second = if first == Some(SCREECH_SOUND) {
+            None
         } else {
             self.fox_ambient_sound(id)
         };
-        let Some(sound) = chosen else {
+        let Some((sound, volume)) = ambient_voice(first, second) else {
             return;
         };
         let baby = self
@@ -500,11 +511,6 @@ impl<L: ClientLink> Server<L> {
         let spread = (random.next_float() - random.next_float()) * 0.2;
         self.store_mob_random(id, random);
         let pitch = spread + if baby { 1.5 } else { 1.0 };
-        let volume = if sound == SCREECH_SOUND {
-            SCREECH_VOLUME
-        } else {
-            1.0
-        };
         self.entity_sound(id, sound, volume, pitch);
     }
 
@@ -645,5 +651,27 @@ impl<L: ClientLink> Server<L> {
         }
         self.entity_sound(id, BERRY_PICK, 1.0, 1.0);
         self.set_block(pos, next);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_a_first_screech_is_loud() {
+        assert_eq!(
+            ambient_voice(Some(SCREECH_SOUND), None),
+            Some((SCREECH_SOUND, SCREECH_VOLUME))
+        );
+        assert_eq!(
+            ambient_voice(Some(AMBIENT_SOUND), Some(SCREECH_SOUND)),
+            Some((SCREECH_SOUND, 1.0))
+        );
+        assert_eq!(
+            ambient_voice(Some(AMBIENT_SOUND), Some(AMBIENT_SOUND)),
+            Some((AMBIENT_SOUND, 1.0))
+        );
+        assert_eq!(ambient_voice(None, None), None);
     }
 }

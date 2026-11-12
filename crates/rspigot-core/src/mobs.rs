@@ -945,7 +945,6 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn mob_server_ai_step(&mut self, id: EntityId) {
-        self.kind_ai_step(id);
         let sky_darken = sky_darken(&self.world.level);
         let bright = self.entities.store.get(id).is_some_and(|entity| {
             entity.base.kind.extends("Monster") && self.light_at_eyes(entity) > BRIGHT_LIMIT
