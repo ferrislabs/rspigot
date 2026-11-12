@@ -5,7 +5,9 @@ use std::time::Duration;
 
 use common::*;
 use rspigot_core::config::{GameConfig, LevelData, PluginSettings};
-use rspigot_core::events::{ClientEvent, EntityKind as WireKind, Inbound};
+use rspigot_core::events::{
+    ClientEvent, EntityKind as WireKind, Inbound, MetadataValue, PlayerInput,
+};
 use rspigot_core::plugins::HandlerSpec;
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
@@ -13,7 +15,7 @@ use rspigot_core::status::StatusBoard;
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::world::Dimension;
-use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, EntityId, Vec3};
+use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, EntityId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 struct Plains;
@@ -302,4 +304,122 @@ fn a_summoned_breeze_has_a_persisted_brain_and_shoots_a_wind_charge_at_a_player(
         }
     }
     assert!(shots > 0, "the breeze never shot");
+}
+
+fn metadata_values(events: &[ClientEvent], entity: EntityId, index: u8) -> Vec<MetadataValue> {
+    events
+        .iter()
+        .filter_map(|event| match event {
+            ClientEvent::EntityMetadata {
+                entity: id,
+                entries,
+            } if *id == entity => Some(entries.clone()),
+            _ => None,
+        })
+        .flatten()
+        .filter(|entry| entry.index == index)
+        .map(|entry| entry.value)
+        .collect()
+}
+
+#[test]
+fn a_summoned_creaking_has_a_persisted_brain_and_no_home_by_default() {
+    let mut s = ready(Vec::new());
+    let creaking = summon(&mut s, Kind::Creaking, "{}", Vec3::new(8.5, 64.0, 8.5));
+    s.tick(1);
+    let saved = s.server.saved_entity(creaking).unwrap();
+    assert!(saved.contains_key("Brain"));
+    assert!(!saved.contains_key("home_pos"));
+}
+
+#[test]
+fn a_creaking_freezes_in_place_while_alice_looks_at_it_and_syncs_its_flags() {
+    let mut s = ready(Vec::new());
+    console(&mut s, "gamemode survival Alice");
+    let creaking = summon(&mut s, Kind::Creaking, "{}", Vec3::new(0.5, 64.0, 6.5));
+    let alice = s.players[0].clone();
+    let player = s.server.player_entity_id(alice.id).unwrap();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::Move {
+            position: Some(Vec3::new(0.5, 64.0, 0.5)),
+            rotation: Some(Rotation::new(0.0, -8.8)),
+            on_ground: true,
+        },
+    );
+    let mut can_move = Vec::new();
+    let mut active = Vec::new();
+    for _ in 0..60 {
+        s.tick(1);
+        let events = s.players[0].link.take();
+        can_move.extend(metadata_values(&events, creaking, 16));
+        active.extend(metadata_values(&events, creaking, 17));
+    }
+    assert!(
+        can_move.contains(&MetadataValue::Boolean(false)),
+        "{can_move:?}"
+    );
+    assert!(active.contains(&MetadataValue::Boolean(true)), "{active:?}");
+    assert_eq!(s.server.mob_target(creaking), Some(player));
+    let frozen_at = snapshot(&s, Kind::Creaking, creaking).position;
+    s.tick(40);
+    assert_eq!(snapshot(&s, Kind::Creaking, creaking).position, frozen_at);
+}
+
+#[test]
+fn a_creaking_bound_to_a_missing_heart_dies_at_once() {
+    let mut s = ready(Vec::new());
+    let creaking = summon(
+        &mut s,
+        Kind::Creaking,
+        "{home_pos:[I;3,70,3]}",
+        Vec3::new(8.5, 64.0, 8.5),
+    );
+    s.tick(3);
+    assert!(!exists(&s, Kind::Creaking, creaking) || health(&s, Kind::Creaking, creaking) <= 0.0);
+}
+
+#[test]
+fn a_creaking_bound_to_a_heart_keeps_its_home_and_is_not_hurt_by_a_projectile_hit() {
+    let mut s = ready(Vec::new());
+    console(&mut s, "setblock 3 70 3 minecraft:creaking_heart");
+    let creaking = summon(
+        &mut s,
+        Kind::Creaking,
+        "{home_pos:[I;3,70,3],NoAI:1b}",
+        Vec3::new(8.5, 64.0, 8.5),
+    );
+    s.tick(5);
+    assert!(exists(&s, Kind::Creaking, creaking));
+    let saved = s.server.saved_entity(creaking).unwrap();
+    assert_eq!(saved.get_int_array("home_pos"), Some(&[3, 70, 3][..]));
+    let before = health(&s, Kind::Creaking, creaking);
+    summon(
+        &mut s,
+        Kind::BreezeWindCharge,
+        "{Motion:[0.5d,0.0d,0.0d]}",
+        Vec3::new(5.5, 65.0, 8.5),
+    );
+    s.tick(10);
+    assert_eq!(health(&s, Kind::Creaking, creaking), before);
+}
+
+#[test]
+fn an_unbound_creaking_dies_to_the_same_projectile_hit() {
+    let mut s = ready(Vec::new());
+    let creaking = summon(
+        &mut s,
+        Kind::Creaking,
+        "{NoAI:1b}",
+        Vec3::new(8.5, 64.0, 8.5),
+    );
+    summon(
+        &mut s,
+        Kind::BreezeWindCharge,
+        "{Motion:[0.5d,0.0d,0.0d]}",
+        Vec3::new(5.5, 65.0, 8.5),
+    );
+    s.tick(10);
+    assert!(!exists(&s, Kind::Creaking, creaking) || health(&s, Kind::Creaking, creaking) <= 0.0);
 }

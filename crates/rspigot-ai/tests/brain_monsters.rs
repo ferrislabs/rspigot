@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rspigot_ai::{
     Activity, AiContext, AiWorld, BehaviorControl, BehaviorCx, BrainState, BreezeAction, Facts,
     GoalSettings, Living, MemoryModuleType, MemoryValue, MobAction, MobAi, MobBody, MobControl,
-    MobView, NO_EXPIRY, SensorKind, Status, TargetKind,
+    MobView, NO_EXPIRY, NearestVisibleLivingEntities, SensorKind, Status, TargetKind,
 };
 use rspigot_blocks::{BlockKind, StateId};
 use rspigot_domain::entity::living::LivingState;
@@ -193,6 +193,15 @@ impl Bench {
 
     fn actions(&mut self) -> Vec<MobAction> {
         std::mem::take(&mut self.controls.actions)
+    }
+
+    fn see(&mut self, entities: &[Living]) {
+        self.world.others.extend(entities.iter().copied());
+        let ids = entities.iter().map(|living| living.id).collect();
+        self.set(
+            MemoryModuleType::NearestVisibleLivingEntities,
+            MemoryValue::Visible(NearestVisibleLivingEntities::new(ids)),
+        );
     }
 
     fn tick_sensor(&mut self, mut sensor: SensorKind) {
@@ -1188,4 +1197,360 @@ fn the_breeze_memories_round_trip_through_the_brain_nbt() {
             .and_then(MemoryValue::as_block),
         Some(BlockPos::new(3, 64, -2))
     );
+}
+
+const CREAKING_HOME: Vec3 = Vec3::new(0.5, 64.0, 0.5);
+
+fn creaking_ai(seed: i64) -> MobAi {
+    MobAi::new(EntityKind::Creaking, seed, GoalSettings::default())
+}
+
+fn creaking_behaviors(activity: Activity) -> Vec<(i32, String)> {
+    let ai = creaking_ai(1);
+    let brain = ai.behavior_brain().expect("a brain");
+    brain
+        .activity_behaviors(activity)
+        .into_iter()
+        .map(|(priority, control)| (priority, describe(control)))
+        .collect()
+}
+
+const CREAKING_KNOWN: [&str; 11] = [
+    "Swim",
+    "LookAtTargetSink",
+    "MoveToTargetSink",
+    "StartAttacking",
+    "SetEntityLookTargetSometimes",
+    "SetWalkTargetFromAttackTargetIfTargetOutOfReach",
+    "MeleeAttack",
+    "StopAttackingIfTargetInvalid",
+    "Gate",
+    "DoNothing",
+    "RandomStroll",
+];
+
+fn creaking_leading(list: &[(i32, String)]) -> Vec<(i32, &'static str)> {
+    list.iter()
+        .map(|(priority, text)| (*priority, named(text, &CREAKING_KNOWN)))
+        .collect()
+}
+
+#[test]
+fn the_creaking_activities_follow_the_vanilla_priorities() {
+    assert_eq!(
+        creaking_leading(&creaking_behaviors(Activity::Core)),
+        vec![
+            (0, "Swim"),
+            (1, "LookAtTargetSink"),
+            (2, "MoveToTargetSink")
+        ]
+    );
+    assert_eq!(
+        creaking_leading(&creaking_behaviors(Activity::Idle)),
+        vec![
+            (10, "StartAttacking"),
+            (11, "SetEntityLookTargetSometimes"),
+            (12, "Gate"),
+        ]
+    );
+    assert_eq!(
+        creaking_leading(&creaking_behaviors(Activity::Fight)),
+        vec![
+            (10, "SetWalkTargetFromAttackTargetIfTargetOutOfReach"),
+            (11, "MeleeAttack"),
+            (12, "StopAttackingIfTargetInvalid"),
+        ]
+    );
+}
+
+#[test]
+fn the_creaking_behavior_parameters_follow_the_vanilla_constructors() {
+    let core = creaking_behaviors(Activity::Core);
+    assert!(core[0].1.contains("chance: 0.8"));
+    assert!(core[0].1.contains("requires_can_move: true"));
+    assert!(core[1].1.contains("min_duration: 45"));
+    assert!(core[1].1.contains("max_duration: 90"));
+    let idle = creaking_behaviors(Activity::Idle);
+    assert!(idle[0].1.contains("CreakingActive"));
+    assert!(idle[1].1.contains("max_dist_sqr: 64.0"));
+    assert!(idle[1].1.contains("min_inclusive: 30"));
+    assert!(idle[1].1.contains("max_inclusive: 60"));
+    assert!(idle[2].1.contains("0.3"));
+    let fight = creaking_behaviors(Activity::Fight);
+    assert!(fight[0].1.contains("speed_modifier: 1.0"));
+    assert!(fight[1].1.contains("CreakingCanMove"));
+    assert!(fight[1].1.contains("cooldown_between_attacks: 40"));
+}
+
+fn gazing(id: i32, from: Vec3) -> Living {
+    let mut player = target_at(id, from);
+    let dx = CREAKING_HOME.x - from.x;
+    let dz = CREAKING_HOME.z - from.z;
+    player.yaw = (dz.atan2(dx).to_degrees() - 90.0) as f32;
+    player.pitch = 0.0;
+    player
+}
+
+fn watched(players: Vec<Living>, world_edits: impl FnOnce(&mut Field)) -> (MobAi, MobView, Field) {
+    let mob = view(EntityKind::Creaking, CREAKING_HOME);
+    let mut world = world_with(players);
+    world_edits(&mut world);
+    (creaking_ai(2), mob, world)
+}
+
+fn creaking_actions(ai: &mut MobAi) -> Vec<MobAction> {
+    ai.take_actions()
+}
+
+fn settle(ai: &mut MobAi, mob: &MobView, world: &Field) {
+    for _ in 0..25 {
+        think(ai, mob, world);
+    }
+}
+
+fn has_sound(actions: &[MobAction], sound: &str) -> bool {
+    actions
+        .iter()
+        .any(|action| matches!(action, MobAction::Sound { sound: found, .. } if *found == sound))
+}
+
+#[test]
+fn a_creaking_with_nobody_around_moves_and_stays_inactive() {
+    let (mut ai, mob, world) = watched(vec![], |_| {});
+    settle(&mut ai, &mob, &world);
+    assert_eq!(ai.creaking_state(), rspigot_ai::CreakingState::default());
+    assert!(
+        !creaking_actions(&mut ai)
+            .iter()
+            .any(|action| matches!(action, MobAction::Creaking(_)))
+    );
+}
+
+#[test]
+fn a_creaking_freezes_and_wakes_up_when_a_nearby_player_looks_at_it() {
+    let (mut ai, mob, world) = watched(vec![gazing(7, Vec3::new(6.5, 64.0, 0.5))], |_| {});
+    settle(&mut ai, &mob, &world);
+    assert_eq!(
+        ai.creaking_state(),
+        rspigot_ai::CreakingState {
+            can_move: false,
+            active: true
+        }
+    );
+    let actions = creaking_actions(&mut ai);
+    assert!(
+        actions.contains(&MobAction::Creaking(rspigot_ai::CreakingAction::SetState {
+            can_move: false,
+            active: true
+        }))
+    );
+    assert!(has_sound(&actions, "minecraft:entity.creaking.activate"));
+    assert!(has_sound(&actions, "minecraft:entity.creaking.freeze"));
+    assert_eq!(ai.target(), Some(EntityId(7)));
+}
+
+#[test]
+fn a_frozen_creaking_uses_the_default_idle_activity_and_never_fights() {
+    let (mut ai, mob, world) = watched(vec![gazing(7, Vec3::new(6.5, 64.0, 0.5))], |_| {});
+    settle(&mut ai, &mob, &world);
+    assert_eq!(active(&ai), Some(Activity::Idle));
+}
+
+#[test]
+fn a_creaking_chases_once_the_player_looks_away() {
+    let (mut ai, mob, mut world) = watched(vec![gazing(7, Vec3::new(6.5, 64.0, 0.5))], |_| {});
+    settle(&mut ai, &mob, &world);
+    creaking_actions(&mut ai);
+    world.players[0].yaw += 180.0;
+    for _ in 0..3 {
+        think(&mut ai, &mob, &world);
+    }
+    assert_eq!(
+        ai.creaking_state(),
+        rspigot_ai::CreakingState {
+            can_move: true,
+            active: true
+        }
+    );
+    assert!(has_sound(
+        &creaking_actions(&mut ai),
+        "minecraft:entity.creaking.unfreeze"
+    ));
+    assert_eq!(active(&ai), Some(Activity::Fight));
+}
+
+#[test]
+fn a_creaking_ignores_a_gaze_from_beyond_twelve_blocks() {
+    let (mut ai, mob, world) = watched(vec![gazing(7, Vec3::new(14.5, 64.0, 0.5))], |_| {});
+    settle(&mut ai, &mob, &world);
+    assert_eq!(ai.creaking_state(), rspigot_ai::CreakingState::default());
+}
+
+#[test]
+fn a_wall_hides_the_creaking_from_the_gaze_but_glass_does_not() {
+    let (mut walled, mob, world) = watched(vec![gazing(7, Vec3::new(6.5, 64.0, 0.5))], |world| {
+        for y in 63..=66 {
+            world.put(3, y, 0, BlockKind::Stone.default_state());
+        }
+    });
+    settle(&mut walled, &mob, &world);
+    assert_eq!(
+        walled.creaking_state(),
+        rspigot_ai::CreakingState::default()
+    );
+    let (mut glassed, mob, world) = watched(vec![gazing(7, Vec3::new(6.5, 64.0, 0.5))], |world| {
+        for y in 63..=66 {
+            world.put(3, y, 0, BlockKind::Glass.default_state());
+        }
+    });
+    settle(&mut glassed, &mob, &world);
+    assert!(!glassed.creaking_state().can_move);
+}
+
+#[test]
+fn a_creaking_ignores_players_it_cannot_attack() {
+    let mut protected = gazing(7, Vec3::new(6.5, 64.0, 0.5));
+    protected.invulnerable = true;
+    let (mut ai, mob, world) = watched(vec![protected], |_| {});
+    settle(&mut ai, &mob, &world);
+    assert_eq!(ai.creaking_state(), rspigot_ai::CreakingState::default());
+}
+
+#[test]
+fn a_player_wearing_a_carved_pumpkin_stops_freezing_an_awake_creaking() {
+    let (mut ai, mob, mut world) = watched(vec![gazing(7, Vec3::new(6.5, 64.0, 0.5))], |_| {});
+    settle(&mut ai, &mob, &world);
+    assert!(!ai.creaking_state().can_move);
+    world.players[0].facts.gaze_disguise = true;
+    for _ in 0..3 {
+        think(&mut ai, &mob, &world);
+    }
+    assert_eq!(
+        ai.creaking_state(),
+        rspigot_ai::CreakingState {
+            can_move: true,
+            active: true
+        }
+    );
+}
+
+#[test]
+fn an_awake_creaking_falls_asleep_when_no_attackable_player_remains() {
+    let (mut ai, mob, mut world) = watched(vec![gazing(7, Vec3::new(6.5, 64.0, 0.5))], |_| {});
+    settle(&mut ai, &mob, &world);
+    creaking_actions(&mut ai);
+    world.players.clear();
+    settle(&mut ai, &mob, &world);
+    assert_eq!(ai.creaking_state(), rspigot_ai::CreakingState::default());
+    assert!(has_sound(
+        &creaking_actions(&mut ai),
+        "minecraft:entity.creaking.deactivate"
+    ));
+    assert_eq!(ai.target(), None);
+}
+
+fn fighting_bench() -> Bench {
+    let mut bench = Bench::new(
+        EntityKind::Creaking,
+        CREAKING_HOME,
+        world_with(vec![target_at(7, Vec3::new(1.5, 64.0, 0.5))]),
+        1,
+    );
+    bench.set(MemoryModuleType::AttackTarget, entity(7));
+    bench.see(&[]);
+    bench
+}
+
+#[test]
+fn a_creaking_loses_a_target_that_is_not_among_the_visible_attackable_players() {
+    let mut bench = fighting_bench();
+    let mut control = {
+        let ai = creaking_ai(1);
+        let list = ai
+            .behavior_brain()
+            .unwrap()
+            .activity_behaviors(Activity::Fight);
+        list[2].1.clone()
+    };
+    bench.set(
+        MemoryModuleType::NearestVisibleAttackablePlayers,
+        MemoryValue::Entities(vec![EntityId(7)]),
+    );
+    assert!(bench.start(&mut control, NOW));
+    assert_eq!(bench.get(MemoryModuleType::AttackTarget), Some(&entity(7)));
+    bench.tick(&mut control, NOW);
+    bench.set(
+        MemoryModuleType::NearestVisibleAttackablePlayers,
+        MemoryValue::Entities(vec![EntityId(9)]),
+    );
+    assert!(bench.start(&mut control, NOW + 1));
+    assert!(bench.get(MemoryModuleType::AttackTarget).is_none());
+}
+
+#[test]
+fn a_creaking_only_swings_while_it_can_move() {
+    let mut bench = fighting_bench();
+    bench.see(&[target_at(7, Vec3::new(1.5, 64.0, 0.5))]);
+    let mut control = {
+        let ai = creaking_ai(1);
+        let list = ai
+            .behavior_brain()
+            .unwrap()
+            .activity_behaviors(Activity::Fight);
+        list[1].1.clone()
+    };
+    bench.controls.creaking.can_move = false;
+    assert!(!bench.start(&mut control, NOW));
+    bench.controls.creaking.can_move = true;
+    assert!(bench.start(&mut control, NOW));
+    assert!(bench.actions().contains(&MobAction::Attack(EntityId(7))));
+    assert_eq!(
+        bench
+            .state
+            .memories
+            .time_until_expiry(MemoryModuleType::AttackCoolingDown),
+        Some(40)
+    );
+}
+
+#[test]
+fn an_awake_creaking_only_starts_attacking_the_visible_player_while_active() {
+    let mut bench = Bench::new(
+        EntityKind::Creaking,
+        CREAKING_HOME,
+        world_with(vec![target_at(7, Vec3::new(5.5, 64.0, 0.5))]),
+        1,
+    );
+    bench.set(MemoryModuleType::NearestVisibleAttackablePlayer, entity(7));
+    let mut control = {
+        let ai = creaking_ai(1);
+        let list = ai
+            .behavior_brain()
+            .unwrap()
+            .activity_behaviors(Activity::Idle);
+        list[0].1.clone()
+    };
+    assert!(!bench.start(&mut control, NOW));
+    bench.controls.creaking.active = true;
+    assert!(bench.start(&mut control, NOW));
+    assert_eq!(bench.get(MemoryModuleType::AttackTarget), Some(&entity(7)));
+}
+
+#[test]
+fn a_creaking_swim_only_starts_while_it_can_move() {
+    let mut bench = Bench::new(EntityKind::Creaking, CREAKING_HOME, world_with(vec![]), 1);
+    bench.mob.fluid.water_height = 1.0;
+    bench.mob.fluid.in_water = true;
+    let mut control = {
+        let ai = creaking_ai(1);
+        let list = ai
+            .behavior_brain()
+            .unwrap()
+            .activity_behaviors(Activity::Core);
+        list[0].1.clone()
+    };
+    bench.controls.creaking.can_move = false;
+    assert!(!bench.start(&mut control, NOW));
+    bench.controls.creaking.can_move = true;
+    assert!(bench.start(&mut control, NOW));
 }
