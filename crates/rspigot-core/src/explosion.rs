@@ -35,13 +35,13 @@ pub(crate) enum BlockInteraction {
     DestroyWithDecay,
 }
 
-struct HitEntity {
-    id: EntityId,
-    player: Option<PlayerId>,
-    position: Vec3,
-    eye: Vec3,
-    bounds: Aabb,
-    living: bool,
+pub(crate) struct HitEntity {
+    pub(crate) id: EntityId,
+    pub(crate) player: Option<PlayerId>,
+    pub(crate) position: Vec3,
+    pub(crate) eye: Vec3,
+    pub(crate) bounds: Aabb,
+    pub(crate) living: bool,
 }
 
 impl<L: ClientLink> Server<L> {
@@ -346,6 +346,7 @@ impl<L: ClientLink> Server<L> {
                     knockback,
                     large,
                     play_sound: !silent,
+                    gust: None,
                 },
             );
         }
@@ -355,7 +356,11 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn explosion_targets(&self, source: Option<EntityId>, area: &Aabb) -> Vec<HitEntity> {
+    pub(crate) fn explosion_targets(
+        &self,
+        source: Option<EntityId>,
+        area: &Aabb,
+    ) -> Vec<HitEntity> {
         let mut out: Vec<HitEntity> = self
             .entities
             .store
