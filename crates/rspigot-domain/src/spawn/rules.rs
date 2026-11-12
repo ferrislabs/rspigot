@@ -19,6 +19,7 @@ const UNLIMITED_BLOCK_LIGHT: i32 = 15;
 const THUNDER_DARKEN: i32 = 10;
 const GRASS_WALK_TARGET: f32 = 10.0;
 const DEFAULT_CLUSTER_SIZE: i32 = 4;
+const PATROL_BLOCK_LIGHT_LIMIT: i32 = 9;
 
 pub trait RandomLevel: SpawnLevel + RandomSource {}
 
@@ -57,6 +58,9 @@ pub fn check_predicate(
                 && (reason.is_spawner() || can_see_sky(level, pos))
         }
         SpawnPredicate::Stray => check_stray_spawn_rules(level, kind, reason, pos),
+        SpawnPredicate::PatrollingMonster => {
+            check_patrolling_monster_spawn_rules(level, kind, reason, pos)
+        }
         SpawnPredicate::Rabbit => check_rabbit_spawn_rules(level, pos),
         SpawnPredicate::Fox => super::fox::check_fox_spawn_rules(level, pos),
         SpawnPredicate::Ocelot => level.next_int(OCELOT_SPAWN_CHANCE) != 0,
@@ -83,6 +87,16 @@ fn check_rabbit_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
         level.block_or_air(pos.offset(0, -1, 0)),
         RABBITS_SPAWNABLE_ON,
     ) && is_bright_enough_to_spawn(level, pos)
+}
+
+pub fn check_patrolling_monster_spawn_rules(
+    level: &impl SpawnLevel,
+    kind: EntityKind,
+    reason: SpawnReason,
+    pos: BlockPos,
+) -> bool {
+    level.block_light(pos) < PATROL_BLOCK_LIGHT_LIMIT
+        && check_mob_spawn_rules(level, kind, reason, pos)
 }
 
 fn check_stray_spawn_rules(
@@ -113,6 +127,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::AnyLightMonster
                 | SpawnPredicate::SurfaceMonsters
                 | SpawnPredicate::Stray
+                | SpawnPredicate::PatrollingMonster
                 | SpawnPredicate::Rabbit
                 | SpawnPredicate::Fox
                 | SpawnPredicate::Ocelot
@@ -135,6 +150,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Monster
                     | MobClass::Silverfish
                     | MobClass::Giant
+                    | MobClass::Pillager
                     | MobClass::Enderman
             )
         ),
@@ -244,6 +260,7 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::Monster => -(level.light_level_dependent_magic_value(pos) - 0.5),
         MobClass::Silverfish => super::silverfish::walk_target_value(level, pos),
         MobClass::Giant => level.light_level_dependent_magic_value(pos) - 0.5,
+        MobClass::Pillager => 0.0,
         MobClass::Enderman => 0.0,
         _ => return None,
     })
@@ -358,6 +375,64 @@ mod tests {
 
     use super::*;
     use crate::spawn::testing::Level;
+
+    #[test]
+    fn pillagers_spawn_on_valid_ground_in_any_sky_light_but_not_in_block_light_above_eight() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut level = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        level.sky = 15;
+        for block in 0..=8 {
+            level.block = block;
+            assert!(
+                check_spawn_rules(&mut level, EntityKind::Pillager, SpawnReason::Natural, pos),
+                "{block}"
+            );
+        }
+        level.block = 9;
+        assert!(!check_spawn_rules(
+            &mut level,
+            EntityKind::Pillager,
+            SpawnReason::Natural,
+            pos
+        ));
+        level.block = 0;
+        let mut air = Level::floor(crate::BlockStateId::AIR, 63);
+        assert!(!check_spawn_rules(
+            &mut air,
+            EntityKind::Pillager,
+            SpawnReason::Natural,
+            pos
+        ));
+        assert!(check_spawn_rules(
+            &mut air,
+            EntityKind::Pillager,
+            SpawnReason::TrialSpawner,
+            pos
+        ));
+    }
+
+    #[test]
+    fn pillagers_are_not_allowed_in_peaceful_and_have_ported_rules() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut level = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        level.difficulty = Difficulty::Peaceful;
+        assert!(!check_spawn_rules(
+            &mut level,
+            EntityKind::Pillager,
+            SpawnReason::Natural,
+            pos
+        ));
+        assert!(rules_ported(EntityKind::Pillager));
+        assert_eq!(
+            walk_target_value(&level, EntityKind::Pillager, pos),
+            Some(0.0)
+        );
+        assert!(mob_check_spawn_rules(
+            &level,
+            EntityKind::Pillager,
+            pos.center()
+        ));
+    }
 
     #[test]
     fn mooshrooms_need_mycelium_and_light() {
