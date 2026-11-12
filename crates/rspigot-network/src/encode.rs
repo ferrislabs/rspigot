@@ -1292,6 +1292,9 @@ impl Encoder {
                                 MetadataValue::BlockPos(pos) => {
                                     EntityDataValue::BlockPos(position(*pos))
                                 }
+                                MetadataValue::OptionalBlockPos(pos) => {
+                                    EntityDataValue::OptionalBlockPos(pos.map(position))
+                                }
                                 MetadataValue::Variant(kind, id) => EntityDataValue::Variant {
                                     kind: registry_variant(*kind),
                                     id: *id as i32,

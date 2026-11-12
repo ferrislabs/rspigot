@@ -70,6 +70,7 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::Pose(p) => MetadataValue::Pose(*p),
                 SyncedValue::Item(stack) => MetadataValue::Item(stack.clone()),
                 SyncedValue::BlockPos(pos) => MetadataValue::BlockPos(*pos),
+                SyncedValue::OptionalBlockPos(pos) => MetadataValue::OptionalBlockPos(*pos),
                 SyncedValue::Variant(kind, id) => MetadataValue::Variant(*kind, *id),
                 SyncedValue::Long(v) => MetadataValue::Long(*v),
                 SyncedValue::Direction(face) => MetadataValue::Direction(*face as u8),
