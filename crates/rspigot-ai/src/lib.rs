@@ -56,14 +56,21 @@ pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };
 pub use behavior::{
-    Activity, ActivityData, Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState,
-    Codec, Condition, CountDownCooldownTicks, DEFAULT_DURATION, DEFAULT_SCAN_RATE, DoNothing,
-    DummySensor, ExpirableValue, Gate, GlobalPos, HurtBySensor, IsInWaterSensor, ItemWish,
-    Memories, MemoryModuleType, MemorySlot, MemoryStatus, MemoryValue, MobBehavior, MobControl,
-    NO_EXPIRY, NearestItemSensor, NearestLivingEntitySensor, NearestVisibleLivingEntities, OneShot,
-    OrderPolicy, PackedMemories, PlayerSensor, PositionTracker, RunOne, RunningPolicy,
-    SCHEDULE_UPDATE_INTERVAL, Schedule, Sensor, SensorKind, SensorSlot, SensorType, Sequence,
-    ShufflingList, Status, Timed, Trigger, TriggerGate, VILLAGER_PERIOD_TICKS, WalkTarget,
+    Activity, ActivityData, AdultSensor, AnimalMakeLove, AnimalPanic, AwayFrom, BabyFollowAdult,
+    Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState, Codec, Condition,
+    CountDownCooldownTicks, DEFAULT_DURATION, DEFAULT_SCAN_RATE, DoNothing, DummySensor,
+    EntityFilter, EraseMemoryIf, ExpirableValue, FollowTemptation, Gate, GlobalPos,
+    GoToTargetLocation, GoToWantedItem, HurtBySensor, IsInWaterSensor, ItemWish, LookAtTargetSink,
+    MAKE_LOVE_DURATION, MeleeAttack, Memories, MemoryModuleType, MemorySlot, MemoryStatus,
+    MemoryValue, MobBehavior, MobControl, MobPredicate, MobTrigger, MoveToTargetSink, NO_EXPIRY,
+    NearestItemSensor, NearestLivingEntitySensor, NearestVisibleLivingEntities, OneShot,
+    OrderPolicy, PackedMemories, PlayerSensor, PositionTracker, RandomLookAround, RandomStroll,
+    RunOne, RunningPolicy, SCHEDULE_UPDATE_INTERVAL, Schedule, Sensor, SensorKind, SensorSlot,
+    SensorType, Sequence, SetEntityLookTarget, SetEntityLookTargetSometimes, SetWalkTargetAwayFrom,
+    SetWalkTargetFromAttackTargetIfTargetOutOfReach, SetWalkTargetFromLookTarget, ShufflingList,
+    StartAttacking, Status, StopAttackCondition, StopAttackingIfTargetInvalid,
+    StopBeingAngryIfTargetDead, Swim, TargetErased, TargetFinder, TemptDistance, TemptingSensor,
+    Timed, Trigger, TriggerGate, UniformInt, VILLAGER_PERIOD_TICKS, WalkTarget,
     has_required_memories, is_entity_attackable, is_entity_attackable_ignoring_line_of_sight,
     is_entity_targetable, nearest_visible_entity,
 };
@@ -127,7 +134,7 @@ pub use random_pos::{
     default_pos, is_solid, is_stable_destination, land_pos, light_magic_value,
     mob_light_magic_value, move_up_out_of_solid, random_direction, walk_target_value,
 };
-pub use random_pos::{pos_away, pos_towards};
+pub use random_pos::{land_pos_away, land_pos_towards, pos_away, pos_towards};
 pub use ranged::RangedAttackGoal;
 pub use registry::{GoalSettings, ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER};
 pub use restriction::MoveTowardsRestrictionGoal;

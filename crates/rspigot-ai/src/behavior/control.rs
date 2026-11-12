@@ -273,6 +273,12 @@ pub struct Sequence<A, B> {
     second: B,
 }
 
+impl<A, B> Sequence<A, B> {
+    pub fn new(first: A, second: B) -> Self {
+        Self { first, second }
+    }
+}
+
 impl<A: Trigger, B: Trigger> Trigger for Sequence<A, B> {
     fn trigger<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) -> bool {
         self.first.trigger(cx, now) && self.second.trigger(cx, now)
@@ -312,19 +318,20 @@ pub struct TriggerGate<T> {
 }
 
 impl<T: Trigger> TriggerGate<T> {
+    pub fn new(weighted: Vec<(T, i32)>, order: OrderPolicy, running: RunningPolicy) -> Self {
+        Self {
+            order,
+            running,
+            triggers: weighted.into_iter().collect(),
+        }
+    }
+
     pub fn one_shot(
         weighted: Vec<(T, i32)>,
         order: OrderPolicy,
         running: RunningPolicy,
     ) -> OneShot<Self> {
-        OneShot::new(
-            Vec::new(),
-            Self {
-                order,
-                running,
-                triggers: weighted.into_iter().collect(),
-            },
-        )
+        OneShot::new(Vec::new(), Self::new(weighted, order, running))
     }
 
     pub fn one_shuffled(weighted: Vec<(T, i32)>) -> OneShot<Self> {

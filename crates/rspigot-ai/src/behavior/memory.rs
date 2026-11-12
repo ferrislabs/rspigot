@@ -315,6 +315,13 @@ impl MemoryValue {
         }
     }
 
+    pub fn as_uuid(&self) -> Option<Uuid> {
+        match self {
+            Self::Uuid(uuid) => Some(*uuid),
+            _ => None,
+        }
+    }
+
     pub fn as_block(&self) -> Option<BlockPos> {
         match self {
             Self::Block(pos) => Some(*pos),
