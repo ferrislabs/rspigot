@@ -17,6 +17,16 @@ const fn pose_of(stance: Stance) -> Pose {
         Stance::Crouching => Pose::Sneaking,
         Stance::LongJumping => Pose::LongJumping,
         Stance::Dying => Pose::Dying,
+        Stance::Croaking => Pose::Croaking,
+        Stance::UsingTongue => Pose::UsingTongue,
+        Stance::Sitting => Pose::Sitting,
+        Stance::Roaring => Pose::Roaring,
+        Stance::Sniffing => Pose::Sniffing,
+        Stance::Emerging => Pose::Emerging,
+        Stance::Digging => Pose::Digging,
+        Stance::Sliding => Pose::Sliding,
+        Stance::Shooting => Pose::Shooting,
+        Stance::Inhaling => Pose::Inhaling,
     }
 }
 
