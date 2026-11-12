@@ -482,6 +482,11 @@ pub(crate) struct AimStep {
 pub(crate) enum Shooter {
     Player(PlayerId),
     Mob(EntityId),
+    Crossbow {
+        mob: EntityId,
+        hand: Hand,
+        wear: i32,
+    },
 }
 
 #[derive(Debug)]

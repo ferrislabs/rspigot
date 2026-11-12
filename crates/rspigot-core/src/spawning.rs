@@ -52,6 +52,7 @@ pub(crate) struct Spawning {
     dimension: &'static DimensionSpawns,
     sky_darken: i32,
     players: Vec<SpawnPlayer>,
+    pub(crate) patrol_next_tick: i32,
 }
 
 impl Spawning {
@@ -65,6 +66,7 @@ impl Spawning {
             dimension: dimension_spawns(dimension),
             sky_darken: 0,
             players: Vec::new(),
+            patrol_next_tick: 0,
         }
     }
 }
@@ -517,10 +519,11 @@ impl<L: ClientLink> Server<L> {
                 Some(Species::Zombie(zombie))
                     if zombie.villager.is_some_and(|villager| villager.keeps_when_far(&entity.base))
             ),
-            patrolling: matches!(
-                living.mob.as_ref().map(|mob| &mob.species),
-                Some(Species::Witch(witch)) if witch.raider.patrolling
-            ),
+            patrolling: living
+                .mob
+                .as_ref()
+                .and_then(|mob| mob.species.raider())
+                .is_some_and(|raider| raider.patrolling),
         };
         let distance = nearest_distance_sqr(&self.spawning.players, entity.base.position);
         let difficulty = self.world.difficulty;
@@ -776,6 +779,7 @@ mod tests {
                 EntityKind::Panda,
                 EntityKind::Parched,
                 EntityKind::Pig,
+                EntityKind::Pillager,
                 EntityKind::PolarBear,
                 EntityKind::Rabbit,
                 EntityKind::Sheep,

@@ -433,6 +433,7 @@ impl<L: ClientLink> Server<L> {
         self.mob_ambient_tick(id);
         self.forget_dead_attackers(id);
         self.kind_ai_step(id);
+        self.crossbow_use_tick(id);
         if let Some(Entity {
             base,
             state: EntityState::Living(state),

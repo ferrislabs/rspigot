@@ -129,6 +129,7 @@ pub(crate) struct MobTable {
     pub spawn_randoms: FxHashMap<EntityId, LegacyRandom>,
     pub initial_targets: FxHashMap<EntityId, EntityId>,
     pub open_chests: Vec<crate::containers::Backing>,
+    pub charging_sounds: crate::crossbow::ChargingSoundFlags,
 }
 
 fn range_of(activation: ActivationType, ranges: &ActivationRanges) -> i32 {

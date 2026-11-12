@@ -20,6 +20,7 @@ mod ghast;
 mod iron_golem;
 mod ocelot;
 mod panda;
+mod pillager;
 mod polar_bear;
 mod rabbit;
 mod silverfish;
@@ -59,6 +60,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Rabbit => self.rabbit_view(entity, view),
             Kind::Ocelot => self.ocelot_view(entity, view),
             Kind::Witch => self.witch_view(entity, view),
+            Kind::Pillager => self.pillager_view(entity, view),
             _ => {}
         }
     }

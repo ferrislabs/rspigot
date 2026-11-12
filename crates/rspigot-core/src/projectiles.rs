@@ -45,6 +45,14 @@ struct ArrowHit {
     position: Vec3,
 }
 
+fn hit_sound_of(name: &str) -> &'static str {
+    if name == rspigot_domain::crossbow::HIT_SOUND {
+        rspigot_domain::crossbow::HIT_SOUND
+    } else {
+        arrow::HIT_SOUND
+    }
+}
+
 pub(crate) fn is_arrow_item(stack: Option<&ItemStack>) -> bool {
     stack.is_some_and(|stack| {
         rspigot_data::tags::tag("minecraft:item", ARROWS_TAG)
@@ -75,6 +83,15 @@ impl<L: ClientLink> Server<L> {
             .is_some_and(|entity| entity.base.kind == Kind::Witch)
         {
             self.witch_throw(shooter, target);
+            return;
+        }
+        if self
+            .entities
+            .store
+            .get(shooter)
+            .is_some_and(|entity| entity.base.kind == Kind::Pillager)
+        {
+            self.crossbow_attack(shooter, target);
             return;
         }
         let Some(target) = self.entity_box(target) else {
@@ -454,8 +471,8 @@ impl<L: ClientLink> Server<L> {
         else {
             return;
         };
+        let sound = hit_sound_of(&state.sound);
         let pitch = arrow::hit_block(base, state, state_at);
-        let sound = arrow::HIT_SOUND;
         let position = base.position;
         let silent = base.is_silent();
         if !silent {
@@ -556,11 +573,17 @@ impl<L: ClientLink> Server<L> {
                     ClientEvent::GameEvent(GameEvent::ArrowHitPlayer),
                 );
             }
-            if let Some(position) = self.entities.store.get(id).map(|e| e.base.position) {
+            if let Some((position, sound)) = self.entities.store.get(id).map(|e| {
+                let sound = match &e.state {
+                    EntityState::Arrow(state) => hit_sound_of(&state.sound),
+                    _ => arrow::HIT_SOUND,
+                };
+                (e.base.position, sound)
+            }) {
                 self.play_sound(
                     None,
                     position,
-                    arrow::HIT_SOUND,
+                    sound,
                     SoundSource::Neutral,
                     1.0,
                     sound_pitch,
