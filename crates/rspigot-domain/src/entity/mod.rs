@@ -35,7 +35,7 @@ pub use base::{
     DATA_SHARED_FLAGS, DATA_SILENT, DATA_TICKS_FROZEN, EntityBase, FLAG_GLOWING, FLAG_INVISIBLE,
     FLAG_ON_FIRE, MAX_AIR_SUPPLY, RemovalReason,
 };
-pub use data::{Pose, SyncedData, SyncedValue, VariantKind};
+pub use data::{Pose, StateKind, SyncedData, SyncedValue, VariantKind};
 pub use falling::FallingState;
 pub use item::ItemState;
 pub use living::{LivingState, MobState};

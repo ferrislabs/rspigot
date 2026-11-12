@@ -11,6 +11,7 @@ use crate::effect::{AttributeModifier, AttributeOperation};
 use crate::random::RandomSource;
 use crate::{BiomeId, biome};
 
+pub mod armadillo;
 pub mod blaze;
 pub mod cat;
 pub mod enderman;
@@ -202,6 +203,7 @@ pub enum Species {
     Hoglin(hoglin::HoglinState),
     Piglin(piglin::PiglinState),
     Goat(goat::GoatState),
+    Armadillo(armadillo::ArmadilloState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -385,6 +387,9 @@ impl Species {
         }
         if kind == EntityKind::Goat {
             return Self::Goat(goat::define(base));
+        }
+        if kind == EntityKind::Armadillo {
+            return Self::Armadillo(armadillo::define(base));
         }
         Self::Plain
     }

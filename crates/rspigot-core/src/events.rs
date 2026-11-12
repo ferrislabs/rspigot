@@ -316,6 +316,8 @@ pub enum MetadataValue {
     Variant(VariantKind, u32),
     Long(i64),
     Direction(u8),
+    State(StateKind, i32),
+    OptionalUnsignedInt(Option<u32>),
     OptionalEntity(Option<uuid::Uuid>),
     OptionalBlockState(Option<u32>),
     VillagerData {
@@ -325,7 +327,7 @@ pub enum MetadataValue {
     },
 }
 
-pub use rspigot_domain::entity::VariantKind;
+pub use rspigot_domain::entity::{StateKind, VariantKind};
 pub use rspigot_domain::particle::Particle;
 
 #[derive(Debug, Clone, PartialEq)]
