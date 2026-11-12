@@ -320,6 +320,7 @@ fn variants_share_the_goals_of_their_base_mob() {
     for (variant, base) in [
         (EntityKind::Husk, EntityKind::Zombie),
         (EntityKind::CaveSpider, EntityKind::Spider),
+        (EntityKind::Mooshroom, EntityKind::Cow),
     ] {
         let variant = MobAi::new(variant, 1, settings);
         let base = MobAi::new(base, 1, settings);
