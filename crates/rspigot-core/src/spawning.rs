@@ -93,15 +93,14 @@ pub(crate) fn naturally_spawns(kind: EntityKind) -> bool {
                 kind.extends("Mob")
                     && save::is_simulated(*kind)
                     && rules_ported(*kind)
-                    && has_goals(*kind)
+                    && has_ai(*kind)
             })
             .collect()
     })[usize::from(kind.id().0)]
 }
 
-fn has_goals(kind: EntityKind) -> bool {
-    let ai = MobAi::new(kind, 0, GoalSettings::default());
-    !ai.goals().goals().is_empty() || !ai.targets().goals().is_empty()
+fn has_ai(kind: EntityKind) -> bool {
+    MobAi::new(kind, 0, GoalSettings::default()).has_ai()
 }
 
 fn blocks_building(kind: EntityKind) -> bool {
@@ -798,10 +797,10 @@ mod tests {
             ]
         );
         for kind in EntityKind::ALL {
-            if has_goals(kind) {
+            if has_ai(kind) {
                 assert!(
                     naturally_spawns(kind),
-                    "{kind:?} has goals but no ported spawn rules"
+                    "{kind:?} has an AI but no ported spawn rules"
                 );
             }
         }

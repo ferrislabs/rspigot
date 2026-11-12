@@ -5,6 +5,7 @@ use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::EntityKind;
 
 use crate::action::{MobAction, TargetReason, TargetRequest};
+use crate::behavior::{BehaviorBrain, MobControl};
 use crate::blocks::BreakDoorGoal;
 use crate::combat::{MeleeAttackGoal, RangedBowAttackGoal};
 use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl, MoveStyle};
@@ -259,6 +260,7 @@ pub struct MobAi {
     goals: GoalSelector<MobGoal>,
     targets: GoalSelector<MobGoal>,
     brain: Brain,
+    behavior: Option<BehaviorBrain<MobControl>>,
     pending: Vec<GoalChange>,
     can_break_doors: bool,
 }
@@ -269,6 +271,7 @@ impl MobAi {
             goals: GoalSelector::new(),
             targets: GoalSelector::new(),
             brain: Brain::new(kind, seed),
+            behavior: None,
             pending: Vec::new(),
             can_break_doors: false,
         };
@@ -279,7 +282,53 @@ impl MobAi {
             &mut ai.brain,
             settings,
         );
+        ai.behavior = registry::register_brain(kind, &mut ai.brain.random);
         ai
+    }
+
+    pub fn has_ai(&self) -> bool {
+        self.behavior.is_some()
+            || !self.goals.goals().is_empty()
+            || !self.targets.goals().is_empty()
+    }
+
+    pub fn behavior_brain(&self) -> Option<&BehaviorBrain<MobControl>> {
+        self.behavior.as_ref()
+    }
+
+    pub fn behavior_brain_mut(&mut self) -> Option<&mut BehaviorBrain<MobControl>> {
+        self.behavior.as_mut()
+    }
+
+    pub fn set_behavior_brain(&mut self, behavior: Option<BehaviorBrain<MobControl>>) {
+        self.behavior = behavior;
+    }
+
+    pub fn save_behavior_brain(&self) -> Option<rspigot_nbt::Compound> {
+        self.behavior.as_ref().map(BehaviorBrain::save)
+    }
+
+    pub fn load_behavior_brain(&mut self, nbt: &rspigot_nbt::Compound) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            behavior.load(nbt);
+        }
+    }
+
+    pub fn stop_behavior_brain<W: AiWorld>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+    ) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            let mut context = AiContext {
+                mob,
+                world,
+                brain: &mut self.brain,
+                body,
+            };
+            behavior.stop_all(&mut context);
+        }
     }
 
     pub fn reassess_weapon(&mut self, bow: bool, hard: bool) {
@@ -459,6 +508,9 @@ impl MobAi {
             self.goals.tick(&mut context);
         }
         context.tick_navigation();
+        if let Some(behavior) = self.behavior.as_mut() {
+            behavior.tick(&mut context);
+        }
         if mob.kind == EntityKind::Fox {
             self.settle_fox(mob);
         }

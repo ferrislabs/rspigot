@@ -356,6 +356,7 @@ pub struct DamageMemory {
     pub last_hurt_mob: Option<EntityId>,
     pub last_hurt_mob_at: i32,
     pub last_source: Option<(DamageType, i64)>,
+    pub last_source_entity: Option<EntityId>,
     pub combat: CombatTracker,
 }
 
