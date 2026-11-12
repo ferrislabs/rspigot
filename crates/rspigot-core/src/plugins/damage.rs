@@ -42,7 +42,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
         _ if source.direct_block.is_some() => (
             match kind {
                 DamageType::InFire => EntityDamageCause::Fire,
-                DamageType::Magic => EntityDamageCause::Magic,
+                DamageType::Magic | DamageType::IndirectMagic => EntityDamageCause::Magic,
                 _ => EntityDamageCause::Contact,
             },
             Blame::Block(source.direct_block),
@@ -58,7 +58,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 | DamageType::FallingBlock
                 | DamageType::FallingStalactite => EntityDamageCause::FallingBlock,
                 DamageType::Fall => EntityDamageCause::Fall,
-                DamageType::Magic => EntityDamageCause::Magic,
+                DamageType::Magic | DamageType::IndirectMagic => EntityDamageCause::Magic,
                 _ => EntityDamageCause::EntityAttack,
             },
             Blame::Entity,
@@ -71,7 +71,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 DamageType::Drown => EntityDamageCause::Drowning,
                 DamageType::Wither => EntityDamageCause::Wither,
                 DamageType::OnFire => EntityDamageCause::FireTick,
-                DamageType::Magic => EntityDamageCause::Magic,
+                DamageType::Magic | DamageType::IndirectMagic => EntityDamageCause::Magic,
                 DamageType::GenericKill => EntityDamageCause::Kill,
                 _ => EntityDamageCause::Custom,
             },
