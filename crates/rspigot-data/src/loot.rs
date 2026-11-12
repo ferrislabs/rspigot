@@ -213,6 +213,10 @@ pub enum FunctionKind {
         use_input_count: bool,
     },
     SetPotion(&'static str),
+    EnchantRandomly {
+        enchantment: &'static str,
+        max_level: i32,
+    },
     SetOminousBottleAmplifier(IntProvider),
     Components(&'static str),
 }
@@ -287,7 +291,7 @@ mod tests {
     const BLOCK_TABLE_FILES: usize = 1201;
     const ENTITY_TABLE_FILES: usize = 109;
     const REFERENCED_TABLES: usize = 1;
-    const GAMEPLAY_TABLES: usize = 4;
+    const GAMEPLAY_TABLES: usize = 5;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
     const SHEEP_COLOUR_TABLES: usize = 16;
     const CHARGED_CREEPER_TABLES: usize = 6;
@@ -385,6 +389,7 @@ mod tests {
         assert_eq!(count("minecraft:entities/"), ENTITY_TABLE_FILES);
         assert!(table("minecraft:gameplay/fishing/fish").is_some());
         assert!(table("minecraft:gameplay/chicken_lay").is_some());
+        assert!(table("minecraft:gameplay/piglin_bartering").is_some());
         assert!(table("minecraft:shearing/sheep").is_some());
         assert!(table("minecraft:shearing/snow_golem").is_some());
         assert_eq!(count("minecraft:shearing/sheep/"), SHEEP_COLOUR_TABLES);
