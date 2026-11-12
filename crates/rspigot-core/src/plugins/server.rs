@@ -802,6 +802,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_regain(step, cancelled, patch_of!(patch, EntityRegainHealth));
                 Vec::new()
             }
+            Continuation::MobRegain(step) => {
+                self.finish_mob_regain(step, cancelled, patch_of!(patch, EntityRegainHealth));
+                Vec::new()
+            }
             Continuation::Exhaust(step) => {
                 self.finish_exhaust(step, cancelled, patch_of!(patch, EntityExhaustion));
                 Vec::new()
@@ -828,6 +832,14 @@ impl<L: ClientLink> Server<L> {
             }
             Continuation::PickupItem(step) => {
                 self.finish_pickup(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Gather(step) => {
+                self.finish_gather(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::MobPickup(step) => {
+                self.finish_mob_pickup(*step, cancelled);
                 Vec::new()
             }
             Continuation::ChangeBlock(step) => {
@@ -880,6 +892,14 @@ impl<L: ClientLink> Server<L> {
                 if !cancelled {
                     self.finish_love(*step, patch_of!(patch, EntityEnterLoveMode));
                 }
+                Vec::new()
+            }
+            Continuation::Tame(step) => {
+                self.finish_tame(step, cancelled);
+                Vec::new()
+            }
+            Continuation::PigAnger(step) => {
+                self.finish_pig_zombie_anger(step, cancelled, patch_of!(patch, PigZombieAnger));
                 Vec::new()
             }
             Continuation::Dye(step) => {

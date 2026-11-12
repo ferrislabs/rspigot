@@ -7,11 +7,13 @@ use super::ageable::AgeableState;
 use super::base::EntityBase;
 use super::data::{Pose, SyncedValue};
 use super::fluid;
+use super::neutral::{self, NeutralState};
 use super::physics::{
     self, BlockView, Landing, MoveTraits, apply_inside_blocks, block_jump_factor, friction,
     has_tag, move_entity, movement_affecting_pos,
 };
 use super::species::Species;
+use super::tamable::{self, TamableState};
 use crate::attribute;
 use crate::combat::{CombatEntry, CombatTracker};
 use crate::damage::{self, DamageTag, DamageType, java_clamp};
@@ -45,7 +47,7 @@ pub const ATTACK_DAMAGE: &str = "minecraft:attack_damage";
 pub const ATTACK_KNOCKBACK: &str = "minecraft:attack_knockback";
 pub const SAFE_FALL_DISTANCE: &str = "minecraft:safe_fall_distance";
 pub const FALL_DAMAGE_MULTIPLIER: &str = "minecraft:fall_damage_multiplier";
-const COOLDOWN_THRESHOLD: f32 = 10.0;
+pub const COOLDOWN_THRESHOLD: f32 = 10.0;
 const HELMET_FACTOR: f32 = 0.75;
 const FALL_DAMAGE_IMMUNE: &str = "minecraft:fall_damage_immune";
 const ENTITY_TYPES: &str = "minecraft:entity_type";
@@ -73,11 +75,19 @@ const CLIMB_BOOST: f64 = 0.2;
 const APPLIED_INPUT_DECAY: f32 = 0.98;
 const FLUID_SPEED: f32 = 0.02;
 const WATER_SLOW_DOWN: f32 = 0.8;
+const POLAR_BEAR_WATER_SLOW_DOWN: f32 = 0.98;
 const WATER_EFFICIENT_SLOW_DOWN: f32 = 0.546_000_06;
 const DOLPHIN_SLOW_DOWN: f32 = 0.96;
 const FLUID_VERTICAL_DRAG: f64 = 0.800_000_011_920_929;
 const LIQUID_JUMP_IMPULSE: f64 = 0.039_999_999_105_930_33;
 const NO_JUMP_DELAY: i32 = 10;
+const FLAG_SPRINTING: u8 = 8;
+const SPRINT_JUMP_BOOST: f64 = 0.2;
+const SPRINT_SPEED_BONUS: f64 = 0.300_000_011_920_928_96;
+const SPRINTING_MODIFIER: &str = "minecraft:sprinting";
+const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
+const HOP_SPEED: f32 = 0.1;
+const HOP_HORIZONTAL_LIMIT: f64 = 0.01;
 const JUMP_OUT_STEP: f64 = 0.600_000_023_841_857_9;
 const JUMP_OUT_SPEED: f64 = 0.300_000_011_920_929;
 const MIN_JUMP_POWER: f32 = 1.0e-5;
@@ -303,6 +313,8 @@ pub struct MobState {
     pub home_pos: BlockPos,
     pub home_radius: i32,
     pub ageable: Option<AgeableState>,
+    pub neutral: Option<NeutralState>,
+    pub tamable: Option<TamableState>,
     pub species: Species,
 }
 
@@ -318,6 +330,8 @@ impl Default for MobState {
             home_pos: BlockPos::new(0, 0, 0),
             home_radius: -1,
             ageable: None,
+            neutral: None,
+            tamable: None,
             species: Species::Plain,
         }
     }
@@ -335,6 +349,21 @@ pub struct DamageMemory {
     pub last_hurt_mob_at: i32,
     pub last_source: Option<(DamageType, i64)>,
     pub combat: CombatTracker,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct JumpTuning {
+    pub multiplier: f32,
+    pub hop: Option<f32>,
+}
+
+impl Default for JumpTuning {
+    fn default() -> Self {
+        Self {
+            multiplier: 1.0,
+            hop: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -356,6 +385,8 @@ pub struct LivingState {
     pub yya: f32,
     pub zza: f32,
     pub no_jump_delay: i32,
+    pub jump_tuning: JumpTuning,
+    pub jumped: bool,
     pub no_action_time: i32,
     pub last_hurt: f32,
     pub damage: DamageMemory,
@@ -426,7 +457,19 @@ impl LivingState {
             if kind.extends("AgeableMob") {
                 mob.ageable = Some(AgeableState::new(base));
             }
+            if kind.extends("TamableAnimal") {
+                tamable::define(base);
+                mob.tamable = Some(TamableState::default());
+            }
+            if neutral::is_neutral(kind) {
+                if let Some(index) = neutral::synced_end_time_index(kind) {
+                    base.data
+                        .define(index, SyncedValue::Long(neutral::NO_ANGER_END_TIME));
+                }
+                mob.neutral = Some(NeutralState::default());
+            }
             mob.species = Species::new(base);
+            mob.can_pick_up_loot = matches!(kind, EntityKind::Fox | EntityKind::Panda);
         }
         if kind.extends("Spider") {
             base.data.define(DATA_SPIDER_FLAGS, SyncedValue::Byte(0));
@@ -449,6 +492,8 @@ impl LivingState {
             yya: 0.0,
             zza: 0.0,
             no_jump_delay: 0,
+            jump_tuning: JumpTuning::default(),
+            jumped: false,
             no_action_time: 0,
             last_hurt: 0.0,
             damage: DamageMemory::default(),
@@ -1077,6 +1122,13 @@ fn jump<V: BlockView>(base: &mut EntityBase, living: &mut LivingState, view: &V,
         jump_in_liquid(base, living, can_float);
     } else if (base.on_ground || (in_water && height <= threshold)) && living.no_jump_delay == 0 {
         jump_from_ground(base, living, view);
+        living.jumped = true;
+        if let Some(lift) = living.jump_tuning.hop
+            && base.velocity.horizontal_distance_sqr() < HOP_HORIZONTAL_LIMIT
+        {
+            let boost = input_vector(Vec3::new(0.0, f64::from(lift), 1.0), HOP_SPEED, base.yaw);
+            base.velocity = base.velocity + boost;
+        }
         living.no_jump_delay = NO_JUMP_DELAY;
     }
 }
@@ -1094,7 +1146,10 @@ pub fn jump_power(base: &EntityBase, living: &mut LivingState, view: &impl Block
     let boost = living.effect("minecraft:jump_boost").map_or(0.0, |effect| {
         JUMP_BOOST_STEP * (effect.amplifier as f32 + 1.0)
     });
-    living.attribute(JUMP_STRENGTH) as f32 * block_jump_factor(base, view) + boost
+    living.attribute(JUMP_STRENGTH) as f32
+        * living.jump_tuning.multiplier
+        * block_jump_factor(base, view)
+        + boost
 }
 
 pub fn jump_from_ground(base: &mut EntityBase, living: &mut LivingState, view: &impl BlockView) {
@@ -1104,7 +1159,38 @@ pub fn jump_from_ground(base: &mut EntityBase, living: &mut LivingState, view: &
     }
     let v = base.velocity;
     base.velocity = Vec3::new(v.x, f64::from(power).max(v.y), v.z);
+    if is_sprinting(base) {
+        let radians = base.yaw * mth::DEG_TO_RAD;
+        base.velocity = base.velocity
+            + Vec3::new(
+                -f64::from(mth::sin(f64::from(radians))) * SPRINT_JUMP_BOOST,
+                0.0,
+                f64::from(mth::cos(f64::from(radians))) * SPRINT_JUMP_BOOST,
+            );
+    }
     base.needs_sync = true;
+}
+
+pub fn is_sprinting(base: &EntityBase) -> bool {
+    base.data
+        .flag(super::base::DATA_SHARED_FLAGS, FLAG_SPRINTING)
+}
+
+pub fn set_sprinting(base: &mut EntityBase, living: &mut LivingState, sprinting: bool) {
+    base.set_shared_flag(FLAG_SPRINTING, sprinting);
+    living
+        .attributes
+        .remove_modifier(MOVEMENT_SPEED, SPRINTING_MODIFIER);
+    if sprinting {
+        living.attributes.add_modifier(
+            MOVEMENT_SPEED,
+            AttributeModifier {
+                id: Cow::Borrowed(SPRINTING_MODIFIER),
+                amount: SPRINT_SPEED_BONUS,
+                operation: crate::effect::AttributeOperation::AddMultipliedTotal,
+            },
+        );
+    }
 }
 
 pub fn travel<V: BlockView>(
@@ -1117,6 +1203,14 @@ pub fn travel<V: BlockView>(
         travel_in_fluid(base, living, view, input)
     } else {
         travel_in_air(base, living, view, input)
+    }
+}
+
+fn water_slow_down(kind: EntityKind) -> f32 {
+    if kind == EntityKind::PolarBear {
+        POLAR_BEAR_WATER_SLOW_DOWN
+    } else {
+        WATER_SLOW_DOWN
     }
 }
 
@@ -1145,7 +1239,7 @@ pub fn travel_in_fluid<V: BlockView>(
     let old_y = base.position.y;
     let gravity = living.effective_gravity(base);
     let landing = if base.fluid.in_water {
-        let mut slow_down = WATER_SLOW_DOWN;
+        let mut slow_down = water_slow_down(base.kind);
         let mut speed = FLUID_SPEED;
         let mut efficiency = living.attribute(WATER_MOVEMENT_EFFICIENCY) as f32;
         if !base.on_ground {
@@ -1217,6 +1311,12 @@ mod tests {
     }
 
     #[test]
+    fn polar_bears_slow_down_less_in_water_than_other_mobs() {
+        assert_eq!(water_slow_down(EntityKind::PolarBear), 0.98);
+        assert_eq!(water_slow_down(EntityKind::Zombie), 0.8);
+    }
+
+    #[test]
     fn a_dying_mob_starts_its_death_countdown_only_once_its_death_applies() {
         let (mut base, mut living) = zombie();
         set_health(&mut base, &mut living, 0.0);
@@ -1268,5 +1368,65 @@ mod tests {
             HurtOutcome::Partial
         );
         assert_eq!(health(&base), 14.0);
+    }
+
+    struct Air;
+
+    impl BlockView for Air {
+        fn block(&self, _pos: BlockPos) -> Option<crate::BlockStateId> {
+            None
+        }
+    }
+
+    #[test]
+    fn sprinting_sets_the_flag_and_the_transient_speed_modifier() {
+        let (mut base, mut living) = zombie();
+        let walking = living.attribute(MOVEMENT_SPEED);
+        set_sprinting(&mut base, &mut living, true);
+        assert!(is_sprinting(&base));
+        let sprinting = living.attribute(MOVEMENT_SPEED);
+        assert!((sprinting - walking * 1.3).abs() < 1.0e-6);
+        set_sprinting(&mut base, &mut living, false);
+        assert!(!is_sprinting(&base));
+        assert_eq!(living.attribute(MOVEMENT_SPEED), walking);
+    }
+
+    #[test]
+    fn a_sprinting_jump_pushes_forward_along_the_yaw() {
+        let (mut base, mut living) = zombie();
+        base.yaw = 0.0;
+        set_sprinting(&mut base, &mut living, true);
+        jump_from_ground(&mut base, &mut living, &Air);
+        assert!(base.velocity.y > 0.0);
+        assert!((base.velocity.z - 0.2).abs() < 1.0e-9);
+        assert!(base.velocity.x.abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn the_jump_multiplier_scales_the_power() {
+        let (base, mut living) = zombie();
+        let plain = jump_power(&base, &mut living, &Air);
+        living.jump_tuning.multiplier = 0.5;
+        let scaled = jump_power(&base, &mut living, &Air);
+        assert!((scaled - plain * 0.5).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn a_hop_adds_a_forward_and_upward_push_only_when_nearly_still() {
+        let (mut base, mut living) = zombie();
+        base.on_ground = true;
+        living.jumping = true;
+        living.jump_tuning.hop = Some(1.5);
+        let _ = finish_ai_step(&mut base, &mut living, &Air, false);
+        assert!(living.jumped);
+        let still = base.velocity;
+        let (mut moving, mut living2) = zombie();
+        moving.on_ground = true;
+        moving.velocity = Vec3::new(0.0, 0.0, 0.5);
+        living2.jumping = true;
+        living2.jump_tuning.hop = Some(1.5);
+        let _ = finish_ai_step(&mut moving, &mut living2, &Air, false);
+        assert!(still.y > moving.velocity.y - 1.0e-9);
+        assert!(still.z > 0.0);
     }
 }

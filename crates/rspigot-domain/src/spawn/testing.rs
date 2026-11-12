@@ -147,6 +147,12 @@ impl SpawnLevel for Level {
     fn no_entity_collision(&self, _: &Aabb) -> bool {
         true
     }
+
+    fn survival_player_within(&self, center: Vec3, distance: f64) -> bool {
+        self.players
+            .iter()
+            .any(|player| player.distance_squared(center) < distance * distance)
+    }
 }
 
 impl RandomSource for Level {

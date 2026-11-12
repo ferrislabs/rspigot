@@ -1,8 +1,12 @@
 use rspigot_domain::particle::Particle;
-use rspigot_domain::{BlockPos, EntityId};
+use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::SoundSource;
 
 use crate::world::Hand;
+use crate::{
+    CatAction, EndermanAction, FoxAction, IronGolemAction, PandaAction, PolarBearAction,
+    SilverfishAction, WolfAction,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TargetReason {
@@ -13,6 +17,13 @@ pub enum TargetReason {
     ReinforcementTarget,
     ForgotTarget,
     Tempt,
+    TargetAttackedOwner,
+    OwnerAttackedTarget,
+    RandomTarget,
+    DefendVillage,
+    Collision,
+    PigZombieTarget,
+    FollowLeader,
     Unknown,
 }
 
@@ -59,4 +70,15 @@ pub enum MobAction {
     },
     BreakDoor(BlockPos),
     RaidCarrot(BlockPos),
+    SetSitting(bool),
+    TeleportTo(Vec3),
+    ForgetAndRefreshAnger(EntityId),
+    Wolf(WolfAction),
+    Cat(CatAction),
+    Fox(FoxAction),
+    Panda(PandaAction),
+    PolarBear(PolarBearAction),
+    Enderman(EndermanAction),
+    Silverfish(SilverfishAction),
+    IronGolem(IronGolemAction),
 }

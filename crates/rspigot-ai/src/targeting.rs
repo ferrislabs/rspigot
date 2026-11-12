@@ -2,7 +2,7 @@ use rspigot_domain::Vec3;
 use rspigot_entities::EntityKind;
 
 use crate::brain::AiContext;
-use crate::world::{AiWorld, Living};
+use crate::world::{AiWorld, Living, MobView};
 
 const MIN_VISIBILITY_DISTANCE: f64 = 2.0;
 
@@ -59,7 +59,7 @@ impl TargetingConditions {
         if target.id == mob.id || !target.can_be_seen_by_anyone() || !selector(target) {
             return false;
         }
-        if self.combat && !can_attack(context.world, target) {
+        if self.combat && !mob_can_attack(mob, context.world, target) {
             return false;
         }
         if self.range > 0.0 {
@@ -87,11 +87,57 @@ pub fn can_attack(world: &impl AiWorld, target: &Living) -> bool {
         && target.can_be_seen_as_enemy()
 }
 
+pub fn mob_can_attack(mob: &MobView, world: &impl AiWorld, target: &Living) -> bool {
+    can_attack(world, target) && !refuses(mob, target)
+}
+
+fn refuses(mob: &MobView, target: &Living) -> bool {
+    if mob.tamed && mob.owner == Some(target.id) {
+        return true;
+    }
+    mob.kind == EntityKind::IronGolem
+        && ((mob.player_created && target.player) || target.kind == EntityKind::Creeper)
+}
+
+pub fn valid_player_target(world: &impl AiWorld, target: &Living) -> bool {
+    target.player && !target.creative && !target.spectator && !world.peaceful()
+}
+
+pub fn is_angry_at(mob: &MobView, world: &impl AiWorld, target: &Living) -> bool {
+    if !mob_can_attack(mob, world, target) {
+        return false;
+    }
+    if valid_player_target(world, target)
+        && world.universal_anger()
+        && mob.angry
+        && mob.anger_target.is_none()
+    {
+        return true;
+    }
+    mob.anger_target == Some(target.id)
+}
+
+pub fn goal_can_attack<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    target: &Living,
+    conditions: TargetingConditions,
+) -> bool {
+    conditions.test(context, target, |_| true)
+        && context.mob.is_within_home(target.position.block())
+}
+
 pub fn valid_target(world: &impl AiWorld, target: Living) -> Option<Living> {
     if target.player && (target.creative || target.spectator) {
         return None;
     }
     can_attack(world, &target).then_some(target)
+}
+
+pub fn valid_mob_target(mob: &MobView, world: &impl AiWorld, target: Living) -> Option<Living> {
+    if target.player && (target.creative || target.spectator) {
+        return None;
+    }
+    mob_can_attack(mob, world, &target).then_some(target)
 }
 
 pub fn nearest<W: AiWorld>(

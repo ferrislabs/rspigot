@@ -1,6 +1,7 @@
 use rand::Rng;
 use rspigot_ai::{
-    AiWorld, BlockView as AiView, GoalSettings, Hand, Living, MobAi, MobBody, MobView, TargetKind,
+    AiWorld, BlockView as AiView, Facts, GoalSettings, Hand, Living, MobAi, MobBody, MobView,
+    TargetKind,
 };
 use rspigot_domain::damage::{DamageTag, DamageType};
 use rspigot_domain::entity::ageable::{self, AgeableState};
@@ -8,9 +9,11 @@ use rspigot_domain::entity::fire;
 use rspigot_domain::entity::living::{
     self, ATTACK_DAMAGE, ATTACK_KNOCKBACK, EQUIPMENT_SLOTS, HurtOutcome, HurtSource,
 };
+use rspigot_domain::entity::neutral;
 use rspigot_domain::entity::physics::{Landing, water_height};
 use rspigot_domain::entity::reward::EquipmentDrop;
 use rspigot_domain::entity::species::{self, Species};
+use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{
     Aabb, ActivationType, Entities, Entity, EntityState, FLAG_INVISIBLE, RemovalReason,
     activation_type, reward,
@@ -19,17 +22,19 @@ use rspigot_domain::entity::{EntityBase, LivingState};
 use rspigot_domain::item::{HOTBAR_START, ItemStack};
 use rspigot_domain::mth;
 use rspigot_domain::player::{GameMode, PlayerId};
+use rspigot_domain::poi::{Occupancy, PoiRecord};
 use rspigot_domain::random::LegacyRandom;
 use rspigot_domain::text::Component;
 use rspigot_domain::world::Difficulty;
 use rspigot_domain::world::WorldHeight;
-use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, SectionPos, Vec3};
 use rspigot_entities::{
     CreatureSound, CreatureSounds, EntityKind as Kind, SoundState, WaterContact,
 };
 use rspigot_items::EquipmentSlot;
 use rspigot_items::ItemKind;
 use rustc_hash::FxHashMap;
+use uuid::Uuid;
 
 use crate::chunks::ChunkManager;
 use crate::commands::Target;
@@ -49,9 +54,13 @@ use crate::plugins::{
 };
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use crate::spawning::LEASH;
 
 const OFFHAND_SLOT: usize = 45;
 const ARMOR_SLOTS: std::ops::Range<usize> = 5..9;
+const HEAD_SLOT: usize = 5;
+const GAZE_DISGUISE: rspigot_ai::TemptItems =
+    rspigot_ai::TemptItems::Tag("minecraft:gaze_disguise_equipment");
 const NO_DESPAWN_DISTANCE: f64 = 32.0;
 const ACTIVATION_HEIGHT: f64 = 256.0;
 const IMMUNITY_RECHECK: i64 = 20;
@@ -70,8 +79,11 @@ const RAIN_SKY_ALPHA: f32 = 0.3125;
 const THUNDER_SKY_ALPHA: f32 = 0.527_343_75;
 const BRIGHT_SKY_DARKEN: i32 = 4;
 const BRIGHT_LIMIT: f32 = 0.5;
-const DAMAGE_SOURCE_MEMORY: i64 = 40;
+pub(crate) const DAMAGE_SOURCE_MEMORY: i64 = 40;
+const RETALIATION_MEMORY: i64 = 100;
+const NO_WOLF_RETALIATION: &str = "minecraft:no_wolf_retaliation";
 const PANIC_CAUSES: &str = "minecraft:panic_causes";
+const PANIC_ENVIRONMENTAL_CAUSES: &str = "minecraft:panic_environmental_causes";
 pub const DEFAULT_KNOCKBACK: f64 = 0.400_000_005_960_464_5;
 pub const MIN_KNOCKBACK_DIRECTION: f64 = 9.999_999_747_378_752e-6;
 const KNOCKBACK_VERTICAL_CAP: f64 = 0.4;
@@ -116,6 +128,7 @@ pub(crate) struct MobTable {
     pub players: Vec<Living>,
     pub spawn_randoms: FxHashMap<EntityId, LegacyRandom>,
     pub initial_targets: FxHashMap<EntityId, EntityId>,
+    pub open_chests: Vec<crate::containers::Backing>,
 }
 
 fn range_of(activation: ActivationType, ranges: &ActivationRanges) -> i32 {
@@ -170,7 +183,7 @@ fn armor_cover(filled: usize) -> f32 {
     filled as f32 / ARMOR_SLOTS.len() as f32
 }
 
-fn player_target<L>(player: &Player<L>) -> Living {
+fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
     let abilities = player.abilities();
     let held = player
         .inventory
@@ -204,10 +217,87 @@ fn player_target<L>(player: &Player<L>) -> Living {
         panicking: false,
         has_target: false,
         scared: false,
+        facts: Facts {
+            uuid: player.profile.id.0,
+            tamed: false,
+            owner: None,
+            sleeping: false,
+            sleep_timer: 0,
+            cat_relaxing: false,
+            last_hurt_by_mob: player.vitals.last_hurt_by_mob,
+            last_hurt_by_mob_at: player.vitals.last_hurt_by_mob_at,
+            last_hurt_mob: player.vitals.last_hurt_mob,
+            last_hurt_mob_at: player.vitals.last_hurt_mob_at,
+            sitting: false,
+            llama_strength: 0,
+            retaliable: player
+                .vitals
+                .last_source
+                .is_some_and(|source| retaliable(source, game_time)),
+            tick_count: player.vitals.tick_count as i32,
+            gaze_disguise: player
+                .inventory
+                .get(HEAD_SLOT)
+                .is_some_and(|stack| GAZE_DISGUISE.matches(Some(stack.item))),
+        },
     }
 }
 
-fn entity_target(entity: &Entity) -> Option<Living> {
+fn retaliable(source: (DamageType, i64), game_time: i64) -> bool {
+    let (kind, at) = source;
+    game_time - at <= RETALIATION_MEMORY && !kind.in_tag(NO_WOLF_RETALIATION)
+}
+
+fn entity_facts(
+    entity: &Entity,
+    state: &LivingState,
+    game_time: i64,
+    resolve: &impl Fn(Uuid) -> Option<EntityId>,
+) -> Facts {
+    let base = &entity.base;
+    let tame =
+        state.mob.as_ref().is_some_and(|mob| mob.tamable.is_some()) && tamable::is_tame(base);
+    Facts {
+        uuid: base.uuid,
+        tamed: tame,
+        owner: tame
+            .then(|| tamable::owner(base))
+            .flatten()
+            .and_then(resolve),
+        sleeping: matches!(
+            base.data.get(rspigot_domain::entity::DATA_POSE),
+            Some(rspigot_domain::entity::SyncedValue::Pose(
+                rspigot_domain::entity::Pose::Sleeping
+            ))
+        ) || (base.kind == Kind::Fox && species::fox::is_sleeping(base)),
+        sleep_timer: 0,
+        cat_relaxing: entity.base.kind == Kind::Cat
+            && (rspigot_domain::entity::species::cat::is_lying(base)
+                || rspigot_domain::entity::species::cat::is_relax_state_one(base)),
+        last_hurt_by_mob: state.damage.last_hurt_by_mob,
+        last_hurt_by_mob_at: state.damage.last_hurt_by_mob_at,
+        last_hurt_mob: state.damage.last_hurt_mob,
+        last_hurt_mob_at: state.damage.last_hurt_mob_at,
+        sitting: tame && tamable::is_in_sitting_pose(base),
+        llama_strength: if base.kind.extends("Llama") {
+            entity.extra.get_i32("Strength").unwrap_or(0)
+        } else {
+            0
+        },
+        retaliable: state
+            .damage
+            .last_source
+            .is_some_and(|source| retaliable(source, game_time)),
+        tick_count: base.tick_count,
+        gaze_disguise: false,
+    }
+}
+
+fn entity_target(
+    entity: &Entity,
+    game_time: i64,
+    resolve: &impl Fn(Uuid) -> Option<EntityId>,
+) -> Option<Living> {
     let state = entity.living()?;
     let base = &entity.base;
     let dimensions = base.kind.dimensions();
@@ -263,6 +353,7 @@ fn entity_target(entity: &Entity) -> Option<Living> {
         panicking: false,
         has_target: false,
         scared: false,
+        facts: entity_facts(entity, state, game_time, resolve),
     })
 }
 
@@ -388,11 +479,24 @@ pub(crate) struct MobWorld<'a> {
     store: &'a Entities,
     entries: &'a FxHashMap<EntityId, MobEntry>,
     players: &'a [Living],
+    open_chests: &'a [crate::containers::Backing],
     difficulty: i32,
     game_time: i64,
     sky_darken: i32,
     rules: GameRules,
     has_day_cycle: bool,
+    thundering: bool,
+    ambient_light: f32,
+}
+
+impl MobWorld<'_> {
+    pub(crate) fn resolve(&self, uuid: Uuid) -> Option<EntityId> {
+        self.players
+            .iter()
+            .find(|player| player.facts.uuid == uuid)
+            .map(|player| player.id)
+            .or_else(|| self.store.by_uuid(uuid))
+    }
 }
 
 impl AiView for MobWorld<'_> {
@@ -426,9 +530,10 @@ impl AiWorld for MobWorld<'_> {
         if let Some(player) = self.players.iter().find(|player| player.id == id) {
             return Some(*player);
         }
+        let resolve = |uuid| self.resolve(uuid);
         self.store
             .get(id)
-            .and_then(entity_target)
+            .and_then(|entity| entity_target(entity, self.game_time, &resolve))
             .map(|living| with_mob_facts(living, self.entries))
     }
 
@@ -441,21 +546,102 @@ impl AiWorld for MobWorld<'_> {
                 .copied()
                 .collect();
         }
+        let resolve = |uuid| self.resolve(uuid);
         self.store
             .iter()
             .filter(|entity| kind.matches(entity.base.kind))
             .filter(|entity| entity.base.bounding_box().intersects(area))
-            .filter_map(entity_target)
+            .filter_map(|entity| entity_target(entity, self.game_time, &resolve))
             .map(|living| with_mob_facts(living, self.entries))
             .collect()
+    }
+
+    fn chest_open_count(&self, pos: BlockPos) -> i32 {
+        self.open_chests
+            .iter()
+            .filter(|backing| backing.positions().any(|candidate| candidate == pos))
+            .count() as i32
+    }
+
+    fn any_entity_in(&self, area: &Aabb, except: EntityId) -> bool {
+        self.players
+            .iter()
+            .any(|player| !player.spectator && player.bounds.intersects(area))
+            || self.store.iter().any(|entity| {
+                entity.base.id != except
+                    && !entity.base.is_removed()
+                    && entity.base.bounding_box().intersects(area)
+            })
+    }
+
+    fn raw_brightness_undarkened(&self, pos: BlockPos) -> i32 {
+        if pos.x < -WORLD_BORDER
+            || pos.z < -WORLD_BORDER
+            || pos.x >= WORLD_BORDER
+            || pos.z >= WORLD_BORDER
+        {
+            return MAX_LIGHT as i32;
+        }
+        let Some(chunk) = self.view.chunks.get(pos.chunk()) else {
+            return 0;
+        };
+        light_level(chunk, pos, true).max(light_level(chunk, pos, false))
+    }
+
+    fn aggressive_panda(&self, id: EntityId) -> bool {
+        self.store.get(id).is_some_and(|entity| {
+            entity.base.kind == Kind::Panda && species::panda::is_aggressive(&entity.base)
+        })
+    }
+
+    fn ambient_light(&self) -> f32 {
+        self.ambient_light
     }
 
     fn bright_outside(&self) -> bool {
         self.has_day_cycle && self.sky_darken < BRIGHT_SKY_DARKEN
     }
 
+    fn sections_to_village(&self, pos: BlockPos) -> i32 {
+        self.view
+            .chunks
+            .poi()
+            .sections_to_village(SectionPos::of(pos))
+    }
+
+    fn pois_in_range(&self, center: BlockPos, radius: i32, occupancy: Occupancy) -> Vec<PoiRecord> {
+        self.view
+            .chunks
+            .poi()
+            .in_range(|_| true, center, radius, occupancy)
+    }
+
     fn mob_griefing(&self) -> bool {
         self.rules.mob_griefing
+    }
+
+    fn thundering(&self) -> bool {
+        self.thundering
+    }
+
+    fn items_in(&self, area: &Aabb) -> Vec<rspigot_ai::DroppedItem> {
+        self.store
+            .iter()
+            .filter_map(|entity| {
+                let EntityState::Item(state) = &entity.state else {
+                    return None;
+                };
+                let bounds = entity.base.bounding_box();
+                bounds.intersects(area).then_some(rspigot_ai::DroppedItem {
+                    id: entity.base.id,
+                    position: entity.base.position,
+                    item: rspigot_domain::entity::item::stack(&entity.base)?.item,
+                    bounds,
+                    has_pickup_delay: state.pickup_delay > 0,
+                    alive: !entity.base.is_removed(),
+                })
+            })
+            .collect()
     }
 
     fn universal_anger(&self) -> bool {
@@ -501,6 +687,8 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let kind = entity.base.kind;
+        let fox_red = species::fox::variant(&entity.base) == species::fox::Variant::Red;
+        let cat_tame = kind == Kind::Cat && tamable::is_tame(&entity.base);
         let activation = activation_type(kind);
         let ranges = self.config.activation;
         let seed = self.rng.random::<i64>();
@@ -511,10 +699,42 @@ impl<L: ClientLink> Server<L> {
         if let Some(random) = self.entities.mobs.spawn_randoms.remove(&id) {
             ai.brain_mut().random = random;
         }
+        let mut restored_target = false;
         if let Some(target) = self.entities.mobs.initial_targets.remove(&id) {
             ai.set_target(Some(target));
+            restored_target = true;
+            self.kind_target_changed(id, Some(target));
+        }
+        if kind == Kind::Cat {
+            ai.reassess_cat_tame_goals(cat_tame);
         }
         let hard = self.world.difficulty == Difficulty::Hard;
+        let game_time = self.world.level.game_time;
+        let mut remembered = None;
+        if let Some(Entity {
+            base,
+            state: EntityState::Living(living),
+            ..
+        }) = self.entities.store.get_mut(id)
+            && let Some(anger) = living.mob.as_mut().and_then(|mob| mob.neutral.as_mut())
+        {
+            anger.resolve_legacy(game_time);
+            neutral::sync(base, anger);
+            remembered = anger.target;
+        }
+        if let Some(uuid) = remembered {
+            let found = self
+                .players
+                .values()
+                .find(|player| player.profile.id.0 == uuid)
+                .map(|player| player.entity_id)
+                .or_else(|| self.entities.store.by_uuid(uuid));
+            if let Some(target) = found {
+                ai.set_target(Some(target));
+                restored_target = true;
+                self.kind_target_changed(id, Some(target));
+            }
+        }
         if let Some(living) = self.entities.store.get_mut(id).and_then(|e| e.living_mut()) {
             let bow = living
                 .equipment(EquipmentSlot::Mainhand)
@@ -524,12 +744,21 @@ impl<L: ClientLink> Server<L> {
                     chicken.egg_time = Some(species::next_egg_time(&mut ai.brain_mut().random));
                 }
                 Some(Species::Skeleton(_)) => ai.reassess_weapon(bow, hard),
-                Some(Species::Zombie(zombie)) if kind == Kind::Zombie => {
+                Some(Species::Fox(fox)) if fox.hunts => {
+                    ai.fox_target_goals(fox_red);
+                }
+                Some(Species::Zombie(zombie))
+                    if matches!(
+                        kind,
+                        Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
+                    ) =>
+                {
                     ai.set_can_break_doors(zombie.can_break_doors);
                 }
                 _ => {}
             }
         }
+        self.kind_registered(id, &mut ai);
         self.entities.mobs.entries.insert(
             id,
             MobEntry {
@@ -540,17 +769,28 @@ impl<L: ClientLink> Server<L> {
                 ambient_sound_time: 0,
             },
         );
+        if restored_target {
+            self.kind_acquired_target(id);
+        }
     }
 
     pub(crate) fn refresh_mob_players(&mut self) {
+        let game_time = self.world.level.game_time;
         let mut players: Vec<Living> = self
             .players
             .values()
             .filter(|player| !player.vitals.removed)
-            .map(player_target)
+            .map(|player| player_target(player, game_time))
             .collect();
         players.sort_by_key(|player| player.id);
         self.entities.mobs.players = players;
+        self.entities.mobs.open_chests = self
+            .players
+            .values()
+            .filter_map(|player| player.open_menu.as_ref())
+            .map(|open| open.backing)
+            .filter(|backing| backing.entity.is_some() || backing.ender)
+            .collect();
     }
 
     pub(crate) fn activate_entities(&mut self) {
@@ -643,11 +883,14 @@ impl<L: ClientLink> Server<L> {
             store: &self.entities.store,
             entries: &self.entities.mobs.entries,
             players: &self.entities.mobs.players,
+            open_chests: &self.entities.mobs.open_chests,
             difficulty: i32::from(self.world.difficulty.id()),
             game_time: self.world.level.game_time,
             sky_darken,
             rules: self.config.rules,
             has_day_cycle: self.world.dimension.has_skylight,
+            thundering: self.world.level.raining && self.world.level.thundering,
+            ambient_light: ambient_light_of(&self.world.dimension),
         }
     }
 
@@ -662,7 +905,7 @@ impl<L: ClientLink> Server<L> {
         rspigot_ai::light_magic_value(&world, pos)
     }
 
-    fn mob_view(&self, id: EntityId) -> Option<MobView> {
+    pub(crate) fn mob_view(&self, id: EntityId) -> Option<MobView> {
         let entity = self.entities.store.get(id)?;
         let state = entity.living()?;
         let base = &entity.base;
@@ -677,6 +920,10 @@ impl<L: ClientLink> Server<L> {
         view.panic = state.damage.last_source.is_some_and(|(kind, at)| {
             self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY && kind.in_tag(PANIC_CAUSES)
         });
+        view.panic_environmental = state.damage.last_source.is_some_and(|(kind, at)| {
+            self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY
+                && kind.in_tag(PANIC_ENVIRONMENTAL_CAUSES)
+        });
         view.using_item = state.using_item.map(|(slot, _)| {
             if slot == EquipmentSlot::Offhand {
                 Hand::Off
@@ -688,6 +935,18 @@ impl<L: ClientLink> Server<L> {
         view.swell_dir = species::swell_dir(base);
         view.light = self.light_at_eyes(entity);
         view.swinging = state.swing.is_some();
+        let world = self.mob_world(sky_darken(&self.world.level));
+        view.owner = view
+            .tamed
+            .then(|| tamable::owner(base))
+            .flatten()
+            .and_then(|uuid| world.resolve(uuid));
+        if let Some(neutral) = &mob.neutral {
+            view.angry = neutral.is_angry(self.world.level.game_time);
+            view.anger_target = neutral.target.and_then(|uuid| world.resolve(uuid));
+        }
+        view.leashed = entity.extra.contains_key(LEASH);
+        self.kind_view(entity, &mut view);
         Some(view)
     }
 
@@ -745,6 +1004,7 @@ impl<L: ClientLink> Server<L> {
         for action in actions {
             self.apply_mob_action(id, action);
         }
+        self.kind_custom_ai_step(id);
         let view = ChunkView {
             chunks: &self.world.chunks,
             height: self.world.dimension.height,
@@ -827,6 +1087,14 @@ impl<L: ClientLink> Server<L> {
 
     pub fn mob_target(&self, id: EntityId) -> Option<EntityId> {
         self.entities.mobs.entries.get(&id)?.ai.target()
+    }
+
+    pub fn poi(&self) -> &rspigot_domain::poi::PoiManager {
+        self.world.chunks.poi()
+    }
+
+    pub fn poi_mut(&mut self) -> &mut rspigot_domain::poi::PoiManager {
+        self.world.chunks.poi_mut()
     }
 
     pub fn mob_ai(&self, id: EntityId) -> Option<&MobAi> {
@@ -959,10 +1227,12 @@ fn loot_facts(entity: &Entity) -> LootEntity {
         facts.sheared = Some(species::is_sheared(&entity.base));
     }
     if kind == Kind::Chicken {
-        let variant = species::variant(&entity.base, rspigot_data::variants::Farm::Chicken);
+        let variant =
+            species::variant(&entity.base, rspigot_data::variants::VariantFamily::Chicken);
         facts.components.push((
             "minecraft:chicken/variant",
-            species::variant_name(rspigot_data::variants::Farm::Chicken, variant).to_owned(),
+            species::variant_name(rspigot_data::variants::VariantFamily::Chicken, variant)
+                .to_owned(),
         ));
     }
     if kind == Kind::Frog {
@@ -1030,6 +1300,7 @@ impl<L: ClientLink> Server<L> {
         amount: f32,
     ) -> Option<f32> {
         let hurt_source = hurt_source_of(source);
+        self.panda_stand_up(id);
         let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -1042,7 +1313,8 @@ impl<L: ClientLink> Server<L> {
             return None;
         }
         state.no_action_time = 0;
-        Some(living::floored(amount))
+        let amount = self.kind_hurt_amount(id, source, living::floored(amount))?;
+        Some(amount)
     }
 
     pub(crate) fn mob_final_damage(&self, id: EntityId, kind: DamageType, amount: f32) -> f32 {
@@ -1061,6 +1333,9 @@ impl<L: ClientLink> Server<L> {
         source: &DamageSource,
         amount: f32,
     ) -> bool {
+        if self.kind_absorbs_hurt(id, source, amount) {
+            return false;
+        }
         let now = self.current_tick();
         let game_time = self.world.level.game_time;
         let kind = source.kind;
@@ -1144,6 +1419,7 @@ impl<L: ClientLink> Server<L> {
         if !dead {
             self.zombie_reinforcements(id, source);
         }
+        self.kind_after_hurt(id, source, dead);
         true
     }
 
@@ -1169,8 +1445,9 @@ impl<L: ClientLink> Server<L> {
         };
         let position = entity.base.position;
         let volume = sounds.volume.get(state.baby, reward::cube_size(entity));
+        let source = crate::kinds::kind_sound_source(entity).unwrap_or(sounds.source);
         let pitch = self.voice_pitch(sounds.pitch, state.baby);
-        self.play_sound(None, position, sound, sounds.source, volume, pitch);
+        self.play_sound(None, position, sound, source, volume, pitch);
     }
 
     pub(crate) fn entity_sound(
@@ -1186,11 +1463,13 @@ impl<L: ClientLink> Server<L> {
         if entity.base.is_silent() {
             return;
         }
-        let source = entity
-            .base
-            .kind
-            .sounds()
-            .map_or(rspigot_entities::SoundSource::Neutral, |s| s.source);
+        let source = crate::kinds::kind_sound_source(entity).unwrap_or_else(|| {
+            entity
+                .base
+                .kind
+                .sounds()
+                .map_or(rspigot_entities::SoundSource::Neutral, |s| s.source)
+        });
         let position = entity.base.position;
         self.play_sound(None, position, sound, source, volume, pitch);
     }
@@ -1203,6 +1482,7 @@ impl<L: ClientLink> Server<L> {
             self.players.get(&player).map(|p| Component::text(p.name()))
         });
         let victim = self.entity_name(id);
+        let owner_message = self.owner_death_message(id, credit.as_ref());
         let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -1229,7 +1509,30 @@ impl<L: ClientLink> Server<L> {
             );
         }
         state.dying = true;
+        if let Some((owner, message)) = owner_message {
+            self.push(Audience::One(owner), ClientEvent::system(message));
+        }
         self.drop_all_death_loot(id, source);
+    }
+
+    fn owner_death_message(
+        &self,
+        id: EntityId,
+        credit: Option<&Component>,
+    ) -> Option<(PlayerId, Component)> {
+        if !self.config.rules.show_death_messages {
+            return None;
+        }
+        let entity = self.entities.store.get(id)?;
+        let state = entity.living()?;
+        state.mob.as_ref()?.tamable?;
+        let owner = tamable::owner(&entity.base)?;
+        let player = self.players.values().find(|p| p.profile.id.0 == owner)?;
+        let victim = self.entity_name(id)?;
+        Some((
+            player.id,
+            state.damage.combat.death_message(&victim, credit),
+        ))
     }
 
     fn damage_facts(&self, source: &DamageSource) -> LootDamage {
@@ -1250,6 +1553,7 @@ impl<L: ClientLink> Server<L> {
 
     fn drop_all_death_loot(&mut self, id: EntityId, source: &DamageSource) {
         let mob_drops = self.config.rules.mob_drops;
+        let held = self.kind_death_item(id);
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
@@ -1276,7 +1580,7 @@ impl<L: ClientLink> Server<L> {
             .or_else(|| rspigot_data::loot::entity_table(entity.base.kind.id().0));
         let this = loot_facts(entity);
         let damage = self.damage_facts(source);
-        let mut drops: Vec<ItemStack> = Vec::new();
+        let mut drops: Vec<ItemStack> = held.into_iter().collect();
         let mut slots = Vec::new();
         if drop_loot {
             if let Some(table) = table {
@@ -1290,6 +1594,9 @@ impl<L: ClientLink> Server<L> {
                     explosion_radius: None,
                 };
                 drops.extend(loot::table_drops(table, &context, &mut self.rng));
+            }
+            if let Some(carried) = species::enderman::carried_block(&entity.base) {
+                drops.extend(crate::kinds::carried_block_drops(carried, &mut self.rng));
             }
             slots = self.planned_equipment_drops(id, killed_by_player);
             drops.extend(slots.iter().map(|drop| drop.dropped.clone()));
@@ -1500,6 +1807,15 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn do_hurt_target(&mut self, attacker: EntityId, target: Target) -> bool {
+        if self
+            .entities
+            .store
+            .get(attacker)
+            .is_some_and(|entity| entity.base.kind == Kind::IronGolem)
+        {
+            return self.iron_golem_hurt_target(attacker, target);
+        }
+        self.panda_bite(attacker);
         let Some(source_entity) = self.mob_source(attacker) else {
             return false;
         };
@@ -1524,6 +1840,7 @@ impl<L: ClientLink> Server<L> {
             target,
             knockback,
             yaw,
+            golem: false,
         };
         self.strike(None, victim, &source, damage, AfterHurt::MobAttack(follow))
     }
@@ -1534,10 +1851,16 @@ impl<L: ClientLink> Server<L> {
             target,
             knockback,
             yaw,
+            golem,
         } = follow;
+        if golem {
+            self.iron_golem_finish_attack(attacker, target, hurt);
+            return;
+        }
         if !hurt {
             return;
         }
+        self.panda_attack_sound(attacker);
         if knockback > 0.0 {
             let (dx, dz) = mth::yaw_direction(yaw);
             let living_target = match target {
@@ -1583,6 +1906,8 @@ impl<L: ClientLink> Server<L> {
             living.damage.last_hurt_mob = target_entity;
             living.damage.last_hurt_mob_at = tick_count;
         }
+        self.kind_attack_sound(attacker);
+        self.zombie_attack_effects(attacker, target);
     }
 
     pub fn mob_damage(&self, id: EntityId) -> Option<MobDamageSnapshot> {
@@ -1618,9 +1943,21 @@ pub struct MobDamageSnapshot {
     pub equipment: Vec<(rspigot_items::EquipmentSlot, ItemStack)>,
 }
 
+pub(crate) fn ambient_light_of(dimension: &rspigot_domain::world::Dimension) -> f32 {
+    crate::spawning::dimension_spawns(dimension).ambient_light
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_ambient_light_follows_the_dimension() {
+        use rspigot_domain::world::Dimension;
+        assert_eq!(ambient_light_of(&Dimension::overworld()), 0.0);
+        assert_eq!(ambient_light_of(&Dimension::nether()), 0.1);
+        assert_eq!(ambient_light_of(&Dimension::end()), 0.25);
+    }
 
     #[test]
     fn sky_darkens_at_night_following_the_day_timeline() {

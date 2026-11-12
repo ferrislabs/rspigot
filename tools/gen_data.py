@@ -412,26 +412,50 @@ TABLE_TYPES = {
 
 EXTRA_TABLES = [
     ("minecraft:charged_creeper/root", "minecraft:entity"),
+    ("minecraft:gameplay/cat_morning_gift", "minecraft:gift"),
     ("minecraft:gameplay/chicken_lay", "minecraft:gift"),
+    ("minecraft:gameplay/panda_sneeze", "minecraft:gift"),
     ("minecraft:shearing/sheep", "minecraft:shearing"),
     ("minecraft:till/rooted_dirt", "minecraft:block_interact"),
 ]
 
 REFERENCED_TABLE_TYPES = {"minecraft:block", "minecraft:entity", "minecraft:fishing", "minecraft:shearing"}
 
+FARM_VARIANT_KEYS = {"asset_id", "baby_asset_id", "model", "spawn_conditions"}
+WOLF_VARIANT_KEYS = {"assets", "baby_assets", "spawn_conditions"}
+CAT_VARIANT_KEYS = {"asset_id", "baby_asset_id", "spawn_conditions"}
+
 MOB_VARIANTS = [
-    ("COW_VARIANTS", "cow_variant"),
-    ("PIG_VARIANTS", "pig_variant"),
-    ("CHICKEN_VARIANTS", "chicken_variant"),
+    ("COW_VARIANTS", "cow_variant", FARM_VARIANT_KEYS),
+    ("PIG_VARIANTS", "pig_variant", FARM_VARIANT_KEYS),
+    ("CHICKEN_VARIANTS", "chicken_variant", FARM_VARIANT_KEYS),
+    ("WOLF_VARIANTS", "wolf_variant", WOLF_VARIANT_KEYS),
+    ("CAT_VARIANTS", "cat_variant", CAT_VARIANT_KEYS),
+]
+
+FARM_SOUND_KEYS = ["ambient", "death", "eat", "hurt", "step"]
+WOLF_SOUND_KEYS = ["ambient", "death", "growl", "hurt", "pant", "step", "whine"]
+CAT_SOUND_KEYS = [
+    "ambient",
+    "beg_for_food",
+    "death",
+    "eat",
+    "hiss",
+    "hurt",
+    "purr",
+    "purreow",
+    "stray_ambient",
 ]
 
 SOUND_VARIANTS = [
-    ("COW_SOUND_VARIANTS", "cow_sound_variant"),
-    ("PIG_SOUND_VARIANTS", "pig_sound_variant"),
-    ("CHICKEN_SOUND_VARIANTS", "chicken_sound_variant"),
+    ("COW_SOUND_VARIANTS", "cow_sound_variant", FARM_SOUND_KEYS),
+    ("PIG_SOUND_VARIANTS", "pig_sound_variant", FARM_SOUND_KEYS),
+    ("CHICKEN_SOUND_VARIANTS", "chicken_sound_variant", FARM_SOUND_KEYS),
+    ("WOLF_SOUND_VARIANTS", "wolf_sound_variant", WOLF_SOUND_KEYS),
+    ("CAT_SOUND_VARIANTS", "cat_sound_variant", CAT_SOUND_KEYS),
 ]
 
-SOUND_SET_KEYS = ["ambient_sound", "death_sound", "eat_sound", "hurt_sound", "step_sound"]
+SOUND_SET_FIELDS = sorted(set(FARM_SOUND_KEYS) | set(WOLF_SOUND_KEYS) | set(CAT_SOUND_KEYS))
 
 DYE_COLORS = [
     "white",
@@ -1508,32 +1532,60 @@ def biome_holder_set(value, synced_names, tag_table, where):
     return "HolderSet::Direct(&[%s])" % ", ".join(str(i) for i in sorted(ids))
 
 
+def moon_bound(range_value, key):
+    if key not in range_value:
+        return "None"
+    return "Some(%s)" % rs_f32(range_value[key]).text
+
+
+def spawn_condition(condition, synced_names, tag_table, datapack, where):
+    if condition is None:
+        return "None"
+    kind = condition.get("type")
+    if kind == "minecraft:biome":
+        expect_keys(condition, {"type", "biomes"}, where)
+        biomes = biome_holder_set(condition["biomes"], synced_names, tag_table, where)
+        return "Some(VariantCondition::Biome(%s))" % biomes
+    if kind == "minecraft:structure":
+        expect_keys(condition, {"type", "structures"}, where)
+        structures = condition["structures"]
+        if not (isinstance(structures, str) and structures.startswith("#")):
+            fail("unsupported structure set in %s: %s" % (where, json.dumps(structures)))
+        tag = normalize_id(structures[1:])
+        if not os.path.exists(os.path.join(datapack, "tags", "worldgen", "structure", tag.split(":", 1)[1] + ".json")):
+            fail("unknown structure tag %s in %s" % (tag, where))
+        return "Some(VariantCondition::Structure(%s))" % text_str(tag)
+    if kind == "minecraft:moon_brightness":
+        expect_keys(condition, {"type", "range"}, where)
+        bounds = condition["range"]
+        expect_keys(bounds, {"min", "max"}, where)
+        return "Some(VariantCondition::MoonBrightness { min: %s, max: %s })" % (
+            moon_bound(bounds, "min"),
+            moon_bound(bounds, "max"),
+        )
+    fail("unsupported spawn condition %s in %s" % (kind, where))
+
+
 def build_variants(datapack, synced, tag_table):
     synced_names = {registry_id: entries for _, registry_id, entries in synced}
     mobs = []
-    for constant, path in MOB_VARIANTS:
+    for constant, path, keys in MOB_VARIANTS:
         entries = []
         for name in synced_names["minecraft:" + path]:
             where = "%s %s" % (path, name)
             value = load_json(os.path.join(datapack, path, name.split(":", 1)[1] + ".json"))
-            expect_keys(value, {"asset_id", "baby_asset_id", "model", "spawn_conditions"}, where)
+            expect_keys(value, keys, where)
             conditions = []
             for entry in value.get("spawn_conditions", []):
                 expect_keys(entry, {"condition", "priority"}, where)
-                condition = entry.get("condition")
-                if condition is None:
-                    biomes = "None"
-                else:
-                    expect_keys(condition, {"type", "biomes"}, where)
-                    if condition["type"] != "minecraft:biome":
-                        fail("unsupported spawn condition %s in %s" % (condition["type"], where))
-                    biomes = "Some(%s)" % biome_holder_set(condition["biomes"], synced_names, tag_table, where)
-                conditions.append((biomes, entry["priority"]))
+                condition = spawn_condition(entry.get("condition"), synced_names, tag_table, datapack, where)
+                conditions.append((condition, entry["priority"]))
             entries.append((name, conditions))
         mobs.append((constant, entries))
     sounds = []
-    for constant, path in SOUND_VARIANTS:
+    for constant, path, keys in SOUND_VARIANTS:
         entries = []
+        allowed = {key + "_sound" for key in keys}
         for name in synced_names["minecraft:" + path]:
             where = "%s %s" % (path, name)
             value = load_json(os.path.join(datapack, path, name.split(":", 1)[1] + ".json"))
@@ -1544,12 +1596,12 @@ def build_variants(datapack, synced, tag_table):
                 adult, baby = value, value
             sets = []
             for sound_set in (adult, baby):
-                expect_keys(sound_set, set(SOUND_SET_KEYS), where)
+                expect_keys(sound_set, allowed, where)
                 fields = []
-                for key in SOUND_SET_KEYS:
-                    sound = sound_set.get(key)
-                    fields.append("%s: %s" % (key.replace("_sound", ""), "None" if sound is None else "Some(%s)" % text_str(normalize_id(sound))))
-                sets.append("SoundSet { %s }" % ", ".join(fields))
+                for key in SOUND_SET_FIELDS:
+                    sound = sound_set.get(key + "_sound") if key in keys else None
+                    fields.append("%s: %s" % (key, "None" if sound is None else "Some(%s)" % text_str(normalize_id(sound))))
+                sets.append(fields)
             entries.append((name, sets))
         sounds.append((constant, entries))
     return mobs, sounds
@@ -1586,9 +1638,9 @@ def emit_variants(mobs, sounds, mixes):
             out.append("    MobVariant {")
             out.append("        name: %s," % text_str(name))
             out.append("        spawn_conditions: &[")
-            for biomes, priority in conditions:
+            for condition, priority in conditions:
                 out.append("            SpawnCondition {")
-                out.append("                biomes: %s," % biomes)
+                out.append("                condition: %s," % condition)
                 out.append("                priority: %d," % priority)
                 out.append("            },")
             out.append("        ],")
@@ -1600,8 +1652,10 @@ def emit_variants(mobs, sounds, mixes):
         for name, (adult, baby) in entries:
             out.append("    SoundVariant {")
             out.append("        name: %s," % text_str(name))
-            out.append("        adult: %s," % adult)
-            out.append("        baby: %s," % baby)
+            for label, fields in (("adult", adult), ("baby", baby)):
+                out.append("        %s: SoundSet {" % label)
+                out.extend("            %s," % field for field in fields)
+                out.append("        },")
             out.append("    },")
         out.append("];")
         out.append("")
@@ -1609,19 +1663,8 @@ def emit_variants(mobs, sounds, mixes):
     out.extend(wrapped(["(%d, %d, %d)" % mix for mix in mixes], "    "))
     out.append("];")
     text = "\n".join(out) + "\n"
-    lines = []
-    for line in text.split("\n"):
-        if len(line) > LINE_WIDTH and line.strip().startswith(("adult:", "baby:")):
-            head, _, body = line.partition("SoundSet { ")
-            indent = head[: len(head) - len(head.lstrip())]
-            lines.append(head + "SoundSet {")
-            for field in body[: -len(" },")].split(", "):
-                lines.append(indent + "    " + field + ",")
-            lines.append(indent + "},")
-        else:
-            lines.append(line)
-    text = "\n".join(lines)
-    head = "use crate::tags::HolderSet;\nuse crate::variants::{MobVariant, SoundSet, SoundVariant, SpawnCondition};\n\n"
+    names = ["MobVariant", "SoundSet", "SoundVariant", "SpawnCondition", "VariantCondition"]
+    head = "use crate::tags::HolderSet;\nuse crate::variants::{%s};\n\n" % ", ".join(used_imports(text, names))
     return head + text
 
 

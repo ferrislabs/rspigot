@@ -19,6 +19,7 @@ use super::living::{
 use super::orb::{self, OrbState};
 use super::species::{self, Species};
 use super::{Entity, EntityState};
+use super::{neutral, tamable};
 use crate::effect::{
     AttributeModifier, AttributeOperation, EffectDuration, EffectId, EffectInstance,
 };
@@ -90,6 +91,8 @@ const LIVING_KEYS: [&str; 18] = [
 ];
 const AGEABLE_KEYS: [&str; 3] = ["Age", "ForcedAge", "AgeLocked"];
 const ANIMAL_KEYS: [&str; 2] = ["InLove", "LoveCause"];
+const TAMABLE_KEYS: [&str; 2] = ["Owner", "Sitting"];
+const NEUTRAL_KEYS: [&str; 4] = ["anger_end_time", "angry_at", "AngerTime", "AngryAt"];
 const FARM_KEYS: [&str; 2] = ["variant", "sound_variant"];
 const CHICKEN_KEYS: [&str; 4] = ["variant", "sound_variant", "IsChickenJockey", "EggLayTime"];
 const SHEEP_KEYS: [&str; 2] = ["Sheared", "Color"];
@@ -101,7 +104,13 @@ const ZOMBIE_KEYS: [&str; 4] = [
 ];
 const SKELETON_KEYS: [&str; 2] = ["FreezingTime", "StrayConversionTime"];
 const CREEPER_KEYS: [&str; 4] = ["powered", "Fuse", "ExplosionRadius", "ignited"];
-const TRANSIENT_MODIFIERS: [&str; 1] = [species::BABY_SPEED_MODIFIER];
+const TRANSIENT_MODIFIERS: &[&str] = &[
+    species::BABY_SPEED_MODIFIER,
+    species::cat::SPRINTING_MODIFIER,
+    species::zombified_piglin::ATTACKING_MODIFIER,
+    species::rabbit::EVIL_MODIFIER,
+    species::enderman::ATTACKING_MODIFIER,
+];
 const ARROW_KEYS: [&str; 14] = [
     "Owner",
     "LeftOwner",
@@ -520,7 +529,13 @@ fn read_living(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState) 
         }
     }
     if let Some(mob) = &mut living.mob {
-        mob.can_pick_up_loot = nbt.get_bool("CanPickUpLoot").unwrap_or(false);
+        let can_pick_up_loot = nbt.get_bool("CanPickUpLoot").unwrap_or(false);
+        let current_level = nbt
+            .get_i32("Bukkit.updateLevel")
+            .is_some_and(|level| level >= 1);
+        if current_level || can_pick_up_loot {
+            mob.can_pick_up_loot = can_pick_up_loot;
+        }
         mob.persistence_required = nbt.get_bool("PersistenceRequired").unwrap_or(false);
         mob.drop_chances = [living::DEFAULT_DROP_CHANCE; 8];
         if let Some(chances) = nbt.get_compound("drop_chances") {
@@ -581,6 +596,46 @@ fn read_tracker(
     tracker
 }
 
+fn read_owner(tag: &Tag) -> Option<Uuid> {
+    match tag {
+        Tag::String(text) => Uuid::parse_str(text).ok(),
+        other => read_uuid(other),
+    }
+}
+
+fn read_tamable(nbt: &Compound, base: &mut EntityBase, mob: &mut MobState) {
+    let Some(state) = &mut mob.tamable else {
+        return;
+    };
+    let owner = nbt.get("Owner").and_then(read_owner);
+    tamable::set_owner(base, owner);
+    tamable::set_tame(base, owner.is_some());
+    state.ordered_to_sit = nbt.get_bool("Sitting").unwrap_or(false);
+    tamable::set_in_sitting_pose(base, state.ordered_to_sit);
+}
+
+fn read_neutral(nbt: &Compound, base: &mut EntityBase, mob: &mut MobState) {
+    let Some(state) = &mut mob.neutral else {
+        return;
+    };
+    state.legacy_remaining = None;
+    state.end_time = match nbt.get_i64("anger_end_time") {
+        Some(end) => end,
+        None => {
+            state.legacy_remaining = nbt.get_i32("AngerTime");
+            neutral::NO_ANGER_END_TIME
+        }
+    };
+    state.target = nbt
+        .get("angry_at")
+        .or_else(|| nbt.get("AngryAt"))
+        .and_then(read_uuid);
+    if let Some(index) = neutral::synced_end_time_index(base.kind) {
+        base.data
+            .set(index, super::data::SyncedValue::Long(state.end_time));
+    }
+}
+
 fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState) {
     let Some(mob) = &mut living.mob else {
         return;
@@ -588,7 +643,9 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
     if let Some(ageable) = &mut mob.ageable {
         read_ageable(nbt, base, ageable);
     }
-    if let Some(farm) = mob.species.farm() {
+    read_tamable(nbt, base, mob);
+    read_neutral(nbt, base, mob);
+    if let Some(farm) = mob.species.variant_family() {
         if let Some(id) = nbt
             .get_str("variant")
             .and_then(|name| farm.variant_index(name))
@@ -626,6 +683,9 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
                 ("InWaterTime", "DrownedConversionTime"),
                 species::ZOMBIE_DATA_DROWNED_CONVERSION,
             );
+            if let Some(villager) = &mut zombie.villager {
+                species::zombie_villager::read(nbt, base, villager);
+            }
         }
         Species::Skeleton(skeleton) => {
             skeleton.freezing = read_tracker(
@@ -647,6 +707,19 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
                 species::ignite(base);
             }
         }
+        Species::Wolf(state) => species::wolf::read(nbt, base, state),
+        Species::Cat(state) => species::cat::read(nbt, base, state),
+        Species::Fox(state) => species::fox::read(nbt, base, state),
+        Species::Panda(state) => species::panda::read(nbt, base, state),
+        Species::PolarBear(state) => species::polar_bear::read(nbt, base, state),
+        Species::Enderman(state) => species::enderman::read(nbt, base, state),
+        Species::Endermite(state) => species::endermite::read(nbt, base, state),
+        Species::Silverfish(state) => species::silverfish::read(nbt, base, state),
+        Species::IronGolem(state) => species::iron_golem::read(nbt, base, state),
+        Species::Rabbit(state) => {
+            species::rabbit::read(nbt, base, &mut living.attributes, state);
+        }
+        Species::Ocelot(state) => species::ocelot::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -706,6 +779,20 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
             keys.push(&ANIMAL_KEYS);
         }
     }
+    if mob.tamable.is_some() {
+        keys.push(&TAMABLE_KEYS);
+    }
+    if mob.neutral.is_some() {
+        keys.push(&NEUTRAL_KEYS);
+    }
+    if matches!(mob.species, Species::Wolf(_) | Species::Cat(_)) {
+        keys.push(&FARM_KEYS);
+    }
+    if let Species::Zombie(zombie) = &mob.species
+        && zombie.villager.is_some()
+    {
+        keys.push(species::zombie_villager::KEYS);
+    }
     keys.push(match mob.species {
         Species::Cow | Species::Pig => &FARM_KEYS,
         Species::Chicken(_) => &CHICKEN_KEYS,
@@ -713,6 +800,17 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Zombie(_) => &ZOMBIE_KEYS,
         Species::Skeleton(_) => &SKELETON_KEYS,
         Species::Creeper(_) => &CREEPER_KEYS,
+        Species::Wolf(_) => species::wolf::KEYS,
+        Species::Cat(_) => species::cat::KEYS,
+        Species::Fox(_) => species::fox::KEYS,
+        Species::Panda(_) => species::panda::KEYS,
+        Species::PolarBear(_) => species::polar_bear::KEYS,
+        Species::Enderman(_) => species::enderman::KEYS,
+        Species::Endermite(_) => species::endermite::KEYS,
+        Species::Silverfish(_) => species::silverfish::KEYS,
+        Species::IronGolem(_) => species::iron_golem::KEYS,
+        Species::Rabbit(_) => species::rabbit::KEYS,
+        Species::Ocelot(_) => species::ocelot::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1041,7 +1139,19 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
             }
         }
     }
-    if let Some(farm) = mob.species.farm() {
+    if let Some(state) = &mob.tamable {
+        if let Some(owner) = tamable::owner(base) {
+            out.insert("Owner", uuid_tag(owner));
+        }
+        out.insert("Sitting", bool_tag(state.ordered_to_sit));
+    }
+    if let Some(state) = &mob.neutral {
+        out.insert("anger_end_time", state.end_time);
+        if let Some(target) = state.target {
+            out.insert("angry_at", uuid_tag(target));
+        }
+    }
+    if let Some(farm) = mob.species.variant_family() {
         out.insert(
             "variant",
             species::variant_name(farm, species::variant(base, farm)),
@@ -1072,6 +1182,9 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
                 base.data.boolean(species::ZOMBIE_DATA_DROWNED_CONVERSION),
                 base.eye_in_water,
             );
+            if let Some(villager) = &zombie.villager {
+                species::zombie_villager::write(base, villager, out);
+            }
         }
         Species::Skeleton(skeleton) => {
             write_tracker(
@@ -1088,6 +1201,17 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
             out.insert("ExplosionRadius", creeper.explosion_radius as i8);
             out.insert("ignited", bool_tag(species::is_ignited(base)));
         }
+        Species::Wolf(state) => species::wolf::write(base, state, out),
+        Species::Cat(state) => species::cat::write(base, state, out),
+        Species::Fox(state) => species::fox::write(base, state, out),
+        Species::Panda(state) => species::panda::write(base, state, out),
+        Species::PolarBear(state) => species::polar_bear::write(base, state, out),
+        Species::Enderman(state) => species::enderman::write(base, state, out),
+        Species::Endermite(state) => species::endermite::write(base, state, out),
+        Species::Silverfish(state) => species::silverfish::write(base, state, out),
+        Species::IronGolem(state) => species::iron_golem::write(base, state, out),
+        Species::Rabbit(state) => species::rabbit::write(base, state, out),
+        Species::Ocelot(state) => species::ocelot::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -1160,6 +1284,7 @@ pub fn entity_position(nbt: &Compound) -> Option<Vec3> {
 mod tests {
     use super::*;
     use crate::text::NamedColor;
+    use rspigot_data::variants::VariantFamily;
 
     fn cow_nbt() -> Compound {
         Compound::new()
@@ -1211,6 +1336,146 @@ mod tests {
         let saved = save_entity(&free, None).unwrap();
         assert!(!saved.contains_key("home_radius"));
         assert!(!saved.contains_key("home_pos"));
+    }
+
+    fn wolf_nbt() -> Compound {
+        Compound::new()
+            .with("id", "minecraft:wolf")
+            .with("Pos", doubles(Vec3::new(0.5, 64.0, 0.5)))
+            .with("UUID", uuid_tag(Uuid::from_u128(7)))
+            .with("Owner", uuid_tag(Uuid::from_u128(99)))
+            .with("Sitting", true)
+            .with("anger_end_time", 4000i64)
+            .with("angry_at", uuid_tag(Uuid::from_u128(5)))
+    }
+
+    #[test]
+    fn wolf_and_cat_variants_round_trip_through_nbt() {
+        for (id, variant, sound, family) in [
+            (
+                "minecraft:wolf",
+                "minecraft:ashen",
+                "minecraft:grumpy",
+                VariantFamily::Wolf,
+            ),
+            (
+                "minecraft:cat",
+                "minecraft:calico",
+                "minecraft:royal",
+                VariantFamily::Cat,
+            ),
+        ] {
+            let nbt = Compound::new()
+                .with("id", id)
+                .with("Pos", doubles(Vec3::new(0.5, 64.0, 0.5)))
+                .with("UUID", uuid_tag(Uuid::from_u128(7)))
+                .with("variant", variant)
+                .with("sound_variant", sound);
+            let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+            assert_eq!(
+                species::variant_name(family, species::variant(&entity.base, family)),
+                variant
+            );
+            assert_eq!(
+                species::sound_variant_name(family, species::sound_variant(&entity.base, family)),
+                sound
+            );
+            let saved = save_entity(&entity, None).unwrap();
+            assert_eq!(saved.get_str("variant"), Some(variant));
+            assert_eq!(saved.get_str("sound_variant"), Some(sound));
+            assert_eq!(saved.iter().filter(|(k, _)| *k == "variant").count(), 1);
+            let fresh = load_entity(
+                &Compound::new()
+                    .with("id", id)
+                    .with("Pos", doubles(Vec3::new(0.5, 64.0, 0.5)))
+                    .with("UUID", uuid_tag(Uuid::from_u128(8))),
+                EntityId(2),
+                Uuid::from_u128(2),
+            )
+            .unwrap();
+            let saved = save_entity(&fresh, None).unwrap();
+            let default = if family == VariantFamily::Wolf {
+                "minecraft:pale"
+            } else {
+                "minecraft:black"
+            };
+            assert_eq!(saved.get_str("variant"), Some(default));
+            assert_eq!(saved.get_str("sound_variant"), Some("minecraft:classic"));
+        }
+    }
+
+    #[test]
+    fn a_wolf_keeps_its_collar_and_body_armor() {
+        let nbt = wolf_nbt().with("CollarColor", 3i8).with(
+            "equipment",
+            Compound::new().with(
+                "body",
+                Compound::new()
+                    .with("id", "minecraft:wolf_armor")
+                    .with("count", 1),
+            ),
+        );
+        let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        let living = entity.living().unwrap();
+        assert_eq!(species::wolf::collar_color(&entity.base), 3);
+        assert!(
+            living
+                .equipment(rspigot_items::EquipmentSlot::Body)
+                .is_some()
+        );
+        assert!(entity.extra.is_empty());
+        let saved = save_entity(&entity, None).unwrap();
+        assert_eq!(saved.get_i64("CollarColor"), Some(3));
+        let body = saved
+            .get_compound("equipment")
+            .and_then(|equipment| equipment.get_compound("body"))
+            .and_then(|body| body.get_str("id"));
+        assert_eq!(body, Some("minecraft:wolf_armor"));
+    }
+
+    #[test]
+    fn tamed_and_angry_mobs_keep_their_owner_and_anger() {
+        let entity = load_entity(&wolf_nbt(), EntityId(1), Uuid::from_u128(1)).unwrap();
+        assert!(tamable::is_tame(&entity.base));
+        assert!(tamable::is_in_sitting_pose(&entity.base));
+        assert_eq!(tamable::owner(&entity.base), Some(Uuid::from_u128(99)));
+        assert_eq!(
+            entity.base.data.long(neutral::WOLF_DATA_ANGER_END_TIME),
+            4000
+        );
+        let mob = entity.living().and_then(|l| l.mob.as_ref()).unwrap();
+        let anger = mob.neutral.unwrap();
+        assert_eq!(anger.end_time, 4000);
+        assert_eq!(anger.target, Some(Uuid::from_u128(5)));
+        assert!(entity.extra.is_empty());
+        let saved = save_entity(&entity, None).unwrap();
+        assert_eq!(saved.get("Owner"), Some(&uuid_tag(Uuid::from_u128(99))));
+        assert_eq!(saved.get_bool("Sitting"), Some(true));
+        assert_eq!(saved.get_i64("anger_end_time"), Some(4000));
+        assert_eq!(saved.get("angry_at"), Some(&uuid_tag(Uuid::from_u128(5))));
+    }
+
+    #[test]
+    fn a_wild_calm_wolf_writes_no_owner_and_no_target() {
+        let nbt = Compound::new()
+            .with("id", "minecraft:wolf")
+            .with("Pos", doubles(Vec3::new(0.5, 64.0, 0.5)));
+        let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        assert!(!tamable::is_tame(&entity.base));
+        let saved = save_entity(&entity, None).unwrap();
+        assert!(!saved.contains_key("Owner"));
+        assert!(!saved.contains_key("angry_at"));
+        assert_eq!(saved.get_i64("anger_end_time"), Some(-1));
+        assert_eq!(saved.get_bool("Sitting"), Some(false));
+    }
+
+    #[test]
+    fn the_legacy_anger_time_waits_for_the_game_time() {
+        let mut nbt = wolf_nbt().with("AngerTime", 60);
+        nbt.remove("anger_end_time");
+        let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        let mob = entity.living().and_then(|l| l.mob.as_ref()).unwrap();
+        assert_eq!(mob.neutral.unwrap().legacy_remaining, Some(60));
     }
 
     #[test]

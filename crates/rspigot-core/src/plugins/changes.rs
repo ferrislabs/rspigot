@@ -45,9 +45,39 @@ impl<L: ClientLink> Server<L> {
             }
             Grief::Land(landing) => self.finish_land(*landing, cancelled),
             Grief::Graze { sheep, pos, below } => self.finish_graze(sheep, pos, below, cancelled),
-            Grief::Raid { pos, .. } => {
+            Grief::Raid { pos, rabbit } => {
                 if !cancelled {
-                    self.finish_raid(pos);
+                    self.finish_raid(pos, rabbit);
+                }
+            }
+            Grief::Berries { fox, pos, glow } => {
+                if !cancelled {
+                    self.finish_berries(fox, pos, glow);
+                }
+            }
+            Grief::Merge { silverfish, pos } => self.finish_merge(silverfish, pos, cancelled),
+            Grief::WakeFriends {
+                silverfish,
+                origin,
+                next,
+                pos,
+            } => self.finish_wake_friend(silverfish, origin, next, pos, cancelled),
+            Grief::EndermanTake {
+                enderman,
+                pos,
+                carried,
+            } => {
+                if !cancelled {
+                    self.finish_enderman_take(enderman, pos, carried);
+                }
+            }
+            Grief::EndermanPlace {
+                enderman,
+                pos,
+                state,
+            } => {
+                if !cancelled {
+                    self.finish_enderman_place(enderman, pos, state);
                 }
             }
         }

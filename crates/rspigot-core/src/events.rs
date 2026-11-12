@@ -314,6 +314,14 @@ pub enum MetadataValue {
     Item(Slot),
     BlockPos(BlockPos),
     Variant(VariantKind, u32),
+    Long(i64),
+    OptionalEntity(Option<uuid::Uuid>),
+    OptionalBlockState(Option<u32>),
+    VillagerData {
+        kind: u32,
+        profession: u32,
+        level: i32,
+    },
 }
 
 pub use rspigot_domain::entity::VariantKind;

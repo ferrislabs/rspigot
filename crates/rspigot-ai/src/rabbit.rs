@@ -1,9 +1,12 @@
 use rspigot_blocks::BlockKind;
-use rspigot_domain::{BlockPos, Vec3};
+use rspigot_domain::entity::EntityBase;
+use rspigot_domain::entity::ageable::DATA_BABY;
+use rspigot_domain::entity::living::{JumpTuning, LivingState};
+use rspigot_domain::{BlockPos, Vec3, mth};
 
 use crate::action::MobAction;
 use crate::animal::block_tag;
-use crate::brain::AiContext;
+use crate::brain::{AiContext, Brain};
 use crate::control::MAX_HEAD_X_ROT;
 use crate::goal::reduced_tick_delay;
 use crate::random::RandomSource;
@@ -21,6 +24,20 @@ const LOOK_SPEED: f32 = 10.0;
 const SUPPORTS_CROPS: &str = "minecraft:supports_crops";
 const MAX_CARROT_AGE: &str = "7";
 pub const MORE_CARROT_TICKS: i32 = 40;
+const JUMP_DELAY_TICKS: i32 = 10;
+const PANIC_JUMP_DELAY_TICKS: i32 = 3;
+const PANIC_SPEED: f64 = 2.2;
+const JUMP_DURATION_TICKS: i32 = 15;
+const KILLER_POUNCE_RANGE_SQR: f64 = 16.0;
+const STROLL_SPEED: f64 = 0.6;
+const BASE_JUMP: f32 = 0.3;
+const SLOW_JUMP: f32 = 0.2;
+const CLIMB_JUMP: f32 = 0.5;
+const CLIMB_MARGIN: f64 = 0.5;
+const VANILLA_JUMP_STRENGTH: f32 = 0.42;
+const BABY_HOP: f32 = 0.5;
+const ADULT_HOP: f32 = 1.5;
+const JUMP_PITCH: f32 = 0.8;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RaidGardenGoal {
@@ -97,7 +114,7 @@ impl RaidGardenGoal {
                 return false;
             }
             self.can_raid = false;
-            self.wants_to_raid = context.brain.more_carrot_ticks < 1;
+            self.wants_to_raid = context.mob.more_carrot_ticks < 1;
         }
         if self.next_start_tick > 0 {
             self.next_start_tick -= 1;
@@ -169,9 +186,216 @@ impl RaidGardenGoal {
                 .is_some_and(|state| state.kind() == Some(BlockKind::Carrots))
         {
             context.act(MobAction::RaidCarrot(target));
-            context.brain.more_carrot_ticks = MORE_CARROT_TICKS;
         }
         self.can_raid = false;
         self.next_start_tick = RAID_COOLDOWN;
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HopSound {
+    pub position: Vec3,
+    pub pitch: f32,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct RabbitHop {
+    can_jump: bool,
+    jump_ticks: i32,
+    jump_duration: i32,
+    was_on_ground: bool,
+    jump_delay_ticks: i32,
+    sounds: Vec<HopSound>,
+}
+
+impl RabbitHop {
+    pub fn jump_ticks(&self) -> i32 {
+        self.jump_ticks
+    }
+
+    pub fn jump_duration(&self) -> i32 {
+        self.jump_duration
+    }
+
+    pub fn jump_delay_ticks(&self) -> i32 {
+        self.jump_delay_ticks
+    }
+
+    pub fn can_jump(&self) -> bool {
+        self.can_jump
+    }
+
+    fn start_jumping(
+        &mut self,
+        base: &EntityBase,
+        living: &mut LivingState,
+        brain_random: &mut impl RandomSource,
+    ) {
+        living.jumping = true;
+        let first = brain_random.next_float();
+        let second = brain_random.next_float();
+        self.sounds.push(HopSound {
+            position: base.position,
+            pitch: ((first - second) * 0.2 + 1.0) * JUMP_PITCH,
+        });
+        self.jump_duration = JUMP_DURATION_TICKS;
+        self.jump_ticks = 0;
+    }
+}
+
+fn face_point(base: &mut EntityBase, x: f64, z: f64) {
+    let yaw = (mth::atan2(z - base.position.z, x - base.position.x) * mth::RAD_TO_DEG) as f32;
+    base.set_yaw(yaw - 90.0);
+}
+
+fn set_speed_modifier(brain: &mut Brain, speed: f64) {
+    brain.navigation.set_speed_modifier(speed);
+    let wanted = brain.movement.wanted();
+    brain.movement.set_wanted_position(wanted, speed);
+}
+
+impl Brain {
+    pub fn enable_hop(&mut self) {
+        self.hop = Some(RabbitHop::default());
+        self.movement.enable_hop();
+    }
+
+    pub fn hop(&self) -> Option<&RabbitHop> {
+        self.hop.as_ref()
+    }
+
+    pub(crate) fn hop_move_pre_tick(&mut self, base: &EntityBase, living: &LivingState) {
+        if self.hop.is_none() {
+            return;
+        }
+        self.movement.set_in_water(base.fluid.in_water);
+        if base.on_ground && !living.jumping && !self.jump.is_jumping() {
+            set_speed_modifier(self, 0.0);
+        } else if self.movement.has_wanted()
+            || self.movement.operation() == crate::control::Operation::Jumping
+        {
+            let speed = self.movement.next_jump_speed();
+            set_speed_modifier(self, speed);
+        }
+    }
+
+    pub(crate) fn hop_jump_tick(&mut self, base: &EntityBase, living: &mut LivingState) {
+        let Some(mut hop) = self.hop.take() else {
+            return;
+        };
+        if self.jump.take() {
+            hop.start_jumping(base, living, &mut self.random);
+        }
+        self.hop = Some(hop);
+    }
+
+    pub(crate) fn hop_tune_jump(&self, base: &EntityBase, living: &mut LivingState) {
+        if self.hop.is_none() {
+            return;
+        }
+        let mut power = BASE_JUMP;
+        if self.movement.speed_modifier() <= STROLL_SPEED {
+            power = SLOW_JUMP;
+        }
+        if let Some(path) = self.navigation.path().filter(|path| !path.is_done())
+            && path.next_entity_pos(self.profile.width).y > base.position.y + CLIMB_MARGIN
+        {
+            power = CLIMB_JUMP;
+        }
+        if base.horizontal_collision
+            || (living.jumping && self.movement.wanted().y > base.position.y + CLIMB_MARGIN)
+        {
+            power = CLIMB_JUMP;
+        }
+        let lift = (self.movement.speed_modifier() > 0.0).then(|| {
+            if base.data.boolean(DATA_BABY) {
+                BABY_HOP
+            } else {
+                ADULT_HOP
+            }
+        });
+        living.jump_tuning = JumpTuning {
+            multiplier: power / VANILLA_JUMP_STRENGTH,
+            hop: lift,
+        };
+    }
+
+    pub fn rabbit_ai_step(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        evil: bool,
+        target: Option<Vec3>,
+        more_carrot_ticks: &mut i32,
+    ) {
+        let Some(mut hop) = self.hop.take() else {
+            return;
+        };
+        self.movement.set_in_water(base.fluid.in_water);
+        if hop.jump_delay_ticks > 0 {
+            hop.jump_delay_ticks -= 1;
+        }
+        if *more_carrot_ticks > 0 {
+            *more_carrot_ticks -= self.random.next_int(3);
+            if *more_carrot_ticks < 0 {
+                *more_carrot_ticks = 0;
+            }
+        }
+        if base.on_ground {
+            if !hop.was_on_ground {
+                living.jumping = false;
+                hop.jump_delay_ticks = if self.movement.speed_modifier() < PANIC_SPEED {
+                    JUMP_DELAY_TICKS
+                } else {
+                    PANIC_JUMP_DELAY_TICKS
+                };
+                hop.can_jump = false;
+            }
+            if evil
+                && hop.jump_delay_ticks == 0
+                && let Some(at) = target
+                && base.position.distance_squared(at) < KILLER_POUNCE_RANGE_SQR
+            {
+                face_point(base, at.x, at.z);
+                let speed = self.movement.speed_modifier();
+                self.movement.set_wanted_position(at, speed);
+                hop.start_jumping(base, living, &mut self.random);
+                hop.was_on_ground = true;
+            }
+            if !self.jump.is_jumping() {
+                if self.movement.has_wanted() && hop.jump_delay_ticks == 0 {
+                    let mut at = self.movement.wanted();
+                    if let Some(path) = self.navigation.path().filter(|path| !path.is_done()) {
+                        at = path.next_entity_pos(self.profile.width);
+                    }
+                    face_point(base, at.x, at.z);
+                    hop.start_jumping(base, living, &mut self.random);
+                }
+            } else if !hop.can_jump {
+                hop.can_jump = true;
+            }
+        }
+        hop.was_on_ground = base.on_ground;
+        self.hop = Some(hop);
+    }
+
+    pub fn rabbit_post_ai_step(&mut self, living: &mut LivingState) {
+        let Some(hop) = self.hop.as_mut() else {
+            return;
+        };
+        if hop.jump_ticks != hop.jump_duration {
+            hop.jump_ticks += 1;
+        } else if hop.jump_duration != 0 {
+            hop.jump_ticks = 0;
+            hop.jump_duration = 0;
+            living.jumping = false;
+        }
+    }
+
+    pub fn take_hop_sounds(&mut self) -> Vec<HopSound> {
+        self.hop
+            .as_mut()
+            .map(|hop| std::mem::take(&mut hop.sounds))
+            .unwrap_or_default()
     }
 }

@@ -3,7 +3,7 @@ use rspigot_ai::{Hand, MobAction, TargetReason, is_edible_for_sheep};
 use rspigot_blocks::BlockKind;
 use rspigot_domain::entity::ageable::{self, PARENT_AGE_AFTER_BREEDING, SHEEP_REGROWTH_SECONDS};
 use rspigot_domain::entity::living::{self, LivingState};
-use rspigot_domain::entity::species;
+use rspigot_domain::entity::species::{self, rabbit};
 use rspigot_domain::entity::{Entity, EntityBase, EntityState};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::random::{LegacyRandom, RandomSource};
@@ -107,6 +107,17 @@ impl<L: ClientLink> Server<L> {
                     stage: stage as i8,
                 },
             ),
+            MobAction::Wolf(action) => self.wolf_action(id, action),
+            MobAction::Cat(action) => self.cat_action(id, action),
+            MobAction::Fox(action) => self.fox_action(id, action),
+            MobAction::Panda(action) => self.panda_action(id, action),
+            MobAction::PolarBear(action) => self.polar_bear_action(id, action),
+            MobAction::Enderman(action) => self.enderman_action(id, action),
+            MobAction::Silverfish(action) => self.silverfish_action(id, action),
+            MobAction::IronGolem(action) => self.iron_golem_action(id, action),
+            MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
+            MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),
+            MobAction::ForgetAndRefreshAnger(mob) => self.forget_and_refresh_anger(mob),
             MobAction::BreakDoor(pos) => {
                 self.set_block(pos, BlockStateId::AIR);
                 self.level_event(rspigot_ai::ZOMBIE_BREAK_DOOR_EVENT, pos, 0);
@@ -190,7 +201,8 @@ impl<L: ClientLink> Server<L> {
         self.change_block(rabbit, pos, to, Grief::Raid { rabbit: id, pos }, refused);
     }
 
-    pub(crate) fn finish_raid(&mut self, pos: BlockPos) {
+    pub(crate) fn finish_raid(&mut self, pos: BlockPos, rabbit: EntityId) {
+        self.rabbit_ate_carrot(rabbit);
         let Some(state) = self
             .world
             .chunks
@@ -313,7 +325,16 @@ impl<L: ClientLink> Server<L> {
         let kind = parent_entity.base.kind;
         if !matches!(
             kind,
-            Kind::Cow | Kind::Pig | Kind::Chicken | Kind::Sheep | Kind::Rabbit | Kind::Ocelot
+            Kind::Cow
+                | Kind::Pig
+                | Kind::Chicken
+                | Kind::Sheep
+                | Kind::Rabbit
+                | Kind::Ocelot
+                | Kind::Fox
+                | Kind::Wolf
+                | Kind::Cat
+                | Kind::Panda
         ) {
             return None;
         }
@@ -325,6 +346,7 @@ impl<L: ClientLink> Server<L> {
             .farm()
             .map(|farm| (farm, species::variant(&parent_entity.base, farm)));
         let parent_color = species::wool_color(&parent_entity.base);
+        let parent_fox = species::fox::variant(&parent_entity.base);
         let partner_entity = self.entities.store.get(partner)?;
         let partner_variant = partner_entity
             .living()
@@ -332,9 +354,27 @@ impl<L: ClientLink> Server<L> {
             .and_then(|mob| mob.species.farm())
             .map(|farm| species::variant(&partner_entity.base, farm));
         let partner_color = species::wool_color(&partner_entity.base);
+        let partner_fox = species::fox::variant(&partner_entity.base);
         let partner_kind = partner_entity.base.kind;
+        let rabbit_parents = (kind == Kind::Rabbit).then(|| {
+            (
+                rabbit::variant(&parent_entity.base),
+                rabbit::variant(&partner_entity.base),
+                self.biome_at(parent_entity.base.position.block()),
+            )
+        });
         let base = self.new_entity_base(kind);
         let mut child = new_mob(base);
+        if let (Some((own, other, biome)), EntityState::Living(state)) =
+            (rabbit_parents, &mut child.state)
+        {
+            let fallback = {
+                let mut level = crate::mobs::ServerRandom(&mut self.rng);
+                rabbit::random_variant(biome, &mut level)
+            };
+            let chosen = rabbit::offspring_variant(fallback, own, other, random);
+            rabbit::set_variant(&mut child.base, &mut state.attributes, chosen);
+        }
         if let Some((farm, variant)) = parent_variant
             && partner_kind == kind
         {
@@ -345,10 +385,27 @@ impl<L: ClientLink> Server<L> {
             };
             species::set_variant(&mut child.base, farm, chosen);
         }
+        if kind == Kind::Fox && partner_kind == kind {
+            let chosen = if random.next_boolean() {
+                parent_fox
+            } else {
+                partner_fox
+            };
+            species::fox::set_variant(&mut child.base, chosen);
+        }
+        if kind == Kind::Wolf {
+            self.wolf_offspring(&mut child, parent, partner, random);
+        }
         if kind == Kind::Sheep {
             let mut level = crate::mobs::ServerRandom(&mut self.rng);
             let color = species::mixed_wool_color(parent_color, partner_color, &mut level);
             species::set_wool_color(&mut child.base, color);
+        }
+        if kind == Kind::Cat {
+            self.cat_offspring(&mut child, parent, partner, random);
+        }
+        if kind == Kind::Panda {
+            self.panda_offspring(parent, partner, &mut child);
         }
         Some(child)
     }
@@ -367,6 +424,7 @@ impl<L: ClientLink> Server<L> {
         {
             ageable::set_baby(&mut child.base, ageable, true);
         }
+        self.fox_breeding_trust(parent, partner, &mut child);
         child.base.snap_to(position, 0.0, 0.0);
         let experience = random.next_int(BREED_EXPERIENCE) + 1;
         self.store_mob_random(parent, random);

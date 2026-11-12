@@ -1,4 +1,4 @@
-use rspigot_data::variants::{Farm, SoundSet};
+use rspigot_data::variants::{SoundSet, VariantCondition, VariantFamily};
 use rspigot_entities::EntityKind;
 
 use std::borrow::Cow;
@@ -6,9 +6,24 @@ use std::borrow::Cow;
 use super::base::EntityBase;
 use super::data::{SyncedValue, VariantKind};
 use super::living::LivingAttributes;
+use super::variants::{self, VariantContext};
 use crate::effect::{AttributeModifier, AttributeOperation};
 use crate::random::RandomSource;
 use crate::{BiomeId, biome};
+
+pub mod cat;
+pub mod enderman;
+pub mod endermite;
+pub mod fox;
+pub mod iron_golem;
+pub mod ocelot;
+pub mod panda;
+pub mod polar_bear;
+pub mod rabbit;
+pub mod silverfish;
+pub mod wolf;
+pub mod zombie_villager;
+pub mod zombified_piglin;
 
 pub const PIG_DATA_BOOST_TIME: u8 = 18;
 pub const DATA_WOOL: u8 = 18;
@@ -29,12 +44,11 @@ pub const DROWNING_CONVERSION_TICKS: i32 = 300;
 pub const FREEZING_AFFLICTION_TICKS: i32 = 140;
 pub const FREEZING_CONVERSION_TICKS: i32 = 300;
 pub const DROWNED_CONVERSION_EVENT: i32 = 1040;
+pub const HUSK_CONVERSION_EVENT: i32 = 1041;
 pub const STRAY_CONVERSION_EVENT: i32 = 1048;
 pub const BABY_SPEED_MODIFIER: &str = "minecraft:baby";
 const BABY_SPEED_BONUS: f64 = 0.5;
 const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
-const DEFAULT_VARIANT: &str = "minecraft:temperate";
-const DEFAULT_SOUND_VARIANT: &str = "minecraft:classic";
 const SWELL_FALL_FACTOR: f64 = 1.5;
 const SWELL_FALL_MARGIN: i32 = 5;
 const FLAP_DRAG: f64 = 0.6;
@@ -117,6 +131,8 @@ pub struct SheepState {
 pub struct ZombieState {
     pub can_break_doors: bool,
     pub drowning: ConversionTracker,
+    pub piglin: zombified_piglin::ZombifiedPiglinState,
+    pub villager: Option<zombie_villager::ZombieVillagerState>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -156,26 +172,53 @@ pub enum Species {
     Zombie(ZombieState),
     Skeleton(SkeletonState),
     Creeper(CreeperState),
+    Wolf(wolf::WolfState),
+    Cat(cat::CatState),
+    Fox(fox::FoxState),
+    Panda(panda::PandaState),
+    PolarBear(polar_bear::PolarBearState),
+    Enderman(enderman::EndermanState),
+    Endermite(endermite::EndermiteState),
+    Silverfish(silverfish::SilverfishState),
+    IronGolem(iron_golem::IronGolemState),
+    Rabbit(rabbit::RabbitState),
+    Ocelot(ocelot::OcelotState),
 }
 
-pub fn farm_of(kind: EntityKind) -> Option<Farm> {
+pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
     match kind {
-        EntityKind::Cow => Some(Farm::Cow),
-        EntityKind::Pig => Some(Farm::Pig),
-        EntityKind::Chicken => Some(Farm::Chicken),
+        EntityKind::Cow => Some(VariantFamily::Cow),
+        EntityKind::Pig => Some(VariantFamily::Pig),
+        EntityKind::Chicken => Some(VariantFamily::Chicken),
         _ => None,
     }
 }
 
-pub const fn variant_data(farm: Farm) -> u8 {
-    match farm {
-        Farm::Pig => 19,
-        Farm::Cow | Farm::Chicken => 18,
+pub fn variant_family_of(kind: EntityKind) -> Option<VariantFamily> {
+    match kind {
+        EntityKind::Wolf => Some(VariantFamily::Wolf),
+        EntityKind::Cat => Some(VariantFamily::Cat),
+        _ => farm_of(kind),
     }
 }
 
-pub const fn sound_variant_data(farm: Farm) -> u8 {
-    variant_data(farm) + 1
+pub const fn variant_data(family: VariantFamily) -> u8 {
+    match family {
+        VariantFamily::Pig => 19,
+        VariantFamily::Cow | VariantFamily::Chicken => 18,
+        VariantFamily::Wolf => variants::WOLF_DATA_VARIANT,
+        VariantFamily::Cat => variants::CAT_DATA_VARIANT,
+    }
+}
+
+pub const fn sound_variant_data(family: VariantFamily) -> u8 {
+    match family {
+        VariantFamily::Wolf => variants::WOLF_DATA_SOUND_VARIANT,
+        VariantFamily::Cat => variants::CAT_DATA_SOUND_VARIANT,
+        VariantFamily::Cow | VariantFamily::Pig | VariantFamily::Chicken => {
+            variant_data(family) + 1
+        }
+    }
 }
 
 pub fn is_zombie(kind: EntityKind) -> bool {
@@ -183,35 +226,37 @@ pub fn is_zombie(kind: EntityKind) -> bool {
 }
 
 impl Species {
-    pub fn farm(&self) -> Option<Farm> {
+    pub fn farm(&self) -> Option<VariantFamily> {
         match self {
-            Self::Cow => Some(Farm::Cow),
-            Self::Pig => Some(Farm::Pig),
-            Self::Chicken(_) => Some(Farm::Chicken),
+            Self::Cow => Some(VariantFamily::Cow),
+            Self::Pig => Some(VariantFamily::Pig),
+            Self::Chicken(_) => Some(VariantFamily::Chicken),
             _ => None,
+        }
+    }
+
+    pub fn variant_family(&self) -> Option<VariantFamily> {
+        match self {
+            Self::Wolf(_) => Some(VariantFamily::Wolf),
+            Self::Cat(_) => Some(VariantFamily::Cat),
+            _ => self.farm(),
         }
     }
 
     pub fn new(base: &mut EntityBase) -> Self {
         let kind = base.kind;
+        if let Some(family) = variant_family_of(kind) {
+            define_variants(base, family);
+        }
         if let Some(farm) = farm_of(kind) {
-            if farm == Farm::Pig {
+            if farm == VariantFamily::Pig {
                 base.data.define(PIG_DATA_BOOST_TIME, SyncedValue::Int(0));
             }
-            let variant = farm.variant_index(DEFAULT_VARIANT).unwrap_or(0);
-            let sound = farm.sound_variant_index(DEFAULT_SOUND_VARIANT).unwrap_or(0);
-            base.data.define(
-                variant_data(farm),
-                SyncedValue::Variant(VariantKind::Mob(farm), variant),
-            );
-            base.data.define(
-                sound_variant_data(farm),
-                SyncedValue::Variant(VariantKind::Sound(farm), sound),
-            );
             return match farm {
-                Farm::Cow => Self::Cow,
-                Farm::Pig => Self::Pig,
-                Farm::Chicken => Self::Chicken(ChickenState::default()),
+                VariantFamily::Cow => Self::Cow,
+                VariantFamily::Pig => Self::Pig,
+                VariantFamily::Chicken => Self::Chicken(ChickenState::default()),
+                VariantFamily::Wolf | VariantFamily::Cat => Self::Plain,
             };
         }
         if kind == EntityKind::Sheep {
@@ -225,7 +270,12 @@ impl Species {
                 .define(ZOMBIE_DATA_SPECIAL_TYPE, SyncedValue::Int(0));
             base.data
                 .define(ZOMBIE_DATA_DROWNED_CONVERSION, SyncedValue::Boolean(false));
-            return Self::Zombie(ZombieState::default());
+            let villager =
+                (kind == EntityKind::ZombieVillager).then(|| zombie_villager::define(base));
+            return Self::Zombie(ZombieState {
+                villager,
+                ..ZombieState::default()
+            });
         }
         if kind == EntityKind::Skeleton {
             base.data
@@ -241,58 +291,112 @@ impl Species {
                 .define(CREEPER_DATA_IGNITED, SyncedValue::Boolean(false));
             return Self::Creeper(CreeperState::default());
         }
+        if kind == EntityKind::Wolf {
+            return Self::Wolf(wolf::define(base));
+        }
+        if kind == EntityKind::Cat {
+            return Self::Cat(cat::define(base));
+        }
+        if kind == EntityKind::Fox {
+            return Self::Fox(fox::define(base));
+        }
+        if kind == EntityKind::Panda {
+            return Self::Panda(panda::define(base));
+        }
+        if kind == EntityKind::PolarBear {
+            return Self::PolarBear(polar_bear::define(base));
+        }
+        if kind == EntityKind::Enderman {
+            return Self::Enderman(enderman::define(base));
+        }
+        if kind == EntityKind::Endermite {
+            return Self::Endermite(endermite::define(base));
+        }
+        if kind == EntityKind::Silverfish {
+            return Self::Silverfish(silverfish::define(base));
+        }
+        if kind == EntityKind::IronGolem {
+            return Self::IronGolem(iron_golem::define(base));
+        }
+        if kind == EntityKind::Rabbit {
+            return Self::Rabbit(rabbit::define(base));
+        }
+        if kind == EntityKind::Ocelot {
+            return Self::Ocelot(ocelot::define(base));
+        }
         Self::Plain
     }
 }
 
-pub fn variant(base: &EntityBase, farm: Farm) -> u32 {
+fn define_variants(base: &mut EntityBase, family: VariantFamily) {
+    let variant = family
+        .variant_index(variants::default_variant(family))
+        .unwrap_or(0);
+    let sound = family
+        .sound_variant_index(variants::default_sound_variant(family))
+        .unwrap_or(0);
+    base.data.define(
+        variant_data(family),
+        SyncedValue::Variant(VariantKind::Mob(family), variant),
+    );
+    base.data.define(
+        sound_variant_data(family),
+        SyncedValue::Variant(VariantKind::Sound(family), sound),
+    );
+}
+
+pub fn variant(base: &EntityBase, farm: VariantFamily) -> u32 {
     base.data.variant(variant_data(farm)).unwrap_or(0)
 }
 
-pub fn set_variant(base: &mut EntityBase, farm: Farm, id: u32) {
+pub fn set_variant(base: &mut EntityBase, farm: VariantFamily, id: u32) {
     base.data.set(
         variant_data(farm),
         SyncedValue::Variant(VariantKind::Mob(farm), id),
     );
 }
 
-pub fn sound_variant(base: &EntityBase, farm: Farm) -> u32 {
+pub fn sound_variant(base: &EntityBase, farm: VariantFamily) -> u32 {
     base.data.variant(sound_variant_data(farm)).unwrap_or(0)
 }
 
-pub fn set_sound_variant(base: &mut EntityBase, farm: Farm, id: u32) {
+pub fn set_sound_variant(base: &mut EntityBase, farm: VariantFamily, id: u32) {
     base.data.set(
         sound_variant_data(farm),
         SyncedValue::Variant(VariantKind::Sound(farm), id),
     );
 }
 
-pub fn variant_name(farm: Farm, id: u32) -> &'static str {
+pub fn variant_name(farm: VariantFamily, id: u32) -> &'static str {
     farm.variants()
         .get(id as usize)
-        .map_or(DEFAULT_VARIANT, |v| v.name)
+        .map_or(variants::default_variant(farm), |v| v.name)
 }
 
-pub fn sound_variant_name(farm: Farm, id: u32) -> &'static str {
+pub fn sound_variant_name(farm: VariantFamily, id: u32) -> &'static str {
     farm.sound_variants()
         .get(id as usize)
-        .map_or(DEFAULT_SOUND_VARIANT, |v| v.name)
+        .map_or(variants::default_sound_variant(farm), |v| v.name)
 }
 
-pub fn sound_set(base: &EntityBase, farm: Farm, baby: bool) -> Option<SoundSet> {
+pub fn sound_set(base: &EntityBase, farm: VariantFamily, baby: bool) -> Option<SoundSet> {
     let variant = farm
         .sound_variants()
         .get(sound_variant(base, farm) as usize)?;
     Some(if baby { variant.baby } else { variant.adult })
 }
 
-pub fn select_variant(farm: Farm, biome: BiomeId, random: &mut impl RandomSource) -> Option<u32> {
+pub fn select_variant(
+    family: VariantFamily,
+    context: &VariantContext,
+    random: &mut impl RandomSource,
+) -> Option<u32> {
     let mut unpacked: Vec<(u32, i32, bool)> = Vec::new();
-    for (index, variant) in farm.variants().iter().enumerate() {
+    for (index, variant) in family.variants().iter().enumerate() {
         for condition in variant.spawn_conditions {
-            let matches = condition.biomes.is_none_or(|biomes| {
-                biomes.contains("minecraft:worldgen/biome", u32::from(biome.0))
-            });
+            let matches = condition
+                .condition
+                .is_none_or(|condition| condition_matches(condition, context));
             unpacked.push((index as u32, condition.priority, matches));
         }
     }
@@ -313,7 +417,19 @@ pub fn select_variant(farm: Farm, biome: BiomeId, random: &mut impl RandomSource
     Some(candidates[random.next_int(size) as usize])
 }
 
-pub fn pick_sound_variant(farm: Farm, random: &mut impl RandomSource) -> u32 {
+fn condition_matches(condition: VariantCondition, context: &VariantContext) -> bool {
+    match condition {
+        VariantCondition::Biome(biomes) => {
+            biomes.contains("minecraft:worldgen/biome", u32::from(context.biome.0))
+        }
+        VariantCondition::Structure(tag) => context.structures.contains(tag),
+        VariantCondition::MoonBrightness { min, max } => {
+            VariantCondition::moon_brightness_matches(min, max, context.moon_brightness)
+        }
+    }
+}
+
+pub fn pick_sound_variant(farm: VariantFamily, random: &mut impl RandomSource) -> u32 {
     random.next_int(farm.sound_variants().len() as i32) as u32
 }
 
@@ -512,11 +628,109 @@ mod tests {
     fn farm_animals_default_to_temperate_classic() {
         let (pig, species) = base(EntityKind::Pig);
         assert_eq!(species, Species::Pig);
-        assert_eq!(variant(&pig, Farm::Pig), 1);
-        assert_eq!(sound_variant(&pig, Farm::Pig), 1);
+        assert_eq!(variant(&pig, VariantFamily::Pig), 1);
+        assert_eq!(sound_variant(&pig, VariantFamily::Pig), 1);
         assert!(pig.data.non_default().is_empty());
         let (cow, _) = base(EntityKind::Cow);
-        assert_eq!(sound_variant(&cow, Farm::Cow), 0);
+        assert_eq!(sound_variant(&cow, VariantFamily::Cow), 0);
+    }
+
+    #[test]
+    fn wolf_and_cat_define_their_variant_data_at_the_java_indexes() {
+        use super::variants as v;
+        let (wolf, _) = base(EntityKind::Wolf);
+        assert_eq!(variant_data(VariantFamily::Wolf), v::WOLF_DATA_VARIANT);
+        assert_eq!(sound_variant_data(VariantFamily::Wolf), 24);
+        assert_eq!(variant(&wolf, VariantFamily::Wolf), 3);
+        assert_eq!(
+            variant_name(VariantFamily::Wolf, variant(&wolf, VariantFamily::Wolf)),
+            "minecraft:pale"
+        );
+        assert_eq!(sound_variant(&wolf, VariantFamily::Wolf), 2);
+        assert!(wolf.data.non_default().is_empty());
+        let (cat, _) = base(EntityKind::Cat);
+        assert_eq!(variant_data(VariantFamily::Cat), 20);
+        assert_eq!(sound_variant_data(VariantFamily::Cat), 24);
+        assert_eq!(variant(&cat, VariantFamily::Cat), 1);
+        assert_eq!(
+            variant_name(VariantFamily::Cat, variant(&cat, VariantFamily::Cat)),
+            "minecraft:black"
+        );
+        assert_eq!(sound_variant(&cat, VariantFamily::Cat), 0);
+        let (mut cat, _) = base(EntityKind::Cat);
+        set_variant(&mut cat, VariantFamily::Cat, 4);
+        set_sound_variant(&mut cat, VariantFamily::Cat, 1);
+        assert_eq!(
+            cat.data.get(20),
+            Some(&SyncedValue::Variant(
+                VariantKind::Mob(VariantFamily::Cat),
+                4
+            ))
+        );
+        assert_eq!(
+            cat.data.get(24),
+            Some(&SyncedValue::Variant(
+                VariantKind::Sound(VariantFamily::Cat),
+                1
+            ))
+        );
+        assert_eq!(
+            sound_set(&cat, VariantFamily::Cat, false)
+                .unwrap()
+                .stray_ambient,
+            Some("minecraft:entity.cat_royal.stray_ambient")
+        );
+    }
+
+    #[test]
+    fn wolves_pick_the_variant_of_their_biome() {
+        let forest = BiomeId(rspigot_data::registries::biome_id("minecraft:forest").unwrap());
+        let plains = BiomeId(rspigot_data::registries::biome_id("minecraft:plains").unwrap());
+        let mut random = LegacyRandom::new(5);
+        let woods = VariantFamily::Wolf.variant_index("minecraft:woods");
+        assert_eq!(
+            select_variant(
+                VariantFamily::Wolf,
+                &VariantContext::in_biome(forest),
+                &mut random
+            ),
+            woods
+        );
+        assert_eq!(
+            select_variant(
+                VariantFamily::Wolf,
+                &VariantContext::in_biome(plains),
+                &mut random
+            ),
+            VariantFamily::Wolf.variant_index("minecraft:pale")
+        );
+    }
+
+    #[test]
+    fn cats_pick_black_by_structure_or_full_moon() {
+        use super::variants::StructureProbe;
+        let plains = BiomeId(rspigot_data::registries::biome_id("minecraft:plains").unwrap());
+        let all_black = VariantFamily::Cat.variant_index("minecraft:all_black");
+        let mut context = VariantContext::in_biome(plains);
+        let pick = |context: &VariantContext, seed| {
+            select_variant(VariantFamily::Cat, context, &mut LegacyRandom::new(seed))
+        };
+        context.moon_brightness = 0.75;
+        for seed in 0..60 {
+            let picked = pick(&context, seed);
+            assert!(picked.is_some() && picked != all_black);
+        }
+        context.moon_brightness = 0.9;
+        assert!((0..60).any(|seed| pick(&context, seed) == all_black));
+        context.moon_brightness = 1.0;
+        assert!((0..60).any(|seed| pick(&context, seed) == all_black));
+        context.moon_brightness = 0.75;
+        context.structures = StructureProbe::Within(|tag| tag == "minecraft:cats_spawn_as_black");
+        for seed in 0..60 {
+            assert_eq!(pick(&context, seed), all_black);
+        }
+        context.structures = StructureProbe::Within(|_| false);
+        assert_ne!(pick(&context, 3), all_black);
     }
 
     #[test]
@@ -524,8 +738,16 @@ mod tests {
         let snowy = BiomeId(rspigot_data::registries::biome_id("minecraft:snowy_plains").unwrap());
         let plains = BiomeId(rspigot_data::registries::biome_id("minecraft:plains").unwrap());
         let mut random = LegacyRandom::new(5);
-        assert_eq!(select_variant(Farm::Cow, snowy, &mut random), Some(0));
-        assert_eq!(select_variant(Farm::Chicken, plains, &mut random), Some(1));
+        let snowy = VariantContext::in_biome(snowy);
+        let plains = VariantContext::in_biome(plains);
+        assert_eq!(
+            select_variant(VariantFamily::Cow, &snowy, &mut random),
+            Some(0)
+        );
+        assert_eq!(
+            select_variant(VariantFamily::Chicken, &plains, &mut random),
+            Some(1)
+        );
     }
 
     #[test]

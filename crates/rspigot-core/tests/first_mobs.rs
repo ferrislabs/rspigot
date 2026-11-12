@@ -13,7 +13,7 @@ use rspigot_core::events::{
 use rspigot_core::ports::{ChunkGenerator, ChunkStore, ClientLink, EntityStore, StoreError};
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
-use rspigot_data::variants::Farm;
+use rspigot_data::variants::VariantFamily;
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::item::{ItemStack, Slot};
@@ -951,6 +951,95 @@ fn a_drowning_zombie_converts_into_a_drowned() {
 }
 
 #[test]
+fn a_drowning_husk_converts_into_a_zombie() {
+    let mut server = server();
+    let mut alice = join(&mut server, "Alice");
+    command(&mut server, &mut alice, "/time set 18000");
+    command(&mut server, &mut alice, "/gamemode creative");
+    let husk = summon(
+        &mut server,
+        &mut alice,
+        "/summon husk -5 61 -5 {}",
+        Kind::Husk,
+    );
+    let mut converted = false;
+    for _ in 0..1000 {
+        pump(&mut server, &mut alice, 1);
+        if !server.entities_of(Kind::Zombie).is_empty() {
+            converted = true;
+            break;
+        }
+    }
+    assert!(converted, "the husk never became a zombie");
+    assert!(server.entities_of(Kind::Drowned).is_empty());
+    assert!(server.saved_entity(husk).is_none());
+    let events = alice.drain();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, ClientEvent::LevelEvent { event: 1041, .. }))
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|e| matches!(e, ClientEvent::LevelEvent { event: 1040, .. }))
+    );
+}
+
+#[test]
+fn a_husk_that_hits_a_player_with_an_empty_hand_starves_them() {
+    let mut server = server();
+    let mut alice = join(&mut server, "Alice");
+    command(&mut server, &mut alice, "/time set 18000");
+    summon(
+        &mut server,
+        &mut alice,
+        "/summon husk 0.5 64 1.5 {}",
+        Kind::Husk,
+    );
+    let mut hungry = false;
+    for _ in 0..200 {
+        pump(&mut server, &mut alice, 1);
+        hungry |= alice.drain().iter().any(|event| {
+            matches!(event, ClientEvent::EffectApplied { effect, .. }
+                if effect.effect.name() == Some("minecraft:hunger") && effect.amplifier == 0)
+        });
+        if hungry {
+            break;
+        }
+        stand(&mut server, &alice, Vec3::new(0.5, 64.0, 0.5));
+    }
+    assert!(hungry, "the husk never hungered the player");
+}
+
+#[test]
+fn a_burning_zombie_with_an_empty_hand_sets_its_victim_alight() {
+    let mut server = server();
+    let mut alice = join(&mut server, "Alice");
+    command(&mut server, &mut alice, "/time set 18000");
+    command(&mut server, &mut alice, "/difficulty hard");
+    summon(
+        &mut server,
+        &mut alice,
+        "/summon zombie 0.5 64 1.5 {Fire:600s}",
+        Kind::Zombie,
+    );
+    let mut lit = false;
+    for _ in 0..300 {
+        pump(&mut server, &mut alice, 1);
+        alice.drain();
+        lit = server
+            .player_fire_ticks(alice.id)
+            .is_some_and(|ticks| ticks > 0);
+        if lit {
+            break;
+        }
+        stand(&mut server, &alice, Vec3::new(0.5, 64.0, 0.5));
+    }
+    assert!(lit, "the burning zombie never ignited the player");
+}
+
+#[test]
 fn summoned_farm_animals_get_their_biome_variant_and_pair_it() {
     let mut server = server();
     let mut alice = join(&mut server, "Alice");
@@ -972,13 +1061,53 @@ fn summoned_farm_animals_get_their_biome_variant_and_pair_it() {
     let colour = saved(&server, sheep).get_i32("Color").unwrap();
     let mut bob = join(&mut server, "Bob");
     let events = bob.drain();
-    assert!(
-        metadata(&events, cow, 18)
-            .contains(&MetadataValue::Variant(VariantKind::Mob(Farm::Cow), 2))
-    );
+    assert!(metadata(&events, cow, 18).contains(&MetadataValue::Variant(
+        VariantKind::Mob(VariantFamily::Cow),
+        2
+    )));
     if colour != 0 {
         assert!(metadata(&events, sheep, 18).contains(&MetadataValue::Byte(colour as i8)));
     }
+}
+
+#[test]
+fn wolf_and_cat_variants_are_sent_in_their_metadata() {
+    let mut server = server();
+    let mut alice = join(&mut server, "Alice");
+    let wolf = summon(
+        &mut server,
+        &mut alice,
+        "/summon wolf 0.5 64 2.5 {variant:\"minecraft:ashen\",sound_variant:\"minecraft:grumpy\"}",
+        Kind::Wolf,
+    );
+    let cat = summon(
+        &mut server,
+        &mut alice,
+        "/summon cat 2.5 64 2.5 {variant:\"minecraft:calico\",sound_variant:\"minecraft:royal\"}",
+        Kind::Cat,
+    );
+    let mut bob = join(&mut server, "Bob");
+    let events = bob.drain();
+    assert!(
+        metadata(&events, wolf, 23).contains(&MetadataValue::Variant(
+            VariantKind::Mob(VariantFamily::Wolf),
+            0
+        ))
+    );
+    assert!(
+        metadata(&events, wolf, 24).contains(&MetadataValue::Variant(
+            VariantKind::Sound(VariantFamily::Wolf),
+            4
+        ))
+    );
+    assert!(metadata(&events, cat, 20).contains(&MetadataValue::Variant(
+        VariantKind::Mob(VariantFamily::Cat),
+        3
+    )));
+    assert!(metadata(&events, cat, 24).contains(&MetadataValue::Variant(
+        VariantKind::Sound(VariantFamily::Cat),
+        1
+    )));
 }
 
 #[test]

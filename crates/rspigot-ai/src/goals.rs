@@ -2,6 +2,7 @@ use crate::action::{TargetReason, TargetRequest};
 use crate::random::RandomSource;
 use rspigot_blocks::BlockKind;
 use rspigot_domain::{EntityId, ItemId, Vec3};
+use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 
 use crate::animal::{BreedGoal, EatBlockGoal, FollowParentGoal, PanicGoal};
@@ -11,13 +12,15 @@ use crate::combat::{
     HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, OcelotAttackGoal, RangedBowAttackGoal,
     SwellGoal,
 };
-use crate::control::{MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT};
+use crate::control::MAX_HEAD_Y_ROT;
 use crate::evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 use crate::goal::{Flag, Flags, Goal, adjusted_tick_delay, reduced_tick_delay};
+use crate::neutral::ResetUniversalAngerGoal;
 use crate::rabbit::RaidGardenGoal;
 use crate::random_pos::{self, mob_light_magic_value};
+use crate::tame::{FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal};
 use crate::targeting::{self, TargetingConditions};
-use crate::world::{AiWorld, Living, TargetKind, inflate};
+use crate::world::{AiWorld, Living, MobView, TargetKind, inflate};
 
 const ITEM_TAGS: &str = "minecraft:item";
 const ENTITY_TAGS: &str = "minecraft:entity_type";
@@ -104,6 +107,13 @@ impl RandomStrollGoal {
         }
     }
 
+    pub fn with_interval(speed_modifier: f64, interval: i32) -> Self {
+        Self {
+            interval,
+            ..Self::new(speed_modifier)
+        }
+    }
+
     pub fn water_avoiding(speed_modifier: f64) -> Self {
         Self {
             water_avoiding: Some(WATER_AVOIDING_PROBABILITY),
@@ -114,6 +124,14 @@ impl RandomStrollGoal {
     pub fn water_avoiding_with(speed_modifier: f64, probability: f32) -> Self {
         Self {
             water_avoiding: Some(probability),
+            ..Self::new(speed_modifier)
+        }
+    }
+
+    pub fn with_settings(speed_modifier: f64, interval: i32, check_no_action_time: bool) -> Self {
+        Self {
+            interval,
+            check_no_action_time,
             ..Self::new(speed_modifier)
         }
     }
@@ -137,7 +155,16 @@ impl RandomStrollGoal {
         }
     }
 
-    fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        let this = *self;
+        self.can_use_with(context, |context| this.position(context))
+    }
+
+    pub(crate) fn can_use_with<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+        position: impl FnOnce(&mut AiContext<'_, W>) -> Option<Vec3>,
+    ) -> bool {
         if !self.force_trigger {
             if self.check_no_action_time && context.mob.no_action_time >= NO_ACTION_LIMIT {
                 return false;
@@ -147,7 +174,7 @@ impl RandomStrollGoal {
                 return false;
             }
         }
-        let Some(position) = self.position(context) else {
+        let Some(position) = position(context) else {
             return false;
         };
         self.wanted = position;
@@ -155,15 +182,18 @@ impl RandomStrollGoal {
         true
     }
 
-    fn can_continue_to_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
         !context.brain.navigation.is_done()
     }
 
-    fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         context.move_to_pos(self.wanted, self.speed_modifier);
     }
 
-    fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         context.stop_navigation();
     }
 }
@@ -192,7 +222,7 @@ impl LookAtPlayerGoal {
         self.look_at
     }
 
-    fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         if context.brain.random.next_float() >= self.probability {
             return false;
         }
@@ -203,7 +233,10 @@ impl LookAtPlayerGoal {
         self.look_at.is_some()
     }
 
-    fn can_continue_to_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
         let Some(target) = self.look_at.and_then(|id| context.world.living(id)) else {
             return false;
         };
@@ -214,16 +247,16 @@ impl LookAtPlayerGoal {
         context.mob.distance_to_sqr(target.position) <= distance && self.look_time > 0
     }
 
-    fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         let ticks = 40 + context.brain.random.next_int(40);
         self.look_time = adjusted_tick_delay(false, ticks);
     }
 
-    fn stop(&mut self) {
+    pub(crate) fn stop(&mut self) {
         self.look_at = None;
     }
 
-    fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         let Some(target) = self.look_at.and_then(|id| context.world.living(id)) else {
             return;
         };
@@ -302,6 +335,8 @@ pub struct TemptGoal {
     calm_down: i32,
     running: bool,
     scare: Scare,
+    non_tame: bool,
+    selected: Option<EntityId>,
     last_position: Vec3,
     last_pitch: f64,
     last_yaw: f64,
@@ -311,6 +346,7 @@ pub struct TemptGoal {
 enum Scare {
     Never,
     UnlessTrusting,
+    UnlessSelected,
 }
 
 impl TemptGoal {
@@ -323,6 +359,8 @@ impl TemptGoal {
             calm_down: 0,
             running: false,
             scare: Scare::Never,
+            non_tame: false,
+            selected: None,
             last_position: Vec3::ZERO,
             last_pitch: 0.0,
             last_yaw: 0.0,
@@ -336,6 +374,18 @@ impl TemptGoal {
         }
     }
 
+    pub fn cat(speed_modifier: f64, items: TemptItems) -> Self {
+        Self {
+            scare: Scare::UnlessSelected,
+            non_tame: true,
+            ..Self::new(speed_modifier, items)
+        }
+    }
+
+    pub fn selected(&self) -> Option<EntityId> {
+        self.selected
+    }
+
     pub fn player(&self) -> Option<EntityId> {
         self.player
     }
@@ -345,6 +395,10 @@ impl TemptGoal {
     }
 
     fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        self.find_player(context) && !(self.non_tame && context.mob.tamed)
+    }
+
+    fn find_player<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         if self.calm_down > 0 {
             self.calm_down -= 1;
             return false;
@@ -389,6 +443,7 @@ impl TemptGoal {
         match self.scare {
             Scare::Never => false,
             Scare::UnlessTrusting => !context.mob.trusting,
+            Scare::UnlessSelected => !(self.selected.is_some() && self.selected == self.player),
         }
     }
 
@@ -430,6 +485,18 @@ impl TemptGoal {
     }
 
     fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        self.follow_player(context);
+        if self.scare == Scare::UnlessSelected {
+            let random = &mut context.brain.random;
+            if self.selected.is_none() && random.next_int(adjusted_tick_delay(false, 600)) == 0 {
+                self.selected = self.player;
+            } else if random.next_int(adjusted_tick_delay(false, 500)) == 0 {
+                self.selected = None;
+            }
+        }
+    }
+
+    fn follow_player<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         let Some(player) = self.player.and_then(|id| context.world.living(id)) else {
             return;
         };
@@ -437,7 +504,7 @@ impl TemptGoal {
         context
             .brain
             .look
-            .set_look_at(at, MAX_HEAD_Y_ROT + 20.0, MAX_HEAD_X_ROT);
+            .set_look_at(at, MAX_HEAD_Y_ROT + 20.0, context.mob.max_head_x_rot());
         if context.mob.distance_to_sqr(player.position) < self.stop_distance * self.stop_distance {
             context.stop_navigation();
         } else {
@@ -450,13 +517,32 @@ impl TemptGoal {
 pub enum TargetFilter {
     Any,
     BabyOnLand,
+    AngryAt,
+    ChickenOrRabbit,
+    SchoolingFish,
+    EnemyNonCreeper,
+    Prey,
+    MobIsAdult,
 }
 
 impl TargetFilter {
-    fn accepts(self, target: &Living) -> bool {
+    fn accepts<W: AiWorld>(self, mob: &MobView, world: &W, target: &Living) -> bool {
         match self {
             Self::Any => true,
             Self::BabyOnLand => target.baby && !target.in_water,
+            Self::AngryAt => targeting::is_angry_at(mob, world, target),
+            Self::ChickenOrRabbit => {
+                target.kind == EntityKind::Chicken || target.kind == EntityKind::Rabbit
+            }
+            Self::SchoolingFish => target.kind.extends("AbstractSchoolingFish"),
+            Self::EnemyNonCreeper => {
+                crate::iron_golem::is_enemy(target.kind) && target.kind != EntityKind::Creeper
+            }
+            Self::Prey => matches!(
+                target.kind,
+                EntityKind::Sheep | EntityKind::Rabbit | EntityKind::Fox
+            ),
+            Self::MobIsAdult => !mob.baby,
         }
     }
 }
@@ -468,6 +554,8 @@ pub struct NearestAttackableTargetGoal {
     must_see: bool,
     filter: TargetFilter,
     needs_darkness: bool,
+    non_tame: bool,
+    follow_scale: f64,
     found: Option<Living>,
     unseen_ticks: i32,
 }
@@ -484,8 +572,28 @@ impl NearestAttackableTargetGoal {
             must_see,
             filter,
             needs_darkness: false,
+            non_tame: false,
+            follow_scale: 1.0,
             found: None,
             unseen_ticks: 0,
+        }
+    }
+
+    pub fn with_follow_scale(self, follow_scale: f64) -> Self {
+        Self {
+            follow_scale,
+            ..self
+        }
+    }
+
+    fn follow_distance(&self, mob: &MobView) -> f64 {
+        mob.follow_range * self.follow_scale
+    }
+
+    pub fn non_tame(kind: TargetKind, must_see: bool, filter: TargetFilter) -> Self {
+        Self {
+            non_tame: true,
+            ..Self::with(kind, TARGET_INTERVAL, must_see, filter)
         }
     }
 
@@ -497,26 +605,36 @@ impl NearestAttackableTargetGoal {
     }
 
     fn find_target<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
-        let conditions = TargetingConditions::for_combat().range(context.mob.follow_range);
+        let follow = self.follow_distance(context.mob);
+        let conditions = TargetingConditions::for_combat().range(follow);
         let origin = context.mob.eye_position();
         let filter = self.filter;
+        let mob = context.mob;
+        let world = context.world;
         self.found = if self.kind == TargetKind::Player {
-            targeting::nearest_player(context, conditions, |t| filter.accepts(t), origin)
+            targeting::nearest_player(
+                context,
+                conditions,
+                |t| filter.accepts(mob, world, t),
+                origin,
+            )
         } else {
-            let follow = context.mob.follow_range;
-            let area = inflate(&context.mob.bounds(), follow, follow, follow);
-            let candidates = context.world.living_of(self.kind, &area);
+            let area = inflate(&mob.bounds(), follow, follow, follow);
+            let candidates = world.living_of(self.kind, &area);
             targeting::nearest(
                 context,
                 candidates,
                 conditions,
-                |t| filter.accepts(t),
+                |t| filter.accepts(mob, world, t),
                 origin,
             )
         };
     }
 
-    fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        if self.non_tame && context.mob.tamed {
+            return false;
+        }
         if self.needs_darkness
             && mob_light_magic_value(context.world, context.mob) >= SPIDER_LIGHT_LIMIT
         {
@@ -529,14 +647,27 @@ impl NearestAttackableTargetGoal {
         self.found.is_some()
     }
 
-    fn can_continue_to_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
+        if self.non_tame {
+            let mob = context.mob;
+            let world = context.world;
+            let Some(found) = self.found.and_then(|found| world.living(found.id)) else {
+                return false;
+            };
+            let conditions = TargetingConditions::for_combat().range(self.follow_distance(mob));
+            let filter = self.filter;
+            return conditions.test(context, &found, |t| filter.accepts(mob, world, t));
+        }
         let Some(target) = context.target() else {
             return false;
         };
-        if !targeting::can_attack(context.world, &target) {
+        if !targeting::mob_can_attack(context.mob, context.world, &target) {
             return false;
         }
-        let follow = context.mob.follow_range;
+        let follow = self.follow_distance(context.mob);
         if context.mob.distance_to_sqr(target.position) > follow * follow {
             return false;
         }
@@ -559,7 +690,7 @@ impl NearestAttackableTargetGoal {
         true
     }
 
-    fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         let reason = if self.found.is_some_and(|found| found.player) {
             TargetReason::ClosestPlayer
         } else {
@@ -569,7 +700,7 @@ impl NearestAttackableTargetGoal {
         self.unseen_ticks = 0;
     }
 
-    fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         context.set_target(None, TargetReason::ForgotTarget);
     }
 }
@@ -600,6 +731,18 @@ pub enum MobGoal {
     MoveThroughVillage(MoveThroughVillageGoal),
     OcelotAttack(OcelotAttackGoal),
     RaidGarden(RaidGardenGoal),
+    SitWhenOrdered(SitWhenOrderedToGoal),
+    FollowOwner(FollowOwnerGoal),
+    OwnerTarget(OwnerTargetGoal),
+    ResetUniversalAnger(ResetUniversalAngerGoal),
+    Wolf(crate::WolfGoal),
+    Cat(crate::CatGoal),
+    Fox(crate::FoxGoal),
+    Panda(crate::PandaGoal),
+    PolarBear(crate::PolarBearGoal),
+    Enderman(crate::EndermanGoal),
+    Silverfish(crate::SilverfishGoal),
+    IronGolem(crate::IronGolemGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -621,11 +764,25 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::OcelotAttack(_)
             | Self::RangedBowAttack(_) => movement.with(Flag::Look),
             Self::EatBlock(_) => movement.with(Flag::Look).with(Flag::Jump),
+            Self::SitWhenOrdered(_) => movement.with(Flag::Jump),
+            Self::FollowOwner(_) => movement.with(Flag::Look),
+            Self::OwnerTarget(_) => Flags::of(Flag::Target),
             Self::LeapAtTarget(_) | Self::RemoveTurtleEgg(_) | Self::RaidGarden(_) => {
                 movement.with(Flag::Jump)
             }
             Self::NearestAttackableTarget(_) | Self::HurtByTarget(_) => Flags::of(Flag::Target),
-            Self::FollowParent(_) | Self::RestrictSun(_) | Self::BreakDoor(_) => Flags::NONE,
+            Self::FollowParent(_)
+            | Self::RestrictSun(_)
+            | Self::BreakDoor(_)
+            | Self::ResetUniversalAnger(_) => Flags::NONE,
+            Self::Wolf(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Cat(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Fox(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Panda(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::PolarBear(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Enderman(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -655,6 +812,18 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::RemoveTurtleEgg(goal) => goal.can_use(context),
             Self::BreakDoor(goal) => goal.can_use(context),
             Self::MoveThroughVillage(goal) => goal.can_use(context),
+            Self::SitWhenOrdered(goal) => goal.can_use(context),
+            Self::FollowOwner(goal) => goal.can_use(context),
+            Self::OwnerTarget(goal) => goal.can_use(context),
+            Self::ResetUniversalAnger(goal) => goal.can_use(context),
+            Self::Wolf(goal) => Goal::can_use(goal, context),
+            Self::Cat(goal) => Goal::can_use(goal, context),
+            Self::Fox(goal) => Goal::can_use(goal, context),
+            Self::Panda(goal) => Goal::can_use(goal, context),
+            Self::PolarBear(goal) => Goal::can_use(goal, context),
+            Self::Enderman(goal) => Goal::can_use(goal, context),
+            Self::Silverfish(goal) => Goal::can_use(goal, context),
+            Self::IronGolem(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -670,9 +839,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Tempt(goal) => goal.can_continue_to_use(context),
             Self::NearestAttackableTarget(goal) => goal.can_continue_to_use(context),
             Self::AvoidEntity(goal) => goal.can_continue_to_use(context),
-            Self::Panic(_) | Self::FleeSun(_) | Self::MoveThroughVillage(_) => {
-                !context.brain.navigation.is_done()
-            }
+            Self::Panic(_) | Self::FleeSun(_) => !context.brain.navigation.is_done(),
+            Self::MoveThroughVillage(goal) => goal.can_continue_to_use(context),
             Self::Breed(goal) => goal.can_continue_to_use(context),
             Self::FollowParent(goal) => goal.can_continue_to_use(context),
             Self::EatBlock(goal) => goal.eat_animation_tick() > 0,
@@ -684,6 +852,32 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::RestrictSun(goal) => goal.can_use(context),
             Self::RemoveTurtleEgg(goal) => goal.can_continue_to_use(context),
             Self::BreakDoor(goal) => !goal.passed() && goal.can_continue_to_use(context),
+            Self::SitWhenOrdered(goal) => goal.can_continue_to_use(context),
+            Self::FollowOwner(goal) => goal.can_continue_to_use(context),
+            Self::OwnerTarget(goal) => goal.memory().can_continue_to_use(context),
+            Self::ResetUniversalAnger(goal) => goal.can_use(context),
+            Self::Wolf(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Cat(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Fox(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Panda(goal) => Goal::can_continue_to_use(goal, context),
+            Self::PolarBear(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Enderman(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Silverfish(goal) => Goal::can_continue_to_use(goal, context),
+            Self::IronGolem(goal) => Goal::can_continue_to_use(goal, context),
+        }
+    }
+
+    fn is_interruptable(&self) -> bool {
+        match self {
+            Self::Wolf(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Cat(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Fox(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Panda(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::PolarBear(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Enderman(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            _ => true,
         }
     }
 
@@ -692,8 +886,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Float(_)
             | Self::ClimbOnTopOfPowderSnow(_)
             | Self::OcelotAttack(_)
-            | Self::Breed(_)
-            | Self::MoveThroughVillage(_) => {}
+            | Self::Breed(_) => {}
+            Self::MoveThroughVillage(goal) => goal.start(context),
             Self::RaidGarden(goal) => goal.start(context),
             Self::HurtByTarget(goal) => goal.start(context),
             Self::Stroll(goal) => goal.start(context),
@@ -713,6 +907,18 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::RestrictSun(goal) => goal.start(context),
             Self::RemoveTurtleEgg(goal) => goal.start(context),
             Self::BreakDoor(goal) => goal.start(context),
+            Self::SitWhenOrdered(goal) => goal.start(context),
+            Self::FollowOwner(goal) => goal.start(context),
+            Self::OwnerTarget(goal) => goal.start(context),
+            Self::ResetUniversalAnger(goal) => goal.start(context),
+            Self::Wolf(goal) => Goal::start(goal, context),
+            Self::Cat(goal) => Goal::start(goal, context),
+            Self::Fox(goal) => Goal::start(goal, context),
+            Self::Panda(goal) => Goal::start(goal, context),
+            Self::PolarBear(goal) => Goal::start(goal, context),
+            Self::Enderman(goal) => Goal::start(goal, context),
+            Self::Silverfish(goal) => Goal::start(goal, context),
+            Self::IronGolem(goal) => Goal::start(goal, context),
         }
     }
 
@@ -723,8 +929,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::RaidGarden(_)
             | Self::RandomLookAround(_)
             | Self::LeapAtTarget(_)
-            | Self::FleeSun(_)
-            | Self::MoveThroughVillage(_) => {}
+            | Self::FleeSun(_) => {}
+            Self::MoveThroughVillage(goal) => goal.stop(context),
             Self::Stroll(goal) => goal.stop(context),
             Self::LookAtPlayer(goal) => goal.stop(),
             Self::Tempt(goal) => goal.stop(context),
@@ -742,10 +948,52 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::RestrictSun(goal) => goal.stop(context),
             Self::RemoveTurtleEgg(goal) => goal.stop(context),
             Self::BreakDoor(goal) => goal.stop(context),
+            Self::SitWhenOrdered(goal) => goal.stop(context),
+            Self::FollowOwner(goal) => goal.stop(context),
+            Self::OwnerTarget(goal) => goal.memory().stop(context),
+            Self::ResetUniversalAnger(_) => {}
+            Self::Wolf(goal) => Goal::stop(goal, context),
+            Self::Cat(goal) => Goal::stop(goal, context),
+            Self::Fox(goal) => Goal::stop(goal, context),
+            Self::Panda(goal) => Goal::stop(goal, context),
+            Self::PolarBear(goal) => Goal::stop(goal, context),
+            Self::Enderman(goal) => Goal::stop(goal, context),
+            Self::Silverfish(goal) => Goal::stop(goal, context),
+            Self::IronGolem(goal) => Goal::stop(goal, context),
         }
     }
 
     fn requires_update_every_tick(&self) -> bool {
+        match self {
+            Self::Wolf(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Cat(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Fox(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Panda(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::PolarBear(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Enderman(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            _ => self.requires_update_every_tick_base(),
+        }
+    }
+
+    fn tick(&mut self, context: &mut AiContext<'_, W>) {
+        match self {
+            Self::Wolf(goal) => Goal::tick(goal, context),
+            Self::Cat(goal) => Goal::tick(goal, context),
+            Self::Fox(goal) => Goal::tick(goal, context),
+            Self::Panda(goal) => Goal::tick(goal, context),
+            Self::PolarBear(goal) => Goal::tick(goal, context),
+            Self::Enderman(goal) => Goal::tick(goal, context),
+            Self::Silverfish(goal) => Goal::tick(goal, context),
+            Self::IronGolem(goal) => Goal::tick(goal, context),
+            _ => self.tick_base(context),
+        }
+    }
+}
+
+impl MobGoal {
+    fn requires_update_every_tick_base(&self) -> bool {
         matches!(
             self,
             Self::Float(_)
@@ -761,7 +1009,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
         )
     }
 
-    fn tick(&mut self, context: &mut AiContext<'_, W>) {
+    fn tick_base<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         match self {
             Self::Float(goal) => goal.tick(context),
             Self::ClimbOnTopOfPowderSnow(goal) => goal.tick(context),
@@ -780,13 +1028,25 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::AvoidEntity(goal) => goal.tick(context),
             Self::RemoveTurtleEgg(goal) => goal.tick(context),
             Self::BreakDoor(goal) => goal.tick(context),
+            Self::FollowOwner(goal) => goal.tick(context),
             Self::Stroll(_)
             | Self::NearestAttackableTarget(_)
             | Self::LeapAtTarget(_)
             | Self::HurtByTarget(_)
             | Self::FleeSun(_)
             | Self::RestrictSun(_)
-            | Self::MoveThroughVillage(_) => {}
+            | Self::MoveThroughVillage(_)
+            | Self::SitWhenOrdered(_)
+            | Self::OwnerTarget(_)
+            | Self::ResetUniversalAnger(_)
+            | Self::Wolf(_)
+            | Self::Cat(_)
+            | Self::Fox(_)
+            | Self::Panda(_)
+            | Self::PolarBear(_)
+            | Self::Enderman(_)
+            | Self::Silverfish(_)
+            | Self::IronGolem(_) => {}
         }
     }
 }
