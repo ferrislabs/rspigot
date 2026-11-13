@@ -775,6 +775,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
             }
         }
         Species::Warden(state) => species::warden::read(nbt, base, state),
+        Species::CopperGolem(state) => species::copper_golem::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -986,6 +987,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Villager(_) => species::villager::KEYS,
         Species::WanderingTrader(_) => species::wandering_trader::KEYS,
         Species::Warden(_) => species::warden::KEYS,
+        Species::CopperGolem(_) => species::copper_golem::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1432,6 +1434,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
             }
         }
         Species::Warden(state) => species::warden::write(base, state, out),
+        Species::CopperGolem(state) => species::copper_golem::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }

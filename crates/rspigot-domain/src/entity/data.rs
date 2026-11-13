@@ -17,6 +17,8 @@ pub enum VariantKind {
 pub enum StateKind {
     Sniffer,
     Armadillo,
+    CopperGolem,
+    WeatheringCopper,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
