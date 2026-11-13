@@ -312,7 +312,10 @@ impl<L: ClientLink> Server<L> {
 
     pub(super) fn finish_use_item(&mut self, step: UseStep, item_ok: bool) {
         if self.players.contains_key(&step.player) {
-            if item_ok && self.use_mob_bucket(step.player, step.hand, step.rotation) {
+            if item_ok
+                && (self.use_mob_bucket(step.player, step.hand, step.rotation)
+                    || self.use_steering_item(step.player, step.hand))
+            {
             } else if item_ok {
                 self.start_using_item(step.player, step.hand);
             } else {

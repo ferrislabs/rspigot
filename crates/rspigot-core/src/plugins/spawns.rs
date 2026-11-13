@@ -240,6 +240,16 @@ impl<L: ClientLink> Server<L> {
                     self.spawn_anim(id);
                 }
             }
+            Spawned::Rides { vehicle } => {
+                if let Some((rider, _)) = placed {
+                    self.start_riding(rider, vehicle, false, false);
+                }
+            }
+            Spawned::Mounted { rider } => {
+                if let Some((vehicle, _)) = placed {
+                    self.start_riding(rider, vehicle, false, false);
+                }
+            }
             Spawned::Pattern(blocks) => {
                 if placed.is_some() {
                     self.clear_pattern_blocks(&blocks);

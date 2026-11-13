@@ -908,6 +908,28 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Shiver(step) => {
+                if !cancelled {
+                    self.finish_shiver(step);
+                }
+                Vec::new()
+            }
+            Continuation::Boarding(step) => {
+                self.finish_boarding(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Mounting(step) => {
+                self.finish_mounting(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Exiting(step) => {
+                self.finish_exiting(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Dismounting(step) => {
+                self.finish_dismounting(step, cancelled);
+                Vec::new()
+            }
             Continuation::EnterHive { bee, pos } => {
                 self.finish_enter_hive(bee, pos, cancelled);
                 Vec::new()

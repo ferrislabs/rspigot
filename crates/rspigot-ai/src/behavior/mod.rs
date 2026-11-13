@@ -9,6 +9,7 @@ mod memory;
 mod mob_control;
 mod nbt;
 mod ram;
+mod ride;
 mod sensor;
 mod sensors;
 mod shuffling;
@@ -48,6 +49,7 @@ pub use ram::{
     PREPARE_RAM_TIME_OUT, PrepareRamNearestTarget, RAM_TIME_OUT, RamTarget, RamTimings,
     START_RAM_EVENT, STOP_RAM_EVENT, ram_accepts,
 };
+pub use ride::{DismountOrSkipMounting, DontRideIf, Mount};
 pub use sensor::{
     DEFAULT_SCAN_RATE, Sensor, SensorKind, SensorSlot, SensorType, is_entity_attackable,
     is_entity_attackable_ignoring_line_of_sight, is_entity_targetable, nearest_visible_entity,

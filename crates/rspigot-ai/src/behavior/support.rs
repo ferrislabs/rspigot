@@ -32,6 +32,7 @@ pub enum EntityFilter {
     Any,
     Kind(EntityKind),
     SeesNoPlayerHoldingLovedItem,
+    PlayerHoldingLovedItem,
     Category(rspigot_entities::MobCategory),
     BreedableVillager,
 }
@@ -42,6 +43,13 @@ impl EntityFilter {
             Self::Any => true,
             Self::Kind(kind) => entity.kind == kind,
             Self::SeesNoPlayerHoldingLovedItem => !entity.facts.sees_player_holding_loved_item,
+            Self::PlayerHoldingLovedItem => {
+                entity.kind == EntityKind::Player
+                    && [entity.main_hand, entity.off_hand]
+                        .into_iter()
+                        .flatten()
+                        .any(crate::piglin::is_loved_item)
+            }
             Self::Category(category) => entity.kind.category() == category,
             Self::BreedableVillager => {
                 entity.kind == EntityKind::Villager && entity.facts.villager.can_breed
@@ -58,6 +66,7 @@ pub enum MobPredicate {
     HasMemory(MemoryModuleType),
     OnGround,
     InWater,
+    Passenger,
     Not(Box<MobPredicate>),
     Hoglin(HoglinCondition),
     Piglin(PiglinCondition),
@@ -80,6 +89,7 @@ impl MobPredicate {
             Self::HasMemory(memory) => cx.brain.memories.has_value(*memory),
             Self::OnGround => cx.ai.mob.on_ground,
             Self::InWater => cx.ai.mob.fluid.in_water,
+            Self::Passenger => cx.ai.mob.passenger,
             Self::Not(inner) => !inner.test(cx),
             Self::Hoglin(condition) => condition.test(cx),
             Self::Piglin(condition) => condition.test(cx),

@@ -301,6 +301,7 @@ pub trait RaidWorld {
     fn set_ticks_outside_raid(&mut self, id: EntityId, ticks: i32);
     fn create_raider(&mut self, kind: EntityKind) -> Option<NewRaider>;
     fn join_raider(&mut self, id: EntityId, info: JoinInfo);
+    fn ride(&mut self, rider: EntityId, vehicle: EntityId);
     fn apply_hero_of_the_village(&mut self, uuid: Uuid, amplifier: i32) -> Option<PlayerId>;
 }
 
@@ -833,6 +834,7 @@ impl Raid {
                 .and_then(|rider| world.create_raider(rider));
                 ravagers += 1;
                 if let Some(rider) = rider {
+                    world.ride(rider.id, raider.id);
                     self.join_raid(world, wave, rider, Some(pos), false);
                     spawned.push(rider.id);
                 }
@@ -1334,6 +1336,7 @@ mod tests {
         heroes: Vec<(Uuid, i32)>,
         refuse: Vec<EntityKind>,
         spawnable: bool,
+        rides: Vec<(EntityId, EntityId)>,
     }
 
     impl Mock {
@@ -1352,6 +1355,7 @@ mod tests {
                 heroes: Vec::new(),
                 refuse: vec![EntityKind::Evoker],
                 spawnable: true,
+                rides: Vec::new(),
             }
         }
     }
@@ -1439,6 +1443,10 @@ mod tests {
                 raider.wave = info.wave;
                 raider.leader = info.leader;
             }
+        }
+
+        fn ride(&mut self, rider: EntityId, vehicle: EntityId) {
+            self.rides.push((rider, vehicle));
         }
 
         fn apply_hero_of_the_village(&mut self, uuid: Uuid, amplifier: i32) -> Option<PlayerId> {
@@ -1944,6 +1952,7 @@ mod tests {
                 None
             }
             fn join_raider(&mut self, _: EntityId, _: JoinInfo) {}
+            fn ride(&mut self, _: EntityId, _: EntityId) {}
             fn apply_hero_of_the_village(&mut self, _: Uuid, _: i32) -> Option<PlayerId> {
                 None
             }
@@ -2157,5 +2166,27 @@ mod tests {
         assert!(!world.created.contains(&EntityKind::Evoker));
         assert!(world.created.contains(&EntityKind::Ravager));
         assert!(world.created.contains(&EntityKind::Witch));
+    }
+
+    #[test]
+    fn a_ravager_carries_the_rider_of_its_wave() {
+        let mut world = Mock::new();
+        world.refuse.clear();
+        let mut raid = raid(Difficulty::Hard);
+        for _ in 0..7 {
+            run(&mut raid, &mut world, 301);
+            kill_all(&mut raid, &mut world);
+            run(&mut raid, &mut world, 1);
+        }
+        assert!(!world.rides.is_empty());
+        for (rider, vehicle) in &world.rides {
+            assert_ne!(rider, vehicle);
+        }
+        let ravagers = world
+            .created
+            .iter()
+            .filter(|k| **k == EntityKind::Ravager)
+            .count();
+        assert!(world.rides.len() <= ravagers);
     }
 }

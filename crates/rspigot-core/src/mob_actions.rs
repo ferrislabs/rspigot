@@ -109,6 +109,7 @@ impl<L: ClientLink> Server<L> {
                 },
             ),
             MobAction::Spell(action) => self.spell_action(id, action),
+            MobAction::Ride(action) => self.ride_action(id, action),
             MobAction::Wolf(action) => self.wolf_action(id, action),
             MobAction::Cat(action) => self.cat_action(id, action),
             MobAction::Fox(action) => self.fox_action(id, action),

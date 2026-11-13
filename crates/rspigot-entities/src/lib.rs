@@ -1,4 +1,6 @@
 #[rustfmt::skip]
+pub mod attachments;
+#[rustfmt::skip]
 mod categories;
 mod category;
 pub mod family;
@@ -147,4 +149,26 @@ pub trait EntityType: 'static {
     const SOUNDS: Option<CreatureSounds>;
     const MOB_SPAWN: Option<MobSpawn>;
     type Behavior: EntityBehavior;
+}
+
+#[cfg(test)]
+mod attachment_tests {
+    use super::{EntityKind, attachments};
+
+    #[test]
+    fn passenger_and_vehicle_points_follow_the_vanilla_builders() {
+        assert_eq!(
+            attachments::passenger_points(EntityKind::Chicken),
+            Some(&[[0.0, 0.7, -0.1]][..])
+        );
+        assert_eq!(
+            attachments::vehicle_points(EntityKind::Zombie),
+            Some(&[[0.0, 0.699999988079071, 0.0]][..])
+        );
+        assert_eq!(attachments::passenger_points(EntityKind::Strider), None);
+        assert_eq!(
+            attachments::passenger_points(EntityKind::HappyGhast).map(<[_]>::len),
+            Some(4)
+        );
+    }
 }

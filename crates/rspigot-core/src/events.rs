@@ -99,6 +99,11 @@ pub enum PlayerInput {
         rotation: Option<Rotation>,
         on_ground: bool,
     },
+    MoveVehicle {
+        position: Vec3,
+        rotation: Rotation,
+        on_ground: bool,
+    },
     TeleportConfirm(i32),
     Chat(String),
     Command(String),
@@ -510,6 +515,10 @@ pub enum ClientEvent {
         slots: Vec<(EquipmentSlot, Slot)>,
     },
     RemoveEntities(Vec<EntityId>),
+    Passengers {
+        vehicle: EntityId,
+        passengers: Vec<EntityId>,
+    },
     InventoryContent {
         state_id: i32,
         slots: Vec<Slot>,

@@ -786,6 +786,9 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         self.close_open_menu(id, false);
+        if let Some(entity) = self.players.get(&id).map(|player| player.entity_id) {
+            self.unride(entity);
+        }
         let Some(snapshot) = self.snapshot_of(id) else {
             return;
         };
@@ -851,6 +854,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_trader_spawner();
         self.tick_raids();
         self.tick_entities();
+        self.tick_ride_players();
         self.tick_golem_chests();
         self.collect_items();
         self.collect_arrows();
@@ -939,6 +943,7 @@ impl<L: ClientLink> Server<L> {
             .collect();
         let range = self.config.player_tracking_range * self.config.player_tracking_range;
         let visibility = &self.visibility;
+        let rides = &self.entities.rides;
         for viewer in self.players.values_mut() {
             for target in &targets {
                 if target.id == viewer.id {
@@ -968,6 +973,12 @@ impl<L: ClientLink> Server<L> {
                         entity: target.entity,
                         entries: target.metadata.clone(),
                     });
+                    if let Some(vehicle) = rides.vehicle_of(target.entity) {
+                        viewer.link.send(ClientEvent::Passengers {
+                            vehicle,
+                            passengers: rides.passengers_of(vehicle).to_vec(),
+                        });
+                    }
                     if target.held.is_some() {
                         viewer.link.send(ClientEvent::EntityEquipment {
                             entity: target.entity,
