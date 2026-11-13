@@ -333,6 +333,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
+            Some(Kind::WanderingTrader) if dead => self.merchant_stop_trading(id),
             _ => {}
         }
     }

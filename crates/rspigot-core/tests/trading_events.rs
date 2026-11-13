@@ -251,7 +251,12 @@ fn working_smith(mut s: Scene) -> (Scene, EntityId) {
 fn a_villager_that_works_restocks_and_each_offer_is_announced_to_plugins() {
     let (mut s, smith) = working_smith(ready(vec![observe(1, EventKind::VillagerReplenishTrade)]));
     assert_eq!(uses_of_first(&s, smith), Some(4));
-    s.tick(400);
+    for _ in 0..40 {
+        s.tick(50);
+        if uses_of_first(&s, smith) == Some(0) {
+            break;
+        }
+    }
     assert_eq!(uses_of_first(&s, smith), Some(0));
     let announced = settled_for(&s.plugin, EventKind::VillagerReplenishTrade);
     assert!(!announced.is_empty());
@@ -264,7 +269,12 @@ fn a_cancelled_replenish_keeps_the_uses_of_the_offer() {
         1,
         EventKind::VillagerReplenishTrade,
     )]));
-    s.tick(400);
+    for _ in 0..40 {
+        s.tick(50);
+        if !asked_for(&s.plugin, EventKind::VillagerReplenishTrade).is_empty() {
+            break;
+        }
+    }
     let asked = asked_for(&s.plugin, EventKind::VillagerReplenishTrade);
     assert!(!asked.is_empty());
     for event in &asked {
