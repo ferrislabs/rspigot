@@ -1412,6 +1412,7 @@ impl<L: ClientLink> Server<L> {
         ) {
             entry.ai.act(base, state, &view);
         }
+        self.cube_after_act(id);
     }
 
     pub(crate) fn mob_paths_block_changed(
@@ -2382,6 +2383,7 @@ impl<L: ClientLink> Server<L> {
             hoglin: false,
             bee: false,
             puffer: None,
+            cube: false,
         };
         self.strike(None, victim, &source, damage, AfterHurt::MobAttack(follow))
     }
@@ -2404,6 +2406,10 @@ impl<L: ClientLink> Server<L> {
         }
         if follow.bee {
             self.bee_finish_attack(attacker, target, hurt);
+            return;
+        }
+        if follow.cube {
+            self.cube_finish_attack(attacker, hurt);
             return;
         }
         if golem {
@@ -2566,9 +2572,9 @@ mod tests {
         );
         assert_eq!(facts.sheared, Some(false));
         let mut base = EntityBase::new(EntityId(2), uuid::Uuid::from_u128(2), Kind::Slime);
-        let living = LivingState::new(&mut base, 0.0);
-        let mut slime = Entity::new(base, EntityState::Living(Box::new(living)));
-        slime.extra.insert("Size", 3);
+        let mut living = LivingState::new(&mut base, 0.0);
+        species::cube::set_size(&mut base, &mut living, 4, true);
+        let slime = Entity::new(base, EntityState::Living(Box::new(living)));
         assert_eq!(loot_facts(&slime).cube_size, Some(4));
     }
 }

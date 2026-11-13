@@ -194,6 +194,7 @@ impl<L: ClientLink> Server<L> {
             hoglin: false,
             bee: true,
             puffer: None,
+            cube: false,
         };
         self.strike(
             None,

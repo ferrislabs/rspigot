@@ -473,6 +473,7 @@ pub struct KindFacts {
     pub polar_bear: crate::PolarBearFacts,
     pub enderman: crate::EndermanFacts,
     pub silverfish: crate::SilverfishFacts,
+    pub cube: crate::cube::CubeFacts,
     pub iron_golem: crate::IronGolemFacts,
     pub raider: crate::RaiderFacts,
     pub crossbow: crate::CrossbowFacts,
