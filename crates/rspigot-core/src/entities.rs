@@ -413,6 +413,12 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let outcome = living::base_tick(base, state);
+        if matches!(
+            self.kind_of(id),
+            Some(Kind::Axolotl | Kind::Nautilus | Kind::ZombieNautilus)
+        ) {
+            self.water_creature_air(id, outcome.air_before);
+        }
         self.tick_mob_effects(id);
         let Some(Entity {
             state: EntityState::Living(state),

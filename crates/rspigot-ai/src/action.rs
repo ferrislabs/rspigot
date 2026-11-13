@@ -75,6 +75,10 @@ pub enum BrainMessage {
         by_living: bool,
         environmental: bool,
     },
+    NautilusAnger {
+        attacker: EntityId,
+        uuid: uuid::Uuid,
+    },
     PiglinAngerFromPlayer {
         player: EntityId,
         only_if_sees: bool,
@@ -173,4 +177,6 @@ pub enum MobAction {
     Water(crate::WaterAction),
     Turtle(crate::TurtleAction),
     Guardian(crate::GuardianAction),
+    Axolotl(crate::AxolotlAction),
+    Nautilus(crate::NautilusAction),
 }

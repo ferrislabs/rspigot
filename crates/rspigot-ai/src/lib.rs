@@ -2,9 +2,12 @@ mod action;
 #[macro_use]
 mod air;
 mod allay;
+mod amphibians;
+mod amphibious;
 mod animal;
 mod animals;
 mod armadillo;
+mod axolotl;
 mod bat;
 mod bee;
 mod behavior;
@@ -36,6 +39,7 @@ mod holdable;
 mod iron_golem;
 #[cfg(test)]
 mod mock;
+mod nautilus;
 mod navigation;
 mod neutral;
 mod panda;
@@ -63,6 +67,7 @@ mod sniffer;
 mod sweep;
 mod swim;
 mod swimmers;
+mod tadpole;
 mod tame;
 mod targeting;
 mod turtle;
@@ -83,12 +88,17 @@ pub use allay::{
     ALLAY_MEMORIES, AllayAction, AllayFacts, GoAndGiveItemsToTarget, StayCloseToTarget,
     allay_activities, allay_sensors, hear_noteblock, item_deposit_position, liked_player,
 };
+pub use amphibious::{block_in_tag, fluid_id, fluid_in_tag};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };
 pub use armadillo::{
     ArmadilloAction, ArmadilloBallUp, ArmadilloFacts, ArmadilloPanic, ArmadilloScareSensor,
     RollOutWithoutDanger, can_stay_rolled_up, is_scared_by,
+};
+pub use axolotl::{
+    AxolotlAction, AxolotlAttackablesSensor, PlayDead as AxolotlPlayDead,
+    ValidatePlayDead as AxolotlValidatePlayDead,
 };
 pub use bat::{BatAction, BatFacts, BatGoal};
 pub use bee::{
@@ -166,8 +176,7 @@ pub use evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 pub use finder::PathFinder;
 pub use fox::{FoxAction, FoxFacts, FoxGoal, TrustedRef, is_path_clear};
 pub use frog::{
-    Croak as FrogCroak, FrogAction, FrogAttackablesSensor,
-    GATED_ACTIVITIES as FROG_GATED_ACTIVITIES, ShootTongue as FrogShootTongue,
+    Croak as FrogCroak, FrogAction, FrogAttackablesSensor, ShootTongue as FrogShootTongue,
     TongueState as FrogTongueState, TryFindLand as FrogTryFindLand, can_eat as frog_can_eat,
 };
 pub use ghast::{
@@ -187,6 +196,7 @@ pub use guardian::{
     GuardianRestrictionGoal, GuardianStrollGoal,
 };
 pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal, is_enemy};
+pub use nautilus::{ChargeAttack as NautilusChargeAttack, NautilusAction};
 pub use navigation::{
     MobTick, MoveTarget, Navigation, can_cut_corner, find_surface_position, ground_y, temp_mob_pos,
     waypoint_distance,

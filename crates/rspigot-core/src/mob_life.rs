@@ -737,6 +737,10 @@ impl<L: ClientLink> Server<L> {
             (Kind::ZombieVillager, Kind::Villager) => {
                 (CreatureSpawnReason::Cured, EntityTransformReason::Cured)
             }
+            (Kind::Tadpole, Kind::Frog) => (
+                CreatureSpawnReason::Metamorphosis,
+                EntityTransformReason::Metamorphosis,
+            ),
             _ => (CreatureSpawnReason::Drowned, EntityTransformReason::Drowned),
         };
         let mut extra = Compound::new();
@@ -764,6 +768,18 @@ impl<L: ClientLink> Server<L> {
         }
         let mut converted = Entity::new(base, EntityState::Living(Box::new(state)));
         converted.extra = extra;
+        if kind == Kind::Frog && old_base.kind == Kind::Tadpole {
+            let environment = self.spawn_environment(old_base.position);
+            let mut own = LegacyRandom::new(self.rng.random());
+            rspigot_domain::entity::spawn::finalize_spawn(
+                &mut converted,
+                &environment,
+                SpawnReason::Conversion,
+                None,
+                &mut crate::mobs::ServerRandom(&mut self.rng),
+                &mut own,
+            );
+        }
         let birth = Birth::of(reason).then(Spawned::Converted {
             old: id,
             event,

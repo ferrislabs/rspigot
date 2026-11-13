@@ -232,6 +232,7 @@ impl TemptDistance {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FollowTemptation {
     speed_modifier: f32,
+    in_water_speed: Option<f32>,
     close_enough_distance: TemptDistance,
     look_in_the_eyes: bool,
 }
@@ -264,8 +265,21 @@ impl FollowTemptation {
     ) -> Self {
         Self {
             speed_modifier,
+            in_water_speed: None,
             close_enough_distance,
             look_in_the_eyes,
+        }
+    }
+
+    pub fn in_water(mut self, speed_modifier: f32) -> Self {
+        self.in_water_speed = Some(speed_modifier);
+        self
+    }
+
+    fn speed(&self, in_water: bool) -> f32 {
+        match self.in_water_speed {
+            Some(speed) if in_water => speed,
+            _ => self.speed_modifier,
         }
     }
 }
@@ -308,7 +322,7 @@ impl Behavior for FollowTemptation {
                 MemoryModuleType::WalkTarget,
                 MemoryValue::WalkTarget(WalkTarget {
                     target: tracker,
-                    speed_modifier: self.speed_modifier,
+                    speed_modifier: self.speed(cx.ai.mob.fluid.in_water),
                     close_enough_dist: TEMPTATION_WALK_CLOSE_ENOUGH,
                 }),
             );

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use rspigot_ai::{
-    Activity, AiContext, AiWorld, BehaviorControl, BehaviorCx, BrainState, FROG_GATED_ACTIVITIES,
-    Facts, FrogAction, FrogAttackablesSensor, FrogCroak, FrogShootTongue, FrogTongueState,
-    FrogTryFindLand, GoalSettings, Living, Memories, MemoryModuleType, MemoryValue, MobAction,
-    MobAi, MobBehavior, MobBody, MobControl, MobTrigger, MobView, NearestVisibleLivingEntities,
-    Sensor, SensorKind, SensorType, Status, TargetKind, WalkTarget,
+    Activity, AiContext, AiWorld, BehaviorControl, BehaviorCx, BrainState, Facts, FrogAction,
+    FrogAttackablesSensor, FrogCroak, FrogShootTongue, FrogTongueState, FrogTryFindLand,
+    GoalSettings, Living, Memories, MemoryModuleType, MemoryValue, MobAction, MobAi, MobBehavior,
+    MobBody, MobControl, MobTrigger, MobView, NearestVisibleLivingEntities, Sensor, SensorKind,
+    SensorType, Status, TargetKind, WalkTarget,
 };
 use rspigot_blocks::{BlockKind, StateId};
 use rspigot_domain::entity::living::LivingState;
@@ -383,29 +383,36 @@ fn the_long_jump_activity_jumps_then_lands_with_the_frog_sounds_and_the_preferre
 }
 
 #[test]
-fn the_swim_and_lay_spawn_activities_are_registered_but_never_chosen() {
-    assert_eq!(FROG_GATED_ACTIVITIES, [Activity::Swim, Activity::LaySpawn]);
+fn a_frog_in_water_swims_and_a_pregnant_frog_lays_spawn_before_long_jumping() {
     assert!(!activity(Activity::Swim).is_empty());
     assert!(!activity(Activity::LaySpawn).is_empty());
-    let mut ai = MobAi::new(EntityKind::Frog, 3, GoalSettings::default());
-    let mob = view(HOME);
+    let chosen = |ai: &MobAi| {
+        ai.behavior_brain()
+            .and_then(|brain| brain.state().active_non_core_activity())
+    };
     let world = Field::meadow();
+    let mut ai = MobAi::new(EntityKind::Frog, 3, GoalSettings::default());
+    let mut wet = view(HOME);
+    wet.fluid.in_water = true;
     ai.behavior_brain_mut()
         .unwrap()
         .memories_mut()
         .set(MemoryModuleType::IsInWater, MemoryValue::Unit);
+    let mut body = MobBody::of(&wet);
+    ai.think(&wet, &world, &mut body);
+    assert_eq!(chosen(&ai), Some(Activity::Swim));
     ai.behavior_brain_mut()
         .unwrap()
         .memories_mut()
         .set(MemoryModuleType::IsPregnant, MemoryValue::Unit);
-    for _ in 0..3 {
-        let mut body = MobBody::of(&mob);
-        ai.think(&mob, &world, &mut body);
-    }
-    let chosen = ai
-        .behavior_brain()
-        .and_then(|brain| brain.state().active_non_core_activity());
-    assert!(!matches!(chosen, Some(Activity::Swim | Activity::LaySpawn)));
+    let dry = view(HOME);
+    let mut body = MobBody::of(&dry);
+    ai.think(&dry, &world, &mut body);
+    assert_eq!(chosen(&ai), Some(Activity::LaySpawn));
+    ai.behavior_brain_mut().unwrap().memories_mut().set(
+        MemoryModuleType::AttackTarget,
+        MemoryValue::Entity(EntityId(9)),
+    );
 }
 
 #[test]

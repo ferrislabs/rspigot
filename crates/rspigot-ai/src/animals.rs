@@ -22,6 +22,11 @@ pub fn after_brain_tick<W: AiWorld>(
         EntityKind::Allay => crate::allay::update_activity(brain),
         EntityKind::Sniffer => crate::sniffer::update_activity(brain),
         EntityKind::Frog => crate::frog::update_activity(brain),
+        EntityKind::Axolotl => crate::axolotl::update_activity(brain),
+        EntityKind::Tadpole => crate::tadpole::update_activity(brain),
+        EntityKind::Nautilus | EntityKind::ZombieNautilus => {
+            crate::nautilus::update_activity(brain)
+        }
         EntityKind::Breeze => breeze::update_activity(brain),
         EntityKind::Creaking => creaking::update_activity(brain, ai.brain.creaking.can_move),
         EntityKind::Warden => crate::warden::after_brain_tick(brain, ai),
@@ -55,6 +60,26 @@ pub fn brain_for(
                 &[],
                 crate::frog::frog_sensors(),
                 crate::frog::frog_activities(),
+            ),
+            EntityKind::Nautilus => (
+                &crate::nautilus::NAUTILUS_MEMORIES,
+                crate::nautilus::nautilus_sensors(),
+                crate::nautilus::nautilus_activities(),
+            ),
+            EntityKind::ZombieNautilus => (
+                &crate::nautilus::NAUTILUS_MEMORIES,
+                crate::nautilus::nautilus_sensors(),
+                crate::nautilus::zombie_nautilus_activities(),
+            ),
+            EntityKind::Tadpole => (
+                &[],
+                crate::tadpole::tadpole_sensors(),
+                crate::tadpole::tadpole_activities(),
+            ),
+            EntityKind::Axolotl => (
+                &crate::axolotl::AXOLOTL_MEMORIES,
+                crate::axolotl::axolotl_sensors(),
+                crate::axolotl::axolotl_activities(),
             ),
             EntityKind::Breeze => (&[], breeze::breeze_sensors(), breeze::breeze_activities()),
             EntityKind::Creaking => (
@@ -98,4 +123,5 @@ pub fn brain_for(
 pub fn deliver<W: AiWorld>(cx: &mut BehaviorCx<'_, '_, W>, message: BrainMessage) {
     armadillo::deliver(cx, message);
     crate::allay::deliver(cx, message);
+    crate::nautilus::deliver(cx, message);
 }

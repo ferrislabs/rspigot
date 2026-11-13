@@ -24,15 +24,29 @@ const LOCATION_OFFSET_BOUND: i32 = 3;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SetWalkTargetFromLookTarget {
     speed_modifier: f32,
+    in_water_speed: Option<f32>,
     close_enough_dist: i32,
+    water_matches_look_target: bool,
 }
 
 impl SetWalkTargetFromLookTarget {
     pub fn new(speed_modifier: f32, close_enough_dist: i32) -> Self {
         Self {
             speed_modifier,
+            in_water_speed: None,
             close_enough_dist,
+            water_matches_look_target: false,
         }
+    }
+
+    pub fn in_water(mut self, speed_modifier: f32) -> Self {
+        self.in_water_speed = Some(speed_modifier);
+        self
+    }
+
+    pub fn only_when_water_matches(mut self) -> Self {
+        self.water_matches_look_target = true;
+        self
     }
 
     pub fn conditions(&self) -> Vec<Condition> {
@@ -54,16 +68,67 @@ impl Trigger for SetWalkTargetFromLookTarget {
         else {
             return false;
         };
+        let in_water = cx.ai.mob.fluid.in_water;
+        if self.water_matches_look_target {
+            let Some(look_pos) = look.current_block_position(cx.ai.world) else {
+                return false;
+            };
+            let look_in_water = cx
+                .ai
+                .world
+                .state(look_pos)
+                .is_some_and(|state| state.flags().contains(rspigot_blocks::StateFlags::WATER));
+            if look_in_water != in_water {
+                return false;
+            }
+        }
+        let speed_modifier = match self.in_water_speed {
+            Some(speed) if in_water => speed,
+            _ => self.speed_modifier,
+        };
         set_walk_target(
             cx,
             WalkTarget {
                 target: look,
-                speed_modifier: self.speed_modifier,
+                speed_modifier,
                 close_enough_dist: self.close_enough_dist,
             },
         );
         true
     }
+}
+
+fn swim_target_pos<W: AiWorld>(ai: &mut crate::brain::AiContext<'_, W>) -> Option<Vec3> {
+    let mut previous: Option<Vec3> = None;
+    for (horizontal, vertical) in SWIM_XY_DISTANCE_TIERS {
+        let restricted = ai.mob.is_restricted(f64::from(horizontal));
+        let position = match previous {
+            None => random_pos::swimmable_pos(ai, horizontal, vertical),
+            Some(last) => {
+                let here = ai.mob.position;
+                let toward = (last - here).normalize();
+                Some(
+                    here + toward.multiply(
+                        f64::from(horizontal),
+                        f64::from(vertical),
+                        f64::from(horizontal),
+                    ),
+                )
+            }
+        };
+        let Some(position) = position else {
+            return previous;
+        };
+        let wet = ai
+            .world
+            .state(position.block())
+            .is_some_and(|state| state.flags().has_fluid());
+        if !wet || (restricted && !ai.mob.is_within_home(position.block())) {
+            return previous;
+        }
+        previous = Some(position);
+    }
+    previous
 }
 
 fn distance_limit(max_dist: f32) -> f64 {
@@ -182,9 +247,19 @@ pub struct RandomStroll {
     vertical: i32,
     may_stroll_from_water: bool,
     flying: bool,
+    swimming: bool,
 }
 
+const SWIM_XY_DISTANCE_TIERS: [(i32, i32); 6] = [(1, 1), (3, 3), (5, 5), (6, 5), (7, 7), (10, 7)];
+
 impl RandomStroll {
+    pub fn swim(speed_modifier: f32) -> Self {
+        Self {
+            swimming: true,
+            ..Self::stroll(speed_modifier)
+        }
+    }
+
     pub fn fly(speed_modifier: f32) -> Self {
         Self {
             flying: true,
@@ -203,6 +278,7 @@ impl RandomStroll {
             vertical: STROLL_VERTICAL,
             may_stroll_from_water,
             flying: false,
+            swimming: false,
         }
     }
 
@@ -213,6 +289,7 @@ impl RandomStroll {
             vertical,
             may_stroll_from_water: true,
             flying: false,
+            swimming: false,
         }
     }
 
@@ -226,7 +303,12 @@ impl Trigger for RandomStroll {
         if !self.may_stroll_from_water && cx.ai.mob.fluid.in_water {
             return false;
         }
-        let found = if self.flying {
+        if self.swimming && !cx.ai.mob.fluid.in_water {
+            return false;
+        }
+        let found = if self.swimming {
+            swim_target_pos(cx.ai)
+        } else if self.flying {
             let view = rspigot_domain::mth::view_vector(cx.ai.mob.pitch, cx.ai.mob.head_yaw);
             random_pos::air_and_water_pos(
                 cx.ai,
@@ -252,6 +334,7 @@ impl Trigger for RandomStroll {
 pub struct BabyFollowAdult {
     follow_range: UniformInt,
     speed_modifier: f32,
+    in_water_speed: Option<f32>,
     target_eye: bool,
     adult: MemoryModuleType,
 }
@@ -275,9 +358,15 @@ impl BabyFollowAdult {
         Self {
             follow_range,
             speed_modifier,
+            in_water_speed: None,
             target_eye,
             adult,
         }
+    }
+
+    pub fn in_water(mut self, speed_modifier: f32) -> Self {
+        self.in_water_speed = Some(speed_modifier);
+        self
     }
 
     pub fn conditions(&self) -> Vec<Condition> {
@@ -324,7 +413,10 @@ impl Trigger for BabyFollowAdult {
             cx,
             WalkTarget {
                 target: PositionTracker::of_entity(adult.id, false),
-                speed_modifier: self.speed_modifier,
+                speed_modifier: match self.in_water_speed {
+                    Some(speed) if cx.ai.mob.fluid.in_water => speed,
+                    _ => self.speed_modifier,
+                },
                 close_enough_dist: self.follow_range.min_inclusive - 1,
             },
         );
