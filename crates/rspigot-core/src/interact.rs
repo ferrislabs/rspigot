@@ -134,7 +134,7 @@ fn hand_slot(hand: Hand, selected: u8) -> usize {
     }
 }
 
-fn box_distance_squared(bounds: &Aabb, point: Vec3) -> f64 {
+pub(crate) fn box_distance_squared(bounds: &Aabb, point: Vec3) -> f64 {
     let dx = (bounds.min_x - point.x)
         .max(point.x - bounds.max_x)
         .max(0.0);

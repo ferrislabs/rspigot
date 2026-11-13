@@ -850,6 +850,18 @@ impl<L: ClientLink> Server<L> {
                 self.finish_barter(*step, cancelled);
                 Vec::new()
             }
+            Continuation::Acquire(step) => {
+                self.finish_acquire(*step, cancelled, patch);
+                Vec::new()
+            }
+            Continuation::Replenish(step) => {
+                self.finish_replenish(step, cancelled);
+                Vec::new()
+            }
+            Continuation::SelectTrade(step) => {
+                self.finish_select_trade(step, cancelled);
+                Vec::new()
+            }
             Continuation::ChangeBlock(step) => {
                 self.finish_change(*step, cancelled);
                 Vec::new()

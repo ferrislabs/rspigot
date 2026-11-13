@@ -75,6 +75,7 @@ pub(crate) struct OpenMenu {
     pub state_id: i32,
     pub local: Vec<Slot>,
     pub data: Vec<i16>,
+    pub trader: Option<rspigot_domain::EntityId>,
 }
 
 pub(crate) fn next_window<L>(player: &mut Player<L>) -> i32 {
@@ -529,6 +530,7 @@ impl<L: ClientLink> Server<L> {
             state_id: 0,
             local: Vec::new(),
             data: Vec::new(),
+            trader: None,
         }))
     }
 
@@ -776,10 +778,14 @@ impl<L: ClientLink> Server<L> {
         let smithed = effects.contains(&MenuEffect::SmithingTaken);
         let mut drops = Vec::new();
         let mut taken = Vec::new();
+        let mut traded = Vec::new();
+        let mut updated = Vec::new();
         for effect in effects {
             match effect {
                 MenuEffect::Drop { .. } => drops.push(effect),
                 MenuEffect::FurnaceOutputTaken { item, amount } => taken.push((item, amount)),
+                MenuEffect::Traded { offer } => traded.push(offer),
+                MenuEffect::TradeUpdated { valid } => updated.push(valid),
                 _ => {}
             }
         }
@@ -787,6 +793,12 @@ impl<L: ClientLink> Server<L> {
             self.pay_furnace_experience(id, backing.pos, item, amount);
         }
         self.apply_menu_effects(id, drops);
+        for offer in traded {
+            self.trade_taken(id, offer);
+        }
+        for valid in updated {
+            self.trade_updated_voice(id, valid);
+        }
         if cut {
             self.play_sound(
                 None,
@@ -918,6 +930,9 @@ impl<L: ClientLink> Server<L> {
         self.broadcast_equipment_changes(id, before);
         let count = self.viewer_count(open.backing.pos);
         self.viewers_changed(open.backing, count, false);
+        if let Some(trader) = open.trader {
+            self.merchant_stop_trading(trader);
+        }
         true
     }
 
@@ -1056,6 +1071,9 @@ impl<L: ClientLink> Server<L> {
         let Some(open) = player.open_menu.as_ref() else {
             return false;
         };
+        if let Some(trader) = open.trader {
+            return !player.vitals.is_dead() && self.trader_menu_valid(id, trader);
+        }
         let backing = open.backing;
         let present = backing.positions().all(|at| {
             self.world.chunks.block(at).and_then(BlockStateId::kind) == Some(backing.block)

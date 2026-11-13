@@ -165,6 +165,7 @@ pub enum PlayerInput {
         primary: Option<i32>,
         secondary: Option<i32>,
     },
+    SelectTrade(i32),
     Latency(i32),
 }
 
@@ -514,6 +515,14 @@ pub enum ClientEvent {
         window: i32,
         menu: i32,
         title: Component,
+    },
+    MerchantOffers {
+        window: i32,
+        offers: Vec<rspigot_domain::entity::trading::MerchantOffer>,
+        level: i32,
+        xp: i32,
+        show_progress: bool,
+        can_restock: bool,
     },
     ContainerContent {
         window: i32,
