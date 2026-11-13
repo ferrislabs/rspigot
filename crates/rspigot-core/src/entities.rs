@@ -7,7 +7,7 @@ use rspigot_domain::entity::{
     Entities, Entity, EntityBase, EntityState, EntityTracker, RemovalReason, SyncedValue, fluid,
     item, save, tracking_range,
 };
-use rspigot_domain::{ChunkPos, EntityId, Rotation, Vec3};
+use rspigot_domain::{BlockPos, ChunkPos, EntityId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_items::EquipmentSlot as ItemSlot;
 use rspigot_nbt::Compound;
@@ -648,6 +648,18 @@ impl<L: ClientLink> Server<L> {
 
     pub fn saved_entity(&self, id: EntityId) -> Option<Compound> {
         self.entity_nbt(self.entities.store.get(id)?, None)
+    }
+
+    pub fn block_entity_nbt(&self, pos: BlockPos) -> Option<Compound> {
+        self.world
+            .chunks
+            .get(pos.chunk())?
+            .block_entity(pos)
+            .map(|entity| entity.data.clone())
+    }
+
+    pub fn block_state_at(&self, pos: BlockPos) -> Option<rspigot_domain::BlockStateId> {
+        self.world.chunks.block(pos)
     }
 
     pub fn entities_of(&self, kind: Kind) -> Vec<EntitySnapshot> {

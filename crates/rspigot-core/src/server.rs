@@ -846,6 +846,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_patrol_spawner();
         self.tick_trader_spawner();
         self.tick_entities();
+        self.tick_golem_chests();
         self.collect_items();
         self.collect_arrows();
         self.collect_orbs();

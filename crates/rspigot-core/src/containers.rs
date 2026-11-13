@@ -29,6 +29,8 @@ const STONECUTTER_TAKE_RESULT: &str = "minecraft:ui.stonecutter.take_result";
 const WINDOWS: i32 = 100;
 const MAX_VIEW_DISTANCE_SQUARED: f64 = 64.0;
 const ITEMS: &str = "Items";
+pub(crate) const LOCK: &str = "lock";
+pub(crate) const CHEST_HALF_SLOTS: usize = 27;
 const BLOCK_EVENT_RANGE: f64 = 64.0;
 const LID_ACTION: u8 = 1;
 const LID_VOLUME: f32 = 0.5;
@@ -62,9 +64,16 @@ impl Backing {
         std::iter::once(self.pos).chain(self.second)
     }
 
-    fn includes(&self, pos: BlockPos) -> bool {
+    pub(crate) fn includes(&self, pos: BlockPos) -> bool {
         self.positions().any(|candidate| candidate == pos)
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct GolemOpening {
+    pub backing: Backing,
+    pub count: i32,
+    pub recheck_at: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -426,6 +435,15 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn backing_items(&self, backing: Backing) -> Vec<Slot> {
+        let size = backing.positions().count() * CHEST_HALF_SLOTS;
+        self.container_items(backing, size)
+    }
+
+    pub(crate) fn write_backing_items(&mut self, backing: Backing, items: &[Slot]) {
+        self.store_container(backing, items);
+    }
+
     pub(crate) fn open_items(&self, open: &OpenMenu) -> Vec<Slot> {
         let size = open.menu.kind().container_size();
         if open.backing.entity.is_some() {
@@ -629,7 +647,15 @@ impl<L: ClientLink> Server<L> {
         self.viewers_changed(backing, count, true);
     }
 
-    fn viewer_count(&self, pos: BlockPos) -> u8 {
+    pub(crate) fn viewer_count(&self, pos: BlockPos) -> u8 {
+        let golems: i32 = self
+            .entities
+            .mobs
+            .golem_chests
+            .values()
+            .filter(|opening| opening.backing.includes(pos))
+            .map(|opening| opening.count)
+            .sum();
         let count = self
             .players
             .values()
@@ -640,7 +666,7 @@ impl<L: ClientLink> Server<L> {
                 })
             })
             .count();
-        u8::try_from(count).unwrap_or(u8::MAX)
+        u8::try_from(count + usize::try_from(golems).unwrap_or(0)).unwrap_or(u8::MAX)
     }
 
     fn shulker_is_obstructed(&self, pos: BlockPos, state: BlockStateId) -> bool {
@@ -651,7 +677,7 @@ impl<L: ClientLink> Server<L> {
             .is_some_and(|neighbour| neighbour.collision_shape_id() != ShapeId::EMPTY)
     }
 
-    fn viewers_changed(&mut self, backing: Backing, count: u8, opened: bool) {
+    pub(crate) fn viewers_changed(&mut self, backing: Backing, count: u8, opened: bool) {
         let Some(state) = self.world.chunks.block(backing.pos) else {
             return;
         };

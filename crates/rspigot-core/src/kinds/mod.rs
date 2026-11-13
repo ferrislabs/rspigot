@@ -15,6 +15,7 @@ mod armadillo;
 mod blaze;
 mod breeze;
 mod cat;
+pub(crate) mod copper_golem;
 mod creaking;
 mod enderman;
 mod endermite;
@@ -147,6 +148,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_post_tick(id),
             Some(Kind::Armadillo) => self.armadillo_post_tick(id),
             Some(Kind::Creaking) => self.creaking_post_tick(id),
+            Some(Kind::CopperGolem) => self.copper_golem_post_tick(id),
             Some(Kind::Warden) => self.warden_post_tick(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
             _ => {}
@@ -268,6 +270,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Villager) => self.villager_interact(player, target, hand, held),
             Some(Kind::ZombieVillager) => self.zombie_villager_interact(player, target, hand, held),
             Some(Kind::WanderingTrader) => self.trader_interact(player, target, hand, held),
+            Some(Kind::CopperGolem) => self.copper_golem_interact(player, target, hand, held),
             _ => None,
         }
     }
@@ -339,6 +342,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
             Some(Kind::Warden) if !dead => self.warden_after_hurt(id, source),
+            Some(Kind::CopperGolem) => self.copper_golem_after_hurt(id, !dead),
             Some(Kind::WanderingTrader) if dead => self.merchant_stop_trading(id),
             _ => {}
         }
@@ -347,6 +351,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn kind_death_sound(&mut self, id: EntityId) -> bool {
         match self.kind_of(id) {
             Some(Kind::Goat) => self.goat_voice_sound(id, GoatSound::Death),
+            Some(Kind::CopperGolem) => self.copper_golem_voice(id, copper_golem::GolemVoice::Death),
             _ => false,
         }
     }
@@ -355,6 +360,7 @@ impl<L: ClientLink> Server<L> {
         match self.kind_of(id) {
             Some(Kind::Shulker) => self.shulker_hurt_sound(id),
             Some(Kind::Goat) => self.goat_voice_sound(id, GoatSound::Hurt),
+            Some(Kind::CopperGolem) => self.copper_golem_voice(id, copper_golem::GolemVoice::Hurt),
             Some(Kind::Armadillo) => self.armadillo_hurt_sound(id),
             _ => false,
         }
