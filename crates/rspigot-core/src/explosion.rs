@@ -18,7 +18,7 @@ use crate::plugins::events::{
     EntityExplode, EntityExplodePatch, EntityRemoveCause, ExplosionPrime, ExplosionPrimePatch,
     ExplosionResult,
 };
-use crate::plugins::steps::{ExplodeStep, PrimeStep};
+use crate::plugins::steps::{ExplodeStep, PrimeKind, PrimeStep};
 use crate::plugins::{AfterHurt, BlastFollow, Holder, Struck};
 use crate::plugins::{Continuation, EventPayload, SetDiff};
 use crate::ports::ClientLink;
@@ -72,7 +72,7 @@ impl<L: ClientLink> Server<L> {
             source: id,
             radius,
             fire: false,
-            projectile: false,
+            kind: PrimeKind::Creeper,
         };
         self.fire(lane, Continuation::Prime(step), move |_| {
             Some(EventPayload::ExplosionPrime(ExplosionPrime {
@@ -94,9 +94,16 @@ impl<L: ClientLink> Server<L> {
         cancelled: bool,
         patch: ExplosionPrimePatch,
     ) {
-        if step.projectile {
-            self.finish_projectile_prime(step, cancelled, patch);
-            return;
+        match step.kind {
+            PrimeKind::Projectile => {
+                self.finish_projectile_prime(step, cancelled, patch);
+                return;
+            }
+            PrimeKind::WitherSpawn => {
+                self.finish_wither_prime(step, cancelled, patch);
+                return;
+            }
+            PrimeKind::Creeper => {}
         }
         let id = step.source;
         let Some(entity) = self.entities.store.get_mut(id) else {

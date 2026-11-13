@@ -1,5 +1,6 @@
 mod action;
 mod air;
+mod allay;
 mod animal;
 mod animals;
 mod armadillo;
@@ -64,12 +65,17 @@ mod village;
 mod villager;
 mod walk;
 mod warden;
+mod wither;
 mod wolf;
 mod world;
 mod zombified_piglin;
 
 pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequest};
 pub use air::{AirAction, AirGoal};
+pub use allay::{
+    ALLAY_MEMORIES, AllayAction, AllayFacts, GoAndGiveItemsToTarget, StayCloseToTarget,
+    allay_activities, allay_sensors, hear_noteblock, item_deposit_position, liked_player,
+};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };
@@ -262,6 +268,10 @@ pub use warden::{
     set_dig_cooldown as warden_set_dig_cooldown,
     set_disturbance_location as warden_set_disturbance_location, touch as warden_touch,
     update_activity as warden_update_activity,
+};
+pub use wither::{
+    DoNothingGoal as WitherDoNothingGoal, WitherAction, WitherBrain, WitherFacts, is_wither_friend,
+    living_selector as wither_living_selector,
 };
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{

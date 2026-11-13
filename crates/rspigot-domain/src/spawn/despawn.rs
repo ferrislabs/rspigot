@@ -71,6 +71,10 @@ pub fn check_despawn(
         outcome.discard = true;
         return outcome;
     }
+    if kind == EntityKind::Wither {
+        outcome.reset_no_action_time = true;
+        return outcome;
+    }
     let persistent = facts.persistence_required || facts.requires_custom_persistence;
     let Some(distance) = nearest_player_distance_sqr else {
         return outcome;
@@ -168,6 +172,21 @@ mod tests {
         assert!(!edge.discard);
         let none = check_despawn(&zombie, Difficulty::Normal, None, &mut random);
         assert_eq!(none, DespawnOutcome::default());
+    }
+
+    #[test]
+    fn the_wither_never_despawns_from_distance_and_resets_its_idle_time_except_in_peaceful() {
+        let mut random = Fixed(0);
+        let wither = DespawnFacts {
+            no_action_time: 700,
+            ..facts(EntityKind::Wither)
+        };
+        let far = check_despawn(&wither, Difficulty::Hard, Some(1e9), &mut random);
+        assert!(!far.discard && far.reset_no_action_time);
+        let alone = check_despawn(&wither, Difficulty::Hard, None, &mut random);
+        assert!(!alone.discard && alone.reset_no_action_time);
+        let peaceful = check_despawn(&wither, Difficulty::Peaceful, None, &mut random);
+        assert!(peaceful.discard);
     }
 
     #[test]

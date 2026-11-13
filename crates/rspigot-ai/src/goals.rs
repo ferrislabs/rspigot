@@ -618,6 +618,7 @@ pub enum TargetFilter {
     WithinFourBlocksVertically,
     Prey,
     MobIsAdult,
+    WitherLiving,
 }
 
 impl TargetFilter {
@@ -642,6 +643,7 @@ impl TargetFilter {
                 EntityKind::Sheep | EntityKind::Rabbit | EntityKind::Fox
             ),
             Self::MobIsAdult => !mob.baby,
+            Self::WitherLiving => crate::wither::living_selector(target),
         }
     }
 }

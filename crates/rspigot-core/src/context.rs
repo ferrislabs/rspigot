@@ -922,6 +922,7 @@ impl<L: ClientLink> Server<L> {
             .get(id)
             .and_then(|e| e.living())
             .is_none()
+            || self.wither_refuses_effects(id)
         {
             return false;
         }

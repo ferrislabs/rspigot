@@ -167,6 +167,9 @@ impl<L: ClientLink> Server<L> {
         for change in step.changes.iter().rev() {
             self.set_block(change.pos, change.new);
         }
+        if let Some(target) = step.changes.last() {
+            self.check_wither_summon(target.pos);
+        }
         let using = step.using;
         let id = using.player;
         let actor = self.players.get(&id).map(|player| player.entity_id);

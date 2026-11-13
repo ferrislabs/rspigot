@@ -1,5 +1,6 @@
 pub mod attribute;
 pub mod biome;
+pub mod boss_event;
 pub mod campfire;
 pub mod chunk;
 pub mod click;

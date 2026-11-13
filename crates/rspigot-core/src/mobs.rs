@@ -686,13 +686,23 @@ impl AiWorld for MobWorld<'_> {
                 .collect();
         }
         let resolve = |uuid| self.resolve(uuid);
-        self.store
+        let mut found: Vec<Living> = self
+            .store
             .iter()
             .filter(|entity| kind.matches(entity.base.kind))
             .filter(|entity| entity.base.bounding_box().intersects(area))
             .filter_map(|entity| entity_target(entity, self.game_time, &resolve))
             .map(|living| with_mob_facts(living, self.entries))
-            .collect()
+            .collect();
+        if kind.matches(Kind::Player) {
+            found.extend(
+                self.players
+                    .iter()
+                    .filter(|player| player.bounds.intersects(area))
+                    .copied(),
+            );
+        }
+        found
     }
 
     fn chest_open_count(&self, pos: BlockPos) -> i32 {
@@ -2019,13 +2029,18 @@ impl<L: ClientLink> Server<L> {
             |old, spec| stack_of(&spec).unwrap_or(Some(old)),
             |spec| stack_of(&spec).ok().flatten(),
         );
+        let extended = self.kind_of(victim) == Some(Kind::Wither);
         for stack in drops {
             let velocity = Vec3::new(
                 self.rng.random::<f64>() * ITEM_SPREAD - ITEM_SPREAD / 2.0,
                 ITEM_LIFT,
                 self.rng.random::<f64>() * ITEM_SPREAD - ITEM_SPREAD / 2.0,
             );
-            self.spawn_item_entity(position, velocity, ITEM_PICKUP_DELAY, stack);
+            let nether_star = stack.item == ItemKind::NetherStar.id();
+            let dropped = self.spawn_item_entity(position, velocity, ITEM_PICKUP_DELAY, stack);
+            if extended && nether_star {
+                self.wither_item_dropped(dropped.id);
+            }
         }
         self.award_experience(position, patch.dropped_exp.unwrap_or(experience));
         if let Some(entity) = self.entities.store.get_mut(victim) {
@@ -2137,7 +2152,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn mob_landed(&mut self, id: EntityId, landing: Landing) {
-        if self.kind_of(id) == Some(Kind::Ghast) {
+        if matches!(self.kind_of(id), Some(Kind::Ghast | Kind::Allay)) {
             return;
         }
         let Some(impact) = fall_impact(landing.state, landing.distance, false) else {

@@ -1,6 +1,7 @@
 pub mod admin;
 mod beacon;
 mod block_tools;
+mod boss_bars;
 mod bow;
 mod brain_mobs;
 mod bullet;
@@ -69,3 +70,4 @@ mod thrown;
 mod trader_spawner;
 mod trading;
 mod wind_charge;
+mod wither_summon;

@@ -240,6 +240,11 @@ impl<L: ClientLink> Server<L> {
                     self.spawn_anim(id);
                 }
             }
+            Spawned::Pattern(blocks) => {
+                if placed.is_some() {
+                    self.clear_pattern_blocks(&blocks);
+                }
+            }
             Spawned::Answered {
                 connection,
                 request,

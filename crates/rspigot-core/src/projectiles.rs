@@ -69,6 +69,10 @@ impl<L: ClientLink> Server<L> {
         target: EntityId,
         power: f32,
     ) {
+        if self.kind_of(shooter) == Some(Kind::Wither) {
+            self.wither_shoot_at(shooter, 0, target);
+            return;
+        }
         if self
             .entities
             .store

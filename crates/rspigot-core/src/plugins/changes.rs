@@ -103,6 +103,11 @@ impl<L: ClientLink> Server<L> {
                     self.finish_golem_statue(golem, pos, state);
                 }
             }
+            Grief::WitherBreak { wither, pos } => {
+                if !cancelled {
+                    self.finish_wither_break(wither, pos);
+                }
+            }
         }
     }
 }
