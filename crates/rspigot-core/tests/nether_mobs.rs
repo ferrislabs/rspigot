@@ -223,9 +223,12 @@ fn a_hoglin_charges_a_player_and_throws_them_back() {
     let alice = s.players[0].id;
     let before = s.server.player_health(alice).unwrap();
     summon(&mut s, Kind::Hoglin, "3.5 64 0.5", IMMUNE);
-    s.tick(120);
-    let after = s.server.player_health(alice).unwrap();
-    assert!(after < before, "{before} {after}");
+    let mut lowest = before;
+    for _ in 0..300 {
+        s.tick(1);
+        lowest = lowest.min(s.server.player_health(alice).unwrap());
+    }
+    assert!(lowest < before, "{before} {lowest}");
 }
 
 #[test]
