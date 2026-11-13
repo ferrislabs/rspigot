@@ -9,6 +9,7 @@ use crate::world::{AiWorld, MobView};
 use crate::{BlockView, Swimming, block_path_type};
 
 const RANDOM_POS_ATTEMPTS: usize = 10;
+const SWIMMABLE_ATTEMPTS: i32 = 10;
 pub(crate) const HALF_PI: f64 = 1.570_796_370_506_286_6;
 const SQRT_OF_TWO: f32 = std::f32::consts::SQRT_2;
 const GRASS_WALK_VALUE: f32 = 10.0;
@@ -222,6 +223,27 @@ pub fn default_pos<W: AiWorld>(
         let direction = random_direction(&mut context.brain.random, horizontal, vertical);
         default_toward(context, horizontal, restricted, direction)
     })
+}
+
+pub fn swimmable_pos<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+) -> Option<Vec3> {
+    let mut position = default_pos(context, horizontal, vertical);
+    let mut attempts = 0;
+    while let Some(found) = position {
+        if crate::swim::is_water_pathfindable(context.world.state(found.block())) {
+            return Some(found);
+        }
+        let again = attempts < SWIMMABLE_ATTEMPTS;
+        attempts += 1;
+        if !again {
+            return Some(found);
+        }
+        position = default_pos(context, horizontal, vertical);
+    }
+    None
 }
 
 pub fn direction_within_radians(

@@ -790,12 +790,21 @@ pub struct BodyRotationControl {
 
 impl BodyRotationControl {
     pub fn client_tick(&mut self, base: &mut EntityBase, living: &mut LivingState) {
+        self.client_tick_max(base, living, MAX_HEAD_Y_ROT);
+    }
+
+    pub fn client_tick_max(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        max_head_y_rot: f32,
+    ) {
         let dx = base.position.x - base.old_position.x;
         let dz = base.position.z - base.old_position.z;
         if dx * dx + dz * dz > MIN_SPEED_SQR {
             living.body_yaw = base.yaw;
             base.head_yaw =
-                mth::rotate_if_necessary(base.head_yaw, living.body_yaw, MAX_HEAD_Y_ROT);
+                mth::rotate_if_necessary(base.head_yaw, living.body_yaw, max_head_y_rot);
             self.last_stable_y_head_rot = base.head_yaw;
             self.head_stable_time = 0;
             return;
@@ -804,13 +813,13 @@ impl BodyRotationControl {
             self.head_stable_time = 0;
             self.last_stable_y_head_rot = base.head_yaw;
             living.body_yaw =
-                mth::rotate_if_necessary(living.body_yaw, base.head_yaw, MAX_HEAD_Y_ROT);
+                mth::rotate_if_necessary(living.body_yaw, base.head_yaw, max_head_y_rot);
         } else {
             self.head_stable_time += 1;
             if self.head_stable_time > DELAY_UNTIL_FACING_FORWARD {
                 let elapsed = self.head_stable_time - DELAY_UNTIL_FACING_FORWARD;
                 let progress = mth::clamp(elapsed as f32 / TIME_TO_FACE_FORWARD, 0.0, 1.0);
-                let max = MAX_HEAD_Y_ROT * (1.0 - progress);
+                let max = max_head_y_rot * (1.0 - progress);
                 living.body_yaw = mth::rotate_if_necessary(living.body_yaw, base.head_yaw, max);
             }
         }

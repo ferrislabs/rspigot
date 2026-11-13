@@ -25,6 +25,12 @@ use crate::raider::{
 use crate::ranged::RangedAttackGoal;
 use crate::restriction::MoveTowardsRestrictionGoal;
 use crate::shulker::{ShulkerAttackGoal, ShulkerGoal, ShulkerPeekGoal};
+use crate::swimmers::{
+    BreathAirGoal, DolphinJumpGoal, DolphinMoveToItemGoal, DolphinPlayWithItemsGoal,
+    DolphinSwimToTreasureGoal, DolphinSwimWithPlayerGoal, FollowFlockLeaderGoal,
+    PufferfishPuffGoal, RandomSwimmingGoal, SquidFleeGoal, SquidRandomMovementGoal,
+    TryFindWaterGoal, WaterGoal,
+};
 use crate::world::TargetKind;
 use crate::{
     cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
@@ -67,6 +73,16 @@ const SHULKER_LOOK_DISTANCE: f32 = 8.0;
 const SHULKER_LOOK_PROBABILITY: f32 = 0.02;
 const SHULKER_IGNORED_DAMAGE: &[&str] = &["Shulker"];
 const ZOMBIE_ALERT_IGNORED: &[EntityKind] = &[EntityKind::ZombifiedPiglin];
+const FISH_PANIC_SPEED: f64 = 1.25;
+const FISH_AVOID_DISTANCE: f32 = 8.0;
+const FISH_AVOID_WALK_SPEED: f64 = 1.6;
+const FISH_AVOID_SPRINT_SPEED: f64 = 1.4;
+const DOLPHIN_PLAYER_SPEED: f64 = 4.0;
+const DOLPHIN_LOOK_DISTANCE: f32 = 6.0;
+const DOLPHIN_JUMP_INTERVAL: i32 = 10;
+const DOLPHIN_ATTACK_SPEED: f64 = 1.2_f32 as f64;
+const DOLPHIN_AVOID_DISTANCE: f32 = 8.0;
+const DOLPHIN_IGNORED_DAMAGE: &[&str] = &["Guardian"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GoalSettings {
@@ -171,6 +187,81 @@ const TRADER_REAPPEARED: &str = "minecraft:entity.wandering_trader.reappeared";
 const TRADER_AVOID_SPEED: f64 = 0.5;
 const TRADER_PANIC_SPEED: f64 = 0.5;
 const TRADER_WANDER_SPEED: f64 = 0.35;
+
+fn fish_goals(add: &mut Goals<'_>) {
+    add.goal(0, MobGoal::Panic(PanicGoal::new(FISH_PANIC_SPEED)));
+    add.goal(
+        2,
+        MobGoal::AvoidEntity(AvoidEntityGoal::no_spectators(
+            TargetKind::Player,
+            FISH_AVOID_DISTANCE,
+            FISH_AVOID_WALK_SPEED,
+            FISH_AVOID_SPRINT_SPEED,
+        )),
+    );
+    add.goal(
+        4,
+        MobGoal::Water(WaterGoal::RandomSwimming(RandomSwimmingGoal::fish())),
+    );
+}
+
+fn dolphin_goals(add: &mut Goals<'_>) {
+    add.goal(0, MobGoal::Water(WaterGoal::BreathAir(BreathAirGoal)));
+    add.goal(0, MobGoal::Water(WaterGoal::TryFindWater(TryFindWaterGoal)));
+    add.goal(
+        1,
+        MobGoal::Water(WaterGoal::DolphinSwimToTreasure(
+            DolphinSwimToTreasureGoal::default(),
+        )),
+    );
+    add.goal(
+        2,
+        MobGoal::Water(WaterGoal::DolphinSwimWithPlayer(
+            DolphinSwimWithPlayerGoal::new(DOLPHIN_PLAYER_SPEED),
+        )),
+    );
+    add.goal(
+        4,
+        MobGoal::Water(WaterGoal::RandomSwimming(RandomSwimmingGoal::dolphin())),
+    );
+    add.look_around(4);
+    add.look(5, DOLPHIN_LOOK_DISTANCE);
+    add.goal(
+        5,
+        MobGoal::Water(WaterGoal::DolphinJump(DolphinJumpGoal::new(
+            DOLPHIN_JUMP_INTERVAL,
+        ))),
+    );
+    add.goal(
+        6,
+        MobGoal::MeleeAttack(MeleeAttackGoal::new(DOLPHIN_ATTACK_SPEED, true)),
+    );
+    add.goal(
+        7,
+        MobGoal::Water(WaterGoal::DolphinMoveToItem(
+            DolphinMoveToItemGoal::default(),
+        )),
+    );
+    add.goal(
+        8,
+        MobGoal::Water(WaterGoal::DolphinPlayWithItems(DolphinPlayWithItemsGoal)),
+    );
+    add.goal(
+        9,
+        MobGoal::AvoidEntity(AvoidEntityGoal::new(
+            TargetKind::Class("Guardian"),
+            DOLPHIN_AVOID_DISTANCE,
+            1.0,
+            1.0,
+        )),
+    );
+    add.target_goal(
+        1,
+        MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(
+            DOLPHIN_IGNORED_DAMAGE,
+        )),
+    );
+}
 
 pub fn register_brain(
     kind: EntityKind,
@@ -701,6 +792,29 @@ pub fn register_goals(
         }
         EntityKind::Bee => crate::bee::register(&mut add),
         EntityKind::Bat => add.goal(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new()))),
+        EntityKind::Cod | EntityKind::Salmon | EntityKind::TropicalFish => {
+            fish_goals(&mut add);
+            let follow = FollowFlockLeaderGoal::new(&mut add.brain.random);
+            add.goal(5, MobGoal::Water(WaterGoal::FollowFlockLeader(follow)));
+        }
+        EntityKind::Pufferfish => {
+            fish_goals(&mut add);
+            add.goal(
+                1,
+                MobGoal::Water(WaterGoal::PufferfishPuff(PufferfishPuffGoal)),
+            );
+        }
+        EntityKind::Squid | EntityKind::GlowSquid => {
+            add.goal(
+                0,
+                MobGoal::Water(WaterGoal::SquidRandomMovement(SquidRandomMovementGoal)),
+            );
+            add.goal(
+                1,
+                MobGoal::Water(WaterGoal::SquidFlee(SquidFleeGoal::default())),
+            );
+        }
+        EntityKind::Dolphin => dolphin_goals(&mut add),
         EntityKind::Phantom => {
             add.brain.movement.set_style(MoveStyle::Phantom);
             add.goal(

@@ -1370,6 +1370,22 @@ pub fn travel_swimmer<V: BlockView>(
     landing
 }
 
+pub fn breath_assist<V: BlockView>(
+    base: &mut EntityBase,
+    living: &mut LivingState,
+    view: &V,
+    speed: f32,
+) -> Option<Landing> {
+    let input = Vec3::new(
+        f64::from(living.xxa),
+        f64::from(living.yya),
+        f64::from(living.zza),
+    );
+    base.velocity = base.velocity + input_vector(input, speed, base.yaw);
+    let traits = living.move_traits(base);
+    move_entity(base, view, base.velocity, &traits)
+}
+
 pub fn travel_squid<V: BlockView>(
     base: &mut EntityBase,
     living: &mut LivingState,

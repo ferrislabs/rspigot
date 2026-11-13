@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use rand::Rng;
+use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::living::{self, EQUIPMENT_SLOTS};
 use rspigot_domain::entity::tracker::{TrackerUpdate, unpack_degrees};
 use rspigot_domain::entity::{
@@ -18,11 +19,14 @@ use crate::chunks::{ChunkJob, ChunkResult, Priority};
 use crate::events::{
     ClientEvent, EntityKind, EntityStatus, EquipmentSlot, MetadataEntry, MetadataValue,
 };
+use crate::health::DamageSource;
 use crate::player::Player;
 use crate::plugins::events::{EntityPotionEffectCause, EntityRemoveCause};
 use crate::plugins::{Continuation, Holder, Lane, Potion};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+
+const DROWN_DAMAGE: f32 = 2.0;
 
 #[derive(Debug)]
 pub(crate) struct TrackedEntity {
@@ -427,6 +431,9 @@ impl<L: ClientLink> Server<L> {
         }
         if outcome.burn {
             self.burn_damage(id);
+        }
+        if outcome.drown {
+            self.hurt_mob(id, &DamageSource::new(DamageType::Drown), DROWN_DAMAGE);
         }
         if outcome.removed {
             self.push(

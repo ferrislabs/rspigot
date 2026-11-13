@@ -695,6 +695,7 @@ pub(crate) struct MobAttackFollow {
     pub(crate) golem: bool,
     pub(crate) hoglin: bool,
     pub(crate) bee: bool,
+    pub(crate) puffer: Option<i32>,
 }
 
 #[derive(Debug, Clone, Copy)]

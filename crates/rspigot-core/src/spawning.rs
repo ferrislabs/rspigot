@@ -319,10 +319,16 @@ impl<L: ClientLink> NaturalSpawnHost for Server<L> {
             &mut own,
         );
         let id = entity.base.id;
+        let follows = crate::kinds::fish_facts_of(&entity)
+            .0
+            .filter(|leader| *leader != id);
         self.spawn_entity(
             entity,
             Birth::of(CreatureSpawnReason::Natural).with_random(own),
         );
+        if let Some(leader) = follows {
+            self.fish_joined_school(leader);
+        }
         (self.spawning_now(id), group)
     }
 }
@@ -788,15 +794,18 @@ mod tests {
                 EntityKind::Cat,
                 EntityKind::CaveSpider,
                 EntityKind::Chicken,
+                EntityKind::Cod,
                 EntityKind::CopperGolem,
                 EntityKind::Cow,
                 EntityKind::Creaking,
                 EntityKind::Creeper,
+                EntityKind::Dolphin,
                 EntityKind::Enderman,
                 EntityKind::Endermite,
                 EntityKind::Fox,
                 EntityKind::Frog,
                 EntityKind::Ghast,
+                EntityKind::GlowSquid,
                 EntityKind::Goat,
                 EntityKind::Hoglin,
                 EntityKind::Husk,
@@ -812,7 +821,9 @@ mod tests {
                 EntityKind::PiglinBrute,
                 EntityKind::Pillager,
                 EntityKind::PolarBear,
+                EntityKind::Pufferfish,
                 EntityKind::Rabbit,
+                EntityKind::Salmon,
                 EntityKind::Sheep,
                 EntityKind::Shulker,
                 EntityKind::Silverfish,
@@ -820,7 +831,9 @@ mod tests {
                 EntityKind::Sniffer,
                 EntityKind::SnowGolem,
                 EntityKind::Spider,
+                EntityKind::Squid,
                 EntityKind::Stray,
+                EntityKind::TropicalFish,
                 EntityKind::Vex,
                 EntityKind::Villager,
                 EntityKind::WanderingTrader,
