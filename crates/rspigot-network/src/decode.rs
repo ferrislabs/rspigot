@@ -123,6 +123,15 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             rotation: Some(Rotation::new(p.y_rot, p.x_rot)),
             on_ground: p.flags.on_ground,
         }),
+        ServerboundPlay::MoveVehicle(p)
+            if finite(p.position.x) && finite(p.position.y) && finite(p.position.z) =>
+        {
+            input(PlayerInput::MoveVehicle {
+                position: Vec3::new(p.position.x, p.position.y, p.position.z),
+                rotation: Rotation::new(p.y_rot, p.x_rot),
+                on_ground: p.on_ground,
+            })
+        }
         ServerboundPlay::MovePlayerStatusOnly(p) => input(PlayerInput::Move {
             position: None,
             rotation: None,
@@ -269,6 +278,25 @@ mod tests {
             Decoded::Input(input) => input,
             _ => panic!("packet {id} was not turned into a player input"),
         }
+    }
+
+    #[test]
+    fn vehicle_moves_become_inputs() {
+        let mut body = Vec::new();
+        for value in [1.0f64, 2.0, 3.0] {
+            body.extend_from_slice(&value.to_be_bytes());
+        }
+        body.extend_from_slice(&90.0f32.to_be_bytes());
+        body.extend_from_slice(&0.0f32.to_be_bytes());
+        body.push(1);
+        assert_eq!(
+            decoded(sb::MOVE_VEHICLE, &body),
+            PlayerInput::MoveVehicle {
+                position: Vec3::new(1.0, 2.0, 3.0),
+                rotation: Rotation::new(90.0, 0.0),
+                on_ground: true,
+            }
+        );
     }
 
     #[test]

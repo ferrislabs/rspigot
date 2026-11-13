@@ -1458,6 +1458,16 @@ impl Encoder {
                     entity_ids: entities.iter().map(|e| e.0).collect(),
                 },
             ),
+            ClientEvent::Passengers {
+                vehicle,
+                passengers,
+            } => Self::queue(
+                writer,
+                &cb::SetPassengers {
+                    vehicle: vehicle.0,
+                    passengers: passengers.iter().map(|e| e.0).collect(),
+                },
+            ),
             ClientEvent::InventoryContent {
                 state_id,
                 slots,
@@ -2699,6 +2709,18 @@ mod tests {
         assert_eq!(
             encode(value),
             vec![(id::SET_ENTITY_DATA, vec![5, 8, 1, 17, 0xFF])]
+        );
+    }
+
+    #[test]
+    fn passengers_golden_bytes() {
+        let event = ClientEvent::Passengers {
+            vehicle: EntityId(5),
+            passengers: vec![EntityId(1), EntityId(300)],
+        };
+        assert_eq!(
+            encode(event),
+            vec![(id::SET_PASSENGERS, vec![5, 2, 1, 0xAC, 0x02])]
         );
     }
 

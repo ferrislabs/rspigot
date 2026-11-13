@@ -398,6 +398,14 @@ wire_struct! {
 }
 
 wire_struct! {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct SetPassengers = id::SET_PASSENGERS {
+        pub vehicle: i32 as Var,
+        pub passengers: Vec<i32> as List<Var, UNBOUNDED>,
+    }
+}
+
+wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct TakeItemEntity = id::TAKE_ITEM_ENTITY {
         pub item_id: i32 as Var,
@@ -621,6 +629,13 @@ mod tests {
                 entity_ids: vec![1, 300]
             }),
             vec![2, 1, 0xAC, 0x02]
+        );
+        assert_eq!(
+            roundtrip(&SetPassengers {
+                vehicle: 1,
+                passengers: vec![300]
+            }),
+            vec![1, 1, 0xAC, 0x02]
         );
         assert_eq!(
             roundtrip(&TakeItemEntity {
