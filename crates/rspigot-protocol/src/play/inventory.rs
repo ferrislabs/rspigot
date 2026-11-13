@@ -1,8 +1,8 @@
-use crate::codec::{Decode, DecodeError, Encode};
+use crate::codec::{Decode, DecodeError, Encode, MAX_LIST_LEN, decode_len, encode_len};
 use crate::ids::play::clientbound as id;
-use crate::play::slot::{ItemStack, ItemStackTemplate};
+use crate::play::slot::{ComponentValue, ItemStack, ItemStackTemplate};
 use crate::play::types::HolderSet;
-use crate::play::wire::{List, Plain, UNBOUNDED, Var, read_var, wire_struct, write_var};
+use crate::play::wire::{List, Opt, Plain, UNBOUNDED, Var, read_var, wire_struct, write_var};
 use crate::types::Text;
 
 wire_struct! {
@@ -55,6 +55,72 @@ wire_struct! {
         pub container_id: i32 as Var,
         pub menu: i32 as Var,
         pub title: Text,
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TradeCost {
+    pub item: i32,
+    pub count: i32,
+    pub components: Vec<ComponentValue>,
+}
+
+impl Encode for TradeCost {
+    fn encode(&self, out: &mut Vec<u8>) {
+        write_var(self.item, out);
+        write_var(self.count, out);
+        encode_len(self.components.len(), out);
+        for component in &self.components {
+            write_var(component.type_id, out);
+            out.extend_from_slice(&component.data);
+        }
+    }
+}
+
+impl Decode for TradeCost {
+    fn decode(input: &mut &[u8]) -> Result<Self, DecodeError> {
+        let item = read_var(input)?;
+        let count = read_var(input)?;
+        let components = decode_len(input, MAX_LIST_LEN)?;
+        if components > 0 {
+            return Err(DecodeError::InvalidValue {
+                field: "trade cost component without length prefix",
+                value: components as i64,
+            });
+        }
+        Ok(Self {
+            item,
+            count,
+            components: Vec::new(),
+        })
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct TradeOffer {
+        pub cost_a: TradeCost,
+        pub result: ItemStack,
+        pub cost_b: Option<TradeCost> as Opt<Plain>,
+        pub out_of_stock: bool,
+        pub uses: i32,
+        pub max_uses: i32,
+        pub xp: i32,
+        pub special_price: i32,
+        pub price_multiplier: f32,
+        pub demand: i32,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct MerchantOffers = id::MERCHANT_OFFERS {
+        pub container_id: i32 as Var,
+        pub offers: Vec<TradeOffer> as List<Plain, UNBOUNDED>,
+        pub level: i32 as Var,
+        pub xp: i32 as Var,
+        pub show_progress: bool,
+        pub can_restock: bool,
     }
 }
 
@@ -224,6 +290,66 @@ mod tests {
             roundtrip(&screen),
             vec![1, 2, 8, 0, 5, b'C', b'h', b'e', b's', b't']
         );
+    }
+
+    #[test]
+    fn merchant_offers_layout() {
+        let offer = TradeOffer {
+            cost_a: TradeCost {
+                item: 7,
+                count: 3,
+                components: Vec::new(),
+            },
+            result: ItemStack::new(9, 2),
+            cost_b: Some(TradeCost {
+                item: 8,
+                count: 1,
+                components: Vec::new(),
+            }),
+            out_of_stock: true,
+            uses: 4,
+            max_uses: 12,
+            xp: 5,
+            special_price: -1,
+            price_multiplier: 0.5,
+            demand: 2,
+        };
+        let packet = MerchantOffers {
+            container_id: 3,
+            offers: vec![offer],
+            level: 2,
+            xp: 17,
+            show_progress: true,
+            can_restock: false,
+        };
+        let bytes = roundtrip(&packet);
+        assert_eq!(&bytes[..2], &[3, 1]);
+        assert_eq!(&bytes[2..6], &[7, 3, 0, 2]);
+        assert_eq!(&bytes[6..9], &[9, 0, 0]);
+        assert_eq!(&bytes[9..14], &[1, 8, 1, 0, 1]);
+        assert_eq!(&bytes[14..18], &[0, 0, 0, 4]);
+        assert_eq!(&bytes[18..22], &[0, 0, 0, 12]);
+        assert_eq!(&bytes[22..26], &[0, 0, 0, 5]);
+        assert_eq!(&bytes[26..30], &[0xFF, 0xFF, 0xFF, 0xFF]);
+        assert_eq!(&bytes[30..34], &0.5f32.to_be_bytes());
+        assert_eq!(&bytes[34..38], &[0, 0, 0, 2]);
+        assert_eq!(&bytes[38..], &[2, 17, 1, 0]);
+    }
+
+    #[test]
+    fn a_cost_with_components_writes_them_without_a_length() {
+        let cost = TradeCost {
+            item: 1,
+            count: 1,
+            components: vec![ComponentValue {
+                type_id: 5,
+                data: vec![0xAA, 0xBB],
+            }],
+        };
+        let mut out = Vec::new();
+        cost.encode(&mut out);
+        assert_eq!(out, vec![1, 1, 1, 5, 0xAA, 0xBB]);
+        assert!(decode_exact::<TradeCost>(&out).is_err());
     }
 
     #[test]
