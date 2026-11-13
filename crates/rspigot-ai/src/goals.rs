@@ -258,6 +258,11 @@ impl LookAtPlayerGoal {
         self.interact
     }
 
+    pub(crate) fn can_use_trading(&mut self, trading_player: Option<EntityId>) -> bool {
+        self.look_at = trading_player;
+        self.look_at.is_some()
+    }
+
     pub fn look_at(&self) -> Option<EntityId> {
         self.look_at
     }

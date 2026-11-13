@@ -22,7 +22,7 @@ use crate::health::DamageSource;
 use crate::interact::Interaction;
 use crate::loot::{self, LootContext};
 use crate::mobs::ServerRandom;
-use crate::plugins::events::CreatureSpawnReason;
+use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -30,6 +30,10 @@ const DATA_SLEEPING_POS: u8 = villager::DATA_SLEEPING_POS;
 const SLEEP_HEIGHT: f64 = 0.6875;
 const STAND_UP_LIFT: f64 = 0.1;
 const BED_TOP: f64 = 0.5625;
+const INVISIBILITY_POTION: &str = "minecraft:invisibility";
+const TRADER_DRINK_TICKS: i32 = 32;
+const TRADER_DRINK_MILK: &str = "minecraft:entity.wandering_trader.drink_milk";
+const TRADER_DRINK_POTION: &str = "minecraft:entity.wandering_trader.drink_potion";
 const NO_SOUND: &str = "minecraft:entity.villager.no";
 const TRADE_SOUND: &str = "minecraft:entity.villager.trade";
 const AMBIENT_SOUND: &str = "minecraft:entity.villager.ambient";
@@ -493,6 +497,8 @@ impl<L: ClientLink> Server<L> {
             VillagerAction::HarvestCrop(pos) => self.destroy_block_dropping(pos, Some(id)),
             VillagerAction::PlantSeed { pos, slot } => self.villager_plant(id, pos, slot),
             VillagerAction::ClearWanderTarget => self.trader_set_wander_target(id, None),
+            VillagerAction::StopTrading => self.merchant_stop_trading(id),
+            VillagerAction::StartUsing(item) => self.trader_start_using(id, item),
         }
     }
 
@@ -1041,6 +1047,84 @@ impl<L: ClientLink> Server<L> {
             .map(|mob| mob.species)
         {
             view.species.trader.wander_target = state.wander_target;
+        }
+        view.species.trader.trading_player =
+            merchant_of(entity).and_then(|merchant| merchant.trading_player);
+        view.species.trader.hurt_recently =
+            entity.living().is_some_and(|living| living.hurt_time > 0);
+    }
+
+    pub(crate) fn trader_start_using(&mut self, id: EntityId, item: rspigot_ai::TraderItem) {
+        let stack = match item {
+            rspigot_ai::TraderItem::InvisibilityPotion => {
+                rspigot_domain::potion::stack(ItemKind::Potion, INVISIBILITY_POTION)
+            }
+            rspigot_ai::TraderItem::MilkBucket => {
+                ItemStack::new(ItemKind::MilkBucket.id(), NonZeroU8::MIN)
+            }
+        };
+        let Some(Entity {
+            base,
+            state: EntityState::Living(living),
+            ..
+        }) = self.entities.store.get_mut(id)
+        else {
+            return;
+        };
+        set_item_slot(living, EquipmentSlot::Mainhand, Some(stack));
+        rspigot_domain::entity::living::start_using_item(base, living, EquipmentSlot::Mainhand);
+    }
+
+    pub(crate) fn trader_item_use_tick(&mut self, id: EntityId) {
+        let Some(entity) = self.entities.store.get(id) else {
+            return;
+        };
+        if entity.base.kind != Kind::WanderingTrader {
+            return;
+        }
+        let Some(living) = entity.living() else {
+            return;
+        };
+        let Some((slot, ticks)) = living.using_item else {
+            return;
+        };
+        let Some(stack) = living.equipment(slot).cloned() else {
+            return;
+        };
+        let milk = stack.item == ItemKind::MilkBucket.id();
+        if ticks < TRADER_DRINK_TICKS || !(milk || stack.item == ItemKind::Potion.id()) {
+            return;
+        }
+        if milk {
+            self.remove_entity_effects(id, None, EntityPotionEffectCause::Milk);
+        } else {
+            for effect in rspigot_domain::potion::PotionContents::of(&stack).effects() {
+                self.apply_entity_effect(id, effect, EntityPotionEffectCause::PotionDrink);
+            }
+        }
+        let sound = if milk {
+            TRADER_DRINK_MILK
+        } else {
+            TRADER_DRINK_POTION
+        };
+        self.entity_sound(id, sound, 1.0, 1.0);
+        if let Some(Entity {
+            base,
+            state: EntityState::Living(living),
+            ..
+        }) = self.entities.store.get_mut(id)
+        {
+            let remainder = if milk {
+                ItemKind::Bucket
+            } else {
+                ItemKind::GlassBottle
+            };
+            set_item_slot(
+                living,
+                EquipmentSlot::Mainhand,
+                Some(ItemStack::new(remainder.id(), NonZeroU8::MIN)),
+            );
+            rspigot_domain::entity::living::stop_using_item(base, living);
         }
     }
 
