@@ -41,6 +41,7 @@ use crate::server::{Audience, Server};
 pub(crate) struct RaidRuntime {
     pub(crate) set: Raids,
     views: BTreeMap<EntityId, EntityView>,
+    busy: bool,
     pub(crate) omen_positions: FxHashMap<PlayerId, BlockPos>,
 }
 
@@ -335,6 +336,7 @@ impl<L: ClientLink> Server<L> {
         run: impl FnOnce(&mut Raids, &mut Adapter<'_, L>) -> R,
     ) -> (R, Vec<RaidOutput>) {
         let mut set = std::mem::take(&mut self.raids.set);
+        self.raids.busy = true;
         let mut adapter = Adapter {
             server: self,
             pending: BTreeMap::new(),
@@ -342,7 +344,12 @@ impl<L: ClientLink> Server<L> {
         let result = run(&mut set, &mut adapter);
         let outputs = set.drain_outputs();
         self.raids.set = set;
+        self.raids.busy = false;
         (result, outputs)
+    }
+
+    pub fn raids(&self) -> &Raids {
+        &self.raids.set
     }
 
     pub(crate) fn raid_at(&self, pos: BlockPos) -> Option<i32> {
@@ -482,6 +489,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn raider_registered(&mut self, id: EntityId) {
+        if self.raids.busy {
+            return;
+        }
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
