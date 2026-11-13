@@ -490,6 +490,13 @@ fn read_base(nbt: &Compound, base: &mut EntityBase) -> Result<(), LoadError> {
 }
 
 fn read_living(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState) {
+    if living
+        .mob
+        .as_ref()
+        .is_some_and(|mob| matches!(mob.species, Species::Cube(_)))
+    {
+        species::cube::read_size(nbt, base, living);
+    }
     living.absorption = nbt
         .get_f64("AbsorptionAmount")
         .map_or(0.0, |v| (v as f32).max(0.0));
@@ -794,6 +801,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Warden(state) => species::warden::read(nbt, base, state),
         Species::CopperGolem(state) => species::copper_golem::read(nbt, base, state),
+        Species::Cube(state) => species::cube::read(nbt, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -1028,6 +1036,7 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Villager(_) => species::villager::KEYS,
         Species::WanderingTrader(_) => species::wandering_trader::KEYS,
         Species::Warden(_) => species::warden::KEYS,
+        Species::Cube(_) => species::cube::KEYS,
         Species::CopperGolem(_) => species::copper_golem::KEYS,
         Species::Plain => &[],
     });
@@ -1496,6 +1505,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         }
         Species::Warden(state) => species::warden::write(base, state, out),
         Species::CopperGolem(state) => species::copper_golem::write(base, state, out),
+        Species::Cube(state) => species::cube::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }

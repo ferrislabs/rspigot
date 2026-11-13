@@ -39,7 +39,7 @@ fn xp_reward(entity: &Entity) -> i32 {
 }
 
 pub fn cube_size(entity: &Entity) -> i32 {
-    entity.extra.get_i32("Size").unwrap_or(0).saturating_add(1)
+    super::species::cube::size(&entity.base)
 }
 
 fn animal_like(kind: EntityKind) -> bool {

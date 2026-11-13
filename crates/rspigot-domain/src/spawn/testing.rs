@@ -24,6 +24,8 @@ pub struct Level {
     pub obstacles: Vec<Aabb>,
     pub players: Vec<Vec3>,
     pub respawn: Option<BlockPos>,
+    pub slime_chunk: bool,
+    pub slime_chance: f32,
     pub spawned: Vec<(EntityKind, Vec3, f32)>,
     rolls: VecDeque<f64>,
     fallback: LegacyRandom,
@@ -46,6 +48,8 @@ impl Level {
             obstacles: Vec::new(),
             players: Vec::new(),
             respawn: None,
+            slime_chunk: false,
+            slime_chance: 0.0,
             spawned: Vec::new(),
             rolls: VecDeque::new(),
             fallback: LegacyRandom::new(0),
@@ -152,6 +156,14 @@ impl SpawnLevel for Level {
         self.players
             .iter()
             .any(|player| player.distance_squared(center) < distance * distance)
+    }
+
+    fn is_slime_chunk(&self, _: ChunkPos) -> bool {
+        self.slime_chunk
+    }
+
+    fn surface_slime_spawn_chance(&self) -> f32 {
+        self.slime_chance
     }
 }
 

@@ -620,6 +620,7 @@ pub fn finalize_spawn(
         Some(Species::CopperGolem(_)) => {
             species::copper_golem::finalize(base, living, group, level)
         }
+        Some(Species::Cube(_)) => species::cube::finalize(base, living, environment, group, level),
         _ if kind == EntityKind::Spider => spider_finalize(base, living, environment, group, level),
         _ if kind.extends("AgeableMob") => ageable_finalize(base, living, group, level),
         _ => mob_finalize(base, living, group, level),
