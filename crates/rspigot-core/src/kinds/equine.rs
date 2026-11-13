@@ -51,6 +51,7 @@ const BUCK_TEMPER: i32 = 5;
 const BUCK_EVENT: i8 = 6;
 const TAME_EVENT: i8 = 7;
 const JUMP_VOLUME: f32 = 0.4;
+const LAND_VOLUME: f32 = 0.4;
 const TRAP_PUSH_SPREAD: f64 = 1.1485;
 const TRAP_INVULNERABLE_TICKS: i32 = 60;
 
@@ -1135,5 +1136,22 @@ impl<L: ClientLink> Server<L> {
         self.drop_at_location(target, height, armor, Vec3::ZERO);
         self.entity_sound(target, ARMOR_UNEQUIP_SOUND, 1.0, 1.0);
         true
+    }
+}
+
+impl<L: ClientLink> Server<L> {
+    pub(crate) fn equine_land_sound(&mut self, id: EntityId) {
+        let Some(entity) = self.entities.store.get(id) else {
+            return;
+        };
+        if !equine::is_equine(entity.base.kind) {
+            return;
+        }
+        let sound = if entity.is_baby() {
+            "minecraft:entity.baby_horse.land"
+        } else {
+            "minecraft:entity.horse.land"
+        };
+        self.entity_sound(id, sound, LAND_VOLUME, 1.0);
     }
 }

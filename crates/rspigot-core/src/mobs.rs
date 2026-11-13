@@ -96,6 +96,7 @@ const ITEM_PICKUP_DELAY: u16 = 10;
 const ITEM_SPREAD: f64 = 0.2;
 const ITEM_LIFT: f64 = 0.2;
 const ATTACKER_SLOWDOWN: f64 = 0.6;
+const HORSE_LAND_DISTANCE: f64 = 1.0;
 const BIG_FALL: i32 = 4;
 const DYES: [&str; 16] = [
     "white",
@@ -2367,6 +2368,9 @@ impl<L: ClientLink> Server<L> {
         let Some(impact) = fall_impact(landing.state, landing.distance, false) else {
             return;
         };
+        if impact.distance > HORSE_LAND_DISTANCE {
+            self.equine_land_sound(id);
+        }
         let Some(Entity {
             base,
             state: EntityState::Living(state),
