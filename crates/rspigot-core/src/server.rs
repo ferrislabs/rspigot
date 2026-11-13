@@ -842,6 +842,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_delayed_destroys();
         self.tick_spawning();
         self.tick_patrol_spawner();
+        self.tick_trader_spawner();
         self.tick_entities();
         self.collect_items();
         self.collect_arrows();

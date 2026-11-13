@@ -53,6 +53,7 @@ pub(crate) struct Spawning {
     sky_darken: i32,
     players: Vec<SpawnPlayer>,
     pub(crate) patrol_next_tick: i32,
+    pub(crate) trader: crate::trader_spawner::TraderSpawner,
 }
 
 impl Spawning {
@@ -67,6 +68,7 @@ impl Spawning {
             sky_darken: 0,
             players: Vec::new(),
             patrol_next_tick: 0,
+            trader: crate::trader_spawner::TraderSpawner::default(),
         }
     }
 }
