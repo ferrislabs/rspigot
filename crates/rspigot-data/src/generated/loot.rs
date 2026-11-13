@@ -1,7 +1,7 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1343] = [
+pub(crate) static TABLES: [(&str, LootTable); 1358] = [
     (
         "minecraft:blocks/acacia_button",
         LootTable {
@@ -36726,6 +36726,902 @@ pub(crate) static TABLES: [(&str, LootTable); 1343] = [
                             weight: 13,
                             quality: 0,
                             output: Output::Item(1193),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/armorer_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1076),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1077),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1078),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1079),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/baby_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(302),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/butcher_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1401),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1263),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1098),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1261),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1416),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/cartographer_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1382),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1145),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/cleric_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(824),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1014),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/farmer_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1067),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1392),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1236),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/fisherman_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1190),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1191),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/fletcher_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 26,
+                            quality: 0,
+                            output: Output::Item(1009),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:swiftness"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:slowness"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:strength"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:healing"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:harming"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:leaping"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:regeneration"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:fire_resistance"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:water_breathing"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:invisibility"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:night_vision"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:weakness"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 0, max: 1 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:poison"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/leatherworker_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(1133),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/librarian_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(1146),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/mason_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(415),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/shepherd_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(250),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(251),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(252),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(253),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(254),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(255),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(256),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(257),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(258),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(259),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(260),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(261),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(262),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(263),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(264),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(265),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/toolsmith_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1037),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1038),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1039),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1036),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/unemployed_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(1065),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/hero_of_the_village/weaponsmith_gift",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1038),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1043),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1048),
                         }),
                     },
                 ],
