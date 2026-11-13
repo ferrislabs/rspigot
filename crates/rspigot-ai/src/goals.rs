@@ -161,7 +161,7 @@ impl RandomStrollGoal {
         self.force_trigger = true;
     }
 
-    fn position<W: AiWorld>(&self, context: &mut AiContext<'_, W>) -> Option<Vec3> {
+    pub(crate) fn position<W: AiWorld>(&self, context: &mut AiContext<'_, W>) -> Option<Vec3> {
         if self.flying {
             let view = rspigot_domain::mth::view_vector(context.mob.pitch, context.mob.head_yaw);
             let direction = (view.x, view.z);

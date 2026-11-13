@@ -64,6 +64,8 @@ macro_rules! goal_enum {
 }
 
 goal_enum!(AirGoal {
+    ParrotWander(crate::parrot::WanderGoal),
+    FollowMob(crate::parrot::FollowMobGoal),
     PhantomAttackStrategy(crate::phantom::AttackStrategyGoal),
     PhantomSweepAttack(crate::phantom::SweepAttackGoal),
     PhantomCircle(crate::phantom::CircleAroundAnchorGoal),

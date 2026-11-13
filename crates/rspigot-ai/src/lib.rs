@@ -34,6 +34,7 @@ mod mock;
 mod navigation;
 mod neutral;
 mod panda;
+mod parrot;
 mod path;
 mod path_type;
 mod phantom;
@@ -167,6 +168,11 @@ pub use navigation::{
 };
 pub use neutral::ResetUniversalAngerGoal;
 pub use panda::{PandaAction, PandaBrain, PandaFacts, PandaGoal};
+pub use parrot::{
+    AMBIENT_SOUND as PARROT_AMBIENT_SOUND, FollowMobGoal, IMITATIONS as PARROT_IMITATIONS,
+    WANDER_PROBABILITY as PARROT_WANDER_PROBABILITY, WanderGoal as ParrotWanderGoal,
+    imitated_sound as parrot_imitated_sound,
+};
 pub use path::{Path, PathNode};
 pub use path_type::PathType;
 pub use phantom::{

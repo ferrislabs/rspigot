@@ -50,6 +50,12 @@ const PILLAGER_CROSSBOW_RADIUS: f32 = 8.0;
 const PILLAGER_STROLL_SPEED: f64 = 0.6;
 const PILLAGER_LOOK_DISTANCE: f32 = 15.0;
 const PILLAGER_IGNORED_DAMAGE: &[&str] = &["Raider"];
+const PARROT_PANIC_SPEED: f64 = 1.25;
+const PARROT_LOOK_DISTANCE: f32 = 8.0;
+const PARROT_FOLLOW_START: f32 = 5.0;
+const PARROT_FOLLOW_STOP: f32 = 1.0;
+const PARROT_FOLLOW_MOB_STOP: f32 = 3.0;
+const PARROT_FOLLOW_MOB_AREA: f32 = 7.0;
 const VEX_LOOK_DISTANCE: f32 = 3.0;
 const VEX_MOB_LOOK_DISTANCE: f32 = 8.0;
 const VEX_IGNORED_DAMAGE: &[&str] = &["Raider"];
@@ -630,6 +636,35 @@ pub fn register_goals(
                 MobGoal::WitchTarget(NearestAttackableWitchTargetGoal::default()),
             );
         }
+        EntityKind::Parrot => {
+            add.goal(0, MobGoal::Panic(PanicGoal::new(PARROT_PANIC_SPEED)));
+            add.float(0);
+            add.look(1, PARROT_LOOK_DISTANCE);
+            add.goal(
+                2,
+                MobGoal::SitWhenOrdered(crate::tame::SitWhenOrderedToGoal),
+            );
+            add.goal(
+                2,
+                MobGoal::FollowOwner(crate::tame::FollowOwnerGoal::new(
+                    1.0,
+                    PARROT_FOLLOW_START,
+                    PARROT_FOLLOW_STOP,
+                )),
+            );
+            add.goal(
+                2,
+                MobGoal::Air(AirGoal::ParrotWander(crate::parrot::WanderGoal::new(1.0))),
+            );
+            add.goal(
+                3,
+                MobGoal::Air(AirGoal::FollowMob(crate::parrot::FollowMobGoal::new(
+                    1.0,
+                    PARROT_FOLLOW_MOB_STOP,
+                    PARROT_FOLLOW_MOB_AREA,
+                ))),
+            );
+        }
         EntityKind::Bat => add.goal(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new()))),
         EntityKind::Phantom => {
             add.brain.movement.set_style(MoveStyle::Phantom);
@@ -941,6 +976,47 @@ mod tests {
         assert_eq!(profile.malus(crate::PathType::Fire), 0.0);
         assert_eq!(profile.malus(crate::PathType::FireInNeighbor), 0.0);
         assert_eq!(ai.brain().movement.style(), MoveStyle::Ground);
+    }
+
+    #[test]
+    fn the_parrot_registers_the_vanilla_goals_and_flies_with_a_flying_navigation() {
+        let (goals, targets) = lists(EntityKind::Parrot);
+        assert_eq!(
+            goals,
+            vec![
+                (0, MobGoal::Panic(PanicGoal::new(1.25))),
+                (0, MobGoal::Float(FloatGoal)),
+                (1, MobGoal::LookAtPlayer(LookAtPlayerGoal::new(8.0))),
+                (
+                    2,
+                    MobGoal::SitWhenOrdered(crate::tame::SitWhenOrderedToGoal)
+                ),
+                (
+                    2,
+                    MobGoal::FollowOwner(crate::tame::FollowOwnerGoal::new(1.0, 5.0, 1.0))
+                ),
+                (
+                    2,
+                    MobGoal::Air(AirGoal::ParrotWander(crate::parrot::WanderGoal::new(1.0)))
+                ),
+                (
+                    3,
+                    MobGoal::Air(AirGoal::FollowMob(crate::parrot::FollowMobGoal::new(
+                        1.0, 3.0, 7.0
+                    )))
+                ),
+            ]
+        );
+        assert!(targets.is_empty());
+        let ai = MobAi::new(EntityKind::Parrot, 1, GoalSettings::default());
+        let profile = &ai.brain().profile;
+        assert!(profile.flying && profile.can_float && !profile.can_open_doors);
+        assert_eq!(profile.malus(crate::PathType::Cocoa), -1.0);
+        assert_eq!(profile.malus(crate::PathType::Fire), -1.0);
+        assert_eq!(profile.malus(crate::PathType::FireInNeighbor), -1.0);
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Flying);
+        assert_eq!(ai.brain().movement.max_turn(), 10);
+        assert!(!ai.brain().movement.hovers_in_place());
     }
 
     #[test]

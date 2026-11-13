@@ -110,6 +110,12 @@ impl Brain {
             profile.set_malus(PathType::DamagingInNeighbor, 16.0);
             profile.set_malus(PathType::Fire, -1.0);
         }
+        if kind == EntityKind::Parrot {
+            profile = profile.flying(true);
+            profile.set_malus(PathType::FireInNeighbor, -1.0);
+            profile.set_malus(PathType::Fire, -1.0);
+            profile.set_malus(PathType::Cocoa, -1.0);
+        }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
             profile.set_malus(PathType::Lava, 8.0);
@@ -146,6 +152,9 @@ impl Brain {
         }
         if kind == EntityKind::Rabbit {
             brain.enable_hop();
+        }
+        if kind == EntityKind::Parrot {
+            brain.movement.set_flying(10, false);
         }
         if kind == EntityKind::Villager {
             brain

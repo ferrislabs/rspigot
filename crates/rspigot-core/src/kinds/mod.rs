@@ -29,6 +29,7 @@ mod hoglin;
 mod iron_golem;
 mod ocelot;
 mod panda;
+mod parrot;
 mod phantom;
 mod piglin;
 mod pillager;
@@ -80,6 +81,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Vex => self.vex_view(entity, view),
             Kind::Bat => self.bat_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
+            Kind::Parrot => self.parrot_view(entity, view),
             Kind::Shulker => self.shulker_view(entity, view),
             Kind::ZombifiedPiglin => self.zombified_piglin_view(entity, view),
             Kind::Rabbit => self.rabbit_view(entity, view),
@@ -159,6 +161,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Blaze) => self.blaze_post_tick(id),
             Some(Kind::Vex) => self.vex_post_tick(id),
             Some(Kind::Bat) => self.bat_post_tick(id),
+            Some(Kind::Parrot) => self.parrot_post_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
             Some(Kind::Ocelot) => self.ocelot_post_tick(id),
@@ -179,6 +182,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Blaze) => self.blaze_ai_step(id),
             Some(Kind::Witch) => self.witch_ai_step(id),
             Some(Kind::Creaking) => self.creaking_ai_step(id),
+            Some(Kind::Parrot) => self.parrot_ai_step(id),
             _ => {}
         }
     }
@@ -220,6 +224,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Villager) => self.villager_ambient_voice(id),
             Some(Kind::Warden) => self.warden_ambient_voice(id),
             Some(Kind::Bat) => self.bat_ambient_voice(id),
+            Some(Kind::Parrot) => self.parrot_ambient_voice(id),
             _ => {
                 let game_time = self.world.level.game_time;
                 self.play_mob_voice(id, |entity| {
@@ -289,6 +294,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::ZombieVillager) => self.zombie_villager_interact(player, target, hand, held),
             Some(Kind::WanderingTrader) => self.trader_interact(player, target, hand, held),
             Some(Kind::CopperGolem) => self.copper_golem_interact(player, target, hand, held),
+            Some(Kind::Parrot) => self.parrot_interact(player, target, hand, held),
             _ => None,
         }
     }
@@ -360,6 +366,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
             Some(Kind::Sniffer) if dead => self.sniffer_died(id),
+            Some(Kind::Parrot) => self.parrot_after_hurt(id, dead),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
             Some(Kind::Warden) if !dead => self.warden_after_hurt(id, source),
             Some(Kind::CopperGolem) => self.copper_golem_after_hurt(id, !dead),

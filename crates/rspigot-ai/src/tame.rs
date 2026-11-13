@@ -96,7 +96,8 @@ fn can_teleport_to<W: AiWorld>(context: &AiContext<'_, W>, pos: BlockPos) -> boo
     if mob_path_type(context.world, &context.brain.profile, state, pos) != PathType::Walkable {
         return false;
     }
-    if block_tag(context.world.state(pos.offset(0, -1, 0)), LEAVES) {
+    let can_fly = context.mob.kind == rspigot_entities::EntityKind::Parrot;
+    if !can_fly && block_tag(context.world.state(pos.offset(0, -1, 0)), LEAVES) {
         return false;
     }
     let origin = mob.block_pos();
