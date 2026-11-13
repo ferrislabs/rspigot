@@ -467,6 +467,12 @@ pub(crate) struct PigAngerStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct SpellStep {
+    pub(crate) caster: EntityId,
+    pub(crate) spell: rspigot_domain::entity::species::spellcaster::IllagerSpell,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct TameStep {
     pub(crate) target: EntityId,
     pub(crate) owner: PlayerId,
@@ -1208,6 +1214,7 @@ pub(crate) enum Continuation {
     Grow(GrowStep),
     Ignite(IgniteStep),
     Regrow(EntityId),
+    SpellCast(SpellStep),
     EggBreak {
         mob: EntityId,
         pos: BlockPos,
@@ -1343,6 +1350,7 @@ impl Continuation {
             Self::Grow(_) => EventKind::BlockGrow,
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
+            Self::SpellCast(_) => EventKind::EntitySpellCast,
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
             Self::RaidTrigger { .. } => EventKind::RaidTrigger,
             Self::EnterHive { .. } => EventKind::EntityEnterBlock,
@@ -1407,6 +1415,7 @@ impl Continuation {
             | Self::Combust(CombustStep { target: holder, .. })
             | Self::Knock(KnockStep { target: holder, .. }) => *holder == Holder::Mob(id),
             Self::ItemDespawn(item) | Self::Regrow(item) => *item == id,
+            Self::SpellCast(step) => step.caster == id,
             Self::PickupItem(step) => step.item == id || step.collector == id,
             Self::Gather(step) => step.item == id || step.fox == id,
             Self::MobPickup(step) => step.item == id || step.collector == id,

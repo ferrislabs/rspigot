@@ -65,6 +65,7 @@ mod sensing;
 mod shulker;
 mod silverfish;
 mod sniffer;
+mod spell;
 mod sweep;
 mod swim;
 mod swimmers;
@@ -261,6 +262,7 @@ pub use sniffer::{
     Sniffing as SnifferSniffing, calculate_dig_position, can_dig as sniffer_can_dig,
     can_sniff as sniffer_can_sniff,
 };
+pub use spell::{SpellAction, SpellFacts};
 pub use swimmers::{
     AIR_ASSIST_SPEED, BreathAirGoal, DolphinFacts, DolphinJumpGoal, DolphinMoveToItemGoal,
     DolphinPlayWithItemsGoal, DolphinSwimToTreasureGoal, DolphinSwimWithPlayerGoal, FishFacts,
