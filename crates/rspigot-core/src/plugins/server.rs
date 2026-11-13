@@ -898,8 +898,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_enter_hive(bee, pos, cancelled);
                 Vec::new()
             }
-            Continuation::EggBreak { mob, pos } => {
-                if !cancelled {
+            Continuation::EggBreak { mob, pos, trample } => {
+                if !cancelled && trample {
+                    self.finish_egg_trample(pos);
+                } else if !cancelled {
                     self.break_turtle_egg(mob, pos);
                 }
                 Vec::new()

@@ -10,9 +10,10 @@ use rspigot_entities::{EntityKind as Kind, SoundSource};
 
 use crate::game_events::GameEventContext;
 use crate::mob_actions::new_mob;
-use crate::plugins::Birth;
 use crate::plugins::events::CreatureSpawnReason;
+use crate::plugins::events::EntityInteract;
 use crate::plugins::steps::Grief;
+use crate::plugins::{Birth, Continuation, EventPayload};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -402,7 +403,34 @@ impl<L: ClientLink> Server<L> {
         if self.rng.random_range(0..odds) != 0 {
             return;
         }
-        self.decrease_eggs(pos, state);
+        if player {
+            self.decrease_eggs(pos, state);
+            return;
+        }
+        let Some(mob) = self.entity_view(entity) else {
+            return;
+        };
+        let lane = self.lane_for(None, entity);
+        let then = Continuation::EggBreak {
+            mob: entity,
+            pos,
+            trample: true,
+        };
+        self.fire(lane, then, move |_| {
+            Some(EventPayload::EntityInteract(EntityInteract {
+                block: pos,
+                entity_type: mob.kind.clone(),
+                entity: mob,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_egg_trample(&mut self, pos: BlockPos) {
+        if let Some(state) = self.world.chunks.block(pos)
+            && state.kind() == Some(BlockKind::TurtleEgg)
+        {
+            self.decrease_eggs(pos, state);
+        }
     }
 
     pub(crate) fn egg_stepped_on(&mut self, entity: EntityId, player: bool, pos: BlockPos) {
