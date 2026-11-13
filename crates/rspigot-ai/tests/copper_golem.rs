@@ -968,3 +968,49 @@ fn the_idle_activity_is_always_selected_after_the_brain_tick() {
     assert!(brain.state().is_active(Activity::Idle));
     assert!(brain.state().is_active(Activity::Core));
 }
+
+#[test]
+fn the_visited_and_unreachable_positions_round_trip_through_the_brain_nbt_with_their_expiry() {
+    let mut ai = MobAi::new(EntityKind::CopperGolem, 3, GoalSettings::default());
+    let list = |x: i32| {
+        MemoryValue::GlobalPosList(vec![GlobalPos {
+            dimension: OVERWORLD.to_owned(),
+            pos: BlockPos::new(x, 64, -3),
+        }])
+    };
+    let brain = ai.behavior_brain_mut().expect("a brain");
+    brain
+        .memories_mut()
+        .set_with_expiry(MemoryModuleType::VisitedBlockPositions, list(4), 5_000);
+    brain.memories_mut().set_with_expiry(
+        MemoryModuleType::UnreachableTransportBlockPositions,
+        list(9),
+        1_200,
+    );
+    let saved = ai.save_behavior_brain().expect("a saved brain");
+    let mut fresh = MobAi::new(EntityKind::CopperGolem, 4, GoalSettings::default());
+    fresh.load_behavior_brain(&saved);
+    let memories = fresh.behavior_brain().unwrap().memories();
+    assert_eq!(
+        memories.get(MemoryModuleType::VisitedBlockPositions),
+        Some(&list(4))
+    );
+    assert_eq!(
+        memories.time_until_expiry(MemoryModuleType::VisitedBlockPositions),
+        Some(5_000)
+    );
+    assert_eq!(
+        memories.get(MemoryModuleType::UnreachableTransportBlockPositions),
+        Some(&list(9))
+    );
+    assert_eq!(
+        memories.time_until_expiry(MemoryModuleType::UnreachableTransportBlockPositions),
+        Some(1_200)
+    );
+    assert!(
+        !saved.contains_key("minecraft:transport_items_cooldown_ticks")
+            && !saved
+                .get_compound("memories")
+                .is_some_and(|m| m.contains_key("minecraft:transport_items_cooldown_ticks"))
+    );
+}
