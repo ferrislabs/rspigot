@@ -1361,7 +1361,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn mob_server_ai_step(&mut self, id: EntityId) {
-        if self.kind_is_immobile(id) {
+        if self.kind_is_immobile(id) || self.controlling_mob(id).is_some() {
             return;
         }
         let sky_darken = sky_darken(&self.world.level);
