@@ -700,6 +700,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_shear(*step);
                 Vec::new()
             }
+            Continuation::BucketEntity(step) => {
+                self.finish_bucket_entity(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::BucketEmpty(step) => {
+                self.finish_bucket_empty(*step, cancelled);
+                Vec::new()
+            }
             Continuation::ClickBlock(_)
             | Continuation::DropSelected(_)
             | Continuation::Wear(_)

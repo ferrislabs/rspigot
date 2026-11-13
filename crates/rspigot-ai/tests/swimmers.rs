@@ -922,3 +922,22 @@ fn a_thrown_item_leaves_along_the_view_with_a_small_random_spread() {
     let up = thrown_item_velocity(0.0, -90.0, 0.0, 0.0);
     assert!((up.y + 0.3 * 1.5).abs() < 1.0e-6);
 }
+
+#[test]
+fn a_baby_dolphin_cannot_attack_while_an_adult_can() {
+    let world = World::new();
+    let (base, state) = swimmer(EntityKind::Dolphin, Vec3::new(0.5, 62.0, 0.5));
+    let target = living(9, EntityKind::Zombie, Vec3::new(2.5, 62.0, 0.5));
+    let mut view = MobView::of(&base, &state);
+    assert!(rspigot_ai::mob_can_attack(&view, &world, &target));
+    view.baby = true;
+    assert!(!rspigot_ai::mob_can_attack(&view, &world, &target));
+}
+
+#[test]
+fn the_dolphin_look_goals_use_a_head_pitch_of_one_degree() {
+    let (base, state) = swimmer(EntityKind::Dolphin, Vec3::new(0.5, 62.0, 0.5));
+    assert_eq!(MobView::of(&base, &state).max_head_x_rot(), 1.0);
+    let (base, state) = swimmer(EntityKind::Cod, Vec3::new(0.5, 62.0, 0.5));
+    assert_eq!(MobView::of(&base, &state).max_head_x_rot(), 40.0);
+}

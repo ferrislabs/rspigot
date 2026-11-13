@@ -289,6 +289,26 @@ pub(crate) struct ShearStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct BucketEntityStep {
+    pub(crate) player: PlayerId,
+    pub(crate) target: EntityId,
+    pub(crate) hand: Hand,
+    pub(crate) stack: ItemStack,
+    pub(crate) bucket: ItemStack,
+    pub(crate) parked: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct BucketEmptyStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) stack: ItemStack,
+    pub(crate) kind: rspigot_entities::EntityKind,
+    pub(crate) block: BlockPos,
+    pub(crate) placement: crate::bucket::Placement,
+}
+
+#[derive(Debug)]
 pub(crate) struct DamageStep {
     pub(crate) player: PlayerId,
     pub(crate) pos: BlockPos,
@@ -1110,6 +1130,8 @@ pub(crate) enum Continuation {
     ExpChange(OrbStep),
     PickupArrow(ArrowStep),
     Shear(Box<ShearStep>),
+    BucketEntity(Box<BucketEntityStep>),
+    BucketEmpty(Box<BucketEmptyStep>),
     Damage(Box<DamageStep>),
     Break(Box<BreakStep>),
     Finish(FinishStep),
@@ -1226,6 +1248,8 @@ impl Continuation {
             Self::ExpChange(_) => EventKind::PlayerExpChange,
             Self::PickupArrow(_) => EventKind::PlayerPickupArrow,
             Self::Shear(_) => EventKind::PlayerShearEntity,
+            Self::BucketEntity(_) => EventKind::PlayerBucketEntity,
+            Self::BucketEmpty(_) => EventKind::PlayerBucketEmpty,
             Self::Damage(_) => EventKind::BlockDamage,
             Self::Break(_) | Self::Finish(_) => EventKind::BlockBreak,
             Self::Abort(_) => EventKind::BlockDamageAbort,
@@ -1374,6 +1398,7 @@ impl Continuation {
             Self::PigAnger(step) => step.mob == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
+            Self::BucketEntity(step) => step.target == id,
             Self::InteractEntity(step) => step.target == id,
             _ => false,
         }
