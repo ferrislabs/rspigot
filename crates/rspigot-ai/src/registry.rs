@@ -143,6 +143,19 @@ impl Goals<'_> {
     }
 }
 
+const TRADER_AVOIDS: [(&str, f32); 7] = [
+    ("Zombie", 8.0),
+    ("Evoker", 12.0),
+    ("Vindicator", 8.0),
+    ("Vex", 8.0),
+    ("Pillager", 15.0),
+    ("Illusioner", 12.0),
+    ("Zoglin", 10.0),
+];
+const TRADER_AVOID_SPEED: f64 = 0.5;
+const TRADER_PANIC_SPEED: f64 = 0.5;
+const TRADER_WANDER_SPEED: f64 = 0.35;
+
 pub fn register_brain(
     kind: EntityKind,
     random: &mut crate::random::MobRandom,
@@ -435,6 +448,40 @@ pub fn register_goals(
             );
         }
         EntityKind::Silverfish => silverfish::register(&mut add, kind),
+        EntityKind::WanderingTrader => {
+            add.float(0);
+            for (class, distance) in TRADER_AVOIDS {
+                add.goal(
+                    1,
+                    MobGoal::AvoidEntity(AvoidEntityGoal::new(
+                        TargetKind::Class(class),
+                        distance,
+                        TRADER_AVOID_SPEED,
+                        TRADER_AVOID_SPEED,
+                    )),
+                );
+            }
+            add.goal(1, MobGoal::Panic(PanicGoal::new(TRADER_PANIC_SPEED)));
+            add.goal(
+                2,
+                MobGoal::Trader(crate::villager::TraderGoal::wander_to_position(
+                    2.0,
+                    TRADER_WANDER_SPEED,
+                )),
+            );
+            add.goal(
+                4,
+                MobGoal::MoveTowardsRestriction(MoveTowardsRestrictionGoal::new(
+                    TRADER_WANDER_SPEED,
+                )),
+            );
+            add.stroll(8, TRADER_WANDER_SPEED);
+            add.goal(
+                9,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::interact(3.0, 1.0)),
+            );
+            add.goal(10, MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(8.0)));
+        }
         EntityKind::IronGolem => iron_golem::register(&mut add, kind),
         EntityKind::SnowGolem => {
             add.goal(

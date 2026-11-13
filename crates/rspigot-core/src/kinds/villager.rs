@@ -486,6 +486,7 @@ impl<L: ClientLink> Server<L> {
             } => self.villager_spawn_golem_if_needed(id, timestamp, villagers_needed),
             VillagerAction::HarvestCrop(pos) => self.destroy_block_dropping(pos, Some(id)),
             VillagerAction::PlantSeed { pos, slot } => self.villager_plant(id, pos, slot),
+            VillagerAction::ClearWanderTarget => self.trader_set_wander_target(id, None),
         }
     }
 
@@ -978,6 +979,52 @@ impl<L: ClientLink> Server<L> {
             }
         }
         None
+    }
+}
+
+fn trader_state_mut(
+    entity: &mut Entity,
+) -> Option<&mut rspigot_domain::entity::species::wandering_trader::WanderingTraderState> {
+    match entity
+        .living_mut()
+        .and_then(|living| living.mob.as_mut())
+        .map(|mob| &mut mob.species)
+    {
+        Some(rspigot_domain::entity::species::Species::WanderingTrader(state)) => Some(state),
+        _ => None,
+    }
+}
+
+impl<L: ClientLink> Server<L> {
+    pub(crate) fn wandering_trader_view(&self, entity: &Entity, view: &mut MobView) {
+        if let Some(rspigot_domain::entity::species::Species::WanderingTrader(state)) = entity
+            .living()
+            .and_then(|living| living.mob.as_ref())
+            .map(|mob| mob.species)
+        {
+            view.species.trader.wander_target = state.wander_target;
+        }
+    }
+
+    pub(crate) fn trader_set_wander_target(&mut self, id: EntityId, target: Option<BlockPos>) {
+        if let Some(state) = self.entities.store.get_mut(id).and_then(trader_state_mut) {
+            state.wander_target = target;
+        }
+    }
+
+    pub(crate) fn wandering_trader_custom_ai_step(&mut self, id: EntityId) {
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return;
+        };
+        let trading = merchant_of(entity).is_some_and(|merchant| merchant.trading_player.is_some());
+        let expired = trader_state_mut(entity).is_some_and(|state| state.tick_despawn(trading));
+        if expired {
+            self.remove_entity(
+                id,
+                rspigot_domain::entity::RemovalReason::Discarded,
+                Some(crate::plugins::events::EntityRemoveCause::Despawn),
+            );
+        }
     }
 }
 

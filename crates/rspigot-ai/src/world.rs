@@ -398,6 +398,7 @@ pub struct KindFacts {
     pub breeze: crate::BreezeFacts,
     pub creaking: crate::CreakingFacts,
     pub villager: crate::villager::VillagerFacts,
+    pub trader: crate::villager::TraderFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -5,6 +5,7 @@ mod poi;
 mod sensors;
 mod social;
 mod support;
+mod trader;
 mod work;
 
 pub use facts::{
@@ -31,6 +32,7 @@ pub use social::{
     ResetRaidStatus, RingBell, SetHiddenState, SetRaidStatus, SocializeAtBell, TradeWithVillager,
     VillagerCalmDown, VillagerMakeLove, VillagerPanicTrigger,
 };
+pub use trader::{TraderFacts, TraderGoal};
 pub use work::{GiveGiftToHero, HarvestFarmland, ShowTradesToPlayer, WorkAtPoi, Workstation};
 
 use rspigot_domain::ItemId;
