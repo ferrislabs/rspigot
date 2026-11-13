@@ -7,6 +7,7 @@ pub mod loot;
 pub mod registries;
 pub mod spawns;
 pub mod tags;
+pub mod trading;
 pub mod transformers;
 pub mod variants;
 
