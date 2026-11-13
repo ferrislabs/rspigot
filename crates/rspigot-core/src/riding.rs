@@ -1,3 +1,4 @@
+use rspigot_ai::RideAction;
 use rspigot_domain::entity::riding;
 use rspigot_domain::entity::spawn::{self, Jockey};
 use rspigot_domain::entity::species::Species;
@@ -24,6 +25,7 @@ use crate::server::{Audience, Server};
 
 const PORTALS: &str = "minecraft:portals";
 const FREE_POSITION_RADIUS: f32 = 4.0;
+const PIGLIN_STACK_DEPTH: i32 = 3;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Seat {
@@ -218,6 +220,36 @@ impl<L: ClientLink> Server<L> {
                 at,
                 GameEventContext::of(Some(rider)),
             );
+        }
+    }
+
+    pub(crate) fn ride_action(&mut self, id: EntityId, action: RideAction) {
+        match action {
+            RideAction::Mount(target) => {
+                let target = self.mount_override(id, target);
+                self.start_riding(id, target, false, true);
+            }
+            RideAction::Dismount => self.stop_riding(id),
+        }
+    }
+
+    fn mount_override(&self, rider: EntityId, target: EntityId) -> EntityId {
+        let baby_piglin = self
+            .entities
+            .store
+            .get(rider)
+            .is_some_and(|entity| entity.base.kind == Kind::Piglin && entity.is_baby());
+        if baby_piglin && self.kind_of(target) == Some(Kind::Hoglin) {
+            self.top_passenger(target, PIGLIN_STACK_DEPTH)
+        } else {
+            target
+        }
+    }
+
+    fn top_passenger(&self, vehicle: EntityId, counter: i32) -> EntityId {
+        match self.entities.rides.first_passenger(vehicle) {
+            Some(passenger) if counter != 1 => self.top_passenger(passenger, counter - 1),
+            _ => vehicle,
         }
     }
 

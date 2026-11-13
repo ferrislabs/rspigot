@@ -112,6 +112,7 @@ impl Trigger for BackUpIfTooClose {
 pub enum CopyIf {
     IsBaby,
     NearZombified,
+    BabyEvery(UniformInt),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -120,6 +121,7 @@ pub struct CopyMemoryWithExpiry {
     source: MemoryModuleType,
     target: MemoryModuleType,
     duration: UniformInt,
+    ticks_until_next_start: i32,
 }
 
 impl CopyMemoryWithExpiry {
@@ -134,7 +136,21 @@ impl CopyMemoryWithExpiry {
             source,
             target,
             duration,
+            ticks_until_next_start: 0,
         }
+    }
+
+    fn tick_down_and_check<W: AiWorld>(
+        &mut self,
+        cx: &mut BehaviorCx<'_, '_, W>,
+        interval: UniformInt,
+    ) -> bool {
+        if self.ticks_until_next_start == 0 {
+            self.ticks_until_next_start = interval.sample(&mut cx.ai.brain.random) - 1;
+            return false;
+        }
+        self.ticks_until_next_start -= 1;
+        self.ticks_until_next_start == 0
     }
 
     pub fn conditions(&self) -> Vec<Condition> {
@@ -150,6 +166,9 @@ impl Trigger for CopyMemoryWithExpiry {
         let copy = match self.copy_if {
             CopyIf::IsBaby => MobPredicate::IsBaby.test(cx),
             CopyIf::NearZombified => crate::piglin::targets::is_near_zombified(cx),
+            CopyIf::BabyEvery(interval) => {
+                MobPredicate::IsBaby.test(cx) && self.tick_down_and_check(cx, interval)
+            }
         };
         if !copy {
             return false;

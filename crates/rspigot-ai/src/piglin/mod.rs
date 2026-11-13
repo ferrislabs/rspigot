@@ -23,6 +23,7 @@ use crate::world::{AiWorld, MobView};
 pub use ai::{
     ADMIRE_DURATION, ATE_RECENTLY_TICKS, PiglinCondition, TIME_BETWEEN_HUNTS,
     can_replace_current_item, equipment_slot_for, is_barter_currency, is_food, is_loved_item,
+    wants_to_stop_riding,
 };
 pub use behaviors::{
     BackUpIfTooClose, BecomePassiveIfMemoryPresent, CopyIf, CopyMemoryWithExpiry,

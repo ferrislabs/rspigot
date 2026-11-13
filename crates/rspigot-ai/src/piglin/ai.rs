@@ -2,12 +2,13 @@ use rspigot_domain::{EntityId, ItemId};
 use rspigot_entities::EntityKind;
 use rspigot_items::{EquipmentSlot, ItemKind, ModifierOperation};
 
-use crate::action::{BrainMessage, MobAction, PiglinAction};
+use crate::action::{BrainMessage, MobAction, PiglinAction, RideAction};
 use crate::behavior::{
-    Activity, ActivityData, BehaviorBrain, BehaviorCx, DoNothing, EntityFilter, EraseMemoryIf,
-    Gate, GoToTargetLocation, GoToWantedItem, InteractWith, InteractWithDoor, MeleeAttack,
-    Memories, MemoryModuleType, MemoryValue, MobControl, MobPredicate, MobTrigger, RandomStroll,
-    SensorKind, SetEntityLookTarget, SetLookAndInteract, SetWalkTargetAwayFrom,
+    Activity, ActivityData, BehaviorBrain, BehaviorCx, DismountOrSkipMounting, DoNothing,
+    DontRideIf, EntityFilter, EraseMemoryIf, Gate, GoToTargetLocation, GoToWantedItem,
+    InteractWith, InteractWithDoor, MeleeAttack, Memories, MemoryModuleType, MemoryValue,
+    MobControl, MobPredicate, MobTrigger, Mount, OneShot, RandomStroll, SensorKind,
+    SetEntityLookTarget, SetLookAndInteract, SetWalkTargetAwayFrom,
     SetWalkTargetFromAttackTargetIfTargetOutOfReach, SetWalkTargetFromLookTarget, StartAttacking,
     StopAttackCondition, StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead, TargetFinder,
     UniformInt, is_entity_attackable_ignoring_line_of_sight,
@@ -29,6 +30,8 @@ pub const TIME_BETWEEN_HUNTS: UniformInt = UniformInt::of(600, 2400);
 pub const RETREAT_DURATION: UniformInt = UniformInt::of(100, 400);
 pub const AVOID_ZOMBIFIED_DURATION: UniformInt = UniformInt::of(100, 140);
 pub const BABY_AVOID_NEMESIS_DURATION: UniformInt = UniformInt::of(100, 140);
+pub const RIDE_START_INTERVAL: UniformInt = UniformInt::of(200, 800);
+pub const RIDE_DURATION: UniformInt = UniformInt::of(200, 600);
 pub const ADMIRE_DURATION: i32 = 119;
 pub const CELEBRATION_TIME: i32 = 300;
 pub const ANGER_TICKS: i64 = 600;
@@ -605,6 +608,7 @@ pub fn update_activity<W: AiWorld>(
         Activity::Fight,
         Activity::Avoid,
         Activity::Celebrate,
+        Activity::Ride,
         Activity::Idle,
     ]);
     let after = brain.state().active_non_core_activity();
@@ -620,6 +624,9 @@ pub fn update_activity<W: AiWorld>(
     }
     let state = brain.state_mut();
     ai.body.aggressive = state.memories.has_value(MemoryModuleType::AttackTarget);
+    if !state.memories.has_value(MemoryModuleType::RideTarget) && is_baby_riding_baby(ai) {
+        ai.act(MobAction::Ride(RideAction::Dismount));
+    }
     if !state
         .memories
         .has_value(MemoryModuleType::CelebrateLocation)
@@ -680,6 +687,82 @@ fn idle_movement_behaviors() -> Gate<MobControl> {
         ),
         (MobControl::DoNothing(DoNothing::new(30, 60)), 1),
     ])
+}
+
+fn baby_sometimes_ride_baby_hoglin() -> MobControl {
+    MobControl::one_shot(MobTrigger::CopyMemoryWithExpiry(CopyMemoryWithExpiry::new(
+        CopyIf::BabyEvery(RIDE_START_INTERVAL),
+        MemoryModuleType::NearestVisibleBabyHoglin,
+        MemoryModuleType::RideTarget,
+        RIDE_DURATION,
+    )))
+}
+
+fn ride_hoglin_activity() -> ActivityData<MobControl> {
+    let mut looks: Vec<(OneShot<MobTrigger>, i32)> = [
+        EntityFilter::Kind(EntityKind::Player),
+        EntityFilter::Kind(EntityKind::Piglin),
+        EntityFilter::Any,
+    ]
+    .into_iter()
+    .map(|filter| {
+        (
+            MobControl::declared(MobTrigger::SetEntityLookTarget(SetEntityLookTarget::new(
+                filter, 8.0,
+            ))),
+            1,
+        )
+    })
+    .collect();
+    looks.push((
+        MobControl::declared(MobTrigger::Condition(MobPredicate::Always)),
+        1,
+    ));
+    let gate = MobControl::trigger_one_shuffled(looks);
+    let MobControl::OneShot(gate) = gate else {
+        unreachable!()
+    };
+    ActivityData::create_erasing(
+        Activity::Ride,
+        10,
+        vec![
+            MobControl::one_shot(MobTrigger::Mount(Mount::new(0.8))),
+            MobControl::one_shot(MobTrigger::SetEntityLookTarget(SetEntityLookTarget::new(
+                EntityFilter::PlayerHoldingLovedItem,
+                8.0,
+            ))),
+            MobControl::trigger_if(MobPredicate::Passenger, gate),
+            MobControl::one_shot(MobTrigger::DismountOrSkipMounting(
+                DismountOrSkipMounting::new(8, DontRideIf::PiglinWantsToStopRiding),
+            )),
+        ],
+        MemoryModuleType::RideTarget,
+    )
+}
+
+pub fn wants_to_stop_riding<W: AiWorld>(cx: &BehaviorCx<'_, '_, W>, vehicle: &Living) -> bool {
+    if vehicle.player {
+        return false;
+    }
+    let hurt = cx.brain.memories.has_value(MemoryModuleType::HurtBy);
+    let keeps_riding = vehicle.baby
+        && vehicle.alive
+        && !hurt
+        && !vehicle.facts.hurt_by
+        && (vehicle.kind != EntityKind::Piglin || vehicle.facts.passenger);
+    !keeps_riding
+}
+
+fn is_baby_riding_baby<W: AiWorld>(ai: &crate::brain::AiContext<'_, W>) -> bool {
+    if !ai.mob.baby {
+        return false;
+    }
+    ai.mob
+        .vehicle
+        .and_then(|vehicle| ai.world.living(vehicle))
+        .is_some_and(|vehicle| {
+            vehicle.baby && matches!(vehicle.kind, EntityKind::Piglin | EntityKind::Hoglin)
+        })
 }
 
 fn avoid_repellent() -> MobControl {
@@ -747,6 +830,7 @@ pub fn piglin_activities() -> Vec<ActivityData<MobControl>> {
                 MobControl::declared(MobTrigger::StartHuntingHoglin(StartHuntingHoglin)),
             ),
             avoid_repellent(),
+            baby_sometimes_ride_baby_hoglin(),
             MobControl::Gate(idle_look_behaviors()),
             MobControl::Gate(idle_movement_behaviors()),
             MobControl::one_shot(MobTrigger::SetLookAndInteract(SetLookAndInteract::new(
@@ -880,7 +964,15 @@ pub fn piglin_activities() -> Vec<ActivityData<MobControl>> {
         ],
         MemoryModuleType::AvoidTarget,
     );
-    vec![core, idle, admire, fight, celebrate, retreat]
+    vec![
+        core,
+        idle,
+        admire,
+        fight,
+        celebrate,
+        retreat,
+        ride_hoglin_activity(),
+    ]
 }
 
 pub fn piglin_sensors() -> Vec<SensorKind> {
@@ -899,6 +991,7 @@ pub fn piglin_sensors() -> Vec<SensorKind> {
 pub fn piglin_memories() -> &'static [MemoryModuleType] {
     &[
         MemoryModuleType::DoorsToClose,
+        MemoryModuleType::RideTarget,
         MemoryModuleType::UniversalAnger,
         MemoryModuleType::AteRecently,
         MemoryModuleType::SpearFleeingTime,

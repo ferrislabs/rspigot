@@ -86,6 +86,12 @@ pub enum BrainMessage {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RideAction {
+    Mount(EntityId),
+    Dismount,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PiglinAction {
     StopHoldingOffHand { bartering_enabled: bool },
     SetDancing(bool),
@@ -171,6 +177,7 @@ pub enum MobAction {
         message: BrainMessage,
     },
     Piglin(PiglinAction),
+    Ride(RideAction),
     Villager(crate::villager::VillagerAction),
     Warden(crate::warden::WardenAction),
     Air(crate::AirAction),

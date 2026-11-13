@@ -13,6 +13,7 @@ use crate::behavior::long_jump::{LongJumpMidJump, LongJumpToRandomPos};
 use crate::behavior::love::{AnimalMakeLove, FollowTemptation, MAKE_LOVE_DURATION};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue};
 use crate::behavior::ram::{PrepareRamNearestTarget, RamTarget};
+use crate::behavior::ride::{DismountOrSkipMounting, Mount};
 use crate::behavior::sinks::{
     AnimalPanic, LookAtTargetSink, MoveToTargetSink, RandomLookAround, Swim,
 };
@@ -297,6 +298,8 @@ mob_triggers! {
     BecomePassiveIfMemoryPresent(BecomePassiveIfMemoryPresent),
     BackUpIfTooClose(BackUpIfTooClose),
     CopyMemoryWithExpiry(CopyMemoryWithExpiry),
+    Mount(Mount),
+    DismountOrSkipMounting(DismountOrSkipMounting),
     StartCelebratingIfTargetDead(StartCelebratingIfTargetDead),
     StartHuntingHoglin(StartHuntingHoglin),
     RememberIfHoglinWasKilled(RememberIfHoglinWasKilled),

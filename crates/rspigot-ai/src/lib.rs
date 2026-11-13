@@ -84,7 +84,7 @@ mod wolf;
 mod world;
 mod zombified_piglin;
 
-pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequest};
+pub use action::{BrainMessage, MobAction, PiglinAction, RideAction, TargetReason, TargetRequest};
 pub use air::{AirAction, AirGoal};
 pub use allay::{
     ALLAY_MEMORIES, AllayAction, AllayFacts, GoAndGiveItemsToTarget, StayCloseToTarget,
