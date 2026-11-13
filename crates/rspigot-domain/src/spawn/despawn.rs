@@ -35,7 +35,7 @@ pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<boo
         MobClass::Chicken => facts.chicken_jockey,
         MobClass::ZombieVillager => !facts.villager_progress,
         MobClass::AbstractFish | MobClass::Axolotl => !(facts.from_bucket || facts.named),
-        MobClass::AbstractNautilus => true,
+        MobClass::AbstractNautilus | MobClass::ZombieHorse => true,
         MobClass::Raider => {
             !(facts.patrolling && facts.distance_sqr <= raider::PATROL_KEEP_DISTANCE_SQR)
         }

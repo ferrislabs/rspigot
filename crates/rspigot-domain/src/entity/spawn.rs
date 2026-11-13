@@ -613,6 +613,9 @@ pub fn finalize_spawn(
             species::ocelot::finalize(base, living, environment, group, level)
         }
         Some(Species::Witch(_)) => species::witch::finalize(base, living, reason, group, level),
+        _ if living.mob.as_ref().is_some_and(|mob| mob.mount.is_some()) => {
+            species::equine::finalize(base, living, group, level)
+        }
         Some(Species::Strider(_)) => {
             species::strider::finalize(base, living, environment, group, level)
         }

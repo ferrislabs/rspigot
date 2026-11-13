@@ -675,6 +675,9 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
     }
     read_tamable(nbt, base, mob);
     read_neutral(nbt, base, mob);
+    if let Some(mount) = mob.mount.as_mut() {
+        species::equine::read(nbt, base, mount);
+    }
     if let Some(farm) = mob.species.variant_family() {
         if let Some(id) = nbt
             .get_str("variant")
@@ -984,6 +987,9 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
     }
     if mob.neutral.is_some() {
         keys.push(&NEUTRAL_KEYS);
+    }
+    if mob.mount.is_some() {
+        keys.push(species::equine::KEYS);
     }
     if matches!(mob.species, Species::Wolf(_) | Species::Cat(_)) {
         keys.push(&FARM_KEYS);
@@ -1413,6 +1419,9 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
             out.insert("Owner", uuid_tag(owner));
         }
         out.insert("Sitting", bool_tag(state.ordered_to_sit));
+    }
+    if let Some(mount) = &mob.mount {
+        species::equine::write(base, mount, out);
     }
     if let Some(state) = &mob.neutral {
         out.insert("anger_end_time", state.end_time);

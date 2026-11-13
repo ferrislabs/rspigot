@@ -340,6 +340,7 @@ pub struct MobState {
     pub neutral: Option<NeutralState>,
     pub tamable: Option<TamableState>,
     pub merchant: Option<Box<MerchantState>>,
+    pub mount: Option<Box<super::species::equine::MountState>>,
     pub species: Species,
     pub jockey: Option<super::spawn::Jockey>,
 }
@@ -359,6 +360,7 @@ impl Default for MobState {
             neutral: None,
             tamable: None,
             merchant: None,
+            mount: None,
             species: Species::Plain,
             jockey: None,
         }
@@ -507,6 +509,9 @@ impl LivingState {
             }
             if kind.extends("AbstractVillager") {
                 mob.merchant = Some(Box::new(MerchantState::new()));
+            }
+            if kind.extends("AbstractHorse") {
+                mob.mount = Some(Box::new(super::species::equine::MountState::new(base)));
             }
             mob.species = Species::new(base);
             mob.persistence_required =
