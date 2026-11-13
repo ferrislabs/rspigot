@@ -1075,6 +1075,7 @@ pub(crate) enum Continuation {
     Ignite(IgniteStep),
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
+    DoorOpen { mob: EntityId, pos: BlockPos },
     EntityExplode(Box<ExplodeStep>),
     Splash(Box<SplashStep>),
     Prime(PrimeStep),
@@ -1177,7 +1178,7 @@ impl Continuation {
             Self::Form(_) => EventKind::EntityBlockForm,
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
-            Self::EggBreak { .. } => EventKind::EntityInteract,
+            Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
             Self::EntityExplode(_) => EventKind::EntityExplode,
             Self::Splash(_) => EventKind::PotionSplash,
             Self::Prime(_) => EventKind::ExplosionPrime,
@@ -1259,7 +1260,7 @@ impl Continuation {
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
-            Self::EggBreak { mob, .. } => *mob == id,
+            Self::EggBreak { mob, .. } | Self::DoorOpen { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
             Self::Splash(step) => step.potion == id,
             Self::Prime(step) => step.source == id,
@@ -1299,6 +1300,16 @@ impl Continuation {
             (Self::Form(one), Self::Form(other)) => one.pos == other.pos,
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
             (Self::EggBreak { mob: one, .. }, Self::EggBreak { mob: other, .. }) => one == other,
+            (
+                Self::DoorOpen {
+                    mob: one_mob,
+                    pos: one,
+                },
+                Self::DoorOpen {
+                    mob: other_mob,
+                    pos: other,
+                },
+            ) => one_mob == other_mob && one == other,
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
             (Self::Aim(one), Self::Aim(other)) => {
@@ -1346,6 +1357,7 @@ impl Continuation {
             | Self::PiglinPickup(_) => true,
             Self::ChangeBlock(step) => matches!(step.change, Grief::Fall { .. }),
             Self::EggBreak { .. }
+            | Self::DoorOpen { .. }
             | Self::Form(_)
             | Self::Ignite(_)
             | Self::Prime(_)

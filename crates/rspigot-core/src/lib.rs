@@ -15,6 +15,7 @@ mod containers;
 mod context;
 mod cooking;
 mod crossbow;
+mod doors;
 mod drops;
 mod durability;
 mod eating;

@@ -681,6 +681,22 @@ impl AiWorld for MobWorld<'_> {
         self.view.chunks.poi().type_at(pos)
     }
 
+    fn path_door_nodes(&self, mob: EntityId) -> Option<(BlockPos, BlockPos)> {
+        let path = self
+            .entries
+            .get(&mob)?
+            .ai
+            .behavior_brain()?
+            .memories()
+            .get(MemoryModuleType::Path)?
+            .as_path()?;
+        if path.is_done() {
+            return None;
+        }
+        let previous = path.previous_node()?.pos;
+        Some((previous, path.next_node_pos()))
+    }
+
     fn villager_trades(&self, villager: EntityId) -> Vec<rspigot_ai::TradeView> {
         self.store
             .get(villager)

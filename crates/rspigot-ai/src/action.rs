@@ -118,6 +118,11 @@ pub enum MobAction {
         stage: i32,
     },
     BreakDoor(BlockPos),
+    SetDoorOpen {
+        pos: BlockPos,
+        open: bool,
+        interact: bool,
+    },
     RaidCarrot(BlockPos),
     SetSitting(bool),
     TeleportTo(Vec3),

@@ -2,6 +2,7 @@ mod activity;
 mod attack;
 mod brain;
 mod control;
+mod door;
 mod long_jump;
 mod love;
 mod memory;
@@ -26,6 +27,10 @@ pub use brain::{ActivityData, BehaviorBrain, BrainState, SCHEDULE_UPDATE_INTERVA
 pub use control::{
     Behavior, BehaviorControl, BehaviorCx, DEFAULT_DURATION, DoNothing, Gate, OneShot, OrderPolicy,
     RunOne, RunningPolicy, Sequence, Status, Timed, Trigger, TriggerGate, has_required_memories,
+};
+pub use door::{
+    InteractWithDoor, close_doors_that_i_have_opened_or_passed_through, doors_to_close,
+    is_door_open, is_mob_interactable_door, nearest_living_entities, store_doors_to_close,
 };
 pub use long_jump::{
     ALLOWED_ANGLES, JumpBody, JumpDimensions, JumpSound, LONG_JUMP_TIME_OUT, LandingSpot,
