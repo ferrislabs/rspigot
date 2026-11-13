@@ -421,3 +421,24 @@ fn a_cancelled_transform_keeps_the_children_away() {
     s.tick(5);
     assert!(slimes(&s, Kind::Slime).is_empty());
 }
+
+#[test]
+fn a_big_slime_pushing_an_iron_golem_hurts_it() {
+    let mut s = ready(15);
+    let golem = summon(&mut s, Kind::IronGolem, "20.5 64 20.5", "{NoAI:1b}");
+    let before = saved(&s, golem).get_f64("Health").expect("health");
+    summon(&mut s, Kind::Slime, "20.5 64 20.5", "{Size:2,NoAI:0b}");
+    s.tick(3);
+    let after = saved(&s, golem).get_f64("Health").expect("health");
+    assert!(after < before, "{before} -> {after}");
+}
+
+#[test]
+fn a_tiny_slime_leaves_an_iron_golem_alone() {
+    let mut s = ready(16);
+    let golem = summon(&mut s, Kind::IronGolem, "20.5 64 20.5", "{NoAI:1b}");
+    let before = saved(&s, golem).get_f64("Health").expect("health");
+    summon(&mut s, Kind::Slime, "20.5 64 20.5", "{Size:0}");
+    s.tick(10);
+    assert_eq!(saved(&s, golem).get_f64("Health"), Some(before));
+}
