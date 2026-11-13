@@ -156,4 +156,5 @@ pub enum MobAction {
         message: BrainMessage,
     },
     Piglin(PiglinAction),
+    Villager(crate::villager::VillagerAction),
 }

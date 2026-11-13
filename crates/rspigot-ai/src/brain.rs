@@ -66,6 +66,14 @@ impl Brain {
             profile.set_malus(PathType::Fire, -1.0);
             profile.can_open_doors = true;
         }
+        if kind.extends("AbstractVillager") {
+            profile.set_malus(PathType::FireInNeighbor, 16.0);
+            profile.set_malus(PathType::Fire, -1.0);
+        }
+        if kind == EntityKind::Villager {
+            profile.can_open_doors = true;
+            profile.can_float = true;
+        }
         if kind == EntityKind::Chicken {
             profile.set_malus(PathType::Water, 0.0);
         }
@@ -102,6 +110,11 @@ impl Brain {
         };
         if kind == EntityKind::Rabbit {
             brain.enable_hop();
+        }
+        if kind == EntityKind::Villager {
+            brain
+                .navigation
+                .set_required_path_length(48.0, follow_range);
         }
         brain
     }
@@ -204,6 +217,15 @@ impl<W: AiWorld> AiContext<'_, W> {
         self.brain
             .navigation
             .create_path(self.world, &profile, &tick, pos, reach, follow)
+    }
+
+    pub fn create_path_to_any(&mut self, targets: &[BlockPos], reach: i32) -> Option<crate::Path> {
+        let profile = self.path_profile();
+        let tick = self.tick_state();
+        let follow = self.mob.follow_range;
+        self.brain
+            .navigation
+            .create_path_to_any(self.world, &profile, &tick, targets, reach, follow)
     }
 
     pub fn create_path_to_limited(
@@ -341,6 +363,32 @@ impl MobAi {
     pub fn init_goat_memories(&mut self, long_jump: i32, ram: i32) {
         if let Some(behavior) = self.behavior.as_mut() {
             crate::goat::init_memories(behavior.memories_mut(), long_jump, ram);
+        }
+    }
+
+    pub fn rebuild_villager_brain(
+        &mut self,
+        profession: rspigot_domain::entity::species::villager::Profession,
+        baby: bool,
+    ) {
+        let packed = self
+            .behavior
+            .as_ref()
+            .map(BehaviorBrain::pack)
+            .unwrap_or_default();
+        self.behavior = Some(crate::villager::villager_brain(
+            profession,
+            baby,
+            &packed,
+            &mut self.brain.random,
+        ));
+    }
+
+    pub fn update_villager_schedule(&mut self, clock_ticks: i64, game_time: i64) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            behavior
+                .state_mut()
+                .update_activity_from_schedule(clock_ticks, game_time);
         }
     }
 

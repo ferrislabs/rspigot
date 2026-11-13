@@ -45,6 +45,10 @@ impl Default for BrainState {
 }
 
 impl BrainState {
+    pub fn schedule(&self) -> Option<Schedule> {
+        self.schedule
+    }
+
     pub fn set_schedule(&mut self, schedule: Option<Schedule>) {
         self.schedule = schedule;
     }

@@ -207,6 +207,50 @@ impl Navigation {
         path
     }
 
+    pub fn create_path_to_any(
+        &mut self,
+        view: &impl BlockView,
+        profile: &MobProfile,
+        mob: &MobTick,
+        targets: &[BlockPos],
+        reach: i32,
+        follow_range: f64,
+    ) -> Option<Path> {
+        if targets.is_empty() {
+            return None;
+        }
+        if mob.state.position.y < f64::from(view.min_y()) || !Self::can_update_path(mob) {
+            return None;
+        }
+        if let Some(path) = self.path.as_ref()
+            && !path.is_done()
+            && self
+                .target_pos
+                .is_some_and(|target| targets.contains(&target))
+        {
+            return Some(path.clone());
+        }
+        let max_path_length = self.max_path_length(follow_range);
+        let start = mob.state.block_pos();
+        let radius = (max_path_length + BLOCK_REGION_OFFSET) as i32;
+        let region = Region {
+            view,
+            min: start.offset(-radius, -radius, -radius).chunk(),
+            max: start.offset(radius, radius, radius).chunk(),
+        };
+        let mut finder = PathFinder::new(profile.clone());
+        finder.set_max_visited_nodes(self.max_visited_nodes);
+        finder.set_max_path_length(max_path_length);
+        finder.set_visited_multiplier(self.max_visited_nodes_multiplier);
+        let path = finder.find_path(&region, &mob.state, targets, reach);
+        if let Some(path) = path.as_ref() {
+            self.target_pos = Some(path.target());
+            self.reach_range = reach;
+            self.reset_stuck_timeout();
+        }
+        path
+    }
+
     pub fn move_to_pos(
         &mut self,
         view: &impl BlockView,
