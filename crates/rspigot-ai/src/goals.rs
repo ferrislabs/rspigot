@@ -925,6 +925,7 @@ pub enum MobGoal {
     Trader(crate::villager::TraderGoal),
     Air(crate::air::AirGoal),
     Spell(crate::spell::SpellGoal),
+    Equine(crate::equine::EquineGoal),
     StriderGoToLava(crate::strider::StriderGoToLavaGoal),
     Water(crate::swimmers::WaterGoal),
     Turtle(crate::turtle::TurtleGoal),
@@ -983,6 +984,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Spell(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Equine(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::StriderGoToLava(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::flags(goal),
@@ -1041,6 +1043,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::can_use(goal, context),
             Self::Air(goal) => Goal::can_use(goal, context),
             Self::Spell(goal) => Goal::can_use(goal, context),
+            Self::Equine(goal) => Goal::can_use(goal, context),
             Self::StriderGoToLava(goal) => Goal::can_use(goal, context),
             Self::Water(goal) => Goal::can_use(goal, context),
             Self::Turtle(goal) => Goal::can_use(goal, context),
@@ -1098,6 +1101,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::can_continue_to_use(goal, context),
             Self::Air(goal) => Goal::can_continue_to_use(goal, context),
             Self::Spell(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Equine(goal) => Goal::can_continue_to_use(goal, context),
             Self::StriderGoToLava(goal) => Goal::can_continue_to_use(goal, context),
             Self::Water(goal) => Goal::can_continue_to_use(goal, context),
             Self::Turtle(goal) => Goal::can_continue_to_use(goal, context),
@@ -1120,6 +1124,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Spell(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Equine(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::StriderGoToLava(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
@@ -1183,6 +1188,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::start(goal, context),
             Self::Air(goal) => Goal::start(goal, context),
             Self::Spell(goal) => Goal::start(goal, context),
+            Self::Equine(goal) => Goal::start(goal, context),
             Self::StriderGoToLava(goal) => Goal::start(goal, context),
             Self::Water(goal) => Goal::start(goal, context),
             Self::Turtle(goal) => Goal::start(goal, context),
@@ -1241,6 +1247,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::stop(goal, context),
             Self::Air(goal) => Goal::stop(goal, context),
             Self::Spell(goal) => Goal::stop(goal, context),
+            Self::Equine(goal) => Goal::stop(goal, context),
             Self::StriderGoToLava(goal) => Goal::stop(goal, context),
             Self::Water(goal) => Goal::stop(goal, context),
             Self::Turtle(goal) => Goal::stop(goal, context),
@@ -1263,6 +1270,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Spell(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Equine(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::StriderGoToLava(goal) => {
                 Goal::<AiContext<'_, W>>::requires_update_every_tick(goal)
             }
@@ -1299,6 +1307,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::tick(goal, context),
             Self::Air(goal) => Goal::tick(goal, context),
             Self::Spell(goal) => Goal::tick(goal, context),
+            Self::Equine(goal) => Goal::tick(goal, context),
             Self::StriderGoToLava(goal) => Goal::tick(goal, context),
             Self::Water(goal) => Goal::tick(goal, context),
             Self::Turtle(goal) => Goal::tick(goal, context),
@@ -1369,6 +1378,7 @@ impl MobGoal {
             | Self::Trader(_)
             | Self::Air(_)
             | Self::Spell(_)
+            | Self::Equine(_)
             | Self::StriderGoToLava(_)
             | Self::Water(_)
             | Self::Turtle(_)

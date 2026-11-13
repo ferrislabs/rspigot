@@ -89,6 +89,9 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Turtle => "minecraft:turtle_food",
         Kind::Axolotl => "minecraft:axolotl_food",
         Kind::Nautilus => "minecraft:nautilus_food",
+        Kind::Horse | Kind::Donkey | Kind::Mule | Kind::SkeletonHorse | Kind::ZombieHorse => {
+            return crate::kinds::equine_food_tag(kind);
+        }
         _ => return None,
     })
 }
@@ -865,6 +868,7 @@ impl<L: ClientLink> Server<L> {
         };
         let age = ageable.age;
         let can_love = ageable.can_fall_in_love()
+            && species::equine::can_fall_in_love(kind)
             && !(kind == Kind::Armadillo && species::armadillo::is_scared(&entity.base))
             && !(kind == Kind::Turtle && species::turtle::has_egg(&entity.base));
         let can_age_up = ageable::can_age_up(&entity.base, ageable);

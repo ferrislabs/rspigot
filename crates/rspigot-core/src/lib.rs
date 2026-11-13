@@ -52,6 +52,7 @@ mod mob_actions;
 mod mob_effects;
 mod mob_life;
 pub mod mobs;
+mod mount_menu;
 mod patrol;
 mod persistence;
 mod phantom_spawner;

@@ -174,6 +174,7 @@ pub struct BreedGoal {
     speed_modifier: f64,
     partner: Option<EntityId>,
     love_time: i32,
+    equine: bool,
 }
 
 impl BreedGoal {
@@ -182,6 +183,14 @@ impl BreedGoal {
             speed_modifier,
             partner: None,
             love_time: 0,
+            equine: false,
+        }
+    }
+
+    pub fn equine(speed_modifier: f64) -> Self {
+        Self {
+            equine: true,
+            ..Self::new(speed_modifier)
         }
     }
 
@@ -189,12 +198,15 @@ impl BreedGoal {
         self.partner
     }
 
-    fn free_partner<W: AiWorld>(context: &mut AiContext<'_, W>) -> Option<Living> {
+    fn free_partner<W: AiWorld>(&self, context: &mut AiContext<'_, W>) -> Option<Living> {
         let mob = context.mob;
         let area = inflate(&mob.bounds(), PARTNER_RANGE, PARTNER_RANGE, PARTNER_RANGE);
-        let candidates = context
-            .world
-            .living_of(TargetKind::Class(mob.kind.class()), &area);
+        let class = if self.equine {
+            "AbstractHorse"
+        } else {
+            mob.kind.class()
+        };
+        let candidates = context.world.living_of(TargetKind::Class(class), &area);
         let conditions = TargetingConditions::for_non_combat()
             .range(PARTNER_RANGE)
             .ignore_line_of_sight();
@@ -205,13 +217,20 @@ impl BreedGoal {
                 continue;
             }
             let mob = context.mob;
-            let can_mate = candidate.id != mob.id
-                && candidate.kind == mob.kind
-                && mob.in_love
-                && candidate.in_love
-                && (mob.kind != EntityKind::Wolf
-                    || (mob.tamed && candidate.facts.tamed && !candidate.facts.sitting))
-                && (mob.kind != EntityKind::Cat || (mob.tamed && candidate.facts.tamed));
+            let can_mate = if self.equine {
+                candidate.id != mob.id
+                    && crate::equine::can_mate(mob.kind, candidate.kind)
+                    && mob.species.equine.can_parent
+                    && candidate.facts.can_parent
+            } else {
+                candidate.id != mob.id
+                    && candidate.kind == mob.kind
+                    && mob.in_love
+                    && candidate.in_love
+                    && (mob.kind != EntityKind::Wolf
+                        || (mob.tamed && candidate.facts.tamed && !candidate.facts.sitting))
+                    && (mob.kind != EntityKind::Cat || (mob.tamed && candidate.facts.tamed))
+            };
             let distance = mob.distance_to_sqr(candidate.position);
             if can_mate && !candidate.panicking && distance < best {
                 best = distance;
@@ -225,7 +244,7 @@ impl BreedGoal {
         if !context.mob.in_love {
             return false;
         }
-        self.partner = Self::free_partner(context).map(|partner| partner.id);
+        self.partner = self.free_partner(context).map(|partner| partner.id);
         self.partner.is_some()
     }
 

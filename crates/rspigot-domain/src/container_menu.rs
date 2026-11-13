@@ -1,4 +1,4 @@
-use rspigot_items::{CookingKind, ItemId, ItemKind};
+use rspigot_items::{CookingKind, EquipmentSlot, ItemId, ItemKind};
 
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
@@ -33,7 +33,9 @@ const MERCHANT_END: usize = 39;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuKind {
-    Generic { rows: u8 },
+    Generic {
+        rows: u8,
+    },
     Generic3x3,
     Hopper,
     ShulkerBox,
@@ -50,7 +52,17 @@ pub enum MenuKind {
     Lectern,
     Beacon,
     Merchant,
+    Mount {
+        columns: u8,
+        saddle: bool,
+        armor: bool,
+    },
 }
+
+const MOUNT_SADDLE_SLOT: usize = 0;
+const MOUNT_ARMOR_SLOT: usize = 1;
+const MOUNT_EXTRA_SLOTS: usize = 2;
+const MOUNT_ROWS: usize = 3;
 
 impl MenuKind {
     pub fn protocol_id(self) -> i32 {
@@ -72,6 +84,7 @@ impl MenuKind {
             Self::Lectern => 17,
             Self::Beacon => 9,
             Self::Merchant => 19,
+            Self::Mount { .. } => 0,
         }
     }
 
@@ -89,6 +102,7 @@ impl MenuKind {
             Self::Stonecutter => 2,
             Self::Lectern | Self::Beacon => 1,
             Self::Merchant => 3,
+            Self::Mount { columns, .. } => MOUNT_EXTRA_SLOTS + MOUNT_ROWS * usize::from(columns),
         }
     }
 
@@ -179,6 +193,7 @@ impl MenuKind {
             return self.station_plan(inputs, slot, stack, container);
         }
         match self {
+            Self::Mount { .. } => self.mount_plan(slot, stack, container),
             Self::Merchant => match slot {
                 MERCHANT_RESULT => vec![(MERCHANT_PLAYER_START, MERCHANT_END, true)],
                 0 | 1 => vec![(MERCHANT_PLAYER_START, MERCHANT_END, false)],
@@ -226,6 +241,37 @@ impl MenuKind {
         }
     }
 
+    fn mount_plan(
+        self,
+        slot: usize,
+        stack: &ItemStack,
+        container: &[Slot],
+    ) -> Vec<(usize, usize, bool)> {
+        let total = self.slot_count();
+        let size = self.container_size();
+        if slot < size {
+            return vec![(size, total, true)];
+        }
+        let empty = |index: usize| container.get(index).is_some_and(Option::is_none);
+        if self.accepts(MOUNT_ARMOR_SLOT, stack) && empty(MOUNT_ARMOR_SLOT) {
+            return vec![(MOUNT_ARMOR_SLOT, MOUNT_ARMOR_SLOT + 1, false)];
+        }
+        if self.accepts(MOUNT_SADDLE_SLOT, stack) && empty(MOUNT_SADDLE_SLOT) {
+            return vec![(MOUNT_SADDLE_SLOT, MOUNT_SADDLE_SLOT + 1, false)];
+        }
+        let mut plan = Vec::new();
+        if size > MOUNT_EXTRA_SLOTS {
+            plan.push((MOUNT_EXTRA_SLOTS, size, false));
+        }
+        let hotbar = size + MAIN_SLOTS;
+        if slot >= hotbar {
+            plan.push((size, hotbar, false));
+        } else {
+            plan.push((hotbar, total, false));
+        }
+        plan
+    }
+
     fn clears_on_close(self, slot: usize) -> bool {
         if let Some(inputs) = self.station_inputs() {
             return slot < inputs;
@@ -260,6 +306,19 @@ impl MenuKind {
                 _ => true,
             },
             Self::Merchant => slot != MERCHANT_RESULT,
+            Self::Mount { saddle, armor, .. } => match slot {
+                MOUNT_SADDLE_SLOT => {
+                    saddle
+                        && stack.item.kind().and_then(ItemKind::equippable)
+                            == Some(EquipmentSlot::Saddle)
+                }
+                MOUNT_ARMOR_SLOT => {
+                    armor
+                        && stack.item.kind().and_then(ItemKind::equippable)
+                            == Some(EquipmentSlot::Body)
+                }
+                _ => true,
+            },
             Self::Beacon if slot == 0 => in_item_tag(stack, "minecraft:beacon_payment_items"),
             Self::Grindstone if slot < 2 => is_damageable(stack) || has_enchantments(stack),
             Self::CartographyTable if slot == 0 => is_map(stack),
@@ -510,6 +569,9 @@ fn stack_limit(kind: MenuKind, slot: usize, stack: &ItemStack) -> u32 {
     if kind == MenuKind::Beacon && slot == 0 {
         return 1;
     }
+    if matches!(kind, MenuKind::Mount { .. }) && slot < MOUNT_EXTRA_SLOTS {
+        return 1;
+    }
     if kind.is_furnace() && slot == furnace::FUEL_SLOT && furnace::is_empty_bucket(stack) {
         return 1;
     }
@@ -560,7 +622,9 @@ impl ClickView for Look<'_> {
     }
 
     fn container_limit(&self, slot: usize) -> u32 {
-        if self.kind == MenuKind::Beacon && slot == 0 {
+        if (self.kind == MenuKind::Beacon && slot == 0)
+            || (matches!(self.kind, MenuKind::Mount { .. }) && slot < MOUNT_EXTRA_SLOTS)
+        {
             1
         } else {
             CONTAINER_MAX_STACK
