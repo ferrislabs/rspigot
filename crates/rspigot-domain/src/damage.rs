@@ -19,6 +19,7 @@ pub enum DamageType {
     PlayerAttack,
     MobAttack,
     MobAttackNoAggro,
+    Sting,
     GenericKill,
     Generic,
     Starve,
@@ -88,6 +89,7 @@ impl DamageType {
             Self::PlayerAttack => "minecraft:player_attack",
             Self::MobAttack => "minecraft:mob_attack",
             Self::MobAttackNoAggro => "minecraft:mob_attack_no_aggro",
+            Self::Sting => "minecraft:sting",
             Self::GenericKill => "minecraft:generic_kill",
             Self::Generic => "minecraft:generic",
             Self::Starve => "minecraft:starve",
@@ -121,6 +123,7 @@ impl DamageType {
             Self::Stalagmite => "stalagmite",
             Self::PlayerAttack => "player",
             Self::MobAttack | Self::MobAttackNoAggro => "mob",
+            Self::Sting => "sting",
             Self::GenericKill => "genericKill",
             Self::Generic => "generic",
             Self::Starve => "starve",
@@ -147,7 +150,7 @@ impl DamageType {
     pub const fn exhaustion(self) -> f32 {
         match self {
             Self::FallingAnvil | Self::FallingBlock | Self::FallingStalactite => 0.1,
-            Self::PlayerAttack | Self::MobAttack | Self::MobAttackNoAggro => 0.1,
+            Self::PlayerAttack | Self::MobAttack | Self::MobAttackNoAggro | Self::Sting => 0.1,
             Self::InFire
             | Self::Lava
             | Self::Arrow
@@ -254,6 +257,15 @@ mod tests {
         assert_eq!(DamageType::PlayerAttack.registry_id(), Some(34));
         assert_eq!(DamageType::MobAttack.registry_id(), Some(28));
         assert_eq!(DamageType::Wither.registry_id(), Some(49));
+    }
+
+    #[test]
+    fn the_sting_is_registered_with_the_sting_message_and_scales_with_the_difficulty() {
+        assert_eq!(DamageType::Sting.name(), "minecraft:sting");
+        assert_eq!(DamageType::Sting.message_id(), "sting");
+        assert_eq!(DamageType::Sting.exhaustion(), 0.1);
+        assert!(DamageType::Sting.registry_id().is_some());
+        assert!(!DamageType::Sting.is(DamageTag::NoKnockback));
     }
 
     #[test]
