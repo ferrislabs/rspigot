@@ -631,6 +631,9 @@ pub enum TargetFilter {
     WitherLiving,
     GuardianAttack,
     DrownedOk,
+    HealableRaider,
+    Attackable,
+    NotBaby,
 }
 
 impl TargetFilter {
@@ -658,6 +661,11 @@ impl TargetFilter {
             Self::WitherLiving => crate::wither::living_selector(target),
             Self::GuardianAttack => crate::guardian::attack_selector(target, mob),
             Self::DrownedOk => crate::drowned::drowned_ok_target(world, target),
+            Self::Attackable => target.kind != EntityKind::ArmorStand,
+            Self::NotBaby => !target.baby,
+            Self::HealableRaider => {
+                mob.species.raider.has_active_raid() && target.kind != EntityKind::Witch
+            }
         }
     }
 }

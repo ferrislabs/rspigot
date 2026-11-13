@@ -25,7 +25,7 @@ impl<L: ClientLink> Server<L> {
         self.send_boss_messages(uuid, messages);
     }
 
-    fn send_boss_messages(&mut self, uuid: uuid::Uuid, messages: BossMessages) {
+    pub(crate) fn send_boss_messages(&mut self, uuid: uuid::Uuid, messages: BossMessages) {
         for (player, update) in messages {
             if self.players.contains_key(&player) {
                 self.push(

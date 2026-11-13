@@ -29,6 +29,8 @@ pub(crate) struct Mock {
     pub hives: HashMap<BlockPos, crate::HiveView>,
     pub raining: bool,
     pub stay_in_hive: bool,
+    pub items: Vec<crate::world::DroppedItem>,
+    pub banners: Vec<EntityId>,
 }
 
 impl BlockView for Mock {
@@ -127,6 +129,22 @@ impl AiWorld for Mock {
 
     fn bees_stay_in_hive(&self, _pos: BlockPos) -> bool {
         self.stay_in_hive
+    }
+
+    fn items_in(&self, area: &Aabb) -> Vec<crate::world::DroppedItem> {
+        self.items
+            .iter()
+            .filter(|item| item.bounds.intersects(area))
+            .copied()
+            .collect()
+    }
+
+    fn dropped_item(&self, id: EntityId) -> Option<crate::world::DroppedItem> {
+        self.items.iter().find(|item| item.id == id).copied()
+    }
+
+    fn is_ominous_banner(&self, id: EntityId) -> bool {
+        self.banners.contains(&id)
     }
 
     fn villagers_wanting_golem(&self, area: &Aabb) -> Vec<Living> {

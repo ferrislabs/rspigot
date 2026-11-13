@@ -26,6 +26,7 @@ pub struct GameRules {
     pub spawn_patrols: bool,
     pub spawn_phantoms: bool,
     pub spawn_wandering_traders: bool,
+    pub raids: bool,
 }
 
 impl Default for GameRules {
@@ -45,6 +46,7 @@ impl Default for GameRules {
             spawn_patrols: true,
             spawn_phantoms: true,
             spawn_wandering_traders: true,
+            raids: true,
         }
     }
 }
@@ -204,6 +206,7 @@ pub struct LevelData {
     pub spawn_mobs: bool,
     pub spawn_monsters: bool,
     pub uuid: Option<uuid::Uuid>,
+    pub raids: Option<rspigot_nbt::Compound>,
 }
 
 impl Default for LevelData {
@@ -221,6 +224,7 @@ impl Default for LevelData {
             spawn_mobs: true,
             spawn_monsters: true,
             uuid: None,
+            raids: None,
         }
     }
 }

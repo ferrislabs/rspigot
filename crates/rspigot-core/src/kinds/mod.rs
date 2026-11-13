@@ -35,6 +35,7 @@ mod ghast;
 mod goat;
 mod guardian;
 mod hoglin;
+mod illager;
 mod iron_golem;
 mod nautilus;
 mod ocelot;
@@ -116,6 +117,8 @@ impl<L: ClientLink> Server<L> {
             Kind::Ocelot => self.ocelot_view(entity, view),
             Kind::Witch => self.witch_view(entity, view),
             Kind::Pillager => self.pillager_view(entity, view),
+            Kind::Vindicator => self.vindicator_view(entity, view),
+            Kind::Ravager => self.ravager_view(entity, view),
             Kind::Hoglin | Kind::Zoglin => self.hoglin_view(entity, view),
             Kind::Goat => self.goat_view(entity, view),
             Kind::Armadillo => self.armadillo_view(entity, view),
@@ -141,6 +144,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Villager) => self.villager_registered(id, ai),
             Some(Kind::Warden) => self.warden_registered(id, ai),
             Some(Kind::Wither) => self.wither_registered(id),
+            Some(Kind::Pillager | Kind::Witch | Kind::Vindicator | Kind::Ravager) => {
+                self.raider_registered(id);
+            }
             _ => {}
         }
     }
@@ -221,6 +227,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Enderman) => self.enderman_ai_step(id),
             Some(Kind::Blaze) => self.blaze_ai_step(id),
             Some(Kind::Witch) => self.witch_ai_step(id),
+            Some(Kind::Pillager) => self.raider_ai_step(id),
+            Some(Kind::Vindicator) => self.vindicator_ai_step(id),
+            Some(Kind::Ravager) => self.ravager_ai_step(id),
             Some(Kind::Creaking) => self.creaking_ai_step(id),
             Some(Kind::Parrot) => self.parrot_ai_step(id),
             Some(Kind::Turtle) => self.turtle_ai_step(id),
@@ -233,6 +242,10 @@ impl<L: ClientLink> Server<L> {
             }
             _ => {}
         }
+    }
+
+    pub(crate) fn kind_is_immobile(&self, id: EntityId) -> bool {
+        self.kind_of(id) == Some(Kind::Ravager) && self.ravager_is_immobile(id)
     }
 
     pub(crate) fn kind_death_item(&mut self, id: EntityId) -> Option<ItemStack> {
@@ -311,6 +324,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Wither) => self.wither_custom_ai_step(id),
             Some(Kind::Bee) => self.bee_custom_ai_step(id),
             Some(Kind::ElderGuardian) => self.elder_guardian_custom_ai_step(id),
+            Some(Kind::Vindicator) => self.vindicator_custom_ai_step(id),
             _ => {}
         }
     }
@@ -398,6 +412,10 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Breeze) => self.breeze_hurt_amount(id, source, amount),
             Some(Kind::Creaking) => self.creaking_hurt_amount(id, source, amount),
             Some(Kind::Warden) if self.warden_hurt_amount(id, source) => None,
+            Some(Kind::Pillager | Kind::Witch | Kind::Vindicator | Kind::Ravager) => {
+                self.raider_hurt(id);
+                Some(amount)
+            }
             _ => Some(amount),
         }
     }

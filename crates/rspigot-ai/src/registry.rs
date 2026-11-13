@@ -72,6 +72,16 @@ const PILLAGER_CROSSBOW_RADIUS: f32 = 8.0;
 const PILLAGER_STROLL_SPEED: f64 = 0.6;
 const PILLAGER_LOOK_DISTANCE: f32 = 15.0;
 const PILLAGER_IGNORED_DAMAGE: &[&str] = &["Raider"];
+const VINDICATOR_STROLL_SPEED: f64 = 0.6;
+const VINDICATOR_LOOK_PLAYER_DISTANCE: f32 = 3.0;
+const VINDICATOR_LOOK_MOB_DISTANCE: f32 = 8.0;
+const VINDICATOR_MELEE_SPEED: f64 = 1.0;
+const VINDICATOR_HOLD_GROUND_RADIUS: f32 = 10.0;
+const RAVAGER_VILLAGER_INTERVAL: i32 = 10;
+const RAVAGER_MELEE_SPEED: f64 = 1.0;
+const RAVAGER_STROLL_SPEED: f64 = 0.4;
+const RAVAGER_PLAYER_LOOK_DISTANCE: f32 = 6.0;
+const RAVAGER_MOB_LOOK_DISTANCE: f32 = 8.0;
 const WITHER_ATTACK_SPEED: f64 = 1.0;
 const WITHER_ATTACK_INTERVAL: i32 = 40;
 const WITHER_ATTACK_RADIUS: f32 = 20.0;
@@ -1132,6 +1142,116 @@ pub fn register_goals(
             );
             add.target(
                 3,
+                NearestAttackableTargetGoal::new(TargetKind::IronGolem, true),
+            );
+        }
+        EntityKind::Vindicator => {
+            raider::register(&mut add);
+            add.float(0);
+            add.goal(
+                1,
+                MobGoal::AvoidEntity(AvoidEntityGoal::new(
+                    TargetKind::Class("Creaking"),
+                    PILLAGER_AVOID_DISTANCE,
+                    PILLAGER_AVOID_WALK_SPEED,
+                    PILLAGER_AVOID_SPRINT_SPEED,
+                )),
+            );
+            add.goal(
+                2,
+                MobGoal::Raider(RaiderGoal::VindicatorBreakDoor(
+                    crate::raider::VindicatorBreakDoorGoal::default(),
+                )),
+            );
+            add.goal(
+                3,
+                MobGoal::Raider(RaiderGoal::OpenDoor(
+                    crate::raider::RaiderOpenDoorGoal::default(),
+                )),
+            );
+            add.goal(
+                4,
+                MobGoal::Crossbow(CrossbowGoal::HoldGround(HoldGroundAttackGoal::new(
+                    VINDICATOR_HOLD_GROUND_RADIUS,
+                ))),
+            );
+            add.goal(
+                5,
+                MobGoal::MeleeAttack(MeleeAttackGoal::new(VINDICATOR_MELEE_SPEED, false)),
+            );
+            add.goal(
+                8,
+                MobGoal::Stroll(RandomStrollGoal::new(VINDICATOR_STROLL_SPEED)),
+            );
+            add.goal(
+                9,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::with_probability(
+                    VINDICATOR_LOOK_PLAYER_DISTANCE,
+                    1.0,
+                )),
+            );
+            add.goal(
+                10,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(VINDICATOR_LOOK_MOB_DISTANCE)),
+            );
+            add.target_goal(
+                1,
+                MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(
+                    PILLAGER_IGNORED_DAMAGE,
+                )),
+            );
+            add.target(
+                2,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::AbstractVillager, true),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::IronGolem, true),
+            );
+            add.target_goal(
+                4,
+                MobGoal::Raider(RaiderGoal::JohnnyAttack(
+                    crate::raider::JohnnyAttackGoal::default(),
+                )),
+            );
+        }
+        EntityKind::Ravager => {
+            add.float(0);
+            add.goal(
+                4,
+                MobGoal::MeleeAttack(MeleeAttackGoal::new(RAVAGER_MELEE_SPEED, true)),
+            );
+            add.stroll(5, RAVAGER_STROLL_SPEED);
+            add.look(6, RAVAGER_PLAYER_LOOK_DISTANCE);
+            add.goal(
+                10,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(RAVAGER_MOB_LOOK_DISTANCE)),
+            );
+            add.target_goal(
+                2,
+                MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(
+                    PILLAGER_IGNORED_DAMAGE,
+                )),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+            add.target(
+                4,
+                NearestAttackableTargetGoal::with(
+                    TargetKind::AbstractVillager,
+                    RAVAGER_VILLAGER_INTERVAL,
+                    true,
+                    TargetFilter::NotBaby,
+                ),
+            );
+            add.target(
+                4,
                 NearestAttackableTargetGoal::new(TargetKind::IronGolem, true),
             );
         }
