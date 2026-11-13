@@ -75,7 +75,7 @@ pub enum MovementAction {
     StartSprinting,
     StopSprinting,
     LeaveBed,
-    StartRidingJump,
+    StartRidingJump(i32),
     StopRidingJump,
     OpenVehicleInventory,
     StartFallFlying,
@@ -528,6 +528,11 @@ pub enum ClientEvent {
         window: i32,
         menu: i32,
         title: Component,
+    },
+    OpenMountScreen {
+        window: i32,
+        columns: i32,
+        entity: EntityId,
     },
     MerchantOffers {
         window: i32,

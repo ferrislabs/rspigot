@@ -68,6 +68,12 @@ impl<L: ClientLink> Server<L> {
             self.show_trader_menu(step.player, step.open);
             return;
         }
+        if step.open.mount.is_some() {
+            if !cancelled && self.mount_open_in_reach(step.player, &step.open) {
+                self.show_mount_menu(step.player, step.open);
+            }
+            return;
+        }
         if cancelled || !self.opening_in_reach(step.player, step.pos, &step.open) {
             return;
         }

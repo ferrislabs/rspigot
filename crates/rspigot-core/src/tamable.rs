@@ -94,6 +94,17 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if self
+            .kind_of(step.target)
+            .is_some_and(|kind| kind.extends("AbstractHorse"))
+        {
+            if cancelled {
+                self.equine_buck(step.target, true);
+            } else {
+                self.equine_tame_with_name(step.target, step.owner);
+            }
+            return;
+        }
+        if self
             .entities
             .store
             .get(step.target)

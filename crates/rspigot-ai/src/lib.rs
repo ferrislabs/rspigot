@@ -25,6 +25,7 @@ mod crossbow;
 mod cube;
 mod drowned;
 mod enderman;
+mod equine;
 mod evade;
 mod finder;
 mod fly;
@@ -179,6 +180,7 @@ pub use enderman::{
     find_teleport_towards, is_being_stared_by, is_looking_at_me, random_teleport, teleport_roll,
     teleport_towards_roll,
 };
+pub use equine::{EquineAction, EquineFacts, EquineGoal};
 pub use evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 pub use finder::PathFinder;
 pub use fox::{FoxAction, FoxFacts, FoxGoal, TrustedRef, is_path_clear};

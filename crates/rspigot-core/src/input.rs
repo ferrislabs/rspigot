@@ -83,6 +83,8 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::Movement(action) => match action {
                 MovementAction::StartSprinting => self.toggle_sprint(id, true),
                 MovementAction::StopSprinting => self.toggle_sprint(id, false),
+                MovementAction::StartRidingJump(power) => self.start_riding_jump(id, power),
+                MovementAction::OpenVehicleInventory => self.open_vehicle_inventory(id),
                 _ => {}
             },
             PlayerInput::Input(state) => self.press(id, state),

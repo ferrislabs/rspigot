@@ -124,7 +124,7 @@ fn shivering_updates(events: &[ClientEvent], strider: EntityId) -> Vec<bool> {
         .filter_map(|event| match event {
             ClientEvent::EntityMetadata { entity, entries } if *entity == strider => entries
                 .iter()
-                .find(|entry| entry.index == 18)
+                .find(|entry| entry.index == 19)
                 .and_then(|entry| match entry.value {
                     MetadataValue::Boolean(value) => Some(value),
                     _ => None,
@@ -272,7 +272,7 @@ fn the_saddled_rider_with_a_fungus_stick_steers_with_client_moves_and_boosts() {
         .filter_map(|event| match event {
             ClientEvent::EntityMetadata { entity, entries } if *entity == strider => entries
                 .iter()
-                .find(|entry| entry.index == 17)
+                .find(|entry| entry.index == 18)
                 .and_then(|entry| match entry.value {
                     MetadataValue::VarInt(total) => Some(total),
                     _ => None,

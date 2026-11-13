@@ -496,6 +496,11 @@ pub fn register_goals(
             add.look(7, 6.0);
             add.look_around(8);
         }
+        EntityKind::Horse
+        | EntityKind::Donkey
+        | EntityKind::Mule
+        | EntityKind::SkeletonHorse
+        | EntityKind::ZombieHorse => crate::equine::equine_goals(kind, &mut add),
         EntityKind::Strider => {
             add.goal(1, MobGoal::Panic(PanicGoal::new(strider::PANIC_SPEED)));
             add.goal(strider::BREED_PRIORITY, MobGoal::Breed(BreedGoal::new(1.0)));

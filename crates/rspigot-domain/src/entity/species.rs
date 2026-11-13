@@ -25,6 +25,7 @@ pub mod dolphin;
 pub mod drowned;
 pub mod enderman;
 pub mod endermite;
+pub mod equine;
 pub mod evoker;
 pub mod fish;
 pub mod fox;

@@ -30,6 +30,7 @@ use crate::server::{Audience, Server};
 const PORTALS: &str = "minecraft:portals";
 const FREE_POSITION_RADIUS: f32 = 4.0;
 const PIGLIN_STACK_DEPTH: i32 = 3;
+const HORSE_DISMOUNT_REACH: f64 = 0.75;
 const STRIDER_ESCAPE_ANGLES: [f32; 5] = [0.0, -22.5, 22.5, -45.0, 45.0];
 
 struct JockeyRider {
@@ -37,6 +38,7 @@ struct JockeyRider {
     group: Option<SpawnGroupData>,
     age: Option<i32>,
     held: Option<ItemKind>,
+    reason: SpawnReason,
 }
 
 impl JockeyRider {
@@ -46,6 +48,7 @@ impl JockeyRider {
             group: None,
             age: None,
             held: None,
+            reason: SpawnReason::Jockey,
         }
     }
 }
@@ -488,7 +491,12 @@ impl<L: ClientLink> Server<L> {
             index,
         );
         let own = riding::vehicle_attachment(rider.kind, rider.baby, rider.scale, rider.yaw);
-        let target = carrier.position + attach - own;
+        let lift = if carrier.kind.extends("AbstractHorse") {
+            self.equine_position_offset(vehicle)
+        } else {
+            Vec3::ZERO
+        };
+        let target = carrier.position + attach + lift - own;
         self.place_rider(passenger, target);
         if carrier.kind == Kind::Chicken {
             let body_yaw = self
@@ -694,6 +702,9 @@ impl<L: ClientLink> Server<L> {
         if base.kind == Kind::Strider {
             return self.strider_dismount(vehicle, rider).unwrap_or(default);
         }
+        if base.kind.extends("AbstractHorse") {
+            return self.horse_dismount(vehicle, rider);
+        }
         if base.kind.extends("Animal") {
             let dims = self
                 .seat_of(rider)
@@ -709,6 +720,70 @@ impl<L: ClientLink> Server<L> {
             }
         }
         default
+    }
+
+    fn horse_dismount(&self, vehicle: EntityId, rider: EntityId) -> Vec3 {
+        let Some(carrier) = self.entities.store.get(vehicle) else {
+            return Vec3::ZERO;
+        };
+        let base = &carrier.base;
+        let seat = self.seat_of(rider);
+        let kind = seat.map_or(Kind::Player, |seat| seat.kind);
+        let left_handed = self
+            .entities
+            .store
+            .get(rider)
+            .is_some_and(|entity| rspigot_domain::entity::living::is_left_handed(&entity.base));
+        let first = if left_handed { -90.0 } else { 90.0 };
+        let heights: &[f32] = if kind == Kind::Player {
+            &[1.8, 1.5, 0.6]
+        } else {
+            &[kind.dimensions().height]
+        };
+        for side in [first, -first] {
+            let escape = riding::collision_escape(
+                f64::from(base.dimensions.width),
+                f64::from(kind.dimensions().width),
+                base.yaw + side,
+            );
+            for height in heights {
+                if let Some(spot) = self.horse_spot(base, escape, kind.dimensions().width, *height)
+                {
+                    return spot;
+                }
+            }
+        }
+        base.position
+    }
+
+    fn horse_spot(
+        &self,
+        base: &rspigot_domain::entity::EntityBase,
+        escape: Vec3,
+        width: f32,
+        height: f32,
+    ) -> Option<Vec3> {
+        let bounds = base.bounding_box();
+        let (x, z) = (base.position.x + escape.x, base.position.z + escape.z);
+        let limit = bounds.max_y + HORSE_DISMOUNT_REACH;
+        let mut pos = Vec3::new(x, bounds.min_y, z).block();
+        let local = Aabb::of_size(Vec3::ZERO, width, height);
+        loop {
+            let floor = riding::block_floor_height(&self.world.chunks, pos);
+            if limit < f64::from(pos.y) + floor {
+                return None;
+            }
+            if riding::is_block_floor_valid(floor) {
+                let spot = Vec3::new(x, f64::from(pos.y) + floor, z);
+                if riding::can_dismount_to(&self.world.chunks, &local.move_by(spot)) {
+                    return Some(spot);
+                }
+            }
+            pos = pos.offset(0, 1, 0);
+            if f64::from(pos.y) >= limit {
+                return None;
+            }
+        }
     }
 
     fn strider_dismount(&self, vehicle: EntityId, rider: EntityId) -> Option<Vec3> {
@@ -788,6 +863,14 @@ impl<L: ClientLink> Server<L> {
                     }),
                     held: Some(ItemKind::WarpedFungusOnAStick),
                     ..JockeyRider::of(Kind::ZombifiedPiglin)
+                },
+            ),
+            Some(Jockey::ZombieHorseRider) => self.spawn_rider_on(
+                id,
+                JockeyRider {
+                    held: Some(ItemKind::IronSpear),
+                    reason: SpawnReason::Natural,
+                    ..JockeyRider::of(Kind::Zombie)
                 },
             ),
             Some(Jockey::StriderBaby) => self.spawn_rider_on(
@@ -884,7 +967,7 @@ impl<L: ClientLink> Server<L> {
         {
             rspigot_domain::entity::ageable::set_age(&mut entity.base, ageable, age);
         }
-        self.finalize_jockey_part(&mut entity, rider.group);
+        self.finalize_part(&mut entity, rider.reason, rider.group);
         if let (Some(item), EntityState::Living(state)) = (rider.held, &mut entity.state) {
             spawn::set_item_slot(
                 state,
@@ -899,12 +982,21 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn finalize_jockey_part(&mut self, entity: &mut Entity, group: Option<SpawnGroupData>) {
+        self.finalize_part(entity, SpawnReason::Jockey, group);
+    }
+
+    pub(crate) fn finalize_part(
+        &mut self,
+        entity: &mut Entity,
+        reason: SpawnReason,
+        group: Option<SpawnGroupData>,
+    ) {
         let environment = self.spawn_environment(entity.base.position);
         let mut own = rspigot_domain::random::LegacyRandom::new(rand::Rng::random(&mut self.rng));
         spawn::finalize_spawn(
             entity,
             &environment,
-            SpawnReason::Jockey,
+            reason,
             group,
             &mut ServerRandom(&mut self.rng),
             &mut own,

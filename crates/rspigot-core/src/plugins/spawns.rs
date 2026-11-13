@@ -14,7 +14,7 @@ use crate::plugins::events::{
     CreatureSpawn, CreatureSpawnReason, EntityDropItem, EntityRemove, EntityRemoveCause,
     EntitySpawn, ItemSpawn, ProjectileLaunch,
 };
-use crate::plugins::steps::{Birth, Follow, SpawnStep, Spawned};
+use crate::plugins::steps::{Birth, Carried, Follow, SpawnStep, Spawned};
 use crate::plugins::{Answer, EntityView, EventKind, EventPayload, ToPlugin};
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -243,6 +243,12 @@ impl<L: ClientLink> Server<L> {
             Spawned::Rides { vehicle } => {
                 if let Some((rider, _)) = placed {
                     self.start_riding(rider, vehicle, false, false);
+                }
+            }
+            Spawned::Carries(carried) => {
+                if let Some((vehicle, _)) = placed {
+                    let Carried { rider, reason } = *carried;
+                    self.spawn_entity(rider, Birth::of(reason).then(Spawned::Rides { vehicle }));
                 }
             }
             Spawned::Mounted { rider } => {

@@ -33,8 +33,8 @@ pub mod clientbound {
     };
     pub use super::inventory::{
         ContainerClose, ContainerSetContent, ContainerSetData, ContainerSetSlot, MerchantOffers,
-        OpenScreen, RecipeBookSettings, SetCursorItem, SetPlayerInventory, TradeCost, TradeOffer,
-        UpdateRecipes,
+        MountScreenOpen, OpenScreen, RecipeBookSettings, SetCursorItem, SetPlayerInventory,
+        TradeCost, TradeOffer, UpdateRecipes,
     };
     pub use super::metadata::SetEntityData;
     pub use super::player::{
@@ -128,6 +128,7 @@ mod tests {
             (<LevelEvent as Packet>::ID, 47),
             (<LevelParticles as Packet>::ID, 48),
             (<OpenScreen as Packet>::ID, 60),
+            (<MountScreenOpen as Packet>::ID, 42),
             (<MerchantOffers as Packet>::ID, 53),
             (<ContainerClose as Packet>::ID, 17),
             (<UpdateAttributes as Packet>::ID, 134),
