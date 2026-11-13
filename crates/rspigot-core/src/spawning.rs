@@ -138,6 +138,16 @@ fn chunk_noise_biome(chunks: &ChunkManager, origin: ChunkPos, x: i32, y: i32, z:
     }
 }
 
+fn is_bucketed_fish(entity: &Entity) -> bool {
+    matches!(
+        entity
+            .living()
+            .and_then(|living| living.mob.as_ref())
+            .map(|mob| mob.species),
+        Some(Species::Fish(_))
+    ) && rspigot_domain::entity::species::fish::from_bucket(&entity.base)
+}
+
 fn is_persistent(entity: &Entity) -> bool {
     match &entity.state {
         EntityState::Living(living) => {
@@ -147,6 +157,7 @@ fn is_persistent(entity: &Entity) -> bool {
                 .is_some_and(|mob| mob.persistence_required)
                 || entity.extra.contains_key(LEASH)
                 || rspigot_domain::entity::species::enderman::carries_block(&entity.base)
+                || is_bucketed_fish(entity)
         }
         EntityState::Inert(nbt) => {
             nbt.get_bool(PERSISTENCE_REQUIRED).unwrap_or(false) || nbt.contains_key(LEASH)
@@ -504,7 +515,10 @@ impl<L: ClientLink> Server<L> {
                 .as_ref()
                 .is_some_and(|mob| mob.persistence_required),
             requires_custom_persistence: entity.extra.contains_key(LEASH)
-                || rspigot_domain::entity::species::enderman::carries_block(&entity.base),
+                || rspigot_domain::entity::species::enderman::carries_block(&entity.base)
+                || is_bucketed_fish(entity),
+            from_bucket: is_bucketed_fish(entity),
+            named: entity.base.custom_name().is_some(),
             no_action_time: living.no_action_time,
             chicken_jockey: matches!(
                 living.mob.as_ref().map(|mob| &mob.species),

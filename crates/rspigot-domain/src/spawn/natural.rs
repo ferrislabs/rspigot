@@ -270,7 +270,7 @@ pub fn spawn_category_for_position(
             if spawned >= max_spawn_cluster_size(kind) {
                 return;
             }
-            if is_max_group_size_reached(kind, in_group) {
+            if is_max_group_size_reached(kind, in_group, group.as_ref()) {
                 break;
             }
         }
