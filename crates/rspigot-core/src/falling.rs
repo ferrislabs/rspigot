@@ -214,6 +214,11 @@ impl<L: ClientLink> Server<L> {
             self.turtle_egg_placed(pos);
             return;
         }
+        if kind == BlockKind::Frogspawn {
+            let delay = self.frogspawn_placed();
+            self.schedule(pos, kind, delay);
+            return;
+        }
         match kind.gravity() {
             Gravity::Falling | Gravity::ConcretePowder | Gravity::Anvil => {
                 self.schedule(pos, kind, FALLING_DELAY)
@@ -229,6 +234,10 @@ impl<L: ClientLink> Server<L> {
         let Some(kind) = state.kind() else {
             return;
         };
+        if kind == BlockKind::Frogspawn {
+            self.frogspawn_neighbour_changed(pos);
+            return;
+        }
         match kind.gravity() {
             Gravity::Falling | Gravity::Anvil => self.schedule(pos, kind, FALLING_DELAY),
             Gravity::ConcretePowder => match kind.concrete() {
@@ -344,6 +353,10 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == BlockKind::SnifferEgg {
             self.sniffer_egg_tick(pos, state);
+            return;
+        }
+        if kind == BlockKind::Frogspawn {
+            self.frogspawn_tick(pos);
             return;
         }
         match kind.gravity() {
@@ -473,6 +486,7 @@ impl<L: ClientLink> Server<L> {
         let on_ground = base.on_ground;
         let speed = base.velocity.length_sqr();
         let mut pos = base.position.block();
+        self.frogspawn_crushed(pos);
         if let Some(landing) = landing
             && let Some(impact) = crate::fall::fall_impact(landing.state, landing.distance, false)
         {

@@ -970,6 +970,7 @@ pub struct LivingTick {
     pub died: bool,
     pub removed: bool,
     pub below_world: bool,
+    pub air_before: i32,
 }
 
 pub fn base_tick(base: &mut EntityBase, living: &mut LivingState) -> LivingTick {
@@ -979,6 +980,7 @@ pub fn base_tick(base: &mut EntityBase, living: &mut LivingState) -> LivingTick 
     let on_fire = base.remaining_fire_ticks > 0;
     super::fire::set_on_fire_flag(base, on_fire);
     let air = base.air_supply();
+    outcome.air_before = air;
     let max_air = base.max_air_ticks;
     if base.kind == EntityKind::Dolphin {
         if base.eye_in_water {
@@ -1356,6 +1358,13 @@ pub fn is_water_swimmer(kind: EntityKind) -> bool {
     kind.extends("AbstractFish") || kind == EntityKind::Dolphin
 }
 
+pub fn is_smooth_swimmer(kind: EntityKind) -> bool {
+    matches!(
+        kind,
+        EntityKind::Frog | EntityKind::Axolotl | EntityKind::Nautilus | EntityKind::ZombieNautilus
+    )
+}
+
 pub fn travel_swimmer<V: BlockView>(
     base: &mut EntityBase,
     living: &mut LivingState,
@@ -1466,6 +1475,9 @@ pub fn travel<V: BlockView>(
     }
     if base.fluid.in_water && base.kind == EntityKind::Turtle {
         return travel_turtle(base, living, view, input);
+    }
+    if base.fluid.in_water && is_smooth_swimmer(base.kind) {
+        return travel_sinking(base, living, view, input, living.speed, false);
     }
     if base.fluid.in_water
         && base.eye_in_water

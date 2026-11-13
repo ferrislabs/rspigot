@@ -568,6 +568,12 @@ pub fn finalize_spawn(
         Some(Species::Dolphin(_)) => {
             species::dolphin::finalize(base, living, environment, group, level)
         }
+        Some(Species::Axolotl(_)) => {
+            species::axolotl::finalize(base, living, environment, reason, group, level)
+        }
+        Some(Species::Nautilus(_)) => {
+            species::nautilus::finalize(base, living, environment, group, level)
+        }
         Some(Species::Turtle(_)) => {
             species::turtle::finalize(base, living, environment, group, level)
         }

@@ -1,16 +1,34 @@
 use rspigot_ai::{FrogAction, MemoryModuleType, MemoryValue, MobAi};
-use rspigot_domain::EntityId;
+use rspigot_blocks::BlockKind;
 use rspigot_domain::entity::species::Species;
 use rspigot_domain::entity::species::frog::{self, FrogState};
 use rspigot_domain::entity::{Entity, RemovalReason, living};
+use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::random::RandomSource;
+use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
+use rspigot_entities::SoundSource;
 
 use crate::commands::Target;
+use crate::game_events::GameEventContext;
 use crate::plugins::events::EntityRemoveCause;
+use crate::plugins::steps::Grief;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
 const BREED_EXPERIENCE: i32 = 7;
+const LAY_SPAWN_SOUND: &str = "minecraft:entity.frog.lay_spawn";
+
+pub(crate) fn frogspawn_state() -> BlockStateId {
+    BlockKind::Frogspawn.default_state()
+}
+
+fn block_center(pos: BlockPos) -> Vec3 {
+    Vec3::new(
+        f64::from(pos.x) + 0.5,
+        f64::from(pos.y) + 0.5,
+        f64::from(pos.z) + 0.5,
+    )
+}
 
 fn frog_state(entity: &mut Entity) -> Option<&mut FrogState> {
     match entity
@@ -55,7 +73,44 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             FrogAction::Eat(target) => self.frog_eat(id, target),
+            FrogAction::LaySpawn(pos) => self.frog_lays_spawn(id, pos),
         }
+    }
+
+    fn frog_lays_spawn(&mut self, id: EntityId, pos: BlockPos) {
+        let Some(view) = self.entity_view(id) else {
+            return;
+        };
+        let state = frogspawn_state();
+        self.change_block(
+            view,
+            pos,
+            state,
+            Grief::Frogspawn {
+                frog: id,
+                pos,
+                state,
+            },
+            false,
+        );
+    }
+
+    pub(crate) fn finish_frogspawn(&mut self, frog: EntityId, pos: BlockPos, state: BlockStateId) {
+        self.set_block(pos, state);
+        self.game_event(
+            GameEvent::BlockPlace,
+            block_center(pos),
+            GameEventContext::entity_in(Some(frog), state),
+        );
+        let Some(at) = self
+            .entities
+            .store
+            .get(frog)
+            .map(|entity| entity.base.position)
+        else {
+            return;
+        };
+        self.play_sound(None, at, LAY_SPAWN_SOUND, SoundSource::Blocks, 1.0, 1.0);
     }
 
     fn frog_eat(&mut self, id: EntityId, target: EntityId) {

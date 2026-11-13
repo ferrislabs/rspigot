@@ -2321,6 +2321,15 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn do_hurt_target(&mut self, attacker: EntityId, target: Target) -> bool {
+        self.hurt_target_with(attacker, target, None)
+    }
+
+    pub(crate) fn hurt_target_with(
+        &mut self,
+        attacker: EntityId,
+        target: Target,
+        charge: Option<(f32, f32)>,
+    ) -> bool {
         if self.kind_of(attacker) == Some(Kind::Bee) {
             return self.bee_hurt_target(attacker, target);
         }
@@ -2354,8 +2363,11 @@ impl<L: ClientLink> Server<L> {
             return false;
         };
         let damage = state.attribute(ATTACK_DAMAGE) as f32;
-        let knockback = state.attribute(ATTACK_KNOCKBACK) as f32 / 2.0;
-        let yaw = base.yaw;
+        let knockback = match charge {
+            Some((strength, _)) => strength,
+            None => state.attribute(ATTACK_KNOCKBACK) as f32 / 2.0,
+        };
+        let yaw = charge.map_or(base.yaw, |(_, yaw)| yaw);
         let source = DamageSource::by(DamageType::MobAttack, source_entity);
         let victim = match target {
             Target::Player(player) => Struck::Player(player),

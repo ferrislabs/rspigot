@@ -23,6 +23,7 @@ pub struct MobProfile {
     pub horizontal_step_cost: bool,
     pub flying: bool,
     pub swimming: Option<Swimming>,
+    pub frog_nodes: bool,
     pub sea_level: i32,
     malus: [Option<f32>; PathType::COUNT],
 }
@@ -51,6 +52,7 @@ impl MobProfile {
             horizontal_step_cost: false,
             flying: false,
             swimming: None,
+            frog_nodes: false,
             sea_level: Self::DEFAULT_SEA_LEVEL,
             malus: [None; PathType::COUNT],
         }
@@ -64,6 +66,11 @@ impl MobProfile {
 
     pub fn amphibious(mut self, prefers_shallow: bool) -> Self {
         self.swimming = Some(Swimming::Amphibious { prefers_shallow });
+        self
+    }
+
+    pub fn frog_nodes(mut self) -> Self {
+        self.frog_nodes = true;
         self
     }
 

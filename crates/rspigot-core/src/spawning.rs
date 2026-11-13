@@ -139,13 +139,19 @@ fn chunk_noise_biome(chunks: &ChunkManager, origin: ChunkPos, x: i32, y: i32, z:
 }
 
 fn is_bucketed_fish(entity: &Entity) -> bool {
-    matches!(
-        entity
-            .living()
-            .and_then(|living| living.mob.as_ref())
-            .map(|mob| mob.species),
-        Some(Species::Fish(_))
-    ) && rspigot_domain::entity::species::fish::from_bucket(&entity.base)
+    let species = entity
+        .living()
+        .and_then(|living| living.mob.as_ref())
+        .map(|mob| mob.species);
+    match species {
+        Some(Species::Fish(_)) => rspigot_domain::entity::species::fish::from_bucket(&entity.base),
+        Some(Species::Axolotl(_)) => {
+            rspigot_domain::entity::species::axolotl::from_bucket(&entity.base)
+        }
+        Some(Species::Tadpole(_)) => true,
+        Some(Species::Nautilus(_)) => rspigot_domain::entity::tamable::is_tame(&entity.base),
+        _ => false,
+    }
 }
 
 fn is_persistent(entity: &Entity) -> bool {
@@ -793,6 +799,7 @@ mod tests {
             vec![
                 EntityKind::Allay,
                 EntityKind::Armadillo,
+                EntityKind::Axolotl,
                 EntityKind::Bat,
                 EntityKind::Bee,
                 EntityKind::Blaze,
@@ -821,6 +828,7 @@ mod tests {
                 EntityKind::Husk,
                 EntityKind::IronGolem,
                 EntityKind::Mooshroom,
+                EntityKind::Nautilus,
                 EntityKind::Ocelot,
                 EntityKind::Panda,
                 EntityKind::Parched,
@@ -843,6 +851,7 @@ mod tests {
                 EntityKind::Spider,
                 EntityKind::Squid,
                 EntityKind::Stray,
+                EntityKind::Tadpole,
                 EntityKind::TropicalFish,
                 EntityKind::Turtle,
                 EntityKind::Vex,
@@ -855,6 +864,7 @@ mod tests {
                 EntityKind::Wolf,
                 EntityKind::Zoglin,
                 EntityKind::Zombie,
+                EntityKind::ZombieNautilus,
                 EntityKind::ZombieVillager,
                 EntityKind::ZombifiedPiglin,
             ]
