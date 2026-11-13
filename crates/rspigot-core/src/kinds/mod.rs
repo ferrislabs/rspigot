@@ -33,6 +33,7 @@ mod shulker;
 mod silverfish;
 mod snow_golem;
 pub(crate) mod villager;
+mod warden;
 mod witch;
 mod wolf;
 mod zombie_villager;
@@ -92,6 +93,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_registered(id, ai),
             Some(Kind::Goat) => self.goat_registered(id, ai),
             Some(Kind::Villager) => self.villager_registered(id, ai),
+            Some(Kind::Warden) => self.warden_registered(id, ai),
             _ => {}
         }
     }
@@ -145,6 +147,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_post_tick(id),
             Some(Kind::Armadillo) => self.armadillo_post_tick(id),
             Some(Kind::Creaking) => self.creaking_post_tick(id),
+            Some(Kind::Warden) => self.warden_post_tick(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
             _ => {}
         }
@@ -196,6 +199,7 @@ impl<L: ClientLink> Server<L> {
                 self.brain_ambient_voice(id);
             }
             Some(Kind::Villager) => self.villager_ambient_voice(id),
+            Some(Kind::Warden) => self.warden_ambient_voice(id),
             _ => {
                 let game_time = self.world.level.game_time;
                 self.play_mob_voice(id, |entity| {
@@ -292,6 +296,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Armadillo) => Some(self.armadillo_hurt_amount(id, amount)),
             Some(Kind::Breeze) => self.breeze_hurt_amount(id, source, amount),
             Some(Kind::Creaking) => self.creaking_hurt_amount(id, source, amount),
+            Some(Kind::Warden) if self.warden_hurt_amount(id, source) => None,
             _ => Some(amount),
         }
     }
@@ -333,6 +338,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
+            Some(Kind::Warden) if !dead => self.warden_after_hurt(id, source),
             Some(Kind::WanderingTrader) if dead => self.merchant_stop_trading(id),
             _ => {}
         }

@@ -105,6 +105,7 @@ pub struct Server<L> {
     pub(crate) running: bool,
     pub(crate) entities: EntityWorld,
     pub(crate) falls: ScheduledFalls,
+    pub(crate) game_events: crate::game_events::GameEvents,
     pub(crate) fluids: crate::fluids::ScheduledFluids,
     pub(crate) rng: StdRng,
     pub(crate) spawning: Spawning,
@@ -169,6 +170,7 @@ impl<L: ClientLink> Server<L> {
             running: true,
             entities: EntityWorld::default(),
             falls: ScheduledFalls::default(),
+            game_events: crate::game_events::GameEvents::default(),
             fluids: crate::fluids::ScheduledFluids::default(),
             rng: StdRng::from_os_rng(),
             spawning,
@@ -848,6 +850,7 @@ impl<L: ClientLink> Server<L> {
         self.collect_arrows();
         self.collect_orbs();
         self.tick_furnaces();
+        self.tick_game_events();
         self.tick_campfires();
         self.tick_inventories();
         self.tick_plugins();

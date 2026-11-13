@@ -166,6 +166,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Enderman
                     | MobClass::Hoglin
                     | MobClass::Creaking
+                    | MobClass::Warden
             )
         ),
         _ => false,
@@ -174,7 +175,11 @@ pub fn rules_ported(kind: EntityKind) -> bool {
         && walk
         && matches!(
             spawn.check_spawn_obstruction,
-            MobClass::Mob | MobClass::Ocelot | MobClass::IronGolem | MobClass::ZombifiedPiglin
+            MobClass::Mob
+                | MobClass::Ocelot
+                | MobClass::IronGolem
+                | MobClass::ZombifiedPiglin
+                | MobClass::Warden
         )
         && spawn.is_max_group_size_reached == MobClass::Mob
         && spawn.max_spawn_cluster_size.is_some()
@@ -277,6 +282,7 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::Pillager => 0.0,
         MobClass::Enderman => 0.0,
         MobClass::Creaking => 0.0,
+        MobClass::Warden => 0.0,
         MobClass::Hoglin => super::piglin::hoglin_walk_target_value(level, pos),
         _ => return None,
     })
@@ -320,7 +326,7 @@ pub fn contains_any_liquid(level: &impl SpawnLevel, area: &Aabb) -> bool {
 
 pub fn check_spawn_obstruction(level: &impl SpawnLevel, kind: EntityKind, area: &Aabb) -> bool {
     match kind.mob_spawn().map(|spawn| spawn.check_spawn_obstruction) {
-        Some(MobClass::Mob | MobClass::ZombifiedPiglin) => {
+        Some(MobClass::Mob | MobClass::ZombifiedPiglin | MobClass::Warden) => {
             !contains_any_liquid(level, area) && level.is_unobstructed(area)
         }
         Some(MobClass::Ocelot) => {

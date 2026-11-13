@@ -49,6 +49,12 @@ pub(crate) fn distance(from: BlockPos, to: BlockPos) -> f32 {
     (dx * dx + dy * dy + dz * dz).sqrt()
 }
 
+pub(crate) fn distance_xz(from: BlockPos, to: BlockPos) -> f32 {
+    let dx = (to.x - from.x) as f32;
+    let dz = (to.z - from.z) as f32;
+    (dx * dx + dz * dz).sqrt()
+}
+
 const HORIZONTAL: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
 pub(crate) struct Walker<'a, V> {

@@ -14,6 +14,7 @@ pub struct MobProfile {
     pub can_float: bool,
     pub can_walk_over_fences: bool,
     pub creaking_home: Option<BlockPos>,
+    pub horizontal_step_cost: bool,
     malus: [Option<f32>; PathType::COUNT],
 }
 
@@ -34,6 +35,7 @@ impl MobProfile {
             can_float: false,
             can_walk_over_fences: false,
             creaking_home: None,
+            horizontal_step_cost: false,
             malus: [None; PathType::COUNT],
         }
     }

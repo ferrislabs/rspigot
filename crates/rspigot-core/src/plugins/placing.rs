@@ -2,6 +2,7 @@ use rspigot_domain::player::GameMode;
 use rspigot_entities::SoundSource;
 
 use crate::events::{ClientEvent, Direction};
+use crate::game_events::GameEventContext;
 use crate::plugins::block::{data_of, material_of, snapshot_of};
 use crate::plugins::decisions::Continuation;
 use crate::plugins::events::{
@@ -13,6 +14,7 @@ use crate::plugins::{BlockSnapshot, EventPayload, spec_of};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 use rspigot_domain::BlockStateId;
+use rspigot_domain::game_event::GameEvent;
 
 const LEVEL_EVENT_RANGE: f64 = 64.0;
 const AROUND: [Direction; 6] = [
@@ -167,6 +169,19 @@ impl<L: ClientLink> Server<L> {
         }
         let using = step.using;
         let id = using.player;
+        let actor = self.players.get(&id).map(|player| player.entity_id);
+        if let Some(target) = step.changes.last() {
+            let event = if step.tool.is_some() {
+                GameEvent::BlockChange
+            } else {
+                GameEvent::BlockPlace
+            };
+            self.block_game_event(
+                event,
+                target.pos,
+                GameEventContext::entity_in(actor, target.new),
+            );
+        }
         let Some(effects) = step.tool else {
             self.ack_block(id, using.sequence);
             if using.game_mode == GameMode::Survival {

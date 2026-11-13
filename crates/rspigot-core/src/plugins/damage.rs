@@ -4,6 +4,7 @@ use rspigot_domain::entity::{EntityState, RemovalReason};
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::{BlockPos, BlockStateId, EntityId};
 
+use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
 use crate::plugins::block::snapshot_of;
 use crate::plugins::decisions::{Continuation, Lane};
@@ -14,6 +15,7 @@ use crate::plugins::steps::{AfterHurt, HurtStep, Outcome, Struck};
 use crate::plugins::{EventKind, EventPatch, EventPayload};
 use crate::ports::ClientLink;
 use crate::server::Server;
+use rspigot_domain::game_event::GameEvent;
 
 #[derive(Debug, Default)]
 pub(crate) struct Impacts {
@@ -265,6 +267,9 @@ impl<L: ClientLink> Server<L> {
                 Struck::Item(id) => self.apply_hurt_item(id, amount),
                 Struck::Projectile(id) => self.apply_hurt_projectile(id, source),
             };
+            if hurt {
+                self.emit_damage_event(victim);
+            }
             if hurt { Outcome::Hurt } else { Outcome::Missed }
         };
         if let Struck::Mob(id) = victim {
@@ -272,6 +277,24 @@ impl<L: ClientLink> Server<L> {
         }
         self.after_hurt(then, outcome);
         outcome.hurt()
+    }
+
+    fn emit_damage_event(&mut self, victim: Struck) {
+        let entity = match victim {
+            Struck::Player(id) => self.players.get(&id).map(|player| player.entity_id),
+            Struck::Mob(id) => Some(id),
+            Struck::Item(_) | Struck::Projectile(_) => None,
+        };
+        let Some(entity) = entity else {
+            return;
+        };
+        if let Some(at) = self.sculk_entity_position(entity) {
+            self.game_event(
+                GameEvent::EntityDamage,
+                at,
+                GameEventContext::of(Some(entity)),
+            );
+        }
     }
 
     fn abandoned(&self, then: &AfterHurt) -> bool {

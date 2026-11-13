@@ -14,6 +14,7 @@ use rspigot_items::{EquipmentSlot, ItemKind};
 
 use crate::events::Hand;
 use crate::events::{ClientEvent, GameEvent};
+use crate::game_events::GameEventContext;
 use crate::health::{DamageSource, SourceEntity};
 use crate::plugins::events::{EntityRemoveCause, PlayerPickupArrow};
 use crate::plugins::steps::ArrowStep;
@@ -23,6 +24,7 @@ use crate::plugins::{
 };
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use rspigot_domain::game_event::GameEvent as VibrationEvent;
 
 pub(crate) const EYE_OFFSET: f64 = 0.100_000_001_490_116_12;
 const TARGET_HEIGHT_FRACTION: f64 = 0.333_333_333_333_333_3;
@@ -463,6 +465,14 @@ impl<L: ClientLink> Server<L> {
         let state_at = self.world.chunks.block(hit.pos).unwrap_or_default();
         if state_at.is_air() {
             return;
+        }
+        let landed = self.entities.store.get(id).map(|e| e.base.position);
+        if let Some(at) = landed {
+            self.game_event(
+                VibrationEvent::ProjectileLand,
+                at,
+                GameEventContext::of(Some(id)),
+            );
         }
         let Some(Entity {
             base,
