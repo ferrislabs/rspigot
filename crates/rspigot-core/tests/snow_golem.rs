@@ -20,6 +20,8 @@ use rspigot_domain::world::Dimension;
 use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
+const RNG_SEED: u64 = 7;
+
 struct Plains;
 
 impl ChunkGenerator for Plains {
@@ -68,7 +70,8 @@ fn plains_server(adjust: impl FnOnce(&mut GameConfig)) -> Server<Link> {
         Arc::new(NoStore),
         Arc::new(Plains),
         StatusBoard::new(20),
-    );
+    )
+    .with_rng_seed(RNG_SEED);
     server.wait_for_spawn(Duration::from_secs(10));
     server
 }
