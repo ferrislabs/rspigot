@@ -96,6 +96,7 @@ pub enum SensorKind {
     GolemDetected(GolemSensor),
     WardenEntity(WardenSensor),
     FrogAttackables(FrogAttackablesSensor),
+    AxolotlAttackables(crate::axolotl::AxolotlAttackablesSensor),
 }
 
 impl SensorKind {
@@ -121,6 +122,7 @@ impl SensorKind {
             Self::GolemDetected(_) => SensorType::GolemDetected,
             Self::WardenEntity(_) => SensorType::WardenEntitySensor,
             Self::FrogAttackables(_) => SensorType::FrogAttackables,
+            Self::AxolotlAttackables(_) => SensorType::AxolotlAttackables,
         }
     }
 }
@@ -148,6 +150,7 @@ impl Sensor for SensorKind {
             Self::GolemDetected(sensor) => sensor.scan_rate(),
             Self::WardenEntity(sensor) => sensor.scan_rate(),
             Self::FrogAttackables(sensor) => sensor.scan_rate(),
+            Self::AxolotlAttackables(sensor) => sensor.scan_rate(),
         }
     }
 
@@ -173,6 +176,7 @@ impl Sensor for SensorKind {
             Self::GolemDetected(sensor) => sensor.requires(),
             Self::WardenEntity(sensor) => sensor.requires(),
             Self::FrogAttackables(sensor) => sensor.requires(),
+            Self::AxolotlAttackables(sensor) => sensor.requires(),
         }
     }
 
@@ -198,6 +202,7 @@ impl Sensor for SensorKind {
             Self::GolemDetected(sensor) => sensor.do_tick(cx, memories),
             Self::WardenEntity(sensor) => sensor.do_tick(cx, memories),
             Self::FrogAttackables(sensor) => sensor.do_tick(cx, memories),
+            Self::AxolotlAttackables(sensor) => sensor.do_tick(cx, memories),
         }
     }
 }

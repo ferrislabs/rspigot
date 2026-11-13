@@ -94,7 +94,16 @@ impl Brain {
         if kind == EntityKind::Chicken {
             profile.set_malus(PathType::Water, 0.0);
         }
+        if kind == EntityKind::Axolotl {
+            profile = profile.amphibious(false);
+            profile.set_malus(PathType::Water, 0.0);
+        }
+        if matches!(kind, EntityKind::Nautilus | EntityKind::ZombieNautilus) {
+            profile = profile.water_bound(false);
+            profile.set_malus(PathType::Water, 0.0);
+        }
         if kind == EntityKind::Frog {
+            profile = profile.amphibious(true).frog_nodes();
             profile.set_malus(PathType::Water, 4.0);
             profile.set_malus(PathType::Trapdoor, -1.0);
         }
@@ -208,8 +217,14 @@ impl Brain {
         if kind == EntityKind::Rabbit {
             brain.enable_hop();
         }
-        if kind.extends("AbstractFish") {
+        if kind.extends("AbstractFish") && kind != EntityKind::Tadpole {
             brain.movement.set_fish();
+        }
+        if let Some((movement, look_from_center)) = crate::amphibians::smooth_swimming_of(kind) {
+            brain.movement.set_smooth_swimming(movement);
+            if let Some(max_from_center) = look_from_center {
+                brain.look.set_smooth_swimming(max_from_center);
+            }
         }
         if kind == EntityKind::Turtle {
             brain.movement.set_turtle();
@@ -530,6 +545,12 @@ impl MobAi {
     pub fn init_frog_memories(&mut self, long_jump: i32) {
         if let Some(behavior) = self.behavior.as_mut() {
             crate::frog::init_memories(behavior.memories_mut(), long_jump);
+        }
+    }
+
+    pub fn init_nautilus_memories(&mut self, attack_cooldown: i32) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            crate::nautilus::init_memories(behavior.memories_mut(), attack_cooldown);
         }
     }
 
@@ -1168,7 +1189,9 @@ impl MobAi {
             on_ground: base.on_ground,
             in_floatable_fluid: base.fluid.in_water,
         };
-        let frozen = base.kind == EntityKind::Creaking && !brain.creaking.can_move;
+        let frozen = (base.kind == EntityKind::Creaking && !brain.creaking.can_move)
+            || (base.kind == EntityKind::Axolotl
+                && rspigot_domain::entity::species::axolotl::is_playing_dead(base));
         if (base.kind != EntityKind::Fox || fox::can_move(base))
             && brain.panda.can_move()
             && !frozen
@@ -1242,6 +1265,9 @@ impl MobAi {
                     .look
                     .tick_with(base, living, navigating, !brain.bee.pollinating);
             }
+        } else if base.kind == EntityKind::Frog {
+            let reset_x_rot = rspigot_domain::entity::species::frog::tongue_target(base).is_none();
+            brain.look.tick_with(base, living, navigating, reset_x_rot);
         } else if brain.look.smooth_swimming().is_some() {
             brain.look.tick_smooth(base, living, !navigating);
         } else if base.kind != EntityKind::Phantom {

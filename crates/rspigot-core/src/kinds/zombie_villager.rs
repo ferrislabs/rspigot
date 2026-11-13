@@ -245,6 +245,10 @@ impl<L: ClientLink> Server<L> {
             self.die_mob(old, &DamageSource::new(DamageType::Generic));
             return;
         }
+        if matches!(follow, Follow::Metamorphosis) {
+            self.tadpole_conversion_failed(old);
+            return;
+        }
         if !matches!(follow, Follow::Cure { .. }) {
             return;
         }
@@ -266,6 +270,7 @@ impl<L: ClientLink> Server<L> {
     ) {
         match follow {
             Follow::Nothing => {}
+            Follow::Metamorphosis => self.tadpole_metamorphosed(old, placed),
             Follow::Infection { at } => {
                 if let Some(pos) = at {
                     self.level_event(INFECTION_EVENT, pos, 0);

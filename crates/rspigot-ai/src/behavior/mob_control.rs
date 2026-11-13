@@ -1,3 +1,4 @@
+use crate::amphibious::{TryFindLandNearLiquid, TryFindLiquid, TryLaySpawnOnFluidNearLand};
 use crate::armadillo::{ArmadilloBallUp, ArmadilloPanic, RollOutWithoutDanger};
 use crate::behavior::attack::{
     EraseMemoryIf, MeleeAttack, SetWalkTargetFromAttackTargetIfTargetOutOfReach, StartAttacking,
@@ -228,6 +229,8 @@ mob_behaviors! {
     SnifferFeelingHappy(SnifferFeelingHappy),
     FrogShootTongue(ShootTongue),
     FrogCroak(Croak),
+    AxolotlPlayDead(crate::axolotl::PlayDead),
+    NautilusCharge(crate::nautilus::ChargeAttack),
 }
 
 macro_rules! mob_triggers {
@@ -332,6 +335,10 @@ mob_triggers! {
     WardenDigCooldownSetter(DigCooldownSetter),
     WardenLookAtAttackTarget(SetLookAtAttackTarget),
     FrogTryFindLand(TryFindLand),
+    AxolotlValidatePlayDead(crate::axolotl::ValidatePlayDead),
+    TryFindLiquid(TryFindLiquid),
+    TryFindLandNearLiquid(TryFindLandNearLiquid),
+    TryLaySpawnOnFluidNearLand(TryLaySpawnOnFluidNearLand),
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -121,6 +121,8 @@ impl<L: ClientLink> Server<L> {
             MobAction::Air(action) => self.air_action(id, action),
             MobAction::Turtle(action) => self.turtle_action(id, action),
             MobAction::Guardian(action) => self.guardian_action(id, action),
+            MobAction::Axolotl(action) => self.axolotl_action(id, action),
+            MobAction::Nautilus(action) => self.nautilus_action(id, action),
             MobAction::Shulker(action) => self.shulker_action(id, action),
             MobAction::Raider(action) => self.raider_action(id, action),
             MobAction::Crossbow(action) => self.crossbow_action(id, action),
@@ -389,6 +391,8 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Goat
                 | Kind::Armadillo
                 | Kind::Bee
+                | Kind::Axolotl
+                | Kind::Nautilus
         ) {
             return None;
         }
@@ -463,6 +467,12 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == Kind::Goat {
             self.goat_offspring(&mut child, parent, partner, random);
+        }
+        if kind == Kind::Axolotl {
+            self.axolotl_offspring(&mut child, parent, partner, random);
+        }
+        if kind == Kind::Nautilus {
+            self.nautilus_offspring(&mut child, parent, random);
         }
         Some(child)
     }

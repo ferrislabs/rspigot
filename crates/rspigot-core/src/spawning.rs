@@ -793,6 +793,7 @@ mod tests {
             vec![
                 EntityKind::Allay,
                 EntityKind::Armadillo,
+                EntityKind::Axolotl,
                 EntityKind::Bat,
                 EntityKind::Bee,
                 EntityKind::Blaze,
@@ -821,6 +822,7 @@ mod tests {
                 EntityKind::Husk,
                 EntityKind::IronGolem,
                 EntityKind::Mooshroom,
+                EntityKind::Nautilus,
                 EntityKind::Ocelot,
                 EntityKind::Panda,
                 EntityKind::Parched,
@@ -843,6 +845,7 @@ mod tests {
                 EntityKind::Spider,
                 EntityKind::Squid,
                 EntityKind::Stray,
+                EntityKind::Tadpole,
                 EntityKind::TropicalFish,
                 EntityKind::Turtle,
                 EntityKind::Vex,
@@ -855,6 +858,7 @@ mod tests {
                 EntityKind::Wolf,
                 EntityKind::Zoglin,
                 EntityKind::Zombie,
+                EntityKind::ZombieNautilus,
                 EntityKind::ZombieVillager,
                 EntityKind::ZombifiedPiglin,
             ]
