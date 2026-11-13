@@ -212,7 +212,15 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             PlayerCommandAction::StartFallFlying => {
                 input(PlayerInput::Movement(MovementAction::StartFallFlying))
             }
-            _ => Decoded::Ignored,
+            PlayerCommandAction::StartRidingJump => input(PlayerInput::Movement(
+                MovementAction::StartRidingJump(p.data),
+            )),
+            PlayerCommandAction::StopRidingJump => {
+                input(PlayerInput::Movement(MovementAction::StopRidingJump))
+            }
+            PlayerCommandAction::OpenInventory => {
+                input(PlayerInput::Movement(MovementAction::OpenVehicleInventory))
+            }
         },
         ServerboundPlay::PlayerInput(p) => input(PlayerInput::Input(InputState {
             forward: p.forward,

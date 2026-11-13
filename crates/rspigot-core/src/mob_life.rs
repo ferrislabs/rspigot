@@ -131,6 +131,9 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
             "minecraft:entity.zombie_nautilus.ambient_land"
         }),
         Kind::Phantom => Some("minecraft:entity.phantom.ambient"),
+        Kind::Horse | Kind::Donkey | Kind::Mule | Kind::SkeletonHorse | Kind::ZombieHorse => {
+            crate::kinds::equine_ambient_sound(entity)
+        }
         _ => None,
     }
 }
@@ -149,9 +152,13 @@ pub(crate) fn variant_sound(
     Some(pick(&set))
 }
 
+const HORSE_AMBIENT_INTERVAL: i32 = 400;
+
 fn ambient_interval(kind: Kind) -> i32 {
     if kind == Kind::Ocelot {
         OCELOT_AMBIENT_INTERVAL
+    } else if kind.extends("AbstractHorse") {
+        HORSE_AMBIENT_INTERVAL
     } else if kind.extends("Animal") {
         ANIMAL_AMBIENT_INTERVAL
     } else {

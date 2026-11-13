@@ -82,6 +82,7 @@ impl TopType {
             MenuKind::Lectern => Self::Lectern,
             MenuKind::Beacon => Self::Beacon,
             MenuKind::Merchant => Self::Merchant,
+            MenuKind::Mount { .. } => Self::Chest,
         }
     }
 

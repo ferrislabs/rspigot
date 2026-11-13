@@ -268,6 +268,7 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             school_size: 0,
             swimming: false,
             wool_color: 0,
+            can_parent: false,
         },
     }
 }
@@ -284,14 +285,24 @@ fn entity_facts(
     resolve: &impl Fn(Uuid) -> Option<EntityId>,
 ) -> Facts {
     let base = &entity.base;
-    let tame =
-        state.mob.as_ref().is_some_and(|mob| mob.tamable.is_some()) && tamable::is_tame(base);
+    let mount = state.mob.as_ref().is_some_and(|mob| mob.mount.is_some());
+    let tame = (state.mob.as_ref().is_some_and(|mob| mob.tamable.is_some())
+        && tamable::is_tame(base))
+        || (mount && species::equine::is_tamed(base));
     Facts {
         uuid: base.uuid,
         head_yaw: base.head_yaw,
         tamed: tame,
         owner: tame
-            .then(|| tamable::owner(base))
+            .then(|| {
+                tamable::owner(base).or_else(|| {
+                    state
+                        .mob
+                        .as_ref()
+                        .and_then(|mob| mob.mount.as_deref())
+                        .and_then(|mount| mount.owner)
+                })
+            })
             .flatten()
             .and_then(resolve),
         sleeping: matches!(
@@ -308,7 +319,19 @@ fn entity_facts(
         last_hurt_by_mob_at: state.damage.last_hurt_by_mob_at,
         last_hurt_mob: state.damage.last_hurt_mob,
         last_hurt_mob_at: state.damage.last_hurt_mob_at,
-        sitting: tame && tamable::is_in_sitting_pose(base),
+        sitting: !mount && tame && tamable::is_in_sitting_pose(base),
+        can_parent: mount
+            && tame
+            && !entity.is_baby()
+            && state
+                .mob
+                .as_ref()
+                .and_then(|mob| mob.ageable.as_ref())
+                .is_some_and(AgeableState::in_love)
+            && living::health(base) >= {
+                let mut attributes = state.attributes.clone();
+                attributes.value(living::MAX_HEALTH, &state.effects) as f32
+            },
         llama_strength: if base.kind.extends("Llama") {
             entity.extra.get_i32("Strength").unwrap_or(0)
         } else {
@@ -439,6 +462,8 @@ fn with_mob_facts(
     rides: &Rides,
 ) -> Living {
     living.facts.passenger = rides.is_passenger(living.id);
+    living.facts.can_parent =
+        living.facts.can_parent && !rides.is_vehicle(living.id) && !rides.is_passenger(living.id);
     if let Some(entry) = entries.get(&living.id) {
         living.panicking = entry.ai.is_panicking();
         living.has_target = entry.ai.target().is_some();

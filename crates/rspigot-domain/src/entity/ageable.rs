@@ -110,7 +110,7 @@ pub fn set_age_locked(base: &mut EntityBase, locked: bool) {
 }
 
 pub fn can_age_up(base: &EntityBase, state: &AgeableState) -> bool {
-    is_baby(base, state) && !is_age_locked(base)
+    is_baby(base, state) && !is_age_locked(base) && super::species::equine::can_age_up(base.kind)
 }
 
 pub fn set_age(base: &mut EntityBase, state: &mut AgeableState, age: i32) -> bool {

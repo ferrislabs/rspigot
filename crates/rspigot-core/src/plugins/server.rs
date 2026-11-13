@@ -908,6 +908,12 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::HorseJump(horse) => {
+                if !cancelled {
+                    self.finish_horse_jump(horse);
+                }
+                Vec::new()
+            }
             Continuation::Shiver(step) => {
                 if !cancelled {
                     self.finish_shiver(step);

@@ -488,7 +488,12 @@ impl<L: ClientLink> Server<L> {
             index,
         );
         let own = riding::vehicle_attachment(rider.kind, rider.baby, rider.scale, rider.yaw);
-        let target = carrier.position + attach - own;
+        let lift = if carrier.kind.extends("AbstractHorse") {
+            self.equine_position_offset(vehicle)
+        } else {
+            Vec3::ZERO
+        };
+        let target = carrier.position + attach + lift - own;
         self.place_rider(passenger, target);
         if carrier.kind == Kind::Chicken {
             let body_yaw = self
@@ -899,12 +904,21 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn finalize_jockey_part(&mut self, entity: &mut Entity, group: Option<SpawnGroupData>) {
+        self.finalize_part(entity, SpawnReason::Jockey, group);
+    }
+
+    pub(crate) fn finalize_part(
+        &mut self,
+        entity: &mut Entity,
+        reason: SpawnReason,
+        group: Option<SpawnGroupData>,
+    ) {
         let environment = self.spawn_environment(entity.base.position);
         let mut own = rspigot_domain::random::LegacyRandom::new(rand::Rng::random(&mut self.rng));
         spawn::finalize_spawn(
             entity,
             &environment,
-            SpawnReason::Jockey,
+            reason,
             group,
             &mut ServerRandom(&mut self.rng),
             &mut own,

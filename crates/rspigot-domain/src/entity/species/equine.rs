@@ -5,6 +5,7 @@ use uuid::Uuid;
 use crate::entity::ageable::DEFAULT_BABY_CHANCE;
 use crate::entity::base::EntityBase;
 use crate::entity::data::SyncedValue;
+use crate::entity::living;
 use crate::entity::living::{
     JUMP_STRENGTH, LivingAttributes, LivingState, MAX_HEALTH, MOVEMENT_SPEED,
 };
@@ -274,8 +275,8 @@ impl MountState {
 
     pub fn passenger_offset(&self, scale: f64, yaw: f32) -> crate::Vec3 {
         let raw = crate::Vec3::new(
-            f64::from(self.stand_anim_o) * 0.15 * scale,
             0.0,
+            f64::from(self.stand_anim_o) * 0.15 * scale,
             f64::from(self.stand_anim_o) * -0.7 * scale,
         );
         let angle = f64::from(-yaw * (std::f32::consts::PI / 180.0));
@@ -462,6 +463,13 @@ pub fn randomize_attributes(
             attributes.set_base(MAX_HEALTH, f64::from(health));
         }
         _ => {}
+    }
+}
+
+pub fn clamp_health(base: &mut EntityBase, living: &mut LivingState) {
+    let max = living.max_health() as f32;
+    if living::health(base) > max {
+        living::set_health(base, living, max);
     }
 }
 
@@ -656,6 +664,7 @@ pub fn finalize(
         });
     }
     randomize_attributes(base.kind, &mut living.attributes, level);
+    clamp_health(base, living);
     let result = ageable_finalize(base, living, inherited, level);
     match (variant_group, result) {
         (Some(variant), Some(SpawnGroupData::Ageable { group_size, .. })) => {

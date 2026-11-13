@@ -65,6 +65,7 @@ pub struct Facts {
     pub school_size: i32,
     pub swimming: bool,
     pub wool_color: u8,
+    pub can_parent: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -506,6 +507,7 @@ pub struct KindFacts {
     pub drowned: crate::DrownedFacts,
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
+    pub equine: crate::EquineFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
