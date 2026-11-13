@@ -302,6 +302,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Goat) => self.goat_custom_ai_step(id),
             Some(Kind::Armadillo) => self.armadillo_custom_ai_step(id),
             Some(Kind::Axolotl) => self.axolotl_post_brain(id),
+            Some(Kind::Nautilus | Kind::ZombieNautilus) => self.nautilus_custom_ai_step(id),
             Some(Kind::Villager) => self.villager_custom_ai_step(id),
             Some(Kind::WanderingTrader) => self.wandering_trader_custom_ai_step(id),
             Some(Kind::Wither) => self.wither_custom_ai_step(id),
