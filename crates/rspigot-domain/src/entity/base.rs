@@ -20,6 +20,15 @@ pub const FLAG_ON_FIRE: u8 = 1;
 pub const FLAG_INVISIBLE: u8 = 1 << 5;
 pub const FLAG_GLOWING: u8 = 1 << 6;
 pub const MAX_AIR_SUPPLY: i32 = 300;
+pub const DOLPHIN_MAX_AIR_SUPPLY: i32 = 4800;
+
+pub fn default_max_air(kind: EntityKind) -> i32 {
+    if kind == EntityKind::Dolphin {
+        DOLPHIN_MAX_AIR_SUPPLY
+    } else {
+        MAX_AIR_SUPPLY
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RemovalReason {
@@ -87,7 +96,7 @@ impl EntityBase {
     pub fn new(id: EntityId, uuid: Uuid, kind: EntityKind) -> Self {
         let mut data = SyncedData::default();
         data.define(DATA_SHARED_FLAGS, SyncedValue::Byte(0));
-        data.define(DATA_AIR_SUPPLY, SyncedValue::Int(MAX_AIR_SUPPLY));
+        data.define(DATA_AIR_SUPPLY, SyncedValue::Int(default_max_air(kind)));
         data.define(DATA_CUSTOM_NAME, SyncedValue::OptionalComponent(None));
         data.define(DATA_CUSTOM_NAME_VISIBLE, SyncedValue::Boolean(false));
         data.define(DATA_SILENT, SyncedValue::Boolean(false));
@@ -125,7 +134,7 @@ impl EntityBase {
             persist: true,
             visible_by_default: true,
             persistent_invisibility: false,
-            max_air_ticks: MAX_AIR_SUPPLY,
+            max_air_ticks: default_max_air(kind),
             stuck_speed_multiplier: Vec3::ZERO,
             supporting_block: None,
             on_ground_no_blocks: false,

@@ -87,6 +87,11 @@ const LEVITATION_BLEND: f64 = 0.2;
 const CLIMB_SPEED: f64 = 0.15000000596046448;
 const CLIMB_BOOST: f64 = 0.2;
 const APPLIED_INPUT_DECAY: f32 = 0.98;
+const DROWNING_AIR: i32 = -20;
+const WATER_ANIMAL_AIR: i32 = 300;
+const SWIMMER_MOVE_RELATIVE_SPEED: f32 = 0.01;
+const SWIMMER_DRAG: f64 = 0.9;
+const SWIMMER_SINK: f64 = -0.005;
 const FLUID_SPEED: f32 = 0.02;
 const WATER_SLOW_DOWN: f32 = 0.8;
 const POLAR_BEAR_WATER_SLOW_DOWN: f32 = 0.98;
@@ -413,6 +418,7 @@ pub struct LivingState {
     pub swing: Option<(i32, i32)>,
     pub remove_arrow_time: i32,
     pub discard_friction: bool,
+    pub has_target: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -536,6 +542,7 @@ impl LivingState {
             swing: None,
             remove_arrow_time: 0,
             discard_friction: false,
+            has_target: false,
         };
         let max = state.max_health() as f32;
         base.data.set(DATA_HEALTH, SyncedValue::Float(max));
@@ -951,6 +958,7 @@ pub fn fall_damage(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct LivingTick {
+    pub drown: bool,
     pub burn: bool,
     pub died: bool,
     pub removed: bool,
@@ -965,8 +973,30 @@ pub fn base_tick(base: &mut EntityBase, living: &mut LivingState) -> LivingTick 
     super::fire::set_on_fire_flag(base, on_fire);
     let air = base.air_supply();
     let max_air = base.max_air_ticks;
-    if air < max_air {
+    if base.kind == EntityKind::Dolphin {
+        if base.eye_in_water {
+            base.set_air_supply(air - 1);
+            if base.air_supply() <= DROWNING_AIR {
+                base.set_air_supply(0);
+                outcome.drown = true;
+            }
+        } else if air < max_air {
+            base.set_air_supply(max_air);
+        }
+    } else if air < max_air {
         base.set_air_supply((air + 4).min(max_air));
+    }
+    if breathes_only_in_water(base.kind) {
+        let alive = !base.is_removed() && health(base) > 0.0;
+        if alive && !base.fluid.in_water {
+            base.set_air_supply(air - 1);
+            if base.air_supply() <= DROWNING_AIR {
+                base.set_air_supply(0);
+                outcome.drown = true;
+            }
+        } else {
+            base.set_air_supply(WATER_ANIMAL_AIR);
+        }
     }
     if living.hurt_time > 0 {
         living.hurt_time -= 1;
@@ -1310,12 +1340,57 @@ pub struct FlyingSpeeds {
     pub air: f32,
 }
 
+pub fn breathes_only_in_water(kind: EntityKind) -> bool {
+    kind.extends("WaterAnimal")
+        || (kind.extends("AgeableWaterCreature") && kind != EntityKind::Dolphin)
+}
+
+pub fn is_water_swimmer(kind: EntityKind) -> bool {
+    kind.extends("AbstractFish") || kind == EntityKind::Dolphin
+}
+
+pub fn travel_swimmer<V: BlockView>(
+    base: &mut EntityBase,
+    living: &mut LivingState,
+    view: &V,
+    input: Vec3,
+) -> Option<Landing> {
+    let speed = if base.kind == EntityKind::Dolphin {
+        living.speed
+    } else {
+        SWIMMER_MOVE_RELATIVE_SPEED
+    };
+    base.velocity = base.velocity + input_vector(input, speed, base.yaw);
+    let traits = living.move_traits(base);
+    let landing = move_entity(base, view, base.velocity, &traits);
+    base.velocity = base.velocity.scale(SWIMMER_DRAG);
+    if !living.has_target {
+        base.velocity = base.velocity + Vec3::new(0.0, SWIMMER_SINK, 0.0);
+    }
+    landing
+}
+
+pub fn travel_squid<V: BlockView>(
+    base: &mut EntityBase,
+    living: &mut LivingState,
+    view: &V,
+) -> Option<Landing> {
+    let traits = living.move_traits(base);
+    move_entity(base, view, base.velocity, &traits)
+}
+
 pub fn travel<V: BlockView>(
     base: &mut EntityBase,
     living: &mut LivingState,
     view: &V,
     input: Vec3,
 ) -> Option<Landing> {
+    if matches!(base.kind, EntityKind::Squid | EntityKind::GlowSquid) {
+        return travel_squid(base, living, view);
+    }
+    if base.fluid.in_water && is_water_swimmer(base.kind) {
+        return travel_swimmer(base, living, view, input);
+    }
     if base.kind == EntityKind::Ghast {
         return travel_flying(base, living, view, input, GHAST_FLYING_SPEEDS);
     }
@@ -1538,6 +1613,108 @@ mod tests {
         assert_eq!(base.velocity, Vec3::new(drag, 0.5 * drag, 0.0));
         assert!((base.position.x - 1.5).abs() < 1.0e-9);
         assert!((base.position.y - 80.5).abs() < 1.0e-9);
+    }
+
+    fn swimmer(kind: EntityKind) -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), kind);
+        base.position = Vec3::new(0.5, 64.0, 0.5);
+        base.fluid.in_water = true;
+        base.eye_in_water = true;
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    #[test]
+    fn a_fish_in_water_slows_to_nine_tenths_sinks_gently_and_ignores_gravity() {
+        let (mut base, mut living) = swimmer(EntityKind::Cod);
+        base.velocity = Vec3::new(1.0, 0.5, 0.0);
+        travel(&mut base, &mut living, &Air, Vec3::ZERO);
+        assert_eq!(base.velocity, Vec3::new(0.9, 0.5 * 0.9 - 0.005, 0.0));
+        assert!((base.position.x - 1.5).abs() < 1.0e-9);
+        living.has_target = true;
+        base.velocity = Vec3::new(1.0, 0.5, 0.0);
+        travel(&mut base, &mut living, &Air, Vec3::ZERO);
+        assert_eq!(base.velocity, Vec3::new(0.9, 0.5 * 0.9, 0.0));
+    }
+
+    #[test]
+    fn a_fish_pushes_by_a_hundredth_and_a_dolphin_by_its_speed() {
+        let (mut fish, mut living) = swimmer(EntityKind::Salmon);
+        travel(&mut fish, &mut living, &Air, Vec3::new(0.0, 0.0, 1.0));
+        assert!((fish.velocity.z - 0.01 * 0.9).abs() < 1.0e-9);
+        let (mut dolphin, mut living) = swimmer(EntityKind::Dolphin);
+        living.speed = 0.4;
+        living.has_target = true;
+        travel(&mut dolphin, &mut living, &Air, Vec3::new(0.0, 0.0, 1.0));
+        assert!((dolphin.velocity.z - f64::from(0.4f32) * 0.9).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn a_fish_out_of_water_falls_like_any_mob() {
+        let (mut base, mut living) = swimmer(EntityKind::Cod);
+        base.fluid.in_water = false;
+        base.eye_in_water = false;
+        base.velocity = Vec3::ZERO;
+        travel(&mut base, &mut living, &Air, Vec3::ZERO);
+        assert!(base.velocity.y < 0.0);
+    }
+
+    #[test]
+    fn a_squid_only_moves_by_its_velocity_in_water_and_out() {
+        let (mut base, mut living) = swimmer(EntityKind::Squid);
+        base.velocity = Vec3::new(0.2, 0.1, -0.2);
+        travel(&mut base, &mut living, &Air, Vec3::new(1.0, 1.0, 1.0));
+        assert_eq!(base.velocity, Vec3::new(0.2, 0.1, -0.2));
+        assert!((base.position.x - 0.7).abs() < 1.0e-9);
+        base.fluid.in_water = false;
+        travel(&mut base, &mut living, &Air, Vec3::ZERO);
+        assert_eq!(base.velocity, Vec3::new(0.2, 0.1, -0.2));
+    }
+
+    #[test]
+    fn a_fish_out_of_water_loses_one_air_a_tick_and_drowns_at_minus_twenty() {
+        let (mut base, mut living) = swimmer(EntityKind::Cod);
+        base.fluid.in_water = false;
+        base.eye_in_water = false;
+        let mut first = None;
+        for tick in 1..=340 {
+            let outcome = base_tick(&mut base, &mut living);
+            if outcome.drown {
+                first = Some(tick);
+                break;
+            }
+            assert_eq!(base.air_supply(), 300 - tick);
+        }
+        assert_eq!(first, Some(320));
+        assert_eq!(base.air_supply(), 0);
+        for _ in 0..19 {
+            assert!(!base_tick(&mut base, &mut living).drown);
+        }
+        assert!(base_tick(&mut base, &mut living).drown);
+    }
+
+    #[test]
+    fn a_fish_in_water_keeps_a_full_air_supply() {
+        let (mut base, mut living) = swimmer(EntityKind::Cod);
+        base.set_air_supply(100);
+        assert!(!base_tick(&mut base, &mut living).drown);
+        assert_eq!(base.air_supply(), 300);
+    }
+
+    #[test]
+    fn a_dolphin_loses_air_with_its_eyes_in_water_and_refills_at_once_out_of_it() {
+        let (mut base, mut living) = swimmer(EntityKind::Dolphin);
+        assert_eq!(base.air_supply(), 4800);
+        base_tick(&mut base, &mut living);
+        assert_eq!(base.air_supply(), 4799);
+        base.eye_in_water = false;
+        base_tick(&mut base, &mut living);
+        assert_eq!(base.air_supply(), 4800);
+        base.eye_in_water = true;
+        base.set_air_supply(-19);
+        let outcome = base_tick(&mut base, &mut living);
+        assert!(outcome.drown);
+        assert_eq!(base.air_supply(), 0);
     }
 
     fn flier(kind: EntityKind) -> (EntityBase, LivingState) {

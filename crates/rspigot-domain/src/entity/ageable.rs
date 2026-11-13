@@ -304,6 +304,8 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
         EntityKind::Piglin => dims(0.49, 0.98, 0.78),
         EntityKind::Goat => dims(0.45, 0.65, 0.59375),
         EntityKind::Armadillo => dims(adult.width * 0.6, adult.height * 0.6, 0.21875),
+        EntityKind::Dolphin => dims(adult.width * 0.65, adult.height * 0.65, 0.09375),
+        EntityKind::Squid | EntityKind::GlowSquid => dims(0.5, 0.5, 0.37),
         _ => dims(
             adult.width * 0.5,
             adult.height * 0.5,
@@ -333,6 +335,8 @@ pub fn refresh_dimensions(base: &mut EntityBase, baby: bool) {
     base.dimensions =
         if base.kind == EntityKind::Sniffer && super::species::sniffer::is_digging(base) {
             super::species::sniffer::digging_dimensions(baby)
+        } else if let Some(scale) = super::species::fish::dimension_scale(base) {
+            super::species::fish::scaled_dimensions(base.kind.dimensions(), scale)
         } else {
             dimensions_in_pose(base.kind, baby, base.pose())
         };

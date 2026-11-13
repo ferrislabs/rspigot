@@ -88,6 +88,11 @@ pub fn check_predicate(
         SpawnPredicate::Ghast => super::ghast::check_ghast_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Bat => super::bat::check_bat_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Parrot => check_bright_spawnable_on(level, pos, PARROTS_SPAWNABLE_ON),
+        SpawnPredicate::SurfaceWaterAnimal | SpawnPredicate::SurfaceAgeableWaterCreature => {
+            super::water::check_surface_water_spawn_rules(level, pos)
+        }
+        SpawnPredicate::TropicalFish => super::water::check_tropical_fish_spawn_rules(level, pos),
+        SpawnPredicate::GlowSquid => super::water::check_glow_squid_spawn_rules(level, pos),
         SpawnPredicate::Endermite => {
             super::endermite::check_endermite_spawn_rules(level, kind, reason, pos)
         }
@@ -158,6 +163,10 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Ghast
                 | SpawnPredicate::Bat
                 | SpawnPredicate::Parrot
+                | SpawnPredicate::SurfaceWaterAnimal
+                | SpawnPredicate::SurfaceAgeableWaterCreature
+                | SpawnPredicate::TropicalFish
+                | SpawnPredicate::GlowSquid
         )
     });
     let walk = match spawn.check_spawn_rules {
@@ -190,9 +199,15 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | MobClass::IronGolem
                 | MobClass::ZombifiedPiglin
                 | MobClass::Warden
+                | MobClass::WaterAnimal
+                | MobClass::AgeableWaterCreature
         )
-        && spawn.is_max_group_size_reached == MobClass::Mob
-        && spawn.max_spawn_cluster_size.is_some()
+        && matches!(
+            spawn.is_max_group_size_reached,
+            MobClass::Mob | MobClass::TropicalFish
+        )
+        && (spawn.max_spawn_cluster_size.is_some()
+            || spawn.max_spawn_cluster_size_owner == MobClass::AbstractSchoolingFish)
         && super::despawn::remove_when_far_away(kind, super::despawn::FarAwayFacts::default())
             .is_some()
 }
@@ -352,6 +367,7 @@ pub fn check_spawn_obstruction(level: &impl SpawnLevel, kind: EntityKind, area: 
                 && ocelot_can_stand(level, area)
         }
         Some(MobClass::IronGolem) => iron_golem_obstruction(level, area),
+        Some(MobClass::WaterAnimal | MobClass::AgeableWaterCreature) => level.is_unobstructed(area),
         _ => false,
     }
 }
@@ -391,13 +407,32 @@ fn ocelot_can_stand(level: &impl SpawnLevel, area: &Aabb) -> bool {
 }
 
 pub fn max_spawn_cluster_size(kind: EntityKind) -> i32 {
-    kind.mob_spawn()
-        .and_then(|spawn| spawn.max_spawn_cluster_size)
-        .map_or(DEFAULT_CLUSTER_SIZE, i32::from)
+    let Some(spawn) = kind.mob_spawn() else {
+        return DEFAULT_CLUSTER_SIZE;
+    };
+    if let Some(size) = spawn.max_spawn_cluster_size {
+        return i32::from(size);
+    }
+    match spawn.max_spawn_cluster_size_owner {
+        MobClass::AbstractSchoolingFish => crate::entity::species::fish::max_school_size(kind),
+        _ => DEFAULT_CLUSTER_SIZE,
+    }
 }
 
-pub fn is_max_group_size_reached(_kind: EntityKind, _size: i32) -> bool {
-    false
+pub fn is_max_group_size_reached(
+    kind: EntityKind,
+    _size: i32,
+    group: Option<&super::SpawnGroupData>,
+) -> bool {
+    match kind
+        .mob_spawn()
+        .map(|spawn| spawn.is_max_group_size_reached)
+    {
+        Some(MobClass::TropicalFish) => {
+            !matches!(group, Some(super::SpawnGroupData::TropicalSchool { .. }))
+        }
+        _ => false,
+    }
 }
 
 pub fn no_block_collision(level: &impl SpawnLevel, area: &Aabb) -> bool {
@@ -1073,7 +1108,7 @@ mod tests {
             assert!(rules_ported(kind), "{kind:?}");
         }
         assert!(!rules_ported(EntityKind::Slime));
-        assert!(!rules_ported(EntityKind::TropicalFish));
+        assert!(rules_ported(EntityKind::TropicalFish));
         assert!(!rules_ported(EntityKind::Item));
     }
 
@@ -1082,6 +1117,6 @@ mod tests {
         assert_eq!(max_spawn_cluster_size(EntityKind::Zombie), 4);
         assert_eq!(max_spawn_cluster_size(EntityKind::Wolf), 8);
         assert_eq!(max_spawn_cluster_size(EntityKind::Ghast), 1);
-        assert!(!is_max_group_size_reached(EntityKind::Cow, 10));
+        assert!(!is_max_group_size_reached(EntityKind::Cow, 10, None));
     }
 }

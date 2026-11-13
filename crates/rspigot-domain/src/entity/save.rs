@@ -743,6 +743,9 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Wither(state) => species::wither::read(nbt, base, state),
         Species::Allay(state) => species::allay::read(nbt, base, state),
         Species::Bat(state) => species::bat::read(nbt, base, state),
+        Species::Fish(state) => species::fish::read(nbt, base, state),
+        Species::Squid(state) => species::squid::read(nbt, base, state),
+        Species::Dolphin(state) => species::dolphin::read(nbt, base, state),
         Species::Parrot => species::parrot::read(nbt, base),
         Species::Bee(state) => species::bee::read(nbt, base, state),
         Species::Phantom(state) => {
@@ -941,7 +944,7 @@ fn write_arrow(base: &EntityBase, state: &ArrowState, out: &mut Compound) {
     }
 }
 
-fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
+fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static str]> {
     let mut keys: Vec<&'static [&'static str]> = Vec::new();
     if let Some(ageable) = &mob.ageable {
         keys.push(&AGEABLE_KEYS);
@@ -986,6 +989,9 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Wither(_) => species::wither::KEYS,
         Species::Allay(_) => species::allay::KEYS,
         Species::Bat(_) => species::bat::KEYS,
+        Species::Fish(_) => species::fish::keys(base_kind),
+        Species::Squid(_) => species::squid::keys(base_kind),
+        Species::Dolphin(_) => species::dolphin::KEYS,
         Species::Parrot => species::parrot::KEYS,
         Species::Bee(_) => species::bee::KEYS,
         Species::Phantom(_) => species::phantom::KEYS,
@@ -1092,7 +1098,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             read_living(nbt, &mut base, living_state);
             let mut known: Vec<&[&str]> = vec![&ENTITY_KEYS, &LIVING_KEYS];
             if let Some(mob) = &living_state.mob {
-                known.extend(species_keys(mob));
+                known.extend(species_keys(mob, base.kind));
             }
             let extra = extra_keys(nbt, &known);
             return Ok(Entity { base, state, extra });
@@ -1166,7 +1172,7 @@ fn write_base(entity: &Entity, out: &mut Compound, world: Option<Uuid>) {
     if base.persistent_invisibility {
         out.insert("Bukkit.invisible", true);
     }
-    if base.max_air_ticks != MAX_AIR_SUPPLY {
+    if base.max_air_ticks != super::base::default_max_air(base.kind) {
         out.insert("Bukkit.MaxAirSupply", base.max_air_ticks);
     }
     out.insert("Spigot.ticksLived", base.tick_count);
@@ -1434,6 +1440,9 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Wither(state) => species::wither::write(base, state, out),
         Species::Allay(state) => species::allay::write(base, state, out),
         Species::Bat(state) => species::bat::write(base, state, out),
+        Species::Fish(state) => species::fish::write(base, state, out),
+        Species::Squid(state) => species::squid::write(base, state, out),
+        Species::Dolphin(state) => species::dolphin::write(base, state, out),
         Species::Parrot => species::parrot::write(base, out),
         Species::Bee(state) => species::bee::write(base, state, out),
         Species::Phantom(state) => species::phantom::write(base, state, out),
