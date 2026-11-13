@@ -21,8 +21,10 @@ mod breeze;
 mod cat;
 pub(crate) mod copper_golem;
 mod creaking;
+mod dolphin;
 mod enderman;
 mod endermite;
+mod fish;
 mod fox;
 mod frog;
 mod ghast;
@@ -41,6 +43,7 @@ mod shulker;
 mod silverfish;
 mod sniffer;
 mod snow_golem;
+mod squid;
 mod vex;
 pub(crate) mod villager;
 mod warden;
@@ -58,6 +61,7 @@ pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::Sou
 }
 pub(crate) use armadillo::ambient_sound as armadillo_ambient_sound;
 pub(crate) use enderman::carried_block_drops;
+pub(crate) use fish::fish_facts_of;
 pub(crate) use goat::{GoatSound, voice as goat_voice};
 pub(crate) use sniffer::ambient_sound as sniffer_ambient_sound;
 pub(crate) use snow_golem::readiness_for_shearing;
@@ -85,6 +89,11 @@ impl<L: ClientLink> Server<L> {
             Kind::Wither => self.wither_view(entity, view),
             Kind::Allay => self.allay_view(entity, view),
             Kind::Bat => self.bat_view(entity, view),
+            Kind::Cod | Kind::Salmon | Kind::Pufferfish | Kind::TropicalFish => {
+                self.fish_view(entity, view);
+            }
+            Kind::Squid | Kind::GlowSquid => self.squid_view(entity, view),
+            Kind::Dolphin => self.dolphin_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
             Kind::Parrot => self.parrot_view(entity, view),
             Kind::Bee => self.bee_view(entity, view),
@@ -148,6 +157,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_pre_tick(id),
             Some(Kind::Ocelot) => self.ocelot_pre_tick(id),
             Some(Kind::Sniffer) => self.sniffer_pre_tick(id),
+            Some(Kind::Pufferfish) => self.fish_pre_tick(id),
             _ => true,
         }
     }
@@ -168,6 +178,11 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Blaze) => self.blaze_post_tick(id),
             Some(Kind::Vex) => self.vex_post_tick(id),
             Some(Kind::Bat) => self.bat_post_tick(id),
+            Some(Kind::Cod | Kind::Salmon | Kind::Pufferfish | Kind::TropicalFish) => {
+                self.fish_post_tick(id);
+            }
+            Some(Kind::Squid | Kind::GlowSquid) => self.squid_post_tick(id),
+            Some(Kind::Dolphin) => self.dolphin_post_tick(id),
             Some(Kind::Parrot) => self.parrot_post_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
@@ -193,6 +208,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Bee) => self.bee_ai_step(id),
             Some(Kind::Wither) => self.wither_ai_step(id),
             Some(Kind::Allay) => self.allay_ai_step(id),
+            Some(Kind::Cod | Kind::Salmon | Kind::Pufferfish | Kind::TropicalFish) => {
+                self.fish_ai_step(id);
+            }
             _ => {}
         }
     }
@@ -312,6 +330,10 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Parrot) => self.parrot_interact(player, target, hand, held),
             Some(Kind::Bee) => self.bee_interact(player, target, hand, held),
             Some(Kind::Allay) => self.allay_interact(player, target, hand, held),
+            Some(Kind::Dolphin) => self.dolphin_interact(player, target, hand, held),
+            Some(Kind::Cod | Kind::Salmon | Kind::Pufferfish | Kind::TropicalFish) => {
+                self.fish_interact(player, target, hand, held)
+            }
             _ => None,
         }
     }
@@ -387,6 +409,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Sniffer) if dead => self.sniffer_died(id),
             Some(Kind::Parrot) => self.parrot_after_hurt(id, dead),
             Some(Kind::Bee) => self.bee_after_hurt(id),
+            Some(Kind::Squid | Kind::GlowSquid) => self.squid_after_hurt(id, source),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
             Some(Kind::Warden) if !dead => self.warden_after_hurt(id, source),
             Some(Kind::CopperGolem) => self.copper_golem_after_hurt(id, !dead),

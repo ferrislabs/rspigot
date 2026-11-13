@@ -5,6 +5,7 @@ mod block_tools;
 mod boss_bars;
 mod bow;
 mod brain_mobs;
+mod bucket;
 mod bullet;
 mod campfire;
 mod chests;

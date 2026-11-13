@@ -329,6 +329,23 @@ fn component_value(name: &str, value: &rspigot_nbt::Tag) -> Option<ComponentValu
                 &mut data,
             );
         }
+        "minecraft:tropical_fish/base_color" | "minecraft:tropical_fish/pattern_color" => {
+            write_var(
+                i32::try_from(dye_color_id(value.as_str()?)?).ok()?,
+                &mut data,
+            );
+        }
+        "minecraft:tropical_fish/pattern" => {
+            let name = value.as_str()?;
+            let pattern = rspigot_domain::entity::species::fish::Pattern::ALL
+                .into_iter()
+                .find(|pattern| pattern.name() == name)?;
+            write_var(pattern.packed_id(), &mut data);
+        }
+        "minecraft:salmon/size" => {
+            let size = rspigot_domain::entity::species::fish::Variant::from_name(value.as_str()?)?;
+            write_var(size.id(), &mut data);
+        }
         "minecraft:firework_explosion" => write_explosion(value.as_compound()?, &mut data)?,
         "minecraft:fireworks" => {
             let fireworks = value.as_compound()?;
@@ -2370,6 +2387,23 @@ mod tests {
 
     fn component_bytes(name: &str, value: impl Into<rspigot_nbt::Tag>) -> Vec<u8> {
         component_value(name, &value.into()).expect(name).data
+    }
+
+    #[test]
+    fn the_fish_bucket_components_encode_their_ids() {
+        assert_eq!(component_bytes("minecraft:salmon/size", "large"), vec![2]);
+        assert_eq!(
+            component_bytes("minecraft:tropical_fish/pattern", "betty"),
+            vec![0x81, 0x08]
+        );
+        assert_eq!(
+            component_bytes("minecraft:tropical_fish/base_color", "red"),
+            vec![14]
+        );
+        assert_eq!(
+            component_bytes("minecraft:tropical_fish/pattern_color", "white"),
+            vec![0]
+        );
     }
 
     fn explosion_tag() -> rspigot_nbt::Compound {

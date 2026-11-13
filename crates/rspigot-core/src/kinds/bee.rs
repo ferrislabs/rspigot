@@ -193,6 +193,7 @@ impl<L: ClientLink> Server<L> {
             golem: false,
             hoglin: false,
             bee: true,
+            puffer: None,
         };
         self.strike(
             None,

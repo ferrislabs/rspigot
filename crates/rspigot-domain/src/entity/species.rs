@@ -19,8 +19,10 @@ pub mod blaze;
 pub mod cat;
 pub mod copper_golem;
 pub mod creaking;
+pub mod dolphin;
 pub mod enderman;
 pub mod endermite;
+pub mod fish;
 pub mod fox;
 pub mod frog;
 pub mod ghast;
@@ -40,6 +42,7 @@ pub mod shulker;
 pub mod silverfish;
 pub mod sniffer;
 pub mod snow_golem;
+pub mod squid;
 pub mod vex;
 pub mod villager;
 pub mod wandering_trader;
@@ -210,6 +213,9 @@ pub enum Species {
     Blaze(blaze::BlazeState),
     Ghast(ghast::GhastState),
     Vex(vex::VexState),
+    Fish(fish::FishState),
+    Squid(squid::SquidState),
+    Dolphin(dolphin::DolphinState),
     Allay(allay::AllayState),
     Wither(wither::WitherState),
     Bat(bat::BatState),
@@ -406,6 +412,15 @@ impl Species {
         }
         if kind == EntityKind::Bat {
             return Self::Bat(bat::define(base));
+        }
+        if fish::is_fish(kind) {
+            return Self::Fish(fish::define(base));
+        }
+        if matches!(kind, EntityKind::Squid | EntityKind::GlowSquid) {
+            return Self::Squid(squid::define(base));
+        }
+        if kind == EntityKind::Dolphin {
+            return Self::Dolphin(dolphin::define(base));
         }
         if kind == EntityKind::Phantom {
             return Self::Phantom(phantom::define(base));

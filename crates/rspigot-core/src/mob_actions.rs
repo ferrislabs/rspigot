@@ -49,6 +49,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn apply_mob_action(&mut self, id: EntityId, action: MobAction) {
         match action {
             MobAction::Swing(hand) => self.mob_swing(id, hand),
+            MobAction::Water(action) => self.water_action(id, action),
             MobAction::Attack(target) => {
                 let target = match self.players.values().find(|p| p.entity_id == target) {
                     Some(player) => Target::Player(player.id),

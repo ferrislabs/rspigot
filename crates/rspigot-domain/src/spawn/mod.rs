@@ -12,6 +12,7 @@ mod polar_bear;
 pub mod rules;
 pub mod silverfish;
 pub mod state;
+mod water;
 pub mod wolf;
 mod zombified_piglin;
 
@@ -90,6 +91,13 @@ pub enum SpawnGroupData {
     },
     Rabbit {
         group_size: i32,
+        variant: i32,
+    },
+    School {
+        leader: crate::EntityId,
+    },
+    TropicalSchool {
+        leader: crate::EntityId,
         variant: i32,
     },
 }

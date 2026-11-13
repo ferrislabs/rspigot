@@ -60,6 +60,9 @@ pub struct Facts {
     pub hero_of_the_village: bool,
     pub cube_size: u8,
     pub sniffer_state: u8,
+    pub school_leader: Option<EntityId>,
+    pub school_size: i32,
+    pub swimming: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -186,6 +189,9 @@ pub struct MobBody {
     pub vex: crate::VexFacts,
     pub phantom: crate::PhantomFacts,
     pub bee: crate::BeeFacts,
+    pub fish: crate::FishFacts,
+    pub squid: crate::SquidFacts,
+    pub dolphin: crate::DolphinFacts,
 }
 
 impl MobBody {
@@ -207,6 +213,9 @@ impl MobBody {
             vex: mob.species.vex,
             phantom: mob.species.phantom,
             bee: mob.species.bee,
+            fish: mob.species.fish,
+            squid: mob.species.squid,
+            dolphin: mob.species.dolphin,
         }
     }
 }
@@ -421,6 +430,10 @@ pub trait AiWorld: BlockView {
         false
     }
 
+    fn nearest_dolphin_structure(&self, _pos: BlockPos, _radius: i32) -> Option<BlockPos> {
+        None
+    }
+
     fn bees_stay_in_hive(&self, _pos: BlockPos) -> bool {
         false
     }
@@ -469,6 +482,9 @@ pub struct KindFacts {
     pub bee: crate::BeeFacts,
     pub wither: crate::WitherFacts,
     pub allay: crate::AllayFacts,
+    pub fish: crate::FishFacts,
+    pub squid: crate::SquidFacts,
+    pub dolphin: crate::DolphinFacts,
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
 }
@@ -546,6 +562,7 @@ pub struct MobView {
     pub speed_effect_level: i32,
     pub slowness_effect_level: i32,
     pub levitating: bool,
+    pub air_supply: i32,
     pub species: KindFacts,
 }
 
@@ -663,6 +680,7 @@ impl MobView {
             speed_effect_level: effect_level(living, "minecraft:speed"),
             slowness_effect_level: effect_level(living, "minecraft:slowness"),
             levitating: living.effect("minecraft:levitation").is_some(),
+            air_supply: base.air_supply(),
             species: KindFacts::default(),
         }
     }
@@ -670,6 +688,8 @@ impl MobView {
     pub fn max_head_x_rot(&self) -> f32 {
         if self.kind == EntityKind::Wolf && self.sitting {
             WOLF_SITTING_MAX_HEAD_X_ROT
+        } else if self.kind == EntityKind::Dolphin {
+            crate::swimmers::DOLPHIN_MAX_HEAD_ROT
         } else if self.kind == EntityKind::Shulker {
             rspigot_domain::entity::species::shulker::MAX_HEAD_ROTATION
         } else {

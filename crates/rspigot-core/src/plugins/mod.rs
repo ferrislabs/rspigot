@@ -82,6 +82,7 @@ pub use orders::{
 pub use patch::{ListDiff, SetDiff, Verdict};
 pub(crate) use registry::Registry;
 pub(crate) use session::{Arrival, Refusal};
+pub(crate) use shots::face_of as plugin_face_of;
 pub(crate) use shots::face_of;
 pub(crate) use spawns::{name_of_entity, view_of_entity};
 pub(crate) use steps::{
@@ -90,6 +91,7 @@ pub(crate) use steps::{
     SweepFollow,
 };
 pub use targets::MAX_TARGET_DISTANCE;
+pub(crate) use targets::direction_of;
 pub(crate) use visibility::Visibility;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -88,7 +88,8 @@ impl PathFinder {
         if unique.is_empty() {
             return None;
         }
-        let mut walker = Walker::new(view, &self.profile, *mob);
+        let profile = self.profile.prepared_for_search();
+        let mut walker = Walker::new(view, &profile, *mob);
         let start = walker.start();
         let mut targets: Vec<Target> = unique
             .into_iter()
