@@ -3,12 +3,15 @@ use rspigot_nbt::Compound;
 
 use super::raider::{self, RaiderState};
 use super::spellcaster::{self, SpellcasterState};
-use crate::EntityId;
 use crate::entity::base::EntityBase;
 use crate::entity::living::{LivingState, slot_index};
+use crate::entity::physics::BlockView;
 use crate::entity::spawn::{mob_finalize, set_item_slot};
+use crate::entity::species::shulker::can_stand_on_face;
 use crate::random::RandomSource;
 use crate::spawn::{SpawnGroupData, SpawnReason};
+use crate::{EntityId, Vec3};
+use rspigot_blocks::Face;
 
 pub const KEYS: &[&str] = spellcaster::KEYS;
 pub const AMBIENT_SOUND: &str = "minecraft:entity.evoker.ambient";
@@ -94,16 +97,10 @@ pub fn finalize(
     mob_finalize(base, living, group, level)
 }
 
-pub fn summon_positions(
-    origin: crate::BlockPos,
-    random: &mut impl RandomSource,
-) -> [crate::BlockPos; 3] {
-    let mut next = || {
-        let dx = random.next_int(SUMMON_SPREAD) - 2;
-        let dz = random.next_int(SUMMON_SPREAD) - 2;
-        origin.offset(dx, SUMMON_HEIGHT, dz)
-    };
-    [next(), next(), next()]
+pub fn summon_position(origin: crate::BlockPos, random: &mut impl RandomSource) -> crate::BlockPos {
+    let dx = random.next_int(SUMMON_SPREAD) - 2;
+    let dz = random.next_int(SUMMON_SPREAD) - 2;
+    origin.offset(dx, SUMMON_HEIGHT, dz)
 }
 
 pub fn summon_life_ticks(random: &mut impl RandomSource) -> i32 {
@@ -151,6 +148,31 @@ pub fn fang_pattern(origin_x: f64, origin_z: f64, angle: f32, close: bool) -> Ve
         });
     }
     spawns
+}
+
+pub fn fang_floor(view: &impl BlockView, x: f64, z: f64, min_y: f64, max_y: f64) -> Option<f64> {
+    let mut pos = Vec3::new(x, max_y, z).block();
+    let lowest = crate::mth::floor(min_y) - 1;
+    loop {
+        let below = pos.offset(0, -1, 0);
+        if can_stand_on_face(view, below, Face::Up) {
+            let state = view.block_or_air(pos);
+            let top = if state.is_air() {
+                0.0
+            } else {
+                state
+                    .collision_shape()
+                    .iter()
+                    .map(|shape| shape.max_y)
+                    .fold(0.0, f64::max)
+            };
+            return Some(f64::from(pos.y) + top);
+        }
+        pos = below;
+        if pos.y < lowest {
+            return None;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -313,15 +335,15 @@ mod tests {
     }
 
     #[test]
-    fn the_summon_spreads_three_vexes_over_a_five_by_five_square_one_block_up() {
+    fn a_summoned_vex_appears_within_two_blocks_of_the_evoker_one_block_up() {
         let mut random = LegacyRandom::new(11);
         let mut mirror = LegacyRandom::new(11);
-        let positions = summon_positions(BlockPos::new(10, 64, -3), &mut random);
-        for position in positions {
-            let dx = mirror.next_int(5) - 2;
-            let dz = mirror.next_int(5) - 2;
-            assert_eq!(position, BlockPos::new(10 + dx, 65, -3 + dz));
-        }
+        let position = summon_position(BlockPos::new(10, 64, -3), &mut random);
+        let dx = mirror.next_int(5) - 2;
+        let dz = mirror.next_int(5) - 2;
+        assert_eq!(position, BlockPos::new(10 + dx, 65, -3 + dz));
+        assert!((8..=12).contains(&position.x));
+        assert!((-5..=-1).contains(&position.z));
     }
 
     #[test]
@@ -360,5 +382,54 @@ mod tests {
         let step = std::f32::consts::PI * 0.4;
         assert!((spawns[1].angle - step).abs() < 1e-6);
         assert!((spawns[5].angle - 1.256_637_1).abs() < 1e-6);
+    }
+
+    struct Column {
+        blocks: std::collections::HashMap<BlockPos, crate::BlockStateId>,
+    }
+
+    impl BlockView for Column {
+        fn block(&self, pos: BlockPos) -> Option<crate::BlockStateId> {
+            Some(
+                self.blocks
+                    .get(&pos)
+                    .copied()
+                    .unwrap_or(crate::BlockStateId::AIR),
+            )
+        }
+    }
+
+    fn solid_at(heights: &[i32]) -> Column {
+        let stone = rspigot_blocks::BlockKind::Stone.default_state();
+        Column {
+            blocks: heights
+                .iter()
+                .map(|y| (BlockPos::new(0, *y, 0), stone))
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn a_fang_lands_on_the_first_solid_floor_below_the_top_of_the_range() {
+        let column = solid_at(&[60]);
+        assert_eq!(fang_floor(&column, 0.5, 0.5, 60.0, 64.0), Some(61.0));
+    }
+
+    #[test]
+    fn a_fang_finds_no_floor_when_the_ground_is_below_the_scanned_range() {
+        let column = solid_at(&[50]);
+        assert_eq!(fang_floor(&column, 0.5, 0.5, 60.0, 64.0), None);
+    }
+
+    #[test]
+    fn a_fang_sits_on_top_of_a_short_block_it_stands_in() {
+        let slab = rspigot_blocks::BlockKind::StoneSlab
+            .default_state()
+            .with_property("type", "bottom")
+            .unwrap();
+        let mut column = solid_at(&[60]);
+        column.blocks.insert(BlockPos::new(0, 61, 0), slab);
+        let floor = fang_floor(&column, 0.5, 0.5, 60.0, 61.5).unwrap();
+        assert_eq!(floor, 61.5);
     }
 }

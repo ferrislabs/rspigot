@@ -31,6 +31,7 @@ pub(crate) struct Mock {
     pub stay_in_hive: bool,
     pub items: Vec<crate::world::DroppedItem>,
     pub banners: Vec<EntityId>,
+    pub no_griefing: bool,
 }
 
 impl BlockView for Mock {
@@ -93,6 +94,10 @@ impl AiWorld for Mock {
 
     fn universal_anger(&self) -> bool {
         self.universal_anger
+    }
+
+    fn mob_griefing(&self) -> bool {
+        !self.no_griefing
     }
 
     fn sections_to_village(&self, pos: BlockPos) -> i32 {
