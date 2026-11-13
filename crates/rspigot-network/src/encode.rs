@@ -1770,6 +1770,15 @@ impl Encoder {
                     global: false,
                 },
             ),
+            ClientEvent::GlobalLevelEvent { event, pos, data } => Self::queue(
+                writer,
+                &cb::LevelEvent {
+                    kind: *event,
+                    pos: position(*pos),
+                    data: *data,
+                    global: true,
+                },
+            ),
             ClientEvent::Particle(particle) => {
                 let Some(options) = particle_options(particle.kind, &particle.data) else {
                     return Ok(());
@@ -2838,6 +2847,21 @@ mod tests {
         let mut expected = uuid.as_bytes().to_vec();
         expected.extend_from_slice(&[4, 5, 3]);
         assert_eq!(encode(style), vec![(id::BOSS_EVENT, expected)]);
+    }
+
+    #[test]
+    fn global_level_event_golden_bytes() {
+        let event = ClientEvent::GlobalLevelEvent {
+            event: 1023,
+            pos: BlockPos::new(1, 64, -1),
+            data: 0,
+        };
+        let packed: i64 = (1i64 << 38) | (0x3FF_FFFF << 12) | 64;
+        let mut expected = 1023i32.to_be_bytes().to_vec();
+        expected.extend_from_slice(&packed.to_be_bytes());
+        expected.extend_from_slice(&0i32.to_be_bytes());
+        expected.push(1);
+        assert_eq!(encode(event), vec![(id::LEVEL_EVENT, expected)]);
     }
 
     fn registry_id(registry: &str, name: &str) -> u8 {

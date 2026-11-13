@@ -757,6 +757,7 @@ pub fn apply_inside_blocks<V: BlockView>(entity: &mut EntityBase, view: &V, weav
     }
     let bb = entity.bounding_box().deflate(1.0e-5);
     let living = entity.kind.living();
+    let stuck_immune = entity.kind == rspigot_entities::EntityKind::Wither;
     for y in mth_floor(bb.min_y)..=mth_floor(bb.max_y) {
         for z in mth_floor(bb.min_z)..=mth_floor(bb.max_z) {
             for x in mth_floor(bb.min_x)..=mth_floor(bb.max_x) {
@@ -786,6 +787,9 @@ pub fn apply_inside_blocks<V: BlockView>(entity: &mut EntityBase, view: &V, weav
                     }
                     _ => continue,
                 };
+                if stuck_immune {
+                    continue;
+                }
                 entity.fall_distance = 0.0;
                 entity.stuck_speed_multiplier = multiplier;
             }

@@ -43,6 +43,7 @@ mod vex;
 pub(crate) mod villager;
 mod warden;
 mod witch;
+mod wither;
 mod wolf;
 mod zombie_villager;
 mod zombified_piglin;
@@ -79,6 +80,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Blaze => self.blaze_view(entity, view),
             Kind::Ghast => self.ghast_view(entity, view),
             Kind::Vex => self.vex_view(entity, view),
+            Kind::Wither => self.wither_view(entity, view),
             Kind::Bat => self.bat_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
             Kind::Parrot => self.parrot_view(entity, view),
@@ -110,6 +112,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Frog) => self.frog_registered(id, ai),
             Some(Kind::Villager) => self.villager_registered(id, ai),
             Some(Kind::Warden) => self.warden_registered(id, ai),
+            Some(Kind::Wither) => self.wither_registered(id),
             _ => {}
         }
     }
@@ -183,6 +186,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Witch) => self.witch_ai_step(id),
             Some(Kind::Creaking) => self.creaking_ai_step(id),
             Some(Kind::Parrot) => self.parrot_ai_step(id),
+            Some(Kind::Wither) => self.wither_ai_step(id),
             _ => {}
         }
     }
@@ -197,6 +201,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn kind_death_extra_drops(&mut self, id: EntityId) -> Vec<ItemStack> {
         match self.kind_of(id) {
             Some(Kind::Piglin) => self.piglin_death_drops(id),
+            Some(Kind::Wither) => self.wither_death_drops(id),
             _ => Vec::new(),
         }
     }
@@ -255,6 +260,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Armadillo) => self.armadillo_custom_ai_step(id),
             Some(Kind::Villager) => self.villager_custom_ai_step(id),
             Some(Kind::WanderingTrader) => self.wandering_trader_custom_ai_step(id),
+            Some(Kind::Wither) => self.wither_custom_ai_step(id),
             _ => {}
         }
     }
@@ -316,6 +322,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Silverfish) => self.silverfish_hurt_amount(id, source, amount),
             Some(Kind::IronGolem) => self.iron_golem_hurt_amount(id, source, amount),
             Some(Kind::Ghast) => self.ghast_hurt_amount(id, source, amount),
+            Some(Kind::Wither) => self.wither_hurt_amount(id, source, amount),
             Some(Kind::Bat) => self.bat_hurt_amount(id, source, amount),
             Some(Kind::Shulker) => self.shulker_hurt_amount(id, source, amount),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_hurt_amount(id, source, amount),

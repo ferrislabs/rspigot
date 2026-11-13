@@ -467,6 +467,7 @@ pub(crate) enum Seeker {
     Mob,
     Tempt,
     Orb,
+    WitherHead(u8),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -509,7 +510,14 @@ pub(crate) struct PrimeStep {
     pub(crate) source: EntityId,
     pub(crate) radius: f32,
     pub(crate) fire: bool,
-    pub(crate) projectile: bool,
+    pub(crate) kind: PrimeKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PrimeKind {
+    Creeper,
+    Projectile,
+    WitherSpawn,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -581,6 +589,7 @@ pub(crate) enum Spawned {
         request: u64,
     },
     Poof,
+    Pattern(Vec<(BlockPos, BlockStateId)>),
 }
 
 #[derive(Debug)]
@@ -879,6 +888,10 @@ pub(crate) enum Grief {
         golem: EntityId,
         pos: BlockPos,
         state: BlockStateId,
+    },
+    WitherBreak {
+        wither: EntityId,
+        pos: BlockPos,
     },
 }
 
@@ -1321,6 +1334,7 @@ impl Continuation {
                 Grief::Douse { potion, .. } => *potion == id,
                 Grief::Compost(run) => run.villager() == id,
                 Grief::Statue { golem, .. } => *golem == id,
+                Grief::WitherBreak { wither, .. } => *wither == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,

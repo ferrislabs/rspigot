@@ -64,6 +64,7 @@ mod village;
 mod villager;
 mod walk;
 mod warden;
+mod wither;
 mod wolf;
 mod world;
 mod zombified_piglin;
@@ -262,6 +263,10 @@ pub use warden::{
     set_dig_cooldown as warden_set_dig_cooldown,
     set_disturbance_location as warden_set_disturbance_location, touch as warden_touch,
     update_activity as warden_update_activity,
+};
+pub use wither::{
+    DoNothingGoal as WitherDoNothingGoal, WitherAction, WitherBrain, WitherFacts, is_wither_friend,
+    living_selector as wither_living_selector,
 };
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{
