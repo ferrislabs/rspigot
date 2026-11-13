@@ -105,6 +105,7 @@ pub enum StopAttackCondition {
         invocations: i32,
         positives_left: i32,
     },
+    WardenNotAngry,
 }
 
 impl StopAttackCondition {
@@ -139,6 +140,10 @@ impl StopAttackCondition {
                 *positives_left -= 1;
                 *positives_left < 0
             }
+            Self::WardenNotAngry => {
+                !(crate::warden::anger_level(cx).is_angry()
+                    && crate::warden::can_target_entity(cx.ai.mob, cx.ai.world, target))
+            }
         }
     }
 }
@@ -147,6 +152,7 @@ impl StopAttackCondition {
 pub enum TargetErased {
     #[default]
     Nothing,
+    Warden,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -214,8 +220,11 @@ impl Trigger for StopAttackingIfTargetInvalid {
             .ai
             .request_brain_target(previous, None, TargetReason::Unknown)
         {
-            match self.on_target_erased {
-                TargetErased::Nothing => {}
+            match (self.on_target_erased, previous) {
+                (TargetErased::Warden, Some(erased)) => {
+                    crate::warden::on_target_invalid(cx, erased);
+                }
+                (TargetErased::Warden, None) | (TargetErased::Nothing, _) => {}
             }
             cx.brain.memories.erase(MemoryModuleType::AttackTarget);
         }

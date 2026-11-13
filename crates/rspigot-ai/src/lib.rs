@@ -54,6 +54,7 @@ mod view;
 mod village;
 mod villager;
 mod walk;
+mod warden;
 mod wolf;
 mod world;
 mod zombified_piglin;
@@ -204,6 +205,14 @@ pub use villager::{
     villager_activities, villager_brain, villager_sensors, wants_to_pick_up,
 };
 pub use walk::{block_path_type, mob_path_type};
+pub use warden::{
+    ANGER_TICK_INTERVAL, DARKNESS_INTERVAL, DARKNESS_RADIUS, DigCooldownSetter, Digging, Emerging,
+    ForceUnmount, Roar, SONIC_BOOM_DAMAGE, SONIC_BOOM_HORIZONTAL_KNOCKBACK,
+    SONIC_BOOM_VERTICAL_KNOCKBACK, SetLookAtAttackTarget, SetRoarTarget, SetWardenLookTarget,
+    Sniffing, SonicBoom, TOUCH_COOLDOWN_TICKS, TryToSniff, VIBRATION_COOLDOWN_TICKS, WardenAction,
+    WardenEntitySensor, WardenState, can_target_entity as warden_can_target_entity,
+    closer_than as warden_closer_than,
+};
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{
     AiWorld, DroppedItem, Facts, Hand, KindFacts, LastDamage, Living, MOVEMENT_SPEED, MobBody,
