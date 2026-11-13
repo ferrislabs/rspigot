@@ -69,6 +69,7 @@ pub mod server;
 mod sound;
 mod spawning;
 pub mod status;
+mod steering;
 pub mod streaming;
 mod tamable;
 mod thrown;

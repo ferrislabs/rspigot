@@ -908,6 +908,12 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Shiver(step) => {
+                if !cancelled {
+                    self.finish_shiver(step);
+                }
+                Vec::new()
+            }
             Continuation::Boarding(step) => {
                 self.finish_boarding(step, cancelled);
                 Vec::new()

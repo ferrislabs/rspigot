@@ -475,6 +475,12 @@ pub(crate) struct RideStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct ShiverStep {
+    pub(crate) strider: EntityId,
+    pub(crate) shivering: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct SpellStep {
     pub(crate) caster: EntityId,
     pub(crate) spell: rspigot_domain::entity::species::spellcaster::IllagerSpell,
@@ -1229,6 +1235,7 @@ pub(crate) enum Continuation {
     Ignite(IgniteStep),
     Regrow(EntityId),
     SpellCast(SpellStep),
+    Shiver(ShiverStep),
     Boarding(RideStep),
     Mounting(RideStep),
     Exiting(RideStep),
@@ -1369,6 +1376,7 @@ impl Continuation {
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::SpellCast(_) => EventKind::EntitySpellCast,
+            Self::Shiver(_) => EventKind::StriderTemperatureChange,
             Self::Boarding(_) => EventKind::VehicleEnter,
             Self::Mounting(_) => EventKind::EntityMount,
             Self::Exiting(_) => EventKind::VehicleExit,
@@ -1438,6 +1446,7 @@ impl Continuation {
             | Self::Knock(KnockStep { target: holder, .. }) => *holder == Holder::Mob(id),
             Self::ItemDespawn(item) | Self::Regrow(item) => *item == id,
             Self::SpellCast(step) => step.caster == id,
+            Self::Shiver(step) => step.strider == id,
             Self::Boarding(step)
             | Self::Mounting(step)
             | Self::Exiting(step)

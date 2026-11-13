@@ -886,6 +886,7 @@ mod tests {
                 EntityKind::Spider,
                 EntityKind::Squid,
                 EntityKind::Stray,
+                EntityKind::Strider,
                 EntityKind::Tadpole,
                 EntityKind::TropicalFish,
                 EntityKind::Turtle,

@@ -1,13 +1,17 @@
 use rspigot_ai::RideAction;
 use rspigot_domain::entity::riding;
 use rspigot_domain::entity::spawn::{self, Jockey};
-use rspigot_domain::entity::species::Species;
+use rspigot_domain::entity::species::{Species, strider};
 use rspigot_domain::entity::{Aabb, Entity, EntityState, Pose, RemovalReason, fluid, save};
 use rspigot_domain::game_event::GameEvent;
+use rspigot_domain::item::ItemStack;
+use rspigot_domain::spawn::SpawnGroupData;
 use rspigot_domain::spawn::SpawnReason;
 use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
+use rspigot_items::{EquipmentSlot, ItemKind};
 use rspigot_nbt::Tag;
+use std::num::NonZeroU8;
 
 use crate::brain_mobs::PASSENGERS;
 
@@ -26,6 +30,24 @@ use crate::server::{Audience, Server};
 const PORTALS: &str = "minecraft:portals";
 const FREE_POSITION_RADIUS: f32 = 4.0;
 const PIGLIN_STACK_DEPTH: i32 = 3;
+
+struct JockeyRider {
+    kind: Kind,
+    group: Option<SpawnGroupData>,
+    age: Option<i32>,
+    held: Option<ItemKind>,
+}
+
+impl JockeyRider {
+    const fn of(kind: Kind) -> Self {
+        Self {
+            kind,
+            group: None,
+            age: None,
+            held: None,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Seat {
@@ -710,7 +732,25 @@ impl<L: ClientLink> Server<L> {
         match plan {
             Some(Jockey::ExistingChicken) => self.mount_loose_chicken(id),
             Some(Jockey::NewChicken) => self.spawn_mount(id, Kind::Chicken, true),
-            Some(Jockey::SkeletonRider) => self.spawn_rider_on(id),
+            Some(Jockey::SkeletonRider) => self.spawn_rider_on(id, JockeyRider::of(Kind::Skeleton)),
+            Some(Jockey::StriderPiglin { baby }) => self.spawn_rider_on(
+                id,
+                JockeyRider {
+                    group: Some(SpawnGroupData::Zombie {
+                        baby,
+                        can_spawn_jockey: false,
+                    }),
+                    held: Some(ItemKind::WarpedFungusOnAStick),
+                    ..JockeyRider::of(Kind::ZombifiedPiglin)
+                },
+            ),
+            Some(Jockey::StriderBaby) => self.spawn_rider_on(
+                id,
+                JockeyRider {
+                    age: Some(strider::BABY_AGE),
+                    ..JockeyRider::of(Kind::Strider)
+                },
+            ),
             None => {}
         }
     }
@@ -766,7 +806,7 @@ impl<L: ClientLink> Server<L> {
         };
         let mut mount = new_mob(self.new_entity_base(kind));
         mount.base.snap_to(position, yaw, 0.0);
-        self.finalize_jockey_part(&mut mount);
+        self.finalize_jockey_part(&mut mount, None);
         if chicken_jockey
             && let Some(Species::Chicken(state)) = mount
                 .living_mut()
@@ -781,7 +821,7 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    fn spawn_rider_on(&mut self, vehicle: EntityId) {
+    fn spawn_rider_on(&mut self, vehicle: EntityId, rider: JockeyRider) {
         let Some((position, yaw)) = self
             .entities
             .store
@@ -790,23 +830,36 @@ impl<L: ClientLink> Server<L> {
         else {
             return;
         };
-        let mut rider = new_mob(self.new_entity_base(Kind::Skeleton));
-        rider.base.snap_to(position, yaw, 0.0);
-        self.finalize_jockey_part(&mut rider);
+        let mut entity = new_mob(self.new_entity_base(rider.kind));
+        entity.base.snap_to(position, yaw, 0.0);
+        if let Some(age) = rider.age
+            && let EntityState::Living(state) = &mut entity.state
+            && let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut())
+        {
+            rspigot_domain::entity::ageable::set_age(&mut entity.base, ageable, age);
+        }
+        self.finalize_jockey_part(&mut entity, rider.group);
+        if let (Some(item), EntityState::Living(state)) = (rider.held, &mut entity.state) {
+            spawn::set_item_slot(
+                state,
+                EquipmentSlot::Mainhand,
+                Some(ItemStack::new(item.id(), NonZeroU8::MIN)),
+            );
+        }
         self.spawn_entity(
-            rider,
+            entity,
             Birth::of(CreatureSpawnReason::Jockey).then(Spawned::Rides { vehicle }),
         );
     }
 
-    fn finalize_jockey_part(&mut self, entity: &mut rspigot_domain::entity::Entity) {
+    fn finalize_jockey_part(&mut self, entity: &mut Entity, group: Option<SpawnGroupData>) {
         let environment = self.spawn_environment(entity.base.position);
         let mut own = rspigot_domain::random::LegacyRandom::new(rand::Rng::random(&mut self.rng));
         spawn::finalize_spawn(
             entity,
             &environment,
             SpawnReason::Jockey,
-            None,
+            group,
             &mut ServerRandom(&mut self.rng),
             &mut own,
         );
