@@ -689,6 +689,7 @@ pub struct NearestAttackableTargetGoal {
     follow_scale: f64,
     found: Option<Living>,
     unseen_ticks: i32,
+    unseen_memory: i32,
 }
 
 impl NearestAttackableTargetGoal {
@@ -708,6 +709,14 @@ impl NearestAttackableTargetGoal {
             follow_scale: 1.0,
             found: None,
             unseen_ticks: 0,
+            unseen_memory: UNSEEN_MEMORY_TICKS,
+        }
+    }
+
+    pub fn with_unseen_memory(self, ticks: i32) -> Self {
+        Self {
+            unseen_memory: ticks,
+            ..self
         }
     }
 
@@ -843,7 +852,7 @@ impl NearestAttackableTargetGoal {
                 self.unseen_ticks = 0;
             } else {
                 self.unseen_ticks += 1;
-                if self.unseen_ticks > reduced_tick_delay(UNSEEN_MEMORY_TICKS) {
+                if self.unseen_ticks > reduced_tick_delay(self.unseen_memory) {
                     return false;
                 }
             }
@@ -915,6 +924,7 @@ pub enum MobGoal {
     WitchTarget(crate::raider::NearestAttackableWitchTargetGoal),
     Trader(crate::villager::TraderGoal),
     Air(crate::air::AirGoal),
+    Spell(crate::spell::SpellGoal),
     Water(crate::swimmers::WaterGoal),
     Turtle(crate::turtle::TurtleGoal),
     Guardian(crate::guardian::GuardianGoal),
@@ -971,6 +981,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Trader(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Spell(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Guardian(goal) => Goal::<AiContext<'_, W>>::flags(goal),
@@ -1027,6 +1038,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::WitchTarget(goal) => Goal::can_use(goal, context),
             Self::Trader(goal) => Goal::can_use(goal, context),
             Self::Air(goal) => Goal::can_use(goal, context),
+            Self::Spell(goal) => Goal::can_use(goal, context),
             Self::Water(goal) => Goal::can_use(goal, context),
             Self::Turtle(goal) => Goal::can_use(goal, context),
             Self::Guardian(goal) => Goal::can_use(goal, context),
@@ -1082,6 +1094,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::WitchTarget(goal) => Goal::can_continue_to_use(goal, context),
             Self::Trader(goal) => Goal::can_continue_to_use(goal, context),
             Self::Air(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Spell(goal) => Goal::can_continue_to_use(goal, context),
             Self::Water(goal) => Goal::can_continue_to_use(goal, context),
             Self::Turtle(goal) => Goal::can_continue_to_use(goal, context),
             Self::Guardian(goal) => Goal::can_continue_to_use(goal, context),
@@ -1102,6 +1115,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Spell(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Guardian(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
@@ -1163,6 +1177,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::WitchTarget(goal) => Goal::start(goal, context),
             Self::Trader(goal) => Goal::start(goal, context),
             Self::Air(goal) => Goal::start(goal, context),
+            Self::Spell(goal) => Goal::start(goal, context),
             Self::Water(goal) => Goal::start(goal, context),
             Self::Turtle(goal) => Goal::start(goal, context),
             Self::Guardian(goal) => Goal::start(goal, context),
@@ -1219,6 +1234,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::WitchTarget(goal) => Goal::stop(goal, context),
             Self::Trader(goal) => Goal::stop(goal, context),
             Self::Air(goal) => Goal::stop(goal, context),
+            Self::Spell(goal) => Goal::stop(goal, context),
             Self::Water(goal) => Goal::stop(goal, context),
             Self::Turtle(goal) => Goal::stop(goal, context),
             Self::Guardian(goal) => Goal::stop(goal, context),
@@ -1239,6 +1255,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Spell(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Guardian(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
@@ -1271,6 +1288,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::BlazeAttack(goal) => Goal::tick(goal, context),
             Self::Trader(goal) => Goal::tick(goal, context),
             Self::Air(goal) => Goal::tick(goal, context),
+            Self::Spell(goal) => Goal::tick(goal, context),
             Self::Water(goal) => Goal::tick(goal, context),
             Self::Turtle(goal) => Goal::tick(goal, context),
             Self::Guardian(goal) => Goal::tick(goal, context),
@@ -1339,6 +1357,7 @@ impl MobGoal {
             | Self::WitchTarget(_)
             | Self::Trader(_)
             | Self::Air(_)
+            | Self::Spell(_)
             | Self::Water(_)
             | Self::Turtle(_)
             | Self::Guardian(_)

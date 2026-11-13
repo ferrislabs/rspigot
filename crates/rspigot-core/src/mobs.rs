@@ -265,6 +265,7 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             school_leader: None,
             school_size: 0,
             swimming: false,
+            wool_color: 0,
         },
     }
 }
@@ -351,6 +352,11 @@ fn entity_facts(
         school_leader: crate::kinds::fish_facts_of(entity).0,
         school_size: crate::kinds::fish_facts_of(entity).1,
         swimming: false,
+        wool_color: if base.kind == Kind::Sheep {
+            species::wool_color(base)
+        } else {
+            0
+        },
         cube_size: if base.kind.extends("AbstractCubeMob") {
             u8::try_from(rspigot_domain::entity::reward::cube_size(entity).clamp(0, 255))
                 .unwrap_or(u8::MAX)

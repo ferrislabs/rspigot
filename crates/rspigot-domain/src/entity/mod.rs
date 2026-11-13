@@ -5,6 +5,7 @@ mod base;
 pub mod bullet;
 mod data;
 pub mod falling;
+pub mod fangs;
 pub mod fire;
 pub mod fluid;
 pub mod gossip;
@@ -55,6 +56,7 @@ pub enum EntityState {
     Thrown(Box<thrown::ThrownState>),
     Hurting(Box<hurting::HurtingState>),
     Bullet(Box<bullet::BulletState>),
+    Fangs(fangs::FangsState),
     Falling(FallingState),
     Living(Box<LivingState>),
     Orb(OrbState),

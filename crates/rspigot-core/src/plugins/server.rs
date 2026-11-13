@@ -902,6 +902,12 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::SpellCast(step) => {
+                if !cancelled {
+                    self.finish_spell_cast(step);
+                }
+                Vec::new()
+            }
             Continuation::EnterHive { bee, pos } => {
                 self.finish_enter_hive(bee, pos, cancelled);
                 Vec::new()
