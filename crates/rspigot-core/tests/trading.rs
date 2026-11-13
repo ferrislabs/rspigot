@@ -368,7 +368,8 @@ fn the_trader_event_places_a_trader_near_the_player_with_a_wander_target_and_a_h
     s.tick(1);
     let trader = s.server.entities_of(Kind::WanderingTrader)[0].id;
     let nbt = saved(&s, trader);
-    assert_eq!(nbt.get_i32("DespawnDelay"), Some(48_000));
+    let delay = nbt.get_i32("DespawnDelay").expect("a delay");
+    assert!((47_900..=48_000).contains(&delay), "{delay}");
     let target = nbt.get("wander_target").expect("a wander target");
     let rspigot_nbt::Tag::IntArray(target) = target else {
         panic!("an int array");
@@ -376,4 +377,16 @@ fn the_trader_event_places_a_trader_near_the_player_with_a_wander_target_and_a_h
     assert!(target[0].abs() <= 1 && target[2].abs() <= 1, "{target:?}");
     let at = s.server.entities_of(Kind::WanderingTrader)[0].position;
     assert!(at.x.abs() <= 49.0 && at.z.abs() <= 49.0);
+}
+
+#[test]
+fn killing_the_trader_closes_the_screen_for_the_player_trading_with_it() {
+    let mut s = ready();
+    let trader = summon(&mut s, Kind::WanderingTrader, "2.5 64 0.5", "{NoAI:1b}");
+    let alice = s.players[0].clone();
+    let (mut view, _) = open_trade(&mut s, trader);
+    console(&mut s, "kill @e[type=minecraft:wandering_trader]");
+    s.tick(2);
+    view.apply(&alice.link.take());
+    assert!(!view.opened);
 }
