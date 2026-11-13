@@ -760,6 +760,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Goat(state) => species::goat::read(nbt, base, state),
         Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
+        Species::Sniffer(_) => {}
         Species::Creaking(state) => species::creaking::read(nbt, base, state),
         Species::Villager(state) => {
             if let Some(merchant) = mob.merchant.as_mut() {
@@ -983,6 +984,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Piglin(_) => species::piglin::KEYS,
         Species::Goat(_) => species::goat::KEYS,
         Species::Armadillo(_) => species::armadillo::KEYS,
+        Species::Sniffer(_) => species::sniffer::KEYS,
         Species::Creaking(_) => species::creaking::KEYS,
         Species::Villager(_) => species::villager::KEYS,
         Species::WanderingTrader(_) => species::wandering_trader::KEYS,
@@ -1422,6 +1424,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Piglin(state) => species::piglin::write(base, state, out),
         Species::Goat(state) => species::goat::write(base, state, out),
         Species::Armadillo(state) => species::armadillo::write(base, state, out),
+        Species::Sniffer(_) => {}
         Species::Creaking(state) => species::creaking::write(base, state, out),
         Species::Villager(state) => {
             if let Some(merchant) = mob.merchant.as_deref() {
