@@ -331,6 +331,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Bee) => self.bee_interact(player, target, hand, held),
             Some(Kind::Allay) => self.allay_interact(player, target, hand, held),
             Some(Kind::Dolphin) => self.dolphin_interact(player, target, hand, held),
+            Some(Kind::Cod | Kind::Salmon | Kind::Pufferfish | Kind::TropicalFish) => {
+                self.fish_interact(player, target, hand, held)
+            }
             _ => None,
         }
     }
