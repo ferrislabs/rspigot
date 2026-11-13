@@ -62,6 +62,8 @@ pub struct Brain {
     pub bee: crate::BeeBrain,
     pub wither: crate::WitherBrain,
     pub wither_targets: [i32; 3],
+    pub guardian: crate::GuardianBrain,
+    pub drowned_target: Option<(f64, bool)>,
     follow_range: f64,
 }
 
@@ -149,6 +151,14 @@ impl Brain {
             profile = profile.water_bound(true);
             profile.set_malus(PathType::Water, 0.0);
         }
+        if kind == EntityKind::Drowned {
+            profile = profile.amphibious(false);
+            profile.set_malus(PathType::Water, 0.0);
+        }
+        if kind.extends("Guardian") {
+            profile = profile.water_bound(false);
+            profile.set_malus(PathType::Water, 0.0);
+        }
         if kind == EntityKind::Turtle {
             profile = profile.amphibious(false);
             profile.set_malus(PathType::Water, 0.0);
@@ -188,6 +198,8 @@ impl Brain {
             bee: crate::BeeBrain::default(),
             wither: crate::WitherBrain::default(),
             wither_targets: [0; 3],
+            guardian: crate::GuardianBrain::default(),
+            drowned_target: None,
             follow_range,
         };
         if kind == EntityKind::Warden {
@@ -201,6 +213,12 @@ impl Brain {
         }
         if kind == EntityKind::Turtle {
             brain.movement.set_turtle();
+        }
+        if kind.extends("Guardian") {
+            brain.movement.set_guardian();
+        }
+        if kind == EntityKind::Drowned {
+            brain.movement.set_drowned();
         }
         if kind == EntityKind::Dolphin {
             brain.movement.set_smooth_swimming(SmoothSwimming {
@@ -1095,6 +1113,13 @@ impl MobAi {
         if mob.kind == EntityKind::Wither {
             crate::wither::custom_step(&mut context);
         }
+        if mob.kind == EntityKind::Drowned {
+            context.brain.drowned_target = context
+                .brain
+                .target
+                .and_then(|id| world.living(id))
+                .map(|target| (target.position.y, target.in_water));
+        }
         if let Some(behavior) = self.behavior.as_mut() {
             sync_path_memory(behavior.memories_mut(), context.brain.navigation.path());
             behavior.tick(&mut context);
@@ -1124,6 +1149,10 @@ impl MobAi {
                 .actions
                 .insert(0, MobAction::Fox(crate::FoxAction::SetFlags(flags)));
         }
+    }
+
+    pub fn trigger_guardian_stroll(&mut self) {
+        self.brain.guardian.stroll_trigger = true;
     }
 
     pub fn fox_target_goals(&mut self, red: bool) {
@@ -1166,6 +1195,24 @@ impl MobAi {
                 MoveStyle::Fish => {
                     let done = brain.navigation.is_done();
                     brain.movement.tick_fish(base, living, done);
+                }
+                MoveStyle::Drowned => {
+                    let done = brain.navigation.is_done();
+                    let swimming = drowned_swim_of(living, brain.drowned_target, base.position.y);
+                    if !brain.movement.tick_drowned(base, living, done, swimming) {
+                        brain
+                            .movement
+                            .tick(base, living, view, &mut brain.jump, |pos| {
+                                crate::walk::mob_path_type(view, profile, state, pos)
+                                    == PathType::Walkable
+                            });
+                    }
+                }
+                MoveStyle::Guardian => {
+                    let done = brain.navigation.is_done();
+                    brain
+                        .movement
+                        .tick_guardian(base, living, done, &mut brain.look);
                 }
                 MoveStyle::Turtle => {
                     let done = brain.navigation.is_done();
@@ -1251,6 +1298,23 @@ impl MobAi {
         self.goals.set_control_flag(Flag::Move, true);
         self.goals.set_control_flag(Flag::Jump, true);
         self.goals.set_control_flag(Flag::Look, true);
+    }
+}
+
+fn drowned_swim_of(
+    living: &LivingState,
+    target: Option<(f64, bool)>,
+    y: f64,
+) -> crate::DrownedSwim {
+    let searching_for_land = match living.mob.as_ref().map(|mob| mob.species) {
+        Some(rspigot_domain::entity::species::Species::Zombie(zombie)) => zombie.searching_for_land,
+        _ => false,
+    };
+    let in_water = target.is_some_and(|(_, in_water)| in_water);
+    crate::DrownedSwim {
+        wants_to_swim: searching_for_land || in_water,
+        searching_for_land,
+        target_above: target.is_some_and(|(target_y, _)| target_y > y),
     }
 }
 

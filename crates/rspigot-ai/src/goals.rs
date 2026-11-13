@@ -629,6 +629,8 @@ pub enum TargetFilter {
     Prey,
     MobIsAdult,
     WitherLiving,
+    GuardianAttack,
+    DrownedOk,
 }
 
 impl TargetFilter {
@@ -654,6 +656,8 @@ impl TargetFilter {
             ),
             Self::MobIsAdult => !mob.baby,
             Self::WitherLiving => crate::wither::living_selector(target),
+            Self::GuardianAttack => crate::guardian::attack_selector(target, mob),
+            Self::DrownedOk => crate::drowned::drowned_ok_target(world, target),
         }
     }
 }
@@ -905,6 +909,8 @@ pub enum MobGoal {
     Air(crate::air::AirGoal),
     Water(crate::swimmers::WaterGoal),
     Turtle(crate::turtle::TurtleGoal),
+    Guardian(crate::guardian::GuardianGoal),
+    Drowned(crate::drowned::DrownedGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -958,6 +964,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Guardian(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Drowned(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -1011,6 +1019,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::can_use(goal, context),
             Self::Water(goal) => Goal::can_use(goal, context),
             Self::Turtle(goal) => Goal::can_use(goal, context),
+            Self::Guardian(goal) => Goal::can_use(goal, context),
+            Self::Drowned(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -1063,6 +1073,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::can_continue_to_use(goal, context),
             Self::Water(goal) => Goal::can_continue_to_use(goal, context),
             Self::Turtle(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Guardian(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Drowned(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
 
@@ -1080,6 +1092,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Guardian(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Drowned(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
@@ -1138,6 +1152,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::start(goal, context),
             Self::Water(goal) => Goal::start(goal, context),
             Self::Turtle(goal) => Goal::start(goal, context),
+            Self::Guardian(goal) => Goal::start(goal, context),
+            Self::Drowned(goal) => Goal::start(goal, context),
         }
     }
 
@@ -1191,6 +1207,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::stop(goal, context),
             Self::Water(goal) => Goal::stop(goal, context),
             Self::Turtle(goal) => Goal::stop(goal, context),
+            Self::Guardian(goal) => Goal::stop(goal, context),
+            Self::Drowned(goal) => Goal::stop(goal, context),
         }
     }
 
@@ -1208,6 +1226,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Guardian(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Drowned(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
@@ -1237,6 +1257,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::tick(goal, context),
             Self::Water(goal) => Goal::tick(goal, context),
             Self::Turtle(goal) => Goal::tick(goal, context),
+            Self::Guardian(goal) => Goal::tick(goal, context),
+            Self::Drowned(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
         }
     }
@@ -1302,6 +1324,8 @@ impl MobGoal {
             | Self::Air(_)
             | Self::Water(_)
             | Self::Turtle(_)
+            | Self::Guardian(_)
+            | Self::Drowned(_)
             | Self::Wolf(_)
             | Self::Cat(_)
             | Self::Fox(_)

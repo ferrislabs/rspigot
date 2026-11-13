@@ -70,6 +70,13 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         Kind::Sheep => Some("minecraft:entity.sheep.ambient"),
         Kind::Zombie => Some("minecraft:entity.zombie.ambient"),
         Kind::Husk => Some("minecraft:entity.husk.ambient"),
+        Kind::Drowned => Some(crate::kinds::drowned_ambient_sound(entity)),
+        Kind::Turtle => (!base.fluid.in_water && base.on_ground && !entity.is_baby())
+            .then_some(species::turtle::AMBIENT_LAND_SOUND),
+        Kind::Guardian | Kind::ElderGuardian => Some(species::guardian::ambient_sound(
+            base.kind,
+            base.fluid.in_water,
+        )),
         Kind::ZombieVillager => Some("minecraft:entity.zombie_villager.ambient"),
         Kind::PolarBear => Some(if entity.is_baby() {
             "minecraft:entity.polar_bear.ambient_baby"
@@ -490,7 +497,11 @@ impl<L: ClientLink> Server<L> {
         let kind = entity.base.kind;
         if !matches!(
             kind,
-            Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
+            Kind::Zombie
+                | Kind::Husk
+                | Kind::Drowned
+                | Kind::ZombieVillager
+                | Kind::ZombifiedPiglin
         ) {
             return;
         }
@@ -891,7 +902,11 @@ impl<L: ClientLink> Server<L> {
         let kind = entity.base.kind;
         if !matches!(
             kind,
-            Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
+            Kind::Zombie
+                | Kind::Husk
+                | Kind::Drowned
+                | Kind::ZombieVillager
+                | Kind::ZombifiedPiglin
         ) {
             return;
         }
