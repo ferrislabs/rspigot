@@ -197,13 +197,21 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let lane = self.lane_for(None, id);
-        self.fire(lane, Continuation::EggBreak { mob: id, pos }, move |_| {
-            Some(EventPayload::EntityInteract(EntityInteract {
-                block: pos,
-                entity_type: mob.kind.clone(),
-                entity: mob,
-            }))
-        });
+        self.fire(
+            lane,
+            Continuation::EggBreak {
+                mob: id,
+                pos,
+                trample: false,
+            },
+            move |_| {
+                Some(EventPayload::EntityInteract(EntityInteract {
+                    block: pos,
+                    entity_type: mob.kind.clone(),
+                    entity: mob,
+                }))
+            },
+        );
     }
 
     pub(crate) fn break_turtle_egg(&mut self, id: EntityId, pos: BlockPos) {
