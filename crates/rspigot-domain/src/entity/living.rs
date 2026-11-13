@@ -489,6 +489,7 @@ impl LivingState {
                 mob.merchant = Some(Box::new(MerchantState::new()));
             }
             mob.species = Species::new(base);
+            mob.persistence_required = kind == EntityKind::CopperGolem;
             mob.can_pick_up_loot = matches!(
                 kind,
                 EntityKind::Fox

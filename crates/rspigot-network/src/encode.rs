@@ -612,6 +612,8 @@ fn enum_state(kind: StateKind) -> EnumState {
     match kind {
         StateKind::Sniffer => EnumState::Sniffer,
         StateKind::Armadillo => EnumState::Armadillo,
+        StateKind::CopperGolem => EnumState::CopperGolem,
+        StateKind::WeatheringCopper => EnumState::WeatheringCopper,
     }
 }
 

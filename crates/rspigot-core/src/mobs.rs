@@ -130,7 +130,8 @@ pub(crate) struct MobTable {
     pub players: Vec<Living>,
     pub spawn_randoms: FxHashMap<EntityId, LegacyRandom>,
     pub initial_targets: FxHashMap<EntityId, EntityId>,
-    pub open_chests: Vec<crate::containers::Backing>,
+    pub open_chests: Vec<(EntityId, crate::containers::Backing)>,
+    pub golem_chests: FxHashMap<BlockPos, crate::containers::GolemOpening>,
     pub charging_sounds: crate::crossbow::ChargingSoundFlags,
 }
 
@@ -538,7 +539,7 @@ pub(crate) struct MobWorld<'a> {
     store: &'a Entities,
     entries: &'a FxHashMap<EntityId, MobEntry>,
     players: &'a [Living],
-    open_chests: &'a [crate::containers::Backing],
+    open_chests: &'a [(EntityId, crate::containers::Backing)],
     difficulty: i32,
     dimension: &'a str,
     game_time: i64,
@@ -551,6 +552,69 @@ pub(crate) struct MobWorld<'a> {
 }
 
 impl MobWorld<'_> {
+    fn half_items(&self, pos: BlockPos) -> Vec<rspigot_domain::item::Slot> {
+        let size = crate::containers::CHEST_HALF_SLOTS;
+        self.view
+            .chunks
+            .get(pos.chunk())
+            .and_then(|chunk| chunk.block_entity(pos))
+            .map_or_else(
+                || vec![None; size],
+                |entity| crate::containers::read_items(&entity.data, size),
+            )
+    }
+
+    fn chest_view(&self, pos: BlockPos, ignore_blocked: bool) -> Option<rspigot_ai::ContainerView> {
+        let state = self.view.state(pos)?;
+        if !state.kind().is_some_and(crate::chests::is_pairable) {
+            return None;
+        }
+        let blocked = |at: BlockPos| !ignore_blocked && rspigot_ai::is_chest_blocked_at(self, at);
+        if blocked(pos) {
+            return None;
+        }
+        match crate::chests::pair_of(pos, state, |at| self.view.state(at)) {
+            Some((right, left)) => {
+                let partner = if pos == right { left } else { right };
+                if blocked(partner) {
+                    return None;
+                }
+                let mut slots = self.half_items(right);
+                slots.extend(self.half_items(left));
+                Some(rspigot_ai::ContainerView {
+                    slots,
+                    compound: true,
+                })
+            }
+            None => Some(rspigot_ai::ContainerView {
+                slots: self.half_items(pos),
+                compound: false,
+            }),
+        }
+    }
+
+    fn golem_openers(&self, pos: BlockPos) -> Vec<EntityId> {
+        self.store
+            .iter()
+            .filter(|entity| entity.base.kind == Kind::CopperGolem)
+            .filter_map(|entity| {
+                let Some(Species::CopperGolem(golem)) = entity
+                    .living()
+                    .and_then(|living| living.mob.as_ref())
+                    .map(|mob| mob.species)
+                else {
+                    return None;
+                };
+                let opened = golem.opened_chest?;
+                let connected = self.view.state(opened).is_some_and(|state| {
+                    rspigot_ai::chest_side(state) != rspigot_ai::ChestSide::Single
+                        && rspigot_ai::connected_pos(opened, state) == pos
+                });
+                (opened == pos || connected).then_some(entity.base.id)
+            })
+            .collect()
+    }
+
     pub(crate) fn resolve(&self, uuid: Uuid) -> Option<EntityId> {
         self.players
             .iter()
@@ -618,10 +682,59 @@ impl AiWorld for MobWorld<'_> {
     }
 
     fn chest_open_count(&self, pos: BlockPos) -> i32 {
-        self.open_chests
+        let players = self
+            .open_chests
             .iter()
-            .filter(|backing| backing.positions().any(|candidate| candidate == pos))
-            .count() as i32
+            .filter(|(_, backing)| backing.positions().any(|candidate| candidate == pos))
+            .count();
+        (players + self.golem_openers(pos).len()) as i32
+    }
+
+    fn chests_in_chunk(&self, chunk: ChunkPos) -> Option<Vec<BlockPos>> {
+        let loaded = self.view.chunks.get(chunk)?;
+        let mut chests: Vec<BlockPos> = loaded
+            .block_entities
+            .iter()
+            .filter(|entity| matches!(entity.kind.path(), "chest" | "trapped_chest"))
+            .map(|entity| entity.pos)
+            .collect();
+        chests.sort_unstable_by_key(|pos| (pos.x, pos.y, pos.z));
+        Some(chests)
+    }
+
+    fn chest_container(
+        &self,
+        pos: BlockPos,
+        ignore_blocked: bool,
+    ) -> Option<rspigot_ai::ContainerView> {
+        self.chest_view(pos, ignore_blocked)
+    }
+
+    fn container_locked(&self, pos: BlockPos) -> bool {
+        self.view
+            .chunks
+            .get(pos.chunk())
+            .and_then(|chunk| chunk.block_entity(pos))
+            .is_some_and(|entity| entity.data.contains_key(crate::containers::LOCK))
+    }
+
+    fn container_openers(&self, pos: BlockPos) -> Vec<EntityId> {
+        let mut openers: Vec<EntityId> = self
+            .open_chests
+            .iter()
+            .filter(|(_, backing)| backing.positions().any(|candidate| candidate == pos))
+            .map(|(id, _)| *id)
+            .collect();
+        openers.extend(self.golem_openers(pos));
+        openers
+    }
+
+    fn main_hand_stack(&self, id: EntityId) -> Option<ItemStack> {
+        self.store
+            .get(id)?
+            .living()?
+            .equipment(EquipmentSlot::Mainhand)
+            .cloned()
     }
 
     fn any_entity_in(&self, area: &Aabb, except: EntityId) -> bool {
@@ -948,9 +1061,13 @@ impl<L: ClientLink> Server<L> {
         self.entities.mobs.open_chests = self
             .players
             .values()
-            .filter_map(|player| player.open_menu.as_ref())
-            .map(|open| open.backing)
-            .filter(|backing| backing.entity.is_some() || backing.ender)
+            .filter_map(|player| {
+                player
+                    .open_menu
+                    .as_ref()
+                    .map(|open| (player.entity_id, open.backing))
+            })
+            .filter(|(_, backing)| backing.entity.is_some() || backing.ender)
             .collect();
     }
 

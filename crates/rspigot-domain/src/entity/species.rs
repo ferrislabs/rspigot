@@ -14,6 +14,7 @@ use crate::{BiomeId, biome};
 pub mod armadillo;
 pub mod blaze;
 pub mod cat;
+pub mod copper_golem;
 pub mod creaking;
 pub mod enderman;
 pub mod endermite;
@@ -212,6 +213,7 @@ pub enum Species {
     Villager(villager::VillagerState),
     WanderingTrader(wandering_trader::WanderingTraderState),
     Warden(warden::WardenState),
+    CopperGolem(copper_golem::CopperGolemState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -410,6 +412,9 @@ impl Species {
         }
         if kind == EntityKind::Warden {
             return Self::Warden(warden::define(base));
+        }
+        if kind == EntityKind::CopperGolem {
+            return Self::CopperGolem(copper_golem::define(base));
         }
         Self::Plain
     }

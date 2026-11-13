@@ -769,6 +769,7 @@ mod tests {
                 EntityKind::Cat,
                 EntityKind::CaveSpider,
                 EntityKind::Chicken,
+                EntityKind::CopperGolem,
                 EntityKind::Cow,
                 EntityKind::Creaking,
                 EntityKind::Creeper,

@@ -353,6 +353,7 @@ impl<L: ClientLink> Server<L> {
             }
             if stack.item == ItemKind::Shears.id()
                 && !self.players.get(&id).is_some_and(|p| p.sneaking)
+                && self.kind_of(target) != Some(Kind::CopperGolem)
             {
                 let saddled = self
                     .entities
@@ -785,6 +786,10 @@ impl<L: ClientLink> Server<L> {
         };
         if entity.base.kind == Kind::SnowGolem {
             self.shear_snow_golem(id, target, hand);
+            return;
+        }
+        if entity.base.kind == Kind::CopperGolem {
+            self.shear_copper_golem(id, target, hand);
             return;
         }
         let position = entity.base.position;

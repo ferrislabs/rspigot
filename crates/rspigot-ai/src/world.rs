@@ -4,8 +4,9 @@ use rspigot_domain::entity::fluid::FluidContact;
 use rspigot_domain::entity::living::{self, LivingState};
 use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{Aabb, EntityBase, Pose};
+use rspigot_domain::item::{ItemStack, Slot};
 use rspigot_domain::poi::{Occupancy, PoiRecord};
-use rspigot_domain::{BlockPos, EntityId, ItemId, Vec3};
+use rspigot_domain::{BlockPos, ChunkPos, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind;
 use rspigot_items::{EquipmentSlot, ItemKind};
 use uuid::Uuid;
@@ -67,6 +68,12 @@ pub struct DroppedItem {
     pub bounds: Aabb,
     pub has_pickup_delay: bool,
     pub alive: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ContainerView {
+    pub slots: Vec<Slot>,
+    pub compound: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -245,6 +252,26 @@ pub trait AiWorld: BlockView {
 
     fn chest_open_count(&self, _pos: BlockPos) -> i32 {
         0
+    }
+
+    fn chests_in_chunk(&self, _chunk: ChunkPos) -> Option<Vec<BlockPos>> {
+        None
+    }
+
+    fn chest_container(&self, _pos: BlockPos, _ignore_blocked: bool) -> Option<ContainerView> {
+        None
+    }
+
+    fn container_locked(&self, _pos: BlockPos) -> bool {
+        false
+    }
+
+    fn container_openers(&self, _pos: BlockPos) -> Vec<EntityId> {
+        Vec::new()
+    }
+
+    fn main_hand_stack(&self, _id: EntityId) -> Option<ItemStack> {
+        None
     }
 
     fn peaceful(&self) -> bool {

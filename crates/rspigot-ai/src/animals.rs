@@ -44,6 +44,11 @@ pub fn brain_for(
                 creaking::creaking_sensors(),
                 creaking::creaking_activities(),
             ),
+            EntityKind::CopperGolem => (
+                &crate::copper_golem::COPPER_GOLEM_MEMORIES,
+                crate::copper_golem::copper_golem_sensors(),
+                crate::copper_golem::copper_golem_activities(),
+            ),
             EntityKind::Warden => (
                 &crate::warden::WARDEN_MEMORIES,
                 crate::warden::warden_sensors(),

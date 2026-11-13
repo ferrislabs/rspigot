@@ -98,6 +98,11 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             Grief::Compost(run) => self.finish_compost(*run, cancelled),
+            Grief::Statue { golem, pos, state } => {
+                if !cancelled {
+                    self.finish_golem_statue(golem, pos, state);
+                }
+            }
         }
     }
 }
