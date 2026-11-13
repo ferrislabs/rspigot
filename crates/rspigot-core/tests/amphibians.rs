@@ -470,3 +470,35 @@ fn a_taming_item_makes_a_nautilus_persistent_and_a_baby_is_not_tamed_by_it() {
     assert_eq!(nbt.get_bool("PersistenceRequired"), Some(true));
     assert!(nbt.get("Owner").is_none());
 }
+
+#[test]
+fn a_nautilus_cannot_be_poisoned_but_other_effects_still_apply() {
+    let mut s = ready(44);
+    let nautilus = summon(&mut s, Kind::Nautilus, "12.5 62 8.5", "{NoAI:1b}");
+    console(
+        &mut s,
+        "effect give @e[type=minecraft:nautilus] minecraft:poison 30",
+    );
+    console(
+        &mut s,
+        "effect give @e[type=minecraft:nautilus] minecraft:speed 30",
+    );
+    s.tick(2);
+    let effects: Vec<String> = saved(&s, nautilus)
+        .get_list("active_effects")
+        .map(|list| {
+            list.iter()
+                .filter_map(|tag| tag.as_compound())
+                .filter_map(|effect| effect.get_str("id").map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(
+        effects.contains(&"minecraft:speed".to_owned()),
+        "{effects:?}"
+    );
+    assert!(
+        !effects.contains(&"minecraft:poison".to_owned()),
+        "{effects:?}"
+    );
+}

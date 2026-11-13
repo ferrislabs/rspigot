@@ -11,6 +11,7 @@ use rspigot_domain::player::PlayerId;
 use rspigot_domain::random::LegacyRandom;
 use rspigot_domain::random::RandomSource;
 use rspigot_entities::EntityKind as Kind;
+use rspigot_items::EquipmentSlot;
 
 use crate::commands::Target;
 use crate::events::Hand;
@@ -22,6 +23,7 @@ use crate::server::Server;
 const TAME_FAILURE_EVENT: i8 = 6;
 const EAT_SOUND: &str = "minecraft:entity.nautilus.eat";
 const ZOMBIE_EAT_SOUND: &str = "minecraft:entity.zombie_nautilus.eat";
+const POISON: &str = "minecraft:poison";
 const SPEED: &str = "minecraft:speed";
 const SLOWNESS: &str = "minecraft:slowness";
 const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
@@ -148,6 +150,48 @@ impl<L: ClientLink> Server<L> {
         };
         self.entity_sound(target, sound, 1.0, 1.0);
         Some(Interaction::Predicted)
+    }
+
+    pub(crate) fn nautilus_refuses_effect(&self, id: EntityId, effect: EffectId) -> bool {
+        matches!(
+            self.kind_of(id),
+            Some(Kind::Nautilus | Kind::ZombieNautilus)
+        ) && EffectId::from_name(POISON) == Some(effect)
+    }
+
+    pub(crate) fn nautilus_custom_ai_step(&mut self, id: EntityId) {
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return;
+        };
+        let leashed = entity.extra.contains_key(crate::spawning::LEASH);
+        let tame = tamable::is_tame(&entity.base);
+        let position = entity.base.position.block();
+        let baby = entity.is_baby();
+        let Some(mob) = entity.living_mut().and_then(|living| {
+            let saddled = living.equipment(EquipmentSlot::Saddle).is_some();
+            living.mob.as_mut().map(|mob| (mob, saddled))
+        }) else {
+            return;
+        };
+        let (mob, saddled) = mob;
+        if leashed || !tame {
+            return;
+        }
+        let radius = nautilus::restriction_radius(baby, saddled);
+        let near = mob.home_radius != -1 && {
+            let reach = f64::from(radius + 8);
+            let (dx, dy, dz) = (
+                f64::from(mob.home_pos.x - position.x),
+                f64::from(mob.home_pos.y - position.y),
+                f64::from(mob.home_pos.z - position.z),
+            );
+            dx * dx + dy * dy + dz * dz < reach * reach
+        };
+        if near && mob.home_radius == radius {
+            return;
+        }
+        mob.home_pos = position;
+        mob.home_radius = radius;
     }
 
     pub(crate) fn nautilus_offspring(
