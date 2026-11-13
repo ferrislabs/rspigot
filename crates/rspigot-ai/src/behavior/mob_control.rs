@@ -7,6 +7,7 @@ use crate::behavior::control::{
     Behavior, BehaviorControl, BehaviorCx, DoNothing, Gate, OneShot, OrderPolicy, RunningPolicy,
     Sequence, Status, Timed, Trigger, TriggerGate,
 };
+use crate::behavior::door::InteractWithDoor;
 use crate::behavior::long_jump::{LongJumpMidJump, LongJumpToRandomPos};
 use crate::behavior::love::{AnimalMakeLove, FollowTemptation, MAKE_LOVE_DURATION};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue};
@@ -229,6 +230,7 @@ macro_rules! mob_triggers {
 
 mob_triggers! {
     SetWalkTargetFromLookTarget(SetWalkTargetFromLookTarget),
+    InteractWithDoor(InteractWithDoor),
     SetEntityLookTarget(SetEntityLookTarget),
     SetEntityLookTargetSometimes(SetEntityLookTargetSometimes),
     RandomStroll(RandomStroll),

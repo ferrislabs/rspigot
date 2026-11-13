@@ -50,6 +50,7 @@ pub fn wants_to_pick_up(mob: &MobView, item: ItemId) -> bool {
 }
 
 const MEMORIES: &[crate::behavior::MemoryModuleType] = &[
+    crate::behavior::MemoryModuleType::DoorsToClose,
     crate::behavior::MemoryModuleType::LastWorkedAtPoi,
     crate::behavior::MemoryModuleType::LastSlept,
     crate::behavior::MemoryModuleType::LastWoken,

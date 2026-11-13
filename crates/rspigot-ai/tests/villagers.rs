@@ -320,8 +320,9 @@ fn leading(list: &[(i32, String)], known: &[&'static str]) -> Vec<(i32, &'static
         .collect()
 }
 
-const KNOWN: [&str; 52] = [
+const KNOWN: [&str; 53] = [
     "Swim",
+    "InteractWithDoor",
     "LookAtTargetSink",
     "VillagerPanicTrigger",
     "WakeUp",
@@ -392,15 +393,18 @@ fn the_core_activity_follows_villager_goal_packages() {
     let core = behaviors(Profession::None, false, Activity::Core);
     assert_eq!(
         kinds(core.clone()),
-        vec![0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 5, 6, 7, 8, 10, 10, 10, 10]
+        vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 5, 6, 7, 8, 10, 10, 10, 10
+        ]
     );
     let names = leading(&core, &KNOWN);
     assert_eq!(names[0], (0, "Swim"));
-    assert_eq!(names[1], (0, "LookAtTargetSink"));
-    assert_eq!(names[2], (0, "VillagerPanicTrigger"));
-    assert_eq!(names[8], (1, "MoveToTargetSink"));
-    assert_eq!(names[10], (3, "LookAndFollowTradingPlayerSink"));
-    assert_eq!(names[13], (7, "GoToPotentialJobSite"));
+    assert_eq!(names[1], (0, "InteractWithDoor"));
+    assert_eq!(names[2], (0, "LookAtTargetSink"));
+    assert_eq!(names[3], (0, "VillagerPanicTrigger"));
+    assert_eq!(names[9], (1, "MoveToTargetSink"));
+    assert_eq!(names[11], (3, "LookAndFollowTradingPlayerSink"));
+    assert_eq!(names[14], (7, "GoToPotentialJobSite"));
 }
 
 #[test]
@@ -1069,6 +1073,63 @@ fn a_villager_falls_asleep_in_a_free_bed_beside_it_and_wakes_when_resting_ends()
             .villager_actions()
             .contains(&VillagerAction::StopSleeping)
     );
+}
+
+#[test]
+fn a_villager_closes_the_doors_it_opened_before_going_to_sleep() {
+    let bed = BlockPos::new(0, 64, 0);
+    let door = BlockPos::new(1, 64, 1);
+    let mut world = Field::flat();
+    world.put(
+        0,
+        64,
+        0,
+        BlockKind::RedBed
+            .default_state()
+            .with_property("part", "head")
+            .unwrap(),
+    );
+    world.put(
+        1,
+        64,
+        1,
+        BlockKind::OakDoor
+            .default_state()
+            .with_property("half", "lower")
+            .unwrap()
+            .with_property("open", "true")
+            .unwrap(),
+    );
+    let mut bench = Bench::at(
+        Vec3::new(0.5, 64.6, 0.5),
+        VillagerFacts::default(),
+        world,
+        4,
+        false,
+    );
+    let home = bench.global(bed);
+    bench.set(MemoryModuleType::Home, home);
+    let doors = bench.global(door);
+    let MemoryValue::GlobalPos(doors) = doors else {
+        unreachable!()
+    };
+    bench.set(
+        MemoryModuleType::DoorsToClose,
+        MemoryValue::GlobalPosList(vec![doors]),
+    );
+    bench.state.set_active_activity_if_possible(Activity::Idle);
+    let mut sleep = MobControl::behavior(rspigot_ai::MobBehavior::SleepInBed(
+        rspigot_ai::SleepInBed::new(),
+    ));
+    assert!(bench.start(&mut sleep, NOW));
+    let actions = bench.actions();
+    assert!(actions.contains(&MobAction::SetDoorOpen {
+        pos: door,
+        open: false,
+        interact: false,
+    }));
+    assert!(actions.contains(&MobAction::Villager(VillagerAction::StartSleeping(bed))));
+    assert!(bench.get(MemoryModuleType::DoorsToClose).is_none());
 }
 
 #[test]
