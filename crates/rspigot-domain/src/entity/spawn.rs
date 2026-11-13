@@ -548,6 +548,9 @@ pub fn finalize_spawn(
             species::ghast::finalize(base, living, environment, group, level)
         }
         Some(Species::Vex(_)) => species::vex::finalize(base, living, environment, group, level),
+        Some(Species::Allay(_)) => {
+            species::allay::finalize(base, living, environment, group, level)
+        }
         Some(Species::Bat(_)) => species::bat::finalize(base, living, environment, group, level),
         Some(Species::Parrot) => species::parrot::finalize(base, living, environment, group, level),
         Some(Species::Phantom(_)) => {

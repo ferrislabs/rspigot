@@ -466,6 +466,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn finish_mob_pickup(&mut self, step: MobPickupStep, cancelled: bool) {
+        if self.kind_of(step.collector) == Some(Kind::Allay) {
+            self.finish_allay_pickup(step, cancelled);
+            return;
+        }
         let MobPickupStep {
             collector,
             item,

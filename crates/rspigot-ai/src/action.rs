@@ -68,6 +68,9 @@ pub enum BrainMessage {
     PiglinBruteHurtBy {
         attacker: EntityId,
     },
+    AllayHeardNoteblock {
+        pos: BlockPos,
+    },
     ArmadilloHurt {
         by_living: bool,
         environmental: bool,

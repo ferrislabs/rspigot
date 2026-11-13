@@ -12,6 +12,7 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 
 mod air;
+mod allay;
 mod armadillo;
 mod bat;
 mod blaze;
@@ -81,6 +82,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Ghast => self.ghast_view(entity, view),
             Kind::Vex => self.vex_view(entity, view),
             Kind::Wither => self.wither_view(entity, view),
+            Kind::Allay => self.allay_view(entity, view),
             Kind::Bat => self.bat_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
             Kind::Parrot => self.parrot_view(entity, view),
@@ -187,6 +189,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Creaking) => self.creaking_ai_step(id),
             Some(Kind::Parrot) => self.parrot_ai_step(id),
             Some(Kind::Wither) => self.wither_ai_step(id),
+            Some(Kind::Allay) => self.allay_ai_step(id),
             _ => {}
         }
     }
@@ -202,6 +205,7 @@ impl<L: ClientLink> Server<L> {
         match self.kind_of(id) {
             Some(Kind::Piglin) => self.piglin_death_drops(id),
             Some(Kind::Wither) => self.wither_death_drops(id),
+            Some(Kind::Allay) => self.allay_death_drops(id),
             _ => Vec::new(),
         }
     }
@@ -230,6 +234,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Warden) => self.warden_ambient_voice(id),
             Some(Kind::Bat) => self.bat_ambient_voice(id),
             Some(Kind::Parrot) => self.parrot_ambient_voice(id),
+            Some(Kind::Allay) => self.allay_ambient_voice(id),
             _ => {
                 let game_time = self.world.level.game_time;
                 self.play_mob_voice(id, |entity| {
@@ -301,6 +306,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::WanderingTrader) => self.trader_interact(player, target, hand, held),
             Some(Kind::CopperGolem) => self.copper_golem_interact(player, target, hand, held),
             Some(Kind::Parrot) => self.parrot_interact(player, target, hand, held),
+            Some(Kind::Allay) => self.allay_interact(player, target, hand, held),
             _ => None,
         }
     }
@@ -323,6 +329,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::IronGolem) => self.iron_golem_hurt_amount(id, source, amount),
             Some(Kind::Ghast) => self.ghast_hurt_amount(id, source, amount),
             Some(Kind::Wither) => self.wither_hurt_amount(id, source, amount),
+            Some(Kind::Allay) => self.allay_hurt_amount(id, source, amount),
             Some(Kind::Bat) => self.bat_hurt_amount(id, source, amount),
             Some(Kind::Shulker) => self.shulker_hurt_amount(id, source, amount),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_hurt_amount(id, source, amount),

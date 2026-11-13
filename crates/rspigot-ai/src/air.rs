@@ -83,4 +83,5 @@ pub enum AirAction {
     Bat(crate::bat::BatAction),
     Vex(crate::vex::VexAction),
     Wither(crate::wither::WitherAction),
+    Allay(crate::allay::AllayAction),
 }
