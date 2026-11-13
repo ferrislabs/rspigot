@@ -97,6 +97,7 @@ impl<L: ClientLink> Server<L> {
                     self.finish_douse(pos, to);
                 }
             }
+            Grief::Compost(run) => self.finish_compost(*run, cancelled),
         }
     }
 }

@@ -9,6 +9,7 @@ use rspigot_blocks::{BlockKind, Face, PlaceContext, StateFlags, UseContext};
 
 use crate::block_tools::ToolUse;
 use crate::chests;
+use crate::crops;
 use crate::events::{
     ClientEvent, DigAction, Direction, EquipmentSlot, Hand, MovementAction, PlayerInput,
 };
@@ -451,6 +452,11 @@ impl<L: ClientLink> Server<L> {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
+            if !(sneaking && holding)
+                && self.use_composter(id, hand, stack.as_ref(), pos, clicked, sequence)
+            {
+                return;
+            }
         } else {
             self.resync_denied_block(id, pos, face, clicked, stack.as_ref());
         }
@@ -468,6 +474,15 @@ impl<L: ClientLink> Server<L> {
         };
         if let Some(held) = &stack
             && self.use_tool_on_block(id, held, &usage, slot, sequence)
+        {
+            return;
+        }
+        if let Some(held) = &stack
+            && crops::is_bone_meal(held.item)
+            && !matches!(game_mode, GameMode::Adventure | GameMode::Spectator)
+            && self.within_reach(id, pos)
+            && !self.is_protected(id, pos)
+            && self.use_bone_meal(id, hand, pos, sequence)
         {
             return;
         }

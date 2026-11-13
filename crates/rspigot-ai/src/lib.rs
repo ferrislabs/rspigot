@@ -196,12 +196,12 @@ pub use villager::{
     PoiCompetitorScan, PoiRule, RaidFacts, ReactToBell, ResetProfession, ResetRaidStatus, RingBell,
     SecondaryPoiSensor, SetClosestHomeAsWalkTarget, SetHiddenState, SetRaidStatus,
     SetWalkTargetFromBlockMemory, ShowTradesToPlayer, SleepInBed, SocializeAtBell, StackFacts,
-    StrollToPoiList, TradeView, TradeWithVillager, UpdateActivityFromSchedule, ValidateNearbyPoi,
-    VillageBoundRandomStroll, VillagerAction, VillagerBabiesSensor, VillagerCalmDown,
-    VillagerFacts, VillagerHostilesSensor, VillagerMakeLove, VillagerPanicTrigger,
-    VillagerPeerFacts, WakeUp, WorkAtPoi, Workstation, YieldJobSite, bed_is_occupied,
-    check_for_nearby_golem, golem_detected, hostile_distance, is_free_bed, villager_activities,
-    villager_brain, villager_sensors, wants_to_pick_up,
+    StrollToPoiList, TradeView, TradeWithVillager, UpdateActivityFromSchedule, UseBonemeal,
+    ValidateNearbyPoi, VillageBoundRandomStroll, VillagerAction, VillagerBabiesSensor,
+    VillagerCalmDown, VillagerFacts, VillagerHostilesSensor, VillagerMakeLove,
+    VillagerPanicTrigger, VillagerPeerFacts, WakeUp, WorkAtPoi, Workstation, YieldJobSite,
+    bed_is_occupied, check_for_nearby_golem, golem_detected, hostile_distance, is_free_bed,
+    villager_activities, villager_brain, villager_sensors, wants_to_pick_up,
 };
 pub use walk::{block_path_type, mob_path_type};
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};

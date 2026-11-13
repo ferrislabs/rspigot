@@ -37,7 +37,7 @@ use crate::villager::{
     LookAndFollowTradingPlayerSink, MoveToSkySeeingSpot, PlayTagWithOtherKids, PoiCompetitorScan,
     ReactToBell, ResetProfession, ResetRaidStatus, RingBell, SetClosestHomeAsWalkTarget,
     SetHiddenState, SetRaidStatus, SetWalkTargetFromBlockMemory, ShowTradesToPlayer, SleepInBed,
-    SocializeAtBell, StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule,
+    SocializeAtBell, StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule, UseBonemeal,
     ValidateNearbyPoi, VillageBoundRandomStroll, VillagerCalmDown, VillagerMakeLove,
     VillagerPanicTrigger, WakeUp, WorkAtPoi, YieldJobSite,
 };
@@ -186,6 +186,7 @@ mob_behaviors! {
     ShowTradesToPlayer(ShowTradesToPlayer),
     GiveGiftToHero(GiveGiftToHero),
     HarvestFarmland(HarvestFarmland),
+    UseBonemeal(UseBonemeal),
 }
 
 macro_rules! mob_triggers {
