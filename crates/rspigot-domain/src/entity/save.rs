@@ -775,6 +775,8 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
             species::pillager::read(nbt, base, state);
             mob.can_pick_up_loot = true;
         }
+        Species::Vindicator(state) => species::vindicator::read(nbt, base, state),
+        Species::Ravager(state) => species::ravager::read(nbt, base, state),
         Species::Hoglin(state) => {
             species::hoglin::read(nbt, base, &mut living.attributes, state);
         }
@@ -1026,6 +1028,8 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Ocelot(_) => species::ocelot::KEYS,
         Species::Witch(_) => species::witch::KEYS,
         Species::Pillager(_) => species::pillager::KEYS,
+        Species::Vindicator(_) => species::vindicator::KEYS,
+        Species::Ravager(_) => species::ravager::KEYS,
         Species::Hoglin(_) => species::hoglin::KEYS,
         Species::Piglin(_) => species::piglin::KEYS,
         Species::Goat(_) => species::goat::KEYS,
@@ -1487,6 +1491,8 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Ocelot(state) => species::ocelot::write(base, state, out),
         Species::Witch(state) => species::witch::write(base, state, out),
         Species::Pillager(state) => species::pillager::write(base, state, out),
+        Species::Vindicator(state) => species::vindicator::write(base, state, out),
+        Species::Ravager(state) => species::ravager::write(base, state, out),
         Species::Hoglin(state) => species::hoglin::write(base, state, out),
         Species::Piglin(state) => species::piglin::write(base, state, out),
         Species::Goat(state) => species::goat::write(base, state, out),

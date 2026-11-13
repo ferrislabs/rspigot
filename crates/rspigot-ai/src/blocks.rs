@@ -271,6 +271,7 @@ fn is_open(state: Option<StateId>) -> bool {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BreakDoorGoal {
+    normal_ok: bool,
     door_pos: BlockPos,
     has_door: bool,
     passed: bool,
@@ -282,6 +283,7 @@ pub struct BreakDoorGoal {
 impl Default for BreakDoorGoal {
     fn default() -> Self {
         Self {
+            normal_ok: false,
             door_pos: BlockPos::new(0, 0, 0),
             has_door: false,
             passed: false,
@@ -292,8 +294,17 @@ impl Default for BreakDoorGoal {
     }
 }
 
+const NORMAL_DIFFICULTY: i32 = 2;
+
 impl BreakDoorGoal {
-    fn door_is_open<W: AiWorld>(&mut self, context: &AiContext<'_, W>) -> bool {
+    pub fn vindicator() -> Self {
+        Self {
+            normal_ok: true,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn door_is_open<W: AiWorld>(&mut self, context: &AiContext<'_, W>) -> bool {
         if !self.has_door {
             return false;
         }
@@ -308,11 +319,12 @@ impl BreakDoorGoal {
         is_open(state)
     }
 
-    fn valid_difficulty<W: AiWorld>(context: &AiContext<'_, W>) -> bool {
-        context.world.difficulty() == HARD_DIFFICULTY
+    fn valid_difficulty<W: AiWorld>(&self, context: &AiContext<'_, W>) -> bool {
+        let difficulty = context.world.difficulty();
+        difficulty == HARD_DIFFICULTY || (self.normal_ok && difficulty == NORMAL_DIFFICULTY)
     }
 
-    fn find_door<W: AiWorld>(&mut self, context: &AiContext<'_, W>) -> bool {
+    pub(crate) fn find_door<W: AiWorld>(&mut self, context: &AiContext<'_, W>) -> bool {
         if !context.mob.horizontal_collision {
             return false;
         }
@@ -346,7 +358,7 @@ impl BreakDoorGoal {
     pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         self.find_door(context)
             && context.world.mob_griefing()
-            && Self::valid_difficulty(context)
+            && self.valid_difficulty(context)
             && !self.door_is_open(context)
     }
 
@@ -357,16 +369,39 @@ impl BreakDoorGoal {
         self.break_time <= DOOR_BREAK_TIME
             && !self.door_is_open(context)
             && closer_to_center_than(self.door_pos, context.mob.position, DOOR_KEEP_DISTANCE)
-            && Self::valid_difficulty(context)
+            && self.valid_difficulty(context)
     }
 
-    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn interact_start<W: AiWorld>(&mut self, context: &AiContext<'_, W>) {
         self.passed = false;
         let mob = context.mob.position;
         self.door_open_dir = (
             (f64::from(self.door_pos.x) + 0.5 - mob.x) as f32,
             (f64::from(self.door_pos.z) + 0.5 - mob.z) as f32,
         );
+    }
+
+    pub(crate) fn interact_tick<W: AiWorld>(&mut self, context: &AiContext<'_, W>) {
+        let mob = context.mob.position;
+        let dir = (
+            (f64::from(self.door_pos.x) + 0.5 - mob.x) as f32,
+            (f64::from(self.door_pos.z) + 0.5 - mob.z) as f32,
+        );
+        if self.door_open_dir.0 * dir.0 + self.door_open_dir.1 * dir.1 < 0.0 {
+            self.passed = true;
+        }
+    }
+
+    pub(crate) fn door_pos(&self) -> BlockPos {
+        self.door_pos
+    }
+
+    pub(crate) fn has_door(&self) -> bool {
+        self.has_door
+    }
+
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        self.interact_start(context);
         self.break_time = 0;
     }
 
@@ -378,14 +413,7 @@ impl BreakDoorGoal {
     }
 
     pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
-        let mob = context.mob.position;
-        let dir = (
-            (f64::from(self.door_pos.x) + 0.5 - mob.x) as f32,
-            (f64::from(self.door_pos.z) + 0.5 - mob.z) as f32,
-        );
-        if self.door_open_dir.0 * dir.0 + self.door_open_dir.1 * dir.1 < 0.0 {
-            self.passed = true;
-        }
+        self.interact_tick(context);
         if context.brain.random.next_int(DOOR_KNOCK_CHANCE) == 0 {
             context.act(MobAction::LevelEvent {
                 event: ZOMBIE_ATTACK_DOOR_EVENT,
@@ -405,13 +433,57 @@ impl BreakDoorGoal {
             });
             self.last_break_progress = progress;
         }
-        if self.break_time == DOOR_BREAK_TIME && Self::valid_difficulty(context) {
+        if self.break_time == DOOR_BREAK_TIME && self.valid_difficulty(context) {
             context.act(MobAction::BreakDoor(self.door_pos));
         }
     }
 
     pub(crate) fn passed(&self) -> bool {
         self.passed
+    }
+}
+
+const OPEN_DOOR_FORGET_TICKS: i32 = 20;
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct OpenDoorGoal {
+    door: BreakDoorGoal,
+    forget_time: i32,
+    close_after: bool,
+}
+
+impl OpenDoorGoal {
+    fn set_open<W: AiWorld>(&self, context: &mut AiContext<'_, W>, open: bool) {
+        if self.door.has_door() {
+            context.act(MobAction::SetDoorOpen {
+                pos: self.door.door_pos(),
+                open,
+                interact: false,
+            });
+        }
+    }
+
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        self.door.find_door(context)
+    }
+
+    pub(crate) fn can_continue_to_use(&self) -> bool {
+        self.close_after && 0 < self.forget_time && !self.door.passed()
+    }
+
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        self.door.interact_start(context);
+        self.forget_time = OPEN_DOOR_FORGET_TICKS;
+        self.set_open(context, true);
+    }
+
+    pub(crate) fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        self.set_open(context, false);
+    }
+
+    pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        self.forget_time -= 1;
+        self.door.interact_tick(context);
     }
 }
 

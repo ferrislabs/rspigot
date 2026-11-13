@@ -109,6 +109,10 @@ fn refuses(mob: &MobView, target: &Living) -> bool {
     if mob.tamed && mob.owner == Some(target.id) {
         return true;
     }
+    if mob.kind.extends("AbstractIllager") && target.kind.extends("AbstractVillager") && target.baby
+    {
+        return true;
+    }
     mob.kind == EntityKind::IronGolem
         && ((mob.player_created && target.player) || target.kind == EntityKind::Creeper)
 }

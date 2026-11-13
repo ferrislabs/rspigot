@@ -934,6 +934,10 @@ pub(crate) enum Grief {
         pos: BlockPos,
         state: BlockStateId,
     },
+    RavagerBreak {
+        ravager: EntityId,
+        pos: BlockPos,
+    },
     WitherBreak {
         wither: EntityId,
         pos: BlockPos,
@@ -1217,6 +1221,11 @@ pub(crate) enum Continuation {
         mob: EntityId,
         pos: BlockPos,
     },
+    RaidTrigger {
+        player: PlayerId,
+        pos: BlockPos,
+        amplifier: u8,
+    },
     TargetBlock {
         mob: EntityId,
         pos: BlockPos,
@@ -1335,6 +1344,7 @@ impl Continuation {
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
+            Self::RaidTrigger { .. } => EventKind::RaidTrigger,
             Self::EnterHive { .. } => EventKind::EntityEnterBlock,
             Self::TargetBlock { .. } => EventKind::EntityTargetBlock,
             Self::EntityExplode(_) => EventKind::EntityExplode,
@@ -1423,6 +1433,7 @@ impl Continuation {
                 Grief::Compost(run) => run.villager() == id,
                 Grief::Statue { golem, .. } => *golem == id,
                 Grief::WitherBreak { wither, .. } => *wither == id,
+                Grief::RavagerBreak { ravager, .. } => *ravager == id,
                 Grief::BeeGrow { bee, .. } => *bee == id,
                 Grief::TurtleEgg { turtle, .. } => *turtle == id,
                 Grief::Frogspawn { frog, .. } => *frog == id,

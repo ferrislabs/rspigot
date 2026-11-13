@@ -215,6 +215,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
             MobClass::Mob
                 | MobClass::Ocelot
                 | MobClass::IronGolem
+                | MobClass::Ravager
                 | MobClass::ZombifiedPiglin
                 | MobClass::Warden
                 | MobClass::WaterAnimal
@@ -391,6 +392,7 @@ pub fn check_spawn_obstruction(level: &impl SpawnLevel, kind: EntityKind, area: 
                 && !contains_any_liquid(level, area)
                 && ocelot_can_stand(level, area)
         }
+        Some(MobClass::Ravager) => !contains_any_liquid(level, area),
         Some(MobClass::IronGolem) => iron_golem_obstruction(level, area),
         Some(
             MobClass::WaterAnimal
@@ -564,6 +566,24 @@ mod tests {
             &level,
             EntityKind::Pillager,
             pos.center()
+        ));
+    }
+
+    #[test]
+    fn vindicators_and_ravagers_have_ported_monster_rules_and_ravagers_refuse_liquid() {
+        assert!(rules_ported(EntityKind::Vindicator));
+        assert!(rules_ported(EntityKind::Ravager));
+        let level = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        let area = Aabb::of_size(BlockPos::new(4, 64, 4).center(), 1.95, 2.2);
+        assert!(check_spawn_obstruction(&level, EntityKind::Ravager, &area));
+        let pos = BlockPos::new(4, 64, 4);
+        let mut dry = Level::floor(GrassBlock::DEFAULT_STATE, 63);
+        dry.difficulty = Difficulty::Peaceful;
+        assert!(!check_spawn_rules(
+            &mut dry,
+            EntityKind::Ravager,
+            SpawnReason::Natural,
+            pos
         ));
     }
 
