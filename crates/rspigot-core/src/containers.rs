@@ -15,12 +15,14 @@ use rspigot_nbt::{Compound, Tag};
 
 use crate::chests::{self, Oxidation};
 use crate::events::{ClientEvent, ContainerClick};
+use crate::game_events::GameEventContext;
 use crate::menu::Move;
 use crate::player::Player;
 use crate::plugins::views::Window;
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 use crate::{beacon, campfire, cooking, lectern};
+use rspigot_domain::game_event::GameEvent;
 
 const SMITHING_TABLE_USE: &str = "minecraft:block.smithing_table.use";
 const STONECUTTER_TAKE_RESULT: &str = "minecraft:ui.stonecutter.take_result";
@@ -657,6 +659,14 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let first_or_last = if opened { count == 1 } else { count == 0 };
+        if first_or_last {
+            let event = if opened {
+                GameEvent::ContainerOpen
+            } else {
+                GameEvent::ContainerClose
+            };
+            self.block_game_event(event, backing.pos, GameEventContext::block(state));
+        }
         let center = backing.pos.center() + rspigot_domain::Vec3::new(0.0, 0.5, 0.0);
         let mut position = center;
         if backing.lid == Lid::Barrel {

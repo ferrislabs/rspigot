@@ -8,9 +8,11 @@ use rspigot_items::{Food, ItemKind};
 
 use crate::bow::{UsingItem, hand_slot};
 use crate::events::Hand;
+use crate::game_events::GameEventContext;
 use crate::player::Player;
 use crate::ports::ClientLink;
 use crate::server::Server;
+use rspigot_domain::game_event::GameEvent;
 
 const EAT_TICKS: u64 = 32;
 const FAST_EAT_TICKS: u64 = 16;
@@ -103,6 +105,7 @@ impl<L: ClientLink> Server<L> {
             }
         }
         self.play_sound(None, position, BURP_SOUND, SoundSource::Players, 0.5, 1.0);
+        self.game_event(GameEvent::Eat, position, GameEventContext::of(Some(entity)));
         self.send_inventory(id);
     }
 }
