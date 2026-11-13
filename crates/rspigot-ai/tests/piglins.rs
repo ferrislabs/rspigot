@@ -277,7 +277,9 @@ fn behaviors(kind: EntityKind, activity: Activity) -> Vec<(i32, String)> {
 }
 
 fn names(list: &[(i32, String)]) -> Vec<(i32, Vec<&'static str>)> {
-    const KNOWN: [&str; 41] = [
+    const KNOWN: [&str; 43] = [
+        "Mount",
+        "DismountOrSkipMounting",
         "InteractWithDoor",
         "BecomePassiveIfMemoryPresent",
         "AnimalMakeLove",
@@ -475,9 +477,19 @@ fn piglin_activities_follow_the_vanilla_priorities() {
             (11, "StartAttacking"),
             (12, "StartHuntingHoglin"),
             (13, "SetWalkTargetAwayFrom"),
-            (14, "SetEntityLookTarget"),
-            (15, "RandomStroll"),
-            (16, "SetLookAndInteract"),
+            (14, "CopyMemoryWithExpiry"),
+            (15, "SetEntityLookTarget"),
+            (16, "RandomStroll"),
+            (17, "SetLookAndInteract"),
+        ]
+    );
+    assert_eq!(
+        leading(&behaviors(kind, Activity::Ride)),
+        vec![
+            (10, "Mount"),
+            (11, "SetEntityLookTarget"),
+            (12, "SetEntityLookTarget"),
+            (13, "DismountOrSkipMounting"),
         ]
     );
     assert_eq!(
