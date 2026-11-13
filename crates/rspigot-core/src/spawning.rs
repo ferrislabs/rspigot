@@ -763,6 +763,7 @@ mod tests {
             spawning,
             vec![
                 EntityKind::Armadillo,
+                EntityKind::Bat,
                 EntityKind::Blaze,
                 EntityKind::Bogged,
                 EntityKind::Breeze,

@@ -84,6 +84,7 @@ pub fn check_predicate(
             super::silverfish::check_spawn_rules(level, kind, reason, pos)
         }
         SpawnPredicate::Ghast => super::ghast::check_ghast_spawn_rules(level, kind, reason, pos),
+        SpawnPredicate::Bat => super::bat::check_bat_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Endermite => {
             super::endermite::check_endermite_spawn_rules(level, kind, reason, pos)
         }
@@ -152,6 +153,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Silverfish
                 | SpawnPredicate::Endermite
                 | SpawnPredicate::Ghast
+                | SpawnPredicate::Bat
         )
     });
     let walk = match spawn.check_spawn_rules {

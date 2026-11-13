@@ -64,6 +64,7 @@ macro_rules! goal_enum {
 }
 
 goal_enum!(AirGoal {
+    Bat(crate::bat::BatGoal),
     VexCharge(crate::vex::ChargeAttackGoal),
     VexRandomMove(crate::vex::RandomMoveGoal),
     VexCopyOwnerTarget(crate::vex::CopyOwnerTargetGoal),
@@ -71,5 +72,6 @@ goal_enum!(AirGoal {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AirAction {
+    Bat(crate::bat::BatAction),
     Vex(crate::vex::VexAction),
 }

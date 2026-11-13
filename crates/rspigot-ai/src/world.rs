@@ -444,6 +444,7 @@ pub struct KindFacts {
     pub breeze: crate::BreezeFacts,
     pub creaking: crate::CreakingFacts,
     pub vex: crate::VexFacts,
+    pub bat: crate::BatFacts,
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
 }

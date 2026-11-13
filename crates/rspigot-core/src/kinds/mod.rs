@@ -13,6 +13,7 @@ use crate::server::Server;
 
 mod air;
 mod armadillo;
+mod bat;
 mod blaze;
 mod breeze;
 mod cat;
@@ -76,6 +77,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Blaze => self.blaze_view(entity, view),
             Kind::Ghast => self.ghast_view(entity, view),
             Kind::Vex => self.vex_view(entity, view),
+            Kind::Bat => self.bat_view(entity, view),
             Kind::Shulker => self.shulker_view(entity, view),
             Kind::ZombifiedPiglin => self.zombified_piglin_view(entity, view),
             Kind::Rabbit => self.rabbit_view(entity, view),
@@ -154,6 +156,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Shulker) => self.shulker_post_tick(id),
             Some(Kind::Blaze) => self.blaze_post_tick(id),
             Some(Kind::Vex) => self.vex_post_tick(id),
+            Some(Kind::Bat) => self.bat_post_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
             Some(Kind::Ocelot) => self.ocelot_post_tick(id),
@@ -214,6 +217,7 @@ impl<L: ClientLink> Server<L> {
             }
             Some(Kind::Villager) => self.villager_ambient_voice(id),
             Some(Kind::Warden) => self.warden_ambient_voice(id),
+            Some(Kind::Bat) => self.bat_ambient_voice(id),
             _ => {
                 let game_time = self.world.level.game_time;
                 self.play_mob_voice(id, |entity| {
@@ -304,6 +308,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Silverfish) => self.silverfish_hurt_amount(id, source, amount),
             Some(Kind::IronGolem) => self.iron_golem_hurt_amount(id, source, amount),
             Some(Kind::Ghast) => self.ghast_hurt_amount(id, source, amount),
+            Some(Kind::Bat) => self.bat_hurt_amount(id, source, amount),
             Some(Kind::Shulker) => self.shulker_hurt_amount(id, source, amount),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_hurt_amount(id, source, amount),
             Some(Kind::Rabbit) => self.rabbit_hurt_amount(id, source, amount),
