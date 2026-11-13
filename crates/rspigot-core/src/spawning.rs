@@ -776,6 +776,7 @@ mod tests {
                 EntityKind::Enderman,
                 EntityKind::Endermite,
                 EntityKind::Fox,
+                EntityKind::Frog,
                 EntityKind::Ghast,
                 EntityKind::Goat,
                 EntityKind::Hoglin,

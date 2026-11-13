@@ -632,7 +632,7 @@ fn a_sniffer_that_finished_sniffing_picks_a_diggable_spot_and_walks_there() {
         walk.target.current_block_position(&bench.world),
         Some(target)
     );
-    let distance = (target.x - 0).abs().max((target.z - 0).abs());
+    let distance = target.x.abs().max(target.z.abs());
     assert!(distance >= 1, "{target:?}");
 }
 
