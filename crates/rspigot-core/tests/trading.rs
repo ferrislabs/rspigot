@@ -351,3 +351,29 @@ fn a_trader_that_is_trading_stops_walking_and_lets_go_when_the_player_steps_away
     view.apply(&alice.link.take());
     assert!(!view.opened);
 }
+
+#[test]
+fn the_trader_event_places_a_trader_near_the_player_with_a_wander_target_and_a_home() {
+    let mut s = ready();
+    let mut spawned = false;
+    for _ in 0..400 {
+        if s.server.spawn_wandering_trader()
+            && !s.server.entities_of(Kind::WanderingTrader).is_empty()
+        {
+            spawned = true;
+            break;
+        }
+    }
+    assert!(spawned, "a trader appears within a few hundred rolls");
+    s.tick(1);
+    let trader = s.server.entities_of(Kind::WanderingTrader)[0].id;
+    let nbt = saved(&s, trader);
+    assert_eq!(nbt.get_i32("DespawnDelay"), Some(48_000));
+    let target = nbt.get("wander_target").expect("a wander target");
+    let rspigot_nbt::Tag::IntArray(target) = target else {
+        panic!("an int array");
+    };
+    assert!(target[0].abs() <= 1 && target[2].abs() <= 1, "{target:?}");
+    let at = s.server.entities_of(Kind::WanderingTrader)[0].position;
+    assert!(at.x.abs() <= 49.0 && at.z.abs() <= 49.0);
+}
