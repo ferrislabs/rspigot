@@ -609,6 +609,10 @@ pub fn finalize_spawn(
             species::vindicator::finalize(base, living, reason, group, level)
         }
         Some(Species::Ravager(_)) => species::ravager::finalize(base, living, reason, group, level),
+        Some(Species::Evoker(_)) => species::evoker::finalize(base, living, reason, group, level),
+        Some(Species::Illusioner(_)) => {
+            species::illusioner::finalize(base, living, reason, group, level)
+        }
         Some(Species::Goat(_)) => species::goat::finalize(base, living, environment, group, level),
         Some(Species::Frog(_)) => species::frog::finalize(base, living, environment, group, level),
         Some(Species::WanderingTrader(_)) => {
