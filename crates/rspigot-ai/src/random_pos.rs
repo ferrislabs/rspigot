@@ -6,7 +6,7 @@ use rspigot_entities::EntityKind;
 use crate::brain::AiContext;
 use crate::random::MobRandom;
 use crate::world::{AiWorld, MobView};
-use crate::{BlockView, block_path_type};
+use crate::{BlockView, Swimming, block_path_type};
 
 const RANDOM_POS_ATTEMPTS: usize = 10;
 pub(crate) const HALF_PI: f64 = 1.570_796_370_506_286_6;
@@ -85,6 +85,18 @@ pub fn is_stable_destination(view: &impl BlockView, pos: BlockPos) -> bool {
 }
 
 fn is_stable<W: AiWorld>(context: &AiContext<'_, W>, pos: BlockPos) -> bool {
+    if let Some(swimming) = context.brain.profile.swimming {
+        return match swimming {
+            Swimming::WaterBound { .. } => !context
+                .world
+                .state(pos)
+                .is_some_and(|state| state.flags().contains(StateFlags::SOLID_RENDER)),
+            Swimming::Amphibious { .. } => context
+                .world
+                .state(pos.offset(0, -1, 0))
+                .is_some_and(|state| !state.is_air()),
+        };
+    }
     if context.mob.kind == EntityKind::Bee {
         return context
             .world

@@ -2,12 +2,12 @@ use rspigot_blocks::{BlockKind, StateFlags, StateId};
 use rspigot_domain::{BlockPos, ChunkPos, Vec3};
 
 use crate::classify::is_cauldron;
+use crate::sensing::clip_misses;
 use crate::view::{floor_level, is_air, is_water};
-use crate::{BlockView, MobProfile, MobState, Path, PathFinder, PathType};
+use crate::{BlockView, MobProfile, MobState, Path, PathFinder, PathType, Swimming};
 
 const STUCK_CHECK_INTERVAL: i32 = 100;
 const STUCK_THRESHOLD_DISTANCE_FACTOR: f32 = 0.25;
-const MAX_VERTICAL_DISTANCE_TO_WAYPOINT: f64 = 1.0;
 const SURFACE_SCAN: i32 = 16;
 const MAX_TIME_RECOMPUTE: i64 = 20;
 const REQUIRED_PATH_LENGTH: f32 = 16.0;
@@ -160,6 +160,12 @@ impl Navigation {
     }
 
     pub fn can_update_path_for(profile: &MobProfile, mob: &MobTick) -> bool {
+        if let Some(swimming) = profile.swimming {
+            return match swimming {
+                Swimming::WaterBound { allow_breaching } => allow_breaching || mob.in_liquid,
+                Swimming::Amphibious { .. } => true,
+            };
+        }
         if profile.flying {
             (profile.can_float && mob.in_liquid) || !mob.passenger
         } else {
@@ -195,11 +201,12 @@ impl Navigation {
         if !view.chunk_loaded(target.chunk()) {
             return None;
         }
-        let target = if self.path_to_targets_below_surface || profile.flying {
-            target
-        } else {
-            find_surface_position(view, target)
-        };
+        let target =
+            if self.path_to_targets_below_surface || profile.flying || profile.swimming.is_some() {
+                target
+            } else {
+                find_surface_position(view, target)
+            };
         if mob.state.position.y < f64::from(view.min_y())
             || !Self::can_update_path_for(profile, mob)
         {
@@ -508,7 +515,7 @@ impl Navigation {
         if profile.flying {
             return self.tick_flying(view, profile, mob);
         }
-        if mob.state.on_ground || mob.in_liquid || mob.passenger {
+        if Self::can_update_path_for(profile, mob) {
             self.follow(view, profile, mob);
         } else if let Some(path) = self.path.as_mut().filter(|path| !path.is_done()) {
             let temp = temp_mob_pos(view, profile, &mob.state);
@@ -525,8 +532,13 @@ impl Navigation {
             return None;
         }
         let next = self.path.as_ref()?.next_entity_pos(profile.width);
+        let y = if profile.swimming.is_some() {
+            next.y
+        } else {
+            ground_y(view, next)
+        };
         Some(MoveTarget {
-            position: Vec3::new(next.x, ground_y(view, next), next.z),
+            position: Vec3::new(next.x, y, next.z),
             speed_modifier: self.speed_modifier,
         })
     }
@@ -566,8 +578,12 @@ impl Navigation {
         let reach = f64::from(self.max_distance_to_waypoint);
         let reached = (position.x - (f64::from(next.x) + 0.5)).abs() < reach
             && (position.z - (f64::from(next.z) + 0.5)).abs() < reach
-            && (position.y - f64::from(next.y)).abs() < MAX_VERTICAL_DISTANCE_TO_WAYPOINT;
-        if reached || (can_cut_corner(path.next_node().path_type) && aims_past(path, temp)) {
+            && (position.y - f64::from(next.y)).abs() < profile.max_vertical_distance_to_waypoint();
+        let direct = |from: Vec3, to: Vec3| can_move_directly(view, profile, mob, from, to);
+        if reached
+            || (can_cut_corner(path.next_node().path_type)
+                && aims_past(path, temp, profile.width, direct))
+        {
             path.advance();
         }
         self.stuck_detection(temp, mob);
@@ -618,7 +634,22 @@ impl Navigation {
     }
 }
 
-fn aims_past(path: &Path, temp: Vec3) -> bool {
+fn can_move_directly(
+    view: &impl BlockView,
+    profile: &MobProfile,
+    mob: &MobTick,
+    from: Vec3,
+    to: Vec3,
+) -> bool {
+    let end = Vec3::new(to.x, to.y + f64::from(profile.height) * 0.5, to.z);
+    match profile.swimming {
+        Some(Swimming::WaterBound { .. }) => clip_misses(view, from, end),
+        Some(Swimming::Amphibious { .. }) => mob.in_liquid && clip_misses(view, from, end),
+        None => false,
+    }
+}
+
+fn aims_past(path: &Path, temp: Vec3, width: f32, direct: impl Fn(Vec3, Vec3) -> bool) -> bool {
     let index = path.next_node_index();
     if index + 1 >= path.node_count() {
         return false;
@@ -626,6 +657,9 @@ fn aims_past(path: &Path, temp: Vec3) -> bool {
     let next = bottom_center(path.next_node_pos());
     if temp.distance_squared(next) >= 4.0 {
         return false;
+    }
+    if direct(temp, path.next_entity_pos(width)) {
+        return true;
     }
     let following = bottom_center(path.node_pos(index + 1));
     let toward_next = next - temp;
@@ -743,7 +777,7 @@ pub fn find_surface_position(view: &impl BlockView, pos: BlockPos) -> BlockPos {
 
 pub fn temp_mob_pos(view: &impl BlockView, profile: &MobProfile, mob: &MobState) -> Vec3 {
     let position = mob.position;
-    if profile.flying {
+    if profile.flying || profile.swimming.is_some() {
         return position;
     }
     Vec3::new(

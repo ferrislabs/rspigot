@@ -1119,6 +1119,14 @@ impl MobAi {
                         .tick_ghast(base, living, view, &mut brain.random);
                 }
                 MoveStyle::Flying => brain.movement.tick_flying(base, living),
+                MoveStyle::SmoothSwimming => {
+                    let done = brain.navigation.is_done();
+                    brain.movement.tick_smooth_swimming(base, living, done);
+                }
+                MoveStyle::Fish => {
+                    let done = brain.navigation.is_done();
+                    brain.movement.tick_fish(base, living, done);
+                }
                 MoveStyle::Phantom => {
                     let target = brain.phantom.move_target;
                     brain.movement.tick_phantom(base, living, target);
@@ -1142,6 +1150,8 @@ impl MobAi {
                     .look
                     .tick_with(base, living, navigating, !brain.bee.pollinating);
             }
+        } else if brain.look.smooth_swimming().is_some() {
+            brain.look.tick_smooth(base, living, !navigating);
         } else if base.kind != EntityKind::Phantom {
             brain.look.tick(base, living, navigating);
         }

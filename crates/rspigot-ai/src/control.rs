@@ -27,6 +27,16 @@ const GHAST_FLOAT_RANGE: i32 = 5;
 const GHAST_THRUST_NUMERATOR: f64 = 5.0;
 const GHAST_THRUST_DENOMINATOR: f64 = 3.0;
 const SHAPE_REACH_MARGIN: f64 = 1.0e-7;
+const SWIM_BUOYANCY: f64 = 0.005;
+const SWIM_PITCH_SPEED: f32 = 5.0;
+const SWIM_TURN_FREE_ANGLE: f32 = 10.0;
+const SWIM_TURN_RANGE: f32 = 50.0;
+const SMOOTH_LOOK_YAW_OFFSET: f32 = 20.0;
+const SMOOTH_LOOK_PITCH_OFFSET: f32 = 10.0;
+const SMOOTH_BODY_TURN: f32 = 4.0;
+const FISH_SPEED_LERP: f32 = 0.125;
+const FISH_VERTICAL_PUSH: f64 = 0.1;
+const FISH_YAW_TURN: f32 = 90.0;
 
 pub fn rotate_towards(from: f32, to: f32, max: f32) -> f32 {
     let difference = mth::degrees_difference(from, to);
@@ -46,6 +56,7 @@ pub struct LookControl {
     wanted: Vec3,
     max_head_x_rot: f32,
     shulker: Option<Face>,
+    smooth_max_y_rot_from_center: Option<i32>,
 }
 
 impl Default for LookControl {
@@ -57,11 +68,62 @@ impl Default for LookControl {
             wanted: Vec3::ZERO,
             max_head_x_rot: MAX_HEAD_X_ROT,
             shulker: None,
+            smooth_max_y_rot_from_center: None,
         }
     }
 }
 
 impl LookControl {
+    pub fn set_smooth_swimming(&mut self, max_y_rot_from_center: i32) {
+        self.smooth_max_y_rot_from_center = Some(max_y_rot_from_center);
+    }
+
+    pub fn smooth_swimming(&self) -> Option<i32> {
+        self.smooth_max_y_rot_from_center
+    }
+
+    pub fn tick_smooth(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        navigation_done: bool,
+    ) {
+        let Some(max_from_center) = self.smooth_max_y_rot_from_center else {
+            return;
+        };
+        if self.look_at_cooldown > 0 {
+            self.look_at_cooldown -= 1;
+            if let Some(yaw) = self.y_rot_d(base) {
+                base.head_yaw = rotate_towards(
+                    base.head_yaw,
+                    yaw + SMOOTH_LOOK_YAW_OFFSET,
+                    self.y_max_rot_speed,
+                );
+            }
+            if let Some(pitch) = self.x_rot_d(base) {
+                let pitch = rotate_towards(
+                    base.pitch,
+                    pitch + SMOOTH_LOOK_PITCH_OFFSET,
+                    self.x_max_rot_angle,
+                );
+                base.set_pitch(pitch);
+            }
+        } else {
+            if navigation_done {
+                let pitch = rotate_towards(base.pitch, 0.0, SWIM_PITCH_SPEED);
+                base.set_pitch(pitch);
+            }
+            base.head_yaw = rotate_towards(base.head_yaw, living.body_yaw, self.y_max_rot_speed);
+        }
+        let angle = mth::wrap_degrees(base.head_yaw - living.body_yaw);
+        let limit = max_from_center as f32;
+        if angle < -limit {
+            living.body_yaw -= SMOOTH_BODY_TURN;
+        } else if angle > limit {
+            living.body_yaw += SMOOTH_BODY_TURN;
+        }
+    }
+
     pub fn set_shulker_face(&mut self, face: Option<Face>) {
         self.shulker = face;
     }
@@ -203,10 +265,22 @@ pub enum MoveStyle {
     Flying,
     Vex,
     Phantom,
+    SmoothSwimming,
+    Fish,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct SmoothSwimming {
+    pub max_turn_x: i32,
+    pub max_turn_y: i32,
+    pub in_water_speed_modifier: f32,
+    pub outside_water_speed_modifier: f32,
+    pub apply_gravity: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct MoveControl {
+    smooth: SmoothSwimming,
     style: MoveStyle,
     float_duration: i32,
     wanted: Vec3,
@@ -325,6 +399,106 @@ impl MoveControl {
         move_target: Vec3,
     ) {
         crate::phantom::tick_move_control(base, living, &mut self.phantom_speed, move_target);
+    }
+
+    pub fn set_smooth_swimming(&mut self, params: SmoothSwimming) {
+        self.style = MoveStyle::SmoothSwimming;
+        self.smooth = params;
+    }
+
+    pub fn smooth_swimming(&self) -> SmoothSwimming {
+        self.smooth
+    }
+
+    pub fn set_fish(&mut self) {
+        self.style = MoveStyle::Fish;
+    }
+
+    pub fn tick_smooth_swimming(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        navigation_done: bool,
+    ) {
+        let params = self.smooth;
+        if params.apply_gravity && base.fluid.in_water {
+            base.velocity = base.velocity + Vec3::new(0.0, SWIM_BUOYANCY, 0.0);
+        }
+        if self.operation != Operation::MoveTo || navigation_done {
+            set_speed(living, 0.0);
+            living.xxa = 0.0;
+            living.yya = 0.0;
+            living.zza = 0.0;
+            return;
+        }
+        let dx = self.wanted.x - base.position.x;
+        let dy = self.wanted.y - base.position.y;
+        let dz = self.wanted.z - base.position.z;
+        if dx * dx + dy * dy + dz * dz < MIN_SPEED_SQR {
+            living.zza = 0.0;
+            return;
+        }
+        let yaw = (mth::atan2(dz, dx) * mth::RAD_TO_DEG) as f32 - 90.0;
+        base.set_yaw(rotlerp(base.yaw, yaw, params.max_turn_y as f32));
+        living.body_yaw = base.yaw;
+        base.head_yaw = base.yaw;
+        let speed = (self.speed_modifier * living.attribute(MOVEMENT_SPEED)) as f32;
+        if base.fluid.in_water {
+            set_speed(living, speed * params.in_water_speed_modifier);
+            let horizontal = (dx * dx + dz * dz).sqrt();
+            if dy.abs() > LOOK_EPSILON || horizontal.abs() > LOOK_EPSILON {
+                let pitch =
+                    mth::wrap_degrees(-((mth::atan2(dy, horizontal) * mth::RAD_TO_DEG) as f32));
+                let limit = params.max_turn_x as f32;
+                let pitch = mth::clamp(pitch, -limit, limit);
+                base.set_pitch(rotate_towards(base.pitch, pitch, SWIM_PITCH_SPEED));
+            }
+            let radians = f64::from(base.pitch * mth::DEG_TO_RAD);
+            let cos = mth::cos(radians);
+            let sin = mth::sin(radians);
+            living.zza = cos * speed;
+            living.yya = -sin * speed;
+        } else {
+            let angle = mth::wrap_degrees(base.yaw - yaw).abs();
+            let factor =
+                1.0 - mth::clamp((angle - SWIM_TURN_FREE_ANGLE) / SWIM_TURN_RANGE, 0.0, 1.0);
+            set_speed(living, speed * params.outside_water_speed_modifier * factor);
+        }
+    }
+
+    pub fn tick_fish(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        navigation_done: bool,
+    ) {
+        if base.eye_in_water {
+            base.velocity = base.velocity + Vec3::new(0.0, SWIM_BUOYANCY, 0.0);
+        }
+        if self.operation != Operation::MoveTo || navigation_done {
+            set_speed(living, 0.0);
+            return;
+        }
+        let target = (self.speed_modifier * living.attribute(MOVEMENT_SPEED)) as f32;
+        let lerped = living.speed + FISH_SPEED_LERP * (target - living.speed);
+        set_speed(living, lerped);
+        let dx = self.wanted.x - base.position.x;
+        let dy = self.wanted.y - base.position.y;
+        let dz = self.wanted.z - base.position.z;
+        if dy != 0.0 {
+            let length = (dx * dx + dy * dy + dz * dz).sqrt();
+            base.velocity = base.velocity
+                + Vec3::new(
+                    0.0,
+                    f64::from(living.speed) * (dy / length) * FISH_VERTICAL_PUSH,
+                    0.0,
+                );
+        }
+        if dx != 0.0 || dz != 0.0 {
+            let yaw = (mth::atan2(dz, dx) * mth::RAD_TO_DEG) as f32 - 90.0;
+            base.set_yaw(rotlerp(base.yaw, yaw, FISH_YAW_TURN));
+            living.body_yaw = base.yaw;
+        }
     }
 
     pub fn set_flying(&mut self, max_turn: i32, hovers_in_place: bool) {
@@ -949,6 +1123,212 @@ mod tests {
         base.set_no_gravity(true);
         hover.tick_flying(&mut base, &mut living);
         assert!(base.is_no_gravity());
+    }
+
+    fn dolphin() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Dolphin);
+        base.position = Vec3::new(0.5, 64.0, 0.5);
+        base.old_position = base.position;
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    fn dolphin_control() -> MoveControl {
+        let mut movement = MoveControl::default();
+        movement.set_smooth_swimming(SmoothSwimming {
+            max_turn_x: 85,
+            max_turn_y: 10,
+            in_water_speed_modifier: 0.02,
+            outside_water_speed_modifier: 0.1,
+            apply_gravity: true,
+        });
+        movement
+    }
+
+    #[test]
+    fn the_smooth_swimming_control_turns_the_body_at_the_y_limit_and_pitches_toward_the_target() {
+        let (mut base, mut living) = dolphin();
+        base.fluid.in_water = true;
+        let mut movement = dolphin_control();
+        movement.set_wanted_position(Vec3::new(5.5, 69.0, 0.5), 1.0);
+        movement.tick_smooth_swimming(&mut base, &mut living, false);
+        assert_eq!(base.yaw, 350.0);
+        assert_eq!(living.body_yaw, base.yaw);
+        assert_eq!(base.head_yaw, base.yaw);
+        assert_eq!(base.pitch, -5.0);
+        let speed = (1.0 * living.attribute(MOVEMENT_SPEED)) as f32;
+        assert_eq!(living.speed, speed * 0.02);
+        let radians = f64::from(base.pitch * mth::DEG_TO_RAD);
+        assert_eq!(living.zza, mth::cos(radians) * speed);
+        assert_eq!(living.yya, -mth::sin(radians) * speed);
+        assert!(living.yya > 0.0);
+        assert_eq!(base.velocity, Vec3::new(0.0, 0.005, 0.0));
+        assert_eq!(movement.operation(), Operation::MoveTo);
+    }
+
+    #[test]
+    fn the_smooth_swimming_pitch_is_clamped_by_the_x_limit_and_moves_five_degrees_per_tick() {
+        let (mut base, mut living) = dolphin();
+        base.fluid.in_water = true;
+        let mut movement = MoveControl::default();
+        movement.set_smooth_swimming(SmoothSwimming {
+            max_turn_x: 2,
+            max_turn_y: 10,
+            in_water_speed_modifier: 0.02,
+            outside_water_speed_modifier: 0.1,
+            apply_gravity: false,
+        });
+        movement.set_wanted_position(Vec3::new(0.5, 80.0, 1.5), 1.0);
+        movement.tick_smooth_swimming(&mut base, &mut living, false);
+        assert_eq!(base.pitch, -2.0);
+        assert_eq!(base.velocity, Vec3::ZERO);
+    }
+
+    #[test]
+    fn the_smooth_swimming_control_slows_by_the_turning_angle_out_of_the_water() {
+        let (mut base, mut living) = dolphin();
+        base.yaw = 270.0;
+        let mut movement = dolphin_control();
+        movement.set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 1.0);
+        movement.tick_smooth_swimming(&mut base, &mut living, false);
+        let speed = (1.0 * living.attribute(MOVEMENT_SPEED)) as f32;
+        assert_eq!(base.yaw, 270.0);
+        assert_eq!(living.speed, speed * 0.1 * 1.0);
+        let (mut base, mut living) = dolphin();
+        base.yaw = 300.0;
+        let mut movement = dolphin_control();
+        movement.set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 1.0);
+        movement.tick_smooth_swimming(&mut base, &mut living, false);
+        assert_eq!(base.yaw, 290.0);
+        let factor = 1.0 - mth::clamp((20.0 - 10.0) / 50.0, 0.0, 1.0);
+        assert_eq!(living.speed, speed * 0.1 * factor);
+        let (mut base, mut living) = dolphin();
+        base.yaw = 130.0;
+        let mut movement = dolphin_control();
+        movement.set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 1.0);
+        movement.tick_smooth_swimming(&mut base, &mut living, false);
+        assert_eq!(living.speed, 0.0);
+    }
+
+    #[test]
+    fn the_smooth_swimming_control_stops_without_a_path_or_a_wanted_move() {
+        let (mut base, mut living) = dolphin();
+        base.fluid.in_water = true;
+        living.speed = 0.5;
+        living.zza = 0.5;
+        living.yya = 0.5;
+        living.xxa = 0.5;
+        let mut movement = dolphin_control();
+        movement.set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 1.0);
+        movement.tick_smooth_swimming(&mut base, &mut living, true);
+        assert_eq!(
+            (living.speed, living.zza, living.yya, living.xxa),
+            (0.0, 0.0, 0.0, 0.0)
+        );
+        assert_eq!(base.velocity.y, 0.005);
+        let mut idle = dolphin_control();
+        living.zza = 0.5;
+        idle.tick_smooth_swimming(&mut base, &mut living, false);
+        assert_eq!(living.zza, 0.0);
+    }
+
+    #[test]
+    fn the_smooth_swimming_control_only_zeroes_the_forward_input_when_already_there() {
+        let (mut base, mut living) = dolphin();
+        let mut movement = dolphin_control();
+        movement.set_wanted_position(base.position, 1.0);
+        living.zza = 1.0;
+        movement.tick_smooth_swimming(&mut base, &mut living, false);
+        assert_eq!(living.zza, 0.0);
+        assert_eq!(base.yaw, 0.0);
+    }
+
+    fn cod() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Cod);
+        base.position = Vec3::new(0.5, 64.0, 0.5);
+        base.old_position = base.position;
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    #[test]
+    fn the_fish_control_lerps_the_speed_pushes_vertically_and_turns_the_body() {
+        let (mut base, mut living) = cod();
+        base.eye_in_water = true;
+        let mut movement = MoveControl::default();
+        movement.set_fish();
+        movement.set_wanted_position(Vec3::new(5.5, 69.0, 0.5), 1.0);
+        movement.tick_fish(&mut base, &mut living, false);
+        let target = (1.0 * living.attribute(MOVEMENT_SPEED)) as f32;
+        let lerped = 0.0 + 0.125 * (target - 0.0);
+        assert_eq!(living.speed, lerped);
+        assert_eq!(living.zza, lerped);
+        let length = (25.0f64 + 25.0).sqrt();
+        let push = f64::from(lerped) * (5.0 / length) * 0.1;
+        assert_eq!(base.velocity, Vec3::new(0.0, 0.005 + push, 0.0));
+        assert_eq!(base.yaw, 270.0);
+        assert_eq!(living.body_yaw, 270.0);
+    }
+
+    #[test]
+    fn the_fish_control_stops_when_the_navigation_is_done_and_keeps_its_operation() {
+        let (mut base, mut living) = cod();
+        living.speed = 0.3;
+        let mut movement = MoveControl::default();
+        movement.set_fish();
+        movement.set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 1.0);
+        movement.tick_fish(&mut base, &mut living, true);
+        assert_eq!(living.speed, 0.0);
+        assert_eq!(base.velocity, Vec3::ZERO);
+        assert_eq!(movement.operation(), Operation::MoveTo);
+        let mut level = MoveControl::default();
+        level.set_fish();
+        level.set_wanted_position(Vec3::new(0.5, 64.0, 5.5), 1.0);
+        level.tick_fish(&mut base, &mut living, false);
+        assert_eq!(base.velocity.y, 0.0);
+    }
+
+    #[test]
+    fn the_smooth_swimming_look_turns_the_head_with_offsets_and_drags_the_body_beyond_the_limit() {
+        let (mut base, mut living) = dolphin();
+        let mut look = LookControl::default();
+        look.set_smooth_swimming(10);
+        look.set_look_at(Vec3::new(10.5, 74.0, 0.5), 40.0, 30.0);
+        look.tick_smooth(&mut base, &mut living, false);
+        assert_eq!(base.head_yaw, -40.0);
+        assert_eq!(living.body_yaw, -4.0);
+        let pitch = base.pitch;
+        assert!((-30.0..0.0).contains(&pitch), "{pitch}");
+        look.tick_smooth(&mut base, &mut living, false);
+        assert_eq!(base.head_yaw, -70.0);
+        assert_eq!(living.body_yaw, -8.0);
+    }
+
+    #[test]
+    fn the_smooth_swimming_look_levels_the_pitch_only_when_the_navigation_is_done() {
+        let (mut base, mut living) = dolphin();
+        let mut look = LookControl::default();
+        look.set_smooth_swimming(10);
+        base.set_pitch(30.0);
+        look.tick_smooth(&mut base, &mut living, false);
+        assert_eq!(base.pitch, 30.0);
+        look.tick_smooth(&mut base, &mut living, true);
+        assert_eq!(base.pitch, 25.0);
+        base.head_yaw = 40.0;
+        living.body_yaw = 0.0;
+        look.tick_smooth(&mut base, &mut living, false);
+        assert_eq!(base.head_yaw, 40.0);
+        assert_eq!(living.body_yaw, 4.0);
+        look.set_look_at(Vec3::new(0.5, 64.0, 5.5), 10.0, 5.0);
+        look.tick_smooth(&mut base, &mut living, false);
+        assert_eq!(base.head_yaw, 30.0);
+        assert_eq!(living.body_yaw, 8.0);
+        look.tick_smooth(&mut base, &mut living, false);
+        assert_eq!(base.head_yaw, 20.0);
+        assert_eq!(living.body_yaw, 12.0);
+        assert!(!look.is_looking_at_target());
+        look.tick_smooth(&mut base, &mut living, false);
+        assert_eq!(base.head_yaw, 12.0);
     }
 
     #[test]
