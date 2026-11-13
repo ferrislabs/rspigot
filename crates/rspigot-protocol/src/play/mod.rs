@@ -1,3 +1,4 @@
+pub mod boss;
 pub mod chat;
 pub mod chunk;
 pub mod combat;
@@ -16,6 +17,7 @@ pub mod world;
 pub use serverbound::ServerboundPlay;
 
 pub mod clientbound {
+    pub use super::boss::BossEvent;
     pub use super::chat::{
         ClearTitles, DisguisedChat, PlayerChat, SetSubtitleText, SetTitleText, SetTitlesAnimation,
         SystemChat,
@@ -136,6 +138,7 @@ mod tests {
             (<EntityEvent as Packet>::ID, 34),
             (<HurtAnimation as Packet>::ID, 43),
             (<PlayerCombatKill as Packet>::ID, 69),
+            (<BossEvent as Packet>::ID, 9),
         ];
         for (actual, expected) in table {
             assert_eq!(actual, expected);

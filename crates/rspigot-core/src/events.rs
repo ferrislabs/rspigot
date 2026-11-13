@@ -438,6 +438,10 @@ pub enum ClientEvent {
         message: Component,
         overlay: bool,
     },
+    BossEvent {
+        id: uuid::Uuid,
+        update: rspigot_domain::boss_event::BossUpdate,
+    },
     PlayerChat {
         sender: PlayerId,
         sender_name: Component,
