@@ -209,9 +209,16 @@ pub use warden::{
     ANGER_TICK_INTERVAL, DARKNESS_INTERVAL, DARKNESS_RADIUS, DigCooldownSetter, Digging, Emerging,
     ForceUnmount, Roar, SONIC_BOOM_DAMAGE, SONIC_BOOM_HORIZONTAL_KNOCKBACK,
     SONIC_BOOM_VERTICAL_KNOCKBACK, SetLookAtAttackTarget, SetRoarTarget, SetWardenLookTarget,
-    Sniffing, SonicBoom, TOUCH_COOLDOWN_TICKS, TryToSniff, VIBRATION_COOLDOWN_TICKS, WardenAction,
-    WardenEntitySensor, WardenState, can_target_entity as warden_can_target_entity,
-    closer_than as warden_closer_than,
+    Sniffing, SonicBoom, TOUCH_COOLDOWN_TICKS, TryToSniff, VIBRATION_COOLDOWN_TICKS,
+    WARDEN_MEMORIES, WardenAction, WardenEntitySensor, WardenState,
+    active_anger as warden_anger_of, anger_level as warden_anger_level,
+    can_receive_vibration as warden_can_receive, can_target_entity as warden_can_target_entity,
+    closer_than as warden_closer_than, closer_than_in_plane as warden_closer_than_in_plane,
+    increase_anger_at as warden_increase, on_hurt as warden_on_hurt,
+    on_vibration_received as warden_on_vibration, set_attack_target as warden_set_attack_target,
+    set_dig_cooldown as warden_set_dig_cooldown,
+    set_disturbance_location as warden_set_disturbance_location, touch as warden_touch,
+    update_activity as warden_update_activity,
 };
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{
