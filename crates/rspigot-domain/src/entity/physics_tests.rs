@@ -168,6 +168,19 @@ fn cobweb_slows_the_next_move_and_resets_the_fall() {
 }
 
 #[test]
+fn a_wither_ignores_cobwebs_and_keeps_its_fall_distance() {
+    let mut world = World::floor(BlockKind::Stone);
+    world.set(0, 65, 0, BlockKind::Cobweb.default_state());
+    let (mut base, mut living) = cow_at(Vec3::new(0.5, 65.5, 0.5));
+    base.kind = EntityKind::Wither;
+    base.fall_distance = 3.0;
+    base.velocity = Vec3::new(0.0, -0.5, 0.0);
+    living::ai_step(&mut base, &mut living, &world);
+    assert_eq!(base.stuck_speed_multiplier, Vec3::ZERO);
+    assert!(base.fall_distance >= 3.0);
+}
+
+#[test]
 fn items_bounce_and_rest_on_the_ground() {
     let world = World::floor(BlockKind::Stone);
     let mut base = EntityBase::new(EntityId(3), Uuid::from_u128(3), EntityKind::Item);
