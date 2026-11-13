@@ -105,9 +105,9 @@ pub(crate) struct MoveToBlock {
     vertical_search_range: i32,
     vertical_search_start: i32,
     next_start_tick: i32,
-    try_ticks: i32,
+    pub(crate) try_ticks: i32,
     max_stay_ticks: i32,
-    block_pos: BlockPos,
+    pub(crate) block_pos: BlockPos,
     reached_target: bool,
 }
 
@@ -224,7 +224,10 @@ impl MoveToBlock {
     }
 }
 
-fn start_move_to_block<W: AiWorld>(state: &mut MoveToBlock, context: &mut AiContext<'_, W>) {
+pub(crate) fn start_move_to_block<W: AiWorld>(
+    state: &mut MoveToBlock,
+    context: &mut AiContext<'_, W>,
+) {
     state.move_to_block(context);
     state.try_ticks = 0;
     let inner = context.brain.random.next_int(1200) + 1200;

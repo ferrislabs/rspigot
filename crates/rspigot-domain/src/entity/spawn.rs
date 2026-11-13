@@ -32,7 +32,7 @@ const WEAPON_ENCHANT_CHANCE: f32 = 0.25;
 const ARMOR_ENCHANT_CHANCE: f32 = 0.5;
 const HALLOWEEN_CHANCE: f32 = 0.25;
 const JACK_O_LANTERN_CHANCE: f32 = 0.1;
-const ZOMBIE_BABY_CHANCE: f32 = 0.05;
+pub(crate) const ZOMBIE_BABY_CHANCE: f32 = 0.05;
 const JOCKEY_CHANCE: f64 = 0.05;
 const BREAK_DOORS_FACTOR: f32 = 0.1;
 const HARD_WEAPON_CHANCE: f32 = 0.05;
@@ -56,7 +56,7 @@ pub struct SpawnEnvironment {
     pub moon_brightness: f32,
 }
 
-fn stack(kind: ItemKind) -> ItemStack {
+pub(crate) fn stack(kind: ItemKind) -> ItemStack {
     ItemStack::new(kind.id(), NonZeroU8::MIN)
 }
 
@@ -234,6 +234,8 @@ pub enum Jockey {
     NewChicken,
     ExistingChicken,
     SkeletonRider,
+    StriderPiglin { baby: bool },
+    StriderBaby,
 }
 
 pub fn skeleton_jockey_roll(random: &mut impl RandomSource) -> bool {
@@ -611,6 +613,9 @@ pub fn finalize_spawn(
             species::ocelot::finalize(base, living, environment, group, level)
         }
         Some(Species::Witch(_)) => species::witch::finalize(base, living, reason, group, level),
+        Some(Species::Strider(_)) => {
+            species::strider::finalize(base, living, environment, group, level)
+        }
         Some(Species::Hoglin(_)) if kind == EntityKind::Hoglin => {
             species::hoglin::finalize_hoglin(base, living, group, level)
         }

@@ -36,6 +36,12 @@ fn context_walk_target_value<W: AiWorld>(context: &AiContext<'_, W>, pos: BlockP
     if context.mob.kind == EntityKind::Turtle {
         return crate::turtle::walk_target_value(context.world, &context.body.turtle, pos);
     }
+    if context.mob.kind == EntityKind::Strider {
+        return rspigot_domain::entity::species::strider::walk_target_value(
+            crate::strider::is_lava_state(context.world.state(pos)),
+            context.mob.fluid.in_lava(),
+        );
+    }
     if context.mob.kind != EntityKind::Hoglin {
         return walk_target_value(context.mob.kind, context.world, pos);
     }
@@ -103,6 +109,14 @@ fn is_stable<W: AiWorld>(context: &AiContext<'_, W>, pos: BlockPos) -> bool {
                 .state(pos.offset(0, -1, 0))
                 .is_some_and(|state| !state.is_air()),
         };
+    }
+    if context.mob.kind == EntityKind::Strider
+        && context
+            .world
+            .state(pos)
+            .is_some_and(|state| state.kind() == Some(rspigot_blocks::BlockKind::Lava))
+    {
+        return true;
     }
     if context.mob.kind == EntityKind::Bee {
         return context

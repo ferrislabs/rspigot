@@ -38,6 +38,7 @@ use crate::ranged::RangedAttackGoal;
 use crate::restriction::MoveTowardsRestrictionGoal;
 use crate::shulker::{ShulkerAttackGoal, ShulkerGoal, ShulkerPeekGoal};
 use crate::spell::{CastingGoal, SpellGoal, UseSpellGoal};
+use crate::strider::{self, StriderGoToLavaGoal};
 use crate::swimmers::{
     BreathAirGoal, DolphinJumpGoal, DolphinMoveToItemGoal, DolphinPlayWithItemsGoal,
     DolphinSwimToTreasureGoal, DolphinSwimWithPlayerGoal, FollowFlockLeaderGoal,
@@ -494,6 +495,33 @@ pub fn register_goals(
             add.stroll(6, 1.0);
             add.look(7, 6.0);
             add.look_around(8);
+        }
+        EntityKind::Strider => {
+            add.goal(1, MobGoal::Panic(PanicGoal::new(strider::PANIC_SPEED)));
+            add.goal(strider::BREED_PRIORITY, MobGoal::Breed(BreedGoal::new(1.0)));
+            add.tempt(
+                3,
+                strider::TEMPT_SPEED,
+                TemptItems::Tag(strider::TEMPT_ITEMS),
+            );
+            add.goal(
+                4,
+                MobGoal::StriderGoToLava(StriderGoToLavaGoal::new(strider::GO_TO_LAVA_SPEED)),
+            );
+            add.goal(5, MobGoal::FollowParent(FollowParentGoal::new(1.0)));
+            add.goal(
+                7,
+                MobGoal::Stroll(RandomStrollGoal::with_interval(
+                    1.0,
+                    strider::STROLL_INTERVAL,
+                )),
+            );
+            add.look(8, 8.0);
+            add.look_around(8);
+            add.goal(
+                9,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::at_class(8.0, 0.02, "Strider")),
+            );
         }
         EntityKind::Sheep => {
             add.animal(

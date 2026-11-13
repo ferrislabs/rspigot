@@ -423,6 +423,18 @@ impl<L: ClientLink> Server<L> {
             base.was_in_powder_snow = base.in_powder_snow;
             fluid::update(base, &self.world.chunks);
         }
+        let controlled = self.controlling_player(id).is_some();
+        if let Some(state) = self
+            .entities
+            .store
+            .get_mut(id)
+            .and_then(|entity| entity.living_mut())
+        {
+            state.client_controlled = controlled;
+        }
+        if controlled {
+            self.tick_ridden(id);
+        }
         if !self.species_pre_tick(id) {
             return;
         }

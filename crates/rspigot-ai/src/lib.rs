@@ -66,6 +66,7 @@ mod shulker;
 mod silverfish;
 mod sniffer;
 mod spell;
+mod strider;
 mod sweep;
 mod swim;
 mod swimmers;
@@ -263,6 +264,7 @@ pub use sniffer::{
     can_sniff as sniffer_can_sniff,
 };
 pub use spell::{SpellAction, SpellFacts};
+pub use strider::{StriderGoToLavaGoal, is_lava_state};
 pub use swimmers::{
     AIR_ASSIST_SPEED, BreathAirGoal, DolphinFacts, DolphinJumpGoal, DolphinMoveToItemGoal,
     DolphinPlayWithItemsGoal, DolphinSwimToTreasureGoal, DolphinSwimWithPlayerGoal, FishFacts,

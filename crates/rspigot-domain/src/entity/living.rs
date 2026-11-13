@@ -410,6 +410,7 @@ pub struct LivingState {
     pub impulse_grace: i32,
     pub speed: f32,
     pub jumping: bool,
+    pub client_controlled: bool,
     pub xxa: f32,
     pub yya: f32,
     pub zza: f32,
@@ -536,6 +537,7 @@ impl LivingState {
             impulse_grace: 0,
             speed: 0.0,
             jumping: false,
+            client_controlled: false,
             xxa: 0.0,
             yya: 0.0,
             zza: 0.0,
@@ -1216,7 +1218,7 @@ pub fn finish_ai_step<V: BlockView>(
     if frozen {
         base.velocity = Vec3::ZERO;
     }
-    let landing = if effective_ai(base, living) && !frozen {
+    let landing = if effective_ai(base, living) && !frozen && !living.client_controlled {
         travel(base, living, view, input)
     } else {
         None
@@ -1485,6 +1487,19 @@ pub fn travel_squid<V: BlockView>(
 }
 
 pub fn travel<V: BlockView>(
+    base: &mut EntityBase,
+    living: &mut LivingState,
+    view: &V,
+    input: Vec3,
+) -> Option<Landing> {
+    if base.kind == EntityKind::Strider {
+        let striding = super::species::strider::LavaStriding::new(view, base.position.y);
+        return travel_on_land(base, living, &striding, input);
+    }
+    travel_on_land(base, living, view, input)
+}
+
+fn travel_on_land<V: BlockView>(
     base: &mut EntityBase,
     living: &mut LivingState,
     view: &V,
