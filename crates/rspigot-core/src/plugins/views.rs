@@ -56,6 +56,7 @@ pub(crate) enum TopType {
     Loom,
     Lectern,
     Beacon,
+    Merchant,
 }
 
 impl TopType {
@@ -80,6 +81,7 @@ impl TopType {
             MenuKind::Loom => Self::Loom,
             MenuKind::Lectern => Self::Lectern,
             MenuKind::Beacon => Self::Beacon,
+            MenuKind::Merchant => Self::Merchant,
         }
     }
 
@@ -105,6 +107,7 @@ impl TopType {
             Self::Loom => "LOOM",
             Self::Lectern => "LECTERN",
             Self::Beacon => "BEACON",
+            Self::Merchant => "MERCHANT",
         }
     }
 
@@ -118,7 +121,7 @@ impl TopType {
                 };
             }
             Self::Workbench | Self::Crafting => 0,
-            Self::Anvil | Self::Cartography | Self::Grindstone => 2,
+            Self::Anvil | Self::Cartography | Self::Grindstone | Self::Merchant => 2,
             Self::Stonecutter => 1,
             Self::Loom | Self::Smithing => 3,
             Self::Beacon => return InventoryTypeSlotType::Crafting,

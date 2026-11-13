@@ -498,7 +498,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(entity) = self.entities.store.get_mut(id) {
             with_villager(entity, |_, state, merchant| {
                 if let Some(offers) = merchant.offers.as_mut()
-                    && state.should_restock(offers, now, day)
+                    && state.should_restock(offers, now, day).restock
                 {
                     state.restock(offers, now);
                 }

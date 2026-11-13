@@ -482,23 +482,28 @@ impl VillagerState {
         offers: &mut MerchantOffers,
         game_time: i64,
         day: i64,
-    ) -> bool {
+    ) -> RestockCheck {
         let overdue = self.last_restock + RESTOCK_INTERVAL < game_time;
         let new_day = self.last_restock_check_day >= 1 && day > self.last_restock_check_day;
         self.last_restock_check_day = day;
+        let mut caught_up = false;
         if overdue || new_day {
             self.last_restock = game_time;
-            self.reset_number_of_restocks(offers);
+            caught_up = self.reset_number_of_restocks(offers);
         }
-        self.allowed_to_restock(game_time) && Self::needs_to_restock(offers)
+        RestockCheck {
+            caught_up,
+            restock: self.allowed_to_restock(game_time) && Self::needs_to_restock(offers),
+        }
     }
 
-    fn reset_number_of_restocks(&mut self, offers: &mut MerchantOffers) {
-        self.catch_up_demand(offers);
+    fn reset_number_of_restocks(&mut self, offers: &mut MerchantOffers) -> bool {
+        let caught_up = self.catch_up_demand(offers);
         self.restocks_today = 0;
+        caught_up
     }
 
-    fn catch_up_demand(&mut self, offers: &mut MerchantOffers) {
+    fn catch_up_demand(&mut self, offers: &mut MerchantOffers) -> bool {
         let missed = MAX_RESTOCKS_PER_DAY - self.restocks_today;
         if missed > 0 {
             for offer in offers.iter_mut() {
@@ -510,6 +515,7 @@ impl VillagerState {
                 offer.update_demand();
             }
         }
+        missed > 0
     }
 
     pub fn restock(&mut self, offers: &mut MerchantOffers, game_time: i64) {
@@ -539,6 +545,42 @@ impl VillagerState {
             level_up,
             orb_xp: offer.reward_exp.then_some(orb),
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RestockCheck {
+    pub caught_up: bool,
+    pub restock: bool,
+}
+
+pub const HERO_BASE_DISCOUNT: f32 = 0.3;
+pub const HERO_AMPLIFIER_DISCOUNT: f32 = 0.0625;
+
+pub fn update_special_prices(
+    offers: &mut MerchantOffers,
+    reputation: i32,
+    hero_amplifier: Option<i32>,
+) {
+    let hero = hero_amplifier.map_or(0.0, |amplifier| {
+        f64::from(amplifier as f32 * HERO_AMPLIFIER_DISCOUNT + HERO_BASE_DISCOUNT)
+    });
+    for offer in offers.iter_mut() {
+        offer.reset_special_price_diff();
+        if reputation != 0 {
+            let discount = (reputation as f32 * offer.price_multiplier).floor() as i32;
+            offer.add_to_special_price_diff(-discount);
+        }
+        if hero > 0.0 {
+            let discount = ((hero * f64::from(offer.cost_a.count)).floor() as i32).max(1);
+            offer.add_to_special_price_diff(-discount);
+        }
+    }
+}
+
+pub fn reset_special_prices(offers: &mut MerchantOffers) {
+    for offer in offers.iter_mut() {
+        offer.reset_special_price_diff();
     }
 }
 
@@ -896,8 +938,8 @@ mod tests {
             ..VillagerState::default()
         };
         let mut offers = used_offers();
-        assert!(!state.should_restock(&mut offers, 5_000, 0));
-        assert!(state.should_restock(&mut offers, 12_101, 0));
+        assert!(!state.should_restock(&mut offers, 5_000, 0).restock);
+        assert!(state.should_restock(&mut offers, 12_101, 0).restock);
         assert_eq!(state.restocks_today, 0);
         assert_eq!(state.last_restock, 12_101);
     }
@@ -913,6 +955,44 @@ mod tests {
         let mut offers = used_offers();
         state.should_restock(&mut offers, 24_100, 2);
         assert_eq!(state.restocks_today, 0);
+    }
+
+    #[test]
+    fn a_catch_up_after_missed_restocks_resets_the_uses_and_reports_it() {
+        let mut state = VillagerState {
+            restocks_today: 0,
+            last_restock: 100,
+            ..VillagerState::default()
+        };
+        let mut offers = used_offers();
+        let check = state.should_restock(&mut offers, 12_101, 0);
+        assert!(check.caught_up);
+        assert!(!check.restock);
+        assert_eq!(offers.get(0).unwrap().uses, 0);
+        let offer = offers.get(0).unwrap();
+        assert_eq!(offer.demand, -2 * offer.max_uses);
+    }
+
+    #[test]
+    fn reputation_and_hero_of_the_village_discount_the_price() {
+        let mut offers = used_offers();
+        update_special_prices(&mut offers, 20, None);
+        assert_eq!(
+            offers.get(0).unwrap().special_price_diff,
+            -(20.0f32 * 0.05).floor() as i32
+        );
+        update_special_prices(&mut offers, 0, Some(0));
+        assert_eq!(offers.get(0).unwrap().special_price_diff, -1);
+        update_special_prices(&mut offers, 0, Some(4));
+        let offer = offers.get(0).unwrap();
+        let hero = f64::from(4.0f32 * 0.0625 + 0.3);
+        assert_eq!(
+            offer.special_price_diff,
+            -((hero * f64::from(offer.cost_a.count)).floor() as i32).max(1)
+        );
+        update_special_prices(&mut offers, 0, None);
+        assert_eq!(offers.get(0).unwrap().special_price_diff, 0);
+        reset_special_prices(&mut offers);
     }
 
     #[test]
