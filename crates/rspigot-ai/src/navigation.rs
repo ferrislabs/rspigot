@@ -75,6 +75,10 @@ pub fn can_cut_corner(kind: PathType) -> bool {
     )
 }
 
+pub fn can_cut_corner_for(profile: &MobProfile, kind: PathType) -> bool {
+    can_cut_corner(kind) && !(profile.frog_nodes && kind == PathType::WaterBorder)
+}
+
 impl Navigation {
     pub fn new() -> Self {
         Self {
@@ -581,8 +585,7 @@ impl Navigation {
             && (position.y - f64::from(next.y)).abs() < profile.max_vertical_distance_to_waypoint();
         let direct = |from: Vec3, to: Vec3| can_move_directly(view, profile, mob, from, to);
         if reached
-            || (can_cut_corner(path.next_node().path_type)
-                && !(profile.frog_nodes && path.next_node().path_type == PathType::WaterBorder)
+            || (can_cut_corner_for(profile, path.next_node().path_type)
                 && aims_past(path, temp, profile.width, direct))
         {
             path.advance();

@@ -198,8 +198,8 @@ pub use guardian::{
 pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal, is_enemy};
 pub use nautilus::{ChargeAttack as NautilusChargeAttack, NautilusAction};
 pub use navigation::{
-    MobTick, MoveTarget, Navigation, can_cut_corner, find_surface_position, ground_y, temp_mob_pos,
-    waypoint_distance,
+    MobTick, MoveTarget, Navigation, can_cut_corner, can_cut_corner_for, find_surface_position,
+    ground_y, temp_mob_pos, waypoint_distance,
 };
 pub use neutral::ResetUniversalAngerGoal;
 pub use panda::{PandaAction, PandaBrain, PandaFacts, PandaGoal};
