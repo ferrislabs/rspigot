@@ -26,6 +26,7 @@ use crate::breeze::{
     Slide as BreezeSlide, SlideToTargetSink,
 };
 use crate::copper_golem::TransportItemsBetweenContainers;
+use crate::frog::{Croak, ShootTongue, TryFindLand};
 use crate::piglin::{
     BackUpIfTooClose, BecomePassiveIfMemoryPresent, CROSSBOW_ATTACK_DURATION, CopyMemoryWithExpiry,
     CrossbowAttack, RememberIfHoglinWasKilled, StartAdmiringItemIfSeen,
@@ -224,6 +225,8 @@ mob_behaviors! {
     SnifferFinishedDigging(SnifferFinishedDigging),
     SnifferScenting(SnifferScenting),
     SnifferFeelingHappy(SnifferFeelingHappy),
+    FrogShootTongue(ShootTongue),
+    FrogCroak(Croak),
 }
 
 macro_rules! mob_triggers {
@@ -326,6 +329,7 @@ mob_triggers! {
     WardenSetLookTarget(SetWardenLookTarget),
     WardenDigCooldownSetter(DigCooldownSetter),
     WardenLookAtAttackTarget(SetLookAtAttackTarget),
+    FrogTryFindLand(TryFindLand),
 }
 
 #[derive(Debug, Clone, PartialEq)]

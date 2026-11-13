@@ -165,6 +165,10 @@ mod tests {
                 registries::synced_entries(family.variant_registry()),
                 "{family:?}"
             );
+            if !family.has_sound_variants() {
+                assert!(family.sound_variants().is_empty(), "{family:?}");
+                continue;
+            }
             let names: Vec<&str> = family.sound_variants().iter().map(|v| v.name).collect();
             assert_eq!(
                 Some(names.as_slice()),
@@ -172,6 +176,10 @@ mod tests {
                 "{family:?}"
             );
         }
+        assert_eq!(
+            VariantFamily::Frog.variant_index("minecraft:temperate"),
+            Some(1)
+        );
         assert_eq!(
             VariantFamily::Cow.variant_index("minecraft:temperate"),
             Some(1)

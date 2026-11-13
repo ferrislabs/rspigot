@@ -20,6 +20,7 @@ mod creaking;
 mod enderman;
 mod endermite;
 mod fox;
+mod frog;
 mod ghast;
 mod goat;
 mod hoglin;
@@ -97,6 +98,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_registered(id, ai),
             Some(Kind::Goat) => self.goat_registered(id, ai),
             Some(Kind::Sniffer) => self.sniffer_registered(id),
+            Some(Kind::Frog) => self.frog_registered(id, ai),
             Some(Kind::Villager) => self.villager_registered(id, ai),
             Some(Kind::Warden) => self.warden_registered(id, ai),
             _ => {}

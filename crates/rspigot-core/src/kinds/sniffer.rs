@@ -191,40 +191,9 @@ impl<L: ClientLink> Server<L> {
         let experience = random.next_int(EGG_BREED_EXPERIENCE) + 1;
         let pitch = sniffer::egg_plop_pitch(random.next_float(), random.next_float());
         self.store_mob_random(parent, random);
-        self.finish_sniffer_breeding(parent, partner, position, experience);
+        self.finish_childless_breeding(parent, partner, position, experience);
         self.entity_sound(parent, EGG_PLOP_SOUND, 1.0, pitch);
         self.add_entity(item, CreatureSpawnReason::Default);
-    }
-
-    fn finish_sniffer_breeding(
-        &mut self,
-        parent: EntityId,
-        partner: EntityId,
-        position: Vec3,
-        experience: i32,
-    ) {
-        for id in [parent, partner] {
-            if let Some(Entity {
-                base,
-                state: rspigot_domain::entity::EntityState::Living(state),
-                ..
-            }) = self.entities.store.get_mut(id)
-                && let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut())
-            {
-                ageable::set_age(base, ageable, ageable::PARENT_AGE_AFTER_BREEDING);
-                ageable.reset_love();
-            }
-        }
-        self.push(
-            Audience::Trackers(parent),
-            ClientEvent::EntityStatus {
-                entity: parent,
-                status: EntityStatus::Event(crate::mob_actions::LOVE_EVENT),
-            },
-        );
-        if self.config.rules.mob_drops && experience > 0 {
-            self.spawn_orb(position, experience);
-        }
     }
 
     pub(crate) fn sniffer_egg_placed(&mut self, pos: BlockPos, state: BlockStateId) -> Option<u64> {
