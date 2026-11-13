@@ -268,7 +268,7 @@ pub enum GameEvent {
     RainLevelChange(f32),
     ThunderLevelChange(f32),
     PufferFishSting,
-    GuardianElderEffect,
+    GuardianElderEffect(f32),
     ImmediateRespawn(bool),
     LimitedCrafting(bool),
     LevelChunksLoadStart,

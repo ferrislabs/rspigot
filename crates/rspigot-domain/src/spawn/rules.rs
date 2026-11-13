@@ -92,6 +92,9 @@ pub fn check_predicate(
             super::water::check_surface_water_spawn_rules(level, pos)
         }
         SpawnPredicate::TropicalFish => super::water::check_tropical_fish_spawn_rules(level, pos),
+        SpawnPredicate::Turtle => super::water::check_turtle_spawn_rules(level, pos),
+        SpawnPredicate::Guardian => super::water::check_guardian_spawn_rules(level, reason, pos),
+        SpawnPredicate::Drowned => super::water::check_drowned_spawn_rules(level, reason, pos),
         SpawnPredicate::GlowSquid => super::water::check_glow_squid_spawn_rules(level, pos),
         SpawnPredicate::Endermite => {
             super::endermite::check_endermite_spawn_rules(level, kind, reason, pos)
@@ -167,6 +170,9 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::SurfaceAgeableWaterCreature
                 | SpawnPredicate::TropicalFish
                 | SpawnPredicate::GlowSquid
+                | SpawnPredicate::Turtle
+                | SpawnPredicate::Guardian
+                | SpawnPredicate::Drowned
         )
     });
     let walk = match spawn.check_spawn_rules {
@@ -186,6 +192,8 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Bee
                     | MobClass::Creaking
                     | MobClass::Warden
+                    | MobClass::Turtle
+                    | MobClass::Guardian
             )
         ),
         _ => false,
@@ -201,6 +209,8 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | MobClass::Warden
                 | MobClass::WaterAnimal
                 | MobClass::AgeableWaterCreature
+                | MobClass::Guardian
+                | MobClass::Drowned
         )
         && matches!(
             spawn.is_max_group_size_reached,
@@ -302,6 +312,8 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
             }
         }
         MobClass::Monster => -(level.light_level_dependent_magic_value(pos) - 0.5),
+        MobClass::Turtle => super::water::turtle_walk_target_value(level, pos),
+        MobClass::Guardian => super::water::guardian_walk_target_value(level, pos),
         MobClass::Silverfish => super::silverfish::walk_target_value(level, pos),
         MobClass::Giant => level.light_level_dependent_magic_value(pos) - 0.5,
         MobClass::Pillager => 0.0,
@@ -367,7 +379,12 @@ pub fn check_spawn_obstruction(level: &impl SpawnLevel, kind: EntityKind, area: 
                 && ocelot_can_stand(level, area)
         }
         Some(MobClass::IronGolem) => iron_golem_obstruction(level, area),
-        Some(MobClass::WaterAnimal | MobClass::AgeableWaterCreature) => level.is_unobstructed(area),
+        Some(
+            MobClass::WaterAnimal
+            | MobClass::AgeableWaterCreature
+            | MobClass::Guardian
+            | MobClass::Drowned,
+        ) => level.is_unobstructed(area),
         _ => false,
     }
 }

@@ -108,6 +108,16 @@ impl<L: ClientLink> Server<L> {
                     self.finish_bee_grow(bee, pos, to);
                 }
             }
+            Grief::TurtleEgg {
+                turtle,
+                at,
+                pos,
+                state,
+            } => {
+                if !cancelled {
+                    self.finish_turtle_egg(turtle, at, pos, state);
+                }
+            }
             Grief::WitherBreak { wither, pos } => {
                 if !cancelled {
                     self.finish_wither_break(wither, pos);

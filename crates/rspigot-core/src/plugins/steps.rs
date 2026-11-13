@@ -929,6 +929,12 @@ pub(crate) enum Grief {
         pos: BlockPos,
         to: BlockStateId,
     },
+    TurtleEgg {
+        turtle: EntityId,
+        at: BlockPos,
+        pos: BlockPos,
+        state: BlockStateId,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1177,16 +1183,32 @@ pub(crate) enum Continuation {
     Grow(GrowStep),
     Ignite(IgniteStep),
     Regrow(EntityId),
-    EggBreak { mob: EntityId, pos: BlockPos },
-    EnterHive { bee: EntityId, pos: BlockPos },
-    DoorOpen { mob: EntityId, pos: BlockPos },
-    TargetBlock { mob: EntityId, pos: BlockPos },
+    EggBreak {
+        mob: EntityId,
+        pos: BlockPos,
+        trample: bool,
+    },
+    EnterHive {
+        bee: EntityId,
+        pos: BlockPos,
+    },
+    DoorOpen {
+        mob: EntityId,
+        pos: BlockPos,
+    },
+    TargetBlock {
+        mob: EntityId,
+        pos: BlockPos,
+    },
     EntityExplode(Box<ExplodeStep>),
     Splash(Box<SplashStep>),
     Prime(PrimeStep),
     Relocate(RelocateStep),
     Shoot(Box<ShotStep>),
-    ProjectileHit { arrow: EntityId, target: EntityId },
+    ProjectileHit {
+        arrow: EntityId,
+        target: EntityId,
+    },
     Aim(AimStep),
     Breed(Box<BreedStep>),
     Love(Box<LoveStep>),
@@ -1378,6 +1400,7 @@ impl Continuation {
                 Grief::Statue { golem, .. } => *golem == id,
                 Grief::WitherBreak { wither, .. } => *wither == id,
                 Grief::BeeGrow { bee, .. } => *bee == id,
+                Grief::TurtleEgg { turtle, .. } => *turtle == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,

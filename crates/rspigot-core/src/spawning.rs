@@ -384,6 +384,13 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
+    pub(crate) fn ticking_chunks_near_players(&self) -> Vec<ChunkPos> {
+        spawn_candidates(&self.spawning.players)
+            .into_iter()
+            .filter(|chunk| self.chunk_ticking(*chunk))
+            .collect()
+    }
+
     fn chunk_ticking(&self, chunk: ChunkPos) -> bool {
         (-1..=1).all(|dx| {
             (-1..=1).all(|dz| {
@@ -800,6 +807,8 @@ mod tests {
                 EntityKind::Creaking,
                 EntityKind::Creeper,
                 EntityKind::Dolphin,
+                EntityKind::Drowned,
+                EntityKind::ElderGuardian,
                 EntityKind::Enderman,
                 EntityKind::Endermite,
                 EntityKind::Fox,
@@ -807,6 +816,7 @@ mod tests {
                 EntityKind::Ghast,
                 EntityKind::GlowSquid,
                 EntityKind::Goat,
+                EntityKind::Guardian,
                 EntityKind::Hoglin,
                 EntityKind::Husk,
                 EntityKind::IronGolem,
@@ -834,6 +844,7 @@ mod tests {
                 EntityKind::Squid,
                 EntityKind::Stray,
                 EntityKind::TropicalFish,
+                EntityKind::Turtle,
                 EntityKind::Vex,
                 EntityKind::Villager,
                 EntityKind::WanderingTrader,

@@ -70,6 +70,13 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         Kind::Sheep => Some("minecraft:entity.sheep.ambient"),
         Kind::Zombie => Some("minecraft:entity.zombie.ambient"),
         Kind::Husk => Some("minecraft:entity.husk.ambient"),
+        Kind::Drowned => Some(crate::kinds::drowned_ambient_sound(entity)),
+        Kind::Turtle => (!base.fluid.in_water && base.on_ground && !entity.is_baby())
+            .then_some(species::turtle::AMBIENT_LAND_SOUND),
+        Kind::Guardian | Kind::ElderGuardian => Some(species::guardian::ambient_sound(
+            base.kind,
+            base.fluid.in_water,
+        )),
         Kind::ZombieVillager => Some("minecraft:entity.zombie_villager.ambient"),
         Kind::PolarBear => Some(if entity.is_baby() {
             "minecraft:entity.polar_bear.ambient_baby"
@@ -204,6 +211,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn species_post_tick(&mut self, id: EntityId) {
         self.kind_post_tick(id);
+        self.mob_steps_on_egg(id);
         let now = self.current_tick() as i64;
         let Some(Entity {
             base,
@@ -310,6 +318,7 @@ impl<L: ClientLink> Server<L> {
         let mut random = self.mob_random(id);
         let mut particles = Vec::new();
         let mut lay_egg = false;
+        let mut grew_up = false;
         if let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -325,6 +334,7 @@ impl<L: ClientLink> Server<L> {
             if let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut()) {
                 particles = ageable::ai_step(base, ageable, alive, &mut random).particles;
                 ageable::love_ai_step(base, ageable, &mut random);
+                grew_up = ageable.take_grew_up();
             }
             if let Some(Species::Chicken(chicken)) = state.mob.as_mut().map(|mob| &mut mob.species)
             {
@@ -342,6 +352,9 @@ impl<L: ClientLink> Server<L> {
         }
         if lay_egg {
             self.lay_egg(id);
+        }
+        if grew_up && self.kind_of(id) == Some(Kind::Turtle) {
+            self.turtle_grew_up(id);
         }
     }
 
@@ -484,7 +497,11 @@ impl<L: ClientLink> Server<L> {
         let kind = entity.base.kind;
         if !matches!(
             kind,
-            Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
+            Kind::Zombie
+                | Kind::Husk
+                | Kind::Drowned
+                | Kind::ZombieVillager
+                | Kind::ZombifiedPiglin
         ) {
             return;
         }
@@ -885,7 +902,11 @@ impl<L: ClientLink> Server<L> {
         let kind = entity.base.kind;
         if !matches!(
             kind,
-            Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
+            Kind::Zombie
+                | Kind::Husk
+                | Kind::Drowned
+                | Kind::ZombieVillager
+                | Kind::ZombifiedPiglin
         ) {
             return;
         }

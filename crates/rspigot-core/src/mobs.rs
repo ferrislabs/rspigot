@@ -1365,6 +1365,16 @@ impl<L: ClientLink> Server<L> {
             entry.ai.think(&mob, &world, &mut body);
         }
         let requests = entry.ai.take_target_requests();
+        let target_in_water = entry.ai.target().is_some_and(|target| {
+            match self.players.values().find(|p| p.entity_id == target) {
+                Some(player) => self.feet_in_water(player.id),
+                None => self
+                    .entities
+                    .store
+                    .get(target)
+                    .is_some_and(|other| other.base.fluid.in_water),
+            }
+        });
         if let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -1373,6 +1383,7 @@ impl<L: ClientLink> Server<L> {
         {
             apply_body(base, state, &mob, &body);
             state.has_target = entry.ai.target().is_some();
+            state.target_in_water = target_in_water;
             if let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut()) {
                 ageable::custom_server_ai_step(ageable);
             }
@@ -1539,6 +1550,29 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     }
     if let Some(Species::Squid(squid)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         squid.movement = body.squid.movement;
+    }
+    if let Some(Species::Zombie(zombie)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        zombie.searching_for_land = body.drowned.searching_for_land;
+    }
+    if base.kind.extends("Guardian")
+        && species::guardian::active_attack_target(base) != body.guardian.attack_target
+    {
+        species::guardian::set_active_attack_target(base, body.guardian.attack_target);
+    }
+    if let Some(Species::Turtle(turtle)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        turtle.home_pos = body.turtle.home_pos;
+        turtle.lay_egg_counter = body.turtle.lay_egg_counter;
+        turtle.going_home = body.turtle.going_home;
+        turtle.travel_pos = body.turtle.travel_pos;
+    }
+    if base.kind == Kind::Turtle {
+        if species::turtle::has_egg(base) != body.turtle.has_egg {
+            species::turtle::set_has_egg(base, body.turtle.has_egg);
+        }
+        if species::turtle::is_laying_egg(base) != body.turtle.laying_egg {
+            let mut scratch = species::turtle::TurtleState::default();
+            species::turtle::set_laying_egg(base, &mut scratch, body.turtle.laying_egg);
+        }
     }
     if let Some(Species::Dolphin(dolphin)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         dolphin.treasure_pos = body.dolphin.treasure_pos;
@@ -2249,6 +2283,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ghast | Kind::Allay | Kind::Bee)
         ) {
             return;
+        }
+        if landing.state.kind() == Some(rspigot_blocks::BlockKind::TurtleEgg) {
+            self.egg_fallen_on(id, false, landing.pos);
         }
         let Some(impact) = fall_impact(landing.state, landing.distance, false) else {
             return;

@@ -782,6 +782,17 @@ impl HurtByTargetGoal {
         }
     }
 
+    pub const fn ignoring_damage_from_alerting_except(
+        classes: &'static [&'static str],
+        ignored: &'static [EntityKind],
+    ) -> Self {
+        Self {
+            ignore_damage: classes,
+            alert_others: Some(ignored),
+            ..Self::new()
+        }
+    }
+
     pub const fn alerting(ignored: &'static [EntityKind]) -> Self {
         Self {
             alert_others: Some(ignored),

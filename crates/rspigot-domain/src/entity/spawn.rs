@@ -329,7 +329,9 @@ pub fn zombie_handle_attributes(
             let max = living.max_health() as f32;
             living::set_health(base, living, max);
         }
-        if let Some(Species::Zombie(zombie)) = living.mob.as_mut().map(|mob| &mut mob.species) {
+        if base.kind != EntityKind::Drowned
+            && let Some(Species::Zombie(zombie)) = living.mob.as_mut().map(|mob| &mut mob.species)
+        {
             zombie.can_break_doors = true;
         }
     }
@@ -375,13 +377,17 @@ fn zombie_finalize(
             }
         }
         let doors = level.next_float() < special * BREAK_DOORS_FACTOR;
-        if let Some(Species::Zombie(zombie)) = living.mob.as_mut().map(|mob| &mut mob.species) {
+        if base.kind != EntityKind::Drowned
+            && let Some(Species::Zombie(zombie)) = living.mob.as_mut().map(|mob| &mut mob.species)
+        {
             zombie.can_break_doors = doors;
         }
         if reason != SpawnReason::Conversion {
             if base.kind == EntityKind::ZombifiedPiglin {
                 let weapon = species::zombified_piglin::default_weapon(level);
                 set_item_slot(living, EquipmentSlot::Mainhand, Some(stack(weapon)));
+            } else if base.kind == EntityKind::Drowned {
+                species::drowned::populate_equipment(living, level);
             } else {
                 populate_armor(living, &difficulty, level);
                 let chance = if difficulty.base == Difficulty::Hard {
@@ -403,6 +409,9 @@ fn zombie_finalize(
     }
     halloween_head(living, environment, level);
     zombie_handle_attributes(base, living, special, reason, own);
+    if base.kind == EntityKind::Drowned {
+        species::drowned::roll_nautilus_shell(living, level);
+    }
     if base.kind == EntityKind::Husk && reason != SpawnReason::Conversion {
         set_can_pick_up_loot(living, level.next_float() < PICK_UP_LOOT_CHANCE * special);
     }
@@ -510,6 +519,7 @@ pub fn finalize_spawn(
                 kind,
                 EntityKind::Zombie
                     | EntityKind::Husk
+                    | EntityKind::Drowned
                     | EntityKind::ZombieVillager
                     | EntityKind::ZombifiedPiglin
             ) =>
@@ -557,6 +567,9 @@ pub fn finalize_spawn(
         }
         Some(Species::Dolphin(_)) => {
             species::dolphin::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Turtle(_)) => {
+            species::turtle::finalize(base, living, environment, group, level)
         }
         Some(Species::Fish(_)) => {
             species::fish::finalize(base, living, environment, group, level, own)

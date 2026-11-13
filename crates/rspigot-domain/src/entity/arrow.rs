@@ -16,6 +16,15 @@ pub const DATA_FLAGS: u8 = 8;
 pub const DATA_PIERCE_LEVEL: u8 = 9;
 pub const DATA_IN_GROUND: u8 = 10;
 pub const DATA_EFFECT_COLOR: u8 = 11;
+pub const DATA_LOYALTY: u8 = 11;
+pub const DATA_FOIL: u8 = 12;
+pub const TRIDENT_DAMAGE: f32 = 8.0;
+pub const TRIDENT_WATER_INERTIA: f32 = 0.99;
+pub const TRIDENT_HIT_SOUND: &str = "minecraft:item.trident.hit";
+pub const TRIDENT_GROUND_SOUND: &str = "minecraft:item.trident.hit_ground";
+pub const TRIDENT_DEFLECT: f64 = -0.5;
+pub const TRIDENT_AFTER_HIT: (f64, f64, f64) = (0.02, 0.2, 0.02);
+pub const TRIDENT_GROUND_TICKS: i32 = 4;
 pub const FLAG_CRIT: u8 = 1;
 pub const FLAG_NO_PHYSICS: u8 = 2;
 pub const BASE_DAMAGE: f64 = 2.0;
@@ -77,7 +86,12 @@ pub struct ArrowState {
     pub item: ItemStack,
     pub weapon: Option<ItemStack>,
     pub pierced: Vec<crate::EntityId>,
+    pub dealt_damage: bool,
     pub random: LegacyRandom,
+}
+
+pub fn trident_item() -> ItemStack {
+    ItemStack::new(ItemKind::Trident.id(), NonZeroU8::MIN)
 }
 
 pub fn default_item() -> ItemStack {
@@ -91,6 +105,24 @@ impl ArrowState {
         base.data
             .define(DATA_IN_GROUND, SyncedValue::Boolean(false));
         base.data.define(DATA_EFFECT_COLOR, SyncedValue::Int(-1));
+        Self::unsynced(seed)
+    }
+
+    pub fn new_trident(base: &mut EntityBase, seed: i64) -> Self {
+        base.data.define(DATA_FLAGS, SyncedValue::Byte(0));
+        base.data.define(DATA_PIERCE_LEVEL, SyncedValue::Byte(0));
+        base.data
+            .define(DATA_IN_GROUND, SyncedValue::Boolean(false));
+        base.data.define(DATA_LOYALTY, SyncedValue::Byte(0));
+        base.data.define(DATA_FOIL, SyncedValue::Boolean(false));
+        Self {
+            sound: TRIDENT_GROUND_SOUND.to_owned(),
+            item: trident_item(),
+            ..Self::unsynced(seed)
+        }
+    }
+
+    fn unsynced(seed: i64) -> Self {
         Self {
             owner: None,
             left_owner: false,
@@ -106,6 +138,7 @@ impl ArrowState {
             item: default_item(),
             weapon: None,
             pierced: Vec::new(),
+            dealt_damage: false,
             random: LegacyRandom::new(seed),
         }
     }

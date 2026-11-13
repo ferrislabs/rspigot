@@ -22,6 +22,7 @@ mod cat;
 pub(crate) mod copper_golem;
 mod creaking;
 mod dolphin;
+mod drowned;
 mod enderman;
 mod endermite;
 mod fish;
@@ -29,6 +30,7 @@ mod fox;
 mod frog;
 mod ghast;
 mod goat;
+mod guardian;
 mod hoglin;
 mod iron_golem;
 mod ocelot;
@@ -44,6 +46,7 @@ mod silverfish;
 mod sniffer;
 mod snow_golem;
 mod squid;
+mod turtle;
 mod vex;
 pub(crate) mod villager;
 mod warden;
@@ -60,6 +63,7 @@ pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::Sou
     }
 }
 pub(crate) use armadillo::ambient_sound as armadillo_ambient_sound;
+pub(crate) use drowned::ambient_sound as drowned_ambient_sound;
 pub(crate) use enderman::carried_block_drops;
 pub(crate) use fish::fish_facts_of;
 pub(crate) use goat::{GoatSound, voice as goat_voice};
@@ -94,6 +98,9 @@ impl<L: ClientLink> Server<L> {
             }
             Kind::Squid | Kind::GlowSquid => self.squid_view(entity, view),
             Kind::Dolphin => self.dolphin_view(entity, view),
+            Kind::Turtle => self.turtle_view(entity, view),
+            Kind::Drowned => self.drowned_view(entity, view),
+            Kind::Guardian | Kind::ElderGuardian => self.guardian_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
             Kind::Parrot => self.parrot_view(entity, view),
             Kind::Bee => self.bee_view(entity, view),
@@ -183,6 +190,7 @@ impl<L: ClientLink> Server<L> {
             }
             Some(Kind::Squid | Kind::GlowSquid) => self.squid_post_tick(id),
             Some(Kind::Dolphin) => self.dolphin_post_tick(id),
+            Some(Kind::Drowned) => self.drowned_post_tick(id),
             Some(Kind::Parrot) => self.parrot_post_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
@@ -205,6 +213,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Witch) => self.witch_ai_step(id),
             Some(Kind::Creaking) => self.creaking_ai_step(id),
             Some(Kind::Parrot) => self.parrot_ai_step(id),
+            Some(Kind::Turtle) => self.turtle_ai_step(id),
+            Some(Kind::Guardian | Kind::ElderGuardian) => self.guardian_ai_step(id),
             Some(Kind::Bee) => self.bee_ai_step(id),
             Some(Kind::Wither) => self.wither_ai_step(id),
             Some(Kind::Allay) => self.allay_ai_step(id),
@@ -288,6 +298,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::WanderingTrader) => self.wandering_trader_custom_ai_step(id),
             Some(Kind::Wither) => self.wither_custom_ai_step(id),
             Some(Kind::Bee) => self.bee_custom_ai_step(id),
+            Some(Kind::ElderGuardian) => self.elder_guardian_custom_ai_step(id),
             _ => {}
         }
     }
@@ -346,6 +357,9 @@ impl<L: ClientLink> Server<L> {
     ) -> Option<f32> {
         match self.kind_of(id) {
             Some(Kind::Wolf) => self.wolf_hurt_amount(id, source, amount),
+            Some(Kind::Guardian | Kind::ElderGuardian) => {
+                self.guardian_hurt_amount(id, source, amount)
+            }
             Some(Kind::Cat) => self.cat_hurt_amount(id, source, amount),
             Some(Kind::Fox) => self.fox_hurt_amount(id, source, amount),
             Some(Kind::Panda) => self.panda_hurt_amount(id, source, amount),

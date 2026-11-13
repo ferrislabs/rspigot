@@ -11,6 +11,7 @@ use crate::scan::manhattan_ordered;
 use crate::targeting::TargetingConditions;
 use crate::world::{AiWorld, Living, TargetKind, inflate};
 
+const TURTLE_WATER_RANGE: i32 = 7;
 const WATER_SEARCH_RANGE: i32 = 5;
 const WATER_SEARCH_HEIGHT: i32 = 1;
 const PARTNER_RANGE: f64 = 8.0;
@@ -48,6 +49,7 @@ pub struct PanicGoal {
     rabbit: bool,
     tamable: bool,
     environmental: bool,
+    turtle: bool,
 }
 
 impl PanicGoal {
@@ -59,6 +61,14 @@ impl PanicGoal {
             rabbit: false,
             tamable: false,
             environmental: false,
+            turtle: false,
+        }
+    }
+
+    pub fn turtle(speed_modifier: f64) -> Self {
+        Self {
+            turtle: true,
+            ..Self::new(speed_modifier)
         }
     }
 
@@ -87,7 +97,7 @@ impl PanicGoal {
         self.running
     }
 
-    fn look_for_water<W: AiWorld>(context: &AiContext<'_, W>) -> Option<BlockPos> {
+    fn look_for_water<W: AiWorld>(context: &AiContext<'_, W>, range: i32) -> Option<BlockPos> {
         let origin = context.mob.block_pos();
         let world = context.world;
         if world
@@ -96,13 +106,7 @@ impl PanicGoal {
         {
             return None;
         }
-        manhattan_ordered(
-            origin,
-            WATER_SEARCH_RANGE,
-            WATER_SEARCH_HEIGHT,
-            WATER_SEARCH_RANGE,
-        )
-        .find(|pos| {
+        manhattan_ordered(origin, range, WATER_SEARCH_HEIGHT, range).find(|pos| {
             world
                 .state(*pos)
                 .is_some_and(|state| state.flags().contains(StateFlags::WATER))
@@ -118,8 +122,19 @@ impl PanicGoal {
         if !panic {
             return false;
         }
+        if self.turtle {
+            if let Some(water) = Self::look_for_water(context, TURTLE_WATER_RANGE) {
+                self.wanted = Vec3::new(f64::from(water.x), f64::from(water.y), f64::from(water.z));
+                return true;
+            }
+            let Some(position) = random_pos::default_pos(context, 5, 4) else {
+                return false;
+            };
+            self.wanted = position;
+            return true;
+        }
         if context.mob.on_fire
-            && let Some(water) = Self::look_for_water(context)
+            && let Some(water) = Self::look_for_water(context, WATER_SEARCH_RANGE)
         {
             self.wanted = Vec3::new(f64::from(water.x), f64::from(water.y), f64::from(water.z));
             return true;

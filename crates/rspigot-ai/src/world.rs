@@ -192,6 +192,9 @@ pub struct MobBody {
     pub fish: crate::FishFacts,
     pub squid: crate::SquidFacts,
     pub dolphin: crate::DolphinFacts,
+    pub turtle: crate::TurtleFacts,
+    pub guardian: crate::GuardianFacts,
+    pub drowned: crate::DrownedFacts,
 }
 
 impl MobBody {
@@ -216,6 +219,9 @@ impl MobBody {
             fish: mob.species.fish,
             squid: mob.species.squid,
             dolphin: mob.species.dolphin,
+            turtle: mob.species.turtle,
+            guardian: mob.species.guardian,
+            drowned: mob.species.drowned,
         }
     }
 }
@@ -485,6 +491,9 @@ pub struct KindFacts {
     pub fish: crate::FishFacts,
     pub squid: crate::SquidFacts,
     pub dolphin: crate::DolphinFacts,
+    pub turtle: crate::TurtleFacts,
+    pub guardian: crate::GuardianFacts,
+    pub drowned: crate::DrownedFacts,
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
 }
@@ -690,6 +699,8 @@ impl MobView {
             WOLF_SITTING_MAX_HEAD_X_ROT
         } else if self.kind == EntityKind::Dolphin {
             crate::swimmers::DOLPHIN_MAX_HEAD_ROT
+        } else if self.kind.extends("Guardian") {
+            rspigot_domain::entity::species::guardian::MAX_HEAD_X_ROT as f32
         } else if self.kind == EntityKind::Shulker {
             rspigot_domain::entity::species::shulker::MAX_HEAD_ROTATION
         } else {
