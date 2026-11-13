@@ -28,7 +28,8 @@ pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<boo
         | MobClass::AbstractGolem
         | MobClass::Villager
         | MobClass::WanderingTrader
-        | MobClass::Allay => false,
+        | MobClass::Allay
+        | MobClass::Warden => false,
         MobClass::Chicken => facts.chicken_jockey,
         MobClass::ZombieVillager => !facts.villager_progress,
         MobClass::Raider => {

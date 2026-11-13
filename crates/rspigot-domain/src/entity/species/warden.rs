@@ -3,6 +3,9 @@ use rspigot_nbt::Compound;
 
 use crate::entity::base::EntityBase;
 use crate::entity::data::{Pose, SyncedValue};
+use crate::entity::living::LivingState;
+use crate::entity::species::Species;
+use crate::spawn::SpawnReason;
 
 pub const DATA_CLIENT_ANGER_LEVEL: u8 = 16;
 pub const KEYS: &[&str] = &[];
@@ -13,12 +16,14 @@ pub const BURROWED_HEIGHT: f32 = 1.0;
 const EYE_HEIGHT_FACTOR: f32 = 0.85;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct WardenState;
+pub struct WardenState {
+    pub pending_spawn: Option<bool>,
+}
 
 pub fn define(base: &mut EntityBase) -> WardenState {
     base.data
         .define(DATA_CLIENT_ANGER_LEVEL, SyncedValue::Int(0));
-    WardenState
+    WardenState::default()
 }
 
 pub fn client_anger_level(base: &EntityBase) -> i32 {
@@ -47,6 +52,17 @@ pub fn dimensions_in_pose(pose: Pose) -> EntityDimensions {
     }
 }
 
+pub fn finalize(base: &mut EntityBase, living: &mut LivingState, reason: SpawnReason) {
+    let triggered = reason == SpawnReason::Triggered;
+    if triggered {
+        base.set_pose(Pose::Emerging);
+        base.dimensions = dimensions_in_pose(Pose::Emerging);
+    }
+    if let Some(Species::Warden(state)) = living.mob.as_mut().map(|mob| &mut mob.species) {
+        state.pending_spawn = Some(triggered);
+    }
+}
+
 pub fn read(_nbt: &Compound, _base: &mut EntityBase, _state: &mut WardenState) {}
 
 pub fn write(_base: &EntityBase, _state: &WardenState, _out: &mut Compound) {}
@@ -70,6 +86,28 @@ mod tests {
         assert_eq!(client_anger_level(&base), 0);
         set_client_anger_level(&mut base, 85);
         assert_eq!(client_anger_level(&base), 85);
+    }
+
+    #[test]
+    fn a_triggered_spawn_starts_emerging_and_other_spawns_only_arm_the_dig_cooldown() {
+        for (reason, pose, pending) in [
+            (SpawnReason::Triggered, Pose::Emerging, Some(true)),
+            (SpawnReason::Natural, Pose::Standing, Some(false)),
+        ] {
+            let mut base = base();
+            let mut living = LivingState::new(&mut base, 0.0);
+            let species = Species::Warden(define(&mut base));
+            living.mob.as_mut().expect("mob").species = species;
+            finalize(&mut base, &mut living, reason);
+            assert_eq!(base.pose(), pose);
+            let state = living.mob.as_ref().map(|mob| mob.species);
+            assert_eq!(
+                state,
+                Some(Species::Warden(WardenState {
+                    pending_spawn: pending
+                }))
+            );
+        }
     }
 
     #[test]
