@@ -641,6 +641,16 @@ pub fn finalize(
     crate::entity::spawn::ageable_finalize(base, living, Some(group), level)
 }
 
+pub fn finalize_trader(
+    base: &mut EntityBase,
+    living: &mut crate::entity::living::LivingState,
+    group: Option<crate::spawn::SpawnGroupData>,
+    level: &mut impl RandomSource,
+) -> Option<crate::spawn::SpawnGroupData> {
+    let group = group.unwrap_or(crate::spawn::SpawnGroupData::ageable(false));
+    crate::entity::spawn::ageable_finalize(base, living, Some(group), level)
+}
+
 pub fn set_profession(
     base: &mut EntityBase,
     merchant: &mut MerchantState,
