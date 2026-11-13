@@ -50,6 +50,7 @@ pub struct Brain {
     pub creaking: crate::CreakingState,
     pub warden: crate::WardenState,
     pub target_position: Option<Vec3>,
+    pub phantom: crate::PhantomBrain,
     follow_range: f64,
 }
 
@@ -137,6 +138,7 @@ impl Brain {
             creaking: crate::CreakingState::default(),
             warden: crate::WardenState::default(),
             target_position: None,
+            phantom: crate::PhantomBrain::default(),
             follow_range,
         };
         if kind == EntityKind::Warden {
@@ -1056,6 +1058,10 @@ impl MobAi {
                         .tick_ghast(base, living, view, &mut brain.random);
                 }
                 MoveStyle::Flying => brain.movement.tick_flying(base, living),
+                MoveStyle::Phantom => {
+                    let target = brain.phantom.move_target;
+                    brain.movement.tick_phantom(base, living, target);
+                }
                 MoveStyle::Vex => {
                     let target = brain.target_position;
                     brain.movement.tick_vex(base, living, target);
@@ -1069,7 +1075,7 @@ impl MobAi {
         }
         if base.kind == EntityKind::Fox {
             crate::fox::tick_look(&mut brain.look, base, living, navigating);
-        } else {
+        } else if base.kind != EntityKind::Phantom {
             brain.look.tick(base, living, navigating);
         }
         if brain.hop.is_some() {
@@ -1102,6 +1108,11 @@ impl MobAi {
         if base.kind == EntityKind::Shulker
             || (base.kind == EntityKind::Creaking && !self.brain.creaking.can_move)
         {
+            return;
+        }
+        if base.kind == EntityKind::Phantom {
+            base.head_yaw = living.body_yaw;
+            living.body_yaw = base.yaw;
             return;
         }
         self.brain.body.client_tick(base, living);

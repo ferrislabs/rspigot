@@ -29,6 +29,7 @@ mod hoglin;
 mod iron_golem;
 mod ocelot;
 mod panda;
+mod phantom;
 mod piglin;
 mod pillager;
 mod polar_bear;
@@ -78,6 +79,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Ghast => self.ghast_view(entity, view),
             Kind::Vex => self.vex_view(entity, view),
             Kind::Bat => self.bat_view(entity, view),
+            Kind::Phantom => self.phantom_view(entity, view),
             Kind::Shulker => self.shulker_view(entity, view),
             Kind::ZombifiedPiglin => self.zombified_piglin_view(entity, view),
             Kind::Rabbit => self.rabbit_view(entity, view),

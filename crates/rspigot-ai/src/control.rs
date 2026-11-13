@@ -202,6 +202,7 @@ pub enum MoveStyle {
     Ghast,
     Flying,
     Vex,
+    Phantom,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -218,6 +219,7 @@ pub struct MoveControl {
     next_jump_speed: f64,
     max_turn: i32,
     hovers_in_place: bool,
+    phantom_speed: f32,
 }
 
 fn rotlerp(current: f32, target: f32, max: f32) -> f32 {
@@ -307,6 +309,22 @@ impl MoveControl {
 
     pub fn set_style(&mut self, style: MoveStyle) {
         self.style = style;
+        if style == MoveStyle::Phantom {
+            self.phantom_speed = crate::phantom::INITIAL_SPEED;
+        }
+    }
+
+    pub fn phantom_speed(&self) -> f32 {
+        self.phantom_speed
+    }
+
+    pub fn tick_phantom(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        move_target: Vec3,
+    ) {
+        crate::phantom::tick_move_control(base, living, &mut self.phantom_speed, move_target);
     }
 
     pub fn set_flying(&mut self, max_turn: i32, hovers_in_place: bool) {

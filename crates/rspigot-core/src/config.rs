@@ -24,6 +24,7 @@ pub struct GameRules {
     pub universal_anger: bool,
     pub forgive_dead_players: bool,
     pub spawn_patrols: bool,
+    pub spawn_phantoms: bool,
     pub spawn_wandering_traders: bool,
 }
 
@@ -42,6 +43,7 @@ impl Default for GameRules {
             universal_anger: false,
             forgive_dead_players: true,
             spawn_patrols: true,
+            spawn_phantoms: true,
             spawn_wandering_traders: true,
         }
     }

@@ -64,6 +64,10 @@ macro_rules! goal_enum {
 }
 
 goal_enum!(AirGoal {
+    PhantomAttackStrategy(crate::phantom::AttackStrategyGoal),
+    PhantomSweepAttack(crate::phantom::SweepAttackGoal),
+    PhantomCircle(crate::phantom::CircleAroundAnchorGoal),
+    PhantomAttackPlayer(crate::phantom::AttackPlayerTargetGoal),
     Bat(crate::bat::BatGoal),
     VexCharge(crate::vex::ChargeAttackGoal),
     VexRandomMove(crate::vex::RandomMoveGoal),
@@ -72,6 +76,7 @@ goal_enum!(AirGoal {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AirAction {
+    Phantom(crate::phantom::PhantomAction),
     Bat(crate::bat::BatAction),
     Vex(crate::vex::VexAction),
 }

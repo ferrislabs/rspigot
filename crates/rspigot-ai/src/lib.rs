@@ -36,6 +36,7 @@ mod neutral;
 mod panda;
 mod path;
 mod path_type;
+mod phantom;
 mod piglin;
 mod polar_bear;
 mod profile;
@@ -168,6 +169,10 @@ pub use neutral::ResetUniversalAngerGoal;
 pub use panda::{PandaAction, PandaBrain, PandaFacts, PandaGoal};
 pub use path::{Path, PathNode};
 pub use path_type::PathType;
+pub use phantom::{
+    AttackPhase, AttackPlayerTargetGoal, AttackStrategyGoal, CircleAroundAnchorGoal, PhantomAction,
+    PhantomBrain, PhantomFacts, SweepAttackGoal,
+};
 pub use piglin::{
     ADMIRE_DURATION, ATE_RECENTLY_TICKS, BackUpIfTooClose, BecomePassiveIfMemoryPresent, CopyIf,
     CopyMemoryWithExpiry, CrossbowAttack, HoglinCondition, HoglinFacts, HoglinSensor, NetherFinder,

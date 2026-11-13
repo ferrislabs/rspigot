@@ -76,6 +76,11 @@ const GHAST_FLYING_SPEEDS: FlyingSpeeds = FlyingSpeeds {
     lava: 0.02,
     air: 0.02,
 };
+const PHANTOM_FLYING_SPEEDS: FlyingSpeeds = FlyingSpeeds {
+    water: 0.02,
+    lava: 0.02,
+    air: 0.2,
+};
 const SLOW_FALLING_GRAVITY: f64 = 0.01;
 const LEVITATION_SPEED: f64 = 0.05;
 const LEVITATION_BLEND: f64 = 0.2;
@@ -1310,6 +1315,9 @@ pub fn travel<V: BlockView>(
 ) -> Option<Landing> {
     if base.kind == EntityKind::Ghast {
         return travel_flying(base, living, view, input, GHAST_FLYING_SPEEDS);
+    }
+    if base.kind == EntityKind::Phantom {
+        return travel_flying(base, living, view, input, PHANTOM_FLYING_SPEEDS);
     }
     if base.fluid.in_liquid() {
         travel_in_fluid(base, living, view, input)

@@ -631,6 +631,33 @@ pub fn register_goals(
             );
         }
         EntityKind::Bat => add.goal(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new()))),
+        EntityKind::Phantom => {
+            add.brain.movement.set_style(MoveStyle::Phantom);
+            add.goal(
+                1,
+                MobGoal::Air(AirGoal::PhantomAttackStrategy(
+                    crate::phantom::AttackStrategyGoal::default(),
+                )),
+            );
+            add.goal(
+                2,
+                MobGoal::Air(AirGoal::PhantomSweepAttack(
+                    crate::phantom::SweepAttackGoal::default(),
+                )),
+            );
+            add.goal(
+                3,
+                MobGoal::Air(AirGoal::PhantomCircle(
+                    crate::phantom::CircleAroundAnchorGoal::new(),
+                )),
+            );
+            add.target_goal(
+                1,
+                MobGoal::Air(AirGoal::PhantomAttackPlayer(
+                    crate::phantom::AttackPlayerTargetGoal::new(),
+                )),
+            );
+        }
         EntityKind::Vex => {
             add.brain.movement.set_style(MoveStyle::Vex);
             add.float(0);
@@ -914,6 +941,46 @@ mod tests {
         assert_eq!(profile.malus(crate::PathType::Fire), 0.0);
         assert_eq!(profile.malus(crate::PathType::FireInNeighbor), 0.0);
         assert_eq!(ai.brain().movement.style(), MoveStyle::Ground);
+    }
+
+    #[test]
+    fn the_phantom_registers_the_vanilla_goals_target_and_control() {
+        let (goals, targets) = lists(EntityKind::Phantom);
+        assert_eq!(
+            goals,
+            vec![
+                (
+                    1,
+                    MobGoal::Air(AirGoal::PhantomAttackStrategy(
+                        crate::phantom::AttackStrategyGoal::default()
+                    ))
+                ),
+                (
+                    2,
+                    MobGoal::Air(AirGoal::PhantomSweepAttack(
+                        crate::phantom::SweepAttackGoal::default()
+                    ))
+                ),
+                (
+                    3,
+                    MobGoal::Air(AirGoal::PhantomCircle(
+                        crate::phantom::CircleAroundAnchorGoal::new()
+                    ))
+                ),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![(
+                1,
+                MobGoal::Air(AirGoal::PhantomAttackPlayer(
+                    crate::phantom::AttackPlayerTargetGoal::new()
+                ))
+            )]
+        );
+        let ai = MobAi::new(EntityKind::Phantom, 1, GoalSettings::default());
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Phantom);
+        assert_eq!(ai.brain().movement.phantom_speed(), 0.1);
     }
 
     #[test]

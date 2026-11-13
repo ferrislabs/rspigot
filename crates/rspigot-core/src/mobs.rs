@@ -562,6 +562,7 @@ pub(crate) struct MobWorld<'a> {
     has_day_cycle: bool,
     thundering: bool,
     ambient_light: f32,
+    sea_level: i32,
 }
 
 impl MobWorld<'_> {
@@ -932,6 +933,10 @@ impl AiWorld for MobWorld<'_> {
         self.difficulty
     }
 
+    fn sea_level(&self) -> i32 {
+        self.sea_level
+    }
+
     fn game_time(&self) -> i64 {
         self.game_time
     }
@@ -1184,6 +1189,7 @@ impl<L: ClientLink> Server<L> {
             has_day_cycle: self.world.dimension.has_skylight,
             thundering: self.world.level.raining && self.world.level.thundering,
             ambient_light: ambient_light_of(&self.world.dimension),
+            sea_level: self.world.dimension.sea_level,
         }
     }
 
@@ -1455,6 +1461,9 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     }
     if base.kind == Kind::Vex {
         species::vex::set_charging(base, body.vex.charging);
+    }
+    if let Some(Species::Phantom(phantom)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        phantom.anchor = body.phantom.anchor;
     }
     if base.kind == Kind::Sniffer {
         let baby = state
