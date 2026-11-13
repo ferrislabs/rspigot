@@ -64,6 +64,18 @@ macro_rules! goal_enum {
 }
 
 goal_enum!(AirGoal {
+    BeeAttack(crate::bee::AttackGoal),
+    BeeEnterHive(crate::bee::EnterHiveGoal),
+    BeeValidateHive(crate::bee::ValidateHiveGoal),
+    BeeValidateFlower(crate::bee::ValidateFlowerGoal),
+    BeePollinate(crate::bee::PollinateGoal),
+    BeeLocateHive(crate::bee::LocateHiveGoal),
+    BeeGoToHive(crate::bee::GoToHiveGoal),
+    BeeGoToKnownFlower(crate::bee::GoToKnownFlowerGoal),
+    BeeGrowCrop(crate::bee::GrowCropGoal),
+    BeeWander(crate::bee::WanderGoal),
+    BeeHurtBy(crate::bee::HurtByOtherGoal),
+    BeeBecomeAngry(crate::bee::BecomeAngryTargetGoal),
     ParrotWander(crate::parrot::WanderGoal),
     FollowMob(crate::parrot::FollowMobGoal),
     PhantomAttackStrategy(crate::phantom::AttackStrategyGoal),
@@ -79,6 +91,7 @@ goal_enum!(AirGoal {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum AirAction {
+    Bee(crate::bee::BeeAction),
     Phantom(crate::phantom::PhantomAction),
     Bat(crate::bat::BatAction),
     Vex(crate::vex::VexAction),

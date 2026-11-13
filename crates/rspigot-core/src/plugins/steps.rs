@@ -590,6 +590,15 @@ pub(crate) enum Spawned {
     },
     Poof,
     Pattern(Vec<(BlockPos, BlockStateId)>),
+    Hive(Box<HiveRelease>),
+}
+
+#[derive(Debug)]
+pub(crate) struct HiveRelease {
+    pub(crate) pos: BlockPos,
+    pub(crate) occupant: rspigot_domain::beehive::Occupant,
+    pub(crate) status: rspigot_domain::beehive::ReleaseStatus,
+    pub(crate) angered_by: Option<PlayerId>,
 }
 
 #[derive(Debug)]
@@ -685,6 +694,7 @@ pub(crate) struct MobAttackFollow {
     pub(crate) yaw: f32,
     pub(crate) golem: bool,
     pub(crate) hoglin: bool,
+    pub(crate) bee: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -892,6 +902,11 @@ pub(crate) enum Grief {
     WitherBreak {
         wither: EntityId,
         pos: BlockPos,
+    },
+    BeeGrow {
+        bee: EntityId,
+        pos: BlockPos,
+        to: BlockStateId,
     },
 }
 
@@ -1140,6 +1155,7 @@ pub(crate) enum Continuation {
     Ignite(IgniteStep),
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
+    EnterHive { bee: EntityId, pos: BlockPos },
     DoorOpen { mob: EntityId, pos: BlockPos },
     TargetBlock { mob: EntityId, pos: BlockPos },
     EntityExplode(Box<ExplodeStep>),
@@ -1250,6 +1266,7 @@ impl Continuation {
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
+            Self::EnterHive { .. } => EventKind::EntityEnterBlock,
             Self::TargetBlock { .. } => EventKind::EntityTargetBlock,
             Self::EntityExplode(_) => EventKind::EntityExplode,
             Self::Splash(_) => EventKind::PotionSplash,
@@ -1335,10 +1352,12 @@ impl Continuation {
                 Grief::Compost(run) => run.villager() == id,
                 Grief::Statue { golem, .. } => *golem == id,
                 Grief::WitherBreak { wither, .. } => *wither == id,
+                Grief::BeeGrow { bee, .. } => *bee == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
-            Self::EggBreak { mob, .. }
+            Self::EnterHive { bee: mob, .. }
+            | Self::EggBreak { mob, .. }
             | Self::DoorOpen { mob, .. }
             | Self::TargetBlock { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),

@@ -398,6 +398,7 @@ impl<L: ClientLink> Server<L> {
         }) {
             self.anger_nearby_piglins(id, false);
         }
+        let hive = self.hive_snapshot(pos);
         self.set_block(pos, BlockStateId::AIR);
         let actor = self.players.get(&id).map(|player| player.entity_id);
         self.block_game_event(
@@ -421,6 +422,9 @@ impl<L: ClientLink> Server<L> {
                 let breaker = LootEntity::of(Kind::Player);
                 let context = LootContext::block(step.state, step.held.as_ref(), Some(&breaker));
                 stacks = loot::block_drops(&context, &mut self.rng);
+            }
+            if let Some(hive) = hive {
+                self.hive_broken(pos, step.state, hive, Some(id), step.held.as_ref());
             }
             self.spawn_after_break(pos, step.state, step.held.as_ref());
         }
