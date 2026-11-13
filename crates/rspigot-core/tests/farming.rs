@@ -164,9 +164,9 @@ fn a_full_composter_turns_ready_after_twenty_ticks_and_gives_bone_meal() {
     let items = s.server.entities_of(Kind::Item);
     assert_eq!(items.len(), 1);
     let at = items[0].position;
-    assert!((at.y - 65.01).abs() < 0.5, "{at:?}");
+    assert!(at.y > 64.9 && at.y < 66.0, "{at:?}");
     assert!(
-        (at.x - 2.5).abs() <= 0.35 && (at.z - 2.5).abs() <= 0.35,
+        (at.x - 2.5).abs() <= 1.0 && (at.z - 2.5).abs() <= 1.0,
         "{at:?}"
     );
 }

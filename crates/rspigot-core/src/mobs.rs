@@ -697,6 +697,20 @@ impl AiWorld for MobWorld<'_> {
         Some((previous, path.next_node_pos()))
     }
 
+    fn villager_can_reach(&self, villager: EntityId, pos: BlockPos, reach: i32) -> bool {
+        let Some(entity) = self.store.get(villager) else {
+            return false;
+        };
+        let Some(state) = entity.living() else {
+            return false;
+        };
+        let Some(entry) = self.entries.get(&villager) else {
+            return false;
+        };
+        let mob = MobView::of(&entity.base, state);
+        entry.ai.can_reach_pos(&mob, self, pos, reach)
+    }
+
     fn villager_trades(&self, villager: EntityId) -> Vec<rspigot_ai::TradeView> {
         self.store
             .get(villager)
