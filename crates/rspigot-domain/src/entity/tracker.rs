@@ -334,7 +334,16 @@ impl EntityTracker {
         }
     }
 
-    pub fn send_changes(&mut self, entity: &mut Entity) -> Vec<TrackerUpdate> {
+    fn finish_rotation(&mut self, entity: &mut Entity, out: &mut Vec<TrackerUpdate>) {
+        let head = pack_degrees(entity.base.head_yaw);
+        if head != self.last_head_yaw {
+            out.push(TrackerUpdate::HeadRotation(head));
+            self.last_head_yaw = head;
+        }
+        entity.base.needs_sync = false;
+    }
+
+    pub fn send_changes(&mut self, entity: &mut Entity, riding: bool) -> Vec<TrackerUpdate> {
         let mut out = Vec::new();
         let position = entity.base.position;
         if let Some(stepped) = &mut self.stepped {
@@ -370,6 +379,28 @@ impl EntityTracker {
             let moved = (position - self.base).length_sqr();
             let send_position =
                 moved >= MIN_MOVE_SQR || self.tick_count % FORCED_POSITION_TICKS == 0;
+            if riding {
+                let mut ride_out = Vec::new();
+                if rotate {
+                    ride_out.push(TrackerUpdate::Move(Movement::Rotation {
+                        yaw,
+                        pitch,
+                        on_ground: entity.base.on_ground,
+                    }));
+                    self.last_yaw = yaw;
+                    self.last_pitch = pitch;
+                }
+                self.base = position;
+                self.dirty_data(entity, &mut ride_out);
+                self.was_riding = true;
+                self.finish_rotation(entity, &mut ride_out);
+                self.tick_count += 1;
+                if entity.base.sync_velocity {
+                    entity.base.sync_velocity = false;
+                    ride_out.push(TrackerUpdate::SelfMotion(entity.base.velocity));
+                }
+                return ride_out;
+            }
             let packet = self.create_move(entity, path, yaw, pitch, send_position, rotate);
             let fall_flying = matches!(&entity.state, EntityState::Living(l) if l.fall_flying);
             if entity.base.needs_sync || self.track_delta || fall_flying {
@@ -397,12 +428,7 @@ impl EntityTracker {
                 None => self.dirty_data(entity, &mut out),
             }
             self.was_riding = false;
-            let head = pack_degrees(entity.base.head_yaw);
-            if head != self.last_head_yaw {
-                out.push(TrackerUpdate::HeadRotation(head));
-                self.last_head_yaw = head;
-            }
-            entity.base.needs_sync = false;
+            self.finish_rotation(entity, &mut out);
         }
         self.tick_count += 1;
         if entity.base.sync_velocity {
@@ -445,7 +471,7 @@ mod tests {
         let mut tracker = EntityTracker::new(&entity);
         assert!(tracker.pairing().data.iter().any(|(i, _)| *i == 9));
         entity.base.data.pack_dirty();
-        let first = tracker.send_changes(&mut entity);
+        let first = tracker.send_changes(&mut entity, false);
         assert_eq!(
             first,
             vec![TrackerUpdate::Move(Movement::Position {
@@ -461,7 +487,7 @@ mod tests {
         entity.base.velocity = Vec3::new(0.0, -0.5, 0.0);
         let mut updates = Vec::new();
         for _ in 0..3 {
-            updates.extend(tracker.send_changes(&mut entity));
+            updates.extend(tracker.send_changes(&mut entity, false));
         }
         let steps = updates.iter().find_map(|u| match u {
             TrackerUpdate::Move(Movement::Position {
@@ -488,7 +514,7 @@ mod tests {
         let mut tracker = EntityTracker::new(&entity);
         entity.base.on_ground = true;
         entity.base.needs_sync = true;
-        let updates = tracker.send_changes(&mut entity);
+        let updates = tracker.send_changes(&mut entity, false);
         assert!(updates.iter().any(|u| matches!(
             u,
             TrackerUpdate::Move(Movement::Sync {
@@ -496,5 +522,33 @@ mod tests {
                 ..
             })
         )));
+    }
+
+    #[test]
+    fn a_rider_sends_only_rotation_then_forces_a_position_sync_after_dismounting() {
+        let mut entity = cow();
+        let mut tracker = EntityTracker::new(&entity);
+        entity.base.position = Vec3::new(4.0, 63.0, 0.5);
+        entity.base.yaw = 90.0;
+        entity.base.needs_sync = true;
+        let updates = tracker.send_changes(&mut entity, true);
+        assert!(
+            updates
+                .iter()
+                .any(|u| matches!(u, TrackerUpdate::Move(Movement::Rotation { yaw: 64, .. })))
+        );
+        assert!(
+            !updates
+                .iter()
+                .any(|u| matches!(u, TrackerUpdate::Move(m) if m.has_position()))
+        );
+        entity.base.position = Vec3::new(4.2, 63.0, 0.5);
+        entity.base.needs_sync = true;
+        let updates = tracker.send_changes(&mut entity, false);
+        assert!(
+            updates
+                .iter()
+                .any(|u| matches!(u, TrackerUpdate::Move(Movement::Sync { .. })))
+        );
     }
 }

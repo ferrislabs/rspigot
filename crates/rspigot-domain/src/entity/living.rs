@@ -341,6 +341,7 @@ pub struct MobState {
     pub tamable: Option<TamableState>,
     pub merchant: Option<Box<MerchantState>>,
     pub species: Species,
+    pub jockey: Option<super::spawn::Jockey>,
 }
 
 impl Default for MobState {
@@ -359,6 +360,7 @@ impl Default for MobState {
             tamable: None,
             merchant: None,
             species: Species::Plain,
+            jockey: None,
         }
     }
 }

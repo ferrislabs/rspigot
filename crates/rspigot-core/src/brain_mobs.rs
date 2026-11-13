@@ -1,7 +1,7 @@
 use rspigot_ai::{BrainMessage, MobAi, MobBody};
 use rspigot_domain::EntityId;
 use rspigot_domain::entity::Entity;
-use rspigot_nbt::Compound;
+use rspigot_nbt::{Compound, Tag};
 use uuid::Uuid;
 
 use crate::mobs::sky_darken;
@@ -9,6 +9,8 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 
 const BRAIN: &str = "Brain";
+
+pub(crate) const PASSENGERS: &str = "Passengers";
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn brain_message(&mut self, to: EntityId, message: BrainMessage) {
@@ -95,6 +97,19 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn entity_nbt(&self, entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         let mut saved = rspigot_domain::entity::save::save_entity(entity, world)?;
+        saved.remove(PASSENGERS);
+        let riders: Vec<Tag> = self
+            .entities
+            .rides
+            .passengers_of(entity.base.id)
+            .iter()
+            .filter_map(|id| self.entities.store.get(*id))
+            .filter_map(|rider| self.entity_nbt(rider, world))
+            .map(Tag::Compound)
+            .collect();
+        if !riders.is_empty() {
+            saved.insert(PASSENGERS, Tag::List(riders));
+        }
         if let Some(brain) = self.mob_brain_nbt(entity.base.id) {
             saved.insert(BRAIN, brain);
         }

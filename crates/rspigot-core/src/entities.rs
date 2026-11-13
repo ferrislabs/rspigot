@@ -38,6 +38,7 @@ pub(crate) struct TrackedEntity {
 #[derive(Debug, Default)]
 pub(crate) struct EntityWorld {
     pub store: Entities,
+    pub rides: rspigot_domain::entity::riding::Rides,
     pub tracked: FxHashMap<EntityId, TrackedEntity>,
     pub mobs: crate::mobs::MobTable,
     pub boss_bars: FxHashMap<EntityId, rspigot_domain::boss_event::ServerBossEvent>,
@@ -226,6 +227,8 @@ impl<L: ClientLink> Server<L> {
             self.update_entity_viewers(id);
         }
         self.register_mob(id);
+        self.place_passengers(id);
+        self.run_jockey(id);
         Ok(id)
     }
 
@@ -240,6 +243,7 @@ impl<L: ClientLink> Server<L> {
             self.notify_removal(id, cause);
         }
         self.stop_mob_brain(id);
+        self.release_riding(id, reason);
         let mut entity = self.entities.store.remove(id)?;
         entity.base.removal = Some(reason);
         self.entities.tracked.remove(&id);
@@ -281,7 +285,20 @@ impl<L: ClientLink> Server<L> {
         let tracking = player.tracked.contains(&id);
         if visible && !tracking {
             let data = self.projectile_owner_id(entity);
-            let events = pairing_events(entity, &tracked.tracker, data);
+            let mut events = pairing_events(entity, &tracked.tracker, data);
+            let rides = &self.entities.rides;
+            if rides.is_vehicle(id) {
+                events.push(ClientEvent::Passengers {
+                    vehicle: id,
+                    passengers: rides.passengers_of(id).to_vec(),
+                });
+            }
+            if let Some(vehicle) = rides.vehicle_of(id) {
+                events.push(ClientEvent::Passengers {
+                    vehicle,
+                    passengers: rides.passengers_of(vehicle).to_vec(),
+                });
+            }
             if let Some(player) = self.players.get_mut(&player_id) {
                 player.tracked.insert(id);
                 for event in events {
@@ -343,6 +360,7 @@ impl<L: ClientLink> Server<L> {
                 self.update_entity_viewers(id);
             }
             let ticking = self.entity_ticking(position.chunk());
+            let riding = self.entities.rides.is_passenger(id);
             let (Some(entity), Some(tracked)) = (
                 self.entities.store.get_mut(id),
                 self.entities.tracked.get_mut(&id),
@@ -350,7 +368,7 @@ impl<L: ClientLink> Server<L> {
                 continue;
             };
             if changed || entity.base.needs_sync || ticking {
-                let updates = tracked.tracker.send_changes(entity);
+                let updates = tracked.tracker.send_changes(entity, riding);
                 for event in update_events(id, updates) {
                     self.outbox.push((Audience::Trackers(id), event));
                 }
@@ -365,6 +383,9 @@ impl<L: ClientLink> Server<L> {
             let Some(entity) = self.entities.store.get(id) else {
                 continue;
             };
+            if self.entities.rides.is_passenger(id) {
+                continue;
+            }
             if !entity.is_simulated() || !self.entity_ticking(entity.base.chunk()) {
                 continue;
             }
@@ -385,11 +406,12 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Fangs(_) => self.tick_fangs(id),
                 EntityState::Inert(_) => {}
             }
+            self.tick_passengers(id);
             self.entities.store.reindex(id);
         }
     }
 
-    fn tick_living_entity(&mut self, id: EntityId) {
+    pub(crate) fn tick_living_entity(&mut self, id: EntityId) {
         if !self.mob_active(id) {
             self.inactive_tick(id);
             return;
@@ -576,6 +598,7 @@ impl<L: ClientLink> Server<L> {
         let ids = self.entities.store.in_chunk(pos).to_vec();
         let (kept, saved): (Vec<EntityId>, Vec<Compound>) = ids
             .iter()
+            .filter(|id| !self.entities.rides.is_passenger(**id))
             .filter_map(|id| self.entities.store.get(*id))
             .filter_map(|entity| Some((entity.base.id, self.entity_nbt(entity, world_uuid)?)))
             .unzip();

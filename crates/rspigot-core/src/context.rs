@@ -673,6 +673,7 @@ impl<L: ClientLink> Server<L> {
             self.finish_shulker_teleport(id, position, hop);
             return;
         }
+        self.stop_riding_forced(id);
         if let Some(entity) = self.entities.store.get_mut(id) {
             let base = &mut entity.base;
             if base.kind == Kind::Shulker {
@@ -692,6 +693,7 @@ impl<L: ClientLink> Server<L> {
             base.needs_sync = true;
         }
         self.entities.store.reindex(id);
+        self.position_riders(id);
         if let Some(from) = step.from {
             self.enderman_teleported(id, from);
         }
@@ -741,6 +743,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn teleport_player(&mut self, player: PlayerId, position: Vec3) {
+        if let Some(entity) = self.players.get(&player).map(|p| p.entity_id) {
+            self.stop_riding_forced(entity);
+        }
         let Some(p) = self.players.get_mut(&player) else {
             return;
         };
