@@ -19,6 +19,7 @@ pub const KEYS: &[&str] = &[
     "patrol_target",
     "PatrolLeader",
     "Patrolling",
+    "RaidId",
 ];
 pub const OMINOUS_BANNER_NAME: &str = "block.minecraft.ominous_banner";
 pub const OMINOUS_BANNER_DROP_CHANCE: f32 = 2.0;
@@ -53,6 +54,8 @@ pub struct RaiderState {
     pub patrolling: bool,
     pub wave: i32,
     pub can_join_raid: bool,
+    pub raid_id: Option<i32>,
+    pub ticks_outside_raid: i32,
 }
 
 pub fn ominous_banner() -> ItemStack {
@@ -157,6 +160,7 @@ pub fn read(nbt: &Compound, state: &mut RaiderState) {
     };
     state.patrol_leader = nbt.get_bool("PatrolLeader").unwrap_or(false);
     state.patrolling = nbt.get_bool("Patrolling").unwrap_or(false);
+    state.raid_id = nbt.get_i32(crate::raid::RAID_ID_KEY);
 }
 
 pub fn write(state: &RaiderState, out: &mut Compound) {
@@ -170,6 +174,9 @@ pub fn write(state: &RaiderState, out: &mut Compound) {
     }
     out.insert("PatrolLeader", i8::from(state.patrol_leader));
     out.insert("Patrolling", i8::from(state.patrolling));
+    if let Some(raid) = state.raid_id {
+        out.insert(crate::raid::RAID_ID_KEY, raid);
+    }
 }
 
 #[cfg(test)]
@@ -262,6 +269,8 @@ mod tests {
             patrolling: true,
             wave: 4,
             can_join_raid: true,
+            raid_id: Some(9),
+            ticks_outside_raid: 0,
         };
         let mut out = Compound::new();
         write(&state, &mut out);
