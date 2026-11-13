@@ -249,6 +249,7 @@ pub struct LookAtPlayerGoal {
     probability: f32,
     only_horizontal: bool,
     at_mobs: bool,
+    mob_class: &'static str,
     look_at: Option<EntityId>,
     look_time: i32,
 }
@@ -261,8 +262,17 @@ impl LookAtPlayerGoal {
             probability: LOOK_PROBABILITY,
             only_horizontal: false,
             at_mobs: false,
+            mob_class: "Mob",
             look_at: None,
             look_time: 0,
+        }
+    }
+
+    pub fn at_class(look_distance: f32, probability: f32, class: &'static str) -> Self {
+        Self {
+            at_mobs: true,
+            mob_class: class,
+            ..Self::with_probability(look_distance, probability)
         }
     }
 
@@ -317,7 +327,7 @@ impl LookAtPlayerGoal {
             let reach = f64::from(self.look_distance);
             let area = inflate(&context.mob.bounds(), reach, LOOK_AT_MOB_HEIGHT, reach);
             let world = context.world;
-            let candidates = world.living_of(TargetKind::Class("Mob"), &area);
+            let candidates = world.living_of(TargetKind::Class(self.mob_class), &area);
             targeting::nearest(context, candidates, conditions, |_| true, origin)
         } else {
             targeting::nearest_player(context, conditions, |_| true, origin)
@@ -894,6 +904,7 @@ pub enum MobGoal {
     Trader(crate::villager::TraderGoal),
     Air(crate::air::AirGoal),
     Water(crate::swimmers::WaterGoal),
+    Turtle(crate::turtle::TurtleGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -946,6 +957,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Turtle(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -998,6 +1010,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::can_use(goal, context),
             Self::Air(goal) => Goal::can_use(goal, context),
             Self::Water(goal) => Goal::can_use(goal, context),
+            Self::Turtle(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -1049,6 +1062,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::can_continue_to_use(goal, context),
             Self::Air(goal) => Goal::can_continue_to_use(goal, context),
             Self::Water(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Turtle(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
 
@@ -1065,6 +1079,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Turtle(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
@@ -1122,6 +1137,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::start(goal, context),
             Self::Air(goal) => Goal::start(goal, context),
             Self::Water(goal) => Goal::start(goal, context),
+            Self::Turtle(goal) => Goal::start(goal, context),
         }
     }
 
@@ -1174,6 +1190,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::stop(goal, context),
             Self::Air(goal) => Goal::stop(goal, context),
             Self::Water(goal) => Goal::stop(goal, context),
+            Self::Turtle(goal) => Goal::stop(goal, context),
         }
     }
 
@@ -1190,6 +1207,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Turtle(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
@@ -1218,6 +1236,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Trader(goal) => Goal::tick(goal, context),
             Self::Air(goal) => Goal::tick(goal, context),
             Self::Water(goal) => Goal::tick(goal, context),
+            Self::Turtle(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
         }
     }
@@ -1282,6 +1301,7 @@ impl MobGoal {
             | Self::Trader(_)
             | Self::Air(_)
             | Self::Water(_)
+            | Self::Turtle(_)
             | Self::Wolf(_)
             | Self::Cat(_)
             | Self::Fox(_)

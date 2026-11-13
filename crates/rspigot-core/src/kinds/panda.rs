@@ -253,7 +253,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn drop_gift_loot(&mut self, id: EntityId, table: &str) {
+    pub(crate) fn drop_gift_loot(&mut self, id: EntityId, table: &str) {
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };

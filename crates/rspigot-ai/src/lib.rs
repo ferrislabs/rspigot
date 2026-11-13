@@ -63,6 +63,7 @@ mod swim;
 mod swimmers;
 mod tame;
 mod targeting;
+mod turtle;
 mod vex;
 mod view;
 mod village;
@@ -250,6 +251,12 @@ pub use tame::{
 pub use targeting::{
     TargetingConditions, can_attack, goal_can_attack, is_angry_at, mob_can_attack, nearest,
     nearest_player, valid_mob_target, valid_player_target, valid_target,
+};
+pub use turtle::{
+    TurtleAction, TurtleBreedGoal, TurtleFacts, TurtleGoHomeGoal, TurtleGoToWaterGoal, TurtleGoal,
+    TurtleLayEggGoal, TurtlePanicGoal, TurtleRandomStrollGoal, TurtleTravelGoal,
+    is_stable_destination as turtle_is_stable_destination,
+    walk_target_value as turtle_walk_target_value,
 };
 pub use vex::{VexAction, VexFacts};
 pub use view::BlockView;

@@ -32,7 +32,7 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
-    fn grow_block(&mut self, lane: Lane, pos: BlockPos, state: BlockStateId) {
+    pub(crate) fn grow_block(&mut self, lane: Lane, pos: BlockPos, state: BlockStateId) {
         self.fire(
             lane,
             Continuation::Grow(GrowStep { pos, state }),
@@ -48,6 +48,9 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn finish_grow(&mut self, step: GrowStep, cancelled: bool) {
         if !cancelled {
             self.set_block(step.pos, step.state);
+            if step.state.kind() == Some(rspigot_blocks::BlockKind::TurtleEgg) {
+                self.finish_turtle_egg_crack(step.pos);
+            }
         }
     }
 

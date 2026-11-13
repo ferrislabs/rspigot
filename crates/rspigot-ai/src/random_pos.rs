@@ -33,6 +33,9 @@ const HOGLIN_REPELLENT_DISTANCE: f64 = 8.0;
 const CRIMSON_NYLIUM_WALK_VALUE: f32 = 10.0;
 
 fn context_walk_target_value<W: AiWorld>(context: &AiContext<'_, W>, pos: BlockPos) -> f32 {
+    if context.mob.kind == EntityKind::Turtle {
+        return crate::turtle::walk_target_value(context.world, &context.body.turtle, pos);
+    }
     if context.mob.kind != EntityKind::Hoglin {
         return walk_target_value(context.mob.kind, context.world, pos);
     }
@@ -86,6 +89,9 @@ pub fn is_stable_destination(view: &impl BlockView, pos: BlockPos) -> bool {
 }
 
 fn is_stable<W: AiWorld>(context: &AiContext<'_, W>, pos: BlockPos) -> bool {
+    if context.mob.kind == EntityKind::Turtle {
+        return crate::turtle::is_stable_destination(context.world, &context.body.turtle, pos);
+    }
     if let Some(swimming) = context.brain.profile.swimming {
         return match swimming {
             Swimming::WaterBound { .. } => !context

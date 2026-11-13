@@ -44,6 +44,7 @@ mod silverfish;
 mod sniffer;
 mod snow_golem;
 mod squid;
+mod turtle;
 mod vex;
 pub(crate) mod villager;
 mod warden;
@@ -94,6 +95,7 @@ impl<L: ClientLink> Server<L> {
             }
             Kind::Squid | Kind::GlowSquid => self.squid_view(entity, view),
             Kind::Dolphin => self.dolphin_view(entity, view),
+            Kind::Turtle => self.turtle_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
             Kind::Parrot => self.parrot_view(entity, view),
             Kind::Bee => self.bee_view(entity, view),
@@ -205,6 +207,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Witch) => self.witch_ai_step(id),
             Some(Kind::Creaking) => self.creaking_ai_step(id),
             Some(Kind::Parrot) => self.parrot_ai_step(id),
+            Some(Kind::Turtle) => self.turtle_ai_step(id),
             Some(Kind::Bee) => self.bee_ai_step(id),
             Some(Kind::Wither) => self.wither_ai_step(id),
             Some(Kind::Allay) => self.allay_ai_step(id),
