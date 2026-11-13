@@ -7,12 +7,13 @@ use common::*;
 use rspigot_blocks::BlockKind;
 use rspigot_core::config::{GameConfig, LevelData, PluginSettings};
 use rspigot_core::events::{ClientEvent, EntityStatus, Inbound, InputState, PlayerInput};
+use rspigot_core::plugins::{EventKind, EventPayload};
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
 use rspigot_domain::chunk::{BlockEntity, ChunkColumn};
 use rspigot_domain::world::Dimension;
-use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, EntityId, Identifier, Vec3};
+use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Identifier, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Compound;
 
@@ -105,7 +106,11 @@ fn sculk_server() -> Server<Link> {
 }
 
 fn ready() -> Scene {
-    let mut s = scene_on(sculk_server(), &["Alice"], Vec::new());
+    ready_with(Vec::new())
+}
+
+fn ready_with(handlers: Vec<rspigot_core::plugins::HandlerSpec>) -> Scene {
+    let mut s = scene_on(sculk_server(), &["Alice"], handlers);
     stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
     s.tick(2);
     s.players[0].link.take();
@@ -128,6 +133,12 @@ fn walk(s: &mut Scene, from: Vec3, steps: i32, dx: f64) -> Vec3 {
         s.tick(1);
     }
     at
+}
+
+fn step_on_shrieker(s: &mut Scene) {
+    walk(s, Vec3::new(1.5, 64.0, 8.5), 1, 0.0);
+    walk(s, Vec3::new(1.5, 64.0, 8.5), 1, 1.0);
+    walk(s, Vec3::new(2.5, 65.0, 8.5), 1, -2.0);
 }
 
 fn updates(events: &[ClientEvent], pos: BlockPos) -> Vec<BlockStateId> {
@@ -212,7 +223,7 @@ fn a_sneaking_footstep_does_not_trigger_a_sensor() {
 #[test]
 fn standing_on_a_shrieker_makes_it_shriek_for_ninety_ticks() {
     let mut s = ready();
-    walk(&mut s, Vec3::new(0.5, 65.0, 8.5), 1, 0.0);
+    step_on_shrieker(&mut s);
     let mut events = s.players[0].link.take();
     s.tick(100);
     events.extend(s.players[0].link.take());
@@ -237,7 +248,7 @@ fn a_warden_near_a_footstep_ticks_its_tendrils() {
     let mut s = ready();
     let warden = {
         s.server.handle(Inbound::Console(
-            "summon minecraft:warden 3.5 64 0.5 {NoAI:0b}".to_owned(),
+            "summon minecraft:warden 3.5 64 0.5".to_owned(),
         ));
         s.server.deliver();
         s.server
@@ -256,6 +267,49 @@ fn a_warden_near_a_footstep_ticks_its_tendrils() {
             ClientEvent::EntityStatus { entity, status: EntityStatus::Event(61) } if *entity == warden
         )
     });
-    assert!(tendrils || !sounds(&events).is_empty());
-    let _ = EntityId(0);
+    assert!(tendrils, "the warden did not hear the footsteps");
+}
+
+#[test]
+fn a_listening_block_tells_plugins_about_the_game_event_it_receives() {
+    let mut s = ready_with(vec![observe(1, EventKind::BlockReceiveGame)]);
+    walk(&mut s, Vec3::new(0.5, 64.0, 0.5), 12, 0.3);
+    let heard = settled_for(&s.plugin, EventKind::BlockReceiveGame);
+    assert!(!heard.is_empty());
+    let EventPayload::BlockReceiveGame(event) = &heard[0].payload else {
+        panic!("a block receive game event");
+    };
+    assert_eq!(event.event, "minecraft:step");
+}
+
+#[test]
+fn the_fourth_warning_of_a_summoning_shrieker_calls_a_warden() {
+    let mut s = ready();
+    for warning in 1..=4 {
+        step_on_shrieker(&mut s);
+        s.tick(220);
+        let wardens = s.server.entities_of(Kind::Warden).len();
+        assert_eq!(
+            wardens,
+            usize::from(warning == 4),
+            "after warning {warning}"
+        );
+    }
+    let events = s.players[0].link.take();
+    assert!(sounds(&events).contains(&"minecraft:entity.warden.nearby_close"));
+    let warden = s.server.entities_of(Kind::Warden);
+    assert_eq!(warden.len(), 1);
+}
+
+#[test]
+fn a_summoned_warden_agitates_as_it_emerges() {
+    let mut s = ready();
+    let mut heard = Vec::new();
+    for _ in 1..=4 {
+        step_on_shrieker(&mut s);
+        s.tick(220);
+        heard.extend(s.players[0].link.take());
+    }
+    assert!(sounds(&heard).contains(&"minecraft:entity.warden.agitated"));
+    assert_eq!(s.server.entities_of(Kind::Warden).len(), 1);
 }

@@ -13,6 +13,8 @@ use rspigot_entities::EntityKind;
 use rspigot_nbt::Compound;
 use uuid::Uuid;
 
+use crate::plugins::events::BlockReceiveGame;
+use crate::plugins::{Access, EventKind, EventPayload, Phase};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -288,7 +290,9 @@ impl<L: ClientLink> Server<L> {
         {
             return;
         }
-        if !self.can_receive_vibration(listener, source.block(), event, context) {
+        let receivable = self.can_receive_vibration(listener, source.block(), event, context);
+        self.notify_receive_game(listener_at.block(), event, context.entity, !receivable);
+        if !receivable {
             return;
         }
         if is_occluded(&self.world.chunks, listener_at, source) {
@@ -313,6 +317,28 @@ impl<L: ClientLink> Server<L> {
         data.selector
             .add_candidate(info, self.world.level.game_time);
         self.store_listener_data(listener, data);
+    }
+
+    fn notify_receive_game(
+        &mut self,
+        at: BlockPos,
+        event: GameEvent,
+        entity: Option<EntityId>,
+        cancelled: bool,
+    ) {
+        if !self
+            .plugins
+            .listens(EventKind::BlockReceiveGame, Access::Observe)
+        {
+            return;
+        }
+        let payload = EventPayload::BlockReceiveGame(BlockReceiveGame {
+            block: at,
+            entity: entity.and_then(|id| self.entity_view(id)),
+            event: event.name().to_owned(),
+        });
+        let id = self.next_event_id();
+        self.notify_plugins(id, &payload, cancelled, Phase::Settled);
     }
 
     fn can_receive_vibration(
