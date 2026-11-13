@@ -6,7 +6,7 @@ use std::time::Duration;
 use common::*;
 use rspigot_blocks::BlockKind;
 use rspigot_core::config::{GameConfig, LevelData};
-use rspigot_core::events::{ClientEvent, Inbound};
+use rspigot_core::events::{ClientEvent, Direction, Hand, Inbound, PlayerInput};
 use rspigot_core::plugins::{Answer, EventKind, EventPayload, Question};
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
@@ -102,7 +102,7 @@ fn walled(seed: u64, handlers: Vec<rspigot_core::plugins::HandlerSpec>) -> Scene
     )
     .with_rng_seed(seed);
     server.wait_for_spawn(Duration::from_secs(10));
-    let mut s = scene_on(server, &["Alice"], handlers);
+    let mut s = scene_on(server, &["Alice", "Bob"], handlers);
     stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
     s
 }
@@ -219,4 +219,35 @@ fn a_plugin_is_asked_before_a_villager_opens_a_door_and_can_keep_it_shut() {
     assert_ne!(again.id, asked.id);
     rule_on(&mut s.server, 1, again.id, false, None);
     assert!(door_is_open(&mut s));
+}
+
+#[test]
+fn a_player_toggling_a_door_is_heard_by_the_others_but_not_by_themselves() {
+    let mut s = walled(3, Vec::new());
+    console(&mut s, "tp Alice 8.5 64 8.5");
+    s.tick(2);
+    let alice = s.players[0].clone();
+    let bob = s.players[1].clone();
+    alice.link.take();
+    bob.link.take();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::UseItemOn {
+            hand: Hand::Main,
+            pos: LOWER,
+            face: Direction::West,
+            cursor: Vec3::new(0.5, 0.5, 0.5),
+            inside_block: false,
+            sequence: 9,
+        },
+    );
+    s.tick(1);
+    let own = alice.link.take();
+    assert!(door_open(&own).contains(&true));
+    assert!(door_sounds(&own).is_empty());
+    assert_eq!(
+        door_sounds(&bob.link.take()),
+        vec!["minecraft:block.wooden_door.open"]
+    );
 }

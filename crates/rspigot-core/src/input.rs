@@ -10,6 +10,7 @@ use rspigot_blocks::{BlockKind, Face, PlaceContext, StateFlags, UseContext};
 use crate::block_tools::ToolUse;
 use crate::chests;
 use crate::crops;
+use crate::doors::is_door_state;
 use crate::events::{
     ClientEvent, DigAction, Direction, EquipmentSlot, Hand, MovementAction, PlayerInput,
 };
@@ -430,7 +431,7 @@ impl<L: ClientLink> Server<L> {
         let stack = player.inventory.get(slot).cloned();
         let clicked = step.clicked;
         if block_ok {
-            if !sneaking && self.use_block(pos, clicked, sneaking) {
+            if !sneaking && self.use_block(id, pos, clicked, sneaking) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
@@ -587,7 +588,13 @@ impl<L: ClientLink> Server<L> {
         self.send_inventory(id);
     }
 
-    fn use_block(&mut self, pos: BlockPos, state: BlockStateId, sneaking: bool) -> bool {
+    fn use_block(
+        &mut self,
+        id: PlayerId,
+        pos: BlockPos,
+        state: BlockStateId,
+        sneaking: bool,
+    ) -> bool {
         let Some(kind) = state.kind() else {
             return false;
         };
@@ -595,6 +602,14 @@ impl<L: ClientLink> Server<L> {
             return false;
         };
         self.set_block(pos, result.state);
+        if is_door_state(state) {
+            self.play_door_sound(
+                Some(id),
+                pos,
+                kind,
+                result.state.property("open") == Some("true"),
+            );
+        }
         if let Some(linked) = result.linked {
             let other = pos.offset(0, i32::from(linked.dy), 0);
             if let Some(other_state) = self.world.chunks.block(other)
