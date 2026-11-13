@@ -488,9 +488,14 @@ impl<L: ClientLink> Server<L> {
         if light <= BURN_LIGHT {
             return;
         }
+        let protection = if entity.base.kind == Kind::ZombieHorse {
+            EquipmentSlot::Body
+        } else {
+            EquipmentSlot::Head
+        };
         let helmet = entity
             .living()
-            .and_then(|state| state.equipment(EquipmentSlot::Head).cloned());
+            .and_then(|state| state.equipment(protection).cloned());
         let mut random = self.mob_random(id);
         let roll = random.next_float() * BURN_ROLL;
         let burn = roll < (light - BURN_OFFSET) * 2.0
@@ -505,7 +510,7 @@ impl<L: ClientLink> Server<L> {
                 if max_damage(&stack).is_some() {
                     let amount = random.next_int(2);
                     self.store_mob_random(id, random);
-                    self.damage_mob_equipment(id, EquipmentSlot::Head, amount);
+                    self.damage_mob_equipment(id, protection, amount);
                 } else {
                     self.store_mob_random(id, random);
                 }

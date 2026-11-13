@@ -236,6 +236,7 @@ pub enum Jockey {
     SkeletonRider,
     StriderPiglin { baby: bool },
     StriderBaby,
+    ZombieHorseRider,
 }
 
 pub fn skeleton_jockey_roll(random: &mut impl RandomSource) -> bool {
@@ -614,7 +615,7 @@ pub fn finalize_spawn(
         }
         Some(Species::Witch(_)) => species::witch::finalize(base, living, reason, group, level),
         _ if living.mob.as_ref().is_some_and(|mob| mob.mount.is_some()) => {
-            species::equine::finalize(base, living, group, level)
+            species::equine::finalize(base, living, reason, group, level)
         }
         Some(Species::Strider(_)) => {
             species::strider::finalize(base, living, environment, group, level)
