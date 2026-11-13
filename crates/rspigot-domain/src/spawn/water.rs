@@ -17,6 +17,9 @@ const DROWNED_RIVER_ODDS: i32 = 15;
 const DROWNED_OCEAN_ODDS: i32 = 40;
 const SURFACE_DEPTH: i32 = 13;
 const GLOW_SQUID_DEPTH: i32 = 33;
+const NAUTILUS_MIN_DEPTH: i32 = 25;
+const NAUTILUS_MAX_DEPTH: i32 = 5;
+const AXOLOTLS_SPAWNABLE_ON: &str = "minecraft:axolotls_spawnable_on";
 const TROPICAL_ANY_HEIGHT: &str = "minecraft:allows_tropical_fish_spawns_at_any_height";
 
 fn is_water(level: &impl SpawnLevel, pos: BlockPos) -> bool {
@@ -52,6 +55,21 @@ pub fn check_glow_squid_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> b
     pos.y <= level.sea_level() - GLOW_SQUID_DEPTH
         && level.raw_brightness(pos, 0) == 0
         && is_water_block(level, pos)
+}
+
+pub fn check_axolotl_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    has_tag(
+        level.block_or_air(pos.offset(0, -1, 0)),
+        AXOLOTLS_SPAWNABLE_ON,
+    )
+}
+
+pub fn check_nautilus_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    let sea_level = level.sea_level();
+    sea_level - NAUTILUS_MIN_DEPTH <= pos.y
+        && pos.y <= sea_level - NAUTILUS_MAX_DEPTH
+        && is_water(level, pos.offset(0, -1, 0))
+        && is_water_block(level, pos.offset(0, 1, 0))
 }
 
 fn on_sand(level: &impl SpawnLevel, pos: BlockPos) -> bool {

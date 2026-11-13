@@ -93,6 +93,10 @@ pub enum SpawnGroupData {
         group_size: i32,
         variant: i32,
     },
+    Axolotl {
+        variants: [u8; 2],
+        group_size: i32,
+    },
     School {
         leader: crate::EntityId,
     },

@@ -25,6 +25,8 @@ pub const DOLPHIN_MAX_AIR_SUPPLY: i32 = 4800;
 pub fn default_max_air(kind: EntityKind) -> i32 {
     if kind == EntityKind::Dolphin {
         DOLPHIN_MAX_AIR_SUPPLY
+    } else if kind == EntityKind::Axolotl {
+        super::species::axolotl::MAX_AIR_SUPPLY
     } else {
         MAX_AIR_SUPPLY
     }
