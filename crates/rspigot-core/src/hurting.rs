@@ -11,7 +11,7 @@ use crate::plugins::events::{
     BlockIgnite, BlockIgniteCause, CreatureSpawnReason, EntityPotionEffectCause,
     EntityRegainHealthRegainReason, EntityRemoveCause, ExplosionPrime, ExplosionPrimePatch,
 };
-use crate::plugins::steps::{HurtingFollow, IgniteStep, PrimeStep};
+use crate::plugins::steps::{HurtingFollow, IgniteStep, PrimeKind, PrimeStep};
 use crate::plugins::{AfterHurt, Combuster, Continuation, EventPayload, Holder};
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -29,6 +29,18 @@ impl<L: ClientLink> Server<L> {
         position: Vec3,
         explosion_power: i32,
     ) -> bool {
+        self.launch_hurting_flagged(kind, owner, direction, position, explosion_power, false)
+    }
+
+    pub(crate) fn launch_hurting_flagged(
+        &mut self,
+        kind: Kind,
+        owner: EntityId,
+        direction: Vec3,
+        position: Vec3,
+        explosion_power: i32,
+        dangerous: bool,
+    ) -> bool {
         let Some(source) = self.entities.store.get(owner) else {
             return false;
         };
@@ -41,6 +53,9 @@ impl<L: ClientLink> Server<L> {
         base.old_position = position;
         base.set_rotation(yaw, pitch);
         let mut state = HurtingState::new(&mut base);
+        if dangerous {
+            hurting::set_dangerous(&mut base, true);
+        }
         state.owner = Some(owner_uuid);
         state.explosion_power = explosion_power;
         state.incendiary = match kind {
@@ -492,7 +507,7 @@ impl<L: ClientLink> Server<L> {
             source: id,
             radius,
             fire,
-            projectile: true,
+            kind: PrimeKind::Projectile,
         };
         self.fire(lane, Continuation::Prime(step), move |_| {
             Some(EventPayload::ExplosionPrime(ExplosionPrime {

@@ -74,6 +74,7 @@ goal_enum!(AirGoal {
     VexCharge(crate::vex::ChargeAttackGoal),
     VexRandomMove(crate::vex::RandomMoveGoal),
     VexCopyOwnerTarget(crate::vex::CopyOwnerTargetGoal),
+    WitherDoNothing(crate::wither::DoNothingGoal),
 });
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -81,4 +82,5 @@ pub enum AirAction {
     Phantom(crate::phantom::PhantomAction),
     Bat(crate::bat::BatAction),
     Vex(crate::vex::VexAction),
+    Wither(crate::wither::WitherAction),
 }

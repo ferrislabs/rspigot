@@ -51,6 +51,8 @@ pub struct Brain {
     pub warden: crate::WardenState,
     pub target_position: Option<Vec3>,
     pub phantom: crate::PhantomBrain,
+    pub wither: crate::WitherBrain,
+    pub wither_targets: [i32; 3],
     follow_range: f64,
 }
 
@@ -116,6 +118,9 @@ impl Brain {
             profile.set_malus(PathType::Fire, -1.0);
             profile.set_malus(PathType::Cocoa, -1.0);
         }
+        if kind == EntityKind::Wither {
+            profile = profile.flying(true);
+        }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
             profile.set_malus(PathType::Lava, 8.0);
@@ -145,6 +150,8 @@ impl Brain {
             warden: crate::WardenState::default(),
             target_position: None,
             phantom: crate::PhantomBrain::default(),
+            wither: crate::WitherBrain::default(),
+            wither_targets: [0; 3],
             follow_range,
         };
         if kind == EntityKind::Warden {
@@ -153,7 +160,7 @@ impl Brain {
         if kind == EntityKind::Rabbit {
             brain.enable_hop();
         }
-        if kind == EntityKind::Parrot {
+        if matches!(kind, EntityKind::Parrot | EntityKind::Wither) {
             brain.movement.set_flying(10, false);
         }
         if kind == EntityKind::Villager {
@@ -656,6 +663,12 @@ impl MobAi {
         &mut self.brain
     }
 
+    pub fn wither_hurt(&mut self) {
+        for idle in &mut self.brain.wither.idle_head_updates {
+            *idle += rspigot_domain::entity::species::wither::IDLE_HEAD_HURT_BONUS;
+        }
+    }
+
     pub fn target(&self) -> Option<EntityId> {
         match self.behavior.as_ref() {
             Some(behavior) => behavior
@@ -1002,6 +1015,9 @@ impl MobAi {
         }
         if context.brain.creaking.can_move || mob.kind != EntityKind::Creaking {
             context.tick_navigation();
+        }
+        if mob.kind == EntityKind::Wither {
+            crate::wither::custom_step(&mut context);
         }
         if let Some(behavior) = self.behavior.as_mut() {
             sync_path_memory(behavior.memories_mut(), context.brain.navigation.path());

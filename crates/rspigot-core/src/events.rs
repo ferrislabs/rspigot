@@ -636,6 +636,11 @@ pub enum ClientEvent {
         pos: BlockPos,
         data: i32,
     },
+    GlobalLevelEvent {
+        event: i32,
+        pos: BlockPos,
+        data: i32,
+    },
     Particle(Particle),
     Disconnect(Component),
 }

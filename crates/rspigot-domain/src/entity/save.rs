@@ -740,6 +740,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Blaze(state) => species::blaze::read(nbt, base, state),
         Species::Ghast(state) => species::ghast::read(nbt, base, state),
         Species::Vex(state) => species::vex::read(nbt, base, state),
+        Species::Wither(state) => species::wither::read(nbt, base, state),
         Species::Bat(state) => species::bat::read(nbt, base, state),
         Species::Parrot => species::parrot::read(nbt, base),
         Species::Phantom(state) => {
@@ -980,6 +981,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Blaze(_) => species::blaze::KEYS,
         Species::Ghast(_) => species::ghast::KEYS,
         Species::Vex(_) => species::vex::KEYS,
+        Species::Wither(_) => species::wither::KEYS,
         Species::Bat(_) => species::bat::KEYS,
         Species::Parrot => species::parrot::KEYS,
         Species::Phantom(_) => species::phantom::KEYS,
@@ -1425,6 +1427,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Blaze(state) => species::blaze::write(base, state, out),
         Species::Ghast(state) => species::ghast::write(base, state, out),
         Species::Vex(state) => species::vex::write(base, state, out),
+        Species::Wither(state) => species::wither::write(base, state, out),
         Species::Bat(state) => species::bat::write(base, state, out),
         Species::Parrot => species::parrot::write(base, out),
         Species::Phantom(state) => species::phantom::write(base, state, out),

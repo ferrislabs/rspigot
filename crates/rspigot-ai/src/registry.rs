@@ -50,6 +50,10 @@ const PILLAGER_CROSSBOW_RADIUS: f32 = 8.0;
 const PILLAGER_STROLL_SPEED: f64 = 0.6;
 const PILLAGER_LOOK_DISTANCE: f32 = 15.0;
 const PILLAGER_IGNORED_DAMAGE: &[&str] = &["Raider"];
+const WITHER_ATTACK_SPEED: f64 = 1.0;
+const WITHER_ATTACK_INTERVAL: i32 = 40;
+const WITHER_ATTACK_RADIUS: f32 = 20.0;
+const WITHER_LOOK_DISTANCE: f32 = 8.0;
 const PARROT_PANIC_SPEED: f64 = 1.25;
 const PARROT_LOOK_DISTANCE: f32 = 8.0;
 const PARROT_FOLLOW_START: f32 = 5.0;
@@ -665,6 +669,36 @@ pub fn register_goals(
                 ))),
             );
         }
+        EntityKind::Wither => {
+            add.goal(
+                0,
+                MobGoal::Air(AirGoal::WitherDoNothing(crate::wither::DoNothingGoal)),
+            );
+            add.goal(
+                2,
+                MobGoal::RangedAttack(RangedAttackGoal::new(
+                    WITHER_ATTACK_SPEED,
+                    WITHER_ATTACK_INTERVAL,
+                    WITHER_ATTACK_RADIUS,
+                )),
+            );
+            add.goal(
+                5,
+                MobGoal::Stroll(RandomStrollGoal::water_avoiding_flying(1.0)),
+            );
+            add.look(6, WITHER_LOOK_DISTANCE);
+            add.look_around(7);
+            add.target_goal(1, MobGoal::HurtByTarget(HurtByTargetGoal::new()));
+            add.target(
+                2,
+                NearestAttackableTargetGoal::with(
+                    TargetKind::Class("LivingEntity"),
+                    0,
+                    false,
+                    TargetFilter::WitherLiving,
+                ),
+            );
+        }
         EntityKind::Bat => add.goal(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new()))),
         EntityKind::Phantom => {
             add.brain.movement.set_style(MoveStyle::Phantom);
@@ -976,6 +1010,54 @@ mod tests {
         assert_eq!(profile.malus(crate::PathType::Fire), 0.0);
         assert_eq!(profile.malus(crate::PathType::FireInNeighbor), 0.0);
         assert_eq!(ai.brain().movement.style(), MoveStyle::Ground);
+    }
+
+    #[test]
+    fn the_wither_registers_the_vanilla_goals_targets_and_flying_control() {
+        let (goals, targets) = lists(EntityKind::Wither);
+        assert_eq!(
+            goals,
+            vec![
+                (
+                    0,
+                    MobGoal::Air(AirGoal::WitherDoNothing(crate::wither::DoNothingGoal))
+                ),
+                (
+                    2,
+                    MobGoal::RangedAttack(RangedAttackGoal::new(1.0, 40, 20.0))
+                ),
+                (
+                    5,
+                    MobGoal::Stroll(RandomStrollGoal::water_avoiding_flying(1.0))
+                ),
+                (6, MobGoal::LookAtPlayer(LookAtPlayerGoal::new(8.0))),
+                (
+                    7,
+                    MobGoal::RandomLookAround(RandomLookAroundGoal::default())
+                ),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![
+                (1, MobGoal::HurtByTarget(HurtByTargetGoal::new())),
+                (
+                    2,
+                    MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::with(
+                        TargetKind::Class("LivingEntity"),
+                        0,
+                        false,
+                        TargetFilter::WitherLiving
+                    ))
+                ),
+            ]
+        );
+        let ai = MobAi::new(EntityKind::Wither, 1, GoalSettings::default());
+        let profile = &ai.brain().profile;
+        assert!(profile.flying && profile.can_float && !profile.can_open_doors);
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Flying);
+        assert_eq!(ai.brain().movement.max_turn(), 10);
+        assert!(!ai.brain().movement.hovers_in_place());
     }
 
     #[test]

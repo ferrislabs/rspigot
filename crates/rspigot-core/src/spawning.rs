@@ -810,6 +810,7 @@ mod tests {
                 EntityKind::WanderingTrader,
                 EntityKind::Warden,
                 EntityKind::Witch,
+                EntityKind::Wither,
                 EntityKind::WitherSkeleton,
                 EntityKind::Wolf,
                 EntityKind::Zoglin,

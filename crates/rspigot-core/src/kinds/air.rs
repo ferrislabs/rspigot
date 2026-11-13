@@ -10,6 +10,7 @@ impl<L: ClientLink> Server<L> {
             AirAction::Vex(action) => self.vex_action(id, action),
             AirAction::Bat(action) => self.bat_action(id, action),
             AirAction::Phantom(action) => self.phantom_action(id, action),
+            AirAction::Wither(action) => self.wither_action(id, action),
         }
     }
 }
