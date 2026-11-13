@@ -43,6 +43,7 @@ pub mod pillager;
 pub mod polar_bear;
 pub mod rabbit;
 pub mod raider;
+pub mod ravager;
 pub mod shulker;
 pub mod silverfish;
 pub mod sniffer;
@@ -52,6 +53,7 @@ pub mod tadpole;
 pub mod turtle;
 pub mod vex;
 pub mod villager;
+pub mod vindicator;
 pub mod wandering_trader;
 pub mod warden;
 pub mod witch;
@@ -240,6 +242,8 @@ pub enum Species {
     Ocelot(ocelot::OcelotState),
     Witch(witch::WitchState),
     Pillager(pillager::PillagerState),
+    Vindicator(vindicator::VindicatorState),
+    Ravager(ravager::RavagerState),
     Hoglin(hoglin::HoglinState),
     Piglin(piglin::PiglinState),
     Goat(goat::GoatState),
@@ -301,6 +305,8 @@ impl Species {
         match self {
             Self::Witch(state) => Some(&state.raider),
             Self::Pillager(state) => Some(&state.raider),
+            Self::Vindicator(state) => Some(&state.raider),
+            Self::Ravager(state) => Some(&state.raider),
             _ => None,
         }
     }
@@ -309,6 +315,8 @@ impl Species {
         match self {
             Self::Witch(state) => Some(&mut state.raider),
             Self::Pillager(state) => Some(&mut state.raider),
+            Self::Vindicator(state) => Some(&mut state.raider),
+            Self::Ravager(state) => Some(&mut state.raider),
             _ => None,
         }
     }
@@ -475,6 +483,12 @@ impl Species {
         }
         if kind == EntityKind::Pillager {
             return Self::Pillager(pillager::define(base));
+        }
+        if kind == EntityKind::Vindicator {
+            return Self::Vindicator(vindicator::define(base));
+        }
+        if kind == EntityKind::Ravager {
+            return Self::Ravager(ravager::define(base));
         }
         if matches!(kind, EntityKind::Hoglin | EntityKind::Zoglin) {
             return Self::Hoglin(hoglin::define(base));
