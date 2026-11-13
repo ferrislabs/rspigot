@@ -284,6 +284,14 @@ pub enum MoveStyle {
     Turtle,
     Guardian,
     Drowned,
+    Cube,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct CubeMove {
+    pub y_rot: f32,
+    pub aggressive: bool,
+    pub jump_delay: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -318,6 +326,7 @@ pub struct MoveControl {
     max_turn: i32,
     hovers_in_place: bool,
     phantom_speed: f32,
+    cube: CubeMove,
 }
 
 fn rotlerp(current: f32, target: f32, max: f32) -> f32 {
@@ -423,6 +432,67 @@ impl MoveControl {
         move_target: Vec3,
     ) {
         crate::phantom::tick_move_control(base, living, &mut self.phantom_speed, move_target);
+    }
+
+    pub fn set_cube(&mut self) {
+        self.style = MoveStyle::Cube;
+    }
+
+    pub fn cube(&self) -> CubeMove {
+        self.cube
+    }
+
+    pub fn set_cube_direction(&mut self, y_rot: f32, aggressive: bool) {
+        self.cube.y_rot = y_rot;
+        self.cube.aggressive = aggressive;
+    }
+
+    pub fn set_cube_wanted(&mut self, speed_modifier: f64) {
+        self.speed_modifier = speed_modifier;
+        self.operation = Operation::MoveTo;
+    }
+
+    pub fn tick_cube(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        jump: &mut JumpControl,
+        random: &mut MobRandom,
+    ) -> Option<crate::cube::CubeSound> {
+        use rspigot_domain::entity::species::cube;
+        let yaw = rotlerp(base.yaw, self.cube.y_rot, MAX_TURN);
+        base.set_yaw(yaw);
+        base.head_yaw = base.yaw;
+        living.body_yaw = base.yaw;
+        if self.operation != Operation::MoveTo {
+            living.zza = 0.0;
+            return None;
+        }
+        self.operation = Operation::Wait;
+        let speed = (self.speed_modifier * living.attribute(MOVEMENT_SPEED)) as f32;
+        if !base.on_ground {
+            set_speed(living, speed);
+            return None;
+        }
+        set_speed(living, speed);
+        let delay = self.cube.jump_delay;
+        self.cube.jump_delay -= 1;
+        if delay >= 1 {
+            living.xxa = 0.0;
+            living.zza = 0.0;
+            set_speed(living, 0.0);
+            return None;
+        }
+        self.cube.jump_delay = cube::jump_delay(base.kind, random);
+        if self.cube.aggressive {
+            self.cube.jump_delay /= cube::AGGRESSIVE_JUMP_DIVISOR;
+        }
+        jump.jump();
+        Some(crate::cube::CubeSound {
+            sound: cube::jump_sound(base.kind, cube::is_tiny(base)),
+            volume: cube::sound_volume(base),
+            pitch: cube::sound_pitch(base, random),
+        })
     }
 
     pub fn set_smooth_swimming(&mut self, params: SmoothSwimming) {

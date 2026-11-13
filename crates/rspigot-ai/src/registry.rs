@@ -11,6 +11,10 @@ use crate::combat::{
 };
 use crate::control::MoveStyle;
 use crate::crossbow::{CrossbowGoal, HoldGroundAttackGoal, RangedCrossbowAttackGoal};
+use crate::cube::{
+    AttackGoal as CubeAttackGoal, CubeGoal, FloatGoal as CubeFloatGoal,
+    KeepOnJumpingGoal as CubeKeepOnJumpingGoal, RandomDirectionGoal as CubeRandomDirectionGoal,
+};
 use crate::drowned::{
     DrownedAttackGoal, DrownedGoToBeachGoal, DrownedGoToWaterGoal, DrownedGoal, DrownedSwimUpGoal,
     DrownedTridentAttackGoal,
@@ -807,6 +811,37 @@ pub fn register_goals(
             add.target(
                 2,
                 NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+        }
+        EntityKind::Slime | EntityKind::MagmaCube => {
+            add.brain.movement.set_cube();
+            add.brain.look.set_max_head_x_rot(0.0);
+            add.brain.profile.can_float = true;
+            add.goal(1, MobGoal::Cube(CubeGoal::Float(CubeFloatGoal)));
+            add.goal(
+                4,
+                MobGoal::Cube(CubeGoal::RandomDirection(CubeRandomDirectionGoal::default())),
+            );
+            add.goal(
+                5,
+                MobGoal::Cube(CubeGoal::KeepOnJumping(CubeKeepOnJumpingGoal)),
+            );
+            add.goal(
+                2,
+                MobGoal::Cube(CubeGoal::Attack(CubeAttackGoal::default())),
+            );
+            add.target(
+                1,
+                NearestAttackableTargetGoal::with(
+                    TargetKind::Player,
+                    10,
+                    true,
+                    TargetFilter::WithinFourBlocksVertically,
+                ),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::IronGolem, true),
             );
         }
         EntityKind::Ghast => {

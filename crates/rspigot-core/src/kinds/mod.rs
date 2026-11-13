@@ -22,6 +22,7 @@ mod breeze;
 mod cat;
 pub(crate) mod copper_golem;
 mod creaking;
+mod cube;
 mod dolphin;
 mod drowned;
 mod enderman;
@@ -106,6 +107,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Drowned => self.drowned_view(entity, view),
             Kind::Guardian | Kind::ElderGuardian => self.guardian_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
+            Kind::Slime | Kind::MagmaCube => self.cube_view(entity, view),
             Kind::Parrot => self.parrot_view(entity, view),
             Kind::Bee => self.bee_view(entity, view),
             Kind::Shulker => self.shulker_view(entity, view),
@@ -207,6 +209,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::CopperGolem) => self.copper_golem_post_tick(id),
             Some(Kind::Warden) => self.warden_post_tick(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
+            Some(Kind::Slime | Kind::MagmaCube) => self.cube_post_tick(id),
             _ => {}
         }
     }

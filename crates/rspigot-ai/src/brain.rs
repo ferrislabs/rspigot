@@ -59,6 +59,7 @@ pub struct Brain {
     pub warden: crate::WardenState,
     pub target_position: Option<Vec3>,
     pub phantom: crate::PhantomBrain,
+    pub cube_sound: Option<crate::cube::CubeSound>,
     pub bee: crate::BeeBrain,
     pub wither: crate::WitherBrain,
     pub wither_targets: [i32; 3],
@@ -204,6 +205,7 @@ impl Brain {
             warden: crate::WardenState::default(),
             target_position: None,
             phantom: crate::PhantomBrain::default(),
+            cube_sound: None,
             bee: crate::BeeBrain::default(),
             wither: crate::WitherBrain::default(),
             wither_targets: [0; 3],
@@ -1246,6 +1248,15 @@ impl MobAi {
                     let target = brain.phantom.move_target;
                     brain.movement.tick_phantom(base, living, target);
                 }
+                MoveStyle::Cube => {
+                    if let Some(sound) =
+                        brain
+                            .movement
+                            .tick_cube(base, living, &mut brain.jump, &mut brain.random)
+                    {
+                        brain.cube_sound = Some(sound);
+                    }
+                }
                 MoveStyle::Vex => {
                     let target = brain.target_position;
                     brain.movement.tick_vex(base, living, target);
@@ -1318,6 +1329,10 @@ impl MobAi {
         self.brain
             .body
             .client_tick_max(base, living, max_head_y_rot);
+    }
+
+    pub fn take_cube_sound(&mut self) -> Option<crate::cube::CubeSound> {
+        self.brain.cube_sound.take()
     }
 
     pub fn update_control_flags(&mut self) {

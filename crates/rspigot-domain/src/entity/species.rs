@@ -20,6 +20,7 @@ pub mod blaze;
 pub mod cat;
 pub mod copper_golem;
 pub mod creaking;
+pub mod cube;
 pub mod dolphin;
 pub mod drowned;
 pub mod enderman;
@@ -250,6 +251,7 @@ pub enum Species {
     WanderingTrader(wandering_trader::WanderingTraderState),
     Warden(warden::WardenState),
     CopperGolem(copper_golem::CopperGolemState),
+    Cube(cube::CubeState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -506,6 +508,9 @@ impl Species {
         }
         if kind == EntityKind::CopperGolem {
             return Self::CopperGolem(copper_golem::define(base));
+        }
+        if cube::is_cube(kind) {
+            return Self::Cube(cube::define(base));
         }
         Self::Plain
     }

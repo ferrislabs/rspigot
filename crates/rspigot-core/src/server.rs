@@ -152,7 +152,7 @@ impl<L: ClientLink> Server<L> {
         }));
         let admin = config.admin.clone();
         status.update(|s| s.max_players = config.max_players);
-        let spawning = Spawning::new(level.seed, &dimension);
+        let spawning = Spawning::new(level.seed, config.spawning.slime_seed, &dimension);
         let mut server = Self {
             world: World {
                 dimension,

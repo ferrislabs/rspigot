@@ -581,6 +581,18 @@ pub(crate) enum Follow {
     Metamorphosis,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SplitStep {
+    pub(crate) id: EntityId,
+    pub(crate) count: i32,
+}
+
+#[derive(Debug)]
+pub(crate) struct ScatterStep {
+    pub(crate) id: EntityId,
+    pub(crate) children: Vec<Entity>,
+}
+
 #[derive(Debug)]
 pub(crate) struct TransformStep {
     pub(crate) old: EntityId,
@@ -717,6 +729,7 @@ pub(crate) struct MobAttackFollow {
     pub(crate) hoglin: bool,
     pub(crate) bee: bool,
     pub(crate) puffer: Option<i32>,
+    pub(crate) cube: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1184,6 +1197,8 @@ pub(crate) enum Continuation {
     Replenish(ReplenishStep),
     SelectTrade(SelectTradeStep),
     Transform(Box<TransformStep>),
+    Split(SplitStep),
+    Scatter(Box<ScatterStep>),
     ChangeBlock(Box<ChangeStep>),
     Form(FormStep),
     Grow(GrowStep),
@@ -1312,7 +1327,8 @@ impl Continuation {
             Self::Acquire(_) => EventKind::VillagerAcquireTrade,
             Self::Replenish(_) => EventKind::VillagerReplenishTrade,
             Self::SelectTrade(_) => EventKind::TradeSelect,
-            Self::Transform(_) => EventKind::EntityTransform,
+            Self::Transform(_) | Self::Scatter(_) => EventKind::EntityTransform,
+            Self::Split(_) => EventKind::CubeMobSplit,
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
             Self::Grow(_) => EventKind::BlockGrow,
@@ -1389,6 +1405,8 @@ impl Continuation {
             Self::Acquire(step) => step.merchant == id,
             Self::Replenish(step) => step.merchant == id,
             Self::Transform(step) => step.old == id,
+            Self::Split(step) => step.id == id,
+            Self::Scatter(step) => step.id == id,
             Self::ChangeBlock(step) => match &step.change {
                 Grief::Fall { .. } => false,
                 Grief::Land(landing) => landing.falling == id,
@@ -1446,6 +1464,7 @@ impl Continuation {
                 one.target == other.target && one.kind == other.kind && one.igniter == other.igniter
             }
             (Self::ItemDespawn(one), Self::ItemDespawn(other)) => one == other,
+            (Self::Split(one), Self::Split(other)) => one.id == other.id,
             (Self::ChangeBlock(one), Self::ChangeBlock(other)) => {
                 match (&one.change, &other.change) {
                     (Grief::Fall { pos: one, .. }, Grief::Fall { pos: other, .. }) => one == other,
@@ -1508,6 +1527,7 @@ impl Continuation {
             Self::Hurt(step) => step.repeats(),
             Self::Potion(step) => matches!(step.potion, Potion::Expire(_)),
             Self::Combust(_)
+            | Self::Split(_)
             | Self::ItemDespawn(_)
             | Self::PickupItem(_)
             | Self::Gather(_)
