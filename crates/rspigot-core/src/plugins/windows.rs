@@ -60,6 +60,14 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn finish_open(&mut self, step: OpenStep, cancelled: bool) {
+        if step.open.trader.is_some() {
+            if cancelled || !self.trader_open_in_reach(step.player, &step.open) {
+                self.cancel_trading_open(&step.open);
+                return;
+            }
+            self.show_trader_menu(step.player, step.open);
+            return;
+        }
         if cancelled || !self.opening_in_reach(step.player, step.pos, &step.open) {
             return;
         }

@@ -1974,6 +1974,328 @@ def emit_transformers(tools):
     return "use crate::transformers::{Condition, Group, Rule, Then};\n\n" + "\n".join(body)
 
 
+TRADE_SET_KEYS = ["amount", "random_sequence", "trades", "allow_duplicates"]
+TRADE_KEYS = [
+    "wants",
+    "additional_wants",
+    "gives",
+    "max_uses",
+    "xp",
+    "reputation_discount",
+    "merchant_predicate",
+    "given_item_modifier",
+    "double_trade_price_enchantments",
+]
+TRADE_REQUIRES = {
+    "minecraft:enchantments": "Enchantments",
+    "minecraft:stored_enchantments": "StoredEnchantments",
+    "minecraft:dyed_color": "DyedColor",
+    "minecraft:map_id": "MapId",
+}
+
+
+def trade_tag_values(datapack, tag, stack=()):
+    assert tag not in stack, tag
+    path = os.path.join(datapack, "tags", "villager_trade", tag.split(":", 1)[1] + ".json")
+    value = load_json(path)
+    expect_keys(value, ["values", "replace"], path)
+    out = []
+    for entry in value["values"]:
+        assert isinstance(entry, str), (path, entry)
+        if entry.startswith("#"):
+            for inner in trade_tag_values(datapack, normalize_id(entry[1:]), stack + (tag,)):
+                if inner not in out:
+                    out.append(inner)
+        else:
+            name = normalize_id(entry)
+            if name not in out:
+                out.append(name)
+    return out
+
+
+def trade_item(value, item_ids, where):
+    name = normalize_id(value)
+    if name not in item_ids:
+        fail("unknown item %s in %s" % (name, where))
+    return name
+
+
+def trade_cost(value, item_ids, potions, where, default_count=1):
+    expect_keys(value, ["id", "count", "components"], where)
+    count = value.get("count", default_count)
+    assert isinstance(count, int) and not isinstance(count, bool), (where, value)
+    components = value.get("components")
+    potion = None
+    if components is not None:
+        expect_keys(components, ["minecraft:potion_contents"], where)
+        contents = components["minecraft:potion_contents"]
+        expect_keys(contents, ["potion"], where)
+        potion = normalize_id(contents["potion"])
+        if potion not in potions:
+            fail("unknown potion %s in %s" % (potion, where))
+    return rs_struct(
+        "TradeCost",
+        [
+            ("item", rs_str(trade_item(value["id"], item_ids, where))),
+            ("count", rs_int(count)),
+            ("potion", rs_option(None if potion is None else rs_str(potion))),
+        ],
+    )
+
+
+def trade_tag_name(value, tags, where):
+    assert isinstance(value, str) and value.startswith("#"), (where, value)
+    name = normalize_id(value[1:])
+    if name not in tags:
+        fail("unknown enchantment tag %s in %s" % (name, where))
+    return rs_str(name)
+
+
+def trade_modifier(value, item_ids, potions, enchantment_tags, where):
+    kind = value.get("type")
+    if kind == "minecraft:enchant_randomly":
+        expect_keys(value, ["type", "options", "only_compatible", "include_additional_cost_component"], where)
+        return rs_struct(
+            "Modifier::EnchantRandomly",
+            [
+                ("options", trade_tag_name(value["options"], enchantment_tags, where)),
+                ("only_compatible", rs_bool(value.get("only_compatible", True))),
+                ("additional_cost", rs_bool(value.get("include_additional_cost_component", False))),
+            ],
+        )
+    if kind == "minecraft:enchant_with_levels":
+        expect_keys(value, ["type", "options", "levels", "include_additional_cost_component"], where)
+        levels = value["levels"]
+        expect_keys(levels, ["type", "min", "max"], where)
+        assert levels["type"] == "minecraft:uniform", where
+        return rs_struct(
+            "Modifier::EnchantWithLevels",
+            [
+                ("options", trade_tag_name(value["options"], enchantment_tags, where)),
+                ("min", rs_int(levels["min"])),
+                ("max", rs_int(levels["max"])),
+                ("additional_cost", rs_bool(value.get("include_additional_cost_component", False))),
+            ],
+        )
+    if kind == "minecraft:set_stew_effect":
+        expect_keys(value, ["type", "effects"], where)
+        entries = []
+        for effect in value["effects"]:
+            expect_keys(effect, ["type", "duration"], where)
+            entries.append(rs_tuple([rs_str(normalize_id(effect["type"])), rs_int(effect["duration"])]))
+        return rs_call("Modifier::SetStewEffects", [rs_slice(entries)])
+    if kind == "minecraft:set_random_dyes":
+        expect_keys(value, ["type", "number_of_dyes"], where)
+        number = value["number_of_dyes"]
+        expect_keys(number, ["type", "inputs"], where)
+        base, binomial = number["inputs"]
+        expect_keys(binomial, ["type", "n", "p"], where)
+        assert number["type"] == "minecraft:add" and binomial["type"] == "minecraft:binomial", where
+        return rs_struct(
+            "Modifier::SetRandomDyes",
+            [("base", rs_int(base)), ("trials", rs_int(binomial["n"])), ("chance", rs_f32(binomial["p"]))],
+        )
+    if kind == "minecraft:exploration_map":
+        expect_keys(value, ["type", "decoration", "destination", "search_radius"], where)
+        return rs_struct(
+            "Modifier::ExplorationMap",
+            [
+                ("decoration", rs_str(normalize_id(value.get("decoration", "minecraft:mansion")))),
+                ("destination", rs_str(normalize_id(value["destination"][1:]))),
+                ("search_radius", rs_int(value["search_radius"])),
+            ],
+        )
+    if kind == "minecraft:set_random_potion":
+        expect_keys(value, ["type", "options"], where)
+        assert value["options"] == "#minecraft:tradeable", where
+        return Atom("Modifier::SetRandomPotion")
+    if kind == "minecraft:set_potion":
+        expect_keys(value, ["type", "id"], where)
+        potion = normalize_id(value["id"])
+        if potion not in potions:
+            fail("unknown potion %s in %s" % (potion, where))
+        return rs_call("Modifier::SetPotion", [rs_str(potion)])
+    if kind == "minecraft:filtered":
+        expect_keys(value, ["type", "item_filter", "on_fail"], where)
+        assert value["on_fail"] == {"type": "minecraft:discard"}, where
+        item_filter = value["item_filter"]
+        expect_keys(item_filter, ["items", "predicates"], where)
+        predicates = item_filter["predicates"]
+        assert len(predicates) == 1, where
+        (key,) = predicates
+        if key not in TRADE_REQUIRES:
+            fail("unsupported filter %s in %s" % (key, where))
+        return rs_call("Modifier::Require", [Atom("Require::" + TRADE_REQUIRES[key])])
+    fail("unsupported trade modifier %s in %s" % (kind, where))
+
+
+def build_trading(datapack, reports, static_registries, synced, tag_table):
+    item_ids = {
+        name for registry_id, by_id, _ in static_registries if registry_id == "minecraft:item" for name in by_id
+    }
+    potions = {
+        name for registry_id, by_id, _ in static_registries if registry_id == "minecraft:potion" for name in by_id
+    }
+    enchantment_names = {registry_id: entries for _, registry_id, entries in synced}["minecraft:enchantment"]
+    enchantment_tags = {
+        name for registry_id, by_name in tag_table.items() if registry_id == "minecraft:enchantment" for name in by_name
+    }
+    enchantments = []
+    for name in enchantment_names:
+        path = os.path.join(datapack, "enchantment", name.split(":", 1)[1] + ".json")
+        value = load_json(path)
+        where = "enchantment " + name
+        for key in ("supported_items", "primary_items", "exclusive_set"):
+            if key in value:
+                assert value[key].startswith("#"), (where, key)
+        enchantments.append(
+            rs_struct(
+                "EnchantmentDef",
+                [
+                    ("weight", rs_int(value["weight"])),
+                    ("max_level", rs_int(value["max_level"])),
+                    ("min_base", rs_int(value["min_cost"]["base"])),
+                    ("min_step", rs_int(value["min_cost"]["per_level_above_first"])),
+                    ("max_base", rs_int(value["max_cost"]["base"])),
+                    ("max_step", rs_int(value["max_cost"]["per_level_above_first"])),
+                    ("supported", rs_str(normalize_id(value["supported_items"][1:]))),
+                    (
+                        "primary",
+                        rs_option(
+                            rs_str(normalize_id(value["primary_items"][1:])) if "primary_items" in value else None
+                        ),
+                    ),
+                    (
+                        "exclusive",
+                        rs_option(
+                            rs_str(normalize_id(value["exclusive_set"][1:])) if "exclusive_set" in value else None
+                        ),
+                    ),
+                ],
+            )
+        )
+    item_index = {name: i for registry_id, by_id, _ in static_registries if registry_id == "minecraft:item" for i, name in enumerate(by_id)}
+    components_root = os.path.join(reports, "minecraft", "components", "item")
+    enchantability = []
+    for name in json_names(components_root):
+        component = load_json(os.path.join(components_root, name + ".json"))["components"].get("minecraft:enchantable")
+        if component is None:
+            continue
+        expect_keys(component, ["value"], "enchantable " + name)
+        enchantability.append((item_index["minecraft:" + name], component["value"]))
+    enchantability.sort()
+
+    trade_root = os.path.join(datapack, "villager_trade")
+    trade_names = ["minecraft:" + name for name in json_names(trade_root)]
+    trade_index = {name: i for i, name in enumerate(trade_names)}
+    trades = []
+    for name in trade_names:
+        where = "villager_trade " + name
+        value = load_json(os.path.join(trade_root, name.split(":", 1)[1] + ".json"))
+        expect_keys(value, TRADE_KEYS, where)
+        for key, expected in (("max_uses", int), ("xp", int), ("reputation_discount", (int, float))):
+            assert key not in value or isinstance(value[key], expected), (where, key)
+        variants = []
+        if "merchant_predicate" in value:
+            predicate = value["merchant_predicate"]
+            expect_keys(predicate, ["type", "entity", "predicate"], where)
+            assert predicate["type"] == "minecraft:entity_properties" and predicate["entity"] == "this", where
+            inner = predicate["predicate"]
+            expect_keys(inner, ["minecraft:predicates"], where)
+            predicates = inner["minecraft:predicates"]
+            expect_keys(predicates, ["minecraft:villager/variant"], where)
+            listed = predicates["minecraft:villager/variant"]
+            variants = [normalize_id(item) for item in (listed if isinstance(listed, list) else [listed])]
+        modifiers = value.get("given_item_modifier", [])
+        if isinstance(modifiers, dict):
+            modifiers = [modifiers]
+        gives = value["gives"]
+        expect_keys(gives, ["id", "count"], where)
+        double_price = value.get("double_trade_price_enchantments")
+        trades.append(
+            rs_struct(
+                "Trade",
+                [
+                    ("name", rs_str(name)),
+                    ("wants", trade_cost(value["wants"], item_ids, potions, where)),
+                    (
+                        "additional_wants",
+                        rs_option(
+                            trade_cost(value["additional_wants"], item_ids, potions, where)
+                            if "additional_wants" in value
+                            else None
+                        ),
+                    ),
+                    ("gives", rs_str(trade_item(gives["id"], item_ids, where))),
+                    ("gives_count", rs_int(gives.get("count", 1))),
+                    ("max_uses", rs_int(value.get("max_uses", 4))),
+                    ("xp", rs_int(value.get("xp", 1))),
+                    ("reputation_discount", rs_f32(value.get("reputation_discount", 0.0))),
+                    ("variants", rs_slice([rs_str(variant) for variant in variants])),
+                    (
+                        "modifiers",
+                        rs_slice(
+                            [trade_modifier(item, item_ids, potions, enchantment_tags, where) for item in modifiers]
+                        ),
+                    ),
+                    (
+                        "double_price",
+                        rs_option(None if double_price is None else trade_tag_name(double_price, enchantment_tags, where)),
+                    ),
+                ],
+            )
+        )
+    set_root = os.path.join(datapack, "trade_set")
+    trade_sets = []
+    for name in json_names(set_root):
+        where = "trade_set " + name
+        value = load_json(os.path.join(set_root, name + ".json"))
+        expect_keys(value, TRADE_SET_KEYS, where)
+        assert isinstance(value["amount"], int), where
+        assert value["trades"].startswith("#"), where
+        members = trade_tag_values(datapack, normalize_id(value["trades"][1:]))
+        for member in members:
+            if member not in trade_index:
+                fail("unknown trade %s in %s" % (member, where))
+        trade_sets.append(
+            rs_struct(
+                "TradeSet",
+                [
+                    ("name", rs_str("minecraft:" + name)),
+                    ("trades", rs_slice([Atom(str(trade_index[member])) for member in members])),
+                    ("amount", rs_int(value["amount"])),
+                    ("allow_duplicates", rs_bool(value.get("allow_duplicates", False))),
+                ],
+            )
+        )
+    return enchantments, enchantability, trades, trade_sets
+
+
+def emit_trading(enchantments, enchantability, trades, trade_sets):
+    out = ["pub(crate) static ENCHANTMENTS: [EnchantmentDef; %d] = [" % len(enchantments)]
+    for node in enchantments:
+        out.extend(render(node, "    ", "", ","))
+    out.append("];")
+    out.append("")
+    out.append("pub(crate) static ENCHANTABILITY: [(u16, u8); %d] = [" % len(enchantability))
+    out.extend(wrapped(["(%d, %d)" % pair for pair in enchantability], "    "))
+    out.append("];")
+    out.append("")
+    out.append("pub(crate) static TRADES: [Trade; %d] = [" % len(trades))
+    for node in trades:
+        out.extend(render(node, "    ", "", ","))
+    out.append("];")
+    out.append("")
+    out.append("pub(crate) static TRADE_SETS: [TradeSet; %d] = [" % len(trade_sets))
+    for node in trade_sets:
+        out.extend(render(node, "    ", "", ","))
+    out.append("];")
+    text = "\n".join(out) + "\n"
+    names = ["EnchantmentDef", "Modifier", "Require", "Trade", "TradeCost", "TradeSet"]
+    head = "use crate::trading::{%s};\n\n" % ", ".join(used_imports(text, names))
+    return head + text
+
+
 def emit_mod():
     return "\n".join(
         [
@@ -1985,6 +2307,7 @@ def emit_mod():
             "pub mod static_registries;",
             "pub mod synced;",
             "pub mod tags;",
+            "pub mod trading;",
             "pub mod variants;",
             "",
         ]
@@ -2032,6 +2355,7 @@ def main():
     climate = build_climate(args.datapack, synced)
     transformers = build_transformers(args.datapack)
     compost_providers, compostables = build_compostables(args.reports, args.datapack, static_registries)
+    trading = build_trading(args.datapack, args.reports, static_registries, synced, tag_table)
 
     files = {
         "mod.rs": emit_mod(),
@@ -2044,6 +2368,7 @@ def main():
         "climate.rs": emit_climate(climate),
         "block_transformers.rs": emit_transformers(transformers),
         "compostable.rs": emit_compostables(compost_providers, compostables),
+        "trading.rs": emit_trading(*trading),
     }
     write_files(args.out, files)
 
@@ -2073,6 +2398,7 @@ def main():
         print("variants %-24s %3d" % (constant, len(entries)))
     print("dye mixes %d" % len(dye_mixes))
     print("compostable items %d" % len(compostables))
+    print("enchantments %d, trades %d, trade sets %d" % (len(trading[0]), len(trading[2]), len(trading[3])))
     for construct in sorted(ignored):
         owners = sorted(ignored[construct])
         print("ignored %s in %d tables: %s" % (construct, len(owners), ", ".join(owners)))

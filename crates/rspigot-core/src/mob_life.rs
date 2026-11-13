@@ -15,13 +15,16 @@ use rspigot_domain::spawn::{SpawnLevel, SpawnReason, placement, rules};
 use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource, VoicePitch};
 use rspigot_items::EquipmentSlot;
+use rspigot_nbt::Compound;
 
 use crate::commands::Target;
 use crate::events::{ClientEvent, EntityStatus};
 use crate::health::DamageSource;
 use crate::loot::{self, LootContext};
 use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause, EntityRemoveCause};
-use crate::plugins::{Birth, Combuster, Continuation, Holder, Spawned};
+use crate::plugins::events::{EntityTransform, EntityTransformReason};
+use crate::plugins::steps::TransformStep;
+use crate::plugins::{Birth, Combuster, Continuation, EventPayload, Follow, Holder, Spawned};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -585,14 +588,32 @@ impl<L: ClientLink> Server<L> {
         fire::ignite_for_ticks(base, ticks);
     }
 
-    fn converting(&self, id: EntityId) -> bool {
-        self.decisions.anywhere(|then| {
-            matches!(then, Continuation::Spawn(step)
-                if matches!(step.birth.then, Spawned::Converted { old, .. } if old == id))
+    pub(crate) fn converting(&self, id: EntityId) -> bool {
+        self.decisions.anywhere(|then| match then {
+            Continuation::Spawn(step) => {
+                matches!(step.birth.then, Spawned::Converted { old, .. } if old == id)
+            }
+            Continuation::Transform(step) => {
+                matches!(step.birth.then, Spawned::Converted { old, .. } if old == id)
+            }
+            _ => false,
         })
     }
 
     pub(crate) fn convert_mob(&mut self, id: EntityId, kind: Kind, event: Option<i32>) {
+        self.convert_with(id, kind, event, Follow::Nothing);
+    }
+
+    pub(crate) fn convert_with(
+        &mut self,
+        id: EntityId,
+        kind: Kind,
+        event: Option<i32>,
+        follow: Follow,
+    ) {
+        if kind == Kind::ZombieVillager {
+            self.ensure_offers(id);
+        }
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
@@ -600,6 +621,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let old_base = entity.base.clone();
+        let old_extra = entity.extra.clone();
         let baby = entity.is_baby();
         let Some(old_living) = entity.living().cloned() else {
             return;
@@ -624,7 +646,10 @@ impl<L: ClientLink> Server<L> {
         base.set_silent(old_base.is_silent());
         let mut state = living::LivingState::new(&mut base, old_base.yaw);
         fire::set_on_fire_flag(&mut base, fire::is_on_fire(&old_base));
-        for slot in EQUIPMENT_SLOTS {
+        for slot in EQUIPMENT_SLOTS
+            .into_iter()
+            .filter(|_| kind != Kind::Villager)
+        {
             if let Some(stack) = old_living.equipment(slot) {
                 state.equipment[slot_index(slot)] = Some(stack.clone());
                 if let (Some(new_mob), Some(old_mob)) = (&mut state.mob, &old_living.mob) {
@@ -669,9 +694,9 @@ impl<L: ClientLink> Server<L> {
                 &mut own,
             );
         }
-        let reason = match kind {
-            Kind::Stray => CreatureSpawnReason::Frozen,
-            Kind::Zoglin | Kind::ZombifiedPiglin => {
+        let (reason, transform) = match (old_base.kind, kind) {
+            (_, Kind::Stray) => (CreatureSpawnReason::Frozen, EntityTransformReason::Frozen),
+            (_, Kind::Zoglin | Kind::ZombifiedPiglin) => {
                 if let Some(nausea) = EffectId::from_name("minecraft:nausea") {
                     let _ = state.effects.apply(EffectInstance::new(
                         nausea,
@@ -680,19 +705,99 @@ impl<L: ClientLink> Server<L> {
                         true,
                     ));
                 }
-                CreatureSpawnReason::PiglinZombified
+                (
+                    CreatureSpawnReason::PiglinZombified,
+                    EntityTransformReason::PiglinZombified,
+                )
             }
-            _ => CreatureSpawnReason::Drowned,
+            (Kind::Villager, Kind::ZombieVillager) => (
+                CreatureSpawnReason::Infection,
+                EntityTransformReason::Infection,
+            ),
+            (Kind::ZombieVillager, Kind::Villager) => {
+                (CreatureSpawnReason::Cured, EntityTransformReason::Cured)
+            }
+            _ => (CreatureSpawnReason::Drowned, EntityTransformReason::Drowned),
         };
-        let converted = Entity::new(base, EntityState::Living(Box::new(state)));
-        self.spawn_entity(
-            converted,
-            Birth::of(reason).then(Spawned::Converted { old: id, event }),
-        );
+        let mut extra = Compound::new();
+        match (old_base.kind, kind) {
+            (Kind::Villager, Kind::ZombieVillager) => {
+                crate::kinds::carry_villager_into_zombie(
+                    &old_base,
+                    &old_living,
+                    &mut base,
+                    &mut state,
+                    &mut extra,
+                );
+            }
+            (Kind::ZombieVillager, Kind::Villager) => {
+                crate::kinds::carry_zombie_into_villager(
+                    &old_base,
+                    &old_living,
+                    &old_extra,
+                    baby,
+                    &mut base,
+                    &mut state,
+                );
+            }
+            _ => {}
+        }
+        let mut converted = Entity::new(base, EntityState::Living(Box::new(state)));
+        converted.extra = extra;
+        let birth = Birth::of(reason).then(Spawned::Converted {
+            old: id,
+            event,
+            follow,
+        });
+        self.ask_transform(id, converted, transform, birth);
     }
 
-    pub(crate) fn finish_conversion(&mut self, old: EntityId, event: Option<i32>) {
-        if !self.living_entity_alive(old) {
+    fn ask_transform(
+        &mut self,
+        old: EntityId,
+        converted: Entity,
+        reason: EntityTransformReason,
+        birth: Birth,
+    ) {
+        let Some(view) = self.entity_view(old) else {
+            self.spawn_entity(converted, birth);
+            return;
+        };
+        let transformed = crate::plugins::view_of_entity(&converted);
+        let lane = self.lane_for(None, old);
+        let step = TransformStep {
+            old,
+            converted,
+            birth,
+        };
+        self.fire(lane, Continuation::Transform(Box::new(step)), move |_| {
+            Some(EventPayload::EntityTransform(EntityTransform {
+                entity_type: view.kind.clone(),
+                entity: view,
+                transform_reason: reason,
+                transformed_entities: vec![transformed.clone()],
+                transformed_entity: transformed,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_transform(&mut self, step: TransformStep, cancelled: bool) {
+        let TransformStep {
+            old,
+            converted,
+            birth,
+        } = step;
+        if cancelled {
+            if let Spawned::Converted { follow, .. } = birth.then {
+                self.conversion_cancelled(old, follow);
+            }
+            return;
+        }
+        self.spawn_entity(converted, birth);
+    }
+
+    pub(crate) fn finish_conversion(&mut self, old: EntityId, event: Option<i32>, dying: bool) {
+        if !dying && !self.living_entity_alive(old) {
             return;
         }
         let Some(entity) = self.entities.store.get_mut(old) else {

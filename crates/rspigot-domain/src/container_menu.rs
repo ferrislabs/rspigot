@@ -3,6 +3,7 @@ use rspigot_items::{CookingKind, ItemId, ItemKind};
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
 use crate::entity::reward::max_damage;
+use crate::entity::trading::{MerchantOffer, MerchantOffers};
 use crate::furnace;
 use crate::item::{
     HOTBAR_START, Inventory, ItemStack, Slot, count, max_stack, menu_slot, same_item,
@@ -25,6 +26,10 @@ const CUTTER_INPUT: usize = 0;
 const CUTTER_RESULT: usize = 1;
 const CRAFTING_RESULT: usize = 0;
 const CRAFTING_GRID: std::ops::RangeInclusive<usize> = 1..=9;
+const MERCHANT_RESULT: usize = 2;
+const MERCHANT_PLAYER_START: usize = 3;
+const MERCHANT_MAIN_END: usize = 30;
+const MERCHANT_END: usize = 39;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MenuKind {
@@ -44,6 +49,7 @@ pub enum MenuKind {
     Loom,
     Lectern,
     Beacon,
+    Merchant,
 }
 
 impl MenuKind {
@@ -65,6 +71,7 @@ impl MenuKind {
             Self::Loom => 18,
             Self::Lectern => 17,
             Self::Beacon => 9,
+            Self::Merchant => 19,
         }
     }
 
@@ -81,6 +88,7 @@ impl MenuKind {
             Self::Smithing | Self::Loom => 4,
             Self::Stonecutter => 2,
             Self::Lectern | Self::Beacon => 1,
+            Self::Merchant => 3,
         }
     }
 
@@ -171,6 +179,14 @@ impl MenuKind {
             return self.station_plan(inputs, slot, stack, container);
         }
         match self {
+            Self::Merchant => match slot {
+                MERCHANT_RESULT => vec![(MERCHANT_PLAYER_START, MERCHANT_END, true)],
+                0 | 1 => vec![(MERCHANT_PLAYER_START, MERCHANT_END, false)],
+                MERCHANT_PLAYER_START..MERCHANT_MAIN_END => {
+                    vec![(MERCHANT_MAIN_END, MERCHANT_END, false)]
+                }
+                _ => vec![(MERCHANT_PLAYER_START, MERCHANT_MAIN_END, false)],
+            },
             Self::Beacon => match slot {
                 0 => vec![(1, total, true)],
                 _ if container.first().is_some_and(Option::is_none)
@@ -217,6 +233,9 @@ impl MenuKind {
         if self == Self::Beacon {
             return slot == 0;
         }
+        if self == Self::Merchant {
+            return slot < MERCHANT_RESULT;
+        }
         matches!(self, Self::Crafting) && (1..=9).contains(&slot)
     }
 
@@ -240,6 +259,7 @@ impl MenuKind {
                 smithing::ADDITION => recipes::contains(recipes::SMITHING_ADDITION, stack.item.0),
                 _ => true,
             },
+            Self::Merchant => slot != MERCHANT_RESULT,
             Self::Beacon if slot == 0 => in_item_tag(stack, "minecraft:beacon_payment_items"),
             Self::Grindstone if slot < 2 => is_damageable(stack) || has_enchantments(stack),
             Self::CartographyTable if slot == 0 => is_map(stack),
@@ -361,7 +381,16 @@ pub struct ContainerMenu {
     remote: Vec<RemoteSlot>,
     remote_carried: RemoteSlot,
     cutter: Cutter,
+    trade: Trade,
     held: Option<Hold>,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+struct Trade {
+    offers: MerchantOffers,
+    hint: i32,
+    active: Option<usize>,
+    future_xp: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -377,6 +406,7 @@ struct Session<'a> {
     player: &'a mut Inventory,
     carried: &'a mut Slot,
     cutter: &'a mut Cutter,
+    trade: &'a mut Trade,
     infinite: bool,
     effects: Vec<MenuEffect>,
 }
@@ -413,6 +443,54 @@ fn set_cutter_result(container: &mut [Slot], cutter: &Cutter) {
     if let Some(slot) = container.get_mut(CUTTER_RESULT) {
         *slot = result;
     }
+}
+
+fn update_merchant(container: &mut [Slot], trade: &mut Trade, effects: &mut Vec<MenuEffect>) {
+    trade.active = None;
+    let (first, second) = if container[0].is_none() {
+        (container[1].clone(), None)
+    } else {
+        (container[0].clone(), container[1].clone())
+    };
+    if first.is_none() {
+        container[MERCHANT_RESULT] = None;
+        trade.future_xp = 0;
+        return;
+    }
+    if !trade.offers.is_empty() {
+        let hint = trade.hint;
+        let in_stock = |trade: &Trade, found: Option<usize>| {
+            found.filter(|index| {
+                trade
+                    .offers
+                    .get(*index)
+                    .is_some_and(|offer| !offer.is_out_of_stock())
+            })
+        };
+        let mut found = trade
+            .offers
+            .recipe_index_for(first.as_ref(), second.as_ref(), hint);
+        if in_stock(trade, found).is_none() {
+            trade.active = found;
+            found = trade
+                .offers
+                .recipe_index_for(second.as_ref(), first.as_ref(), hint);
+        }
+        match in_stock(trade, found).and_then(|index| Some((index, trade.offers.get(index)?))) {
+            Some((index, offer)) => {
+                container[MERCHANT_RESULT] = Some(offer.result.clone());
+                trade.future_xp = offer.xp;
+                trade.active = Some(index);
+            }
+            None => {
+                container[MERCHANT_RESULT] = None;
+                trade.future_xp = 0;
+            }
+        }
+    }
+    effects.push(MenuEffect::TradeUpdated {
+        valid: container[MERCHANT_RESULT].is_some(),
+    });
 }
 
 fn cell(kind: MenuKind, slot: usize) -> Option<Cell> {
@@ -558,6 +636,9 @@ impl Session<'_> {
                 if self.kind == MenuKind::Smithing {
                     self.refresh_smithing(index != smithing::RESULT);
                 }
+                if self.kind == MenuKind::Merchant && index < MERCHANT_RESULT {
+                    self.update_sell_item();
+                }
             }
             Some(Cell::Player(index)) => {
                 self.player.set(index, stack);
@@ -571,6 +652,11 @@ impl Session<'_> {
             return None;
         }
         let mut current = self.item(slot);
+        let amount = if self.kind == MenuKind::Merchant && slot == MERCHANT_RESULT {
+            count(&current)
+        } else {
+            amount
+        };
         let removed = split(&mut current, amount);
         self.put(slot, current);
         removed
@@ -614,6 +700,86 @@ impl Session<'_> {
         refresh_cutter(self.container, self.cutter);
     }
 
+    fn update_sell_item(&mut self) {
+        update_merchant(self.container, self.trade, &mut self.effects);
+    }
+
+    fn take_trade(&mut self) {
+        let Some(active) = self.trade.active else {
+            return;
+        };
+        let Some(offer) = self.trade.offers.get(active).cloned() else {
+            return;
+        };
+        let mut first = self.container[0].clone();
+        let mut second = self.container[1].clone();
+        if !(offer.take(&mut first, &mut second) || offer.take(&mut second, &mut first)) {
+            return;
+        }
+        if let Some(held) = self.trade.offers.get_mut(active) {
+            held.increase_uses();
+        }
+        self.effects.push(MenuEffect::Traded { offer: active });
+        self.put(0, first);
+        self.put(1, second);
+    }
+
+    fn move_to_payment(&mut self, payment: usize, wanted: &crate::entity::trading::ItemCost) {
+        for slot in MERCHANT_PLAYER_START..MERCHANT_END {
+            let Some(held) = self.item(slot) else {
+                continue;
+            };
+            if !wanted.test(&held) {
+                continue;
+            }
+            let current = self.container[payment].clone();
+            if let Some(existing) = &current
+                && !same_item_same_components(&held, existing)
+            {
+                continue;
+            }
+            let max = max_stack(&held);
+            let have = count(&current);
+            let moved = max.saturating_sub(have).min(u32::from(held.count.get()));
+            let merged = with_count(&held, have + moved);
+            let left = with_count(&held, u32::from(held.count.get()) - moved);
+            self.put(slot, left);
+            self.put(payment, merged.clone());
+            if count(&merged) >= max {
+                return;
+            }
+        }
+    }
+
+    fn try_move_items(&mut self, index: i32) {
+        let Ok(index) = usize::try_from(index) else {
+            return;
+        };
+        if index >= self.trade.offers.len() {
+            return;
+        }
+        for payment in 0..MERCHANT_RESULT {
+            let Some(held) = self.container[payment].clone() else {
+                continue;
+            };
+            let mut stack = Some(held);
+            if !self.move_to(&mut stack, MERCHANT_PLAYER_START, MERCHANT_END, true) {
+                return;
+            }
+            self.put(payment, stack);
+        }
+        if self.container[0].is_some() || self.container[1].is_some() {
+            return;
+        }
+        let Some(offer) = self.trade.offers.get(index).cloned() else {
+            return;
+        };
+        self.move_to_payment(0, &offer.cost_a);
+        if let Some(cost) = &offer.cost_b {
+            self.move_to_payment(1, cost);
+        }
+    }
+
     fn refresh_smithing(&mut self, inputs_changed: bool) {
         if inputs_changed {
             let result = smithing::result(
@@ -630,6 +796,10 @@ impl Session<'_> {
     }
 
     fn took(&mut self, slot: usize, taken: &Slot, amount: u32) {
+        if self.kind == MenuKind::Merchant && slot == MERCHANT_RESULT && taken.is_some() {
+            self.take_trade();
+            return;
+        }
         if self.kind == MenuKind::Smithing && slot == smithing::RESULT && taken.is_some() {
             for index in 0..smithing::INPUTS {
                 if let Some(input) = self.container[index].take() {
@@ -897,7 +1067,9 @@ impl Session<'_> {
             return None;
         }
         let moved_count = u32::from(copy.count.get()) - count(&stack);
-        if (self.kind == MenuKind::Crafting && slot == CRAFTING_RESULT)
+        if self.kind == MenuKind::Merchant && slot == MERCHANT_RESULT {
+            self.took(slot, &Some(copy.clone()), moved_count);
+        } else if (self.kind == MenuKind::Crafting && slot == CRAFTING_RESULT)
             || (self.kind == MenuKind::Stonecutter && slot == CUTTER_RESULT)
         {
             self.took(slot, &Some(copy.clone()), moved_count);
@@ -1045,6 +1217,9 @@ impl Session<'_> {
     }
 
     fn pickup_all(&mut self, slot: i32, button: i32) {
+        if self.kind == MenuKind::Merchant {
+            return;
+        }
         let Some(target) = self.index(slot) else {
             return;
         };
@@ -1092,6 +1267,7 @@ impl ContainerMenu {
             remote: vec![RemoteSlot::Known(None); kind.slot_count()],
             remote_carried: RemoteSlot::Known(None),
             cutter: Cutter::default(),
+            trade: Trade::default(),
             held: None,
         }
     }
@@ -1120,6 +1296,7 @@ impl ContainerMenu {
             player,
             carried: &mut self.carried,
             cutter: &mut self.cutter,
+            trade: &mut self.trade,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
         };
@@ -1200,6 +1377,7 @@ impl ContainerMenu {
             player,
             carried: &mut self.carried,
             cutter: &mut self.cutter,
+            trade: &mut self.trade,
             infinite: false,
             effects: Vec::new(),
         };
@@ -1227,6 +1405,7 @@ impl ContainerMenu {
             player,
             carried: &mut self.carried,
             cutter: &mut self.cutter,
+            trade: &mut self.trade,
             infinite: false,
             effects: Vec::new(),
         };
@@ -1248,6 +1427,7 @@ impl ContainerMenu {
             player,
             carried: &mut self.carried,
             cutter: &mut self.cutter,
+            trade: &mut self.trade,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
         };
@@ -1283,6 +1463,63 @@ impl ContainerMenu {
             return None;
         }
         self.view(slot, container, player)
+    }
+
+    pub fn merchant_offers(&self) -> &MerchantOffers {
+        &self.trade.offers
+    }
+
+    pub fn future_trade_xp(&self) -> i32 {
+        self.trade.future_xp
+    }
+
+    pub fn trade_offer(&self, index: usize) -> Option<&MerchantOffer> {
+        self.trade.offers.get(index)
+    }
+
+    pub fn set_offers(
+        &mut self,
+        container: &mut Vec<Slot>,
+        player: &mut Inventory,
+        offers: MerchantOffers,
+    ) -> Vec<MenuEffect> {
+        container.resize(self.kind.container_size(), None);
+        self.trade.offers = offers;
+        let mut session = Session {
+            kind: self.kind,
+            container,
+            player,
+            carried: &mut self.carried,
+            cutter: &mut self.cutter,
+            trade: &mut self.trade,
+            infinite: false,
+            effects: Vec::new(),
+        };
+        session.update_sell_item();
+        session.effects
+    }
+
+    pub fn select_trade(
+        &mut self,
+        container: &mut Vec<Slot>,
+        player: &mut Inventory,
+        index: i32,
+    ) -> Vec<MenuEffect> {
+        container.resize(self.kind.container_size(), None);
+        self.trade.hint = index;
+        let mut session = Session {
+            kind: self.kind,
+            container,
+            player,
+            carried: &mut self.carried,
+            cutter: &mut self.cutter,
+            trade: &mut self.trade,
+            infinite: false,
+            effects: Vec::new(),
+        };
+        session.update_sell_item();
+        session.try_move_items(index);
+        session.effects
     }
 
     pub fn data(&self) -> Vec<i16> {
@@ -3695,5 +3932,277 @@ mod tests {
             }]
         ));
         assert!((0..46).all(|slot| player.get(slot).is_none()));
+    }
+
+    fn offer(cost: (&str, u8), second: Option<(&str, u8)>, result: (&str, u8)) -> MerchantOffer {
+        let item = |name: &str| ItemKind::from_name(name).expect("known item").id();
+        MerchantOffer::new(
+            crate::entity::trading::ItemCost::new(item(cost.0), i32::from(cost.1)),
+            second.map(|(name, count)| {
+                crate::entity::trading::ItemCost::new(item(name), i32::from(count))
+            }),
+            stack(result.0, result.1),
+            3,
+            2,
+            0.05,
+        )
+    }
+
+    fn trading() -> (ContainerMenu, Vec<Slot>, Inventory) {
+        let mut menu = ContainerMenu::new(MenuKind::Merchant);
+        let mut container = vec![None; 3];
+        let mut player = Inventory::default();
+        let mut offers = MerchantOffers::new();
+        offers.push(offer(
+            ("minecraft:emerald", 2),
+            None,
+            ("minecraft:bread", 3),
+        ));
+        offers.push(offer(
+            ("minecraft:emerald", 5),
+            Some(("minecraft:book", 1)),
+            ("minecraft:iron_sword", 1),
+        ));
+        menu.set_offers(&mut container, &mut player, offers);
+        (menu, container, player)
+    }
+
+    #[test]
+    fn the_merchant_menu_is_three_trade_slots_over_the_inventory() {
+        let registry =
+            rspigot_data::registries::static_index("minecraft:menu", "minecraft:merchant").unwrap();
+        assert_eq!(MenuKind::Merchant.protocol_id(), registry as i32);
+        assert_eq!(MenuKind::Merchant.container_size(), 3);
+        assert_eq!(MenuKind::Merchant.slot_count(), 39);
+        assert_eq!(MenuKind::Merchant.data_count(), 0);
+    }
+
+    #[test]
+    fn payment_that_satisfies_an_offer_shows_its_result_and_experience() {
+        let (mut menu, mut container, mut player) = trading();
+        player.set(MAIN_START, Some(stack("minecraft:emerald", 8)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            3,
+            0,
+            ClickInput::Pickup,
+        );
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(container[2], Some(stack("minecraft:bread", 3)));
+        assert_eq!(menu.future_trade_xp(), 2);
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            0,
+            ClickInput::Pickup,
+        );
+        assert!(container[2].is_none());
+        assert_eq!(menu.future_trade_xp(), 0);
+    }
+
+    #[test]
+    fn the_result_cannot_be_placed_into_and_needs_a_matching_payment() {
+        let (mut menu, mut container, mut player) = trading();
+        menu.carried = Some(stack("minecraft:bread", 3));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            2,
+            0,
+            ClickInput::Pickup,
+        );
+        assert!(container[2].is_none());
+        assert_eq!(menu.carried(), &Some(stack("minecraft:bread", 3)));
+    }
+
+    #[test]
+    fn taking_the_result_uses_the_payment_counts_the_trade_and_shows_the_next_result() {
+        let (mut menu, mut container, mut player) = trading();
+        container[0] = Some(stack("minecraft:emerald", 5));
+        menu.set_offers(&mut container, &mut player, menu.merchant_offers().clone());
+        assert_eq!(container[2], Some(stack("minecraft:bread", 3)));
+        let effects = click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            2,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(menu.carried(), &Some(stack("minecraft:bread", 3)));
+        assert_eq!(container[0], Some(stack("minecraft:emerald", 3)));
+        assert_eq!(menu.trade_offer(0).unwrap().uses, 1);
+        assert!(effects.contains(&MenuEffect::Traded { offer: 0 }));
+        assert_eq!(container[2], Some(stack("minecraft:bread", 3)));
+    }
+
+    #[test]
+    fn an_exhausted_offer_gives_no_result() {
+        let (mut menu, mut container, mut player) = trading();
+        container[0] = Some(stack("minecraft:emerald", 20));
+        let mut offers = menu.merchant_offers().clone();
+        offers.get_mut(0).unwrap().set_to_out_of_stock();
+        menu.set_offers(&mut container, &mut player, offers);
+        assert!(container[2].is_none());
+    }
+
+    #[test]
+    fn the_second_payment_slot_may_hold_the_first_cost() {
+        let (mut menu, mut container, mut player) = trading();
+        container[0] = Some(stack("minecraft:book", 1));
+        container[1] = Some(stack("minecraft:emerald", 5));
+        menu.set_offers(&mut container, &mut player, menu.merchant_offers().clone());
+        assert_eq!(container[2], Some(stack("minecraft:iron_sword", 1)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            2,
+            0,
+            ClickInput::Pickup,
+        );
+        assert!(container[0].is_none());
+        assert!(container[1].is_none());
+        assert_eq!(menu.trade_offer(1).unwrap().uses, 1);
+    }
+
+    #[test]
+    fn shift_clicking_the_result_trades_into_the_inventory_from_the_end() {
+        let (mut menu, mut container, mut player) = trading();
+        container[0] = Some(stack("minecraft:emerald", 2));
+        menu.set_offers(&mut container, &mut player, menu.merchant_offers().clone());
+        let effects = click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            2,
+            0,
+            ClickInput::QuickMove,
+        );
+        assert!(effects.contains(&MenuEffect::Traded { offer: 0 }));
+        assert_eq!(
+            player.get(HOTBAR_START + 8),
+            Some(&stack("minecraft:bread", 3))
+        );
+        assert!(container[0].is_none());
+        assert!(container[2].is_none());
+    }
+
+    #[test]
+    fn shift_clicking_inventory_items_never_fills_the_payment_slots() {
+        let (mut menu, mut container, mut player) = trading();
+        player.set(MAIN_START, Some(stack("minecraft:emerald", 8)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            3,
+            0,
+            ClickInput::QuickMove,
+        );
+        assert!(container[0].is_none());
+        assert_eq!(
+            player.get(HOTBAR_START),
+            Some(&stack("minecraft:emerald", 8))
+        );
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            30,
+            0,
+            ClickInput::QuickMove,
+        );
+        assert_eq!(player.get(MAIN_START), Some(&stack("minecraft:emerald", 8)));
+    }
+
+    #[test]
+    fn selecting_a_trade_moves_the_payments_in_and_gives_the_old_ones_back() {
+        let (mut menu, mut container, mut player) = trading();
+        player.set(MAIN_START, Some(stack("minecraft:emerald", 30)));
+        player.set(MAIN_START + 1, Some(stack("minecraft:book", 4)));
+        menu.select_trade(&mut container, &mut player, 1);
+        assert_eq!(container[0], Some(stack("minecraft:emerald", 30)));
+        assert_eq!(container[1], Some(stack("minecraft:book", 4)));
+        assert_eq!(container[2], Some(stack("minecraft:iron_sword", 1)));
+        menu.select_trade(&mut container, &mut player, 0);
+        assert_eq!(container[0], Some(stack("minecraft:emerald", 30)));
+        assert!(container[1].is_none());
+        assert_eq!(container[2], Some(stack("minecraft:bread", 3)));
+        assert_eq!(
+            player.get(HOTBAR_START + 7),
+            Some(&stack("minecraft:book", 4))
+        );
+    }
+
+    #[test]
+    fn selecting_a_trade_out_of_range_changes_nothing() {
+        let (mut menu, mut container, mut player) = trading();
+        player.set(MAIN_START, Some(stack("minecraft:emerald", 30)));
+        menu.select_trade(&mut container, &mut player, 9);
+        assert!(container[0].is_none());
+        menu.select_trade(&mut container, &mut player, -1);
+        assert!(container[0].is_none());
+    }
+
+    #[test]
+    fn the_payment_stack_is_topped_up_to_the_item_maximum_only() {
+        let (mut menu, mut container, mut player) = trading();
+        player.set(MAIN_START, Some(stack("minecraft:emerald", 64)));
+        player.set(MAIN_START + 1, Some(stack("minecraft:emerald", 10)));
+        menu.select_trade(&mut container, &mut player, 0);
+        assert_eq!(container[0], Some(stack("minecraft:emerald", 64)));
+        assert_eq!(
+            player.get(MAIN_START + 1),
+            Some(&stack("minecraft:emerald", 10))
+        );
+        assert!(player.get(MAIN_START).is_none());
+    }
+
+    #[test]
+    fn closing_gives_the_payments_back_and_double_click_gathers_nothing() {
+        let (mut menu, mut container, mut player) = trading();
+        container[0] = Some(stack("minecraft:emerald", 3));
+        let effects = menu.close_transient(&mut container, &mut player);
+        assert!(container[0].is_none());
+        assert!(
+            effects
+                .iter()
+                .all(|effect| !matches!(effect, MenuEffect::Drop { .. }))
+        );
+        assert!(player.get(HOTBAR_START).is_some() || player.get(MAIN_START).is_some());
+        menu.carried = Some(stack("minecraft:emerald", 1));
+        player.set(MAIN_START, Some(stack("minecraft:emerald", 5)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            4,
+            0,
+            ClickInput::PickupAll,
+        );
+        assert_eq!(menu.carried(), &Some(stack("minecraft:emerald", 1)));
+    }
+
+    #[test]
+    fn a_changed_payment_reports_whether_the_trade_is_valid() {
+        let (mut menu, mut container, mut player) = trading();
+        let effects = menu.set_offers(&mut container, &mut player, menu.merchant_offers().clone());
+        assert!(effects.is_empty());
+        container[0] = Some(stack("minecraft:emerald", 2));
+        let effects = menu.set_offers(&mut container, &mut player, menu.merchant_offers().clone());
+        assert_eq!(effects, vec![MenuEffect::TradeUpdated { valid: true }]);
     }
 }

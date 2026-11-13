@@ -2,11 +2,11 @@ use rspigot_data::registries::{static_entries, static_index};
 use rspigot_nbt::{Compound, Tag};
 use uuid::Uuid;
 
-use crate::BiomeId;
 use crate::entity::base::EntityBase;
 use crate::entity::data::SyncedValue;
 use crate::entity::save::{read_uuid, uuid_tag};
 use crate::random::RandomSource;
+use crate::{BiomeId, BlockPos, Vec3};
 
 pub const DATA_CONVERTING: u8 = 19;
 pub const DATA_VILLAGER_DATA: u8 = 20;
@@ -43,7 +43,65 @@ impl Default for ZombieVillagerState {
     }
 }
 
+pub const CURE_BASE_TICKS: i32 = 3_600;
+pub const CURE_SPREAD_TICKS: i32 = 2_401;
+pub const BOOST_ROLL: f32 = 0.01;
+pub const BOOST_CHANCE: f32 = 0.3;
+pub const BOOST_RADIUS: i32 = 4;
+pub const BOOST_LIMIT: i32 = 14;
+
+pub fn conversion_progress(
+    position: Vec3,
+    random: &mut impl RandomSource,
+    mut speeds_up: impl FnMut(BlockPos) -> bool,
+) -> i32 {
+    let mut progress = 1;
+    if random.next_float() >= BOOST_ROLL {
+        return progress;
+    }
+    let mut counted = 0;
+    let (cx, cy, cz) = (position.x as i32, position.y as i32, position.z as i32);
+    for x in cx - BOOST_RADIUS..cx + BOOST_RADIUS {
+        if counted >= BOOST_LIMIT {
+            break;
+        }
+        for y in cy - BOOST_RADIUS..cy + BOOST_RADIUS {
+            if counted >= BOOST_LIMIT {
+                break;
+            }
+            for z in cz - BOOST_RADIUS..cz + BOOST_RADIUS {
+                if counted >= BOOST_LIMIT {
+                    break;
+                }
+                if speeds_up(BlockPos::new(x, y, z)) {
+                    if random.next_float() < BOOST_CHANCE {
+                        progress += 1;
+                    }
+                    counted += 1;
+                }
+            }
+        }
+    }
+    progress
+}
+
 impl ZombieVillagerState {
+    pub fn start_converting(&mut self, base: &mut EntityBase, starter: Option<Uuid>, time: i32) {
+        self.conversion_starter = starter;
+        self.conversion_time = time;
+        base.data.set(DATA_CONVERTING, SyncedValue::Boolean(true));
+    }
+
+    pub fn stop_converting(&mut self, base: &mut EntityBase) {
+        self.conversion_time = NOT_CONVERTING;
+        base.data.set(DATA_CONVERTING, SyncedValue::Boolean(false));
+    }
+
+    pub fn advance_conversion(&mut self, progress: i32) -> bool {
+        self.conversion_time -= progress;
+        self.conversion_time < 1
+    }
+
     pub fn is_converting(&self, base: &EntityBase) -> bool {
         base.data.boolean(DATA_CONVERTING)
     }
@@ -275,6 +333,48 @@ mod tests {
             })
         );
         assert_eq!(base.data.get(21), Some(&SyncedValue::Boolean(false)));
+    }
+
+    #[test]
+    fn a_cure_runs_down_its_timer_one_step_at_a_time_and_ends_below_one() {
+        let (mut base, mut state) = villager();
+        state.start_converting(&mut base, Some(Uuid::from_u128(5)), 3);
+        assert!(state.is_converting(&base));
+        assert!(!state.advance_conversion(1));
+        assert!(!state.advance_conversion(1));
+        assert!(state.advance_conversion(1));
+        state.stop_converting(&mut base);
+        assert!(!state.is_converting(&base));
+        assert_eq!(state.conversion_time, NOT_CONVERTING);
+    }
+
+    #[test]
+    fn the_cure_only_looks_around_one_tick_in_a_hundred_and_counts_at_most_fourteen_blocks() {
+        let mut random = LegacyRandom::new(1);
+        let mut looked = 0;
+        let mut quickest = 0;
+        for _ in 0..20_000 {
+            let mut scans = 0;
+            let progress = conversion_progress(Vec3::new(0.5, 64.0, 0.5), &mut random, |_| {
+                scans += 1;
+                true
+            });
+            if scans > 0 {
+                looked += 1;
+                assert_eq!(scans, BOOST_LIMIT);
+                assert!((1..=15).contains(&progress));
+            } else {
+                assert_eq!(progress, 1);
+            }
+            quickest = quickest.max(progress);
+        }
+        assert!((100..=350).contains(&looked), "{looked}");
+        assert!(quickest > 3);
+        let mut random = LegacyRandom::new(2);
+        assert_eq!(
+            conversion_progress(Vec3::new(0.0, 0.0, 0.0), &mut random, |_| false),
+            1
+        );
     }
 
     #[test]

@@ -35,6 +35,7 @@ mod snow_golem;
 pub(crate) mod villager;
 mod witch;
 mod wolf;
+mod zombie_villager;
 mod zombified_piglin;
 
 pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::SoundSource> {
@@ -47,6 +48,7 @@ pub(crate) use armadillo::ambient_sound as armadillo_ambient_sound;
 pub(crate) use enderman::carried_block_drops;
 pub(crate) use goat::{GoatSound, voice as goat_voice};
 pub(crate) use snow_golem::readiness_for_shearing;
+pub(crate) use zombie_villager::{carry_villager_into_zombie, carry_zombie_into_villager};
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn kind_of(&self, id: EntityId) -> Option<Kind> {
@@ -116,6 +118,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Blaze) => self.blaze_pre_tick(id),
             Some(Kind::Ghast) => self.ghast_pre_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_pre_tick(id),
+            Some(Kind::ZombieVillager) => self.zombie_villager_pre_tick(id),
             Some(Kind::Rabbit) => self.rabbit_pre_tick(id),
             Some(Kind::Ocelot) => self.ocelot_pre_tick(id),
             _ => true,
@@ -259,6 +262,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin) => self.piglin_interact(player, target, hand, held),
             Some(Kind::Armadillo) => self.armadillo_interact(player, target, hand, held),
             Some(Kind::Villager) => self.villager_interact(player, target, hand, held),
+            Some(Kind::ZombieVillager) => self.zombie_villager_interact(player, target, hand, held),
+            Some(Kind::WanderingTrader) => self.trader_interact(player, target, hand, held),
             _ => None,
         }
     }
@@ -328,6 +333,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
+            Some(Kind::WanderingTrader) if dead => self.merchant_stop_trading(id),
             _ => {}
         }
     }

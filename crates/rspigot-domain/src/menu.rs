@@ -93,6 +93,12 @@ pub enum MenuEffect {
     },
     StonecutterTaken,
     SmithingTaken,
+    Traded {
+        offer: usize,
+    },
+    TradeUpdated {
+        valid: bool,
+    },
     SlotResent(usize),
     FullResync,
     PlacedBack {

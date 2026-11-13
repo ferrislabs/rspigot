@@ -545,6 +545,20 @@ pub(crate) struct WeatherStep {
     pub(crate) thunder: Option<bool>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum Follow {
+    Nothing,
+    Infection { at: Option<BlockPos> },
+    Cure { starter: Option<uuid::Uuid> },
+}
+
+#[derive(Debug)]
+pub(crate) struct TransformStep {
+    pub(crate) old: EntityId,
+    pub(crate) converted: Entity,
+    pub(crate) birth: Birth,
+}
+
 #[derive(Debug)]
 pub(crate) enum Spawned {
     Nothing,
@@ -560,6 +574,7 @@ pub(crate) enum Spawned {
     Converted {
         old: EntityId,
         event: Option<i32>,
+        follow: Follow,
     },
     Answered {
         connection: u64,
@@ -934,6 +949,26 @@ pub(crate) struct PiglinPickupStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct AcquireStep {
+    pub(crate) merchant: EntityId,
+    pub(crate) offer: rspigot_domain::entity::trading::MerchantOffer,
+}
+
+#[derive(Debug)]
+pub(crate) struct ReplenishStep {
+    pub(crate) merchant: EntityId,
+    pub(crate) index: usize,
+    pub(crate) uses: i32,
+}
+
+#[derive(Debug)]
+pub(crate) struct SelectTradeStep {
+    pub(crate) player: PlayerId,
+    pub(crate) window: i32,
+    pub(crate) index: i32,
+}
+
+#[derive(Debug)]
 pub(crate) struct BarterStep {
     pub(crate) piglin: EntityId,
     pub(crate) outcome: Vec<ItemStack>,
@@ -1077,6 +1112,10 @@ pub(crate) enum Continuation {
     MobPickup(Box<MobPickupStep>),
     PiglinPickup(Box<PiglinPickupStep>),
     Barter(Box<BarterStep>),
+    Acquire(Box<AcquireStep>),
+    Replenish(ReplenishStep),
+    SelectTrade(SelectTradeStep),
+    Transform(Box<TransformStep>),
     ChangeBlock(Box<ChangeStep>),
     Form(FormStep),
     Grow(GrowStep),
@@ -1182,6 +1221,10 @@ impl Continuation {
                 EventKind::EntityPickupItem
             }
             Self::Barter(_) => EventKind::PiglinBarter,
+            Self::Acquire(_) => EventKind::VillagerAcquireTrade,
+            Self::Replenish(_) => EventKind::VillagerReplenishTrade,
+            Self::SelectTrade(_) => EventKind::TradeSelect,
+            Self::Transform(_) => EventKind::EntityTransform,
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
             Self::Grow(_) => EventKind::BlockGrow,
@@ -1253,6 +1296,9 @@ impl Continuation {
             Self::MobPickup(step) => step.item == id || step.collector == id,
             Self::PiglinPickup(step) => step.item == id || step.collector == id,
             Self::Barter(step) => step.piglin == id,
+            Self::Acquire(step) => step.merchant == id,
+            Self::Replenish(step) => step.merchant == id,
+            Self::Transform(step) => step.old == id,
             Self::ChangeBlock(step) => match &step.change {
                 Grief::Fall { .. } => false,
                 Grief::Land(landing) => landing.falling == id,
