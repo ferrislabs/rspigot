@@ -488,7 +488,7 @@ fn love_of(s: &Scene, id: EntityId) -> i32 {
 }
 
 #[test]
-fn torchflower_seeds_and_pitcher_pods_are_sniffer_food_and_nothing_else_is() {
+fn only_torchflower_seeds_are_sniffer_food() {
     let mut s = ready(23);
     creative(&mut s);
     let sniffer = summon(&mut s, "1.5 64 1.5", "{NoAI:1b}");
@@ -501,7 +501,7 @@ fn torchflower_seeds_and_pitcher_pods_are_sniffer_food_and_nothing_else_is() {
     let other = summon(&mut s, "1.5 64 3.5", "{NoAI:1b}");
     put_in_hand(&mut s, ItemKind::PitcherPod);
     interact(&mut s, other);
-    assert!((590..=600).contains(&love_of(&s, other)));
+    assert_eq!(love_of(&s, other), 0);
 }
 
 #[test]
