@@ -306,3 +306,43 @@ fn nothing_comes_by_day_and_the_timer_counts_the_ticks_since_rest() {
     assert!(s.server.entities_of(Kind::Phantom).is_empty());
     assert_eq!(s.server.ticks_since_rest(alice), 10_002_400);
 }
+
+#[test]
+fn a_parrot_takes_a_variant_when_spawned_and_keeps_a_saved_one() {
+    let mut s = ready(3);
+    let fresh = summon(&mut s, Kind::Parrot, "8.5 64 8.5", "");
+    let fresh_variant = saved(&s, fresh).get_i32("Variant");
+    assert!(fresh_variant.is_some_and(|variant| (0..5).contains(&variant)));
+    let kept = summon(&mut s, Kind::Parrot, "10.5 64 8.5", "{Variant:4}");
+    assert_eq!(saved(&s, kept).get_i32("Variant"), Some(4));
+}
+
+#[test]
+fn a_parrot_flies_over_open_ground_instead_of_walking() {
+    let mut s = ready(3);
+    let parrot = summon(&mut s, Kind::Parrot, "8.5 70 8.5", "");
+    let mut highest = 0.0f64;
+    let mut moved = 0.0f64;
+    for _ in 0..300 {
+        s.tick(1);
+        let at = position_of(&s, Kind::Parrot, parrot);
+        highest = highest.max(at.y);
+        moved = moved.max((at.x - 8.5).abs() + (at.z - 8.5).abs());
+    }
+    assert!(highest >= 64.0);
+    assert!(moved > 1.0, "{moved}");
+}
+
+#[test]
+fn a_parrot_never_takes_fall_damage() {
+    let mut s = ready(3);
+    let parrot = summon(&mut s, Kind::Parrot, "8.5 100 8.5", "{NoAI:1b}");
+    s.tick(100);
+    let health = s
+        .server
+        .entities_of(Kind::Parrot)
+        .into_iter()
+        .find(|entity| entity.id == parrot)
+        .and_then(|entity| entity.health);
+    assert_eq!(health, Some(6.0));
+}

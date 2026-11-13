@@ -27,6 +27,7 @@ pub mod hoglin;
 pub mod iron_golem;
 pub mod ocelot;
 pub mod panda;
+pub mod parrot;
 pub mod phantom;
 pub mod piglin;
 pub mod pillager;
@@ -208,6 +209,7 @@ pub enum Species {
     Vex(vex::VexState),
     Bat(bat::BatState),
     Phantom(phantom::PhantomState),
+    Parrot,
     Shulker(shulker::ShulkerState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
@@ -395,6 +397,10 @@ impl Species {
         }
         if kind == EntityKind::Phantom {
             return Self::Phantom(phantom::define(base));
+        }
+        if kind == EntityKind::Parrot {
+            parrot::define(base);
+            return Self::Parrot;
         }
         if kind == EntityKind::Shulker {
             return Self::Shulker(shulker::define(base));

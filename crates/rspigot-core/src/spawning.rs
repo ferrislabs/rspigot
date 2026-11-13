@@ -789,6 +789,7 @@ mod tests {
                 EntityKind::Ocelot,
                 EntityKind::Panda,
                 EntityKind::Parched,
+                EntityKind::Parrot,
                 EntityKind::Phantom,
                 EntityKind::Pig,
                 EntityKind::Piglin,
