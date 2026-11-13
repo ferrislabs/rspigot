@@ -58,6 +58,15 @@ wire_struct! {
     }
 }
 
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct MountScreenOpen = id::MOUNT_SCREEN_OPEN {
+        pub container_id: i32 as Var,
+        pub inventory_columns: i32 as Var,
+        pub entity_id: i32,
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TradeCost {
     pub item: i32,
@@ -281,6 +290,14 @@ mod tests {
             vec![40, 2, 1, 0, 0]
         );
         assert_eq!(roundtrip(&ContainerClose { container_id: 1 }), vec![1]);
+        assert_eq!(
+            roundtrip(&MountScreenOpen {
+                container_id: 3,
+                inventory_columns: 5,
+                entity_id: 258
+            }),
+            vec![3, 5, 0, 0, 1, 2]
+        );
         let screen = OpenScreen {
             container_id: 1,
             menu: 2,
