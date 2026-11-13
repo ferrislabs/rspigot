@@ -26,6 +26,9 @@ pub(crate) struct Mock {
     pub universal_anger: bool,
     pub blocks: HashMap<BlockPos, StateId>,
     pub peaceful: bool,
+    pub hives: HashMap<BlockPos, crate::HiveView>,
+    pub raining: bool,
+    pub stay_in_hive: bool,
 }
 
 impl BlockView for Mock {
@@ -112,6 +115,18 @@ impl AiWorld for Mock {
             })
             .copied()
             .collect()
+    }
+
+    fn beehive(&self, pos: BlockPos) -> Option<crate::HiveView> {
+        self.hives.get(&pos).copied()
+    }
+
+    fn raining(&self) -> bool {
+        self.raining
+    }
+
+    fn bees_stay_in_hive(&self, _pos: BlockPos) -> bool {
+        self.stay_in_hive
     }
 
     fn villagers_wanting_golem(&self, area: &Aabb) -> Vec<Living> {

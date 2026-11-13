@@ -297,6 +297,7 @@ mod tests {
     const SHEEP_COLOUR_TABLES: usize = 16;
     const CHARGED_CREEPER_TABLES: usize = 6;
     const TILL_TABLES: usize = 1;
+    const HARVEST_TABLES: usize = 1;
     const ENTITY_TYPES_WITH_TABLE: usize = 93;
     const WALL_VARIANTS_WITHOUT_OWN_TABLE: usize = 63;
 
@@ -379,6 +380,7 @@ mod tests {
                 + SNOW_GOLEM_SHEARING_TABLES
                 + CHARGED_CREEPER_TABLES
                 + TILL_TABLES
+                + HARVEST_TABLES
         );
         assert!(tables().windows(2).all(|pair| pair[0].0 < pair[1].0));
         let count = |prefix: &str| {
@@ -402,6 +404,7 @@ mod tests {
         assert_eq!(count("minecraft:shearing/sheep/"), SHEEP_COLOUR_TABLES);
         assert_eq!(count("minecraft:charged_creeper/"), CHARGED_CREEPER_TABLES);
         assert_eq!(count("minecraft:till/"), TILL_TABLES);
+        assert!(table("minecraft:harvest/beehive").is_some());
         for (name, entry) in tables() {
             assert!(ptr::eq(table(name).unwrap(), entry));
         }

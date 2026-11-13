@@ -94,6 +94,7 @@ const WATER_EFFICIENT_SLOW_DOWN: f32 = 0.546_000_06;
 const DOLPHIN_SLOW_DOWN: f32 = 0.96;
 const FLUID_VERTICAL_DRAG: f64 = 0.800_000_011_920_929;
 const LIQUID_JUMP_IMPULSE: f64 = 0.039_999_999_105_930_33;
+const BEE_LIQUID_JUMP_IMPULSE: f64 = 0.01;
 const NO_JUMP_DELAY: i32 = 10;
 const FLAG_SPRINTING: u8 = 8;
 const SPRINT_JUMP_BOOST: f64 = 0.2;
@@ -1220,7 +1221,9 @@ fn jump<V: BlockView>(base: &mut EntityBase, living: &mut LivingState, view: &V,
 }
 
 fn jump_in_liquid(base: &mut EntityBase, living: &LivingState, can_float: bool) {
-    let impulse = if living.is_mob() && !can_float {
+    let impulse = if base.kind == EntityKind::Bee {
+        BEE_LIQUID_JUMP_IMPULSE
+    } else if living.is_mob() && !can_float {
         0.3
     } else {
         LIQUID_JUMP_IMPULSE
@@ -1558,6 +1561,18 @@ mod tests {
             travel(&mut base, &mut living, &Air, Vec3::ZERO);
             assert_eq!(base.velocity.x, f64::from(0.91f32), "{kind:?}");
             assert_eq!(base.velocity.y, vertical, "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn a_bee_in_water_rises_by_a_hundredth_and_a_parrot_by_a_twenty_fifth() {
+        for (kind, rise) in [(EntityKind::Bee, 0.01), (EntityKind::Parrot, 0.04)] {
+            let (mut base, mut living) = flier(kind);
+            base.fluid.in_water = true;
+            base.fluid.water_height = 0.9;
+            base.velocity = Vec3::ZERO;
+            jump(&mut base, &mut living, &Air, true);
+            assert!((base.velocity.y - rise).abs() < 1.0e-6, "{kind:?}");
         }
     }
 

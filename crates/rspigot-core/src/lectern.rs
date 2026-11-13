@@ -131,7 +131,7 @@ impl<L: ClientLink> Server<L> {
         self.give_or_drop(id, book);
     }
 
-    fn give_or_drop(&mut self, id: PlayerId, book: ItemStack) {
+    pub(crate) fn give_or_drop(&mut self, id: PlayerId, book: ItemStack) {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };

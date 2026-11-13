@@ -767,6 +767,7 @@ mod tests {
                 EntityKind::Allay,
                 EntityKind::Armadillo,
                 EntityKind::Bat,
+                EntityKind::Bee,
                 EntityKind::Blaze,
                 EntityKind::Bogged,
                 EntityKind::Breeze,

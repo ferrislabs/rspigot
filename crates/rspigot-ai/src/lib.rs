@@ -5,6 +5,7 @@ mod animal;
 mod animals;
 mod armadillo;
 mod bat;
+mod bee;
 mod behavior;
 mod blaze;
 mod blocks;
@@ -84,6 +85,10 @@ pub use armadillo::{
     RollOutWithoutDanger, can_stay_rolled_up, is_scared_by,
 };
 pub use bat::{BatAction, BatFacts, BatGoal};
+pub use bee::{
+    BeeAction, BeeBrain, BeeFacts, CROP_GROWTH_EVENT, CROP_GROWTH_PARTICLES, HiveView,
+    attracts_bees as bee_attracts,
+};
 pub use behavior::{
     ALLOWED_ANGLES, Activity, ActivityData, AdultSensor, AnimalMakeLove, AnimalPanic, AwayFrom,
     BabyFollowAdult, Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState, Codec,

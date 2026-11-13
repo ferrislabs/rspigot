@@ -14,6 +14,7 @@ use crate::{BiomeId, biome};
 pub mod allay;
 pub mod armadillo;
 pub mod bat;
+pub mod bee;
 pub mod blaze;
 pub mod cat;
 pub mod copper_golem;
@@ -214,6 +215,7 @@ pub enum Species {
     Bat(bat::BatState),
     Phantom(phantom::PhantomState),
     Parrot,
+    Bee(bee::BeeState),
     Shulker(shulker::ShulkerState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
@@ -411,6 +413,9 @@ impl Species {
         if kind == EntityKind::Parrot {
             parrot::define(base);
             return Self::Parrot;
+        }
+        if kind == EntityKind::Bee {
+            return Self::Bee(bee::define(base));
         }
         if kind == EntityKind::Shulker {
             return Self::Shulker(shulker::define(base));

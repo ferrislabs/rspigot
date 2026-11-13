@@ -744,6 +744,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Allay(state) => species::allay::read(nbt, base, state),
         Species::Bat(state) => species::bat::read(nbt, base, state),
         Species::Parrot => species::parrot::read(nbt, base),
+        Species::Bee(state) => species::bee::read(nbt, base, state),
         Species::Phantom(state) => {
             species::phantom::read(nbt, base, &mut living.attributes, state);
         }
@@ -986,6 +987,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Allay(_) => species::allay::KEYS,
         Species::Bat(_) => species::bat::KEYS,
         Species::Parrot => species::parrot::KEYS,
+        Species::Bee(_) => species::bee::KEYS,
         Species::Phantom(_) => species::phantom::KEYS,
         Species::Shulker(_) => species::shulker::KEYS,
         Species::Rabbit(_) => species::rabbit::KEYS,
@@ -1433,6 +1435,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Allay(state) => species::allay::write(base, state, out),
         Species::Bat(state) => species::bat::write(base, state, out),
         Species::Parrot => species::parrot::write(base, out),
+        Species::Bee(state) => species::bee::write(base, state, out),
         Species::Phantom(state) => species::phantom::write(base, state, out),
         Species::Shulker(state) => species::shulker::write(base, state, out),
         Species::Rabbit(state) => species::rabbit::write(base, state, out),
