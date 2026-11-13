@@ -7,7 +7,7 @@ use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::spawn::SpawnGroupData;
 use rspigot_domain::spawn::SpawnReason;
-use rspigot_domain::{EntityId, Vec3};
+use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_items::{EquipmentSlot, ItemKind};
 use rspigot_nbt::Tag;
@@ -30,6 +30,7 @@ use crate::server::{Audience, Server};
 const PORTALS: &str = "minecraft:portals";
 const FREE_POSITION_RADIUS: f32 = 4.0;
 const PIGLIN_STACK_DEPTH: i32 = 3;
+const STRIDER_ESCAPE_ANGLES: [f32; 5] = [0.0, -22.5, 22.5, -45.0, 45.0];
 
 struct JockeyRider {
     kind: Kind,
@@ -690,6 +691,9 @@ impl<L: ClientLink> Server<L> {
         };
         let base = &entity.base;
         let default = Vec3::new(base.position.x, base.bounding_box().max_y, base.position.z);
+        if base.kind == Kind::Strider {
+            return self.strider_dismount(vehicle, rider).unwrap_or(default);
+        }
         if base.kind.extends("Animal") {
             let dims = self
                 .seat_of(rider)
@@ -705,6 +709,48 @@ impl<L: ClientLink> Server<L> {
             }
         }
         default
+    }
+
+    fn strider_dismount(&self, vehicle: EntityId, rider: EntityId) -> Option<Vec3> {
+        let carrier = self.entities.store.get(vehicle)?;
+        let base = &carrier.base;
+        let seat = self.seat_of(rider)?;
+        let dims = seat.kind.dimensions();
+        let bounds = base.bounding_box();
+        let mut columns: Vec<BlockPos> = Vec::new();
+        for angle in STRIDER_ESCAPE_ANGLES {
+            let escape = riding::collision_escape(
+                f64::from(base.dimensions.width),
+                f64::from(dims.width),
+                seat.yaw + angle,
+            );
+            let mut y = bounds.max_y;
+            while y > bounds.min_y - 0.5 {
+                let pos =
+                    Vec3::new(base.position.x + escape.x, y, base.position.z + escape.z).block();
+                if !columns.contains(&pos) {
+                    columns.push(pos);
+                }
+                y -= 1.0;
+            }
+        }
+        let local = Aabb::of_size(Vec3::ZERO, dims.width, dims.height);
+        columns.into_iter().find_map(|pos| {
+            let lava = self
+                .world
+                .chunks
+                .block(pos)
+                .is_some_and(|state| state.flags().contains(rspigot_blocks::StateFlags::LAVA));
+            if lava {
+                return None;
+            }
+            let height = riding::block_floor_height(&self.world.chunks, pos);
+            if !riding::is_block_floor_valid(height) {
+                return None;
+            }
+            let spot = riding::up_from_bottom_center(pos, height);
+            riding::can_dismount_to(&self.world.chunks, &local.move_by(spot)).then_some(spot)
+        })
     }
 
     pub(crate) fn dismount_to(&mut self, rider: EntityId, target: Vec3) {

@@ -5,8 +5,9 @@ use std::time::Duration;
 
 use common::*;
 use rspigot_blocks::BlockKind;
-use rspigot_core::config::{GameConfig, LevelData};
+use rspigot_core::config::{GameConfig, LevelData, PluginSettings};
 use rspigot_core::events::{ClientEvent, Inbound, MetadataValue};
+use rspigot_core::plugins::{EventKind, EventPayload, HandlerSpec};
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
@@ -43,10 +44,18 @@ impl ChunkGenerator for Lake {
 }
 
 fn lake(seed: u64) -> Scene {
+    lake_with(seed, Vec::new())
+}
+
+fn lake_with(seed: u64, handlers: Vec<HandlerSpec>) -> Scene {
     let config = GameConfig {
         view_distance: 3,
         chunk_workers: 2,
         spawn_protection: 0,
+        plugins: PluginSettings {
+            decision_ticks: 1_000,
+            ..PluginSettings::default()
+        },
         ..GameConfig::default()
     };
     let level = LevelData {
@@ -62,7 +71,7 @@ fn lake(seed: u64) -> Scene {
     )
     .with_rng_seed(seed);
     server.wait_for_spawn(Duration::from_secs(10));
-    let mut s = scene_on(server, &["Alice"], Vec::new());
+    let mut s = scene_on(server, &["Alice"], handlers);
     stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
     s
 }
@@ -171,7 +180,11 @@ fn some_striders_spawn_carrying_a_zombified_piglin_or_a_baby_strider() {
 }
 
 fn ride_scene() -> (Scene, EntityId) {
-    let mut s = lake(1);
+    ride_scene_with(Vec::new())
+}
+
+fn ride_scene_with(handlers: Vec<HandlerSpec>) -> (Scene, EntityId) {
+    let mut s = lake_with(1, handlers);
     console(&mut s, "give Alice minecraft:warped_fungus_on_a_stick 1");
     let strider = summon(
         &mut s,
@@ -271,4 +284,35 @@ fn the_saddled_rider_with_a_fungus_stick_steers_with_client_moves_and_boosts() {
         boosts.iter().any(|total| (140..=980).contains(total)),
         "{boosts:?}"
     );
+}
+
+#[test]
+fn a_plugin_sees_the_vehicle_enter_then_the_mount_and_can_cancel_the_boarding() {
+    let (mut s, strider) = ride_scene_with(vec![
+        deciding(1, EventKind::VehicleEnter),
+        observe(2, EventKind::EntityMount),
+    ]);
+    s.players[0].link.take();
+    interact(&mut s, strider, false);
+    let asked = last_asked(&s.plugin, EventKind::VehicleEnter);
+    let EventPayload::VehicleEnter(enter) = &asked.payload else {
+        panic!("a vehicle enter");
+    };
+    assert_eq!(enter.vehicle.id, strider);
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(2);
+    assert!(settled_for(&s.plugin, EventKind::EntityMount).is_empty());
+    assert!(
+        !s.players[0].link.take().iter().any(|event| matches!(
+            event,
+            ClientEvent::Passengers { vehicle, .. } if *vehicle == strider
+        )),
+        "the boarding was cancelled"
+    );
+    s.tick(70);
+    interact(&mut s, strider, false);
+    let asked = last_asked(&s.plugin, EventKind::VehicleEnter);
+    rule_on(&mut s.server, 1, asked.id, false, None);
+    s.tick(2);
+    assert!(!settled_for(&s.plugin, EventKind::EntityMount).is_empty());
 }

@@ -165,6 +165,11 @@ impl<L: ClientLink> Server<L> {
         on_ground: bool,
     ) {
         let reference = self.decisions.reference(id);
+        let riding = self
+            .players
+            .get(&id)
+            .is_some_and(|player| self.entities.rides.is_passenger(player.entity_id));
+        let position = if riding { None } else { position };
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };

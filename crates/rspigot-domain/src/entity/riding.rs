@@ -214,6 +214,19 @@ pub fn vehicle_attachment(kind: EntityKind, baby: bool, scale: f64, yaw: f32) ->
     rotate_y(scaled(points[0], scale), yaw)
 }
 
+pub fn collision_escape(vehicle_width: f64, passenger_width: f64, yaw: f32) -> Vec3 {
+    let reach = (vehicle_width + passenger_width + f64::from(1.0e-5_f32)) / 2.0;
+    let radians = yaw * (std::f32::consts::PI / 180.0);
+    let sin = -radians.sin();
+    let cos = radians.cos();
+    let scale = f64::from(sin.abs().max(cos.abs()));
+    Vec3::new(
+        f64::from(sin) * reach / scale,
+        0.0,
+        f64::from(cos) * reach / scale,
+    )
+}
+
 pub fn facing(yaw: f32) -> (i32, i32) {
     match (f64::from(yaw) / 90.0 + 0.5).floor() as i32 & 3 {
         0 => (0, 1),
@@ -370,6 +383,16 @@ mod tests {
         assert!((default.y - 1.7).abs() < 1e-6);
         let baby_hoglin = passenger_attachment(EntityKind::Hoglin, true, 0.85, 0.6, 0.0, 0);
         assert!((baby_hoglin.y - 0.875).abs() < 1e-9);
+    }
+
+    #[test]
+    fn the_escape_vector_leaves_through_the_nearest_side() {
+        let ahead = collision_escape(0.9, 0.6, 0.0);
+        assert!(ahead.x.abs() < 1e-9);
+        assert!((ahead.z - 0.75).abs() < 1e-4);
+        let diagonal = collision_escape(0.9, 0.6, 45.0);
+        assert!((diagonal.x.abs() - 0.75).abs() < 1e-4);
+        assert!((diagonal.z - 0.75).abs() < 1e-4);
     }
 
     #[test]
