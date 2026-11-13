@@ -76,7 +76,11 @@ pub fn is_neutral(kind: EntityKind) -> bool {
 }
 
 pub fn synced_end_time_index(kind: EntityKind) -> Option<u8> {
-    (kind == EntityKind::Wolf).then_some(WOLF_DATA_ANGER_END_TIME)
+    match kind {
+        EntityKind::Wolf => Some(WOLF_DATA_ANGER_END_TIME),
+        EntityKind::Bee => Some(super::species::bee::DATA_ANGER_END_TIME),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
