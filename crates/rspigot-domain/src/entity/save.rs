@@ -586,9 +586,6 @@ fn read_living(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState) 
 }
 
 fn read_ageable(nbt: &Compound, base: &mut EntityBase, ageable: &mut AgeableState) {
-    if !ageable::can_be_baby(base.kind) {
-        return;
-    }
     ageable::set_age(base, ageable, nbt.get_i32("Age").unwrap_or(0));
     ageable.forced_age = nbt.get_i32("ForcedAge").unwrap_or(0);
     ageable::set_age_locked(base, nbt.get_bool("AgeLocked").unwrap_or(false));
@@ -1331,11 +1328,9 @@ fn write_tracker(
 
 fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
     if let Some(ageable) = &mob.ageable {
-        if ageable::can_be_baby(base.kind) {
-            out.insert("Age", ageable.age);
-            out.insert("ForcedAge", ageable.forced_age);
-            out.insert("AgeLocked", bool_tag(ageable::is_age_locked(base)));
-        }
+        out.insert("Age", ageable.age);
+        out.insert("ForcedAge", ageable.forced_age);
+        out.insert("AgeLocked", bool_tag(ageable::is_age_locked(base)));
         if let Some(love) = &ageable.love {
             out.insert("InLove", love.ticks);
             if let Some(cause) = love.cause {
@@ -1639,6 +1634,24 @@ mod tests {
             assert_eq!(saved.get_str("variant"), Some(default));
             assert_eq!(saved.get_str("sound_variant"), Some("minecraft:classic"));
         }
+    }
+
+    #[test]
+    fn a_frog_keeps_its_variant_love_and_age_but_has_no_sound_variant() {
+        let nbt = Compound::new()
+            .with("id", "minecraft:frog")
+            .with("Pos", doubles(Vec3::new(0.5, 64.0, 0.5)))
+            .with("UUID", uuid_tag(Uuid::from_u128(9)))
+            .with("variant", "minecraft:warm")
+            .with("InLove", 400)
+            .with("Age", 3000);
+        let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        assert!(entity.extra.is_empty());
+        let saved = save_entity(&entity, None).unwrap();
+        assert_eq!(saved.get_str("variant"), Some("minecraft:warm"));
+        assert!(saved.get_str("sound_variant").is_none());
+        assert_eq!(saved.get_i32("InLove"), Some(400));
+        assert_eq!(saved.get_i32("Age"), Some(3000));
     }
 
     #[test]
