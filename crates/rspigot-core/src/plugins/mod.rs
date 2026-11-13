@@ -86,7 +86,7 @@ pub(crate) use shots::face_of;
 pub(crate) use spawns::{name_of_entity, view_of_entity};
 pub(crate) use steps::{
     AfterHurt, ArrowFollow, AttackFollow, Birth, BlastFollow, BulletFollow, BurnFollow, DeathStep,
-    Holder, MobAttackFollow, Potion, RespawnStep, ShulkerHop, Spawned, Struck, SuggestStep,
+    Follow, Holder, MobAttackFollow, Potion, RespawnStep, ShulkerHop, Spawned, Struck, SuggestStep,
     SweepFollow,
 };
 pub use targets::MAX_TARGET_DISTANCE;

@@ -862,6 +862,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_select_trade(step, cancelled);
                 Vec::new()
             }
+            Continuation::Transform(step) => {
+                self.finish_transform(*step, cancelled);
+                Vec::new()
+            }
             Continuation::ChangeBlock(step) => {
                 self.finish_change(*step, cancelled);
                 Vec::new()
