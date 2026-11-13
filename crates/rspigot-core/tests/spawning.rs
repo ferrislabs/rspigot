@@ -22,6 +22,14 @@ use rspigot_nbt::Compound;
 use uuid::Uuid;
 
 const ANIMALS: [Kind; 4] = [Kind::Cow, Kind::Pig, Kind::Sheep, Kind::Chicken];
+const CREATURES: [Kind; 6] = [
+    Kind::Cow,
+    Kind::Pig,
+    Kind::Sheep,
+    Kind::Chicken,
+    Kind::Horse,
+    Kind::Donkey,
+];
 const MONSTERS: [Kind; 4] = [Kind::Zombie, Kind::Skeleton, Kind::Creeper, Kind::Spider];
 const POCKET: std::ops::RangeInclusive<i32> = 30..=32;
 const CAVE: std::ops::Range<i32> = -48..64;
@@ -533,8 +541,8 @@ fn the_creature_cap_stops_spawning_near_its_limit() {
     let mut server = Setup::new(Terrain::Grass).start(Arc::default());
     let mut client = join(&mut server, "Alice");
     pump(&mut server, &mut client, 80);
-    let settled = of_kinds(&server, &ANIMALS).len();
+    let settled = of_kinds(&server, &CREATURES).len();
     assert!((10..=13).contains(&settled), "{settled} animals");
     pump(&mut server, &mut client, 40);
-    assert_eq!(of_kinds(&server, &ANIMALS).len(), settled);
+    assert_eq!(of_kinds(&server, &CREATURES).len(), settled);
 }

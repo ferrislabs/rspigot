@@ -321,9 +321,7 @@ fn shearing_a_horse_takes_its_body_armor_before_its_saddle() {
     let horse = summon(
         &mut s,
         "horse",
-        &format!(
-            "{{Tame:1b,equipment:{{saddle:{{id:\"minecraft:saddle\",count:1}},body:{{id:\"minecraft:iron_horse_armor\",count:1}}}}}}"
-        ),
+        "{Tame:1b,equipment:{saddle:{id:\"minecraft:saddle\",count:1},body:{id:\"minecraft:iron_horse_armor\",count:1}}}",
     );
     console(&mut s, "give Alice minecraft:shears 1");
     interact(&mut s, horse, false);
