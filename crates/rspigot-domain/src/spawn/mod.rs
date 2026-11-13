@@ -94,6 +94,10 @@ pub enum SpawnGroupData {
         variant: i32,
         group_size: i32,
     },
+    Llama {
+        variant: crate::entity::species::llama::Variant,
+        group_size: i32,
+    },
     Rabbit {
         group_size: i32,
         variant: i32,

@@ -36,6 +36,7 @@ pub mod guardian;
 pub mod hoglin;
 pub mod illusioner;
 pub mod iron_golem;
+pub mod llama;
 pub mod nautilus;
 pub mod ocelot;
 pub mod panda;
@@ -264,6 +265,7 @@ pub enum Species {
     Warden(warden::WardenState),
     CopperGolem(copper_golem::CopperGolemState),
     Cube(cube::CubeState),
+    Llama(llama::LlamaState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -538,6 +540,9 @@ impl Species {
         }
         if kind == EntityKind::Armadillo {
             return Self::Armadillo(armadillo::define(base));
+        }
+        if llama::is_llama(kind) {
+            return Self::Llama(llama::define(base));
         }
         if kind == EntityKind::Sniffer {
             return Self::Sniffer(sniffer::define(base));
