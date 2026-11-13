@@ -71,7 +71,7 @@ pub fn on_sand(world: &impl AiWorld, pos: BlockPos) -> bool {
     is_sand(world.state(pos.offset(0, -1, 0)))
 }
 
-fn is_water_block(state: Option<StateId>) -> bool {
+pub(crate) fn is_water_block(state: Option<StateId>) -> bool {
     state.and_then(StateId::kind) == Some(BlockKind::Water)
 }
 
@@ -99,7 +99,7 @@ pub fn is_stable_destination(world: &impl AiWorld, facts: &TurtleFacts, pos: Blo
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct MoveToBlock {
+pub(crate) struct MoveToBlock {
     speed_modifier: f64,
     search_range: i32,
     vertical_search_range: i32,
@@ -112,11 +112,16 @@ struct MoveToBlock {
 }
 
 impl MoveToBlock {
-    fn new(speed_modifier: f64, search_range: i32, vertical_search_start: i32) -> Self {
+    pub(crate) fn new(
+        speed_modifier: f64,
+        search_range: i32,
+        vertical_search_start: i32,
+        vertical_search_range: i32,
+    ) -> Self {
         Self {
             speed_modifier,
             search_range,
-            vertical_search_range: 1,
+            vertical_search_range,
             vertical_search_start,
             next_start_tick: 0,
             try_ticks: 0,
@@ -158,7 +163,7 @@ impl MoveToBlock {
         false
     }
 
-    fn can_use<W: AiWorld>(
+    pub(crate) fn can_use<W: AiWorld>(
         &mut self,
         context: &mut AiContext<'_, W>,
         valid: fn(&W, BlockPos) -> bool,
@@ -183,7 +188,7 @@ impl MoveToBlock {
         context.move_to_pos(at, self.speed_modifier);
     }
 
-    fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>, recalculate: i32) {
+    pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>, recalculate: i32) {
         let target = self.block_pos.offset(0, 1, 0);
         if closer_to_center_than(target, context.mob.position, 1.0) {
             self.reached_target = true;
@@ -203,6 +208,22 @@ impl MoveToBlock {
     }
 }
 
+impl MoveToBlock {
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        start_move_to_block(self, context);
+    }
+
+    pub(crate) fn can_continue<W: AiWorld>(
+        &self,
+        world: &W,
+        valid: fn(&W, BlockPos) -> bool,
+    ) -> bool {
+        self.try_ticks >= -self.max_stay_ticks
+            && self.try_ticks <= GIVE_UP_TICKS
+            && valid(world, self.block_pos)
+    }
+}
+
 fn start_move_to_block<W: AiWorld>(state: &mut MoveToBlock, context: &mut AiContext<'_, W>) {
     state.move_to_block(context);
     state.try_ticks = 0;
@@ -219,7 +240,7 @@ impl TurtleGoToWaterGoal {
     pub fn new(speed_modifier: f64, baby: bool) -> Self {
         let speed = if baby { 2.0 } else { speed_modifier };
         Self {
-            base: MoveToBlock::new(speed, WATER_SEARCH, -1),
+            base: MoveToBlock::new(speed, WATER_SEARCH, -1, 1),
         }
     }
 
@@ -272,7 +293,7 @@ pub struct TurtleLayEggGoal {
 impl TurtleLayEggGoal {
     pub fn new(speed_modifier: f64) -> Self {
         Self {
-            base: MoveToBlock::new(speed_modifier, LAY_SEARCH, 0),
+            base: MoveToBlock::new(speed_modifier, LAY_SEARCH, 0, 1),
         }
     }
 

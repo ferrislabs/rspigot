@@ -120,6 +120,7 @@ impl<L: ClientLink> Server<L> {
             MobAction::Ghast(action) => self.ghast_action(id, action),
             MobAction::Air(action) => self.air_action(id, action),
             MobAction::Turtle(action) => self.turtle_action(id, action),
+            MobAction::Guardian(action) => self.guardian_action(id, action),
             MobAction::Shulker(action) => self.shulker_action(id, action),
             MobAction::Raider(action) => self.raider_action(id, action),
             MobAction::Crossbow(action) => self.crossbow_action(id, action),
@@ -649,7 +650,10 @@ impl<L: ClientLink> Server<L> {
         let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut()) else {
             return;
         };
-        if ageable.age != 0 || !ageable.can_fall_in_love() {
+        if ageable.age != 0
+            || !ageable.can_fall_in_love()
+            || (base.kind == Kind::Turtle && species::turtle::has_egg(base))
+        {
             return;
         }
         let ticks = patch.ticks_in_love.unwrap_or(ageable::LOVE_TICKS);

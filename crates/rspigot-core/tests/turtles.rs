@@ -6,7 +6,7 @@ use std::time::Duration;
 use common::*;
 use rspigot_blocks::BlockKind;
 use rspigot_core::config::{GameConfig, LevelData};
-use rspigot_core::events::Inbound;
+use rspigot_core::events::{Hand, Inbound, PlayerInput};
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
@@ -270,4 +270,33 @@ fn a_turtle_that_breeds_carries_an_egg_and_both_parents_wait_five_minutes() {
         }
     }
     assert!(bred);
+}
+
+fn feed(s: &mut Scene, turtle: EntityId) {
+    let alice = s.players[0].clone();
+    send_input(&mut s.server, &alice, PlayerInput::HeldSlot(0));
+    s.tick(2);
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::Interact {
+            target: turtle,
+            hand: Hand::Main,
+            sneaking: false,
+            location: Vec3::new(0.0, 0.2, 0.0),
+        },
+    );
+    s.tick(1);
+}
+
+#[test]
+fn seagrass_makes_a_turtle_fall_in_love_unless_it_carries_an_egg() {
+    let mut s = ready(12, 6_000);
+    console(&mut s, "give Alice minecraft:seagrass 2");
+    let free = summon(&mut s, Kind::Turtle, "8.5 64 8.5", "{NoAI:1b}");
+    feed(&mut s, free);
+    assert!(saved(&s, free).get_i32("InLove").unwrap_or(0) > 0);
+    let laden = summon(&mut s, Kind::Turtle, "8.5 64 8.5", "{NoAI:1b,has_egg:1b}");
+    feed(&mut s, laden);
+    assert_eq!(saved(&s, laden).get_i32("InLove").unwrap_or(0), 0);
 }

@@ -38,6 +38,15 @@ const FISH_SPEED_LERP: f32 = 0.125;
 const FISH_VERTICAL_PUSH: f64 = 0.1;
 const FISH_YAW_TURN: f32 = 90.0;
 const TURTLE_BUOYANCY: f64 = 0.005;
+const DROWNED_BUOYANCY: f64 = 0.002;
+const DROWNED_SINK: f64 = -0.008;
+const DROWNED_HORIZONTAL_PUSH: f64 = 0.005;
+const GUARDIAN_DEGREES_TO_RADIANS: f32 = 0.017_453_292;
+const GUARDIAN_SWAY: f64 = 0.5;
+const GUARDIAN_BOB: f64 = 0.75;
+const GUARDIAN_SWAY_AMPLITUDE: f64 = 0.05;
+const GUARDIAN_LOOK_Y: f32 = 10.0;
+const GUARDIAN_LOOK_X: f32 = 40.0;
 const TURTLE_HOME_RADIUS: f64 = 16.0;
 const TURTLE_FAR_WATER_SPEED: f32 = 0.08;
 const TURTLE_BABY_WATER_SPEED: f32 = 0.06;
@@ -273,6 +282,15 @@ pub enum MoveStyle {
     SmoothSwimming,
     Fish,
     Turtle,
+    Guardian,
+    Drowned,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DrownedSwim {
+    pub wants_to_swim: bool,
+    pub searching_for_land: bool,
+    pub target_above: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -470,6 +488,109 @@ impl MoveControl {
                 1.0 - mth::clamp((angle - SWIM_TURN_FREE_ANGLE) / SWIM_TURN_RANGE, 0.0, 1.0);
             set_speed(living, speed * params.outside_water_speed_modifier * factor);
         }
+    }
+
+    pub fn set_drowned(&mut self) {
+        self.style = MoveStyle::Drowned;
+    }
+
+    pub fn tick_drowned(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        navigation_done: bool,
+        swimming: DrownedSwim,
+    ) -> bool {
+        if !(swimming.wants_to_swim && base.fluid.in_water) {
+            if !base.on_ground {
+                base.velocity = base.velocity + Vec3::new(0.0, DROWNED_SINK, 0.0);
+            }
+            return false;
+        }
+        if swimming.target_above || swimming.searching_for_land {
+            base.velocity = base.velocity + Vec3::new(0.0, DROWNED_BUOYANCY, 0.0);
+        }
+        if self.operation != Operation::MoveTo || navigation_done {
+            set_speed(living, 0.0);
+            return true;
+        }
+        let dx = self.wanted.x - base.position.x;
+        let dy = self.wanted.y - base.position.y;
+        let dz = self.wanted.z - base.position.z;
+        let length = (dx * dx + dy * dy + dz * dz).sqrt();
+        let vertical = dy / length;
+        let yaw = (mth::atan2(dz, dx) * mth::RAD_TO_DEG) as f32 - 90.0;
+        base.set_yaw(rotlerp(base.yaw, yaw, FISH_YAW_TURN));
+        living.body_yaw = base.yaw;
+        let target = (self.speed_modifier * living.attribute(MOVEMENT_SPEED)) as f32;
+        let lerped = living.speed + FISH_SPEED_LERP * (target - living.speed);
+        set_speed(living, lerped);
+        let speed = f64::from(living.speed);
+        base.velocity = base.velocity
+            + Vec3::new(
+                speed * dx * DROWNED_HORIZONTAL_PUSH,
+                speed * vertical * FISH_VERTICAL_PUSH,
+                speed * dz * DROWNED_HORIZONTAL_PUSH,
+            );
+        true
+    }
+
+    pub fn set_guardian(&mut self) {
+        self.style = MoveStyle::Guardian;
+    }
+
+    pub fn tick_guardian(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        navigation_done: bool,
+        look: &mut LookControl,
+    ) {
+        if self.operation != Operation::MoveTo || navigation_done {
+            set_speed(living, 0.0);
+            rspigot_domain::entity::species::guardian::set_moving(base, false);
+            return;
+        }
+        let delta = Vec3::new(
+            self.wanted.x - base.position.x,
+            self.wanted.y - base.position.y,
+            self.wanted.z - base.position.z,
+        );
+        let length = delta.length();
+        let (x, y, z) = (delta.x / length, delta.y / length, delta.z / length);
+        let yaw = (mth::atan2(delta.z, delta.x) * mth::RAD_TO_DEG) as f32 - 90.0;
+        base.set_yaw(rotlerp(base.yaw, yaw, FISH_YAW_TURN));
+        living.body_yaw = base.yaw;
+        let target = (self.speed_modifier * living.attribute(MOVEMENT_SPEED)) as f32;
+        let lerped = living.speed + FISH_SPEED_LERP * (target - living.speed);
+        set_speed(living, lerped);
+        let phase = f64::from(base.tick_count.wrapping_add(base.id.0));
+        let sway = (phase * GUARDIAN_SWAY).sin() * GUARDIAN_SWAY_AMPLITUDE;
+        let radians = f64::from(base.yaw * GUARDIAN_DEGREES_TO_RADIANS);
+        let (cos, sin) = (radians.cos(), radians.sin());
+        let bob = (phase * GUARDIAN_BOB).sin() * GUARDIAN_SWAY_AMPLITUDE;
+        base.velocity = base.velocity
+            + Vec3::new(
+                sway * cos,
+                bob * (sin + cos) * 0.25 + f64::from(living.speed) * y * FISH_VERTICAL_PUSH,
+                sway * sin,
+            );
+        let ahead = Vec3::new(
+            base.position.x + x * 2.0,
+            base.eye_y() + y / length,
+            base.position.z + z * 2.0,
+        );
+        let mut from = look.wanted();
+        if !look.is_looking_at_target() {
+            from = ahead;
+        }
+        let blended = Vec3::new(
+            mth::lerp(f64::from(FISH_SPEED_LERP), from.x, ahead.x),
+            mth::lerp(f64::from(FISH_SPEED_LERP), from.y, ahead.y),
+            mth::lerp(f64::from(FISH_SPEED_LERP), from.z, ahead.z),
+        );
+        look.set_look_at(blended, GUARDIAN_LOOK_Y, GUARDIAN_LOOK_X);
+        rspigot_domain::entity::species::guardian::set_moving(base, true);
     }
 
     pub fn set_turtle(&mut self) {
@@ -1533,6 +1654,112 @@ mod tests {
             BlockPos::new(0, 64, 0),
             false,
         );
+        assert_eq!(living.speed, 0.0);
+    }
+
+    fn guardian() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(3), Uuid::from_u128(3), EntityKind::Guardian);
+        base.position = Vec3::new(0.5, 64.0, 0.5);
+        base.old_position = base.position;
+        base.tick_count = 10;
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    #[test]
+    fn a_guardian_swims_toward_its_goal_swaying_and_looks_ahead_with_a_blended_target() {
+        let (mut base, mut living) = guardian();
+        let mut movement = MoveControl::default();
+        movement.set_guardian();
+        let mut look = LookControl::default();
+        movement.set_wanted_position(Vec3::new(0.5, 70.0, 6.5), 1.0);
+        movement.tick_guardian(&mut base, &mut living, false, &mut look);
+        assert!(rspigot_domain::entity::species::guardian::is_moving(&base));
+        assert!(base.yaw == 0.0 || base.yaw == 360.0);
+        assert_eq!(living.body_yaw, base.yaw);
+        let speed = living.speed;
+        assert_eq!(speed, 0.125 * (living.attribute(MOVEMENT_SPEED) as f32));
+        let phase = f64::from(10 + 3);
+        let sway = (phase * 0.5).sin() * 0.05;
+        let bob = (phase * 0.75).sin() * 0.05;
+        let direction = Vec3::new(0.0, 6.0, 6.0);
+        let length = direction.length();
+        let radians = f64::from(base.yaw * 0.017_453_292_f32);
+        let (cos, sin) = (radians.cos(), radians.sin());
+        let expected = Vec3::new(
+            sway * cos,
+            bob * (sin + cos) * 0.25 + f64::from(speed) * (direction.y / length) * 0.1,
+            sway * sin,
+        );
+        assert!((base.velocity.x - expected.x).abs() < 1.0e-9);
+        assert!((base.velocity.y - expected.y).abs() < 1.0e-9);
+        assert!((base.velocity.z - expected.z).abs() < 1.0e-9);
+        assert!(!look.is_looking_at_target() || look.wanted().z > 0.5);
+        movement.tick_guardian(&mut base, &mut living, true, &mut look);
+        assert_eq!(living.speed, 0.0);
+        assert!(!rspigot_domain::entity::species::guardian::is_moving(&base));
+    }
+
+    fn drowned() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Drowned);
+        base.position = Vec3::new(0.5, 64.0, 0.5);
+        base.old_position = base.position;
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    #[test]
+    fn a_drowned_that_does_not_want_to_swim_sinks_when_airborne_and_defers_to_the_ground_control() {
+        let (mut base, mut living) = drowned();
+        let mut movement = MoveControl::default();
+        movement.set_drowned();
+        let calm = DrownedSwim::default();
+        base.on_ground = false;
+        assert!(!movement.tick_drowned(&mut base, &mut living, false, calm));
+        assert_eq!(base.velocity, Vec3::new(0.0, -0.008, 0.0));
+        base.on_ground = true;
+        base.velocity = Vec3::ZERO;
+        assert!(!movement.tick_drowned(&mut base, &mut living, false, calm));
+        assert_eq!(base.velocity, Vec3::ZERO);
+        base.fluid.in_water = false;
+        let wants = DrownedSwim {
+            wants_to_swim: true,
+            ..calm
+        };
+        assert!(!movement.tick_drowned(&mut base, &mut living, false, wants));
+    }
+
+    #[test]
+    fn a_swimming_drowned_floats_up_toward_a_higher_target_and_pushes_along_the_path() {
+        let (mut base, mut living) = drowned();
+        base.fluid.in_water = true;
+        let mut movement = MoveControl::default();
+        movement.set_drowned();
+        movement.set_wanted_position(Vec3::new(4.5, 64.0, 0.5), 1.0);
+        let swim = DrownedSwim {
+            wants_to_swim: true,
+            searching_for_land: false,
+            target_above: true,
+        };
+        assert!(movement.tick_drowned(&mut base, &mut living, false, swim));
+        let speed = living.speed;
+        assert_eq!(speed, 0.125 * (living.attribute(MOVEMENT_SPEED) as f32));
+        let expected = Vec3::new(f64::from(speed) * 4.0 * 0.005, 0.002, 0.0);
+        assert!((base.velocity.x - expected.x).abs() < 1.0e-9);
+        assert!((base.velocity.y - expected.y).abs() < 1.0e-9);
+        assert_eq!(living.body_yaw, base.yaw);
+        let mut idle = MoveControl::default();
+        idle.set_drowned();
+        let (mut other, mut living) = drowned();
+        other.fluid.in_water = true;
+        living.speed = 0.3;
+        let searching = DrownedSwim {
+            searching_for_land: true,
+            target_above: false,
+            ..swim
+        };
+        assert!(idle.tick_drowned(&mut other, &mut living, true, searching));
+        assert_eq!(other.velocity, Vec3::new(0.0, 0.002, 0.0));
         assert_eq!(living.speed, 0.0);
     }
 }
