@@ -353,3 +353,25 @@ fn a_plugin_sees_a_piglin_mount_then_dismount_the_hoglin() {
     let dismounts = settled_for(&s.plugin, EventKind::EntityDismount);
     assert!(!dismounts.is_empty(), "{:?}", fired_kinds(&s.plugin));
 }
+
+#[test]
+fn a_zombie_riding_a_chicken_steers_it_toward_the_player() {
+    let mut s = ready(scene(&["Alice"]));
+    console(
+        &mut s,
+        "summon minecraft:chicken 8.5 64 0.5 {Passengers:[{id:\"minecraft:zombie\",IsBaby:1b}]}",
+    );
+    let chicken = only(&s, Kind::Chicken);
+    let before = s.server.entities_of(Kind::Chicken)[0].position;
+    s.tick(80);
+    let after = s
+        .server
+        .entities_of(Kind::Chicken)
+        .iter()
+        .find(|e| e.id == chicken)
+        .map(|e| e.position)
+        .unwrap();
+    assert!(after.x < before.x - 1.0, "{before:?} {after:?}");
+    let zombie = s.server.entities_of(Kind::Zombie)[0].position;
+    assert!((zombie.x - after.x).abs() < 0.2, "{zombie:?} {after:?}");
+}

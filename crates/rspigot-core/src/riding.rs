@@ -2,7 +2,7 @@ use rspigot_ai::RideAction;
 use rspigot_domain::entity::riding;
 use rspigot_domain::entity::spawn::{self, Jockey};
 use rspigot_domain::entity::species::Species;
-use rspigot_domain::entity::{Aabb, Pose, RemovalReason, fluid, save};
+use rspigot_domain::entity::{Aabb, Entity, EntityState, Pose, RemovalReason, fluid, save};
 use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::spawn::SpawnReason;
 use rspigot_domain::{EntityId, Vec3};
@@ -537,6 +537,65 @@ impl<L: ClientLink> Server<L> {
         if let Some(entity) = self.entities.store.get_mut(id) {
             entity.base.fall_distance = 0.0;
         }
+        if let Some(vehicle) = self.entities.rides.vehicle_of(id)
+            && self.controlling_mob(vehicle) == Some(id)
+        {
+            self.drive_vehicle(vehicle, id);
+        }
+    }
+
+    pub(crate) fn controlling_mob(&self, vehicle: EntityId) -> Option<EntityId> {
+        let entity = self.entities.store.get(vehicle)?;
+        if entity.living().is_none() || rspigot_domain::entity::living::is_no_ai(&entity.base) {
+            return None;
+        }
+        let first = self.entities.rides.first_passenger(vehicle)?;
+        let rider = self.entities.store.get(first)?;
+        rider.living()?.mob.as_ref()?;
+        let controls =
+            !rspigot_data::tags::tag("minecraft:entity_type", "minecraft:non_controlling_rider")
+                .is_some_and(|ids| {
+                    ids.binary_search(&u32::from(rider.base.kind.id().0))
+                        .is_ok()
+                });
+        controls.then_some(first)
+    }
+
+    fn drive_vehicle(&mut self, vehicle: EntityId, rider: EntityId) {
+        const SPEED: &str = rspigot_domain::entity::living::MOVEMENT_SPEED;
+        let Some((yaw, head, inputs, modifier)) =
+            self.entities.store.get(rider).and_then(|entity| {
+                let living = entity.living()?;
+                let attribute = rspigot_ai::attribute(entity.base.kind, living, SPEED);
+                let modifier = if attribute > 0.0 {
+                    f64::from(living.speed) / attribute
+                } else {
+                    0.0
+                };
+                Some((
+                    entity.base.yaw,
+                    entity.base.head_yaw,
+                    (living.xxa, living.yya, living.zza, living.jumping),
+                    modifier,
+                ))
+            })
+        else {
+            return;
+        };
+        let Some(Entity {
+            base,
+            state: EntityState::Living(state),
+            ..
+        }) = self.entities.store.get_mut(vehicle)
+        else {
+            return;
+        };
+        base.set_yaw(yaw);
+        base.head_yaw = head;
+        state.body_yaw = yaw;
+        (state.xxa, state.yya, state.zza, state.jumping) = inputs;
+        let own = rspigot_ai::attribute(base.kind, state, SPEED);
+        state.speed = (modifier * own) as f32;
     }
 
     pub(crate) fn tick_ride_players(&mut self) {

@@ -316,7 +316,7 @@ pub fn mob_tick(mob: &MobView, game_time: i64) -> MobTick {
             in_floatable_fluid: mob.fluid.in_water,
         },
         in_liquid: mob.in_liquid(),
-        passenger: false,
+        passenger: mob.passenger,
         speed: mob.speed,
         game_time,
     }

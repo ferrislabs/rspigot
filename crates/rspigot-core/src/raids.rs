@@ -33,7 +33,7 @@ use crate::plugins::events::{
     CreatureSpawnReason, EntityPotionEffectCause, EntityRemoveCause, RaidFinish, RaidSpawnWave,
     RaidStop, RaidStopReason, RaidTrigger,
 };
-use crate::plugins::{Birth, Continuation, EntityView, EventPayload, view_of_entity};
+use crate::plugins::{Birth, Continuation, EntityView, EventPayload, Spawned, view_of_entity};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -76,6 +76,7 @@ pub(crate) fn is_ominous_banner(stack: &ItemStack) -> bool {
 struct Adapter<'a, L: ClientLink> {
     server: &'a mut Server<L>,
     pending: BTreeMap<EntityId, Entity>,
+    mounts: BTreeMap<EntityId, EntityId>,
 }
 
 impl<L: ClientLink> Adapter<'_, L> {
@@ -163,10 +164,12 @@ impl<L: ClientLink> Adapter<'_, L> {
             entity.base.on_ground = true;
         }
         self.server.raids.views.insert(id, view_of_entity(&entity));
-        self.server.spawn_entity(
-            entity,
-            Birth::of(CreatureSpawnReason::Raid).with_random(own),
-        );
+        let birth = Birth::of(CreatureSpawnReason::Raid).with_random(own);
+        let birth = match self.mounts.remove(&id) {
+            Some(vehicle) => birth.then(Spawned::Rides { vehicle }),
+            None => birth,
+        };
+        self.server.spawn_entity(entity, birth);
     }
 }
 
@@ -298,6 +301,10 @@ impl<L: ClientLink> RaidWorld for Adapter<'_, L> {
         }
     }
 
+    fn ride(&mut self, rider: EntityId, vehicle: EntityId) {
+        self.mounts.insert(rider, vehicle);
+    }
+
     fn apply_hero_of_the_village(&mut self, uuid: Uuid, amplifier: i32) -> Option<PlayerId> {
         let player = self
             .server
@@ -340,6 +347,7 @@ impl<L: ClientLink> Server<L> {
         let mut adapter = Adapter {
             server: self,
             pending: BTreeMap::new(),
+            mounts: BTreeMap::new(),
         };
         let result = run(&mut set, &mut adapter);
         let outputs = set.drain_outputs();

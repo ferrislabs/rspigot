@@ -326,5 +326,5 @@ pub use wither::{
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{
     AiWorld, ContainerView, DroppedItem, Facts, Hand, KindFacts, LastDamage, Living,
-    MOVEMENT_SPEED, MobBody, MobView, NO_VILLAGE, TEMPT_RANGE, TargetKind, inflate,
+    MOVEMENT_SPEED, MobBody, MobView, NO_VILLAGE, TEMPT_RANGE, TargetKind, attribute, inflate,
 };
