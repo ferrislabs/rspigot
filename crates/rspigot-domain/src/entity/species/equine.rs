@@ -65,6 +65,7 @@ const ZOMBIE_SPEED_DIVISOR: f64 = 42.159_999_847_412_11;
 pub struct MountState {
     pub temper: i32,
     pub max_domestication: i32,
+    pub fixed_max_temper: Option<i32>,
     pub owner: Option<Uuid>,
     pub can_gallop: bool,
     pub inventory: Vec<Slot>,
@@ -115,6 +116,7 @@ impl MountState {
         Self {
             temper: 0,
             max_domestication: DEFAULT_MAX_DOMESTICATION,
+            fixed_max_temper: super::llama::is_llama(kind).then_some(super::llama::MAX_TEMPER),
             owner: None,
             can_gallop: !is_chested(kind),
             inventory: Vec::new(),
@@ -138,7 +140,7 @@ impl MountState {
     }
 
     pub fn max_temper(&self) -> i32 {
-        self.max_domestication
+        self.fixed_max_temper.unwrap_or(self.max_domestication)
     }
 
     pub fn modify_temper(&mut self, amount: i32) -> i32 {
@@ -147,6 +149,9 @@ impl MountState {
     }
 
     pub fn inventory_columns(&self, base: &EntityBase) -> usize {
+        if super::llama::is_llama(base.kind) {
+            return usize::try_from(super::llama::inventory_columns(base)).unwrap_or(0);
+        }
         if is_chested(base.kind) && has_chest(base) {
             CHEST_COLUMNS
         } else {
@@ -564,6 +569,9 @@ pub fn read(nbt: &Compound, base: &mut EntityBase, state: &mut MountState) {
         .unwrap_or(state.max_domestication);
     if has_horse_variant(base.kind) {
         set_type_variant(base, nbt.get_i32("Variant").unwrap_or(0));
+    }
+    if super::llama::is_llama(base.kind) {
+        super::llama::read_strength(nbt, base);
     }
     if is_chested(base.kind) {
         set_chest(base, nbt.get_bool("ChestedHorse").unwrap_or(false));
