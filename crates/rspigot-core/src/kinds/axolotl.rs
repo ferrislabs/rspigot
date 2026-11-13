@@ -3,7 +3,7 @@ use rspigot_domain::EntityId;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
 use rspigot_domain::entity::living;
-use rspigot_domain::entity::species::axolotl;
+use rspigot_domain::entity::species::{Species, axolotl};
 use rspigot_domain::entity::{Entity, EntityState};
 use rspigot_domain::random::{LegacyRandom, RandomSource};
 
@@ -23,6 +23,36 @@ fn regeneration() -> Option<EffectId> {
 }
 
 impl<L: ClientLink> Server<L> {
+    pub(crate) fn axolotl_hunting_cooldown(&self, id: EntityId) -> Option<i64> {
+        let brain = self.entities.mobs.entries.get(&id)?.ai.behavior_brain()?;
+        let memories = brain.memories();
+        if !memories.has_value(MemoryModuleType::HasHuntingCooldown) {
+            return None;
+        }
+        memories.time_until_expiry(MemoryModuleType::HasHuntingCooldown)
+    }
+
+    pub(crate) fn axolotl_registered(&mut self, id: EntityId, ai: &mut rspigot_ai::MobAi) {
+        let pending = self
+            .entities
+            .store
+            .get_mut(id)
+            .and_then(Entity::living_mut)
+            .and_then(
+                |state| match state.mob.as_mut().map(|mob| &mut mob.species) {
+                    Some(Species::Axolotl(state)) => state.pending_hunting_cooldown.take(),
+                    _ => None,
+                },
+            );
+        if let (Some(ticks), Some(brain)) = (pending, ai.behavior_brain_mut()) {
+            brain.memories_mut().set_with_expiry(
+                MemoryModuleType::HasHuntingCooldown,
+                MemoryValue::Bool(true),
+                ticks,
+            );
+        }
+    }
+
     pub(crate) fn axolotl_action(&mut self, id: EntityId, action: AxolotlAction) {
         match action {
             AxolotlAction::PlayDeadStarted => {

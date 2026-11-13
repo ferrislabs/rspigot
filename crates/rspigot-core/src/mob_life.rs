@@ -110,6 +110,24 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         Kind::Armadillo => crate::kinds::armadillo_ambient_sound(entity),
         Kind::Sniffer => crate::kinds::sniffer_ambient_sound(entity),
         Kind::Frog => Some("minecraft:entity.frog.ambient"),
+        Kind::Axolotl => {
+            (!species::axolotl::is_playing_dead(base)).then_some(if base.fluid.in_water {
+                "minecraft:entity.axolotl.idle_water"
+            } else {
+                "minecraft:entity.axolotl.idle_air"
+            })
+        }
+        Kind::Nautilus => Some(match (entity.is_baby(), base.eye_in_water) {
+            (true, true) => "minecraft:entity.baby_nautilus.ambient",
+            (true, false) => "minecraft:entity.baby_nautilus.ambient_land",
+            (false, true) => "minecraft:entity.nautilus.ambient",
+            (false, false) => "minecraft:entity.nautilus.ambient_land",
+        }),
+        Kind::ZombieNautilus => Some(if base.eye_in_water {
+            "minecraft:entity.zombie_nautilus.ambient"
+        } else {
+            "minecraft:entity.zombie_nautilus.ambient_land"
+        }),
         Kind::Phantom => Some("minecraft:entity.phantom.ambient"),
         _ => None,
     }

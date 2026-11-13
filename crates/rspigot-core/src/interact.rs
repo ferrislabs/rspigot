@@ -4,6 +4,7 @@ use rspigot_domain::entity::ageable;
 use rspigot_domain::entity::living::{self, slot_index};
 use rspigot_domain::entity::reward::max_damage;
 use rspigot_domain::entity::species;
+use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{Aabb, Entity, EntityState, save};
 use rspigot_domain::item::{HOTBAR_START, ItemStack, OFFHAND_SLOT, same_item_same_components};
 use rspigot_domain::player::{GameMode, PlayerId};
@@ -86,6 +87,8 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Frog => "minecraft:frog_food",
         Kind::Bee => "minecraft:bee_food",
         Kind::Turtle => "minecraft:turtle_food",
+        Kind::Axolotl => "minecraft:axolotl_food",
+        Kind::Nautilus => "minecraft:nautilus_food",
         _ => return None,
     })
 }
@@ -858,18 +861,20 @@ impl<L: ClientLink> Server<L> {
             && !(kind == Kind::Armadillo && species::armadillo::is_scared(&entity.base))
             && !(kind == Kind::Turtle && species::turtle::has_egg(&entity.base));
         let can_age_up = ageable::can_age_up(&entity.base, ageable);
-        let is_food = food_tag(kind).is_some_and(|tag| item_tag(stack.item, tag));
+        let tame_or_baby = entity.is_baby() || tamable::is_tame(&entity.base);
+        let is_food = food_tag(kind).is_some_and(|tag| item_tag(stack.item, tag))
+            && (kind != Kind::Nautilus || tame_or_baby);
         let uuid = self.players.get(&id).map(|p| p.profile.id.0);
         if is_food {
             if age == 0 && can_love {
-                self.consume_held(id, hand, 1);
+                self.use_animal_item(id, hand, kind, stack);
                 let item = self.held(id, Hand::Main);
                 self.ask_love(id, target, uuid, item);
                 self.eating_sound(target);
                 return Interaction::ServerOnly;
             }
             if can_age_up {
-                self.consume_held(id, hand, 1);
+                self.use_animal_item(id, hand, kind, stack);
                 if let Some(Entity {
                     base,
                     state: EntityState::Living(state),
@@ -888,6 +893,26 @@ impl<L: ClientLink> Server<L> {
             return self.golden_dandelion(id, target, hand);
         }
         Interaction::Pass
+    }
+
+    pub(crate) fn use_animal_item(
+        &mut self,
+        id: PlayerId,
+        hand: Hand,
+        kind: Kind,
+        stack: &ItemStack,
+    ) {
+        let bucket_food = matches!(kind, Kind::Axolotl | Kind::Nautilus | Kind::ZombieNautilus)
+            && (stack.item == ItemKind::TropicalFishBucket.id()
+                || item_tag(stack.item, "minecraft:nautilus_bucket_food"));
+        if bucket_food {
+            if !self.infinite_materials(id) {
+                let water = ItemStack::new(ItemKind::WaterBucket.id(), NonZeroU8::MIN);
+                self.set_held(id, hand, Some(water));
+            }
+            return;
+        }
+        self.consume_held(id, hand, 1);
     }
 
     fn golden_dandelion(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {

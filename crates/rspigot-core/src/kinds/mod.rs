@@ -134,6 +134,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Goat) => self.goat_registered(id, ai),
             Some(Kind::Sniffer) => self.sniffer_registered(id),
             Some(Kind::Frog) => self.frog_registered(id, ai),
+            Some(Kind::Axolotl) => self.axolotl_registered(id, ai),
             Some(Kind::Nautilus | Kind::ZombieNautilus) => self.nautilus_registered(id, ai),
             Some(Kind::Villager) => self.villager_registered(id, ai),
             Some(Kind::Warden) => self.warden_registered(id, ai),
@@ -350,6 +351,10 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Allay) => self.allay_interact(player, target, hand, held),
             Some(Kind::Dolphin) => self.dolphin_interact(player, target, hand, held),
             Some(Kind::Tadpole) => self.tadpole_interact(player, target, hand, held),
+            Some(Kind::Axolotl) => self.fish_interact(player, target, hand, held),
+            Some(Kind::Nautilus | Kind::ZombieNautilus) => {
+                self.nautilus_interact(player, target, hand, held)
+            }
             Some(Kind::Cod | Kind::Salmon | Kind::Pufferfish | Kind::TropicalFish) => {
                 self.fish_interact(player, target, hand, held)
             }
