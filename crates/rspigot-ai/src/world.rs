@@ -296,6 +296,10 @@ pub trait AiWorld: BlockView {
         None
     }
 
+    fn path_door_nodes(&self, _mob: EntityId) -> Option<(BlockPos, BlockPos)> {
+        None
+    }
+
     fn villager_can_reach(&self, _villager: EntityId, _pos: BlockPos, _reach: i32) -> bool {
         true
     }

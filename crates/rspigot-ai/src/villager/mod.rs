@@ -33,7 +33,9 @@ pub use social::{
     VillagerCalmDown, VillagerMakeLove, VillagerPanicTrigger,
 };
 pub use trader::{TraderFacts, TraderGoal};
-pub use work::{GiveGiftToHero, HarvestFarmland, ShowTradesToPlayer, WorkAtPoi, Workstation};
+pub use work::{
+    GiveGiftToHero, HarvestFarmland, ShowTradesToPlayer, UseBonemeal, WorkAtPoi, Workstation,
+};
 
 use rspigot_domain::ItemId;
 use rspigot_domain::entity::species::villager::{Profession, picks_up};
@@ -50,6 +52,7 @@ pub fn wants_to_pick_up(mob: &MobView, item: ItemId) -> bool {
 }
 
 const MEMORIES: &[crate::behavior::MemoryModuleType] = &[
+    crate::behavior::MemoryModuleType::DoorsToClose,
     crate::behavior::MemoryModuleType::LastWorkedAtPoi,
     crate::behavior::MemoryModuleType::LastSlept,
     crate::behavior::MemoryModuleType::LastWoken,

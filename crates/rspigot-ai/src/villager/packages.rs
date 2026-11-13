@@ -3,11 +3,11 @@ use rspigot_entities::{EntityKind, MobCategory};
 
 use crate::behavior::HurtBySensor;
 use crate::behavior::{
-    Activity, ActivityData, DoNothing, EntityFilter, Gate, GoToWantedItem, InteractWith, ItemWish,
-    MemoryModuleType, MemoryStatus, MobBehavior, MobControl, MobPredicate, MobTrigger,
-    NearestItemSensor, NearestLivingEntitySensor, OneShot, OrderPolicy, PlayerSensor,
-    RunningPolicy, SensorKind, SetEntityLookTarget, SetLookAndInteract, SetWalkTargetAwayFrom,
-    SetWalkTargetFromLookTarget, StrollAroundPoi, StrollToPoi, TriggerGate,
+    Activity, ActivityData, DoNothing, EntityFilter, Gate, GoToWantedItem, InteractWith,
+    InteractWithDoor, ItemWish, MemoryModuleType, MemoryStatus, MobBehavior, MobControl,
+    MobPredicate, MobTrigger, NearestItemSensor, NearestLivingEntitySensor, OneShot, OrderPolicy,
+    PlayerSensor, RunningPolicy, SensorKind, SetEntityLookTarget, SetLookAndInteract,
+    SetWalkTargetAwayFrom, SetWalkTargetFromLookTarget, StrollAroundPoi, StrollToPoi, TriggerGate,
 };
 use crate::villager::{
     AcquirePoi, AssignProfessionFromJobSite, GiveGiftToHero, GoToClosestVillage,
@@ -16,7 +16,7 @@ use crate::villager::{
     PlayTagWithOtherKids, PoiCompetitorScan, PoiRule, ReactToBell, ResetProfession,
     ResetRaidStatus, RingBell, SecondaryPoiSensor, SetClosestHomeAsWalkTarget, SetHiddenState,
     SetRaidStatus, SetWalkTargetFromBlockMemory, ShowTradesToPlayer, SleepInBed, SocializeAtBell,
-    StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule, ValidateNearbyPoi,
+    StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule, UseBonemeal, ValidateNearbyPoi,
     VillageBoundRandomStroll, VillagerBabiesSensor, VillagerCalmDown, VillagerHostilesSensor,
     VillagerMakeLove, VillagerPanicTrigger, WakeUp, WorkAtPoi, Workstation, YieldJobSite,
 };
@@ -199,6 +199,10 @@ fn core_package(profession: Profession) -> Pairs {
     let _ = profession;
     vec![
         (0, MobControl::swim(SWIM_CHANCE)),
+        (
+            0,
+            trigger(MobTrigger::InteractWithDoor(InteractWithDoor::default())),
+        ),
         (0, MobControl::default_look_at_target_sink()),
         (
             0,
@@ -326,6 +330,10 @@ fn work_package(profession: Profession) -> Pairs {
         (
             MobControl::behavior(MobBehavior::HarvestFarmland(HarvestFarmland::new())),
             if farmer { 2 } else { 5 },
+        ),
+        (
+            MobControl::behavior(MobBehavior::UseBonemeal(UseBonemeal::new())),
+            if farmer { 4 } else { 7 },
         ),
     ];
     vec![

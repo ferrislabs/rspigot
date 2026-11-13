@@ -7,6 +7,7 @@ use crate::behavior::control::{
     Behavior, BehaviorControl, BehaviorCx, DoNothing, Gate, OneShot, OrderPolicy, RunningPolicy,
     Sequence, Status, Timed, Trigger, TriggerGate,
 };
+use crate::behavior::door::InteractWithDoor;
 use crate::behavior::long_jump::{LongJumpMidJump, LongJumpToRandomPos};
 use crate::behavior::love::{AnimalMakeLove, FollowTemptation, MAKE_LOVE_DURATION};
 use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryValue};
@@ -36,7 +37,7 @@ use crate::villager::{
     LookAndFollowTradingPlayerSink, MoveToSkySeeingSpot, PlayTagWithOtherKids, PoiCompetitorScan,
     ReactToBell, ResetProfession, ResetRaidStatus, RingBell, SetClosestHomeAsWalkTarget,
     SetHiddenState, SetRaidStatus, SetWalkTargetFromBlockMemory, ShowTradesToPlayer, SleepInBed,
-    SocializeAtBell, StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule,
+    SocializeAtBell, StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule, UseBonemeal,
     ValidateNearbyPoi, VillageBoundRandomStroll, VillagerCalmDown, VillagerMakeLove,
     VillagerPanicTrigger, WakeUp, WorkAtPoi, YieldJobSite,
 };
@@ -185,6 +186,7 @@ mob_behaviors! {
     ShowTradesToPlayer(ShowTradesToPlayer),
     GiveGiftToHero(GiveGiftToHero),
     HarvestFarmland(HarvestFarmland),
+    UseBonemeal(UseBonemeal),
 }
 
 macro_rules! mob_triggers {
@@ -229,6 +231,7 @@ macro_rules! mob_triggers {
 
 mob_triggers! {
     SetWalkTargetFromLookTarget(SetWalkTargetFromLookTarget),
+    InteractWithDoor(InteractWithDoor),
     SetEntityLookTarget(SetEntityLookTarget),
     SetEntityLookTargetSometimes(SetEntityLookTargetSometimes),
     RandomStroll(RandomStroll),

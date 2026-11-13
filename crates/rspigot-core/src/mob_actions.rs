@@ -148,6 +148,11 @@ impl<L: ClientLink> Server<L> {
                     brain.memories_mut().set_option(memory, value);
                 }
             }
+            MobAction::SetDoorOpen {
+                pos,
+                open,
+                interact,
+            } => self.mob_door_action(id, pos, open, interact),
             MobAction::BreakDoor(pos) => {
                 self.set_block(pos, BlockStateId::AIR);
                 self.level_event(rspigot_ai::ZOMBIE_BREAK_DOOR_EVENT, pos, 0);

@@ -859,6 +859,7 @@ pub(crate) enum Grief {
         pos: BlockPos,
         to: BlockStateId,
     },
+    Compost(Box<crate::compost::CompostRun>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -889,6 +890,12 @@ pub(crate) struct GatherStep {
     pub(crate) fox: EntityId,
     pub(crate) item: EntityId,
     pub(crate) stack: ItemStack,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct GrowStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1072,9 +1079,11 @@ pub(crate) enum Continuation {
     Barter(Box<BarterStep>),
     ChangeBlock(Box<ChangeStep>),
     Form(FormStep),
+    Grow(GrowStep),
     Ignite(IgniteStep),
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
+    DoorOpen { mob: EntityId, pos: BlockPos },
     EntityExplode(Box<ExplodeStep>),
     Splash(Box<SplashStep>),
     Prime(PrimeStep),
@@ -1175,9 +1184,10 @@ impl Continuation {
             Self::Barter(_) => EventKind::PiglinBarter,
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
+            Self::Grow(_) => EventKind::BlockGrow,
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
-            Self::EggBreak { .. } => EventKind::EntityInteract,
+            Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
             Self::EntityExplode(_) => EventKind::EntityExplode,
             Self::Splash(_) => EventKind::PotionSplash,
             Self::Prime(_) => EventKind::ExplosionPrime,
@@ -1256,10 +1266,11 @@ impl Continuation {
                     *enderman == id
                 }
                 Grief::Douse { potion, .. } => *potion == id,
+                Grief::Compost(run) => run.villager() == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
-            Self::EggBreak { mob, .. } => *mob == id,
+            Self::EggBreak { mob, .. } | Self::DoorOpen { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
             Self::Splash(step) => step.potion == id,
             Self::Prime(step) => step.source == id,
@@ -1299,6 +1310,16 @@ impl Continuation {
             (Self::Form(one), Self::Form(other)) => one.pos == other.pos,
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
             (Self::EggBreak { mob: one, .. }, Self::EggBreak { mob: other, .. }) => one == other,
+            (
+                Self::DoorOpen {
+                    mob: one_mob,
+                    pos: one,
+                },
+                Self::DoorOpen {
+                    mob: other_mob,
+                    pos: other,
+                },
+            ) => one_mob == other_mob && one == other,
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
             (Self::Aim(one), Self::Aim(other)) => {
@@ -1346,6 +1367,7 @@ impl Continuation {
             | Self::PiglinPickup(_) => true,
             Self::ChangeBlock(step) => matches!(step.change, Grief::Fall { .. }),
             Self::EggBreak { .. }
+            | Self::DoorOpen { .. }
             | Self::Form(_)
             | Self::Ignite(_)
             | Self::Prime(_)

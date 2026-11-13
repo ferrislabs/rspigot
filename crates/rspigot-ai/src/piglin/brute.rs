@@ -3,10 +3,11 @@ use rspigot_entities::EntityKind;
 use crate::action::MobAction;
 use crate::behavior::{
     Activity, ActivityData, BehaviorBrain, DoNothing, EntityFilter, Gate, InteractWith,
-    MeleeAttack, MemoryModuleType, MobControl, MobTrigger, RandomStroll, SensorKind,
-    SetEntityLookTarget, SetLookAndInteract, SetWalkTargetFromAttackTargetIfTargetOutOfReach,
-    StartAttacking, StopAttackCondition, StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead,
-    StrollAroundPoi, StrollToPoi, TargetErased, TargetFinder,
+    InteractWithDoor, MeleeAttack, MemoryModuleType, MobControl, MobTrigger, RandomStroll,
+    SensorKind, SetEntityLookTarget, SetLookAndInteract,
+    SetWalkTargetFromAttackTargetIfTargetOutOfReach, StartAttacking, StopAttackCondition,
+    StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead, StrollAroundPoi, StrollToPoi,
+    TargetErased, TargetFinder,
 };
 use crate::piglin::sensors::PiglinBruteSensor;
 use crate::piglin::targets::NetherFinder;
@@ -75,6 +76,7 @@ pub fn brute_activities() -> Vec<ActivityData<MobControl>> {
         vec![
             MobControl::default_look_at_target_sink(),
             MobControl::move_to_target_sink(),
+            MobControl::one_shot(MobTrigger::InteractWithDoor(InteractWithDoor::default())),
             MobControl::one_shot(MobTrigger::StopBeingAngryIfTargetDead(
                 StopBeingAngryIfTargetDead,
             )),
@@ -130,7 +132,10 @@ pub fn brute_sensors() -> Vec<SensorKind> {
 }
 
 pub fn brute_memories() -> &'static [MemoryModuleType] {
-    &[MemoryModuleType::NearestVisibleAdultPiglins]
+    &[
+        MemoryModuleType::DoorsToClose,
+        MemoryModuleType::NearestVisibleAdultPiglins,
+    ]
 }
 
 pub fn update_activity<W: AiWorld>(

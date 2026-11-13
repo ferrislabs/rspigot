@@ -876,6 +876,16 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Grow(step) => {
+                self.finish_grow(step, cancelled);
+                Vec::new()
+            }
+            Continuation::DoorOpen { mob, pos } => {
+                if !cancelled {
+                    self.finish_door_open(mob, pos);
+                }
+                Vec::new()
+            }
             Continuation::EntityExplode(step) => {
                 self.finish_entity_explosion(*step, cancelled, patch_of!(patch, EntityExplode));
                 Vec::new()

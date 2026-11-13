@@ -1707,6 +1707,73 @@ def emit_variants(mobs, sounds, mixes):
     return head + text
 
 
+def build_compostables(reports, datapack, static_registries):
+    item_ids = {
+        name: i for registry_id, by_id, _ in static_registries if registry_id == "minecraft:item" for i, name in enumerate(by_id)
+    }
+    provider_root = os.path.join(datapack, "context_int_provider", "compostable")
+    providers = {}
+    for name in json_names(provider_root):
+        path = os.path.join(provider_root, name + ".json")
+        value = load_json(path)
+        key = "minecraft:compostable/" + name
+        if value == 1:
+            providers[key] = (1, 0)
+            continue
+        where = "context int provider " + key
+        expect_keys(value, {"type", "cases", "default"}, where)
+        if value["type"] != "minecraft:number_dispatcher" or len(value["cases"]) != 1:
+            fail("unexpected shape of %s" % where)
+        case = value["cases"][0]
+        expect_keys(case, {"condition", "value"}, where)
+        condition = case["condition"]
+        if (
+            case["value"] != 1
+            or condition.get("type") != "minecraft:match_block"
+            or condition.get("blocks") != "minecraft:composter"
+            or condition.get("state") != {"level": "0"}
+        ):
+            fail("unexpected first case of %s" % where)
+        default = value["default"]
+        if default.get("type") != "minecraft:weighted_list":
+            fail("unexpected default of %s" % where)
+        if [entry["data"] for entry in default["distribution"]] != [1, 0]:
+            fail("unexpected distribution order of %s" % where)
+        weights = {entry["data"]: entry["weight"] for entry in default["distribution"]}
+        if set(weights) != {0, 1}:
+            fail("unexpected distribution of %s" % where)
+        providers[key] = (weights[1], weights[0])
+    names = sorted(providers)
+    items_root = os.path.join(reports, "minecraft", "components", "item")
+    entries = []
+    for name in json_names(items_root):
+        component = load_json(os.path.join(items_root, name + ".json"))["components"].get("minecraft:compostable")
+        if component is None:
+            continue
+        expect_keys(component, {"layers"}, "compostable " + name)
+        layers = component["layers"]
+        if layers not in providers:
+            fail("unknown compostable layers %s on %s" % (layers, name))
+        item = "minecraft:" + name
+        if item not in item_ids:
+            fail("unknown compostable item %s" % item)
+        entries.append((item_ids[item], names.index(layers)))
+    entries.sort()
+    return [(name, providers[name]) for name in names], entries
+
+
+def emit_compostables(providers, entries):
+    out = ["pub(crate) static LAYER_PROVIDERS: [(&str, u32, u32); %d] = [" % len(providers)]
+    for name, (one, zero) in providers:
+        out.append('    ("%s", %d, %d),' % (name, one, zero))
+    out.append("];")
+    out.append("")
+    out.append("pub(crate) static COMPOSTABLES: [(u16, u8); %d] = [" % len(entries))
+    out.extend(wrapped(["(%d, %d)" % entry for entry in entries], "    "))
+    out.append("];")
+    return "\n".join(out) + "\n"
+
+
 def build_climate(datapack, synced):
     names = {registry_id: entries for _, registry_id, entries in synced}["minecraft:worldgen/biome"]
     climate = []
@@ -1912,6 +1979,7 @@ def emit_mod():
         [
             "pub mod block_transformers;",
             "pub mod climate;",
+            "pub mod compostable;",
             "pub mod loot;",
             "pub mod spawns;",
             "pub mod static_registries;",
@@ -1963,6 +2031,7 @@ def main():
     dye_mixes = build_dye_mixes(args.datapack)
     climate = build_climate(args.datapack, synced)
     transformers = build_transformers(args.datapack)
+    compost_providers, compostables = build_compostables(args.reports, args.datapack, static_registries)
 
     files = {
         "mod.rs": emit_mod(),
@@ -1974,6 +2043,7 @@ def main():
         "variants.rs": emit_variants(mob_variants, sound_variants, dye_mixes),
         "climate.rs": emit_climate(climate),
         "block_transformers.rs": emit_transformers(transformers),
+        "compostable.rs": emit_compostables(compost_providers, compostables),
     }
     write_files(args.out, files)
 
@@ -2002,6 +2072,7 @@ def main():
     for constant, entries in mob_variants + sound_variants:
         print("variants %-24s %3d" % (constant, len(entries)))
     print("dye mixes %d" % len(dye_mixes))
+    print("compostable items %d" % len(compostables))
     for construct in sorted(ignored):
         owners = sorted(ignored[construct])
         print("ignored %s in %d tables: %s" % (construct, len(owners), ", ".join(owners)))

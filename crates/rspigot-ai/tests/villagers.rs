@@ -28,6 +28,7 @@ struct Field {
     trades: Vec<TradeView>,
     time: i64,
     clock: i64,
+    unreachable: Vec<EntityId>,
 }
 
 impl Field {
@@ -127,6 +128,10 @@ impl AiWorld for Field {
 
     fn villager_trades(&self, _villager: EntityId) -> Vec<TradeView> {
         self.trades.clone()
+    }
+
+    fn villager_can_reach(&self, villager: EntityId, _pos: BlockPos, _reach: i32) -> bool {
+        !self.unreachable.contains(&villager)
     }
 
     fn is_village(&self, _pos: BlockPos) -> bool {
@@ -320,8 +325,9 @@ fn leading(list: &[(i32, String)], known: &[&'static str]) -> Vec<(i32, &'static
         .collect()
 }
 
-const KNOWN: [&str; 52] = [
+const KNOWN: [&str; 53] = [
     "Swim",
+    "InteractWithDoor",
     "LookAtTargetSink",
     "VillagerPanicTrigger",
     "WakeUp",
@@ -392,15 +398,18 @@ fn the_core_activity_follows_villager_goal_packages() {
     let core = behaviors(Profession::None, false, Activity::Core);
     assert_eq!(
         kinds(core.clone()),
-        vec![0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 5, 6, 7, 8, 10, 10, 10, 10]
+        vec![
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 5, 6, 7, 8, 10, 10, 10, 10
+        ]
     );
     let names = leading(&core, &KNOWN);
     assert_eq!(names[0], (0, "Swim"));
-    assert_eq!(names[1], (0, "LookAtTargetSink"));
-    assert_eq!(names[2], (0, "VillagerPanicTrigger"));
-    assert_eq!(names[8], (1, "MoveToTargetSink"));
-    assert_eq!(names[10], (3, "LookAndFollowTradingPlayerSink"));
-    assert_eq!(names[13], (7, "GoToPotentialJobSite"));
+    assert_eq!(names[1], (0, "InteractWithDoor"));
+    assert_eq!(names[2], (0, "LookAtTargetSink"));
+    assert_eq!(names[3], (0, "VillagerPanicTrigger"));
+    assert_eq!(names[9], (1, "MoveToTargetSink"));
+    assert_eq!(names[11], (3, "LookAndFollowTradingPlayerSink"));
+    assert_eq!(names[14], (7, "GoToPotentialJobSite"));
 }
 
 #[test]
@@ -1072,6 +1081,63 @@ fn a_villager_falls_asleep_in_a_free_bed_beside_it_and_wakes_when_resting_ends()
 }
 
 #[test]
+fn a_villager_closes_the_doors_it_opened_before_going_to_sleep() {
+    let bed = BlockPos::new(0, 64, 0);
+    let door = BlockPos::new(1, 64, 1);
+    let mut world = Field::flat();
+    world.put(
+        0,
+        64,
+        0,
+        BlockKind::RedBed
+            .default_state()
+            .with_property("part", "head")
+            .unwrap(),
+    );
+    world.put(
+        1,
+        64,
+        1,
+        BlockKind::OakDoor
+            .default_state()
+            .with_property("half", "lower")
+            .unwrap()
+            .with_property("open", "true")
+            .unwrap(),
+    );
+    let mut bench = Bench::at(
+        Vec3::new(0.5, 64.6, 0.5),
+        VillagerFacts::default(),
+        world,
+        4,
+        false,
+    );
+    let home = bench.global(bed);
+    bench.set(MemoryModuleType::Home, home);
+    let doors = bench.global(door);
+    let MemoryValue::GlobalPos(doors) = doors else {
+        unreachable!()
+    };
+    bench.set(
+        MemoryModuleType::DoorsToClose,
+        MemoryValue::GlobalPosList(vec![doors]),
+    );
+    bench.state.set_active_activity_if_possible(Activity::Idle);
+    let mut sleep = MobControl::behavior(rspigot_ai::MobBehavior::SleepInBed(
+        rspigot_ai::SleepInBed::new(),
+    ));
+    assert!(bench.start(&mut sleep, NOW));
+    let actions = bench.actions();
+    assert!(actions.contains(&MobAction::SetDoorOpen {
+        pos: door,
+        open: false,
+        interact: false,
+    }));
+    assert!(actions.contains(&MobAction::Villager(VillagerAction::StartSleeping(bed))));
+    assert!(bench.get(MemoryModuleType::DoorsToClose).is_none());
+}
+
+#[test]
 fn a_villager_does_not_go_back_to_bed_right_after_waking() {
     let bed = BlockPos::new(0, 64, 0);
     let mut world = Field::flat();
@@ -1609,4 +1675,325 @@ fn only_one_potential_poi_is_never_claimed_twice_by_the_same_villager() {
         .filter(|action| matches!(action, VillagerAction::TakePoi(_)))
         .count();
     assert_eq!(takes, 1);
+}
+
+fn wheat(age: &str) -> StateId {
+    BlockKind::Wheat
+        .default_state()
+        .with_property("age", age)
+        .unwrap()
+}
+
+fn bone_meal_facts(count: u8) -> VillagerFacts {
+    let mut facts = farmer();
+    facts.inventory[2] = Some(StackFacts {
+        item: ItemKind::BoneMeal.id(),
+        count,
+    });
+    facts
+}
+
+fn bonemeal() -> MobControl {
+    MobControl::behavior(rspigot_ai::MobBehavior::UseBonemeal(
+        rspigot_ai::UseBonemeal::new(),
+    ))
+}
+
+fn crop_field() -> Field {
+    let mut world = Field::flat();
+    world.put(1, 63, 0, BlockKind::Farmland.default_state());
+    world.put(1, 64, 0, wheat("3"));
+    world
+}
+
+#[test]
+fn the_work_package_weights_bone_meal_four_for_farmers_and_seven_for_the_others() {
+    let weight = |profession, name: &str| {
+        let list = behaviors(profession, false, Activity::Work);
+        let (_, text) = list
+            .iter()
+            .find(|(_, text)| text.contains("UseBonemeal"))
+            .unwrap();
+        let at = text.find(name).unwrap();
+        let rest = &text[at..];
+        let weight = rest.find("weight: ").unwrap() + "weight: ".len();
+        rest[weight..]
+            .split(|c: char| !c.is_ascii_digit())
+            .next()
+            .unwrap()
+            .parse::<i32>()
+            .unwrap()
+    };
+    assert_eq!(weight(Profession::Farmer, "UseBonemeal(UseBonemeal"), 4);
+    assert_eq!(
+        weight(Profession::Farmer, "HarvestFarmland(HarvestFarmland"),
+        2
+    );
+    assert_eq!(weight(Profession::Librarian, "UseBonemeal(UseBonemeal"), 7);
+    assert_eq!(
+        weight(Profession::Librarian, "HarvestFarmland(HarvestFarmland"),
+        5
+    );
+}
+
+#[test]
+fn bone_meal_needs_a_ten_tick_boundary_bone_meal_and_a_growing_crop_around() {
+    let mut bench = Bench::at(
+        Vec3::new(1.5, 64.0, 0.5),
+        bone_meal_facts(3),
+        crop_field(),
+        4,
+        false,
+    );
+    let mut control = bonemeal();
+    bench.mob.tick_count = 11;
+    assert!(!bench.start(&mut control, NOW));
+    bench.mob.tick_count = 20;
+    assert!(bench.start(&mut control, NOW));
+
+    let mut empty = Bench::at(Vec3::new(1.5, 64.0, 0.5), farmer(), crop_field(), 4, false);
+    empty.mob.tick_count = 20;
+    assert!(!empty.start(&mut bonemeal(), NOW));
+
+    let mut grown = Field::flat();
+    grown.put(1, 64, 0, wheat("7"));
+    let mut mature = Bench::at(
+        Vec3::new(1.5, 64.0, 0.5),
+        bone_meal_facts(3),
+        grown,
+        4,
+        false,
+    );
+    mature.mob.tick_count = 20;
+    assert!(!mature.start(&mut bonemeal(), NOW));
+}
+
+#[test]
+fn starting_holds_bone_meal_and_walks_to_the_crop_and_stopping_empties_the_hand() {
+    let mut bench = Bench::at(
+        Vec3::new(1.5, 64.0, 0.5),
+        bone_meal_facts(3),
+        crop_field(),
+        4,
+        false,
+    );
+    bench.mob.tick_count = 20;
+    let mut control = bonemeal();
+    assert!(bench.start(&mut control, NOW));
+    assert!(
+        bench
+            .villager_actions()
+            .contains(&VillagerAction::SetMainHand(Some(ItemKind::BoneMeal.id())))
+    );
+    let walk = bench
+        .get(MemoryModuleType::WalkTarget)
+        .and_then(MemoryValue::as_walk_target)
+        .copied()
+        .unwrap();
+    assert_eq!(walk.speed_modifier, 0.5);
+    assert_eq!(walk.close_enough_dist, 1);
+    assert!(bench.get(MemoryModuleType::LookTarget).is_some());
+    bench.state.memories.erase(MemoryModuleType::WalkTarget);
+    bench.state.memories.erase(MemoryModuleType::LookTarget);
+    bench.with(|cx| control.do_stop(cx, NOW + 5));
+    assert!(
+        bench
+            .villager_actions()
+            .contains(&VillagerAction::SetMainHand(None))
+    );
+}
+
+#[test]
+fn bone_meal_is_applied_when_close_then_the_next_cycle_waits_forty_ticks() {
+    let mut bench = Bench::at(
+        Vec3::new(1.5, 64.0, 0.5),
+        bone_meal_facts(3),
+        crop_field(),
+        4,
+        false,
+    );
+    bench.mob.tick_count = 20;
+    let mut control = bonemeal();
+    assert!(bench.start(&mut control, NOW));
+    bench.villager_actions();
+    bench.tick(&mut control, NOW);
+    let actions = bench.actions();
+    assert!(
+        actions.contains(&MobAction::Villager(VillagerAction::UseBoneMeal(
+            BlockPos::new(1, 64, 0)
+        )))
+    );
+    assert!(actions.contains(&MobAction::LevelEvent {
+        event: 1505,
+        pos: BlockPos::new(1, 64, 0),
+        data: 15,
+    }));
+    bench.tick(&mut control, NOW + 10);
+    assert!(bench.actions().is_empty());
+    bench.tick(&mut control, NOW + 40);
+    assert!(!bench.actions().is_empty());
+}
+
+#[test]
+fn bone_meal_waits_until_the_villager_is_within_a_block_of_the_crop() {
+    let mut bench = Bench::at(
+        Vec3::new(5.5, 64.0, 0.5),
+        bone_meal_facts(3),
+        crop_field(),
+        4,
+        false,
+    );
+    bench.mob.tick_count = 20;
+    bench.mob.position = Vec3::new(1.5, 64.0, 0.5);
+    let mut control = bonemeal();
+    assert!(bench.start(&mut control, NOW));
+    bench.villager_actions();
+    bench.mob.position = Vec3::new(5.5, 64.0, 0.5);
+    bench.tick(&mut control, NOW);
+    assert!(bench.actions().is_empty());
+}
+
+#[test]
+fn bone_meal_rests_a_hundred_sixty_ticks_after_a_session() {
+    let mut bench = Bench::at(
+        Vec3::new(1.5, 64.0, 0.5),
+        bone_meal_facts(3),
+        crop_field(),
+        4,
+        false,
+    );
+    bench.mob.tick_count = 20;
+    let mut control = bonemeal();
+    assert!(bench.start(&mut control, NOW));
+    bench.state.memories.erase(MemoryModuleType::WalkTarget);
+    bench.state.memories.erase(MemoryModuleType::LookTarget);
+    bench.with(|cx| control.do_stop(cx, NOW + 5));
+    bench.state.memories.erase(MemoryModuleType::WalkTarget);
+    bench.state.memories.erase(MemoryModuleType::LookTarget);
+    bench.mob.tick_count = 170;
+    assert!(!bench.start(&mut control, NOW + 6));
+    bench.mob.tick_count = 180;
+    assert!(bench.start(&mut control, NOW + 7));
+}
+
+#[test]
+fn working_at_a_composter_plays_the_sound_before_composting_and_restocking() {
+    let site = BlockPos::new(0, 64, 1);
+    let mut world = Field::flat();
+    world.pois.push(PoiRecord::new(site, PoiType::Farmer));
+    let mut bench = Bench::new(farmer(), world, 4);
+    let global = bench.global(site);
+    bench.set(MemoryModuleType::JobSite, global);
+    let mut work = MobControl::behavior(rspigot_ai::MobBehavior::WorkAtPoi(
+        rspigot_ai::WorkAtPoi::new(rspigot_ai::Workstation::Composter),
+    ));
+    let mut started = false;
+    for tick in 0..2_000 {
+        bench.world.time = NOW + tick;
+        if bench.start(&mut work, NOW + tick) {
+            started = true;
+            break;
+        }
+    }
+    assert!(started);
+    assert_eq!(
+        bench.villager_actions(),
+        vec![
+            VillagerAction::PlayWorkSound,
+            VillagerAction::WorkAtComposter(site),
+            VillagerAction::Restock,
+        ]
+    );
+}
+
+fn librarian_peer() -> VillagerPeerFacts {
+    VillagerPeerFacts {
+        profession: Profession::Librarian,
+        ..VillagerPeerFacts::default()
+    }
+}
+
+fn yield_trigger() -> MobControl {
+    MobControl::one_shot(rspigot_ai::MobTrigger::YieldJobSite(
+        rspigot_ai::YieldJobSite::new(0.5),
+    ))
+}
+
+fn yield_bench(world: Field) -> Bench {
+    let site = BlockPos::new(0, 64, 3);
+    let mut bench = Bench::new(VillagerFacts::default(), world, 4);
+    bench
+        .world
+        .pois
+        .push(PoiRecord::new(site, PoiType::Librarian));
+    let global = bench.global(site);
+    bench.set(MemoryModuleType::PotentialJobSite, global);
+    bench.set(
+        MemoryModuleType::WalkTarget,
+        MemoryValue::WalkTarget(WalkTarget::block(site, 0.5, 1)),
+    );
+    bench.set(
+        MemoryModuleType::LookTarget,
+        MemoryValue::Tracker(rspigot_ai::PositionTracker::of_block(site)),
+    );
+    bench.see(&[villager_at(2, Vec3::new(3.5, 64.0, 0.5), librarian_peer())]);
+    bench.set(
+        MemoryModuleType::NearestLivingEntities,
+        MemoryValue::Entities(vec![EntityId(2)]),
+    );
+    bench
+}
+
+#[test]
+fn a_jobless_villager_yields_the_job_site_to_a_reaching_peer_with_the_matching_profession() {
+    let mut bench = yield_bench(Field::flat());
+    assert!(bench.start(&mut yield_trigger(), NOW));
+    assert!(bench.get(MemoryModuleType::PotentialJobSite).is_none());
+    assert!(bench.get(MemoryModuleType::WalkTarget).is_none());
+    let actions = bench.actions();
+    let sent: Vec<MemoryModuleType> = actions
+        .iter()
+        .filter_map(|action| match action {
+            MobAction::SetMemory { mob, memory, .. } if *mob == EntityId(2) => Some(*memory),
+            _ => None,
+        })
+        .collect();
+    assert!(sent.contains(&MemoryModuleType::WalkTarget));
+    assert!(sent.contains(&MemoryModuleType::LookTarget));
+}
+
+#[test]
+fn a_peer_that_cannot_path_to_the_job_site_does_not_take_it_from_the_villager() {
+    let mut world = Field::flat();
+    world.unreachable.push(EntityId(2));
+    let mut bench = yield_bench(world);
+    assert!(bench.start(&mut yield_trigger(), NOW));
+    assert!(bench.get(MemoryModuleType::PotentialJobSite).is_some());
+    assert!(bench.get(MemoryModuleType::WalkTarget).is_some());
+    assert!(bench.actions().is_empty());
+}
+
+#[test]
+fn a_villager_can_tell_whether_it_can_path_to_a_position() {
+    let mut ai = MobAi::new(EntityKind::Villager, 1, GoalSettings::default());
+    ai.rebuild_villager_brain(Profession::None, false);
+    let mob = view(
+        EntityKind::Villager,
+        Vec3::new(0.5, 64.0, 0.5),
+        VillagerFacts::default(),
+        false,
+    );
+    let open = Field::flat();
+    assert!(ai.can_reach_pos(&mob, &open, BlockPos::new(6, 64, 0), 1));
+    let mut walled = Field::flat();
+    for x in -1..=1 {
+        for z in -1..=1 {
+            if (x, z) != (0, 0) {
+                for y in 64..=66 {
+                    walled.put(x, y, z, BlockKind::Stone.default_state());
+                }
+            }
+        }
+    }
+    assert!(!ai.can_reach_pos(&mob, &walled, BlockPos::new(6, 64, 0), 1));
 }
