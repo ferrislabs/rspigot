@@ -1,5 +1,6 @@
 use rand::Rng;
 use rspigot_blocks::BlockKind;
+use rspigot_domain::player::PlayerId;
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
 use rspigot_entities::SoundSource;
 
@@ -61,7 +62,7 @@ pub(crate) fn door_sounds(kind: BlockKind) -> DoorSounds {
     }
 }
 
-fn is_door(state: BlockStateId) -> bool {
+pub(crate) fn is_door_state(state: BlockStateId) -> bool {
     state.property("half").is_some()
         && state.property("open").is_some()
         && state.property("hinge").is_some()
@@ -111,7 +112,12 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn set_door_open(&mut self, pos: BlockPos, open: bool) -> bool {
-        let Some(state) = self.world.chunks.block(pos).filter(|state| is_door(*state)) else {
+        let Some(state) = self
+            .world
+            .chunks
+            .block(pos)
+            .filter(|state| is_door_state(*state))
+        else {
             return false;
         };
         let Some(kind) = state.kind() else {
@@ -132,6 +138,17 @@ impl<L: ClientLink> Server<L> {
         {
             self.set_block(other, other_changed);
         }
+        self.play_door_sound(None, pos, kind, open);
+        true
+    }
+
+    pub(crate) fn play_door_sound(
+        &mut self,
+        except: Option<PlayerId>,
+        pos: BlockPos,
+        kind: BlockKind,
+        open: bool,
+    ) {
         let sounds = door_sounds(kind);
         let sound = if open { sounds.open } else { sounds.close };
         let pitch = self.rng.random::<f32>() * DOOR_PITCH_RANGE + DOOR_PITCH_BASE;
@@ -140,7 +157,43 @@ impl<L: ClientLink> Server<L> {
             f64::from(pos.y) + 0.5,
             f64::from(pos.z) + 0.5,
         );
-        self.play_sound(None, at, sound, SoundSource::Blocks, DOOR_VOLUME, pitch);
-        true
+        self.play_sound(except, at, sound, SoundSource::Blocks, DOOR_VOLUME, pitch);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn registered(sound: &str) -> bool {
+        rspigot_data::registries::static_index("minecraft:sound_event", sound).is_some()
+    }
+
+    #[test]
+    fn door_sounds_follow_the_block_set_type() {
+        assert_eq!(door_sounds(BlockKind::OakDoor), WOODEN);
+        assert_eq!(door_sounds(BlockKind::PoplarDoor), WOODEN);
+        assert_eq!(door_sounds(BlockKind::IronDoor), IRON);
+        assert_eq!(door_sounds(BlockKind::CherryDoor), CHERRY);
+        assert_eq!(door_sounds(BlockKind::CrimsonDoor), NETHER);
+        assert_eq!(door_sounds(BlockKind::WarpedDoor), NETHER);
+        assert_eq!(door_sounds(BlockKind::BambooDoor), BAMBOO);
+        assert_eq!(door_sounds(BlockKind::WaxedExposedCopperDoor), COPPER);
+    }
+
+    #[test]
+    fn every_door_sound_is_a_registered_sound_event() {
+        for sounds in [WOODEN, IRON, COPPER, CHERRY, NETHER, BAMBOO] {
+            assert!(registered(sounds.open), "{}", sounds.open);
+            assert!(registered(sounds.close), "{}", sounds.close);
+        }
+    }
+
+    #[test]
+    fn only_two_block_doors_count_as_doors() {
+        assert!(is_door_state(BlockKind::OakDoor.default_state()));
+        assert!(!is_door_state(BlockKind::OakTrapdoor.default_state()));
+        assert!(!is_door_state(BlockKind::OakFenceGate.default_state()));
+        assert!(!is_door_state(BlockKind::Stone.default_state()));
     }
 }
