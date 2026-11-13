@@ -1245,9 +1245,13 @@ fn jump<V: BlockView>(base: &mut EntityBase, living: &mut LivingState, view: &V,
     let swim_up = in_water && (!base.on_ground || height > threshold);
     let lava_up = contact.in_lava() && (!base.on_ground || contact.lava_height > threshold);
     if swim_up || lava_up {
-        jump_in_liquid(base, living, can_float);
+        jump_in_liquid(base, living, can_float, !swim_up);
     } else if (base.on_ground || (in_water && height <= threshold)) && living.no_jump_delay == 0 {
-        jump_from_ground(base, living, view);
+        if super::species::cube::is_cube(base.kind) {
+            cube_jump_from_ground(base, living, view);
+        } else {
+            jump_from_ground(base, living, view);
+        }
         living.jumped = true;
         if let Some(lift) = living.jump_tuning.hop
             && base.velocity.horizontal_distance_sqr() < HOP_HORIZONTAL_LIMIT
@@ -1259,7 +1263,24 @@ fn jump<V: BlockView>(base: &mut EntityBase, living: &mut LivingState, view: &V,
     }
 }
 
-fn jump_in_liquid(base: &mut EntityBase, living: &LivingState, can_float: bool) {
+fn cube_jump_from_ground(base: &mut EntityBase, living: &mut LivingState, view: &impl BlockView) {
+    let mut power = jump_power(base, living, view);
+    if base.kind == EntityKind::MagmaCube {
+        power += super::species::cube::magma_jump_bonus(super::species::cube::size(base));
+    }
+    let v = base.velocity;
+    base.velocity = Vec3::new(v.x, f64::from(power), v.z);
+    base.needs_sync = true;
+}
+
+fn jump_in_liquid(base: &mut EntityBase, living: &LivingState, can_float: bool, lava: bool) {
+    if lava && base.kind == EntityKind::MagmaCube {
+        let v = base.velocity;
+        let size = super::species::cube::size(base);
+        base.velocity = Vec3::new(v.x, super::species::cube::lava_jump_velocity(size), v.z);
+        base.needs_sync = true;
+        return;
+    }
     let impulse = if base.kind == EntityKind::Bee {
         BEE_LIQUID_JUMP_IMPULSE
     } else if living.is_mob() && !can_float {

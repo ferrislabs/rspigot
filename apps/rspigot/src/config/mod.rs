@@ -122,6 +122,9 @@ impl ServerFiles {
                 "world-settings.default.mob-spawn-range",
                 i64::from(defaults.mob_spawn_range),
             ) as i32 as i8),
+            slime_seed: self
+                .spigot
+                .int("world-settings.default.seed-slime", defaults.slime_seed),
         }
     }
 
