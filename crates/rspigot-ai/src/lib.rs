@@ -58,6 +58,7 @@ mod shulker;
 mod silverfish;
 mod sniffer;
 mod sweep;
+mod swim;
 mod tame;
 mod targeting;
 mod vex;
@@ -133,7 +134,7 @@ pub use combat::{
 };
 pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
-    MoveControl, MoveStyle, Operation, can_reach, rotate_towards,
+    MoveControl, MoveStyle, Operation, SmoothSwimming, can_reach, rotate_towards,
 };
 pub use copper_golem::{
     COOLDOWN_TICKS as TRANSPORT_COOLDOWN_TICKS, COPPER_GOLEM_MEMORIES, ChestSide,
@@ -201,7 +202,7 @@ pub use piglin::{
     is_pos_near_nearest_repellent,
 };
 pub use polar_bear::{PolarBearAction, PolarBearFacts, PolarBearGoal};
-pub use profile::{MobProfile, MobState, combat_fall_distance};
+pub use profile::{MobProfile, MobState, Swimming, combat_fall_distance};
 pub use rabbit::{HopSound, MORE_CARROT_TICKS, RabbitHop, RaidGardenGoal};
 pub use raider::{
     LongDistancePatrolGoal, NearestAttackableWitchTargetGoal, NearestHealableRaiderTargetGoal,

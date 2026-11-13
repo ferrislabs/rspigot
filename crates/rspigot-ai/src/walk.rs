@@ -56,6 +56,14 @@ pub(crate) fn distance_xz(from: BlockPos, to: BlockPos) -> f32 {
 }
 
 const HORIZONTAL: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+const AMPHIBIOUS_NEIGHBOURS: [(i32, i32, i32); 6] = [
+    (0, -1, 0),
+    (0, 1, 0),
+    (0, 0, -1),
+    (0, 0, 1),
+    (-1, 0, 0),
+    (1, 0, 0),
+];
 
 pub(crate) struct Walker<'a, V> {
     pub(crate) view: &'a V,
@@ -110,6 +118,9 @@ impl<'a, V: BlockView> Walker<'a, V> {
     pub(crate) fn static_type(&mut self, pos: BlockPos) -> PathType {
         if self.profile.flying {
             return self.fly_type(pos);
+        }
+        if self.profile.is_amphibious() && self.block_type(pos) == PathType::Water {
+            return self.amphibious_water_type(pos);
         }
         let kind = self.block_type(pos);
         if kind != PathType::Open || pos.y < self.min_y + 1 {
@@ -176,9 +187,23 @@ impl<'a, V: BlockView> Walker<'a, V> {
         set
     }
 
+    fn amphibious_water_type(&mut self, pos: BlockPos) -> PathType {
+        for (dx, dy, dz) in AMPHIBIOUS_NEIGHBOURS {
+            if self.block_type(pos.offset(dx, dy, dz)) == PathType::Blocked {
+                return PathType::WaterBorder;
+            }
+        }
+        PathType::Water
+    }
+
     pub(crate) fn mob_type(&mut self, pos: BlockPos) -> PathType {
         if let Some(kind) = self.mob_types.get(&pos) {
             return *kind;
+        }
+        if self.profile.is_water_bound() {
+            let kind = self.swim_type(pos);
+            self.mob_types.insert(pos, kind);
+            return kind;
         }
         let kind = match self.profile.creaking_home {
             Some(home) if crate::creaking::blocks_path(home, pos, self.mob.position.block()) => {
@@ -231,7 +256,9 @@ impl<'a, V: BlockView> Walker<'a, V> {
     }
 
     fn floor(&self, pos: BlockPos) -> f64 {
-        if self.profile.can_float && is_water(self.view.state(pos)) {
+        if (self.profile.can_float || self.profile.is_amphibious())
+            && is_water(self.view.state(pos))
+        {
             return f64::from(pos.y) + 0.5;
         }
         floor_level(self.view, pos)
@@ -240,6 +267,18 @@ impl<'a, V: BlockView> Walker<'a, V> {
     pub(crate) fn start(&mut self) -> usize {
         if self.profile.flying {
             return self.fly_start();
+        }
+        if self.profile.is_water_bound() {
+            return self.swim_start();
+        }
+        if self.profile.is_amphibious() && self.mob.in_floatable_fluid {
+            let area = self.profile.bounding_box(self.mob.position);
+            let origin = BlockPos::new(
+                area.min_x.floor() as i32,
+                (area.min_y + 0.5).floor() as i32,
+                area.min_z.floor() as i32,
+            );
+            return self.start_node(origin);
         }
         let position = self.mob.position;
         let column =
@@ -302,6 +341,10 @@ impl<'a, V: BlockView> Walker<'a, V> {
             self.fly_neighbors(current, out);
             return;
         }
+        if self.profile.is_water_bound() {
+            self.swim_neighbors(current, out);
+            return;
+        }
         let pos = self.nodes[current].pos;
         let above = self.mob_type(pos.offset(0, 1, 0));
         let here = self.mob_type(pos);
@@ -337,6 +380,50 @@ impl<'a, V: BlockView> Walker<'a, V> {
                 out.push(node);
             }
         }
+        if self.profile.is_amphibious() {
+            self.amphibious_neighbors(current, here, max_up, floor, out);
+        }
+    }
+
+    fn amphibious_neighbors(
+        &mut self,
+        current: usize,
+        here: PathType,
+        max_up: i32,
+        floor: f64,
+        out: &mut Vec<usize>,
+    ) {
+        let pos = self.nodes[current].pos;
+        let up = self.accept(
+            pos.offset(0, 1, 0),
+            (max_up - 1).max(0),
+            floor,
+            (0, 0),
+            here,
+        );
+        let down = self.accept(pos.offset(0, -1, 0), max_up, floor, (0, 0), here);
+        if let Some(node) = up.filter(|node| self.vertical_valid(*node, current)) {
+            out.push(node);
+        }
+        if let Some(node) = down.filter(|node| self.vertical_valid(*node, current))
+            && here != PathType::Trapdoor
+        {
+            out.push(node);
+        }
+        if !self.profile.prefers_shallow_swimming() {
+            return;
+        }
+        let limit = self.profile.sea_level - MobProfile::SHALLOW_SWIMMING_DEPTH;
+        for node in out.iter() {
+            let node = &mut self.nodes[*node];
+            if node.path_type == PathType::Water && node.pos.y < limit {
+                node.cost_malus += 1.0;
+            }
+        }
+    }
+
+    fn vertical_valid(&self, node: usize, current: usize) -> bool {
+        self.neighbor_valid(node, current) && self.nodes[node].path_type == PathType::Water
     }
 
     fn neighbor_valid(&self, node: usize, current: usize) -> bool {
@@ -393,7 +480,7 @@ impl<'a, V: BlockView> Walker<'a, V> {
         {
             node = None;
         }
-        if kind == PathType::Walkable {
+        if kind == PathType::Walkable || (self.profile.is_amphibious() && kind == PathType::Water) {
             return node;
         }
         let stuck = node.is_none_or(|node| self.nodes[node].cost_malus < 0.0);
@@ -406,7 +493,10 @@ impl<'a, V: BlockView> Walker<'a, V> {
             )
         {
             self.jump_on(pos, max_up, floor, direction, current)
-        } else if kind == PathType::Water && !self.profile.can_float {
+        } else if kind == PathType::Water
+            && !self.profile.is_amphibious()
+            && !self.profile.can_float
+        {
             self.first_non_water_below(pos, node)
         } else if kind == PathType::Open {
             Some(self.first_ground_below(pos))
