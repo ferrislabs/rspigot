@@ -40,6 +40,7 @@ impl<L: ClientLink> Server<L> {
                 rotation,
                 on_ground,
             } => self.handle_move(id, position, rotation, on_ground),
+            PlayerInput::MoveVehicle { .. } => {}
             PlayerInput::TeleportConfirm(teleport) => {
                 if let Some(player) = self.players.get_mut(&id)
                     && player.pending_teleport == Some(teleport)
