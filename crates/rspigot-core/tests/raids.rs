@@ -2,14 +2,14 @@ mod common;
 
 use common::*;
 use rspigot_core::config::PluginSettings;
-use rspigot_core::events::{ClientEvent, Inbound, PlayerInput};
+use rspigot_core::events::{ClientEvent, Hand, Inbound, PlayerInput};
 use rspigot_core::plugins::{
     Answer, BlockOrder, EntityOrder, EventKind, EventPayload, Order, Question,
 };
 use rspigot_domain::boss_event::BossUpdate;
 use rspigot_domain::raid::RaidStatus;
 use rspigot_domain::world::Difficulty;
-use rspigot_domain::{BlockPos, Vec3};
+use rspigot_domain::{BlockPos, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 fn console(s: &mut Scene, line: &str) {
@@ -310,4 +310,230 @@ fn killing_the_last_raider_with_a_weapon_makes_the_player_a_hero_of_the_village(
         "{:?}",
         state.effects
     );
+}
+
+fn bad_omen(s: &mut Scene) -> Option<(i32, i32)> {
+    let Answer::Player(state) = s.ask(Question::Player(s.players[0].id)) else {
+        panic!("expected Alice");
+    };
+    state
+        .effects
+        .iter()
+        .find(|effect| effect.key == "minecraft:bad_omen")
+        .map(|effect| (effect.duration, effect.amplifier))
+}
+
+fn drink_ominous_bottle() -> (Option<(i32, i32)>, usize, Vec<&'static str>) {
+    let server = configured_level(
+        |config| config.difficulty = Difficulty::Normal,
+        |level| level.daylight_cycle = false,
+    );
+    let mut s = scene_on(server, &["Alice"], Vec::new());
+    stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
+    let alice = s.players[0].clone();
+    console(&mut s, "give Alice minecraft:ominous_bottle");
+    s.tick(2);
+    alice.link.take();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::UseItem {
+            hand: Hand::Main,
+            sequence: 1,
+            rotation: Rotation::new(0.0, 0.0),
+        },
+    );
+    s.tick(40);
+    let sounds = alice
+        .link
+        .take()
+        .into_iter()
+        .filter_map(|event| match event {
+            ClientEvent::Sound { sound, .. } => Some(sound),
+            _ => None,
+        })
+        .collect();
+    let Answer::Inventory(inventory) = s.ask(Question::Inventory(alice.id)) else {
+        panic!("expected the inventory");
+    };
+    let left = inventory
+        .slots
+        .iter()
+        .flatten()
+        .filter(|item| item.key == "minecraft:ominous_bottle")
+        .count();
+    (bad_omen(&mut s), left, sounds)
+}
+
+#[test]
+fn drinking_an_ominous_bottle_gives_bad_omen_for_two_hours_and_uses_it_up() {
+    let (effect, left, sounds) = drink_ominous_bottle();
+    let (duration, amplifier) = effect.expect("bad omen");
+    assert_eq!(amplifier, 0);
+    assert!(duration > 119_000 && duration <= 120_000, "{duration}");
+    assert_eq!(left, 0);
+    assert!(sounds.contains(&"minecraft:item.ominous_bottle.dispose"));
+}
+
+fn plain_scene() -> Scene {
+    let server = configured_level(
+        |config| config.difficulty = Difficulty::Normal,
+        |level| {
+            level.day_time = 4_000;
+            level.daylight_cycle = false;
+        },
+    )
+    .with_rng_seed(3);
+    let mut s = scene_on(server, &["Alice"], Vec::new());
+    stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
+    s
+}
+
+fn health_of(s: &mut Scene) -> f32 {
+    let Answer::Player(state) = s.ask(Question::Player(s.players[0].id)) else {
+        panic!("expected Alice");
+    };
+    state.health
+}
+
+#[test]
+fn a_ravager_attack_arms_its_attack_timer_for_ten_ticks_and_hurts_the_target() {
+    let mut s = plain_scene();
+    console(&mut s, "summon minecraft:ravager 2.5 64 0.5 {}");
+    let ravager = s.server.entities_of(Kind::Ravager)[0].id;
+    let mut armed = false;
+    for _ in 0..200 {
+        s.tick(1);
+        let saved = s.server.saved_entity(ravager).unwrap();
+        if saved.get_i32("AttackTick").unwrap_or(0) == 10 {
+            armed = true;
+            break;
+        }
+    }
+    assert!(armed, "the ravager never attacked");
+    s.tick(10);
+    let saved = s.server.saved_entity(ravager).unwrap();
+    assert_eq!(saved.get_i32("AttackTick"), Some(0));
+    assert!(health_of(&mut s) < 20.0);
+}
+
+#[test]
+fn a_ravager_coming_out_of_a_stun_roars_ten_ticks_later_and_hurts_what_is_near() {
+    let mut s = plain_scene();
+    console(
+        &mut s,
+        "summon minecraft:ravager 2.5 64 0.5 {NoAI:1b,StunTick:2}",
+    );
+    let ravager = s.server.entities_of(Kind::Ravager)[0].id;
+    assert_eq!(health_of(&mut s), 20.0);
+    s.tick(2);
+    let saved = s.server.saved_entity(ravager).unwrap();
+    assert_eq!(saved.get_i32("StunTick"), Some(0));
+    assert_eq!(saved.get_i32("RoarTick"), Some(20));
+    s.tick(9);
+    assert_eq!(health_of(&mut s), 20.0);
+    s.tick(2);
+    assert_eq!(health_of(&mut s), 14.0);
+}
+
+#[test]
+fn a_ravager_roar_spares_illagers_and_pushes_mobs_without_ravager_peers() {
+    let mut s = plain_scene();
+    console(
+        &mut s,
+        "summon minecraft:ravager 2.5 64 0.5 {NoAI:1b,RoarTick:11}",
+    );
+    console(&mut s, "summon minecraft:vindicator 3.5 64 1.5 {NoAI:1b}");
+    console(&mut s, "summon minecraft:cow 1.5 64 1.5 {NoAI:1b}");
+    console(&mut s, "summon minecraft:ravager 4.5 64 0.5 {NoAI:1b}");
+    s.tick(3);
+    let health = |s: &Scene, kind: Kind| s.server.entities_of(kind)[0].health.unwrap();
+    assert_eq!(health(&s, Kind::Vindicator), 24.0);
+    assert!(health(&s, Kind::Cow) < 10.0);
+    let peers: Vec<_> = s.server.entities_of(Kind::Ravager);
+    assert!(peers.iter().all(|peer| peer.health == Some(100.0)));
+}
+
+#[test]
+fn a_vindicator_called_johnny_attacks_whatever_is_near() {
+    let mut s = plain_scene();
+    console(
+        &mut s,
+        "summon minecraft:vindicator 8.5 64 8.5 {CustomName:\"Johnny\"}",
+    );
+    console(&mut s, "summon minecraft:cow 12.5 64 8.5 {}");
+    let cow = s.server.entities_of(Kind::Cow)[0].id;
+    let vindicator = s.server.entities_of(Kind::Vindicator)[0].id;
+    s.tick(2);
+    assert_eq!(
+        s.server
+            .saved_entity(vindicator)
+            .unwrap()
+            .get_bool("Johnny"),
+        Some(true)
+    );
+    let mut killed = false;
+    for _ in 0..400 {
+        s.tick(1);
+        if s.server.mob_damage(cow).is_some_and(|state| state.dead) {
+            killed = true;
+            break;
+        }
+    }
+    assert!(killed, "Johnny left the cow alone");
+}
+
+#[test]
+fn a_vindicator_that_is_not_johnny_ignores_a_cow() {
+    let mut s = plain_scene();
+    console(&mut s, "summon minecraft:vindicator 8.5 64 8.5 {}");
+    console(&mut s, "summon minecraft:cow 12.5 64 8.5 {}");
+    let cow = s.server.entities_of(Kind::Cow)[0].id;
+    s.tick(300);
+    assert!(s.server.mob_damage(cow).is_some_and(|state| !state.dead));
+}
+
+#[test]
+fn the_second_wave_brings_vindicators_with_the_raid_axe() {
+    let mut s = observed_scene(Difficulty::Normal);
+    console(&mut s, "effect give Alice minecraft:bad_omen 120 0");
+    s.tick(650);
+    tick_until_wave(&mut s, 1);
+    s.tick(5);
+    kill_all(&mut s);
+    s.tick(2);
+    tick_until_wave(&mut s, 2);
+    s.tick(5);
+    let vindicators = s.server.entities_of(Kind::Vindicator);
+    assert!(vindicators.len() >= 2, "{}", vindicators.len());
+    for vindicator in vindicators {
+        let saved = s.server.saved_entity(vindicator.id).unwrap();
+        let weapon = saved
+            .get_compound("equipment")
+            .and_then(|equipment| equipment.get_compound("mainhand"))
+            .and_then(|stack| stack.get_str("id"));
+        assert_eq!(weapon, Some("minecraft:iron_axe"));
+    }
+}
+
+#[test]
+fn raids_saved_in_the_level_are_loaded_by_the_server() {
+    let mut saved = rspigot_domain::raid::Raids::new();
+    saved.create_or_extend(
+        &rspigot_domain::raid::Omen {
+            pos: BlockPos::new(8, 64, 8),
+            village_pois: &[],
+            difficulty: Difficulty::Normal,
+            bar_id: uuid::Uuid::from_u128(5),
+            seed: 1,
+            amplifier: Some(2),
+        },
+        |_| true,
+    );
+    let server = configured_level(|_| {}, |level| level.raids = Some(saved.to_nbt()));
+    let loaded = server.raids().get(2).expect("the saved raid");
+    assert_eq!(loaded.center(), BlockPos::new(8, 64, 8));
+    assert_eq!(loaded.raid_omen_level(), 3);
+    assert_eq!(loaded.num_groups(), 5);
+    assert_eq!(server.raids().next_id(), 2);
 }

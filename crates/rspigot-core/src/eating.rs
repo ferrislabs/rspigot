@@ -36,6 +36,14 @@ fn is_ominous_bottle(stack: &ItemStack) -> bool {
     stack.item == ItemKind::OminousBottle.id()
 }
 
+fn ominous_amplifier(stack: &ItemStack) -> u8 {
+    stack
+        .components
+        .get_i32(OMINOUS_BOTTLE_AMPLIFIER)
+        .unwrap_or(0)
+        .clamp(0, MAX_OMINOUS_AMPLIFIER) as u8
+}
+
 fn food_of(stack: &ItemStack) -> Option<Food> {
     stack.item.kind().and_then(ItemKind::food)
 }
@@ -59,11 +67,7 @@ impl<L: ClientLink> Server<L> {
             });
             player.inventory.set(slot, left);
         }
-        let amplifier = stack
-            .components
-            .get_i32(OMINOUS_BOTTLE_AMPLIFIER)
-            .unwrap_or(0)
-            .clamp(0, MAX_OMINOUS_AMPLIFIER) as u8;
+        let amplifier = ominous_amplifier(stack);
         let mut omen = EffectInstance::new(
             EffectKind::BadOmen.id(),
             EffectDuration::Ticks(BAD_OMEN_TICKS),
@@ -175,4 +179,32 @@ pub(crate) fn starts_eating<L>(player: &Player<L>, hand: Hand, since: u64) -> Op
         return Some(UsingItem { hand, since });
     }
     can_eat(player, food_of(stack)?).then_some(UsingItem { hand, since })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bottle(amplifier: Option<i32>) -> ItemStack {
+        let mut stack = ItemStack::new(ItemKind::OminousBottle.id(), NonZeroU8::MIN);
+        if let Some(level) = amplifier {
+            stack.components.insert(OMINOUS_BOTTLE_AMPLIFIER, level);
+        }
+        stack
+    }
+
+    #[test]
+    fn the_bottle_amplifier_defaults_to_zero_and_is_clamped_to_four() {
+        assert_eq!(ominous_amplifier(&bottle(None)), 0);
+        assert_eq!(ominous_amplifier(&bottle(Some(2))), 2);
+        assert_eq!(ominous_amplifier(&bottle(Some(9))), 4);
+        assert_eq!(ominous_amplifier(&bottle(Some(-3))), 0);
+    }
+
+    #[test]
+    fn only_the_ominous_bottle_is_drunk_for_bad_omen() {
+        assert!(is_ominous_bottle(&bottle(None)));
+        let apple = ItemStack::new(ItemKind::Apple.id(), NonZeroU8::MIN);
+        assert!(!is_ominous_bottle(&apple));
+    }
 }
