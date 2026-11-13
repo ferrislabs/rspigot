@@ -1,6 +1,7 @@
 use crate::generated::variants::{
     CAT_SOUND_VARIANTS, CAT_VARIANTS, CHICKEN_SOUND_VARIANTS, CHICKEN_VARIANTS, COW_SOUND_VARIANTS,
-    COW_VARIANTS, DYE_MIXES, PIG_SOUND_VARIANTS, PIG_VARIANTS, WOLF_SOUND_VARIANTS, WOLF_VARIANTS,
+    COW_VARIANTS, DYE_MIXES, FROG_VARIANTS, PIG_SOUND_VARIANTS, PIG_VARIANTS, WOLF_SOUND_VARIANTS,
+    WOLF_VARIANTS,
 };
 use crate::tags::HolderSet;
 
@@ -62,10 +63,22 @@ pub enum VariantFamily {
     Chicken,
     Wolf,
     Cat,
+    Frog,
 }
 
 impl VariantFamily {
-    pub const ALL: [Self; 5] = [Self::Cow, Self::Pig, Self::Chicken, Self::Wolf, Self::Cat];
+    pub const ALL: [Self; 6] = [
+        Self::Cow,
+        Self::Pig,
+        Self::Chicken,
+        Self::Wolf,
+        Self::Cat,
+        Self::Frog,
+    ];
+
+    pub const fn has_sound_variants(self) -> bool {
+        !matches!(self, Self::Frog)
+    }
 
     pub const fn is_farm(self) -> bool {
         matches!(self, Self::Cow | Self::Pig | Self::Chicken)
@@ -78,6 +91,7 @@ impl VariantFamily {
             Self::Chicken => "minecraft:chicken_variant",
             Self::Wolf => "minecraft:wolf_variant",
             Self::Cat => "minecraft:cat_variant",
+            Self::Frog => "minecraft:frog_variant",
         }
     }
 
@@ -88,6 +102,7 @@ impl VariantFamily {
             Self::Chicken => "minecraft:chicken_sound_variant",
             Self::Wolf => "minecraft:wolf_sound_variant",
             Self::Cat => "minecraft:cat_sound_variant",
+            Self::Frog => "minecraft:frog_variant",
         }
     }
 
@@ -98,6 +113,7 @@ impl VariantFamily {
             Self::Chicken => &CHICKEN_VARIANTS,
             Self::Wolf => &WOLF_VARIANTS,
             Self::Cat => &CAT_VARIANTS,
+            Self::Frog => &FROG_VARIANTS,
         }
     }
 
@@ -108,6 +124,7 @@ impl VariantFamily {
             Self::Chicken => &CHICKEN_SOUND_VARIANTS,
             Self::Wolf => &WOLF_SOUND_VARIANTS,
             Self::Cat => &CAT_SOUND_VARIANTS,
+            Self::Frog => &[],
         }
     }
 

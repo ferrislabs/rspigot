@@ -569,6 +569,7 @@ pub fn finalize_spawn(
             species::pillager::finalize(base, living, reason, group, level)
         }
         Some(Species::Goat(_)) => species::goat::finalize(base, living, environment, group, level),
+        Some(Species::Frog(_)) => species::frog::finalize(base, living, environment, group, level),
         Some(Species::WanderingTrader(_)) => {
             species::villager::finalize_trader(base, living, group, level)
         }

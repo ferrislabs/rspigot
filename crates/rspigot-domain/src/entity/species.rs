@@ -19,6 +19,7 @@ pub mod creaking;
 pub mod enderman;
 pub mod endermite;
 pub mod fox;
+pub mod frog;
 pub mod ghast;
 pub mod goat;
 pub mod hoglin;
@@ -211,6 +212,7 @@ pub enum Species {
     Goat(goat::GoatState),
     Armadillo(armadillo::ArmadilloState),
     Sniffer(sniffer::SnifferState),
+    Frog(frog::FrogState),
     Creaking(creaking::CreakingState),
     Villager(villager::VillagerState),
     WanderingTrader(wandering_trader::WanderingTraderState),
@@ -241,6 +243,7 @@ pub const fn variant_data(family: VariantFamily) -> u8 {
         VariantFamily::Cow | VariantFamily::Chicken => 18,
         VariantFamily::Wolf => variants::WOLF_DATA_VARIANT,
         VariantFamily::Cat => variants::CAT_DATA_VARIANT,
+        VariantFamily::Frog => frog::DATA_VARIANT,
     }
 }
 
@@ -248,6 +251,7 @@ pub const fn sound_variant_data(family: VariantFamily) -> u8 {
     match family {
         VariantFamily::Wolf => variants::WOLF_DATA_SOUND_VARIANT,
         VariantFamily::Cat => variants::CAT_DATA_SOUND_VARIANT,
+        VariantFamily::Frog => u8::MAX,
         VariantFamily::Cow | VariantFamily::Pig | VariantFamily::Chicken => {
             variant_data(family) + 1
         }
@@ -288,6 +292,7 @@ impl Species {
         match self {
             Self::Wolf(_) => Some(VariantFamily::Wolf),
             Self::Cat(_) => Some(VariantFamily::Cat),
+            Self::Frog(_) => Some(VariantFamily::Frog),
             _ => self.farm(),
         }
     }
@@ -305,7 +310,7 @@ impl Species {
                 VariantFamily::Cow => Self::Cow,
                 VariantFamily::Pig => Self::Pig,
                 VariantFamily::Chicken => Self::Chicken(ChickenState::default()),
-                VariantFamily::Wolf | VariantFamily::Cat => Self::Plain,
+                VariantFamily::Wolf | VariantFamily::Cat | VariantFamily::Frog => Self::Plain,
             };
         }
         if kind == EntityKind::Sheep {
@@ -405,6 +410,9 @@ impl Species {
         }
         if kind == EntityKind::Sniffer {
             return Self::Sniffer(sniffer::define(base));
+        }
+        if kind == EntityKind::Frog {
+            return Self::Frog(frog::define(base));
         }
         if kind == EntityKind::Creaking {
             return Self::Creaking(creaking::define(base));

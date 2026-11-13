@@ -629,6 +629,9 @@ fn registry_variant(kind: VariantKind) -> RegistryVariant {
         VariantKind::Sound(VariantFamily::Wolf) => RegistryVariant::WolfSound,
         VariantKind::Mob(VariantFamily::Cat) => RegistryVariant::Cat,
         VariantKind::Sound(VariantFamily::Cat) => RegistryVariant::CatSound,
+        VariantKind::Mob(VariantFamily::Frog) | VariantKind::Sound(VariantFamily::Frog) => {
+            RegistryVariant::Frog
+        }
     }
 }
 

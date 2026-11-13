@@ -13,6 +13,7 @@ const MOOSHROOMS_SPAWNABLE_ON: &str = "minecraft:mooshrooms_spawnable_on";
 const RABBITS_SPAWNABLE_ON: &str = "minecraft:rabbits_spawnable_on";
 const GOATS_SPAWNABLE_ON: &str = "minecraft:goats_spawnable_on";
 const ARMADILLO_SPAWNABLE_ON: &str = "minecraft:armadillo_spawnable_on";
+const FROGS_SPAWNABLE_ON: &str = "minecraft:frogs_spawnable_on";
 const LEAVES: &str = "minecraft:leaves";
 const OCELOT_SPAWN_CHANCE: i32 = 3;
 const ANIMAL_MIN_BRIGHTNESS: i32 = 8;
@@ -66,6 +67,7 @@ pub fn check_predicate(
         SpawnPredicate::Rabbit => check_rabbit_spawn_rules(level, pos),
         SpawnPredicate::Goat => check_bright_spawnable_on(level, pos, GOATS_SPAWNABLE_ON),
         SpawnPredicate::Armadillo => check_bright_spawnable_on(level, pos, ARMADILLO_SPAWNABLE_ON),
+        SpawnPredicate::Frog => check_bright_spawnable_on(level, pos, FROGS_SPAWNABLE_ON),
         SpawnPredicate::Fox => super::fox::check_fox_spawn_rules(level, pos),
         SpawnPredicate::Ocelot => level.next_int(OCELOT_SPAWN_CHANCE) != 0,
         SpawnPredicate::Wolf => super::wolf::check_wolf_spawn_rules(level, pos),
@@ -139,6 +141,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Rabbit
                 | SpawnPredicate::Goat
                 | SpawnPredicate::Armadillo
+                | SpawnPredicate::Frog
                 | SpawnPredicate::Fox
                 | SpawnPredicate::Ocelot
                 | SpawnPredicate::Wolf
@@ -614,12 +617,17 @@ mod tests {
     }
 
     #[test]
-    fn goats_and_armadillos_need_their_own_ground_and_light() {
+    fn goats_armadillos_and_frogs_need_their_own_ground_and_light() {
         let pos = BlockPos::new(4, 64, 4);
         for (kind, good, bad) in [
             (EntityKind::Goat, Stone::DEFAULT_STATE, Sand::DEFAULT_STATE),
             (
                 EntityKind::Armadillo,
+                GrassBlock::DEFAULT_STATE,
+                Stone::DEFAULT_STATE,
+            ),
+            (
+                EntityKind::Frog,
                 GrassBlock::DEFAULT_STATE,
                 Stone::DEFAULT_STATE,
             ),
