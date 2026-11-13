@@ -29,6 +29,7 @@ use crate::server::{Audience, Server};
 
 const GUARANTEED_DROP: f32 = 2.0;
 const SADDLE_SOUND: &str = "minecraft:entity.horse.saddle";
+const ARMOR_UNEQUIP_SOUND: &str = "minecraft:item.horse_armor.unequip";
 const ARMOR_SOUND: &str = "minecraft:entity.horse.armor";
 const CHEST_EQUIP_SOUND_VOLUME: f32 = 1.0;
 const BODY_ARMOR_MODIFIER: &str = "minecraft:armor.body";
@@ -762,6 +763,16 @@ impl<L: ClientLink> Server<L> {
         hand: Hand,
         held: Option<&ItemStack>,
     ) -> Option<Interaction> {
+        if self.kind_of(target) == Some(Kind::ZombieHorse)
+            && let Some(mob) = self
+                .entities
+                .store
+                .get_mut(target)
+                .and_then(|entity| entity.living_mut())
+                .and_then(|living| living.mob.as_mut())
+        {
+            mob.persistence_required = true;
+        }
         let entity = self.entities.store.get(target)?;
         let kind = entity.base.kind;
         let tamed = equine::is_tamed(&entity.base);
@@ -1024,10 +1035,7 @@ impl<L: ClientLink> Server<L> {
         let Some(vehicle) = self.entities.rides.vehicle_of(rider) else {
             return;
         };
-        if self
-            .kind_of(vehicle)
-            .is_some_and(equine::is_equine)
-        {
+        if self.kind_of(vehicle).is_some_and(equine::is_equine) {
             self.open_mount_inventory(player, vehicle);
         }
     }
@@ -1076,5 +1084,56 @@ impl<L: ClientLink> Server<L> {
             equine::clamp_health(base, living);
         }
         Some(child)
+    }
+}
+
+impl<L: ClientLink> Server<L> {
+    pub(crate) fn equine_death_drops(&mut self, id: EntityId) -> Vec<ItemStack> {
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return Vec::new();
+        };
+        let chested = equine::has_chest(&entity.base);
+        let mut drops: Vec<ItemStack> = Vec::new();
+        if let Some(mount) = entity
+            .living_mut()
+            .and_then(|living| living.mob.as_mut())
+            .and_then(|mob| mob.mount.as_deref_mut())
+        {
+            drops.extend(mount.inventory.iter_mut().filter_map(Option::take));
+        }
+        if chested {
+            equine::set_chest(&mut entity.base, false);
+            drops.push(ItemStack::new(ItemKind::Chest.id(), NonZeroU8::MIN));
+        }
+        drops
+    }
+}
+
+impl<L: ClientLink> Server<L> {
+    pub(crate) fn equine_shear_body_armor(
+        &mut self,
+        player: PlayerId,
+        target: EntityId,
+        hand: Hand,
+    ) -> bool {
+        let Some(entity) = self.entities.store.get(target) else {
+            return false;
+        };
+        if !equine::is_equine(entity.base.kind) {
+            return false;
+        }
+        let height = f64::from(entity.base.dimensions.height);
+        let Some(armor) = entity
+            .living()
+            .and_then(|living| living.equipment(EquipmentSlot::Body))
+            .cloned()
+        else {
+            return false;
+        };
+        self.hurt_held(player, hand, 1);
+        self.mount_equip(target, EquipmentSlot::Body, None);
+        self.drop_at_location(target, height, armor, Vec3::ZERO);
+        self.entity_sound(target, ARMOR_UNEQUIP_SOUND, 1.0, 1.0);
+        true
     }
 }

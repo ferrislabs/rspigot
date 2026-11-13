@@ -292,6 +292,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin) => self.piglin_death_drops(id),
             Some(Kind::Wither) => self.wither_death_drops(id),
             Some(Kind::Allay) => self.allay_death_drops(id),
+            Some(
+                Kind::Horse | Kind::Donkey | Kind::Mule | Kind::SkeletonHorse | Kind::ZombieHorse,
+            ) => self.equine_death_drops(id),
             _ => Vec::new(),
         }
     }

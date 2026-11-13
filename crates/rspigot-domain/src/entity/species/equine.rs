@@ -10,10 +10,10 @@ use crate::entity::living::{
     JUMP_STRENGTH, LivingAttributes, LivingState, MAX_HEALTH, MOVEMENT_SPEED,
 };
 use crate::entity::save::{item_stack_from_nbt, item_stack_to_nbt, read_uuid, uuid_tag};
-use crate::entity::spawn::ageable_finalize;
+use crate::entity::spawn::{Jockey, ageable_finalize};
 use crate::item::Slot;
 use crate::random::RandomSource;
-use crate::spawn::SpawnGroupData;
+use crate::spawn::{SpawnGroupData, SpawnReason};
 
 pub const DATA_FLAGS: u8 = 18;
 pub const DATA_VARIANT: u8 = 19;
@@ -634,9 +634,16 @@ pub fn write(base: &EntityBase, state: &MountState, out: &mut Compound) {
 pub fn finalize(
     base: &mut EntityBase,
     living: &mut LivingState,
+    reason: SpawnReason,
     group: Option<SpawnGroupData>,
     level: &mut impl RandomSource,
 ) -> Option<SpawnGroupData> {
+    if base.kind == EntityKind::ZombieHorse
+        && reason == SpawnReason::Natural
+        && let Some(mob) = living.mob.as_mut()
+    {
+        mob.jockey = Some(Jockey::ZombieHorseRider);
+    }
     let mut variant_group = None;
     let mut inherited = group;
     if base.kind == EntityKind::Horse {
@@ -874,7 +881,13 @@ mod tests {
         let mut first_base = base(EntityKind::Horse);
         let mut first = LivingState::new(&mut first_base, 0.0);
         let mut level = LegacyRandom::new(11);
-        let group = finalize(&mut first_base, &mut first, None, &mut level);
+        let group = finalize(
+            &mut first_base,
+            &mut first,
+            SpawnReason::Natural,
+            None,
+            &mut level,
+        );
         let Some(SpawnGroupData::Horse {
             variant,
             group_size,
@@ -888,7 +901,13 @@ mod tests {
         assert!((15.0..=30.0).contains(&health));
         let mut second_base = self::base(EntityKind::Horse);
         let mut second = LivingState::new(&mut second_base, 0.0);
-        let again = finalize(&mut second_base, &mut second, group, &mut level);
+        let again = finalize(
+            &mut second_base,
+            &mut second,
+            SpawnReason::Natural,
+            group,
+            &mut level,
+        );
         assert_eq!(variant_id(&second_base), variant);
         assert!(matches!(
             again,
@@ -902,13 +921,45 @@ mod tests {
         let mut donkey = LivingState::new(&mut donkey_base, 0.0);
         let speed = donkey.attribute(MOVEMENT_SPEED);
         let mut level = LegacyRandom::new(3);
-        finalize(&mut donkey_base, &mut donkey, None, &mut level);
+        finalize(
+            &mut donkey_base,
+            &mut donkey,
+            SpawnReason::Natural,
+            None,
+            &mut level,
+        );
         assert_eq!(donkey.attribute(MOVEMENT_SPEED), speed);
         assert!((15.0..=30.0).contains(&donkey.attribute(MAX_HEALTH)));
         let mut zombie_base = self::base(EntityKind::ZombieHorse);
         let mut zombie = LivingState::new(&mut zombie_base, 0.0);
-        finalize(&mut zombie_base, &mut zombie, None, &mut level);
+        finalize(
+            &mut zombie_base,
+            &mut zombie,
+            SpawnReason::Natural,
+            None,
+            &mut level,
+        );
         assert!((0.5..=0.7).contains(&zombie.attribute(JUMP_STRENGTH)));
         assert!((0.2135..=0.2371).contains(&zombie.attribute(MOVEMENT_SPEED)));
+    }
+
+    #[test]
+    fn only_a_naturally_spawned_zombie_horse_gets_a_zombie_rider() {
+        for (reason, rides) in [
+            (SpawnReason::Natural, true),
+            (SpawnReason::Spawner, false),
+            (SpawnReason::Command, false),
+        ] {
+            let mut base = base(EntityKind::ZombieHorse);
+            let mut living = LivingState::new(&mut base, 0.0);
+            let mut level = LegacyRandom::new(2);
+            finalize(&mut base, &mut living, reason, None, &mut level);
+            let jockey = living.mob.as_ref().and_then(|mob| mob.jockey);
+            assert_eq!(
+                jockey == Some(Jockey::ZombieHorseRider),
+                rides,
+                "{reason:?}"
+            );
+        }
     }
 }

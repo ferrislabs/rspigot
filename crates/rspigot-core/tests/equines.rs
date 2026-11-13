@@ -267,3 +267,69 @@ fn a_shift_input_lets_the_rider_down_from_a_horse() {
         "{events:?}"
     );
 }
+
+#[test]
+fn a_zombie_horse_burns_in_daylight_unless_it_wears_body_armor() {
+    let mut s = world();
+    console(&mut s, "time set 1000");
+    let bare = summon(&mut s, "zombie_horse", "{NoAI:1b,Tame:1b}");
+    let armored = summon(
+        &mut s,
+        "zombie_horse",
+        "{NoAI:1b,Tame:1b,equipment:{body:{id:\"minecraft:iron_horse_armor\",count:1}}}",
+    );
+    let mut burning = false;
+    for _ in 0..300 {
+        s.tick(1);
+        if s.server
+            .entity_fire_ticks(bare)
+            .is_some_and(|ticks| ticks > 0)
+        {
+            burning = true;
+            break;
+        }
+    }
+    assert!(burning, "the zombie horse never caught fire");
+    assert_eq!(s.server.entity_fire_ticks(armored), Some(0));
+}
+
+#[test]
+fn a_dying_chested_donkey_drops_its_chest_and_its_stored_items() {
+    let mut s = world();
+    let donkey = summon(
+        &mut s,
+        "donkey",
+        "{Tame:1b,ChestedHorse:1b,Items:[{Slot:2b,id:\"minecraft:apple\",count:3}]}",
+    );
+    assert!(saved(&s, donkey).contains("apple"));
+    console(&mut s, "kill @e[type=donkey]");
+    s.tick(2);
+    let dropped: String = s
+        .server
+        .entities_of(Kind::Item)
+        .iter()
+        .filter_map(|item| s.server.saved_entity(item.id))
+        .map(|nbt| format!("{nbt:?}"))
+        .collect();
+    assert!(dropped.contains("minecraft:chest"), "{dropped}");
+    assert!(dropped.contains("minecraft:apple"), "{dropped}");
+}
+
+#[test]
+fn shearing_a_horse_takes_its_body_armor_before_its_saddle() {
+    let mut s = world();
+    let horse = summon(
+        &mut s,
+        "horse",
+        &format!(
+            "{{Tame:1b,equipment:{{saddle:{{id:\"minecraft:saddle\",count:1}},body:{{id:\"minecraft:iron_horse_armor\",count:1}}}}}}"
+        ),
+    );
+    console(&mut s, "give Alice minecraft:shears 1");
+    interact(&mut s, horse, false);
+    let nbt = saved(&s, horse);
+    assert!(!nbt.contains("iron_horse_armor"), "{nbt}");
+    assert!(nbt.contains("saddle"), "{nbt}");
+    interact(&mut s, horse, false);
+    assert!(!saved(&s, horse).contains("saddle"));
+}

@@ -16,8 +16,8 @@ use crate::spawn::SpawnGroupData;
 use crate::world::Difficulty;
 use crate::{BlockPos, BlockStateId};
 
-pub const DATA_BOOST_TIME: u8 = 17;
-pub const DATA_SUFFOCATING: u8 = 18;
+pub const DATA_BOOST_TIME: u8 = 18;
+pub const DATA_SUFFOCATING: u8 = 19;
 pub const SUFFOCATING_MODIFIER: &str = "minecraft:suffocating";
 pub const SUFFOCATING_AMOUNT: f64 = -0.34;
 pub const GUARANTEED_DROP: f32 = 2.0;

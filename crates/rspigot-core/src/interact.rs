@@ -365,6 +365,9 @@ impl<L: ClientLink> Server<L> {
                 && !self.players.get(&id).is_some_and(|p| p.sneaking)
                 && self.kind_of(target) != Some(Kind::CopperGolem)
             {
+                if self.equine_shear_body_armor(id, target, hand) {
+                    return Interaction::Predicted;
+                }
                 let saddled = self
                     .entities
                     .store

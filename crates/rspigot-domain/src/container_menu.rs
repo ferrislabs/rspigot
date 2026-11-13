@@ -2986,6 +2986,77 @@ mod tests {
         place_in(kind, &mut container, &mut player, &mut menu, slot, item)
     }
 
+    const DONKEY_MENU: MenuKind = MenuKind::Mount {
+        columns: 5,
+        saddle: true,
+        armor: false,
+    };
+
+    #[test]
+    fn the_mount_menu_holds_a_saddle_slot_a_body_armor_slot_and_three_rows_of_chest_slots() {
+        assert_eq!(DONKEY_MENU.container_size(), 17);
+        assert_eq!(DONKEY_MENU.slot_count(), 17 + 36);
+        let bare = MenuKind::Mount {
+            columns: 0,
+            saddle: true,
+            armor: true,
+        };
+        assert_eq!(bare.container_size(), 2);
+        assert!(accepts_at(bare, 0, stack("minecraft:saddle", 1)));
+        assert!(!accepts_at(bare, 0, stack("minecraft:iron_horse_armor", 1)));
+        assert!(accepts_at(bare, 1, stack("minecraft:iron_horse_armor", 1)));
+        assert!(!accepts_at(bare, 1, stack("minecraft:saddle", 1)));
+        assert!(accepts_at(DONKEY_MENU, 2, stack("minecraft:apple", 1)));
+        assert!(!accepts_at(
+            DONKEY_MENU,
+            1,
+            stack("minecraft:iron_horse_armor", 1)
+        ));
+    }
+
+    #[test]
+    fn a_saddle_shift_clicked_from_the_inventory_goes_to_the_saddle_slot_and_other_items_to_the_chest()
+     {
+        let (mut menu, mut container, mut player) = workstation(DONKEY_MENU);
+        player.set(MAIN_START, Some(stack("minecraft:saddle", 1)));
+        player.set(MAIN_START + 1, Some(stack("minecraft:apple", 5)));
+        let size = DONKEY_MENU.container_size();
+        let (_, _) = menu.quick_move_once(&mut container, &mut player, size, Clicker::default());
+        assert_eq!(container[0], Some(stack("minecraft:saddle", 1)));
+        menu.quick_move_once(&mut container, &mut player, size + 1, Clicker::default());
+        assert_eq!(container[2], Some(stack("minecraft:apple", 5)));
+        assert!(player.get(MAIN_START + 1).is_none());
+        menu.quick_move_once(&mut container, &mut player, 2, Clicker::default());
+        assert!(container[2].is_none());
+        assert_eq!(
+            player.get(HOTBAR_START + HOTBAR_SLOTS - 1),
+            Some(&stack("minecraft:apple", 5))
+        );
+    }
+
+    #[test]
+    fn the_mount_saddle_and_armor_slots_hold_one_item() {
+        let (mut menu, mut container, mut player) = workstation(DONKEY_MENU);
+        player.set(MAIN_START, Some(stack("minecraft:saddle", 1)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            17,
+            0,
+            ClickInput::Pickup,
+        );
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(container[0], Some(stack("minecraft:saddle", 1)));
+    }
+
     #[test]
     fn the_station_menu_ids_match_the_registry() {
         let registry = |name: &str| {
