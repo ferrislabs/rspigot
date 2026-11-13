@@ -283,16 +283,28 @@ impl MerchantOffers {
         buy_b: Option<&ItemStack>,
         index: usize,
     ) -> Option<&MerchantOffer> {
-        if index > 0 && index < self.offers.len() {
-            let offer = &self.offers[index];
-            if offer.satisfied_by(buy_a, buy_b) {
-                return Some(offer);
-            }
-            return None;
+        let index = i32::try_from(index).unwrap_or(i32::MAX);
+        self.recipe_index_for(buy_a, buy_b, index)
+            .map(|found| &self.offers[found])
+    }
+
+    pub fn recipe_index_for(
+        &self,
+        buy_a: Option<&ItemStack>,
+        buy_b: Option<&ItemStack>,
+        index: i32,
+    ) -> Option<usize> {
+        if let Ok(index) = usize::try_from(index)
+            && index > 0
+            && index < self.offers.len()
+        {
+            return self.offers[index]
+                .satisfied_by(buy_a, buy_b)
+                .then_some(index);
         }
         self.offers
             .iter()
-            .find(|offer| offer.satisfied_by(buy_a, buy_b))
+            .position(|offer| offer.satisfied_by(buy_a, buy_b))
     }
 
     pub fn to_nbt(&self) -> Compound {
