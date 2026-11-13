@@ -127,6 +127,7 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::SetBeacon { primary, secondary } => {
                 self.handle_set_beacon(id, primary, secondary);
             }
+            PlayerInput::SelectTrade(index) => self.select_trade(id, index),
             PlayerInput::Latency(millis) => {
                 if let Some(player) = self.players.get_mut(&id) {
                     player.latency = player.latency.wrapping_mul(3).wrapping_add(millis) / 4;
@@ -789,6 +790,7 @@ const fn acts(input: &PlayerInput) -> bool {
             | PlayerInput::ContainerClose(_)
             | PlayerInput::ContainerButtonClick { .. }
             | PlayerInput::SetBeacon { .. }
+            | PlayerInput::SelectTrade(_)
     )
 }
 

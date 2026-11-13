@@ -217,6 +217,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn villager_custom_ai_step(&mut self, id: EntityId) {
+        self.merchant_happy_tick(id);
+        if self.merchant_offers_empty(id) && self.trading_player_of(id).is_some() {
+            self.merchant_stop_trading(id);
+        }
         let now = self.world.level.game_time;
         let baby_now = self.entities.store.get(id).is_some_and(Entity::is_baby);
         let brain_baby = self
@@ -257,7 +261,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn villager_interact(
         &mut self,
-        _player: rspigot_domain::player::PlayerId,
+        player: rspigot_domain::player::PlayerId,
         target: EntityId,
         hand: crate::events::Hand,
         held: Option<&ItemStack>,
@@ -274,15 +278,17 @@ impl<L: ClientLink> Server<L> {
         }
         if entity.is_baby() {
             self.villager_unhappy(target);
-            return Some(Interaction::Consume);
+            return Some(Interaction::Predicted);
         }
-        let empty = merchant_of(entity)
-            .and_then(|merchant| merchant.offers.as_ref())
-            .is_none_or(|offers| offers.is_empty());
+        let empty = self.merchant_offers_empty_after_generation(target);
         if empty && hand == crate::events::Hand::Main {
             self.villager_unhappy(target);
         }
-        Some(Interaction::Consume)
+        if empty {
+            return Some(Interaction::Consume);
+        }
+        self.begin_trading(player, target);
+        Some(Interaction::Predicted)
     }
 
     pub(crate) fn villager_unhappy(&mut self, id: EntityId) {
@@ -331,9 +337,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn villager_stop_trading(&mut self, id: EntityId) {
-        if let Some(entity) = self.entities.store.get_mut(id) {
-            with_villager(entity, |_, _, merchant| merchant.trading_player = None);
-        }
+        self.merchant_stop_trading(id);
     }
 
     fn villager_tell_witnesses(&mut self, id: EntityId, murderer: EntityId) {
@@ -495,14 +499,34 @@ impl<L: ClientLink> Server<L> {
     fn villager_restock(&mut self, id: EntityId) {
         let now = self.world.level.game_time;
         let day = self.world.level.day_time.div_euclid(OVERWORLD_DAY);
+        let before = self.offer_uses(id);
+        let mut check = None;
         if let Some(entity) = self.entities.store.get_mut(id) {
             with_villager(entity, |_, state, merchant| {
-                if let Some(offers) = merchant.offers.as_mut()
-                    && state.should_restock(offers, now, day).restock
-                {
-                    state.restock(offers, now);
+                if let Some(offers) = merchant.offers.as_mut() {
+                    check = Some(state.should_restock(offers, now, day));
                 }
             });
+        }
+        let Some(check) = check else {
+            return;
+        };
+        if check.caught_up {
+            self.replenish_all(id, &before);
+        }
+        if check.restock {
+            let before = self.offer_uses(id);
+            if let Some(entity) = self.entities.store.get_mut(id) {
+                with_villager(entity, |_, state, merchant| {
+                    if let Some(offers) = merchant.offers.as_mut() {
+                        state.restock(offers, now);
+                    }
+                });
+            }
+            self.replenish_all(id, &before);
+        }
+        if check.restock || check.caught_up {
+            self.refresh_trading_prices(id);
         }
     }
 

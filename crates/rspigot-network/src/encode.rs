@@ -17,6 +17,7 @@ use rspigot_domain::chunk::{
 use rspigot_domain::dye::dye_color_id;
 use rspigot_domain::effect::{AttributeOperation, AttributeState, EffectInstance};
 use rspigot_domain::entity::save::component_from_tag;
+use rspigot_domain::entity::trading::{ItemCost, MerchantOffer};
 use rspigot_domain::item::{CUSTOM_NAME, ENCHANTMENTS, ItemStack, LORE, MAX_LORE_LINES, Slot};
 use rspigot_domain::particle::ParticleData;
 use rspigot_domain::player::GameMode as DomainGameMode;
@@ -337,6 +338,33 @@ fn component_value(name: &str, value: &rspigot_nbt::Tag) -> Option<ComponentValu
         type_id: component_type(name)?,
         data,
     })
+}
+
+fn trade_cost(cost: &ItemCost) -> cb::TradeCost {
+    cb::TradeCost {
+        item: i32::from(cost.item.0),
+        count: cost.count,
+        components: cost
+            .components
+            .iter()
+            .filter_map(|(name, value)| component_value(name, value))
+            .collect(),
+    }
+}
+
+fn trade_offer(offer: &MerchantOffer) -> cb::TradeOffer {
+    cb::TradeOffer {
+        cost_a: trade_cost(&offer.cost_a),
+        result: stack(&Some(offer.result.clone())),
+        cost_b: offer.cost_b.as_ref().map(trade_cost),
+        out_of_stock: offer.is_out_of_stock(),
+        uses: offer.uses,
+        max_uses: offer.max_uses,
+        xp: offer.xp,
+        special_price: offer.special_price_diff,
+        price_multiplier: offer.price_multiplier,
+        demand: offer.demand,
+    }
 }
 
 pub fn stack(slot: &Slot) -> WireStack {
@@ -1384,6 +1412,24 @@ impl Encoder {
                     title: text(title),
                 },
             ),
+            ClientEvent::MerchantOffers {
+                window,
+                offers,
+                level,
+                xp,
+                show_progress,
+                can_restock,
+            } => Self::queue(
+                writer,
+                &cb::MerchantOffers {
+                    container_id: *window,
+                    offers: offers.iter().map(trade_offer).collect(),
+                    level: *level,
+                    xp: *xp,
+                    show_progress: *show_progress,
+                    can_restock: *can_restock,
+                },
+            ),
             ClientEvent::ContainerContent {
                 window,
                 state_id,
@@ -2015,6 +2061,53 @@ mod tests {
         assert_eq!(packets.len(), 1);
         assert_eq!(packets[0].0, id::BLOCK_EVENT);
         assert_eq!(&packets[0].1[8..], &[1, 2, 130, 1]);
+    }
+
+    #[test]
+    fn merchant_offers_carry_the_base_costs_the_stock_and_the_price_state() {
+        use rspigot_domain::ItemId;
+        use rspigot_domain::entity::trading::{ItemCost, MerchantOffer};
+        let mut water = ItemCost::new(ItemId(5), 1);
+        water.components.insert(
+            "minecraft:potion_contents",
+            rspigot_nbt::Compound::new().with("potion", "minecraft:water"),
+        );
+        let mut offer = MerchantOffer::new(
+            water,
+            Some(ItemCost::new(ItemId(6), 2)),
+            ItemStack::new(ItemId(7), std::num::NonZeroU8::new(3).unwrap()),
+            12,
+            5,
+            0.5,
+        );
+        offer.uses = 12;
+        offer.special_price_diff = -2;
+        offer.demand = 7;
+        let packets = encode(ClientEvent::MerchantOffers {
+            window: 4,
+            offers: vec![offer],
+            level: 3,
+            xp: 99,
+            show_progress: true,
+            can_restock: false,
+        });
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].0, id::MERCHANT_OFFERS);
+        let body = &packets[0].1;
+        let potion_contents = rspigot_data::registries::static_index(
+            "minecraft:data_component_type",
+            "minecraft:potion_contents",
+        )
+        .unwrap() as u8;
+        assert_eq!(&body[..6], &[4, 1, 5, 1, 1, potion_contents]);
+        let tail = &body[body.len() - 31..];
+        assert_eq!(
+            tail,
+            &[
+                2, 0, 1, 0, 0, 0, 12, 0, 0, 0, 12, 0, 0, 0, 5, 0xFF, 0xFF, 0xFF, 0xFE, 0x3F, 0, 0,
+                0, 0, 0, 0, 7, 3, 99, 1, 0
+            ]
+        );
     }
 
     #[test]

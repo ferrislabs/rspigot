@@ -115,6 +115,26 @@ impl Profession {
         }
     }
 
+    pub const fn title_key(self) -> &'static str {
+        match self {
+            Self::None => "entity.minecraft.villager.none",
+            Self::Armorer => "entity.minecraft.villager.armorer",
+            Self::Butcher => "entity.minecraft.villager.butcher",
+            Self::Cartographer => "entity.minecraft.villager.cartographer",
+            Self::Cleric => "entity.minecraft.villager.cleric",
+            Self::Farmer => "entity.minecraft.villager.farmer",
+            Self::Fisherman => "entity.minecraft.villager.fisherman",
+            Self::Fletcher => "entity.minecraft.villager.fletcher",
+            Self::Leatherworker => "entity.minecraft.villager.leatherworker",
+            Self::Librarian => "entity.minecraft.villager.librarian",
+            Self::Mason => "entity.minecraft.villager.mason",
+            Self::Nitwit => "entity.minecraft.villager.nitwit",
+            Self::Shepherd => "entity.minecraft.villager.shepherd",
+            Self::Toolsmith => "entity.minecraft.villager.toolsmith",
+            Self::Weaponsmith => "entity.minecraft.villager.weaponsmith",
+        }
+    }
+
     pub const fn job_site(self) -> Option<PoiType> {
         match self {
             Self::Armorer => Some(PoiType::Armorer),

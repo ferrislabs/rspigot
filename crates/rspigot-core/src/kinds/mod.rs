@@ -259,6 +259,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin) => self.piglin_interact(player, target, hand, held),
             Some(Kind::Armadillo) => self.armadillo_interact(player, target, hand, held),
             Some(Kind::Villager) => self.villager_interact(player, target, hand, held),
+            Some(Kind::WanderingTrader) => self.trader_interact(player, target, hand, held),
             _ => None,
         }
     }

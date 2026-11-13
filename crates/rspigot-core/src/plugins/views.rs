@@ -265,7 +265,9 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn describe_open(&self, id: PlayerId, open: &OpenMenu) -> Option<Described> {
         let player = self.snapshot_of(id)?;
         let kind = TopType::of(open);
-        let owner = if open.backing.ender {
+        let owner = if let Some(trader) = open.trader {
+            InventoryOwner::Entity(trader)
+        } else if open.backing.ender {
             InventoryOwner::Player(id)
         } else {
             InventoryOwner::Block(open.backing.pos)

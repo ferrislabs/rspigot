@@ -251,6 +251,7 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             window: p.container_id,
             button: p.button_id,
         }),
+        ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -292,6 +293,11 @@ mod tests {
                 carried: HashedSlot::EMPTY,
             })
         );
+    }
+
+    #[test]
+    fn selecting_a_trade_carries_its_index() {
+        assert_eq!(decoded(sb::SELECT_TRADE, &[2]), PlayerInput::SelectTrade(2));
     }
 
     #[test]
