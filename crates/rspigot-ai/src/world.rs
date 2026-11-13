@@ -219,6 +219,10 @@ pub trait AiWorld: BlockView {
         false
     }
 
+    fn dark_outside(&self) -> bool {
+        false
+    }
+
     fn mob_griefing(&self) -> bool {
         true
     }

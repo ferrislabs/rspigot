@@ -32,7 +32,7 @@ pub use social::{
     ResetRaidStatus, RingBell, SetHiddenState, SetRaidStatus, SocializeAtBell, TradeWithVillager,
     VillagerCalmDown, VillagerMakeLove, VillagerPanicTrigger,
 };
-pub use trader::{TraderFacts, TraderGoal};
+pub use trader::{TraderFacts, TraderGoal, TraderItem};
 pub use work::{
     GiveGiftToHero, HarvestFarmland, ShowTradesToPlayer, UseBonemeal, WorkAtPoi, Workstation,
 };

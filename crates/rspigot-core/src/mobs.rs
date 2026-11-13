@@ -663,6 +663,10 @@ impl AiWorld for MobWorld<'_> {
         self.has_day_cycle && self.sky_darken < BRIGHT_SKY_DARKEN
     }
 
+    fn dark_outside(&self) -> bool {
+        self.has_day_cycle && self.sky_darken >= BRIGHT_SKY_DARKEN
+    }
+
     fn villager_reputation(&self, villager: EntityId, player: EntityId) -> i32 {
         let Some(uuid) = self
             .players

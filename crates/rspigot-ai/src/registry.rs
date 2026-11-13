@@ -152,6 +152,8 @@ const TRADER_AVOIDS: [(&str, f32); 7] = [
     ("Illusioner", 12.0),
     ("Zoglin", 10.0),
 ];
+const TRADER_DISAPPEARED: &str = "minecraft:entity.wandering_trader.disappeared";
+const TRADER_REAPPEARED: &str = "minecraft:entity.wandering_trader.reappeared";
 const TRADER_AVOID_SPEED: f64 = 0.5;
 const TRADER_PANIC_SPEED: f64 = 0.5;
 const TRADER_WANDER_SPEED: f64 = 0.35;
@@ -450,6 +452,24 @@ pub fn register_goals(
         EntityKind::Silverfish => silverfish::register(&mut add, kind),
         EntityKind::WanderingTrader => {
             add.float(0);
+            add.goal(
+                0,
+                MobGoal::Trader(crate::villager::TraderGoal::use_item(
+                    crate::villager::TraderItem::InvisibilityPotion,
+                    TRADER_DISAPPEARED,
+                )),
+            );
+            add.goal(
+                0,
+                MobGoal::Trader(crate::villager::TraderGoal::use_item(
+                    crate::villager::TraderItem::MilkBucket,
+                    TRADER_REAPPEARED,
+                )),
+            );
+            add.goal(
+                1,
+                MobGoal::Trader(crate::villager::TraderGoal::trade_with_player()),
+            );
             for (class, distance) in TRADER_AVOIDS {
                 add.goal(
                     1,
@@ -462,6 +482,10 @@ pub fn register_goals(
                 );
             }
             add.goal(1, MobGoal::Panic(PanicGoal::new(TRADER_PANIC_SPEED)));
+            add.goal(
+                1,
+                MobGoal::Trader(crate::villager::TraderGoal::look_at_trading_player()),
+            );
             add.goal(
                 2,
                 MobGoal::Trader(crate::villager::TraderGoal::wander_to_position(

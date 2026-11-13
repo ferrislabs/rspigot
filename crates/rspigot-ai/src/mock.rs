@@ -22,6 +22,7 @@ pub(crate) struct Mock {
     pub wanting: Vec<Living>,
     pub reputation: HashMap<(EntityId, EntityId), i32>,
     pub bright: bool,
+    pub dark: bool,
     pub universal_anger: bool,
     pub blocks: HashMap<BlockPos, StateId>,
     pub peaceful: bool,
@@ -79,6 +80,10 @@ impl AiWorld for Mock {
 
     fn bright_outside(&self) -> bool {
         self.bright
+    }
+
+    fn dark_outside(&self) -> bool {
+        self.dark
     }
 
     fn universal_anger(&self) -> bool {

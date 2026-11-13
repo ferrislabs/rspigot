@@ -163,4 +163,6 @@ pub enum VillagerAction {
         slot: usize,
     },
     ClearWanderTarget,
+    StopTrading,
+    StartUsing(crate::villager::TraderItem),
 }

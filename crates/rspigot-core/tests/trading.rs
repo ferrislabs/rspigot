@@ -305,3 +305,49 @@ fn a_wandering_trader_offers_nine_trades_without_a_progress_bar() {
     assert!(!offers.restock);
     assert_eq!(recipes(&s, trader), 9);
 }
+
+fn effects_of(s: &Scene, id: EntityId) -> Vec<String> {
+    saved(s, id)
+        .get_list("active_effects")
+        .map(|list| {
+            list.iter()
+                .filter_map(|effect| effect.as_compound())
+                .filter_map(|effect| effect.get_str("id").map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[test]
+fn a_wandering_trader_drinks_invisibility_at_night_and_milk_once_the_sun_is_up() {
+    let mut s = ready();
+    console(&mut s, "time set 18000");
+    let trader = summon(&mut s, Kind::WanderingTrader, "5.5 64 5.5", "{}");
+    s.tick(80);
+    assert!(
+        effects_of(&s, trader)
+            .iter()
+            .any(|effect| effect == "minecraft:invisibility"),
+        "{:?}",
+        saved(&s, trader)
+    );
+    console(&mut s, "time set 1000");
+    s.tick(80);
+    assert!(effects_of(&s, trader).is_empty());
+}
+
+#[test]
+fn a_trader_that_is_trading_stops_walking_and_lets_go_when_the_player_steps_away() {
+    let mut s = ready();
+    let trader = summon(&mut s, Kind::WanderingTrader, "2.5 64 0.5", "{}");
+    let alice = s.players[0].clone();
+    let (mut view, _) = open_trade(&mut s, trader);
+    let here = s.server.entities_of(Kind::WanderingTrader)[0].position;
+    s.tick(20);
+    let still = s.server.entities_of(Kind::WanderingTrader)[0].position;
+    assert!((here.x - still.x).abs() < 0.5 && (here.z - still.z).abs() < 0.5);
+    console(&mut s, "tp Alice 8.5 64 0.5");
+    s.tick(3);
+    view.apply(&alice.link.take());
+    assert!(!view.opened);
+}
