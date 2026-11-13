@@ -795,6 +795,7 @@ mod tests {
                 EntityKind::Shulker,
                 EntityKind::Silverfish,
                 EntityKind::Skeleton,
+                EntityKind::Sniffer,
                 EntityKind::SnowGolem,
                 EntityKind::Spider,
                 EntityKind::Stray,

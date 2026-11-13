@@ -204,6 +204,12 @@ impl<L: ClientLink> Server<L> {
             }
             return;
         }
+        if kind == BlockKind::SnifferEgg {
+            if let Some(delay) = self.sniffer_egg_placed(pos, state) {
+                self.schedule(pos, kind, delay);
+            }
+            return;
+        }
         match kind.gravity() {
             Gravity::Falling | Gravity::ConcretePowder | Gravity::Anvil => {
                 self.schedule(pos, kind, FALLING_DELAY)
@@ -330,6 +336,10 @@ impl<L: ClientLink> Server<L> {
     fn block_tick(&mut self, pos: BlockPos, state: BlockStateId, kind: BlockKind) {
         if kind == BlockKind::Composter {
             self.composter_ready(pos, state);
+            return;
+        }
+        if kind == BlockKind::SnifferEgg {
+            self.sniffer_egg_tick(pos, state);
             return;
         }
         match kind.gravity() {

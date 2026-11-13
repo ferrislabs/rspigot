@@ -130,6 +130,7 @@ impl<L: ClientLink> Server<L> {
             } => self.entity_sound(id, sound, volume, pitch),
             MobAction::Goat(action) => self.goat_action(id, action),
             MobAction::Armadillo(action) => self.armadillo_action(id, action),
+            MobAction::Sniffer(action) => self.sniffer_action(id, action),
             MobAction::Breeze(action) => self.breeze_action(id, action),
             MobAction::Creaking(action) => self.creaking_action(id, action),
             MobAction::CopperGolem(action) => self.copper_golem_action(id, action),
@@ -453,6 +454,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn spawn_child_from_breeding(&mut self, parent: EntityId, partner: EntityId) {
+        if self.kind_of(parent) == Some(Kind::Sniffer) {
+            self.sniffer_lay_egg(parent, partner);
+            return;
+        }
         let mut random = self.mob_random(parent);
         let Some(mut child) = self.breed_offspring(parent, partner, &mut random) else {
             self.store_mob_random(parent, random);

@@ -1440,6 +1440,14 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     if let Some(Species::Armadillo(armadillo)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         species::armadillo::switch_to_state(base, armadillo, body.armadillo.state);
     }
+    if base.kind == Kind::Sniffer {
+        let baby = state
+            .mob
+            .as_ref()
+            .and_then(|mob| mob.ageable.as_ref())
+            .is_some_and(|ageable| ageable::is_baby(base, ageable));
+        species::sniffer::set_state(base, baby, body.sniffer.state);
+    }
     state.discard_friction = body.discard_friction;
     if body.pose != mob.pose {
         base.set_pose(body.pose);

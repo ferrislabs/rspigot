@@ -101,6 +101,7 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
             crate::kinds::GoatSound::Ambient,
         )),
         Kind::Armadillo => crate::kinds::armadillo_ambient_sound(entity),
+        Kind::Sniffer => crate::kinds::sniffer_ambient_sound(entity),
         _ => None,
     }
 }
