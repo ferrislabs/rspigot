@@ -53,6 +53,10 @@ pub fn sniffer_sensors() -> Vec<SensorKind> {
     ]
 }
 
+pub fn can_mate_in_states(kind: EntityKind, own: State, other: u8) -> bool {
+    kind != EntityKind::Sniffer || (own.can_mate() && State::from_id(i32::from(other)).can_mate())
+}
+
 pub fn is_tempted(memories: &Memories) -> bool {
     memories.has_value(MemoryModuleType::TemptingPlayer)
 }
