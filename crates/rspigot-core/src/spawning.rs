@@ -53,6 +53,7 @@ pub(crate) struct Spawning {
     sky_darken: i32,
     players: Vec<SpawnPlayer>,
     pub(crate) patrol_next_tick: i32,
+    pub(crate) phantom: crate::phantom_spawner::PhantomSpawner,
     pub(crate) trader: crate::trader_spawner::TraderSpawner,
 }
 
@@ -68,6 +69,7 @@ impl Spawning {
             sky_darken: 0,
             players: Vec::new(),
             patrol_next_tick: 0,
+            phantom: crate::phantom_spawner::PhantomSpawner::default(),
             trader: crate::trader_spawner::TraderSpawner::default(),
         }
     }
@@ -763,6 +765,7 @@ mod tests {
             spawning,
             vec![
                 EntityKind::Armadillo,
+                EntityKind::Bat,
                 EntityKind::Blaze,
                 EntityKind::Bogged,
                 EntityKind::Breeze,
@@ -786,6 +789,8 @@ mod tests {
                 EntityKind::Ocelot,
                 EntityKind::Panda,
                 EntityKind::Parched,
+                EntityKind::Parrot,
+                EntityKind::Phantom,
                 EntityKind::Pig,
                 EntityKind::Piglin,
                 EntityKind::PiglinBrute,
@@ -800,6 +805,7 @@ mod tests {
                 EntityKind::SnowGolem,
                 EntityKind::Spider,
                 EntityKind::Stray,
+                EntityKind::Vex,
                 EntityKind::Villager,
                 EntityKind::WanderingTrader,
                 EntityKind::Warden,

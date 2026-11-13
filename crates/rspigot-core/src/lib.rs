@@ -50,6 +50,7 @@ mod mob_life;
 pub mod mobs;
 mod patrol;
 mod persistence;
+mod phantom_spawner;
 pub mod player;
 pub mod player_data;
 mod player_io;

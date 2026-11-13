@@ -58,12 +58,12 @@ pub(crate) fn distance_xz(from: BlockPos, to: BlockPos) -> f32 {
 const HORIZONTAL: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
 pub(crate) struct Walker<'a, V> {
-    view: &'a V,
-    profile: &'a MobProfile,
-    mob: MobState,
-    width: i32,
-    height: i32,
-    min_y: i32,
+    pub(crate) view: &'a V,
+    pub(crate) profile: &'a MobProfile,
+    pub(crate) mob: MobState,
+    pub(crate) width: i32,
+    pub(crate) height: i32,
+    pub(crate) min_y: i32,
     pub(crate) nodes: Vec<Node>,
     index: HashMap<BlockPos, usize>,
     block_types: HashMap<BlockPos, PathType>,
@@ -87,7 +87,7 @@ impl<'a, V: BlockView> Walker<'a, V> {
         }
     }
 
-    fn malus(&self, kind: PathType) -> f32 {
+    pub(crate) fn malus(&self, kind: PathType) -> f32 {
         self.profile.malus(kind)
     }
 
@@ -99,7 +99,7 @@ impl<'a, V: BlockView> Walker<'a, V> {
         })
     }
 
-    fn block_type(&mut self, pos: BlockPos) -> PathType {
+    pub(crate) fn block_type(&mut self, pos: BlockPos) -> PathType {
         let view = self.view;
         *self
             .block_types
@@ -108,6 +108,9 @@ impl<'a, V: BlockView> Walker<'a, V> {
     }
 
     pub(crate) fn static_type(&mut self, pos: BlockPos) -> PathType {
+        if self.profile.flying {
+            return self.fly_type(pos);
+        }
         let kind = self.block_type(pos);
         if kind != PathType::Open || pos.y < self.min_y + 1 {
             return kind;
@@ -126,7 +129,7 @@ impl<'a, V: BlockView> Walker<'a, V> {
         }
     }
 
-    fn neighbour_type(&mut self, pos: BlockPos, fallback: PathType) -> PathType {
+    pub(crate) fn neighbour_type(&mut self, pos: BlockPos, fallback: PathType) -> PathType {
         for dx in -1..=1 {
             for dy in -1..=1 {
                 for dz in -1..=1 {
@@ -235,6 +238,9 @@ impl<'a, V: BlockView> Walker<'a, V> {
     }
 
     pub(crate) fn start(&mut self) -> usize {
+        if self.profile.flying {
+            return self.fly_start();
+        }
         let position = self.mob.position;
         let column =
             |y: i32| BlockPos::new(position.x.floor() as i32, y, position.z.floor() as i32);
@@ -282,7 +288,7 @@ impl<'a, V: BlockView> Walker<'a, V> {
         kind != PathType::Open && self.malus(kind) >= 0.0
     }
 
-    fn start_node(&mut self, pos: BlockPos) -> usize {
+    pub(crate) fn start_node(&mut self, pos: BlockPos) -> usize {
         let node = self.node(pos);
         let kind = self.mob_type(pos);
         self.nodes[node].path_type = kind;
@@ -292,6 +298,10 @@ impl<'a, V: BlockView> Walker<'a, V> {
 
     pub(crate) fn neighbors(&mut self, current: usize, out: &mut Vec<usize>) {
         out.clear();
+        if self.profile.flying {
+            self.fly_neighbors(current, out);
+            return;
+        }
         let pos = self.nodes[current].pos;
         let above = self.mob_type(pos.offset(0, 1, 0));
         let here = self.mob_type(pos);
@@ -407,7 +417,7 @@ impl<'a, V: BlockView> Walker<'a, V> {
         }
     }
 
-    fn raise_cost(&mut self, pos: BlockPos, kind: PathType, malus: f32) -> usize {
+    pub(crate) fn raise_cost(&mut self, pos: BlockPos, kind: PathType, malus: f32) -> usize {
         let index = self.node(pos);
         let node = &mut self.nodes[index];
         node.path_type = kind;

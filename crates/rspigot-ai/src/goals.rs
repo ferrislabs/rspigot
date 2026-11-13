@@ -89,6 +89,13 @@ impl ClimbOnTopOfPowderSnowGoal {
     }
 }
 
+const FLY_HORIZONTAL: i32 = 8;
+const FLY_VERTICAL: i32 = 7;
+const FLY_HOVER_MAX: i32 = 3;
+const FLY_HOVER_MIN: i32 = 1;
+const FLY_AIR_VERTICAL: i32 = 4;
+const FLY_AIR_HEIGHT: i32 = -2;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RandomStrollGoal {
     speed_modifier: f64,
@@ -96,6 +103,7 @@ pub struct RandomStrollGoal {
     force_trigger: bool,
     check_no_action_time: bool,
     water_avoiding: Option<f32>,
+    flying: bool,
     wanted: Vec3,
 }
 
@@ -107,7 +115,16 @@ impl RandomStrollGoal {
             force_trigger: false,
             check_no_action_time: true,
             water_avoiding: None,
+            flying: false,
             wanted: Vec3::ZERO,
+        }
+    }
+
+    pub fn water_avoiding_flying(speed_modifier: f64) -> Self {
+        Self {
+            water_avoiding: Some(WATER_AVOIDING_PROBABILITY),
+            flying: true,
+            ..Self::new(speed_modifier)
         }
     }
 
@@ -144,7 +161,30 @@ impl RandomStrollGoal {
         self.force_trigger = true;
     }
 
-    fn position<W: AiWorld>(&self, context: &mut AiContext<'_, W>) -> Option<Vec3> {
+    pub(crate) fn position<W: AiWorld>(&self, context: &mut AiContext<'_, W>) -> Option<Vec3> {
+        if self.flying {
+            let view = rspigot_domain::mth::view_vector(context.mob.pitch, context.mob.head_yaw);
+            let direction = (view.x, view.z);
+            return random_pos::hover_pos(
+                context,
+                FLY_HORIZONTAL,
+                FLY_VERTICAL,
+                direction,
+                random_pos::HALF_PI,
+                FLY_HOVER_MAX,
+                FLY_HOVER_MIN,
+            )
+            .or_else(|| {
+                random_pos::air_and_water_pos(
+                    context,
+                    FLY_HORIZONTAL,
+                    FLY_AIR_VERTICAL,
+                    FLY_AIR_HEIGHT,
+                    direction,
+                    random_pos::HALF_PI,
+                )
+            });
+        }
         let Some(probability) = self.water_avoiding else {
             return random_pos::default_pos(context, 10, 7);
         };
@@ -850,6 +890,7 @@ pub enum MobGoal {
     Crossbow(crate::crossbow::CrossbowGoal),
     WitchTarget(crate::raider::NearestAttackableWitchTargetGoal),
     Trader(crate::villager::TraderGoal),
+    Air(crate::air::AirGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -900,6 +941,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Trader(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Air(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -950,6 +992,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::can_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_use(goal, context),
             Self::Trader(goal) => Goal::can_use(goal, context),
+            Self::Air(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -999,6 +1042,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::can_continue_to_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_continue_to_use(goal, context),
             Self::Trader(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Air(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
 
@@ -1013,6 +1057,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Air(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
@@ -1068,6 +1113,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::start(goal, context),
             Self::WitchTarget(goal) => Goal::start(goal, context),
             Self::Trader(goal) => Goal::start(goal, context),
+            Self::Air(goal) => Goal::start(goal, context),
         }
     }
 
@@ -1118,6 +1164,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::stop(goal, context),
             Self::WitchTarget(goal) => Goal::stop(goal, context),
             Self::Trader(goal) => Goal::stop(goal, context),
+            Self::Air(goal) => Goal::stop(goal, context),
         }
     }
 
@@ -1132,6 +1179,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Air(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
@@ -1158,6 +1206,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::WitchTarget(goal) => Goal::tick(goal, context),
             Self::BlazeAttack(goal) => Goal::tick(goal, context),
             Self::Trader(goal) => Goal::tick(goal, context),
+            Self::Air(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
         }
     }
@@ -1220,6 +1269,7 @@ impl MobGoal {
             | Self::Crossbow(_)
             | Self::WitchTarget(_)
             | Self::Trader(_)
+            | Self::Air(_)
             | Self::Wolf(_)
             | Self::Cat(_)
             | Self::Fox(_)

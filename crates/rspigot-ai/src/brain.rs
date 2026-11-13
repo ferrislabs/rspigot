@@ -49,6 +49,8 @@ pub struct Brain {
     pub repellent: Option<BlockPos>,
     pub creaking: crate::CreakingState,
     pub warden: crate::WardenState,
+    pub target_position: Option<Vec3>,
+    pub phantom: crate::PhantomBrain,
     follow_range: f64,
 }
 
@@ -108,6 +110,12 @@ impl Brain {
             profile.set_malus(PathType::DamagingInNeighbor, 16.0);
             profile.set_malus(PathType::Fire, -1.0);
         }
+        if kind == EntityKind::Parrot {
+            profile = profile.flying(true);
+            profile.set_malus(PathType::FireInNeighbor, -1.0);
+            profile.set_malus(PathType::Fire, -1.0);
+            profile.set_malus(PathType::Cocoa, -1.0);
+        }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
             profile.set_malus(PathType::Lava, 8.0);
@@ -135,6 +143,8 @@ impl Brain {
             repellent: None,
             creaking: crate::CreakingState::default(),
             warden: crate::WardenState::default(),
+            target_position: None,
+            phantom: crate::PhantomBrain::default(),
             follow_range,
         };
         if kind == EntityKind::Warden {
@@ -142,6 +152,9 @@ impl Brain {
         }
         if kind == EntityKind::Rabbit {
             brain.enable_hop();
+        }
+        if kind == EntityKind::Parrot {
+            brain.movement.set_flying(10, false);
         }
         if kind == EntityKind::Villager {
             brain
@@ -941,6 +954,13 @@ impl MobAi {
             mob
         };
         self.brain.fox = mob.species.fox;
+        if mob.kind == EntityKind::Vex {
+            self.brain.target_position = self
+                .brain
+                .target
+                .and_then(|id| world.living(id))
+                .map(|living| living.position);
+        }
         self.update_creaking_home(mob);
         self.brain.look.set_max_head_x_rot(mob.max_head_x_rot());
         if mob.kind == EntityKind::Shulker {
@@ -1046,6 +1066,15 @@ impl MobAi {
                         .movement
                         .tick_ghast(base, living, view, &mut brain.random);
                 }
+                MoveStyle::Flying => brain.movement.tick_flying(base, living),
+                MoveStyle::Phantom => {
+                    let target = brain.phantom.move_target;
+                    brain.movement.tick_phantom(base, living, target);
+                }
+                MoveStyle::Vex => {
+                    let target = brain.target_position;
+                    brain.movement.tick_vex(base, living, target);
+                }
             }
         }
         let navigating = brain.navigation.is_in_progress();
@@ -1055,7 +1084,7 @@ impl MobAi {
         }
         if base.kind == EntityKind::Fox {
             crate::fox::tick_look(&mut brain.look, base, living, navigating);
-        } else {
+        } else if base.kind != EntityKind::Phantom {
             brain.look.tick(base, living, navigating);
         }
         if brain.hop.is_some() {
@@ -1088,6 +1117,11 @@ impl MobAi {
         if base.kind == EntityKind::Shulker
             || (base.kind == EntityKind::Creaking && !self.brain.creaking.can_move)
         {
+            return;
+        }
+        if base.kind == EntityKind::Phantom {
+            base.head_yaw = living.body_yaw;
+            living.body_yaw = base.yaw;
             return;
         }
         self.brain.body.client_tick(base, living);

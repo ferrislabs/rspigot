@@ -1,6 +1,7 @@
 use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 
+use crate::air::AirGoal;
 use crate::animal::{BreedGoal, EatBlockGoal, FollowParentGoal, PanicGoal};
 use crate::blaze::BlazeAttackGoal;
 use crate::blocks::{MoveThroughVillageGoal, RemoveTurtleEggGoal};
@@ -49,6 +50,15 @@ const PILLAGER_CROSSBOW_RADIUS: f32 = 8.0;
 const PILLAGER_STROLL_SPEED: f64 = 0.6;
 const PILLAGER_LOOK_DISTANCE: f32 = 15.0;
 const PILLAGER_IGNORED_DAMAGE: &[&str] = &["Raider"];
+const PARROT_PANIC_SPEED: f64 = 1.25;
+const PARROT_LOOK_DISTANCE: f32 = 8.0;
+const PARROT_FOLLOW_START: f32 = 5.0;
+const PARROT_FOLLOW_STOP: f32 = 1.0;
+const PARROT_FOLLOW_MOB_STOP: f32 = 3.0;
+const PARROT_FOLLOW_MOB_AREA: f32 = 7.0;
+const VEX_LOOK_DISTANCE: f32 = 3.0;
+const VEX_MOB_LOOK_DISTANCE: f32 = 8.0;
+const VEX_IGNORED_DAMAGE: &[&str] = &["Raider"];
 const SHULKER_LOOK_DISTANCE: f32 = 8.0;
 const SHULKER_LOOK_PROBABILITY: f32 = 0.02;
 const SHULKER_IGNORED_DAMAGE: &[&str] = &["Shulker"];
@@ -626,6 +636,99 @@ pub fn register_goals(
                 MobGoal::WitchTarget(NearestAttackableWitchTargetGoal::default()),
             );
         }
+        EntityKind::Parrot => {
+            add.goal(0, MobGoal::Panic(PanicGoal::new(PARROT_PANIC_SPEED)));
+            add.float(0);
+            add.look(1, PARROT_LOOK_DISTANCE);
+            add.goal(
+                2,
+                MobGoal::SitWhenOrdered(crate::tame::SitWhenOrderedToGoal),
+            );
+            add.goal(
+                2,
+                MobGoal::FollowOwner(crate::tame::FollowOwnerGoal::new(
+                    1.0,
+                    PARROT_FOLLOW_START,
+                    PARROT_FOLLOW_STOP,
+                )),
+            );
+            add.goal(
+                2,
+                MobGoal::Air(AirGoal::ParrotWander(crate::parrot::WanderGoal::new(1.0))),
+            );
+            add.goal(
+                3,
+                MobGoal::Air(AirGoal::FollowMob(crate::parrot::FollowMobGoal::new(
+                    1.0,
+                    PARROT_FOLLOW_MOB_STOP,
+                    PARROT_FOLLOW_MOB_AREA,
+                ))),
+            );
+        }
+        EntityKind::Bat => add.goal(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new()))),
+        EntityKind::Phantom => {
+            add.brain.movement.set_style(MoveStyle::Phantom);
+            add.goal(
+                1,
+                MobGoal::Air(AirGoal::PhantomAttackStrategy(
+                    crate::phantom::AttackStrategyGoal::default(),
+                )),
+            );
+            add.goal(
+                2,
+                MobGoal::Air(AirGoal::PhantomSweepAttack(
+                    crate::phantom::SweepAttackGoal::default(),
+                )),
+            );
+            add.goal(
+                3,
+                MobGoal::Air(AirGoal::PhantomCircle(
+                    crate::phantom::CircleAroundAnchorGoal::new(),
+                )),
+            );
+            add.target_goal(
+                1,
+                MobGoal::Air(AirGoal::PhantomAttackPlayer(
+                    crate::phantom::AttackPlayerTargetGoal::new(),
+                )),
+            );
+        }
+        EntityKind::Vex => {
+            add.brain.movement.set_style(MoveStyle::Vex);
+            add.float(0);
+            add.goal(
+                4,
+                MobGoal::Air(AirGoal::VexCharge(crate::vex::ChargeAttackGoal)),
+            );
+            add.goal(
+                8,
+                MobGoal::Air(AirGoal::VexRandomMove(crate::vex::RandomMoveGoal)),
+            );
+            add.goal(
+                9,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::with_probability(VEX_LOOK_DISTANCE, 1.0)),
+            );
+            add.goal(
+                10,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(VEX_MOB_LOOK_DISTANCE)),
+            );
+            add.target_goal(
+                1,
+                MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(
+                    VEX_IGNORED_DAMAGE,
+                )),
+            );
+            add.target_goal(
+                2,
+                MobGoal::Air(AirGoal::VexCopyOwnerTarget(
+                    crate::vex::CopyOwnerTargetGoal::new(),
+                )),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+        }
         EntityKind::Pillager => {
             raider::register(&mut add);
             add.float(0);
@@ -873,6 +976,147 @@ mod tests {
         assert_eq!(profile.malus(crate::PathType::Fire), 0.0);
         assert_eq!(profile.malus(crate::PathType::FireInNeighbor), 0.0);
         assert_eq!(ai.brain().movement.style(), MoveStyle::Ground);
+    }
+
+    #[test]
+    fn the_parrot_registers_the_vanilla_goals_and_flies_with_a_flying_navigation() {
+        let (goals, targets) = lists(EntityKind::Parrot);
+        assert_eq!(
+            goals,
+            vec![
+                (0, MobGoal::Panic(PanicGoal::new(1.25))),
+                (0, MobGoal::Float(FloatGoal)),
+                (1, MobGoal::LookAtPlayer(LookAtPlayerGoal::new(8.0))),
+                (
+                    2,
+                    MobGoal::SitWhenOrdered(crate::tame::SitWhenOrderedToGoal)
+                ),
+                (
+                    2,
+                    MobGoal::FollowOwner(crate::tame::FollowOwnerGoal::new(1.0, 5.0, 1.0))
+                ),
+                (
+                    2,
+                    MobGoal::Air(AirGoal::ParrotWander(crate::parrot::WanderGoal::new(1.0)))
+                ),
+                (
+                    3,
+                    MobGoal::Air(AirGoal::FollowMob(crate::parrot::FollowMobGoal::new(
+                        1.0, 3.0, 7.0
+                    )))
+                ),
+            ]
+        );
+        assert!(targets.is_empty());
+        let ai = MobAi::new(EntityKind::Parrot, 1, GoalSettings::default());
+        let profile = &ai.brain().profile;
+        assert!(profile.flying && profile.can_float && !profile.can_open_doors);
+        assert_eq!(profile.malus(crate::PathType::Cocoa), -1.0);
+        assert_eq!(profile.malus(crate::PathType::Fire), -1.0);
+        assert_eq!(profile.malus(crate::PathType::FireInNeighbor), -1.0);
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Flying);
+        assert_eq!(ai.brain().movement.max_turn(), 10);
+        assert!(!ai.brain().movement.hovers_in_place());
+    }
+
+    #[test]
+    fn the_phantom_registers_the_vanilla_goals_target_and_control() {
+        let (goals, targets) = lists(EntityKind::Phantom);
+        assert_eq!(
+            goals,
+            vec![
+                (
+                    1,
+                    MobGoal::Air(AirGoal::PhantomAttackStrategy(
+                        crate::phantom::AttackStrategyGoal::default()
+                    ))
+                ),
+                (
+                    2,
+                    MobGoal::Air(AirGoal::PhantomSweepAttack(
+                        crate::phantom::SweepAttackGoal::default()
+                    ))
+                ),
+                (
+                    3,
+                    MobGoal::Air(AirGoal::PhantomCircle(
+                        crate::phantom::CircleAroundAnchorGoal::new()
+                    ))
+                ),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![(
+                1,
+                MobGoal::Air(AirGoal::PhantomAttackPlayer(
+                    crate::phantom::AttackPlayerTargetGoal::new()
+                ))
+            )]
+        );
+        let ai = MobAi::new(EntityKind::Phantom, 1, GoalSettings::default());
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Phantom);
+        assert_eq!(ai.brain().movement.phantom_speed(), 0.1);
+    }
+
+    #[test]
+    fn the_bat_runs_its_flight_and_rest_step_as_its_only_goal() {
+        let (goals, targets) = lists(EntityKind::Bat);
+        assert_eq!(
+            goals,
+            vec![(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new())))]
+        );
+        assert!(targets.is_empty());
+    }
+
+    #[test]
+    fn the_vex_registers_the_vanilla_goals_targets_and_move_control() {
+        let (goals, targets) = lists(EntityKind::Vex);
+        assert_eq!(
+            goals,
+            vec![
+                (0, MobGoal::Float(FloatGoal)),
+                (
+                    4,
+                    MobGoal::Air(AirGoal::VexCharge(crate::vex::ChargeAttackGoal))
+                ),
+                (
+                    8,
+                    MobGoal::Air(AirGoal::VexRandomMove(crate::vex::RandomMoveGoal))
+                ),
+                (
+                    9,
+                    MobGoal::LookAtPlayer(LookAtPlayerGoal::with_probability(3.0, 1.0))
+                ),
+                (10, MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(8.0))),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![
+                (
+                    1,
+                    MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(&[
+                        "Raider"
+                    ]))
+                ),
+                (
+                    2,
+                    MobGoal::Air(AirGoal::VexCopyOwnerTarget(
+                        crate::vex::CopyOwnerTargetGoal::new()
+                    ))
+                ),
+                (
+                    3,
+                    MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::new(
+                        TargetKind::Player,
+                        true
+                    ))
+                ),
+            ]
+        );
+        let ai = MobAi::new(EntityKind::Vex, 1, GoalSettings::default());
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Vex);
     }
 
     #[test]
