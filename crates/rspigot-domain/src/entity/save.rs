@@ -766,6 +766,14 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
                 species::villager::read(nbt, base, state, merchant);
             }
         }
+        Species::WanderingTrader(state) => {
+            if let Some(merchant) = mob.merchant.as_mut() {
+                species::wandering_trader::read(nbt, state, merchant);
+            }
+            if let Some(ageable) = mob.ageable.as_mut() {
+                ageable.age = ageable.age.max(0);
+            }
+        }
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -975,6 +983,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Armadillo(_) => species::armadillo::KEYS,
         Species::Creaking(_) => species::creaking::KEYS,
         Species::Villager(_) => species::villager::KEYS,
+        Species::WanderingTrader(_) => species::wandering_trader::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1413,6 +1422,11 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Villager(state) => {
             if let Some(merchant) = mob.merchant.as_deref() {
                 species::villager::write(base, state, merchant, out);
+            }
+        }
+        Species::WanderingTrader(state) => {
+            if let Some(merchant) = mob.merchant.as_deref() {
+                species::wandering_trader::write(state, merchant, out);
             }
         }
         Species::Plain | Species::Cow | Species::Pig => {}
