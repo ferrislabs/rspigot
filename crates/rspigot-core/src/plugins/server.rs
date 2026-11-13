@@ -902,6 +902,15 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::TargetBlock { mob, pos } => {
+                self.finish_transport_target(
+                    mob,
+                    pos,
+                    cancelled,
+                    patch_of!(patch, EntityTargetBlock),
+                );
+                Vec::new()
+            }
             Continuation::EntityExplode(step) => {
                 self.finish_entity_explosion(*step, cancelled, patch_of!(patch, EntityExplode));
                 Vec::new()

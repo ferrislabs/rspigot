@@ -96,6 +96,9 @@ pub(crate) fn readiness_for_shearing(entity: &Entity) -> bool {
     if entity.base.kind == Kind::SnowGolem {
         return snow_golem::has_pumpkin(&entity.base);
     }
+    if entity.base.kind == Kind::CopperGolem {
+        return super::copper_golem::ready_for_shearing(entity);
+    }
     !rspigot_domain::entity::species::is_sheared(&entity.base) && !entity.is_baby()
 }
 

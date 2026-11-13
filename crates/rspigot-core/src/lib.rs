@@ -15,6 +15,7 @@ pub mod console;
 mod containers;
 mod context;
 mod cooking;
+mod copper_statue;
 mod crops;
 mod crossbow;
 mod doors;
