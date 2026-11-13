@@ -46,6 +46,8 @@ pub const ANGER_MIN_SECONDS: i32 = 20;
 pub const ANGER_MAX_SECONDS: i32 = 39;
 pub const ROLL_DISTANCE_SQR: f64 = 4.0;
 pub const HIVE_VALIDATION_INTERVAL: i32 = 20;
+pub const STAY_IN_HIVE_FROM: i64 = 12_542;
+pub const STAY_IN_HIVE_UNTIL: i64 = 23_460;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BeeState {

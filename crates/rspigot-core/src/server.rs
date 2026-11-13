@@ -854,6 +854,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_furnaces();
         self.tick_game_events();
         self.tick_campfires();
+        self.tick_beehives();
         self.tick_inventories();
         self.tick_plugins();
         self.tick_open_menus();

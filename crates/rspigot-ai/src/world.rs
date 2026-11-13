@@ -185,6 +185,7 @@ pub struct MobBody {
     pub sniffer: crate::SnifferFacts,
     pub vex: crate::VexFacts,
     pub phantom: crate::PhantomFacts,
+    pub bee: crate::BeeFacts,
 }
 
 impl MobBody {
@@ -205,6 +206,7 @@ impl MobBody {
             sniffer: mob.species.sniffer,
             vex: mob.species.vex,
             phantom: mob.species.phantom,
+            bee: mob.species.bee,
         }
     }
 }
@@ -410,6 +412,18 @@ pub trait AiWorld: BlockView {
     fn aggressive_panda(&self, _id: EntityId) -> bool {
         false
     }
+
+    fn beehive(&self, _pos: BlockPos) -> Option<crate::HiveView> {
+        None
+    }
+
+    fn raining(&self) -> bool {
+        false
+    }
+
+    fn bees_stay_in_hive(&self, _pos: BlockPos) -> bool {
+        false
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -452,6 +466,7 @@ pub struct KindFacts {
     pub vex: crate::VexFacts,
     pub bat: crate::BatFacts,
     pub phantom: crate::PhantomFacts,
+    pub bee: crate::BeeFacts,
     pub wither: crate::WitherFacts,
     pub allay: crate::AllayFacts,
     pub villager: crate::villager::VillagerFacts,

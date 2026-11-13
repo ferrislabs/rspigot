@@ -699,6 +699,7 @@ pub fn register_goals(
                 ),
             );
         }
+        EntityKind::Bee => crate::bee::register(&mut add),
         EntityKind::Bat => add.goal(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new()))),
         EntityKind::Phantom => {
             add.brain.movement.set_style(MoveStyle::Phantom);
@@ -1058,6 +1059,86 @@ mod tests {
         assert_eq!(ai.brain().movement.style(), MoveStyle::Flying);
         assert_eq!(ai.brain().movement.max_turn(), 10);
         assert!(!ai.brain().movement.hovers_in_place());
+    }
+
+    fn bee_name(goal: &MobGoal) -> &'static str {
+        match goal {
+            MobGoal::Air(AirGoal::BeeAttack(_)) => "attack",
+            MobGoal::Air(AirGoal::BeeEnterHive(_)) => "enter_hive",
+            MobGoal::Breed(_) => "breed",
+            MobGoal::Tempt(_) => "tempt",
+            MobGoal::Air(AirGoal::BeeValidateHive(_)) => "validate_hive",
+            MobGoal::Air(AirGoal::BeeValidateFlower(_)) => "validate_flower",
+            MobGoal::Air(AirGoal::BeePollinate(_)) => "pollinate",
+            MobGoal::FollowParent(_) => "follow_parent",
+            MobGoal::Air(AirGoal::BeeLocateHive(_)) => "locate_hive",
+            MobGoal::Air(AirGoal::BeeGoToHive(_)) => "go_to_hive",
+            MobGoal::Air(AirGoal::BeeGoToKnownFlower(_)) => "go_to_flower",
+            MobGoal::Air(AirGoal::BeeGrowCrop(_)) => "grow_crop",
+            MobGoal::Air(AirGoal::BeeWander(_)) => "wander",
+            MobGoal::Float(_) => "float",
+            MobGoal::Air(AirGoal::BeeHurtBy(_)) => "hurt_by",
+            MobGoal::Air(AirGoal::BeeBecomeAngry(_)) => "become_angry",
+            MobGoal::ResetUniversalAnger(_) => "reset_anger",
+            _ => "other",
+        }
+    }
+
+    #[test]
+    fn the_bee_registers_the_vanilla_goals_and_targets() {
+        let (goals, targets) = lists(EntityKind::Bee);
+        let named = |list: &Registered| -> Vec<(i32, &'static str)> {
+            list.iter()
+                .map(|(priority, goal)| (*priority, bee_name(goal)))
+                .collect()
+        };
+        assert_eq!(
+            named(&goals),
+            vec![
+                (0, "attack"),
+                (1, "enter_hive"),
+                (2, "breed"),
+                (3, "tempt"),
+                (3, "validate_hive"),
+                (3, "validate_flower"),
+                (4, "pollinate"),
+                (5, "follow_parent"),
+                (5, "locate_hive"),
+                (5, "go_to_hive"),
+                (6, "go_to_flower"),
+                (7, "grow_crop"),
+                (8, "wander"),
+                (9, "float"),
+            ]
+        );
+        assert_eq!(
+            named(&targets),
+            vec![(1, "hurt_by"), (2, "become_angry"), (3, "reset_anger")]
+        );
+        assert_eq!(
+            goals[3].1,
+            MobGoal::Tempt(TemptGoal::new(1.25, TemptItems::Tag("minecraft:bee_food")))
+        );
+        assert_eq!(goals[2].1, MobGoal::Breed(BreedGoal::new(1.0)));
+        assert_eq!(
+            goals[7].1,
+            MobGoal::FollowParent(FollowParentGoal::new(1.25))
+        );
+        assert_eq!(
+            targets[2].1,
+            MobGoal::ResetUniversalAnger(crate::neutral::ResetUniversalAngerGoal::new(true))
+        );
+        let ai = MobAi::new(EntityKind::Bee, 1, GoalSettings::default());
+        let profile = &ai.brain().profile;
+        assert!(profile.flying && !profile.can_float && !profile.can_open_doors);
+        assert_eq!(profile.malus(crate::PathType::Fire), -1.0);
+        assert_eq!(profile.malus(crate::PathType::Water), -1.0);
+        assert_eq!(profile.malus(crate::PathType::WaterBorder), 16.0);
+        assert_eq!(profile.malus(crate::PathType::Cocoa), -1.0);
+        assert_eq!(profile.malus(crate::PathType::Fence), -1.0);
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Flying);
+        assert_eq!(ai.brain().movement.max_turn(), 20);
+        assert!(ai.brain().movement.hovers_in_place());
     }
 
     #[test]

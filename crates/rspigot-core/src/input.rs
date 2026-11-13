@@ -393,6 +393,10 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_container_entity(pos, state);
                 self.ensure_sculk_entity(pos, state);
                 self.ensure_statue_entity(pos, state);
+                self.ensure_beehive_entity(pos, state);
+                if state.kind() == Some(BlockKind::Fire) {
+                    self.hive_fire_placed(pos);
+                }
                 self.try_spawn_copper_golem(pos, old, state);
                 true
             }
@@ -462,6 +466,11 @@ impl<L: ClientLink> Server<L> {
             }
             if !(sneaking && holding)
                 && self.use_composter(id, hand, stack.as_ref(), pos, clicked, sequence)
+            {
+                return;
+            }
+            if !(sneaking && holding)
+                && self.use_beehive(id, hand, stack.as_ref(), pos, clicked, sequence)
             {
                 return;
             }

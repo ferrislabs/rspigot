@@ -440,6 +440,14 @@ impl Navigation {
         true
     }
 
+    pub fn set_max_visited_nodes_multiplier(&mut self, multiplier: f32) {
+        self.max_visited_nodes_multiplier = multiplier;
+    }
+
+    pub fn reset_max_visited_nodes_multiplier(&mut self) {
+        self.max_visited_nodes_multiplier = 1.0;
+    }
+
     pub fn set_avoid_sun(&mut self, avoid_sun: bool) {
         self.avoid_sun = avoid_sun;
     }

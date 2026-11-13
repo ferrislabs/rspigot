@@ -561,6 +561,7 @@ pub(crate) struct MobWorld<'a> {
     rules: GameRules,
     has_day_cycle: bool,
     thundering: bool,
+    raining: bool,
     ambient_light: f32,
     sea_level: i32,
 }
@@ -875,6 +876,43 @@ impl AiWorld for MobWorld<'_> {
 
     fn mob_griefing(&self) -> bool {
         self.rules.mob_griefing
+    }
+
+    fn raining(&self) -> bool {
+        self.raining
+    }
+
+    fn bees_stay_in_hive(&self, _pos: BlockPos) -> bool {
+        crate::beehive::bees_stay_in_hive(self.raining, self.dimension, self.day_time)
+    }
+
+    fn beehive(&self, pos: BlockPos) -> Option<rspigot_ai::HiveView> {
+        let state = self.view.chunks.block(pos)?;
+        if !crate::beehive::is_hive_block(state) {
+            return None;
+        }
+        let hive = self
+            .view
+            .chunks
+            .get(pos.chunk())
+            .and_then(|chunk| chunk.block_entity(pos))
+            .map(|entity| rspigot_domain::beehive::Beehive::read(&entity.data))
+            .unwrap_or_default();
+        let fire_nearby = (-1..=1).any(|dx| {
+            (-1..=1).any(|dy| {
+                (-1..=1).any(|dz| {
+                    self.view
+                        .chunks
+                        .block(pos.offset(dx, dy, dz))
+                        .and_then(BlockStateId::kind)
+                        == Some(rspigot_blocks::BlockKind::Fire)
+                })
+            })
+        });
+        Some(rspigot_ai::HiveView {
+            full: hive.is_full(),
+            fire_nearby,
+        })
     }
 
     fn thundering(&self) -> bool {
@@ -1198,6 +1236,7 @@ impl<L: ClientLink> Server<L> {
             rules: self.config.rules,
             has_day_cycle: self.world.dimension.has_skylight,
             thundering: self.world.level.raining && self.world.level.thundering,
+            raining: self.world.level.raining,
             ambient_light: ambient_light_of(&self.world.dimension),
             sea_level: self.world.dimension.sea_level,
         }
@@ -1471,6 +1510,24 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     }
     if base.kind == Kind::Vex {
         species::vex::set_charging(base, body.vex.charging);
+    }
+    if let Some(Species::Bee(bee)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        let facts = body.bee;
+        bee.hive_pos = facts.hive_pos;
+        bee.flower_pos = facts.flower_pos;
+        bee.ticks_without_nectar = facts.ticks_without_nectar;
+        bee.stay_out_countdown = facts.stay_out_countdown;
+        bee.crops_grown = facts.crops_grown;
+        bee.locate_hive_cooldown = facts.locate_hive_cooldown;
+        bee.locate_flower_cooldown = facts.locate_flower_cooldown;
+        if facts.has_nectar != species::bee::has_nectar(base) {
+            let ticks = bee.ticks_without_nectar;
+            species::bee::set_has_nectar(base, bee, facts.has_nectar);
+            if !facts.has_nectar {
+                bee.ticks_without_nectar = ticks;
+            }
+        }
+        species::bee::set_has_stung(base, facts.has_stung);
     }
     if let Some(Species::Phantom(phantom)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         phantom.anchor = body.phantom.anchor;
@@ -2189,6 +2246,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn do_hurt_target(&mut self, attacker: EntityId, target: Target) -> bool {
+        if self.kind_of(attacker) == Some(Kind::Bee) {
+            return self.bee_hurt_target(attacker, target);
+        }
         if self
             .entities
             .store
@@ -2233,6 +2293,7 @@ impl<L: ClientLink> Server<L> {
             yaw,
             golem: false,
             hoglin: false,
+            bee: false,
         };
         self.strike(None, victim, &source, damage, AfterHurt::MobAttack(follow))
     }
@@ -2245,7 +2306,12 @@ impl<L: ClientLink> Server<L> {
             yaw,
             golem,
             hoglin,
+            ..
         } = follow;
+        if follow.bee {
+            self.bee_finish_attack(attacker, target, hurt);
+            return;
+        }
         if golem {
             self.iron_golem_finish_attack(attacker, target, hurt);
             return;
