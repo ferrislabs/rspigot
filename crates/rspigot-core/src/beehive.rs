@@ -240,6 +240,12 @@ impl<L: ClientLink> Server<L> {
         if !self.hive_at(pos).is_some_and(|hive| hive.has_space()) {
             return;
         }
+        if self
+            .decisions
+            .anywhere(|then| matches!(then, Continuation::EnterHive { bee, .. } if *bee == id))
+        {
+            return;
+        }
         let lane: Lane = self.lane_for(None, id);
         self.fire(lane, Continuation::EnterHive { bee: id, pos }, move |_| {
             Some(EventPayload::EntityEnterBlock(EntityEnterBlock {
