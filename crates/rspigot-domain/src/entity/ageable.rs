@@ -41,6 +41,7 @@ pub struct AgeableState {
     pub forced_age_timer: i32,
     pub age_lock_timer: i32,
     pub love: Option<Love>,
+    pub grew_up: bool,
 }
 
 impl AgeableState {
@@ -52,6 +53,10 @@ impl AgeableState {
             love: base.kind.extends("Animal").then(Love::default),
             ..Self::default()
         }
+    }
+
+    pub fn take_grew_up(&mut self) -> bool {
+        std::mem::take(&mut self.grew_up)
     }
 
     pub fn in_love(&self) -> bool {
@@ -114,6 +119,7 @@ pub fn set_age(base: &mut EntityBase, state: &mut AgeableState, age: i32) -> boo
     if (old < 0 && age >= 0) || (old >= 0 && age < 0) {
         base.data.set(DATA_BABY, SyncedValue::Boolean(age < 0));
         refresh_dimensions(base, age < 0);
+        state.grew_up = old < 0;
         return true;
     }
     false
@@ -305,6 +311,11 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
         EntityKind::Goat => dims(0.45, 0.65, 0.59375),
         EntityKind::Armadillo => dims(adult.width * 0.6, adult.height * 0.6, 0.21875),
         EntityKind::Dolphin => dims(adult.width * 0.65, adult.height * 0.65, 0.09375),
+        EntityKind::Turtle => dims(
+            adult.width * 0.3,
+            adult.height * 0.3,
+            adult.eye_height * 0.3,
+        ),
         EntityKind::Squid | EntityKind::GlowSquid => dims(0.5, 0.5, 0.37),
         _ => dims(
             adult.width * 0.5,

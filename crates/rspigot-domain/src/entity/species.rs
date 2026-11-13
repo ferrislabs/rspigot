@@ -27,6 +27,7 @@ pub mod fox;
 pub mod frog;
 pub mod ghast;
 pub mod goat;
+pub mod guardian;
 pub mod hoglin;
 pub mod iron_golem;
 pub mod ocelot;
@@ -43,6 +44,7 @@ pub mod silverfish;
 pub mod sniffer;
 pub mod snow_golem;
 pub mod squid;
+pub mod turtle;
 pub mod vex;
 pub mod villager;
 pub mod wandering_trader;
@@ -216,6 +218,8 @@ pub enum Species {
     Fish(fish::FishState),
     Squid(squid::SquidState),
     Dolphin(dolphin::DolphinState),
+    Turtle(turtle::TurtleState),
+    Guardian(guardian::GuardianState),
     Allay(allay::AllayState),
     Wither(wither::WitherState),
     Bat(bat::BatState),
@@ -421,6 +425,12 @@ impl Species {
         }
         if kind == EntityKind::Dolphin {
             return Self::Dolphin(dolphin::define(base));
+        }
+        if kind == EntityKind::Turtle {
+            return Self::Turtle(turtle::define(base));
+        }
+        if guardian::is_guardian(kind) {
+            return Self::Guardian(guardian::define(base));
         }
         if kind == EntityKind::Phantom {
             return Self::Phantom(phantom::define(base));

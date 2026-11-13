@@ -746,6 +746,8 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Fish(state) => species::fish::read(nbt, base, state),
         Species::Squid(state) => species::squid::read(nbt, base, state),
         Species::Dolphin(state) => species::dolphin::read(nbt, base, state),
+        Species::Turtle(state) => species::turtle::read(nbt, base, state),
+        Species::Guardian(_) => {}
         Species::Parrot => species::parrot::read(nbt, base),
         Species::Bee(state) => species::bee::read(nbt, base, state),
         Species::Phantom(state) => {
@@ -992,6 +994,8 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Fish(_) => species::fish::keys(base_kind),
         Species::Squid(_) => species::squid::keys(base_kind),
         Species::Dolphin(_) => species::dolphin::KEYS,
+        Species::Turtle(_) => species::turtle::KEYS,
+        Species::Guardian(_) => species::guardian::KEYS,
         Species::Parrot => species::parrot::KEYS,
         Species::Bee(_) => species::bee::KEYS,
         Species::Phantom(_) => species::phantom::KEYS,
@@ -1443,6 +1447,8 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Fish(state) => species::fish::write(base, state, out),
         Species::Squid(state) => species::squid::write(base, state, out),
         Species::Dolphin(state) => species::dolphin::write(base, state, out),
+        Species::Turtle(state) => species::turtle::write(base, state, out),
+        Species::Guardian(_) => {}
         Species::Parrot => species::parrot::write(base, out),
         Species::Bee(state) => species::bee::write(base, state, out),
         Species::Phantom(state) => species::phantom::write(base, state, out),

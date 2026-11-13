@@ -92,6 +92,9 @@ const WATER_ANIMAL_AIR: i32 = 300;
 const SWIMMER_MOVE_RELATIVE_SPEED: f32 = 0.01;
 const SWIMMER_DRAG: f64 = 0.9;
 const SWIMMER_SINK: f64 = -0.005;
+const TURTLE_PUSH: f32 = 0.1;
+const GUARDIAN_PUSH: f32 = 0.1;
+const TURTLE_HOME_NEAR: f64 = 20.0;
 const FLUID_SPEED: f32 = 0.02;
 const WATER_SLOW_DOWN: f32 = 0.8;
 const POLAR_BEAR_WATER_SLOW_DOWN: f32 = 0.98;
@@ -501,7 +504,8 @@ impl LivingState {
                 mob.merchant = Some(Box::new(MerchantState::new()));
             }
             mob.species = Species::new(base);
-            mob.persistence_required = kind == EntityKind::CopperGolem;
+            mob.persistence_required =
+                matches!(kind, EntityKind::CopperGolem | EntityKind::ElderGuardian);
             mob.can_pick_up_loot = matches!(
                 kind,
                 EntityKind::Fox
@@ -1386,6 +1390,48 @@ pub fn breath_assist<V: BlockView>(
     move_entity(base, view, base.velocity, &traits)
 }
 
+pub fn travel_sinking<V: BlockView>(
+    base: &mut EntityBase,
+    living: &mut LivingState,
+    view: &V,
+    input: Vec3,
+    push: f32,
+    sinks: bool,
+) -> Option<Landing> {
+    base.velocity = base.velocity + input_vector(input, push, base.yaw);
+    let traits = living.move_traits(base);
+    let landing = move_entity(base, view, base.velocity, &traits);
+    base.velocity = base.velocity.scale(SWIMMER_DRAG);
+    if sinks {
+        base.velocity = base.velocity + Vec3::new(0.0, SWIMMER_SINK, 0.0);
+    }
+    landing
+}
+
+pub fn travel_turtle<V: BlockView>(
+    base: &mut EntityBase,
+    living: &mut LivingState,
+    view: &V,
+    input: Vec3,
+) -> Option<Landing> {
+    let heading_home = match living.mob.as_ref().map(|mob| mob.species) {
+        Some(super::species::Species::Turtle(state)) => {
+            state.going_home
+                && closer_to_center_than(state.home_pos, base.position, TURTLE_HOME_NEAR)
+        }
+        _ => false,
+    };
+    let sinks = !living.has_target && !heading_home;
+    travel_sinking(base, living, view, input, TURTLE_PUSH, sinks)
+}
+
+fn closer_to_center_than(pos: BlockPos, point: Vec3, distance: f64) -> bool {
+    let dx = f64::from(pos.x) + 0.5 - point.x;
+    let dy = f64::from(pos.y) + 0.5 - point.y;
+    let dz = f64::from(pos.z) + 0.5 - point.z;
+    dx * dx + dy * dy + dz * dz < distance * distance
+}
+
 pub fn travel_squid<V: BlockView>(
     base: &mut EntityBase,
     living: &mut LivingState,
@@ -1406,6 +1452,13 @@ pub fn travel<V: BlockView>(
     }
     if base.fluid.in_water && is_water_swimmer(base.kind) {
         return travel_swimmer(base, living, view, input);
+    }
+    if base.fluid.in_water && base.kind == EntityKind::Turtle {
+        return travel_turtle(base, living, view, input);
+    }
+    if base.fluid.in_water && super::species::guardian::is_guardian(base.kind) {
+        let sinks = !super::species::guardian::is_moving(base) && !living.has_target;
+        return travel_sinking(base, living, view, input, GUARDIAN_PUSH, sinks);
     }
     if base.kind == EntityKind::Ghast {
         return travel_flying(base, living, view, input, GHAST_FLYING_SPEEDS);

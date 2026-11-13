@@ -1,8 +1,20 @@
 use rspigot_blocks::{BlockKind, StateFlags};
 
-use super::SpawnLevel;
+use super::rules::{RandomLevel, can_see_sky, is_bright_enough_to_spawn, is_dark_enough_to_spawn};
+use super::{SpawnLevel, SpawnReason};
+use crate::entity::physics::has_tag;
+use crate::world::Difficulty;
 use crate::{BiomeId, BlockPos, biome};
 
+const SAND: &str = "minecraft:sand";
+const MORE_FREQUENT_DROWNED: &str = "minecraft:more_frequent_drowned_spawns";
+const TURTLE_HEIGHT_ABOVE_SEA: i32 = 4;
+const TURTLE_WALK_TARGET: f32 = 10.0;
+const GUARDIAN_WATER_BONUS: f32 = 10.0;
+const GUARDIAN_SKY_ODDS: i32 = 20;
+const DROWNED_DEPTH: i32 = 5;
+const DROWNED_RIVER_ODDS: i32 = 15;
+const DROWNED_OCEAN_ODDS: i32 = 40;
 const SURFACE_DEPTH: i32 = 13;
 const GLOW_SQUID_DEPTH: i32 = 33;
 const TROPICAL_ANY_HEIGHT: &str = "minecraft:allows_tropical_fish_spawns_at_any_height";
@@ -40,6 +52,93 @@ pub fn check_glow_squid_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> b
     pos.y <= level.sea_level() - GLOW_SQUID_DEPTH
         && level.raw_brightness(pos, 0) == 0
         && is_water_block(level, pos)
+}
+
+fn on_sand(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    has_tag(level.block_or_air(pos.offset(0, -1, 0)), SAND)
+}
+
+pub fn check_turtle_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    pos.y < level.sea_level() + TURTLE_HEIGHT_ABOVE_SEA
+        && on_sand(level, pos)
+        && is_bright_enough_to_spawn(level, pos)
+}
+
+pub fn turtle_walk_target_value(level: &impl SpawnLevel, pos: BlockPos) -> f32 {
+    if is_water(level, pos) || on_sand(level, pos) {
+        return TURTLE_WALK_TARGET;
+    }
+    level.light_level_dependent_magic_value(pos) - 0.5
+}
+
+pub fn guardian_walk_target_value(level: &impl SpawnLevel, pos: BlockPos) -> f32 {
+    if is_water(level, pos) {
+        level.light_level_dependent_magic_value(pos) - 0.5 + GUARDIAN_WATER_BONUS
+    } else {
+        0.0
+    }
+}
+
+fn can_see_sky_from_below_water(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    if pos.y >= level.sea_level() {
+        return can_see_sky(level, pos);
+    }
+    let mut cursor = BlockPos::new(pos.x, level.sea_level(), pos.z);
+    if !can_see_sky(level, cursor) {
+        return false;
+    }
+    cursor = cursor.offset(0, -1, 0);
+    while cursor.y > pos.y {
+        let state = level.block_or_air(cursor);
+        let liquid = matches!(state.kind(), Some(BlockKind::Water | BlockKind::Lava));
+        if state.light_dampening() > 0 && !liquid {
+            return false;
+        }
+        cursor = cursor.offset(0, -1, 0);
+    }
+    true
+}
+
+pub fn check_guardian_spawn_rules(
+    level: &mut impl RandomLevel,
+    reason: SpawnReason,
+    pos: BlockPos,
+) -> bool {
+    if level.next_int(GUARDIAN_SKY_ODDS) != 0 && can_see_sky_from_below_water(level, pos) {
+        return false;
+    }
+    if level.difficulty() == Difficulty::Peaceful {
+        return false;
+    }
+    if !reason.is_spawner() && !is_water(level, pos) {
+        return false;
+    }
+    is_water(level, pos.offset(0, -1, 0))
+}
+
+fn deep_enough_for_drowned(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    pos.y < level.sea_level() - DROWNED_DEPTH
+}
+
+pub fn check_drowned_spawn_rules(
+    level: &mut impl RandomLevel,
+    reason: SpawnReason,
+    pos: BlockPos,
+) -> bool {
+    if !is_water(level, pos.offset(0, -1, 0)) && !reason.is_spawner() {
+        return false;
+    }
+    let biome = level.biome(pos);
+    let valid = level.difficulty() != Difficulty::Peaceful
+        && (reason.ignores_light_requirements() || is_dark_enough_to_spawn(level, pos))
+        && (reason.is_spawner() || is_water(level, pos));
+    if valid && (reason.is_spawner() || reason == SpawnReason::Reinforcement) {
+        return true;
+    }
+    if biome::in_tag(biome, MORE_FREQUENT_DROWNED) {
+        return level.next_int(DROWNED_RIVER_ODDS) == 0 && valid;
+    }
+    level.next_int(DROWNED_OCEAN_ODDS) == 0 && deep_enough_for_drowned(level, pos) && valid
 }
 
 #[cfg(test)]
@@ -192,5 +291,60 @@ mod tests {
             SpawnReason::Natural,
             pos
         ));
+    }
+
+    fn beach() -> Level {
+        Level::floor(rspigot_blocks::Sand::DEFAULT_STATE, 62)
+    }
+
+    #[test]
+    fn a_turtle_spawns_on_sand_below_four_above_sea_level_in_the_light() {
+        let mut level = beach();
+        level.sky = 15;
+        let pos = BlockPos::new(4, 63, 4);
+        assert!(rules_ported(EntityKind::Turtle));
+        assert!(check_spawn_rules(
+            &mut level,
+            EntityKind::Turtle,
+            SpawnReason::Natural,
+            pos
+        ));
+        assert!(!check_spawn_rules(
+            &mut level,
+            EntityKind::Turtle,
+            SpawnReason::Natural,
+            BlockPos::new(4, 68, 4)
+        ));
+        let mut dark = beach();
+        dark.sky = 0;
+        assert!(!check_spawn_rules(
+            &mut dark,
+            EntityKind::Turtle,
+            SpawnReason::Natural,
+            pos
+        ));
+        let mut stone = Level::floor(Stone::DEFAULT_STATE, 62);
+        stone.sky = 15;
+        assert!(!check_spawn_rules(
+            &mut stone,
+            EntityKind::Turtle,
+            SpawnReason::Natural,
+            pos
+        ));
+    }
+
+    #[test]
+    fn a_turtle_prefers_water_and_sand_and_a_guardian_adds_ten_in_water() {
+        let mut level = beach();
+        level.set(BlockPos::new(8, 63, 4), Water::DEFAULT_STATE);
+        let turtle = |pos| crate::spawn::rules::walk_target_value(&level, EntityKind::Turtle, pos);
+        assert_eq!(turtle(BlockPos::new(8, 63, 4)), Some(10.0));
+        assert_eq!(turtle(BlockPos::new(4, 63, 4)), Some(10.0));
+        assert!(turtle(BlockPos::new(4, 70, 4)).unwrap() < 10.0);
+        let guardian = |pos| {
+            crate::spawn::rules::walk_target_value(&level, EntityKind::Guardian, pos).unwrap()
+        };
+        assert!(guardian(BlockPos::new(8, 63, 4)) >= 9.5);
+        assert_eq!(guardian(BlockPos::new(4, 70, 4)), 0.0);
     }
 }
