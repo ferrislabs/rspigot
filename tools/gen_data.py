@@ -1737,6 +1737,8 @@ def build_compostables(reports, datapack, static_registries):
         default = value["default"]
         if default.get("type") != "minecraft:weighted_list":
             fail("unexpected default of %s" % where)
+        if [entry["data"] for entry in default["distribution"]] != [1, 0]:
+            fail("unexpected distribution order of %s" % where)
         weights = {entry["data"]: entry["weight"] for entry in default["distribution"]}
         if set(weights) != {0, 1}:
             fail("unexpected distribution of %s" % where)
