@@ -519,6 +519,40 @@ mod tests {
     }
 
     #[test]
+    fn raids_are_saved_in_their_own_data_file_and_read_back() {
+        let dir = TempDir::new("level-raids");
+        let root = dir.path().join("world");
+        let raids = Compound::new()
+            .with(
+                "raids",
+                Tag::List(vec![Tag::Compound(
+                    Compound::new()
+                        .with("id", 2)
+                        .with("status", "ongoing")
+                        .with("center", Tag::IntArray(vec![8, 64, 8])),
+                )]),
+            )
+            .with("next_id", 2)
+            .with("tick", 400);
+        let level = LevelData {
+            raids: Some(raids.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/raids.dat");
+        assert_eq!(file.get_compound("data"), Some(&raids));
+        assert_eq!(file.get_i32("DataVersion"), Some(5023));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
+        let without = LevelData {
+            raids: None,
+            ..sample()
+        };
+        write_level_data(&root, &without).unwrap();
+        let kept = read_level_data(&root).unwrap().unwrap();
+        assert_eq!(kept.raids, Some(raids));
+    }
+
+    #[test]
     fn files_follow_the_26_3_layout() {
         let dir = TempDir::new("level-layout");
         let root = dir.path();
