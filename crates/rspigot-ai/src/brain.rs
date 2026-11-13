@@ -49,6 +49,7 @@ pub struct Brain {
     pub repellent: Option<BlockPos>,
     pub creaking: crate::CreakingState,
     pub warden: crate::WardenState,
+    pub target_position: Option<Vec3>,
     follow_range: f64,
 }
 
@@ -135,6 +136,7 @@ impl Brain {
             repellent: None,
             creaking: crate::CreakingState::default(),
             warden: crate::WardenState::default(),
+            target_position: None,
             follow_range,
         };
         if kind == EntityKind::Warden {
@@ -941,6 +943,13 @@ impl MobAi {
             mob
         };
         self.brain.fox = mob.species.fox;
+        if mob.kind == EntityKind::Vex {
+            self.brain.target_position = self
+                .brain
+                .target
+                .and_then(|id| world.living(id))
+                .map(|living| living.position);
+        }
         self.update_creaking_home(mob);
         self.brain.look.set_max_head_x_rot(mob.max_head_x_rot());
         if mob.kind == EntityKind::Shulker {
@@ -1047,6 +1056,10 @@ impl MobAi {
                         .tick_ghast(base, living, view, &mut brain.random);
                 }
                 MoveStyle::Flying => brain.movement.tick_flying(base, living),
+                MoveStyle::Vex => {
+                    let target = brain.target_position;
+                    brain.movement.tick_vex(base, living, target);
+                }
             }
         }
         let navigating = brain.navigation.is_in_progress();

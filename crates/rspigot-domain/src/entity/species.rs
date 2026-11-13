@@ -35,6 +35,7 @@ pub mod shulker;
 pub mod silverfish;
 pub mod sniffer;
 pub mod snow_golem;
+pub mod vex;
 pub mod villager;
 pub mod wandering_trader;
 pub mod warden;
@@ -202,6 +203,7 @@ pub enum Species {
     SnowGolem(snow_golem::SnowGolemState),
     Blaze(blaze::BlazeState),
     Ghast(ghast::GhastState),
+    Vex(vex::VexState),
     Shulker(shulker::ShulkerState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
@@ -380,6 +382,9 @@ impl Species {
         }
         if kind == EntityKind::Ghast {
             return Self::Ghast(ghast::define(base));
+        }
+        if kind == EntityKind::Vex {
+            return Self::Vex(vex::define(base));
         }
         if kind == EntityKind::Shulker {
             return Self::Shulker(shulker::define(base));

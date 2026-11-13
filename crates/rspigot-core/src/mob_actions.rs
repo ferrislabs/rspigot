@@ -117,6 +117,7 @@ impl<L: ClientLink> Server<L> {
             MobAction::IronGolem(action) => self.iron_golem_action(id, action),
             MobAction::Blaze(action) => self.blaze_action(id, action),
             MobAction::Ghast(action) => self.ghast_action(id, action),
+            MobAction::Air(action) => self.air_action(id, action),
             MobAction::Shulker(action) => self.shulker_action(id, action),
             MobAction::Raider(action) => self.raider_action(id, action),
             MobAction::Crossbow(action) => self.crossbow_action(id, action),
