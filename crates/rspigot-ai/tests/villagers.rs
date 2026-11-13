@@ -28,6 +28,7 @@ struct Field {
     trades: Vec<TradeView>,
     time: i64,
     clock: i64,
+    unreachable: Vec<EntityId>,
 }
 
 impl Field {
@@ -127,6 +128,10 @@ impl AiWorld for Field {
 
     fn villager_trades(&self, _villager: EntityId) -> Vec<TradeView> {
         self.trades.clone()
+    }
+
+    fn villager_can_reach(&self, villager: EntityId, _pos: BlockPos, _reach: i32) -> bool {
+        !self.unreachable.contains(&villager)
     }
 
     fn is_village(&self, _pos: BlockPos) -> bool {
@@ -1899,4 +1904,96 @@ fn working_at_a_composter_plays_the_sound_before_composting_and_restocking() {
             VillagerAction::Restock,
         ]
     );
+}
+
+fn librarian_peer() -> VillagerPeerFacts {
+    VillagerPeerFacts {
+        profession: Profession::Librarian,
+        ..VillagerPeerFacts::default()
+    }
+}
+
+fn yield_trigger() -> MobControl {
+    MobControl::one_shot(rspigot_ai::MobTrigger::YieldJobSite(
+        rspigot_ai::YieldJobSite::new(0.5),
+    ))
+}
+
+fn yield_bench(world: Field) -> Bench {
+    let site = BlockPos::new(0, 64, 3);
+    let mut bench = Bench::new(VillagerFacts::default(), world, 4);
+    bench
+        .world
+        .pois
+        .push(PoiRecord::new(site, PoiType::Librarian));
+    let global = bench.global(site);
+    bench.set(MemoryModuleType::PotentialJobSite, global);
+    bench.set(
+        MemoryModuleType::WalkTarget,
+        MemoryValue::WalkTarget(WalkTarget::block(site, 0.5, 1)),
+    );
+    bench.set(
+        MemoryModuleType::LookTarget,
+        MemoryValue::Tracker(rspigot_ai::PositionTracker::of_block(site)),
+    );
+    bench.see(&[villager_at(2, Vec3::new(3.5, 64.0, 0.5), librarian_peer())]);
+    bench.set(
+        MemoryModuleType::NearestLivingEntities,
+        MemoryValue::Entities(vec![EntityId(2)]),
+    );
+    bench
+}
+
+#[test]
+fn a_jobless_villager_yields_the_job_site_to_a_reaching_peer_with_the_matching_profession() {
+    let mut bench = yield_bench(Field::flat());
+    assert!(bench.start(&mut yield_trigger(), NOW));
+    assert!(bench.get(MemoryModuleType::PotentialJobSite).is_none());
+    assert!(bench.get(MemoryModuleType::WalkTarget).is_none());
+    let actions = bench.actions();
+    let sent: Vec<MemoryModuleType> = actions
+        .iter()
+        .filter_map(|action| match action {
+            MobAction::SetMemory { mob, memory, .. } if *mob == EntityId(2) => Some(*memory),
+            _ => None,
+        })
+        .collect();
+    assert!(sent.contains(&MemoryModuleType::WalkTarget));
+    assert!(sent.contains(&MemoryModuleType::LookTarget));
+}
+
+#[test]
+fn a_peer_that_cannot_path_to_the_job_site_does_not_take_it_from_the_villager() {
+    let mut world = Field::flat();
+    world.unreachable.push(EntityId(2));
+    let mut bench = yield_bench(world);
+    assert!(bench.start(&mut yield_trigger(), NOW));
+    assert!(bench.get(MemoryModuleType::PotentialJobSite).is_some());
+    assert!(bench.get(MemoryModuleType::WalkTarget).is_some());
+    assert!(bench.actions().is_empty());
+}
+
+#[test]
+fn a_villager_can_tell_whether_it_can_path_to_a_position() {
+    let mut ai = MobAi::new(EntityKind::Villager, 1, GoalSettings::default());
+    ai.rebuild_villager_brain(Profession::None, false);
+    let mob = view(
+        EntityKind::Villager,
+        Vec3::new(0.5, 64.0, 0.5),
+        VillagerFacts::default(),
+        false,
+    );
+    let open = Field::flat();
+    assert!(ai.can_reach_pos(&mob, &open, BlockPos::new(6, 64, 0), 1));
+    let mut walled = Field::flat();
+    for x in -1..=1 {
+        for z in -1..=1 {
+            if (x, z) != (0, 0) {
+                for y in 64..=66 {
+                    walled.put(x, y, z, BlockKind::Stone.default_state());
+                }
+            }
+        }
+    }
+    assert!(!ai.can_reach_pos(&mob, &walled, BlockPos::new(6, 64, 0), 1));
 }

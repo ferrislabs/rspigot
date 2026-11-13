@@ -127,6 +127,25 @@ pub struct AiContext<'a, W> {
     pub body: &'a mut MobBody,
 }
 
+fn path_profile_of<W: AiWorld>(
+    base: &MobProfile,
+    has_target: bool,
+    mob: &MobView,
+    world: &W,
+) -> MobProfile {
+    let mut profile = base.clone();
+    profile.step_height = mob.step_height;
+    profile.follow_range = mob.follow_range as f32;
+    profile.max_fall_distance = if !has_target {
+        MobProfile::DEFAULT_MAX_FALL_DISTANCE
+    } else if mob.kind == EntityKind::Creeper {
+        (mob.health - 1.0 + 3.0).floor() as i32
+    } else {
+        combat_fall_distance(mob.health, mob.max_health, world.difficulty())
+    };
+    profile
+}
+
 pub fn mob_tick(mob: &MobView, game_time: i64) -> MobTick {
     MobTick {
         state: MobState {
@@ -187,18 +206,12 @@ impl<W: AiWorld> AiContext<'_, W> {
     }
 
     fn path_profile(&mut self) -> MobProfile {
-        let mob = self.mob;
-        let mut profile = self.brain.profile.clone();
-        profile.step_height = mob.step_height;
-        profile.follow_range = mob.follow_range as f32;
-        profile.max_fall_distance = if self.target().is_none() {
-            MobProfile::DEFAULT_MAX_FALL_DISTANCE
-        } else if mob.kind == EntityKind::Creeper {
-            (mob.health - 1.0 + 3.0).floor() as i32
-        } else {
-            combat_fall_distance(mob.health, mob.max_health, self.world.difficulty())
-        };
-        profile
+        path_profile_of(
+            &self.brain.profile,
+            self.target().is_some(),
+            self.mob,
+            self.world,
+        )
     }
 
     pub fn move_to_pos(&mut self, position: Vec3, speed_modifier: f64) -> bool {
@@ -390,6 +403,27 @@ impl MobAi {
                 .state_mut()
                 .update_activity_from_schedule(clock_ticks, game_time);
         }
+    }
+
+    pub fn can_reach_pos<W: AiWorld>(
+        &self,
+        mob: &MobView,
+        world: &W,
+        pos: BlockPos,
+        reach: i32,
+    ) -> bool {
+        let has_target = self.brain.target.is_some_and(|id| {
+            world
+                .living(id)
+                .and_then(|living| targeting::valid_mob_target(mob, world, living))
+                .is_some()
+        });
+        let profile = path_profile_of(&self.brain.profile, has_target, mob, world);
+        let tick = mob_tick(mob, world.game_time());
+        let mut navigation = self.brain.navigation.clone();
+        navigation
+            .create_path(world, &profile, &tick, pos, reach, mob.follow_range)
+            .is_some_and(|path| path.can_reach())
     }
 
     pub fn behavior_brain(&self) -> Option<&BehaviorBrain<MobControl>> {
