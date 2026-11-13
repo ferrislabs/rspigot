@@ -77,7 +77,7 @@ fn visual_shape(state: rspigot_blocks::StateId) -> &'static [Aabb] {
     }
 }
 
-struct DomainView<'a, V>(&'a V);
+pub(crate) struct DomainView<'a, V>(pub(crate) &'a V);
 
 impl<V: BlockView> rspigot_domain::entity::BlockView for DomainView<'_, V> {
     fn block(&self, pos: BlockPos) -> Option<rspigot_blocks::StateId> {

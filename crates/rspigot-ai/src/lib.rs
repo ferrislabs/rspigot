@@ -11,6 +11,7 @@ mod cat;
 mod classify;
 mod combat;
 mod control;
+mod copper_golem;
 mod creaking;
 mod crossbow;
 mod enderman;
@@ -112,6 +113,13 @@ pub use combat::{
 pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
     MoveControl, MoveStyle, Operation, can_reach, rotate_towards,
+};
+pub use copper_golem::{
+    COOLDOWN_TICKS as TRANSPORT_COOLDOWN_TICKS, COPPER_GOLEM_MEMORIES, ChestSide,
+    CopperGolemAction, INTERACTION_TICKS as TRANSPORT_INTERACTION_TICKS, InteractionState,
+    TargetVerdict, TransportItemsBetweenContainers, TransportState, TransportTarget, add_items,
+    chest_side, connected_pos, copper_golem_activities, copper_golem_sensors, is_blocked_by_block,
+    is_cat_sitting_on, is_chest_blocked_at, pick_up,
 };
 pub use creaking::{CreakingAction, CreakingFacts, CreakingState};
 pub use crossbow::{
@@ -222,6 +230,6 @@ pub use warden::{
 };
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{
-    AiWorld, DroppedItem, Facts, Hand, KindFacts, LastDamage, Living, MOVEMENT_SPEED, MobBody,
-    MobView, NO_VILLAGE, TEMPT_RANGE, TargetKind, inflate,
+    AiWorld, ContainerView, DroppedItem, Facts, Hand, KindFacts, LastDamage, Living,
+    MOVEMENT_SPEED, MobBody, MobView, NO_VILLAGE, TEMPT_RANGE, TargetKind, inflate,
 };

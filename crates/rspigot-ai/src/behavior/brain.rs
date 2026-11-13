@@ -336,6 +336,14 @@ impl<C: BehaviorControl> BehaviorBrain<C> {
             .collect()
     }
 
+    pub fn for_each_behavior_mut(&mut self, mut visit: impl FnMut(&mut C)) {
+        for by_activity in self.behaviors.values_mut() {
+            for (_, list) in by_activity.iter_mut() {
+                list.iter_mut().for_each(&mut visit);
+            }
+        }
+    }
+
     pub fn remove_all_behaviors(&mut self) {
         self.behaviors.clear();
     }
