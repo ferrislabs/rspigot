@@ -261,6 +261,7 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             villager: rspigot_ai::VillagerPeerFacts::default(),
             hero_of_the_village: player.effects.has("minecraft:hero_of_the_village"),
             cube_size: 0,
+            sniffer_state: 0,
         },
     }
 }
@@ -339,6 +340,11 @@ fn entity_facts(
             rspigot_ai::VillagerPeerFacts::default()
         },
         hero_of_the_village: false,
+        sniffer_state: if base.kind == Kind::Sniffer {
+            u8::try_from(species::sniffer::state(base).id()).unwrap_or(0)
+        } else {
+            0
+        },
         cube_size: if base.kind.extends("AbstractCubeMob") {
             u8::try_from(rspigot_domain::entity::reward::cube_size(entity).clamp(0, 255))
                 .unwrap_or(u8::MAX)

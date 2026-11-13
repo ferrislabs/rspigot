@@ -59,6 +59,7 @@ pub struct Facts {
     pub villager: crate::villager::VillagerPeerFacts,
     pub hero_of_the_village: bool,
     pub cube_size: u8,
+    pub sniffer_state: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -929,7 +929,7 @@ fn panicking_resets_any_sniffing_in_progress() {
 #[test]
 fn breeding_resets_any_sniffing_in_progress() {
     let mut bench = ready_to_dig();
-    bench.body.sniffer.state = State::Digging;
+    bench.body.sniffer.state = State::Scenting;
     bench.mob.in_love = true;
     let mate = EntityId(8);
     bench.state.memories.set(
@@ -1015,4 +1015,53 @@ fn only_the_explored_positions_are_persisted_and_they_round_trip_in_the_vanilla_
         other => panic!("{other:?}"),
     }
     assert!(!restored.has_value(MemoryModuleType::SnifferDigging));
+}
+
+fn mating_pair(own: State, partner: State) -> Bench {
+    let mut bench = Bench::meadow();
+    bench.body.sniffer.state = own;
+    bench.mob.in_love = true;
+    let mate = EntityId(8);
+    bench.state.memories.set(
+        MemoryModuleType::NearestVisibleLivingEntities,
+        MemoryValue::Visible(rspigot_ai::NearestVisibleLivingEntities::new(vec![mate])),
+    );
+    let mut other = player(8, Vec3::new(2.5, 64.0, 0.5));
+    other.kind = EntityKind::Sniffer;
+    other.player = false;
+    other.in_love = true;
+    other.facts.sniffer_state = partner.id() as u8;
+    bench.world.players.push(other);
+    bench
+}
+
+#[test]
+fn two_sniffers_only_mate_while_both_idle_scent_or_feel_happy() {
+    let mating = [State::Idling, State::Scenting, State::FeelingHappy];
+    let busy = [
+        State::Sniffing,
+        State::Searching,
+        State::Digging,
+        State::Rising,
+    ];
+    for own in mating {
+        for partner in mating {
+            let mut bench = mating_pair(own, partner);
+            let mut control = from_activity(Activity::Idle, "SnifferMakeLove");
+            assert!(bench.start(&mut control, NOW), "{own:?} {partner:?}");
+        }
+    }
+    for (own, partner) in busy
+        .iter()
+        .flat_map(|busy| mating.iter().map(move |ok| (*busy, *ok)))
+        .chain(
+            mating
+                .iter()
+                .flat_map(|ok| busy.iter().map(move |busy| (*ok, *busy))),
+        )
+    {
+        let mut bench = mating_pair(own, partner);
+        let mut control = from_activity(Activity::Idle, "SnifferMakeLove");
+        assert!(!bench.start(&mut control, NOW), "{own:?} {partner:?}");
+    }
 }
