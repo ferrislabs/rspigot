@@ -48,6 +48,7 @@ mod scene;
 mod sensing;
 mod shulker;
 mod silverfish;
+mod sniffer;
 mod sweep;
 mod tame;
 mod targeting;
@@ -186,6 +187,13 @@ pub use sensing::{Sensing, clip_misses};
 pub use shulker::{ShulkerAction, ShulkerAttackGoal, ShulkerFacts, ShulkerGoal, ShulkerPeekGoal};
 pub use silverfish::{
     MergeWithStoneGoal, SilverfishAction, SilverfishFacts, SilverfishGoal, WakeUpFriendsGoal,
+};
+pub use sniffer::{
+    DIGGABLE_BLOCKS as SNIFFER_DIGGABLE_BLOCKS, Digging as SnifferDigging,
+    FeelingHappy as SnifferFeelingHappy, FinishedDigging as SnifferFinishedDigging, ResetsSniffing,
+    Scenting as SnifferScenting, Searching as SnifferSearching, SnifferAction, SnifferFacts,
+    Sniffing as SnifferSniffing, calculate_dig_position, can_dig as sniffer_can_dig,
+    can_sniff as sniffer_can_sniff,
 };
 pub use tame::{
     FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal, should_try_teleport_to_owner,
