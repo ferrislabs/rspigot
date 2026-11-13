@@ -9,7 +9,9 @@ use crate::action::{MobAction, TargetReason, TargetRequest};
 use crate::behavior::{BehaviorBrain, BehaviorCx, MemoryModuleType, MemoryValue, MobControl};
 use crate::blocks::BreakDoorGoal;
 use crate::combat::{MeleeAttackGoal, RangedBowAttackGoal};
-use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl, MoveStyle};
+use crate::control::{
+    BodyRotationControl, JumpControl, LookControl, MoveControl, MoveStyle, SmoothSwimming,
+};
 use crate::goal::{Flag, GoalSelector};
 use crate::goals::MobGoal;
 use crate::random::{MobRandom, RandomSource};
@@ -26,6 +28,12 @@ const NORMAL_BOW_INTERVAL: i32 = 40;
 const BOW_ATTACK_RADIUS: f32 = 15.0;
 const SKELETON_MELEE_SPEED: f64 = 1.2;
 const WARDEN_CONVERSION_DELAYS: i32 = 3;
+const DOLPHIN_MAX_TURN_X: i32 = 85;
+const DOLPHIN_MAX_TURN_Y: i32 = 10;
+const DOLPHIN_IN_WATER_SPEED: f32 = 0.02;
+const DOLPHIN_OUTSIDE_WATER_SPEED: f32 = 0.1;
+const DOLPHIN_LOOK_FROM_CENTER: i32 = 10;
+const DOLPHIN_MAX_HEAD_Y_ROT: f32 = 1.0;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Brain {
@@ -133,6 +141,14 @@ impl Brain {
         if kind == EntityKind::Allay {
             profile = profile.flying(true);
         }
+        if kind.extends("AbstractFish") {
+            profile = profile.water_bound(false);
+            profile.set_malus(PathType::Water, 0.0);
+        }
+        if kind == EntityKind::Dolphin {
+            profile = profile.water_bound(true);
+            profile.set_malus(PathType::Water, 0.0);
+        }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
             profile.set_malus(PathType::Lava, 8.0);
@@ -172,6 +188,19 @@ impl Brain {
         }
         if kind == EntityKind::Rabbit {
             brain.enable_hop();
+        }
+        if kind.extends("AbstractFish") {
+            brain.movement.set_fish();
+        }
+        if kind == EntityKind::Dolphin {
+            brain.movement.set_smooth_swimming(SmoothSwimming {
+                max_turn_x: DOLPHIN_MAX_TURN_X,
+                max_turn_y: DOLPHIN_MAX_TURN_Y,
+                in_water_speed_modifier: DOLPHIN_IN_WATER_SPEED,
+                outside_water_speed_modifier: DOLPHIN_OUTSIDE_WATER_SPEED,
+                apply_gravity: true,
+            });
+            brain.look.set_smooth_swimming(DOLPHIN_LOOK_FROM_CENTER);
         }
         if matches!(kind, EntityKind::Parrot | EntityKind::Wither) {
             brain.movement.set_flying(10, false);
@@ -222,6 +251,7 @@ fn path_profile_of<W: AiWorld>(
         profile.set_malus(PathType::Water, 0.0);
     }
     profile.step_height = mob.step_height;
+    profile.sea_level = world.sea_level();
     profile.follow_range = mob.follow_range as f32;
     profile.max_fall_distance = if !has_target {
         MobProfile::DEFAULT_MAX_FALL_DISTANCE
@@ -1192,7 +1222,14 @@ impl MobAi {
             living.body_yaw = base.yaw;
             return;
         }
-        self.brain.body.client_tick(base, living);
+        let max_head_y_rot = if base.kind == EntityKind::Dolphin {
+            DOLPHIN_MAX_HEAD_Y_ROT
+        } else {
+            crate::control::MAX_HEAD_Y_ROT
+        };
+        self.brain
+            .body
+            .client_tick_max(base, living, max_head_y_rot);
     }
 
     pub fn update_control_flags(&mut self) {

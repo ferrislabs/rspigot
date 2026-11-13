@@ -1,4 +1,5 @@
 mod action;
+#[macro_use]
 mod air;
 mod allay;
 mod animal;
@@ -59,6 +60,7 @@ mod silverfish;
 mod sniffer;
 mod sweep;
 mod swim;
+mod swimmers;
 mod tame;
 mod targeting;
 mod vex;
@@ -232,6 +234,14 @@ pub use sniffer::{
     Scenting as SnifferScenting, Searching as SnifferSearching, SnifferAction, SnifferFacts,
     Sniffing as SnifferSniffing, calculate_dig_position, can_dig as sniffer_can_dig,
     can_sniff as sniffer_can_sniff,
+};
+pub use swimmers::{
+    AIR_ASSIST_SPEED, BreathAirGoal, DolphinFacts, DolphinJumpGoal, DolphinMoveToItemGoal,
+    DolphinPlayWithItemsGoal, DolphinSwimToTreasureGoal, DolphinSwimWithPlayerGoal, FishFacts,
+    FollowFlockLeaderGoal, GRACE_TICKS, ITEM_EYE_DROP, ITEM_PICKUP_DELAY, PufferfishPuffGoal,
+    RandomSwimmingGoal, SquidFacts, SquidFleeGoal, SquidRandomMovementGoal, TryFindWaterGoal,
+    WaterAction, WaterGoal, is_scary_kind_to_pufferfish, is_scary_to_pufferfish, motion_direction,
+    thrown_item_velocity,
 };
 pub use tame::{
     FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal, should_try_teleport_to_owner,
