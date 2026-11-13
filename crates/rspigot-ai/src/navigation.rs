@@ -51,6 +51,7 @@ pub struct Navigation {
     climber: bool,
     path_to_position: Option<BlockPos>,
     avoid_sun: bool,
+    path_to_targets_below_surface: bool,
 }
 
 impl Default for Navigation {
@@ -98,7 +99,16 @@ impl Navigation {
             climber: false,
             path_to_position: None,
             avoid_sun: false,
+            path_to_targets_below_surface: false,
         }
+    }
+
+    pub fn set_path_to_targets_below_surface(&mut self, enabled: bool) {
+        self.path_to_targets_below_surface = enabled;
+    }
+
+    pub fn path_to_targets_below_surface(&self) -> bool {
+        self.path_to_targets_below_surface
     }
 
     pub fn set_climber(&mut self, climber: bool) {
@@ -177,7 +187,11 @@ impl Navigation {
         if !view.chunk_loaded(target.chunk()) {
             return None;
         }
-        let target = find_surface_position(view, target);
+        let target = if self.path_to_targets_below_surface {
+            target
+        } else {
+            find_surface_position(view, target)
+        };
         if mob.state.position.y < f64::from(view.min_y()) || !Self::can_update_path(mob) {
             return None;
         }

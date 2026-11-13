@@ -4,7 +4,7 @@ mod packages;
 mod poi;
 mod sensors;
 mod social;
-mod support;
+pub(crate) mod support;
 mod trader;
 mod work;
 

@@ -92,6 +92,12 @@ impl Brain {
             profile.set_malus(PathType::Fire, 0.0);
             profile.set_malus(PathType::FireInNeighbor, 0.0);
         }
+        if kind == EntityKind::CopperGolem {
+            profile.can_open_doors = true;
+            profile.set_malus(PathType::FireInNeighbor, 16.0);
+            profile.set_malus(PathType::DamagingInNeighbor, 16.0);
+            profile.set_malus(PathType::Fire, -1.0);
+        }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
             profile.set_malus(PathType::Lava, 8.0);
@@ -131,6 +137,12 @@ impl Brain {
             brain
                 .navigation
                 .set_required_path_length(48.0, follow_range);
+        }
+        if kind == EntityKind::CopperGolem {
+            brain.navigation.set_required_path_length(
+                rspigot_domain::entity::species::copper_golem::PATH_LENGTH,
+                follow_range,
+            );
         }
         brain
     }
@@ -380,6 +392,15 @@ impl MobAi {
             settings,
         );
         ai.behavior = registry::register_brain(kind, &mut ai.brain.random);
+        if kind == EntityKind::CopperGolem
+            && let Some(behavior) = ai.behavior.as_mut()
+        {
+            let cooldown = crate::copper_golem::initial_cooldown(&mut ai.brain.random);
+            behavior.memories_mut().set(
+                MemoryModuleType::TransportItemsCooldownTicks,
+                MemoryValue::Int(cooldown),
+            );
+        }
         ai
     }
 
@@ -440,6 +461,12 @@ impl MobAi {
         navigation
             .create_path(world, &profile, &tick, pos, reach, mob.follow_range)
             .is_some_and(|path| path.can_reach())
+    }
+
+    pub fn set_transport_verdict(&mut self, verdict: crate::copper_golem::TargetVerdict) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            behavior.for_each_behavior_mut(|control| control.set_transport_verdict(verdict));
+        }
     }
 
     pub fn behavior_brain(&self) -> Option<&BehaviorBrain<MobControl>> {
@@ -940,6 +967,9 @@ impl MobAi {
         if let Some(behavior) = self.behavior.as_mut() {
             sync_path_memory(behavior.memories_mut(), context.brain.navigation.path());
             behavior.tick(&mut context);
+            if mob.kind == EntityKind::CopperGolem {
+                crate::copper_golem::update_activity(behavior);
+            }
             crate::piglin::after_brain_tick(behavior, &mut context);
             crate::animals::after_brain_tick(behavior, &mut context);
         }
