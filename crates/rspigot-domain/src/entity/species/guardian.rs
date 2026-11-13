@@ -55,6 +55,15 @@ pub fn attack_duration(kind: EntityKind) -> i32 {
     }
 }
 
+pub fn ambient_sound(kind: EntityKind, in_water: bool) -> &'static str {
+    match (is_elder(kind), in_water) {
+        (true, true) => "minecraft:entity.elder_guardian.ambient",
+        (true, false) => "minecraft:entity.elder_guardian.ambient_land",
+        (false, true) => "minecraft:entity.guardian.ambient",
+        (false, false) => "minecraft:entity.guardian.ambient_land",
+    }
+}
+
 pub fn is_moving(base: &EntityBase) -> bool {
     base.data.boolean(DATA_MOVING)
 }

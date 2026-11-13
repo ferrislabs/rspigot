@@ -20,6 +20,7 @@ pub mod cat;
 pub mod copper_golem;
 pub mod creaking;
 pub mod dolphin;
+pub mod drowned;
 pub mod enderman;
 pub mod endermite;
 pub mod fish;
@@ -163,6 +164,7 @@ pub struct ZombieState {
     pub drowning: ConversionTracker,
     pub piglin: zombified_piglin::ZombifiedPiglinState,
     pub villager: Option<zombie_villager::ZombieVillagerState>,
+    pub searching_for_land: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

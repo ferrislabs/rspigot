@@ -94,6 +94,7 @@ const SWIMMER_DRAG: f64 = 0.9;
 const SWIMMER_SINK: f64 = -0.005;
 const TURTLE_PUSH: f32 = 0.1;
 const GUARDIAN_PUSH: f32 = 0.1;
+const DROWNED_PUSH: f32 = super::species::drowned::SWIM_SPEED_PUSH;
 const TURTLE_HOME_NEAR: f64 = 20.0;
 const FLUID_SPEED: f32 = 0.02;
 const WATER_SLOW_DOWN: f32 = 0.8;
@@ -422,6 +423,7 @@ pub struct LivingState {
     pub remove_arrow_time: i32,
     pub discard_friction: bool,
     pub has_target: bool,
+    pub target_in_water: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -547,6 +549,7 @@ impl LivingState {
             remove_arrow_time: 0,
             discard_friction: false,
             has_target: false,
+            target_in_water: false,
         };
         let max = state.max_health() as f32;
         base.data.set(DATA_HEALTH, SyncedValue::Float(max));
@@ -1408,6 +1411,14 @@ pub fn travel_sinking<V: BlockView>(
     landing
 }
 
+pub fn drowned_wants_to_swim(living: &LivingState) -> bool {
+    let searching = match living.mob.as_ref().map(|mob| mob.species) {
+        Some(Species::Zombie(zombie)) => zombie.searching_for_land,
+        _ => false,
+    };
+    super::species::drowned::wants_to_swim(searching, living.target_in_water, living.has_target)
+}
+
 pub fn travel_turtle<V: BlockView>(
     base: &mut EntityBase,
     living: &mut LivingState,
@@ -1455,6 +1466,13 @@ pub fn travel<V: BlockView>(
     }
     if base.fluid.in_water && base.kind == EntityKind::Turtle {
         return travel_turtle(base, living, view, input);
+    }
+    if base.fluid.in_water
+        && base.eye_in_water
+        && base.kind == EntityKind::Drowned
+        && drowned_wants_to_swim(living)
+    {
+        return travel_sinking(base, living, view, input, DROWNED_PUSH, false);
     }
     if base.fluid.in_water && super::species::guardian::is_guardian(base.kind) {
         let sinks = !super::species::guardian::is_moving(base) && !living.has_target;
