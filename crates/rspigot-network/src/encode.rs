@@ -703,6 +703,7 @@ fn registry_variant(kind: VariantKind) -> RegistryVariant {
         VariantKind::Mob(VariantFamily::Frog) | VariantKind::Sound(VariantFamily::Frog) => {
             RegistryVariant::Frog
         }
+        VariantKind::ZombieNautilus => RegistryVariant::ZombieNautilus,
     }
 }
 
