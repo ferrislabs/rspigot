@@ -12,6 +12,7 @@ use super::arrow::{self, ArrowState};
 use super::base::{EntityBase, MAX_AIR_SUPPLY, RemovalReason};
 use super::bullet::{self, BulletState};
 use super::falling::FallingState;
+use super::fangs::{self, FangsState};
 use super::hurting::{self, HurtingState};
 use super::item::{self, ItemState};
 use super::living::{
@@ -181,6 +182,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::Snowball
             | EntityKind::SplashPotion
             | EntityKind::ShulkerBullet
+            | EntityKind::EvokerFangs
     ) || hurting::is_hurting_projectile(kind)
         || (kind.extends("Mob") && kind != EntityKind::EnderDragon)
 }
@@ -777,6 +779,8 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Vindicator(state) => species::vindicator::read(nbt, base, state),
         Species::Ravager(state) => species::ravager::read(nbt, base, state),
+        Species::Evoker(state) => species::evoker::read(nbt, base, state),
+        Species::Illusioner(state) => species::illusioner::read(nbt, base, state),
         Species::Hoglin(state) => {
             species::hoglin::read(nbt, base, &mut living.attributes, state);
         }
@@ -1030,6 +1034,8 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Pillager(_) => species::pillager::KEYS,
         Species::Vindicator(_) => species::vindicator::KEYS,
         Species::Ravager(_) => species::ravager::KEYS,
+        Species::Evoker(_) => species::evoker::KEYS,
+        Species::Illusioner(_) => species::illusioner::KEYS,
         Species::Hoglin(_) => species::hoglin::KEYS,
         Species::Piglin(_) => species::piglin::KEYS,
         Species::Goat(_) => species::goat::KEYS,
@@ -1097,6 +1103,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Bullet(Box::new(BulletState::new(&mut base, seed)))
         }
+        EntityKind::EvokerFangs => EntityState::Fangs(FangsState::default()),
         _ => EntityState::Living(Box::new(LivingState::new(&mut base, 0.0))),
     };
     read_base(nbt, &mut base)?;
@@ -1165,6 +1172,11 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Bullet(bullet_state) => {
             read_bullet(nbt, bullet_state);
             &[&ENTITY_KEYS, &BULLET_KEYS, bullet::KEYS]
+        }
+        EntityState::Fangs(fangs_state) => {
+            fangs_state.warmup = nbt.get_i32("Warmup").unwrap_or(0);
+            fangs_state.owner = nbt.get("Owner").and_then(read_uuid);
+            &[&ENTITY_KEYS, fangs::KEYS]
         }
         EntityState::Inert(_) => &[],
     };
@@ -1493,6 +1505,8 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Pillager(state) => species::pillager::write(base, state, out),
         Species::Vindicator(state) => species::vindicator::write(base, state, out),
         Species::Ravager(state) => species::ravager::write(base, state, out),
+        Species::Evoker(state) => species::evoker::write(base, state, out),
+        Species::Illusioner(state) => species::illusioner::write(base, state, out),
         Species::Hoglin(state) => species::hoglin::write(base, state, out),
         Species::Piglin(state) => species::piglin::write(base, state, out),
         Species::Goat(state) => species::goat::write(base, state, out),
@@ -1573,6 +1587,12 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
             write_hurting(&entity.base, hurting_state, &mut out);
         }
         EntityState::Bullet(bullet_state) => write_bullet(bullet_state, &mut out),
+        EntityState::Fangs(fangs_state) => {
+            out.insert("Warmup", fangs_state.warmup);
+            if let Some(owner) = fangs_state.owner {
+                out.insert("Owner", uuid_tag(owner));
+            }
+        }
         EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {

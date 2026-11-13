@@ -25,6 +25,7 @@ pub mod dolphin;
 pub mod drowned;
 pub mod enderman;
 pub mod endermite;
+pub mod evoker;
 pub mod fish;
 pub mod fox;
 pub mod frog;
@@ -32,6 +33,7 @@ pub mod ghast;
 pub mod goat;
 pub mod guardian;
 pub mod hoglin;
+pub mod illusioner;
 pub mod iron_golem;
 pub mod nautilus;
 pub mod ocelot;
@@ -48,6 +50,7 @@ pub mod shulker;
 pub mod silverfish;
 pub mod sniffer;
 pub mod snow_golem;
+pub mod spellcaster;
 pub mod squid;
 pub mod tadpole;
 pub mod turtle;
@@ -244,6 +247,8 @@ pub enum Species {
     Pillager(pillager::PillagerState),
     Vindicator(vindicator::VindicatorState),
     Ravager(ravager::RavagerState),
+    Evoker(evoker::EvokerState),
+    Illusioner(illusioner::IllusionerState),
     Hoglin(hoglin::HoglinState),
     Piglin(piglin::PiglinState),
     Goat(goat::GoatState),
@@ -307,6 +312,8 @@ impl Species {
             Self::Pillager(state) => Some(&state.raider),
             Self::Vindicator(state) => Some(&state.raider),
             Self::Ravager(state) => Some(&state.raider),
+            Self::Evoker(state) => Some(&state.raider),
+            Self::Illusioner(state) => Some(&state.raider),
             _ => None,
         }
     }
@@ -317,6 +324,24 @@ impl Species {
             Self::Pillager(state) => Some(&mut state.raider),
             Self::Vindicator(state) => Some(&mut state.raider),
             Self::Ravager(state) => Some(&mut state.raider),
+            Self::Evoker(state) => Some(&mut state.raider),
+            Self::Illusioner(state) => Some(&mut state.raider),
+            _ => None,
+        }
+    }
+
+    pub fn spellcaster(&self) -> Option<&spellcaster::SpellcasterState> {
+        match self {
+            Self::Evoker(state) => Some(&state.spell),
+            Self::Illusioner(state) => Some(&state.spell),
+            _ => None,
+        }
+    }
+
+    pub fn spellcaster_mut(&mut self) -> Option<&mut spellcaster::SpellcasterState> {
+        match self {
+            Self::Evoker(state) => Some(&mut state.spell),
+            Self::Illusioner(state) => Some(&mut state.spell),
             _ => None,
         }
     }
@@ -489,6 +514,12 @@ impl Species {
         }
         if kind == EntityKind::Ravager {
             return Self::Ravager(ravager::define(base));
+        }
+        if kind == EntityKind::Evoker {
+            return Self::Evoker(evoker::define(base));
+        }
+        if kind == EntityKind::Illusioner {
+            return Self::Illusioner(illusioner::define(base));
         }
         if matches!(kind, EntityKind::Hoglin | EntityKind::Zoglin) {
             return Self::Hoglin(hoglin::define(base));
