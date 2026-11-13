@@ -929,6 +929,12 @@ pub(crate) enum Grief {
         pos: BlockPos,
         to: BlockStateId,
     },
+    TurtleEgg {
+        turtle: EntityId,
+        at: BlockPos,
+        pos: BlockPos,
+        state: BlockStateId,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1378,6 +1384,7 @@ impl Continuation {
                 Grief::Statue { golem, .. } => *golem == id,
                 Grief::WitherBreak { wither, .. } => *wither == id,
                 Grief::BeeGrow { bee, .. } => *bee == id,
+                Grief::TurtleEgg { turtle, .. } => *turtle == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,

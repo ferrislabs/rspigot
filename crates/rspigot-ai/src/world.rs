@@ -192,6 +192,7 @@ pub struct MobBody {
     pub fish: crate::FishFacts,
     pub squid: crate::SquidFacts,
     pub dolphin: crate::DolphinFacts,
+    pub turtle: crate::TurtleFacts,
 }
 
 impl MobBody {
@@ -216,6 +217,7 @@ impl MobBody {
             fish: mob.species.fish,
             squid: mob.species.squid,
             dolphin: mob.species.dolphin,
+            turtle: mob.species.turtle,
         }
     }
 }
@@ -485,6 +487,7 @@ pub struct KindFacts {
     pub fish: crate::FishFacts,
     pub squid: crate::SquidFacts,
     pub dolphin: crate::DolphinFacts,
+    pub turtle: crate::TurtleFacts,
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
 }

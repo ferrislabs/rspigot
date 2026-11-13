@@ -31,6 +31,10 @@ use crate::swimmers::{
     PufferfishPuffGoal, RandomSwimmingGoal, SquidFleeGoal, SquidRandomMovementGoal,
     TryFindWaterGoal, WaterGoal,
 };
+use crate::turtle::{
+    TurtleBreedGoal, TurtleGoHomeGoal, TurtleGoToWaterGoal, TurtleGoal, TurtleLayEggGoal,
+    TurtlePanicGoal, TurtleRandomStrollGoal, TurtleTravelGoal,
+};
 use crate::world::TargetKind;
 use crate::{
     cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
@@ -82,6 +86,10 @@ const DOLPHIN_LOOK_DISTANCE: f32 = 6.0;
 const DOLPHIN_JUMP_INTERVAL: i32 = 10;
 const DOLPHIN_ATTACK_SPEED: f64 = 1.2_f32 as f64;
 const DOLPHIN_AVOID_DISTANCE: f32 = 8.0;
+const TURTLE_PANIC_SPEED: f64 = 1.2;
+const TURTLE_SPEED: f64 = 1.0;
+const TURTLE_TEMPT_SPEED: f64 = 1.1;
+const TURTLE_LOOK_DISTANCE: f32 = 8.0;
 const DOLPHIN_IGNORED_DAMAGE: &[&str] = &["Guardian"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -202,6 +210,46 @@ fn fish_goals(add: &mut Goals<'_>) {
     add.goal(
         4,
         MobGoal::Water(WaterGoal::RandomSwimming(RandomSwimmingGoal::fish())),
+    );
+}
+
+fn turtle_goals(add: &mut Goals<'_>) {
+    add.goal(
+        0,
+        MobGoal::Turtle(TurtleGoal::Panic(TurtlePanicGoal::new(TURTLE_PANIC_SPEED))),
+    );
+    add.goal(
+        1,
+        MobGoal::Turtle(TurtleGoal::Breed(TurtleBreedGoal::new(TURTLE_SPEED))),
+    );
+    add.goal(
+        1,
+        MobGoal::Turtle(TurtleGoal::LayEgg(TurtleLayEggGoal::new(TURTLE_SPEED))),
+    );
+    add.tempt(
+        2,
+        TURTLE_TEMPT_SPEED,
+        TemptItems::Tag("minecraft:turtle_food"),
+    );
+    add.goal(
+        3,
+        MobGoal::Turtle(TurtleGoal::GoToWater(TurtleGoToWaterGoal::new(
+            TURTLE_SPEED,
+            false,
+        ))),
+    );
+    add.goal(
+        4,
+        MobGoal::Turtle(TurtleGoal::GoHome(TurtleGoHomeGoal::new(TURTLE_SPEED))),
+    );
+    add.goal(
+        7,
+        MobGoal::Turtle(TurtleGoal::Travel(TurtleTravelGoal::new(TURTLE_SPEED))),
+    );
+    add.look(8, TURTLE_LOOK_DISTANCE);
+    add.goal(
+        9,
+        MobGoal::Turtle(TurtleGoal::RandomStroll(TurtleRandomStrollGoal::default())),
     );
 }
 
@@ -815,6 +863,7 @@ pub fn register_goals(
             );
         }
         EntityKind::Dolphin => dolphin_goals(&mut add),
+        EntityKind::Turtle => turtle_goals(&mut add),
         EntityKind::Phantom => {
             add.brain.movement.set_style(MoveStyle::Phantom);
             add.goal(

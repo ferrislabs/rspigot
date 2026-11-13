@@ -149,6 +149,13 @@ impl Brain {
             profile = profile.water_bound(true);
             profile.set_malus(PathType::Water, 0.0);
         }
+        if kind == EntityKind::Turtle {
+            profile = profile.amphibious(false);
+            profile.set_malus(PathType::Water, 0.0);
+            profile.set_malus(PathType::DoorIronClosed, -1.0);
+            profile.set_malus(PathType::DoorWoodClosed, -1.0);
+            profile.set_malus(PathType::DoorOpen, -1.0);
+        }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
             profile.set_malus(PathType::Lava, 8.0);
@@ -191,6 +198,9 @@ impl Brain {
         }
         if kind.extends("AbstractFish") {
             brain.movement.set_fish();
+        }
+        if kind == EntityKind::Turtle {
+            brain.movement.set_turtle();
         }
         if kind == EntityKind::Dolphin {
             brain.movement.set_smooth_swimming(SmoothSwimming {
@@ -1157,6 +1167,11 @@ impl MobAi {
                     let done = brain.navigation.is_done();
                     brain.movement.tick_fish(base, living, done);
                 }
+                MoveStyle::Turtle => {
+                    let done = brain.navigation.is_done();
+                    let (home, baby) = turtle_home_of(base, living);
+                    brain.movement.tick_turtle(base, living, done, home, baby);
+                }
                 MoveStyle::Phantom => {
                     let target = brain.phantom.move_target;
                     brain.movement.tick_phantom(base, living, target);
@@ -1237,6 +1252,21 @@ impl MobAi {
         self.goals.set_control_flag(Flag::Jump, true);
         self.goals.set_control_flag(Flag::Look, true);
     }
+}
+
+fn turtle_home_of(base: &EntityBase, living: &LivingState) -> (BlockPos, bool) {
+    let Some(mob) = living.mob.as_ref() else {
+        return (BlockPos::new(0, 0, 0), false);
+    };
+    let home = match mob.species {
+        rspigot_domain::entity::species::Species::Turtle(state) => state.home_pos,
+        _ => BlockPos::new(0, 0, 0),
+    };
+    let baby = mob
+        .ageable
+        .as_ref()
+        .is_some_and(|ageable| rspigot_domain::entity::ageable::is_baby(base, ageable));
+    (home, baby)
 }
 
 fn apply_pending<W: AiWorld>(

@@ -204,6 +204,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn species_post_tick(&mut self, id: EntityId) {
         self.kind_post_tick(id);
+        self.mob_steps_on_egg(id);
         let now = self.current_tick() as i64;
         let Some(Entity {
             base,
@@ -310,6 +311,7 @@ impl<L: ClientLink> Server<L> {
         let mut random = self.mob_random(id);
         let mut particles = Vec::new();
         let mut lay_egg = false;
+        let mut grew_up = false;
         if let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -325,6 +327,7 @@ impl<L: ClientLink> Server<L> {
             if let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut()) {
                 particles = ageable::ai_step(base, ageable, alive, &mut random).particles;
                 ageable::love_ai_step(base, ageable, &mut random);
+                grew_up = ageable.take_grew_up();
             }
             if let Some(Species::Chicken(chicken)) = state.mob.as_mut().map(|mob| &mut mob.species)
             {
@@ -342,6 +345,9 @@ impl<L: ClientLink> Server<L> {
         }
         if lay_egg {
             self.lay_egg(id);
+        }
+        if grew_up && self.kind_of(id) == Some(Kind::Turtle) {
+            self.turtle_grew_up(id);
         }
     }
 

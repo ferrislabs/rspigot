@@ -1540,6 +1540,21 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     if let Some(Species::Squid(squid)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         squid.movement = body.squid.movement;
     }
+    if let Some(Species::Turtle(turtle)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        turtle.home_pos = body.turtle.home_pos;
+        turtle.lay_egg_counter = body.turtle.lay_egg_counter;
+        turtle.going_home = body.turtle.going_home;
+        turtle.travel_pos = body.turtle.travel_pos;
+    }
+    if base.kind == Kind::Turtle {
+        if species::turtle::has_egg(base) != body.turtle.has_egg {
+            species::turtle::set_has_egg(base, body.turtle.has_egg);
+        }
+        if species::turtle::is_laying_egg(base) != body.turtle.laying_egg {
+            let mut scratch = species::turtle::TurtleState::default();
+            species::turtle::set_laying_egg(base, &mut scratch, body.turtle.laying_egg);
+        }
+    }
     if let Some(Species::Dolphin(dolphin)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         dolphin.treasure_pos = body.dolphin.treasure_pos;
     }
@@ -2249,6 +2264,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ghast | Kind::Allay | Kind::Bee)
         ) {
             return;
+        }
+        if landing.state.kind() == Some(rspigot_blocks::BlockKind::TurtleEgg) {
+            self.egg_fallen_on(id, false, landing.pos);
         }
         let Some(impact) = fall_impact(landing.state, landing.distance, false) else {
             return;

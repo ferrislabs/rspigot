@@ -118,11 +118,20 @@ impl<L: ClientLink> Server<L> {
             let distance = vitals.fall_distance;
             let sneaking = player.sneaking;
             let position = player.position;
-            if distance > 0.0 {
-                let (pos, below) = self.supporting_block(position);
-                if let Some(impact) = fall_impact(below, distance, sneaking) {
-                    self.cause_player_fall_damage(id, impact, (pos, below));
+            let entity = player.entity_id;
+            let (pos, below) = self.supporting_block(position);
+            if below.kind() == Some(BlockKind::TurtleEgg) {
+                if !sneaking {
+                    self.egg_stepped_on(entity, true, pos);
                 }
+                if distance > 0.0 {
+                    self.egg_fallen_on(entity, true, pos);
+                }
+            }
+            if distance > 0.0
+                && let Some(impact) = fall_impact(below, distance, sneaking)
+            {
+                self.cause_player_fall_damage(id, impact, (pos, below));
             }
             if let Some(player) = self.players.get_mut(&id) {
                 player.vitals.fall_distance = 0.0;

@@ -37,6 +37,11 @@ const SMOOTH_BODY_TURN: f32 = 4.0;
 const FISH_SPEED_LERP: f32 = 0.125;
 const FISH_VERTICAL_PUSH: f64 = 0.1;
 const FISH_YAW_TURN: f32 = 90.0;
+const TURTLE_BUOYANCY: f64 = 0.005;
+const TURTLE_HOME_RADIUS: f64 = 16.0;
+const TURTLE_FAR_WATER_SPEED: f32 = 0.08;
+const TURTLE_BABY_WATER_SPEED: f32 = 0.06;
+const TURTLE_LAND_SPEED: f32 = 0.06;
 
 pub fn rotate_towards(from: f32, to: f32, max: f32) -> f32 {
     let difference = mth::degrees_difference(from, to);
@@ -267,6 +272,7 @@ pub enum MoveStyle {
     Phantom,
     SmoothSwimming,
     Fish,
+    Turtle,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -464,6 +470,52 @@ impl MoveControl {
                 1.0 - mth::clamp((angle - SWIM_TURN_FREE_ANGLE) / SWIM_TURN_RANGE, 0.0, 1.0);
             set_speed(living, speed * params.outside_water_speed_modifier * factor);
         }
+    }
+
+    pub fn set_turtle(&mut self) {
+        self.style = MoveStyle::Turtle;
+    }
+
+    pub fn tick_turtle(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        navigation_done: bool,
+        home: BlockPos,
+        baby: bool,
+    ) {
+        if base.fluid.in_water {
+            base.velocity = base.velocity + Vec3::new(0.0, TURTLE_BUOYANCY, 0.0);
+            if !crate::scan::closer_to_center_than(home, base.position, TURTLE_HOME_RADIUS) {
+                set_speed(living, (living.speed / 2.0).max(TURTLE_FAR_WATER_SPEED));
+            }
+            if baby {
+                set_speed(living, (living.speed / 3.0).max(TURTLE_BABY_WATER_SPEED));
+            }
+        } else if base.on_ground {
+            set_speed(living, (living.speed / 2.0).max(TURTLE_LAND_SPEED));
+        }
+        if self.operation != Operation::MoveTo || navigation_done {
+            set_speed(living, 0.0);
+            return;
+        }
+        let dx = self.wanted.x - base.position.x;
+        let dy = self.wanted.y - base.position.y;
+        let dz = self.wanted.z - base.position.z;
+        let length = (dx * dx + dy * dy + dz * dz).sqrt();
+        if length < LOOK_EPSILON {
+            set_speed(living, 0.0);
+            return;
+        }
+        let vertical = dy / length;
+        let yaw = (mth::atan2(dz, dx) * mth::RAD_TO_DEG) as f32 - 90.0;
+        base.set_yaw(rotlerp(base.yaw, yaw, FISH_YAW_TURN));
+        living.body_yaw = base.yaw;
+        let target = (self.speed_modifier * living.attribute(MOVEMENT_SPEED)) as f32;
+        let lerped = living.speed + FISH_SPEED_LERP * (target - living.speed);
+        set_speed(living, lerped);
+        base.velocity =
+            base.velocity + Vec3::new(0.0, f64::from(living.speed) * vertical * 0.1, 0.0);
     }
 
     pub fn tick_fish(
@@ -1350,5 +1402,137 @@ mod tests {
         assert_eq!(rotlerp(10.0, -170.0, 90.0), 280.0);
         assert_eq!(rotlerp(350.0, 20.0, 90.0), 20.0);
         assert_eq!(rotate_towards(0.0, 200.0, 10.0), -10.0);
+    }
+
+    fn turtle() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Turtle);
+        base.position = Vec3::new(0.5, 64.0, 0.5);
+        base.old_position = base.position;
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    fn turtle_control() -> MoveControl {
+        let mut movement = MoveControl::default();
+        movement.set_turtle();
+        movement
+    }
+
+    #[test]
+    fn a_turtle_in_water_floats_up_and_halves_its_speed_far_from_home_down_to_eight_hundredths() {
+        let (mut base, mut living) = turtle();
+        base.fluid.in_water = true;
+        living.speed = 0.5;
+        let mut movement = turtle_control();
+        movement.tick_turtle(
+            &mut base,
+            &mut living,
+            true,
+            BlockPos::new(100, 64, 0),
+            false,
+        );
+        assert_eq!(base.velocity, Vec3::new(0.0, 0.005, 0.0));
+        assert_eq!(living.speed, 0.0);
+        living.speed = 0.5;
+        let mut movement = turtle_control();
+        movement.set_wanted_position(Vec3::new(0.5, 64.0, 5.5), 1.0);
+        movement.tick_turtle(
+            &mut base,
+            &mut living,
+            false,
+            BlockPos::new(100, 64, 0),
+            false,
+        );
+        let lerped = 0.25 + 0.125 * ((0.25_f64 * 1.0) as f32 - 0.25);
+        assert_eq!(living.speed, lerped);
+        living.speed = 0.01;
+        let mut movement = turtle_control();
+        movement.tick_turtle(
+            &mut base,
+            &mut living,
+            true,
+            BlockPos::new(100, 64, 0),
+            false,
+        );
+        assert_eq!(living.speed, 0.0);
+    }
+
+    #[test]
+    fn a_turtle_near_home_keeps_its_swimming_speed_and_a_baby_cuts_it_to_a_third() {
+        let (mut base, mut living) = turtle();
+        base.fluid.in_water = true;
+        living.speed = 0.3;
+        let mut movement = turtle_control();
+        movement.set_wanted_position(Vec3::new(0.5, 64.0, 5.5), 1.0);
+        movement.tick_turtle(
+            &mut base,
+            &mut living,
+            false,
+            BlockPos::new(0, 64, 0),
+            false,
+        );
+        let lerped = 0.3 + 0.125 * (0.25 - 0.3);
+        assert!((f64::from(living.speed) - lerped).abs() < 1.0e-6);
+        let (mut base, mut living) = turtle();
+        base.fluid.in_water = true;
+        living.speed = 0.3;
+        let mut movement = turtle_control();
+        movement.set_wanted_position(Vec3::new(0.5, 64.0, 5.5), 1.0);
+        movement.tick_turtle(&mut base, &mut living, false, BlockPos::new(0, 64, 0), true);
+        let thirded = (0.3_f32 / 3.0).max(0.06);
+        let lerped = thirded + 0.125 * (0.25 - thirded);
+        assert!((living.speed - lerped).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn a_turtle_on_the_ground_halves_its_speed_down_to_six_hundredths_before_steering() {
+        let (mut base, mut living) = turtle();
+        base.on_ground = true;
+        living.speed = 0.4;
+        let mut movement = turtle_control();
+        movement.set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 1.0);
+        movement.tick_turtle(
+            &mut base,
+            &mut living,
+            false,
+            BlockPos::new(0, 64, 0),
+            false,
+        );
+        let halved = 0.2_f32;
+        let lerped = halved + 0.125 * (0.25 - halved);
+        assert!((living.speed - lerped).abs() < 1.0e-6);
+        assert_eq!(base.yaw, 270.0);
+        assert_eq!(living.body_yaw, 270.0);
+        assert_eq!(base.velocity, Vec3::new(0.0, 0.0, 0.0));
+    }
+
+    #[test]
+    fn a_turtle_steers_vertically_by_a_tenth_of_its_speed_and_stops_when_arrived() {
+        let (mut base, mut living) = turtle();
+        base.fluid.in_water = true;
+        let mut movement = turtle_control();
+        movement.set_wanted_position(Vec3::new(0.5, 70.0, 0.5), 1.0);
+        movement.tick_turtle(
+            &mut base,
+            &mut living,
+            false,
+            BlockPos::new(0, 64, 0),
+            false,
+        );
+        assert!(base.velocity.y > 0.005);
+        let expected = 0.005 + f64::from(living.speed) * 1.0 * 0.1;
+        assert!((base.velocity.y - expected).abs() < 1.0e-9);
+        let (mut base, mut living) = turtle();
+        let mut movement = turtle_control();
+        movement.set_wanted_position(base.position, 1.0);
+        living.speed = 0.2;
+        movement.tick_turtle(
+            &mut base,
+            &mut living,
+            false,
+            BlockPos::new(0, 64, 0),
+            false,
+        );
+        assert_eq!(living.speed, 0.0);
     }
 }

@@ -119,6 +119,7 @@ impl<L: ClientLink> Server<L> {
             MobAction::Blaze(action) => self.blaze_action(id, action),
             MobAction::Ghast(action) => self.ghast_action(id, action),
             MobAction::Air(action) => self.air_action(id, action),
+            MobAction::Turtle(action) => self.turtle_action(id, action),
             MobAction::Shulker(action) => self.shulker_action(id, action),
             MobAction::Raider(action) => self.raider_action(id, action),
             MobAction::Crossbow(action) => self.crossbow_action(id, action),
@@ -459,6 +460,10 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn spawn_child_from_breeding(&mut self, parent: EntityId, partner: EntityId) {
         match self.kind_of(parent) {
+            Some(Kind::Turtle) => {
+                self.turtle_breed(parent, partner);
+                return;
+            }
             Some(Kind::Sniffer) => {
                 self.sniffer_lay_egg(parent, partner);
                 return;

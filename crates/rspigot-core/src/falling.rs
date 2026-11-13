@@ -210,6 +210,10 @@ impl<L: ClientLink> Server<L> {
             }
             return;
         }
+        if kind == BlockKind::TurtleEgg {
+            self.turtle_egg_placed(pos);
+            return;
+        }
         match kind.gravity() {
             Gravity::Falling | Gravity::ConcretePowder | Gravity::Anvil => {
                 self.schedule(pos, kind, FALLING_DELAY)
