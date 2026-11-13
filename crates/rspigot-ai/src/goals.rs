@@ -890,6 +890,7 @@ pub enum MobGoal {
     Crossbow(crate::crossbow::CrossbowGoal),
     WitchTarget(crate::raider::NearestAttackableWitchTargetGoal),
     Trader(crate::villager::TraderGoal),
+    Air(crate::air::AirGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -940,6 +941,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Trader(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Air(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -990,6 +992,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::can_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_use(goal, context),
             Self::Trader(goal) => Goal::can_use(goal, context),
+            Self::Air(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -1039,6 +1042,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::can_continue_to_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_continue_to_use(goal, context),
             Self::Trader(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Air(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
 
@@ -1053,6 +1057,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Air(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
@@ -1108,6 +1113,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::start(goal, context),
             Self::WitchTarget(goal) => Goal::start(goal, context),
             Self::Trader(goal) => Goal::start(goal, context),
+            Self::Air(goal) => Goal::start(goal, context),
         }
     }
 
@@ -1158,6 +1164,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::stop(goal, context),
             Self::WitchTarget(goal) => Goal::stop(goal, context),
             Self::Trader(goal) => Goal::stop(goal, context),
+            Self::Air(goal) => Goal::stop(goal, context),
         }
     }
 
@@ -1172,6 +1179,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Silverfish(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Air(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
@@ -1198,6 +1206,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::WitchTarget(goal) => Goal::tick(goal, context),
             Self::BlazeAttack(goal) => Goal::tick(goal, context),
             Self::Trader(goal) => Goal::tick(goal, context),
+            Self::Air(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
         }
     }
@@ -1260,6 +1269,7 @@ impl MobGoal {
             | Self::Crossbow(_)
             | Self::WitchTarget(_)
             | Self::Trader(_)
+            | Self::Air(_)
             | Self::Wolf(_)
             | Self::Cat(_)
             | Self::Fox(_)

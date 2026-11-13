@@ -1,4 +1,5 @@
 mod action;
+mod air;
 mod animal;
 mod animals;
 mod armadillo;
@@ -54,6 +55,7 @@ mod sniffer;
 mod sweep;
 mod tame;
 mod targeting;
+mod vex;
 mod view;
 mod village;
 mod villager;
@@ -64,6 +66,7 @@ mod world;
 mod zombified_piglin;
 
 pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequest};
+pub use air::{AirAction, AirGoal};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };
@@ -213,6 +216,7 @@ pub use targeting::{
     TargetingConditions, can_attack, goal_can_attack, is_angry_at, mob_can_attack, nearest,
     nearest_player, valid_mob_target, valid_player_target, valid_target,
 };
+pub use vex::{VexAction, VexFacts};
 pub use view::BlockView;
 pub use village::{find_section_closest_to_village, sections_to_village};
 pub use villager::{

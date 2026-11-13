@@ -800,6 +800,7 @@ mod tests {
                 EntityKind::SnowGolem,
                 EntityKind::Spider,
                 EntityKind::Stray,
+                EntityKind::Vex,
                 EntityKind::Villager,
                 EntityKind::WanderingTrader,
                 EntityKind::Warden,

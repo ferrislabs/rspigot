@@ -1,0 +1,13 @@
+use rspigot_ai::AirAction;
+use rspigot_domain::EntityId;
+
+use crate::ports::ClientLink;
+use crate::server::Server;
+
+impl<L: ClientLink> Server<L> {
+    pub(crate) fn air_action(&mut self, id: EntityId, action: AirAction) {
+        match action {
+            AirAction::Vex(action) => self.vex_action(id, action),
+        }
+    }
+}

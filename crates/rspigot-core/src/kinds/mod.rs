@@ -11,6 +11,7 @@ use crate::interact::Interaction;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
+mod air;
 mod armadillo;
 mod blaze;
 mod breeze;
@@ -35,6 +36,7 @@ mod shulker;
 mod silverfish;
 mod sniffer;
 mod snow_golem;
+mod vex;
 pub(crate) mod villager;
 mod warden;
 mod witch;
@@ -73,6 +75,7 @@ impl<L: ClientLink> Server<L> {
             Kind::IronGolem => self.iron_golem_view(entity, view),
             Kind::Blaze => self.blaze_view(entity, view),
             Kind::Ghast => self.ghast_view(entity, view),
+            Kind::Vex => self.vex_view(entity, view),
             Kind::Shulker => self.shulker_view(entity, view),
             Kind::ZombifiedPiglin => self.zombified_piglin_view(entity, view),
             Kind::Rabbit => self.rabbit_view(entity, view),
@@ -126,6 +129,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::IronGolem) => self.iron_golem_pre_tick(id),
             Some(Kind::Blaze) => self.blaze_pre_tick(id),
             Some(Kind::Ghast) => self.ghast_pre_tick(id),
+            Some(Kind::Vex) => self.vex_pre_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_pre_tick(id),
             Some(Kind::ZombieVillager) => self.zombie_villager_pre_tick(id),
             Some(Kind::Rabbit) => self.rabbit_pre_tick(id),
@@ -149,6 +153,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::SnowGolem) => self.snow_golem_post_tick(id),
             Some(Kind::Shulker) => self.shulker_post_tick(id),
             Some(Kind::Blaze) => self.blaze_post_tick(id),
+            Some(Kind::Vex) => self.vex_post_tick(id),
             Some(Kind::ZombifiedPiglin) => self.zombified_piglin_post_tick(id),
             Some(Kind::Rabbit) => self.rabbit_post_tick(id),
             Some(Kind::Ocelot) => self.ocelot_post_tick(id),

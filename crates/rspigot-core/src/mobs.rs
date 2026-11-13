@@ -1453,6 +1453,9 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     if let Some(Species::Armadillo(armadillo)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         species::armadillo::switch_to_state(base, armadillo, body.armadillo.state);
     }
+    if base.kind == Kind::Vex {
+        species::vex::set_charging(base, body.vex.charging);
+    }
     if base.kind == Kind::Sniffer {
         let baby = state
             .mob

@@ -183,6 +183,7 @@ pub struct MobBody {
     pub discard_friction: bool,
     pub armadillo: crate::ArmadilloFacts,
     pub sniffer: crate::SnifferFacts,
+    pub vex: crate::VexFacts,
 }
 
 impl MobBody {
@@ -201,6 +202,7 @@ impl MobBody {
             discard_friction: mob.discard_friction,
             armadillo: mob.species.armadillo,
             sniffer: mob.species.sniffer,
+            vex: mob.species.vex,
         }
     }
 }
@@ -441,6 +443,7 @@ pub struct KindFacts {
     pub sniffer: crate::SnifferFacts,
     pub breeze: crate::BreezeFacts,
     pub creaking: crate::CreakingFacts,
+    pub vex: crate::VexFacts,
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
 }

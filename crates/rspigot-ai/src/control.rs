@@ -201,6 +201,7 @@ pub enum MoveStyle {
     Ground,
     Ghast,
     Flying,
+    Vex,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -320,6 +321,20 @@ impl MoveControl {
 
     pub fn hovers_in_place(&self) -> bool {
         self.hovers_in_place
+    }
+
+    pub fn tick_vex(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        target: Option<Vec3>,
+    ) {
+        if self.operation != Operation::MoveTo {
+            return;
+        }
+        if !crate::vex::tick_move_control(base, living, self.wanted, self.speed_modifier, target) {
+            self.operation = Operation::Wait;
+        }
     }
 
     pub fn tick_flying(&mut self, base: &mut EntityBase, living: &mut LivingState) {

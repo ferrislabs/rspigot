@@ -1,6 +1,7 @@
 use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 
+use crate::air::AirGoal;
 use crate::animal::{BreedGoal, EatBlockGoal, FollowParentGoal, PanicGoal};
 use crate::blaze::BlazeAttackGoal;
 use crate::blocks::{MoveThroughVillageGoal, RemoveTurtleEggGoal};
@@ -49,6 +50,9 @@ const PILLAGER_CROSSBOW_RADIUS: f32 = 8.0;
 const PILLAGER_STROLL_SPEED: f64 = 0.6;
 const PILLAGER_LOOK_DISTANCE: f32 = 15.0;
 const PILLAGER_IGNORED_DAMAGE: &[&str] = &["Raider"];
+const VEX_LOOK_DISTANCE: f32 = 3.0;
+const VEX_MOB_LOOK_DISTANCE: f32 = 8.0;
+const VEX_IGNORED_DAMAGE: &[&str] = &["Raider"];
 const SHULKER_LOOK_DISTANCE: f32 = 8.0;
 const SHULKER_LOOK_PROBABILITY: f32 = 0.02;
 const SHULKER_IGNORED_DAMAGE: &[&str] = &["Shulker"];
@@ -626,6 +630,42 @@ pub fn register_goals(
                 MobGoal::WitchTarget(NearestAttackableWitchTargetGoal::default()),
             );
         }
+        EntityKind::Vex => {
+            add.brain.movement.set_style(MoveStyle::Vex);
+            add.float(0);
+            add.goal(
+                4,
+                MobGoal::Air(AirGoal::VexCharge(crate::vex::ChargeAttackGoal)),
+            );
+            add.goal(
+                8,
+                MobGoal::Air(AirGoal::VexRandomMove(crate::vex::RandomMoveGoal)),
+            );
+            add.goal(
+                9,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::with_probability(VEX_LOOK_DISTANCE, 1.0)),
+            );
+            add.goal(
+                10,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(VEX_MOB_LOOK_DISTANCE)),
+            );
+            add.target_goal(
+                1,
+                MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(
+                    VEX_IGNORED_DAMAGE,
+                )),
+            );
+            add.target_goal(
+                2,
+                MobGoal::Air(AirGoal::VexCopyOwnerTarget(
+                    crate::vex::CopyOwnerTargetGoal::new(),
+                )),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+        }
         EntityKind::Pillager => {
             raider::register(&mut add);
             add.float(0);
@@ -873,6 +913,56 @@ mod tests {
         assert_eq!(profile.malus(crate::PathType::Fire), 0.0);
         assert_eq!(profile.malus(crate::PathType::FireInNeighbor), 0.0);
         assert_eq!(ai.brain().movement.style(), MoveStyle::Ground);
+    }
+
+    #[test]
+    fn the_vex_registers_the_vanilla_goals_targets_and_move_control() {
+        let (goals, targets) = lists(EntityKind::Vex);
+        assert_eq!(
+            goals,
+            vec![
+                (0, MobGoal::Float(FloatGoal)),
+                (
+                    4,
+                    MobGoal::Air(AirGoal::VexCharge(crate::vex::ChargeAttackGoal))
+                ),
+                (
+                    8,
+                    MobGoal::Air(AirGoal::VexRandomMove(crate::vex::RandomMoveGoal))
+                ),
+                (
+                    9,
+                    MobGoal::LookAtPlayer(LookAtPlayerGoal::with_probability(3.0, 1.0))
+                ),
+                (10, MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(8.0))),
+            ]
+        );
+        assert_eq!(
+            targets,
+            vec![
+                (
+                    1,
+                    MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(&[
+                        "Raider"
+                    ]))
+                ),
+                (
+                    2,
+                    MobGoal::Air(AirGoal::VexCopyOwnerTarget(
+                        crate::vex::CopyOwnerTargetGoal::new()
+                    ))
+                ),
+                (
+                    3,
+                    MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::new(
+                        TargetKind::Player,
+                        true
+                    ))
+                ),
+            ]
+        );
+        let ai = MobAi::new(EntityKind::Vex, 1, GoalSettings::default());
+        assert_eq!(ai.brain().movement.style(), MoveStyle::Vex);
     }
 
     #[test]
