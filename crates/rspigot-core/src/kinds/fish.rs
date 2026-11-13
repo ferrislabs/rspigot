@@ -271,6 +271,7 @@ impl<L: ClientLink> Server<L> {
             hoglin: false,
             bee: false,
             puffer: Some(puff),
+            cube: false,
         };
         self.strike(
             None,

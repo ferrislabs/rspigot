@@ -22,6 +22,7 @@ mod control;
 mod copper_golem;
 mod creaking;
 mod crossbow;
+mod cube;
 mod drowned;
 mod enderman;
 mod evade;
@@ -162,6 +163,10 @@ pub use creaking::{CreakingAction, CreakingFacts, CreakingState};
 pub use crossbow::{
     CrossbowAction, CrossbowFacts, CrossbowGoal, CrossbowState, DEFAULT_CHARGE_TICKS,
     HoldGroundAttackGoal, RangedCrossbowAttackGoal,
+};
+pub use cube::{
+    AttackGoal as CubeAttackGoal, CubeFacts, CubeGoal, CubeSound, FloatGoal as CubeFloatGoal,
+    KeepOnJumpingGoal as CubeKeepOnJumpingGoal, RandomDirectionGoal as CubeRandomDirectionGoal,
 };
 pub use drowned::{
     DrownedAttackGoal, DrownedFacts, DrownedGoToBeachGoal, DrownedGoToWaterGoal, DrownedGoal,

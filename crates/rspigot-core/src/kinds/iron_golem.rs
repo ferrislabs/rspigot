@@ -260,6 +260,7 @@ impl<L: ClientLink> Server<L> {
             hoglin: false,
             bee: false,
             puffer: None,
+            cube: false,
         };
         self.strike(None, victim, &source, damage, AfterHurt::MobAttack(follow))
     }

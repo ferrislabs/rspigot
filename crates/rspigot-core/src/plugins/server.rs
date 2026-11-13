@@ -874,6 +874,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_transform(*step, cancelled);
                 Vec::new()
             }
+            Continuation::Split(step) => {
+                self.finish_cube_split(step, cancelled, patch_of!(patch, CubeMobSplit));
+                Vec::new()
+            }
+            Continuation::Scatter(step) => {
+                self.finish_cube_scatter(*step, cancelled);
+                Vec::new()
+            }
             Continuation::ChangeBlock(step) => {
                 self.finish_change(*step, cancelled);
                 Vec::new()
