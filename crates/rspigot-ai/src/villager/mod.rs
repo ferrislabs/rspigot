@@ -33,7 +33,9 @@ pub use social::{
     VillagerCalmDown, VillagerMakeLove, VillagerPanicTrigger,
 };
 pub use trader::{TraderFacts, TraderGoal};
-pub use work::{GiveGiftToHero, HarvestFarmland, ShowTradesToPlayer, WorkAtPoi, Workstation};
+pub use work::{
+    GiveGiftToHero, HarvestFarmland, ShowTradesToPlayer, UseBonemeal, WorkAtPoi, Workstation,
+};
 
 use rspigot_domain::ItemId;
 use rspigot_domain::entity::species::villager::{Profession, picks_up};

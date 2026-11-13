@@ -16,7 +16,7 @@ use crate::villager::{
     PlayTagWithOtherKids, PoiCompetitorScan, PoiRule, ReactToBell, ResetProfession,
     ResetRaidStatus, RingBell, SecondaryPoiSensor, SetClosestHomeAsWalkTarget, SetHiddenState,
     SetRaidStatus, SetWalkTargetFromBlockMemory, ShowTradesToPlayer, SleepInBed, SocializeAtBell,
-    StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule, ValidateNearbyPoi,
+    StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule, UseBonemeal, ValidateNearbyPoi,
     VillageBoundRandomStroll, VillagerBabiesSensor, VillagerCalmDown, VillagerHostilesSensor,
     VillagerMakeLove, VillagerPanicTrigger, WakeUp, WorkAtPoi, Workstation, YieldJobSite,
 };
@@ -330,6 +330,10 @@ fn work_package(profession: Profession) -> Pairs {
         (
             MobControl::behavior(MobBehavior::HarvestFarmland(HarvestFarmland::new())),
             if farmer { 2 } else { 5 },
+        ),
+        (
+            MobControl::behavior(MobBehavior::UseBonemeal(UseBonemeal::new())),
+            if farmer { 4 } else { 7 },
         ),
     ];
     vec![

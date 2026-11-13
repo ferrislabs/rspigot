@@ -876,6 +876,10 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Grow(step) => {
+                self.finish_grow(step, cancelled);
+                Vec::new()
+            }
             Continuation::DoorOpen { mob, pos } => {
                 if !cancelled {
                     self.finish_door_open(mob, pos);

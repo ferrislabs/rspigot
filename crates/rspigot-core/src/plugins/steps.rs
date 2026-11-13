@@ -859,6 +859,7 @@ pub(crate) enum Grief {
         pos: BlockPos,
         to: BlockStateId,
     },
+    Compost(Box<crate::compost::CompostRun>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -889,6 +890,12 @@ pub(crate) struct GatherStep {
     pub(crate) fox: EntityId,
     pub(crate) item: EntityId,
     pub(crate) stack: ItemStack,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct GrowStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1072,6 +1079,7 @@ pub(crate) enum Continuation {
     Barter(Box<BarterStep>),
     ChangeBlock(Box<ChangeStep>),
     Form(FormStep),
+    Grow(GrowStep),
     Ignite(IgniteStep),
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
@@ -1176,6 +1184,7 @@ impl Continuation {
             Self::Barter(_) => EventKind::PiglinBarter,
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
+            Self::Grow(_) => EventKind::BlockGrow,
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
@@ -1257,6 +1266,7 @@ impl Continuation {
                     *enderman == id
                 }
                 Grief::Douse { potion, .. } => *potion == id,
+                Grief::Compost(run) => run.villager() == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,

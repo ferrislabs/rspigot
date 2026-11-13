@@ -64,7 +64,7 @@ fn merchant_of(entity: &Entity) -> Option<&MerchantState> {
     entity.living()?.mob.as_ref()?.merchant.as_deref()
 }
 
-fn with_villager<R>(
+pub(crate) fn with_villager<R>(
     entity: &mut Entity,
     apply: impl FnOnce(
         &mut rspigot_domain::entity::EntityBase,
@@ -458,7 +458,9 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             VillagerAction::Restock => self.villager_restock(id),
-            VillagerAction::WorkAtComposter(_) => self.villager_make_bread(id),
+            VillagerAction::WorkAtComposter(pos) => self.villager_work_at_composter(id, pos),
+            VillagerAction::SetMainHand(item) => self.villager_set_main_hand(id, item),
+            VillagerAction::UseBoneMeal(pos) => self.villager_use_bone_meal(id, pos),
             VillagerAction::ShowTrade(index) => self.villager_show_trade(id, index),
             VillagerAction::ThrowSlot {
                 slot,
@@ -504,7 +506,19 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn villager_make_bread(&mut self, id: EntityId) {
+    fn villager_set_main_hand(&mut self, id: EntityId, item: Option<rspigot_domain::ItemId>) {
+        let stack = item.map(|item| ItemStack::new(item, NonZeroU8::MIN));
+        if let Some(living) = self
+            .entities
+            .store
+            .get_mut(id)
+            .and_then(|entity| entity.living_mut())
+        {
+            set_item_slot(living, EquipmentSlot::Mainhand, stack);
+        }
+    }
+
+    pub(crate) fn villager_make_bread(&mut self, id: EntityId) {
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;
         };

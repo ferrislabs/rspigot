@@ -1,7 +1,8 @@
 use rspigot_blocks::BlockKind;
-use rspigot_domain::BlockPos;
 use rspigot_domain::entity::species::villager::Profession;
+use rspigot_domain::{BlockPos, ItemId, crop};
 use rspigot_entities::EntityKind;
+use rspigot_items::ItemKind;
 
 use crate::action::MobAction;
 use crate::behavior::{
@@ -32,32 +33,21 @@ const HARVEST_START_DELAY: i64 = 40;
 const HARVEST_NEXT_CROP_DELAY: i64 = 20;
 const HARVEST_SPEED: f32 = 0.5;
 const HARVEST_DISTANCE: f64 = 1.0;
-
-fn crop_max_age(kind: BlockKind) -> Option<i32> {
-    match kind {
-        BlockKind::Wheat | BlockKind::Carrots | BlockKind::Potatoes => Some(7),
-        BlockKind::Beetroots => Some(3),
-        _ => None,
-    }
-}
+const BONEMEAL_SPEED: f32 = 0.5;
+const BONEMEAL_TICK_INTERVAL: i32 = 10;
+const BONEMEAL_COOLDOWN: i32 = 160;
+const BONEMEAL_MAX_TICKS: i32 = 80;
+const BONEMEAL_DISTANCE: f64 = 1.0;
+const BONEMEAL_NEXT_CYCLE_DELAY: i64 = 40;
+pub const BONEMEAL_EVENT: i32 = rspigot_domain::composter::BONE_MEAL_EVENT;
+const BONEMEAL_EVENT_DATA: i32 = 15;
 
 pub fn is_mature_crop<W: AiWorld>(world: &W, pos: BlockPos) -> bool {
-    world.state(pos).is_some_and(|state| {
-        let Some(max) = state.kind().and_then(crop_max_age) else {
-            return false;
-        };
-        state
-            .property("age")
-            .and_then(|age| age.parse::<i32>().ok())
-            .is_some_and(|age| age >= max)
-    })
+    world.state(pos).is_some_and(crop::is_max_age)
 }
 
 fn is_crop<W: AiWorld>(world: &W, pos: BlockPos) -> bool {
-    world
-        .state(pos)
-        .and_then(|state| state.kind())
-        .is_some_and(|kind| crop_max_age(kind).is_some())
+    world.state(pos).is_some_and(crop::is_crop)
 }
 
 fn is_air<W: AiWorld>(world: &W, pos: BlockPos) -> bool {
@@ -140,13 +130,15 @@ impl Behavior for WorkAtPoi {
                 MemoryModuleType::LookTarget,
                 MemoryValue::Tracker(PositionTracker::of_block(pos)),
             );
-            if self.workstation == Workstation::Composter {
-                cx.ai
-                    .act(MobAction::Villager(VillagerAction::WorkAtComposter(pos)));
-            }
         }
         cx.ai
             .act(MobAction::Villager(VillagerAction::PlayWorkSound));
+        if let Some(pos) = pos
+            && self.workstation == Workstation::Composter
+        {
+            cx.ai
+                .act(MobAction::Villager(VillagerAction::WorkAtComposter(pos)));
+        }
         cx.ai.act(MobAction::Villager(VillagerAction::Restock));
     }
 
@@ -614,5 +606,147 @@ impl Behavior for HarvestFarmland {
         cx.brain.memories.erase(MemoryModuleType::WalkTarget);
         self.time_worked_so_far = 0;
         self.next_ok_start_time = now + HARVEST_START_DELAY;
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct UseBonemeal {
+    crop_pos: Option<BlockPos>,
+    next_work_cycle_time: i64,
+    last_bonemealing_session: i64,
+    time_worked_so_far: i32,
+}
+
+impl UseBonemeal {
+    const CONDITION: [Condition; 2] = [
+        (MemoryModuleType::LookTarget, MemoryStatus::ValueAbsent),
+        (MemoryModuleType::WalkTarget, MemoryStatus::ValueAbsent),
+    ];
+
+    pub fn new() -> Self {
+        Self {
+            crop_pos: None,
+            next_work_cycle_time: 0,
+            last_bonemealing_session: 0,
+            time_worked_so_far: 0,
+        }
+    }
+
+    fn bone_meal() -> ItemId {
+        ItemKind::BoneMeal.id()
+    }
+
+    fn pick_next_target<W: AiWorld>(cx: &mut BehaviorCx<'_, '_, W>) -> Option<BlockPos> {
+        let origin = cx.ai.mob.block_pos();
+        let mut found = None;
+        let mut count = 0;
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    let pos = origin.offset(x, y, z);
+                    if Self::valid_pos(cx.ai.world, pos) {
+                        count += 1;
+                        if cx.ai.brain.random.next_int(count) == 0 {
+                            found = Some(pos);
+                        }
+                    }
+                }
+            }
+        }
+        found
+    }
+
+    fn valid_pos<W: AiWorld>(world: &W, pos: BlockPos) -> bool {
+        world.state(pos).is_some_and(crop::is_valid_bonemeal_target)
+    }
+
+    fn set_current_crop_as_target<W: AiWorld>(&self, cx: &mut BehaviorCx<'_, '_, W>) {
+        if let Some(pos) = self.crop_pos {
+            cx.brain.memories.set(
+                MemoryModuleType::LookTarget,
+                MemoryValue::Tracker(PositionTracker::of_block(pos)),
+            );
+            cx.brain.memories.set(
+                MemoryModuleType::WalkTarget,
+                MemoryValue::WalkTarget(WalkTarget {
+                    target: PositionTracker::of_block(pos),
+                    speed_modifier: BONEMEAL_SPEED,
+                    close_enough_dist: 1,
+                }),
+            );
+        }
+    }
+}
+
+impl Default for UseBonemeal {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Behavior for UseBonemeal {
+    fn entry_condition(&self) -> &[Condition] {
+        &Self::CONDITION
+    }
+
+    fn check_extra_start_conditions<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>) -> bool {
+        let tick_count = cx.ai.mob.tick_count;
+        if tick_count % BONEMEAL_TICK_INTERVAL != 0 {
+            return false;
+        }
+        if self.last_bonemealing_session != 0
+            && i64::from(tick_count) < self.last_bonemealing_session + i64::from(BONEMEAL_COOLDOWN)
+        {
+            return false;
+        }
+        if cx.ai.mob.species.villager.count_item(Self::bone_meal()) < 1 {
+            return false;
+        }
+        self.crop_pos = Self::pick_next_target(cx);
+        self.crop_pos.is_some()
+    }
+
+    fn can_still_use<W: AiWorld>(&mut self, _cx: &mut BehaviorCx<'_, '_, W>, _now: i64) -> bool {
+        self.time_worked_so_far < BONEMEAL_MAX_TICKS && self.crop_pos.is_some()
+    }
+
+    fn start<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
+        self.set_current_crop_as_target(cx);
+        cx.ai
+            .act(MobAction::Villager(VillagerAction::SetMainHand(Some(
+                Self::bone_meal(),
+            ))));
+        self.next_work_cycle_time = now;
+        self.time_worked_so_far = 0;
+    }
+
+    fn tick<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
+        let Some(pos) = self.crop_pos else {
+            return;
+        };
+        if now >= self.next_work_cycle_time
+            && closer_to_center_than(pos, cx.ai.mob.position, BONEMEAL_DISTANCE)
+        {
+            let has_bone_meal = cx.ai.mob.species.villager.count_item(Self::bone_meal()) > 0;
+            if has_bone_meal && Self::valid_pos(cx.ai.world, pos) {
+                cx.ai
+                    .act(MobAction::Villager(VillagerAction::UseBoneMeal(pos)));
+                cx.ai.act(MobAction::LevelEvent {
+                    event: BONEMEAL_EVENT,
+                    pos,
+                    data: BONEMEAL_EVENT_DATA,
+                });
+                self.crop_pos = Self::pick_next_target(cx);
+                self.set_current_crop_as_target(cx);
+                self.next_work_cycle_time = now + BONEMEAL_NEXT_CYCLE_DELAY;
+            }
+            self.time_worked_so_far += 1;
+        }
+    }
+
+    fn stop<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, _now: i64) {
+        cx.ai
+            .act(MobAction::Villager(VillagerAction::SetMainHand(None)));
+        self.last_bonemealing_session = i64::from(cx.ai.mob.tick_count);
     }
 }
