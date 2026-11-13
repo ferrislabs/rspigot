@@ -674,9 +674,10 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         {
             species::set_variant(base, farm, id);
         }
-        if let Some(id) = nbt
-            .get_str("sound_variant")
-            .and_then(|name| farm.sound_variant_index(name))
+        if farm.has_sound_variants()
+            && let Some(id) = nbt
+                .get_str("sound_variant")
+                .and_then(|name| farm.sound_variant_index(name))
         {
             species::set_sound_variant(base, farm, id);
         }
@@ -760,7 +761,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Goat(state) => species::goat::read(nbt, base, state),
         Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
-        Species::Sniffer(_) => {}
+        Species::Sniffer(_) | Species::Frog(_) => {}
         Species::Creaking(state) => species::creaking::read(nbt, base, state),
         Species::Villager(state) => {
             if let Some(merchant) = mob.merchant.as_mut() {
@@ -985,6 +986,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Goat(_) => species::goat::KEYS,
         Species::Armadillo(_) => species::armadillo::KEYS,
         Species::Sniffer(_) => species::sniffer::KEYS,
+        Species::Frog(_) => species::frog::KEYS,
         Species::Creaking(_) => species::creaking::KEYS,
         Species::Villager(_) => species::villager::KEYS,
         Species::WanderingTrader(_) => species::wandering_trader::KEYS,
@@ -1358,10 +1360,12 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
             "variant",
             species::variant_name(farm, species::variant(base, farm)),
         );
-        out.insert(
-            "sound_variant",
-            species::sound_variant_name(farm, species::sound_variant(base, farm)),
-        );
+        if farm.has_sound_variants() {
+            out.insert(
+                "sound_variant",
+                species::sound_variant_name(farm, species::sound_variant(base, farm)),
+            );
+        }
     }
     match &mob.species {
         Species::Chicken(chicken) => {
@@ -1424,7 +1428,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Piglin(state) => species::piglin::write(base, state, out),
         Species::Goat(state) => species::goat::write(base, state, out),
         Species::Armadillo(state) => species::armadillo::write(base, state, out),
-        Species::Sniffer(_) => {}
+        Species::Sniffer(_) | Species::Frog(_) => {}
         Species::Creaking(state) => species::creaking::write(base, state, out),
         Species::Villager(state) => {
             if let Some(merchant) = mob.merchant.as_deref() {

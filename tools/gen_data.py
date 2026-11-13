@@ -450,6 +450,7 @@ REFERENCED_TABLE_TYPES = {"minecraft:block", "minecraft:entity", "minecraft:fish
 FARM_VARIANT_KEYS = {"asset_id", "baby_asset_id", "model", "spawn_conditions"}
 WOLF_VARIANT_KEYS = {"assets", "baby_assets", "spawn_conditions"}
 CAT_VARIANT_KEYS = {"asset_id", "baby_asset_id", "spawn_conditions"}
+FROG_VARIANT_KEYS = {"asset_id", "spawn_conditions"}
 
 MOB_VARIANTS = [
     ("COW_VARIANTS", "cow_variant", FARM_VARIANT_KEYS),
@@ -457,6 +458,7 @@ MOB_VARIANTS = [
     ("CHICKEN_VARIANTS", "chicken_variant", FARM_VARIANT_KEYS),
     ("WOLF_VARIANTS", "wolf_variant", WOLF_VARIANT_KEYS),
     ("CAT_VARIANTS", "cat_variant", CAT_VARIANT_KEYS),
+    ("FROG_VARIANTS", "frog_variant", FROG_VARIANT_KEYS),
 ]
 
 FARM_SOUND_KEYS = ["ambient", "death", "eat", "hurt", "step"]

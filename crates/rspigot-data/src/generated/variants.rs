@@ -281,6 +281,36 @@ pub(crate) static CAT_VARIANTS: [MobVariant; 11] = [
     },
 ];
 
+pub(crate) static FROG_VARIANTS: [MobVariant; 3] = [
+    MobVariant {
+        name: "minecraft:cold",
+        spawn_conditions: &[
+            SpawnCondition {
+                condition: Some(VariantCondition::Biome(HolderSet::Tag("minecraft:spawns_cold_variant_frogs"))),
+                priority: 1,
+            },
+        ],
+    },
+    MobVariant {
+        name: "minecraft:temperate",
+        spawn_conditions: &[
+            SpawnCondition {
+                condition: None,
+                priority: 0,
+            },
+        ],
+    },
+    MobVariant {
+        name: "minecraft:warm",
+        spawn_conditions: &[
+            SpawnCondition {
+                condition: Some(VariantCondition::Biome(HolderSet::Tag("minecraft:spawns_warm_variant_frogs"))),
+                priority: 1,
+            },
+        ],
+    },
+];
+
 pub(crate) static COW_SOUND_VARIANTS: [SoundVariant; 2] = [
     SoundVariant {
         name: "minecraft:classic",
