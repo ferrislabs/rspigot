@@ -99,6 +99,7 @@ const TURTLE_HOME_NEAR: f64 = 20.0;
 const FLUID_SPEED: f32 = 0.02;
 const WATER_SLOW_DOWN: f32 = 0.8;
 const POLAR_BEAR_WATER_SLOW_DOWN: f32 = 0.98;
+const SKELETON_HORSE_WATER_SLOW_DOWN: f32 = 0.96;
 const WATER_EFFICIENT_SLOW_DOWN: f32 = 0.546_000_06;
 const DOLPHIN_SLOW_DOWN: f32 = 0.96;
 const FLUID_VERTICAL_DRAG: f64 = 0.800_000_011_920_929;
@@ -1557,6 +1558,8 @@ fn travel_on_land<V: BlockView>(
 fn water_slow_down(kind: EntityKind) -> f32 {
     if kind == EntityKind::PolarBear {
         POLAR_BEAR_WATER_SLOW_DOWN
+    } else if kind == EntityKind::SkeletonHorse {
+        SKELETON_HORSE_WATER_SLOW_DOWN
     } else {
         WATER_SLOW_DOWN
     }
@@ -1701,6 +1704,7 @@ mod tests {
     fn polar_bears_slow_down_less_in_water_than_other_mobs() {
         assert_eq!(water_slow_down(EntityKind::PolarBear), 0.98);
         assert_eq!(water_slow_down(EntityKind::Zombie), 0.8);
+        assert_eq!(water_slow_down(EntityKind::SkeletonHorse), 0.96);
     }
 
     #[test]
