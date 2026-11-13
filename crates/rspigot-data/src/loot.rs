@@ -291,7 +291,7 @@ mod tests {
     const BLOCK_TABLE_FILES: usize = 1201;
     const ENTITY_TABLE_FILES: usize = 109;
     const REFERENCED_TABLES: usize = 1;
-    const GAMEPLAY_TABLES: usize = 7;
+    const GAMEPLAY_TABLES: usize = 22;
     const BRUSH_TABLES: usize = 1;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
     const SHEEP_COLOUR_TABLES: usize = 16;
@@ -392,6 +392,8 @@ mod tests {
         assert!(table("minecraft:gameplay/fishing/fish").is_some());
         assert!(table("minecraft:gameplay/chicken_lay").is_some());
         assert!(table("minecraft:gameplay/piglin_bartering").is_some());
+        assert!(table("minecraft:gameplay/hero_of_the_village/armorer_gift").is_some());
+        assert!(table("minecraft:gameplay/hero_of_the_village/baby_gift").is_some());
         assert!(table("minecraft:gameplay/armadillo_shed").is_some());
         assert!(table("minecraft:gameplay/sniffer_digging").is_some());
         assert!(table("minecraft:brush/armadillo").is_some());
