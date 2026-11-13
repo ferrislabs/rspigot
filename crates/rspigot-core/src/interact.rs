@@ -82,6 +82,8 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Ocelot => "minecraft:ocelot_food",
         Kind::Goat => "minecraft:goat_food",
         Kind::Armadillo => "minecraft:armadillo_food",
+        Kind::Sniffer => "minecraft:sniffer_food",
+        Kind::Frog => "minecraft:frog_food",
         _ => return None,
     })
 }
@@ -929,6 +931,14 @@ impl<L: ClientLink> Server<L> {
     fn eating_sound(&mut self, target: EntityId) {
         if self.kind_of(target) == Some(Kind::Goat) {
             self.goat_eat_sound(target);
+            return;
+        }
+        if self.kind_of(target) == Some(Kind::Sniffer) {
+            self.sniffer_eat_sound(target);
+            return;
+        }
+        if self.kind_of(target) == Some(Kind::Frog) {
+            self.entity_sound(target, "minecraft:entity.frog.eat", 2.0, 1.0);
             return;
         }
         if self

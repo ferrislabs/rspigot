@@ -72,6 +72,15 @@ pub trait Behavior {
 
     fn stop<W: AiWorld>(&mut self, _cx: &mut BehaviorCx<'_, '_, W>, _now: i64) {}
 
+    fn stop_with_timeout<W: AiWorld>(
+        &mut self,
+        cx: &mut BehaviorCx<'_, '_, W>,
+        now: i64,
+        _timed_out: bool,
+    ) {
+        self.stop(cx, now);
+    }
+
     fn timed_out(&self, end_timestamp: i64, now: i64) -> bool {
         end_timestamp < now
     }
@@ -149,7 +158,8 @@ impl<B: Behavior> BehaviorControl for Timed<B> {
 
     fn do_stop<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, now: i64) {
         self.status = Status::Stopped;
-        self.inner.stop(cx, now);
+        let timed_out = self.inner.timed_out(self.end_timestamp, now);
+        self.inner.stop_with_timeout(cx, now, timed_out);
     }
 }
 

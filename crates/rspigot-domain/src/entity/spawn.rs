@@ -4,7 +4,7 @@ use std::num::NonZeroU8;
 use rspigot_entities::EntityKind;
 use rspigot_items::{EquipmentSlot, ItemKind};
 
-use super::ageable::{self, BABY_START_AGE};
+use super::ageable;
 use super::base::EntityBase;
 use super::living::{self, FOLLOW_RANGE, LivingState, MAX_HEALTH, RANDOM_SPAWN_BONUS, slot_index};
 use super::species::{self, Species};
@@ -106,7 +106,7 @@ pub(crate) fn ageable_finalize(
             && level.next_float() <= *baby_chance
             && let Some(ageable) = living.mob.as_mut().and_then(|mob| mob.ageable.as_mut())
         {
-            ageable::set_age(base, ageable, BABY_START_AGE);
+            ageable::set_age(base, ageable, ageable::baby_start_age(base.kind));
         }
         *group_size += 1;
     }
@@ -569,6 +569,7 @@ pub fn finalize_spawn(
             species::pillager::finalize(base, living, reason, group, level)
         }
         Some(Species::Goat(_)) => species::goat::finalize(base, living, environment, group, level),
+        Some(Species::Frog(_)) => species::frog::finalize(base, living, environment, group, level),
         Some(Species::WanderingTrader(_)) => {
             species::villager::finalize_trader(base, living, group, level)
         }

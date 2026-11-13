@@ -586,9 +586,6 @@ fn read_living(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState) 
 }
 
 fn read_ageable(nbt: &Compound, base: &mut EntityBase, ageable: &mut AgeableState) {
-    if !ageable::can_be_baby(base.kind) {
-        return;
-    }
     ageable::set_age(base, ageable, nbt.get_i32("Age").unwrap_or(0));
     ageable.forced_age = nbt.get_i32("ForcedAge").unwrap_or(0);
     ageable::set_age_locked(base, nbt.get_bool("AgeLocked").unwrap_or(false));
@@ -674,9 +671,10 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         {
             species::set_variant(base, farm, id);
         }
-        if let Some(id) = nbt
-            .get_str("sound_variant")
-            .and_then(|name| farm.sound_variant_index(name))
+        if farm.has_sound_variants()
+            && let Some(id) = nbt
+                .get_str("sound_variant")
+                .and_then(|name| farm.sound_variant_index(name))
         {
             species::set_sound_variant(base, farm, id);
         }
@@ -760,6 +758,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Goat(state) => species::goat::read(nbt, base, state),
         Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
+        Species::Sniffer(_) | Species::Frog(_) => {}
         Species::Creaking(state) => species::creaking::read(nbt, base, state),
         Species::Villager(state) => {
             if let Some(merchant) = mob.merchant.as_mut() {
@@ -983,6 +982,8 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Piglin(_) => species::piglin::KEYS,
         Species::Goat(_) => species::goat::KEYS,
         Species::Armadillo(_) => species::armadillo::KEYS,
+        Species::Sniffer(_) => species::sniffer::KEYS,
+        Species::Frog(_) => species::frog::KEYS,
         Species::Creaking(_) => species::creaking::KEYS,
         Species::Villager(_) => species::villager::KEYS,
         Species::WanderingTrader(_) => species::wandering_trader::KEYS,
@@ -1327,11 +1328,9 @@ fn write_tracker(
 
 fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
     if let Some(ageable) = &mob.ageable {
-        if ageable::can_be_baby(base.kind) {
-            out.insert("Age", ageable.age);
-            out.insert("ForcedAge", ageable.forced_age);
-            out.insert("AgeLocked", bool_tag(ageable::is_age_locked(base)));
-        }
+        out.insert("Age", ageable.age);
+        out.insert("ForcedAge", ageable.forced_age);
+        out.insert("AgeLocked", bool_tag(ageable::is_age_locked(base)));
         if let Some(love) = &ageable.love {
             out.insert("InLove", love.ticks);
             if let Some(cause) = love.cause {
@@ -1356,10 +1355,12 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
             "variant",
             species::variant_name(farm, species::variant(base, farm)),
         );
-        out.insert(
-            "sound_variant",
-            species::sound_variant_name(farm, species::sound_variant(base, farm)),
-        );
+        if farm.has_sound_variants() {
+            out.insert(
+                "sound_variant",
+                species::sound_variant_name(farm, species::sound_variant(base, farm)),
+            );
+        }
     }
     match &mob.species {
         Species::Chicken(chicken) => {
@@ -1422,6 +1423,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Piglin(state) => species::piglin::write(base, state, out),
         Species::Goat(state) => species::goat::write(base, state, out),
         Species::Armadillo(state) => species::armadillo::write(base, state, out),
+        Species::Sniffer(_) | Species::Frog(_) => {}
         Species::Creaking(state) => species::creaking::write(base, state, out),
         Species::Villager(state) => {
             if let Some(merchant) = mob.merchant.as_deref() {
@@ -1632,6 +1634,24 @@ mod tests {
             assert_eq!(saved.get_str("variant"), Some(default));
             assert_eq!(saved.get_str("sound_variant"), Some("minecraft:classic"));
         }
+    }
+
+    #[test]
+    fn a_frog_keeps_its_variant_love_and_age_but_has_no_sound_variant() {
+        let nbt = Compound::new()
+            .with("id", "minecraft:frog")
+            .with("Pos", doubles(Vec3::new(0.5, 64.0, 0.5)))
+            .with("UUID", uuid_tag(Uuid::from_u128(9)))
+            .with("variant", "minecraft:warm")
+            .with("InLove", 400)
+            .with("Age", 3000);
+        let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        assert!(entity.extra.is_empty());
+        let saved = save_entity(&entity, None).unwrap();
+        assert_eq!(saved.get_str("variant"), Some("minecraft:warm"));
+        assert!(saved.get_str("sound_variant").is_none());
+        assert_eq!(saved.get_i32("InLove"), Some(400));
+        assert_eq!(saved.get_i32("Age"), Some(3000));
     }
 
     #[test]

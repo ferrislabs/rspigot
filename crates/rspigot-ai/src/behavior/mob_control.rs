@@ -26,11 +26,17 @@ use crate::breeze::{
     Slide as BreezeSlide, SlideToTargetSink,
 };
 use crate::copper_golem::TransportItemsBetweenContainers;
+use crate::frog::{Croak, ShootTongue, TryFindLand};
 use crate::piglin::{
     BackUpIfTooClose, BecomePassiveIfMemoryPresent, CROSSBOW_ATTACK_DURATION, CopyMemoryWithExpiry,
     CrossbowAttack, RememberIfHoglinWasKilled, StartAdmiringItemIfSeen,
     StartCelebratingIfTargetDead, StartHuntingHoglin, StopAdmiringIfItemTooFarAway,
     StopAdmiringIfTiredOfTryingToReachItem, StopHoldingItemIfNoLongerAdmiring,
+};
+use crate::sniffer::{
+    Digging as SnifferDigging, FeelingHappy as SnifferFeelingHappy,
+    FinishedDigging as SnifferFinishedDigging, ResetsSniffing, Scenting as SnifferScenting,
+    Searching as SnifferSearching, Sniffing as SnifferSniffing,
 };
 use crate::villager::{
     AcquirePoi, AssignProfessionFromJobSite, GiveGiftToHero, GoToClosestVillage,
@@ -150,6 +156,17 @@ macro_rules! mob_behaviors {
                 }
             }
 
+            fn stop_with_timeout<W: AiWorld>(
+                &mut self,
+                cx: &mut BehaviorCx<'_, '_, W>,
+                now: i64,
+                timed_out: bool,
+            ) {
+                match self {
+                    $(Self::$variant(behavior) => behavior.stop_with_timeout(cx, now, timed_out),)*
+                }
+            }
+
             fn timed_out(&self, end_timestamp: i64, now: i64) -> bool {
                 match self {
                     $(Self::$variant(behavior) => behavior.timed_out(end_timestamp, now),)*
@@ -199,6 +216,17 @@ mob_behaviors! {
     WardenSniffing(Sniffing),
     WardenSonicBoom(SonicBoom),
     TransportItems(TransportItemsBetweenContainers),
+    SnifferPanic(ResetsSniffing<AnimalPanic>),
+    SnifferMakeLove(ResetsSniffing<AnimalMakeLove>),
+    SnifferFollowTemptation(ResetsSniffing<FollowTemptation>),
+    SnifferSearching(SnifferSearching),
+    SnifferSniffing(SnifferSniffing),
+    SnifferDigging(SnifferDigging),
+    SnifferFinishedDigging(SnifferFinishedDigging),
+    SnifferScenting(SnifferScenting),
+    SnifferFeelingHappy(SnifferFeelingHappy),
+    FrogShootTongue(ShootTongue),
+    FrogCroak(Croak),
 }
 
 macro_rules! mob_triggers {
@@ -301,6 +329,7 @@ mob_triggers! {
     WardenSetLookTarget(SetWardenLookTarget),
     WardenDigCooldownSetter(DigCooldownSetter),
     WardenLookAtAttackTarget(SetLookAtAttackTarget),
+    FrogTryFindLand(TryFindLand),
 }
 
 #[derive(Debug, Clone, PartialEq)]

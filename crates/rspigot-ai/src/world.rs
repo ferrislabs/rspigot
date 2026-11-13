@@ -58,6 +58,8 @@ pub struct Facts {
     pub head_yaw: f32,
     pub villager: crate::villager::VillagerPeerFacts,
     pub hero_of_the_village: bool,
+    pub cube_size: u8,
+    pub sniffer_state: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -180,6 +182,7 @@ pub struct MobBody {
     pub pose: Pose,
     pub discard_friction: bool,
     pub armadillo: crate::ArmadilloFacts,
+    pub sniffer: crate::SnifferFacts,
 }
 
 impl MobBody {
@@ -197,6 +200,7 @@ impl MobBody {
             pose: mob.pose,
             discard_friction: mob.discard_friction,
             armadillo: mob.species.armadillo,
+            sniffer: mob.species.sniffer,
         }
     }
 }
@@ -434,6 +438,7 @@ pub struct KindFacts {
     pub shulker: ShulkerFacts,
     pub goat: crate::GoatFacts,
     pub armadillo: crate::ArmadilloFacts,
+    pub sniffer: crate::SnifferFacts,
     pub breeze: crate::BreezeFacts,
     pub creaking: crate::CreakingFacts,
     pub villager: crate::villager::VillagerFacts,

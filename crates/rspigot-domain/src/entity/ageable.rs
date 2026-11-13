@@ -123,7 +123,11 @@ pub fn set_baby(base: &mut EntityBase, state: &mut AgeableState, baby: bool) -> 
     if !can_be_baby(base.kind) {
         return false;
     }
-    set_age(base, state, if baby { BABY_START_AGE } else { 0 })
+    set_age(
+        base,
+        state,
+        if baby { baby_start_age(base.kind) } else { 0 },
+    )
 }
 
 pub fn age_up(base: &mut EntityBase, state: &mut AgeableState, seconds: i32, forced: bool) {
@@ -150,7 +154,7 @@ pub fn speed_up_seconds_when_feeding(ticks_until_adult: i32) -> i32 {
 pub fn toggle_age_lock(base: &mut EntityBase, state: &mut AgeableState) -> bool {
     let locked = !is_age_locked(base);
     set_age_locked(base, locked);
-    set_age(base, state, BABY_START_AGE);
+    set_age(base, state, baby_start_age(base.kind));
     state.age_lock_timer = AGE_LOCK_TICKS;
     locked
 }
@@ -326,7 +330,19 @@ fn scaled(dimensions: EntityDimensions, factor: f32) -> EntityDimensions {
 }
 
 pub fn refresh_dimensions(base: &mut EntityBase, baby: bool) {
-    base.dimensions = dimensions_in_pose(base.kind, baby, base.pose());
+    base.dimensions =
+        if base.kind == EntityKind::Sniffer && super::species::sniffer::is_digging(base) {
+            super::species::sniffer::digging_dimensions(baby)
+        } else {
+            dimensions_in_pose(base.kind, baby, base.pose())
+        };
+}
+
+pub fn baby_start_age(kind: EntityKind) -> i32 {
+    match kind {
+        EntityKind::Sniffer => super::species::sniffer::BABY_START_AGE,
+        _ => BABY_START_AGE,
+    }
 }
 
 #[cfg(test)]
@@ -385,6 +401,19 @@ mod tests {
         assert!(set_age(&mut base, &mut state, 0));
         assert!(!base.data.boolean(DATA_BABY));
         assert_eq!(base.dimensions.height, 1.4);
+    }
+
+    #[test]
+    fn a_sniffer_calf_starts_two_days_young_and_other_babies_one() {
+        let mut base = EntityBase::new(EntityId(3), Uuid::from_u128(3), EntityKind::Sniffer);
+        let mut state = AgeableState::new(&mut base);
+        assert!(set_baby(&mut base, &mut state, true));
+        assert_eq!(state.age, -48_000);
+        assert_eq!(baby_start_age(EntityKind::Cow), BABY_START_AGE);
+        assert_eq!(
+            base.dimensions.width,
+            EntityKind::Sniffer.dimensions().width * 0.5
+        );
     }
 
     #[test]

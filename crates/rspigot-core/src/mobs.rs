@@ -260,6 +260,8 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
                 .is_some_and(|stack| GAZE_DISGUISE.matches(Some(stack.item))),
             villager: rspigot_ai::VillagerPeerFacts::default(),
             hero_of_the_village: player.effects.has("minecraft:hero_of_the_village"),
+            cube_size: 0,
+            sniffer_state: 0,
         },
     }
 }
@@ -338,6 +340,17 @@ fn entity_facts(
             rspigot_ai::VillagerPeerFacts::default()
         },
         hero_of_the_village: false,
+        sniffer_state: if base.kind == Kind::Sniffer {
+            u8::try_from(species::sniffer::state(base).id()).unwrap_or(0)
+        } else {
+            0
+        },
+        cube_size: if base.kind.extends("AbstractCubeMob") {
+            u8::try_from(rspigot_domain::entity::reward::cube_size(entity).clamp(0, 255))
+                .unwrap_or(u8::MAX)
+        } else {
+            0
+        },
     }
 }
 
@@ -1440,6 +1453,14 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     if let Some(Species::Armadillo(armadillo)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         species::armadillo::switch_to_state(base, armadillo, body.armadillo.state);
     }
+    if base.kind == Kind::Sniffer {
+        let baby = state
+            .mob
+            .as_ref()
+            .and_then(|mob| mob.ageable.as_ref())
+            .is_some_and(|ageable| ageable::is_baby(base, ageable));
+        species::sniffer::set_state(base, baby, body.sniffer.state);
+    }
     state.discard_friction = body.discard_friction;
     if body.pose != mob.pose {
         base.set_pose(body.pose);
@@ -1556,13 +1577,10 @@ fn loot_facts(entity: &Entity) -> LootEntity {
         ));
     }
     if kind == Kind::Frog {
-        let variant = entity
-            .extra
-            .get_str("variant")
-            .unwrap_or("minecraft:temperate");
-        facts
-            .components
-            .push(("minecraft:frog/variant", variant.to_owned()));
+        facts.components.push((
+            "minecraft:frog/variant",
+            species::frog::variant_name(&entity.base).to_owned(),
+        ));
     }
     if kind.extends("AbstractCubeMob") {
         facts.cube_size = Some(reward::cube_size(entity));

@@ -18,6 +18,7 @@ mod enderman;
 mod evade;
 mod finder;
 mod fox;
+mod frog;
 mod ghast;
 mod goal;
 mod goals;
@@ -48,6 +49,7 @@ mod scene;
 mod sensing;
 mod shulker;
 mod silverfish;
+mod sniffer;
 mod sweep;
 mod tame;
 mod targeting;
@@ -134,6 +136,11 @@ pub use enderman::{
 pub use evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 pub use finder::PathFinder;
 pub use fox::{FoxAction, FoxFacts, FoxGoal, TrustedRef, is_path_clear};
+pub use frog::{
+    Croak as FrogCroak, FrogAction, FrogAttackablesSensor,
+    GATED_ACTIVITIES as FROG_GATED_ACTIVITIES, ShootTongue as FrogShootTongue,
+    TongueState as FrogTongueState, TryFindLand as FrogTryFindLand, can_eat as frog_can_eat,
+};
 pub use ghast::{
     GhastAction, GhastGoal, GhastLookGoal, GhastShootFireballGoal, RandomFloatAroundGoal,
     face_movement_direction, suitable_fly_to_position,
@@ -186,6 +193,13 @@ pub use sensing::{Sensing, clip_misses};
 pub use shulker::{ShulkerAction, ShulkerAttackGoal, ShulkerFacts, ShulkerGoal, ShulkerPeekGoal};
 pub use silverfish::{
     MergeWithStoneGoal, SilverfishAction, SilverfishFacts, SilverfishGoal, WakeUpFriendsGoal,
+};
+pub use sniffer::{
+    DIGGABLE_BLOCKS as SNIFFER_DIGGABLE_BLOCKS, Digging as SnifferDigging,
+    FeelingHappy as SnifferFeelingHappy, FinishedDigging as SnifferFinishedDigging, ResetsSniffing,
+    Scenting as SnifferScenting, Searching as SnifferSearching, SnifferAction, SnifferFacts,
+    Sniffing as SnifferSniffing, calculate_dig_position, can_dig as sniffer_can_dig,
+    can_sniff as sniffer_can_sniff,
 };
 pub use tame::{
     FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal, should_try_teleport_to_owner,

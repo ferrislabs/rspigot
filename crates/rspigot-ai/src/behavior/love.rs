@@ -59,6 +59,11 @@ impl AnimalMakeLove {
             && other.kind == cx.ai.mob.kind
             && cx.ai.mob.in_love
             && other.in_love
+            && crate::sniffer::can_mate_in_states(
+                cx.ai.mob.kind,
+                cx.ai.body.sniffer.state,
+                other.facts.sniffer_state,
+            )
     }
 
     fn find_valid_breed_partner<W: AiWorld>(
@@ -70,6 +75,7 @@ impl AnimalMakeLove {
         let in_love = mob.in_love;
         let kind = mob.kind;
         let id = mob.id;
+        let own_state = cx.ai.body.sniffer.state;
         cx.brain
             .memories
             .get(MemoryModuleType::NearestVisibleLivingEntities)
@@ -81,6 +87,11 @@ impl AnimalMakeLove {
                         && other.kind == kind
                         && in_love
                         && other.in_love
+                        && crate::sniffer::can_mate_in_states(
+                            kind,
+                            own_state,
+                            other.facts.sniffer_state,
+                        )
                         && !other.panicking
                 })
             })
