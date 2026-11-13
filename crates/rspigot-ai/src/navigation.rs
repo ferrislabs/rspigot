@@ -159,6 +159,14 @@ impl Navigation {
         mob.state.on_ground || mob.in_liquid || mob.passenger
     }
 
+    pub fn can_update_path_for(profile: &MobProfile, mob: &MobTick) -> bool {
+        if profile.flying {
+            (profile.can_float && mob.in_liquid) || !mob.passenger
+        } else {
+            Self::can_update_path(mob)
+        }
+    }
+
     pub fn create_path(
         &mut self,
         view: &impl BlockView,
@@ -187,12 +195,14 @@ impl Navigation {
         if !view.chunk_loaded(target.chunk()) {
             return None;
         }
-        let target = if self.path_to_targets_below_surface {
+        let target = if self.path_to_targets_below_surface || profile.flying {
             target
         } else {
             find_surface_position(view, target)
         };
-        if mob.state.position.y < f64::from(view.min_y()) || !Self::can_update_path(mob) {
+        if mob.state.position.y < f64::from(view.min_y())
+            || !Self::can_update_path_for(profile, mob)
+        {
             return None;
         }
         if let Some(path) = self.path.as_ref()
@@ -233,7 +243,9 @@ impl Navigation {
         if targets.is_empty() {
             return None;
         }
-        if mob.state.position.y < f64::from(view.min_y()) || !Self::can_update_path(mob) {
+        if mob.state.position.y < f64::from(view.min_y())
+            || !Self::can_update_path_for(profile, mob)
+        {
             return None;
         }
         if let Some(path) = self.path.as_ref()
@@ -327,7 +339,7 @@ impl Navigation {
         follow_range: f64,
     ) {
         if mob.game_time - self.time_last_recompute > MAX_TIME_RECOMPUTE
-            && Self::can_update_path(mob)
+            && Self::can_update_path_for(profile, mob)
         {
             if let Some(target) = self.target_pos {
                 self.path = None;
@@ -485,6 +497,9 @@ impl Navigation {
         if self.is_done() {
             return None;
         }
+        if profile.flying {
+            return self.tick_flying(view, profile, mob);
+        }
         if mob.state.on_ground || mob.in_liquid || mob.passenger {
             self.follow(view, profile, mob);
         } else if let Some(path) = self.path.as_mut().filter(|path| !path.is_done()) {
@@ -504,6 +519,30 @@ impl Navigation {
         let next = self.path.as_ref()?.next_entity_pos(profile.width);
         Some(MoveTarget {
             position: Vec3::new(next.x, ground_y(view, next), next.z),
+            speed_modifier: self.speed_modifier,
+        })
+    }
+
+    fn tick_flying(
+        &mut self,
+        view: &impl BlockView,
+        profile: &MobProfile,
+        mob: &MobTick,
+    ) -> Option<MoveTarget> {
+        if Self::can_update_path_for(profile, mob) {
+            self.follow(view, profile, mob);
+        } else if let Some(path) = self.path.as_mut().filter(|path| !path.is_done()) {
+            let next = path.next_entity_pos(profile.width);
+            if mob.state.block_pos() == next.block() {
+                path.advance();
+            }
+        }
+        if self.is_done() {
+            return None;
+        }
+        let next = self.path.as_ref()?.next_entity_pos(profile.width);
+        Some(MoveTarget {
+            position: next,
             speed_modifier: self.speed_modifier,
         })
     }
@@ -696,6 +735,9 @@ pub fn find_surface_position(view: &impl BlockView, pos: BlockPos) -> BlockPos {
 
 pub fn temp_mob_pos(view: &impl BlockView, profile: &MobProfile, mob: &MobState) -> Vec3 {
     let position = mob.position;
+    if profile.flying {
+        return position;
+    }
     Vec3::new(
         position.x,
         f64::from(surface_y(view, profile, mob)),

@@ -17,6 +17,7 @@ mod crossbow;
 mod enderman;
 mod evade;
 mod finder;
+mod fly;
 mod fox;
 mod frog;
 mod ghast;
@@ -181,10 +182,13 @@ pub use raider::{
 };
 pub use random::{MobRandom, RandomSource};
 pub use random_pos::{
+    air_and_water_pos, air_pos_towards, hover_pos, land_pos_away, land_pos_towards,
+    move_up_to_above_solid, pos_away, pos_towards,
+};
+pub use random_pos::{
     default_pos, is_solid, is_stable_destination, land_pos, light_magic_value,
     mob_light_magic_value, move_up_out_of_solid, random_direction, walk_target_value,
 };
-pub use random_pos::{land_pos_away, land_pos_towards, pos_away, pos_towards};
 pub use ranged::RangedAttackGoal;
 pub use registry::{GoalSettings, ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER};
 pub use restriction::MoveTowardsRestrictionGoal;

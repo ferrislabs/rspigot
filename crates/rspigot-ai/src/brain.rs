@@ -1046,6 +1046,7 @@ impl MobAi {
                         .movement
                         .tick_ghast(base, living, view, &mut brain.random);
                 }
+                MoveStyle::Flying => brain.movement.tick_flying(base, living),
             }
         }
         let navigating = brain.navigation.is_in_progress();

@@ -200,6 +200,7 @@ pub enum MoveStyle {
     #[default]
     Ground,
     Ghast,
+    Flying,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -214,6 +215,8 @@ pub struct MoveControl {
     hop: bool,
     in_water: bool,
     next_jump_speed: f64,
+    max_turn: i32,
+    hovers_in_place: bool,
 }
 
 fn rotlerp(current: f32, target: f32, max: f32) -> f32 {
@@ -303,6 +306,56 @@ impl MoveControl {
 
     pub fn set_style(&mut self, style: MoveStyle) {
         self.style = style;
+    }
+
+    pub fn set_flying(&mut self, max_turn: i32, hovers_in_place: bool) {
+        self.style = MoveStyle::Flying;
+        self.max_turn = max_turn;
+        self.hovers_in_place = hovers_in_place;
+    }
+
+    pub fn max_turn(&self) -> i32 {
+        self.max_turn
+    }
+
+    pub fn hovers_in_place(&self) -> bool {
+        self.hovers_in_place
+    }
+
+    pub fn tick_flying(&mut self, base: &mut EntityBase, living: &mut LivingState) {
+        if self.operation != Operation::MoveTo {
+            if !self.hovers_in_place {
+                base.set_no_gravity(false);
+            }
+            living.yya = 0.0;
+            living.zza = 0.0;
+            return;
+        }
+        self.operation = Operation::Wait;
+        base.set_no_gravity(true);
+        let dx = self.wanted.x - base.position.x;
+        let dy = self.wanted.y - base.position.y;
+        let dz = self.wanted.z - base.position.z;
+        if dx * dx + dy * dy + dz * dz < MIN_SPEED_SQR {
+            living.yya = 0.0;
+            living.zza = 0.0;
+            return;
+        }
+        let yaw = (mth::atan2(dz, dx) * mth::RAD_TO_DEG) as f32 - 90.0;
+        base.set_yaw(rotlerp(base.yaw, yaw, MAX_TURN));
+        let attribute = if base.on_ground {
+            MOVEMENT_SPEED
+        } else {
+            FLYING_SPEED
+        };
+        let speed = (self.speed_modifier * living.attribute(attribute)) as f32;
+        set_speed(living, speed);
+        let horizontal = (dx * dx + dz * dz).sqrt();
+        if dy.abs() > LOOK_EPSILON || horizontal.abs() > LOOK_EPSILON {
+            let pitch = (-(mth::atan2(dy, horizontal) * mth::RAD_TO_DEG)) as f32;
+            base.set_pitch(rotlerp(base.pitch, pitch, self.max_turn as f32));
+            living.yya = if dy > 0.0 { speed } else { -speed };
+        }
     }
 
     pub fn float_duration(&self) -> i32 {
@@ -800,6 +853,69 @@ mod tests {
             &Wall(BlockPos::new(-5, 80, 0)),
             Vec3::new(8.0, 0.0, 0.0)
         ));
+    }
+
+    fn parrot() -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Parrot);
+        base.position = Vec3::new(0.5, 80.0, 0.5);
+        base.old_position = base.position;
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    #[test]
+    fn the_flying_control_removes_gravity_turns_and_climbs_at_the_flying_speed() {
+        let (mut base, mut living) = parrot();
+        let mut movement = MoveControl::default();
+        movement.set_flying(10, false);
+        assert_eq!(movement.style(), MoveStyle::Flying);
+        movement.set_wanted_position(Vec3::new(5.5, 85.0, 0.5), 1.0);
+        movement.tick_flying(&mut base, &mut living);
+        assert!(base.is_no_gravity());
+        assert_eq!(base.yaw, 270.0);
+        let speed = living.attribute(FLYING_SPEED) as f32;
+        assert_eq!(living.speed, speed);
+        assert_eq!(living.zza, speed);
+        assert_eq!(living.yya, speed);
+        assert_eq!(base.pitch, 90.0);
+        assert_eq!(movement.operation(), Operation::Wait);
+    }
+
+    #[test]
+    fn the_flying_control_sinks_when_the_target_is_below_and_uses_the_ground_speed_on_the_ground() {
+        let (mut base, mut living) = parrot();
+        let mut movement = MoveControl::default();
+        movement.set_flying(10, false);
+        movement.set_wanted_position(Vec3::new(0.5, 70.0, 5.5), 0.5);
+        movement.tick_flying(&mut base, &mut living);
+        let speed = (0.5 * living.attribute(FLYING_SPEED)) as f32;
+        assert_eq!(living.yya, -speed);
+        assert_eq!(base.pitch, 10.0);
+        base.on_ground = true;
+        movement.set_wanted_position(Vec3::new(5.5, 80.0, 0.5), 1.0);
+        movement.tick_flying(&mut base, &mut living);
+        let ground = living.attribute(MOVEMENT_SPEED) as f32;
+        assert_eq!(living.speed, ground);
+    }
+
+    #[test]
+    fn the_flying_control_stops_when_it_arrived_and_restores_gravity_unless_it_hovers() {
+        let (mut base, mut living) = parrot();
+        let mut movement = MoveControl::default();
+        movement.set_flying(10, false);
+        movement.set_wanted_position(base.position, 1.0);
+        living.zza = 1.0;
+        living.yya = 1.0;
+        movement.tick_flying(&mut base, &mut living);
+        assert_eq!((living.zza, living.yya), (0.0, 0.0));
+        assert!(base.is_no_gravity());
+        movement.tick_flying(&mut base, &mut living);
+        assert!(!base.is_no_gravity());
+        let mut hover = MoveControl::default();
+        hover.set_flying(10, true);
+        base.set_no_gravity(true);
+        hover.tick_flying(&mut base, &mut living);
+        assert!(base.is_no_gravity());
     }
 
     #[test]
