@@ -7,6 +7,7 @@ mod data;
 pub mod falling;
 pub mod fire;
 pub mod fluid;
+pub mod gossip;
 pub mod hurting;
 pub mod item;
 pub mod living;
@@ -25,6 +26,7 @@ pub mod tamable;
 pub mod thrown;
 pub mod tracker;
 mod tracking_range;
+pub mod trading;
 pub mod variants;
 
 use rspigot_nbt::Compound;

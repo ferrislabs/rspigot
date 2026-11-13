@@ -182,6 +182,7 @@ pub enum ItemWish {
     Any,
     Piglin,
     PiglinBrute,
+    Villager,
 }
 
 impl ItemWish {
@@ -197,6 +198,7 @@ impl ItemWish {
             Self::Piglin | Self::PiglinBrute => {
                 crate::piglin::wants_to_pickup(cx.mob, memories, item.item)
             }
+            Self::Villager => crate::villager::wants_to_pick_up(cx.mob, item.item),
         }
     }
 }

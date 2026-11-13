@@ -9,6 +9,9 @@ use crate::breeze::BreezeAttackEntitySensor;
 use crate::piglin::{HoglinSensor, PiglinBruteSensor, PiglinSensor};
 use crate::random::RandomSource;
 use crate::targeting::TargetingConditions;
+use crate::villager::{
+    GolemSensor, NearestBedSensor, SecondaryPoiSensor, VillagerBabiesSensor, VillagerHostilesSensor,
+};
 use crate::world::{AiWorld, Living};
 
 pub const DEFAULT_SCAN_RATE: i32 = 20;
@@ -84,6 +87,11 @@ pub enum SensorKind {
     PiglinBruteSpecific(PiglinBruteSensor),
     ArmadilloScareDetected(ArmadilloScareSensor),
     BreezeAttackEntity(BreezeAttackEntitySensor),
+    NearestBed(NearestBedSensor),
+    SecondaryPois(SecondaryPoiSensor),
+    VillagerBabies(VillagerBabiesSensor),
+    VillagerHostiles(VillagerHostilesSensor),
+    GolemDetected(GolemSensor),
 }
 
 impl SensorKind {
@@ -102,6 +110,11 @@ impl SensorKind {
             Self::PiglinBruteSpecific(_) => SensorType::PiglinBruteSpecificSensor,
             Self::ArmadilloScareDetected(_) => SensorType::ArmadilloScareDetected,
             Self::BreezeAttackEntity(_) => SensorType::BreezeAttackEntitySensor,
+            Self::NearestBed(_) => SensorType::NearestBed,
+            Self::SecondaryPois(_) => SensorType::SecondaryPois,
+            Self::VillagerBabies(_) => SensorType::VillagerBabies,
+            Self::VillagerHostiles(_) => SensorType::VillagerHostiles,
+            Self::GolemDetected(_) => SensorType::GolemDetected,
         }
     }
 }
@@ -122,6 +135,11 @@ impl Sensor for SensorKind {
             Self::PiglinBruteSpecific(sensor) => sensor.scan_rate(),
             Self::ArmadilloScareDetected(sensor) => sensor.scan_rate(),
             Self::BreezeAttackEntity(sensor) => sensor.scan_rate(),
+            Self::NearestBed(sensor) => sensor.scan_rate(),
+            Self::SecondaryPois(sensor) => sensor.scan_rate(),
+            Self::VillagerBabies(sensor) => sensor.scan_rate(),
+            Self::VillagerHostiles(sensor) => sensor.scan_rate(),
+            Self::GolemDetected(sensor) => sensor.scan_rate(),
         }
     }
 
@@ -140,6 +158,11 @@ impl Sensor for SensorKind {
             Self::PiglinBruteSpecific(sensor) => sensor.requires(),
             Self::ArmadilloScareDetected(sensor) => sensor.requires(),
             Self::BreezeAttackEntity(sensor) => sensor.requires(),
+            Self::NearestBed(sensor) => sensor.requires(),
+            Self::SecondaryPois(sensor) => sensor.requires(),
+            Self::VillagerBabies(sensor) => sensor.requires(),
+            Self::VillagerHostiles(sensor) => sensor.requires(),
+            Self::GolemDetected(sensor) => sensor.requires(),
         }
     }
 
@@ -158,6 +181,11 @@ impl Sensor for SensorKind {
             Self::PiglinBruteSpecific(sensor) => sensor.do_tick(cx, memories),
             Self::ArmadilloScareDetected(sensor) => sensor.do_tick(cx, memories),
             Self::BreezeAttackEntity(sensor) => sensor.do_tick(cx, memories),
+            Self::NearestBed(sensor) => sensor.do_tick(cx, memories),
+            Self::SecondaryPois(sensor) => sensor.do_tick(cx, memories),
+            Self::VillagerBabies(sensor) => sensor.do_tick(cx, memories),
+            Self::VillagerHostiles(sensor) => sensor.do_tick(cx, memories),
+            Self::GolemDetected(sensor) => sensor.do_tick(cx, memories),
         }
     }
 }

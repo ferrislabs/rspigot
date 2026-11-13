@@ -55,6 +55,8 @@ pub struct Facts {
     pub sprinting: bool,
     pub passenger: bool,
     pub head_yaw: f32,
+    pub villager: crate::villager::VillagerPeerFacts,
+    pub hero_of_the_village: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -286,6 +288,22 @@ pub trait AiWorld: BlockView {
         Vec::new()
     }
 
+    fn poi_type_at(&self, _pos: BlockPos) -> Option<rspigot_domain::poi::PoiType> {
+        None
+    }
+
+    fn raid_at(&self, _pos: BlockPos) -> Option<crate::villager::RaidFacts> {
+        None
+    }
+
+    fn villager_can_reach(&self, _villager: EntityId, _pos: BlockPos, _reach: i32) -> bool {
+        true
+    }
+
+    fn villager_trades(&self, _villager: EntityId) -> Vec<crate::villager::TradeView> {
+        Vec::new()
+    }
+
     fn villagers_wanting_golem(&self, _area: &Aabb) -> Vec<Living> {
         Vec::new()
     }
@@ -379,6 +397,8 @@ pub struct KindFacts {
     pub armadillo: crate::ArmadilloFacts,
     pub breeze: crate::BreezeFacts,
     pub creaking: crate::CreakingFacts,
+    pub villager: crate::villager::VillagerFacts,
+    pub trader: crate::villager::TraderFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

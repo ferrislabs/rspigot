@@ -257,6 +257,8 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
                 .inventory
                 .get(HEAD_SLOT)
                 .is_some_and(|stack| GAZE_DISGUISE.matches(Some(stack.item))),
+            villager: rspigot_ai::VillagerPeerFacts::default(),
+            hero_of_the_village: player.effects.has("minecraft:hero_of_the_village"),
         },
     }
 }
@@ -329,6 +331,12 @@ fn entity_facts(
         hunted_recently: false,
         sprinting: false,
         passenger: false,
+        villager: if base.kind == Kind::Villager {
+            crate::kinds::villager::villager_facts(entity).peer()
+        } else {
+            rspigot_ai::VillagerPeerFacts::default()
+        },
+        hero_of_the_village: false,
     }
 }
 
@@ -405,6 +413,12 @@ fn with_mob_facts(mut living: Living, entries: &FxHashMap<EntityId, MobEntry>) -
             living.facts.hunted_recently = memories.has_value(MemoryModuleType::HuntedRecently);
             living.facts.sees_player_holding_loved_item =
                 memories.has_value(MemoryModuleType::NearestPlayerHoldingWantedItem);
+            if living.kind == Kind::Villager {
+                crate::kinds::villager::with_peer_memory_facts(
+                    &mut living.facts.villager,
+                    memories,
+                );
+            }
         }
     }
     living
@@ -647,6 +661,31 @@ impl AiWorld for MobWorld<'_> {
 
     fn bright_outside(&self) -> bool {
         self.has_day_cycle && self.sky_darken < BRIGHT_SKY_DARKEN
+    }
+
+    fn villager_reputation(&self, villager: EntityId, player: EntityId) -> i32 {
+        let Some(uuid) = self
+            .players
+            .iter()
+            .find(|candidate| candidate.id == player)
+            .map(|candidate| candidate.facts.uuid)
+        else {
+            return 0;
+        };
+        self.store.get(villager).map_or(0, |entity| {
+            crate::kinds::villager::reputation_of(entity, uuid)
+        })
+    }
+
+    fn poi_type_at(&self, pos: BlockPos) -> Option<rspigot_domain::poi::PoiType> {
+        self.view.chunks.poi().type_at(pos)
+    }
+
+    fn villager_trades(&self, villager: EntityId) -> Vec<rspigot_ai::TradeView> {
+        self.store
+            .get(villager)
+            .map(crate::kinds::villager::trade_views)
+            .unwrap_or_default()
     }
 
     fn sections_to_village(&self, pos: BlockPos) -> i32 {
