@@ -1686,7 +1686,10 @@ impl<L: ClientLink> Server<L> {
         self.play_sound(None, position, sound, source, volume, pitch);
     }
 
-    fn die_mob(&mut self, id: EntityId, source: &DamageSource) {
+    pub(crate) fn die_mob(&mut self, id: EntityId, source: &DamageSource) {
+        if self.zombie_infects_villager(id, source) {
+            return;
+        }
         let level = self.world.level.name.clone();
         let credit = self.entities.store.get(id).and_then(|e| {
             let living = e.living()?;
