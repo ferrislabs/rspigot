@@ -3,6 +3,7 @@ mod air;
 mod animal;
 mod animals;
 mod armadillo;
+mod bat;
 mod behavior;
 mod blaze;
 mod blocks;
@@ -74,6 +75,7 @@ pub use armadillo::{
     ArmadilloAction, ArmadilloBallUp, ArmadilloFacts, ArmadilloPanic, ArmadilloScareSensor,
     RollOutWithoutDanger, can_stay_rolled_up, is_scared_by,
 };
+pub use bat::{BatAction, BatFacts, BatGoal};
 pub use behavior::{
     ALLOWED_ANGLES, Activity, ActivityData, AdultSensor, AnimalMakeLove, AnimalPanic, AwayFrom,
     BabyFollowAdult, Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState, Codec,

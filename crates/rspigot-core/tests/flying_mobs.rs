@@ -28,6 +28,9 @@ impl ChunkGenerator for Meadow {
                     chunk.set_block(at(y), BlockStateId(1));
                 }
                 chunk.set_block(at(63), BlockKind::GrassBlock.default_state());
+                if pos == ChunkPos::new(0, 0) && x < 4 {
+                    chunk.set_block(at(71), BlockKind::Stone.default_state());
+                }
             }
         }
         chunk
@@ -163,4 +166,34 @@ fn a_vex_keeps_its_bound_position_life_and_no_gravity_across_a_save() {
     let nbt = saved(&s, vex);
     assert_eq!(nbt.get_int_array("bound_pos"), Some(&[4, 70, 4][..]));
     assert_eq!(nbt.get_i32("life_ticks"), Some(900));
+}
+
+#[test]
+fn a_bat_summoned_with_a_command_flies_and_one_built_by_a_spawn_rests() {
+    let mut s = ready(3);
+    let bat = summon(&mut s, Kind::Bat, "8.5 70 8.5", "");
+    assert_eq!(saved(&s, bat).get_i64("BatFlags"), Some(0));
+    s.tick(40);
+    let at = position_of(&s, Kind::Bat, bat);
+    assert!(at.y > 60.0, "{at:?}");
+}
+
+#[test]
+fn a_resting_bat_hangs_from_the_block_above_without_moving() {
+    let mut s = ready(3);
+    let bat = summon(&mut s, Kind::Bat, "2.5 70 2.5", "{BatFlags:1b}");
+    s.tick(40);
+    let at = position_of(&s, Kind::Bat, bat);
+    let height = Kind::Bat.dimensions().height;
+    assert!((at.y - (71.0 - f64::from(height))).abs() < 1.0e-6, "{at:?}");
+    assert_eq!((at.x, at.z), (2.5, 2.5));
+    assert_eq!(saved(&s, bat).get_i64("BatFlags"), Some(1));
+}
+
+#[test]
+fn a_resting_bat_without_a_ceiling_wakes_up_at_once() {
+    let mut s = ready(3);
+    let bat = summon(&mut s, Kind::Bat, "12.5 70 2.5", "{BatFlags:1b}");
+    s.tick(5);
+    assert_eq!(saved(&s, bat).get_i64("BatFlags"), Some(0));
 }

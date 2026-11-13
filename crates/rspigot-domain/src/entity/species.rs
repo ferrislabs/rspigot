@@ -12,6 +12,7 @@ use crate::random::RandomSource;
 use crate::{BiomeId, biome};
 
 pub mod armadillo;
+pub mod bat;
 pub mod blaze;
 pub mod cat;
 pub mod copper_golem;
@@ -204,6 +205,7 @@ pub enum Species {
     Blaze(blaze::BlazeState),
     Ghast(ghast::GhastState),
     Vex(vex::VexState),
+    Bat(bat::BatState),
     Shulker(shulker::ShulkerState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
@@ -385,6 +387,9 @@ impl Species {
         }
         if kind == EntityKind::Vex {
             return Self::Vex(vex::define(base));
+        }
+        if kind == EntityKind::Bat {
+            return Self::Bat(bat::define(base));
         }
         if kind == EntityKind::Shulker {
             return Self::Shulker(shulker::define(base));

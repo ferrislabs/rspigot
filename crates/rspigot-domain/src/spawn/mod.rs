@@ -1,3 +1,4 @@
+mod bat;
 mod biome;
 pub mod despawn;
 pub mod endermite;

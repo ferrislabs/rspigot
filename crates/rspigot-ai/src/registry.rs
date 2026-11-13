@@ -630,6 +630,7 @@ pub fn register_goals(
                 MobGoal::WitchTarget(NearestAttackableWitchTargetGoal::default()),
             );
         }
+        EntityKind::Bat => add.goal(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new()))),
         EntityKind::Vex => {
             add.brain.movement.set_style(MoveStyle::Vex);
             add.float(0);
@@ -913,6 +914,16 @@ mod tests {
         assert_eq!(profile.malus(crate::PathType::Fire), 0.0);
         assert_eq!(profile.malus(crate::PathType::FireInNeighbor), 0.0);
         assert_eq!(ai.brain().movement.style(), MoveStyle::Ground);
+    }
+
+    #[test]
+    fn the_bat_runs_its_flight_and_rest_step_as_its_only_goal() {
+        let (goals, targets) = lists(EntityKind::Bat);
+        assert_eq!(
+            goals,
+            vec![(0, MobGoal::Air(AirGoal::Bat(crate::bat::BatGoal::new())))]
+        );
+        assert!(targets.is_empty());
     }
 
     #[test]
