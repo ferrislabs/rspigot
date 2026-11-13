@@ -229,6 +229,13 @@ pub fn chicken_jockey_roll(random: &mut impl RandomSource) -> Option<JockeyRoll>
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Jockey {
+    NewChicken,
+    ExistingChicken,
+    SkeletonRider,
+}
+
 pub fn skeleton_jockey_roll(random: &mut impl RandomSource) -> bool {
     random.next_int(SKELETON_JOCKEY_ROLL) == 0
 }
@@ -372,8 +379,14 @@ fn zombie_finalize(
     {
         if baby {
             species::set_zombie_baby(base, &mut living.attributes, true);
-            if can_spawn_jockey {
-                chicken_jockey_roll(level);
+            if can_spawn_jockey
+                && let Some(roll) = chicken_jockey_roll(level)
+                && let Some(mob) = living.mob.as_mut()
+            {
+                mob.jockey = Some(match roll {
+                    JockeyRoll::Existing => Jockey::ExistingChicken,
+                    JockeyRoll::New => Jockey::NewChicken,
+                });
             }
         }
         let doors = level.next_float() < special * BREAK_DOORS_FACTOR;
@@ -446,7 +459,11 @@ fn spider_finalize(
     level: &mut impl RandomSource,
 ) -> Option<SpawnGroupData> {
     let group = mob_finalize(base, living, group, level);
-    skeleton_jockey_roll(level);
+    if skeleton_jockey_roll(level)
+        && let Some(mob) = living.mob.as_mut()
+    {
+        mob.jockey = Some(Jockey::SkeletonRider);
+    }
     let difficulty = environment.difficulty;
     let group = group.unwrap_or_else(|| {
         let mut effect = None;
@@ -827,5 +844,76 @@ mod tests {
         );
         assert_eq!(equipment_for_slot(EquipmentSlot::Legs, 6), None);
         assert_eq!(equipment_for_slot(EquipmentSlot::Mainhand, 1), None);
+    }
+
+    struct Script {
+        floats: Vec<f32>,
+        int: i32,
+    }
+
+    impl RandomSource for Script {
+        fn next_float(&mut self) -> f32 {
+            if self.floats.is_empty() {
+                0.9
+            } else {
+                self.floats.remove(0)
+            }
+        }
+
+        fn next_int(&mut self, _: i32) -> i32 {
+            self.int
+        }
+
+        fn next_double(&mut self) -> f64 {
+            0.5
+        }
+
+        fn next_boolean(&mut self) -> bool {
+            false
+        }
+
+        fn next_gaussian(&mut self) -> f64 {
+            0.0
+        }
+    }
+
+    fn jockey_of(kind: EntityKind, floats: Vec<f32>, int: i32) -> Option<Jockey> {
+        let mut entity = mob(kind);
+        let env = environment("minecraft:plains", Difficulty::Normal);
+        let mut own = LegacyRandom::new(2);
+        finalize_spawn(
+            &mut entity,
+            &env,
+            SpawnReason::Natural,
+            None,
+            &mut Script { floats, int },
+            &mut own,
+        );
+        entity
+            .living()
+            .and_then(|living| living.mob.as_ref())
+            .and_then(|mob| mob.jockey)
+    }
+
+    #[test]
+    fn a_baby_zombie_rolls_a_chicken_jockey_and_a_spider_a_skeleton_rider() {
+        let existing = vec![0.9, 0.9, 0.0, 0.01];
+        assert_eq!(
+            jockey_of(EntityKind::Zombie, existing, 5),
+            Some(Jockey::ExistingChicken)
+        );
+        let fresh = vec![0.9, 0.9, 0.0, 0.5, 0.01];
+        assert_eq!(
+            jockey_of(EntityKind::Zombie, fresh, 5),
+            Some(Jockey::NewChicken)
+        );
+        let adult = vec![0.9, 0.9, 0.9, 0.01];
+        assert_eq!(jockey_of(EntityKind::Zombie, adult, 5), None);
+        assert_eq!(
+            jockey_of(EntityKind::Spider, Vec::new(), 0),
+            Some(Jockey::SkeletonRider)
+        );
+        assert_eq!(jockey_of(EntityKind::Spider, Vec::new(), 1), None);
+        assert_eq!(jockey_of(EntityKind::Cow, Vec::new(), 0), None);
     }
 }

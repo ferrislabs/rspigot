@@ -56,6 +56,18 @@ def render(dump):
     for kind, values in vehicles:
         lines.append("        EntityKind::%s => %s," % (kind, points(values)))
     lines += ["        _ => return None,", "    })", "}", ""]
+    lines += [
+        "pub fn baby_points(kind: EntityKind) -> Option<(&'static [Point], &'static [Point])> {",
+        "    Some(match kind {",
+    ]
+    for name, entry in dump["babies"].items():
+        if not entry["field"].endswith(".BABY_DIMENSIONS"):
+            continue
+        kind = struct_name(name[len(NAMESPACE):])
+        lines.append(
+            "        EntityKind::%s => (%s, %s)," % (kind, points(entry["passenger"]), points(entry["vehicle"]))
+        )
+    lines += ["        _ => return None,", "    })", "}", ""]
     return "\n".join(lines)
 
 

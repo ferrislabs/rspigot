@@ -467,6 +467,14 @@ pub(crate) struct PigAngerStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct RideStep {
+    pub(crate) rider: EntityId,
+    pub(crate) vehicle: EntityId,
+    pub(crate) force: bool,
+    pub(crate) notify: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct SpellStep {
     pub(crate) caster: EntityId,
     pub(crate) spell: rspigot_domain::entity::species::spellcaster::IllagerSpell,
@@ -628,6 +636,12 @@ pub(crate) enum Spawned {
         request: u64,
     },
     Poof,
+    Mounted {
+        rider: EntityId,
+    },
+    Rides {
+        vehicle: EntityId,
+    },
     Pattern(Vec<(BlockPos, BlockStateId)>),
     Hive(Box<HiveRelease>),
 }
@@ -1215,6 +1229,10 @@ pub(crate) enum Continuation {
     Ignite(IgniteStep),
     Regrow(EntityId),
     SpellCast(SpellStep),
+    Boarding(RideStep),
+    Mounting(RideStep),
+    Exiting(RideStep),
+    Dismounting(RideStep),
     EggBreak {
         mob: EntityId,
         pos: BlockPos,
@@ -1351,6 +1369,10 @@ impl Continuation {
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::SpellCast(_) => EventKind::EntitySpellCast,
+            Self::Boarding(_) => EventKind::VehicleEnter,
+            Self::Mounting(_) => EventKind::EntityMount,
+            Self::Exiting(_) => EventKind::VehicleExit,
+            Self::Dismounting(_) => EventKind::EntityDismount,
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
             Self::RaidTrigger { .. } => EventKind::RaidTrigger,
             Self::EnterHive { .. } => EventKind::EntityEnterBlock,
@@ -1416,6 +1438,10 @@ impl Continuation {
             | Self::Knock(KnockStep { target: holder, .. }) => *holder == Holder::Mob(id),
             Self::ItemDespawn(item) | Self::Regrow(item) => *item == id,
             Self::SpellCast(step) => step.caster == id,
+            Self::Boarding(step)
+            | Self::Mounting(step)
+            | Self::Exiting(step)
+            | Self::Dismounting(step) => step.rider == id || step.vehicle == id,
             Self::PickupItem(step) => step.item == id || step.collector == id,
             Self::Gather(step) => step.item == id || step.fox == id,
             Self::MobPickup(step) => step.item == id || step.collector == id,

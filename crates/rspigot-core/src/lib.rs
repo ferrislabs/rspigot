@@ -63,6 +63,7 @@ pub mod ports;
 mod potions;
 mod projectiles;
 mod raids;
+mod riding;
 mod sculk;
 pub mod server;
 mod sound;

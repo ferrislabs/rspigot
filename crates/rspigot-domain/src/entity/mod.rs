@@ -19,6 +19,7 @@ pub mod physics;
 mod physics_tests;
 pub mod raycast;
 pub mod reward;
+pub mod riding;
 pub mod save;
 pub mod spawn;
 pub mod species;
