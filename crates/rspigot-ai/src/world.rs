@@ -184,6 +184,7 @@ pub struct MobBody {
     pub armadillo: crate::ArmadilloFacts,
     pub sniffer: crate::SnifferFacts,
     pub vex: crate::VexFacts,
+    pub phantom: crate::PhantomFacts,
 }
 
 impl MobBody {
@@ -203,6 +204,7 @@ impl MobBody {
             armadillo: mob.species.armadillo,
             sniffer: mob.species.sniffer,
             vex: mob.species.vex,
+            phantom: mob.species.phantom,
         }
     }
 }
@@ -217,6 +219,10 @@ pub trait AiWorld: BlockView {
     fn difficulty(&self) -> i32;
 
     fn game_time(&self) -> i64;
+
+    fn sea_level(&self) -> i32 {
+        63
+    }
 
     fn clock_time(&self) -> i64 {
         self.game_time()
@@ -445,6 +451,7 @@ pub struct KindFacts {
     pub creaking: crate::CreakingFacts,
     pub vex: crate::VexFacts,
     pub bat: crate::BatFacts,
+    pub phantom: crate::PhantomFacts,
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
 }

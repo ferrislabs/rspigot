@@ -549,6 +549,9 @@ pub fn finalize_spawn(
         }
         Some(Species::Vex(_)) => species::vex::finalize(base, living, environment, group, level),
         Some(Species::Bat(_)) => species::bat::finalize(base, living, environment, group, level),
+        Some(Species::Phantom(_)) => {
+            species::phantom::finalize(base, living, environment, group, level)
+        }
         Some(Species::Shulker(_)) => {
             species::shulker::finalize(base, living, environment, group, level)
         }

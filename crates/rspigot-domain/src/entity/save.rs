@@ -741,6 +741,9 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Ghast(state) => species::ghast::read(nbt, base, state),
         Species::Vex(state) => species::vex::read(nbt, base, state),
         Species::Bat(state) => species::bat::read(nbt, base, state),
+        Species::Phantom(state) => {
+            species::phantom::read(nbt, base, &mut living.attributes, state);
+        }
         Species::Shulker(state) => species::shulker::read(nbt, base, state),
         Species::Rabbit(state) => {
             species::rabbit::read(nbt, base, &mut living.attributes, state);
@@ -977,6 +980,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Ghast(_) => species::ghast::KEYS,
         Species::Vex(_) => species::vex::KEYS,
         Species::Bat(_) => species::bat::KEYS,
+        Species::Phantom(_) => species::phantom::KEYS,
         Species::Shulker(_) => species::shulker::KEYS,
         Species::Rabbit(_) => species::rabbit::KEYS,
         Species::Ocelot(_) => species::ocelot::KEYS,
@@ -1420,6 +1424,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Ghast(state) => species::ghast::write(base, state, out),
         Species::Vex(state) => species::vex::write(base, state, out),
         Species::Bat(state) => species::bat::write(base, state, out),
+        Species::Phantom(state) => species::phantom::write(base, state, out),
         Species::Shulker(state) => species::shulker::write(base, state, out),
         Species::Rabbit(state) => species::rabbit::write(base, state, out),
         Species::Ocelot(state) => species::ocelot::write(base, state, out),

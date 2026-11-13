@@ -68,6 +68,24 @@ pub fn degrees_difference(from: f32, to: f32) -> f32 {
     wrap_degrees(to - from)
 }
 
+pub fn degrees_difference_abs(from: f32, to: f32) -> f32 {
+    degrees_difference(from, to).abs()
+}
+
+pub fn approach(current: f32, target: f32, increment: f32) -> f32 {
+    let increment = increment.abs();
+    if current < target {
+        clamp(current + increment, current, target)
+    } else {
+        clamp(current - increment, target, current)
+    }
+}
+
+pub fn approach_degrees(current: f32, target: f32, increment: f32) -> f32 {
+    let difference = degrees_difference(current, target);
+    approach(current, current + difference, increment)
+}
+
 pub fn clamp(value: f32, min: f32, max: f32) -> f32 {
     if value < min {
         min
@@ -169,6 +187,22 @@ pub fn view_vector(pitch: f32, yaw: f32) -> crate::Vec3 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn approach_moves_by_the_increment_without_overshooting() {
+        assert_eq!(approach(0.1, 1.8, 0.5), 0.6);
+        assert_eq!(approach(1.7, 1.8, 0.5), 1.8);
+        assert_eq!(approach(1.0, 0.2, 0.025), 0.975);
+        assert_eq!(approach(0.3, 0.2, -0.5), 0.2);
+    }
+
+    #[test]
+    fn approach_degrees_takes_the_short_way_round() {
+        assert_eq!(approach_degrees(170.0, -170.0, 4.0), 174.0);
+        assert_eq!(approach_degrees(-170.0, 170.0, 4.0), -174.0);
+        assert_eq!(approach_degrees(10.0, 12.0, 4.0), 12.0);
+        assert_eq!(degrees_difference_abs(350.0, 10.0), 20.0);
+    }
+
     use super::*;
 
     #[test]
