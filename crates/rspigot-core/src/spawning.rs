@@ -139,13 +139,19 @@ fn chunk_noise_biome(chunks: &ChunkManager, origin: ChunkPos, x: i32, y: i32, z:
 }
 
 fn is_bucketed_fish(entity: &Entity) -> bool {
-    matches!(
-        entity
-            .living()
-            .and_then(|living| living.mob.as_ref())
-            .map(|mob| mob.species),
-        Some(Species::Fish(_))
-    ) && rspigot_domain::entity::species::fish::from_bucket(&entity.base)
+    let species = entity
+        .living()
+        .and_then(|living| living.mob.as_ref())
+        .map(|mob| mob.species);
+    match species {
+        Some(Species::Fish(_)) => rspigot_domain::entity::species::fish::from_bucket(&entity.base),
+        Some(Species::Axolotl(_)) => {
+            rspigot_domain::entity::species::axolotl::from_bucket(&entity.base)
+        }
+        Some(Species::Tadpole(_)) => true,
+        Some(Species::Nautilus(_)) => rspigot_domain::entity::tamable::is_tame(&entity.base),
+        _ => false,
+    }
 }
 
 fn is_persistent(entity: &Entity) -> bool {

@@ -84,7 +84,9 @@ impl Variant {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct AxolotlState;
+pub struct AxolotlState {
+    pub pending_hunting_cooldown: Option<i64>,
+}
 
 pub fn is_axolotl(kind: EntityKind) -> bool {
     kind == EntityKind::Axolotl
@@ -96,7 +98,7 @@ pub fn define(base: &mut EntityBase) -> AxolotlState {
         .define(DATA_PLAYING_DEAD, SyncedValue::Boolean(false));
     base.data
         .define(DATA_FROM_BUCKET, SyncedValue::Boolean(false));
-    AxolotlState
+    AxolotlState::default()
 }
 
 pub fn variant(base: &EntityBase) -> Variant {

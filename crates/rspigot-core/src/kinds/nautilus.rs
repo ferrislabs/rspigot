@@ -3,14 +3,25 @@ use rspigot_domain::EntityId;
 use rspigot_domain::effect::EffectId;
 use rspigot_domain::entity::living;
 use rspigot_domain::entity::species::Species;
+use rspigot_domain::entity::species::nautilus;
+use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{Entity, EntityState};
+use rspigot_domain::item::ItemStack;
+use rspigot_domain::player::PlayerId;
 use rspigot_domain::random::LegacyRandom;
+use rspigot_domain::random::RandomSource;
+use rspigot_entities::EntityKind as Kind;
 
 use crate::commands::Target;
+use crate::events::Hand;
 use crate::health::DamageSource;
+use crate::interact::{Interaction, item_tag};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
+const TAME_FAILURE_EVENT: i8 = 6;
+const EAT_SOUND: &str = "minecraft:entity.nautilus.eat";
+const ZOMBIE_EAT_SOUND: &str = "minecraft:entity.zombie_nautilus.eat";
 const SPEED: &str = "minecraft:speed";
 const SLOWNESS: &str = "minecraft:slowness";
 const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
@@ -98,6 +109,45 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         self.brain_message(id, BrainMessage::NautilusAnger { attacker, uuid });
+    }
+
+    pub(crate) fn nautilus_interact(
+        &mut self,
+        player: PlayerId,
+        target: EntityId,
+        hand: Hand,
+        held: Option<&ItemStack>,
+    ) -> Option<Interaction> {
+        let entity = self.entities.store.get_mut(target)?;
+        if let Some(mob) = entity.living_mut().and_then(|living| living.mob.as_mut()) {
+            mob.persistence_required = true;
+        }
+        let baby = entity.is_baby();
+        let tame = tamable::is_tame(&entity.base);
+        let kind = entity.base.kind;
+        if baby || tame {
+            return None;
+        }
+        let stack = held?;
+        if !item_tag(stack.item, nautilus::TAMING_ITEMS_TAG) {
+            return None;
+        }
+        self.use_animal_item(player, hand, kind, stack);
+        let mut random = self.mob_random(target);
+        let tamed = random.next_int(3) == 0;
+        self.store_mob_random(target, random);
+        if tamed {
+            self.ask_tame(player, target);
+        } else {
+            self.mob_entity_event(target, TAME_FAILURE_EVENT);
+        }
+        let sound = if kind == Kind::ZombieNautilus {
+            ZOMBIE_EAT_SOUND
+        } else {
+            EAT_SOUND
+        };
+        self.entity_sound(target, sound, 1.0, 1.0);
+        Some(Interaction::Predicted)
     }
 
     pub(crate) fn nautilus_offspring(

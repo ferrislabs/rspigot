@@ -117,6 +117,7 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;
         };
+        let sits = !entity.base.kind.extends("AbstractNautilus");
         let Some(state) = entity
             .living_mut()
             .and_then(|state| state.mob.as_mut())
@@ -124,7 +125,7 @@ impl<L: ClientLink> Server<L> {
         else {
             return;
         };
-        state.ordered_to_sit = true;
+        state.ordered_to_sit = sits;
         tamable::tame(&mut entity.base, owner);
         self.species_tamed(id);
     }
