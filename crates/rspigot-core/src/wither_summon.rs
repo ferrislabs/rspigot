@@ -247,6 +247,7 @@ mod tests {
         let look = lookup(&map);
         let found = find_pattern(&look, BlockPos::new(10, 66, 10)).unwrap();
         assert_eq!(found.block(1, 2, 0), BlockPos::new(11, 64, 10));
+        assert!(!found.faces_x());
         let cleared = found.positions();
         assert_eq!(cleared.len(), 9);
         assert!(cleared.contains(&BlockPos::new(10, 64, 10)));
@@ -254,7 +255,7 @@ mod tests {
     }
 
     #[test]
-    fn the_t_also_matches_along_the_z_axis_and_an_upside_down_one_is_refused() {
+    fn the_t_also_matches_along_the_z_axis_and_upside_down_since_every_orientation_is_tried() {
         let at = BlockPos::new(0, 64, 0);
         let mut blocks = Vec::new();
         for dz in 0..3 {
@@ -266,14 +267,14 @@ mod tests {
         let look = lookup(&map);
         let found = find_pattern(&look, at.offset(0, 2, 0)).unwrap();
         assert_eq!(found.block(1, 2, 0), at.offset(0, 0, 1));
-        assert!(!found.faces_x());
+        assert!(found.faces_x());
         let flipped = world(
             &blocks
                 .iter()
                 .map(|(pos, state)| (BlockPos::new(pos.x, 130 - pos.y, pos.z), *state))
                 .collect::<Vec<_>>(),
         );
-        assert!(find_pattern(&lookup(&flipped), BlockPos::new(0, 126, 0)).is_none());
+        assert!(find_pattern(&lookup(&flipped), BlockPos::new(0, 64, 0)).is_some());
     }
 
     #[test]
