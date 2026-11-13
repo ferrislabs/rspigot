@@ -550,7 +550,6 @@ impl Behavior for HarvestFarmland {
         if let Some(pos) = self.above_farmland
             && !closer_to_center_than(pos, cx.ai.mob.position, HARVEST_DISTANCE)
         {
-            self.time_worked_so_far += 1;
             return;
         }
         if let Some(pos) = self.above_farmland

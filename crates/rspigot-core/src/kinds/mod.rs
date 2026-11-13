@@ -78,6 +78,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Creaking => self.creaking_view(entity, view),
             Kind::Piglin | Kind::PiglinBrute => self.piglin_view(entity, view),
             Kind::Villager => self.villager_view(entity, view),
+            Kind::WanderingTrader => self.wandering_trader_view(entity, view),
             _ => {}
         }
     }
@@ -221,6 +222,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Goat) => self.goat_custom_ai_step(id),
             Some(Kind::Armadillo) => self.armadillo_custom_ai_step(id),
             Some(Kind::Villager) => self.villager_custom_ai_step(id),
+            Some(Kind::WanderingTrader) => self.wandering_trader_custom_ai_step(id),
             _ => {}
         }
     }

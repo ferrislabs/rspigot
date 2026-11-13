@@ -151,4 +151,5 @@ pub enum VillagerAction {
         pos: BlockPos,
         slot: usize,
     },
+    ClearWanderTarget,
 }
