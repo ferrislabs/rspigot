@@ -32,6 +32,7 @@ pub mod rabbit;
 pub mod raider;
 pub mod shulker;
 pub mod silverfish;
+pub mod sniffer;
 pub mod snow_golem;
 pub mod villager;
 pub mod wandering_trader;
@@ -209,6 +210,7 @@ pub enum Species {
     Piglin(piglin::PiglinState),
     Goat(goat::GoatState),
     Armadillo(armadillo::ArmadilloState),
+    Sniffer(sniffer::SnifferState),
     Creaking(creaking::CreakingState),
     Villager(villager::VillagerState),
     WanderingTrader(wandering_trader::WanderingTraderState),
@@ -400,6 +402,9 @@ impl Species {
         }
         if kind == EntityKind::Armadillo {
             return Self::Armadillo(armadillo::define(base));
+        }
+        if kind == EntityKind::Sniffer {
+            return Self::Sniffer(sniffer::define(base));
         }
         if kind == EntityKind::Creaking {
             return Self::Creaking(creaking::define(base));
