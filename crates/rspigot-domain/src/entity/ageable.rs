@@ -312,6 +312,7 @@ pub fn dimensions_in_pose(kind: EntityKind, baby: bool, pose: Pose) -> EntityDim
     let dimensions = dimensions(kind, baby);
     match (kind, pose) {
         (EntityKind::Goat, Pose::LongJumping) => scaled(dimensions, GOAT_LONG_JUMP_SCALE),
+        (EntityKind::Warden, pose) => super::species::warden::dimensions_in_pose(pose),
         _ => dimensions,
     }
 }

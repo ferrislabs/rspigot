@@ -34,6 +34,7 @@ pub mod silverfish;
 pub mod snow_golem;
 pub mod villager;
 pub mod wandering_trader;
+pub mod warden;
 pub mod witch;
 pub mod wolf;
 pub mod zombie_villager;
@@ -210,6 +211,7 @@ pub enum Species {
     Creaking(creaking::CreakingState),
     Villager(villager::VillagerState),
     WanderingTrader(wandering_trader::WanderingTraderState),
+    Warden(warden::WardenState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -405,6 +407,9 @@ impl Species {
         }
         if kind == EntityKind::WanderingTrader {
             return Self::WanderingTrader(wandering_trader::define(base));
+        }
+        if kind == EntityKind::Warden {
+            return Self::Warden(warden::define(base));
         }
         Self::Plain
     }

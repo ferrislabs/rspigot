@@ -774,6 +774,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
                 ageable.age = ageable.age.max(0);
             }
         }
+        Species::Warden(state) => species::warden::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -984,6 +985,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Creaking(_) => species::creaking::KEYS,
         Species::Villager(_) => species::villager::KEYS,
         Species::WanderingTrader(_) => species::wandering_trader::KEYS,
+        Species::Warden(_) => species::warden::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1429,6 +1431,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
                 species::wandering_trader::write(state, merchant, out);
             }
         }
+        Species::Warden(state) => species::warden::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
