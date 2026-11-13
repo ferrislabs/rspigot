@@ -12,7 +12,7 @@ use crate::combat::{MeleeAttackGoal, RangedBowAttackGoal};
 use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl, MoveStyle};
 use crate::goal::{Flag, GoalSelector};
 use crate::goals::MobGoal;
-use crate::random::MobRandom;
+use crate::random::{MobRandom, RandomSource};
 use crate::registry;
 use crate::sensing::Sensing;
 use crate::targeting;
@@ -25,6 +25,7 @@ const HARD_BOW_INTERVAL: i32 = 20;
 const NORMAL_BOW_INTERVAL: i32 = 40;
 const BOW_ATTACK_RADIUS: f32 = 15.0;
 const SKELETON_MELEE_SPEED: f64 = 1.2;
+const WARDEN_CONVERSION_DELAYS: i32 = 3;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Brain {
@@ -47,6 +48,7 @@ pub struct Brain {
     pub panda: crate::PandaBrain,
     pub repellent: Option<BlockPos>,
     pub creaking: crate::CreakingState,
+    pub warden: crate::WardenState,
     follow_range: f64,
 }
 
@@ -80,6 +82,16 @@ impl Brain {
         if kind == EntityKind::Creaking {
             profile.can_float = true;
         }
+        if kind == EntityKind::Warden {
+            profile.can_float = true;
+            profile.horizontal_step_cost = true;
+            profile.set_malus(PathType::UnpassableRail, 0.0);
+            profile.set_malus(PathType::Damaging, 8.0);
+            profile.set_malus(PathType::PowderSnow, 8.0);
+            profile.set_malus(PathType::Lava, 8.0);
+            profile.set_malus(PathType::Fire, 0.0);
+            profile.set_malus(PathType::FireInNeighbor, 0.0);
+        }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
             profile.set_malus(PathType::Lava, 8.0);
@@ -106,8 +118,12 @@ impl Brain {
             panda: crate::PandaBrain::default(),
             repellent: None,
             creaking: crate::CreakingState::default(),
+            warden: crate::WardenState::default(),
             follow_range,
         };
+        if kind == EntityKind::Warden {
+            brain.warden = crate::WardenState::new(brain.random.next_int(WARDEN_CONVERSION_DELAYS));
+        }
         if kind == EntityKind::Rabbit {
             brain.enable_hop();
         }
@@ -613,6 +629,155 @@ impl MobAi {
         };
         crate::piglin::deliver(&mut cx, message);
         crate::animals::deliver(&mut cx, message);
+    }
+
+    pub fn warden_state(&self) -> &crate::WardenState {
+        &self.brain.warden
+    }
+
+    pub fn warden_state_mut(&mut self) -> &mut crate::WardenState {
+        &mut self.brain.warden
+    }
+
+    fn with_warden_cx<W: AiWorld, R>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+        run: impl FnOnce(&mut BehaviorCx<'_, '_, W>) -> R,
+    ) -> Option<R> {
+        let behavior = self.behavior.as_mut()?;
+        let mut context = AiContext {
+            mob,
+            world,
+            brain: &mut self.brain,
+            body,
+        };
+        let mut cx = BehaviorCx {
+            ai: &mut context,
+            brain: behavior.state_mut(),
+        };
+        Some(run(&mut cx))
+    }
+
+    pub fn warden_can_receive_vibration<W: AiWorld>(
+        &self,
+        mob: &MobView,
+        world: &W,
+        pos: BlockPos,
+        source: Option<&Living>,
+    ) -> bool {
+        self.behavior.as_ref().is_some_and(|behavior| {
+            crate::warden::can_receive_vibration(mob, world, behavior.memories(), pos, source)
+        })
+    }
+
+    pub fn warden_receive_vibration<W: AiWorld>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+        pos: BlockPos,
+        source: Option<EntityId>,
+        projectile_owner: Option<EntityId>,
+    ) {
+        self.with_warden_cx(mob, world, body, |cx| {
+            crate::warden::on_vibration_received(cx, pos, source, projectile_owner);
+        });
+    }
+
+    pub fn warden_increase_anger<W: AiWorld>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+        target: EntityId,
+        amount: i32,
+        play_sound: bool,
+    ) {
+        self.with_warden_cx(mob, world, body, |cx| {
+            crate::warden::increase_anger_at(cx, target, amount, play_sound);
+        });
+    }
+
+    pub fn warden_hurt<W: AiWorld>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+        attacker: EntityId,
+        direct: bool,
+    ) {
+        self.with_warden_cx(mob, world, body, |cx| {
+            crate::warden::on_hurt(cx, attacker, direct);
+        });
+    }
+
+    pub fn warden_touch<W: AiWorld>(
+        &mut self,
+        mob: &MobView,
+        world: &W,
+        body: &mut MobBody,
+        touched: EntityId,
+    ) {
+        self.with_warden_cx(mob, world, body, |cx| crate::warden::touch(cx, touched));
+    }
+
+    pub fn warden_hold_dig_cooldown(&mut self) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            let memories = behavior.memories_mut();
+            if memories.has_value(MemoryModuleType::DigCooldown) {
+                memories.set_with_expiry(
+                    MemoryModuleType::DigCooldown,
+                    MemoryValue::Unit,
+                    rspigot_domain::warden::DIG_COOLDOWN_TICKS,
+                );
+            }
+        }
+    }
+
+    pub fn warden_spawned(&mut self, triggered: bool) {
+        let Some(behavior) = self.behavior.as_mut() else {
+            return;
+        };
+        let memories = behavior.memories_mut();
+        memories.set_with_expiry(
+            MemoryModuleType::DigCooldown,
+            MemoryValue::Unit,
+            rspigot_domain::warden::INITIAL_DIG_COOLDOWN_TICKS,
+        );
+        if triggered {
+            memories.set_with_expiry(
+                MemoryModuleType::IsEmerging,
+                MemoryValue::Unit,
+                i64::from(rspigot_domain::warden::EMERGE_DURATION),
+            );
+        }
+    }
+
+    pub fn warden_active_anger(&self) -> i32 {
+        self.brain.warden.anger.active_anger(self.target())
+    }
+
+    pub fn warden_save(&self) -> (rspigot_nbt::Compound, rspigot_nbt::Compound) {
+        (
+            self.brain.warden.anger.to_nbt(),
+            self.brain.warden.vibration.to_nbt(),
+        )
+    }
+
+    pub fn warden_load(
+        &mut self,
+        anger: Option<&rspigot_nbt::Compound>,
+        listener: Option<&rspigot_nbt::Compound>,
+    ) {
+        let delay = self.brain.random.next_int(WARDEN_CONVERSION_DELAYS);
+        self.brain.warden.anger = anger.map_or_else(
+            || rspigot_domain::warden::AngerManagement::empty(delay),
+            |nbt| rspigot_domain::warden::AngerManagement::from_nbt(nbt, delay),
+        );
+        self.brain.warden.vibration =
+            rspigot_domain::game_event::VibrationData::read_or_default(listener);
     }
 
     pub fn piglin_wants_to_pickup(&self, mob: &MobView, item: rspigot_domain::ItemId) -> bool {

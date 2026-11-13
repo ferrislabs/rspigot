@@ -88,6 +88,9 @@ pub fn can_attack(world: &impl AiWorld, target: &Living) -> bool {
 }
 
 pub fn mob_can_attack(mob: &MobView, world: &impl AiWorld, target: &Living) -> bool {
+    if mob.kind == EntityKind::Warden {
+        return crate::warden::can_target_entity(mob, world, target);
+    }
     if mob.kind == EntityKind::Breeze {
         return match mob.species.breeze.attack_target {
             Some(current) => target.id == current,

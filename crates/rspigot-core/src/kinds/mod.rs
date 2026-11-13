@@ -33,6 +33,7 @@ mod shulker;
 mod silverfish;
 mod snow_golem;
 pub(crate) mod villager;
+mod warden;
 mod witch;
 mod wolf;
 mod zombie_villager;

@@ -12,6 +12,7 @@ use crate::targeting::TargetingConditions;
 use crate::villager::{
     GolemSensor, NearestBedSensor, SecondaryPoiSensor, VillagerBabiesSensor, VillagerHostilesSensor,
 };
+use crate::warden::WardenEntitySensor as WardenSensor;
 use crate::world::{AiWorld, Living};
 
 pub const DEFAULT_SCAN_RATE: i32 = 20;
@@ -92,6 +93,7 @@ pub enum SensorKind {
     VillagerBabies(VillagerBabiesSensor),
     VillagerHostiles(VillagerHostilesSensor),
     GolemDetected(GolemSensor),
+    WardenEntity(WardenSensor),
 }
 
 impl SensorKind {
@@ -115,6 +117,7 @@ impl SensorKind {
             Self::VillagerBabies(_) => SensorType::VillagerBabies,
             Self::VillagerHostiles(_) => SensorType::VillagerHostiles,
             Self::GolemDetected(_) => SensorType::GolemDetected,
+            Self::WardenEntity(_) => SensorType::WardenEntitySensor,
         }
     }
 }
@@ -140,6 +143,7 @@ impl Sensor for SensorKind {
             Self::VillagerBabies(sensor) => sensor.scan_rate(),
             Self::VillagerHostiles(sensor) => sensor.scan_rate(),
             Self::GolemDetected(sensor) => sensor.scan_rate(),
+            Self::WardenEntity(sensor) => sensor.scan_rate(),
         }
     }
 
@@ -163,6 +167,7 @@ impl Sensor for SensorKind {
             Self::VillagerBabies(sensor) => sensor.requires(),
             Self::VillagerHostiles(sensor) => sensor.requires(),
             Self::GolemDetected(sensor) => sensor.requires(),
+            Self::WardenEntity(sensor) => sensor.requires(),
         }
     }
 
@@ -186,6 +191,7 @@ impl Sensor for SensorKind {
             Self::VillagerBabies(sensor) => sensor.do_tick(cx, memories),
             Self::VillagerHostiles(sensor) => sensor.do_tick(cx, memories),
             Self::GolemDetected(sensor) => sensor.do_tick(cx, memories),
+            Self::WardenEntity(sensor) => sensor.do_tick(cx, memories),
         }
     }
 }

@@ -279,6 +279,10 @@ pub trait AiWorld: BlockView {
         true
     }
 
+    fn removal_keeps_anger(&self, _id: EntityId, _uuid: Uuid, player: bool) -> bool {
+        player
+    }
+
     fn sections_to_village(&self, _pos: BlockPos) -> i32 {
         NO_VILLAGE
     }

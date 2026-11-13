@@ -2,7 +2,7 @@ use rspigot_domain::BlockPos;
 
 use crate::heap::BinaryHeap;
 use crate::path::{Path, PathNode, manhattan};
-use crate::walk::{Node, Walker, distance};
+use crate::walk::{Node, Walker, distance, distance_xz};
 use crate::{BlockView, MobProfile, MobState};
 
 const FUDGING: f32 = 1.5;
@@ -136,7 +136,12 @@ impl PathFinder {
             }
             walker.neighbors(current, &mut neighbors);
             for &neighbor in &neighbors {
-                let step = distance(current_pos, walker.nodes[neighbor].pos);
+                let neighbor_pos = walker.nodes[neighbor].pos;
+                let step = if self.profile.horizontal_step_cost {
+                    distance_xz(current_pos, neighbor_pos)
+                } else {
+                    distance(current_pos, neighbor_pos)
+                };
                 let walked = walker.nodes[current].walked_distance + step;
                 let g = walker.nodes[current].g + step + walker.nodes[neighbor].cost_malus;
                 walker.nodes[neighbor].walked_distance = walked;
