@@ -10,6 +10,7 @@ use rustc_hash::FxHashMap;
 use uuid::Uuid;
 
 use crate::events::{ClientEvent, Direction};
+use crate::game_events::GameEventContext;
 use crate::loot::{self, LootContext, LootEntity};
 use crate::player::Player;
 use crate::plugins::block::snapshot_of;
@@ -26,6 +27,7 @@ use crate::plugins::{
 };
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use rspigot_domain::game_event::GameEvent;
 
 const MINING_EXHAUSTION: f32 = 0.005;
 const FINISH_PROGRESS: f32 = 0.7;
@@ -397,6 +399,12 @@ impl<L: ClientLink> Server<L> {
             self.anger_nearby_piglins(id, false);
         }
         self.set_block(pos, BlockStateId::AIR);
+        let actor = self.players.get(&id).map(|player| player.entity_id);
+        self.block_game_event(
+            GameEvent::BlockDestroy,
+            pos,
+            GameEventContext::entity_in(actor, step.state),
+        );
         self.ack_block(id, sequence);
         let survival = step.game_mode == GameMode::Survival;
         if survival {

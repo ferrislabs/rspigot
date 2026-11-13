@@ -197,6 +197,8 @@ pub struct Vitals {
     pub remove_arrow_time: i32,
     pub death_experience: Option<DeathExperience>,
     pub warden_tracker: rspigot_domain::warden::WardenSpawnTracker,
+    pub move_dist: f32,
+    pub next_step: f32,
     sent: Option<SentVitals>,
 }
 
@@ -245,6 +247,8 @@ impl Default for Vitals {
             remove_arrow_time: 0,
             death_experience: None,
             warden_tracker: rspigot_domain::warden::WardenSpawnTracker::default(),
+            move_dist: 0.0,
+            next_step: 1.0,
             sent: None,
         }
     }

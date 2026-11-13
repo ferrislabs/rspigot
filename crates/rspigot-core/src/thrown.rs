@@ -7,12 +7,14 @@ use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 use crate::events::{ClientEvent, EntityStatus};
+use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
 use crate::plugins::AfterHurt;
 use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause};
 use crate::plugins::steps::ThrownFollow;
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use rspigot_domain::game_event::GameEvent;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Strike {
@@ -198,6 +200,14 @@ impl<L: ClientLink> Server<L> {
         let state_at = self.world.chunks.block(hit.pos).unwrap_or_default();
         if state_at.is_air() {
             return;
+        }
+        let landed = self.entities.store.get(id).map(|e| e.base.position);
+        if let Some(at) = landed {
+            self.game_event(
+                GameEvent::ProjectileLand,
+                at,
+                GameEventContext::of(Some(id)),
+            );
         }
         if self
             .entities

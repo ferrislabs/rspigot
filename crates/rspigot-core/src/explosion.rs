@@ -10,6 +10,7 @@ use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 use crate::events::ClientEvent;
+use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
 use crate::loot::{self, LootContext, LootEntity};
 use crate::mobs::ServerRandom;
@@ -22,6 +23,7 @@ use crate::plugins::{AfterHurt, BlastFollow, Holder, Struck};
 use crate::plugins::{Continuation, EventPayload, SetDiff};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use rspigot_domain::game_event::GameEvent;
 
 const MAX_MERGED_STACK: u32 = 16;
 const EXPLOSION_KNOCKBACK_RESISTANCE: &str = "minecraft:explosion_knockback_resistance";
@@ -197,6 +199,7 @@ impl<L: ClientLink> Server<L> {
         discard: Option<EntityId>,
         resistance_cap: Option<f32>,
     ) {
+        self.game_event(GameEvent::Explode, center, GameEventContext::of(source));
         let radius = radius.max(0.0);
         if radius < MIN_RADIUS {
             if let Some(source) = discard {

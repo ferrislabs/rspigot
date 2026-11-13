@@ -245,6 +245,9 @@ impl<L: ClientLink> Server<L> {
         let to = player.position;
         let yaw = player.rotation.yaw;
         self.check_fall(id, to.y - from.y, on_ground);
+        if position.is_some() {
+            self.player_step(id, from, to, on_ground);
+        }
         if position.is_some() || rotation.is_some() {
             self.push(
                 Audience::Trackers(entity),
@@ -388,6 +391,7 @@ impl<L: ClientLink> Server<L> {
                 );
                 self.fix_chest_pairs(pos, old, state);
                 self.ensure_container_entity(pos, state);
+                self.ensure_sculk_entity(pos, state);
                 true
             }
             _ => false,

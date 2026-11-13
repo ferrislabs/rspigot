@@ -799,6 +799,7 @@ mod tests {
                 EntityKind::Stray,
                 EntityKind::Villager,
                 EntityKind::WanderingTrader,
+                EntityKind::Warden,
                 EntityKind::Witch,
                 EntityKind::WitherSkeleton,
                 EntityKind::Wolf,

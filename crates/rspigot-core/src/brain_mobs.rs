@@ -98,6 +98,9 @@ impl<L: ClientLink> Server<L> {
         if let Some(brain) = self.mob_brain_nbt(entity.base.id) {
             saved.insert(BRAIN, brain);
         }
+        if entity.base.kind == rspigot_entities::EntityKind::Warden {
+            self.warden_nbt(entity.base.id, &mut saved);
+        }
         Some(saved)
     }
 
