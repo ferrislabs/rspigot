@@ -377,6 +377,7 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Panda
                 | Kind::Goat
                 | Kind::Armadillo
+                | Kind::Bee
         ) {
             return None;
         }
