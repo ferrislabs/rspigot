@@ -216,6 +216,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     {
         level.day_time = ticks;
     }
+    level.raids = optional_saved_data(world_root, "raids");
     Ok(Some(level))
 }
 
@@ -315,6 +316,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         data.insert(OVERWORLD_CLOCK, clock);
         changed
     })?;
+    if let Some(raids) = &level.raids {
+        update_saved_data(world_root, "raids", |data| {
+            let changed = data != raids;
+            data.clone_from(raids);
+            changed
+        })?;
+    }
     let mut root = existing.unwrap_or_default();
     let mut data = match root.remove("Data") {
         Some(Tag::Compound(data)) => data,
@@ -467,6 +475,7 @@ mod tests {
             spawn_mobs: true,
             spawn_monsters: false,
             uuid: None,
+            raids: None,
         }
     }
 

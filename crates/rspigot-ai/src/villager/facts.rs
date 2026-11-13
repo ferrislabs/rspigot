@@ -112,6 +112,7 @@ pub struct TradeView {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct RaidFacts {
+    pub center: BlockPos,
     pub active: bool,
     pub over: bool,
     pub victory: bool,

@@ -924,6 +924,14 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::RaidTrigger {
+                player,
+                pos,
+                amplifier,
+            } => {
+                self.finish_raid_trigger(player, pos, amplifier, cancelled);
+                Vec::new()
+            }
             Continuation::TargetBlock { mob, pos } => {
                 self.finish_transport_target(
                     mob,

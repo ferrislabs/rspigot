@@ -315,6 +315,10 @@ pub trait AiWorld: BlockView {
         Vec::new()
     }
 
+    fn is_ominous_banner(&self, _id: EntityId) -> bool {
+        false
+    }
+
     fn dropped_item(&self, _id: EntityId) -> Option<DroppedItem> {
         None
     }

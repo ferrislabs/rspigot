@@ -108,7 +108,7 @@ pub(crate) fn naturally_spawns(kind: EntityKind) -> bool {
     })[usize::from(kind.id().0)]
 }
 
-fn has_ai(kind: EntityKind) -> bool {
+pub(crate) fn has_ai(kind: EntityKind) -> bool {
     MobAi::new(kind, 0, GoalSettings::default()).has_ai()
 }
 
@@ -871,6 +871,7 @@ mod tests {
                 EntityKind::PolarBear,
                 EntityKind::Pufferfish,
                 EntityKind::Rabbit,
+                EntityKind::Ravager,
                 EntityKind::Salmon,
                 EntityKind::Sheep,
                 EntityKind::Shulker,
@@ -887,6 +888,7 @@ mod tests {
                 EntityKind::Turtle,
                 EntityKind::Vex,
                 EntityKind::Villager,
+                EntityKind::Vindicator,
                 EntityKind::WanderingTrader,
                 EntityKind::Warden,
                 EntityKind::Witch,

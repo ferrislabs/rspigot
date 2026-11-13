@@ -27,6 +27,7 @@ pub const OMEN_EFFECT_TICKS: i32 = 600;
 pub const POI_SEARCH_RANGE: i32 = 64;
 pub const HORN_DISTANCE: f64 = 13.0;
 pub const HORN_HEARING_RANGE: f64 = 64.0;
+pub const RECRUIT_RANGE: f64 = 16.0;
 pub const HORN_SOUND: &str = "minecraft:event.raid.horn";
 pub const RAID_NAME_KEY: &str = "event.minecraft.raid";
 pub const RAID_VICTORY_KEY: &str = "event.minecraft.raid.victory.full";
@@ -1115,6 +1116,22 @@ impl Raids {
 
     pub const fn tick_count(&self) -> i32 {
         self.tick
+    }
+
+    pub fn drain_outputs(&mut self) -> Vec<RaidOutput> {
+        let mut outputs = Vec::new();
+        for (id, raid) in &mut self.raids {
+            let output = RaidOutput {
+                raid: *id,
+                bar_id: raid.bar.id(),
+                messages: raid.take_bar_messages(),
+                events: raid.take_events(),
+            };
+            if !output.messages.is_empty() || !output.events.is_empty() {
+                outputs.push(output);
+            }
+        }
+        outputs
     }
 
     pub fn take_dirty(&mut self) -> bool {

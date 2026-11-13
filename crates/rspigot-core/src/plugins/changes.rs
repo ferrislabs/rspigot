@@ -123,6 +123,11 @@ impl<L: ClientLink> Server<L> {
                     self.finish_frogspawn(frog, pos, state);
                 }
             }
+            Grief::RavagerBreak { ravager, pos } => {
+                if !cancelled {
+                    self.finish_ravager_break(ravager, pos);
+                }
+            }
             Grief::WitherBreak { wither, pos } => {
                 if !cancelled {
                     self.finish_wither_break(wither, pos);
