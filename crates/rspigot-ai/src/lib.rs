@@ -1,5 +1,6 @@
 mod action;
 mod air;
+mod allay;
 mod animal;
 mod animals;
 mod armadillo;
@@ -71,6 +72,10 @@ mod zombified_piglin;
 
 pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequest};
 pub use air::{AirAction, AirGoal};
+pub use allay::{
+    ALLAY_MEMORIES, AllayAction, AllayFacts, GoAndGiveItemsToTarget, StayCloseToTarget,
+    allay_activities, allay_sensors, hear_noteblock, item_deposit_position, liked_player,
+};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };

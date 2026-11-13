@@ -2152,7 +2152,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn mob_landed(&mut self, id: EntityId, landing: Landing) {
-        if self.kind_of(id) == Some(Kind::Ghast) {
+        if matches!(self.kind_of(id), Some(Kind::Ghast | Kind::Allay)) {
             return;
         }
         let Some(impact) = fall_impact(landing.state, landing.distance, false) else {

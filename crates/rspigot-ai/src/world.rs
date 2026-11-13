@@ -453,6 +453,7 @@ pub struct KindFacts {
     pub bat: crate::BatFacts,
     pub phantom: crate::PhantomFacts,
     pub wither: crate::WitherFacts,
+    pub allay: crate::AllayFacts,
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
 }

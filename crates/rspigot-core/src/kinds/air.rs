@@ -11,6 +11,7 @@ impl<L: ClientLink> Server<L> {
             AirAction::Bat(action) => self.bat_action(id, action),
             AirAction::Phantom(action) => self.phantom_action(id, action),
             AirAction::Wither(action) => self.wither_action(id, action),
+            AirAction::Allay(action) => self.allay_action(id, action),
         }
     }
 }

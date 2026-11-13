@@ -121,6 +121,9 @@ impl Brain {
         if kind == EntityKind::Wither {
             profile = profile.flying(true);
         }
+        if kind == EntityKind::Allay {
+            profile = profile.flying(true);
+        }
         if kind == EntityKind::Blaze {
             profile.set_malus(PathType::Water, -1.0);
             profile.set_malus(PathType::Lava, 8.0);
@@ -162,6 +165,12 @@ impl Brain {
         }
         if matches!(kind, EntityKind::Parrot | EntityKind::Wither) {
             brain.movement.set_flying(10, false);
+        }
+        if kind == EntityKind::Allay {
+            brain.movement.set_flying(20, true);
+            brain
+                .navigation
+                .set_required_path_length(48.0, follow_range);
         }
         if kind == EntityKind::Villager {
             brain

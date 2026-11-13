@@ -11,6 +11,7 @@ use crate::effect::{AttributeModifier, AttributeOperation};
 use crate::random::RandomSource;
 use crate::{BiomeId, biome};
 
+pub mod allay;
 pub mod armadillo;
 pub mod bat;
 pub mod blaze;
@@ -208,6 +209,7 @@ pub enum Species {
     Blaze(blaze::BlazeState),
     Ghast(ghast::GhastState),
     Vex(vex::VexState),
+    Allay(allay::AllayState),
     Wither(wither::WitherState),
     Bat(bat::BatState),
     Phantom(phantom::PhantomState),
@@ -393,6 +395,9 @@ impl Species {
         }
         if kind == EntityKind::Vex {
             return Self::Vex(vex::define(base));
+        }
+        if kind == EntityKind::Allay {
+            return Self::Allay(allay::define(base));
         }
         if kind == EntityKind::Wither {
             return Self::Wither(wither::define(base));
