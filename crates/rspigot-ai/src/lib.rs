@@ -52,6 +52,7 @@ mod tame;
 mod targeting;
 mod view;
 mod village;
+mod villager;
 mod walk;
 mod wolf;
 mod world;
@@ -186,6 +187,21 @@ pub use targeting::{
 };
 pub use view::BlockView;
 pub use village::{find_section_closest_to_village, sections_to_village};
+pub use villager::{
+    AcquirePoi, AssignProfessionFromJobSite, GiveGiftToHero, GoToClosestVillage,
+    GoToPotentialJobSite, GolemSensor, HOME_EVENT, HOSTILE_DISTANCES, HarvestFarmland,
+    INVENTORY_SLOTS, InsideBrownianWalk, JumpOnBed, LocateHidingPlace,
+    LookAndFollowTradingPlayerSink, MoveToSkySeeingSpot, NearestBedSensor, PlayTagWithOtherKids,
+    PoiCompetitorScan, PoiRule, RaidFacts, ReactToBell, ResetProfession, ResetRaidStatus, RingBell,
+    SecondaryPoiSensor, SetClosestHomeAsWalkTarget, SetHiddenState, SetRaidStatus,
+    SetWalkTargetFromBlockMemory, ShowTradesToPlayer, SleepInBed, SocializeAtBell, StackFacts,
+    StrollToPoiList, TradeView, TradeWithVillager, UpdateActivityFromSchedule, ValidateNearbyPoi,
+    VillageBoundRandomStroll, VillagerAction, VillagerBabiesSensor, VillagerCalmDown,
+    VillagerFacts, VillagerHostilesSensor, VillagerMakeLove, VillagerPanicTrigger,
+    VillagerPeerFacts, WakeUp, WorkAtPoi, Workstation, YieldJobSite, bed_is_occupied,
+    check_for_nearby_golem, golem_detected, hostile_distance, is_free_bed, villager_activities,
+    villager_brain, villager_sensors, wants_to_pick_up,
+};
 pub use walk::{block_path_type, mob_path_type};
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{

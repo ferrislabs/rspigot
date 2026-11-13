@@ -32,6 +32,8 @@ pub enum EntityFilter {
     Any,
     Kind(EntityKind),
     SeesNoPlayerHoldingLovedItem,
+    Category(rspigot_entities::MobCategory),
+    BreedableVillager,
 }
 
 impl EntityFilter {
@@ -40,6 +42,10 @@ impl EntityFilter {
             Self::Any => true,
             Self::Kind(kind) => entity.kind == kind,
             Self::SeesNoPlayerHoldingLovedItem => !entity.facts.sees_player_holding_loved_item,
+            Self::Category(category) => entity.kind.category() == category,
+            Self::BreedableVillager => {
+                entity.kind == EntityKind::Villager && entity.facts.villager.can_breed
+            }
         }
     }
 }
@@ -55,6 +61,8 @@ pub enum MobPredicate {
     Piglin(PiglinCondition),
     CreakingActive,
     CreakingCanMove,
+    RaidActive,
+    RaidNotVictory,
 }
 
 impl MobPredicate {
@@ -73,6 +81,16 @@ impl MobPredicate {
             Self::Piglin(condition) => condition.test(cx),
             Self::CreakingActive => cx.ai.brain.creaking.active,
             Self::CreakingCanMove => cx.ai.brain.creaking.can_move,
+            Self::RaidActive => cx
+                .ai
+                .world
+                .raid_at(cx.ai.mob.block_pos())
+                .is_some_and(|raid| raid.active && !raid.victory && !raid.loss),
+            Self::RaidNotVictory => cx
+                .ai
+                .world
+                .raid_at(cx.ai.mob.block_pos())
+                .is_some_and(|raid| !raid.victory),
         }
     }
 }

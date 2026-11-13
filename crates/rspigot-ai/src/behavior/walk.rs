@@ -616,7 +616,8 @@ impl Trigger for SetLookAndInteract {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct InteractWith {
-    kind: EntityKind,
+    filter: EntityFilter,
+    requires_breedable_self: bool,
     interaction_range_sqr: i32,
     interaction_target: MemoryModuleType,
     speed_modifier: f32,
@@ -632,7 +633,24 @@ impl InteractWith {
         stop_distance: i32,
     ) -> Self {
         Self {
-            kind,
+            filter: EntityFilter::Kind(kind),
+            requires_breedable_self: false,
+            interaction_range_sqr: interaction_range * interaction_range,
+            interaction_target,
+            speed_modifier,
+            stop_distance,
+        }
+    }
+
+    pub fn breeding_villagers(
+        interaction_range: i32,
+        interaction_target: MemoryModuleType,
+        speed_modifier: f32,
+        stop_distance: i32,
+    ) -> Self {
+        Self {
+            filter: EntityFilter::BreedableVillager,
+            requires_breedable_self: true,
             interaction_range_sqr: interaction_range * interaction_range,
             interaction_target,
             speed_modifier,
@@ -655,20 +673,23 @@ impl InteractWith {
 
 impl Trigger for InteractWith {
     fn trigger<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, _now: i64) -> bool {
-        let kind = self.kind;
+        if self.requires_breedable_self && !cx.ai.mob.species.villager.can_breed {
+            return false;
+        }
+        let filter = self.filter;
         let any_valid = cx
             .brain
             .memories
             .get(MemoryModuleType::NearestVisibleLivingEntities)
             .and_then(MemoryValue::as_visible)
             .is_some_and(|visible| {
-                visible.contains(cx.ai, &cx.brain.memories, |entity| entity.kind == kind)
+                visible.contains(cx.ai, &cx.brain.memories, |entity| filter.matches(entity))
             });
         if !any_valid {
             return false;
         }
         let limit = f64::from(self.interaction_range_sqr);
-        if let Some(target) = closest_in_range(cx, EntityFilter::Kind(kind), limit) {
+        if let Some(target) = closest_in_range(cx, filter, limit) {
             cx.brain
                 .memories
                 .set(self.interaction_target, MemoryValue::Entity(target.id));

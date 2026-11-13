@@ -12,6 +12,7 @@ use crate::item::ItemStack;
 use crate::poi::PoiType;
 use crate::random::RandomSource;
 
+pub const DATA_SLEEPING_POS: u8 = 14;
 pub const DATA_UNHAPPY_COUNTER: u8 = 18;
 pub const DATA_VILLAGER_DATA: u8 = 19;
 pub const DATA_VILLAGER_DATA_FINALIZED: u8 = 20;
@@ -548,6 +549,8 @@ pub struct TradeReward {
 }
 
 pub fn define(base: &mut EntityBase) -> VillagerState {
+    base.data
+        .define(DATA_SLEEPING_POS, SyncedValue::OptionalBlockPos(None));
     base.data.define(DATA_UNHAPPY_COUNTER, SyncedValue::Int(0));
     base.data.define(
         DATA_VILLAGER_DATA,

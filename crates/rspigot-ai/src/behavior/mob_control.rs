@@ -30,6 +30,16 @@ use crate::piglin::{
     StartCelebratingIfTargetDead, StartHuntingHoglin, StopAdmiringIfItemTooFarAway,
     StopAdmiringIfTiredOfTryingToReachItem, StopHoldingItemIfNoLongerAdmiring,
 };
+use crate::villager::{
+    AcquirePoi, AssignProfessionFromJobSite, GiveGiftToHero, GoToClosestVillage,
+    GoToPotentialJobSite, HarvestFarmland, InsideBrownianWalk, JumpOnBed, LocateHidingPlace,
+    LookAndFollowTradingPlayerSink, MoveToSkySeeingSpot, PlayTagWithOtherKids, PoiCompetitorScan,
+    ReactToBell, ResetProfession, ResetRaidStatus, RingBell, SetClosestHomeAsWalkTarget,
+    SetHiddenState, SetRaidStatus, SetWalkTargetFromBlockMemory, ShowTradesToPlayer, SleepInBed,
+    SocializeAtBell, StrollToPoiList, TradeWithVillager, UpdateActivityFromSchedule,
+    ValidateNearbyPoi, VillageBoundRandomStroll, VillagerCalmDown, VillagerMakeLove,
+    VillagerPanicTrigger, WakeUp, WorkAtPoi, YieldJobSite,
+};
 use crate::world::AiWorld;
 
 const LOOK_SINK_MIN_DURATION: i32 = 45;
@@ -164,6 +174,17 @@ mob_behaviors! {
     BreezeShootWhenStuck(BreezeShootWhenStuck),
     BreezeSlide(BreezeSlide),
     BreezeSlideToTarget(SlideToTargetSink),
+    GoToPotentialJobSite(GoToPotentialJobSite),
+    SleepInBed(SleepInBed),
+    JumpOnBed(JumpOnBed),
+    VillagerPanicTrigger(VillagerPanicTrigger),
+    LookAndFollowTradingPlayerSink(LookAndFollowTradingPlayerSink),
+    VillagerMakeLove(VillagerMakeLove),
+    TradeWithVillager(TradeWithVillager),
+    WorkAtPoi(WorkAtPoi),
+    ShowTradesToPlayer(ShowTradesToPlayer),
+    GiveGiftToHero(GiveGiftToHero),
+    HarvestFarmland(HarvestFarmland),
 }
 
 macro_rules! mob_triggers {
@@ -236,6 +257,30 @@ mob_triggers! {
     StopAdmiringIfTiredOfTryingToReachItem(StopAdmiringIfTiredOfTryingToReachItem),
     StopHoldingItemIfNoLongerAdmiring(StopHoldingItemIfNoLongerAdmiring),
     ArmadilloRollOut(RollOutWithoutDanger),
+    AcquirePoi(AcquirePoi),
+    ValidateNearbyPoi(ValidateNearbyPoi),
+    PoiCompetitorScan(PoiCompetitorScan),
+    YieldJobSite(YieldJobSite),
+    AssignProfessionFromJobSite(AssignProfessionFromJobSite),
+    ResetProfession(ResetProfession),
+    SetWalkTargetFromBlockMemory(SetWalkTargetFromBlockMemory),
+    StrollToPoiList(StrollToPoiList),
+    WakeUp(WakeUp),
+    SetClosestHomeAsWalkTarget(SetClosestHomeAsWalkTarget),
+    InsideBrownianWalk(InsideBrownianWalk),
+    GoToClosestVillage(GoToClosestVillage),
+    VillageBoundRandomStroll(VillageBoundRandomStroll),
+    PlayTagWithOtherKids(PlayTagWithOtherKids),
+    UpdateActivityFromSchedule(UpdateActivityFromSchedule),
+    VillagerCalmDown(VillagerCalmDown),
+    ReactToBell(ReactToBell),
+    SetRaidStatus(SetRaidStatus),
+    ResetRaidStatus(ResetRaidStatus),
+    RingBell(RingBell),
+    MoveToSkySeeingSpot(MoveToSkySeeingSpot),
+    SetHiddenState(SetHiddenState),
+    LocateHidingPlace(LocateHidingPlace),
+    SocializeAtBell(SocializeAtBell),
 }
 
 #[derive(Debug, Clone, PartialEq)]

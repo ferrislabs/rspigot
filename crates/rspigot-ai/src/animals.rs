@@ -43,6 +43,14 @@ pub fn brain_for(
                 creaking::creaking_sensors(),
                 creaking::creaking_activities(),
             ),
+            EntityKind::Villager => {
+                return Some(crate::villager::villager_brain(
+                    rspigot_domain::entity::species::villager::Profession::None,
+                    false,
+                    &PackedMemories::default(),
+                    random,
+                ));
+            }
             _ => return None,
         };
     let mut brain = BehaviorBrain::new(
