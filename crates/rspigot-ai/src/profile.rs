@@ -15,6 +15,7 @@ pub struct MobProfile {
     pub can_walk_over_fences: bool,
     pub creaking_home: Option<BlockPos>,
     pub horizontal_step_cost: bool,
+    pub flying: bool,
     malus: [Option<f32>; PathType::COUNT],
 }
 
@@ -36,8 +37,17 @@ impl MobProfile {
             can_walk_over_fences: false,
             creaking_home: None,
             horizontal_step_cost: false,
+            flying: false,
             malus: [None; PathType::COUNT],
         }
+    }
+
+    pub fn flying(mut self, can_float: bool) -> Self {
+        self.flying = true;
+        self.can_pass_doors = true;
+        self.can_open_doors = false;
+        self.can_float = can_float;
+        self
     }
 
     pub fn with_malus(mut self, kind: PathType, malus: f32) -> Self {

@@ -209,6 +209,17 @@ pub fn direction_within_radians(
     direction: (f64, f64),
     max_radians: f64,
 ) -> Option<BlockPos> {
+    direction_within_radians_offset(random, max_horizontal, vertical, 0, direction, max_radians)
+}
+
+pub fn direction_within_radians_offset(
+    random: &mut MobRandom,
+    max_horizontal: f64,
+    vertical: i32,
+    y_offset: i32,
+    direction: (f64, f64),
+    max_radians: f64,
+) -> Option<BlockPos> {
     let center = mth::atan2(direction.1, direction.0) - HALF_PI;
     let yaw = center + f64::from(2.0 * random.next_float() - 1.0) * max_radians;
     let distance =
@@ -218,7 +229,7 @@ pub fn direction_within_radians(
     if x.abs() > max_horizontal || z.abs() > max_horizontal {
         return None;
     }
-    let y = random.next_int(2 * vertical + 1) - vertical;
+    let y = random.next_int(2 * vertical + 1) - vertical + y_offset;
     Some(Vec3::new(x, f64::from(y), z).block())
 }
 
@@ -376,4 +387,146 @@ pub fn land_pos_scored<W: AiWorld>(
         },
         scorer,
     )
+}
+
+pub fn move_up_to_above_solid(
+    view: &impl BlockView,
+    pos: BlockPos,
+    above_solid: i32,
+    max_y: i32,
+) -> BlockPos {
+    if !is_solid(view, pos) {
+        return pos;
+    }
+    let mut cursor = pos.offset(0, 1, 0);
+    while cursor.y <= max_y && is_solid(view, cursor) {
+        cursor = cursor.offset(0, 1, 0);
+    }
+    let start = cursor.y;
+    loop {
+        if cursor.y > max_y || above_solid <= cursor.y - start {
+            return cursor;
+        }
+        cursor = cursor.offset(0, 1, 0);
+        if is_solid(view, cursor) {
+            return cursor.offset(0, -1, 0);
+        }
+    }
+}
+
+fn air_and_water_candidate<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+    flying_height: i32,
+    direction: (f64, f64),
+    max_radians: f64,
+    restricted: bool,
+) -> Option<BlockPos> {
+    let offset = direction_within_radians_offset(
+        &mut context.brain.random,
+        f64::from(horizontal),
+        vertical,
+        flying_height,
+        direction,
+        max_radians,
+    )?;
+    let pos = toward_direction(
+        context.mob,
+        &mut context.brain.random,
+        f64::from(horizontal),
+        offset,
+    );
+    if is_outside_limits(context.world, pos) || (restricted && !context.mob.is_within_home(pos)) {
+        return None;
+    }
+    let raised = move_up_out_of_solid(context.world, pos);
+    (!has_malus(context, raised)).then_some(raised)
+}
+
+pub fn air_and_water_pos<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+    flying_height: i32,
+    direction: (f64, f64),
+    max_radians: f64,
+) -> Option<Vec3> {
+    let restricted = context.mob.is_restricted(f64::from(horizontal));
+    generate(context, |context| {
+        air_and_water_candidate(
+            context,
+            horizontal,
+            vertical,
+            flying_height,
+            direction,
+            max_radians,
+            restricted,
+        )
+    })
+}
+
+pub fn air_pos_towards<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+    flying_height: i32,
+    towards: Vec3,
+    max_radians: f64,
+) -> Option<Vec3> {
+    let direction = towards - context.mob.position;
+    let restricted = context.mob.is_restricted(f64::from(horizontal));
+    generate(context, |context| {
+        let pos = air_and_water_candidate(
+            context,
+            horizontal,
+            vertical,
+            flying_height,
+            (direction.x, direction.z),
+            max_radians,
+            restricted,
+        )?;
+        (!is_water(context.world, pos)).then_some(pos)
+    })
+}
+
+pub fn hover_pos<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    horizontal: i32,
+    vertical: i32,
+    direction: (f64, f64),
+    max_radians: f64,
+    hover_max_height: i32,
+    hover_min_height: i32,
+) -> Option<Vec3> {
+    let restricted = context.mob.is_restricted(f64::from(horizontal));
+    generate(context, |context| {
+        let offset = direction_within_radians(
+            &mut context.brain.random,
+            f64::from(horizontal),
+            vertical,
+            direction,
+            max_radians,
+        )?;
+        let pos = toward_direction(
+            context.mob,
+            &mut context.brain.random,
+            f64::from(horizontal),
+            offset,
+        );
+        if is_outside_limits(context.world, pos)
+            || (restricted && !context.mob.is_within_home(pos))
+            || !is_stable_destination(context.world, pos)
+        {
+            return None;
+        }
+        let height = context
+            .brain
+            .random
+            .next_int(hover_max_height - hover_min_height + 1)
+            + hover_min_height;
+        let max_y = context.world.max_y();
+        let raised = move_up_to_above_solid(context.world, pos, height, max_y);
+        (!is_water(context.world, raised) && !has_malus(context, raised)).then_some(raised)
+    })
 }
