@@ -678,3 +678,65 @@ fn a_bee_with_nectar_makes_the_crops_it_flies_over_grow() {
             .all(|(kind, to)| kind == "minecraft:bee" && to == "minecraft:wheat")
     );
 }
+
+fn feed(s: &mut Scene, bee: EntityId) {
+    let alice = s.players[0].clone();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::Interact {
+            target: bee,
+            hand: Hand::Main,
+            sneaking: false,
+            location: Vec3::ZERO,
+        },
+    );
+    s.tick(1);
+}
+
+#[test]
+fn two_bees_fed_flowers_fall_in_love_and_have_a_baby() {
+    let mut s = ready(Garden::empty(), 3, 6_000);
+    let first = summon(&mut s, "8.5 65 8.5", "{}");
+    let second = summon(&mut s, "9.5 65 8.5", "{}");
+    console(&mut s, "give Alice minecraft:dandelion 2");
+    feed(&mut s, first);
+    feed(&mut s, second);
+    let love = |s: &Scene, bee: EntityId| {
+        s.server
+            .saved_entity(bee)
+            .and_then(|nbt| nbt.get_i32("InLove"))
+            .unwrap_or(0)
+    };
+    assert!(love(&s, first) > 500 && love(&s, second) > 500);
+    let mut baby = None;
+    for _ in 0..40 {
+        s.tick(10);
+        baby = bees(&s)
+            .into_iter()
+            .find(|bee| *bee != first && *bee != second);
+        if baby.is_some() {
+            break;
+        }
+    }
+    let baby = baby.expect("a baby bee");
+    let nbt = s.server.saved_entity(baby).expect("the baby");
+    assert!(nbt.get_i32("Age").is_some_and(|age| age < 0));
+}
+
+#[test]
+fn a_wither_rose_poisons_the_bee_that_is_fed_it_and_an_open_eyeblossom_too() {
+    let mut s = ready(Garden::empty(), 3, 6_000);
+    let bee = summon(&mut s, "8.5 65 8.5", "{NoAI:1b}");
+    console(&mut s, "give Alice minecraft:wither_rose 1");
+    feed(&mut s, bee);
+    let nbt = s.server.saved_entity(bee).expect("the bee");
+    let effects = nbt
+        .get_list("active_effects")
+        .map(<[Tag]>::to_vec)
+        .unwrap_or_default();
+    assert!(effects.iter().any(
+        |tag| tag.as_compound().and_then(|effect| effect.get_str("id")) == Some("minecraft:wither")
+    ));
+    assert_eq!(nbt.get_i32("InLove").unwrap_or(0), 0);
+}
