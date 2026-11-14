@@ -2,6 +2,7 @@ mod buffer;
 mod classify;
 mod dimension;
 mod end;
+mod end_spikes;
 mod flat;
 mod grid;
 mod nether;
@@ -17,6 +18,7 @@ use rspigot_core::ports::ChunkGenerator;
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{ChunkPos, Vec3};
+use rspigot_nbt::Compound;
 
 pub use flat::{FlatGenerator, FlatLayer, FlatSettings, FlatSettingsError};
 pub use noise::{NoiseGenerator, NoiseOptions};
@@ -75,6 +77,14 @@ impl ChunkGenerator for WorldGenerator {
         match self {
             Self::Noise(generator) => generator.spawns_original_mobs(dimension),
             Self::Flat(_) | Self::Void(_) => false,
+        }
+    }
+
+    fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
+        match self {
+            Self::Flat(generator) => generator.structure_entities(dimension, pos),
+            Self::Void(generator) => generator.structure_entities(dimension, pos),
+            Self::Noise(generator) => generator.structure_entities(dimension, pos),
         }
     }
 }

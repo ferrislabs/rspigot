@@ -4,6 +4,7 @@ use rspigot_data::registries;
 use rspigot_domain::chunk::{ChunkColumn, ChunkSection, PalettedContainer};
 use rspigot_domain::world::{Dimension, WorldHeight};
 use rspigot_domain::{BiomeId, BlockStateId, ChunkPos, Vec3};
+use rspigot_nbt::Compound;
 use serde::Deserialize;
 
 use crate::buffer::{LAYER, SECTION, block_container};
@@ -185,6 +186,10 @@ impl ChunkGenerator for FlatGenerator {
                 self.other_dimensions.spawn_point(dimension)
             }
         }
+    }
+
+    fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
+        self.other_dimensions.structure_entities(dimension, pos)
     }
 }
 
