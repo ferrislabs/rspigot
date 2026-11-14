@@ -483,6 +483,9 @@ impl<L: ClientLink> Server<L> {
         );
         self.remove_entity(id, RemovalReason::ChangedDimension, None)?;
         let target = destination.dimension;
+        if destination.platform {
+            self.in_dimension(&target, |server| server.make_end_platform());
+        }
         self.in_dimension(&target, |server| server.arrive_entity(&nbt))
     }
 

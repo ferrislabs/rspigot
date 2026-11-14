@@ -119,6 +119,10 @@ pub struct Server<L> {
     pub(crate) impacts: Impacts,
     pub(crate) dormant: FxHashMap<crate::world_state::DimensionKey, crate::world_state::WorldState>,
     pub(crate) dimension_provider: Option<crate::travel::DimensionProvider<L>>,
+    pub(crate) portal_queue: Vec<(
+        crate::world_state::DimensionKey,
+        crate::end_portal::Traveler,
+    )>,
     arrivals: FxHashMap<u64, Arrival<L>>,
     startup: Option<Receiver<Inbound<L>>>,
     arrival_counter: u64,
@@ -187,6 +191,7 @@ impl<L: ClientLink> Server<L> {
             impacts: Impacts::default(),
             dormant: FxHashMap::default(),
             dimension_provider: None,
+            portal_queue: Vec::new(),
             arrivals: FxHashMap::default(),
             startup: None,
             arrival_counter: 0,
@@ -689,6 +694,7 @@ impl<L: ClientLink> Server<L> {
             effects: Default::default(),
             vitals: Default::default(),
             known_movement: Vec3::ZERO,
+            portal_cooldown: 0,
             moved_this_tick: false,
             using_item: None,
             open_menu: None,
@@ -891,6 +897,7 @@ impl<L: ClientLink> Server<L> {
         for key in keys {
             self.tick_dormant(&key);
         }
+        self.run_portal_queue();
     }
 
     fn tick_dormant(&mut self, key: &crate::world_state::DimensionKey) {
@@ -958,6 +965,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_raids();
         self.tick_dragon_fight();
         self.tick_entities();
+        self.tick_portals();
         self.tick_ride_players();
         self.tick_golem_chests();
         self.collect_items();

@@ -49,6 +49,7 @@ pub struct Player<L> {
     pub effects: ActiveEffects,
     pub vitals: Vitals,
     pub known_movement: Vec3,
+    pub portal_cooldown: i32,
     pub moved_this_tick: bool,
     pub using_item: Option<UsingItem>,
     pub(crate) open_menu: Option<OpenMenu>,
