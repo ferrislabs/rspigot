@@ -6,6 +6,8 @@ use rspigot_entities::EntityKind as Kind;
 use rspigot_items::{EquipmentSlot, ItemKind};
 
 use crate::events::Hand;
+use crate::plugins::EventPayload;
+use crate::plugins::events::VehicleMove;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -144,6 +146,7 @@ impl<L: ClientLink> Server<L> {
         {
             return;
         }
+        let from = (base.position, Rotation::new(base.yaw, base.pitch));
         base.old_position = base.position;
         base.velocity = position - base.position;
         base.position = position;
@@ -153,5 +156,21 @@ impl<L: ClientLink> Server<L> {
         base.needs_sync = true;
         self.entities.store.reindex(vehicle);
         self.position_riders(vehicle);
+        self.vehicle_moved(vehicle, from, (position, rotation));
+    }
+
+    fn vehicle_moved(&mut self, vehicle: EntityId, from: (Vec3, Rotation), to: (Vec3, Rotation)) {
+        if from == to {
+            return;
+        }
+        let Some(view) = self.subject_view(vehicle) else {
+            return;
+        };
+        let payload = EventPayload::VehicleMove(VehicleMove {
+            from: self.location_of(from.0, from.1),
+            to: self.location_of(to.0, to.1),
+            vehicle: view,
+        });
+        self.notify_now(payload);
     }
 }
