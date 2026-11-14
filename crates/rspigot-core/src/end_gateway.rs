@@ -182,7 +182,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn load_chunks_now(&mut self, chunks: &[ChunkPos]) {
+    pub(crate) fn load_chunks_now(&mut self, chunks: &[ChunkPos]) {
         for pos in chunks {
             self.world
                 .chunks

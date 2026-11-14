@@ -6,6 +6,7 @@ use rspigot_blocks::{
     BlockKind, Face, Gravity, SCAFFOLDING_MAX_DISTANCE, StateFlags, scaffolding_settle,
     speleothem_thickness,
 };
+use rspigot_domain::bed;
 use rspigot_domain::composter;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::falling::{self, FallingState};
@@ -138,7 +139,7 @@ fn step(pos: BlockPos, face: Face) -> BlockPos {
 }
 
 impl<L: ClientLink> Server<L> {
-    fn block_or_air(&self, pos: BlockPos) -> BlockStateId {
+    pub(crate) fn block_or_air(&self, pos: BlockPos) -> BlockStateId {
         self.world.chunks.block(pos).unwrap_or(BlockStateId::AIR)
     }
 
@@ -239,6 +240,10 @@ impl<L: ClientLink> Server<L> {
         };
         if kind == BlockKind::Frogspawn {
             self.frogspawn_neighbour_changed(pos);
+            return;
+        }
+        if bed::is_bed(kind) {
+            self.bed_neighbour_changed(pos, state, direction);
             return;
         }
         match kind.gravity() {

@@ -207,6 +207,9 @@ ItemMerge = "two item entities of the same stack type within 0.5 blocks horizont
 ExpBottle = "a thrown experience bottle hitting a block or an entity, asked with the experience 3 plus two rolls of 0 to 4 and the show-effect flag set; a patch changes either, an amount of 0 or less drops nothing, a cancel is ignored as in Spigot; the bottle is always removed, the effect plays the splash event with the water colour and the orbs appear at the bottle"
 LingeringPotionSplash = "a thrown lingering potion with effects hitting a block or an entity, asked with the area effect cloud it would leave (radius 3, 600 ticks, 10 wait, shrinking), before the cloud is added; a cancel adds no cloud; the splash event and the removal of the potion happen either way; a potion without effects leaves no cloud and asks nothing"
 PlayerEggThrow = "a thrown egg owned by a player hitting something, asked with the chicken hatch decided by an eight in one roll and four babies on a thirty-two in one roll; a patch sets hatching, the entity type to hatch and the count; each baby is a chicken with the spawn reason EGG; an egg of another owner hatches by the default roll without an event"
+PlayerBedEnter = "a right click on a bed half, asked after the checks of the rule (dimension and time), the distance (3 blocks horizontally, 2 vertically), the room above and the hostile mobs within 8 by 5 blocks, with the result of those checks as the bed enter result (OK, NOT_POSSIBLE_NOW, NOT_POSSIBLE_HERE, TOO_FAR_AWAY, NOT_SAFE or OTHER_PROBLEM); it is not fired for a player who is dead or already asleep; the bed is the head half whichever half was clicked; ALLOW lets the player sleep whatever the checks said, DENY or a cancel keeps the player out with no message, DEFAULT keeps the checks (their message is shown over the hotbar, and a bed of the Nether or the End explodes); sleeping teleports the player onto the bed (cause UNKNOWN) and fires PlayerSpawnChange before this event"
+PlayerBedLeave = "a sleeping player leaving the bed: the leave bed packet, the morning, a hurt, the bed being broken, the rule no longer allowing sleep or the night skip, asked before the player gets up; the bed is the head half the player slept in and set_spawn_location is always true and never read back, since Spigot sets the spawn when the player enters the bed; a cancel keeps the player in bed; allowed, the bed frees, the player stands beside it facing it (cause EXIT_BED); a quit does not fire it"
+PlayerSpawnChange = "a bed set as the spawn (cause BED, on the first click of a valid bed whether the player sleeps or not, with the message shown when the position changes) and a missing bed at respawn (cause RESET with no new spawn); the new spawn is the block position of the bed with the yaw and the pitch of the player, and forced is false; a patched new spawn or forced replaces them and a cancel keeps the old spawn; the respawn anchor, /spawnpoint and plugin spawn points do not exist yet, so the causes RESPAWN_ANCHOR, COMMAND, PLUGIN and UNKNOWN are never used"
 
 [states]
 ready = []
@@ -253,8 +256,6 @@ NotePlay = "redstone (#55)"
 PlayerAdvancementCriterionGrant = "advancements, statistics and the recipe book (#24)"
 PlayerAdvancementDone = "advancements, statistics and the recipe book (#24)"
 PlayerArmorStandManipulate = "item frames, paintings and armor stands"
-PlayerBedEnter = "sleeping"
-PlayerBedLeave = "sleeping"
 PlayerBucketFill = "fluids (#54)"
 PlayerFish = "fishing"
 PlayerItemMend = "enchanting (#47)"
@@ -262,7 +263,6 @@ PlayerLinksSend = "server links, which the server does not have (no configuratio
 PlayerRecipeBookClick = "recipe placement from the recipe book (the PlaceRecipe packet and recipe display ids), which needs recipe matching and a server side recipe book (#24)"
 PlayerRecipeDiscover = "recipe discovery (awarding recipes, recipe unlock triggers and the recipe book packets to the client) (#24)"
 PlayerRiptide = "tridents"
-PlayerSpawnChange = "per-player spawn points"
 PlayerStatisticIncrement = "advancements, statistics and the recipe book (#24)"
 PrepareAnvil = "anvil logic: no result is computed (repair, merge, rename, cost), which needs the enchantment definitions (max level, anvil cost, exclusive sets), repair materials and the RenameItem packet"
 PrepareGrindstone = "grindstone logic: no result is computed (merge durability, strip enchantments), which needs the enchantment definitions (minimum cost for the experience) and the curse tag handling on take"

@@ -65,6 +65,10 @@ pub struct Player<L> {
     pub(crate) mining: Option<crate::plugins::Mining>,
     pub(crate) delayed_destroy: Option<crate::plugins::Mining>,
     pub(crate) use_memo: Option<crate::plugins::UseMemo>,
+    pub sleeping: Option<rspigot_domain::BlockPos>,
+    pub sleep_counter: i32,
+    pub(crate) waking: bool,
+    pub respawn: Option<rspigot_domain::bed::RespawnConfig>,
 }
 
 impl<L> Player<L> {
@@ -125,10 +129,22 @@ impl<L> Player<L> {
     }
 
     pub fn eye_height(&self) -> f64 {
-        if self.sneaking { 1.27 } else { 1.62 }
+        if self.sleeping.is_some() {
+            rspigot_domain::bed::SLEEPING_SIZE
+        } else if self.sneaking {
+            1.27
+        } else {
+            1.62
+        }
     }
 
     pub fn height(&self) -> f64 {
-        if self.sneaking { 1.5 } else { 1.8 }
+        if self.sleeping.is_some() {
+            rspigot_domain::bed::SLEEPING_SIZE
+        } else if self.sneaking {
+            1.5
+        } else {
+            1.8
+        }
     }
 }

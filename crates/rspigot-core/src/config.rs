@@ -28,6 +28,7 @@ pub struct GameRules {
     pub spawn_phantoms: bool,
     pub spawn_wandering_traders: bool,
     pub raids: bool,
+    pub players_sleeping_percentage: i32,
 }
 
 impl Default for GameRules {
@@ -49,6 +50,7 @@ impl Default for GameRules {
             spawn_phantoms: true,
             spawn_wandering_traders: true,
             raids: true,
+            players_sleeping_percentage: 100,
         }
     }
 }

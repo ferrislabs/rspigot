@@ -1,4 +1,5 @@
 use rand::Rng;
+use rspigot_domain::Identifier;
 use rspigot_domain::attribute::{
     ARMOR, ARMOR_TOUGHNESS, Attributes, MAX_ABSORPTION, MAX_HEALTH, MOVEMENT_SPEED,
     equipment_modifiers, is_syncable,
@@ -24,11 +25,12 @@ use crate::plugins::events::{
     PlayerDeathPatch, PlayerLevelChange, PlayerRespawn, PlayerRespawnPatch, PlayerRespawnReason,
 };
 use crate::plugins::{
-    AfterHurt, Continuation, DeathStep, EventKind, EventPayload, Holder, Phase, RespawnStep,
-    Struck, spec_of, stack_of,
+    AfterHurt, Continuation, DeathStep, EventKind, EventPayload, Holder, Location, Phase,
+    RespawnStep, Struck, spec_of, stack_of,
 };
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use crate::travel::Destination;
 
 pub const HEAD_SLOT: usize = 5;
 pub const CHEST_SLOT: usize = 6;
@@ -465,6 +467,16 @@ impl<L: ClientLink> Server<L> {
         let fall_damage = self.config.rules.fall_damage;
         let now = self.current_tick();
         let kind = source.kind;
+        let wakes = self.players.get(&id).is_some_and(|player| {
+            player.sleeping.is_some()
+                && !(invulnerable_to(player, kind, fall_damage)
+                    || (player.abilities().invulnerable
+                        && !kind.is(DamageTag::BypassesInvulnerability))
+                    || player.vitals.is_dead())
+        });
+        if wakes {
+            self.stop_sleep_in_bed(id, true, true);
+        }
         let Some(player) = self.players.get_mut(&id) else {
             return false;
         };
@@ -601,6 +613,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn die(&mut self, id: PlayerId, source: &DamageSource) {
+        self.stop_sleep_in_bed(id, true, true);
         let keep_rule = self.config.rules.keep_inventory;
         let Some(player) = self.players.get_mut(&id) else {
             return;
@@ -778,19 +791,23 @@ impl<L: ClientLink> Server<L> {
         {
             return;
         }
-        let location = self.location_of(
-            self.world.spawn,
-            Rotation::new(self.world.level.spawn_angle, 0.0),
-        );
+        let spot = self.respawn_spot(id);
+        let location = Location {
+            world: spot.dimension.to_string(),
+            position: spot.position,
+            rotation: spot.rotation,
+        };
+        let bed_spawn = spot.bed;
         let step = RespawnStep {
             player: id,
             credits: false,
+            spot: Some(spot),
         };
         self.fire(id, Continuation::Respawn(step), move |server| {
             server.snapshot_of(id).map(|player| {
                 EventPayload::PlayerRespawn(PlayerRespawn {
                     anchor_spawn: false,
-                    bed_spawn: false,
+                    bed_spawn,
                     player,
                     respawn_location: location,
                     respawn_reason: reason,
@@ -810,11 +827,19 @@ impl<L: ClientLink> Server<L> {
         let spawn = self.world.spawn;
         let angle = self.world.level.spawn_angle;
         let dimension = self.world.dimension.key.clone();
-        let (position, rotation) = patch
-            .respawn_location
-            .map_or((spawn, Rotation::new(angle, 0.0)), |location| {
-                (location.position, location.rotation)
-            });
+        let missing = step.spot.as_ref().is_some_and(|spot| spot.missing);
+        let planned = step.spot.map_or_else(
+            || (spawn, Rotation::new(angle, 0.0), dimension.clone()),
+            |spot| (spot.position, spot.rotation, spot.dimension),
+        );
+        let (position, rotation, target) = match patch.respawn_location {
+            Some(location) => {
+                let world = Identifier::parse(&location.world).unwrap_or(planned.2);
+                (location.position, location.rotation, world)
+            }
+            None => planned,
+        };
+        let elsewhere = target != dimension;
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
@@ -883,11 +908,16 @@ impl<L: ClientLink> Server<L> {
                 pos,
             )
         });
+        if missing {
+            player
+                .link
+                .send(ClientEvent::GameEvent(GameEvent::NoRespawnBlockAvailable));
+        }
         player.link.send(ClientEvent::Respawn {
             spawn: spawn_info,
             keep_data: 0,
         });
-        self.teleport_now(id, position);
+        self.teleport_now(id, if elsewhere { spawn } else { position });
         let time = self.time_event();
         let difficulty = self.world.difficulty;
         let raining = self.world.level.raining;
@@ -938,6 +968,25 @@ impl<L: ClientLink> Server<L> {
         self.clear_at_respawn(id, cleared);
         if hardcore {
             self.change_game_mode(id, GameMode::Spectator, Vec::new());
+        }
+        if missing {
+            self.set_respawn_position(
+                id,
+                None,
+                false,
+                crate::plugins::events::PlayerSpawnChangeCause::Reset,
+            );
+        }
+        if elsewhere {
+            self.change_dimension_now(
+                id,
+                Destination {
+                    dimension: target,
+                    position,
+                    rotation: Some(rotation),
+                    platform: false,
+                },
+            );
         }
     }
 

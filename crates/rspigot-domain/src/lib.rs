@@ -1,4 +1,5 @@
 pub mod attribute;
+pub mod bed;
 pub mod beehive;
 pub mod biome;
 pub mod boss_event;

@@ -55,6 +55,8 @@ pub struct PlayerSave {
     pub seen_credits: bool,
     pub recipe_book: crate::recipe_book::RecipeBookSettings,
     pub warden_tracker: rspigot_domain::warden::WardenSpawnTracker,
+    pub respawn: Option<rspigot_domain::bed::RespawnConfig>,
+    pub sleep_timer: i16,
 }
 
 impl PlayerSave {
@@ -80,6 +82,8 @@ impl PlayerSave {
             seen_credits: player.seen_credits,
             recipe_book: player.recipe_book,
             warden_tracker: vitals.warden_tracker,
+            respawn: player.respawn.clone(),
+            sleep_timer: player.sleep_counter.clamp(0, i32::from(i16::MAX)) as i16,
         }
     }
 
@@ -99,6 +103,8 @@ impl PlayerSave {
         player.ender_items.resize(ENDER_SLOTS, None);
         player.vitals.experience = self.experience;
         player.vitals.warden_tracker = self.warden_tracker;
+        player.respawn = self.respawn.clone();
+        player.sleep_counter = i32::from(self.sleep_timer);
         if self.is_dead() {
             player.position = spawn;
             player.rotation = Rotation::new(spawn_angle, 0.0);
@@ -147,6 +153,10 @@ impl PlayerSave {
             rspigot_domain::warden::TRACKER_KEY,
             self.warden_tracker.to_nbt(),
         );
+        if let Some(respawn) = &self.respawn {
+            out.insert("respawn", respawn.to_nbt());
+        }
+        out.insert("SleepTimer", self.sleep_timer);
         out.insert("foodLevel", self.food.food);
         out.insert("foodSaturationLevel", self.food.saturation);
         out.insert("foodExhaustionLevel", self.food.exhaustion);
@@ -276,6 +286,13 @@ impl PlayerSave {
             warden_tracker: rspigot_domain::warden::WardenSpawnTracker::read_or_default(
                 data.get_compound(rspigot_domain::warden::TRACKER_KEY),
             ),
+            respawn: data
+                .get_compound("respawn")
+                .and_then(rspigot_domain::bed::RespawnConfig::from_nbt),
+            sleep_timer: data
+                .get_i32("SleepTimer")
+                .unwrap_or(0)
+                .clamp(0, i32::from(i16::MAX)) as i16,
         })
     }
 }
@@ -372,6 +389,14 @@ mod tests {
                 ender[26] = Some(stack("minecraft:emerald", 1));
                 ender
             },
+            respawn: Some(rspigot_domain::bed::RespawnConfig {
+                dimension: Identifier::minecraft("overworld"),
+                pos: rspigot_domain::BlockPos::new(12, 70, -4),
+                yaw: 45.0,
+                pitch: 0.0,
+                forced: false,
+            }),
+            sleep_timer: 7,
             seen_credits: true,
             recipe_book: {
                 let mut book = crate::recipe_book::RecipeBookSettings::default();
@@ -387,6 +412,24 @@ mod tests {
         let save = sample();
         let decoded = PlayerSave::from_nbt(&save.to_nbt()).expect("decodes");
         assert_eq!(decoded, save);
+    }
+
+    #[test]
+    fn the_respawn_point_is_saved_under_respawn_like_vanilla() {
+        let nbt = sample().to_nbt();
+        let respawn = nbt.get_compound("respawn").expect("respawn");
+        assert_eq!(respawn.get_str("dimension"), Some("minecraft:overworld"));
+        assert_eq!(respawn.get_int_array("pos"), Some(&[12, 70, -4][..]));
+        assert_eq!(respawn.get_bool("forced"), Some(false));
+        assert_eq!(nbt.get_i32("SleepTimer"), Some(7));
+        let mut bare = nbt.clone();
+        bare.remove("respawn");
+        assert!(
+            PlayerSave::from_nbt(&bare)
+                .expect("decodes")
+                .respawn
+                .is_none()
+        );
     }
 
     #[test]
