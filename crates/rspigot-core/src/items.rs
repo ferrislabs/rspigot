@@ -187,6 +187,8 @@ impl<L: ClientLink> Server<L> {
         }
         if let Some(cause) = discard {
             self.remove_entity(id, RemovalReason::Discarded, Some(cause));
+        } else if self.merge_due(id) {
+            self.merge_with_neighbours(id);
         }
     }
 

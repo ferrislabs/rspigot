@@ -724,6 +724,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_shear(*step);
                 Vec::new()
             }
+            Continuation::Merge(step) => {
+                self.finish_item_merge(step, cancelled);
+                Vec::new()
+            }
             Continuation::Harvest(step) => {
                 self.finish_harvest(*step, cancelled, patch_of!(patch, PlayerHarvestBlock));
                 Vec::new()

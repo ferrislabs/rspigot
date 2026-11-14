@@ -302,6 +302,12 @@ pub(crate) struct ShearStep {
     pub(crate) parked: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct MergeStep {
+    pub(crate) from: EntityId,
+    pub(crate) to: EntityId,
+}
+
 #[derive(Debug)]
 pub(crate) struct HarvestStep {
     pub(crate) pos: BlockPos,
@@ -1352,6 +1358,7 @@ pub(crate) enum Continuation {
     Shear(Box<ShearStep>),
     Resurrect(Box<ResurrectStep>),
     Harvest(Box<HarvestStep>),
+    Merge(MergeStep),
     Leash(Box<LeashStep>),
     Unleash(Box<LeashStep>),
     BucketEntity(Box<BucketEntityStep>),
@@ -1537,6 +1544,7 @@ impl Continuation {
             Self::Shear(_) => EventKind::PlayerShearEntity,
             Self::Resurrect(_) => EventKind::EntityResurrect,
             Self::Harvest(_) => EventKind::PlayerHarvestBlock,
+            Self::Merge(_) => EventKind::ItemMerge,
             Self::Leash(_) => EventKind::PlayerLeashEntity,
             Self::Unleash(_) => EventKind::PlayerUnleashEntity,
             Self::BucketEntity(_) => EventKind::PlayerBucketEntity,
@@ -1689,6 +1697,7 @@ impl Continuation {
             Self::Replenish(step) => step.merchant == id,
             Self::Transform(step) | Self::Zap(step) => step.old == id,
             Self::Empower(step) => step.creeper == id,
+            Self::Merge(step) => step.from == id || step.to == id,
             Self::Split(step) => step.id == id,
             Self::Scatter(step) => step.id == id,
             Self::ChangeBlock(step) => match &step.change {

@@ -53,6 +53,7 @@ mod hurting;
 mod infestation;
 mod input;
 mod interact;
+mod item_merge;
 mod items;
 mod kinds;
 mod leash;
