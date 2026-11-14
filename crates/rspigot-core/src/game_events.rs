@@ -72,6 +72,7 @@ pub(crate) enum Listener {
     Sensor { pos: BlockPos, calibrated: bool },
     Shrieker(BlockPos),
     Warden(EntityId),
+    Allay(EntityId),
 }
 
 pub(crate) fn listener_kind(kind: BlockKind) -> Option<&'static str> {
@@ -131,16 +132,25 @@ impl<L: ClientLink> Server<L> {
                     let Some(entity) = self.entities.store.get(*id) else {
                         continue;
                     };
-                    if entity.base.kind != EntityKind::Warden {
+                    let kind = entity.base.kind;
+                    if !matches!(kind, EntityKind::Warden | EntityKind::Allay) {
                         continue;
                     }
-                    let section = self.warden_listener_section(*id);
+                    let section = if kind == EntityKind::Warden {
+                        self.warden_listener_section(*id)
+                    } else {
+                        self.allay_listener_section(*id)
+                    };
                     if section.is_some_and(|s| {
                         (x0..=x1).contains(&s.x)
                             && (y0..=y1).contains(&s.y)
                             && (z0..=z1).contains(&s.z)
                     }) {
-                        found.push(Listener::Warden(*id));
+                        found.push(if kind == EntityKind::Warden {
+                            Listener::Warden(*id)
+                        } else {
+                            Listener::Allay(*id)
+                        });
                     }
                 }
             }
@@ -170,6 +180,7 @@ impl<L: ClientLink> Server<L> {
             }
             Listener::Shrieker(_) => SHRIEKER_RADIUS,
             Listener::Warden(_) => WARDEN_RADIUS,
+            Listener::Allay(_) => rspigot_domain::entity::species::allay::LISTENER_RADIUS,
         }
     }
 
@@ -178,13 +189,14 @@ impl<L: ClientLink> Server<L> {
             Listener::Sensor { .. } => GameEventTag::Vibrations,
             Listener::Shrieker(_) => GameEventTag::ShriekerCanListen,
             Listener::Warden(_) => GameEventTag::WardenCanListen,
+            Listener::Allay(_) => GameEventTag::AllayCanListen,
         }
     }
 
     pub(crate) fn listener_position(&self, listener: Listener) -> Option<Vec3> {
         match listener {
             Listener::Sensor { pos, .. } | Listener::Shrieker(pos) => Some(center(pos)),
-            Listener::Warden(id) => {
+            Listener::Warden(id) | Listener::Allay(id) => {
                 let base = &self.entities.store.get(id)?.base;
                 Some(Vec3::new(
                     base.position.x,
@@ -213,6 +225,12 @@ impl<L: ClientLink> Server<L> {
                 .get(&id)
                 .map(|entry| entry.ai.warden_state().vibration.clone())
                 .unwrap_or_default(),
+            Listener::Allay(id) => VibrationData::read_or_default(
+                self.entities
+                    .store
+                    .get(id)
+                    .and_then(|entity| entity.extra.get_compound(LISTENER)),
+            ),
         }
     }
 
@@ -232,6 +250,11 @@ impl<L: ClientLink> Server<L> {
             Listener::Warden(id) => {
                 if let Some(entry) = self.entities.mobs.entries.get_mut(&id) {
                     entry.ai.warden_state_mut().vibration = data;
+                }
+            }
+            Listener::Allay(id) => {
+                if let Some(entity) = self.entities.store.get_mut(id) {
+                    entity.extra.insert(LISTENER, data.to_nbt());
                 }
             }
         }
@@ -366,6 +389,7 @@ impl<L: ClientLink> Server<L> {
                     .is_some_and(|state| state.property("shrieking") == Some("true"));
                 !shrieking && self.shrieker_player(context.entity).is_some()
             }
+            Listener::Allay(id) => self.allay_can_receive_vibration(id, pos),
             Listener::Warden(id) => {
                 let Some(view) = self.mob_view(id) else {
                     return false;
@@ -428,6 +452,20 @@ impl<L: ClientLink> Server<L> {
                 })
                 .map(Listener::Warden),
         );
+        listeners.extend(
+            self.entities
+                .mobs
+                .entries
+                .keys()
+                .copied()
+                .filter(|id| {
+                    self.entities
+                        .store
+                        .get(*id)
+                        .is_some_and(|e| e.base.kind == EntityKind::Allay)
+                })
+                .map(Listener::Allay),
+        );
         for listener in listeners {
             self.tick_vibrations(listener);
         }
@@ -450,7 +488,8 @@ impl<L: ClientLink> Server<L> {
             data.decrement_travel_time();
             if data.travel_time_in_ticks < 1 {
                 let listener_at = self.listener_position(listener).unwrap_or(current.pos);
-                let needs_neighbours = !matches!(listener, Listener::Warden(_));
+                let needs_neighbours =
+                    !matches!(listener, Listener::Warden(_) | Listener::Allay(_));
                 if !needs_neighbours || self.adjacent_chunks_loaded(listener_at.block()) {
                     data.current = None;
                     self.store_listener_data(listener, data.clone());
@@ -499,6 +538,11 @@ impl<L: ClientLink> Server<L> {
                 self.shrieker_try_shriek(own, player);
             }
             Listener::Warden(id) => self.warden_receive(id, pos, source, owner),
+            Listener::Allay(id) => {
+                if info.event == GameEvent::NoteBlockPlay {
+                    self.allay_hear(id, pos);
+                }
+            }
         }
     }
 

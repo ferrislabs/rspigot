@@ -36,6 +36,7 @@ pub(crate) struct EntityWorld {
     pub store: Entities,
     pub tracked: FxHashMap<EntityId, TrackedEntity>,
     pub mobs: crate::mobs::MobTable,
+    pub boss_bars: FxHashMap<EntityId, rspigot_domain::boss_event::ServerBossEvent>,
     pub poses: FxHashMap<EntityId, rspigot_domain::entity::Pose>,
     pending_saves: FxHashMap<ChunkPos, (u64, Arc<Vec<Compound>>)>,
     stored_empty: FxHashSet<ChunkPos>,
@@ -238,6 +239,7 @@ impl<L: ClientLink> Server<L> {
         let mut entity = self.entities.store.remove(id)?;
         entity.base.removal = Some(reason);
         self.entities.tracked.remove(&id);
+        self.remove_boss_bar(id);
         self.entities.mobs.entries.remove(&id);
         self.entities.mobs.initial_targets.remove(&id);
         for player in self.players.values_mut() {
@@ -321,6 +323,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn send_entity_changes(&mut self) {
+        self.sync_boss_bars();
         let ids: Vec<EntityId> = self.entities.tracked.keys().copied().collect();
         for id in ids {
             let Some(position) = self.entities.store.get(id).map(|e| e.base.position) else {

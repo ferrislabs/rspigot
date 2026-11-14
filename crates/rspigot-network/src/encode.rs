@@ -11,6 +11,9 @@ use rspigot_core::events::{
     StateKind, VariantKind,
 };
 use rspigot_data::variants::VariantFamily;
+use rspigot_domain::boss_event::{
+    BossColor as DomainBossColor, BossOverlay as DomainBossOverlay, BossUpdate,
+};
 use rspigot_domain::chunk::{
     ChunkColumn, HeightmapKind as DomainHeightmap, LightArray as DomainLight,
 };
@@ -25,6 +28,9 @@ use rspigot_domain::world::Difficulty as DomainDifficulty;
 use rspigot_domain::{BlockPos, ChunkPos, Rotation, Vec3};
 use rspigot_protocol::codec::{Angle, Position};
 use rspigot_protocol::frame::{Compression, build_frame};
+use rspigot_protocol::play::boss::{
+    BossColor as WireBossColor, BossOperation, BossOverlay as WireBossOverlay,
+};
 use rspigot_protocol::play::chat::ChatTypeBound;
 use rspigot_protocol::play::chunk::{
     BlockEntityInfo, ChunkSection as WireSection, Heightmap as WireHeightmap,
@@ -102,6 +108,54 @@ fn wire_vec(v: Vec3) -> WireVec3 {
 
 fn text(component: &rspigot_domain::text::Component) -> Text {
     Text(to_nbt(component))
+}
+
+fn boss_color(color: DomainBossColor) -> WireBossColor {
+    match color {
+        DomainBossColor::Pink => WireBossColor::Pink,
+        DomainBossColor::Blue => WireBossColor::Blue,
+        DomainBossColor::Red => WireBossColor::Red,
+        DomainBossColor::Green => WireBossColor::Green,
+        DomainBossColor::Yellow => WireBossColor::Yellow,
+        DomainBossColor::Purple => WireBossColor::Purple,
+        DomainBossColor::White => WireBossColor::White,
+    }
+}
+
+fn boss_overlay(overlay: DomainBossOverlay) -> WireBossOverlay {
+    match overlay {
+        DomainBossOverlay::Progress => WireBossOverlay::Progress,
+        DomainBossOverlay::Notched6 => WireBossOverlay::Notched6,
+        DomainBossOverlay::Notched10 => WireBossOverlay::Notched10,
+        DomainBossOverlay::Notched12 => WireBossOverlay::Notched12,
+        DomainBossOverlay::Notched20 => WireBossOverlay::Notched20,
+    }
+}
+
+fn boss_operation(update: &BossUpdate) -> BossOperation {
+    match update {
+        BossUpdate::Add {
+            name,
+            progress,
+            color,
+            overlay,
+            flags,
+        } => BossOperation::Add {
+            name: text(name),
+            progress: *progress,
+            color: boss_color(*color),
+            overlay: boss_overlay(*overlay),
+            flags: flags.bits(),
+        },
+        BossUpdate::Remove => BossOperation::Remove,
+        BossUpdate::Progress(progress) => BossOperation::UpdateProgress(*progress),
+        BossUpdate::Name(name) => BossOperation::UpdateName(text(name)),
+        BossUpdate::Style { color, overlay } => BossOperation::UpdateStyle {
+            color: boss_color(*color),
+            overlay: boss_overlay(*overlay),
+        },
+        BossUpdate::Properties(flags) => BossOperation::UpdateProperties(flags.bits()),
+    }
 }
 
 fn game_mode(mode: DomainGameMode) -> WireGameMode {
@@ -1129,6 +1183,13 @@ impl Encoder {
                     overlay: *overlay,
                 },
             ),
+            ClientEvent::BossEvent { id, update } => Self::queue(
+                writer,
+                &cb::BossEvent {
+                    id: *id,
+                    operation: boss_operation(update),
+                },
+            ),
             ClientEvent::TitleText(message) => Self::queue(
                 writer,
                 &cb::SetTitleText {
@@ -1707,6 +1768,15 @@ impl Encoder {
                     pos: position(*pos),
                     data: *data,
                     global: false,
+                },
+            ),
+            ClientEvent::GlobalLevelEvent { event, pos, data } => Self::queue(
+                writer,
+                &cb::LevelEvent {
+                    kind: *event,
+                    pos: position(*pos),
+                    data: *data,
+                    global: true,
                 },
             ),
             ClientEvent::Particle(particle) => {
@@ -2746,6 +2816,51 @@ mod tests {
         expected.extend_from_slice(&packed.to_be_bytes());
         expected.extend_from_slice(&9i32.to_be_bytes());
         expected.push(0);
+        assert_eq!(encode(event), vec![(id::LEVEL_EVENT, expected)]);
+    }
+
+    #[test]
+    fn boss_event_golden_bytes() {
+        let uuid = uuid::Uuid::from_u128(9);
+        let progress = ClientEvent::BossEvent {
+            id: uuid,
+            update: BossUpdate::Progress(0.5),
+        };
+        let mut expected = uuid.as_bytes().to_vec();
+        expected.push(2);
+        expected.extend_from_slice(&0.5f32.to_be_bytes());
+        assert_eq!(encode(progress), vec![(id::BOSS_EVENT, expected)]);
+        let remove = ClientEvent::BossEvent {
+            id: uuid,
+            update: BossUpdate::Remove,
+        };
+        let mut expected = uuid.as_bytes().to_vec();
+        expected.push(1);
+        assert_eq!(encode(remove), vec![(id::BOSS_EVENT, expected)]);
+        let style = ClientEvent::BossEvent {
+            id: uuid,
+            update: BossUpdate::Style {
+                color: DomainBossColor::Purple,
+                overlay: DomainBossOverlay::Notched12,
+            },
+        };
+        let mut expected = uuid.as_bytes().to_vec();
+        expected.extend_from_slice(&[4, 5, 3]);
+        assert_eq!(encode(style), vec![(id::BOSS_EVENT, expected)]);
+    }
+
+    #[test]
+    fn global_level_event_golden_bytes() {
+        let event = ClientEvent::GlobalLevelEvent {
+            event: 1023,
+            pos: BlockPos::new(1, 64, -1),
+            data: 0,
+        };
+        let packed: i64 = (1i64 << 38) | (0x3FF_FFFF << 12) | 64;
+        let mut expected = 1023i32.to_be_bytes().to_vec();
+        expected.extend_from_slice(&packed.to_be_bytes());
+        expected.extend_from_slice(&0i32.to_be_bytes());
+        expected.push(1);
         assert_eq!(encode(event), vec![(id::LEVEL_EVENT, expected)]);
     }
 

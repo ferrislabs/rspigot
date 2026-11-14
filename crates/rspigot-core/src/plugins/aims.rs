@@ -225,6 +225,11 @@ impl<L: ClientLink> Server<L> {
                     self.settle_orb(mob, from, target);
                 }
             }
+            Seeker::WitherHead(head) => {
+                if !cancelled {
+                    self.set_wither_head_target(mob, head, target);
+                }
+            }
         }
     }
 }

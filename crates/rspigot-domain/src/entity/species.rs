@@ -11,6 +11,7 @@ use crate::effect::{AttributeModifier, AttributeOperation};
 use crate::random::RandomSource;
 use crate::{BiomeId, biome};
 
+pub mod allay;
 pub mod armadillo;
 pub mod bat;
 pub mod blaze;
@@ -43,6 +44,7 @@ pub mod villager;
 pub mod wandering_trader;
 pub mod warden;
 pub mod witch;
+pub mod wither;
 pub mod wolf;
 pub mod zombie_villager;
 pub mod zombified_piglin;
@@ -207,6 +209,8 @@ pub enum Species {
     Blaze(blaze::BlazeState),
     Ghast(ghast::GhastState),
     Vex(vex::VexState),
+    Allay(allay::AllayState),
+    Wither(wither::WitherState),
     Bat(bat::BatState),
     Phantom(phantom::PhantomState),
     Parrot,
@@ -391,6 +395,12 @@ impl Species {
         }
         if kind == EntityKind::Vex {
             return Self::Vex(vex::define(base));
+        }
+        if kind == EntityKind::Allay {
+            return Self::Allay(allay::define(base));
+        }
+        if kind == EntityKind::Wither {
+            return Self::Wither(wither::define(base));
         }
         if kind == EntityKind::Bat {
             return Self::Bat(bat::define(base));

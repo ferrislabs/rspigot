@@ -1319,6 +1319,14 @@ pub fn travel<V: BlockView>(
     if base.kind == EntityKind::Phantom {
         return travel_flying(base, living, view, input, PHANTOM_FLYING_SPEEDS);
     }
+    if base.kind == EntityKind::Allay {
+        let speeds = FlyingSpeeds {
+            water: FLYING_SPEED,
+            lava: FLYING_SPEED,
+            air: living.speed,
+        };
+        return travel_flying(base, living, view, input, speeds);
+    }
     if base.fluid.in_liquid() {
         travel_in_fluid(base, living, view, input)
     } else {

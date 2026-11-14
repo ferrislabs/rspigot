@@ -18,6 +18,7 @@ const AWAY_VERTICAL: i32 = 7;
 const AWAY_ATTEMPTS: i32 = 10;
 const STROLL_HORIZONTAL: i32 = 10;
 const STROLL_VERTICAL: i32 = 7;
+const FLY_HEIGHT: i32 = -2;
 const LOCATION_OFFSET_BOUND: i32 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -180,9 +181,17 @@ pub struct RandomStroll {
     horizontal: i32,
     vertical: i32,
     may_stroll_from_water: bool,
+    flying: bool,
 }
 
 impl RandomStroll {
+    pub fn fly(speed_modifier: f32) -> Self {
+        Self {
+            flying: true,
+            ..Self::stroll(speed_modifier)
+        }
+    }
+
     pub fn stroll(speed_modifier: f32) -> Self {
         Self::stroll_from_water(speed_modifier, true)
     }
@@ -193,6 +202,7 @@ impl RandomStroll {
             horizontal: STROLL_HORIZONTAL,
             vertical: STROLL_VERTICAL,
             may_stroll_from_water,
+            flying: false,
         }
     }
 
@@ -202,6 +212,7 @@ impl RandomStroll {
             horizontal,
             vertical,
             may_stroll_from_water: true,
+            flying: false,
         }
     }
 
@@ -215,8 +226,20 @@ impl Trigger for RandomStroll {
         if !self.may_stroll_from_water && cx.ai.mob.fluid.in_water {
             return false;
         }
-        let target = random_pos::land_pos(cx.ai, self.horizontal, self.vertical)
-            .map(|position| WalkTarget::position(position, self.speed_modifier, 0));
+        let found = if self.flying {
+            let view = rspigot_domain::mth::view_vector(cx.ai.mob.pitch, cx.ai.mob.head_yaw);
+            random_pos::air_and_water_pos(
+                cx.ai,
+                self.horizontal,
+                self.vertical,
+                FLY_HEIGHT,
+                (view.x, view.z),
+                random_pos::HALF_PI,
+            )
+        } else {
+            random_pos::land_pos(cx.ai, self.horizontal, self.vertical)
+        };
+        let target = found.map(|position| WalkTarget::position(position, self.speed_modifier, 0));
         cx.brain.memories.set_option(
             MemoryModuleType::WalkTarget,
             target.map(MemoryValue::WalkTarget),
