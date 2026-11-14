@@ -338,6 +338,7 @@ impl<L: ClientLink> Server<L> {
             return false;
         };
         if player.vitals.is_dead()
+            || player.won_game
             || player.game_mode == GameMode::Spectator
             || self.entities.rides.is_passenger(player.entity_id)
         {

@@ -31,13 +31,14 @@ const RING: [(i32, i32, i32, i32, &str); 4] = [
 pub(crate) enum Traveler {
     Player(PlayerId),
     Entity(EntityId),
+    Credits(PlayerId),
 }
 
-fn overworld() -> DimensionKey {
+pub(crate) fn overworld() -> DimensionKey {
     Identifier::minecraft("overworld")
 }
 
-fn the_end() -> DimensionKey {
+pub(crate) fn the_end() -> DimensionKey {
     Identifier::minecraft("the_end")
 }
 
@@ -207,7 +208,9 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let cooldown = (player.portal_cooldown - 1).max(0);
-        let alive = !player.vitals.is_dead() && player.game_mode != GameMode::Spectator;
+        let alive =
+            !player.vitals.is_dead() && player.game_mode != GameMode::Spectator && !player.won_game;
+        let unseen = !player.seen_credits;
         let riding = self.entities.rides.is_passenger(player.entity_id);
         let at = player.position;
         let height = player.height();
@@ -225,6 +228,10 @@ impl<L: ClientLink> Server<L> {
         };
         player.portal_cooldown = cooldown;
         if !inside {
+            return;
+        }
+        if unseen && *key == the_end() {
+            self.show_end_credits(id);
             return;
         }
         if cooldown > 0 {
@@ -266,7 +273,7 @@ impl<L: ClientLink> Server<L> {
         self.portal_queue.push((key.clone(), Traveler::Entity(id)));
     }
 
-    fn overworld_spawn(&self) -> Option<Vec3> {
+    pub(crate) fn overworld_spawn(&self) -> Option<Vec3> {
         let key = overworld();
         if self.world.dimension.key == key {
             Some(self.world.spawn)
@@ -277,6 +284,10 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn run_portal_queue(&mut self) {
         for (source, traveler) in std::mem::take(&mut self.portal_queue) {
+            if let Traveler::Credits(id) = traveler {
+                self.credits_respawn(id);
+                continue;
+            }
             let destination = if source == the_end() {
                 let Some(spawn) = self.overworld_spawn() else {
                     continue;
@@ -303,6 +314,7 @@ impl<L: ClientLink> Server<L> {
                         server.ask_entity_portal(id, destination);
                     });
                 }
+                Traveler::Credits(_) => {}
             }
         }
     }
@@ -520,6 +532,7 @@ mod tests {
         assert_eq!(server.players[&id].position, Vec3::new(100.5, 50.0, 0.5));
         assert_eq!(server.players[&id].portal_cooldown, PORTAL_COOLDOWN);
 
+        server.players.get_mut(&id).unwrap().seen_credits = true;
         let exit = BlockPos::new(100, 70, 0);
         let end = the_end();
         server.in_dimension(&end, |server| {
@@ -541,6 +554,7 @@ mod tests {
         server.tick();
         server.deliver();
         assert_eq!(server.players[&id].dim, the_end());
+        server.players.get_mut(&id).unwrap().seen_credits = true;
         let end = the_end();
         server.in_dimension(&end, |server| {
             server.set_block(

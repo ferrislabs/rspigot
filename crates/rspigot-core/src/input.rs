@@ -110,7 +110,15 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::CommandSuggestion { id: request, text } => {
                 self.handle_suggestion(id, request, &text)
             }
-            PlayerInput::Respawn => self.respawn(id, PlayerRespawnReason::Death),
+            PlayerInput::Respawn => {
+                if self.players.get(&id).is_some_and(|player| player.won_game) {
+                    let key = self.world.dimension.key.clone();
+                    self.portal_queue
+                        .push((key, crate::end_portal::Traveler::Credits(id)));
+                } else {
+                    self.respawn(id, PlayerRespawnReason::Death);
+                }
+            }
             PlayerInput::ClientTickEnd => {
                 if let Some(player) = self.players.get_mut(&id) {
                     if !player.moved_this_tick {
