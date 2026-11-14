@@ -311,8 +311,9 @@ impl<L: ClientLink> Server<L> {
             .iter()
             .filter(|e| e.base.id != arrow_id && !e.base.is_removed())
             .filter(|e| {
-                e.living()
-                    .is_some_and(|state| !living::is_dead_or_dying(&e.base, state))
+                e.base.kind == Kind::EndCrystal
+                    || e.living()
+                        .is_some_and(|state| !living::is_dead_or_dying(&e.base, state))
             })
             .filter(|e| e.base.bounding_box().intersects(area))
             .map(|e| (e.base.id, e.base.bounding_box(), e.base.position))

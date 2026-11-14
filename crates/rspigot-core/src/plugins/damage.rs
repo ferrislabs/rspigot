@@ -115,6 +115,14 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn struck(&self, id: EntityId) -> Struck {
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| entity.base.kind == rspigot_entities::EntityKind::EndCrystal)
+        {
+            return Struck::Crystal(id);
+        }
         self.player_of_entity(id)
             .map_or(Struck::Mob(id), Struck::Player)
     }
