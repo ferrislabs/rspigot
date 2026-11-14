@@ -624,9 +624,13 @@ fn place_crystal_on(s: &mut Scene, x: i32, z: i32) {
     s.tick(2);
 }
 
-#[test]
-fn four_crystals_around_the_exit_portal_respawn_the_dragon_in_stages() {
-    let mut s = ready(8);
+fn clear_loose(s: &mut Scene) {
+    console(s, "kill @e[type=minecraft:experience_orb]");
+    console(s, "kill @e[type=minecraft:item]");
+}
+
+fn started_respawn(seed: u64) -> Scene {
+    let mut s = ready(seed);
     summon(
         &mut s,
         Kind::EnderDragon,
@@ -635,11 +639,13 @@ fn four_crystals_around_the_exit_portal_respawn_the_dragon_in_stages() {
     );
     s.tick(30);
     assert!(s.server.dragon_fight_data().unwrap().dragon_killed);
+    clear_loose(&mut s);
     console(&mut s, "gamemode survival Alice");
     console(&mut s, "give Alice minecraft:end_crystal 4");
     console(&mut s, "tp Alice 0.5 66 0.5");
     s.tick(5);
     for (x, z) in [(3, 0), (-3, 0), (0, 3)] {
+        clear_loose(&mut s);
         place_crystal_on(&mut s, x, z);
         assert!(
             s.server
@@ -650,6 +656,7 @@ fn four_crystals_around_the_exit_portal_respawn_the_dragon_in_stages() {
         );
     }
     assert_eq!(crystals(&s).len(), 3);
+    clear_loose(&mut s);
     place_crystal_on(&mut s, 0, -3);
     assert_eq!(crystals(&s).len(), 4);
     let fight = s.server.dragon_fight_data().unwrap();
@@ -658,6 +665,12 @@ fn four_crystals_around_the_exit_portal_respawn_the_dragon_in_stages() {
         Some(rspigot_domain::dragon::fight::RespawnStage::PreparingToSummonPillars)
     );
     assert_eq!(fight.respawn_crystals.len(), 4);
+    s
+}
+
+#[test]
+fn four_crystals_around_the_exit_portal_respawn_the_dragon_in_stages() {
+    let mut s = started_respawn(8);
     s.tick(3);
     for crystal in crystals(&s) {
         assert_eq!(
@@ -779,4 +792,24 @@ fn a_dragon_circling_near_a_player_strafes_and_throws_a_dragon_fireball() {
         }
     }
     assert!(thrown, "the fireball sound event went out");
+}
+
+#[test]
+fn killing_a_crystal_of_the_respawn_aborts_it_and_restores_the_active_portal() {
+    let mut s = started_respawn(12);
+    assert!(
+        s.server
+            .dragon_fight_data()
+            .unwrap()
+            .respawn_stage
+            .is_some()
+    );
+    console(&mut s, "kill @e[type=minecraft:end_crystal,limit=1]");
+    s.tick(3);
+    let fight = s.server.dragon_fight_data().unwrap();
+    assert_eq!(fight.respawn_stage, None);
+    assert_eq!(fight.respawn_time, 0);
+    assert!(fight.dragon_killed);
+    assert_eq!(crystals(&s).len(), 3);
+    assert_eq!(block_at(&s, 1, 63, 0), Some(BlockKind::EndPortal));
 }

@@ -2339,6 +2339,7 @@ impl<L: ClientLink> Server<L> {
         } else if living {
             self.hurt_mob(id, &DamageSource::new(DamageType::GenericKill), f32::MAX);
         } else {
+            self.crystal_killed(id);
             self.remove_entity(id, RemovalReason::Killed, Some(EntityRemoveCause::Death));
         }
         true
