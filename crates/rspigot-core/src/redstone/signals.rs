@@ -51,7 +51,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn state_direct_signal(
+    pub(crate) fn state_direct_signal(
         &self,
         state: BlockStateId,
         pos: BlockPos,

@@ -1,6 +1,9 @@
+mod analog;
 mod controls;
+mod diode;
 mod event;
 mod lamp;
+mod observer;
 mod signals;
 mod torch;
 mod wire;
@@ -28,6 +31,9 @@ pub(crate) const UPDATE_ORDER: [Face; 6] = [
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(i8)]
 pub(crate) enum TickPriority {
+    ExtremelyHigh = -3,
+    VeryHigh = -2,
+    High = -1,
     Normal = 0,
 }
 
@@ -95,6 +101,14 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn update_neighbors_except(&mut self, pos: BlockPos, skip: Face) {
+        for face in UPDATE_ORDER {
+            if face != skip {
+                self.neighbor_changed(step(pos, face), pos);
+            }
+        }
+    }
+
     fn update_neighbors_ring(&mut self, pos: BlockPos) {
         self.update_neighbors_at(pos);
         for face in UPDATE_ORDER {
@@ -117,6 +131,9 @@ impl<L: ClientLink> Server<L> {
                 self.torch_neighbor_changed(pos, state);
             }
             Some(BlockKind::RedstoneLamp) => self.lamp_neighbor_changed(pos, state),
+            Some(BlockKind::Repeater | BlockKind::Comparator) => {
+                self.diode_neighbor_changed(pos, state);
+            }
             _ => {}
         }
     }
@@ -134,6 +151,24 @@ impl<L: ClientLink> Server<L> {
             || new.kind() == Some(BlockKind::RedstoneWire)
         {
             self.refresh_diagonal_wires(pos);
+        }
+        if matches!(
+            new.kind(),
+            Some(BlockKind::Repeater | BlockKind::Comparator)
+        ) && old.kind() != new.kind()
+        {
+            self.diode_placed(pos, new);
+        }
+        if old.kind() == Some(BlockKind::Comparator) && new.kind() != old.kind() {
+            self.falls.redstone.outputs.remove(&pos);
+        }
+        if let Some(toward) = [new, old]
+            .into_iter()
+            .find(|state| diode::is_diode(*state) || state.kind() == Some(BlockKind::Observer))
+            .and_then(facing)
+        {
+            self.update_neighbors_in_front(pos, toward);
+            return;
         }
         if self.falls.redstone.quiet {
             return;
@@ -154,6 +189,8 @@ impl<L: ClientLink> Server<L> {
         match kind {
             BlockKind::RedstoneTorch | BlockKind::RedstoneWallTorch => self.torch_tick(pos, state),
             BlockKind::RedstoneLamp => self.lamp_tick(pos, state),
+            BlockKind::Repeater | BlockKind::Comparator => self.diode_tick(pos, state),
+            BlockKind::Observer => self.observer_tick(pos, state),
             _ if is_button(kind) => self.button_tick(pos, state),
             _ if is_plate(kind) => self.plate_tick(pos, state),
             _ => return false,
@@ -162,8 +199,11 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn redstone_shape(&mut self, pos: BlockPos, state: BlockStateId, direction: Face) {
-        if state.kind() == Some(BlockKind::RedstoneWire) {
-            self.wire_shape(pos, state, direction);
+        match state.kind() {
+            Some(BlockKind::RedstoneWire) => self.wire_shape(pos, state, direction),
+            Some(BlockKind::Repeater) => self.repeater_shape(pos, state, direction),
+            Some(BlockKind::Observer) => self.observer_shape(pos, state, direction),
+            _ => {}
         }
     }
 
@@ -171,6 +211,7 @@ impl<L: ClientLink> Server<L> {
         match state.kind() {
             Some(BlockKind::RedstoneWire) => self.wire_placement(pos, state),
             Some(BlockKind::RedstoneLamp) => self.lamp_placement(pos, state),
+            Some(BlockKind::Repeater) => self.repeater_placement(pos, state),
             _ => state,
         }
     }

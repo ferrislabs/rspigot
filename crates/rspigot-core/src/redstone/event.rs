@@ -23,6 +23,12 @@ pub(crate) enum RedstoneChange {
         player: Option<PlayerId>,
     },
     Plate,
+    Diode {
+        on: bool,
+    },
+    Observer {
+        on: bool,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -69,6 +75,8 @@ impl<L: ClientLink> Server<L> {
                 self.finish_button(pos, new, powered, player);
             }
             RedstoneChange::Plate => self.finish_plate(pos, old, new),
+            RedstoneChange::Diode { on } => self.finish_diode(pos, new, on),
+            RedstoneChange::Observer { on } => self.finish_observer(pos, new, on),
         }
     }
 }

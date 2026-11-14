@@ -194,6 +194,9 @@ impl<L: ClientLink> Server<L> {
             }
             return true;
         }
+        if matches!(kind, BlockKind::Repeater | BlockKind::Comparator) {
+            return self.use_diode(id, pos, state);
+        }
         false
     }
 

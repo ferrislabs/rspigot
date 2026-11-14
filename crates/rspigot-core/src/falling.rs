@@ -216,6 +216,10 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn has_scheduled(&self, pos: BlockPos, kind: BlockKind) -> bool {
+        self.falls.pending.contains(&(pos, kind))
+    }
+
     pub(crate) fn will_tick_this_tick(&self, pos: BlockPos, kind: BlockKind) -> bool {
         self.falls.running.contains(&(pos, kind))
     }

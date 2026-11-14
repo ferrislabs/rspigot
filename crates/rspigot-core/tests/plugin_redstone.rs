@@ -242,3 +242,167 @@ fn a_lever_whose_current_is_patched_to_zero_stays_off() {
     );
     assert_eq!(prop(&mut s, LEVER, "powered"), "false");
 }
+
+const INPUT: BlockPos = BlockPos::new(3, 64, 5);
+const DIODE: BlockPos = BlockPos::new(4, 64, 5);
+const OUTPUT: BlockPos = BlockPos::new(5, 64, 5);
+
+fn diode_line(s: &mut Scene, diode: &str, properties: &[(&str, &str)]) {
+    put(s, OUTPUT, "minecraft:redstone_lamp", &[]);
+    put(s, DIODE, diode, properties);
+}
+
+#[test]
+fn a_repeater_passes_a_signal_on_after_its_delay() {
+    let mut s = scene(&["Alice"]);
+    diode_line(
+        &mut s,
+        "minecraft:repeater",
+        &[("facing", "west"), ("delay", "2")],
+    );
+    put(&mut s, INPUT, "minecraft:redstone_block", &[]);
+    s.tick(3);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "false");
+    assert_eq!(prop(&mut s, OUTPUT, "lit"), "false");
+    s.tick(2);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "true");
+    assert_eq!(prop(&mut s, OUTPUT, "lit"), "true");
+    put(&mut s, INPUT, "minecraft:air", &[]);
+    s.tick(5);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "false");
+}
+
+#[test]
+fn using_a_repeater_cycles_its_delay() {
+    let mut s = scene(&["Alice"]);
+    diode_line(&mut s, "minecraft:repeater", &[("facing", "west")]);
+    let alice = s.players[0].clone();
+    for expected in ["2", "3", "4", "1"] {
+        use_block(&mut s, &alice, DIODE);
+        assert_eq!(prop(&mut s, DIODE, "delay"), expected);
+    }
+}
+
+#[test]
+fn a_repeater_is_locked_by_a_powered_repeater_at_its_side() {
+    let mut s = scene(&["Alice"]);
+    diode_line(
+        &mut s,
+        "minecraft:repeater",
+        &[("facing", "west"), ("delay", "1")],
+    );
+    put(
+        &mut s,
+        BlockPos::new(4, 64, 4),
+        "minecraft:repeater",
+        &[("facing", "north"), ("powered", "true")],
+    );
+    put(
+        &mut s,
+        BlockPos::new(4, 64, 3),
+        "minecraft:redstone_block",
+        &[],
+    );
+    s.tick(1);
+    assert_eq!(prop(&mut s, DIODE, "locked"), "true");
+    put(&mut s, INPUT, "minecraft:redstone_block", &[]);
+    s.tick(4);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "false");
+}
+
+#[test]
+fn a_comparator_reads_a_composter_and_lights_its_output() {
+    let mut s = scene(&["Alice"]);
+    diode_line(
+        &mut s,
+        "minecraft:comparator",
+        &[("facing", "west"), ("mode", "compare")],
+    );
+    put(&mut s, INPUT, "minecraft:composter", &[("level", "5")]);
+    s.tick(3);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "true");
+    assert_eq!(prop(&mut s, OUTPUT, "lit"), "true");
+}
+
+#[test]
+fn a_comparator_in_subtract_mode_loses_a_stronger_side_signal() {
+    let mut s = scene(&["Alice"]);
+    diode_line(
+        &mut s,
+        "minecraft:comparator",
+        &[("facing", "west"), ("mode", "subtract")],
+    );
+    put(
+        &mut s,
+        BlockPos::new(4, 64, 4),
+        "minecraft:redstone_block",
+        &[],
+    );
+    put(&mut s, INPUT, "minecraft:composter", &[("level", "5")]);
+    s.tick(3);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "false");
+    put(&mut s, BlockPos::new(4, 64, 4), "minecraft:air", &[]);
+    s.tick(3);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "true");
+}
+
+#[test]
+fn using_a_comparator_switches_its_mode() {
+    let mut s = scene(&["Alice"]);
+    diode_line(&mut s, "minecraft:comparator", &[("facing", "west")]);
+    let alice = s.players[0].clone();
+    assert_eq!(prop(&mut s, DIODE, "mode"), "compare");
+    use_block(&mut s, &alice, DIODE);
+    assert_eq!(prop(&mut s, DIODE, "mode"), "subtract");
+}
+
+#[test]
+fn an_observer_pulses_when_the_block_it_watches_changes() {
+    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::BlockRedstone)]);
+    put(&mut s, DIODE, "minecraft:observer", &[("facing", "east")]);
+    put(&mut s, INPUT, "minecraft:redstone_lamp", &[]);
+    put(&mut s, OUTPUT, "minecraft:stone", &[]);
+    s.tick(1);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "false");
+    s.tick(3);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "false");
+    put(&mut s, OUTPUT, "minecraft:dirt", &[]);
+    s.tick(2);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "true");
+    assert_eq!(prop(&mut s, INPUT, "lit"), "true");
+    s.tick(2);
+    assert_eq!(prop(&mut s, DIODE, "powered"), "false");
+    let heard: Vec<(BlockPos, i32, i32)> = settled_for(&s.plugin, EventKind::BlockRedstone)
+        .iter()
+        .filter_map(|fired| match &fired.payload {
+            EventPayload::BlockRedstone(event) if event.block == DIODE => {
+                Some((event.block, event.old_current, event.new_current))
+            }
+            _ => None,
+        })
+        .collect();
+    assert!(heard.contains(&(DIODE, 0, 15)));
+    assert!(heard.contains(&(DIODE, 15, 0)));
+}
+
+#[test]
+fn a_repeater_reports_its_current_changes() {
+    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::BlockRedstone)]);
+    diode_line(
+        &mut s,
+        "minecraft:repeater",
+        &[("facing", "west"), ("delay", "1")],
+    );
+    put(&mut s, INPUT, "minecraft:redstone_block", &[]);
+    s.tick(3);
+    let heard: Vec<(i32, i32)> = settled_for(&s.plugin, EventKind::BlockRedstone)
+        .iter()
+        .filter_map(|fired| match &fired.payload {
+            EventPayload::BlockRedstone(event) if event.block == DIODE => {
+                Some((event.old_current, event.new_current))
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(heard, vec![(0, 15)]);
+}
