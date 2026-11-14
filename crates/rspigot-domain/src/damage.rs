@@ -39,6 +39,7 @@ pub enum DamageType {
     WitherSkull,
     Explosion,
     PlayerExplosion,
+    BadRespawnPoint,
     WindCharge,
     SonicBoom,
     Thorns,
@@ -115,6 +116,7 @@ impl DamageType {
             Self::WitherSkull => "minecraft:wither_skull",
             Self::Explosion => "minecraft:explosion",
             Self::PlayerExplosion => "minecraft:player_explosion",
+            Self::BadRespawnPoint => "minecraft:bad_respawn_point",
             Self::WindCharge => "minecraft:wind_charge",
             Self::SonicBoom => "minecraft:sonic_boom",
             Self::Thorns => "minecraft:thorns",
@@ -155,6 +157,7 @@ impl DamageType {
             Self::WitherSkull => "witherSkull",
             Self::Explosion => "explosion",
             Self::PlayerExplosion => "explosion.player",
+            Self::BadRespawnPoint => "badRespawnPoint",
             Self::WindCharge => "mob",
             Self::SonicBoom => "sonic_boom",
             Self::Thorns => "thorns",
@@ -184,6 +187,7 @@ impl DamageType {
             | Self::WitherSkull
             | Self::Explosion
             | Self::PlayerExplosion
+            | Self::BadRespawnPoint
             | Self::WindCharge
             | Self::Trident
             | Self::Spit
@@ -196,7 +200,7 @@ impl DamageType {
     pub const fn scales_always(self) -> bool {
         matches!(
             self,
-            Self::Explosion | Self::PlayerExplosion | Self::SonicBoom
+            Self::Explosion | Self::PlayerExplosion | Self::BadRespawnPoint | Self::SonicBoom
         )
     }
 

@@ -99,6 +99,7 @@ pub(crate) struct VelocityStep {
 pub(crate) struct RespawnStep {
     pub(crate) player: PlayerId,
     pub(crate) credits: bool,
+    pub(crate) spot: Option<crate::respawning::RespawnSpot>,
 }
 
 #[derive(Debug)]
@@ -742,6 +743,7 @@ pub(crate) struct RelocateStep {
 pub(crate) struct TimeStep {
     pub(crate) skipped: i64,
     pub(crate) applied: bool,
+    pub(crate) wake: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1366,6 +1368,9 @@ pub(crate) enum Continuation {
     EntityPortal(EntityPortalStep),
     Velocity(VelocityStep),
     Respawn(RespawnStep),
+    BedEnter(Box<crate::sleeping::BedEnterStep>),
+    BedLeave(crate::sleeping::BedLeaveStep),
+    SpawnChange(Box<crate::sleeping::SpawnChangeStep>),
     Death(Box<DeathStep>),
     Input(InputStep),
     Sneak(ToggleStep),
@@ -1558,6 +1563,9 @@ impl Continuation {
             Self::EntityPortal(_) => EventKind::EntityPortal,
             Self::Velocity(_) => EventKind::PlayerVelocity,
             Self::Respawn(_) => EventKind::PlayerRespawn,
+            Self::BedEnter(_) => EventKind::PlayerBedEnter,
+            Self::BedLeave(_) => EventKind::PlayerBedLeave,
+            Self::SpawnChange(_) => EventKind::PlayerSpawnChange,
             Self::Death(_) => EventKind::PlayerDeath,
             Self::Input(_) => EventKind::PlayerInput,
             Self::Sneak(_) => EventKind::PlayerToggleSneak,

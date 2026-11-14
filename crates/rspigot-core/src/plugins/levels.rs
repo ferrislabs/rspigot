@@ -62,6 +62,14 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn change_day_time(&mut self, time: i64, reason: Option<TimeSkipReason>) {
+        self.change_day_time_then(time, reason, false);
+    }
+
+    pub(crate) fn change_day_time_waking(&mut self, time: i64, reason: TimeSkipReason) {
+        self.change_day_time_then(time, Some(reason), true);
+    }
+
+    fn change_day_time_then(&mut self, time: i64, reason: Option<TimeSkipReason>, wake: bool) {
         let skipped = time.wrapping_sub(self.world.level.day_time);
         let Some(reason) = reason.filter(|_| skipped != 0) else {
             self.move_day_time(skipped);
@@ -73,7 +81,11 @@ impl<L: ClientLink> Server<L> {
         }
         self.fire(
             Lane::World,
-            Continuation::TimeSkip(TimeStep { skipped, applied }),
+            Continuation::TimeSkip(TimeStep {
+                skipped,
+                applied,
+                wake,
+            }),
             move |server| {
                 Some(EventPayload::TimeSkip(TimeSkip {
                     skip_amount: skipped,
@@ -97,6 +109,9 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn finish_time_skip(&mut self, step: TimeStep, patch: TimeSkipPatch) {
         if !step.applied {
             self.move_day_time(patch.skip_amount.unwrap_or(step.skipped));
+        }
+        if step.wake {
+            self.finish_night_skip();
         }
     }
 

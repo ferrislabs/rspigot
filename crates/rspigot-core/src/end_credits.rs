@@ -39,6 +39,7 @@ impl<L: ClientLink> Server<L> {
         let step = RespawnStep {
             player: id,
             credits: true,
+            spot: None,
         };
         self.fire(id, Continuation::Respawn(step), move |server| {
             server.snapshot_of(id).map(|player| {

@@ -44,7 +44,9 @@ impl<L: ClientLink> Server<L> {
             .map(|entity| (entity.base.id, entity.base.pose()))
             .collect();
         current.extend(self.players.values().map(|player| {
-            let stance = if player.sneaking && !player.flying {
+            let stance = if player.sleeping.is_some() {
+                Stance::Sleeping
+            } else if player.sneaking && !player.flying {
                 Stance::Crouching
             } else {
                 Stance::Standing

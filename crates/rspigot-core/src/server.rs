@@ -59,6 +59,7 @@ pub struct World {
     pub level: LevelData,
     pub spawn: Vec3,
     pub difficulty: Difficulty,
+    pub sleep: rspigot_domain::bed::SleepStatus,
 }
 
 struct TpsMeter {
@@ -170,6 +171,7 @@ impl<L: ClientLink> Server<L> {
                 level,
                 spawn,
                 difficulty: config.difficulty,
+                sleep: Default::default(),
             },
             workers,
             players: FxHashMap::default(),
@@ -714,6 +716,10 @@ impl<L: ClientLink> Server<L> {
             mining: None,
             delayed_destroy: None,
             use_memo: None,
+            sleeping: None,
+            sleep_counter: 0,
+            waking: false,
+            respawn: None,
         };
         if let Some(save) = &saved {
             save.restore(&mut player, self.world.spawn, self.world.level.spawn_angle);
@@ -857,6 +863,7 @@ impl<L: ClientLink> Server<L> {
         self.notify_undone(forgotten, crate::plugins::Phase::Settled);
         self.visibility.forget(id);
         self.forget_sign_editor(id);
+        self.leave_bed_for_good(id);
         let Some(mut player) = self.players.remove(&id) else {
             return;
         };
@@ -870,6 +877,7 @@ impl<L: ClientLink> Server<L> {
             }
         }
         self.push(Audience::All, ClientEvent::PlayerInfoRemove(vec![id]));
+        self.update_sleeping_list();
         self.refresh_status();
         self.leave_event(snapshot, player.kick_leave_message.take(), announce);
     }
@@ -964,6 +972,7 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_health();
+        self.tick_sleeping();
         self.tick_eating();
         self.tick_delayed_destroys();
         self.tick_spawning();
@@ -1021,7 +1030,9 @@ impl<L: ClientLink> Server<L> {
             },
             MetadataEntry {
                 index: 6,
-                value: MetadataValue::Pose(if player.sneaking && !player.flying {
+                value: MetadataValue::Pose(if player.sleeping.is_some() {
+                    Pose::Sleeping
+                } else if player.sneaking && !player.flying {
                     Pose::Crouching
                 } else {
                     Pose::Standing
@@ -1032,6 +1043,10 @@ impl<L: ClientLink> Server<L> {
         .chain((player.vitals.arrow_count > 0).then(|| MetadataEntry {
             index: 12,
             value: MetadataValue::VarInt(player.vitals.arrow_count),
+        }))
+        .chain(player.sleeping.map(|pos| MetadataEntry {
+            index: 14,
+            value: MetadataValue::OptionalBlockPos(Some(pos)),
         }))
         .collect()
     }
