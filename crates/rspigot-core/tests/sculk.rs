@@ -7,7 +7,8 @@ use common::*;
 use rspigot_blocks::BlockKind;
 use rspigot_core::config::{GameConfig, LevelData, PluginSettings};
 use rspigot_core::events::{ClientEvent, EntityStatus, Inbound, InputState, PlayerInput};
-use rspigot_core::plugins::{EventKind, EventPayload};
+use rspigot_core::plugins::events::GenericGamePatch;
+use rspigot_core::plugins::{EventKind, EventPatch, EventPayload};
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
@@ -280,6 +281,82 @@ fn a_listening_block_tells_plugins_about_the_game_event_it_receives() {
         panic!("a block receive game event");
     };
     assert_eq!(event.event, "minecraft:step");
+}
+
+fn step_events(s: &Scene) -> Vec<rspigot_core::plugins::events::GenericGame> {
+    fired(&s.plugin)
+        .into_iter()
+        .filter_map(|event| match event.payload {
+            EventPayload::GenericGame(game) if game.event == "minecraft:step" => Some(game),
+            _ => None,
+        })
+        .collect()
+}
+
+fn walk_west(s: &mut Scene) {
+    walk(s, Vec3::new(-0.5, 64.0, 0.5), 12, -0.25);
+}
+
+#[test]
+fn every_game_event_tells_the_plugins_its_name_place_source_and_radius() {
+    let mut s = ready_with(vec![observe(1, EventKind::GenericGame)]);
+    walk(&mut s, Vec3::new(0.5, 64.0, 0.5), 12, 0.3);
+    let steps = step_events(&s);
+    assert!(!steps.is_empty());
+    let game = &steps[0];
+    assert_eq!(game.world, "minecraft:overworld");
+    assert_eq!(game.location.world, "minecraft:overworld");
+    assert_eq!(game.location.position.y, 64.0);
+    assert_eq!(game.location.position.x.fract(), 0.0);
+    assert_eq!(game.radius, 16);
+    assert_eq!(
+        game.entity.as_ref().map(|entity| entity.kind.as_str()),
+        Some("minecraft:player")
+    );
+}
+
+#[test]
+fn a_cancelled_game_event_reaches_no_listener_and_an_allowed_one_does() {
+    let mut s = ready_with(vec![deciding(1, EventKind::GenericGame)]);
+    walk(&mut s, Vec3::new(0.5, 64.0, 0.5), 12, 0.3);
+    for event in asked_for(&s.plugin, EventKind::GenericGame) {
+        rule_on(&mut s.server, 1, event.id, true, None);
+    }
+    s.tick(40);
+    let events = s.players[0].link.take();
+    assert!(phases(&events, SENSOR).is_empty());
+    walk(&mut s, Vec3::new(0.5, 64.0, 0.5), 12, 0.3);
+    for event in asked_for(&s.plugin, EventKind::GenericGame) {
+        rule_on(&mut s.server, 1, event.id, false, None);
+    }
+    s.tick(40);
+    let events = s.players[0].link.take();
+    assert!(!phases(&events, SENSOR).is_empty());
+}
+
+#[test]
+fn a_patched_radius_narrows_the_sections_searched_for_listeners() {
+    let mut s = ready();
+    walk_west(&mut s);
+    s.tick(40);
+    let events = s.players[0].link.take();
+    assert!(!phases(&events, SENSOR).is_empty());
+    let mut s = ready_with(vec![deciding(1, EventKind::GenericGame)]);
+    walk_west(&mut s);
+    for event in asked_for(&s.plugin, EventKind::GenericGame) {
+        rule_on(
+            &mut s.server,
+            1,
+            event.id,
+            false,
+            Some(EventPatch::GenericGame(GenericGamePatch {
+                radius: Some(0),
+            })),
+        );
+    }
+    s.tick(40);
+    let events = s.players[0].link.take();
+    assert!(phases(&events, SENSOR).is_empty());
 }
 
 #[test]

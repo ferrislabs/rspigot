@@ -1080,6 +1080,12 @@ impl<L: ClientLink> Server<L> {
                 );
                 Vec::new()
             }
+            Continuation::Game(step) => {
+                if !cancelled {
+                    self.finish_game_event(step, patch_of!(patch, GenericGame).radius);
+                }
+                Vec::new()
+            }
             Continuation::Career(step) => {
                 if !cancelled {
                     self.finish_career(step, patch_of!(patch, VillagerCareerChange).profession);
