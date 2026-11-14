@@ -819,7 +819,7 @@ impl<L: ClientLink> Server<L> {
         ClientEvent::Time {
             game_time: self.world.level.game_time,
             day_time: self.world.level.day_time,
-            advance_time: self.world.level.daylight_cycle,
+            advance_time: self.world.level.daylight_cycle && !self.world.dimension.has_fixed_time,
         }
     }
 
@@ -934,7 +934,7 @@ impl<L: ClientLink> Server<L> {
         away: &mut Vec<(PlayerId, Player<L>)>,
     ) {
         self.world.level.game_time += 1;
-        if self.world.level.daylight_cycle {
+        if self.world.level.daylight_cycle && !self.world.dimension.has_fixed_time {
             self.world.level.day_time += 1;
         }
         for pos in self.world.chunks.tick() {
