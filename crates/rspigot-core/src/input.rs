@@ -715,6 +715,18 @@ impl<L: ClientLink> Server<L> {
         self.broadcast_held_item(id);
     }
 
+    fn dimension_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = self.dormant.keys().map(ToString::to_string).collect();
+        names.push(self.world.dimension.key.to_string());
+        if self.dimension_provider.is_some() {
+            names.push("minecraft:overworld".to_owned());
+            names.push("minecraft:the_end".to_owned());
+        }
+        names.sort();
+        names.dedup();
+        names
+    }
+
     fn handle_suggestion(&mut self, id: PlayerId, request: i32, text: &str) {
         let input = text.trim_start_matches('/');
         let offset = (text.len() - input.len()) as i32;
@@ -735,10 +747,14 @@ impl<L: ClientLink> Server<L> {
             Some((head, last)) => (
                 offset + head.len() as i32 + 1,
                 last,
-                self.players
-                    .values()
-                    .map(|p| p.profile.name.clone())
-                    .collect(),
+                if completes_dimension(head) {
+                    self.dimension_names()
+                } else {
+                    self.players
+                        .values()
+                        .map(|p| p.profile.name.clone())
+                        .collect()
+                },
             ),
         };
         let lower = prefix.to_ascii_lowercase();
@@ -883,4 +899,13 @@ const fn block_face(face: Direction) -> Face {
         Direction::West => Face::West,
         Direction::East => Face::East,
     }
+}
+
+fn completes_dimension(head: &str) -> bool {
+    let mut words = head.split_whitespace();
+    let first = words.next().map(str::to_ascii_lowercase);
+    let first = first
+        .as_deref()
+        .map(|word| word.strip_prefix("minecraft:").unwrap_or(word));
+    first == Some("execute") && head.split_whitespace().last() == Some("in")
 }

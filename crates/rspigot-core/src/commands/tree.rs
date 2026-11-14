@@ -177,6 +177,11 @@ pub fn build_tree(operator: bool) -> CommandTree {
         b.argument(teleport, "location", ArgumentParser::Vec3, true);
         b.argument(teleport, "destination", single_entity(), true);
         b.alias(root, "tp", teleport);
+        let execute = b.literal(root, "execute", false);
+        let within = b.literal(execute, "in", false);
+        let dimension = b.argument(within, "dimension", ArgumentParser::Dimension, false);
+        let run = b.literal(dimension, "run", false);
+        b.nodes[run].redirect = Some(root);
         let summon = b.literal(root, "summon", false);
         let entity = b.suggesting(
             summon,
@@ -312,6 +317,7 @@ mod tests {
         assert!(names.contains(&"gamemode"));
         assert!(names.contains(&"tp"));
         assert!(names.contains(&"summon"));
+        assert!(names.contains(&"execute"));
         for name in ["ban", "ban-ip", "pardon", "pardon-ip", "banlist"] {
             assert!(names.contains(&name), "{name}");
         }

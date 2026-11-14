@@ -528,3 +528,6 @@ mod tests {
         assert_eq!(Priority::default(), Priority::Normal);
     }
 }
+
+#[cfg(test)]
+mod world_tp_tests;
