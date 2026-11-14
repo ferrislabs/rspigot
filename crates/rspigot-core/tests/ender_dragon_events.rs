@@ -402,3 +402,37 @@ fn a_saved_fight_without_a_dragon_creates_one_above_the_island_with_a_creature_s
     assert_eq!(spawns[0].entity_type, "minecraft:ender_dragon");
     assert_eq!(spawns[0].spawn_reason, CreatureSpawnReason::Default);
 }
+
+#[test]
+fn a_plugin_can_cancel_what_a_breath_cloud_does_to_the_creatures_standing_in_it() {
+    let mut s = ready(7, vec![deciding(1, EventKind::AreaEffectCloudApply)]);
+    let cow = summon(&mut s, Kind::Cow, "20.5 64 20.5", "{NoAI:1b,Health:10f}");
+    let cloud = summon(
+        &mut s,
+        Kind::AreaEffectCloud,
+        "20.5 64 20.5",
+        "{Duration:600,WaitTime:20,Radius:3f,potion_duration_scale:0.25f,potion_contents:{custom_effects:[{id:\"minecraft:instant_damage\",amplifier:1b,duration:1}]}}",
+    );
+    s.tick(30);
+    let asked = last_asked(&s.plugin, EventKind::AreaEffectCloudApply);
+    let EventPayload::AreaEffectCloudApply(apply) = &asked.payload else {
+        panic!("a cloud apply");
+    };
+    assert_eq!(apply.entity.id, cloud);
+    assert!(
+        apply
+            .affected_entities
+            .iter()
+            .any(|victim| victim.id == cow)
+    );
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(2);
+    let health = s
+        .server
+        .entities_of(Kind::Cow)
+        .into_iter()
+        .find(|entity| entity.id == cow)
+        .and_then(|entity| entity.health)
+        .unwrap();
+    assert!((health - 10.0).abs() < 0.01, "{health}");
+}

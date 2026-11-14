@@ -94,3 +94,31 @@ fn a_portal_destination_changed_by_a_plugin_applies_and_announces_the_new_world(
     assert_eq!(from, "minecraft:overworld");
     assert_eq!(player.world, end().to_string());
 }
+
+#[test]
+fn a_plugin_can_cancel_a_cow_going_through_a_portal_and_sees_it_before_it_leaves() {
+    let mut s = scene_with_dimensions(vec![deciding(1, EventKind::EntityPortal)]);
+    s.server.handle(rspigot_core::events::Inbound::Console(
+        "summon minecraft:cow 8.5 64 8.5 {NoAI:1b}".to_owned(),
+    ));
+    s.server.deliver();
+    let cow = s.server.entities_of(rspigot_entities::EntityKind::Cow)[0].id;
+    s.server
+        .change_entity_dimension(cow, nether(), Vec3::new(8.5, 70.0, 8.5), None);
+    s.server.deliver();
+    let asked = last_asked(&s.plugin, EventKind::EntityPortal);
+    let EventPayload::EntityPortal(portal) = &asked.payload else {
+        panic!("an entity portal");
+    };
+    assert_eq!(portal.entity.id, cow);
+    assert_eq!(portal.from.world, "minecraft:overworld");
+    assert_eq!(portal.to.as_ref().unwrap().world, nether().to_string());
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    assert_eq!(
+        s.server
+            .entities_of(rspigot_entities::EntityKind::Cow)
+            .len(),
+        1,
+        "the cancelled cow stayed"
+    );
+}
