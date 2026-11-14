@@ -316,3 +316,59 @@ fn a_plugin_sees_the_vehicle_enter_then_the_mount_and_can_cancel_the_boarding() 
     s.tick(2);
     assert!(!settled_for(&s.plugin, EventKind::EntityMount).is_empty());
 }
+
+#[test]
+fn a_plugin_can_cancel_a_strider_starting_to_shiver_on_netherrack() {
+    let mut s = lake_with(1, vec![deciding(1, EventKind::StriderTemperatureChange)]);
+    s.players[0].link.take();
+    let strider = summon(&mut s, "2.5 64 8.5", "{}");
+    s.tick(3);
+    let asked = last_asked(&s.plugin, EventKind::StriderTemperatureChange);
+    let EventPayload::StriderTemperatureChange(change) = &asked.payload else {
+        panic!("a strider temperature change");
+    };
+    assert_eq!(change.entity.id, strider);
+    assert!(change.shivering);
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(1);
+    assert!(
+        !shivering_updates(&s.players[0].link.take(), strider).contains(&true),
+        "the cancelled change left the strider warm"
+    );
+}
+
+#[test]
+fn a_plugin_sees_the_vehicle_exit_then_the_dismount_and_can_cancel_the_exit() {
+    let (mut s, strider) = ride_scene_with(vec![
+        deciding(1, EventKind::VehicleExit),
+        observe(2, EventKind::EntityDismount),
+    ]);
+    interact(&mut s, strider, false);
+    s.tick(2);
+    s.players[0].link.take();
+    let alice = s.players[0].clone();
+    let sneak = || {
+        rspigot_core::events::PlayerInput::Input(rspigot_core::events::InputState {
+            shift: true,
+            ..Default::default()
+        })
+    };
+    send_input(&mut s.server, &alice, sneak());
+    s.tick(1);
+    let asked = last_asked(&s.plugin, EventKind::VehicleExit);
+    let EventPayload::VehicleExit(exit) = &asked.payload else {
+        panic!("a vehicle exit");
+    };
+    assert_eq!(exit.vehicle.id, strider);
+    assert_eq!(exit.exited.kind, "minecraft:player");
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(2);
+    assert!(settled_for(&s.plugin, EventKind::EntityDismount).is_empty());
+    assert!(
+        !s.players[0].link.take().iter().any(|event| matches!(
+            event,
+            ClientEvent::Passengers { vehicle, passengers } if *vehicle == strider && passengers.is_empty()
+        )),
+        "the exit was cancelled"
+    );
+}
