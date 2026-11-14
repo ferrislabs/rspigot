@@ -548,7 +548,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn kind_after_hurt(&mut self, id: EntityId, source: &DamageSource, dead: bool) {
         match self.kind_of(id) {
-            Some(Kind::EnderDragon) => self.dragon_after_hurt(id, dead),
+            Some(Kind::EnderDragon) => self.dragon_after_hurt(id),
             Some(Kind::Wolf) => self.wolf_after_hurt(id, source, dead),
             Some(Kind::Cat) => self.cat_after_hurt(id, source, dead),
             Some(Kind::Fox) => self.fox_after_hurt(id, source, dead),

@@ -168,8 +168,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    pub(crate) fn dragon_after_hurt(&mut self, id: EntityId, dead: bool) {
-        let _ = dead;
+    pub(crate) fn dragon_after_hurt(&mut self, id: EntityId) {
         let Some(runtime) = self.entities.dragons.get(&id) else {
             return;
         };
