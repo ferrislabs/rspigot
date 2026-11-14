@@ -67,6 +67,7 @@ pub fn check_predicate(
             check_patrolling_monster_spawn_rules(level, kind, reason, pos)
         }
         SpawnPredicate::Strider => check_strider_spawn_rules(level, pos),
+        SpawnPredicate::SkeletonHorse => check_skeleton_horse_spawn_rules(level, reason, pos),
         SpawnPredicate::Rabbit => check_rabbit_spawn_rules(level, pos),
         SpawnPredicate::Goat => check_bright_spawnable_on(level, pos, GOATS_SPAWNABLE_ON),
         SpawnPredicate::Armadillo => check_bright_spawnable_on(level, pos, ARMADILLO_SPAWNABLE_ON),
@@ -106,6 +107,18 @@ pub fn check_predicate(
         }
         _ => return None,
     })
+}
+
+fn check_skeleton_horse_spawn_rules(
+    level: &impl SpawnLevel,
+    reason: SpawnReason,
+    pos: BlockPos,
+) -> bool {
+    if reason.is_spawner() {
+        reason.ignores_light_requirements() || is_bright_enough_to_spawn(level, pos)
+    } else {
+        check_animal_spawn_rules(level, reason, pos)
+    }
 }
 
 fn check_strider_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
@@ -167,6 +180,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Stray
                 | SpawnPredicate::PatrollingMonster
                 | SpawnPredicate::Strider
+                | SpawnPredicate::SkeletonHorse
                 | SpawnPredicate::Rabbit
                 | SpawnPredicate::Goat
                 | SpawnPredicate::Armadillo

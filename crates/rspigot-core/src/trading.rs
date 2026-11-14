@@ -501,6 +501,7 @@ impl<L: ClientLink> Server<L> {
             local: vec![None; MenuKind::Merchant.container_size()],
             data: Vec::new(),
             trader: Some(id),
+            mount: None,
         };
         self.ask_open(player, position, open);
     }

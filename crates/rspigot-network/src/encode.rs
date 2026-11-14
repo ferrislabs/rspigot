@@ -1506,6 +1506,18 @@ impl Encoder {
                     title: text(title),
                 },
             ),
+            ClientEvent::OpenMountScreen {
+                window,
+                columns,
+                entity,
+            } => Self::queue(
+                writer,
+                &cb::MountScreenOpen {
+                    container_id: *window,
+                    inventory_columns: *columns,
+                    entity_id: entity.0,
+                },
+            ),
             ClientEvent::MerchantOffers {
                 window,
                 offers,

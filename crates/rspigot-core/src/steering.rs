@@ -33,6 +33,15 @@ fn strider_state(entity: &mut Entity) -> Option<(&mut EntityBase, &mut strider::
 impl<L: ClientLink> Server<L> {
     pub(crate) fn controlling_player(&self, vehicle: EntityId) -> Option<PlayerId> {
         let entity = self.entities.store.get(vehicle)?;
+        if entity.base.kind.extends("AbstractHorse") {
+            entity.living()?.equipment(EquipmentSlot::Saddle)?;
+            let first = self.entities.rides.first_passenger(vehicle)?;
+            return self
+                .players
+                .values()
+                .find(|p| p.entity_id == first)
+                .map(|p| p.id);
+        }
         let item = steering_item(entity.base.kind)?;
         entity.living()?.equipment(EquipmentSlot::Saddle)?;
         let first = self.entities.rides.first_passenger(vehicle)?;
@@ -54,13 +63,13 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get_mut(vehicle) else {
             return;
         };
-        let Some((base, steering)) = strider_state(entity) else {
-            return;
-        };
+        let base = &mut entity.base;
         base.set_rotation(rotation.yaw, rotation.pitch * RIDDEN_PITCH_SCALE);
         base.head_yaw = base.yaw;
-        steering.tick_boost();
         let yaw = base.yaw;
+        if let Some((_, steering)) = strider_state(entity) {
+            steering.tick_boost();
+        }
         if let Some(living) = entity.living_mut() {
             living.body_yaw = yaw;
         }

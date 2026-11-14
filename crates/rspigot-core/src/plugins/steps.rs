@@ -648,6 +648,7 @@ pub(crate) enum Spawned {
     Rides {
         vehicle: EntityId,
     },
+    Carries(Box<Carried>),
     Pattern(Vec<(BlockPos, BlockStateId)>),
     Hive(Box<HiveRelease>),
 }
@@ -658,6 +659,12 @@ pub(crate) struct HiveRelease {
     pub(crate) occupant: rspigot_domain::beehive::Occupant,
     pub(crate) status: rspigot_domain::beehive::ReleaseStatus,
     pub(crate) angered_by: Option<PlayerId>,
+}
+
+#[derive(Debug)]
+pub(crate) struct Carried {
+    pub(crate) rider: Entity,
+    pub(crate) reason: CreatureSpawnReason,
 }
 
 #[derive(Debug)]
@@ -1236,6 +1243,7 @@ pub(crate) enum Continuation {
     Regrow(EntityId),
     SpellCast(SpellStep),
     Shiver(ShiverStep),
+    HorseJump(EntityId),
     Boarding(RideStep),
     Mounting(RideStep),
     Exiting(RideStep),
@@ -1377,6 +1385,7 @@ impl Continuation {
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::SpellCast(_) => EventKind::EntitySpellCast,
             Self::Shiver(_) => EventKind::StriderTemperatureChange,
+            Self::HorseJump(_) => EventKind::HorseJump,
             Self::Boarding(_) => EventKind::VehicleEnter,
             Self::Mounting(_) => EventKind::EntityMount,
             Self::Exiting(_) => EventKind::VehicleExit,
@@ -1447,6 +1456,7 @@ impl Continuation {
             Self::ItemDespawn(item) | Self::Regrow(item) => *item == id,
             Self::SpellCast(step) => step.caster == id,
             Self::Shiver(step) => step.strider == id,
+            Self::HorseJump(horse) => *horse == id,
             Self::Boarding(step)
             | Self::Mounting(step)
             | Self::Exiting(step)

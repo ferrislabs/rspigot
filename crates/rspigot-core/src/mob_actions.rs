@@ -110,6 +110,7 @@ impl<L: ClientLink> Server<L> {
             ),
             MobAction::Spell(action) => self.spell_action(id, action),
             MobAction::Ride(action) => self.ride_action(id, action),
+            MobAction::Equine(action) => self.equine_action(id, action),
             MobAction::Wolf(action) => self.wolf_action(id, action),
             MobAction::Cat(action) => self.cat_action(id, action),
             MobAction::Fox(action) => self.fox_action(id, action),
@@ -378,6 +379,9 @@ impl<L: ClientLink> Server<L> {
     ) -> Option<Entity> {
         let parent_entity = self.entities.store.get(parent)?;
         let kind = parent_entity.base.kind;
+        if species::equine::is_equine(kind) {
+            return self.equine_offspring(parent, partner, random);
+        }
         if !matches!(
             kind,
             Kind::Cow

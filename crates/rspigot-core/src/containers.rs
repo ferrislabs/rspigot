@@ -87,6 +87,7 @@ pub(crate) struct OpenMenu {
     pub local: Vec<Slot>,
     pub data: Vec<i16>,
     pub trader: Option<rspigot_domain::EntityId>,
+    pub mount: Option<rspigot_domain::EntityId>,
 }
 
 pub(crate) fn next_window<L>(player: &mut Player<L>) -> i32 {
@@ -446,7 +447,9 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn open_items(&self, open: &OpenMenu) -> Vec<Slot> {
         let size = open.menu.kind().container_size();
-        if open.backing.entity.is_some() {
+        if let Some(mount) = open.mount {
+            self.mount_menu_items(mount, size)
+        } else if open.backing.entity.is_some() {
             self.container_items(open.backing, size)
         } else {
             let mut local = open.local.clone();
@@ -551,6 +554,7 @@ impl<L: ClientLink> Server<L> {
             local: Vec::new(),
             data: Vec::new(),
             trader: None,
+            mount: None,
         }))
     }
 
@@ -859,15 +863,24 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn store_open_items(&mut self, id: PlayerId, before: &[Slot], items: Vec<Slot>) {
-        let Some(backing) = self
+        let Some((backing, mount)) = self
             .players
             .get(&id)
             .and_then(|player| player.open_menu.as_ref())
-            .map(|open| open.backing)
+            .map(|open| (open.backing, open.mount))
         else {
             return;
         };
-        if backing.entity.is_some() {
+        if let Some(mount) = mount {
+            self.write_mount_items(mount, &items);
+            if let Some(open) = self
+                .players
+                .get_mut(&id)
+                .and_then(|player| player.open_menu.as_mut())
+            {
+                open.local = items;
+            }
+        } else if backing.entity.is_some() {
             self.store_container(backing, &items);
             if let Some(kind) = cooking::cooking_of(backing.block) {
                 self.furnace_clicked(backing.pos, kind, before, &items);
@@ -953,7 +966,8 @@ impl<L: ClientLink> Server<L> {
             return false;
         };
         let before = Self::equipment_of(player);
-        let effects = if open.backing.entity.is_some() || open.backing.ender {
+        let effects = if open.backing.entity.is_some() || open.backing.ender || open.mount.is_some()
+        {
             open.menu.close(&mut player.inventory)
         } else {
             open.menu
@@ -1109,6 +1123,10 @@ impl<L: ClientLink> Server<L> {
         };
         if let Some(trader) = open.trader {
             return !player.vitals.is_dead() && self.trader_menu_valid(id, trader);
+        }
+        if let Some(mount) = open.mount {
+            return !player.vitals.is_dead()
+                && self.mount_menu_valid_for(id, mount, open.menu.kind());
         }
         let backing = open.backing;
         let present = backing.positions().all(|at| {
