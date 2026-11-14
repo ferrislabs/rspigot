@@ -145,6 +145,7 @@ pub enum MobAction {
     Shulker(ShulkerAction),
     Raider(RaiderAction),
     Crossbow(CrossbowAction),
+    CopperGolem(crate::CopperGolemAction),
     AmbientSound,
     Voice(&'static str),
     Sound {

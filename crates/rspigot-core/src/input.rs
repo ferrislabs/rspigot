@@ -392,6 +392,8 @@ impl<L: ClientLink> Server<L> {
                 self.fix_chest_pairs(pos, old, state);
                 self.ensure_container_entity(pos, state);
                 self.ensure_sculk_entity(pos, state);
+                self.ensure_statue_entity(pos, state);
+                self.try_spawn_copper_golem(pos, old, state);
                 true
             }
             _ => false,
@@ -461,6 +463,12 @@ impl<L: ClientLink> Server<L> {
             if !(sneaking && holding)
                 && self.use_composter(id, hand, stack.as_ref(), pos, clicked, sequence)
             {
+                return;
+            }
+            if !(sneaking && holding)
+                && self.use_golem_statue(id, hand, stack.as_ref(), pos, clicked)
+            {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
         } else {

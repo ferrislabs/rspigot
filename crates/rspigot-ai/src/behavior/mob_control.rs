@@ -25,6 +25,7 @@ use crate::breeze::{
     LongJump as BreezeLongJump, Shoot as BreezeShoot, ShootWhenStuck as BreezeShootWhenStuck,
     Slide as BreezeSlide, SlideToTargetSink,
 };
+use crate::copper_golem::TransportItemsBetweenContainers;
 use crate::piglin::{
     BackUpIfTooClose, BecomePassiveIfMemoryPresent, CROSSBOW_ATTACK_DURATION, CopyMemoryWithExpiry,
     CrossbowAttack, RememberIfHoglinWasKilled, StartAdmiringItemIfSeen,
@@ -197,6 +198,7 @@ mob_behaviors! {
     WardenRoar(Roar),
     WardenSniffing(Sniffing),
     WardenSonicBoom(SonicBoom),
+    TransportItems(TransportItemsBetweenContainers),
 }
 
 macro_rules! mob_triggers {
@@ -404,6 +406,14 @@ impl MobControl {
             CROSSBOW_ATTACK_DURATION,
             CROSSBOW_ATTACK_DURATION,
         )
+    }
+
+    pub fn set_transport_verdict(&mut self, verdict: crate::copper_golem::TargetVerdict) {
+        if let Self::Timed(timed) = self
+            && let MobBehavior::TransportItems(transport) = timed.inner_mut()
+        {
+            transport.set_verdict(verdict);
+        }
     }
 
     pub fn count_down_cooldown_ticks(cooldown_ticks: MemoryModuleType) -> Self {

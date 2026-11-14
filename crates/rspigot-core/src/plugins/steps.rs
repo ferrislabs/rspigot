@@ -875,6 +875,11 @@ pub(crate) enum Grief {
         to: BlockStateId,
     },
     Compost(Box<crate::compost::CompostRun>),
+    Statue {
+        golem: EntityId,
+        pos: BlockPos,
+        state: BlockStateId,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1123,6 +1128,7 @@ pub(crate) enum Continuation {
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
     DoorOpen { mob: EntityId, pos: BlockPos },
+    TargetBlock { mob: EntityId, pos: BlockPos },
     EntityExplode(Box<ExplodeStep>),
     Splash(Box<SplashStep>),
     Prime(PrimeStep),
@@ -1231,6 +1237,7 @@ impl Continuation {
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
+            Self::TargetBlock { .. } => EventKind::EntityTargetBlock,
             Self::EntityExplode(_) => EventKind::EntityExplode,
             Self::Splash(_) => EventKind::PotionSplash,
             Self::Prime(_) => EventKind::ExplosionPrime,
@@ -1313,10 +1320,13 @@ impl Continuation {
                 }
                 Grief::Douse { potion, .. } => *potion == id,
                 Grief::Compost(run) => run.villager() == id,
+                Grief::Statue { golem, .. } => *golem == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
-            Self::EggBreak { mob, .. } | Self::DoorOpen { mob, .. } => *mob == id,
+            Self::EggBreak { mob, .. }
+            | Self::DoorOpen { mob, .. }
+            | Self::TargetBlock { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
             Self::Splash(step) => step.potion == id,
             Self::Prime(step) => step.source == id,
@@ -1366,6 +1376,9 @@ impl Continuation {
                     pos: other,
                 },
             ) => one_mob == other_mob && one == other,
+            (Self::TargetBlock { mob: one, .. }, Self::TargetBlock { mob: other, .. }) => {
+                one == other
+            }
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
             (Self::Aim(one), Self::Aim(other)) => {
@@ -1414,6 +1427,7 @@ impl Continuation {
             Self::ChangeBlock(step) => matches!(step.change, Grief::Fall { .. }),
             Self::EggBreak { .. }
             | Self::DoorOpen { .. }
+            | Self::TargetBlock { .. }
             | Self::Form(_)
             | Self::Ignite(_)
             | Self::Prime(_)
