@@ -22,7 +22,7 @@ use crate::health::DamageSource;
 use crate::interact::Interaction;
 use crate::loot::{self, LootContext};
 use crate::mobs::ServerRandom;
-use crate::plugins::events::CreatureSpawnReason;
+use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -30,6 +30,10 @@ const DATA_SLEEPING_POS: u8 = villager::DATA_SLEEPING_POS;
 const SLEEP_HEIGHT: f64 = 0.6875;
 const STAND_UP_LIFT: f64 = 0.1;
 const BED_TOP: f64 = 0.5625;
+const INVISIBILITY_POTION: &str = "minecraft:invisibility";
+const TRADER_DRINK_TICKS: i32 = 32;
+const TRADER_DRINK_MILK: &str = "minecraft:entity.wandering_trader.drink_milk";
+const TRADER_DRINK_POTION: &str = "minecraft:entity.wandering_trader.drink_potion";
 const NO_SOUND: &str = "minecraft:entity.villager.no";
 const TRADE_SOUND: &str = "minecraft:entity.villager.trade";
 const AMBIENT_SOUND: &str = "minecraft:entity.villager.ambient";
@@ -217,6 +221,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn villager_custom_ai_step(&mut self, id: EntityId) {
+        self.merchant_happy_tick(id);
+        if self.merchant_offers_empty(id) && self.trading_player_of(id).is_some() {
+            self.merchant_stop_trading(id);
+        }
         let now = self.world.level.game_time;
         let baby_now = self.entities.store.get(id).is_some_and(Entity::is_baby);
         let brain_baby = self
@@ -257,7 +265,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn villager_interact(
         &mut self,
-        _player: rspigot_domain::player::PlayerId,
+        player: rspigot_domain::player::PlayerId,
         target: EntityId,
         hand: crate::events::Hand,
         held: Option<&ItemStack>,
@@ -274,15 +282,17 @@ impl<L: ClientLink> Server<L> {
         }
         if entity.is_baby() {
             self.villager_unhappy(target);
-            return Some(Interaction::Consume);
+            return Some(Interaction::Predicted);
         }
-        let empty = merchant_of(entity)
-            .and_then(|merchant| merchant.offers.as_ref())
-            .is_none_or(|offers| offers.is_empty());
+        let empty = self.merchant_offers_empty_after_generation(target);
         if empty && hand == crate::events::Hand::Main {
             self.villager_unhappy(target);
         }
-        Some(Interaction::Consume)
+        if empty {
+            return Some(Interaction::Consume);
+        }
+        self.begin_trading(player, target);
+        Some(Interaction::Predicted)
     }
 
     pub(crate) fn villager_unhappy(&mut self, id: EntityId) {
@@ -331,9 +341,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn villager_stop_trading(&mut self, id: EntityId) {
-        if let Some(entity) = self.entities.store.get_mut(id) {
-            with_villager(entity, |_, _, merchant| merchant.trading_player = None);
-        }
+        self.merchant_stop_trading(id);
     }
 
     fn villager_tell_witnesses(&mut self, id: EntityId, murderer: EntityId) {
@@ -489,20 +497,42 @@ impl<L: ClientLink> Server<L> {
             VillagerAction::HarvestCrop(pos) => self.destroy_block_dropping(pos, Some(id)),
             VillagerAction::PlantSeed { pos, slot } => self.villager_plant(id, pos, slot),
             VillagerAction::ClearWanderTarget => self.trader_set_wander_target(id, None),
+            VillagerAction::StopTrading => self.merchant_stop_trading(id),
+            VillagerAction::StartUsing(item) => self.trader_start_using(id, item),
         }
     }
 
     fn villager_restock(&mut self, id: EntityId) {
         let now = self.world.level.game_time;
         let day = self.world.level.day_time.div_euclid(OVERWORLD_DAY);
+        let before = self.offer_uses(id);
+        let mut check = None;
         if let Some(entity) = self.entities.store.get_mut(id) {
             with_villager(entity, |_, state, merchant| {
-                if let Some(offers) = merchant.offers.as_mut()
-                    && state.should_restock(offers, now, day)
-                {
-                    state.restock(offers, now);
+                if let Some(offers) = merchant.offers.as_mut() {
+                    check = Some(state.should_restock(offers, now, day));
                 }
             });
+        }
+        let Some(check) = check else {
+            return;
+        };
+        if check.caught_up {
+            self.replenish_all(id, &before);
+        }
+        if check.restock {
+            let before = self.offer_uses(id);
+            if let Some(entity) = self.entities.store.get_mut(id) {
+                with_villager(entity, |_, state, merchant| {
+                    if let Some(offers) = merchant.offers.as_mut() {
+                        state.restock(offers, now);
+                    }
+                });
+            }
+            self.replenish_all(id, &before);
+        }
+        if check.restock || check.caught_up {
+            self.refresh_trading_prices(id);
         }
     }
 
@@ -1017,6 +1047,84 @@ impl<L: ClientLink> Server<L> {
             .map(|mob| mob.species)
         {
             view.species.trader.wander_target = state.wander_target;
+        }
+        view.species.trader.trading_player =
+            merchant_of(entity).and_then(|merchant| merchant.trading_player);
+        view.species.trader.hurt_recently =
+            entity.living().is_some_and(|living| living.hurt_time > 0);
+    }
+
+    pub(crate) fn trader_start_using(&mut self, id: EntityId, item: rspigot_ai::TraderItem) {
+        let stack = match item {
+            rspigot_ai::TraderItem::InvisibilityPotion => {
+                rspigot_domain::potion::stack(ItemKind::Potion, INVISIBILITY_POTION)
+            }
+            rspigot_ai::TraderItem::MilkBucket => {
+                ItemStack::new(ItemKind::MilkBucket.id(), NonZeroU8::MIN)
+            }
+        };
+        let Some(Entity {
+            base,
+            state: EntityState::Living(living),
+            ..
+        }) = self.entities.store.get_mut(id)
+        else {
+            return;
+        };
+        set_item_slot(living, EquipmentSlot::Mainhand, Some(stack));
+        rspigot_domain::entity::living::start_using_item(base, living, EquipmentSlot::Mainhand);
+    }
+
+    pub(crate) fn trader_item_use_tick(&mut self, id: EntityId) {
+        let Some(entity) = self.entities.store.get(id) else {
+            return;
+        };
+        if entity.base.kind != Kind::WanderingTrader {
+            return;
+        }
+        let Some(living) = entity.living() else {
+            return;
+        };
+        let Some((slot, ticks)) = living.using_item else {
+            return;
+        };
+        let Some(stack) = living.equipment(slot).cloned() else {
+            return;
+        };
+        let milk = stack.item == ItemKind::MilkBucket.id();
+        if ticks < TRADER_DRINK_TICKS || !(milk || stack.item == ItemKind::Potion.id()) {
+            return;
+        }
+        if milk {
+            self.remove_entity_effects(id, None, EntityPotionEffectCause::Milk);
+        } else {
+            for effect in rspigot_domain::potion::PotionContents::of(&stack).effects() {
+                self.apply_entity_effect(id, effect, EntityPotionEffectCause::PotionDrink);
+            }
+        }
+        let sound = if milk {
+            TRADER_DRINK_MILK
+        } else {
+            TRADER_DRINK_POTION
+        };
+        self.entity_sound(id, sound, 1.0, 1.0);
+        if let Some(Entity {
+            base,
+            state: EntityState::Living(living),
+            ..
+        }) = self.entities.store.get_mut(id)
+        {
+            let remainder = if milk {
+                ItemKind::Bucket
+            } else {
+                ItemKind::GlassBottle
+            };
+            set_item_slot(
+                living,
+                EquipmentSlot::Mainhand,
+                Some(ItemStack::new(remainder.id(), NonZeroU8::MIN)),
+            );
+            rspigot_domain::entity::living::stop_using_item(base, living);
         }
     }
 

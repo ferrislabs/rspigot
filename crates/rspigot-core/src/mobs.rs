@@ -663,6 +663,10 @@ impl AiWorld for MobWorld<'_> {
         self.has_day_cycle && self.sky_darken < BRIGHT_SKY_DARKEN
     }
 
+    fn dark_outside(&self) -> bool {
+        self.has_day_cycle && self.sky_darken >= BRIGHT_SKY_DARKEN
+    }
+
     fn villager_reputation(&self, villager: EntityId, player: EntityId) -> i32 {
         let Some(uuid) = self
             .players
@@ -1682,7 +1686,10 @@ impl<L: ClientLink> Server<L> {
         self.play_sound(None, position, sound, source, volume, pitch);
     }
 
-    fn die_mob(&mut self, id: EntityId, source: &DamageSource) {
+    pub(crate) fn die_mob(&mut self, id: EntityId, source: &DamageSource) {
+        if self.zombie_infects_villager(id, source) {
+            return;
+        }
         let level = self.world.level.name.clone();
         let credit = self.entities.store.get(id).and_then(|e| {
             let living = e.living()?;

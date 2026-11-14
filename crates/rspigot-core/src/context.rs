@@ -929,13 +929,17 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn apply_entity_effect_now(&mut self, id: EntityId, effect: EffectInstance) -> bool {
-        let Some(state) = self.entities.store.get_mut(id).and_then(|e| e.living_mut()) else {
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return false;
+        };
+        let Some(state) = entity.living_mut() else {
             return false;
         };
         if state.effects.apply(effect) == rspigot_domain::effect::ApplyOutcome::Unchanged {
             return false;
         }
         living::mark_effect_attributes(state, effect.effect);
+        update_invisibility(entity);
         true
     }
 
@@ -966,13 +970,29 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn remove_entity_effect_now(&mut self, id: EntityId, effect: EffectId) -> bool {
-        let Some(state) = self.entities.store.get_mut(id).and_then(|e| e.living_mut()) else {
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return false;
+        };
+        let Some(state) = entity.living_mut() else {
             return false;
         };
         let removed = state.effects.remove(effect).is_some();
         if removed {
             living::mark_effect_attributes(state, effect);
+            update_invisibility(entity);
         }
         removed
     }
+}
+
+fn update_invisibility(entity: &mut Entity) {
+    let Some(invisible) = entity
+        .living()
+        .map(|state| state.effects.has("minecraft:invisibility"))
+    else {
+        return;
+    };
+    entity
+        .base
+        .set_shared_flag(rspigot_domain::entity::FLAG_INVISIBLE, invisible);
 }

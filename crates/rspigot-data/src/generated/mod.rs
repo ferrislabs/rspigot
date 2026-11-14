@@ -6,4 +6,5 @@ pub mod spawns;
 pub mod static_registries;
 pub mod synced;
 pub mod tags;
+pub mod trading;
 pub mod variants;

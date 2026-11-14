@@ -450,6 +450,7 @@ impl<L: ClientLink> Server<L> {
             living::tick_arrows(base, state);
             living::begin_ai_step(base, state);
         }
+        self.trader_item_use_tick(id);
         self.mob_server_ai_step(id);
         let can_float = self.mob_can_float(id);
         let chunks = &self.world.chunks;

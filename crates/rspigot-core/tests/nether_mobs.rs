@@ -207,9 +207,9 @@ fn a_piglin_picks_up_a_gold_ingot_admires_it_and_trades_it_for_loot() {
 #[test]
 fn a_hurt_piglin_hates_the_attacker_and_calls_the_adult_piglins_around_it() {
     let mut s = creative(ready(scene(&["Alice"])));
-    let one = summon(&mut s, Kind::Piglin, "30.5 64 30.5", IMMUNE);
-    let two = summon(&mut s, Kind::Piglin, "32.5 64 30.5", IMMUNE);
-    let zombie = summon(&mut s, Kind::Zombie, "30.5 64 32.5", "{NoAI:1b}");
+    let one = summon(&mut s, Kind::Piglin, "5.5 64 5.5", IMMUNE);
+    let two = summon(&mut s, Kind::Piglin, "7.5 64 5.5", IMMUNE);
+    let zombie = summon(&mut s, Kind::Zombie, "5.5 64 7.5", "{NoAI:1b}");
     s.tick(70);
     assert!(s.server.do_hurt_target(zombie, Target::Entity(one)));
     s.tick(6);

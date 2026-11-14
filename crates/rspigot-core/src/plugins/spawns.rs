@@ -14,7 +14,7 @@ use crate::plugins::events::{
     CreatureSpawn, CreatureSpawnReason, EntityDropItem, EntityRemove, EntityRemoveCause,
     EntitySpawn, ItemSpawn, ProjectileLaunch,
 };
-use crate::plugins::steps::{Birth, SpawnStep, Spawned};
+use crate::plugins::steps::{Birth, Follow, SpawnStep, Spawned};
 use crate::plugins::{Answer, EntityView, EventKind, EventPayload, ToPlugin};
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -175,8 +175,19 @@ impl<L: ClientLink> Server<L> {
         } = step;
         let id = entity.base.id;
         let mut placed = None;
-        let orphaned =
-            matches!(birth.then, Spawned::Converted { old, .. } if !self.living_entity_alive(old));
+        let orphaned = match birth.then {
+            Spawned::Converted {
+                old,
+                follow: Follow::Infection { .. },
+                ..
+            } => self
+                .entities
+                .store
+                .get(old)
+                .is_none_or(|entity| entity.base.is_removed()),
+            Spawned::Converted { old, .. } => !self.living_entity_alive(old),
+            _ => false,
+        };
         if cancelled || orphaned {
             self.entities.mobs.initial_targets.remove(&id);
         } else if loaded && !self.world.chunks.is_loaded(entity.base.chunk()) {
@@ -220,7 +231,10 @@ impl<L: ClientLink> Server<L> {
                     self.use_spawn_egg(player, slot, &item);
                 }
             }
-            Spawned::Converted { old, event } => self.finish_conversion(old, event),
+            Spawned::Converted { old, event, follow } => {
+                self.follow_conversion(old, placed.as_ref().map(|(id, _)| *id), follow);
+                self.finish_conversion(old, event, matches!(follow, Follow::Infection { .. }));
+            }
             Spawned::Poof => {
                 if let Some((id, _)) = placed {
                     self.spawn_anim(id);

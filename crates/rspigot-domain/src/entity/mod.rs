@@ -26,6 +26,7 @@ pub mod tamable;
 pub mod thrown;
 pub mod tracker;
 mod tracking_range;
+pub mod trade_gen;
 pub mod trading;
 pub mod variants;
 
