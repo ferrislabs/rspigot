@@ -405,6 +405,7 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_container_entity(pos, state);
                 self.ensure_sculk_entity(pos, state);
                 self.ensure_statue_entity(pos, state);
+                self.ensure_portal_entity(pos, state);
                 self.ensure_beehive_entity(pos, state);
                 if state.kind() == Some(BlockKind::Fire) {
                     self.hive_fire_placed(pos);
@@ -519,6 +520,10 @@ impl<L: ClientLink> Server<L> {
             && !self.is_protected(id, pos)
             && self.use_bone_meal(id, hand, pos, sequence)
         {
+            return;
+        }
+        if self.use_ender_eye(id, hand, slot, pos, clicked) {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;
         }
         if self.use_end_crystal(id, slot, pos, face, clicked) {

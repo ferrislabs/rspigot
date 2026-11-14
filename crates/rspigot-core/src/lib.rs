@@ -30,6 +30,7 @@ mod durability;
 mod eating;
 mod effects;
 mod end_platform;
+mod end_portal;
 pub mod entities;
 mod environment;
 pub mod events;
