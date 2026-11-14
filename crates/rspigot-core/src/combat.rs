@@ -331,6 +331,7 @@ impl<L: ClientLink> Server<L> {
         };
         let struck = match victim.target {
             Target::Entity(entity) if self.is_deflectable(entity) => Struck::Projectile(entity),
+            Target::Entity(entity) => self.struck(entity),
             target => Self::struck_target(target),
         };
         self.strike(

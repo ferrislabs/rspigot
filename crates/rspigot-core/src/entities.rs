@@ -758,6 +758,14 @@ impl<L: ClientLink> Server<L> {
             .map(|runtime| runtime.phases.current())
     }
 
+    pub fn level_snapshot(&self) -> crate::config::LevelData {
+        let mut level = self.world.level.clone();
+        if let Some(fight) = &self.entities.fight {
+            level.dragon_fight = Some(fight.data.to_nbt());
+        }
+        level
+    }
+
     pub fn dragon_fight_data(&self) -> Option<rspigot_domain::dragon::fight::FightData> {
         self.entities.fight.as_ref().map(|fight| fight.data.clone())
     }
