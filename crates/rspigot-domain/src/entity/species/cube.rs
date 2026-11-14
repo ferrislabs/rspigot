@@ -206,6 +206,7 @@ pub fn sound_pitch(base: &EntityBase, random: &mut impl RandomSource) -> f32 {
 
 pub fn jump_sound(kind: EntityKind, tiny: bool) -> &'static str {
     match (kind, tiny) {
+        (EntityKind::SulfurCube, tiny) => sulfur_cube::jump_sound(tiny),
         (EntityKind::MagmaCube, _) => "minecraft:entity.magma_cube.jump",
         (_, true) => "minecraft:entity.slime.jump_small",
         (_, false) => "minecraft:entity.slime.jump",

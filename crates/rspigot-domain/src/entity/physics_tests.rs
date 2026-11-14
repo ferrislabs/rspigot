@@ -231,3 +231,93 @@ fn spider_pushing_into_a_wall_climbs_it() {
     }
     assert!(cow.position.y < 64.7, "cow climbed to {}", cow.position.y);
 }
+
+fn sulfur_cube_at(position: Vec3, block: Option<&str>) -> (EntityBase, LivingState) {
+    use super::species::{cube, sulfur_cube};
+    let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::SulfurCube);
+    base.position = position;
+    let mut living = LivingState::new(&mut base, 0.0);
+    living.mob = Some(super::living::MobState {
+        species: super::species::Species::Cube(cube::define(&mut base)),
+        ..Default::default()
+    });
+    cube::set_size(&mut base, &mut living, 2, true);
+    if let Some(name) = block {
+        let kind = rspigot_items::ItemKind::from_name(name).unwrap();
+        living.equipment[sulfur_cube::slot_index_of_body()] =
+            Some(ItemStack::new(kind.id(), std::num::NonZeroU8::MIN));
+        sulfur_cube::sync_equipment(&base, &mut living);
+    }
+    (base, living)
+}
+
+fn water_world() -> World {
+    let mut world = World::floor(BlockKind::Stone);
+    for x in -4..8 {
+        for z in -4..8 {
+            for y in 64..70 {
+                world.set(x, y, z, BlockKind::Water.default_state());
+            }
+        }
+    }
+    world
+}
+
+#[test]
+fn a_buoyant_block_makes_a_sulfur_cube_float_up_while_a_sticky_one_stays_down() {
+    let world = water_world();
+    let top_after = |block: Option<&str>| {
+        let (mut base, mut living) = sulfur_cube_at(Vec3::new(0.5, 64.0, 0.5), block);
+        for tick in 0..120 {
+            base.tick_count = tick;
+            super::fluid::update(&mut base, &world);
+            living::ai_step(&mut base, &mut living, &world);
+        }
+        base.position.y
+    };
+    let floating = top_after(Some("minecraft:oak_planks"));
+    let sinking = top_after(Some("minecraft:honeycomb_block"));
+    let bare = top_after(None);
+    assert!(floating > 66.0, "{floating}");
+    assert!(sinking < 65.0, "{sinking}");
+    assert!(bare < 65.0, "{bare}");
+}
+
+#[test]
+fn a_sulfur_cube_with_a_block_cannot_step_up_but_an_empty_one_can() {
+    let mut world = World::floor(BlockKind::Stone);
+    world.set(1, 64, 0, BlockKind::StoneSlab.default_state());
+    let stepped = |block: Option<&str>| {
+        let (mut base, mut living) = sulfur_cube_at(Vec3::new(0.5, 64.0, 0.5), block);
+        base.on_ground = true;
+        let traits = walker_traits(&mut living, &base);
+        move_entity(&mut base, &world, Vec3::new(0.6, -0.0784, 0.0), &traits);
+        base.position.y
+    };
+    assert!((stepped(None) - 64.5).abs() < 1e-9);
+    assert!((stepped(Some("minecraft:stone")) - 64.0).abs() < 1e-9);
+}
+
+#[test]
+fn a_bouncy_block_makes_a_falling_sulfur_cube_rebound_off_the_ground() {
+    let world = World::floor(BlockKind::Stone);
+    let peak_after_landing = |block: &str| {
+        let (mut base, mut living) = sulfur_cube_at(Vec3::new(0.5, 70.0, 0.5), Some(block));
+        let mut landed = false;
+        let mut peak = 0.0f64;
+        for _ in 0..80 {
+            living::ai_step(&mut base, &mut living, &world);
+            if base.on_ground {
+                landed = true;
+            }
+            if landed {
+                peak = peak.max(base.position.y);
+            }
+        }
+        peak
+    };
+    let bouncy = peak_after_landing("minecraft:oak_planks");
+    let sticky = peak_after_landing("minecraft:honeycomb_block");
+    assert!(bouncy > 64.5, "{bouncy}");
+    assert!(sticky < 64.1, "{sticky}");
+}

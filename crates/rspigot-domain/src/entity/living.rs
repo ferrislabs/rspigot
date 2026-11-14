@@ -1566,7 +1566,12 @@ fn travel_on_land<V: BlockView>(
         return travel_flying(base, living, view, input, speeds);
     }
     if base.fluid.in_liquid() {
-        travel_in_fluid(base, living, view, input)
+        let landing = travel_in_fluid(base, living, view, input);
+        let lift = super::species::sulfur_cube::buoyancy(base, living, base.tick_count);
+        if lift > 0.0 {
+            base.velocity = base.velocity + Vec3::new(0.0, lift, 0.0);
+        }
+        landing
     } else {
         travel_in_air(base, living, view, input)
     }
