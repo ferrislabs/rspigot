@@ -42,6 +42,23 @@ pub trait EntityStore: Send + Sync + 'static {
         pos: ChunkPos,
         entities: &[Compound],
     ) -> Result<(), StoreError>;
+
+    fn load_world_data(
+        &self,
+        _dimension: &Identifier,
+        _name: &str,
+    ) -> Result<Option<Compound>, StoreError> {
+        Ok(None)
+    }
+
+    fn save_world_data(
+        &self,
+        _dimension: &Identifier,
+        _name: &str,
+        _data: &Compound,
+    ) -> Result<(), StoreError> {
+        Ok(())
+    }
 }
 
 pub trait PlayerStore: Send + Sync + 'static {

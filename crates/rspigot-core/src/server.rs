@@ -1148,9 +1148,17 @@ impl<L: ClientLink> Server<L> {
         self.save_dragon_fight();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
-        for (_, mut state) in self.dormant.drain() {
-            state.world.chunks.save_dirty(&state.workers);
-            state.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
+        let keys: Vec<crate::world_state::DimensionKey> = self.dormant.keys().cloned().collect();
+        for key in keys {
+            let Some(mut state) = self.dormant.remove(&key) else {
+                continue;
+            };
+            self.swap_world(&mut state);
+            self.save_all_entities();
+            self.save_world_data();
+            self.world.chunks.save_dirty(&self.workers);
+            self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
+            self.swap_world(&mut state);
             state.workers.shutdown();
         }
         self.workers.shutdown();
