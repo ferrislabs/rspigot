@@ -560,7 +560,9 @@ pub fn can_mate_kind(kind: EntityKind, partner: EntityKind) -> bool {
 }
 
 pub fn can_fall_in_love(kind: EntityKind) -> bool {
-    kind != EntityKind::ZombieHorse && super::camel::can_fall_in_love(kind)
+    kind != EntityKind::ZombieHorse
+        && kind != EntityKind::HappyGhast
+        && super::camel::can_fall_in_love(kind)
 }
 
 pub fn can_age_up(kind: EntityKind) -> bool {

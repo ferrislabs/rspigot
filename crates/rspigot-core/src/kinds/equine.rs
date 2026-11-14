@@ -1193,7 +1193,8 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(target) else {
             return false;
         };
-        if !equine::is_equine(entity.base.kind) {
+        let harness = entity.base.kind == Kind::HappyGhast;
+        if !equine::is_equine(entity.base.kind) && !harness {
             return false;
         }
         let height = f64::from(entity.base.dimensions.height);
@@ -1208,7 +1209,9 @@ impl<L: ClientLink> Server<L> {
         self.mount_equip(target, EquipmentSlot::Body, None);
         let carpet = armor.item.kind().is_some_and(is_carpet);
         self.drop_at_location(target, height, armor, Vec3::ZERO);
-        let sound = if carpet {
+        let sound = if harness {
+            rspigot_domain::entity::species::happy_ghast::UNEQUIP_SOUND
+        } else if carpet {
             CARPET_UNEQUIP_SOUND
         } else {
             ARMOR_UNEQUIP_SOUND

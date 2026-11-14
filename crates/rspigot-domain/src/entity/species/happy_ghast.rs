@@ -35,6 +35,8 @@ pub const RESTRICTION_RECHECK_MARGIN: i32 = 16;
 pub const HEAL_INTERVAL_SHELTERED: i32 = 20;
 pub const HEAL_INTERVAL: i32 = 600;
 pub const FOLLOW_RANGE: f64 = 16.0;
+pub const CLOUD_HEIGHT: f32 = 192.33;
+pub const CLOUD_DEPTH: f32 = 4.0;
 pub const BABY_REQUIRED_PATH_LENGTH: f32 = 48.0;
 pub const BABY_FLY_MAX_TURN: i32 = 180;
 pub const FLOAT_AROUND_DISTANCE: i32 = 16;
@@ -57,6 +59,7 @@ pub const BABY_DEATH_SOUND: &str = "minecraft:entity.ghastling.death";
 pub struct HappyGhastState {
     pub leash_holder_time: i32,
     pub server_still_timeout: i32,
+    pub baby_seen: bool,
 }
 
 pub fn is_happy_ghast(kind: EntityKind) -> bool {
@@ -128,6 +131,12 @@ pub fn home_needs_reset(home: Option<(BlockPos, i32)>, position: BlockPos, radiu
     let dy = f64::from(home_pos.y - position.y);
     let dz = f64::from(home_pos.z - position.z);
     dx * dx + dy * dy + dz * dz >= reach * reach || home_radius != radius
+}
+
+pub fn is_in_clouds(has_clouds: bool, y: f64, height: f32) -> bool {
+    has_clouds
+        && y + f64::from(height) >= f64::from(CLOUD_HEIGHT)
+        && y <= f64::from(CLOUD_HEIGHT + CLOUD_DEPTH)
 }
 
 pub fn heal_interval(sheltered: bool) -> i32 {
@@ -383,6 +392,15 @@ mod tests {
         assert_eq!(walk_target_value(true, true, false), 10.0);
         assert_eq!(walk_target_value(true, true, true), 5.0);
         assert_eq!(walk_target_value(true, false, false), 5.0);
+    }
+
+    #[test]
+    fn the_clouds_hold_a_band_four_blocks_deep_above_the_cloud_height() {
+        assert!(is_in_clouds(true, 192.0, 4.0));
+        assert!(is_in_clouds(true, 196.0, 4.0));
+        assert!(!is_in_clouds(true, 197.0, 4.0));
+        assert!(!is_in_clouds(true, 150.0, 4.0));
+        assert!(!is_in_clouds(false, 192.0, 4.0));
     }
 
     #[test]

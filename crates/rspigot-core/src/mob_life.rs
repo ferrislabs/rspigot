@@ -98,6 +98,7 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         Kind::SnowGolem => Some("minecraft:entity.snow_golem.ambient"),
         Kind::Blaze => Some("minecraft:entity.blaze.ambient"),
         Kind::Ghast => Some("minecraft:entity.ghast.ambient"),
+        Kind::HappyGhast => Some(species::happy_ghast::ambient_sound(entity.is_baby())),
         Kind::Shulker => {
             (!species::shulker::is_closed(base)).then_some("minecraft:entity.shulker.ambient")
         }
@@ -158,7 +159,16 @@ pub(crate) fn variant_sound(
 
 const HORSE_AMBIENT_INTERVAL: i32 = 400;
 
-fn ambient_interval(kind: Kind) -> i32 {
+fn ambient_interval(kind: Kind, vehicle: bool) -> i32 {
+    let base = base_ambient_interval(kind);
+    if kind == Kind::HappyGhast {
+        species::happy_ghast::ambient_interval(base, vehicle)
+    } else {
+        base
+    }
+}
+
+fn base_ambient_interval(kind: Kind) -> i32 {
     if kind == Kind::Ocelot {
         OCELOT_AMBIENT_INTERVAL
     } else if kind.extends("AbstractHorse") {
@@ -291,6 +301,7 @@ impl<L: ClientLink> Server<L> {
             .living()
             .is_some_and(|state| !living::is_dead_or_dying(&entity.base, state));
         let kind = entity.base.kind;
+        let vehicle = self.entities.rides.is_vehicle(id);
         let Some(entry) = self.entities.mobs.entries.get_mut(&id) else {
             return;
         };
@@ -303,14 +314,15 @@ impl<L: ClientLink> Server<L> {
         if roll >= time {
             return;
         }
-        entry.ambient_sound_time = -ambient_interval(kind);
+        entry.ambient_sound_time = -ambient_interval(kind, vehicle);
         self.play_ambient_sound(id);
     }
 
     pub(crate) fn reset_ambient_sound(&mut self, id: EntityId) {
         let kind = self.entities.store.get(id).map(|e| e.base.kind);
+        let vehicle = self.entities.rides.is_vehicle(id);
         if let (Some(kind), Some(entry)) = (kind, self.entities.mobs.entries.get_mut(&id)) {
-            entry.ambient_sound_time = -ambient_interval(kind);
+            entry.ambient_sound_time = -ambient_interval(kind, vehicle);
         }
     }
 
@@ -333,6 +345,10 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let volume = sounds.volume.get(baby, 1);
+        if sounds.pitch == VoicePitch::Fixed {
+            self.entity_sound(id, sound, volume, 1.0);
+            return;
+        }
         let mut random = self.mob_random(id);
         let spread = (random.next_float() - random.next_float()) * 0.2;
         self.store_mob_random(id, random);
