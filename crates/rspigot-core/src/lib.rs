@@ -82,6 +82,7 @@ pub mod ports;
 mod potions;
 mod projectiles;
 mod raids;
+mod random_ticks;
 pub mod recipe_book;
 mod respawning;
 mod riding;

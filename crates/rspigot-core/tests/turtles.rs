@@ -46,12 +46,22 @@ impl ChunkGenerator for Beach {
 }
 
 fn beach_server(seed: u64, day_time: i64, blocks: Vec<(BlockPos, BlockStateId)>) -> Server<Link> {
-    let config = GameConfig {
+    ticking_beach(seed, day_time, blocks, 3)
+}
+
+fn ticking_beach(
+    seed: u64,
+    day_time: i64,
+    blocks: Vec<(BlockPos, BlockStateId)>,
+    random_tick_speed: i32,
+) -> Server<Link> {
+    let mut config = GameConfig {
         view_distance: 4,
         chunk_workers: 2,
         spawn_protection: 0,
         ..GameConfig::default()
     };
+    config.rules.random_tick_speed = random_tick_speed;
     let data = LevelData {
         spawn_mobs: false,
         day_time,
@@ -200,6 +210,19 @@ fn an_egg_cracks_in_three_stages_then_hatches_baby_turtles_homed_on_the_nest() {
         assert_eq!(nbt.get_int_array("home_pos"), Some(&[2, 56, 2][..]));
         assert!(nbt.get_i32("Age").unwrap() < 0);
     }
+}
+
+#[test]
+fn a_random_tick_speed_of_zero_keeps_an_egg_from_cracking() {
+    let nest = BlockPos::new(2, 56, 2);
+    let mut s = scene_on(
+        ticking_beach(4, 21_500, vec![(nest, egg(0, 2))], 0),
+        &["Alice"],
+        Vec::new(),
+    );
+    s.tick(120);
+    s.tick(2_000);
+    assert_eq!(egg_at(&s, nest).unwrap().property("hatch"), Some("0"));
 }
 
 #[test]
