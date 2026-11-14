@@ -61,6 +61,7 @@ pub mod plugins;
 pub mod ports;
 mod potions;
 mod projectiles;
+mod raids;
 mod sculk;
 pub mod server;
 mod sound;

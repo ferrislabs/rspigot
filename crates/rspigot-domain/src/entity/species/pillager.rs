@@ -83,6 +83,25 @@ pub fn finalize(
     mob_finalize(base, living, group, level)
 }
 
+pub const QUICK_CHARGE: &str = "minecraft:quick_charge";
+
+pub fn apply_raid_buffs(
+    living: &mut LivingState,
+    wave: i32,
+    enchant_odds: f32,
+    random: &mut impl RandomSource,
+) {
+    if random.next_float() > enchant_odds {
+        return;
+    }
+    let Some(level) = crate::raid::pillager_quick_charge(wave) else {
+        return;
+    };
+    let mut crossbow = crossbow::single(ItemKind::Crossbow);
+    crossbow.set_enchantments(&[(QUICK_CHARGE.to_owned(), level)]);
+    set_item_slot(living, EquipmentSlot::Mainhand, Some(crossbow));
+}
+
 fn enchant_spawned_equipment(living: &mut LivingState, level: &mut impl RandomSource) {
     if living.equipment(EquipmentSlot::Mainhand).is_some() {
         let _ = level.next_float();
@@ -166,6 +185,42 @@ mod tests {
         (0..100_000)
             .find(|seed| check(&mut LegacyRandom::new(*seed)))
             .expect("a matching seed")
+    }
+
+    #[test]
+    fn raid_buffs_give_a_quick_charge_crossbow_only_after_wave_three_and_by_the_odds() {
+        let mut entity = pillager();
+        let mut random = LegacyRandom::new(1);
+        apply_raid_buffs(entity.living_mut().unwrap(), 3, 1.0, &mut random);
+        assert!(
+            entity
+                .living()
+                .unwrap()
+                .equipment(EquipmentSlot::Mainhand)
+                .is_none()
+        );
+        apply_raid_buffs(entity.living_mut().unwrap(), 4, 0.0, &mut random);
+        assert!(
+            entity
+                .living()
+                .unwrap()
+                .equipment(EquipmentSlot::Mainhand)
+                .is_none()
+        );
+        apply_raid_buffs(entity.living_mut().unwrap(), 4, 1.0, &mut random);
+        let crossbow = entity
+            .living()
+            .unwrap()
+            .equipment(EquipmentSlot::Mainhand)
+            .unwrap();
+        assert_eq!(crossbow.enchantments(), vec![(QUICK_CHARGE.to_owned(), 1)]);
+        apply_raid_buffs(entity.living_mut().unwrap(), 6, 1.0, &mut random);
+        let crossbow = entity
+            .living()
+            .unwrap()
+            .equipment(EquipmentSlot::Mainhand)
+            .unwrap();
+        assert_eq!(crossbow.enchantments(), vec![(QUICK_CHARGE.to_owned(), 2)]);
     }
 
     #[test]

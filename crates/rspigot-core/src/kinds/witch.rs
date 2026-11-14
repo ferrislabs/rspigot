@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
-use rspigot_ai::{MobView, RaiderAction, RaiderFacts, TargetReason};
+use rspigot_ai::{MobView, RaiderAction, TargetReason};
 use rspigot_domain::effect::{AttributeModifier, AttributeOperation};
 use rspigot_domain::entity::living::{self, MOVEMENT_SPEED};
-use rspigot_domain::entity::species::{Species, witch};
+use rspigot_domain::entity::species::{Species, raider, witch};
 use rspigot_domain::entity::{Entity, fire};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::potion::{self, PotionContents};
@@ -43,6 +43,19 @@ impl<L: ClientLink> Server<L> {
                     raider.set_patrol_target(target);
                 }
             }
+            RaiderAction::ResetNoActionTime => {
+                if let Some(living) = self.entities.store.get_mut(id).and_then(Entity::living_mut) {
+                    living.no_action_time = 0;
+                }
+            }
+            RaiderAction::SetCelebrating(celebrating) => {
+                if let Some(entity) = self.entities.store.get_mut(id) {
+                    raider::set_celebrating(&mut entity.base, celebrating);
+                }
+            }
+            RaiderAction::CelebrateSound => self.raider_celebrate_sound(id),
+            RaiderAction::Recruit => self.raider_recruit(id),
+            RaiderAction::PickUpBanner(item) => self.raider_pick_up_banner(id, item),
             RaiderAction::ShoutTarget {
                 mob,
                 target,
@@ -73,16 +86,8 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn witch_view(&self, entity: &Entity, view: &mut MobView) {
-        let raider = entity
-            .living()
-            .and_then(|living| living.mob.as_ref())
-            .and_then(|mob| mob.species.raider());
-        if let Some(raider) = raider {
-            view.species.raider = RaiderFacts {
-                patrolling: raider.patrolling,
-                patrol_leader: raider.patrol_leader,
-                patrol_target: raider.patrol_target,
-            };
+        if let Some(facts) = self.raider_view_facts(entity) {
+            view.species.raider = facts;
         }
     }
 

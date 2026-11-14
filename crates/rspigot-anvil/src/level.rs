@@ -216,6 +216,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     {
         level.day_time = ticks;
     }
+    level.raids = optional_saved_data(world_root, "raids");
     Ok(Some(level))
 }
 
@@ -315,6 +316,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         data.insert(OVERWORLD_CLOCK, clock);
         changed
     })?;
+    if let Some(raids) = &level.raids {
+        update_saved_data(world_root, "raids", |data| {
+            let changed = data != raids;
+            data.clone_from(raids);
+            changed
+        })?;
+    }
     let mut root = existing.unwrap_or_default();
     let mut data = match root.remove("Data") {
         Some(Tag::Compound(data)) => data,
@@ -467,6 +475,7 @@ mod tests {
             spawn_mobs: true,
             spawn_monsters: false,
             uuid: None,
+            raids: None,
         }
     }
 
@@ -507,6 +516,40 @@ mod tests {
         };
         write_level_data(&root, &again).unwrap();
         assert_eq!(read_level_data(&root).unwrap(), Some(again));
+    }
+
+    #[test]
+    fn raids_are_saved_in_their_own_data_file_and_read_back() {
+        let dir = TempDir::new("level-raids");
+        let root = dir.path().join("world");
+        let raids = Compound::new()
+            .with(
+                "raids",
+                Tag::List(vec![Tag::Compound(
+                    Compound::new()
+                        .with("id", 2)
+                        .with("status", "ongoing")
+                        .with("center", Tag::IntArray(vec![8, 64, 8])),
+                )]),
+            )
+            .with("next_id", 2)
+            .with("tick", 400);
+        let level = LevelData {
+            raids: Some(raids.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/raids.dat");
+        assert_eq!(file.get_compound("data"), Some(&raids));
+        assert_eq!(file.get_i32("DataVersion"), Some(5023));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
+        let without = LevelData {
+            raids: None,
+            ..sample()
+        };
+        write_level_data(&root, &without).unwrap();
+        let kept = read_level_data(&root).unwrap().unwrap();
+        assert_eq!(kept.raids, Some(raids));
     }
 
     #[test]

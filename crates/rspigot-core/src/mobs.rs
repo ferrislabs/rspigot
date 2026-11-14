@@ -570,6 +570,7 @@ pub(crate) struct MobWorld<'a> {
     raining: bool,
     ambient_light: f32,
     sea_level: i32,
+    raids: &'a rspigot_domain::raid::Raids,
 }
 
 impl MobWorld<'_> {
@@ -945,6 +946,20 @@ impl AiWorld for MobWorld<'_> {
             .collect()
     }
 
+    fn raid_at(&self, pos: BlockPos) -> Option<rspigot_ai::RaidFacts> {
+        self.raids
+            .raid_at(pos)
+            .and_then(|id| self.raids.get(id))
+            .map(crate::raids::facts_of)
+    }
+
+    fn is_ominous_banner(&self, id: EntityId) -> bool {
+        self.store.get(id).is_some_and(|entity| {
+            rspigot_domain::entity::item::stack(&entity.base)
+                .is_some_and(crate::raids::is_ominous_banner)
+        })
+    }
+
     fn dropped_item(&self, id: EntityId) -> Option<rspigot_ai::DroppedItem> {
         let entity = self.store.get(id)?;
         let EntityState::Item(state) = &entity.state else {
@@ -1260,6 +1275,7 @@ impl<L: ClientLink> Server<L> {
             raining: self.world.level.raining,
             ambient_light: ambient_light_of(&self.world.dimension),
             sea_level: self.world.dimension.sea_level,
+            raids: &self.raids.set,
         }
     }
 
@@ -1326,6 +1342,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn mob_server_ai_step(&mut self, id: EntityId) {
+        if self.kind_is_immobile(id) {
+            return;
+        }
         let sky_darken = sky_darken(&self.world.level);
         let bright = self.entities.store.get(id).is_some_and(|entity| {
             rspigot_domain::entity::species::raider::idles_extra(
@@ -2008,6 +2027,16 @@ impl<L: ClientLink> Server<L> {
             );
         }
         state.dying = true;
+        let killer = source
+            .causing
+            .as_ref()
+            .and_then(|causing| {
+                self.players
+                    .values()
+                    .find(|p| p.entity_id == causing.entity)
+            })
+            .map(|player| player.id);
+        self.raider_died(id, killer);
         self.stop_mob_brain(id);
         if let Some((owner, message)) = owner_message {
             self.push(Audience::One(owner), ClientEvent::system(message));
@@ -2350,6 +2379,9 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Hoglin | Kind::Zoglin)
         ) {
             return self.hoglin_hurt_target(attacker, target);
+        }
+        if self.kind_of(attacker) == Some(Kind::Ravager) {
+            self.ravager_attack(attacker);
         }
         self.panda_bite(attacker);
         let Some(source_entity) = self.mob_source(attacker) else {

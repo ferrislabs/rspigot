@@ -109,6 +109,7 @@ pub struct Server<L> {
     pub(crate) fluids: crate::fluids::ScheduledFluids,
     pub(crate) rng: StdRng,
     pub(crate) spawning: Spawning,
+    pub(crate) raids: crate::raids::RaidRuntime,
     pub(crate) plugins: Registry,
     pub(crate) decisions: Decisions,
     pub(crate) broadcasts: Broadcasts,
@@ -174,6 +175,7 @@ impl<L: ClientLink> Server<L> {
             fluids: crate::fluids::ScheduledFluids::default(),
             rng: StdRng::from_os_rng(),
             spawning,
+            raids: crate::raids::RaidRuntime::default(),
             plugins: Registry::default(),
             decisions: Decisions::default(),
             broadcasts: Broadcasts::default(),
@@ -194,6 +196,7 @@ impl<L: ClientLink> Server<L> {
             tps: TpsMeter::new(),
             config,
         };
+        server.load_raids();
         let center = spawn.chunk();
         let radius = server.config.spawn_chunk_radius;
         for dx in -radius..=radius {
@@ -846,6 +849,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_patrol_spawner();
         self.tick_phantom_spawner();
         self.tick_trader_spawner();
+        self.tick_raids();
         self.tick_entities();
         self.tick_golem_chests();
         self.collect_items();
@@ -1021,6 +1025,7 @@ impl<L: ClientLink> Server<L> {
         );
         self.handle_chunk_events();
         self.save_all_entities();
+        self.save_raids();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
         self.workers.shutdown();

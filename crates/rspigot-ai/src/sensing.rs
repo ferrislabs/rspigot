@@ -26,6 +26,9 @@ impl Sensing {
         mob: &MobView,
         target: &Living,
     ) -> bool {
+        if mob.species.raider.blind {
+            return false;
+        }
         if self.seen.contains(&target.id) {
             return true;
         }

@@ -947,12 +947,12 @@ mod tests {
                 (
                     1,
                     MobGoal::Raider(RaiderGoal::ObtainRaidLeaderBanner(
-                        ObtainRaidLeaderBannerGoal
+                        ObtainRaidLeaderBannerGoal::default()
                     ))
                 ),
                 (
                     3,
-                    MobGoal::Raider(RaiderGoal::PathfindToRaid(PathfindToRaidGoal))
+                    MobGoal::Raider(RaiderGoal::PathfindToRaid(PathfindToRaidGoal::default()))
                 ),
                 (
                     4,

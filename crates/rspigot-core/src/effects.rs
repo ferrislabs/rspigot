@@ -134,6 +134,8 @@ impl<L: ClientLink> Server<L> {
                     self.change_food(id, old + i32::from(amplifier) + 1, Some(old));
                 }
             }
+            EffectKind::BadOmen => return self.bad_omen_tick(id, amplifier),
+            EffectKind::RaidOmen => return self.raid_omen_tick(id, amplifier),
             EffectKind::Absorption => {
                 return self.player_absorption(id).is_some_and(|value| value > 0.0);
             }
