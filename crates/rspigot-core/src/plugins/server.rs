@@ -844,6 +844,24 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Hopper(step) => {
+                let step = *step;
+                match step.stage.clone() {
+                    crate::redstone::HopperStage::Search => {
+                        self.finish_hopper_search(step, patch_of!(patch, HopperInventorySearch));
+                    }
+                    crate::redstone::HopperStage::Move(transfer) => self.finish_hopper_move(
+                        step,
+                        transfer,
+                        cancelled,
+                        patch_of!(patch, InventoryMoveItem),
+                    ),
+                    crate::redstone::HopperStage::Pickup(pickup) => {
+                        self.finish_hopper_pickup(step, pickup, cancelled);
+                    }
+                }
+                Vec::new()
+            }
             Continuation::Redstone(step) => {
                 self.finish_redstone(*step, patch_of!(patch, BlockRedstone));
                 Vec::new()

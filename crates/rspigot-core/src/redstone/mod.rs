@@ -2,12 +2,14 @@ mod analog;
 mod controls;
 mod diode;
 mod event;
+mod hopper;
 mod lamp;
 mod observer;
 mod piston;
 mod reactions;
 mod resolver;
 mod signals;
+mod storage;
 mod torch;
 mod wire;
 
@@ -19,6 +21,7 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 
 pub(crate) use event::{RedstoneChange, RedstoneStep};
+pub(crate) use hopper::{HopperStep, Stage as HopperStage};
 pub(crate) use piston::PistonStep;
 pub(crate) use signals::{connected_direction, is_conductor};
 
@@ -47,6 +50,7 @@ pub(crate) struct Runtime {
     pub(crate) outputs: FxHashMap<BlockPos, i32>,
     pub(crate) moving: FxHashMap<BlockPos, piston::Moving>,
     pub(crate) events: Vec<piston::BlockEvent>,
+    pub(crate) hoppers: FxHashMap<BlockPos, hopper::Clock>,
     quiet: bool,
 }
 
@@ -67,6 +71,13 @@ pub(crate) fn attached(state: BlockStateId, clicked: Face, yaw: f32) -> BlockSta
     let Some(kind) = state.kind() else {
         return state;
     };
+    if kind == BlockKind::Hopper {
+        let facing = match clicked.opposite() {
+            Face::Up => "down",
+            side => side.name(),
+        };
+        return state.with_property("facing", facing).unwrap_or(state);
+    }
     if kind != BlockKind::Lever && !is_button(kind) {
         return state;
     }
@@ -144,6 +155,7 @@ impl<L: ClientLink> Server<L> {
                 self.piston_neighbor_changed(pos, state);
             }
             Some(BlockKind::PistonHead) => self.piston_head_neighbor_changed(pos, state),
+            Some(BlockKind::Hopper) => self.hopper_neighbor_changed(pos, state),
             Some(BlockKind::MovingPiston) if !self.falls.redstone.moving.contains_key(&pos) => {
                 self.schedule(pos, BlockKind::MovingPiston, 1);
             }
@@ -171,6 +183,9 @@ impl<L: ClientLink> Server<L> {
         ) && old.kind() != new.kind()
         {
             self.diode_placed(pos, new);
+        }
+        if new.kind() == Some(BlockKind::Hopper) && old.kind() != new.kind() {
+            self.hopper_neighbor_changed(pos, new);
         }
         if old.kind() == Some(BlockKind::Comparator) && new.kind() != old.kind() {
             self.falls.redstone.outputs.remove(&pos);
@@ -229,5 +244,27 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::Repeater) => self.repeater_placement(pos, state),
             _ => state,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_hopper_faces_away_from_the_clicked_side_and_down_from_the_top() {
+        let hopper = BlockKind::Hopper.default_state();
+        assert_eq!(
+            attached(hopper, Face::North, 0.0).property("facing"),
+            Some("south")
+        );
+        assert_eq!(
+            attached(hopper, Face::Up, 0.0).property("facing"),
+            Some("down")
+        );
+        assert_eq!(
+            attached(hopper, Face::Down, 0.0).property("facing"),
+            Some("down")
+        );
     }
 }

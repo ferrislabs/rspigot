@@ -422,7 +422,7 @@ impl<L: ClientLink> Server<L> {
             .map_or_else(|| vec![None; size], |entity| read_items(&entity.data, size))
     }
 
-    fn container_items(&self, backing: Backing, size: usize) -> Vec<Slot> {
+    pub(crate) fn container_items(&self, backing: Backing, size: usize) -> Vec<Slot> {
         if backing.block == BlockKind::Lectern {
             return vec![self.lectern_book(backing.pos)];
         }
@@ -488,7 +488,7 @@ impl<L: ClientLink> Server<L> {
         });
     }
 
-    fn store_container(&mut self, backing: Backing, items: &[Slot]) {
+    pub(crate) fn store_container(&mut self, backing: Backing, items: &[Slot]) {
         let Some(entity) = backing.entity else {
             return;
         };
@@ -522,6 +522,31 @@ impl<L: ClientLink> Server<L> {
             self.anger_nearby_piglins(id, true);
         }
         true
+    }
+
+    pub(crate) fn storage_backing(&self, pos: BlockPos) -> Option<(Backing, usize)> {
+        let state = self.block_or_air(pos);
+        let opening = opening_of(state).filter(|opening| {
+            opening.entity.is_some()
+                && !opening.kind.is_furnace()
+                && opening.kind != MenuKind::Lectern
+        })?;
+        let mut size = opening.kind.container_size();
+        let (mut first, mut second) = (pos, None);
+        let chunks = &self.world.chunks;
+        if let Some((right, left)) = chests::pair_of(pos, state, |at| chunks.block(at)) {
+            (first, second) = (right, Some(left));
+            size *= 2;
+        }
+        let backing = Backing {
+            pos: first,
+            second,
+            entity: opening.entity,
+            ender: false,
+            block: opening.block,
+            lid: opening.lid,
+        };
+        Some((backing, size))
     }
 
     pub(crate) fn opening_at(
