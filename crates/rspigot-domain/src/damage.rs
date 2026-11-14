@@ -44,6 +44,7 @@ pub enum DamageType {
     Thorns,
     Trident,
     Spit,
+    SulfurCubeHot,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -118,6 +119,7 @@ impl DamageType {
             Self::Thorns => "minecraft:thorns",
             Self::Trident => "minecraft:trident",
             Self::Spit => "minecraft:spit",
+            Self::SulfurCubeHot => "minecraft:sulfur_cube_hot",
         }
     }
 
@@ -156,6 +158,7 @@ impl DamageType {
             Self::Thorns => "thorns",
             Self::Trident => "trident",
             Self::Spit => "mob",
+            Self::SulfurCubeHot => "sulfurCubeHot",
         }
     }
 
@@ -180,7 +183,8 @@ impl DamageType {
             | Self::PlayerExplosion
             | Self::WindCharge
             | Self::Trident
-            | Self::Spit => 0.1,
+            | Self::Spit
+            | Self::SulfurCubeHot => 0.1,
             _ => 0.0,
         }
     }
@@ -285,6 +289,21 @@ mod tests {
         assert_eq!(DamageType::Sting.exhaustion(), 0.1);
         assert!(DamageType::Sting.registry_id().is_some());
         assert!(!DamageType::Sting.is(DamageTag::NoKnockback));
+    }
+
+    #[test]
+    fn the_hot_sulfur_cube_burns_and_is_a_registered_fire_damage_without_knockback() {
+        let kind = DamageType::SulfurCubeHot;
+        assert!(kind.registry_id().is_some());
+        assert_eq!(kind.name(), "minecraft:sulfur_cube_hot");
+        assert_eq!(kind.message_id(), "sulfurCubeHot");
+        assert_eq!(kind.exhaustion(), 0.1);
+        assert!(kind.is(DamageTag::IsFire));
+        assert!(kind.is(DamageTag::NoKnockback));
+        assert!(kind.in_tag("minecraft:sulfur_cube_with_block_immune_to"));
+        assert!(!DamageType::Drown.in_tag("minecraft:sulfur_cube_with_block_immune_to"));
+        assert!(DamageType::Explosion.in_tag("minecraft:sulfur_cube_with_block_immune_to"));
+        assert!(DamageType::MobAttack.in_tag("minecraft:sulfur_cube_with_block_immune_to"));
     }
 
     #[test]
