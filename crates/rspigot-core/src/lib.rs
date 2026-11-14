@@ -68,6 +68,7 @@ mod raids;
 mod riding;
 mod sculk;
 pub mod server;
+mod signal;
 mod sound;
 mod spawning;
 pub mod status;

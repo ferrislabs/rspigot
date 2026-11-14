@@ -936,7 +936,12 @@ impl<L: ClientLink> Server<L> {
         self.consume_held(id, hand, 1);
     }
 
-    fn golden_dandelion(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {
+    pub(crate) fn golden_dandelion(
+        &mut self,
+        id: PlayerId,
+        target: EntityId,
+        hand: Hand,
+    ) -> Interaction {
         let Some(Entity {
             base,
             state: EntityState::Living(state),
