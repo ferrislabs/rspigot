@@ -52,6 +52,7 @@ pub struct PlayerSave {
     pub on_ground: bool,
     pub flying: bool,
     pub ender_items: Vec<Slot>,
+    pub seen_credits: bool,
     pub warden_tracker: rspigot_domain::warden::WardenSpawnTracker,
 }
 
@@ -75,6 +76,7 @@ impl PlayerSave {
             on_ground: player.on_ground,
             flying: player.flying,
             ender_items: player.ender_items.clone(),
+            seen_credits: player.seen_credits,
             warden_tracker: vitals.warden_tracker,
         }
     }
@@ -88,6 +90,7 @@ impl PlayerSave {
             player.game_mode = mode;
         }
         player.previous_game_mode = self.previous_game_mode;
+        player.seen_credits = self.seen_credits;
         player.inventory = self.inventory.clone();
         player.ender_items = self.ender_items.clone();
         player.ender_items.resize(ENDER_SLOTS, None);
@@ -133,6 +136,7 @@ impl PlayerSave {
         if let Some(mode) = self.previous_game_mode {
             out.insert("previousPlayerGameType", i32::from(mode.id()));
         }
+        out.insert("seenCredits", self.seen_credits);
         out.insert("Health", self.health);
         out.insert("AbsorptionAmount", self.absorption);
         out.insert(
@@ -261,6 +265,7 @@ impl PlayerSave {
                 .and_then(|abilities| abilities.get_bool("flying"))
                 .unwrap_or(false),
             ender_items: read_items_at(data, ENDER_ITEMS, ENDER_SLOTS),
+            seen_credits: data.get_bool("seenCredits").unwrap_or(false),
             warden_tracker: rspigot_domain::warden::WardenSpawnTracker::read_or_default(
                 data.get_compound(rspigot_domain::warden::TRACKER_KEY),
             ),
@@ -360,6 +365,7 @@ mod tests {
                 ender[26] = Some(stack("minecraft:emerald", 1));
                 ender
             },
+            seen_credits: true,
         }
     }
 
@@ -368,6 +374,15 @@ mod tests {
         let save = sample();
         let decoded = PlayerSave::from_nbt(&save.to_nbt()).expect("decodes");
         assert_eq!(decoded, save);
+    }
+
+    #[test]
+    fn the_credits_flag_is_saved_as_seen_credits_and_defaults_to_unseen() {
+        let nbt = sample().to_nbt();
+        assert_eq!(nbt.get_bool("seenCredits"), Some(true));
+        let mut bare = nbt.clone();
+        bare.remove("seenCredits");
+        assert!(!PlayerSave::from_nbt(&bare).expect("decodes").seen_credits);
     }
 
     #[test]

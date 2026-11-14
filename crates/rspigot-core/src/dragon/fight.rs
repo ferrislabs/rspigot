@@ -1,8 +1,6 @@
 use rspigot_blocks::BlockKind;
 use rspigot_domain::boss_event::{BossColor, BossOverlay, ServerBossEvent};
-use rspigot_domain::dragon::fight::{
-    self as rules, FightData, GatewayBlock, RespawnStage, RespawnStep,
-};
+use rspigot_domain::dragon::fight::{self as rules, FightData, RespawnStage, RespawnStep};
 use rspigot_domain::dragon::phase::DragonPhase;
 use rspigot_domain::dragon::podium::{self, Podium};
 use rspigot_domain::dragon::spikes::{self, EndSpike, SpikeBlock};
@@ -34,6 +32,7 @@ pub(crate) struct DragonFight {
     pub(crate) bar: ServerBossEvent,
     pub(crate) spikes: Vec<EndSpike>,
     pub(crate) dirty: bool,
+    arena_held: bool,
     scan_ticks: i32,
     seen_ticks: i32,
     crystal_ticks: i32,
@@ -66,6 +65,7 @@ impl DragonFight {
             bar,
             spikes: spikes::spikes_for_seed(seed),
             dirty,
+            arena_held: false,
             scan_ticks: rules::PLAYER_SCAN_TICKS,
             seen_ticks: 0,
             crystal_ticks: 0,
@@ -201,9 +201,19 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         if fight.bar.players().next().is_none() {
+            self.fight_release_arena();
             return;
         }
-        if fight.data.needs_state_scanning {
+        self.fight_hold_arena();
+        if !self.fight_arena_loaded() {
+            return;
+        }
+        let needs_scan = self
+            .entities
+            .fight
+            .as_ref()
+            .is_some_and(|fight| fight.data.needs_state_scanning);
+        if needs_scan {
             self.fight_scan_state();
         }
         self.fight_tick_respawn();
@@ -231,6 +241,56 @@ impl<L: ClientLink> Server<L> {
             self.fight_update_crystal_count();
         }
         self.fight_save_if_dirty();
+    }
+
+    fn fight_arena_chunks(origin: BlockPos, radius: i32) -> Vec<rspigot_domain::ChunkPos> {
+        let center = origin.chunk();
+        let mut out = Vec::new();
+        for x in -radius..=radius {
+            for z in -radius..=radius {
+                out.push(rspigot_domain::ChunkPos::new(center.x + x, center.z + z));
+            }
+        }
+        out
+    }
+
+    fn fight_hold_arena(&mut self) {
+        let Some(fight) = self.entities.fight.as_mut() else {
+            return;
+        };
+        if fight.arena_held {
+            return;
+        }
+        fight.arena_held = true;
+        let origin = fight.origin;
+        for pos in Self::fight_arena_chunks(origin, rules::TICKET_RADIUS) {
+            self.world
+                .chunks
+                .add_ticket(pos, crate::chunks::Priority::URGENT, &self.workers);
+        }
+    }
+
+    fn fight_release_arena(&mut self) {
+        let Some(fight) = self.entities.fight.as_mut() else {
+            return;
+        };
+        if !fight.arena_held {
+            return;
+        }
+        fight.arena_held = false;
+        let origin = fight.origin;
+        for pos in Self::fight_arena_chunks(origin, rules::TICKET_RADIUS) {
+            self.world.chunks.remove_ticket(pos);
+        }
+    }
+
+    fn fight_arena_loaded(&self) -> bool {
+        let Some(fight) = self.entities.fight.as_ref() else {
+            return false;
+        };
+        Self::fight_arena_chunks(fight.origin, rules::SEARCH_CHUNKS)
+            .into_iter()
+            .all(|pos| self.world.chunks.is_loaded(pos))
     }
 
     fn fight_save_if_dirty(&mut self) {
@@ -454,14 +514,7 @@ impl<L: ClientLink> Server<L> {
         fight.dirty = true;
         let center = rules::gateway_position(index);
         self.level_event(rules::GATEWAY_EVENT, center, 0);
-        for (pos, kind) in rules::gateway_blocks(center) {
-            let state = match kind {
-                GatewayBlock::Gateway => block(BlockKind::EndGateway),
-                GatewayBlock::Bedrock => block(BlockKind::Bedrock),
-                GatewayBlock::Air => BlockStateId::AIR,
-            };
-            self.set_block(pos, state);
-        }
+        self.place_end_gateway(center, None);
     }
 
     fn fight_find_or_create_dragon(&mut self) {

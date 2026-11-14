@@ -1,4 +1,5 @@
 pub mod fight;
+pub mod gateway;
 pub mod history;
 pub mod parts;
 pub mod path;

@@ -133,6 +133,10 @@ impl Dimension {
         }
     }
 
+    pub fn has_dragon_fight(&self) -> bool {
+        self.key == Identifier::minecraft("the_end")
+    }
+
     pub fn has_day_cycle(&self) -> bool {
         self.has_skylight && !self.has_fixed_time
     }

@@ -98,6 +98,7 @@ pub(crate) struct VelocityStep {
 #[derive(Debug)]
 pub(crate) struct RespawnStep {
     pub(crate) player: PlayerId,
+    pub(crate) credits: bool,
 }
 
 #[derive(Debug)]

@@ -775,7 +775,10 @@ impl<L: ClientLink> Server<L> {
             self.world.spawn,
             Rotation::new(self.world.level.spawn_angle, 0.0),
         );
-        let step = RespawnStep { player: id };
+        let step = RespawnStep {
+            player: id,
+            credits: false,
+        };
         self.fire(id, Continuation::Respawn(step), move |server| {
             server.snapshot_of(id).map(|player| {
                 EventPayload::PlayerRespawn(PlayerRespawn {
@@ -790,6 +793,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn finish_respawn(&mut self, step: RespawnStep, patch: PlayerRespawnPatch) {
+        if step.credits {
+            self.finish_credits(step.player, patch);
+            return;
+        }
         let id = step.player;
         let hardcore = self.config.hardcore;
         let keep_experience = self.config.rules.keep_inventory;

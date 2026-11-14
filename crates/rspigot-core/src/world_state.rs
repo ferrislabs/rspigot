@@ -100,6 +100,9 @@ impl<L: ClientLink> Server<L> {
         self.in_dimension(&key, |server| {
             server.load_raids();
             server.load_dragon_fight();
+            if server.entities.fight.is_none() && server.world.dimension.has_dragon_fight() {
+                server.ensure_dragon_fight(rspigot_domain::BlockPos::new(0, 0, 0), true);
+            }
         });
     }
 

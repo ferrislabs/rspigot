@@ -41,7 +41,7 @@ impl ChunkGenerator for Island {
 
 fn ready(seed: u64) -> Scene {
     let config = GameConfig {
-        view_distance: 8,
+        view_distance: 12,
         chunk_workers: 2,
         spawn_protection: 0,
         ..GameConfig::default()
@@ -66,7 +66,7 @@ fn ready(seed: u64) -> Scene {
         &mut server,
         "Alice",
         rspigot_domain::player::ClientSettings {
-            view_distance: 8,
+            view_distance: 12,
             ..Default::default()
         },
     );
