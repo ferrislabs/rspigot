@@ -773,7 +773,6 @@ impl ServerboundPlay {
             | sb::LOCK_DIFFICULTY
             | sb::PADDLE_BOAT
             | sb::PLACE_RECIPE
-            | sb::RECIPE_BOOK_CHANGE_SETTINGS
             | sb::RECIPE_BOOK_SEEN_RECIPE
             | sb::SET_COMMAND_MINECART
             | sb::SET_GAME_RULE
