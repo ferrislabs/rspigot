@@ -277,7 +277,8 @@ fn behaviors(kind: EntityKind, activity: Activity) -> Vec<(i32, String)> {
 }
 
 fn names(list: &[(i32, String)]) -> Vec<(i32, Vec<&'static str>)> {
-    const KNOWN: [&str; 40] = [
+    const KNOWN: [&str; 41] = [
+        "InteractWithDoor",
         "BecomePassiveIfMemoryPresent",
         "AnimalMakeLove",
         "SetWalkTargetAwayFrom",
@@ -427,7 +428,8 @@ fn piglin_brute_activities_follow_the_vanilla_priorities() {
         vec![
             (0, "LookAtTargetSink"),
             (1, "MoveToTargetSink"),
-            (2, "StopBeingAngryIfTargetDead"),
+            (2, "InteractWithDoor"),
+            (3, "StopBeingAngryIfTargetDead"),
         ]
     );
     assert_eq!(
@@ -457,12 +459,13 @@ fn piglin_activities_follow_the_vanilla_priorities() {
         vec![
             (0, "LookAtTargetSink"),
             (1, "MoveToTargetSink"),
-            (2, "CopyMemoryWithExpiry"),
+            (2, "InteractWithDoor"),
             (3, "CopyMemoryWithExpiry"),
-            (4, "StopHoldingItemIfNoLongerAdmiring"),
-            (5, "StartAdmiringItemIfSeen"),
-            (6, "StartCelebratingIfTargetDead"),
-            (7, "StopBeingAngryIfTargetDead"),
+            (4, "CopyMemoryWithExpiry"),
+            (5, "StopHoldingItemIfNoLongerAdmiring"),
+            (6, "StartAdmiringItemIfSeen"),
+            (7, "StartCelebratingIfTargetDead"),
+            (8, "StopBeingAngryIfTargetDead"),
         ]
     );
     assert_eq!(

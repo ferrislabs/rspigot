@@ -138,6 +138,17 @@ impl Behavior for SleepInBed {
         if self.next_ok_start_time >= now {
             return;
         }
+        if let Some(mut doors) = crate::behavior::doors_to_close(cx) {
+            let nearest = crate::behavior::nearest_living_entities(cx);
+            crate::behavior::close_doors_that_i_have_opened_or_passed_through(
+                cx.ai,
+                None,
+                None,
+                &mut doors,
+                nearest.as_deref(),
+            );
+            crate::behavior::store_doors_to_close(cx, doors);
+        }
         let Some(pos) = Self::home(cx) else {
             return;
         };

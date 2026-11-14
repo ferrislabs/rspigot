@@ -6,6 +6,7 @@ use rspigot_blocks::{
     BlockKind, Face, Gravity, SCAFFOLDING_MAX_DISTANCE, StateFlags, scaffolding_settle,
     speleothem_thickness,
 };
+use rspigot_domain::composter;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::falling::{self, FallingState};
 use rspigot_domain::entity::{Entity, EntityState, RemovalReason};
@@ -193,9 +194,16 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn on_place(&mut self, pos: BlockPos) {
         self.fluid_changed(pos);
-        let Some(kind) = self.block_or_air(pos).kind() else {
+        let state = self.block_or_air(pos);
+        let Some(kind) = state.kind() else {
             return;
         };
+        if kind == BlockKind::Composter {
+            if composter::needs_ready_tick(state) {
+                self.schedule(pos, kind, composter::READY_DELAY_TICKS);
+            }
+            return;
+        }
         match kind.gravity() {
             Gravity::Falling | Gravity::ConcretePowder | Gravity::Anvil => {
                 self.schedule(pos, kind, FALLING_DELAY)
@@ -320,6 +328,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn block_tick(&mut self, pos: BlockPos, state: BlockStateId, kind: BlockKind) {
+        if kind == BlockKind::Composter {
+            self.composter_ready(pos, state);
+            return;
+        }
         match kind.gravity() {
             Gravity::Falling | Gravity::ConcretePowder => self.try_fall(pos, state, None),
             Gravity::Anvil => self.try_fall(pos, state, Some(FallHurt::ANVIL)),

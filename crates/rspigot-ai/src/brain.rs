@@ -127,6 +127,25 @@ pub struct AiContext<'a, W> {
     pub body: &'a mut MobBody,
 }
 
+fn path_profile_of<W: AiWorld>(
+    base: &MobProfile,
+    has_target: bool,
+    mob: &MobView,
+    world: &W,
+) -> MobProfile {
+    let mut profile = base.clone();
+    profile.step_height = mob.step_height;
+    profile.follow_range = mob.follow_range as f32;
+    profile.max_fall_distance = if !has_target {
+        MobProfile::DEFAULT_MAX_FALL_DISTANCE
+    } else if mob.kind == EntityKind::Creeper {
+        (mob.health - 1.0 + 3.0).floor() as i32
+    } else {
+        combat_fall_distance(mob.health, mob.max_health, world.difficulty())
+    };
+    profile
+}
+
 pub fn mob_tick(mob: &MobView, game_time: i64) -> MobTick {
     MobTick {
         state: MobState {
@@ -187,18 +206,12 @@ impl<W: AiWorld> AiContext<'_, W> {
     }
 
     fn path_profile(&mut self) -> MobProfile {
-        let mob = self.mob;
-        let mut profile = self.brain.profile.clone();
-        profile.step_height = mob.step_height;
-        profile.follow_range = mob.follow_range as f32;
-        profile.max_fall_distance = if self.target().is_none() {
-            MobProfile::DEFAULT_MAX_FALL_DISTANCE
-        } else if mob.kind == EntityKind::Creeper {
-            (mob.health - 1.0 + 3.0).floor() as i32
-        } else {
-            combat_fall_distance(mob.health, mob.max_health, self.world.difficulty())
-        };
-        profile
+        path_profile_of(
+            &self.brain.profile,
+            self.target().is_some(),
+            self.mob,
+            self.world,
+        )
     }
 
     pub fn move_to_pos(&mut self, position: Vec3, speed_modifier: f64) -> bool {
@@ -390,6 +403,27 @@ impl MobAi {
                 .state_mut()
                 .update_activity_from_schedule(clock_ticks, game_time);
         }
+    }
+
+    pub fn can_reach_pos<W: AiWorld>(
+        &self,
+        mob: &MobView,
+        world: &W,
+        pos: BlockPos,
+        reach: i32,
+    ) -> bool {
+        let has_target = self.brain.target.is_some_and(|id| {
+            world
+                .living(id)
+                .and_then(|living| targeting::valid_mob_target(mob, world, living))
+                .is_some()
+        });
+        let profile = path_profile_of(&self.brain.profile, has_target, mob, world);
+        let tick = mob_tick(mob, world.game_time());
+        let mut navigation = self.brain.navigation.clone();
+        navigation
+            .create_path(world, &profile, &tick, pos, reach, mob.follow_range)
+            .is_some_and(|path| path.can_reach())
     }
 
     pub fn behavior_brain(&self) -> Option<&BehaviorBrain<MobControl>> {
@@ -739,6 +773,7 @@ impl MobAi {
             context.tick_navigation();
         }
         if let Some(behavior) = self.behavior.as_mut() {
+            sync_path_memory(behavior.memories_mut(), context.brain.navigation.path());
             behavior.tick(&mut context);
             crate::piglin::after_brain_tick(behavior, &mut context);
             crate::animals::after_brain_tick(behavior, &mut context);
@@ -906,5 +941,67 @@ fn apply_pending<W: AiWorld>(
             }
             GoalChange::KillerBunny => registry::add_killer_bunny_goals(goals, targets),
         }
+    }
+}
+
+fn sync_path_memory(memories: &mut crate::behavior::Memories, path: Option<&crate::Path>) {
+    if memories.has_value(MemoryModuleType::Path)
+        && let Some(path) = path
+    {
+        memories.set(MemoryModuleType::Path, MemoryValue::Path(path.clone()));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::behavior::Memories;
+    use crate::{Path, PathNode};
+
+    fn path(advanced: usize) -> Path {
+        let nodes = (0..4)
+            .map(|x| PathNode::new(BlockPos::new(x, 64, 0), PathType::Walkable))
+            .collect();
+        let mut path = Path::new(nodes, BlockPos::new(3, 64, 0), true);
+        for _ in 0..advanced {
+            path.advance();
+        }
+        path
+    }
+
+    fn memories() -> Memories {
+        let mut memories = Memories::default();
+        memories.register(MemoryModuleType::Path);
+        memories
+    }
+
+    fn stored(memories: &Memories) -> Option<usize> {
+        memories
+            .get(MemoryModuleType::Path)
+            .and_then(MemoryValue::as_path)
+            .map(Path::next_node_index)
+    }
+
+    #[test]
+    fn the_path_memory_follows_the_navigation_progress() {
+        let mut memories = memories();
+        memories.set(MemoryModuleType::Path, MemoryValue::Path(path(1)));
+        sync_path_memory(&mut memories, Some(&path(3)));
+        assert_eq!(stored(&memories), Some(3));
+    }
+
+    #[test]
+    fn an_absent_path_memory_is_not_created_from_the_navigation() {
+        let mut memories = memories();
+        sync_path_memory(&mut memories, Some(&path(2)));
+        assert_eq!(stored(&memories), None);
+    }
+
+    #[test]
+    fn a_stopped_navigation_leaves_the_memory_alone() {
+        let mut memories = memories();
+        memories.set(MemoryModuleType::Path, MemoryValue::Path(path(2)));
+        sync_path_memory(&mut memories, None);
+        assert_eq!(stored(&memories), Some(2));
     }
 }

@@ -1,5 +1,6 @@
 pub mod block_transformers;
 pub mod climate;
+pub mod compostable;
 pub mod loot;
 pub mod spawns;
 pub mod static_registries;

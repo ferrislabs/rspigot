@@ -62,6 +62,15 @@ impl VillagerFacts {
         })
     }
 
+    pub fn count_item(&self, item: ItemId) -> i32 {
+        self.inventory
+            .iter()
+            .flatten()
+            .filter(|stack| stack.item == item)
+            .map(|stack| i32::from(stack.count))
+            .sum()
+    }
+
     pub fn is_farmer(&self) -> bool {
         self.profession == Profession::Farmer
     }
@@ -146,6 +155,8 @@ pub enum VillagerAction {
         timestamp: i64,
         villagers_needed: i32,
     },
+    SetMainHand(Option<ItemId>),
+    UseBoneMeal(BlockPos),
     HarvestCrop(BlockPos),
     PlantSeed {
         pos: BlockPos,

@@ -5,9 +5,9 @@ use rspigot_items::{EquipmentSlot, ItemKind, ModifierOperation};
 use crate::action::{BrainMessage, MobAction, PiglinAction};
 use crate::behavior::{
     Activity, ActivityData, BehaviorBrain, BehaviorCx, DoNothing, EntityFilter, EraseMemoryIf,
-    Gate, GoToTargetLocation, GoToWantedItem, InteractWith, MeleeAttack, Memories,
-    MemoryModuleType, MemoryValue, MobControl, MobPredicate, MobTrigger, RandomStroll, SensorKind,
-    SetEntityLookTarget, SetLookAndInteract, SetWalkTargetAwayFrom,
+    Gate, GoToTargetLocation, GoToWantedItem, InteractWith, InteractWithDoor, MeleeAttack,
+    Memories, MemoryModuleType, MemoryValue, MobControl, MobPredicate, MobTrigger, RandomStroll,
+    SensorKind, SetEntityLookTarget, SetLookAndInteract, SetWalkTargetAwayFrom,
     SetWalkTargetFromAttackTargetIfTargetOutOfReach, SetWalkTargetFromLookTarget, StartAttacking,
     StopAttackCondition, StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead, TargetFinder,
     UniformInt, is_entity_attackable_ignoring_line_of_sight,
@@ -709,6 +709,7 @@ pub fn piglin_activities() -> Vec<ActivityData<MobControl>> {
         vec![
             MobControl::default_look_at_target_sink(),
             MobControl::move_to_target_sink(),
+            MobControl::one_shot(MobTrigger::InteractWithDoor(InteractWithDoor::default())),
             MobControl::one_shot(MobTrigger::CopyMemoryWithExpiry(CopyMemoryWithExpiry::new(
                 CopyIf::IsBaby,
                 MemoryModuleType::NearestVisibleNemesis,
@@ -897,6 +898,7 @@ pub fn piglin_sensors() -> Vec<SensorKind> {
 
 pub fn piglin_memories() -> &'static [MemoryModuleType] {
     &[
+        MemoryModuleType::DoorsToClose,
         MemoryModuleType::UniversalAnger,
         MemoryModuleType::AteRecently,
         MemoryModuleType::SpearFleeingTime,
