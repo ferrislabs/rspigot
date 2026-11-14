@@ -563,6 +563,35 @@ mod tests {
     }
 
     #[test]
+    fn the_dragon_fight_is_saved_in_its_own_data_file_and_read_back() {
+        let dir = TempDir::new("level-fight");
+        let root = dir.path().join("world");
+        let fight = Compound::new()
+            .with("needs_state_scanning", false)
+            .with("dragon_killed", true)
+            .with("previously_killed", true)
+            .with("respawn_time", 0)
+            .with("exit_portal_location", Tag::IntArray(vec![0, 63, 0]))
+            .with("gateways", Tag::List(vec![Tag::Int(3), Tag::Int(9)]));
+        let level = LevelData {
+            dragon_fight: Some(fight.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/ender_dragon_fight.dat");
+        assert_eq!(file.get_compound("data"), Some(&fight));
+        assert_eq!(file.get_i32("DataVersion"), Some(5023));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
+        let without = LevelData {
+            dragon_fight: None,
+            ..sample()
+        };
+        write_level_data(&root, &without).unwrap();
+        let kept = read_level_data(&root).unwrap().unwrap();
+        assert_eq!(kept.dragon_fight, Some(fight));
+    }
+
+    #[test]
     fn files_follow_the_26_3_layout() {
         let dir = TempDir::new("level-layout");
         let root = dir.path();
