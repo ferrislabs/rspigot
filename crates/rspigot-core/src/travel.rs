@@ -1,6 +1,6 @@
 use rspigot_domain::entity::RemovalReason;
 use rspigot_domain::player::PlayerId;
-use rspigot_domain::{EntityId, Identifier, Rotation, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, EntityId, Identifier, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Tag;
 
@@ -8,10 +8,10 @@ use crate::end_platform;
 use crate::events::{ClientEvent, GameEvent};
 use crate::plugins::events::{
     EntityPortal, EntityPortalPatch, PlayerChangedWorld, PlayerPortal, PlayerPortalPatch,
-    PlayerTeleportCause,
+    PlayerTeleportCause, PortalCreate, PortalCreateReason,
 };
-use crate::plugins::steps::{EntityPortalStep, PortalStep};
-use crate::plugins::{Continuation, EventKind, EventPayload, Location, Phase};
+use crate::plugins::steps::{EntityPortalStep, PlatformStep, PlatformTraveler, PortalStep};
+use crate::plugins::{Continuation, EventKind, EventPayload, Lane, Location, Phase, snapshot_of};
 use crate::ports::ClientLink;
 use crate::server::Server;
 use crate::streaming::ChunkStreamer;
@@ -228,13 +228,88 @@ impl<L: ClientLink> Server<L> {
             tracing::warn!(dimension = %destination.dimension, "no such dimension to travel to");
             return false;
         }
-        self.in_dimension(&source, |server| server.leave_dimension(id));
+        if destination.platform && self.listened(EventKind::PortalCreate) {
+            let changes =
+                self.in_dimension(&destination.dimension, |server| server.plan_end_platform());
+            let step = PlatformStep {
+                traveler: PlatformTraveler::Player(id, source),
+                destination,
+            };
+            self.ask_platform(step, changes);
+            return true;
+        }
+        self.complete_player_travel(id, &source, destination, true);
+        true
+    }
+
+    fn complete_player_travel(
+        &mut self,
+        id: PlayerId,
+        source: &DimensionKey,
+        destination: Destination,
+        build: bool,
+    ) {
+        self.in_dimension(source, |server| server.leave_dimension(id));
         let target = destination.dimension.clone();
-        if destination.platform {
+        if build && destination.platform {
             self.in_dimension(&target, |server| server.make_end_platform());
         }
         self.in_dimension(&target, |server| server.enter_dimension(id, destination));
-        true
+    }
+
+    fn ask_platform(&mut self, step: PlatformStep, changes: Vec<(BlockPos, BlockStateId)>) {
+        let (lane, traveller) = match &step.traveler {
+            PlatformTraveler::Player(id, _) => (
+                Lane::Player(*id),
+                self.players.get(id).map(|player| player.entity_id),
+            ),
+            PlatformTraveler::Entity(id) => (self.lane_for(None, *id), Some(*id)),
+        };
+        let world = step.destination.dimension.to_string();
+        self.fire(
+            lane,
+            Continuation::Platform(Box::new(step)),
+            move |server| {
+                Some(EventPayload::PortalCreate(PortalCreate {
+                    blocks: changes
+                        .iter()
+                        .map(|(pos, state)| snapshot_of(*pos, *state))
+                        .collect(),
+                    entity: traveller.and_then(|id| server.subject_view(id)),
+                    reason: PortalCreateReason::EndPlatform,
+                    world,
+                }))
+            },
+        );
+    }
+
+    pub(crate) fn finish_platform(
+        &mut self,
+        step: PlatformStep,
+        cancelled: bool,
+    ) -> Vec<(u64, EventPayload)> {
+        let PlatformStep {
+            traveler,
+            destination,
+        } = step;
+        match traveler {
+            PlatformTraveler::Player(id, source) => {
+                let here = self
+                    .players
+                    .get(&id)
+                    .is_some_and(|player| player.dim == source);
+                if !here {
+                    return Vec::new();
+                }
+                let dropped = self.decisions.forget(id);
+                self.complete_player_travel(id, &source, destination, !cancelled);
+                dropped
+            }
+            PlatformTraveler::Entity(id) => {
+                self.travel_entity(id, destination, !cancelled);
+                Vec::new()
+            }
+        }
     }
 
     pub(crate) fn leave_dimension(&mut self, id: PlayerId) {
@@ -454,6 +529,28 @@ impl<L: ClientLink> Server<L> {
             tracing::warn!(dimension = %destination.dimension, "no such dimension to travel to");
             return None;
         }
+        if destination.platform && self.listened(EventKind::PortalCreate) {
+            let changes =
+                self.in_dimension(&destination.dimension, |server| server.plan_end_platform());
+            let step = PlatformStep {
+                traveler: PlatformTraveler::Entity(id),
+                destination,
+            };
+            self.ask_platform(step, changes);
+            return None;
+        }
+        self.travel_entity(id, destination, true)
+    }
+
+    fn travel_entity(
+        &mut self,
+        id: EntityId,
+        destination: Destination,
+        build: bool,
+    ) -> Option<EntityId> {
+        if !self.may_travel(id) || destination.dimension == self.world.dimension.key {
+            return None;
+        }
         self.unride(id);
         let world = self.world.level.uuid;
         let mut nbt = {
@@ -483,7 +580,7 @@ impl<L: ClientLink> Server<L> {
         );
         self.remove_entity(id, RemovalReason::ChangedDimension, None)?;
         let target = destination.dimension;
-        if destination.platform {
+        if build && destination.platform {
             self.in_dimension(&target, |server| server.make_end_platform());
         }
         self.in_dimension(&target, |server| server.arrive_entity(&nbt))

@@ -5,8 +5,10 @@ use std::time::Duration;
 
 use common::*;
 use rspigot_blocks::BlockKind;
+use rspigot_core::config::PluginSettings;
 use rspigot_core::config::{GameConfig, LevelData};
-use rspigot_core::events::Inbound;
+use rspigot_core::events::{ClientEvent, Inbound, MetadataValue};
+use rspigot_core::plugins::{EventKind, EventPayload};
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
@@ -52,6 +54,10 @@ impl ChunkGenerator for Sea {
 
 fn sea_server(seed: u64, biome: &'static str, spawn_mobs: bool) -> Server<Link> {
     let config = GameConfig {
+        plugins: PluginSettings {
+            decision_ticks: 1_000,
+            ..PluginSettings::default()
+        },
         view_distance: 5,
         chunk_workers: 2,
         spawn_protection: 0,
@@ -80,7 +86,16 @@ fn ready(seed: u64) -> Scene {
 }
 
 fn ready_with(seed: u64, biome: &'static str, spawn_mobs: bool) -> Scene {
-    let mut s = scene_on(sea_server(seed, biome, spawn_mobs), &["Alice"], Vec::new());
+    ready_handled(seed, biome, spawn_mobs, Vec::new())
+}
+
+fn ready_handled(
+    seed: u64,
+    biome: &'static str,
+    spawn_mobs: bool,
+    handlers: Vec<rspigot_core::plugins::HandlerSpec>,
+) -> Scene {
+    let mut s = scene_on(sea_server(seed, biome, spawn_mobs), &["Alice"], handlers);
     s.tick(120);
     s
 }
@@ -207,4 +222,90 @@ fn drowned_save_nothing_but_the_zombie_layout() {
     assert_eq!(nbt.get_bool("IsBaby"), Some(true));
     assert_eq!(nbt.get_bool("CanBreakDoors"), Some(false));
     assert_eq!(nbt.get_i32("DrownedConversionTime"), Some(-1));
+}
+
+fn hunting_drowned(s: &mut Scene) -> EntityId {
+    let drowned = summon(s, Kind::Drowned, "-14.5 58 8.5", "{}");
+    console(s, "tp Alice -6.5 58 8.5");
+    s.players[0].link.take();
+    drowned
+}
+
+fn shown_swimming(s: &Scene, entity: EntityId) -> Option<bool> {
+    s.players[0]
+        .link
+        .take()
+        .iter()
+        .filter_map(|event| match event {
+            ClientEvent::EntityMetadata {
+                entity: id,
+                entries,
+            } if *id == entity => Some(entries.clone()),
+            _ => None,
+        })
+        .flatten()
+        .filter(|entry| entry.index == 0)
+        .filter_map(|entry| match entry.value {
+            MetadataValue::Byte(flags) => Some(flags & 0x10 != 0),
+            _ => None,
+        })
+        .next_back()
+}
+
+fn swim_events(s: &Scene, entity: EntityId) -> Vec<bool> {
+    fired(&s.plugin)
+        .into_iter()
+        .filter_map(|event| match event.payload {
+            EventPayload::EntityToggleSwim(toggle) if toggle.entity.id == entity => {
+                Some(toggle.swimming)
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_drowned_starting_to_swim_tells_the_plugins_and_shows_the_swimming_flag() {
+    let mut s = ready_handled(
+        11,
+        "minecraft:warm_ocean",
+        false,
+        vec![observe(1, EventKind::EntityToggleSwim)],
+    );
+    let drowned = hunting_drowned(&mut s);
+    s.tick(60);
+    assert_eq!(swim_events(&s, drowned).first(), Some(&true));
+    assert_eq!(shown_swimming(&s, drowned), Some(true));
+}
+
+#[test]
+fn a_cancelled_swim_toggle_keeps_the_drowned_upright() {
+    let mut s = ready_handled(
+        11,
+        "minecraft:warm_ocean",
+        false,
+        vec![deciding(1, EventKind::EntityToggleSwim)],
+    );
+    let drowned = hunting_drowned(&mut s);
+    s.tick(60);
+    let asked = last_asked(&s.plugin, EventKind::EntityToggleSwim);
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(2);
+    assert_ne!(shown_swimming(&s, drowned), Some(true));
+}
+
+#[test]
+fn an_allowed_swim_toggle_makes_the_drowned_swim() {
+    let mut s = ready_handled(
+        11,
+        "minecraft:warm_ocean",
+        false,
+        vec![deciding(1, EventKind::EntityToggleSwim)],
+    );
+    let drowned = hunting_drowned(&mut s);
+    s.tick(60);
+    let asked = last_asked(&s.plugin, EventKind::EntityToggleSwim);
+    rule_on(&mut s.server, 1, asked.id, false, None);
+    s.tick(2);
+    assert_eq!(shown_swimming(&s, drowned), Some(true));
 }

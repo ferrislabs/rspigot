@@ -7,6 +7,9 @@ use rspigot_entities::SoundSource;
 use rustc_hash::FxHashSet;
 
 use crate::loot::{self, LootContext};
+use crate::plugins::events::{BlockFromTo, FluidLevelChange};
+use crate::plugins::steps::Continuation;
+use crate::plugins::{BlockState, EventPayload, Lane, block_state_of, data_of, face_of};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -37,7 +40,7 @@ pub struct ScheduledFluids {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Liquid {
+pub(crate) enum Liquid {
     Water,
     Lava,
 }
@@ -85,7 +88,7 @@ impl Liquid {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Flow {
+pub(crate) struct Flow {
     liquid: Liquid,
     level: u8,
 }
@@ -128,6 +131,35 @@ impl Flow {
         default
             .with_property("level", &self.level.to_string())
             .unwrap_or(default)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct FlowStep {
+    from: BlockPos,
+    face: Face,
+    target: BlockPos,
+    flow: Flow,
+    leak: Option<Flow>,
+}
+
+impl FlowStep {
+    pub(crate) fn is_same(&self, other: &Self) -> bool {
+        self.from == other.from && self.face == other.face
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct LevelStep {
+    pos: BlockPos,
+    before: BlockStateId,
+    state: BlockStateId,
+    flow: Option<Flow>,
+}
+
+impl LevelStep {
+    pub(crate) fn is_same(&self, other: &Self) -> bool {
+        self.pos == other.pos
     }
 }
 
@@ -204,27 +236,73 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn fluid_tick(&mut self, pos: BlockPos) {
-        let Some(mut flow) = self.world.chunks.block(pos).and_then(Flow::of) else {
+        let Some(flow) = self.world.chunks.block(pos).and_then(Flow::of) else {
             return;
         };
         if self.solidify_lava(pos, flow) {
             return;
         }
         if !flow.is_source() {
+            let Some(before) = self.world.chunks.block(pos) else {
+                return;
+            };
             match self.new_liquid(pos, flow.liquid) {
                 None => {
-                    self.set_block(pos, BlockStateId::AIR);
+                    self.ask_level_change(LevelStep {
+                        pos,
+                        before,
+                        state: BlockStateId::AIR,
+                        flow: None,
+                    });
                     return;
                 }
                 Some(new) if new != flow => {
-                    self.set_block(pos, new.state());
-                    self.schedule_fluid(pos, new.liquid.delay());
-                    flow = new;
+                    self.ask_level_change(LevelStep {
+                        pos,
+                        before,
+                        state: new.state(),
+                        flow: Some(new),
+                    });
+                    return;
                 }
                 Some(_) => {}
             }
         }
         self.spread(pos, flow);
+    }
+
+    fn ask_level_change(&mut self, step: LevelStep) {
+        let LevelStep { pos, state, .. } = step;
+        self.fire(
+            Lane::Block(pos),
+            Continuation::FluidLevel(step),
+            move |_| {
+                Some(EventPayload::FluidLevelChange(FluidLevelChange {
+                    block: pos,
+                    new_data: data_of(state),
+                }))
+            },
+        );
+    }
+
+    pub(crate) fn finish_level_change(
+        &mut self,
+        step: LevelStep,
+        cancelled: bool,
+        patched: Option<BlockState>,
+    ) {
+        if cancelled || self.world.chunks.block(step.pos) != Some(step.before) {
+            return;
+        }
+        let state = patched
+            .as_ref()
+            .and_then(block_state_of)
+            .unwrap_or(step.state);
+        self.set_block(step.pos, state);
+        if let Some(flow) = step.flow {
+            self.schedule_fluid(step.pos, flow.liquid.delay());
+            self.spread(step.pos, flow);
+        }
     }
 
     fn lava_reaction(&self, pos: BlockPos, flow: Flow) -> Option<BlockKind> {
@@ -307,10 +385,14 @@ impl<L: ClientLink> Server<L> {
         let liquid = flow.liquid;
         let below = step(pos, Face::Down);
         if self.can_spread_to(liquid, below, Face::Down) {
-            self.spread_to(below, Flow::flowing(liquid, 8, true), Face::Down);
-            if self.source_neighbours(pos, liquid) >= SOURCES_TO_LEAK {
-                self.spread_to_sides(pos, flow);
-            }
+            let leak = (self.source_neighbours(pos, liquid) >= SOURCES_TO_LEAK).then_some(flow);
+            self.ask_flow(FlowStep {
+                from: pos,
+                face: Face::Down,
+                target: below,
+                flow: Flow::flowing(liquid, 8, true),
+                leak,
+            });
         } else if flow.is_source() || !self.is_hole(below) {
             self.spread_to_sides(pos, flow);
         }
@@ -329,8 +411,37 @@ impl<L: ClientLink> Server<L> {
         for face in self.spread_faces(pos, liquid) {
             let target = step(pos, face);
             if self.can_spread_to(liquid, target, face) {
-                self.spread_to(target, Flow::flowing(liquid, amount, false), face);
+                self.ask_flow(FlowStep {
+                    from: pos,
+                    face,
+                    target,
+                    flow: Flow::flowing(liquid, amount, false),
+                    leak: None,
+                });
             }
+        }
+    }
+
+    fn ask_flow(&mut self, step: FlowStep) {
+        let FlowStep {
+            from, face, target, ..
+        } = step;
+        self.fire(Lane::Block(from), Continuation::Flow(step), move |_| {
+            Some(EventPayload::BlockFromTo(BlockFromTo {
+                block: from,
+                face: face_of(face),
+                to_block: target,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_flow(&mut self, step: FlowStep, cancelled: bool) {
+        if cancelled || !self.can_spread_to(step.flow.liquid, step.target, step.face) {
+            return;
+        }
+        self.spread_to(step.target, step.flow, step.face);
+        if let Some(source) = step.leak {
+            self.spread_to_sides(step.from, source);
         }
     }
 

@@ -7,6 +7,7 @@ use common::*;
 use rspigot_blocks::BlockKind;
 use rspigot_core::config::{GameConfig, LevelData};
 use rspigot_core::events::Inbound;
+use rspigot_core::plugins::{EventKind, EventPayload};
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
@@ -44,6 +45,10 @@ impl ChunkGenerator for Meadow {
 
 fn meadow_server(seed: u64, day_time: i64, spawn_mobs: bool) -> Server<Link> {
     let config = GameConfig {
+        plugins: rspigot_core::config::PluginSettings {
+            decision_ticks: 1_000,
+            ..rspigot_core::config::PluginSettings::default()
+        },
         view_distance: 5,
         chunk_workers: 2,
         spawn_protection: 0,
@@ -76,10 +81,19 @@ fn ready_at(seed: u64, day_time: i64) -> Scene {
 }
 
 fn ready_with(seed: u64, day_time: i64, spawn_mobs: bool) -> Scene {
+    ready_handled(seed, day_time, spawn_mobs, Vec::new())
+}
+
+fn ready_handled(
+    seed: u64,
+    day_time: i64,
+    spawn_mobs: bool,
+    handlers: Vec<rspigot_core::plugins::HandlerSpec>,
+) -> Scene {
     let mut s = scene_on(
         meadow_server(seed, day_time, spawn_mobs),
         &["Alice"],
-        Vec::new(),
+        handlers,
     );
     stream_chunk_of(&mut s, BlockPos::new(8, 64, 8));
     s.tick(40);
@@ -209,6 +223,38 @@ fn a_resting_bat_without_a_ceiling_wakes_up_at_once() {
     let bat = summon(&mut s, Kind::Bat, "12.5 70 2.5", "{BatFlags:1b}");
     s.tick(5);
     assert_eq!(saved(&s, bat).get_i64("BatFlags"), Some(0));
+}
+
+#[test]
+fn a_bat_waking_tells_the_plugins_with_awake_and_wakes_up() {
+    let mut s = ready_handled(3, 6_000, false, vec![observe(1, EventKind::BatToggleSleep)]);
+    let bat = summon(&mut s, Kind::Bat, "12.5 70 2.5", "{BatFlags:1b}");
+    s.tick(5);
+    assert_eq!(saved(&s, bat).get_i64("BatFlags"), Some(0));
+    let woken: Vec<(bool, EntityId)> = fired(&s.plugin)
+        .into_iter()
+        .filter_map(|event| match event.payload {
+            EventPayload::BatToggleSleep(toggle) => Some((toggle.awake, toggle.entity.id)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(woken, [(true, bat)]);
+}
+
+#[test]
+fn a_plugin_cancelling_the_wake_keeps_the_bat_resting() {
+    let mut s = ready_handled(
+        3,
+        6_000,
+        false,
+        vec![deciding(1, EventKind::BatToggleSleep)],
+    );
+    let bat = summon(&mut s, Kind::Bat, "12.5 70 2.5", "{BatFlags:1b}");
+    s.tick(3);
+    let asked = last_asked(&s.plugin, EventKind::BatToggleSleep);
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(1);
+    assert_eq!(saved(&s, bat).get_i64("BatFlags"), Some(1));
 }
 
 #[test]

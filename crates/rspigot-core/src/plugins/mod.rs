@@ -57,7 +57,7 @@ use uuid::Uuid;
 use crate::admin::{BanEntry, IpBanEntry, ListEntry};
 use crate::events::Direction;
 
-pub(crate) use block::snapshot_of;
+pub(crate) use block::{block_state_of, data_of, snapshot_of};
 pub(crate) use broadcast::Broadcasts;
 pub(crate) use burning::Combuster;
 pub use contract::{

@@ -11,7 +11,9 @@ use crate::bow::{UsingItem, hand_slot};
 use crate::events::Hand;
 use crate::game_events::GameEventContext;
 use crate::player::Player;
-use crate::plugins::events::EntityPotionEffectCause;
+use crate::plugins::events::{EntityPotionEffectCause, EquipmentSlot, PlayerItemConsume};
+use crate::plugins::steps::{ConsumeStep, Continuation};
+use crate::plugins::{EventPayload, ItemSpec, spec_of, stack_of};
 use crate::ports::ClientLink;
 use crate::server::Server;
 use rspigot_domain::game_event::GameEvent;
@@ -23,6 +25,13 @@ const OMINOUS_BOTTLE_DISPOSE: &str = "minecraft:item.ominous_bottle.dispose";
 const OMINOUS_BOTTLE_AMPLIFIER: &str = "minecraft:ominous_bottle_amplifier";
 const MAX_OMINOUS_AMPLIFIER: i32 = 4;
 const BAD_OMEN_TICKS: u32 = 120_000;
+
+const fn slot_of(hand: Hand) -> EquipmentSlot {
+    match hand {
+        Hand::Main => EquipmentSlot::Hand,
+        Hand::Off => EquipmentSlot::OffHand,
+    }
+}
 
 fn eat_ticks(stack: &ItemStack) -> u64 {
     if stack.item == ItemKind::DriedKelp.id() {
@@ -120,16 +129,81 @@ impl<L: ClientLink> Server<L> {
         let Some(stack) = player.inventory.get(slot).cloned() else {
             return;
         };
+        if !is_ominous_bottle(&stack) {
+            let Some(food) = food_of(&stack) else {
+                return;
+            };
+            if !can_eat(player, food) {
+                return;
+            }
+        }
+        let step = ConsumeStep {
+            player: id,
+            hand,
+            stack,
+        };
+        self.fire(id, Continuation::Consume(Box::new(step)), move |server| {
+            let stack = server
+                .players
+                .get(&id)
+                .and_then(|player| player.inventory.get(hand_slot(player, hand)))?;
+            Some(EventPayload::PlayerItemConsume(PlayerItemConsume {
+                hand: slot_of(hand),
+                item: spec_of(stack),
+                player: server.snapshot_of(id)?,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_consume(
+        &mut self,
+        step: ConsumeStep,
+        cancelled: bool,
+        patched: Option<ItemSpec>,
+    ) {
+        let ConsumeStep {
+            player: id,
+            hand,
+            stack,
+        } = step;
+        let Some(player) = self.players.get(&id) else {
+            return;
+        };
+        let slot = hand_slot(player, hand);
+        if player.inventory.get(slot) != Some(&stack) {
+            return;
+        }
+        if cancelled {
+            self.send_inventory(id);
+            return;
+        }
+        let replacement = patched.and_then(|spec| stack_of(&spec).ok());
+        let replaced = replacement.is_some();
+        let Some(effective) = replacement.unwrap_or(Some(stack)) else {
+            if let Some(player) = self.players.get_mut(&id) {
+                player.inventory.set(slot, None);
+            }
+            self.send_inventory(id);
+            return;
+        };
+        self.consume_stack(id, slot, effective, replaced);
+    }
+
+    fn consume_stack(&mut self, id: PlayerId, slot: usize, stack: ItemStack, replaced: bool) {
         if is_ominous_bottle(&stack) {
             self.drink_ominous_bottle(id, slot, &stack);
             return;
         }
-        let Some(food) = food_of(&stack) else {
+        let Some(player) = self.players.get_mut(&id) else {
             return;
         };
-        if !can_eat(player, food) {
+        let Some(food) = food_of(&stack) else {
+            if replaced {
+                player.inventory.set(slot, Some(stack));
+                self.send_inventory(id);
+            }
             return;
-        }
+        };
         player
             .vitals
             .food
@@ -138,7 +212,11 @@ impl<L: ClientLink> Server<L> {
         let position = player.position;
         let entity = player.entity_id;
         let mut remainder = None;
-        if !creative {
+        if creative {
+            if replaced {
+                player.inventory.set(slot, Some(stack.clone()));
+            }
+        } else {
             let left = NonZeroU8::new(stack.count.get() - 1).map(|count| ItemStack {
                 count,
                 ..stack.clone()

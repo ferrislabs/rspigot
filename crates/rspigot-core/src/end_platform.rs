@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use rspigot_blocks::BlockKind;
-use rspigot_domain::{BlockPos, BlockStateId};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos};
 
 use crate::chunks::Priority;
 use crate::ports::ClientLink;
@@ -14,7 +14,7 @@ const PLATFORM_AIR_HEIGHT: i32 = 2;
 const LOAD_TIMEOUT: Duration = Duration::from_secs(10);
 
 impl<L: ClientLink> Server<L> {
-    pub(crate) fn make_end_platform(&mut self) {
+    fn hold_platform_chunks(&mut self) -> Vec<ChunkPos> {
         let origin = END_SPAWN_POINT.offset(0, -1, 0);
         let corners = [
             origin.offset(-PLATFORM_RADIUS, 0, -PLATFORM_RADIUS).chunk(),
@@ -23,7 +23,7 @@ impl<L: ClientLink> Server<L> {
         let mut held = Vec::new();
         for x in corners[0].x..=corners[1].x {
             for z in corners[0].z..=corners[1].z {
-                let pos = rspigot_domain::ChunkPos::new(x, z);
+                let pos = ChunkPos::new(x, z);
                 self.world
                     .chunks
                     .add_ticket(pos, Priority::URGENT, &self.workers);
@@ -31,15 +31,37 @@ impl<L: ClientLink> Server<L> {
             }
         }
         self.wait_for_spawn(LOAD_TIMEOUT);
-        let obsidian = BlockKind::Obsidian.default_state();
+        held
+    }
+
+    pub(crate) fn plan_end_platform(&mut self) -> Vec<(BlockPos, BlockStateId)> {
+        let held = self.hold_platform_chunks();
+        let origin = END_SPAWN_POINT.offset(0, -1, 0);
+        let mut changes = Vec::new();
+        for dz in -PLATFORM_RADIUS..=PLATFORM_RADIUS {
+            for dx in -PLATFORM_RADIUS..=PLATFORM_RADIUS {
+                for dy in -1..=PLATFORM_AIR_HEIGHT {
+                    let wanted = platform_state(dy);
+                    let pos = origin.offset(dx, dy, dz);
+                    if self.world.chunks.block(pos) != Some(wanted) {
+                        changes.push((pos, wanted));
+                    }
+                }
+            }
+        }
+        for pos in held {
+            self.world.chunks.remove_ticket(pos);
+        }
+        changes
+    }
+
+    pub(crate) fn make_end_platform(&mut self) {
+        let held = self.hold_platform_chunks();
+        let origin = END_SPAWN_POINT.offset(0, -1, 0);
         for dx in -PLATFORM_RADIUS..=PLATFORM_RADIUS {
             for dz in -PLATFORM_RADIUS..=PLATFORM_RADIUS {
                 for dy in -1..=PLATFORM_AIR_HEIGHT {
-                    let wanted = if dy == -1 {
-                        obsidian
-                    } else {
-                        BlockStateId::AIR
-                    };
+                    let wanted = platform_state(dy);
                     let pos = origin.offset(dx, dy, dz);
                     if self.world.chunks.block(pos) != Some(wanted) {
                         self.destroy_block_dropping(pos, None);
@@ -51,6 +73,14 @@ impl<L: ClientLink> Server<L> {
         for pos in held {
             self.world.chunks.remove_ticket(pos);
         }
+    }
+}
+
+fn platform_state(dy: i32) -> BlockStateId {
+    if dy == -1 {
+        BlockKind::Obsidian.default_state()
+    } else {
+        BlockStateId::AIR
     }
 }
 

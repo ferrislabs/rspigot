@@ -947,6 +947,12 @@ impl<L: ClientLink> Server<L> {
                 self.finish_enter_hive(bee, pos, cancelled);
                 Vec::new()
             }
+            Continuation::BatSleep { bat, awake } => {
+                if !cancelled {
+                    self.finish_bat_sleep(bat, awake);
+                }
+                Vec::new()
+            }
             Continuation::EggBreak { mob, pos, trample } => {
                 if !cancelled && trample {
                     self.finish_egg_trample(pos);
@@ -1056,6 +1062,62 @@ impl<L: ClientLink> Server<L> {
             }
             Continuation::PigAnger(step) => {
                 self.finish_pig_zombie_anger(step, cancelled, patch_of!(patch, PigZombieAnger));
+                Vec::new()
+            }
+            Continuation::Consume(step) => {
+                self.finish_consume(*step, cancelled, patch_of!(patch, PlayerItemConsume).item);
+                Vec::new()
+            }
+            Continuation::Flow(step) => {
+                self.finish_flow(step, cancelled);
+                Vec::new()
+            }
+            Continuation::FluidLevel(step) => {
+                self.finish_level_change(
+                    step,
+                    cancelled,
+                    patch_of!(patch, FluidLevelChange).new_data,
+                );
+                Vec::new()
+            }
+            Continuation::Game(step) => {
+                if !cancelled {
+                    self.finish_game_event(step, patch_of!(patch, GenericGame).radius);
+                }
+                Vec::new()
+            }
+            Continuation::Air(step) => {
+                self.finish_air_change(step, cancelled, patch_of!(patch, EntityAirChange).amount);
+                Vec::new()
+            }
+            Continuation::ArrowCount(step) => {
+                self.finish_arrow_count(
+                    step,
+                    cancelled,
+                    patch_of!(patch, ArrowBodyCountChange).new_amount,
+                );
+                Vec::new()
+            }
+            Continuation::Swim { entity, swimming } => {
+                if !cancelled {
+                    self.finish_swim_toggle(entity, swimming);
+                }
+                Vec::new()
+            }
+            Continuation::Platform(step) => self.finish_platform(*step, cancelled),
+            Continuation::Career(step) => {
+                if !cancelled {
+                    self.finish_career(step, patch_of!(patch, VillagerCareerChange).profession);
+                }
+                Vec::new()
+            }
+            Continuation::Reputation(step) => {
+                if !cancelled {
+                    self.finish_reputation(
+                        step,
+                        patch_of!(patch, VillagerReputationChange).new_value,
+                    );
+                }
                 Vec::new()
             }
             Continuation::Dye(step) => {

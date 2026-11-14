@@ -22,7 +22,12 @@ use crate::health::DamageSource;
 use crate::interact::Interaction;
 use crate::loot::{self, LootContext};
 use crate::mobs::ServerRandom;
-use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause};
+use crate::plugins::EventPayload;
+use crate::plugins::events::{
+    CreatureSpawnReason, EntityPotionEffectCause, VillagerCareerChange, VillagerCareerChangeReason,
+    VillagerReputationChange,
+};
+use crate::plugins::steps::{CareerStep, Continuation, ReputationStep};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -405,24 +410,69 @@ impl<L: ClientLink> Server<L> {
         let Some(uuid) = self.entity_uuid(source) else {
             return;
         };
-        let Some(entity) = self.entities.store.get_mut(id) else {
+        let changes: &[(GossipType, i32)] = match event {
+            ReputationEvent::ZombieVillagerCured => &[
+                (GossipType::MajorPositive, 20),
+                (GossipType::MinorPositive, 25),
+            ],
+            ReputationEvent::Trade => &[(GossipType::Trading, 2)],
+            ReputationEvent::VillagerHurt => &[(GossipType::MinorNegative, HURT_REPUTATION)],
+            ReputationEvent::VillagerKilled => &[(GossipType::MajorNegative, KILL_REPUTATION)],
+        };
+        for &(kind, amount) in changes {
+            self.ask_reputation_change(id, uuid, source, kind, amount, event);
+        }
+    }
+
+    fn ask_reputation_change(
+        &mut self,
+        id: EntityId,
+        target: Uuid,
+        source: EntityId,
+        kind: GossipType,
+        amount: i32,
+        event: ReputationEvent,
+    ) {
+        let Some((old, value)) = self.entities.store.get_mut(id).and_then(|entity| {
+            with_villager(entity, |_, _, merchant| {
+                merchant.gossips.preview_add(target, kind, amount)
+            })
+        }) else {
+            return;
+        };
+        let step = ReputationStep {
+            villager: id,
+            target,
+            kind,
+            value,
+        };
+        let lane = self.lane_for(None, id);
+        self.fire(lane, Continuation::Reputation(step), move |server| {
+            let entity = server.entity_view(id)?;
+            Some(EventPayload::VillagerReputationChange(
+                VillagerReputationChange {
+                    entity_type: entity.kind.clone(),
+                    entity,
+                    max_value: kind.max(),
+                    new_value: value,
+                    old_value: old,
+                    reason: format!("minecraft:{}", event.id()),
+                    reputation_type: format!("minecraft:{}", kind.id()),
+                    target: server.subject_view(source),
+                    target_uuid: target,
+                },
+            ))
+        });
+    }
+
+    pub(crate) fn finish_reputation(&mut self, step: ReputationStep, patched: Option<i32>) {
+        let Some(entity) = self.entities.store.get_mut(step.villager) else {
             return;
         };
         with_villager(entity, |_, _, merchant| {
-            let gossips = &mut merchant.gossips;
-            match event {
-                ReputationEvent::ZombieVillagerCured => {
-                    gossips.add(uuid, GossipType::MajorPositive, 20);
-                    gossips.add(uuid, GossipType::MinorPositive, 25);
-                }
-                ReputationEvent::Trade => gossips.add(uuid, GossipType::Trading, 2),
-                ReputationEvent::VillagerHurt => {
-                    gossips.add(uuid, GossipType::MinorNegative, HURT_REPUTATION);
-                }
-                ReputationEvent::VillagerKilled => {
-                    gossips.add(uuid, GossipType::MajorNegative, KILL_REPUTATION);
-                }
-            }
+            merchant
+                .gossips
+                .store(step.target, step.kind, patched.unwrap_or(step.value));
         });
     }
 
@@ -432,6 +482,44 @@ impl<L: ClientLink> Server<L> {
             .find(|player| player.entity_id == id)
             .map(|player| player.profile.id.0)
             .or_else(|| self.entities.store.get(id).map(|entity| entity.base.uuid))
+    }
+
+    fn ask_career_change(&mut self, id: EntityId, profession: Profession) {
+        let Some(view) = self.entity_view(id) else {
+            return;
+        };
+        let reason = if profession == Profession::None {
+            VillagerCareerChangeReason::LosingJob
+        } else {
+            VillagerCareerChangeReason::Employed
+        };
+        let lane = self.lane_for(None, id);
+        let step = CareerStep {
+            villager: id,
+            profession,
+        };
+        self.fire(lane, Continuation::Career(step), move |_| {
+            Some(EventPayload::VillagerCareerChange(VillagerCareerChange {
+                entity_type: view.kind.clone(),
+                entity: view,
+                profession: format!("minecraft:{}", profession.name()),
+                reason,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_career(&mut self, step: CareerStep, patched: Option<String>) {
+        let profession = patched
+            .as_deref()
+            .and_then(Profession::from_name)
+            .unwrap_or(step.profession);
+        if let Some(entity) = self.entities.store.get_mut(step.villager) {
+            with_villager(entity, |base, _, merchant| {
+                let level = villager::level(base);
+                villager::set_profession(base, merchant, profession, level);
+            });
+        }
+        self.refresh_villager_brain(step.villager);
     }
 
     pub(crate) fn villager_action(&mut self, id: EntityId, action: VillagerAction) {
@@ -445,15 +533,7 @@ impl<L: ClientLink> Server<L> {
             VillagerAction::ReleasePoi(pos) => {
                 self.world.chunks.poi_mut().release(pos);
             }
-            VillagerAction::SetProfession(profession) => {
-                if let Some(entity) = self.entities.store.get_mut(id) {
-                    with_villager(entity, |base, _, merchant| {
-                        let level = villager::level(base);
-                        villager::set_profession(base, merchant, profession, level);
-                    });
-                }
-                self.refresh_villager_brain(id);
-            }
+            VillagerAction::SetProfession(profession) => self.ask_career_change(id, profession),
             VillagerAction::RefreshBrain => self.refresh_villager_brain(id),
             VillagerAction::PlayWorkSound => {
                 let sound = self

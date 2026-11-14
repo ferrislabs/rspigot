@@ -21,8 +21,9 @@ use crate::events::{
 };
 use crate::health::DamageSource;
 use crate::player::Player;
-use crate::plugins::events::{EntityPotionEffectCause, EntityRemoveCause};
-use crate::plugins::{Continuation, Holder, Lane, Potion};
+use crate::plugins::events::{EntityAirChange, EntityPotionEffectCause, EntityRemoveCause};
+use crate::plugins::steps::AirStep;
+use crate::plugins::{Continuation, EventKind, EventPayload, Holder, Lane, Potion};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -432,6 +433,61 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    fn ask_air_change(&mut self, id: EntityId, before: i32, drown: bool) -> bool {
+        let Some(after) = self
+            .entities
+            .store
+            .get(id)
+            .map(|entity| entity.base.air_supply())
+        else {
+            return drown;
+        };
+        if after == before || !self.listened(EventKind::EntityAirChange) {
+            return drown;
+        }
+        if let Some(entity) = self.entities.store.get_mut(id) {
+            entity.base.set_air_supply(before);
+        }
+        let lane = self.lane_for(None, id);
+        let step = AirStep {
+            entity: id,
+            amount: after,
+            drown,
+        };
+        self.fire(lane, Continuation::Air(step), move |server| {
+            let entity = server.entity_view(id)?;
+            Some(EventPayload::EntityAirChange(EntityAirChange {
+                amount: after,
+                entity_type: entity.kind.clone(),
+                entity,
+            }))
+        });
+        false
+    }
+
+    pub(crate) fn finish_air_change(
+        &mut self,
+        step: AirStep,
+        cancelled: bool,
+        patched: Option<i32>,
+    ) {
+        if cancelled {
+            return;
+        }
+        let amount = patched.unwrap_or(step.amount);
+        let Some(entity) = self.entities.store.get_mut(step.entity) else {
+            return;
+        };
+        entity.base.set_air_supply(amount);
+        if step.drown && amount == step.amount {
+            self.hurt_mob(
+                step.entity,
+                &DamageSource::new(DamageType::Drown),
+                DROWN_DAMAGE,
+            );
+        }
+    }
+
     pub(crate) fn tick_living_entity(&mut self, id: EntityId) {
         if !self.mob_active(id) {
             self.inactive_tick(id);
@@ -468,13 +524,14 @@ impl<L: ClientLink> Server<L> {
         else {
             return;
         };
-        let outcome = living::base_tick(base, state);
+        let mut outcome = living::base_tick(base, state);
         if matches!(
             self.kind_of(id),
             Some(Kind::Axolotl | Kind::Nautilus | Kind::ZombieNautilus)
         ) {
             self.water_creature_air(id, outcome.air_before);
         }
+        outcome.drown = self.ask_air_change(id, outcome.air_before, outcome.drown);
         self.tick_mob_effects(id);
         let Some(Entity {
             state: EntityState::Living(state),
@@ -519,6 +576,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         self.crossbow_use_tick(id);
+        let mut shed_arrow = 0;
         if let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -526,8 +584,14 @@ impl<L: ClientLink> Server<L> {
         }) = self.entities.store.get_mut(id)
         {
             living::tick_using_item(base, state);
+            let arrows = living::arrow_count(base);
             living::tick_arrows(base, state);
+            shed_arrow = living::arrow_count(base) - arrows;
+            living::set_arrow_count(base, arrows);
             living::begin_ai_step(base, state);
+        }
+        if shed_arrow != 0 {
+            self.ask_arrow_count(id, shed_arrow);
         }
         self.trader_item_use_tick(id);
         self.mob_server_ai_step(id);

@@ -5,6 +5,9 @@ use rspigot_domain::random::RandomSource;
 use rspigot_domain::{EntityId, Vec3};
 
 use crate::health::DamageSource;
+use crate::plugins::EventPayload;
+use crate::plugins::events::BatToggleSleep;
+use crate::plugins::steps::Continuation;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -19,6 +22,20 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn bat_action(&mut self, id: EntityId, action: BatAction) {
         let BatAction::ToggleSleep { awake } = action;
+        let Some(view) = self.entity_view(id) else {
+            return;
+        };
+        let lane = self.lane_for(None, id);
+        self.fire(lane, Continuation::BatSleep { bat: id, awake }, move |_| {
+            Some(EventPayload::BatToggleSleep(BatToggleSleep {
+                awake,
+                entity_type: view.kind.clone(),
+                entity: view,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_bat_sleep(&mut self, id: EntityId, awake: bool) {
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;
         };

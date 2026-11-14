@@ -1,12 +1,14 @@
 use rspigot_blocks::BlockKind;
 use rspigot_domain::entity::Aabb;
 use rspigot_domain::player::{GameMode, PlayerId};
-use rspigot_domain::{BlockPos, BlockStateId, EntityId, Identifier, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, EntityId, Identifier, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_items::ItemKind;
 
 use crate::events::{ClientEvent, Hand};
-use crate::plugins::events::PlayerTeleportCause;
+use crate::plugins::events::{EntityPortalEnter, PlayerTeleportCause};
+use crate::plugins::steps::Continuation;
+use crate::plugins::{EventKind, EventPayload, Location};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 use crate::travel::Destination;
@@ -171,9 +173,10 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
-    fn touches_end_portal(&self, bounds: &Aabb) -> bool {
+    fn touched_end_portals(&self, bounds: &Aabb) -> Vec<BlockPos> {
         let bounds = bounds.deflate(INSIDE_DEFLATE);
         let floor = |value: f64| value.floor() as i32;
+        let mut touched = Vec::new();
         for x in floor(bounds.min_x)..=floor(bounds.max_x) {
             for y in floor(bounds.min_y)..=floor(bounds.max_y) {
                 for z in floor(bounds.min_z)..=floor(bounds.max_z) {
@@ -184,12 +187,40 @@ impl<L: ClientLink> Server<L> {
                         .block(pos)
                         .is_some_and(|state| state.kind() == Some(BlockKind::EndPortal));
                     if portal && portal_shape(pos).intersects(&bounds) {
-                        return true;
+                        touched.push(pos);
                     }
                 }
             }
         }
-        false
+        touched
+    }
+
+    fn notify_portal_enter(&mut self, entity: EntityId, portals: Vec<BlockPos>) {
+        let world = self.world_name();
+        for pos in portals {
+            let lane = self.lane_for(None, entity);
+            let world = world.clone();
+            self.fire(
+                lane,
+                Continuation::Notice(EventKind::EntityPortalEnter),
+                move |server| {
+                    let view = server.subject_view(entity)?;
+                    Some(EventPayload::EntityPortalEnter(EntityPortalEnter {
+                        entity_type: view.kind.clone(),
+                        entity: view,
+                        location: Location {
+                            world,
+                            position: Vec3::new(
+                                f64::from(pos.x),
+                                f64::from(pos.y),
+                                f64::from(pos.z),
+                            ),
+                            rotation: Rotation::new(0.0, 0.0),
+                        },
+                    }))
+                },
+            );
+        }
     }
 
     pub(crate) fn tick_portals(&mut self) {
@@ -222,7 +253,12 @@ impl<L: ClientLink> Server<L> {
             at.y + height,
             at.z + PLAYER_HALF_WIDTH,
         );
-        let inside = alive && !riding && self.touches_end_portal(&bounds);
+        let touched = if alive && !riding {
+            self.touched_end_portals(&bounds)
+        } else {
+            Vec::new()
+        };
+        let inside = !touched.is_empty();
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
@@ -230,6 +266,11 @@ impl<L: ClientLink> Server<L> {
         if !inside {
             return;
         }
+        let entity = player.entity_id;
+        self.notify_portal_enter(entity, touched);
+        let Some(player) = self.players.get_mut(&id) else {
+            return;
+        };
         if unseen && *key == the_end() {
             self.show_end_credits(id);
             return;
@@ -257,14 +298,18 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let cooldown = (base.portal_cooldown - 1).max(0);
-        let inside = self.touches_end_portal(&base.bounding_box());
+        let touched = self.touched_end_portals(&base.bounding_box());
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;
         };
         entity.base.portal_cooldown = cooldown;
-        if !inside {
+        if touched.is_empty() {
             return;
         }
+        self.notify_portal_enter(id, touched);
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return;
+        };
         if cooldown > 0 {
             entity.base.portal_cooldown = PORTAL_COOLDOWN;
             return;

@@ -8,13 +8,14 @@ use rspigot_domain::game_event::{
     is_postable, validate,
 };
 use rspigot_domain::player::GameMode;
-use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Identifier, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Identifier, Rotation, Vec3};
 use rspigot_entities::EntityKind;
 use rspigot_nbt::Compound;
 use uuid::Uuid;
 
-use crate::plugins::events::BlockReceiveGame;
-use crate::plugins::{Access, EventKind, EventPayload, Phase};
+use crate::plugins::events::{BlockReceiveGame, GenericGame};
+use crate::plugins::steps::Continuation;
+use crate::plugins::{Access, EventKind, EventPayload, Lane, Location, Phase};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -36,6 +37,13 @@ pub(crate) struct GameEvents {
 pub(crate) enum TimerKind {
     Sensor,
     Shrieker,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct GameStep {
+    event: GameEvent,
+    at: Vec3,
+    context: GameEventContext,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -108,7 +116,30 @@ fn owner_uuid(entity: &Entity) -> Option<Uuid> {
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn game_event(&mut self, event: GameEvent, at: Vec3, context: GameEventContext) {
-        let radius = event.notification_radius();
+        let step = GameStep { event, at, context };
+        self.fire(Lane::World, Continuation::Game(step), move |server| {
+            let origin = at.block();
+            Some(EventPayload::GenericGame(GenericGame {
+                entity: context.entity.and_then(|id| server.subject_view(id)),
+                event: event.name().to_owned(),
+                location: Location {
+                    world: server.world_name(),
+                    position: Vec3::new(
+                        f64::from(origin.x),
+                        f64::from(origin.y),
+                        f64::from(origin.z),
+                    ),
+                    rotation: Rotation::new(0.0, 0.0),
+                },
+                radius: event.notification_radius(),
+                world: server.world_name(),
+            }))
+        });
+    }
+
+    pub(crate) fn finish_game_event(&mut self, step: GameStep, patched: Option<i32>) {
+        let GameStep { event, at, context } = step;
+        let radius = patched.unwrap_or_else(|| event.notification_radius());
         let origin = at.block();
         let (x0, x1) = section_range(origin.x, radius);
         let (y0, y1) = section_range(origin.y, radius);

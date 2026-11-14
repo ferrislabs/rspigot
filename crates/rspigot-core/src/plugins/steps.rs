@@ -475,6 +475,52 @@ pub(crate) struct LoveStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct ReputationStep {
+    pub(crate) villager: EntityId,
+    pub(crate) target: uuid::Uuid,
+    pub(crate) kind: rspigot_domain::entity::gossip::GossipType,
+    pub(crate) value: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct CareerStep {
+    pub(crate) villager: EntityId,
+    pub(crate) profession: rspigot_domain::entity::species::villager::Profession,
+}
+
+#[derive(Debug)]
+pub(crate) struct ConsumeStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) stack: ItemStack,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct AirStep {
+    pub(crate) entity: EntityId,
+    pub(crate) amount: i32,
+    pub(crate) drown: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ArrowCountStep {
+    pub(crate) target: EntityId,
+    pub(crate) delta: i32,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum PlatformTraveler {
+    Player(PlayerId, crate::world_state::DimensionKey),
+    Entity(EntityId),
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct PlatformStep {
+    pub(crate) traveler: PlatformTraveler,
+    pub(crate) destination: crate::travel::Destination,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct PigAngerStep {
     pub(crate) mob: EntityId,
     pub(crate) anger: i32,
@@ -1322,6 +1368,10 @@ pub(crate) enum Continuation {
         bee: EntityId,
         pos: BlockPos,
     },
+    BatSleep {
+        bat: EntityId,
+        awake: bool,
+    },
     DoorOpen {
         mob: EntityId,
         pos: BlockPos,
@@ -1355,6 +1405,19 @@ pub(crate) enum Continuation {
     Love(Box<LoveStep>),
     Tame(TameStep),
     PigAnger(PigAngerStep),
+    Reputation(ReputationStep),
+    Platform(Box<PlatformStep>),
+    Swim {
+        entity: EntityId,
+        swimming: bool,
+    },
+    ArrowCount(ArrowCountStep),
+    Air(AirStep),
+    Game(crate::game_events::GameStep),
+    Flow(crate::fluids::FlowStep),
+    FluidLevel(crate::fluids::LevelStep),
+    Consume(Box<ConsumeStep>),
+    Career(CareerStep),
     Dye(Box<DyeStep>),
     Window(Box<WindowPacket>),
     Click(EventKind, Box<WindowClick>),
@@ -1466,6 +1529,7 @@ impl Continuation {
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
             Self::RaidTrigger { .. } => EventKind::RaidTrigger,
             Self::EnterHive { .. } => EventKind::EntityEnterBlock,
+            Self::BatSleep { .. } => EventKind::BatToggleSleep,
             Self::TargetBlock { .. } => EventKind::EntityTargetBlock,
             Self::EntityExplode(_) => EventKind::EntityExplode,
             Self::Splash(_) => EventKind::PotionSplash,
@@ -1484,6 +1548,16 @@ impl Continuation {
             Self::Love(_) => EventKind::EntityEnterLoveMode,
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
+            Self::Reputation(_) => EventKind::VillagerReputationChange,
+            Self::Platform(_) => EventKind::PortalCreate,
+            Self::Swim { .. } => EventKind::EntityToggleSwim,
+            Self::ArrowCount(_) => EventKind::ArrowBodyCountChange,
+            Self::Air(_) => EventKind::EntityAirChange,
+            Self::Game(_) => EventKind::GenericGame,
+            Self::Flow(_) => EventKind::BlockFromTo,
+            Self::FluidLevel(_) => EventKind::FluidLevelChange,
+            Self::Consume(_) => EventKind::PlayerItemConsume,
+            Self::Career(_) => EventKind::VillagerCareerChange,
             Self::Dye(_) => EventKind::SheepDyeWool,
             Self::Window(_) => EventKind::InventoryClick,
             Self::Click(kind, _) => *kind,
@@ -1574,6 +1648,7 @@ impl Continuation {
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
             Self::EnterHive { bee: mob, .. }
+            | Self::BatSleep { bat: mob, .. }
             | Self::EggBreak { mob, .. }
             | Self::DoorOpen { mob, .. }
             | Self::TargetBlock { mob, .. } => *mob == id,
@@ -1595,6 +1670,14 @@ impl Continuation {
             Self::Tame(step) => step.target == id,
             Self::MobRegain(step) => step.target == id,
             Self::PigAnger(step) => step.mob == id,
+            Self::Reputation(step) => step.villager == id,
+            Self::Platform(step) => {
+                matches!(step.traveler, PlatformTraveler::Entity(entity) if entity == id)
+            }
+            Self::Swim { entity, .. } => *entity == id,
+            Self::ArrowCount(step) => step.target == id,
+            Self::Air(step) => step.entity == id,
+            Self::Career(step) => step.villager == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::BucketEntity(step) => step.target == id,
@@ -1638,8 +1721,34 @@ impl Continuation {
             (Self::TargetBlock { mob: one, .. }, Self::TargetBlock { mob: other, .. }) => {
                 one == other
             }
+            (
+                Self::BatSleep {
+                    bat: one,
+                    awake: one_awake,
+                },
+                Self::BatSleep {
+                    bat: other,
+                    awake: other_awake,
+                },
+            ) => one == other && one_awake == other_awake,
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
+            (
+                Self::Swim {
+                    entity: one,
+                    swimming: one_swimming,
+                },
+                Self::Swim {
+                    entity: other,
+                    swimming: other_swimming,
+                },
+            ) => one == other && one_swimming == other_swimming,
+            (Self::Air(one), Self::Air(other)) => one.entity == other.entity,
+            (Self::Flow(one), Self::Flow(other)) => one.is_same(other),
+            (Self::FluidLevel(one), Self::FluidLevel(other)) => one.is_same(other),
+            (Self::Career(one), Self::Career(other)) => {
+                one.villager == other.villager && one.profession == other.profession
+            }
             (Self::Aim(one), Self::Aim(other)) => {
                 one.deferred && one.mob == other.mob && one.seeker == other.seeker
             }
@@ -1688,12 +1797,18 @@ impl Continuation {
             Self::EggBreak { .. }
             | Self::DoorOpen { .. }
             | Self::TargetBlock { .. }
+            | Self::BatSleep { .. }
             | Self::Form(_)
             | Self::Ignite(_)
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,
             Self::Aim(step) => step.deferred,
-            Self::Breed(_) => true,
+            Self::Breed(_)
+            | Self::Air(_)
+            | Self::Swim { .. }
+            | Self::Career(_)
+            | Self::Flow(_)
+            | Self::FluidLevel(_) => true,
             _ => matches!(
                 self,
                 Self::Velocity(_) | Self::PickupArrow(_) | Self::Cook(_) | Self::ChunkUnload(_)

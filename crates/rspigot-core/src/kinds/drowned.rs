@@ -4,6 +4,9 @@ use rspigot_domain::entity::living;
 use rspigot_domain::entity::species::{Species, drowned};
 use rspigot_domain::entity::{Entity, EntityState};
 
+use crate::plugins::EventPayload;
+use crate::plugins::events::EntityToggleSwim;
+use crate::plugins::steps::Continuation;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -46,6 +49,34 @@ impl<L: ClientLink> Server<L> {
             && base.eye_in_water
             && base.fluid.in_water
             && living::drowned_wants_to_swim(state);
-        base.set_shared_flag(drowned::SWIMMING_FLAG, swimming);
+        if base.shared_flag(drowned::SWIMMING_FLAG) == swimming {
+            return;
+        }
+        let Some(view) = self.entity_view(id) else {
+            return;
+        };
+        let lane = self.lane_for(None, id);
+        self.fire(
+            lane,
+            Continuation::Swim {
+                entity: id,
+                swimming,
+            },
+            move |_| {
+                Some(EventPayload::EntityToggleSwim(EntityToggleSwim {
+                    entity_type: view.kind.clone(),
+                    entity: view,
+                    swimming,
+                }))
+            },
+        );
+    }
+
+    pub(crate) fn finish_swim_toggle(&mut self, id: EntityId, swimming: bool) {
+        if let Some(entity) = self.entities.store.get_mut(id) {
+            entity
+                .base
+                .set_shared_flag(drowned::SWIMMING_FLAG, swimming);
+        }
     }
 }
