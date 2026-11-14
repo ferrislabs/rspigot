@@ -261,3 +261,68 @@ fn an_adult_without_a_harness_turns_to_face_a_player_holding_a_harness() {
         .yaw;
     assert!((yaw - 90.0).abs() < 10.0, "{yaw}");
 }
+
+fn position_of(s: &Scene, ghast: EntityId) -> rspigot_domain::Vec3 {
+    s.server
+        .entities_of(Kind::HappyGhast)
+        .into_iter()
+        .find(|entity| entity.id == ghast)
+        .expect("the ghast")
+        .position
+}
+
+fn drive(s: &mut Scene, to: rspigot_domain::Vec3) {
+    let alice = s.players[0].clone();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::MoveVehicle {
+            position: to,
+            rotation: rspigot_domain::Rotation {
+                yaw: 30.0,
+                pitch: 0.0,
+            },
+            on_ground: false,
+        },
+    );
+    s.tick(2);
+}
+
+#[test]
+fn the_rider_of_a_harnessed_ghast_steers_it_from_the_client() {
+    let mut s = world();
+    let ghast = summon_at(
+        &mut s,
+        Kind::HappyGhast,
+        "3.5 66 0.5",
+        &format!("{{NoAI:1b,{HARNESS}}}"),
+    );
+    interact_with(&mut s, ghast, false);
+    let target = rspigot_domain::Vec3::new(5.5, 67.0, 4.5);
+    drive(&mut s, target);
+    assert_eq!(position_of(&s, ghast), target);
+}
+
+#[test]
+fn a_ghast_that_stays_still_ignores_the_steering_of_its_rider() {
+    let mut s = scene(&["Alice", "Bob"]);
+    stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
+    s.tick(60);
+    let ghast = summon_at(
+        &mut s,
+        Kind::HappyGhast,
+        "3.5 66 0.5",
+        &format!("{{NoAI:1b,{HARNESS}}}"),
+    );
+    interact_with(&mut s, ghast, false);
+    console(&mut s, "tp Bob 3.5 70.2 0.5");
+    s.tick(3);
+    assert!(
+        saved(&s, ghast)
+            .get_i32("still_timeout")
+            .is_some_and(|t| t > 0)
+    );
+    let before = position_of(&s, ghast);
+    drive(&mut s, rspigot_domain::Vec3::new(5.5, 67.0, 4.5));
+    assert_eq!(position_of(&s, ghast), before);
+}
