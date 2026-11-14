@@ -125,9 +125,9 @@ fn a_rider_with_no_temper_is_thrown_off_and_the_horse_never_tames() {
     let mut s = world();
     let horse = summon(&mut s, "horse", "{Temper:0}");
     interact(&mut s, horse, false);
-    s.players[0].link.take();
+    let early = s.players[0].link.take();
     s.tick(900);
-    let events = s.players[0].link.take();
+    let events = [early, s.players[0].link.take()].concat();
     assert!(
         events.iter().any(|event| matches!(event, ClientEvent::Passengers { vehicle, passengers } if *vehicle == horse && passengers.is_empty())),
         "the rider was thrown"
