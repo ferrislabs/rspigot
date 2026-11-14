@@ -3,9 +3,13 @@ use rspigot_domain::EntityId;
 use crate::behavior::memory::{
     Memories, MemoryModuleType, MemoryValue, NearestVisibleLivingEntities,
 };
-use crate::behavior::sensor::{Sensor, is_entity_attackable, is_entity_targetable};
+use crate::behavior::sensor::{
+    Sensor, SensorType, is_entity_attackable, is_entity_targetable, nearest_visible_entity,
+};
 use crate::brain::AiContext;
+use crate::goals::TemptItems;
 use crate::sensing::has_line_of_sight_between;
+use crate::targeting::{self, TargetingConditions};
 use crate::world::{AiWorld, DroppedItem, Living, TargetKind, inflate};
 
 const ITEM_XZ_RANGE: f64 = 32.0;
@@ -228,6 +232,75 @@ impl Sensor for NearestItemSensor {
         memories.set_option(
             MemoryModuleType::NearestVisibleWantedItem,
             found.map(|item| MemoryValue::Entity(item.id)),
+        );
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct AdultSensor;
+
+impl Sensor for AdultSensor {
+    fn requires(&self) -> &'static [MemoryModuleType] {
+        &[
+            MemoryModuleType::NearestVisibleAdult,
+            MemoryModuleType::NearestVisibleLivingEntities,
+        ]
+    }
+
+    fn do_tick<W: AiWorld>(&mut self, cx: &mut AiContext<'_, W>, memories: &mut Memories) {
+        if !memories.has_value(MemoryModuleType::NearestVisibleLivingEntities) {
+            return;
+        }
+        let kind = cx.mob.kind;
+        nearest_visible_entity(
+            cx,
+            memories,
+            MemoryModuleType::NearestVisibleAdult,
+            |entity| entity.kind == kind && !entity.baby,
+        );
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TemptingSensor {
+    ty: SensorType,
+    temptations: TemptItems,
+}
+
+impl TemptingSensor {
+    pub fn new(temptations: TemptItems) -> Self {
+        Self::of(SensorType::FoodTemptations, temptations)
+    }
+
+    pub fn of(ty: SensorType, temptations: TemptItems) -> Self {
+        Self { ty, temptations }
+    }
+
+    pub fn sensor_type(&self) -> SensorType {
+        self.ty
+    }
+}
+
+impl Sensor for TemptingSensor {
+    fn requires(&self) -> &'static [MemoryModuleType] {
+        &[MemoryModuleType::TemptingPlayer]
+    }
+
+    fn do_tick<W: AiWorld>(&mut self, cx: &mut AiContext<'_, W>, memories: &mut Memories) {
+        let temptations = self.temptations;
+        let conditions = TargetingConditions::for_non_combat()
+            .ignore_line_of_sight()
+            .range(cx.mob.tempt_range);
+        let origin = cx.mob.position;
+        let player = targeting::nearest_player(
+            cx,
+            conditions,
+            |player| temptations.matches(player.main_hand) || temptations.matches(player.off_hand),
+            origin,
+        );
+        memories.set_option(
+            MemoryModuleType::TemptingPlayer,
+            player.map(|player| MemoryValue::Entity(player.id)),
         );
     }
 }

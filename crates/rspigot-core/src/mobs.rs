@@ -482,6 +482,7 @@ pub(crate) struct MobWorld<'a> {
     players: &'a [Living],
     open_chests: &'a [crate::containers::Backing],
     difficulty: i32,
+    dimension: &'a str,
     game_time: i64,
     day_time: i64,
     sky_darken: i32,
@@ -644,6 +645,40 @@ impl AiWorld for MobWorld<'_> {
                 })
             })
             .collect()
+    }
+
+    fn dropped_item(&self, id: EntityId) -> Option<rspigot_ai::DroppedItem> {
+        let entity = self.store.get(id)?;
+        let EntityState::Item(state) = &entity.state else {
+            return None;
+        };
+        Some(rspigot_ai::DroppedItem {
+            id,
+            position: entity.base.position,
+            item: rspigot_domain::entity::item::stack(&entity.base)?.item,
+            bounds: entity.base.bounding_box(),
+            has_pickup_delay: state.pickup_delay > 0,
+            alive: !entity.base.is_removed(),
+        })
+    }
+
+    fn dimension(&self) -> &str {
+        self.dimension
+    }
+
+    fn living_by_uuid(&self, uuid: Uuid) -> Option<Living> {
+        self.resolve(uuid).and_then(|id| self.living(id))
+    }
+
+    fn forgive_dead_players(&self) -> bool {
+        self.rules.forgive_dead_players
+    }
+
+    fn within_world_border(&self, pos: BlockPos) -> bool {
+        pos.x >= -WORLD_BORDER
+            && pos.z >= -WORLD_BORDER
+            && pos.x < WORLD_BORDER
+            && pos.z < WORLD_BORDER
     }
 
     fn universal_anger(&self) -> bool {
@@ -891,6 +926,7 @@ impl<L: ClientLink> Server<L> {
             players: &self.entities.mobs.players,
             open_chests: &self.entities.mobs.open_chests,
             difficulty: i32::from(self.world.difficulty.id()),
+            dimension: self.world.dimension.key.as_str(),
             game_time: self.world.level.game_time,
             day_time: self.world.level.day_time,
             sky_darken,

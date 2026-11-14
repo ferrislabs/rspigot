@@ -223,6 +223,26 @@ pub trait AiWorld: BlockView {
         Vec::new()
     }
 
+    fn dropped_item(&self, _id: EntityId) -> Option<DroppedItem> {
+        None
+    }
+
+    fn within_world_border(&self, _pos: BlockPos) -> bool {
+        true
+    }
+
+    fn dimension(&self) -> &str {
+        "minecraft:overworld"
+    }
+
+    fn living_by_uuid(&self, _uuid: Uuid) -> Option<Living> {
+        None
+    }
+
+    fn forgive_dead_players(&self) -> bool {
+        true
+    }
+
     fn sections_to_village(&self, _pos: BlockPos) -> i32 {
         NO_VILLAGE
     }
@@ -387,6 +407,7 @@ pub struct MobView {
     pub leashed: bool,
     pub passenger: bool,
     pub player_created: bool,
+    pub can_pick_up_loot: bool,
     pub team: bool,
     pub custom_box: Option<Aabb>,
     pub species: KindFacts,
@@ -472,6 +493,7 @@ impl MobView {
             leashed: false,
             passenger: false,
             player_created: false,
+            can_pick_up_loot: living.mob.as_ref().is_some_and(|mob| mob.can_pick_up_loot),
             team: false,
             custom_box: base.custom_box,
             species: KindFacts::default(),
