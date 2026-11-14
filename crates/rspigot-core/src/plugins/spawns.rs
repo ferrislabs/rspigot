@@ -12,7 +12,7 @@ use crate::plugins::decisions::{Continuation, Lane};
 use crate::plugins::entity::refusal;
 use crate::plugins::events::{
     CreatureSpawn, CreatureSpawnReason, EntityDropItem, EntityRemove, EntityRemoveCause,
-    EntitySpawn, ItemSpawn, ProjectileLaunch,
+    EntitySpawn, ItemSpawn, LightningStrike, LightningStrikeCause, ProjectileLaunch,
 };
 use crate::plugins::steps::{Birth, Carried, Follow, SpawnStep, Spawned};
 use crate::plugins::{Answer, EntityView, EventKind, EventPayload, ToPlugin};
@@ -54,6 +54,7 @@ pub(crate) fn spawn_kind(entity: &Entity) -> EventKind {
     match &entity.state {
         EntityState::Living(_) if entity.base.kind != Kind::Player => EventKind::CreatureSpawn,
         EntityState::Item(_) => EventKind::ItemSpawn,
+        EntityState::Lightning(_) => EventKind::LightningStrike,
         EntityState::Arrow(_)
         | EntityState::Thrown(_)
         | EntityState::Hurting(_)
@@ -121,7 +122,7 @@ impl<L: ClientLink> Server<L> {
             birth,
         };
         self.fire(lane, Continuation::Spawn(Box::new(step)), move |server| {
-            Some(server.spawn_payload(kind, newborn, reason))
+            server.spawn_payload(kind, newborn, reason)
         });
     }
 
@@ -130,11 +131,11 @@ impl<L: ClientLink> Server<L> {
         kind: EventKind,
         newborn: Newborn,
         spawn_reason: CreatureSpawnReason,
-    ) -> EventPayload {
+    ) -> Option<EventPayload> {
         let entity = newborn.view();
         let entity_type = newborn.kind.name().to_owned();
         let location = self.location_of(newborn.position, newborn.rotation);
-        match kind {
+        Some(match kind {
             EventKind::CreatureSpawn => EventPayload::CreatureSpawn(CreatureSpawn {
                 entity,
                 entity_type,
@@ -151,12 +152,25 @@ impl<L: ClientLink> Server<L> {
                 entity_type,
                 location,
             }),
+            EventKind::LightningStrike => {
+                let cause = match spawn_reason {
+                    CreatureSpawnReason::Command => LightningStrikeCause::Command,
+                    CreatureSpawnReason::Custom => LightningStrikeCause::Custom,
+                    CreatureSpawnReason::Default => return None,
+                    _ => LightningStrikeCause::Unknown,
+                };
+                EventPayload::LightningStrike(LightningStrike {
+                    cause,
+                    lightning: entity,
+                    world: self.world_name(),
+                })
+            }
             _ => EventPayload::EntitySpawn(EntitySpawn {
                 entity,
                 entity_type,
                 location,
             }),
-        }
+        })
     }
 
     pub(crate) fn spawning_now(&self, id: EntityId) -> bool {
@@ -230,6 +244,13 @@ impl<L: ClientLink> Server<L> {
                 if placed.is_some() {
                     self.use_spawn_egg(player, slot, &item);
                 }
+            }
+            Spawned::Thrown {
+                player,
+                hand,
+                stack,
+            } => {
+                self.finish_throw(player, hand, &stack, placed.map(|(id, _)| id));
             }
             Spawned::Converted { old, event, follow } => {
                 self.follow_conversion(old, placed.as_ref().map(|(id, _)| *id), follow);

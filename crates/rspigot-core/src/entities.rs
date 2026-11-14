@@ -424,6 +424,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Hurting(_) => self.tick_hurting(id),
                 EntityState::Bullet(_) => self.tick_bullet(id),
                 EntityState::Fangs(_) => self.tick_fangs(id),
+                EntityState::Lightning(_) => self.tick_lightning(id),
                 EntityState::Crystal(_) => self.tick_crystal(id),
                 EntityState::Cloud(_) => self.tick_cloud(id),
                 EntityState::Inert(_) => {}

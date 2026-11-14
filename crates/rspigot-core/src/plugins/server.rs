@@ -724,6 +724,38 @@ impl<L: ClientLink> Server<L> {
                 self.finish_shear(*step);
                 Vec::new()
             }
+            Continuation::Hatch(step) => {
+                self.finish_hatch(*step, patch_of!(patch, PlayerEggThrow));
+                Vec::new()
+            }
+            Continuation::Bottle(step) => {
+                self.finish_bottle(step, patch_of!(patch, ExpBottle));
+                Vec::new()
+            }
+            Continuation::Linger(step) => {
+                self.finish_linger(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Merge(step) => {
+                self.finish_item_merge(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Harvest(step) => {
+                self.finish_harvest(*step, cancelled, patch_of!(patch, PlayerHarvestBlock));
+                Vec::new()
+            }
+            Continuation::Resurrect(step) => {
+                self.finish_resurrect(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Leash(step) => {
+                self.finish_leash(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Unleash(step) => {
+                self.finish_unleash(*step, cancelled);
+                Vec::new()
+            }
             Continuation::BucketEntity(step) => {
                 self.finish_bucket_entity(*step, cancelled);
                 Vec::new()
@@ -894,8 +926,16 @@ impl<L: ClientLink> Server<L> {
                 self.finish_select_trade(step, cancelled);
                 Vec::new()
             }
-            Continuation::Transform(step) => {
+            Continuation::Transform(step) | Continuation::Zap(step) => {
                 self.finish_transform(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Empower(step) => {
+                self.finish_empower(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Scorch(step) => {
+                self.finish_scorch(step, cancelled);
                 Vec::new()
             }
             Continuation::Split(step) => {

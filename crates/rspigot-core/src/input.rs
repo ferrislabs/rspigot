@@ -513,6 +513,11 @@ impl<L: ClientLink> Server<L> {
                 return;
             }
             if !(sneaking && holding)
+                && self.use_berries(id, stack.as_ref(), pos, clicked, sequence)
+            {
+                return;
+            }
+            if !(sneaking && holding)
                 && self.use_beehive(id, hand, stack.as_ref(), pos, clicked, sequence)
             {
                 return;

@@ -62,6 +62,11 @@ impl<L: ClientLink> Server<L> {
                     self.finish_raid(pos, rabbit);
                 }
             }
+            Grief::Vines { player, pos } => {
+                if !cancelled {
+                    self.finish_vines(player, pos);
+                }
+            }
             Grief::Berries { fox, pos, glow } => {
                 if !cancelled {
                     self.finish_berries(fox, pos, glow);

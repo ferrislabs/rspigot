@@ -64,6 +64,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 | DamageType::FallingStalactite => EntityDamageCause::FallingBlock,
                 DamageType::Fall => EntityDamageCause::Fall,
                 DamageType::Thorns => EntityDamageCause::Thorns,
+                DamageType::LightningBolt => EntityDamageCause::Lightning,
                 DamageType::Magic | DamageType::IndirectMagic => EntityDamageCause::Magic,
                 _ => EntityDamageCause::EntityAttack,
             },

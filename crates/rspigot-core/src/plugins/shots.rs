@@ -161,6 +161,7 @@ impl<L: ClientLink> Server<L> {
             }
             Continuation::EntityExplode(step) => step.discard == Some(projectile),
             Continuation::Splash(step) => step.potion == projectile,
+            Continuation::Linger(step) => step.potion == projectile,
             _ => false,
         })
     }

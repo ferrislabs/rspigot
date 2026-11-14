@@ -1,7 +1,7 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1359] = [
+pub(crate) static TABLES: [(&str, LootTable); 1361] = [
     (
         "minecraft:blocks/acacia_button",
         LootTable {
@@ -37995,6 +37995,80 @@ pub(crate) static TABLES: [(&str, LootTable); 1359] = [
                     }),
                 }],
             }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:harvest/cave_vine",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(1526),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:harvest/sweet_berry_bush",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: Some(Condition::MatchBlock(BlockPredicate {
+                            blocks: Some(HolderSet::Direct(&[951])),
+                            state: &[("age", "3")],
+                        })),
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1525),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1525),
+                        }),
+                    }],
+                },
+            ],
             modifier: &[],
         },
     ),

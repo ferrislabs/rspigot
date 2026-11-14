@@ -563,14 +563,21 @@ impl<L: ClientLink> Server<L> {
             }
         }
         if dead {
-            if full {
-                self.play_player_sound(id, Kind::Player.sounds().map(|s| s.death));
+            if self.ask_resurrect(Holder::Player(id), source, full) {
+                return true;
             }
-            self.die(id, source);
+            self.finish_player_death(id, source, full);
         } else if full {
             self.play_player_sound(id, Kind::Player.sounds().map(|s| s.hurt));
         }
         true
+    }
+
+    pub(crate) fn finish_player_death(&mut self, id: PlayerId, source: &DamageSource, full: bool) {
+        if full {
+            self.play_player_sound(id, Kind::Player.sounds().map(|s| s.death));
+        }
+        self.die(id, source);
     }
 
     fn play_player_sound(&mut self, id: PlayerId, sound: Option<rspigot_entities::CreatureSound>) {
