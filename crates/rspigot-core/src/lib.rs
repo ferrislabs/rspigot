@@ -29,6 +29,7 @@ mod drops;
 mod durability;
 mod eating;
 mod effects;
+mod end_gateway;
 mod end_platform;
 mod end_portal;
 #[cfg(test)]

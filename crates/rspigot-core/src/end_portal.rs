@@ -81,7 +81,7 @@ fn portal_shape(pos: BlockPos) -> Aabb {
     )
 }
 
-fn excluded(kind: Kind) -> bool {
+pub(crate) fn excluded(kind: Kind) -> bool {
     matches!(kind, Kind::EnderDragon | Kind::Wither | Kind::EndCrystal)
 }
 
