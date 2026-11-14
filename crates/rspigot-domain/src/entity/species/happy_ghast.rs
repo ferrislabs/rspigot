@@ -127,7 +127,7 @@ pub fn home_needs_reset(home: Option<(BlockPos, i32)>, position: BlockPos, radiu
     let dx = f64::from(home_pos.x - position.x);
     let dy = f64::from(home_pos.y - position.y);
     let dz = f64::from(home_pos.z - position.z);
-    !(dx * dx + dy * dy + dz * dz < reach * reach) || home_radius != radius
+    dx * dx + dy * dy + dz * dz >= reach * reach || home_radius != radius
 }
 
 pub fn heal_interval(sheltered: bool) -> i32 {
