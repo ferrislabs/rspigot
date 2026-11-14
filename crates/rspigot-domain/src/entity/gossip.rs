@@ -223,7 +223,10 @@ impl GossipContainer {
     }
 
     pub fn preview_add(&self, target: Uuid, kind: GossipType, amount: i32) -> (i32, i32) {
-        let old = self.gossips.get(&target).map_or(0, |gossips| gossips.get(kind));
+        let old = self
+            .gossips
+            .get(&target)
+            .map_or(0, |gossips| gossips.get(kind));
         let mut merged = old + amount;
         if merged > kind.max() {
             merged = kind.max().max(old);
@@ -403,10 +406,16 @@ mod tests {
     #[test]
     fn a_preview_gives_the_old_and_new_value_without_storing_and_a_store_clamps() {
         let mut gossips = GossipContainer::default();
-        assert_eq!(gossips.preview_add(id(1), GossipType::MinorNegative, 25), (0, 25));
+        assert_eq!(
+            gossips.preview_add(id(1), GossipType::MinorNegative, 25),
+            (0, 25)
+        );
         assert!(gossips.is_empty());
         gossips.store(id(1), GossipType::MinorNegative, 500);
-        assert_eq!(gossips.preview_add(id(1), GossipType::MinorNegative, 5), (200, 200));
+        assert_eq!(
+            gossips.preview_add(id(1), GossipType::MinorNegative, 5),
+            (200, 200)
+        );
         gossips.store(id(1), GossipType::MinorNegative, 1);
         assert!(gossips.is_empty());
     }
