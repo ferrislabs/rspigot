@@ -3,6 +3,7 @@ pub mod despawn;
 pub mod endermite;
 pub mod fox;
 pub mod generation;
+mod ghast;
 pub mod natural;
 pub mod placement;
 mod polar_bear;

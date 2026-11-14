@@ -754,6 +754,7 @@ mod tests {
         assert_eq!(
             spawning,
             vec![
+                EntityKind::Blaze,
                 EntityKind::Bogged,
                 EntityKind::Cat,
                 EntityKind::CaveSpider,
@@ -763,6 +764,7 @@ mod tests {
                 EntityKind::Enderman,
                 EntityKind::Endermite,
                 EntityKind::Fox,
+                EntityKind::Ghast,
                 EntityKind::Husk,
                 EntityKind::IronGolem,
                 EntityKind::Mooshroom,

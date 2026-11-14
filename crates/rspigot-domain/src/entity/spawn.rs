@@ -541,6 +541,12 @@ pub fn finalize_spawn(
         Some(Species::SnowGolem(_)) => {
             species::snow_golem::finalize(base, living, environment, group, level)
         }
+        Some(Species::Blaze(_)) => {
+            species::blaze::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Ghast(_)) => {
+            species::ghast::finalize(base, living, environment, group, level)
+        }
         Some(Species::Rabbit(_)) => {
             species::rabbit::finalize(base, living, environment, group, level)
         }

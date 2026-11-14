@@ -67,9 +67,10 @@ impl<L: ClientLink> Server<L> {
         };
         let lane = self.lane_for(None, id);
         let step = PrimeStep {
-            creeper: id,
+            source: id,
             radius,
             fire: false,
+            projectile: false,
         };
         self.fire(lane, Continuation::Prime(step), move |_| {
             Some(EventPayload::ExplosionPrime(ExplosionPrime {
@@ -91,7 +92,11 @@ impl<L: ClientLink> Server<L> {
         cancelled: bool,
         patch: ExplosionPrimePatch,
     ) {
-        let id = step.creeper;
+        if step.projectile {
+            self.finish_projectile_prime(step, cancelled, patch);
+            return;
+        }
+        let id = step.source;
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;
         };
@@ -120,15 +125,7 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let damage = DamageSource::by(DamageType::PlayerExplosion, source);
-        let interaction = if self.config.rules.mob_griefing {
-            if self.config.rules.mob_explosion_drop_decay {
-                BlockInteraction::DestroyWithDecay
-            } else {
-                BlockInteraction::Destroy
-            }
-        } else {
-            BlockInteraction::Keep
-        };
+        let interaction = self.mob_block_interaction();
         let radius = patch.radius.unwrap_or(step.radius);
         let fire = patch.fire.unwrap_or(step.fire);
         self.explode(
@@ -142,6 +139,29 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
+    pub(crate) fn mob_block_interaction(&self) -> BlockInteraction {
+        if !self.config.rules.mob_griefing {
+            BlockInteraction::Keep
+        } else if self.config.rules.mob_explosion_drop_decay {
+            BlockInteraction::DestroyWithDecay
+        } else {
+            BlockInteraction::Destroy
+        }
+    }
+
+    pub(crate) fn discard_cause(&self, id: EntityId) -> EntityRemoveCause {
+        let projectile = self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| matches!(entity.state, EntityState::Hurting(_)));
+        if projectile {
+            EntityRemoveCause::Hit
+        } else {
+            EntityRemoveCause::Explode
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn explode(
         &mut self,
@@ -153,21 +173,49 @@ impl<L: ClientLink> Server<L> {
         fire: bool,
         discard: Option<EntityId>,
     ) {
+        self.explode_capped(
+            source,
+            damage,
+            center,
+            radius,
+            interaction,
+            fire,
+            discard,
+            None,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn explode_capped(
+        &mut self,
+        source: Option<EntityId>,
+        damage: &DamageSource,
+        center: Vec3,
+        radius: f32,
+        interaction: BlockInteraction,
+        fire: bool,
+        discard: Option<EntityId>,
+        resistance_cap: Option<f32>,
+    ) {
         let radius = radius.max(0.0);
         if radius < MIN_RADIUS {
             if let Some(source) = discard {
-                self.remove_entity(
-                    source,
-                    RemovalReason::Discarded,
-                    Some(EntityRemoveCause::Explode),
-                );
+                let cause = self.discard_cause(source);
+                self.remove_entity(source, RemovalReason::Discarded, Some(cause));
             }
             return;
         }
         let height = self.world.dimension.height;
         let positions = {
             let mut random = ServerRandom(&mut self.rng);
-            explosion::exploded_positions(&self.world.chunks, height, center, radius, &mut random)
+            explosion::exploded_positions_capped(
+                &self.world.chunks,
+                height,
+                center,
+                radius,
+                &mut random,
+                resistance_cap,
+            )
         };
         let knocked = self.hurt_by_explosion(source, damage, center, radius);
         let mut shuffled = positions;
@@ -259,16 +307,7 @@ impl<L: ClientLink> Server<L> {
             if !here.is_air() || !below.flags().contains(StateFlags::SOLID_RENDER) {
                 continue;
             }
-            let soul = below.kind().is_some_and(|kind| {
-                rspigot_data::tags::tag("minecraft:block", SOUL_FIRE_BASE)
-                    .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
-            });
-            let fire = if soul {
-                BlockKind::SoulFire.default_state()
-            } else {
-                BlockKind::Fire.default_state()
-            };
-            self.set_block(*pos, fire);
+            self.set_block(*pos, fire_state_on(below));
         }
     }
 
@@ -554,6 +593,18 @@ impl<L: ClientLink> Server<L> {
             .iter()
             .filter(|e| item::stack(&e.base).is_some())
             .count()
+    }
+}
+
+pub(crate) fn fire_state_on(below: BlockStateId) -> BlockStateId {
+    let soul = below.kind().is_some_and(|kind| {
+        rspigot_data::tags::tag("minecraft:block", SOUL_FIRE_BASE)
+            .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
+    });
+    if soul {
+        BlockKind::SoulFire.default_state()
+    } else {
+        BlockKind::Fire.default_state()
     }
 }
 

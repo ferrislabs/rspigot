@@ -1,6 +1,7 @@
 use rspigot_blocks::{StateFlags, StateId};
 use rspigot_domain::entity::Aabb;
 use rspigot_domain::entity::physics::has_tag;
+use rspigot_domain::mth::view_vector;
 use rspigot_domain::{BlockPos, EntityId, Vec3, mth};
 use rspigot_entities::EntityKind;
 
@@ -37,14 +38,6 @@ const LOOK_SPEED: f32 = 10.0;
 const NEAR_TELEPORT_SQR: f64 = 16.0;
 const LEAVE_INTERVAL: i32 = 2000;
 const TAKE_INTERVAL: i32 = 20;
-
-fn view_vector(pitch: f32, yaw: f32) -> Vec3 {
-    let x = f64::from(pitch * mth::DEG_TO_RAD);
-    let y = f64::from(-yaw * mth::DEG_TO_RAD);
-    let (f4, f5) = (mth::cos(y), mth::sin(y));
-    let (f6, f7) = (mth::cos(x), mth::sin(x));
-    Vec3::new(f64::from(f5 * f6), f64::from(-f7), f64::from(f4 * f6))
-}
 
 pub fn is_looking_at_me(
     mob: &MobView,

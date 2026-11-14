@@ -1,4 +1,4 @@
-use crate::entity::physics::BlockView;
+use crate::entity::physics::{BlockView, has_tag};
 use crate::entity::{Aabb, fluid, raycast};
 use crate::random::RandomSource;
 use crate::world::WorldHeight;
@@ -18,6 +18,7 @@ pub const PACKET_RANGE_SQR: f64 = 4096.0;
 const HASH_LOAD_FACTOR: f64 = 0.75;
 const HASH_INITIAL_CAPACITY: usize = 16;
 const WORLD_LIMIT: i32 = 30_000_000;
+const WITHER_IMMUNE: &str = "minecraft:wither_immune";
 
 pub fn ray_directions() -> Vec<Vec3> {
     let mut out = Vec::new();
@@ -59,6 +60,25 @@ pub fn exploded_positions(
     radius: f32,
     random: &mut impl RandomSource,
 ) -> Vec<BlockPos> {
+    exploded_positions_capped(view, height, center, radius, random, None)
+}
+
+pub fn capped_resistance(view: &impl BlockView, pos: BlockPos, cap: Option<f32>) -> Option<f32> {
+    let resistance = block_resistance(view, pos)?;
+    Some(match cap {
+        Some(cap) if !has_tag(view.block_or_air(pos), WITHER_IMMUNE) => resistance.min(cap),
+        _ => resistance,
+    })
+}
+
+pub fn exploded_positions_capped(
+    view: &impl BlockView,
+    height: WorldHeight,
+    center: Vec3,
+    radius: f32,
+    random: &mut impl RandomSource,
+    cap: Option<f32>,
+) -> Vec<BlockPos> {
     let mut inserted: Vec<BlockPos> = Vec::new();
     let mut seen = rustc_hash::FxHashSet::default();
     for direction in ray_directions() {
@@ -69,7 +89,7 @@ pub fn exploded_positions(
             if !height.contains(pos.y) || !in_horizontal_bounds(pos) {
                 break;
             }
-            if let Some(resistance) = block_resistance(view, pos) {
+            if let Some(resistance) = capped_resistance(view, pos, cap) {
                 power -= (resistance + RESISTANCE_OFFSET) * RESISTANCE_SCALE;
             }
             if power > 0.0 && seen.insert(pos) {
@@ -251,6 +271,63 @@ mod tests {
         assert!(!blown.iter().any(|pos| pos.y == 62));
         let unique: std::collections::HashSet<_> = blown.iter().collect();
         assert_eq!(unique.len(), blown.len());
+    }
+
+    #[test]
+    fn a_skull_blast_caps_the_resistance_of_every_block_but_the_wither_immune_ones() {
+        let mut ground = floor();
+        ground
+            .0
+            .insert(BlockPos::new(0, 64, 0), BlockKind::Obsidian.default_state());
+        ground
+            .0
+            .insert(BlockPos::new(1, 64, 0), BlockKind::Bedrock.default_state());
+        ground
+            .0
+            .insert(BlockPos::new(2, 64, 0), BlockKind::Water.default_state());
+        let obsidian = BlockPos::new(0, 64, 0);
+        assert_eq!(block_resistance(&ground, obsidian), Some(1200.0));
+        assert_eq!(capped_resistance(&ground, obsidian, None), Some(1200.0));
+        assert_eq!(capped_resistance(&ground, obsidian, Some(0.8)), Some(0.8));
+        let bedrock = BlockPos::new(1, 64, 0);
+        assert_eq!(
+            capped_resistance(&ground, bedrock, Some(0.8)),
+            block_resistance(&ground, bedrock)
+        );
+        assert_eq!(
+            capped_resistance(&ground, BlockPos::new(3, 64, 0), Some(0.8)),
+            None
+        );
+        assert_eq!(
+            capped_resistance(&ground, BlockPos::new(2, 64, 0), Some(0.8)),
+            Some(0.8)
+        );
+    }
+
+    #[test]
+    fn a_capped_blast_of_power_one_digs_obsidian_where_an_uncapped_one_cannot() {
+        let mut ground = floor();
+        let target = BlockPos::new(0, 64, 0);
+        ground.0.insert(target, BlockKind::Obsidian.default_state());
+        let center = Vec3::new(0.5, 64.5, 0.5);
+        let mut found = false;
+        for seed in 0..8 {
+            let mut random = LegacyRandom::new(seed);
+            let plain =
+                exploded_positions(&ground, WorldHeight::OVERWORLD, center, 1.0, &mut random);
+            assert!(!plain.contains(&target));
+            let mut random = LegacyRandom::new(seed);
+            let capped = exploded_positions_capped(
+                &ground,
+                WorldHeight::OVERWORLD,
+                center,
+                1.0,
+                &mut random,
+                Some(0.8),
+            );
+            found |= capped.contains(&target);
+        }
+        assert!(found);
     }
 
     #[test]

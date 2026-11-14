@@ -29,6 +29,9 @@ pub enum DamageType {
     Lava,
     Arrow,
     Thrown,
+    Fireball,
+    UnattributedFireball,
+    WitherSkull,
     Explosion,
     PlayerExplosion,
 }
@@ -90,6 +93,9 @@ impl DamageType {
             Self::Lava => "minecraft:lava",
             Self::Arrow => "minecraft:arrow",
             Self::Thrown => "minecraft:thrown",
+            Self::Fireball => "minecraft:fireball",
+            Self::UnattributedFireball => "minecraft:unattributed_fireball",
+            Self::WitherSkull => "minecraft:wither_skull",
             Self::Explosion => "minecraft:explosion",
             Self::PlayerExplosion => "minecraft:player_explosion",
         }
@@ -116,6 +122,9 @@ impl DamageType {
             Self::Lava => "lava",
             Self::Arrow => "arrow",
             Self::Thrown => "thrown",
+            Self::Fireball => "fireball",
+            Self::UnattributedFireball => "onFire",
+            Self::WitherSkull => "witherSkull",
             Self::Explosion => "explosion",
             Self::PlayerExplosion => "explosion.player",
         }
@@ -129,6 +138,9 @@ impl DamageType {
             | Self::Lava
             | Self::Arrow
             | Self::Thrown
+            | Self::Fireball
+            | Self::UnattributedFireball
+            | Self::WitherSkull
             | Self::Explosion
             | Self::PlayerExplosion => 0.1,
             _ => 0.0,
@@ -231,6 +243,34 @@ mod tests {
         assert_eq!(DamageType::Thrown.name(), "minecraft:thrown");
         assert_eq!(DamageType::Thrown.message_id(), "thrown");
         assert_eq!(DamageType::Thrown.exhaustion(), 0.1);
+    }
+
+    #[test]
+    fn fireball_damage_types_are_registered_with_the_datapack_messages_and_tags() {
+        let all = [
+            (DamageType::Fireball, "minecraft:fireball", "fireball"),
+            (
+                DamageType::UnattributedFireball,
+                "minecraft:unattributed_fireball",
+                "onFire",
+            ),
+            (
+                DamageType::WitherSkull,
+                "minecraft:wither_skull",
+                "witherSkull",
+            ),
+        ];
+        for (kind, name, message) in all {
+            assert!(kind.registry_id().is_some(), "{name}");
+            assert_eq!(kind.name(), name);
+            assert_eq!(kind.message_id(), message);
+            assert_eq!(kind.exhaustion(), 0.1);
+            assert!(kind.in_tag("minecraft:is_projectile"), "{name}");
+        }
+        assert!(DamageType::Fireball.is(DamageTag::IsFire));
+        assert!(DamageType::UnattributedFireball.is(DamageTag::IsFire));
+        assert!(!DamageType::WitherSkull.is(DamageTag::IsFire));
+        assert!(!DamageType::Fireball.is(DamageTag::BypassesArmor));
     }
 
     #[test]

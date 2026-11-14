@@ -131,6 +131,7 @@ pub enum Hand {
 pub struct MobBody {
     pub velocity: Vec3,
     pub yaw: f32,
+    pub body_yaw: f32,
     pub pitch: f32,
     pub aggressive: bool,
     pub swell_dir: i32,
@@ -143,6 +144,7 @@ impl MobBody {
         Self {
             velocity: mob.velocity,
             yaw: mob.yaw,
+            body_yaw: mob.body_yaw,
             pitch: mob.pitch,
             aggressive: mob.aggressive,
             swell_dir: mob.swell_dir,
@@ -259,6 +261,21 @@ pub trait AiWorld: BlockView {
         BlockPos::new(pos.x, self.min_y(), pos.z)
     }
 
+    fn motion_blocking_height(&self, x: i32, z: i32) -> i32 {
+        let blocks = |state: rspigot_blocks::StateId| {
+            !state.collision_shape().is_empty()
+                || state.flags().contains(rspigot_blocks::StateFlags::WATER)
+        };
+        let mut y = self.max_y();
+        while y >= self.min_y() {
+            if self.state(BlockPos::new(x, y, z)).is_some_and(blocks) {
+                return y + 1;
+            }
+            y -= 1;
+        }
+        self.min_y()
+    }
+
     fn aggressive_panda(&self, _id: EntityId) -> bool {
         false
     }
@@ -285,6 +302,7 @@ pub struct MobView {
     pub yaw: f32,
     pub head_yaw: f32,
     pub body_yaw: f32,
+    pub silent: bool,
     pub on_ground: bool,
     pub fluid: FluidContact,
     pub width: f32,
@@ -366,6 +384,7 @@ impl MobView {
             yaw: base.yaw,
             head_yaw: base.head_yaw,
             body_yaw: living.body_yaw,
+            silent: base.is_silent(),
             on_ground: base.on_ground,
             fluid: base.fluid,
             width: dimensions.width,

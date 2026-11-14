@@ -139,10 +139,11 @@ impl<L: ClientLink> Server<L> {
             self.create_fire(&burning);
         }
         if let Some(source) = discard {
+            let cause = self.discard_cause(source);
             self.remove_entity(
                 source,
                 rspigot_domain::entity::RemovalReason::Discarded,
-                Some(crate::plugins::events::EntityRemoveCause::Explode),
+                Some(cause),
             );
         }
     }

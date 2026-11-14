@@ -190,7 +190,12 @@ impl<L: ClientLink> Server<L> {
         EntityBase::new(id, uuid, kind)
     }
 
-    pub(crate) fn place_entity(&mut self, entity: Entity) -> Result<EntityId, Box<Entity>> {
+    pub(crate) fn place_entity(&mut self, mut entity: Entity) -> Result<EntityId, Box<Entity>> {
+        if entity.base.kind == Kind::Fireball
+            && let EntityState::Hurting(state) = &mut entity.state
+        {
+            state.incendiary = self.config.rules.mob_griefing;
+        }
         let simulated = entity.is_simulated();
         let kind = entity.base.kind;
         let section = section_of(entity.base.position);
@@ -363,6 +368,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Orb(_) => self.tick_orb(id),
                 EntityState::Arrow(_) => self.tick_arrow(id),
                 EntityState::Thrown(_) => self.tick_thrown(id),
+                EntityState::Hurting(_) => self.tick_hurting(id),
                 EntityState::Inert(_) => {}
             }
             self.entities.store.reindex(id);

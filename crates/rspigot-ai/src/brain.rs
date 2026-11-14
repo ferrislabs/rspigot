@@ -7,7 +7,7 @@ use rspigot_entities::EntityKind;
 use crate::action::{MobAction, TargetReason, TargetRequest};
 use crate::blocks::BreakDoorGoal;
 use crate::combat::{MeleeAttackGoal, RangedBowAttackGoal};
-use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl};
+use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl, MoveStyle};
 use crate::goal::{Flag, GoalSelector};
 use crate::goals::MobGoal;
 use crate::random::MobRandom;
@@ -59,6 +59,12 @@ impl Brain {
         }
         if kind == EntityKind::Chicken {
             profile.set_malus(PathType::Water, 0.0);
+        }
+        if kind == EntityKind::Blaze {
+            profile.set_malus(PathType::Water, -1.0);
+            profile.set_malus(PathType::Lava, 8.0);
+            profile.set_malus(PathType::FireInNeighbor, 0.0);
+            profile.set_malus(PathType::Fire, 0.0);
         }
         let mut brain = Self {
             random: MobRandom::new(seed),
@@ -466,11 +472,21 @@ impl MobAi {
             in_floatable_fluid: base.fluid.in_water,
         };
         if (base.kind != EntityKind::Fox || fox::can_move(base)) && brain.panda.can_move() {
-            brain
-                .movement
-                .tick(base, living, view, &mut brain.jump, |pos| {
-                    crate::walk::mob_path_type(view, profile, state, pos) == PathType::Walkable
-                });
+            match brain.movement.style() {
+                MoveStyle::Ground => {
+                    brain
+                        .movement
+                        .tick(base, living, view, &mut brain.jump, |pos| {
+                            crate::walk::mob_path_type(view, profile, state, pos)
+                                == PathType::Walkable
+                        });
+                }
+                MoveStyle::Ghast => {
+                    brain
+                        .movement
+                        .tick_ghast(base, living, view, &mut brain.random);
+                }
+            }
         }
         let navigating = brain.navigation.is_in_progress();
         if base.kind == EntityKind::Fox {
