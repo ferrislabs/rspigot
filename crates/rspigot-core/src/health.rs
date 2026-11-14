@@ -970,7 +970,12 @@ impl<L: ClientLink> Server<L> {
             self.change_game_mode(id, GameMode::Spectator, Vec::new());
         }
         if missing {
-            self.set_respawn_position(id, None, false);
+            self.set_respawn_position(
+                id,
+                None,
+                false,
+                crate::plugins::events::PlayerSpawnChangeCause::Reset,
+            );
         }
         if elsewhere {
             self.change_dimension_now(

@@ -3,16 +3,56 @@ use rspigot_domain::bed::{self, BedRule, Problem, Sleeper};
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::text::Component;
-use rspigot_domain::{BlockPos, BlockStateId, Rotation, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, Identifier, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_entities::SoundSource;
 
 use crate::events::{Animation, ClientEvent};
 use crate::explosion::BlockInteraction;
 use crate::health::DamageSource;
-use crate::plugins::events::{PlayerTeleportCause, TimeSkipReason};
+use crate::plugins::events::{
+    EventResult, PlayerBedEnter, PlayerBedEnterPatch, PlayerBedEnterResult, PlayerBedLeave,
+    PlayerSpawnChange, PlayerSpawnChangeCause, PlayerSpawnChangePatch, PlayerTeleportCause,
+    TimeSkipReason,
+};
+use crate::plugins::{Continuation, EventPayload, Location};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+
+#[derive(Debug)]
+pub(crate) struct BedEnterStep {
+    player: PlayerId,
+    kind: BlockKind,
+    state: BlockStateId,
+    rule: BedRule,
+    pos: BlockPos,
+    result: Result<(), Problem>,
+}
+
+#[derive(Debug)]
+pub(crate) struct BedLeaveStep {
+    player: PlayerId,
+    forceful: bool,
+    update: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct SpawnChangeStep {
+    player: PlayerId,
+    config: Option<bed::RespawnConfig>,
+    show_message: bool,
+}
+
+const fn enter_result(result: Result<(), Problem>) -> PlayerBedEnterResult {
+    match result {
+        Ok(()) => PlayerBedEnterResult::Ok,
+        Err(Problem::TooFarAway) => PlayerBedEnterResult::TooFarAway,
+        Err(Problem::NotSafe) => PlayerBedEnterResult::NotSafe,
+        Err(Problem::NotPossibleHere) => PlayerBedEnterResult::NotPossibleHere,
+        Err(Problem::NotPossibleNow(_)) => PlayerBedEnterResult::NotPossibleNow,
+        Err(Problem::Obstructed | Problem::Other) => PlayerBedEnterResult::OtherProblem,
+    }
+}
 
 const EXPLOSION_POWER: f32 = 5.0;
 const STRAW_BED_LEAVE_SOUND: &str = "minecraft:block.straw_bed.break_leave";
@@ -52,8 +92,66 @@ impl<L: ClientLink> Server<L> {
         id: PlayerId,
         config: Option<bed::RespawnConfig>,
         show_message: bool,
+        cause: PlayerSpawnChangeCause,
     ) {
-        let Some(player) = self.players.get_mut(&id) else {
+        let step = SpawnChangeStep {
+            player: id,
+            config: config.clone(),
+            show_message,
+        };
+        self.fire(
+            id,
+            Continuation::SpawnChange(Box::new(step)),
+            move |server| {
+                let location = config.as_ref().map(|config| Location {
+                    world: config.dimension.to_string(),
+                    position: Vec3::new(
+                        f64::from(config.pos.x),
+                        f64::from(config.pos.y),
+                        f64::from(config.pos.z),
+                    ),
+                    rotation: Rotation::new(config.yaw, config.pitch),
+                });
+                Some(EventPayload::PlayerSpawnChange(PlayerSpawnChange {
+                    cause,
+                    forced: config.as_ref().is_some_and(|config| config.forced),
+                    new_spawn: location,
+                    player: server.snapshot_of(id)?,
+                }))
+            },
+        );
+    }
+
+    pub(crate) fn finish_spawn_change(
+        &mut self,
+        step: SpawnChangeStep,
+        cancelled: bool,
+        patch: PlayerSpawnChangePatch,
+    ) {
+        if cancelled {
+            return;
+        }
+        let config = match patch.new_spawn {
+            Some(None) => None,
+            Some(Some(location)) => {
+                Identifier::parse(&location.world)
+                    .ok()
+                    .map(|dimension| bed::RespawnConfig {
+                        dimension,
+                        pos: location.position.block(),
+                        yaw: location.rotation.yaw,
+                        pitch: location.rotation.pitch,
+                        forced: patch
+                            .forced
+                            .unwrap_or_else(|| step.config.as_ref().is_some_and(|c| c.forced)),
+                    })
+            }
+            None => step.config.map(|config| bed::RespawnConfig {
+                forced: patch.forced.unwrap_or(config.forced),
+                ..config
+            }),
+        };
+        let Some(player) = self.players.get_mut(&step.player) else {
             return;
         };
         let moved = match (&config, &player.respawn) {
@@ -62,9 +160,9 @@ impl<L: ClientLink> Server<L> {
             _ => false,
         };
         player.respawn = config;
-        if show_message && moved {
+        if step.show_message && moved {
             self.push(
-                Audience::One(id),
+                Audience::One(step.player),
                 ClientEvent::SystemChat {
                     message: Component::translatable(bed::SPAWN_SET_MESSAGE, Vec::new()),
                     overlay: false,
@@ -216,6 +314,7 @@ impl<L: ClientLink> Server<L> {
                     forced: false,
                 }),
                 true,
+                PlayerSpawnChangeCause::Bed,
             );
         }
         if !can_sleep {
@@ -243,7 +342,48 @@ impl<L: ClientLink> Server<L> {
             self.bed_problem(id, kind, rule, pos, state, Problem::Other);
             return;
         }
-        self.finish_bed_enter(id, kind, state, rule, pos, result);
+        let step = BedEnterStep {
+            player: id,
+            kind,
+            state,
+            rule,
+            pos,
+            result,
+        };
+        self.fire(id, Continuation::BedEnter(Box::new(step)), move |server| {
+            Some(EventPayload::PlayerBedEnter(PlayerBedEnter {
+                bed: pos,
+                bed_enter_result: enter_result(result),
+                player: server.snapshot_of(id)?,
+                use_bed: EventResult::Default,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_bed_enter_event(
+        &mut self,
+        step: BedEnterStep,
+        cancelled: bool,
+        patch: PlayerBedEnterPatch,
+    ) {
+        let verdict = if cancelled {
+            EventResult::Deny
+        } else {
+            patch.use_bed.unwrap_or(EventResult::Default)
+        };
+        let result = match verdict {
+            EventResult::Allow => Ok(()),
+            EventResult::Deny => Err(Problem::Other),
+            EventResult::Default => step.result,
+        };
+        self.finish_bed_enter(
+            step.player,
+            step.kind,
+            step.state,
+            step.rule,
+            step.pos,
+            result,
+        );
     }
 
     pub(crate) fn finish_bed_enter(
@@ -336,10 +476,15 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn begin_sleeping(&mut self, id: PlayerId, kind: BlockKind, pos: BlockPos) -> bool {
-        if !self.sleep_spot_exists(kind, pos) {
+        if !self.sleep_spot_exists(kind, pos) || bed::is_occupied(self.block_or_air(pos)) {
             return false;
         }
-        let Some(entity) = self.players.get(&id).map(|player| player.entity_id) else {
+        let Some(entity) = self
+            .players
+            .get(&id)
+            .filter(|player| player.sleeping.is_none() && !player.vitals.is_dead())
+            .map(|player| player.entity_id)
+        else {
             return false;
         };
         self.stop_riding_forced(entity);
@@ -373,14 +518,39 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn stop_sleep_in_bed(&mut self, id: PlayerId, forceful: bool, update: bool) {
-        if !self
-            .players
-            .get(&id)
-            .is_some_and(|player| player.sleeping.is_some())
-        {
+        let Some(player) = self.players.get_mut(&id) else {
+            return;
+        };
+        let Some(sleeping) = player.sleeping else {
+            return;
+        };
+        if player.waking {
             return;
         }
-        self.finish_bed_leave(id, forceful, update);
+        player.waking = true;
+        let step = BedLeaveStep {
+            player: id,
+            forceful,
+            update,
+        };
+        self.fire(id, Continuation::BedLeave(step), move |server| {
+            Some(EventPayload::PlayerBedLeave(PlayerBedLeave {
+                bed: sleeping,
+                player: server.snapshot_of(id)?,
+                set_spawn_location: true,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_bed_leave_event(&mut self, step: BedLeaveStep, cancelled: bool) {
+        let Some(player) = self.players.get_mut(&step.player) else {
+            return;
+        };
+        player.waking = false;
+        if cancelled || player.sleeping.is_none() {
+            return;
+        }
+        self.finish_bed_leave(step.player, step.forceful, step.update);
     }
 
     pub(crate) fn finish_bed_leave(&mut self, id: PlayerId, forceful: bool, update: bool) {

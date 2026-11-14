@@ -718,6 +718,7 @@ impl<L: ClientLink> Server<L> {
             use_memo: None,
             sleeping: None,
             sleep_counter: 0,
+            waking: false,
             respawn: None,
         };
         if let Some(save) = &saved {

@@ -67,6 +67,7 @@ pub struct Player<L> {
     pub(crate) use_memo: Option<crate::plugins::UseMemo>,
     pub sleeping: Option<rspigot_domain::BlockPos>,
     pub sleep_counter: i32,
+    pub(crate) waking: bool,
     pub respawn: Option<rspigot_domain::bed::RespawnConfig>,
 }
 

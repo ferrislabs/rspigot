@@ -627,6 +627,18 @@ impl<L: ClientLink> Server<L> {
                 self.finish_velocity(step, patch_of!(patch, PlayerVelocity));
                 Vec::new()
             }
+            Continuation::BedEnter(step) => {
+                self.finish_bed_enter_event(*step, cancelled, patch_of!(patch, PlayerBedEnter));
+                Vec::new()
+            }
+            Continuation::BedLeave(step) => {
+                self.finish_bed_leave_event(step, cancelled);
+                Vec::new()
+            }
+            Continuation::SpawnChange(step) => {
+                self.finish_spawn_change(*step, cancelled, patch_of!(patch, PlayerSpawnChange));
+                Vec::new()
+            }
             Continuation::Respawn(step) => {
                 self.finish_respawn(step, patch_of!(patch, PlayerRespawn));
                 Vec::new()
