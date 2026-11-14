@@ -1034,6 +1034,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_grow(step, cancelled);
                 Vec::new()
             }
+            Continuation::Structure(step) => {
+                self.finish_structure(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Fertilize(step) => {
+                self.finish_fertilize(*step, cancelled);
+                Vec::new()
+            }
             Continuation::Nature(step) => {
                 self.finish_nature(step, cancelled);
                 Vec::new()

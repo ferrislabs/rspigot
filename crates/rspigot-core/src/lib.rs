@@ -106,6 +106,7 @@ mod totem;
 mod trader_spawner;
 mod trading;
 mod travel;
+mod tree_growth;
 mod vehicles;
 mod wind_charge;
 mod wither_summon;

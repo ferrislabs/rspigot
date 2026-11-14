@@ -622,3 +622,220 @@ fn concrete_powder_beside_water_hardens_with_a_form() {
         "minecraft:white_concrete_powder"
     );
 }
+
+fn give_bone_meal(s: &mut Scene) {
+    s.server.handle(rspigot_core::events::Inbound::Console(
+        "give Alice minecraft:bone_meal 16".to_owned(),
+    ));
+    s.server.deliver();
+}
+
+fn bone_meal(s: &mut Scene, pos: BlockPos) {
+    let alice = s.players[0].clone();
+    send_input(
+        &mut s.server,
+        &alice,
+        rspigot_core::events::PlayerInput::UseItemOn {
+            hand: rspigot_core::events::Hand::Main,
+            pos,
+            face: rspigot_core::events::Direction::Up,
+            cursor: rspigot_domain::Vec3::new(0.5, 1.0, 0.5),
+            inside_block: false,
+            sequence: 3,
+        },
+    );
+    s.tick(1);
+}
+
+fn structure_of(fired: &Fired) -> Option<rspigot_core::plugins::events::StructureGrow> {
+    match &fired.payload {
+        EventPayload::StructureGrow(event) => Some(event.clone()),
+        _ => None,
+    }
+}
+
+#[test]
+fn a_ripe_sapling_grows_a_tree_with_structure_grow_and_a_cancel_keeps_it() {
+    let mut s = ticking(
+        "minecraft:plains",
+        1_500,
+        vec![deciding(1, EventKind::StructureGrow)],
+    );
+    set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "1")]);
+    let asked = decide_until(&mut s, EventKind::StructureGrow, 3_000, true, |_| true)
+        .expect("the sapling grows");
+    let event = structure_of(&asked).unwrap();
+    assert!(!event.from_bonemeal);
+    assert_eq!(event.player, None);
+    assert_eq!(event.species, rspigot_core::plugins::events::TreeType::Tree);
+    assert!(
+        event
+            .blocks
+            .iter()
+            .any(|block| block.pos == SOIL_TOP && block.state.kind == "minecraft:oak_log")
+    );
+    assert!(
+        event
+            .blocks
+            .iter()
+            .any(|block| block.state.kind == "minecraft:oak_leaves")
+    );
+    s.tick(2);
+    assert_eq!(kind_at(&mut s, SOIL_TOP), "minecraft:oak_sapling");
+}
+
+#[test]
+fn a_ripe_sapling_grows_a_tree_without_a_handler() {
+    let mut s = ticking("minecraft:plains", 1_500, Vec::new());
+    set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "1")]);
+    for _ in 0..3_000 {
+        s.tick(1);
+        if kind_at(&mut s, SOIL_TOP) == "minecraft:oak_log" {
+            assert_eq!(
+                kind_at(&mut s, BlockPos::new(2, 67, 2)),
+                "minecraft:oak_log"
+            );
+            return;
+        }
+    }
+    panic!("the sapling never grew");
+}
+
+fn fertilize_of(fired: &Fired) -> Option<rspigot_core::plugins::events::BlockFertilize> {
+    match &fired.payload {
+        EventPayload::BlockFertilize(event) => Some(event.clone()),
+        _ => None,
+    }
+}
+
+#[test]
+fn bone_meal_on_a_young_sapling_asks_a_fertilize_with_the_next_stage() {
+    let mut s = growing(7, vec![deciding(1, EventKind::BlockFertilize)]);
+    set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "0")]);
+    give_bone_meal(&mut s);
+    let mut asked = None;
+    for _ in 0..30 {
+        bone_meal(&mut s, SOIL_TOP);
+        if let Some(fired) = asked_for(&s.plugin, EventKind::BlockFertilize).pop() {
+            asked = Some(fired);
+            break;
+        }
+    }
+    let asked = asked.expect("a fertilize was asked");
+    let event = fertilize_of(&asked).unwrap();
+    assert_eq!(event.block, SOIL_TOP);
+    assert!(event.player.is_some());
+    assert_eq!(event.blocks.len(), 1);
+    assert_eq!(event.blocks[0].state.kind, "minecraft:oak_sapling");
+    assert!(
+        event.blocks[0]
+            .state
+            .properties
+            .contains(&("stage".to_owned(), "1".to_owned()))
+    );
+    assert_eq!(property_at(&mut s, SOIL_TOP, "stage").as_deref(), Some("0"));
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    assert_eq!(property_at(&mut s, SOIL_TOP, "stage").as_deref(), Some("0"));
+}
+
+#[test]
+fn bone_meal_on_a_young_sapling_advances_its_stage_without_a_handler() {
+    let mut s = growing(7, Vec::new());
+    set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "0")]);
+    give_bone_meal(&mut s);
+    for _ in 0..30 {
+        bone_meal(&mut s, SOIL_TOP);
+        if property_at(&mut s, SOIL_TOP, "stage").as_deref() == Some("1") {
+            return;
+        }
+    }
+    panic!("the sapling never advanced");
+}
+
+#[test]
+fn a_cancelled_structure_grow_of_a_bone_meal_still_reports_a_refused_fertilize() {
+    let mut s = growing(
+        8,
+        vec![
+            deciding(1, EventKind::StructureGrow),
+            observe(1, EventKind::BlockFertilize),
+        ],
+    );
+    set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "1")]);
+    give_bone_meal(&mut s);
+    let mut asked = None;
+    for _ in 0..30 {
+        bone_meal(&mut s, SOIL_TOP);
+        if let Some(fired) = asked_for(&s.plugin, EventKind::StructureGrow).pop() {
+            asked = Some(fired);
+            break;
+        }
+    }
+    let asked = asked.expect("a structure grow was asked");
+    let event = structure_of(&asked).unwrap();
+    assert!(event.from_bonemeal);
+    assert!(event.player.is_some());
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(2);
+    let heard = settled_for(&s.plugin, EventKind::BlockFertilize);
+    assert_eq!(heard.len(), 1);
+    assert!(heard[0].cancelled);
+    assert_eq!(kind_at(&mut s, SOIL_TOP), "minecraft:oak_sapling");
+}
+
+#[test]
+fn bone_meal_on_a_sapling_grows_a_tree_through_structure_grow_then_fertilize() {
+    let mut s = growing(
+        9,
+        vec![
+            observe(1, EventKind::StructureGrow),
+            observe(1, EventKind::BlockFertilize),
+        ],
+    );
+    set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "1")]);
+    give_bone_meal(&mut s);
+    for _ in 0..30 {
+        bone_meal(&mut s, SOIL_TOP);
+        if kind_at(&mut s, SOIL_TOP) == "minecraft:oak_log" {
+            break;
+        }
+    }
+    assert_eq!(kind_at(&mut s, SOIL_TOP), "minecraft:oak_log");
+    let structures = settled_for(&s.plugin, EventKind::StructureGrow);
+    let fertilized = settled_for(&s.plugin, EventKind::BlockFertilize);
+    assert_eq!(structures.len(), 1);
+    assert_eq!(fertilized.len(), 1);
+    assert!(!fertilized[0].cancelled);
+    assert!(structure_of(&structures[0]).unwrap().from_bonemeal);
+}
+
+#[test]
+fn bone_meal_on_grass_asks_a_fertilize_listing_the_new_plants() {
+    let mut s = growing(10, vec![deciding(1, EventKind::BlockFertilize)]);
+    set(&mut s, SOIL, "minecraft:grass_block");
+    give_bone_meal(&mut s);
+    bone_meal(&mut s, SOIL);
+    let asked = last_asked(&s.plugin, EventKind::BlockFertilize);
+    let event = fertilize_of(&asked).unwrap();
+    assert_eq!(event.block, SOIL);
+    assert!(!event.blocks.is_empty());
+    assert!(
+        event
+            .blocks
+            .iter()
+            .all(|block| block.state.kind == "minecraft:short_grass"
+                || block.state.kind == "minecraft:tall_grass")
+    );
+    let spot = event.blocks[0].pos;
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    assert_eq!(kind_at(&mut s, spot), "minecraft:air");
+}
+
+#[test]
+fn bone_meal_on_grass_grows_short_grass_without_a_handler() {
+    let mut s = growing(10, Vec::new());
+    set(&mut s, SOIL, "minecraft:grass_block");
+    give_bone_meal(&mut s);
+    bone_meal(&mut s, SOIL);
+    assert_eq!(kind_at(&mut s, SOIL_TOP), "minecraft:short_grass");
+}

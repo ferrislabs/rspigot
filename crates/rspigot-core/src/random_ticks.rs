@@ -5,6 +5,7 @@ use rspigot_domain::{BlockPos, BlockStateId, ChunkPos};
 use crate::ground::is_leaves;
 use crate::ports::ClientLink;
 use crate::server::Server;
+use crate::tree_growth::is_sapling;
 
 const SECTION_SIZE: i32 = 16;
 const PRECIPITATION_ODDS: i32 = 48;
@@ -81,6 +82,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::Ice => self.ice_tick(pos, picked),
             BlockKind::Farmland => self.farmland_tick(pos, picked),
             kind if is_leaves(kind) => self.leaves_random_tick(pos, picked),
+            _ if is_sapling(picked) => self.sapling_random_tick(pos, picked),
             _ => {}
         }
     }

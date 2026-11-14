@@ -1314,6 +1314,19 @@ pub(crate) struct NatureStep {
 pub(crate) struct GrowStep {
     pub(crate) pos: BlockPos,
     pub(crate) state: BlockStateId,
+    pub(crate) fertilizer: Option<PlayerId>,
+}
+
+#[derive(Debug)]
+pub(crate) struct StructureStep {
+    pub(crate) player: Option<PlayerId>,
+    pub(crate) origin: BlockPos,
+    pub(crate) blocks: Vec<(BlockPos, BlockStateId)>,
+}
+
+#[derive(Debug)]
+pub(crate) struct FertilizeStep {
+    pub(crate) blocks: Vec<(BlockPos, BlockStateId)>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1547,6 +1560,8 @@ pub(crate) enum Continuation {
     ChangeBlock(Box<ChangeStep>),
     Form(FormStep),
     Grow(GrowStep),
+    Structure(Box<StructureStep>),
+    Fertilize(Box<FertilizeStep>),
     Nature(NatureStep),
     Ignite(IgniteStep),
     Regrow(EntityId),
@@ -1742,6 +1757,8 @@ impl Continuation {
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
             Self::Grow(_) => EventKind::BlockGrow,
+            Self::Structure(_) => EventKind::StructureGrow,
+            Self::Fertilize(_) => EventKind::BlockFertilize,
             Self::Nature(step) => match step.nature {
                 Nature::Fade => EventKind::BlockFade,
                 Nature::Burn => EventKind::BlockBurn,
