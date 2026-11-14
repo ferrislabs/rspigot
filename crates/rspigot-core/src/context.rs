@@ -11,7 +11,7 @@ use rspigot_domain::random::LegacyRandom;
 use rspigot_domain::spawn::SpawnReason;
 use rspigot_domain::text::Component;
 use rspigot_domain::world::Difficulty;
-use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
+use rspigot_domain::{BlockPos, EntityId, Identifier, ItemId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Compound;
 
@@ -103,7 +103,34 @@ impl<L: ClientLink> CommandContext for Server<L> {
     }
 
     fn teleport(&mut self, player: PlayerId, position: Vec3) {
-        self.ask_teleport(player, position, None, PlayerTeleportCause::Command, None);
+        let dimension = self.command_dimension.clone();
+        self.ask_teleport_in(
+            player,
+            dimension,
+            position,
+            None,
+            PlayerTeleportCause::Command,
+            None,
+        );
+    }
+
+    fn run_in_dimension(
+        &mut self,
+        dimension: &Identifier,
+        swap: bool,
+        run: impl FnOnce(&mut Self),
+    ) -> bool {
+        if !self.ensure_dimension(dimension) {
+            return false;
+        }
+        let previous = self.command_dimension.replace(dimension.clone());
+        if swap {
+            self.in_dimension(dimension, run);
+        } else {
+            run(self);
+        }
+        self.command_dimension = previous;
+        true
     }
 
     fn day_time(&self) -> i64 {
