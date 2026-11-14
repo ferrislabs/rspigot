@@ -18,7 +18,12 @@ pub(crate) fn is_bone_meal(item: rspigot_domain::ItemId) -> bool {
 }
 
 impl<L: ClientLink> Server<L> {
-    pub(crate) fn grow_crop(&mut self, lane: Lane, pos: BlockPos) -> bool {
+    pub(crate) fn grow_crop(
+        &mut self,
+        lane: Lane,
+        fertilizer: Option<PlayerId>,
+        pos: BlockPos,
+    ) -> bool {
         let Some(state) = self.world.chunks.block(pos) else {
             return false;
         };
@@ -27,15 +32,29 @@ impl<L: ClientLink> Server<L> {
         }
         let mut random = ServerRandom(&mut self.rng);
         if let Some(grown) = crop::bonemealed_state(state, &mut random) {
-            self.grow_block(lane, pos, grown);
+            self.grow_block_by(lane, fertilizer, pos, grown);
         }
         true
     }
 
     pub(crate) fn grow_block(&mut self, lane: Lane, pos: BlockPos, state: BlockStateId) {
+        self.grow_block_by(lane, None, pos, state);
+    }
+
+    fn grow_block_by(
+        &mut self,
+        lane: Lane,
+        fertilizer: Option<PlayerId>,
+        pos: BlockPos,
+        state: BlockStateId,
+    ) {
         self.fire(
             lane,
-            Continuation::Grow(GrowStep { pos, state }),
+            Continuation::Grow(GrowStep {
+                pos,
+                state,
+                fertilizer,
+            }),
             move |_| {
                 Some(EventPayload::BlockGrow(BlockGrow {
                     block: pos,
@@ -46,7 +65,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn finish_grow(&mut self, step: GrowStep, cancelled: bool) {
-        if !cancelled {
+        if !cancelled && let Some(player) = step.fertilizer {
+            self.fertilize(player, step.pos, vec![(step.pos, step.state)]);
+        } else if !cancelled {
             self.set_block(step.pos, step.state);
             if step.state.kind() == Some(rspigot_blocks::BlockKind::TurtleEgg) {
                 self.finish_turtle_egg_crack(step.pos);
@@ -64,7 +85,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let lane = self.lane_for(None, id);
-        self.grow_crop(lane, pos);
+        self.grow_crop(lane, None, pos);
     }
 
     pub(crate) fn use_bone_meal(
@@ -75,7 +96,7 @@ impl<L: ClientLink> Server<L> {
         sequence: i32,
     ) -> bool {
         let lane = Lane::Player(id);
-        if !self.grow_crop(lane, pos) {
+        if !self.grow_crop(lane, Some(id), pos) && !self.bone_meal_growth(id, pos) {
             return false;
         }
         self.consume_held(id, hand, 1);

@@ -29,6 +29,9 @@ pub struct GameRules {
     pub spawn_wandering_traders: bool,
     pub raids: bool,
     pub players_sleeping_percentage: i32,
+    pub random_tick_speed: i32,
+    pub fire_spread_radius: i32,
+    pub max_snow_accumulation_height: i32,
 }
 
 impl Default for GameRules {
@@ -51,6 +54,9 @@ impl Default for GameRules {
             spawn_wandering_traders: true,
             raids: true,
             players_sleeping_percentage: 100,
+            random_tick_speed: 3,
+            fire_spread_radius: 128,
+            max_snow_accumulation_height: 1,
         }
     }
 }

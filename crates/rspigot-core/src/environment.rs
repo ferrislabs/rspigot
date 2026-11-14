@@ -83,16 +83,8 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn raining_at(&self, pos: BlockPos) -> bool {
-        if !self.world.level.raining || !self.chunk_view().can_see_sky_at(pos) {
-            return false;
-        }
-        let Some(climate) = rspigot_data::climate::climate(self.biome_at(pos).0) else {
-            return false;
-        };
-        if !climate.has_precipitation {
-            return false;
-        }
+    pub(crate) fn climate_at(&self, pos: BlockPos) -> Option<(bool, f32)> {
+        let climate = rspigot_data::climate::climate(self.biome_at(pos).0)?;
         let mut temperature = if climate.frozen {
             FROZEN_TEMPERATURE.min(climate.temperature)
         } else {
@@ -102,7 +94,22 @@ impl<L: ClientLink> Server<L> {
         if pos.y > snow_line {
             temperature -= (pos.y - snow_line) as f32 * LAPSE_RATE;
         }
-        temperature >= RAIN_TEMPERATURE
+        Some((climate.has_precipitation, temperature))
+    }
+
+    pub(crate) fn warm_enough_to_rain(&self, pos: BlockPos) -> bool {
+        self.climate_at(pos)
+            .is_some_and(|(_, temperature)| temperature >= RAIN_TEMPERATURE)
+    }
+
+    pub(crate) fn raining_at(&self, pos: BlockPos) -> bool {
+        if !self.world.level.raining || !self.chunk_view().can_see_sky_at(pos) {
+            return false;
+        }
+        self.climate_at(pos)
+            .is_some_and(|(precipitation, temperature)| {
+                precipitation && temperature >= RAIN_TEMPERATURE
+            })
     }
 
     pub(crate) fn is_in_rain(&self, base: &EntityBase) -> bool {

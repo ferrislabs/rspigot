@@ -1002,7 +1002,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.tick_open_menus();
         self.tick_falling_blocks();
-        self.tick_turtle_eggs();
+        self.tick_random_blocks();
         self.tick_fluids();
         self.update_tracking();
         self.notify_poses();

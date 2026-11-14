@@ -5,7 +5,7 @@ use rspigot_domain::entity::species::{Species, turtle};
 use rspigot_domain::entity::{Entity, EntityState, ageable};
 use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::random::{LegacyRandom, RandomSource};
-use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 
 use crate::game_events::GameEventContext;
@@ -18,8 +18,6 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 
 const EGG_HATCH_CHANCE_DIMENSION: &str = "minecraft:overworld";
-const RANDOM_TICKS_PER_SECTION: usize = 3;
-const SECTION_SIZE: i32 = 16;
 const LAY_PITCH_BASE: f32 = 0.9;
 const LAY_PITCH_SPREAD: f32 = 0.2;
 const LAY_VOLUME: f32 = 0.3;
@@ -75,13 +73,6 @@ fn turtle_facts_of(entity: &Entity) -> TurtleFacts {
         going_home: state.going_home,
         travel_pos: state.travel_pos,
     }
-}
-
-fn sampler_seed(game_time: i64) -> i64 {
-    let mut z = (game_time as u64).wrapping_add(0x9E37_79B9_7F4A_7C15);
-    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-    (z ^ (z >> 31)) as i64
 }
 
 fn block_center(pos: BlockPos) -> Vec3 {
@@ -265,45 +256,7 @@ impl<L: ClientLink> Server<L> {
         turtle::hatch_chance(self.world.level.day_time)
     }
 
-    pub(crate) fn tick_turtle_eggs(&mut self) {
-        let chunks = self.random_tick_chunks();
-        if chunks.is_empty() {
-            return;
-        }
-        let height = self.world.dimension.height;
-        let sections = (height.min_y..height.min_y + height.height as i32)
-            .step_by(SECTION_SIZE as usize)
-            .collect::<Vec<i32>>();
-        let mut sampler = LegacyRandom::new(sampler_seed(self.world.level.game_time));
-        let mut eggs = Vec::new();
-        let mut ghasts = Vec::new();
-        for chunk in chunks {
-            let Some(column) = self.world.chunks.get(chunk) else {
-                continue;
-            };
-            for base_y in &sections {
-                for _ in 0..RANDOM_TICKS_PER_SECTION {
-                    let x = chunk.x * SECTION_SIZE + sampler.next_int(SECTION_SIZE);
-                    let y = base_y + sampler.next_int(SECTION_SIZE);
-                    let z = chunk.z * SECTION_SIZE + sampler.next_int(SECTION_SIZE);
-                    let pos = BlockPos::new(x, y, z);
-                    match column.block(pos).and_then(BlockStateId::kind) {
-                        Some(BlockKind::TurtleEgg) => eggs.push(pos),
-                        Some(BlockKind::DriedGhast) => ghasts.push(pos),
-                        _ => {}
-                    }
-                }
-            }
-        }
-        for pos in eggs {
-            self.turtle_egg_random_tick(pos);
-        }
-        for pos in ghasts {
-            self.dried_ghast_random_tick(pos);
-        }
-    }
-
-    fn turtle_egg_random_tick(&mut self, pos: BlockPos) {
+    pub(crate) fn turtle_egg_random_tick(&mut self, pos: BlockPos) {
         let Some(state) = self.world.chunks.block(pos) else {
             return;
         };
@@ -491,9 +444,5 @@ impl<L: ClientLink> Server<L> {
         {
             self.egg_stepped_on(id, false, below);
         }
-    }
-
-    pub(crate) fn random_tick_chunks(&self) -> Vec<ChunkPos> {
-        self.ticking_chunks_near_players()
     }
 }
