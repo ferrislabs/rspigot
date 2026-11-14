@@ -1086,6 +1086,10 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Air(step) => {
+                self.finish_air_change(step, cancelled, patch_of!(patch, EntityAirChange).amount);
+                Vec::new()
+            }
             Continuation::Career(step) => {
                 if !cancelled {
                     self.finish_career(step, patch_of!(patch, VillagerCareerChange).profession);

@@ -496,6 +496,13 @@ pub(crate) struct ConsumeStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct AirStep {
+    pub(crate) entity: EntityId,
+    pub(crate) amount: i32,
+    pub(crate) drown: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct PigAngerStep {
     pub(crate) mob: EntityId,
     pub(crate) anger: i32,
@@ -1381,6 +1388,7 @@ pub(crate) enum Continuation {
     Tame(TameStep),
     PigAnger(PigAngerStep),
     Reputation(ReputationStep),
+    Air(AirStep),
     Game(crate::game_events::GameStep),
     Flow(crate::fluids::FlowStep),
     FluidLevel(crate::fluids::LevelStep),
@@ -1517,6 +1525,7 @@ impl Continuation {
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Reputation(_) => EventKind::VillagerReputationChange,
+            Self::Air(_) => EventKind::EntityAirChange,
             Self::Game(_) => EventKind::GenericGame,
             Self::Flow(_) => EventKind::BlockFromTo,
             Self::FluidLevel(_) => EventKind::FluidLevelChange,
@@ -1635,6 +1644,7 @@ impl Continuation {
             Self::MobRegain(step) => step.target == id,
             Self::PigAnger(step) => step.mob == id,
             Self::Reputation(step) => step.villager == id,
+            Self::Air(step) => step.entity == id,
             Self::Career(step) => step.villager == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
@@ -1691,6 +1701,7 @@ impl Continuation {
             ) => one == other && one_awake == other_awake,
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
+            (Self::Air(one), Self::Air(other)) => one.entity == other.entity,
             (Self::Flow(one), Self::Flow(other)) => one.is_same(other),
             (Self::FluidLevel(one), Self::FluidLevel(other)) => one.is_same(other),
             (Self::Career(one), Self::Career(other)) => {
@@ -1750,7 +1761,11 @@ impl Continuation {
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,
             Self::Aim(step) => step.deferred,
-            Self::Breed(_) | Self::Career(_) | Self::Flow(_) | Self::FluidLevel(_) => true,
+            Self::Breed(_)
+            | Self::Air(_)
+            | Self::Career(_)
+            | Self::Flow(_)
+            | Self::FluidLevel(_) => true,
             _ => matches!(
                 self,
                 Self::Velocity(_) | Self::PickupArrow(_) | Self::Cook(_) | Self::ChunkUnload(_)
