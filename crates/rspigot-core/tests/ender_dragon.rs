@@ -852,3 +852,54 @@ fn a_creative_player_inside_the_head_of_the_dragon_is_left_alone() {
     s.tick(5);
     assert_eq!(s.server.player_health(alice), Some(20.0));
 }
+
+fn owner_tag(s: &Scene) -> String {
+    let (hi, lo) = s.players[0].id.0.as_u64_pair();
+    format!(
+        "[I;{},{},{},{}]",
+        (hi >> 32) as i32,
+        hi as i32,
+        (lo >> 32) as i32,
+        lo as i32
+    )
+}
+
+#[test]
+fn an_arrow_shot_by_a_player_hits_a_part_of_the_dragon_and_is_stopped() {
+    let mut s = ready(14);
+    let dragon = summon(&mut s, Kind::EnderDragon, "8.5 100 8.5", "{}");
+    s.tick(5);
+    let before = health_of(&s, dragon);
+    let owner = owner_tag(&s);
+    summon(
+        &mut s,
+        Kind::Arrow,
+        "8.5 102.5 40.5",
+        &format!("{{Motion:[0.0,0.0,-3.0],Owner:{owner}}}"),
+    );
+    s.tick(20);
+    let after = health_of(&s, dragon);
+    assert!(after < before, "{before} {after}");
+    assert!(
+        s.server
+            .entities_of(Kind::Arrow)
+            .iter()
+            .all(|arrow| arrow.position.z > 0.0)
+    );
+}
+
+#[test]
+fn an_arrow_without_a_player_behind_it_does_not_hurt_the_dragon() {
+    let mut s = ready(14);
+    let dragon = summon(&mut s, Kind::EnderDragon, "8.5 100 8.5", "{}");
+    s.tick(5);
+    let before = health_of(&s, dragon);
+    summon(
+        &mut s,
+        Kind::Arrow,
+        "8.5 102.5 40.5",
+        "{Motion:[0.0,0.0,-3.0]}",
+    );
+    s.tick(20);
+    assert_eq!(health_of(&s, dragon), before);
+}
