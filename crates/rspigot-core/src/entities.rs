@@ -449,6 +449,9 @@ impl<L: ClientLink> Server<L> {
                     status: EntityStatus::Poof,
                 },
             );
+            if self.cube_splits(id) {
+                return;
+            }
             self.remove_entity(id, RemovalReason::Killed, Some(EntityRemoveCause::Death));
             return;
         }

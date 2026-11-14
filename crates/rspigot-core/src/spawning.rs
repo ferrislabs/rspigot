@@ -16,6 +16,7 @@ use rspigot_domain::spawn::despawn::{DespawnFacts, check_despawn};
 use rspigot_domain::spawn::generation::{GenerationHost, spawn_mobs_for_chunk_generation};
 use rspigot_domain::spawn::natural::{NaturalSpawnHost, shuffle, spawn_category_for_chunk};
 use rspigot_domain::spawn::rules::rules_ported;
+use rspigot_domain::spawn::slime::{is_slime_chunk, surface_spawn_chance};
 use rspigot_domain::spawn::state::{
     SPAWN_DISTANCE_CHUNK, SpawnPlayer, SpawnState, any_player_close_for_spawning,
     effective_mob_spawn_range, spawn_friendlies,
@@ -49,6 +50,8 @@ const PLAYER_WIDTH: f32 = 0.6;
 #[derive(Debug, Clone)]
 pub(crate) struct Spawning {
     zoom_seed: i64,
+    seed: i64,
+    slime_seed: i64,
     dimension: &'static DimensionSpawns,
     sky_darken: i32,
     players: Vec<SpawnPlayer>,
@@ -62,9 +65,11 @@ impl Spawning {
         self.dimension.has_ceiling
     }
 
-    pub(crate) fn new(seed: i64, dimension: &Dimension) -> Self {
+    pub(crate) fn new(seed: i64, slime_seed: i64, dimension: &Dimension) -> Self {
         Self {
             zoom_seed: hashed_seed(seed),
+            seed,
+            slime_seed,
             dimension: dimension_spawns(dimension),
             sky_darken: 0,
             players: Vec::new(),
@@ -262,6 +267,22 @@ impl<L: ClientLink> SpawnLevel for Server<L> {
                 && player.game_mode != GameMode::Creative
                 && player.position.distance_squared(center) < distance * distance
         })
+    }
+
+    fn is_slime_chunk(&self, chunk: ChunkPos) -> bool {
+        is_slime_chunk(
+            chunk.x,
+            chunk.z,
+            self.spawning.seed,
+            self.spawning.slime_seed,
+        )
+    }
+
+    fn surface_slime_spawn_chance(&self) -> f32 {
+        surface_spawn_chance(
+            self.world.level.day_time,
+            self.world.dimension.dimension_type.as_str() == OVERWORLD,
+        )
     }
 }
 
@@ -683,6 +704,14 @@ impl SpawnLevel for Generation<'_> {
     fn survival_player_within(&self, _: Vec3, _: f64) -> bool {
         false
     }
+
+    fn is_slime_chunk(&self, _: ChunkPos) -> bool {
+        false
+    }
+
+    fn surface_slime_spawn_chance(&self) -> f32 {
+        0.0
+    }
 }
 
 impl RandomSource for Generation<'_> {
@@ -827,6 +856,7 @@ mod tests {
                 EntityKind::Hoglin,
                 EntityKind::Husk,
                 EntityKind::IronGolem,
+                EntityKind::MagmaCube,
                 EntityKind::Mooshroom,
                 EntityKind::Nautilus,
                 EntityKind::Ocelot,
@@ -846,6 +876,7 @@ mod tests {
                 EntityKind::Shulker,
                 EntityKind::Silverfish,
                 EntityKind::Skeleton,
+                EntityKind::Slime,
                 EntityKind::Sniffer,
                 EntityKind::SnowGolem,
                 EntityKind::Spider,

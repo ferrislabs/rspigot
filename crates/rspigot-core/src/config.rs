@@ -74,6 +74,7 @@ impl Default for ActivationRanges {
 pub struct SpawningConfig {
     pub categories: SpawnSettings,
     pub mob_spawn_range: i32,
+    pub slime_seed: i64,
 }
 
 impl Default for SpawningConfig {
@@ -81,6 +82,7 @@ impl Default for SpawningConfig {
         Self {
             categories: SpawnSettings::default(),
             mob_spawn_range: 6,
+            slime_seed: rspigot_domain::spawn::slime::DEFAULT_SLIME_SEED,
         }
     }
 }

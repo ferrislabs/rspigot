@@ -911,6 +911,7 @@ pub enum MobGoal {
     Turtle(crate::turtle::TurtleGoal),
     Guardian(crate::guardian::GuardianGoal),
     Drowned(crate::drowned::DrownedGoal),
+    Cube(crate::cube::CubeGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -966,6 +967,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Guardian(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Drowned(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Cube(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -1021,6 +1023,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Turtle(goal) => Goal::can_use(goal, context),
             Self::Guardian(goal) => Goal::can_use(goal, context),
             Self::Drowned(goal) => Goal::can_use(goal, context),
+            Self::Cube(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -1075,6 +1078,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Turtle(goal) => Goal::can_continue_to_use(goal, context),
             Self::Guardian(goal) => Goal::can_continue_to_use(goal, context),
             Self::Drowned(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Cube(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
 
@@ -1094,6 +1098,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Guardian(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Drowned(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Cube(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
@@ -1154,6 +1159,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Turtle(goal) => Goal::start(goal, context),
             Self::Guardian(goal) => Goal::start(goal, context),
             Self::Drowned(goal) => Goal::start(goal, context),
+            Self::Cube(goal) => Goal::start(goal, context),
         }
     }
 
@@ -1209,6 +1215,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Turtle(goal) => Goal::stop(goal, context),
             Self::Guardian(goal) => Goal::stop(goal, context),
             Self::Drowned(goal) => Goal::stop(goal, context),
+            Self::Cube(goal) => Goal::stop(goal, context),
         }
     }
 
@@ -1228,6 +1235,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Guardian(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Drowned(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Cube(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
@@ -1259,6 +1267,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Turtle(goal) => Goal::tick(goal, context),
             Self::Guardian(goal) => Goal::tick(goal, context),
             Self::Drowned(goal) => Goal::tick(goal, context),
+            Self::Cube(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
         }
     }
@@ -1326,6 +1335,7 @@ impl MobGoal {
             | Self::Turtle(_)
             | Self::Guardian(_)
             | Self::Drowned(_)
+            | Self::Cube(_)
             | Self::Wolf(_)
             | Self::Cat(_)
             | Self::Fox(_)
