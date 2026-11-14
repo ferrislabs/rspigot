@@ -13,7 +13,7 @@ const MERGE_BONUS_PERCENT: i32 = 12;
 const REPAIR_QUARTER: i32 = 4;
 const MULTIPLE_ITEMS_COST: i32 = 40;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct Outcome {
     pub result: Slot,
     pub cost: i32,
@@ -26,17 +26,6 @@ impl Outcome {
         Self {
             result: None,
             cost: -1,
-            repair_items: 0,
-            only_renaming: false,
-        }
-    }
-}
-
-impl Default for Outcome {
-    fn default() -> Self {
-        Self {
-            result: None,
-            cost: 0,
             repair_items: 0,
             only_renaming: false,
         }
