@@ -65,6 +65,7 @@ pub struct Brain {
     pub wither_targets: [i32; 3],
     pub guardian: crate::GuardianBrain,
     pub drowned_target: Option<(f64, bool)>,
+    pub happy_ghast: crate::happy_ghast::HappyGhastBrain,
     follow_range: f64,
 }
 
@@ -217,6 +218,7 @@ impl Brain {
             wither_targets: [0; 3],
             guardian: crate::GuardianBrain::default(),
             drowned_target: None,
+            happy_ghast: crate::happy_ghast::HappyGhastBrain::default(),
             follow_range,
         };
         if kind == EntityKind::Warden {
@@ -1083,7 +1085,57 @@ impl MobAi {
         &mut self.goals
     }
 
+    fn sync_happy_ghast<W: AiWorld>(&mut self, mob: &MobView, world: &W, body: &mut MobBody) {
+        self.brain.happy_ghast.vehicle = mob.species.happy_ghast.vehicle;
+        if self.brain.happy_ghast.baby == mob.baby {
+            return;
+        }
+        self.brain.happy_ghast.baby = mob.baby;
+        {
+            let mut context = AiContext {
+                mob,
+                world,
+                brain: &mut self.brain,
+                body,
+            };
+            self.goals.remove_goals(&mut context, |_| true);
+            if !mob.baby
+                && let Some(behavior) = self.behavior.as_mut()
+            {
+                behavior.stop_all(&mut context);
+                behavior.memories_mut().clear_all();
+            }
+        }
+        let follow = mob.follow_range;
+        let brain = &mut self.brain;
+        brain.profile = crate::happy_ghast::profile(mob.baby, mob.width, mob.height);
+        brain.navigation = Navigation::with_follow_range(follow);
+        if mob.baby {
+            brain
+                .movement
+                .set_flying(crate::happy_ghast::BABY_FLY_MAX_TURN, true);
+            brain.movement.set_careful(false);
+            brain
+                .navigation
+                .set_required_path_length(crate::happy_ghast::BABY_REQUIRED_PATH_LENGTH, follow);
+        } else {
+            brain.movement.set_style(MoveStyle::Ghast);
+            brain.movement.set_careful(true);
+            let mut add = registry::Goals {
+                goals: &mut self.goals,
+                targets: &mut self.targets,
+                brain,
+            };
+            crate::happy_ghast::adult_goals(&mut add);
+        }
+    }
+
     pub fn think<W: AiWorld>(&mut self, mob: &MobView, world: &W, body: &mut MobBody) {
+        if mob.kind == EntityKind::HappyGhast {
+            self.sync_happy_ghast(mob, world, body);
+        }
+        let ghast_adult = mob.kind == EntityKind::HappyGhast && !mob.baby;
+        let ghast_baby = mob.kind == EntityKind::HappyGhast && mob.baby;
         self.brain.sensing.tick();
         self.brain.movement.set_in_water(mob.fluid.in_water);
         if self.brain.follow_range != mob.follow_range {
@@ -1136,10 +1188,11 @@ impl MobAi {
             &mut context,
         );
         let phase = mob.tick_count.wrapping_add(mob.id.0);
-        if phase % UPDATE_GOAL_SELECTOR_EVERY_N_TICKS != 0 && mob.tick_count > 1 {
+        let ticks_goals = !ghast_baby;
+        if ticks_goals && phase % UPDATE_GOAL_SELECTOR_EVERY_N_TICKS != 0 && mob.tick_count > 1 {
             self.targets.tick_running_goals(&mut context, false);
             self.goals.tick_running_goals(&mut context, false);
-        } else {
+        } else if ticks_goals {
             self.targets.tick(&mut context);
             self.goals.tick(&mut context);
         }
@@ -1169,7 +1222,7 @@ impl MobAi {
                 .and_then(|id| world.living(id))
                 .map(|target| (target.position.y, target.in_water));
         }
-        if let Some(behavior) = self.behavior.as_mut() {
+        if !ghast_adult && let Some(behavior) = self.behavior.as_mut() {
             sync_path_memory(behavior.memories_mut(), context.brain.navigation.path());
             behavior.tick(&mut context);
             if mob.kind == EntityKind::CopperGolem {
@@ -1234,6 +1287,16 @@ impl MobAi {
                         });
                 }
                 MoveStyle::Ghast => {
+                    if base.kind == EntityKind::HappyGhast
+                        && crate::happy_ghast::is_on_still_timeout(base, living)
+                    {
+                        brain.movement.stop_in_place();
+                        brain.navigation.stop();
+                        base.velocity = Vec3::ZERO;
+                        living.speed = 0.0;
+                        living.xxa = 0.0;
+                        living.yya = 0.0;
+                    }
                     brain
                         .movement
                         .tick_ghast(base, living, view, &mut brain.random);
@@ -1305,6 +1368,10 @@ impl MobAi {
         } else if base.kind == EntityKind::Frog {
             let reset_x_rot = rspigot_domain::entity::species::frog::tongue_target(base).is_none();
             brain.look.tick_with(base, living, navigating, reset_x_rot);
+        } else if base.kind == EntityKind::HappyGhast && !crate::happy_ghast::is_baby(base, living)
+        {
+            let still = crate::happy_ghast::is_on_still_timeout(base, living);
+            brain.look.tick_happy_ghast(base, living, still);
         } else if brain.look.smooth_swimming().is_some() {
             brain.look.tick_smooth(base, living, !navigating);
         } else if base.kind != EntityKind::Phantom {
@@ -1346,6 +1413,10 @@ impl MobAi {
             base.head_yaw = living.body_yaw;
             living.body_yaw = base.yaw;
             return;
+        }
+        if base.kind == EntityKind::HappyGhast && self.brain.happy_ghast.vehicle {
+            base.head_yaw = base.yaw;
+            living.body_yaw = base.head_yaw;
         }
         let max_head_y_rot = if base.kind == EntityKind::Dolphin {
             DOLPHIN_MAX_HEAD_Y_ROT

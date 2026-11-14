@@ -37,6 +37,7 @@ mod goal;
 mod goals;
 mod goat;
 mod guardian;
+mod happy_ghast;
 mod heap;
 mod holdable;
 mod iron_golem;
@@ -113,11 +114,11 @@ pub use bee::{
     attracts_bees as bee_attracts,
 };
 pub use behavior::{
-    ALLOWED_ANGLES, Activity, ActivityData, AdultSensor, AnimalMakeLove, AnimalPanic, AwayFrom,
-    BabyFollowAdult, Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState, Codec,
-    Condition, CountDownCooldownTicks, DEFAULT_DURATION, DEFAULT_SCAN_RATE, DoNothing, DummySensor,
-    EntityFilter, EraseMemoryIf, ExpirableValue, FollowTemptation, Gate, GlobalPos,
-    GoToTargetLocation, GoToWantedItem, HurtBySensor, InteractWith, InteractWithDoor,
+    ALLOWED_ANGLES, Activity, ActivityData, AdultSensor, AdultSensorAnyType, AnimalMakeLove,
+    AnimalPanic, AwayFrom, BabyFollowAdult, Behavior, BehaviorBrain, BehaviorControl, BehaviorCx,
+    BrainState, Codec, Condition, CountDownCooldownTicks, DEFAULT_DURATION, DEFAULT_SCAN_RATE,
+    DoNothing, DummySensor, EntityFilter, EraseMemoryIf, ExpirableValue, FollowTemptation, Gate,
+    GlobalPos, GoToTargetLocation, GoToWantedItem, HurtBySensor, InteractWith, InteractWithDoor,
     IsInWaterSensor, ItemWish, JumpBody, JumpDimensions, JumpSound, LandingSpot, LongJumpMidJump,
     LongJumpToRandomPos, LookAtTargetSink, MAKE_LOVE_DURATION, MeleeAttack, Memories,
     MemoryModuleType, MemorySlot, MemoryStatus, MemoryValue, MobBehavior, MobControl, MobPredicate,
@@ -159,7 +160,8 @@ pub use combat::{
 };
 pub use control::{
     BodyRotationControl, DrownedSwim, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT,
-    MAX_HEAD_Y_ROT, MoveControl, MoveStyle, Operation, SmoothSwimming, can_reach, rotate_towards,
+    MAX_HEAD_Y_ROT, MoveControl, MoveStyle, Operation, SmoothSwimming, can_reach,
+    can_reach_carefully, rotate_towards, wrap_degrees_90,
 };
 pub use copper_golem::{
     COOLDOWN_TICKS as TRANSPORT_COOLDOWN_TICKS, COPPER_GOLEM_MEMORIES, ChestSide,
@@ -210,6 +212,7 @@ pub use guardian::{
     GuardianAction, GuardianAttackGoal, GuardianBrain, GuardianFacts, GuardianGoal,
     GuardianRestrictionGoal, GuardianStrollGoal,
 };
+pub use happy_ghast::{HappyGhastBrain, HappyGhastFacts, HappyGhastFloatGoal, happy_ghast_sensors};
 pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal, is_enemy};
 pub use llama::{
     CaravanFacts, LlamaAction, LlamaFacts, LlamaFollowCaravanGoal, LlamaGoal,

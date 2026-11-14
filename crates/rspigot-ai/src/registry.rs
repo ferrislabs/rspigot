@@ -901,6 +901,11 @@ pub fn register_goals(
                 NearestAttackableTargetGoal::new(TargetKind::IronGolem, true),
             );
         }
+        EntityKind::HappyGhast => {
+            add.brain.movement.set_style(MoveStyle::Ghast);
+            add.brain.movement.set_careful(true);
+            crate::happy_ghast::adult_goals(&mut add);
+        }
         EntityKind::Ghast => {
             add.brain.movement.set_style(MoveStyle::Ghast);
             add.goal(

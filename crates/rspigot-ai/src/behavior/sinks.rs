@@ -339,6 +339,7 @@ impl Behavior for MoveToTargetSink {
 pub struct AnimalPanic {
     speed_multiplier: f32,
     panic_causes: &'static str,
+    fly_height: Option<i32>,
 }
 
 impl AnimalPanic {
@@ -355,6 +356,14 @@ impl AnimalPanic {
         Self {
             speed_multiplier,
             panic_causes,
+            fly_height: None,
+        }
+    }
+
+    pub fn flying(speed_multiplier: f32, fly_height: i32) -> Self {
+        Self {
+            fly_height: Some(fly_height),
+            ..Self::new(speed_multiplier)
         }
     }
 
@@ -409,7 +418,20 @@ impl AnimalPanic {
                 f64::from(water.z) + 0.5,
             ));
         }
-        random_pos::land_pos(cx.ai, PANIC_HORIZONTAL, PANIC_VERTICAL)
+        match self.fly_height {
+            Some(height) => {
+                let view = mth::view_vector(cx.ai.mob.pitch, cx.ai.mob.head_yaw);
+                random_pos::air_and_water_pos(
+                    cx.ai,
+                    PANIC_HORIZONTAL,
+                    PANIC_VERTICAL,
+                    height,
+                    (view.x, view.z),
+                    random_pos::HALF_PI,
+                )
+            }
+            None => random_pos::land_pos(cx.ai, PANIC_HORIZONTAL, PANIC_VERTICAL),
+        }
     }
 }
 
