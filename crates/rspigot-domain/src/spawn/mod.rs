@@ -93,6 +93,7 @@ pub fn block_within_border(pos: BlockPos) -> bool {
 
 pub trait SpawnLevel: BlockView {
     fn height(&self) -> WorldHeight;
+    fn sea_level(&self) -> i32;
     fn sky_light(&self, pos: BlockPos) -> i32;
     fn block_light(&self, pos: BlockPos) -> i32;
     fn sky_darken(&self) -> i32;

@@ -1,5 +1,6 @@
 use crate::action::{TargetReason, TargetRequest};
 use crate::random::RandomSource;
+use rspigot_blocks::BlockKind;
 use rspigot_domain::{EntityId, ItemId, Vec3};
 use rspigot_items::ItemKind;
 
@@ -7,22 +8,29 @@ use crate::animal::{BreedGoal, EatBlockGoal, FollowParentGoal, PanicGoal};
 use crate::blocks::{BreakDoorGoal, MoveThroughVillageGoal, RemoveTurtleEggGoal};
 use crate::brain::AiContext;
 use crate::combat::{
-    HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, RangedBowAttackGoal, SwellGoal,
+    HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, OcelotAttackGoal, RangedBowAttackGoal,
+    SwellGoal,
 };
 use crate::control::{MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT};
 use crate::evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 use crate::goal::{Flag, Flags, Goal, adjusted_tick_delay, reduced_tick_delay};
+use crate::rabbit::RaidGardenGoal;
 use crate::random_pos::{self, mob_light_magic_value};
 use crate::targeting::{self, TargetingConditions};
 use crate::world::{AiWorld, Living, TargetKind, inflate};
 
 const ITEM_TAGS: &str = "minecraft:item";
+const ENTITY_TAGS: &str = "minecraft:entity_type";
+const POWDER_SNOW_WALKABLE_MOBS: &str = "minecraft:powder_snow_walkable_mobs";
 const STROLL_INTERVAL: i32 = 120;
 const NO_ACTION_LIMIT: i32 = 100;
 const WATER_AVOIDING_PROBABILITY: f32 = 0.001;
 const LOOK_PROBABILITY: f32 = 0.02;
 const TEMPT_STOP_DISTANCE: f64 = 2.5;
 const TEMPT_CALM_DOWN: i32 = 100;
+const TEMPT_SCARE_DISTANCE_SQR: f64 = 36.0;
+const TEMPT_SCARE_MOVE_SQR: f64 = 0.010_000_000_000_000_002;
+const TEMPT_SCARE_ROTATION: f64 = 5.0;
 const TARGET_INTERVAL: i32 = 10;
 const UNSEEN_MEMORY_TICKS: i32 = 60;
 const SPIDER_LIGHT_LIMIT: f32 = 0.5;
@@ -46,6 +54,31 @@ impl FloatGoal {
         if context.brain.random.next_float() < FLOAT_CHANCE {
             context.brain.jump.jump();
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ClimbOnTopOfPowderSnowGoal;
+
+impl ClimbOnTopOfPowderSnowGoal {
+    fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        let mob = context.mob;
+        if !(mob.in_powder_snow || mob.was_in_powder_snow) {
+            return false;
+        }
+        let walkable = rspigot_data::tags::tag(ENTITY_TAGS, POWDER_SNOW_WALKABLE_MOBS)
+            .is_some_and(|ids| ids.binary_search(&u32::from(mob.kind.id().0)).is_ok());
+        if !walkable {
+            return false;
+        }
+        let state = context.world.state(mob.block_pos().offset(0, 1, 0));
+        state.is_some_and(|state| {
+            state.kind() == Some(BlockKind::PowderSnow) || state.collision_shape().is_empty()
+        })
+    }
+
+    fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        context.brain.jump.jump();
     }
 }
 
@@ -74,6 +107,13 @@ impl RandomStrollGoal {
     pub fn water_avoiding(speed_modifier: f64) -> Self {
         Self {
             water_avoiding: Some(WATER_AVOIDING_PROBABILITY),
+            ..Self::new(speed_modifier)
+        }
+    }
+
+    pub fn water_avoiding_with(speed_modifier: f64, probability: f32) -> Self {
+        Self {
+            water_avoiding: Some(probability),
             ..Self::new(speed_modifier)
         }
     }
@@ -261,6 +301,16 @@ pub struct TemptGoal {
     player: Option<EntityId>,
     calm_down: i32,
     running: bool,
+    scare: Scare,
+    last_position: Vec3,
+    last_pitch: f64,
+    last_yaw: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Scare {
+    Never,
+    UnlessTrusting,
 }
 
 impl TemptGoal {
@@ -272,6 +322,17 @@ impl TemptGoal {
             player: None,
             calm_down: 0,
             running: false,
+            scare: Scare::Never,
+            last_position: Vec3::ZERO,
+            last_pitch: 0.0,
+            last_yaw: 0.0,
+        }
+    }
+
+    pub fn scared_by_movement(speed_modifier: f64, items: TemptItems) -> Self {
+        Self {
+            scare: Scare::UnlessTrusting,
+            ..Self::new(speed_modifier, items)
         }
     }
 
@@ -324,7 +385,40 @@ impl TemptGoal {
         true
     }
 
-    fn start(&mut self) {
+    fn can_scare<W: AiWorld>(&self, context: &AiContext<'_, W>) -> bool {
+        match self.scare {
+            Scare::Never => false,
+            Scare::UnlessTrusting => !context.mob.trusting,
+        }
+    }
+
+    fn can_continue_to_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        if self.can_scare(context) {
+            let Some(player) = self.player.and_then(|id| context.world.living(id)) else {
+                return false;
+            };
+            if context.mob.distance_to_sqr(player.position) < TEMPT_SCARE_DISTANCE_SQR {
+                if player.position.distance_squared(self.last_position) > TEMPT_SCARE_MOVE_SQR {
+                    return false;
+                }
+                if (f64::from(player.pitch) - self.last_pitch).abs() > TEMPT_SCARE_ROTATION
+                    || (f64::from(player.yaw) - self.last_yaw).abs() > TEMPT_SCARE_ROTATION
+                {
+                    return false;
+                }
+            } else {
+                self.last_position = player.position;
+            }
+            self.last_pitch = f64::from(player.pitch);
+            self.last_yaw = f64::from(player.yaw);
+        }
+        self.can_use(context)
+    }
+
+    fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        if let Some(player) = self.player.and_then(|id| context.world.living(id)) {
+            self.last_position = player.position;
+        }
         self.running = true;
     }
 
@@ -483,6 +577,7 @@ impl NearestAttackableTargetGoal {
 #[derive(Debug, Clone, PartialEq)]
 pub enum MobGoal {
     Float(FloatGoal),
+    ClimbOnTopOfPowderSnow(ClimbOnTopOfPowderSnowGoal),
     Stroll(RandomStrollGoal),
     LookAtPlayer(LookAtPlayerGoal),
     RandomLookAround(RandomLookAroundGoal),
@@ -503,13 +598,15 @@ pub enum MobGoal {
     RemoveTurtleEgg(RemoveTurtleEggGoal),
     BreakDoor(BreakDoorGoal),
     MoveThroughVillage(MoveThroughVillageGoal),
+    OcelotAttack(OcelotAttackGoal),
+    RaidGarden(RaidGardenGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
     fn flags(&self) -> Flags {
         let movement = Flags::of(Flag::Move);
         match self {
-            Self::Float(_) => Flags::of(Flag::Jump),
+            Self::Float(_) | Self::ClimbOnTopOfPowderSnow(_) => Flags::of(Flag::Jump),
             Self::Stroll(_)
             | Self::Panic(_)
             | Self::Swell(_)
@@ -521,9 +618,12 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::Tempt(_)
             | Self::Breed(_)
             | Self::MeleeAttack(_)
+            | Self::OcelotAttack(_)
             | Self::RangedBowAttack(_) => movement.with(Flag::Look),
             Self::EatBlock(_) => movement.with(Flag::Look).with(Flag::Jump),
-            Self::LeapAtTarget(_) | Self::RemoveTurtleEgg(_) => movement.with(Flag::Jump),
+            Self::LeapAtTarget(_) | Self::RemoveTurtleEgg(_) | Self::RaidGarden(_) => {
+                movement.with(Flag::Jump)
+            }
             Self::NearestAttackableTarget(_) | Self::HurtByTarget(_) => Flags::of(Flag::Target),
             Self::FollowParent(_) | Self::RestrictSun(_) | Self::BreakDoor(_) => Flags::NONE,
         }
@@ -532,6 +632,9 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
     fn can_use(&mut self, context: &mut AiContext<'_, W>) -> bool {
         match self {
             Self::Float(goal) => goal.can_use(context),
+            Self::ClimbOnTopOfPowderSnow(goal) => goal.can_use(context),
+            Self::OcelotAttack(goal) => goal.can_use(context),
+            Self::RaidGarden(goal) => goal.can_use(context),
             Self::Stroll(goal) => goal.can_use(context),
             Self::LookAtPlayer(goal) => goal.can_use(context),
             Self::RandomLookAround(goal) => goal.can_use(context),
@@ -558,15 +661,18 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
     fn can_continue_to_use(&mut self, context: &mut AiContext<'_, W>) -> bool {
         match self {
             Self::Float(goal) => goal.can_use(context),
+            Self::ClimbOnTopOfPowderSnow(goal) => goal.can_use(context),
+            Self::OcelotAttack(goal) => goal.can_continue_to_use(context),
+            Self::RaidGarden(goal) => goal.can_continue_to_use(context),
             Self::Stroll(goal) => goal.can_continue_to_use(context),
             Self::LookAtPlayer(goal) => goal.can_continue_to_use(context),
             Self::RandomLookAround(goal) => goal.look_time >= 0,
-            Self::Tempt(goal) => goal.can_use(context),
+            Self::Tempt(goal) => goal.can_continue_to_use(context),
             Self::NearestAttackableTarget(goal) => goal.can_continue_to_use(context),
-            Self::Panic(_)
-            | Self::AvoidEntity(_)
-            | Self::FleeSun(_)
-            | Self::MoveThroughVillage(_) => !context.brain.navigation.is_done(),
+            Self::AvoidEntity(goal) => goal.can_continue_to_use(context),
+            Self::Panic(_) | Self::FleeSun(_) | Self::MoveThroughVillage(_) => {
+                !context.brain.navigation.is_done()
+            }
             Self::Breed(goal) => goal.can_continue_to_use(context),
             Self::FollowParent(goal) => goal.can_continue_to_use(context),
             Self::EatBlock(goal) => goal.eat_animation_tick() > 0,
@@ -583,12 +689,17 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
 
     fn start(&mut self, context: &mut AiContext<'_, W>) {
         match self {
-            Self::Float(_) | Self::Breed(_) | Self::MoveThroughVillage(_) => {}
+            Self::Float(_)
+            | Self::ClimbOnTopOfPowderSnow(_)
+            | Self::OcelotAttack(_)
+            | Self::Breed(_)
+            | Self::MoveThroughVillage(_) => {}
+            Self::RaidGarden(goal) => goal.start(context),
             Self::HurtByTarget(goal) => goal.start(context),
             Self::Stroll(goal) => goal.start(context),
             Self::LookAtPlayer(goal) => goal.start(context),
             Self::RandomLookAround(goal) => goal.start(context),
-            Self::Tempt(goal) => goal.start(),
+            Self::Tempt(goal) => goal.start(context),
             Self::NearestAttackableTarget(goal) => goal.start(context),
             Self::Panic(goal) => goal.start(context),
             Self::FollowParent(goal) => goal.start(),
@@ -608,6 +719,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
     fn stop(&mut self, context: &mut AiContext<'_, W>) {
         match self {
             Self::Float(_)
+            | Self::ClimbOnTopOfPowderSnow(_)
+            | Self::RaidGarden(_)
             | Self::RandomLookAround(_)
             | Self::LeapAtTarget(_)
             | Self::FleeSun(_)
@@ -617,6 +730,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Tempt(goal) => goal.stop(context),
             Self::NearestAttackableTarget(goal) => goal.stop(context),
             Self::Panic(goal) => goal.stop(),
+            Self::OcelotAttack(goal) => goal.stop(context),
             Self::Breed(goal) => goal.stop(),
             Self::FollowParent(goal) => goal.stop(),
             Self::EatBlock(goal) => goal.stop(),
@@ -635,6 +749,9 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
         matches!(
             self,
             Self::Float(_)
+                | Self::ClimbOnTopOfPowderSnow(_)
+                | Self::OcelotAttack(_)
+                | Self::RaidGarden(_)
                 | Self::RandomLookAround(_)
                 | Self::MeleeAttack(_)
                 | Self::RangedBowAttack(_)
@@ -647,6 +764,10 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
     fn tick(&mut self, context: &mut AiContext<'_, W>) {
         match self {
             Self::Float(goal) => goal.tick(context),
+            Self::ClimbOnTopOfPowderSnow(goal) => goal.tick(context),
+            Self::OcelotAttack(goal) => goal.tick(context),
+            Self::RaidGarden(goal) => goal.tick(context),
+            Self::Panic(goal) => goal.tick(context),
             Self::LookAtPlayer(goal) => goal.tick(context),
             Self::RandomLookAround(goal) => goal.tick(context),
             Self::Tempt(goal) => goal.tick(context),
@@ -661,7 +782,6 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::BreakDoor(goal) => goal.tick(context),
             Self::Stroll(_)
             | Self::NearestAttackableTarget(_)
-            | Self::Panic(_)
             | Self::LeapAtTarget(_)
             | Self::HurtByTarget(_)
             | Self::FleeSun(_)

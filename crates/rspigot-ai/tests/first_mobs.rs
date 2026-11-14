@@ -121,6 +121,9 @@ fn label(goal: &MobGoal) -> &'static str {
         MobGoal::RemoveTurtleEgg(_) => "turtle_egg",
         MobGoal::BreakDoor(_) => "break_door",
         MobGoal::MoveThroughVillage(_) => "village",
+        MobGoal::ClimbOnTopOfPowderSnow(_) => "climb_powder_snow",
+        MobGoal::OcelotAttack(_) => "ocelot_attack",
+        MobGoal::RaidGarden(_) => "raid_garden",
     }
 }
 

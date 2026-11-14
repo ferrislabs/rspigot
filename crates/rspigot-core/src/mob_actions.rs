@@ -32,6 +32,19 @@ pub(crate) fn new_mob(base: EntityBase) -> Entity {
     Entity::new(base, EntityState::Living(Box::new(living)))
 }
 
+fn eaten_carrot(state: BlockStateId) -> BlockStateId {
+    let age: u16 = state
+        .property("age")
+        .and_then(|age| age.parse().ok())
+        .unwrap_or(0);
+    match age.checked_sub(1) {
+        Some(younger) => state
+            .with_property("age", &younger.to_string())
+            .unwrap_or(BlockStateId::AIR),
+        None => BlockStateId::AIR,
+    }
+}
+
 impl<L: ClientLink> Server<L> {
     pub(crate) fn apply_mob_action(&mut self, id: EntityId, action: MobAction) {
         match action {
@@ -55,6 +68,7 @@ impl<L: ClientLink> Server<L> {
                 },
             ),
             MobAction::EatGrass => self.eat_grass(id),
+            MobAction::RaidCarrot(pos) => self.raid_carrot(id, pos),
             MobAction::Alert { mob, target } => {
                 let idle = self
                     .entities
@@ -157,6 +171,39 @@ impl<L: ClientLink> Server<L> {
             f64::from(pos.z) + 0.5,
         );
         self.play_sound(None, at, TURTLE_EGG_BREAK, SoundSource::Blocks, 0.7, pitch);
+    }
+
+    fn raid_carrot(&mut self, id: EntityId, pos: BlockPos) {
+        let Some(rabbit) = self.entity_view(id) else {
+            return;
+        };
+        let Some(state) = self
+            .world
+            .chunks
+            .block(pos)
+            .filter(|state| state.kind() == Some(BlockKind::Carrots))
+        else {
+            return;
+        };
+        let to = eaten_carrot(state);
+        let refused = !self.config.rules.mob_griefing;
+        self.change_block(rabbit, pos, to, Grief::Raid { rabbit: id, pos }, refused);
+    }
+
+    pub(crate) fn finish_raid(&mut self, pos: BlockPos) {
+        let Some(state) = self
+            .world
+            .chunks
+            .block(pos)
+            .filter(|state| state.kind() == Some(BlockKind::Carrots))
+        else {
+            return;
+        };
+        let to = eaten_carrot(state);
+        if !to.is_air() {
+            self.level_event(BLOCK_BREAK_EVENT, pos, i32::from(state.0));
+        }
+        self.set_block(pos, to);
     }
 
     fn eat_grass(&mut self, id: EntityId) {
@@ -264,7 +311,10 @@ impl<L: ClientLink> Server<L> {
     ) -> Option<Entity> {
         let parent_entity = self.entities.store.get(parent)?;
         let kind = parent_entity.base.kind;
-        if !matches!(kind, Kind::Cow | Kind::Pig | Kind::Chicken | Kind::Sheep) {
+        if !matches!(
+            kind,
+            Kind::Cow | Kind::Pig | Kind::Chicken | Kind::Sheep | Kind::Rabbit | Kind::Ocelot
+        ) {
             return None;
         }
         let parent_variant = parent_entity
@@ -459,5 +509,27 @@ impl<L: ClientLink> Server<L> {
                 status: EntityStatus::Event(LOVE_EVENT),
             },
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn carrots(age: &str) -> BlockStateId {
+        BlockKind::Carrots
+            .state_with(&[("age", age)])
+            .expect("carrot age")
+    }
+
+    #[test]
+    fn a_nibbled_carrot_loses_one_stage() {
+        assert_eq!(eaten_carrot(carrots("7")), carrots("6"));
+        assert_eq!(eaten_carrot(carrots("1")), carrots("0"));
+    }
+
+    #[test]
+    fn a_seedling_carrot_is_eaten_whole() {
+        assert_eq!(eaten_carrot(carrots("0")), BlockStateId::AIR);
     }
 }

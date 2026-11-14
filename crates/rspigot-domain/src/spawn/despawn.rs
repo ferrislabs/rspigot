@@ -5,16 +5,25 @@ use crate::world::Difficulty;
 
 pub const NO_ACTION_DESPAWN_TIME: i32 = 600;
 pub const RANDOM_DESPAWN_CHANCE: i32 = 800;
+const OCELOT_PERSISTENT_TICKS: i32 = 2400;
 
-pub fn remove_when_far_away(kind: EntityKind, chicken_jockey: bool) -> Option<bool> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct FarAwayFacts {
+    pub chicken_jockey: bool,
+    pub trusting: bool,
+    pub tick_count: i32,
+}
+
+pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<bool> {
     Some(match kind.mob_spawn()?.remove_when_far_away {
         MobClass::Mob => true,
+        MobClass::Ocelot => !facts.trusting && facts.tick_count > OCELOT_PERSISTENT_TICKS,
         MobClass::Animal
         | MobClass::AbstractGolem
         | MobClass::Villager
         | MobClass::WanderingTrader
         | MobClass::Allay => false,
-        MobClass::Chicken => chicken_jockey,
+        MobClass::Chicken => facts.chicken_jockey,
         _ => return None,
     })
 }
@@ -26,6 +35,8 @@ pub struct DespawnFacts {
     pub requires_custom_persistence: bool,
     pub no_action_time: i32,
     pub chicken_jockey: bool,
+    pub trusting: bool,
+    pub tick_count: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -51,7 +62,12 @@ pub fn check_despawn(
         return outcome;
     };
     let category = kind.category();
-    let far = || remove_when_far_away(kind, facts.chicken_jockey).unwrap_or(false);
+    let far_facts = FarAwayFacts {
+        chicken_jockey: facts.chicken_jockey,
+        trusting: facts.trusting,
+        tick_count: facts.tick_count,
+    };
+    let far = || remove_when_far_away(kind, far_facts).unwrap_or(false);
     let despawn = i32::from(category.despawn_distance()).pow(2);
     if !persistent && distance > f64::from(despawn) && far() {
         outcome.discard = true;
@@ -106,6 +122,8 @@ mod tests {
             requires_custom_persistence: false,
             no_action_time: 0,
             chicken_jockey: false,
+            trusting: false,
+            tick_count: 0,
         }
     }
 
@@ -182,6 +200,26 @@ mod tests {
                 reset_no_action_time: true
             }
         );
+    }
+
+    #[test]
+    fn young_ocelots_stay_but_old_wild_ones_fade() {
+        let mut random = Fixed(5);
+        let young = DespawnFacts {
+            tick_count: 2400,
+            ..facts(EntityKind::Ocelot)
+        };
+        assert!(!check_despawn(&young, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let old = DespawnFacts {
+            tick_count: 2401,
+            ..facts(EntityKind::Ocelot)
+        };
+        assert!(check_despawn(&old, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let trusting = DespawnFacts {
+            trusting: true,
+            ..old
+        };
+        assert!(!check_despawn(&trusting, Difficulty::Normal, Some(1e6), &mut random).discard);
     }
 
     #[test]

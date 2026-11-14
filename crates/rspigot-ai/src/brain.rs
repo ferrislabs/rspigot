@@ -9,7 +9,7 @@ use crate::combat::{MeleeAttackGoal, RangedBowAttackGoal};
 use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl};
 use crate::goal::{Flag, GoalSelector};
 use crate::goals::MobGoal;
-use crate::random::MobRandom;
+use crate::random::{MobRandom, RandomSource};
 use crate::registry;
 use crate::sensing::Sensing;
 use crate::targeting;
@@ -38,6 +38,7 @@ pub struct Brain {
     pub defer_targets: bool,
     pub target_requests: Vec<TargetRequest>,
     pub tempt_verdict: Option<Option<EntityId>>,
+    pub more_carrot_ticks: i32,
     follow_range: f64,
 }
 
@@ -69,6 +70,7 @@ impl Brain {
             defer_targets: false,
             target_requests: Vec::new(),
             tempt_verdict: None,
+            more_carrot_ticks: 0,
             follow_range,
         }
     }
@@ -376,6 +378,10 @@ impl MobAi {
             self.goals.tick(&mut context);
         }
         context.tick_navigation();
+        if self.brain.more_carrot_ticks > 0 {
+            let decay = self.brain.random.next_int(3);
+            self.brain.more_carrot_ticks = (self.brain.more_carrot_ticks - decay).max(0);
+        }
     }
 
     pub fn act(&mut self, base: &mut EntityBase, living: &mut LivingState, view: &impl BlockView) {
