@@ -719,3 +719,62 @@ fn a_cube_without_a_block_hops_around_on_its_own() {
     }
     assert!(left_the_ground, "the cube never jumped");
 }
+
+fn attack(s: &mut Scene, target: EntityId) {
+    let alice = s.players[0].clone();
+    send_input(&mut s.server, &alice, PlayerInput::Attack(target));
+}
+
+#[test]
+fn a_cube_holding_a_block_takes_no_damage_from_a_player_but_is_pushed_back() {
+    let mut s = ready(30);
+    s.tick(30);
+    let cube = summon(
+        &mut s,
+        Kind::SulfurCube,
+        "9.5 64 8.5",
+        &format!("{{Size:1,{BODY}dirt\",count:1}}}}}}"),
+    );
+    s.tick(2);
+    attack(&mut s, cube);
+    s.tick(1);
+    let nbt = saved(&s, cube);
+    assert_eq!(nbt.get_f64("Health"), Some(8.0));
+    let motion = nbt
+        .get_list("Motion")
+        .and_then(|list| list.first().and_then(rspigot_nbt::Tag::as_f64));
+    assert!(motion.is_some_and(|x| x.abs() > 0.01), "{motion:?}");
+}
+
+#[test]
+fn a_cube_without_a_block_is_hurt_by_a_player() {
+    let mut s = ready(31);
+    s.tick(30);
+    let cube = summon(&mut s, Kind::SulfurCube, "9.5 64 8.5", "{Size:1,NoAI:1b}");
+    s.tick(2);
+    attack(&mut s, cube);
+    s.tick(1);
+    assert!(
+        saved(&s, cube)
+            .get_f64("Health")
+            .is_some_and(|health| health < 8.0)
+    );
+}
+
+#[test]
+fn a_cube_walks_to_a_swallowable_item_and_swallows_it() {
+    let mut s = ready(32);
+    let cube = summon(&mut s, Kind::SulfurCube, "4.5 64 4.5", "{Size:1}");
+    console(
+        &mut s,
+        "summon minecraft:item 7.5 64 4.5 {Item:{id:\"minecraft:dirt\",count:1},PickupDelay:0s}",
+    );
+    for _ in 0..40 {
+        s.tick(10);
+        if body_of(&s, cube).is_some() {
+            break;
+        }
+    }
+    assert_eq!(body_of(&s, cube).as_deref(), Some("minecraft:dirt"));
+    assert!(dropped(&s, "minecraft:dirt").is_empty());
+}
