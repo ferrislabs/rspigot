@@ -147,3 +147,24 @@ fn the_clock_only_reaches_the_active_dimension() {
     assert!(count(&here.take(), is_time) >= 1);
     assert_eq!(count(&away.take(), is_time), 0);
 }
+
+#[test]
+fn a_dimension_clock_reaches_only_its_own_players() {
+    let mut server = server();
+    server.load_dimension(
+        Identifier::minecraft("the_end"),
+        rspigot_domain::world::Dimension::end(),
+        Arc::new(Quiet),
+        Arc::new(Quiet),
+    );
+    let (_, here) = join(&mut server, "Alice");
+    let (bob, away) = join(&mut server, "Bob");
+    if let Some(player) = server.players.get_mut(&bob) {
+        player.dim = Identifier::minecraft("the_end");
+    }
+    for _ in 0..20 {
+        server.tick();
+    }
+    assert_eq!(count(&here.take(), is_time), 1);
+    assert_eq!(count(&away.take(), is_time), 1);
+}
