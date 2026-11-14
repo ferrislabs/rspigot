@@ -65,6 +65,7 @@ mod leash;
 mod lectern;
 pub mod lighting;
 mod lightning;
+mod liquid_bucket;
 pub mod loot;
 mod menu;
 mod minecarts;

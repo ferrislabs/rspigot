@@ -776,6 +776,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_bucket_empty(*step, cancelled);
                 Vec::new()
             }
+            Continuation::BucketFill(step) => {
+                self.finish_bucket_fill(*step, cancelled, patch_of!(patch, PlayerBucketFill));
+                Vec::new()
+            }
+            Continuation::LiquidEmpty(step) => {
+                self.finish_liquid_empty(*step, cancelled);
+                Vec::new()
+            }
             Continuation::ClickBlock(_)
             | Continuation::DropSelected(_)
             | Continuation::Wear(_)
