@@ -20,6 +20,7 @@ pub mod effect;
 pub mod entity;
 pub mod experience;
 pub mod explosion;
+pub mod flammable;
 pub mod food;
 pub mod furnace;
 pub mod game_event;

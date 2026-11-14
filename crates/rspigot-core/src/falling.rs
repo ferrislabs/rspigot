@@ -218,6 +218,10 @@ impl<L: ClientLink> Server<L> {
             self.turtle_egg_placed(pos);
             return;
         }
+        if kind == BlockKind::Fire {
+            self.fire_placed(pos);
+            return;
+        }
         if kind == BlockKind::Frogspawn {
             let delay = self.frogspawn_placed();
             self.schedule(pos, kind, delay);
@@ -369,6 +373,10 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == BlockKind::DriedGhast {
             self.dried_ghast_tick(pos);
+            return;
+        }
+        if kind == BlockKind::Fire {
+            self.fire_tick(pos, state);
             return;
         }
         match kind.gravity() {

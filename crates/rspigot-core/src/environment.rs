@@ -83,7 +83,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn raining_at(&self, pos: BlockPos) -> bool {
+    pub(crate) fn raining_at(&self, pos: BlockPos) -> bool {
         if !self.world.level.raining || !self.chunk_view().can_see_sky_at(pos) {
             return false;
         }
