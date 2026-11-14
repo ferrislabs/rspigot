@@ -519,6 +519,10 @@ pub enum ClientEvent {
         vehicle: EntityId,
         passengers: Vec<EntityId>,
     },
+    EntityLink {
+        entity: EntityId,
+        holder: Option<EntityId>,
+    },
     InventoryContent {
         state_id: i32,
         slots: Vec<Slot>,

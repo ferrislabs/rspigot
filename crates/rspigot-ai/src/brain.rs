@@ -290,6 +290,17 @@ impl Brain {
     }
 }
 
+fn goals_panicking(goals: &GoalSelector<MobGoal>) -> bool {
+    goals.goals().iter().any(|goal| {
+        goal.is_running()
+            && match goal.goal() {
+                MobGoal::Panic(_) => true,
+                MobGoal::Panda(panda) => panda.is_panic(),
+                _ => false,
+            }
+    })
+}
+
 pub struct AiContext<'a, W> {
     pub mob: &'a MobView,
     pub world: &'a W,
@@ -733,14 +744,7 @@ impl MobAi {
     }
 
     pub fn is_panicking(&self) -> bool {
-        self.goals.goals().iter().any(|goal| {
-            goal.is_running()
-                && match goal.goal() {
-                    MobGoal::Panic(_) => true,
-                    MobGoal::Panda(panda) => panda.is_panic(),
-                    _ => false,
-                }
-        })
+        goals_panicking(&self.goals)
     }
 
     pub fn eat_animation_tick(&self) -> i32 {
@@ -1138,6 +1142,9 @@ impl MobAi {
         } else {
             self.targets.tick(&mut context);
             self.goals.tick(&mut context);
+        }
+        if !goals_panicking(&self.goals) {
+            crate::leash::follow_holder(&mut context);
         }
         if mob.kind == EntityKind::Creaking
             && let Some(behavior) = self.behavior.as_mut()

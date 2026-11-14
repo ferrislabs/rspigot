@@ -407,6 +407,14 @@ wire_struct! {
 
 wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct SetEntityLink = id::SET_ENTITY_LINK {
+        pub source: i32,
+        pub dest: i32,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct TakeItemEntity = id::TAKE_ITEM_ENTITY {
         pub item_id: i32 as Var,
         pub player_id: i32 as Var,
@@ -636,6 +644,10 @@ mod tests {
                 passengers: vec![300]
             }),
             vec![1, 1, 0xAC, 0x02]
+        );
+        assert_eq!(
+            roundtrip(&SetEntityLink { source: 5, dest: 0 }),
+            vec![0, 0, 0, 5, 0, 0, 0, 0]
         );
         assert_eq!(
             roundtrip(&TakeItemEntity {

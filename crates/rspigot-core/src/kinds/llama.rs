@@ -284,7 +284,7 @@ impl<L: ClientLink> Server<L> {
         let delay = trader_delay.unwrap_or(state.despawn_delay) - 1;
         state.despawn_delay = delay;
         if delay < 1 {
-            self.drop_leash(id);
+            self.remove_leash(id);
             self.remove_entity(
                 id,
                 RemovalReason::Discarded,

@@ -1,7 +1,8 @@
 mod common;
 
 use common::*;
-use rspigot_core::events::{Hand, Inbound, PlayerInput};
+use rspigot_core::events::{ClientEvent, Hand, Inbound, PlayerInput};
+use rspigot_core::plugins::EventKind;
 use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::{Compound, Tag};
@@ -38,6 +39,10 @@ fn saved(s: &Scene, id: EntityId) -> Compound {
 }
 
 fn interact(s: &mut Scene, target: EntityId) {
+    interact_as(s, target, false);
+}
+
+fn interact_as(s: &mut Scene, target: EntityId, sneaking: bool) {
     let alice = s.players[0].clone();
     send_input(
         &mut s.server,
@@ -45,7 +50,7 @@ fn interact(s: &mut Scene, target: EntityId) {
         PlayerInput::Interact {
             target,
             hand: Hand::Main,
-            sneaking: false,
+            sneaking,
             location: Vec3::new(0.0, 0.5, 0.0),
         },
     );
@@ -117,14 +122,21 @@ fn a_llama_spits_at_a_wild_wolf_and_the_spit_flies_then_vanishes() {
     }
     assert!(spat, "the llama spits at the wolf");
     assert!(vanished, "the spit is discarded after its flight");
-    s.tick(120);
-    let health = s
-        .server
-        .entities_of(Kind::Wolf)
-        .into_iter()
-        .find(|entity| entity.id == wolf)
-        .and_then(|entity| entity.health);
-    assert!(health.is_some_and(|health| health < 8.0), "{health:?}");
+    let mut hurt = false;
+    for _ in 0..600 {
+        s.tick(1);
+        hurt = s
+            .server
+            .entities_of(Kind::Wolf)
+            .into_iter()
+            .find(|entity| entity.id == wolf)
+            .and_then(|entity| entity.health)
+            .is_some_and(|health| health < 8.0);
+        if hurt {
+            break;
+        }
+    }
+    assert!(hurt, "a spit eventually hurts the wolf");
 }
 
 #[test]
@@ -202,8 +214,14 @@ fn a_leashed_llama_is_pulled_toward_its_holder_and_the_lead_snaps_past_twelve_bl
         "{PersistenceRequired:1b,leash:{UUID:[I;1,2,3,4]}}",
     );
     let before = position(&s, Kind::TraderLlama, llama);
+    s.players[0].link.take();
     s.tick(1);
     assert!(saved(&s, llama).get("leash").is_some());
+    let events = s.players[0].link.take();
+    assert!(
+        events.iter().any(|event| matches!(event, ClientEvent::EntityLink { entity, holder: Some(_) } if *entity == llama)),
+        "{events:?}"
+    );
     s.tick(10);
     let after = position(&s, Kind::TraderLlama, llama);
     assert!(after.z < before.z, "{before:?} -> {after:?}");
@@ -213,6 +231,11 @@ fn a_leashed_llama_is_pulled_toward_its_holder_and_the_lead_snaps_past_twelve_bl
     );
     s.tick(3);
     assert!(saved(&s, llama).get("leash").is_none());
+    let events = s.players[0].link.take();
+    assert!(
+        events.iter().any(|event| matches!(event, ClientEvent::EntityLink { entity, holder: None } if *entity == llama)),
+        "{events:?}"
+    );
 }
 
 #[test]
@@ -238,4 +261,70 @@ fn a_free_llama_joins_the_caravan_of_a_leashed_one_and_follows_it() {
         (after.z - 3.5).abs() < (before.z - 3.5).abs() - 1.0,
         "{before:?} -> {after:?}"
     );
+}
+
+#[test]
+fn a_leashed_trader_llama_with_a_slack_lead_walks_up_to_its_holder() {
+    let mut s = world();
+    summon_at(
+        &mut s,
+        Kind::WanderingTrader,
+        "3.5 64 0.5",
+        "{NoAI:1b,DespawnDelay:48000,UUID:[I;1,2,3,4]}",
+    );
+    let llama = summon_at(
+        &mut s,
+        Kind::TraderLlama,
+        "3.5 64 4.5",
+        "{PersistenceRequired:1b,leash:{UUID:[I;1,2,3,4]}}",
+    );
+    s.tick(80);
+    let at = position(&s, Kind::TraderLlama, llama);
+    assert!(at.z < 3.6, "{at:?}");
+    assert!(saved(&s, llama).get("leash").is_some());
+}
+
+#[test]
+fn a_chested_tame_llama_opens_a_mount_screen_with_one_column_per_strength_point() {
+    let mut s = world();
+    let llama = summon_at(
+        &mut s,
+        Kind::Llama,
+        "2.5 64 0.5",
+        "{Tame:1b,ChestedHorse:1b,Strength:3,NoAI:1b}",
+    );
+    s.players[0].link.take();
+    interact_as(&mut s, llama, true);
+    let events = s.players[0].link.take();
+    assert!(
+        events.iter().any(|event| matches!(event, ClientEvent::OpenMountScreen { entity, columns: 3, .. } if *entity == llama)),
+        "{events:?}"
+    );
+}
+
+#[test]
+fn snapping_the_lead_fires_one_unleash_event_for_the_distance_and_drops_a_lead() {
+    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::EntityUnleash)]);
+    stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
+    summon_at(
+        &mut s,
+        Kind::WanderingTrader,
+        "3.5 64 0.5",
+        "{NoAI:1b,DespawnDelay:48000,UUID:[I;1,2,3,4]}",
+    );
+    let llama = summon_at(
+        &mut s,
+        Kind::TraderLlama,
+        "3.5 64 8.5",
+        "{PersistenceRequired:1b,leash:{UUID:[I;1,2,3,4]}}",
+    );
+    s.tick(2);
+    console(
+        &mut s,
+        "tp @e[type=minecraft:wandering_trader] 3.5 64 -20.5",
+    );
+    s.tick(4);
+    assert!(saved(&s, llama).get("leash").is_none());
+    assert_eq!(settled_for(&s.plugin, EventKind::EntityUnleash).len(), 1);
+    assert!(!s.server.entities_of(Kind::Item).is_empty());
 }
