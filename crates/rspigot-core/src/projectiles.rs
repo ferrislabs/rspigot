@@ -314,6 +314,7 @@ impl<L: ClientLink> Server<L> {
             .filter(|e| e.base.id != arrow_id && !e.base.is_removed())
             .filter(|e| {
                 e.base.kind == Kind::EndCrystal
+                    || matches!(e.state, EntityState::Hanging(_))
                     || e.living()
                         .is_some_and(|state| !living::is_dead_or_dying(&e.base, state))
             })

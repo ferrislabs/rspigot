@@ -236,7 +236,8 @@ impl<L: ClientLink> Server<L> {
                 resistance_cap,
             )
         };
-        let knocked = self.hurt_by_explosion(source, damage, center, radius);
+        let blocklike = interaction != BlockInteraction::Keep;
+        let knocked = self.hurt_by_explosion(source, damage, center, radius, blocklike);
         let mut shuffled = positions;
         explosion::shuffle(&mut shuffled, &mut ServerRandom(&mut self.rng));
         let blocks: Vec<BlockPos> = shuffled
@@ -425,6 +426,7 @@ impl<L: ClientLink> Server<L> {
         damage: &DamageSource,
         center: Vec3,
         radius: f32,
+        blocklike: bool,
     ) -> Vec<(PlayerId, Vec3)> {
         if radius < 1.0e-5 {
             return Vec::new();
@@ -486,10 +488,19 @@ impl<L: ClientLink> Server<L> {
                 .store
                 .get(target.id)
                 .is_some_and(|e| e.base.kind == Kind::EndCrystal);
+            let hanging = self
+                .entities
+                .store
+                .get(target.id)
+                .is_some_and(|e| matches!(e.state, EntityState::Hanging(_)));
+            if hanging && !blocklike {
+                continue;
+            }
             let victim = match target.player {
                 Some(player) => Struck::Player(player),
                 None if crystal => Struck::Crystal(target.id),
                 None if target.living => Struck::Mob(target.id),
+                None if hanging => Struck::Hanging(target.id),
                 None => Struck::Item(target.id),
             };
             self.strike(None, victim, damage, amount, then);

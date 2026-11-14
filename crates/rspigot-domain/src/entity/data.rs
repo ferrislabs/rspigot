@@ -75,12 +75,19 @@ pub enum SyncedValue {
         profession: u32,
         level: i32,
     },
+    Rotations(f32, f32, f32),
+    PaintingVariant(u32),
 }
 
 impl SyncedValue {
     fn same(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Float(a), Self::Float(b)) => a.to_bits() == b.to_bits(),
+            (Self::Rotations(ax, ay, az), Self::Rotations(bx, by, bz)) => {
+                ax.to_bits() == bx.to_bits()
+                    && ay.to_bits() == by.to_bits()
+                    && az.to_bits() == bz.to_bits()
+            }
             (a, b) => a == b,
         }
     }
@@ -246,6 +253,20 @@ impl SyncedData {
                 level,
             }) => Some((*kind, *profession, *level)),
             _ => None,
+        }
+    }
+
+    pub fn rotations(&self, index: u8) -> (f32, f32, f32) {
+        match self.get(index) {
+            Some(SyncedValue::Rotations(x, y, z)) => (*x, *y, *z),
+            _ => (0.0, 0.0, 0.0),
+        }
+    }
+
+    pub fn painting_variant(&self, index: u8) -> u32 {
+        match self.get(index) {
+            Some(SyncedValue::PaintingVariant(id)) => *id,
+            _ => 0,
         }
     }
 

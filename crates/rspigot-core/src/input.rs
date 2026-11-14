@@ -572,6 +572,10 @@ impl<L: ClientLink> Server<L> {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;
         }
+        if self.use_hanging_item(id, slot, pos, face) {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+            return;
+        }
         if let Some(held) = &stack
             && !matches!(game_mode, GameMode::Adventure | GameMode::Spectator)
             && self.spawn_from_egg_on_block(id, slot, held, pos, face, clicked)

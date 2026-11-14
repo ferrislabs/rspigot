@@ -102,6 +102,8 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                     profession: *profession,
                     level: *level,
                 },
+                SyncedValue::Rotations(x, y, z) => MetadataValue::Rotations(*x, *y, *z),
+                SyncedValue::PaintingVariant(id) => MetadataValue::PaintingVariant(*id),
             },
         })
         .collect()
@@ -123,17 +125,28 @@ pub(crate) fn wire_slot(slot: ItemSlot) -> EquipmentSlot {
 fn pairing_events(entity: &Entity, tracker: &EntityTracker, data: i32) -> Vec<ClientEvent> {
     let pairing = tracker.pairing();
     let id = entity.base.id;
+    let (position, movement) = match &entity.state {
+        EntityState::Hanging(state) => (
+            Vec3::new(
+                f64::from(state.pos.x),
+                f64::from(state.pos.y),
+                f64::from(state.pos.z),
+            ),
+            Vec3::ZERO,
+        ),
+        _ => (pairing.position, pairing.movement),
+    };
     let mut events = vec![
         ClientEvent::BundleDelimiter,
         ClientEvent::SpawnEntity {
             entity: id,
             uuid: entity.base.uuid,
             kind: wire_kind(entity.base.kind),
-            position: pairing.position,
+            position,
             rotation: Rotation::new(pairing.yaw, pairing.pitch),
             head_yaw: pairing.head_yaw,
             data,
-            velocity: pairing.movement,
+            velocity: movement,
         },
     ];
     if !pairing.data.is_empty() {
@@ -426,6 +439,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Fangs(_) => self.tick_fangs(id),
                 EntityState::Lightning(_) => self.tick_lightning(id),
                 EntityState::Crystal(_) => self.tick_crystal(id),
+                EntityState::Hanging(_) => self.tick_hanging(id),
                 EntityState::Cloud(_) => self.tick_cloud(id),
                 EntityState::Inert(_) => {}
             }

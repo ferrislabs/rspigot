@@ -356,6 +356,8 @@ pub enum MetadataValue {
         profession: u32,
         level: i32,
     },
+    Rotations(f32, f32, f32),
+    PaintingVariant(u32),
 }
 
 pub use rspigot_domain::entity::{StateKind, VariantKind};

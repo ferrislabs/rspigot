@@ -343,6 +343,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn mob_interact_entry(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {
+        if let Some(result) = self.frame_interact(id, target, hand) {
+            return result;
+        }
         let Some(entity) = self.entities.store.get(target) else {
             return Interaction::Pass;
         };
