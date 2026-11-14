@@ -97,9 +97,16 @@ impl<L: ClientLink> Server<L> {
         };
         let rider = self.players.get(&id)?.entity_id;
         let sneaking = self.is_shifting(rider);
+        let chest = state.cargo.is_some();
         let free = state.out_of_control_ticks < boat::OUT_OF_CONTROL_LIMIT;
         if !sneaking && free && self.start_riding(rider, target, false, true) {
             return Some(Interaction::Predicted);
+        }
+        if chest
+            && (sneaking || !self.can_add_passenger(target, rider))
+            && self.open_cargo(id, target)
+        {
+            return Some(Interaction::ServerOnly);
         }
         Some(Interaction::Pass)
     }

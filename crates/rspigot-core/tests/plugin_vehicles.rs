@@ -367,3 +367,85 @@ fn a_boat_is_saved_with_its_chest() {
     let items = saved.get_list("Items").unwrap();
     assert_eq!(items.len(), 1);
 }
+
+const STICKS: &str =
+    "{Items:[{Slot:3b,id:\"minecraft:stick\",count:2},{Slot:26b,id:\"minecraft:apple\",count:1}]}";
+
+fn click_on(s: &mut Scene, alice: &Player, id: EntityId, sneaking: bool) {
+    console(s, "tp Alice 2.5 64 -1");
+    alice.link.take();
+    send_input(
+        &mut s.server,
+        alice,
+        PlayerInput::Interact {
+            target: id,
+            hand: Hand::Main,
+            sneaking,
+            location: Vec3::new(0.0, 0.5, 0.0),
+        },
+    );
+    s.tick(1);
+}
+
+#[test]
+fn sneaking_on_a_chest_boat_opens_its_three_rows_with_the_stored_items() {
+    let (mut s, alice) = survival(Vec::new(), "");
+    let id = summon(&mut s, "oak_chest_boat", 2.5, STICKS);
+    console(&mut s, "gamemode survival Alice");
+    s.server.handle(Inbound::Input {
+        player: alice.id,
+        input: PlayerInput::Input(rspigot_core::events::InputState {
+            shift: true,
+            ..Default::default()
+        }),
+    });
+    click_on(&mut s, &alice, id, true);
+    let events = alice.link.take();
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, ClientEvent::OpenScreen { menu, .. } if *menu == 2))
+    );
+    let filled = events.iter().find_map(|event| match event {
+        ClientEvent::ContainerContent { slots, .. } => Some(slots.clone()),
+        _ => None,
+    });
+    let slots = filled.expect("the window content");
+    assert_eq!(slots.iter().flatten().count(), 2);
+}
+
+#[test]
+fn a_free_seat_wins_over_the_chest_when_not_sneaking() {
+    let (mut s, alice) = survival(Vec::new(), "");
+    let id = summon(&mut s, "oak_chest_boat", 2.5, STICKS);
+    click_on(&mut s, &alice, id, false);
+    let events = alice.link.take();
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, ClientEvent::OpenScreen { .. }))
+    );
+    assert!(events.iter().any(|event| {
+        matches!(event, ClientEvent::Passengers { vehicle, passengers } if *vehicle == id && passengers.len() == 1)
+    }));
+}
+
+#[test]
+fn breaking_a_chest_boat_spills_its_contents_beside_the_boat_item() {
+    let (mut s, alice) = survival(vec![deciding(1, EventKind::VehicleDamage)], "");
+    let id = summon(&mut s, "oak_chest_boat", 2.5, STICKS);
+    gather(&mut s, &alice, id);
+    let asked = last_asked(&s.plugin, EventKind::VehicleDamage);
+    rule_on(
+        &mut s.server,
+        1,
+        asked.id,
+        false,
+        Some(EventPatch::VehicleDamage(VehicleDamagePatch {
+            damage: Some(50.0),
+        })),
+    );
+    s.tick(1);
+    assert!(s.server.entities_of(Kind::OakChestBoat).is_empty());
+    assert_eq!(s.server.entities_of(Kind::Item).len(), 3);
+}

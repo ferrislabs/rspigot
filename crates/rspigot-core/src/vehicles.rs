@@ -1,3 +1,5 @@
+use rspigot_blocks::BlockKind;
+use rspigot_domain::container_menu::{ContainerMenu, MenuKind};
 use rspigot_domain::damage::DamageTag;
 use rspigot_domain::entity::save::component_to_tag;
 use rspigot_domain::entity::vehicle;
@@ -10,6 +12,7 @@ use rspigot_entities::EntityKind as Kind;
 use rspigot_items::ItemKind;
 use std::num::NonZeroU8;
 
+use crate::containers::{Backing, Lid, OpenMenu};
 use crate::events::Hand;
 use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
@@ -46,6 +49,39 @@ pub(crate) fn cargo_of(entity: &Entity) -> Option<&vehicle::Cargo> {
     match &entity.state {
         EntityState::Boat(state) => state.cargo.as_ref(),
         _ => None,
+    }
+}
+
+pub(crate) fn cargo_mut(entity: &mut Entity) -> Option<&mut vehicle::Cargo> {
+    match &mut entity.state {
+        EntityState::Boat(state) => state.cargo.as_mut(),
+        _ => None,
+    }
+}
+
+pub(crate) fn cargo_menu(entity: &Entity) -> MenuKind {
+    if entity.base.kind == Kind::HopperMinecart {
+        MenuKind::Hopper
+    } else {
+        MenuKind::Generic { rows: 3 }
+    }
+}
+
+pub(crate) fn cargo_title(entity: &Entity) -> &'static str {
+    match entity.base.kind {
+        Kind::OakChestBoat => "entity.minecraft.oak_chest_boat",
+        Kind::SpruceChestBoat => "entity.minecraft.spruce_chest_boat",
+        Kind::BirchChestBoat => "entity.minecraft.birch_chest_boat",
+        Kind::JungleChestBoat => "entity.minecraft.jungle_chest_boat",
+        Kind::AcaciaChestBoat => "entity.minecraft.acacia_chest_boat",
+        Kind::DarkOakChestBoat => "entity.minecraft.dark_oak_chest_boat",
+        Kind::PaleOakChestBoat => "entity.minecraft.pale_oak_chest_boat",
+        Kind::MangroveChestBoat => "entity.minecraft.mangrove_chest_boat",
+        Kind::CherryChestBoat => "entity.minecraft.cherry_chest_boat",
+        Kind::BambooChestRaft => "entity.minecraft.bamboo_chest_raft",
+        Kind::ChestMinecart => "entity.minecraft.chest_minecart",
+        Kind::HopperMinecart => "entity.minecraft.hopper_minecart",
+        _ => "container.chest",
     }
 }
 
@@ -211,6 +247,40 @@ impl<L: ClientLink> Server<L> {
         };
         let stacks: Vec<ItemStack> = cargo.items.iter().flatten().cloned().collect();
         self.drop_contents(view.position.block(), stacks);
+    }
+
+    pub(crate) fn open_cargo(&mut self, player: PlayerId, vehicle: EntityId) -> bool {
+        let Some(entity) = self.entities.store.get(vehicle) else {
+            return false;
+        };
+        if cargo_of(entity).is_none() {
+            return false;
+        }
+        let menu = cargo_menu(entity);
+        let position = entity.base.position.block();
+        self.close_open_menu(player, true);
+        let inventory = self.next_inventory_id();
+        let open = OpenMenu {
+            window: 0,
+            inventory,
+            title: "",
+            menu: ContainerMenu::new(menu),
+            backing: Backing {
+                pos: position,
+                second: None,
+                entity: None,
+                ender: false,
+                block: BlockKind::Air,
+                lid: Lid::None,
+            },
+            state_id: 0,
+            local: Vec::new(),
+            data: Vec::new(),
+            trader: None,
+            mount: Some(vehicle),
+        };
+        self.ask_open(player, position, open);
+        true
     }
 
     pub(crate) fn place_vehicle(

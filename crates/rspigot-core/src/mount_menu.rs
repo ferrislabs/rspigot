@@ -96,6 +96,12 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(mount) else {
             return items;
         };
+        if let Some(cargo) = crate::vehicles::cargo_of(entity) {
+            for (slot, stack) in items.iter_mut().zip(&cargo.items) {
+                slot.clone_from(stack);
+            }
+            return items;
+        }
         if let Some(living) = entity.living() {
             if size > SADDLE {
                 items[SADDLE] = living.equipment(EquipmentSlot::Saddle).cloned();
@@ -115,6 +121,17 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn write_mount_items(&mut self, mount: EntityId, items: &[Slot]) {
+        if let Some(cargo) = self
+            .entities
+            .store
+            .get_mut(mount)
+            .and_then(crate::vehicles::cargo_mut)
+        {
+            for (slot, stack) in cargo.items.iter_mut().zip(items) {
+                slot.clone_from(stack);
+            }
+            return;
+        }
         let mut changed = Vec::new();
         if let Some(entity) = self.entities.store.get_mut(mount) {
             if let Some(living) = entity.living_mut() {
@@ -170,9 +187,11 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(mount) else {
             return false;
         };
-        let alive = entity
-            .living()
-            .is_some_and(|living| !living::is_dead_or_dying(&entity.base, living));
+        let cargo = crate::vehicles::cargo_of(entity).is_some();
+        let alive = cargo
+            || entity
+                .living()
+                .is_some_and(|living| !living::is_dead_or_dying(&entity.base, living));
         let near = Vec3::new(
             entity.base.position.x,
             entity.base.position.y + f64::from(entity.base.dimensions.height) / 2.0,
@@ -180,7 +199,10 @@ impl<L: ClientLink> Server<L> {
         )
         .distance_squared(state.position)
             <= INTERACTION_RANGE_SQUARED + f64::from(entity.base.dimensions.height);
-        alive && near && self.mount_menu_kind(mount) == kind
+        alive
+            && near
+            && (cargo && kind == crate::vehicles::cargo_menu(entity)
+                || self.mount_menu_kind(mount) == kind)
     }
 
     pub(crate) fn show_mount_menu(&mut self, player: PlayerId, mut open: OpenMenu) {
@@ -188,21 +210,31 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let items = self.mount_menu_items(mount, open.menu.kind().container_size());
-        let columns = match open.menu.kind() {
-            MenuKind::Mount { columns, .. } => i32::from(columns),
-            _ => 0,
-        };
+        let title = self
+            .entities
+            .store
+            .get(mount)
+            .map_or("", crate::vehicles::cargo_title);
+        let kind = open.menu.kind();
         let Some(state) = self.players.get_mut(&player) else {
             return;
         };
         let window = next_window(state);
         open.window = window;
         open.local = items.clone();
-        state.link.send(ClientEvent::OpenMountScreen {
-            window,
-            columns,
-            entity: mount,
-        });
+        open.title = title;
+        match kind {
+            MenuKind::Mount { columns, .. } => state.link.send(ClientEvent::OpenMountScreen {
+                window,
+                columns: i32::from(columns),
+                entity: mount,
+            }),
+            kind => state.link.send(ClientEvent::OpenScreen {
+                window,
+                menu: kind.protocol_id(),
+                title: rspigot_domain::text::Component::translatable(title, Vec::new()),
+            }),
+        }
         sync_menu_view(
             &state.link,
             window,
