@@ -19,6 +19,7 @@ mod bat;
 mod bee;
 mod blaze;
 mod breeze;
+mod camel;
 mod cat;
 pub(crate) mod copper_golem;
 mod creaking;
@@ -141,6 +142,7 @@ impl<L: ClientLink> Server<L> {
                 self.equine_view(entity, view);
             }
             Kind::Llama | Kind::TraderLlama => self.llama_view(entity, view),
+            Kind::Camel | Kind::CamelHusk => self.camel_view(entity, view),
             _ => {}
         }
     }
@@ -201,6 +203,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Sniffer) => self.sniffer_pre_tick(id),
             Some(Kind::Pufferfish) => self.fish_pre_tick(id),
             Some(Kind::Strider) => self.strider_pre_tick(id),
+            Some(Kind::Camel | Kind::CamelHusk) => self.camel_pre_tick(id),
             Some(
                 Kind::Horse
                 | Kind::Donkey
@@ -247,6 +250,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Warden) => self.warden_post_tick(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
             Some(Kind::Strider) => self.strider_post_tick(id),
+            Some(Kind::Camel | Kind::CamelHusk) => self.camel_post_tick(id),
             Some(Kind::Slime | Kind::MagmaCube) => self.cube_post_tick(id),
             _ => {}
         }
@@ -273,6 +277,7 @@ impl<L: ClientLink> Server<L> {
                 self.equine_ai_step(id);
                 self.trader_llama_ai_step(id);
             }
+            Some(Kind::Camel | Kind::CamelHusk) => self.equine_ai_step(id),
             Some(
                 Kind::Horse
                 | Kind::Donkey
@@ -298,7 +303,9 @@ impl<L: ClientLink> Server<L> {
                 | Kind::SkeletonHorse
                 | Kind::ZombieHorse
                 | Kind::Llama
-                | Kind::TraderLlama,
+                | Kind::TraderLlama
+                | Kind::Camel
+                | Kind::CamelHusk,
             ) => self.equine_is_immobile(id),
             _ => false,
         }
@@ -323,7 +330,9 @@ impl<L: ClientLink> Server<L> {
                 | Kind::SkeletonHorse
                 | Kind::ZombieHorse
                 | Kind::Llama
-                | Kind::TraderLlama,
+                | Kind::TraderLlama
+                | Kind::Camel
+                | Kind::CamelHusk,
             ) => self.equine_death_drops(id),
             _ => Vec::new(),
         }
@@ -391,6 +400,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::ElderGuardian) => self.elder_guardian_custom_ai_step(id),
             Some(Kind::Vindicator) => self.vindicator_custom_ai_step(id),
             Some(Kind::Evoker | Kind::Illusioner) => self.spellcaster_custom_ai_step(id),
+            Some(Kind::Camel | Kind::CamelHusk) => self.camel_custom_ai_step(id),
             _ => {}
         }
     }
@@ -409,6 +419,7 @@ impl<L: ClientLink> Server<L> {
         held: Option<&ItemStack>,
     ) -> Option<Interaction> {
         match self.kind_of(target) {
+            Some(Kind::Camel | Kind::CamelHusk) => self.camel_interact(player, target, hand, held),
             Some(
                 Kind::Horse
                 | Kind::Donkey
@@ -550,6 +561,10 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Llama
                 | Kind::TraderLlama,
             ) if !dead => self.equine_hurt(id),
+            Some(Kind::Camel | Kind::CamelHusk) if !dead => {
+                self.equine_hurt(id);
+                self.camel_hurt(id);
+            }
             Some(Kind::Bee) => self.bee_after_hurt(id),
             Some(Kind::Squid | Kind::GlowSquid) => self.squid_after_hurt(id, source),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),

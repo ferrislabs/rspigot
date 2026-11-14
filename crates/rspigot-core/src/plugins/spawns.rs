@@ -256,6 +256,16 @@ impl<L: ClientLink> Server<L> {
                     self.start_riding(rider, vehicle, false, false);
                 }
             }
+            Spawned::MountedWith { rider, then } => {
+                if let Some((vehicle, _)) = placed {
+                    self.start_riding(rider, vehicle, true, true);
+                    let Carried {
+                        rider: next,
+                        reason,
+                    } = *then;
+                    self.spawn_entity(next, Birth::of(reason).then(Spawned::Rides { vehicle }));
+                }
+            }
             Spawned::Pattern(blocks) => {
                 if placed.is_some() {
                     self.clear_pattern_blocks(&blocks);

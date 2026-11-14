@@ -151,10 +151,10 @@ impl Rides {
 pub fn max_passengers(kind: EntityKind) -> usize {
     if kind.extends("AbstractChestBoat") {
         1
-    } else if kind.extends("AbstractBoat")
-        || matches!(kind, EntityKind::Camel | EntityKind::CamelHusk)
-    {
+    } else if kind.extends("AbstractBoat") {
         2
+    } else if kind.extends("Camel") {
+        super::species::camel::MAX_PASSENGERS
     } else if kind == EntityKind::HappyGhast {
         4
     } else {

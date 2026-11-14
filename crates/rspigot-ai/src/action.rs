@@ -189,4 +189,5 @@ pub enum MobAction {
     Nautilus(crate::NautilusAction),
     Equine(crate::EquineAction),
     Llama(crate::llama::LlamaAction),
+    Camel(crate::camel::CamelAction),
 }

@@ -15,6 +15,7 @@ mod blaze;
 mod blocks;
 mod brain;
 mod breeze;
+mod camel;
 mod cat;
 mod classify;
 mod combat;
@@ -145,6 +146,9 @@ pub use breeze::{
     Shoot as BreezeShoot, ShootWhenStuck as BreezeShootWhenStuck, Slide as BreezeSlide,
     SlideToTargetSink as BreezeSlideToTargetSink, ambient_sound as breeze_ambient_sound,
     firing_y_position as breeze_firing_y_position,
+};
+pub use camel::{
+    CamelAction, CamelFacts, CamelPanic, RandomSitting as CamelRandomSitting, camel_sensors,
 };
 pub use cat::{CatAction, CatFacts, CatGoal};
 pub use combat::{

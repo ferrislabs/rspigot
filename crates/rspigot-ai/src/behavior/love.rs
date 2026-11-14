@@ -55,6 +55,12 @@ impl AnimalMakeLove {
     }
 
     fn can_mate(cx: &BehaviorCx<'_, '_, impl AiWorld>, other: &Living) -> bool {
+        if cx.ai.mob.kind.extends("AbstractHorse") {
+            return other.id != cx.ai.mob.id
+                && crate::camel::can_mate(cx.ai.mob.kind, other.kind)
+                && cx.ai.mob.species.equine.can_parent
+                && other.facts.can_parent;
+        }
         other.id != cx.ai.mob.id
             && other.kind == cx.ai.mob.kind
             && cx.ai.mob.in_love
@@ -73,6 +79,8 @@ impl AnimalMakeLove {
         let partner_type = self.partner_type;
         let mob = cx.ai.mob;
         let in_love = mob.in_love;
+        let horse = mob.kind.extends("AbstractHorse");
+        let parent = mob.species.equine.can_parent;
         let kind = mob.kind;
         let id = mob.id;
         let own_state = cx.ai.body.sniffer.state;
@@ -85,8 +93,11 @@ impl AnimalMakeLove {
                     other.kind == partner_type
                         && other.id != id
                         && other.kind == kind
-                        && in_love
-                        && other.in_love
+                        && if horse {
+                            parent && other.facts.can_parent
+                        } else {
+                            in_love && other.in_love
+                        }
                         && crate::sniffer::can_mate_in_states(
                             kind,
                             own_state,

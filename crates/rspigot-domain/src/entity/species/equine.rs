@@ -104,7 +104,7 @@ pub fn can_perform_rearing(kind: EntityKind) -> bool {
 }
 
 pub fn is_camel(kind: EntityKind) -> bool {
-    kind.extends("Camel")
+    super::camel::is_camel(kind)
 }
 
 pub fn can_eat_grass(kind: EntityKind) -> bool {
@@ -307,7 +307,7 @@ pub fn set_flag(base: &mut EntityBase, mask: u8, value: bool) {
 }
 
 pub fn is_tamed(base: &EntityBase) -> bool {
-    flag(base, FLAG_TAME)
+    is_camel(base.kind) || flag(base, FLAG_TAME)
 }
 
 pub fn set_tamed(base: &mut EntityBase, value: bool) {
@@ -549,6 +549,7 @@ pub fn offspring_kind(parent: EntityKind, partner: EntityKind) -> Option<EntityK
         (EntityKind::Mule, _) => Some(EntityKind::Mule),
         (EntityKind::SkeletonHorse, _) => Some(EntityKind::SkeletonHorse),
         (EntityKind::ZombieHorse, _) => Some(EntityKind::ZombieHorse),
+        (EntityKind::Camel, EntityKind::Camel) => Some(EntityKind::Camel),
         _ => None,
     }
 }
@@ -559,11 +560,12 @@ pub fn can_mate_kind(kind: EntityKind, partner: EntityKind) -> bool {
 }
 
 pub fn can_fall_in_love(kind: EntityKind) -> bool {
-    kind != EntityKind::ZombieHorse
+    kind != EntityKind::ZombieHorse && super::camel::can_fall_in_love(kind)
 }
 
 pub fn can_age_up(kind: EntityKind) -> bool {
     !matches!(kind, EntityKind::SkeletonHorse | EntityKind::ZombieHorse)
+        && super::camel::can_be_baby(kind)
 }
 
 pub fn read(nbt: &Compound, base: &mut EntityBase, state: &mut MountState) {
