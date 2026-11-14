@@ -74,6 +74,19 @@ pub(crate) struct TeleportStep {
     pub(crate) rotation: Option<Rotation>,
     pub(crate) cause: PlayerTeleportCause,
     pub(crate) fallback: Option<MoveStep>,
+    pub(crate) dimension: Option<crate::world_state::DimensionKey>,
+}
+
+#[derive(Debug)]
+pub(crate) struct PortalStep {
+    pub(crate) player: PlayerId,
+    pub(crate) destination: crate::travel::Destination,
+}
+
+#[derive(Debug)]
+pub(crate) struct EntityPortalStep {
+    pub(crate) entity: EntityId,
+    pub(crate) destination: crate::travel::Destination,
 }
 
 #[derive(Debug)]
@@ -1216,6 +1229,8 @@ pub(crate) enum Continuation {
     Chat(ChatStep, Vec<PlayerId>),
     Command(ChatStep),
     Teleport(TeleportStep),
+    Portal(PortalStep),
+    EntityPortal(EntityPortalStep),
     Velocity(VelocityStep),
     Respawn(RespawnStep),
     Death(Box<DeathStep>),
@@ -1373,6 +1388,8 @@ impl Continuation {
             Self::Chat(..) => EventKind::AsyncPlayerChat,
             Self::Command(_) => EventKind::PlayerCommandPreprocess,
             Self::Teleport(_) => EventKind::PlayerTeleport,
+            Self::Portal(_) => EventKind::PlayerPortal,
+            Self::EntityPortal(_) => EventKind::EntityPortal,
             Self::Velocity(_) => EventKind::PlayerVelocity,
             Self::Respawn(_) => EventKind::PlayerRespawn,
             Self::Death(_) => EventKind::PlayerDeath,
@@ -1569,6 +1586,7 @@ impl Continuation {
             Self::DragonWalls(step) => step.dragon == id,
             Self::PlaceCrystal(step) => step.entity.base.id == id,
             Self::Relocate(step) => step.entity == id,
+            Self::EntityPortal(step) => step.entity == id,
             Self::ProjectileHit { arrow, target } => *arrow == id || *target == id,
             Self::Aim(step) => step.mob == id,
             Self::Breed(step) => step.parent == id || step.partner == id,
