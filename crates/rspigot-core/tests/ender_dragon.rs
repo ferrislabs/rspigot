@@ -903,3 +903,36 @@ fn an_arrow_without_a_player_behind_it_does_not_hurt_the_dragon() {
     s.tick(20);
     assert_eq!(health_of(&s, dragon), before);
 }
+
+#[test]
+fn a_crystal_blown_up_by_a_player_next_to_the_dragon_hurts_it_through_its_parts() {
+    let mut s = ready(15);
+    armed(&mut s);
+    let dragon = summon(&mut s, Kind::EnderDragon, "8.5 100 8.5", "{}");
+    summon(&mut s, Kind::EndCrystal, "8.5 96.5 3.5", "{}");
+    s.tick(5);
+    let before = health_of(&s, dragon);
+    let crystal = crystals(&s)[0].id;
+    console(&mut s, "tp Alice 8.5 96.5 6.0");
+    let player = s.players[0].clone();
+    send_input(
+        &mut s.server,
+        &player,
+        rspigot_core::events::PlayerInput::Attack(crystal),
+    );
+    s.tick(3);
+    let after = health_of(&s, dragon);
+    assert!(after < before - 3.0, "{before} {after}");
+}
+
+#[test]
+fn a_crystal_blown_up_by_nobody_does_not_hurt_the_dragon() {
+    let mut s = ready(15);
+    let dragon = summon(&mut s, Kind::EnderDragon, "8.5 100 8.5", "{}");
+    summon(&mut s, Kind::EndCrystal, "8.5 96.5 3.5", "{}");
+    s.tick(5);
+    let before = health_of(&s, dragon);
+    console(&mut s, "kill @e[type=minecraft:end_crystal]");
+    s.tick(3);
+    assert_eq!(health_of(&s, dragon), before);
+}
