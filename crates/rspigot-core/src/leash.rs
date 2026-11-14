@@ -10,8 +10,11 @@ use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 use uuid::Uuid;
 
+use crate::events::ClientEvent;
+use crate::plugins::events::{EntityUnleash, EntityUnleashReason};
+use crate::plugins::{Continuation, EventKind, EventPayload};
 use crate::ports::ClientLink;
-use crate::server::Server;
+use crate::server::{Audience, Server};
 use crate::spawning::LEASH;
 
 const LEAD_BREAK_SOUND: &str = "minecraft:item.lead.break";
@@ -43,9 +46,49 @@ impl<L: ClientLink> Server<L> {
             entity.extra.remove(LEASH);
         }
         self.entities.leash_spin.remove(&id);
+        if self.entities.leash_links.remove(&id).is_some() {
+            self.push(
+                Audience::Trackers(id),
+                ClientEvent::EntityLink {
+                    entity: id,
+                    holder: None,
+                },
+            );
+        }
     }
 
-    pub(crate) fn drop_leash(&mut self, id: EntityId) {
+    fn announce_leash(&mut self, id: EntityId, holder: EntityId) {
+        if self.entities.leash_links.get(&id) == Some(&holder) {
+            return;
+        }
+        self.entities.leash_links.insert(id, holder);
+        self.push(
+            Audience::Trackers(id),
+            ClientEvent::EntityLink {
+                entity: id,
+                holder: Some(holder),
+            },
+        );
+    }
+
+    fn notify_unleash(&mut self, id: EntityId, reason: EntityUnleashReason) {
+        let lane = self.lane_for(None, id);
+        self.fire(
+            lane,
+            Continuation::Notice(EventKind::EntityUnleash),
+            move |server: &Self| {
+                let entity = server.subject_view(id)?;
+                Some(EventPayload::EntityUnleash(EntityUnleash {
+                    entity_type: entity.kind.clone(),
+                    entity,
+                    reason,
+                }))
+            },
+        );
+    }
+
+    pub(crate) fn drop_leash(&mut self, id: EntityId, reason: EntityUnleashReason) {
+        self.notify_unleash(id, reason);
         let leashed = self
             .entities
             .store
@@ -79,7 +122,7 @@ impl<L: ClientLink> Server<L> {
             .is_some_and(|state| !living::is_dead_or_dying(&entity.base, state));
         let Some(holder) = self.entities.store.by_uuid(uuid) else {
             if entity.base.tick_count > leash::LOOSE_TICKS {
-                self.drop_leash(id);
+                self.drop_leash(id, EntityUnleashReason::HolderGone);
             }
             return;
         };
@@ -89,9 +132,10 @@ impl<L: ClientLink> Server<L> {
                 .is_none_or(|state| !living::is_dead_or_dying(&other.base, state))
         });
         if !alive || !holder_alive {
-            self.drop_leash(id);
+            self.drop_leash(id, EntityUnleashReason::HolderGone);
             return;
         }
+        self.announce_leash(id, holder);
         let (Some(entity), Some(other)) =
             (self.entities.store.get(id), self.entities.store.get(holder))
         else {
@@ -106,7 +150,7 @@ impl<L: ClientLink> Server<L> {
         if leash::snaps(distance) {
             let at = other.base.position;
             self.play_sound(None, at, LEAD_BREAK_SOUND, SoundSource::Neutral, 1.0, 1.0);
-            self.drop_leash(id);
+            self.drop_leash(id, EntityUnleashReason::Distance);
             return;
         }
         if leash::must_pull(distance, entity_width, holder_width) {

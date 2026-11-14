@@ -40,6 +40,7 @@ mod guardian;
 mod heap;
 mod holdable;
 mod iron_golem;
+mod leash;
 mod llama;
 #[cfg(test)]
 mod mock;

@@ -44,6 +44,7 @@ pub(crate) struct EntityWorld {
     pub boss_bars: FxHashMap<EntityId, rspigot_domain::boss_event::ServerBossEvent>,
     pub poses: FxHashMap<EntityId, rspigot_domain::entity::Pose>,
     pub leash_spin: FxHashMap<EntityId, f64>,
+    pub leash_links: FxHashMap<EntityId, EntityId>,
     pending_saves: FxHashMap<ChunkPos, (u64, Arc<Vec<Compound>>)>,
     stored_empty: FxHashSet<ChunkPos>,
     generation: u64,
@@ -249,6 +250,8 @@ impl<L: ClientLink> Server<L> {
         let mut entity = self.entities.store.remove(id)?;
         entity.base.removal = Some(reason);
         self.entities.tracked.remove(&id);
+        self.entities.leash_links.remove(&id);
+        self.entities.leash_spin.remove(&id);
         self.remove_boss_bar(id);
         self.entities.mobs.entries.remove(&id);
         self.entities.mobs.initial_targets.remove(&id);
@@ -293,6 +296,12 @@ impl<L: ClientLink> Server<L> {
                 events.push(ClientEvent::Passengers {
                     vehicle: id,
                     passengers: rides.passengers_of(id).to_vec(),
+                });
+            }
+            if let Some(holder) = self.entities.leash_links.get(&id) {
+                events.push(ClientEvent::EntityLink {
+                    entity: id,
+                    holder: Some(*holder),
                 });
             }
             if let Some(vehicle) = rides.vehicle_of(id) {

@@ -1384,6 +1384,7 @@ impl<L: ClientLink> Server<L> {
             view.anger_target = neutral.target.and_then(|uuid| world.resolve(uuid));
         }
         view.leashed = entity.extra.contains_key(LEASH);
+        view.leash_holder = self.leash_holder_of(entity);
         self.kind_view(entity, &mut view);
         Some(view)
     }

@@ -64,6 +64,7 @@ impl<L: ClientLink> Server<L> {
                 columns: 0,
                 saddle: false,
                 armor: false,
+                carpet: false,
             };
         };
         let columns =
@@ -76,15 +77,17 @@ impl<L: ClientLink> Server<L> {
                         ids.binary_search(&u32::from(entity.base.kind.id().0))
                             .is_ok()
                     }),
+            carpet: entity.base.kind.extends("Llama"),
             armor: mount_can_use_slot(entity, EquipmentSlot::Body)
-                && rspigot_data::tags::tag(
-                    "minecraft:entity_type",
-                    "minecraft:can_wear_horse_armor",
-                )
-                .is_some_and(|ids| {
-                    ids.binary_search(&u32::from(entity.base.kind.id().0))
-                        .is_ok()
-                }),
+                && (entity.base.kind.extends("Llama")
+                    || rspigot_data::tags::tag(
+                        "minecraft:entity_type",
+                        "minecraft:can_wear_horse_armor",
+                    )
+                    .is_some_and(|ids| {
+                        ids.binary_search(&u32::from(entity.base.kind.id().0))
+                            .is_ok()
+                    })),
         }
     }
 
