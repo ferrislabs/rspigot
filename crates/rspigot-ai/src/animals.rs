@@ -21,6 +21,7 @@ pub fn after_brain_tick<W: AiWorld>(
         EntityKind::Armadillo => armadillo::update_activity(brain),
         EntityKind::Breeze => breeze::update_activity(brain),
         EntityKind::Creaking => creaking::update_activity(brain, ai.brain.creaking.can_move),
+        EntityKind::Warden => crate::warden::after_brain_tick(brain, ai),
         _ => {}
     }
 }
@@ -42,6 +43,11 @@ pub fn brain_for(
                 &[],
                 creaking::creaking_sensors(),
                 creaking::creaking_activities(),
+            ),
+            EntityKind::Warden => (
+                &crate::warden::WARDEN_MEMORIES,
+                crate::warden::warden_sensors(),
+                crate::warden::warden_activities(),
             ),
             EntityKind::Villager => {
                 return Some(crate::villager::villager_brain(

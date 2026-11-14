@@ -134,6 +134,7 @@ impl<L: ClientLink> Server<L> {
             MobAction::Creaking(action) => self.creaking_action(id, action),
             MobAction::Piglin(action) => self.piglin_action(id, action),
             MobAction::Villager(action) => self.villager_action(id, action),
+            MobAction::Warden(action) => self.warden_action(id, action),
             MobAction::SetSitting(sitting) => self.set_sitting_pose(id, sitting),
             MobAction::TeleportTo(position) => self.teleport_mob_to(id, position),
             MobAction::ForgetAndRefreshAnger(mob) => self.forget_and_refresh_anger(mob),

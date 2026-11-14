@@ -38,6 +38,7 @@ pub enum DamageType {
     Explosion,
     PlayerExplosion,
     WindCharge,
+    SonicBoom,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -106,6 +107,7 @@ impl DamageType {
             Self::Explosion => "minecraft:explosion",
             Self::PlayerExplosion => "minecraft:player_explosion",
             Self::WindCharge => "minecraft:wind_charge",
+            Self::SonicBoom => "minecraft:sonic_boom",
         }
     }
 
@@ -138,6 +140,7 @@ impl DamageType {
             Self::Explosion => "explosion",
             Self::PlayerExplosion => "explosion.player",
             Self::WindCharge => "mob",
+            Self::SonicBoom => "sonic_boom",
         }
     }
 
@@ -161,7 +164,10 @@ impl DamageType {
     }
 
     pub const fn scales_always(self) -> bool {
-        matches!(self, Self::Explosion | Self::PlayerExplosion)
+        matches!(
+            self,
+            Self::Explosion | Self::PlayerExplosion | Self::SonicBoom
+        )
     }
 
     pub const fn fall_variants(self) -> bool {
@@ -259,6 +265,17 @@ mod tests {
         assert_eq!(kind.exhaustion(), 0.1);
         assert!(kind.is(DamageTag::NoAnger));
         assert!(!kind.is(DamageTag::NoKnockback));
+    }
+
+    #[test]
+    fn the_sonic_boom_is_registered_and_always_scales_with_the_difficulty() {
+        let kind = DamageType::SonicBoom;
+        assert!(kind.registry_id().is_some());
+        assert_eq!(kind.name(), "minecraft:sonic_boom");
+        assert_eq!(kind.message_id(), "sonic_boom");
+        assert_eq!(kind.exhaustion(), 0.0);
+        assert!(kind.scales_always());
+        assert!(kind.is(DamageTag::BypassesArmor));
     }
 
     #[test]

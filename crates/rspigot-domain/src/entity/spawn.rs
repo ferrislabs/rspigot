@@ -575,6 +575,10 @@ pub fn finalize_spawn(
         Some(Species::Villager(_)) => {
             species::villager::finalize(base, living, environment, reason, group, level)
         }
+        Some(Species::Warden(_)) => {
+            species::warden::finalize(base, living, reason);
+            mob_finalize(base, living, group, level)
+        }
         _ if kind == EntityKind::Spider => spider_finalize(base, living, environment, group, level),
         _ if kind.extends("AgeableMob") => ageable_finalize(base, living, group, level),
         _ => mob_finalize(base, living, group, level),

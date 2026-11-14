@@ -52,6 +52,7 @@ pub struct PlayerSave {
     pub on_ground: bool,
     pub flying: bool,
     pub ender_items: Vec<Slot>,
+    pub warden_tracker: rspigot_domain::warden::WardenSpawnTracker,
 }
 
 impl PlayerSave {
@@ -73,6 +74,7 @@ impl PlayerSave {
             on_ground: player.on_ground,
             flying: player.flying,
             ender_items: player.ender_items.clone(),
+            warden_tracker: vitals.warden_tracker,
         }
     }
 
@@ -89,6 +91,7 @@ impl PlayerSave {
         player.ender_items = self.ender_items.clone();
         player.ender_items.resize(ENDER_SLOTS, None);
         player.vitals.experience = self.experience;
+        player.vitals.warden_tracker = self.warden_tracker;
         if self.is_dead() {
             player.position = spawn;
             player.rotation = Rotation::new(spawn_angle, 0.0);
@@ -131,6 +134,10 @@ impl PlayerSave {
         }
         out.insert("Health", self.health);
         out.insert("AbsorptionAmount", self.absorption);
+        out.insert(
+            rspigot_domain::warden::TRACKER_KEY,
+            self.warden_tracker.to_nbt(),
+        );
         out.insert("foodLevel", self.food.food);
         out.insert("foodSaturationLevel", self.food.saturation);
         out.insert("foodExhaustionLevel", self.food.exhaustion);
@@ -249,6 +256,9 @@ impl PlayerSave {
                 .and_then(|abilities| abilities.get_bool("flying"))
                 .unwrap_or(false),
             ender_items: read_items_at(data, ENDER_ITEMS, ENDER_SLOTS),
+            warden_tracker: rspigot_domain::warden::WardenSpawnTracker::read_or_default(
+                data.get_compound(rspigot_domain::warden::TRACKER_KEY),
+            ),
         })
     }
 }
@@ -333,6 +343,11 @@ mod tests {
             fall_distance: 2.5,
             on_ground: true,
             flying: true,
+            warden_tracker: rspigot_domain::warden::WardenSpawnTracker {
+                ticks_since_last_warning: 30,
+                warning_level: 2,
+                cooldown_ticks: 9,
+            },
             ender_items: {
                 let mut ender = vec![None; ENDER_SLOTS];
                 ender[3] = Some(stack("minecraft:diamond", 5));

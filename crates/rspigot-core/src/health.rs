@@ -196,6 +196,9 @@ pub struct Vitals {
     pub arrow_count: i32,
     pub remove_arrow_time: i32,
     pub death_experience: Option<DeathExperience>,
+    pub warden_tracker: rspigot_domain::warden::WardenSpawnTracker,
+    pub move_dist: f32,
+    pub next_step: f32,
     sent: Option<SentVitals>,
 }
 
@@ -243,6 +246,9 @@ impl Default for Vitals {
             arrow_count: 0,
             remove_arrow_time: 0,
             death_experience: None,
+            warden_tracker: rspigot_domain::warden::WardenSpawnTracker::default(),
+            move_dist: 0.0,
+            next_step: 1.0,
             sent: None,
         }
     }
@@ -829,6 +835,7 @@ impl<L: ClientLink> Server<L> {
         player.vitals = Vitals {
             death_location,
             experience,
+            warden_tracker: player.vitals.warden_tracker,
             ..Vitals::default()
         };
         let cleared: Vec<_> = if heard_effects {
@@ -927,6 +934,7 @@ impl<L: ClientLink> Server<L> {
             };
             let vitals = &mut player.vitals;
             vitals.tick_count = vitals.tick_count.wrapping_add(1);
+            vitals.warden_tracker.tick();
             vitals.damage_cooldown = vitals.damage_cooldown.saturating_sub(1);
             if hurt_mob_gone {
                 vitals.last_hurt_mob = None;

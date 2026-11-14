@@ -41,6 +41,10 @@ use crate::villager::{
     ValidateNearbyPoi, VillageBoundRandomStroll, VillagerCalmDown, VillagerMakeLove,
     VillagerPanicTrigger, WakeUp, WorkAtPoi, YieldJobSite,
 };
+use crate::warden::{
+    DigCooldownSetter, Digging, Emerging, ForceUnmount, Roar, SetLookAtAttackTarget, SetRoarTarget,
+    SetWardenLookTarget, Sniffing, SonicBoom, TryToSniff,
+};
 use crate::world::AiWorld;
 
 const LOOK_SINK_MIN_DURATION: i32 = 45;
@@ -187,6 +191,12 @@ mob_behaviors! {
     GiveGiftToHero(GiveGiftToHero),
     HarvestFarmland(HarvestFarmland),
     UseBonemeal(UseBonemeal),
+    WardenEmerging(Emerging),
+    WardenDigging(Digging),
+    WardenForceUnmount(ForceUnmount),
+    WardenRoar(Roar),
+    WardenSniffing(Sniffing),
+    WardenSonicBoom(SonicBoom),
 }
 
 macro_rules! mob_triggers {
@@ -284,6 +294,11 @@ mob_triggers! {
     SetHiddenState(SetHiddenState),
     LocateHidingPlace(LocateHidingPlace),
     SocializeAtBell(SocializeAtBell),
+    WardenSetRoarTarget(SetRoarTarget),
+    WardenTryToSniff(TryToSniff),
+    WardenSetLookTarget(SetWardenLookTarget),
+    WardenDigCooldownSetter(DigCooldownSetter),
+    WardenLookAtAttackTarget(SetLookAtAttackTarget),
 }
 
 #[derive(Debug, Clone, PartialEq)]
