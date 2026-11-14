@@ -117,7 +117,6 @@ pub struct Server<L> {
     pub(crate) visibility: Visibility,
     pub(crate) plugin_inventories: PluginInventories,
     pub(crate) impacts: Impacts,
-    #[expect(dead_code)]
     pub(crate) dormant: FxHashMap<crate::world_state::DimensionKey, crate::world_state::WorldState>,
     arrivals: FxHashMap<u64, Arrival<L>>,
     startup: Option<Receiver<Inbound<L>>>,
@@ -364,14 +363,23 @@ impl<L: ClientLink> Server<L> {
                 address,
                 session,
             } => self.join(profile, settings, link, address, session),
-            Inbound::Input { player, input } => self.handle_input(player, input),
+            Inbound::Input { player, input } => match self.dimension_of(player) {
+                Some(key) => self.in_dimension(&key, |server| server.handle_input(player, input)),
+                None => self.handle_input(player, input),
+            },
             Inbound::Leave { player, session } => {
                 if self
                     .players
                     .get(&player)
                     .is_some_and(|current| current.session == session)
                 {
-                    self.remove_player(player, true);
+                    let key = self.dimension_of(player);
+                    match key {
+                        Some(key) => self.in_dimension(&key, |server| {
+                            server.remove_player(player, true);
+                        }),
+                        None => self.remove_player(player, true),
+                    }
                 }
             }
             Inbound::Console(line) => self.console_line(line),
@@ -388,6 +396,13 @@ impl<L: ClientLink> Server<L> {
             Inbound::PluginDisconnected { connection } => self.plugin_disconnected(connection),
             Inbound::Shutdown => self.running = false,
         }
+    }
+
+    fn dimension_of(&self, player: PlayerId) -> Option<crate::world_state::DimensionKey> {
+        self.players
+            .get(&player)
+            .map(|p| p.dim.clone())
+            .filter(|key| self.dormant.contains_key(key))
     }
 
     fn plugin_connected(
@@ -863,6 +878,61 @@ impl<L: ClientLink> Server<L> {
     pub fn tick(&mut self) {
         self.tick += 1;
         self.tps.record(self.tick);
+        self.tick_world(true);
+        let mut keys: Vec<crate::world_state::DimensionKey> = self
+            .dormant
+            .keys()
+            .filter(|key| self.players.values().any(|p| &p.dim == *key))
+            .cloned()
+            .collect();
+        keys.sort();
+        for key in keys {
+            self.tick_dormant(&key);
+        }
+    }
+
+    fn tick_dormant(&mut self, key: &crate::world_state::DimensionKey) {
+        let Some(mut state) = self.dormant.remove(key) else {
+            return;
+        };
+        self.swap_world(&mut state);
+        self.drain_world_results();
+        self.tick_world(false);
+        self.swap_world(&mut state);
+        self.dormant.insert(key.clone(), state);
+    }
+
+    pub(crate) fn drain_world_results(&mut self) {
+        while let Ok(result) = self.workers.results().try_recv() {
+            self.world.chunks.accept(result);
+        }
+    }
+
+    fn tick_world(&mut self, primary: bool) {
+        let home = self.world.dimension.key.clone();
+        let mut away = self.set_aside_players_outside(&home);
+        self.tick_world_here(primary, &home, &mut away);
+        self.players.extend(away);
+        self.deliver();
+    }
+
+    fn set_aside_players_outside(
+        &mut self,
+        key: &crate::world_state::DimensionKey,
+    ) -> Vec<(PlayerId, Player<L>)> {
+        let (here, away): (Vec<_>, Vec<_>) = std::mem::take(&mut self.players)
+            .into_iter()
+            .partition(|(_, player)| &player.dim == key);
+        self.players.extend(here);
+        away
+    }
+
+    fn tick_world_here(
+        &mut self,
+        primary: bool,
+        home: &crate::world_state::DimensionKey,
+        away: &mut Vec<(PlayerId, Player<L>)>,
+    ) {
         self.world.level.game_time += 1;
         if self.world.level.daylight_cycle {
             self.world.level.day_time += 1;
@@ -896,7 +966,11 @@ impl<L: ClientLink> Server<L> {
         self.tick_campfires();
         self.tick_beehives();
         self.tick_inventories();
-        self.tick_plugins();
+        if primary {
+            self.players.extend(away.drain(..));
+            self.tick_plugins();
+            *away = self.set_aside_players_outside(home);
+        }
         self.tick_open_menus();
         self.tick_falling_blocks();
         self.tick_turtle_eggs();
@@ -917,7 +991,6 @@ impl<L: ClientLink> Server<L> {
         for id in disconnected {
             self.remove_player(id, true);
         }
-        self.deliver();
     }
 
     pub(crate) fn metadata(player: &Player<L>) -> Vec<MetadataEntry> {
@@ -1075,6 +1148,11 @@ impl<L: ClientLink> Server<L> {
         self.save_dragon_fight();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
+        for (_, mut state) in self.dormant.drain() {
+            state.world.chunks.save_dirty(&state.workers);
+            state.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
+            state.workers.shutdown();
+        }
         self.workers.shutdown();
         if let Some(io) = self.player_io.take() {
             io.shutdown();

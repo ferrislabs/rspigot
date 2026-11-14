@@ -1,18 +1,25 @@
 use rspigot_domain::Identifier;
 
+use std::sync::Arc;
+
+use rspigot_domain::ChunkPos;
+use rspigot_domain::world::Dimension;
+
+use crate::chunks::{ChunkManager, ChunkWorkers, MobGeneration, Priority};
+use crate::config::hashed_seed;
 use crate::entities::EntityWorld;
 use crate::falling::ScheduledFalls;
 use crate::fluids::ScheduledFluids;
 use crate::game_events::GameEvents;
-use crate::ports::ClientLink;
+use crate::ports::{ChunkGenerator, ChunkStore, ClientLink, EntityStore};
 use crate::raids::RaidRuntime;
 use crate::server::{Server, World};
 use crate::spawning::Spawning;
 
 pub(crate) type DimensionKey = Identifier;
 
-#[cfg_attr(not(test), expect(dead_code))]
 pub(crate) struct WorldState {
+    pub(crate) workers: ChunkWorkers,
     pub(crate) world: World,
     pub(crate) entities: EntityWorld,
     pub(crate) falls: ScheduledFalls,
@@ -23,9 +30,74 @@ pub(crate) struct WorldState {
 }
 
 impl<L: ClientLink> Server<L> {
-    #[cfg_attr(not(test), expect(dead_code))]
+    pub fn load_dimension<S: ChunkStore + EntityStore, G: ChunkGenerator>(
+        &mut self,
+        key: DimensionKey,
+        dimension: Dimension,
+        generator: Arc<G>,
+        store: Arc<S>,
+    ) {
+        let dimension = Arc::new(dimension);
+        let spawn = generator.spawn_point(&dimension);
+        let mut level = self.world.level.clone();
+        level.spawn = Some(spawn.block());
+        level.raids = None;
+        let workers = ChunkWorkers::spawn(self.config.chunk_workers, store, generator);
+        let mut chunks = ChunkManager::new(Arc::clone(&dimension), self.config.chunks);
+        chunks.set_mob_generation(level.spawn_mobs.then_some(MobGeneration {
+            seed: level.seed,
+            zoom_seed: hashed_seed(level.seed),
+            difficulty: self.config.difficulty,
+        }));
+        let center = spawn.chunk();
+        let radius = self.config.spawn_chunk_radius;
+        for dx in -radius..=radius {
+            for dz in -radius..=radius {
+                chunks.add_ticket(
+                    ChunkPos::new(center.x + dx, center.z + dz),
+                    Priority::URGENT,
+                    &workers,
+                );
+            }
+        }
+        let state = WorldState {
+            spawning: Spawning::new(level.seed, self.config.spawning.slime_seed, &dimension),
+            workers,
+            world: World {
+                chunks,
+                dimension,
+                spawn,
+                difficulty: self.config.difficulty,
+                level,
+            },
+            entities: EntityWorld::default(),
+            falls: ScheduledFalls::default(),
+            game_events: GameEvents::default(),
+            fluids: ScheduledFluids::default(),
+            raids: RaidRuntime::default(),
+        };
+        self.dormant.insert(key, state);
+    }
+
+    pub(crate) fn in_dimension<R>(
+        &mut self,
+        key: &DimensionKey,
+        run: impl FnOnce(&mut Self) -> R,
+    ) -> R {
+        let Some(mut state) = self.dormant.remove(key) else {
+            return run(self);
+        };
+        self.swap_world(&mut state);
+        let result = run(self);
+        self.deliver();
+        self.swap_world(&mut state);
+        self.dormant.insert(key.clone(), state);
+        result
+    }
+
     pub(crate) fn swap_world(&mut self, other: &mut WorldState) {
         let WorldState {
+            workers,
             world,
             entities,
             falls,
@@ -34,6 +106,7 @@ impl<L: ClientLink> Server<L> {
             spawning,
             raids,
         } = other;
+        std::mem::swap(&mut self.workers, workers);
         std::mem::swap(&mut self.world, world);
         std::mem::swap(&mut self.entities, entities);
         std::mem::swap(&mut self.falls, falls);
@@ -51,6 +124,7 @@ pub(crate) mod tests {
 
     use rspigot_blocks::{Block, Stone};
     use rspigot_domain::chunk::ChunkColumn;
+    use rspigot_domain::player::{ClientSettings, GameProfile, PlayerId};
     use rspigot_domain::text::Component;
     use rspigot_domain::world::Dimension;
     use rspigot_domain::{BlockPos, ChunkPos, Vec3};
@@ -60,7 +134,7 @@ pub(crate) mod tests {
     use super::*;
     use crate::chunks::ChunkManager;
     use crate::config::{GameConfig, LevelData};
-    use crate::events::ClientEvent;
+    use crate::events::{ClientEvent, Inbound};
     use crate::mob_actions::new_mob;
     use crate::ports::{ChunkGenerator, ChunkStore, EntityStore, StoreError};
     use crate::status::StatusBoard;
@@ -149,6 +223,7 @@ pub(crate) mod tests {
         let dimension = Arc::new(Dimension::nether());
         let level = LevelData::default();
         WorldState {
+            workers: ChunkWorkers::spawn(1, Arc::new(Quiet), Arc::new(Quiet)),
             spawning: Spawning::new(level.seed, 0, &dimension),
             world: World {
                 chunks: ChunkManager::new(Arc::clone(&dimension), server.config.chunks),
@@ -207,5 +282,82 @@ pub(crate) mod tests {
         server.swap_world(&mut other);
         assert!(server.entities.store.get(id).is_some());
         assert!(other.entities.store.get(id).is_none());
+    }
+
+    fn the_end() -> DimensionKey {
+        Identifier::minecraft("the_end")
+    }
+
+    fn with_end(server: &mut Server<Quiet>) {
+        server.load_dimension(
+            the_end(),
+            Dimension::end(),
+            Arc::new(Quiet),
+            Arc::new(Quiet),
+        );
+        server.in_dimension(&the_end(), |server| {
+            server.wait_for_spawn(Duration::from_secs(10));
+        });
+    }
+
+    fn drop_pig(server: &mut Server<Quiet>) -> (rspigot_domain::EntityId, f64) {
+        server.in_dimension(&the_end(), |server| {
+            let mut base = server.new_entity_base(Kind::Pig);
+            base.position = Vec3::new(0.5, 80.0, 0.5);
+            let id = server
+                .place_entity(new_mob(base))
+                .expect("the pig is placed");
+            (id, 80.0)
+        })
+    }
+
+    fn pig_height(server: &mut Server<Quiet>, id: rspigot_domain::EntityId) -> f64 {
+        server.in_dimension(&the_end(), |server| {
+            server
+                .entities
+                .store
+                .get(id)
+                .map_or(f64::NAN, |e| e.base.position.y)
+        })
+    }
+
+    #[test]
+    fn a_loaded_dimension_without_players_does_not_tick() {
+        let mut server = server();
+        with_end(&mut server);
+        let (id, start) = drop_pig(&mut server);
+        for _ in 0..10 {
+            server.tick();
+        }
+        assert_eq!(pig_height(&mut server, id), start);
+    }
+
+    #[test]
+    fn a_dimension_with_a_player_ticks() {
+        let mut server = server();
+        with_end(&mut server);
+        let (id, start) = drop_pig(&mut server);
+        server.handle(Inbound::Join {
+            profile: GameProfile {
+                id: PlayerId::offline("Alice"),
+                name: "Alice".to_owned(),
+                properties: Vec::new(),
+            },
+            settings: ClientSettings::default(),
+            link: Quiet,
+            address: [127, 0, 0, 1].into(),
+            session: 1,
+        });
+        if let Some(player) = server.players.get_mut(&PlayerId::offline("Alice")) {
+            player.dim = the_end();
+        }
+        for _ in 0..10 {
+            server.tick();
+        }
+        assert!(pig_height(&mut server, id) < start);
+        assert_eq!(
+            server.world.dimension.key,
+            Identifier::minecraft("overworld")
+        );
     }
 }
