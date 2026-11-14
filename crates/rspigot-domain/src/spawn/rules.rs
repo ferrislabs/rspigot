@@ -229,6 +229,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Hoglin
                     | MobClass::Strider
                     | MobClass::Bee
+                    | MobClass::HappyGhast
                     | MobClass::Creaking
                     | MobClass::Warden
                     | MobClass::Turtle
@@ -367,6 +368,11 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::Creaking => 0.0,
         MobClass::Warden => 0.0,
         MobClass::Hoglin => super::piglin::hoglin_walk_target_value(level, pos),
+        MobClass::HappyGhast => crate::entity::species::happy_ghast::walk_target_value(
+            level.block_or_air(pos).is_air(),
+            level.block_or_air(pos.offset(0, -1, 0)).is_air(),
+            level.block_or_air(pos.offset(0, -2, 0)).is_air(),
+        ),
         MobClass::Bee => {
             if level.block_or_air(pos).is_air() {
                 BEE_AIR_WALK_TARGET

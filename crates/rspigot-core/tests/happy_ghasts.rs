@@ -220,3 +220,44 @@ fn a_hurt_ghast_slowly_heals() {
     let health = saved(&s, ghast).get_f64("Health").expect("a health");
     assert!(health > 10.0, "{health}");
 }
+
+fn distance_to_alice(s: &Scene, ghast: EntityId) -> f64 {
+    let at = s
+        .server
+        .entities_of(Kind::HappyGhast)
+        .into_iter()
+        .find(|entity| entity.id == ghast)
+        .expect("the ghast")
+        .position;
+    let (dx, dy, dz) = (at.x - 2.5, at.y - 64.0, at.z - 0.5);
+    (dx * dx + dy * dy + dz * dz).sqrt()
+}
+
+#[test]
+fn a_ghastling_follows_a_player_holding_a_snowball() {
+    let mut s = world();
+    console(&mut s, "tp Alice 2.5 64 0.5");
+    let ghast = summon_at(&mut s, Kind::HappyGhast, "12.5 66 0.5", "{Age:-24000}");
+    let before = distance_to_alice(&s, ghast);
+    console(&mut s, "give Alice minecraft:snowball 1");
+    s.tick(200);
+    let after = distance_to_alice(&s, ghast);
+    assert!(after < before - 3.0, "{before} -> {after}");
+}
+
+#[test]
+fn an_adult_without_a_harness_turns_to_face_a_player_holding_a_harness() {
+    let mut s = world();
+    console(&mut s, "tp Alice 2.5 64 0.5");
+    let ghast = summon_at(&mut s, Kind::HappyGhast, "12.5 66 0.5", "{}");
+    console(&mut s, "give Alice minecraft:red_harness 1");
+    s.tick(60);
+    let yaw = s
+        .server
+        .entities_of(Kind::HappyGhast)
+        .into_iter()
+        .find(|entity| entity.id == ghast)
+        .expect("the ghast")
+        .yaw;
+    assert!((yaw - 90.0).abs() < 10.0, "{yaw}");
+}
