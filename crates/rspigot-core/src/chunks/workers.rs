@@ -31,6 +31,11 @@ pub enum ChunkJob {
         merge: bool,
         generation: u64,
     },
+    SaveData {
+        dimension: Arc<Dimension>,
+        name: &'static str,
+        data: Arc<Compound>,
+    },
     Flush,
 }
 
@@ -61,6 +66,7 @@ pub enum ChunkResult {
         pos: ChunkPos,
         error: String,
     },
+    DataSaved,
     Flushed,
 }
 
@@ -167,6 +173,16 @@ fn execute<S: ChunkStore + EntityStore, G: ChunkGenerator>(
                 error: error.to_string(),
             },
         },
+        ChunkJob::SaveData {
+            dimension,
+            name,
+            data,
+        } => {
+            if let Err(error) = store.save_world_data(&dimension.key, name, &data) {
+                tracing::error!(%error, name, "world data save failed");
+            }
+            ChunkResult::DataSaved
+        }
         ChunkJob::Flush => {
             if let Err(error) = store.flush() {
                 tracing::error!(%error, "chunk store flush failed");

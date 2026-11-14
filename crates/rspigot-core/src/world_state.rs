@@ -4,8 +4,9 @@ use std::sync::Arc;
 
 use rspigot_domain::ChunkPos;
 use rspigot_domain::world::Dimension;
+use rspigot_nbt::Compound;
 
-use crate::chunks::{ChunkManager, ChunkWorkers, MobGeneration, Priority};
+use crate::chunks::{ChunkJob, ChunkManager, ChunkWorkers, MobGeneration, Priority};
 use crate::config::hashed_seed;
 use crate::entities::EntityWorld;
 use crate::falling::ScheduledFalls;
@@ -17,6 +18,19 @@ use crate::server::{Server, World};
 use crate::spawning::Spawning;
 
 pub(crate) type DimensionKey = Identifier;
+
+const RAIDS_DATA: &str = "raids";
+const DRAGON_FIGHT_DATA: &str = "ender_dragon_fight";
+
+fn stored_data<S: EntityStore>(store: &S, key: &DimensionKey, name: &str) -> Option<Compound> {
+    match store.load_world_data(key, name) {
+        Ok(data) => data,
+        Err(error) => {
+            tracing::warn!(%key, name, %error, "ignoring unreadable world data");
+            None
+        }
+    }
+}
 
 pub(crate) struct WorldState {
     pub(crate) workers: ChunkWorkers,
@@ -41,7 +55,8 @@ impl<L: ClientLink> Server<L> {
         let spawn = generator.spawn_point(&dimension);
         let mut level = self.world.level.clone();
         level.spawn = Some(spawn.block());
-        level.raids = None;
+        level.raids = stored_data(&*store, &key, RAIDS_DATA);
+        level.dragon_fight = stored_data(&*store, &key, DRAGON_FIGHT_DATA);
         level.raining = false;
         level.thundering = false;
         if dimension.has_fixed_time {
@@ -81,7 +96,35 @@ impl<L: ClientLink> Server<L> {
             fluids: ScheduledFluids::default(),
             raids: RaidRuntime::default(),
         };
-        self.dormant.insert(key, state);
+        self.dormant.insert(key.clone(), state);
+        self.in_dimension(&key, |server| {
+            server.load_raids();
+            server.load_dragon_fight();
+        });
+    }
+
+    pub(crate) fn save_world_data(&mut self) {
+        if self.world.dimension.key == Identifier::minecraft("overworld") {
+            return;
+        }
+        self.save_raids();
+        self.save_dragon_fight();
+        let saved = [
+            (RAIDS_DATA, self.world.level.raids.as_ref()),
+            (DRAGON_FIGHT_DATA, self.world.level.dragon_fight.as_ref()),
+        ];
+        for (name, data) in saved {
+            if let Some(data) = data {
+                self.workers.submit(
+                    Priority::BACKGROUND,
+                    ChunkJob::SaveData {
+                        dimension: Arc::clone(&self.world.dimension),
+                        name,
+                        data: Arc::new(data.clone()),
+                    },
+                );
+            }
+        }
     }
 
     pub(crate) fn in_dimension<R>(
@@ -364,5 +407,184 @@ pub(crate) mod tests {
             server.world.dimension.key,
             Identifier::minecraft("overworld")
         );
+    }
+
+    #[derive(Default)]
+    struct Mem {
+        chunks: std::sync::Mutex<std::collections::HashMap<(Identifier, ChunkPos), ChunkColumn>>,
+        entities:
+            std::sync::Mutex<std::collections::HashMap<(Identifier, ChunkPos), Vec<Compound>>>,
+        data: std::sync::Mutex<std::collections::HashMap<(Identifier, String), Compound>>,
+    }
+
+    impl ChunkStore for Mem {
+        fn load(
+            &self,
+            dimension: &Identifier,
+            pos: ChunkPos,
+        ) -> Result<Option<ChunkColumn>, StoreError> {
+            Ok(self
+                .chunks
+                .lock()
+                .unwrap()
+                .get(&(dimension.clone(), pos))
+                .cloned())
+        }
+
+        fn save(&self, dimension: &Identifier, chunk: &ChunkColumn) -> Result<(), StoreError> {
+            self.chunks
+                .lock()
+                .unwrap()
+                .insert((dimension.clone(), chunk.pos()), chunk.clone());
+            Ok(())
+        }
+
+        fn flush(&self) -> Result<(), StoreError> {
+            Ok(())
+        }
+    }
+
+    impl EntityStore for Mem {
+        fn load_entities(
+            &self,
+            dimension: &Identifier,
+            pos: ChunkPos,
+        ) -> Result<Option<Vec<Compound>>, StoreError> {
+            Ok(self
+                .entities
+                .lock()
+                .unwrap()
+                .get(&(dimension.clone(), pos))
+                .cloned())
+        }
+
+        fn save_entities(
+            &self,
+            dimension: &Identifier,
+            pos: ChunkPos,
+            entities: &[Compound],
+        ) -> Result<(), StoreError> {
+            self.entities
+                .lock()
+                .unwrap()
+                .insert((dimension.clone(), pos), entities.to_vec());
+            Ok(())
+        }
+
+        fn load_world_data(
+            &self,
+            dimension: &Identifier,
+            name: &str,
+        ) -> Result<Option<Compound>, StoreError> {
+            Ok(self
+                .data
+                .lock()
+                .unwrap()
+                .get(&(dimension.clone(), name.to_owned()))
+                .cloned())
+        }
+
+        fn save_world_data(
+            &self,
+            dimension: &Identifier,
+            name: &str,
+            data: &Compound,
+        ) -> Result<(), StoreError> {
+            self.data
+                .lock()
+                .unwrap()
+                .insert((dimension.clone(), name.to_owned()), data.clone());
+            Ok(())
+        }
+    }
+
+    fn server_with_end(store: &Arc<Mem>) -> Server<Quiet> {
+        let config = GameConfig {
+            chunk_workers: 1,
+            spawn_chunk_radius: 1,
+            ..GameConfig::default()
+        };
+        let mut server = Server::new(
+            config,
+            LevelData::default(),
+            Arc::new(Quiet),
+            Arc::new(Quiet),
+            StatusBoard::new(1),
+        )
+        .with_rng_seed(5);
+        server.wait_for_spawn(Duration::from_secs(10));
+        server.load_dimension(
+            the_end(),
+            Dimension::end(),
+            Arc::new(Quiet),
+            Arc::clone(store),
+        );
+        server.in_dimension(&the_end(), |server| {
+            server.wait_for_spawn(Duration::from_secs(10));
+        });
+        server
+    }
+
+    fn stop(server: Server<Quiet>) {
+        let (sender, inbound) = crossbeam_channel::unbounded::<Inbound<Quiet>>();
+        sender.send(Inbound::Shutdown).expect("open");
+        server.run(&inbound);
+    }
+
+    #[test]
+    fn the_end_saves_and_restores_entities_and_the_dragon_fight() {
+        let store = Arc::new(Mem::default());
+        let mut server = server_with_end(&store);
+        let (pig, dragon) = server.in_dimension(&the_end(), |server| {
+            let mut base = server.new_entity_base(Kind::Pig);
+            base.position = Vec3::new(0.5, 80.0, 0.5);
+            let pig = server.place_entity(new_mob(base)).expect("placed");
+            let uuid = server.entities.store.get(pig).expect("pig").base.uuid;
+            server.ensure_dragon_fight(BlockPos::new(0, 0, 0), false);
+            let dragon = uuid::Uuid::from_u128(0xd2a6);
+            if let Some(fight) = server.entities.fight.as_mut() {
+                fight.data.dragon_uuid = Some(dragon);
+                fight.data.previously_killed = true;
+            }
+            (uuid, dragon)
+        });
+        stop(server);
+        let end = the_end();
+        assert!(
+            store
+                .entities
+                .lock()
+                .unwrap()
+                .iter()
+                .any(|((dimension, _), saved)| dimension == &end && !saved.is_empty())
+        );
+        let chunks = store.chunks.lock().unwrap();
+        assert!(!chunks.is_empty());
+        assert!(chunks.keys().all(|(dimension, _)| dimension == &end));
+        drop(chunks);
+        assert!(
+            store
+                .data
+                .lock()
+                .unwrap()
+                .contains_key(&(end.clone(), "ender_dragon_fight".to_owned()))
+        );
+        assert!(
+            store
+                .entities
+                .lock()
+                .unwrap()
+                .keys()
+                .all(|(dimension, _)| dimension == &end)
+        );
+        let mut server = server_with_end(&store);
+        let restored = server.in_dimension(&the_end(), |server| {
+            let found = server.entities.store.by_uuid(pig).is_some();
+            let fight = server.dragon_fight_data().expect("fight restored");
+            (found, fight.dragon_uuid, fight.previously_killed)
+        });
+        assert_eq!(restored, (true, Some(dragon), true));
+        assert!(server.dragon_fight_data().is_none());
+        stop(server);
     }
 }
