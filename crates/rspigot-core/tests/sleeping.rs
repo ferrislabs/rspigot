@@ -417,3 +417,74 @@ fn the_players_are_told_how_many_sleep_and_how_many_are_needed() {
     let events = bob.link.take();
     assert!(says(&events, "sleep.players_sleeping"));
 }
+
+fn bed_spawn_scene() -> Scene {
+    let mut s = bed_scene();
+    set(
+        &mut s,
+        FOOT,
+        "minecraft:red_bed",
+        &[("part", "foot"), ("facing", "south")],
+    );
+    set(
+        &mut s,
+        HEAD,
+        "minecraft:red_bed",
+        &[("part", "head"), ("facing", "south")],
+    );
+    let alice = s.players[0].clone();
+    use_bed(&mut s, &alice, HEAD);
+    s
+}
+
+fn die_and_respawn(s: &mut Scene) -> Vec<ClientEvent> {
+    let alice = s.players[0].clone();
+    s.act(to(&alice, PlayerOrder::Kill));
+    s.tick(2);
+    alice.link.take();
+    send_input(&mut s.server, &alice, PlayerInput::Respawn);
+    s.server.deliver();
+    alice.link.take()
+}
+
+fn teleport_of(events: &[ClientEvent]) -> Vec3 {
+    events
+        .iter()
+        .rev()
+        .find_map(|event| match event {
+            ClientEvent::Teleport { position, .. } => Some(*position),
+            _ => None,
+        })
+        .expect("the player is teleported")
+}
+
+#[test]
+fn a_player_respawns_beside_the_bed_it_clicked() {
+    let mut s = bed_spawn_scene();
+    let events = die_and_respawn(&mut s);
+    let spot = teleport_of(&events);
+    assert!((spot.x - 0.5).abs() > 0.4 || (spot.z - 0.5).abs() > 0.4);
+    assert!(spot.distance_squared(Vec3::new(2.5, 64.0, 1.0)) < 9.0);
+    assert!(!events.iter().any(|event| matches!(
+        event,
+        ClientEvent::GameEvent(rspigot_core::events::GameEvent::NoRespawnBlockAvailable)
+    )));
+}
+
+#[test]
+fn a_player_whose_bed_is_gone_respawns_at_the_world_spawn_and_is_told() {
+    let mut s = bed_spawn_scene();
+    set(&mut s, FOOT, "minecraft:air", &[]);
+    let events = die_and_respawn(&mut s);
+    let spot = teleport_of(&events);
+    assert!(spot.distance_squared(Vec3::new(0.5, 64.0, 0.5)) < 1.0e-6);
+    assert!(events.iter().any(|event| matches!(
+        event,
+        ClientEvent::GameEvent(rspigot_core::events::GameEvent::NoRespawnBlockAvailable)
+    )));
+    let again = die_and_respawn(&mut s);
+    assert!(!again.iter().any(|event| matches!(
+        event,
+        ClientEvent::GameEvent(rspigot_core::events::GameEvent::NoRespawnBlockAvailable)
+    )));
+}

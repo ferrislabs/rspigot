@@ -79,6 +79,7 @@ mod potions;
 mod projectiles;
 mod raids;
 pub mod recipe_book;
+mod respawning;
 mod riding;
 mod sculk;
 pub mod server;

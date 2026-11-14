@@ -99,6 +99,7 @@ pub(crate) struct VelocityStep {
 pub(crate) struct RespawnStep {
     pub(crate) player: PlayerId,
     pub(crate) credits: bool,
+    pub(crate) spot: Option<crate::respawning::RespawnSpot>,
 }
 
 #[derive(Debug)]
