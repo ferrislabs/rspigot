@@ -139,6 +139,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn change_weather(&mut self, raining: bool, thundering: bool) {
+        if !self.world.dimension.can_have_weather() {
+            return;
+        }
         self.fire_deferred(
             Lane::World,
             Continuation::SetWeather(Sky {
