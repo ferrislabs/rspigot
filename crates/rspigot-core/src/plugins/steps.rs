@@ -1307,6 +1307,7 @@ pub(crate) struct NatureStep {
     pub(crate) expected: BlockStateId,
     pub(crate) state: BlockStateId,
     pub(crate) source: BlockPos,
+    pub(crate) drops: bool,
 }
 
 #[derive(Debug, Clone, Copy)]

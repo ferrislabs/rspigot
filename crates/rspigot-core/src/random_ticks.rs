@@ -2,10 +2,13 @@ use rspigot_blocks::{BlockKind, StateFlags};
 use rspigot_domain::random::{LegacyRandom, RandomSource};
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos};
 
+use crate::ground::is_leaves;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
 const SECTION_SIZE: i32 = 16;
+const PRECIPITATION_ODDS: i32 = 48;
+const PRECIPITATION_SALT: i64 = 0x5DEE_CE66_D1CE_4E5B;
 
 fn sampler_seed(game_time: i64) -> i64 {
     let mut z = (game_time as u64).wrapping_add(0x9E37_79B9_7F4A_7C15);
@@ -33,11 +36,22 @@ impl<L: ClientLink> Server<L> {
             .step_by(SECTION_SIZE as usize)
             .collect::<Vec<i32>>();
         let mut sampler = LegacyRandom::new(sampler_seed(self.world.level.game_time));
+        let mut precipitation =
+            LegacyRandom::new(sampler_seed(self.world.level.game_time) ^ PRECIPITATION_SALT);
+        let mut weather: Vec<(i32, i32)> = Vec::new();
         let mut picked: Vec<(BlockPos, BlockStateId)> = Vec::new();
         for chunk in chunks {
             let Some(column) = self.world.chunks.get(chunk) else {
                 continue;
             };
+            for _ in 0..speed {
+                if precipitation.next_int(PRECIPITATION_ODDS) == 0 {
+                    weather.push((
+                        chunk.x * SECTION_SIZE + precipitation.next_int(SECTION_SIZE),
+                        chunk.z * SECTION_SIZE + precipitation.next_int(SECTION_SIZE),
+                    ));
+                }
+            }
             for base_y in &sections {
                 for _ in 0..speed {
                     let pos = sampled(&mut sampler, chunk, *base_y);
@@ -46,6 +60,9 @@ impl<L: ClientLink> Server<L> {
                     }
                 }
             }
+        }
+        for (x, z) in weather {
+            self.tick_precipitation(x, z);
         }
         for (pos, state) in picked {
             self.random_tick_block(pos, state);
@@ -59,6 +76,11 @@ impl<L: ClientLink> Server<L> {
         match kind {
             BlockKind::TurtleEgg => self.turtle_egg_random_tick(pos),
             BlockKind::DriedGhast => self.dried_ghast_random_tick(pos),
+            BlockKind::GrassBlock | BlockKind::Mycelium => self.spreading_snowy_tick(pos, kind),
+            BlockKind::Snow => self.snow_layer_tick(pos),
+            BlockKind::Ice => self.ice_tick(pos, picked),
+            BlockKind::Farmland => self.farmland_tick(pos, picked),
+            kind if is_leaves(kind) => self.leaves_random_tick(pos, picked),
             _ => {}
         }
     }

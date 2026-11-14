@@ -67,6 +67,21 @@ impl<L: ClientLink> Server<L> {
         state: BlockStateId,
         source: BlockPos,
     ) {
+        self.nature_step(nature, pos, state, source, false);
+    }
+
+    pub(crate) fn nature_break(&mut self, nature: Nature, pos: BlockPos) {
+        self.nature_step(nature, pos, BlockStateId::AIR, pos, true);
+    }
+
+    fn nature_step(
+        &mut self,
+        nature: Nature,
+        pos: BlockPos,
+        state: BlockStateId,
+        source: BlockPos,
+        drops: bool,
+    ) {
         let expected = self.world.chunks.block(pos).unwrap_or_default();
         self.nature_event(NatureStep {
             nature,
@@ -74,6 +89,7 @@ impl<L: ClientLink> Server<L> {
             expected,
             state,
             source,
+            drops,
         });
     }
 
@@ -91,20 +107,18 @@ impl<L: ClientLink> Server<L> {
         if self.world.chunks.block(step.pos) != Some(step.expected) {
             return;
         }
-        if step.nature == Nature::Leaves {
-            self.drop_decayed_leaves(step.pos, step.expected);
-            return;
+        if step.drops {
+            self.drop_block_resources(step.pos, step.expected);
         }
         self.set_block(step.pos, step.state);
     }
 
-    fn drop_decayed_leaves(&mut self, pos: BlockPos, state: BlockStateId) {
+    fn drop_block_resources(&mut self, pos: BlockPos, state: BlockStateId) {
         if self.config.rules.block_drops {
             let context = LootContext::block(state, None, None);
             for stack in loot::block_drops(&context, &mut self.rng) {
                 self.spawn_item(pos, stack);
             }
         }
-        self.set_block(pos, BlockStateId::AIR);
     }
 }
