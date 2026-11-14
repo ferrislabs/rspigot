@@ -145,7 +145,7 @@ fn load_level_root(world_root: &Path) -> Result<Option<(Compound, bool)>, AnvilE
     }
 }
 
-fn optional_saved_data(world_root: &Path, name: &str) -> Option<Compound> {
+pub(crate) fn optional_saved_data(world_root: &Path, name: &str) -> Option<Compound> {
     match read_gzip_nbt(&saved_data_path(world_root, name)) {
         Ok(Some(mut file)) => match file.remove("data") {
             Some(Tag::Compound(data)) => Some(data),

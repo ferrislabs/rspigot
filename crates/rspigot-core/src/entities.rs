@@ -596,6 +596,7 @@ impl<L: ClientLink> Server<L> {
                 })
             });
             self.save_all_entities();
+            self.save_world_data();
             self.persist_all_players();
         }
     }
