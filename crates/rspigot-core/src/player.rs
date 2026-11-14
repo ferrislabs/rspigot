@@ -25,6 +25,7 @@ pub struct Player<L> {
     pub position: Vec3,
     pub rotation: Rotation,
     pub on_ground: bool,
+    pub dim: crate::world_state::DimensionKey,
     pub game_mode: GameMode,
     pub previous_game_mode: Option<GameMode>,
     pub inventory: Inventory,
