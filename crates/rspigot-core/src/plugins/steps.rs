@@ -1289,10 +1289,44 @@ pub(crate) struct GatherStep {
     pub(crate) stack: ItemStack,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Nature {
+    Fade,
+    Burn,
+    Ignite,
+    Spread,
+    Form,
+    Moisture,
+    Leaves,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct NatureStep {
+    pub(crate) nature: Nature,
+    pub(crate) pos: BlockPos,
+    pub(crate) expected: BlockStateId,
+    pub(crate) state: BlockStateId,
+    pub(crate) source: BlockPos,
+    pub(crate) drops: bool,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct GrowStep {
     pub(crate) pos: BlockPos,
     pub(crate) state: BlockStateId,
+    pub(crate) fertilizer: Option<PlayerId>,
+}
+
+#[derive(Debug)]
+pub(crate) struct StructureStep {
+    pub(crate) player: Option<PlayerId>,
+    pub(crate) origin: BlockPos,
+    pub(crate) blocks: Vec<(BlockPos, BlockStateId)>,
+}
+
+#[derive(Debug)]
+pub(crate) struct FertilizeStep {
+    pub(crate) blocks: Vec<(BlockPos, BlockStateId)>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1526,6 +1560,9 @@ pub(crate) enum Continuation {
     ChangeBlock(Box<ChangeStep>),
     Form(FormStep),
     Grow(GrowStep),
+    Structure(Box<StructureStep>),
+    Fertilize(Box<FertilizeStep>),
+    Nature(NatureStep),
     Ignite(IgniteStep),
     Regrow(EntityId),
     SpellCast(SpellStep),
@@ -1720,6 +1757,17 @@ impl Continuation {
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
             Self::Grow(_) => EventKind::BlockGrow,
+            Self::Structure(_) => EventKind::StructureGrow,
+            Self::Fertilize(_) => EventKind::BlockFertilize,
+            Self::Nature(step) => match step.nature {
+                Nature::Fade => EventKind::BlockFade,
+                Nature::Burn => EventKind::BlockBurn,
+                Nature::Ignite => EventKind::BlockIgnite,
+                Nature::Spread => EventKind::BlockSpread,
+                Nature::Form => EventKind::BlockForm,
+                Nature::Moisture => EventKind::MoistureChange,
+                Nature::Leaves => EventKind::LeavesDecay,
+            },
             Self::Ignite(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::SpellCast(_) => EventKind::EntitySpellCast,
@@ -1934,6 +1982,9 @@ impl Continuation {
                 }
             }
             (Self::Form(one), Self::Form(other)) => one.pos == other.pos,
+            (Self::Nature(one), Self::Nature(other)) => {
+                one.nature == other.nature && one.pos == other.pos
+            }
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
             (Self::EggBreak { mob: one, .. }, Self::EggBreak { mob: other, .. }) => one == other,
             (
@@ -2027,6 +2078,7 @@ impl Continuation {
             | Self::TargetBlock { .. }
             | Self::BatSleep { .. }
             | Self::Form(_)
+            | Self::Nature(_)
             | Self::Ignite(_)
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,

@@ -18,10 +18,11 @@ use rspigot_domain::{BlockPos, BlockStateId, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rustc_hash::FxHashSet;
 
+use crate::ground::is_leaves;
 use crate::health::{DamageSource, SourceEntity};
 use crate::loot::{self, LootContext};
 use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause};
-use crate::plugins::steps::{Grief, Landing};
+use crate::plugins::steps::{Grief, Landing, Nature};
 use crate::plugins::{Continuation, EntityView, view_of_entity};
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -218,6 +219,10 @@ impl<L: ClientLink> Server<L> {
             self.turtle_egg_placed(pos);
             return;
         }
+        if kind == BlockKind::Fire {
+            self.fire_placed(pos);
+            return;
+        }
         if kind == BlockKind::Frogspawn {
             let delay = self.frogspawn_placed();
             self.schedule(pos, kind, delay);
@@ -242,6 +247,10 @@ impl<L: ClientLink> Server<L> {
             self.frogspawn_neighbour_changed(pos);
             return;
         }
+        if is_leaves(kind) {
+            self.leaves_neighbour_changed(pos, kind, direction);
+            return;
+        }
         if bed::is_bed(kind) {
             self.bed_neighbour_changed(pos, state, direction);
             return;
@@ -250,7 +259,7 @@ impl<L: ClientLink> Server<L> {
             Gravity::Falling | Gravity::Anvil => self.schedule(pos, kind, FALLING_DELAY),
             Gravity::ConcretePowder => match kind.concrete() {
                 Some(concrete) if self.touches_liquid(pos) => {
-                    self.set_block(pos, concrete.default_state());
+                    self.nature_change(Nature::Form, pos, concrete.default_state(), pos);
                 }
                 _ => self.schedule(pos, kind, FALLING_DELAY),
             },
@@ -369,6 +378,14 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == BlockKind::DriedGhast {
             self.dried_ghast_tick(pos);
+            return;
+        }
+        if kind == BlockKind::Fire {
+            self.fire_tick(pos, state);
+            return;
+        }
+        if is_leaves(kind) {
+            self.leaves_distance_tick(pos, state);
             return;
         }
         match kind.gravity() {
