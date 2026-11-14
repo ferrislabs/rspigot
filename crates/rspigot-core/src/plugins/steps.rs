@@ -488,6 +488,13 @@ pub(crate) struct CareerStep {
     pub(crate) profession: rspigot_domain::entity::species::villager::Profession,
 }
 
+#[derive(Debug)]
+pub(crate) struct ConsumeStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) stack: ItemStack,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PigAngerStep {
     pub(crate) mob: EntityId,
@@ -1374,6 +1381,7 @@ pub(crate) enum Continuation {
     Tame(TameStep),
     PigAnger(PigAngerStep),
     Reputation(ReputationStep),
+    Consume(Box<ConsumeStep>),
     Career(CareerStep),
     Dye(Box<DyeStep>),
     Window(Box<WindowPacket>),
@@ -1506,6 +1514,7 @@ impl Continuation {
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Reputation(_) => EventKind::VillagerReputationChange,
+            Self::Consume(_) => EventKind::PlayerItemConsume,
             Self::Career(_) => EventKind::VillagerCareerChange,
             Self::Dye(_) => EventKind::SheepDyeWool,
             Self::Window(_) => EventKind::InventoryClick,
