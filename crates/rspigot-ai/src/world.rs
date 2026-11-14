@@ -66,6 +66,7 @@ pub struct Facts {
     pub swimming: bool,
     pub wool_color: u8,
     pub can_parent: bool,
+    pub caravan: crate::llama::CaravanFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -508,6 +509,8 @@ pub struct KindFacts {
     pub villager: crate::villager::VillagerFacts,
     pub trader: crate::villager::TraderFacts,
     pub equine: crate::EquineFacts,
+    pub llama: crate::llama::LlamaFacts,
+    pub camel: crate::camel::CamelFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -570,6 +573,7 @@ pub struct MobView {
     pub angry: bool,
     pub anger_target: Option<EntityId>,
     pub leashed: bool,
+    pub leash_holder: Option<EntityId>,
     pub passenger: bool,
     pub vehicle: Option<EntityId>,
     pub player_created: bool,
@@ -687,6 +691,7 @@ impl MobView {
             angry: false,
             anger_target: None,
             leashed: false,
+            leash_holder: None,
             passenger: false,
             vehicle: None,
             player_created: false,

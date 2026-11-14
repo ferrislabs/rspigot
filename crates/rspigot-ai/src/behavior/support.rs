@@ -72,6 +72,7 @@ pub enum MobPredicate {
     Piglin(PiglinCondition),
     CreakingActive,
     CreakingCanMove,
+    CamelRefusesToMove,
     RaidActive,
     RaidNotVictory,
 }
@@ -95,6 +96,7 @@ impl MobPredicate {
             Self::Piglin(condition) => condition.test(cx),
             Self::CreakingActive => cx.ai.brain.creaking.active,
             Self::CreakingCanMove => cx.ai.brain.creaking.can_move,
+            Self::CamelRefusesToMove => cx.ai.mob.species.camel.refuse_to_move(),
             Self::RaidActive => cx
                 .ai
                 .world

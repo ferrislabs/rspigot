@@ -54,6 +54,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 DamageType::Arrow
                 | DamageType::Thrown
                 | DamageType::MobProjectile
+                | DamageType::Spit
                 | DamageType::Trident
                 | DamageType::Fireball
                 | DamageType::UnattributedFireball

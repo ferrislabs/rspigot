@@ -181,6 +181,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::Trident
             | EntityKind::Snowball
             | EntityKind::SplashPotion
+            | EntityKind::LlamaSpit
             | EntityKind::ShulkerBullet
             | EntityKind::EvokerFangs
     ) || hurting::is_hurting_projectile(kind)
@@ -793,6 +794,14 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Goat(state) => species::goat::read(nbt, base, state),
         Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
+        Species::Llama(state) => species::llama::read(nbt, base, state),
+        Species::Camel(_) => {
+            let baby = mob
+                .ageable
+                .as_ref()
+                .is_some_and(|age| ageable::is_baby(base, age));
+            species::camel::read(nbt, base, baby);
+        }
         Species::Sniffer(_) | Species::Frog(_) | Species::Strider(_) => {}
         Species::Creaking(state) => species::creaking::read(nbt, base, state),
         Species::Villager(state) => {
@@ -844,6 +853,9 @@ fn read_thrown(nbt: &Compound, base: &mut EntityBase, state: &mut ThrownState) {
     state.owner = nbt.get("Owner").and_then(read_uuid);
     state.left_owner = nbt.get_bool("LeftOwner").unwrap_or(false);
     state.has_been_shot = nbt.get_bool("HasBeenShot").unwrap_or(false);
+    if !thrown::carries_item(base.kind) {
+        return;
+    }
     let stack = nbt
         .get_compound("Item")
         .and_then(item_stack_from_nbt)
@@ -859,6 +871,9 @@ fn write_thrown(base: &EntityBase, state: &ThrownState, out: &mut Compound) {
         out.insert("LeftOwner", true);
     }
     out.insert("HasBeenShot", bool_tag(state.has_been_shot));
+    if !thrown::carries_item(base.kind) {
+        return;
+    }
     let stack = thrown::item(base).unwrap_or_else(|| thrown::default_item_of(base.kind));
     out.insert("Item", item_stack_to_nbt(&stack));
 }
@@ -1046,6 +1061,8 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Piglin(_) => species::piglin::KEYS,
         Species::Goat(_) => species::goat::KEYS,
         Species::Armadillo(_) => species::armadillo::KEYS,
+        Species::Llama(_) => species::llama::KEYS,
+        Species::Camel(_) => species::camel::KEYS,
         Species::Sniffer(_) => species::sniffer::KEYS,
         Species::Frog(_) => species::frog::KEYS,
         Species::Strider(_) => species::strider::KEYS,
@@ -1099,7 +1116,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Arrow(Box::new(ArrowState::new_trident(&mut base, seed)))
         }
-        EntityKind::Snowball | EntityKind::SplashPotion => {
+        EntityKind::Snowball | EntityKind::SplashPotion | EntityKind::LlamaSpit => {
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Thrown(Box::new(ThrownState::new(&mut base, seed)))
         }
@@ -1521,6 +1538,8 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Piglin(state) => species::piglin::write(base, state, out),
         Species::Goat(state) => species::goat::write(base, state, out),
         Species::Armadillo(state) => species::armadillo::write(base, state, out),
+        Species::Llama(state) => species::llama::write(base, state, out),
+        Species::Camel(_) => species::camel::write(base, out),
         Species::Sniffer(_) | Species::Frog(_) | Species::Strider(_) => {}
         Species::Creaking(state) => species::creaking::write(base, state, out),
         Species::Villager(state) => {

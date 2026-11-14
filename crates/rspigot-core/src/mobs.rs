@@ -270,6 +270,7 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             swimming: false,
             wool_color: 0,
             can_parent: false,
+            caravan: rspigot_ai::CaravanFacts::default(),
         },
     }
 }
@@ -334,10 +335,11 @@ fn entity_facts(
                 attributes.value(living::MAX_HEALTH, &state.effects) as f32
             },
         llama_strength: if base.kind.extends("Llama") {
-            entity.extra.get_i32("Strength").unwrap_or(0)
+            species::llama::strength(base)
         } else {
             0
         },
+        caravan: crate::kinds::caravan_facts_of(entity),
         retaliable: state
             .damage
             .last_source
@@ -1382,6 +1384,7 @@ impl<L: ClientLink> Server<L> {
             view.anger_target = neutral.target.and_then(|uuid| world.resolve(uuid));
         }
         view.leashed = entity.extra.contains_key(LEASH);
+        view.leash_holder = self.leash_holder_of(entity);
         self.kind_view(entity, &mut view);
         Some(view)
     }
@@ -2368,7 +2371,8 @@ impl<L: ClientLink> Server<L> {
         let Some(impact) = fall_impact(landing.state, landing.distance, false) else {
             return;
         };
-        if impact.distance > HORSE_LAND_DISTANCE {
+        let hurts = self.llama_land_hurts(id, impact.distance);
+        if impact.distance > HORSE_LAND_DISTANCE && !self.is_llama(id) {
             self.equine_land_sound(id);
         }
         let Some(Entity {
@@ -2383,7 +2387,7 @@ impl<L: ClientLink> Server<L> {
             species::creeper_fall(creeper, impact.distance);
         }
         let damage = living::fall_damage(base, state, impact.distance, impact.multiplier);
-        if damage <= 0 {
+        if damage <= 0 || !hurts {
             return;
         }
         if let Some(sounds) = base.kind.sounds() {

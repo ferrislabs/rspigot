@@ -57,6 +57,9 @@ impl EquineFacts {
 }
 
 pub fn can_mate(kind: EntityKind, partner: EntityKind) -> bool {
+    if kind.extends("Llama") {
+        return partner.extends("Llama");
+    }
     matches!(kind, EntityKind::Horse | EntityKind::Donkey)
         && matches!(partner, EntityKind::Horse | EntityKind::Donkey)
 }

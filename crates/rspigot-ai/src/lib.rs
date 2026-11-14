@@ -15,6 +15,7 @@ mod blaze;
 mod blocks;
 mod brain;
 mod breeze;
+mod camel;
 mod cat;
 mod classify;
 mod combat;
@@ -39,6 +40,8 @@ mod guardian;
 mod heap;
 mod holdable;
 mod iron_golem;
+mod leash;
+mod llama;
 #[cfg(test)]
 mod mock;
 mod nautilus;
@@ -145,6 +148,9 @@ pub use breeze::{
     SlideToTargetSink as BreezeSlideToTargetSink, ambient_sound as breeze_ambient_sound,
     firing_y_position as breeze_firing_y_position,
 };
+pub use camel::{
+    CamelAction, CamelFacts, CamelPanic, RandomSitting as CamelRandomSitting, camel_sensors,
+};
 pub use cat::{CatAction, CatFacts, CatGoal};
 pub use combat::{
     HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, MeleeKind, OcelotAttackGoal,
@@ -205,6 +211,10 @@ pub use guardian::{
     GuardianRestrictionGoal, GuardianStrollGoal,
 };
 pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal, is_enemy};
+pub use llama::{
+    CaravanFacts, LlamaAction, LlamaFacts, LlamaFollowCaravanGoal, LlamaGoal,
+    LlamaHurtByTargetGoal, TraderLlamaDefendWanderingTraderGoal,
+};
 pub use nautilus::{ChargeAttack as NautilusChargeAttack, NautilusAction};
 pub use navigation::{
     MobTick, MoveTarget, Navigation, can_cut_corner, can_cut_corner_for, find_surface_position,

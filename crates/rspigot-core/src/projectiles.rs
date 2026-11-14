@@ -77,6 +77,13 @@ impl<L: ClientLink> Server<L> {
             self.wither_shoot_at(shooter, 0, target);
             return;
         }
+        if self
+            .kind_of(shooter)
+            .is_some_and(|kind| kind.extends("Llama"))
+        {
+            self.llama_spit_at(shooter, target);
+            return;
+        }
         if self.kind_of(shooter) == Some(Kind::Drowned) {
             self.drowned_throw_trident(shooter, target);
             return;

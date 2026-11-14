@@ -274,6 +274,12 @@ impl Brain {
                 .navigation
                 .set_required_path_length(48.0, follow_range);
         }
+        if kind.extends("Llama") {
+            brain.navigation.set_required_path_length(
+                rspigot_domain::entity::species::llama::SPIT_REQUIRED_PATH_LENGTH,
+                follow_range,
+            );
+        }
         if kind == EntityKind::CopperGolem {
             brain.navigation.set_required_path_length(
                 rspigot_domain::entity::species::copper_golem::PATH_LENGTH,
@@ -282,6 +288,17 @@ impl Brain {
         }
         brain
     }
+}
+
+fn goals_panicking(goals: &GoalSelector<MobGoal>) -> bool {
+    goals.goals().iter().any(|goal| {
+        goal.is_running()
+            && match goal.goal() {
+                MobGoal::Panic(_) => true,
+                MobGoal::Panda(panda) => panda.is_panic(),
+                _ => false,
+            }
+    })
 }
 
 pub struct AiContext<'a, W> {
@@ -727,14 +744,7 @@ impl MobAi {
     }
 
     pub fn is_panicking(&self) -> bool {
-        self.goals.goals().iter().any(|goal| {
-            goal.is_running()
-                && match goal.goal() {
-                    MobGoal::Panic(_) => true,
-                    MobGoal::Panda(panda) => panda.is_panic(),
-                    _ => false,
-                }
-        })
+        goals_panicking(&self.goals)
     }
 
     pub fn eat_animation_tick(&self) -> i32 {
@@ -1132,6 +1142,9 @@ impl MobAi {
         } else {
             self.targets.tick(&mut context);
             self.goals.tick(&mut context);
+        }
+        if !goals_panicking(&self.goals) {
+            crate::leash::follow_holder(&mut context);
         }
         if mob.kind == EntityKind::Creaking
             && let Some(behavior) = self.behavior.as_mut()
