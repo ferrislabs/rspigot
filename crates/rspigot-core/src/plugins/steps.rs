@@ -719,6 +719,7 @@ pub(crate) enum PrimeKind {
     Creeper,
     Projectile,
     WitherSpawn,
+    Tnt,
 }
 
 #[derive(Debug)]
@@ -1568,6 +1569,7 @@ pub(crate) enum Continuation {
     Redstone(Box<crate::redstone::RedstoneStep>),
     Piston(Box<crate::redstone::PistonStep>),
     Hopper(Box<crate::redstone::HopperStep>),
+    TntPrime(Box<crate::tnt::TntPrimeStep>),
     Cook(Box<CookStep>),
     CampfireStart(Box<CampfireStep>),
     Exp(ExpStep),
@@ -1776,6 +1778,7 @@ impl Continuation {
             Self::Redstone(_) => EventKind::BlockRedstone,
             Self::Piston(step) => step.kind(),
             Self::Hopper(step) => step.kind(),
+            Self::TntPrime(_) => EventKind::TNTPrime,
             Self::Cook(_) => EventKind::BlockCook,
             Self::CampfireStart(_) => EventKind::CampfireStart,
             Self::Exp(_) => EventKind::BlockExp,
@@ -2042,6 +2045,7 @@ impl Continuation {
             (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
             (Self::Piston(one), Self::Piston(other)) => **one == **other,
             (Self::Hopper(one), Self::Hopper(other)) => **one == **other,
+            (Self::TntPrime(one), Self::TntPrime(other)) => one.pos == other.pos,
             (Self::Redstone(one), Self::Redstone(other)) => {
                 one.pos == other.pos && one.change == other.change
             }
@@ -2145,6 +2149,7 @@ impl Continuation {
             | Self::Redstone(_)
             | Self::Piston(_)
             | Self::Hopper(_)
+            | Self::TntPrime(_)
             | Self::Ignite(_)
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,

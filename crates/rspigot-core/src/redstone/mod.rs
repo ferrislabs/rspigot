@@ -140,7 +140,7 @@ impl<L: ClientLink> Server<L> {
         changed
     }
 
-    pub(crate) fn neighbor_changed(&mut self, pos: BlockPos, _source: BlockPos) {
+    pub(crate) fn neighbor_changed(&mut self, pos: BlockPos, source: BlockPos) {
         let state = self.block_or_air(pos);
         match state.kind() {
             Some(BlockKind::RedstoneWire) => self.wire_neighbor_changed(pos, state),
@@ -156,6 +156,7 @@ impl<L: ClientLink> Server<L> {
             }
             Some(BlockKind::PistonHead) => self.piston_head_neighbor_changed(pos, state),
             Some(BlockKind::Hopper) => self.hopper_neighbor_changed(pos, state),
+            Some(BlockKind::Tnt) => self.tnt_neighbor_changed(pos, source),
             Some(BlockKind::MovingPiston) if !self.falls.redstone.moving.contains_key(&pos) => {
                 self.schedule(pos, BlockKind::MovingPiston, 1);
             }
@@ -186,6 +187,9 @@ impl<L: ClientLink> Server<L> {
         }
         if new.kind() == Some(BlockKind::Hopper) && old.kind() != new.kind() {
             self.hopper_neighbor_changed(pos, new);
+        }
+        if new.kind() == Some(BlockKind::Tnt) && old.kind() != new.kind() {
+            self.tnt_neighbor_changed(pos, pos);
         }
         if old.kind() == Some(BlockKind::Comparator) && new.kind() != old.kind() {
             self.falls.redstone.outputs.remove(&pos);

@@ -844,6 +844,10 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::TntPrime(step) => {
+                self.finish_tnt_prime(*step, cancelled);
+                Vec::new()
+            }
             Continuation::Hopper(step) => {
                 let step = *step;
                 match step.stage.clone() {

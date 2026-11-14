@@ -539,6 +539,10 @@ impl<L: ClientLink> Server<L> {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
+            if !(sneaking && holding) && self.use_tnt(id, hand, stack.as_ref(), pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
             if !(sneaking && holding)
                 && self.use_golem_statue(id, hand, stack.as_ref(), pos, clicked)
             {
