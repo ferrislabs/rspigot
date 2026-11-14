@@ -315,6 +315,7 @@ pub enum MetadataValue {
     BlockPos(BlockPos),
     Variant(VariantKind, u32),
     Long(i64),
+    Direction(u8),
     OptionalEntity(Option<uuid::Uuid>),
     OptionalBlockState(Option<u32>),
     VillagerData {

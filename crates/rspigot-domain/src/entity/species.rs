@@ -24,6 +24,7 @@ pub mod pillager;
 pub mod polar_bear;
 pub mod rabbit;
 pub mod raider;
+pub mod shulker;
 pub mod silverfish;
 pub mod snow_golem;
 pub mod witch;
@@ -190,6 +191,7 @@ pub enum Species {
     SnowGolem(snow_golem::SnowGolemState),
     Blaze(blaze::BlazeState),
     Ghast(ghast::GhastState),
+    Shulker(shulker::ShulkerState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
     Witch(witch::WitchState),
@@ -353,6 +355,9 @@ impl Species {
         }
         if kind == EntityKind::Ghast {
             return Self::Ghast(ghast::define(base));
+        }
+        if kind == EntityKind::Shulker {
+            return Self::Shulker(shulker::define(base));
         }
         if kind == EntityKind::Rabbit {
             return Self::Rabbit(rabbit::define(base));

@@ -377,6 +377,33 @@ mod tests {
     use crate::spawn::testing::Level;
 
     #[test]
+    fn shulkers_spawn_on_valid_ground_even_in_peaceful_and_anywhere_from_a_spawner() {
+        let pos = BlockPos::new(4, 64, 4);
+        assert!(rules_ported(EntityKind::Shulker));
+        let mut level = Level::floor(Stone::DEFAULT_STATE, 63);
+        level.difficulty = crate::world::Difficulty::Peaceful;
+        assert!(check_spawn_rules(
+            &mut level,
+            EntityKind::Shulker,
+            SpawnReason::Natural,
+            pos
+        ));
+        let mut air = Level::floor(crate::BlockStateId::AIR, 63);
+        assert!(!check_spawn_rules(
+            &mut air,
+            EntityKind::Shulker,
+            SpawnReason::Natural,
+            pos
+        ));
+        assert!(check_spawn_rules(
+            &mut air,
+            EntityKind::Shulker,
+            SpawnReason::Spawner,
+            pos
+        ));
+    }
+
+    #[test]
     fn pillagers_spawn_on_valid_ground_in_any_sky_light_but_not_in_block_light_above_eight() {
         let pos = BlockPos::new(4, 64, 4);
         let mut level = Level::floor(GrassBlock::DEFAULT_STATE, 63);

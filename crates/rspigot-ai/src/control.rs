@@ -1,3 +1,4 @@
+use rspigot_blocks::Face;
 use rspigot_domain::entity::EntityBase;
 use rspigot_domain::entity::living::LivingState;
 use rspigot_domain::entity::physics::has_tag;
@@ -44,6 +45,7 @@ pub struct LookControl {
     look_at_cooldown: i32,
     wanted: Vec3,
     max_head_x_rot: f32,
+    shulker: Option<Face>,
 }
 
 impl Default for LookControl {
@@ -54,11 +56,16 @@ impl Default for LookControl {
             look_at_cooldown: 0,
             wanted: Vec3::ZERO,
             max_head_x_rot: MAX_HEAD_X_ROT,
+            shulker: None,
         }
     }
 }
 
 impl LookControl {
+    pub fn set_shulker_face(&mut self, face: Option<Face>) {
+        self.shulker = face;
+    }
+
     pub fn set_max_head_x_rot(&mut self, max: f32) {
         self.max_head_x_rot = max;
     }
@@ -83,6 +90,9 @@ impl LookControl {
     }
 
     fn x_rot_d(&self, base: &EntityBase) -> Option<f32> {
+        if self.shulker.is_some() {
+            return Some(0.0);
+        }
         let eye_y = base.position.y + f64::from(base.eye_height());
         let dx = self.wanted.x - base.position.x;
         let dy = self.wanted.y - eye_y;
@@ -93,6 +103,9 @@ impl LookControl {
     }
 
     fn y_rot_d(&self, base: &EntityBase) -> Option<f32> {
+        if let Some(face) = self.shulker {
+            return shulker_y_rot(face, base, self.wanted);
+        }
         let dx = self.wanted.x - base.position.x;
         let dz = self.wanted.z - base.position.z;
         (dz.abs() > LOOK_EPSILON || dx.abs() > LOOK_EPSILON)
@@ -125,11 +138,52 @@ impl LookControl {
         } else {
             base.head_yaw = rotate_towards(base.head_yaw, living.body_yaw, HEAD_ROT_SPEED);
         }
-        if navigating {
+        if navigating && self.shulker.is_none() {
             base.head_yaw =
                 mth::rotate_if_necessary(base.head_yaw, living.body_yaw, MAX_HEAD_Y_ROT);
         }
     }
+}
+
+const SHULKER_LOOK_EPSILON: f32 = 1.0e-5;
+const RAD_TO_DEG_F: f64 = 57.295_776_367_187_5;
+
+fn shulker_forward(lid: Face) -> [f32; 3] {
+    match lid {
+        Face::Up => [0.0, 0.0, 1.0],
+        Face::Down => [0.0, 0.0, -1.0],
+        _ => [0.0, -1.0, 0.0],
+    }
+}
+
+fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
+    [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    ]
+}
+
+fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+pub(crate) fn shulker_y_rot(face: Face, base: &EntityBase, wanted: Vec3) -> Option<f32> {
+    let lid = face.opposite();
+    let forward = shulker_forward(lid);
+    let (sx, sy, sz) = lid.offset();
+    let side = cross([sx as f32, sy as f32, sz as f32], forward);
+    let delta = [
+        (wanted.x - base.position.x) as f32,
+        (wanted.y - base.eye_y()) as f32,
+        (wanted.z - base.position.z) as f32,
+    ];
+    let lateral = dot(side, delta);
+    let ahead = dot(forward, delta);
+    if lateral.abs() <= SHULKER_LOOK_EPSILON && ahead.abs() <= SHULKER_LOOK_EPSILON {
+        return None;
+    }
+    Some((mth::atan2(f64::from(-lateral), f64::from(ahead)) * RAD_TO_DEG_F) as f32)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

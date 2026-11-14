@@ -1439,7 +1439,9 @@ impl<L: ClientLink> Server<L> {
             self.die_mob(id, source);
         } else if outcome == HurtOutcome::Full {
             self.reset_ambient_sound(id);
-            self.make_entity_sound(id, |sounds| sounds.hurt, |set| set.hurt);
+            if !self.kind_hurt_sound(id) {
+                self.make_entity_sound(id, |sounds| sounds.hurt, |set| set.hurt);
+            }
         }
         if !dead {
             self.zombie_reinforcements(id, source);

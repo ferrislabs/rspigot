@@ -24,7 +24,7 @@ use crate::mobs::ServerRandom;
 use crate::plugins::events::{CreatureSpawnReason, PlayerTeleportCause, TimeSkipReason};
 use crate::plugins::events::{EntityPotionEffectCause, EntityTeleport, EntityTeleportPatch};
 use crate::plugins::steps::RelocateStep;
-use crate::plugins::{Birth, Holder, Potion, Spawned, name_of_entity};
+use crate::plugins::{Birth, Holder, Potion, ShulkerHop, Spawned, name_of_entity};
 use crate::plugins::{Continuation, EventPayload};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
@@ -603,18 +603,42 @@ impl<L: ClientLink> Server<L> {
         command: bool,
         from: Option<Vec3>,
     ) {
+        if self.entities.store.get(id).is_none() {
+            return;
+        }
+        let step = RelocateStep {
+            entity: id,
+            to: position,
+            command,
+            from,
+            shulker: None,
+        };
+        self.ask_relocate(step);
+    }
+
+    pub(crate) fn relocate_shulker(&mut self, id: EntityId, position: Vec3, hop: ShulkerHop) {
+        let step = RelocateStep {
+            entity: id,
+            to: position,
+            command: false,
+            from: None,
+            shulker: Some(hop),
+        };
+        self.ask_relocate(step);
+    }
+
+    fn ask_relocate(&mut self, step: RelocateStep) {
+        let RelocateStep {
+            entity: id,
+            to: position,
+            ..
+        } = step;
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
         let rotation = Rotation::new(entity.base.yaw, entity.base.pitch);
         let from_position = entity.base.position;
         let lane = self.lane_for(None, id);
-        let step = RelocateStep {
-            entity: id,
-            to: position,
-            command,
-            from,
-        };
         self.fire(lane, Continuation::Relocate(step), move |server| {
             let entity = server.entity_view(id)?;
             Some(EventPayload::EntityTeleport(EntityTeleport {
@@ -645,10 +669,18 @@ impl<L: ClientLink> Server<L> {
             Some(Some(to)) => (to.position, Some(to.rotation)),
         };
         let id = step.entity;
+        if let Some(hop) = step.shulker {
+            self.finish_shulker_teleport(id, position, hop);
+            return;
+        }
         if let Some(entity) = self.entities.store.get_mut(id) {
             let base = &mut entity.base;
-            base.position = position;
-            base.old_position = position;
+            if base.kind == Kind::Shulker {
+                rspigot_domain::entity::species::shulker::set_position(base, position);
+            } else {
+                base.position = position;
+            }
+            base.old_position = base.position;
             if let Some(rotation) = rotation {
                 base.set_rotation(rotation.yaw, rotation.pitch);
             }

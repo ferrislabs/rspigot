@@ -38,6 +38,7 @@ mod scan;
 #[cfg(test)]
 mod scene;
 mod sensing;
+mod shulker;
 mod silverfish;
 mod sweep;
 mod tame;
@@ -119,6 +120,7 @@ pub use registry::{GoalSettings, ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER};
 pub use restriction::MoveTowardsRestrictionGoal;
 pub use scan::{closer_to_center_than, manhattan_ordered};
 pub use sensing::{Sensing, clip_misses};
+pub use shulker::{ShulkerAction, ShulkerAttackGoal, ShulkerFacts, ShulkerGoal, ShulkerPeekGoal};
 pub use silverfish::{
     MergeWithStoneGoal, SilverfishAction, SilverfishFacts, SilverfishGoal, WakeUpFriendsGoal,
 };
