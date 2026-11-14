@@ -1064,6 +1064,12 @@ impl<L: ClientLink> Server<L> {
                 self.finish_pig_zombie_anger(step, cancelled, patch_of!(patch, PigZombieAnger));
                 Vec::new()
             }
+            Continuation::Career(step) => {
+                if !cancelled {
+                    self.finish_career(step, patch_of!(patch, VillagerCareerChange).profession);
+                }
+                Vec::new()
+            }
             Continuation::Reputation(step) => {
                 if !cancelled {
                     self.finish_reputation(

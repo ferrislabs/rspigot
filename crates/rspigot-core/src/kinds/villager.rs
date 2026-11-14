@@ -24,9 +24,10 @@ use crate::loot::{self, LootContext};
 use crate::mobs::ServerRandom;
 use crate::plugins::EventPayload;
 use crate::plugins::events::{
-    CreatureSpawnReason, EntityPotionEffectCause, VillagerReputationChange,
+    CreatureSpawnReason, EntityPotionEffectCause, VillagerCareerChange, VillagerCareerChangeReason,
+    VillagerReputationChange,
 };
-use crate::plugins::steps::{Continuation, ReputationStep};
+use crate::plugins::steps::{CareerStep, Continuation, ReputationStep};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -483,6 +484,44 @@ impl<L: ClientLink> Server<L> {
             .or_else(|| self.entities.store.get(id).map(|entity| entity.base.uuid))
     }
 
+    fn ask_career_change(&mut self, id: EntityId, profession: Profession) {
+        let Some(view) = self.entity_view(id) else {
+            return;
+        };
+        let reason = if profession == Profession::None {
+            VillagerCareerChangeReason::LosingJob
+        } else {
+            VillagerCareerChangeReason::Employed
+        };
+        let lane = self.lane_for(None, id);
+        let step = CareerStep {
+            villager: id,
+            profession,
+        };
+        self.fire(lane, Continuation::Career(step), move |_| {
+            Some(EventPayload::VillagerCareerChange(VillagerCareerChange {
+                entity_type: view.kind.clone(),
+                entity: view,
+                profession: format!("minecraft:{}", profession.name()),
+                reason,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_career(&mut self, step: CareerStep, patched: Option<String>) {
+        let profession = patched
+            .as_deref()
+            .and_then(Profession::from_name)
+            .unwrap_or(step.profession);
+        if let Some(entity) = self.entities.store.get_mut(step.villager) {
+            with_villager(entity, |base, _, merchant| {
+                let level = villager::level(base);
+                villager::set_profession(base, merchant, profession, level);
+            });
+        }
+        self.refresh_villager_brain(step.villager);
+    }
+
     pub(crate) fn villager_action(&mut self, id: EntityId, action: VillagerAction) {
         match action {
             VillagerAction::TakePoi(pos) => {
@@ -494,15 +533,7 @@ impl<L: ClientLink> Server<L> {
             VillagerAction::ReleasePoi(pos) => {
                 self.world.chunks.poi_mut().release(pos);
             }
-            VillagerAction::SetProfession(profession) => {
-                if let Some(entity) = self.entities.store.get_mut(id) {
-                    with_villager(entity, |base, _, merchant| {
-                        let level = villager::level(base);
-                        villager::set_profession(base, merchant, profession, level);
-                    });
-                }
-                self.refresh_villager_brain(id);
-            }
+            VillagerAction::SetProfession(profession) => self.ask_career_change(id, profession),
             VillagerAction::RefreshBrain => self.refresh_villager_brain(id),
             VillagerAction::PlayWorkSound => {
                 let sound = self

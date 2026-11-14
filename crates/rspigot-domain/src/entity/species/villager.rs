@@ -87,6 +87,11 @@ impl Profession {
         Self::Weaponsmith,
     ];
 
+    pub fn from_name(name: &str) -> Option<Self> {
+        let bare = name.strip_prefix("minecraft:").unwrap_or(name);
+        Self::ALL.into_iter().find(|profession| profession.name() == bare)
+    }
+
     pub fn from_index(index: u32) -> Self {
         Self::ALL.get(index as usize).copied().unwrap_or(Self::None)
     }

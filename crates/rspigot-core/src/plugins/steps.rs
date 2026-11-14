@@ -483,6 +483,12 @@ pub(crate) struct ReputationStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct CareerStep {
+    pub(crate) villager: EntityId,
+    pub(crate) profession: rspigot_domain::entity::species::villager::Profession,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct PigAngerStep {
     pub(crate) mob: EntityId,
     pub(crate) anger: i32,
@@ -1368,6 +1374,7 @@ pub(crate) enum Continuation {
     Tame(TameStep),
     PigAnger(PigAngerStep),
     Reputation(ReputationStep),
+    Career(CareerStep),
     Dye(Box<DyeStep>),
     Window(Box<WindowPacket>),
     Click(EventKind, Box<WindowClick>),
@@ -1499,6 +1506,7 @@ impl Continuation {
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Reputation(_) => EventKind::VillagerReputationChange,
+            Self::Career(_) => EventKind::VillagerCareerChange,
             Self::Dye(_) => EventKind::SheepDyeWool,
             Self::Window(_) => EventKind::InventoryClick,
             Self::Click(kind, _) => *kind,
@@ -1612,6 +1620,7 @@ impl Continuation {
             Self::MobRegain(step) => step.target == id,
             Self::PigAnger(step) => step.mob == id,
             Self::Reputation(step) => step.villager == id,
+            Self::Career(step) => step.villager == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::BucketEntity(step) => step.target == id,
@@ -1667,6 +1676,9 @@ impl Continuation {
             ) => one == other && one_awake == other_awake,
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
+            (Self::Career(one), Self::Career(other)) => {
+                one.villager == other.villager && one.profession == other.profession
+            }
             (Self::Aim(one), Self::Aim(other)) => {
                 one.deferred && one.mob == other.mob && one.seeker == other.seeker
             }
@@ -1721,7 +1733,7 @@ impl Continuation {
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,
             Self::Aim(step) => step.deferred,
-            Self::Breed(_) => true,
+            Self::Breed(_) | Self::Career(_) => true,
             _ => matches!(
                 self,
                 Self::Velocity(_) | Self::PickupArrow(_) | Self::Cook(_) | Self::ChunkUnload(_)
