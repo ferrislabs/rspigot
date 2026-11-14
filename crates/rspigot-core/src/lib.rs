@@ -84,6 +84,7 @@ mod sculk;
 pub mod server;
 mod sign;
 mod signal;
+mod sleeping;
 mod sound;
 mod spawning;
 pub mod status;

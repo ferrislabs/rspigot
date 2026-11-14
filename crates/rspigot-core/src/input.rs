@@ -1,5 +1,6 @@
 use std::num::NonZeroU8;
 
+use rspigot_domain::bed;
 use rspigot_domain::item::{HOTBAR_START, ItemStack};
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::text::Component;
@@ -616,9 +617,24 @@ impl<L: ClientLink> Server<L> {
         };
         let chunks = &self.world.chunks;
         let state = chests::placed_state(state, target, face, sneaking, |at| chunks.block(at));
-        let linked = placement
+        let mut linked = placement
             .linked
             .map(|linked| (target.offset(0, i32::from(linked.dy), 0), linked.state));
+        if bed::bed_of(state).is_some() {
+            let head = bed::head_pos(target, state).filter(|head| {
+                self.world.chunks.block(*head).is_some_and(is_replaceable)
+                    && self.world.dimension.height.contains(head.y)
+            });
+            let Some(head) = head else {
+                self.refuse_block(id, target, sequence);
+                return;
+            };
+            let Some(head_state) = state.with_property("part", "head") else {
+                self.refuse_block(id, target, sequence);
+                return;
+            };
+            linked = Some((head, head_state));
+        }
         let buildable = !self.intersects_player(target);
         self.ask_can_build(BuildStep {
             using: UseItem {

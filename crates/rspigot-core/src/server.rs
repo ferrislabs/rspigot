@@ -714,6 +714,9 @@ impl<L: ClientLink> Server<L> {
             mining: None,
             delayed_destroy: None,
             use_memo: None,
+            sleeping: None,
+            sleep_counter: 0,
+            respawn: None,
         };
         if let Some(save) = &saved {
             save.restore(&mut player, self.world.spawn, self.world.level.spawn_angle);
@@ -1021,7 +1024,9 @@ impl<L: ClientLink> Server<L> {
             },
             MetadataEntry {
                 index: 6,
-                value: MetadataValue::Pose(if player.sneaking && !player.flying {
+                value: MetadataValue::Pose(if player.sleeping.is_some() {
+                    Pose::Sleeping
+                } else if player.sneaking && !player.flying {
                     Pose::Crouching
                 } else {
                     Pose::Standing
@@ -1032,6 +1037,10 @@ impl<L: ClientLink> Server<L> {
         .chain((player.vitals.arrow_count > 0).then(|| MetadataEntry {
             index: 12,
             value: MetadataValue::VarInt(player.vitals.arrow_count),
+        }))
+        .chain(player.sleeping.map(|pos| MetadataEntry {
+            index: 14,
+            value: MetadataValue::OptionalBlockPos(Some(pos)),
         }))
         .collect()
     }
