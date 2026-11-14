@@ -90,3 +90,47 @@ fn saving_no_entities_deletes_the_chunk_entry() {
     assert!(store.load_entities(&overworld(), pos).unwrap().is_none());
     assert!(raw_entity_chunk(&dir.world(), pos).is_none());
 }
+
+#[test]
+fn the_end_world_data_chunks_and_entities_live_in_dim1() {
+    let dir = TempDir::new("end-data");
+    let root = dir.world();
+    let end = rspigot_domain::Identifier::minecraft("the_end");
+    let fight = Compound::new()
+        .with("DragonKilled", true)
+        .with("Gateways", Tag::IntArray(vec![3, 1, 2]));
+    let raids = Compound::new().with("next_id", 4);
+    let pos = ChunkPos::new(1, 1);
+    {
+        let store = AnvilStore::open(&root, DimensionLayout::LegacyVanilla).unwrap();
+        store
+            .save_entities(&end, pos, &[entity("minecraft:pig", [1, 2, 3, 4], 20.5)])
+            .unwrap();
+        store
+            .save_world_data(&end, "ender_dragon_fight", &fight)
+            .unwrap();
+        store.save_world_data(&end, "raids", &raids).unwrap();
+        store.flush().unwrap();
+    }
+    assert!(root.join("DIM1/entities/r.0.0.mca").exists());
+    assert!(
+        root.join("DIM1/data/minecraft/ender_dragon_fight.dat")
+            .exists()
+    );
+    assert!(root.join("DIM1/data/minecraft/raids.dat").exists());
+    assert!(!root.join("data").exists());
+    let store = AnvilStore::open(&root, DimensionLayout::LegacyVanilla).unwrap();
+    assert_eq!(
+        store.load_world_data(&end, "ender_dragon_fight").unwrap(),
+        Some(fight)
+    );
+    assert_eq!(store.load_world_data(&end, "raids").unwrap(), Some(raids));
+    assert_eq!(store.load_entities(&end, pos).unwrap().unwrap().len(), 1);
+    assert!(store.load_entities(&overworld(), pos).unwrap().is_none());
+    assert!(
+        store
+            .load_world_data(&overworld(), "ender_dragon_fight")
+            .unwrap()
+            .is_none()
+    );
+}

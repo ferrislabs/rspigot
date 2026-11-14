@@ -13,6 +13,7 @@ use crate::chunk;
 use crate::compression::Compression;
 use crate::error::AnvilError;
 use crate::layout::DimensionLayout;
+use crate::level::{optional_saved_data, update_saved_data};
 use crate::region::{
     ChunkBody, RegionFile, StoredChunk, needs_external, region_file_name, stage_external,
 };
@@ -459,6 +460,36 @@ impl EntityStore for AnvilStore {
     ) -> Result<(), StoreError> {
         self.save_entity_chunk(dimension, pos, entities)
             .map_err(|error| error.into_store(pos))
+    }
+
+    fn load_world_data(
+        &self,
+        dimension: &Identifier,
+        name: &str,
+    ) -> Result<Option<Compound>, StoreError> {
+        let folder = self
+            .layout
+            .dimension_dir(&self.root, dimension)
+            .map_err(AnvilError::into_store_io)?;
+        Ok(optional_saved_data(&folder, name))
+    }
+
+    fn save_world_data(
+        &self,
+        dimension: &Identifier,
+        name: &str,
+        data: &Compound,
+    ) -> Result<(), StoreError> {
+        let folder = self
+            .layout
+            .dimension_dir(&self.root, dimension)
+            .map_err(AnvilError::into_store_io)?;
+        update_saved_data(&folder, name, |stored| {
+            stored.clone_from(data);
+            true
+        })
+        .map(drop)
+        .map_err(AnvilError::into_store_io)
     }
 }
 

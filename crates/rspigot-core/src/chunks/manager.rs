@@ -234,7 +234,7 @@ impl ChunkManager {
                 tracing::error!(?pos, %error, "chunk job failed");
                 None
             }
-            ChunkResult::Flushed => None,
+            ChunkResult::DataSaved | ChunkResult::Flushed => None,
         }
     }
 
