@@ -902,8 +902,16 @@ impl<L: ClientLink> Server<L> {
                 self.finish_select_trade(step, cancelled);
                 Vec::new()
             }
-            Continuation::Transform(step) => {
+            Continuation::Transform(step) | Continuation::Zap(step) => {
                 self.finish_transform(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Empower(step) => {
+                self.finish_empower(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Scorch(step) => {
+                self.finish_scorch(step, cancelled);
                 Vec::new()
             }
             Continuation::Split(step) => {

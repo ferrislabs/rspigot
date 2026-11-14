@@ -57,6 +57,7 @@ mod kinds;
 mod leash;
 mod lectern;
 pub mod lighting;
+mod lightning;
 pub mod loot;
 mod menu;
 mod mob_actions;

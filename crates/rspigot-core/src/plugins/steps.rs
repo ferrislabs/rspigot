@@ -712,6 +712,7 @@ pub(crate) enum Follow {
     Infection { at: Option<BlockPos> },
     Cure { starter: Option<uuid::Uuid> },
     Metamorphosis,
+    Zap { bolt: EntityId },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -917,6 +918,17 @@ pub(crate) struct HurtingFollow {
     pub(crate) target: EntityId,
     pub(crate) owner: Option<EntityId>,
     pub(crate) saved_fire: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct EmpowerStep {
+    pub(crate) creeper: EntityId,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ScorchStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1361,6 +1373,9 @@ pub(crate) enum Continuation {
     Replenish(ReplenishStep),
     SelectTrade(SelectTradeStep),
     Transform(Box<TransformStep>),
+    Zap(Box<TransformStep>),
+    Empower(EmpowerStep),
+    Scorch(ScorchStep),
     Split(SplitStep),
     Scatter(Box<ScatterStep>),
     ChangeBlock(Box<ChangeStep>),
@@ -1536,6 +1551,9 @@ impl Continuation {
             Self::Replenish(_) => EventKind::VillagerReplenishTrade,
             Self::SelectTrade(_) => EventKind::TradeSelect,
             Self::Transform(_) | Self::Scatter(_) => EventKind::EntityTransform,
+            Self::Zap(_) => EventKind::PigZap,
+            Self::Empower(_) => EventKind::CreeperPower,
+            Self::Scorch(_) => EventKind::BlockIgnite,
             Self::Split(_) => EventKind::CubeMobSplit,
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
@@ -1644,7 +1662,8 @@ impl Continuation {
             Self::Barter(step) => step.piglin == id,
             Self::Acquire(step) => step.merchant == id,
             Self::Replenish(step) => step.merchant == id,
-            Self::Transform(step) => step.old == id,
+            Self::Transform(step) | Self::Zap(step) => step.old == id,
+            Self::Empower(step) => step.creeper == id,
             Self::Split(step) => step.id == id,
             Self::Scatter(step) => step.id == id,
             Self::ChangeBlock(step) => match &step.change {
