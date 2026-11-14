@@ -116,6 +116,8 @@ pub struct Server<L> {
     pub(crate) visibility: Visibility,
     pub(crate) plugin_inventories: PluginInventories,
     pub(crate) impacts: Impacts,
+    #[expect(dead_code)]
+    pub(crate) dormant: FxHashMap<crate::world_state::DimensionKey, crate::world_state::WorldState>,
     arrivals: FxHashMap<u64, Arrival<L>>,
     startup: Option<Receiver<Inbound<L>>>,
     arrival_counter: u64,
@@ -182,6 +184,7 @@ impl<L: ClientLink> Server<L> {
             visibility: Visibility::default(),
             plugin_inventories: PluginInventories::default(),
             impacts: Impacts::default(),
+            dormant: FxHashMap::default(),
             arrivals: FxHashMap::default(),
             startup: None,
             arrival_counter: 0,
