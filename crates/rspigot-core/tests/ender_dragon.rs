@@ -813,3 +813,42 @@ fn killing_a_crystal_of_the_respawn_aborts_it_and_restores_the_active_portal() {
     assert_eq!(crystals(&s).len(), 3);
     assert_eq!(block_at(&s, 1, 63, 0), Some(BlockKind::EndPortal));
 }
+
+#[test]
+fn a_survival_player_inside_the_head_of_the_dragon_takes_the_ten_point_blow_scaled_by_difficulty() {
+    let mut s = ready(13);
+    console(&mut s, "gamemode survival Alice");
+    s.tick(5);
+    let dragon = summon(&mut s, Kind::EnderDragon, "8.5 100 8.5", "{}");
+    s.tick(5);
+    let head = s.server.dragon_parts(dragon).unwrap()[0];
+    let alice = s.players[0].id;
+    let before = s.server.player_health(alice).unwrap();
+    console(
+        &mut s,
+        &format!("tp Alice {} {} {}", head.x, head.y, head.z),
+    );
+    s.tick(2);
+    let after = s.server.player_health(alice).unwrap();
+    assert!(
+        (before - after - 6.0).abs() < 0.5,
+        "easy difficulty scales ten to six: {before} {after}"
+    );
+}
+
+#[test]
+fn a_creative_player_inside_the_head_of_the_dragon_is_left_alone() {
+    let mut s = ready(13);
+    console(&mut s, "gamemode creative Alice");
+    s.tick(5);
+    let dragon = summon(&mut s, Kind::EnderDragon, "8.5 100 8.5", "{}");
+    s.tick(5);
+    let head = s.server.dragon_parts(dragon).unwrap()[0];
+    let alice = s.players[0].id;
+    console(
+        &mut s,
+        &format!("tp Alice {} {} {}", head.x, head.y, head.z),
+    );
+    s.tick(5);
+    assert_eq!(s.server.player_health(alice), Some(20.0));
+}
