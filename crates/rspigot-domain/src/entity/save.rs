@@ -23,6 +23,7 @@ use super::orb::{self, OrbState};
 use super::species::{self, Species};
 use super::thrown::{self, ThrownState};
 use super::{Entity, EntityState};
+use super::{cloud, crystal};
 use super::{neutral, tamable};
 use crate::effect::{
     AttributeModifier, AttributeOperation, EffectDuration, EffectId, EffectInstance,
@@ -184,8 +185,10 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::LlamaSpit
             | EntityKind::ShulkerBullet
             | EntityKind::EvokerFangs
+            | EntityKind::EndCrystal
+            | EntityKind::AreaEffectCloud
     ) || hurting::is_hurting_projectile(kind)
-        || (kind.extends("Mob") && kind != EntityKind::EnderDragon)
+        || kind.extends("Mob")
 }
 
 fn doubles(v: Vec3) -> Tag {
@@ -756,6 +759,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Ghast(state) => species::ghast::read(nbt, base, state),
         Species::Vex(state) => species::vex::read(nbt, base, state),
         Species::Wither(state) => species::wither::read(nbt, base, state),
+        Species::EnderDragon(state) => species::ender_dragon::read(nbt, base, state),
         Species::Allay(state) => species::allay::read(nbt, base, state),
         Species::Bat(state) => species::bat::read(nbt, base, state),
         Species::Fish(state) => species::fish::read(nbt, base, state),
@@ -1036,6 +1040,7 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Ghast(_) => species::ghast::KEYS,
         Species::Vex(_) => species::vex::KEYS,
         Species::Wither(_) => species::wither::KEYS,
+        Species::EnderDragon(_) => species::ender_dragon::KEYS,
         Species::Allay(_) => species::allay::KEYS,
         Species::Bat(_) => species::bat::KEYS,
         Species::Fish(_) => species::fish::keys(base_kind),
@@ -1130,6 +1135,8 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             EntityState::Bullet(Box::new(BulletState::new(&mut base, seed)))
         }
         EntityKind::EvokerFangs => EntityState::Fangs(FangsState::default()),
+        EntityKind::EndCrystal => EntityState::Crystal(crystal::define(&mut base)),
+        EntityKind::AreaEffectCloud => EntityState::Cloud(Box::new(cloud::define(&mut base))),
         _ => EntityState::Living(Box::new(LivingState::new(&mut base, 0.0))),
     };
     read_base(nbt, &mut base)?;
@@ -1203,6 +1210,14 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             fangs_state.warmup = nbt.get_i32("Warmup").unwrap_or(0);
             fangs_state.owner = nbt.get("Owner").and_then(read_uuid);
             &[&ENTITY_KEYS, fangs::KEYS]
+        }
+        EntityState::Crystal(_) => {
+            crystal::read(nbt, &mut base);
+            &[&ENTITY_KEYS, crystal::KEYS]
+        }
+        EntityState::Cloud(cloud_state) => {
+            cloud::read(nbt, &mut base, cloud_state);
+            &[&ENTITY_KEYS, cloud::KEYS]
         }
         EntityState::Inert(_) => &[],
     };
@@ -1517,6 +1532,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Ghast(state) => species::ghast::write(base, state, out),
         Species::Vex(state) => species::vex::write(base, state, out),
         Species::Wither(state) => species::wither::write(base, state, out),
+        Species::EnderDragon(state) => species::ender_dragon::write(base, state, out),
         Species::Allay(state) => species::allay::write(base, state, out),
         Species::Bat(state) => species::bat::write(base, state, out),
         Species::Fish(state) => species::fish::write(base, state, out),
@@ -1628,6 +1644,8 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
                 out.insert("Owner", uuid_tag(owner));
             }
         }
+        EntityState::Crystal(_) => crystal::write(&entity.base, &mut out),
+        EntityState::Cloud(cloud_state) => cloud::write(&entity.base, cloud_state, &mut out),
         EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {

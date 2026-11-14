@@ -165,6 +165,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Villager) => self.villager_registered(id, ai),
             Some(Kind::Warden) => self.warden_registered(id, ai),
             Some(Kind::Wither) => self.wither_registered(id),
+            Some(Kind::EnderDragon) => self.dragon_registered(id),
             Some(
                 Kind::Pillager
                 | Kind::Witch
@@ -500,6 +501,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::IronGolem) => self.iron_golem_hurt_amount(id, source, amount),
             Some(Kind::Ghast) => self.ghast_hurt_amount(id, source, amount),
             Some(Kind::Wither) => self.wither_hurt_amount(id, source, amount),
+            Some(Kind::EnderDragon) => self.dragon_hurt_amount(id, source, amount),
             Some(Kind::Allay) => self.allay_hurt_amount(id, source, amount),
             Some(Kind::Bat) => self.bat_hurt_amount(id, source, amount),
             Some(Kind::Shulker) => self.shulker_hurt_amount(id, source, amount),
@@ -546,6 +548,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn kind_after_hurt(&mut self, id: EntityId, source: &DamageSource, dead: bool) {
         match self.kind_of(id) {
+            Some(Kind::EnderDragon) => self.dragon_after_hurt(id, dead),
             Some(Kind::Wolf) => self.wolf_after_hurt(id, source, dead),
             Some(Kind::Cat) => self.cat_after_hurt(id, source, dead),
             Some(Kind::Fox) => self.fox_after_hurt(id, source, dead),

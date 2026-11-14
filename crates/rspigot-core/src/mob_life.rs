@@ -926,6 +926,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn hurt_entity(&mut self, id: EntityId, source: &DamageSource, amount: f32) -> bool {
+        if let Some((dragon, part)) = self.dragon_part_of(id) {
+            self.dragon_note_part(dragon, part);
+            return self.hurt_entity(dragon, source, amount);
+        }
         if let Some(player) = self
             .players
             .values()

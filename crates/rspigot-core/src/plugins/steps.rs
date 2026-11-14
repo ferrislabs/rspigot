@@ -560,6 +560,42 @@ pub(crate) enum PrimeKind {
     WitherSpawn,
 }
 
+#[derive(Debug)]
+pub(crate) struct DragonPhaseStep {
+    pub(crate) dragon: EntityId,
+    pub(crate) change: rspigot_domain::dragon::phase::PhaseChange,
+    pub(crate) rest: std::collections::VecDeque<rspigot_domain::dragon::phase::PhaseChange>,
+}
+
+#[derive(Debug)]
+pub(crate) struct CloudApplyStep {
+    pub(crate) cloud: EntityId,
+    pub(crate) affected: Vec<EntityId>,
+    pub(crate) effects: Vec<EffectInstance>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct KindleStep {
+    pub(crate) crystal: EntityId,
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
+}
+
+#[derive(Debug)]
+pub(crate) struct CrystalBlastStep {
+    pub(crate) crystal: EntityId,
+    pub(crate) source: DamageSource,
+    pub(crate) facts: crate::dragon::CrystalFacts,
+    pub(crate) radius: f32,
+}
+
+#[derive(Debug)]
+pub(crate) struct DragonWallStep {
+    pub(crate) dragon: EntityId,
+    pub(crate) blocks: Vec<BlockPos>,
+    pub(crate) sound_at: BlockPos,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ShulkerHop {
     pub(crate) face: rspigot_blocks::Face,
@@ -722,6 +758,7 @@ pub(crate) enum Struck {
     Mob(EntityId),
     Item(EntityId),
     Projectile(EntityId),
+    Crystal(EntityId),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1277,6 +1314,11 @@ pub(crate) enum Continuation {
     EntityExplode(Box<ExplodeStep>),
     Splash(Box<SplashStep>),
     Prime(PrimeStep),
+    DragonPhase(Box<DragonPhaseStep>),
+    CloudApply(Box<CloudApplyStep>),
+    Kindle(KindleStep),
+    CrystalBlast(Box<CrystalBlastStep>),
+    DragonWalls(Box<DragonWallStep>),
     Relocate(RelocateStep),
     Shoot(Box<ShotStep>),
     ProjectileHit {
@@ -1401,6 +1443,11 @@ impl Continuation {
             Self::EntityExplode(_) => EventKind::EntityExplode,
             Self::Splash(_) => EventKind::PotionSplash,
             Self::Prime(_) => EventKind::ExplosionPrime,
+            Self::DragonPhase(_) => EventKind::EnderDragonChangePhase,
+            Self::CloudApply(_) => EventKind::AreaEffectCloudApply,
+            Self::Kindle(_) => EventKind::BlockIgnite,
+            Self::CrystalBlast(_) => EventKind::ExplosionPrime,
+            Self::DragonWalls(_) => EventKind::EntityExplode,
             Self::Relocate(_) => EventKind::EntityTeleport,
             Self::Shoot(_) => EventKind::EntityShootBow,
             Self::ProjectileHit { .. } => EventKind::ProjectileHit,
@@ -1451,7 +1498,7 @@ impl Continuation {
                 matches!(step.birth.then, Spawned::Converted { old, .. } if old == id)
             }
             Self::Hurt(step) | Self::Strike(step) => {
-                matches!(step.victim, Struck::Mob(victim) | Struck::Item(victim) | Struck::Projectile(victim) if victim == id)
+                matches!(step.victim, Struck::Mob(victim) | Struck::Item(victim) | Struck::Projectile(victim) | Struck::Crystal(victim) if victim == id)
             }
             Self::MobDeath(step) => step.victim == id,
             Self::Potion(PotionStep { holder, .. })
@@ -1505,6 +1552,11 @@ impl Continuation {
             Self::EntityExplode(step) => step.discard == Some(id),
             Self::Splash(step) => step.potion == id,
             Self::Prime(step) => step.source == id,
+            Self::DragonPhase(step) => step.dragon == id,
+            Self::CloudApply(step) => step.cloud == id,
+            Self::Kindle(step) => step.crystal == id,
+            Self::CrystalBlast(step) => step.crystal == id,
+            Self::DragonWalls(step) => step.dragon == id,
             Self::Relocate(step) => step.entity == id,
             Self::ProjectileHit { arrow, target } => *arrow == id || *target == id,
             Self::Aim(step) => step.mob == id,

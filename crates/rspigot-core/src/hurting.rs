@@ -481,6 +481,7 @@ impl<L: ClientLink> Server<L> {
         };
         match entity.base.kind {
             Kind::Fireball | Kind::WitherSkull => self.prime_projectile(id),
+            Kind::DragonFireball => self.dragon_fireball_burst(id),
             _ => {
                 self.remove_entity(id, RemovalReason::Discarded, Some(EntityRemoveCause::Hit));
             }
