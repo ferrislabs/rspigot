@@ -872,6 +872,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_entity_explosion(*step, cancelled, patch_of!(patch, EntityExplode));
                 Vec::new()
             }
+            Continuation::Splash(step) => {
+                self.finish_splash(*step, cancelled, patch_of!(patch, PotionSplash));
+                Vec::new()
+            }
             Continuation::Prime(step) => {
                 self.finish_prime(step, cancelled, patch_of!(patch, ExplosionPrime));
                 Vec::new()

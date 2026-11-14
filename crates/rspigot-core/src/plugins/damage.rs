@@ -42,7 +42,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
         _ if source.direct_block.is_some() => (
             match kind {
                 DamageType::InFire => EntityDamageCause::Fire,
-                DamageType::Magic => EntityDamageCause::Magic,
+                DamageType::Magic | DamageType::IndirectMagic => EntityDamageCause::Magic,
                 _ => EntityDamageCause::Contact,
             },
             Blame::Block(source.direct_block),
@@ -58,7 +58,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 | DamageType::FallingBlock
                 | DamageType::FallingStalactite => EntityDamageCause::FallingBlock,
                 DamageType::Fall => EntityDamageCause::Fall,
-                DamageType::Magic => EntityDamageCause::Magic,
+                DamageType::Magic | DamageType::IndirectMagic => EntityDamageCause::Magic,
                 _ => EntityDamageCause::EntityAttack,
             },
             Blame::Entity,
@@ -71,7 +71,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 DamageType::Drown => EntityDamageCause::Drowning,
                 DamageType::Wither => EntityDamageCause::Wither,
                 DamageType::OnFire => EntityDamageCause::FireTick,
-                DamageType::Magic => EntityDamageCause::Magic,
+                DamageType::Magic | DamageType::IndirectMagic => EntityDamageCause::Magic,
                 DamageType::GenericKill => EntityDamageCause::Kill,
                 _ => EntityDamageCause::Custom,
             },
@@ -186,7 +186,13 @@ impl<L: ClientLink> Server<L> {
         let entity_type = entity.kind.clone();
         let final_damage = f64::from(match victim {
             Struck::Player(id) => self.player_final_damage(id, source.kind, amount),
-            Struck::Mob(id) => self.mob_final_damage(id, source.kind, amount),
+            Struck::Mob(id) => {
+                let self_inflicted = source
+                    .causing
+                    .as_ref()
+                    .is_some_and(|causing| causing.entity == id);
+                self.mob_final_damage(id, source.kind, self_inflicted, amount)
+            }
             Struck::Item(_) | Struck::Projectile(_) => amount,
         });
         let damage = f64::from(amount);

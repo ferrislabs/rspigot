@@ -17,6 +17,9 @@ use crate::goals::{
     RandomLookAroundGoal, RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
 };
 use crate::rabbit::RaidGardenGoal;
+use crate::raider::{
+    self, NearestAttackableWitchTargetGoal, NearestHealableRaiderTargetGoal, RaiderGoal,
+};
 use crate::ranged::RangedAttackGoal;
 use crate::restriction::MoveTowardsRestrictionGoal;
 use crate::world::TargetKind;
@@ -30,6 +33,11 @@ pub const BREAK_DOOR_PRIORITY: i32 = 1;
 const SNOW_GOLEM_ATTACK_SPEED: f64 = 1.25;
 const SNOW_GOLEM_ATTACK_INTERVAL: i32 = 20;
 const SNOW_GOLEM_ATTACK_RADIUS: f32 = 10.0;
+const WITCH_ATTACK_SPEED: f64 = 1.0;
+const WITCH_ATTACK_INTERVAL: i32 = 60;
+const WITCH_ATTACK_RADIUS: f32 = 10.0;
+const WITCH_LOOK_DISTANCE: f32 = 8.0;
+const WITCH_IGNORED_DAMAGE: &[&str] = &["Raider"];
 const ZOMBIE_ALERT_IGNORED: &[EntityKind] = &[EntityKind::ZombifiedPiglin];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -463,6 +471,35 @@ pub fn register_goals(
                     true,
                     TargetFilter::WithinFourBlocksVertically,
                 ),
+            );
+        }
+        EntityKind::Witch => {
+            raider::register(&mut add);
+            add.float(1);
+            add.goal(
+                2,
+                MobGoal::RangedAttack(RangedAttackGoal::new(
+                    WITCH_ATTACK_SPEED,
+                    WITCH_ATTACK_INTERVAL,
+                    WITCH_ATTACK_RADIUS,
+                )),
+            );
+            add.stroll(2, 1.0);
+            add.look(3, WITCH_LOOK_DISTANCE);
+            add.look_around(3);
+            add.target_goal(
+                1,
+                MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from(WITCH_IGNORED_DAMAGE)),
+            );
+            add.target_goal(
+                2,
+                MobGoal::Raider(RaiderGoal::HealRaiders(
+                    NearestHealableRaiderTargetGoal::default(),
+                )),
+            );
+            add.target_goal(
+                3,
+                MobGoal::WitchTarget(NearestAttackableWitchTargetGoal::default()),
             );
         }
         _ => {}

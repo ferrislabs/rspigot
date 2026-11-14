@@ -92,6 +92,11 @@ impl<L: ClientLink> Server<L> {
                     self.finish_enderman_place(enderman, pos, state);
                 }
             }
+            Grief::Douse { pos, to, .. } => {
+                if !cancelled {
+                    self.finish_douse(pos, to);
+                }
+            }
         }
     }
 }

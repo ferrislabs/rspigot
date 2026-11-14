@@ -719,6 +719,7 @@ pub struct HurtByTargetGoal {
     memory: TargetMemory,
     timestamp: i32,
     alert_others: Option<&'static [EntityKind]>,
+    ignore_damage: &'static [&'static str],
     polar_bear: bool,
     panda_alert: bool,
 }
@@ -735,8 +736,16 @@ impl HurtByTargetGoal {
             memory: TargetMemory::new(true),
             timestamp: 0,
             alert_others: None,
+            ignore_damage: &[],
             polar_bear: false,
             panda_alert: false,
+        }
+    }
+
+    pub const fn ignoring_damage_from(classes: &'static [&'static str]) -> Self {
+        Self {
+            ignore_damage: classes,
+            ..Self::new()
         }
     }
 
@@ -779,6 +788,13 @@ impl HurtByTargetGoal {
             return false;
         }
         if attacker.player && context.world.universal_anger() {
+            return false;
+        }
+        if self
+            .ignore_damage
+            .iter()
+            .any(|class| attacker.kind.extends(class))
+        {
             return false;
         }
         let conditions = TargetingConditions::for_combat()

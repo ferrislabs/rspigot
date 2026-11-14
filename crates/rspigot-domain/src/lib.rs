@@ -24,6 +24,7 @@ pub mod particle;
 pub mod player;
 pub mod poi;
 pub mod pos;
+pub mod potion;
 pub mod random;
 pub mod recipes;
 pub mod smithing;
