@@ -1463,6 +1463,14 @@ impl Encoder {
                                     profession: *profession as i32,
                                     level: *level,
                                 },
+                                MetadataValue::Rotations(x, y, z) => EntityDataValue::Rotations {
+                                    x: *x,
+                                    y: *y,
+                                    z: *z,
+                                },
+                                MetadataValue::PaintingVariant(id) => {
+                                    EntityDataValue::PaintingVariant(*id as i32)
+                                }
                             },
                         })
                         .collect(),

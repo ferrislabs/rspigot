@@ -987,6 +987,10 @@ impl<L: ClientLink> Server<L> {
         {
             return self.hurt(player, source, amount);
         }
+        let struck = self.struck(id);
+        if matches!(struck, Struck::Hanging(_) | Struck::Stand(_)) {
+            return self.strike(None, struck, source, amount, AfterHurt::Nothing);
+        }
         self.hurt_mob(id, source, amount)
     }
 

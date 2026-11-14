@@ -8,11 +8,13 @@ use rspigot_nbt::{Compound, Tag};
 use uuid::Uuid;
 
 use super::ageable::{self, AgeableState};
+use super::armor_stand;
 use super::arrow::{self, ArrowState};
 use super::base::{EntityBase, MAX_AIR_SUPPLY, RemovalReason};
 use super::bullet::{self, BulletState};
 use super::falling::FallingState;
 use super::fangs::{self, FangsState};
+use super::hanging;
 use super::hurting::{self, HurtingState};
 use super::item::{self, ItemState};
 use super::lightning;
@@ -190,6 +192,10 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::ShulkerBullet
             | EntityKind::EvokerFangs
             | EntityKind::EndCrystal
+            | EntityKind::ItemFrame
+            | EntityKind::GlowItemFrame
+            | EntityKind::Painting
+            | EntityKind::ArmorStand
             | EntityKind::AreaEffectCloud
             | EntityKind::LightningBolt
     ) || hurting::is_hurting_projectile(kind)
@@ -1146,6 +1152,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         }
         EntityKind::EvokerFangs => EntityState::Fangs(FangsState::default()),
         EntityKind::EndCrystal => EntityState::Crystal(crystal::define(&mut base)),
+        EntityKind::ItemFrame | EntityKind::GlowItemFrame | EntityKind::Painting => {
+            EntityState::Hanging(hanging::define(&mut base))
+        }
+        EntityKind::ArmorStand => EntityState::Stand(Box::new(armor_stand::define(&mut base))),
         EntityKind::AreaEffectCloud => EntityState::Cloud(Box::new(cloud::define(&mut base))),
         EntityKind::LightningBolt => EntityState::Lightning(lightning::LightningState::new(
             (fallback_uuid.as_u64_pair().0 % 3) as i32 + 1,
@@ -1231,6 +1241,14 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Cloud(cloud_state) => {
             cloud::read(nbt, &mut base, cloud_state);
             &[&ENTITY_KEYS, cloud::KEYS]
+        }
+        EntityState::Hanging(hanging_state) => {
+            hanging::read(nbt, &mut base, hanging_state);
+            &[&ENTITY_KEYS, hanging::KEYS]
+        }
+        EntityState::Stand(stand_state) => {
+            armor_stand::read(nbt, &mut base, stand_state);
+            &[&ENTITY_KEYS, armor_stand::KEYS]
         }
         EntityState::Lightning(_) | EntityState::Inert(_) => &[],
     };
@@ -1659,6 +1677,12 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         }
         EntityState::Crystal(_) => crystal::write(&entity.base, &mut out),
         EntityState::Cloud(cloud_state) => cloud::write(&entity.base, cloud_state, &mut out),
+        EntityState::Hanging(hanging_state) => {
+            hanging::write(&entity.base, hanging_state, &mut out);
+        }
+        EntityState::Stand(stand_state) => {
+            armor_stand::write(&entity.base, stand_state, &mut out);
+        }
         EntityState::Lightning(_) | EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {

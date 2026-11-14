@@ -1,5 +1,6 @@
 mod aabb;
 pub mod ageable;
+pub mod armor_stand;
 pub mod arrow;
 mod base;
 pub mod bullet;
@@ -11,6 +12,7 @@ pub mod fangs;
 pub mod fire;
 pub mod fluid;
 pub mod gossip;
+pub mod hanging;
 pub mod hurting;
 pub mod item;
 pub mod leash;
@@ -66,6 +68,8 @@ pub enum EntityState {
     Cloud(Box<cloud::CloudState>),
     Falling(FallingState),
     Lightning(lightning::LightningState),
+    Hanging(hanging::HangingState),
+    Stand(Box<armor_stand::StandState>),
     Living(Box<LivingState>),
     Orb(OrbState),
     Inert(Compound),
@@ -123,6 +127,7 @@ impl Entity {
     pub fn add_entity_data(&self) -> i32 {
         match &self.state {
             EntityState::Falling(falling) => i32::from(falling.state.0),
+            EntityState::Hanging(_) => hanging::data_3d(hanging::facing(&self.base)),
             _ => 0,
         }
     }

@@ -231,8 +231,14 @@ impl<L: ClientLink> Server<L> {
         alive && present && self.within_entity_reach(id, target)
     }
 
-    pub(crate) fn interact_now(&mut self, id: PlayerId, target: EntityId, hand: Hand) {
-        let result = self.interact_on(id, target, hand);
+    pub(crate) fn interact_now(
+        &mut self,
+        id: PlayerId,
+        target: EntityId,
+        hand: Hand,
+        location: Vec3,
+    ) {
+        let result = self.interact_on(id, target, hand, location);
         if matches!(result, Interaction::Predicted | Interaction::ServerOnly) {
             self.player_swing(id, hand, result == Interaction::ServerOnly);
         }
@@ -308,6 +314,7 @@ impl<L: ClientLink> Server<L> {
         id: PlayerId,
         target: EntityId,
         hand: Hand,
+        location: Vec3,
     ) -> Interaction {
         let Some(player) = self.players.get(&id) else {
             return Interaction::Pass;
@@ -317,7 +324,7 @@ impl<L: ClientLink> Server<L> {
         }
         let before = self.held(id, hand);
         let creative = self.infinite_materials(id);
-        let result = self.mob_interact_entry(id, target, hand);
+        let result = self.mob_interact_entry(id, target, hand, location);
         if result.consumes() {
             if creative
                 && let (Some(before), Some(now)) = (&before, self.held(id, hand))
@@ -342,7 +349,19 @@ impl<L: ClientLink> Server<L> {
         result
     }
 
-    fn mob_interact_entry(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {
+    fn mob_interact_entry(
+        &mut self,
+        id: PlayerId,
+        target: EntityId,
+        hand: Hand,
+        location: Vec3,
+    ) -> Interaction {
+        if let Some(result) = self.frame_interact(id, target, hand) {
+            return result;
+        }
+        if let Some(result) = self.stand_interact(id, target, hand, location) {
+            return result;
+        }
         let Some(entity) = self.entities.store.get(target) else {
             return Interaction::Pass;
         };
