@@ -16,7 +16,7 @@ use crate::events::Hand;
 use crate::events::{ClientEvent, GameEvent};
 use crate::game_events::GameEventContext;
 use crate::health::{DamageSource, SourceEntity};
-use crate::plugins::events::{EntityRemoveCause, PlayerPickupArrow};
+use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause, PlayerPickupArrow};
 use crate::plugins::steps::ArrowStep;
 use crate::plugins::steps::{Draw, Shooter};
 use crate::plugins::{
@@ -39,6 +39,8 @@ const STOP_SQR: f64 = 1.0e-7;
 const DEFLECT_SCALE: f64 = 0.2;
 const ARROW_FIRE_SECONDS: f32 = 5.0;
 const SKELETON_FORCE: f32 = 0.8;
+const TRIDENT_REVERSE_YAW: f32 = 170.0;
+const TRIDENT_REVERSE_SPREAD: i32 = 20;
 
 #[derive(Debug, Clone, Copy)]
 struct ArrowHit {
@@ -50,6 +52,8 @@ struct ArrowHit {
 fn hit_sound_of(name: &str) -> &'static str {
     if name == rspigot_domain::crossbow::HIT_SOUND {
         rspigot_domain::crossbow::HIT_SOUND
+    } else if name == arrow::TRIDENT_GROUND_SOUND {
+        arrow::TRIDENT_GROUND_SOUND
     } else {
         arrow::HIT_SOUND
     }
@@ -71,6 +75,10 @@ impl<L: ClientLink> Server<L> {
     ) {
         if self.kind_of(shooter) == Some(Kind::Wither) {
             self.wither_shoot_at(shooter, 0, target);
+            return;
+        }
+        if self.kind_of(shooter) == Some(Kind::Drowned) {
+            self.drowned_throw_trident(shooter, target);
             return;
         }
         if self
@@ -162,6 +170,58 @@ impl<L: ClientLink> Server<L> {
             force: SKELETON_FORCE,
         };
         self.shoot_bow(Shooter::Mob(shooter), draw, arrow);
+    }
+
+    fn drowned_throw_trident(&mut self, shooter: EntityId, target: EntityId) {
+        let Some(target) = self.entity_box(target) else {
+            return;
+        };
+        let Some(entity) = self.entities.store.get(shooter) else {
+            return;
+        };
+        let held = entity
+            .living()
+            .and_then(|state| state.equipment(EquipmentSlot::Mainhand))
+            .filter(|stack| stack.item == ItemKind::Trident.id())
+            .cloned();
+        let weapon = held.unwrap_or_else(arrow::trident_item);
+        let origin = entity.base.position;
+        let eye = entity.base.eye_y();
+        let owner_uuid = entity.base.uuid;
+        let mut base = self.new_entity_base(Kind::Trident);
+        base.position = Vec3::new(origin.x, eye - EYE_OFFSET, origin.z);
+        base.old_position = base.position;
+        let seed = self.rng.random::<i64>();
+        let mut state = ArrowState::new_trident(&mut base, seed);
+        state.set_owner(Some(owner_uuid), false);
+        state.item = ItemStack {
+            count: std::num::NonZeroU8::MIN,
+            ..weapon.clone()
+        };
+        state.weapon = Some(weapon);
+        let dx = target.0.x - origin.x;
+        let dy = target.0.y + target.1 * TARGET_HEIGHT_FRACTION - base.position.y;
+        let dz = target.0.z - origin.z;
+        let distance = (dx * dx + dz * dz).sqrt();
+        let uncertainty = (14 - i32::from(self.world.difficulty.id()) * 4) as f32;
+        arrow::shoot(
+            &mut base,
+            &mut state,
+            Vec3::new(dx, dy + distance * ARC, dz),
+            MOB_ARROW_SPEED,
+            uncertainty,
+        );
+        let trident = Entity::new(base, EntityState::Arrow(Box::new(state)));
+        self.add_entity(trident, CreatureSpawnReason::Default);
+        let mut random = self.mob_random(shooter);
+        let pitch = 1.0 / (random.next_float() * 0.4 + 0.8);
+        self.store_mob_random(shooter, random);
+        self.entity_sound(
+            shooter,
+            rspigot_domain::entity::species::drowned::SHOOT_SOUND,
+            1.0,
+            pitch,
+        );
     }
 
     pub(crate) fn skeleton_sound(&mut self, shooter: EntityId) {
@@ -276,6 +336,9 @@ impl<L: ClientLink> Server<L> {
         else {
             return Vec::new();
         };
+        if base.kind == Kind::Trident && state.dealt_damage {
+            return Vec::new();
+        }
         let owner = self.owner_entity(state.owner);
         let area = arrow::search_box(base);
         let margin = f64::from(arrow::hit_margin(base.tick_count));
@@ -364,6 +427,10 @@ impl<L: ClientLink> Server<L> {
         base.tick_count = base.tick_count.wrapping_add(1);
         fluid::update(base, chunks);
         let movement = base.velocity;
+        let trident = base.kind == Kind::Trident;
+        if trident && state.in_ground_time > arrow::TRIDENT_GROUND_TICKS {
+            state.dealt_damage = true;
+        }
         let ground = arrow::ground_tick(base, state, chunks, despawn);
         if base.fluid.in_water || in_rain {
             fire::clear_fire(base);
@@ -386,7 +453,12 @@ impl<L: ClientLink> Server<L> {
         }
         let physics = !base.no_physics;
         if base.fluid.in_water {
-            base.velocity = base.velocity.scale(f64::from(arrow::WATER_INERTIA));
+            let inertia = if trident {
+                arrow::TRIDENT_WATER_INERTIA
+            } else {
+                arrow::WATER_INERTIA
+            };
+            base.velocity = base.velocity.scale(f64::from(inertia));
         }
         arrow::flight_rotation(base, movement);
         self.check_left_owner(id);
@@ -504,7 +576,13 @@ impl<L: ClientLink> Server<L> {
         else {
             return;
         };
-        let damage = arrow::hit_damage(base, state);
+        let trident = base.kind == Kind::Trident;
+        let damage = if trident {
+            state.dealt_damage = true;
+            arrow::TRIDENT_DAMAGE as i32
+        } else {
+            arrow::hit_damage(base, state)
+        };
         let velocity = base.velocity;
         let on_fire = fire::is_on_fire(base);
         let owner = state.owner;
@@ -535,7 +613,11 @@ impl<L: ClientLink> Server<L> {
                 |then| matches!(then, Continuation::Combust(step) if step.target == holder),
             );
         let source = DamageSource {
-            kind: DamageType::Arrow,
+            kind: if trident {
+                DamageType::Trident
+            } else {
+                DamageType::Arrow
+            },
             causing,
             direct: Some(direct),
             position: None,
@@ -567,6 +649,15 @@ impl<L: ClientLink> Server<L> {
             sound_pitch,
         } = follow;
         let target_player = self.player_of_entity(target);
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| entity.base.kind == Kind::Trident)
+        {
+            self.finish_trident_hit(id, target, hurt, saved_fire);
+            return;
+        }
         if hurt {
             if let Some(Entity {
                 base,
@@ -628,6 +719,38 @@ impl<L: ClientLink> Server<L> {
                 }
                 self.remove_entity(id, RemovalReason::Killed, Some(EntityRemoveCause::Hit));
             }
+        }
+    }
+
+    fn finish_trident_hit(&mut self, id: EntityId, target: EntityId, hurt: bool, saved_fire: i32) {
+        if !hurt {
+            self.restore_fire_ticks(target, saved_fire);
+        }
+        let Some(Entity {
+            base,
+            state: EntityState::Arrow(state),
+            ..
+        }) = self.entities.store.get_mut(id)
+        else {
+            return;
+        };
+        let rotation = TRIDENT_REVERSE_YAW + state.random.next_int(TRIDENT_REVERSE_SPREAD) as f32;
+        let reversed = base.velocity.scale(arrow::TRIDENT_DEFLECT);
+        let (x, y, z) = arrow::TRIDENT_AFTER_HIT;
+        base.velocity = reversed.multiply(x, y, z);
+        let yaw = base.yaw + rotation;
+        base.set_yaw(yaw);
+        base.needs_sync = true;
+        let position = base.position;
+        if !base.is_silent() {
+            self.play_sound(
+                None,
+                position,
+                arrow::TRIDENT_HIT_SOUND,
+                SoundSource::Neutral,
+                1.0,
+                1.0,
+            );
         }
     }
 

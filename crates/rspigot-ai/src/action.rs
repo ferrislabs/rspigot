@@ -171,4 +171,6 @@ pub enum MobAction {
     Warden(crate::warden::WardenAction),
     Air(crate::AirAction),
     Water(crate::WaterAction),
+    Turtle(crate::TurtleAction),
+    Guardian(crate::GuardianAction),
 }

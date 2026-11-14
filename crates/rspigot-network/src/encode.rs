@@ -741,7 +741,7 @@ fn game_event(event: CoreGameEvent) -> cb::GameEvent {
         CoreGameEvent::RainLevelChange(v) => (GameEventKind::RainLevelChange, v),
         CoreGameEvent::ThunderLevelChange(v) => (GameEventKind::ThunderLevelChange, v),
         CoreGameEvent::PufferFishSting => (GameEventKind::PufferFishSting, 0.0),
-        CoreGameEvent::GuardianElderEffect => (GameEventKind::GuardianElderEffect, 0.0),
+        CoreGameEvent::GuardianElderEffect(value) => (GameEventKind::GuardianElderEffect, value),
         CoreGameEvent::ImmediateRespawn(on) => {
             (GameEventKind::ImmediateRespawn, if on { 1.0 } else { 0.0 })
         }

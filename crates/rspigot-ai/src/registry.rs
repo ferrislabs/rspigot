@@ -11,12 +11,19 @@ use crate::combat::{
 };
 use crate::control::MoveStyle;
 use crate::crossbow::{CrossbowGoal, HoldGroundAttackGoal, RangedCrossbowAttackGoal};
+use crate::drowned::{
+    DrownedAttackGoal, DrownedGoToBeachGoal, DrownedGoToWaterGoal, DrownedGoal, DrownedSwimUpGoal,
+    DrownedTridentAttackGoal,
+};
 use crate::evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 use crate::ghast::{GhastGoal, GhastLookGoal, GhastShootFireballGoal, RandomFloatAroundGoal};
 use crate::goal::GoalSelector;
 use crate::goals::{
     ClimbOnTopOfPowderSnowGoal, FloatGoal, LookAtPlayerGoal, MobGoal, NearestAttackableTargetGoal,
     RandomLookAroundGoal, RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
+};
+use crate::guardian::{
+    GuardianAttackGoal, GuardianGoal, GuardianRestrictionGoal, GuardianStrollGoal,
 };
 use crate::rabbit::RaidGardenGoal;
 use crate::raider::{
@@ -31,10 +38,15 @@ use crate::swimmers::{
     PufferfishPuffGoal, RandomSwimmingGoal, SquidFleeGoal, SquidRandomMovementGoal,
     TryFindWaterGoal, WaterGoal,
 };
+use crate::turtle::{
+    TurtleBreedGoal, TurtleGoHomeGoal, TurtleGoToWaterGoal, TurtleGoal, TurtleLayEggGoal,
+    TurtlePanicGoal, TurtleRandomStrollGoal, TurtleTravelGoal,
+};
 use crate::world::TargetKind;
 use crate::{
     cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
 };
+use rspigot_domain::entity::species::{drowned, guardian};
 
 pub const ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER: bool = true;
 pub const WEAPON_PRIORITY: i32 = 4;
@@ -82,6 +94,14 @@ const DOLPHIN_LOOK_DISTANCE: f32 = 6.0;
 const DOLPHIN_JUMP_INTERVAL: i32 = 10;
 const DOLPHIN_ATTACK_SPEED: f64 = 1.2_f32 as f64;
 const DOLPHIN_AVOID_DISTANCE: f32 = 8.0;
+const GUARDIAN_PLAYER_LOOK: f32 = 8.0;
+const GUARDIAN_MOB_LOOK: f32 = 12.0;
+const GUARDIAN_MOB_LOOK_PROBABILITY: f32 = 0.01;
+const GUARDIAN_TARGET_INTERVAL: i32 = 10;
+const TURTLE_PANIC_SPEED: f64 = 1.2;
+const TURTLE_SPEED: f64 = 1.0;
+const TURTLE_TEMPT_SPEED: f64 = 1.1;
+const TURTLE_LOOK_DISTANCE: f32 = 8.0;
 const DOLPHIN_IGNORED_DAMAGE: &[&str] = &["Guardian"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -202,6 +222,146 @@ fn fish_goals(add: &mut Goals<'_>) {
     add.goal(
         4,
         MobGoal::Water(WaterGoal::RandomSwimming(RandomSwimmingGoal::fish())),
+    );
+}
+
+fn drowned_goals(add: &mut Goals<'_>) {
+    add.goal(
+        4,
+        MobGoal::RemoveTurtleEgg(RemoveTurtleEggGoal::new(1.0, 3)),
+    );
+    add.look(8, 8.0);
+    add.look_around(8);
+    add.goal(
+        1,
+        MobGoal::Drowned(DrownedGoal::GoToWater(DrownedGoToWaterGoal::new(1.0))),
+    );
+    add.goal(
+        2,
+        MobGoal::Drowned(DrownedGoal::TridentAttack(DrownedTridentAttackGoal::new(
+            1.0,
+            drowned::ATTACK_INTERVAL,
+            drowned::ATTACK_RADIUS,
+        ))),
+    );
+    add.goal(
+        2,
+        MobGoal::Drowned(DrownedGoal::Attack(DrownedAttackGoal::new(1.0))),
+    );
+    add.goal(
+        5,
+        MobGoal::Drowned(DrownedGoal::GoToBeach(DrownedGoToBeachGoal::new(1.0))),
+    );
+    add.goal(
+        6,
+        MobGoal::Drowned(DrownedGoal::SwimUp(DrownedSwimUpGoal::new(1.0))),
+    );
+    add.goal(7, MobGoal::Stroll(RandomStrollGoal::new(1.0)));
+    add.target_goal(
+        1,
+        MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting_except(
+            &["Drowned"],
+            ZOMBIE_ALERT_IGNORED,
+        )),
+    );
+    add.target(
+        2,
+        NearestAttackableTargetGoal::with(TargetKind::Player, 10, true, TargetFilter::DrownedOk),
+    );
+    add.target(
+        3,
+        NearestAttackableTargetGoal::new(TargetKind::AbstractVillager, false),
+    );
+    add.target(
+        3,
+        NearestAttackableTargetGoal::new(TargetKind::IronGolem, true),
+    );
+    add.target(
+        3,
+        NearestAttackableTargetGoal::new(TargetKind::Class("Axolotl"), true),
+    );
+    add.target(
+        5,
+        NearestAttackableTargetGoal::with(TargetKind::Turtle, 10, true, TargetFilter::BabyOnLand),
+    );
+}
+
+fn guardian_goals(add: &mut Goals<'_>, kind: EntityKind) {
+    let interval = if kind == EntityKind::ElderGuardian {
+        guardian::ELDER_STROLL_INTERVAL
+    } else {
+        guardian::STROLL_INTERVAL
+    };
+    add.goal(
+        4,
+        MobGoal::Guardian(GuardianGoal::Attack(GuardianAttackGoal::new())),
+    );
+    add.goal(
+        5,
+        MobGoal::Guardian(GuardianGoal::Restriction(GuardianRestrictionGoal::default())),
+    );
+    add.goal(
+        7,
+        MobGoal::Guardian(GuardianGoal::Stroll(GuardianStrollGoal::new(interval))),
+    );
+    add.look(8, GUARDIAN_PLAYER_LOOK);
+    add.goal(
+        8,
+        MobGoal::LookAtPlayer(LookAtPlayerGoal::at_class(
+            GUARDIAN_MOB_LOOK,
+            GUARDIAN_MOB_LOOK_PROBABILITY,
+            "Guardian",
+        )),
+    );
+    add.look_around(9);
+    add.target(
+        1,
+        NearestAttackableTargetGoal::with(
+            TargetKind::Class("LivingEntity"),
+            GUARDIAN_TARGET_INTERVAL,
+            true,
+            TargetFilter::GuardianAttack,
+        ),
+    );
+}
+
+fn turtle_goals(add: &mut Goals<'_>) {
+    add.goal(
+        0,
+        MobGoal::Turtle(TurtleGoal::Panic(TurtlePanicGoal::new(TURTLE_PANIC_SPEED))),
+    );
+    add.goal(
+        1,
+        MobGoal::Turtle(TurtleGoal::Breed(TurtleBreedGoal::new(TURTLE_SPEED))),
+    );
+    add.goal(
+        1,
+        MobGoal::Turtle(TurtleGoal::LayEgg(TurtleLayEggGoal::new(TURTLE_SPEED))),
+    );
+    add.tempt(
+        2,
+        TURTLE_TEMPT_SPEED,
+        TemptItems::Tag("minecraft:turtle_food"),
+    );
+    add.goal(
+        3,
+        MobGoal::Turtle(TurtleGoal::GoToWater(TurtleGoToWaterGoal::new(
+            TURTLE_SPEED,
+            false,
+        ))),
+    );
+    add.goal(
+        4,
+        MobGoal::Turtle(TurtleGoal::GoHome(TurtleGoHomeGoal::new(TURTLE_SPEED))),
+    );
+    add.goal(
+        7,
+        MobGoal::Turtle(TurtleGoal::Travel(TurtleTravelGoal::new(TURTLE_SPEED))),
+    );
+    add.look(8, TURTLE_LOOK_DISTANCE);
+    add.goal(
+        9,
+        MobGoal::Turtle(TurtleGoal::RandomStroll(TurtleRandomStrollGoal::default())),
     );
 }
 
@@ -815,6 +975,9 @@ pub fn register_goals(
             );
         }
         EntityKind::Dolphin => dolphin_goals(&mut add),
+        EntityKind::Turtle => turtle_goals(&mut add),
+        EntityKind::Drowned => drowned_goals(&mut add),
+        EntityKind::Guardian | EntityKind::ElderGuardian => guardian_goals(&mut add, kind),
         EntityKind::Phantom => {
             add.brain.movement.set_style(MoveStyle::Phantom);
             add.goal(

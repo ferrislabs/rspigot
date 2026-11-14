@@ -19,6 +19,7 @@ mod control;
 mod copper_golem;
 mod creaking;
 mod crossbow;
+mod drowned;
 mod enderman;
 mod evade;
 mod finder;
@@ -29,6 +30,7 @@ mod ghast;
 mod goal;
 mod goals;
 mod goat;
+mod guardian;
 mod heap;
 mod holdable;
 mod iron_golem;
@@ -63,6 +65,7 @@ mod swim;
 mod swimmers;
 mod tame;
 mod targeting;
+mod turtle;
 mod vex;
 mod view;
 mod village;
@@ -135,8 +138,8 @@ pub use combat::{
     within_melee_range,
 };
 pub use control::{
-    BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
-    MoveControl, MoveStyle, Operation, SmoothSwimming, can_reach, rotate_towards,
+    BodyRotationControl, DrownedSwim, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT,
+    MAX_HEAD_Y_ROT, MoveControl, MoveStyle, Operation, SmoothSwimming, can_reach, rotate_towards,
 };
 pub use copper_golem::{
     COOLDOWN_TICKS as TRANSPORT_COOLDOWN_TICKS, COPPER_GOLEM_MEMORIES, ChestSide,
@@ -149,6 +152,10 @@ pub use creaking::{CreakingAction, CreakingFacts, CreakingState};
 pub use crossbow::{
     CrossbowAction, CrossbowFacts, CrossbowGoal, CrossbowState, DEFAULT_CHARGE_TICKS,
     HoldGroundAttackGoal, RangedCrossbowAttackGoal,
+};
+pub use drowned::{
+    DrownedAttackGoal, DrownedFacts, DrownedGoToBeachGoal, DrownedGoToWaterGoal, DrownedGoal,
+    DrownedSwimUpGoal, DrownedTridentAttackGoal,
 };
 pub use enderman::{
     EndermanAction, EndermanFacts, EndermanGoal, TELEPORT_EVENT, find_teleport,
@@ -175,6 +182,10 @@ pub use goals::{
     RandomLookAroundGoal, RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
 };
 pub use goat::{GoatAction, GoatFacts};
+pub use guardian::{
+    GuardianAction, GuardianAttackGoal, GuardianBrain, GuardianFacts, GuardianGoal,
+    GuardianRestrictionGoal, GuardianStrollGoal,
+};
 pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal, is_enemy};
 pub use navigation::{
     MobTick, MoveTarget, Navigation, can_cut_corner, find_surface_position, ground_y, temp_mob_pos,
@@ -250,6 +261,12 @@ pub use tame::{
 pub use targeting::{
     TargetingConditions, can_attack, goal_can_attack, is_angry_at, mob_can_attack, nearest,
     nearest_player, valid_mob_target, valid_player_target, valid_target,
+};
+pub use turtle::{
+    TurtleAction, TurtleBreedGoal, TurtleFacts, TurtleGoHomeGoal, TurtleGoToWaterGoal, TurtleGoal,
+    TurtleLayEggGoal, TurtlePanicGoal, TurtleRandomStrollGoal, TurtleTravelGoal,
+    is_stable_destination as turtle_is_stable_destination,
+    walk_target_value as turtle_walk_target_value,
 };
 pub use vex::{VexAction, VexFacts};
 pub use view::BlockView;

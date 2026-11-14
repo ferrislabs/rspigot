@@ -54,6 +54,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 DamageType::Arrow
                 | DamageType::Thrown
                 | DamageType::MobProjectile
+                | DamageType::Trident
                 | DamageType::Fireball
                 | DamageType::UnattributedFireball
                 | DamageType::WitherSkull => EntityDamageCause::Projectile,
@@ -61,6 +62,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 | DamageType::FallingBlock
                 | DamageType::FallingStalactite => EntityDamageCause::FallingBlock,
                 DamageType::Fall => EntityDamageCause::Fall,
+                DamageType::Thorns => EntityDamageCause::Thorns,
                 DamageType::Magic | DamageType::IndirectMagic => EntityDamageCause::Magic,
                 _ => EntityDamageCause::EntityAttack,
             },

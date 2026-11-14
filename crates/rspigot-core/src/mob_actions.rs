@@ -119,6 +119,8 @@ impl<L: ClientLink> Server<L> {
             MobAction::Blaze(action) => self.blaze_action(id, action),
             MobAction::Ghast(action) => self.ghast_action(id, action),
             MobAction::Air(action) => self.air_action(id, action),
+            MobAction::Turtle(action) => self.turtle_action(id, action),
+            MobAction::Guardian(action) => self.guardian_action(id, action),
             MobAction::Shulker(action) => self.shulker_action(id, action),
             MobAction::Raider(action) => self.raider_action(id, action),
             MobAction::Crossbow(action) => self.crossbow_action(id, action),
@@ -195,13 +197,21 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let lane = self.lane_for(None, id);
-        self.fire(lane, Continuation::EggBreak { mob: id, pos }, move |_| {
-            Some(EventPayload::EntityInteract(EntityInteract {
-                block: pos,
-                entity_type: mob.kind.clone(),
-                entity: mob,
-            }))
-        });
+        self.fire(
+            lane,
+            Continuation::EggBreak {
+                mob: id,
+                pos,
+                trample: false,
+            },
+            move |_| {
+                Some(EventPayload::EntityInteract(EntityInteract {
+                    block: pos,
+                    entity_type: mob.kind.clone(),
+                    entity: mob,
+                }))
+            },
+        );
     }
 
     pub(crate) fn break_turtle_egg(&mut self, id: EntityId, pos: BlockPos) {
@@ -459,6 +469,10 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn spawn_child_from_breeding(&mut self, parent: EntityId, partner: EntityId) {
         match self.kind_of(parent) {
+            Some(Kind::Turtle) => {
+                self.turtle_breed(parent, partner);
+                return;
+            }
             Some(Kind::Sniffer) => {
                 self.sniffer_lay_egg(parent, partner);
                 return;
@@ -644,7 +658,10 @@ impl<L: ClientLink> Server<L> {
         let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut()) else {
             return;
         };
-        if ageable.age != 0 || !ageable.can_fall_in_love() {
+        if ageable.age != 0
+            || !ageable.can_fall_in_love()
+            || (base.kind == Kind::Turtle && species::turtle::has_egg(base))
+        {
             return;
         }
         let ticks = patch.ticks_in_love.unwrap_or(ageable::LOVE_TICKS);
