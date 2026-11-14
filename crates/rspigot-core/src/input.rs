@@ -406,6 +406,7 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_sculk_entity(pos, state);
                 self.ensure_statue_entity(pos, state);
                 self.ensure_portal_entity(pos, state);
+                self.ensure_gateway_entity(pos, state);
                 self.ensure_beehive_entity(pos, state);
                 if state.kind() == Some(BlockKind::Fire) {
                     self.hive_fire_placed(pos);

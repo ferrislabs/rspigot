@@ -1,8 +1,6 @@
 use rspigot_blocks::BlockKind;
 use rspigot_domain::boss_event::{BossColor, BossOverlay, ServerBossEvent};
-use rspigot_domain::dragon::fight::{
-    self as rules, FightData, GatewayBlock, RespawnStage, RespawnStep,
-};
+use rspigot_domain::dragon::fight::{self as rules, FightData, RespawnStage, RespawnStep};
 use rspigot_domain::dragon::phase::DragonPhase;
 use rspigot_domain::dragon::podium::{self, Podium};
 use rspigot_domain::dragon::spikes::{self, EndSpike, SpikeBlock};
@@ -516,14 +514,7 @@ impl<L: ClientLink> Server<L> {
         fight.dirty = true;
         let center = rules::gateway_position(index);
         self.level_event(rules::GATEWAY_EVENT, center, 0);
-        for (pos, kind) in rules::gateway_blocks(center) {
-            let state = match kind {
-                GatewayBlock::Gateway => block(BlockKind::EndGateway),
-                GatewayBlock::Bedrock => block(BlockKind::Bedrock),
-                GatewayBlock::Air => BlockStateId::AIR,
-            };
-            self.set_block(pos, state);
-        }
+        self.place_end_gateway(center, None);
     }
 
     fn fight_find_or_create_dragon(&mut self) {

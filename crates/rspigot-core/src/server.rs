@@ -966,6 +966,8 @@ impl<L: ClientLink> Server<L> {
         self.tick_dragon_fight();
         self.tick_entities();
         self.tick_portals();
+        self.tick_gateways();
+        self.tick_gateway_travelers();
         self.tick_ride_players();
         self.tick_golem_chests();
         self.collect_items();

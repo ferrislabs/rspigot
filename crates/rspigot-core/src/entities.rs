@@ -44,6 +44,7 @@ pub(crate) struct EntityWorld {
     pub boss_bars: FxHashMap<EntityId, rspigot_domain::boss_event::ServerBossEvent>,
     pub dragons: FxHashMap<EntityId, crate::dragon::DragonRuntime>,
     pub fight: Option<crate::dragon::DragonFight>,
+    pub gateways: FxHashMap<rspigot_domain::BlockPos, rspigot_domain::dragon::gateway::Gateway>,
     pub poses: FxHashMap<EntityId, rspigot_domain::entity::Pose>,
     pub leash_spin: FxHashMap<EntityId, f64>,
     pub leash_links: FxHashMap<EntityId, EntityId>,
