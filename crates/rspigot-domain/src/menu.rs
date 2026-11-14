@@ -93,6 +93,10 @@ pub enum MenuEffect {
     },
     StonecutterTaken,
     SmithingTaken,
+    AnvilTaken {
+        levels: i32,
+        wear: bool,
+    },
     Traded {
         offer: usize,
     },
@@ -116,6 +120,7 @@ pub enum RemoteUpdate {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Clicker {
     pub infinite_materials: bool,
+    pub experience_level: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -1101,9 +1106,11 @@ mod tests {
 
     const SURVIVAL: Clicker = Clicker {
         infinite_materials: false,
+        experience_level: 0,
     };
     const CREATIVE: Clicker = Clicker {
         infinite_materials: true,
+        experience_level: 0,
     };
 
     fn click(

@@ -1,3 +1,4 @@
+use rspigot_domain::anvil;
 use rspigot_domain::container_menu::MenuKind;
 use rspigot_domain::item::{ItemStack, Slot, same_item, stacks_match};
 use rspigot_domain::menu::{ClickInput, RESULT_SLOT};
@@ -9,7 +10,8 @@ use crate::menu::Move;
 use crate::plugins::clicks::written;
 use crate::plugins::decisions::{Continuation, Lane};
 use crate::plugins::events::{
-    PrepareItemCraft, PrepareItemCraftPatch, PrepareSmithing, PrepareSmithingPatch,
+    PrepareAnvil, PrepareAnvilPatch, PrepareItemCraft, PrepareItemCraftPatch, PrepareSmithing,
+    PrepareSmithingPatch,
 };
 use crate::plugins::views::Window;
 use crate::plugins::{Access, EventKind, EventPatch, EventPayload, ItemSpec, spec_of};
@@ -44,6 +46,7 @@ pub(crate) fn settled_result(patch: Option<EventPatch>) -> Option<Option<ItemSpe
     match patch {
         Some(EventPatch::PrepareItemCraft(PrepareItemCraftPatch { result })) => result,
         Some(EventPatch::PrepareSmithing(PrepareSmithingPatch { result })) => result,
+        Some(EventPatch::PrepareAnvil(PrepareAnvilPatch { result })) => result,
         _ => None,
     }
 }
@@ -57,6 +60,7 @@ impl<L: ClientLink> Server<L> {
         };
         match kind {
             MenuKind::Crafting => Some(EventKind::PrepareItemCraft),
+            MenuKind::Anvil => Some(EventKind::PrepareAnvil),
             MenuKind::Smithing => {
                 let made = smithing::craft(
                     inputs.get(smithing::TEMPLATE)?,
@@ -75,6 +79,7 @@ impl<L: ClientLink> Server<L> {
             Window::Container(_) => match self.players.get(&id)?.open_menu.as_ref()?.menu.kind() {
                 MenuKind::Crafting => Some(CRAFT_RESULT),
                 MenuKind::Smithing => Some(smithing::RESULT),
+                MenuKind::Anvil => Some(anvil::RESULT),
                 _ => None,
             },
             Window::Plugin(_) => None,
@@ -85,16 +90,17 @@ impl<L: ClientLink> Server<L> {
         let Some(inputs) = self.crafting_inputs(id, window) else {
             return false;
         };
-        let kind = match window {
-            Window::Container(_)
-                if self
-                    .players
-                    .get(&id)
-                    .and_then(|player| player.open_menu.as_ref())
-                    .is_some_and(|open| open.menu.kind() == MenuKind::Smithing) =>
-            {
-                EventKind::PrepareSmithing
-            }
+        let menu = match window {
+            Window::Container(_) => self
+                .players
+                .get(&id)
+                .and_then(|player| player.open_menu.as_ref())
+                .map(|open| open.menu.kind()),
+            _ => None,
+        };
+        let kind = match menu {
+            Some(MenuKind::Smithing) => EventKind::PrepareSmithing,
+            Some(MenuKind::Anvil) => EventKind::PrepareAnvil,
             _ => EventKind::PrepareItemCraft,
         };
         !inputs.is_empty() && self.plugins.listens(kind, Access::Decide)
@@ -188,22 +194,27 @@ impl<L: ClientLink> Server<L> {
             Continuation::Prepare(kind, Box::new(step)),
             move |server| {
                 let described = server.describe_window(id, window)?;
-                Some(if kind == EventKind::PrepareSmithing {
-                    EventPayload::PrepareSmithing(PrepareSmithing {
+                Some(match kind {
+                    EventKind::PrepareSmithing => EventPayload::PrepareSmithing(PrepareSmithing {
                         inventory: described.top,
                         result,
                         view: described.view,
                         viewers: described.viewers,
-                    })
-                } else {
-                    EventPayload::PrepareItemCraft(PrepareItemCraft {
+                    }),
+                    EventKind::PrepareAnvil => EventPayload::PrepareAnvil(PrepareAnvil {
+                        inventory: described.top,
+                        result,
+                        view: described.view,
+                        viewers: described.viewers,
+                    }),
+                    _ => EventPayload::PrepareItemCraft(PrepareItemCraft {
                         inventory: described.top,
                         recipe: recipe.map(|recipe| recipe.id.to_owned()),
                         repair: recipe.is_some_and(|recipe| recipe.repair),
                         view: described.view,
                         viewers: described.viewers,
                         result,
-                    })
+                    }),
                 })
             },
         );

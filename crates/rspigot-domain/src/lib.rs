@@ -1,3 +1,4 @@
+pub mod anvil;
 pub mod attribute;
 pub mod bed;
 pub mod beehive;
@@ -17,6 +18,7 @@ pub mod difficulty;
 pub mod dragon;
 pub mod dye;
 pub mod effect;
+pub mod enchant;
 pub mod entity;
 pub mod experience;
 pub mod explosion;

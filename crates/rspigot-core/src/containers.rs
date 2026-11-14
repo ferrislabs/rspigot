@@ -827,6 +827,7 @@ impl<L: ClientLink> Server<L> {
         let act = act.filter(|_| !lectern);
         let clicker = Clicker {
             infinite_materials: player.game_mode == GameMode::Creative,
+            experience_level: player.vitals.experience.level,
         };
         let full = full || click.state_id != open.state_id || lectern;
         let mut items = self.open_items(open);
@@ -882,12 +883,14 @@ impl<L: ClientLink> Server<L> {
         let mut taken = Vec::new();
         let mut traded = Vec::new();
         let mut updated = Vec::new();
+        let mut anvil = Vec::new();
         for effect in effects {
             match effect {
                 MenuEffect::Drop { .. } => drops.push(effect),
                 MenuEffect::FurnaceOutputTaken { item, amount } => taken.push((item, amount)),
                 MenuEffect::Traded { offer } => traded.push(offer),
                 MenuEffect::TradeUpdated { valid } => updated.push(valid),
+                MenuEffect::AnvilTaken { levels, wear } => anvil.push((levels, wear)),
                 _ => {}
             }
         }
@@ -900,6 +903,9 @@ impl<L: ClientLink> Server<L> {
         }
         for valid in updated {
             self.trade_updated_voice(id, valid);
+        }
+        for (levels, wear) in anvil {
+            self.anvil_used(id, backing.pos, levels, wear);
         }
         if cut {
             self.play_sound(
@@ -1100,7 +1106,10 @@ impl<L: ClientLink> Server<L> {
             .filter(|(_, player)| {
                 player.open_menu.as_ref().is_some_and(|open| {
                     open.menu.kind().is_furnace()
-                        || matches!(open.menu.kind(), MenuKind::Stonecutter | MenuKind::Smithing)
+                        || matches!(
+                            open.menu.kind(),
+                            MenuKind::Stonecutter | MenuKind::Smithing | MenuKind::Anvil
+                        )
                 })
             })
             .map(|(id, _)| *id)
