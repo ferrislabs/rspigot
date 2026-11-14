@@ -6,7 +6,7 @@ use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::player::{ClientSettings, GameProfile, PlayerId};
 use rspigot_domain::text::Component;
 use rspigot_domain::world::Dimension;
-use rspigot_domain::{BlockPos, ChunkPos, Identifier, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Identifier, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 use crate::config::{GameConfig, LevelData};
@@ -161,4 +161,79 @@ fn the_end_starts_its_fight_when_a_player_arrives() {
 fn the_overworld_has_no_fight_of_its_own() {
     let (server, _, _) = arrive();
     assert!(server.entities.fight.is_none());
+}
+
+fn the_dragon(server: &Server<Tap>) -> Option<EntityId> {
+    server.dormant[&end()]
+        .entities
+        .store
+        .iter()
+        .find(|entity| entity.base.kind == Kind::EnderDragon)
+        .map(|entity| entity.base.id)
+}
+
+fn count_in_column(server: &Server<Tap>, kind: BlockKind) -> usize {
+    (40..90)
+        .filter(|y| {
+            server.dormant[&end()]
+                .world
+                .chunks
+                .block(BlockPos::new(0, *y, 0))
+                .and_then(BlockStateId::kind)
+                == Some(kind)
+        })
+        .count()
+}
+
+fn kill_the_dragon(server: &mut Server<Tap>) -> i32 {
+    let dragon = the_dragon(server).expect("a dragon");
+    server.in_dimension(&end(), |server| {
+        let reward = server.dragon_experience_reward(dragon);
+        server.dragon_kill(dragon);
+        reward
+    })
+}
+
+#[test]
+fn killing_the_dragon_leaves_the_exit_portal_and_one_egg_only_the_first_time() {
+    let (mut server, id, _) = arrive();
+    enter_end(&mut server, id);
+    run_until(&mut server, 3000, |server| end_dragons(server) == 1);
+    assert_eq!(kill_the_dragon(&mut server), 12_000);
+    assert_eq!(count_in_column(&server, BlockKind::DragonEgg), 1);
+    assert!(count_in_column(&server, BlockKind::Bedrock) >= 4);
+    let fight = server.dormant[&end()]
+        .entities
+        .fight
+        .as_ref()
+        .expect("fight");
+    assert!(fight.data.dragon_killed && fight.data.previously_killed);
+    assert_eq!(fight.data.gateways.len(), 19);
+    let egg = (40..90)
+        .map(|y| BlockPos::new(0, y, 0))
+        .find(|pos| {
+            server.dormant[&end()]
+                .world
+                .chunks
+                .block(*pos)
+                .and_then(BlockStateId::kind)
+                == Some(BlockKind::DragonEgg)
+        })
+        .expect("the egg");
+    server.in_dimension(&end(), |server| {
+        server.set_block(egg, BlockStateId::AIR);
+        if let Some(fight) = server.entities.fight.as_mut() {
+            fight.data.dragon_killed = false;
+            fight.data.dragon_uuid = None;
+        }
+    });
+    run_until(&mut server, 200, |server| end_dragons(server) == 1);
+    assert_eq!(kill_the_dragon(&mut server), 500);
+    assert_eq!(count_in_column(&server, BlockKind::DragonEgg), 0);
+    let fight = server.dormant[&end()]
+        .entities
+        .fight
+        .as_ref()
+        .expect("fight");
+    assert_eq!(fight.data.gateways.len(), 18);
 }
