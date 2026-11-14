@@ -29,6 +29,7 @@ mod drops;
 mod durability;
 mod eating;
 mod effects;
+mod end_platform;
 pub mod entities;
 mod environment;
 pub mod events;

@@ -4,6 +4,7 @@ use rspigot_domain::{EntityId, Identifier, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Tag;
 
+use crate::end_platform;
 use crate::events::{ClientEvent, GameEvent};
 use crate::plugins::events::{
     EntityPortal, EntityPortalPatch, PlayerChangedWorld, PlayerPortal, PlayerPortalPatch,
@@ -27,14 +28,34 @@ pub(crate) struct Destination {
     pub(crate) dimension: DimensionKey,
     pub(crate) position: Vec3,
     pub(crate) rotation: Option<Rotation>,
+    pub(crate) platform: bool,
+}
+
+fn end_key() -> DimensionKey {
+    Identifier::minecraft("the_end")
 }
 
 impl Destination {
+    pub(crate) fn end_spawn() -> Self {
+        let spawn = end_platform::END_SPAWN_POINT;
+        Self {
+            dimension: end_key(),
+            position: Vec3::new(
+                f64::from(spawn.x) + 0.5,
+                f64::from(spawn.y),
+                f64::from(spawn.z) + 0.5,
+            ),
+            rotation: Some(Rotation::new(end_platform::END_SPAWN_YAW, 0.0)),
+            platform: true,
+        }
+    }
+
     fn from_location(location: &Location, fallback: &DimensionKey) -> Self {
         Self {
             dimension: Identifier::parse(&location.world).unwrap_or_else(|_| fallback.clone()),
             position: location.position,
             rotation: Some(location.rotation),
+            platform: false,
         }
     }
 }
@@ -58,10 +79,15 @@ impl<L: ClientLink> Server<L> {
         rotation: Option<Rotation>,
         cause: PlayerTeleportCause,
     ) {
-        let destination = Destination {
-            dimension,
-            position,
-            rotation,
+        let destination = if dimension == end_key() && cause == PlayerTeleportCause::EndPortal {
+            Destination::end_spawn()
+        } else {
+            Destination {
+                dimension,
+                position,
+                rotation,
+                platform: false,
+            }
         };
         self.ask_portal(player, destination, cause);
     }
@@ -95,6 +121,7 @@ impl<L: ClientLink> Server<L> {
             dimension,
             position,
             rotation,
+            platform: false,
         };
         if let Some(source) = source {
             self.in_dimension(&source, |server| {
@@ -203,6 +230,9 @@ impl<L: ClientLink> Server<L> {
         }
         self.in_dimension(&source, |server| server.leave_dimension(id));
         let target = destination.dimension.clone();
+        if destination.platform {
+            self.in_dimension(&target, |server| server.make_end_platform());
+        }
         self.in_dimension(&target, |server| server.enter_dimension(id, destination));
         true
     }
@@ -232,6 +262,7 @@ impl<L: ClientLink> Server<L> {
             dimension,
             position,
             rotation,
+            platform: _,
         } = destination;
         let Some(player) = self.players.get_mut(&id) else {
             return;
@@ -594,7 +625,8 @@ mod tests {
             Destination {
                 dimension: nether(),
                 position: at(),
-                rotation: None
+                rotation: None,
+                platform: false,
             }
         ));
         server.deliver();
@@ -667,6 +699,7 @@ mod tests {
                 dimension: nether(),
                 position: at(),
                 rotation: None,
+                platform: false,
             },
         );
         let player = &server.players[&alice];
@@ -686,6 +719,7 @@ mod tests {
                 dimension: Identifier::minecraft("nowhere"),
                 position: at(),
                 rotation: None,
+                platform: false,
             },
         ));
         assert_eq!(server.players[&alice].dim, home);
@@ -706,6 +740,7 @@ mod tests {
                     dimension: nether(),
                     position: at(),
                     rotation: None,
+                    platform: false,
                 },
             )
             .expect("travelled");
