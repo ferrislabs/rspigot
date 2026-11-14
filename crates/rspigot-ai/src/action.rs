@@ -170,4 +170,5 @@ pub enum MobAction {
     Villager(crate::villager::VillagerAction),
     Warden(crate::warden::WardenAction),
     Air(crate::AirAction),
+    Water(crate::WaterAction),
 }

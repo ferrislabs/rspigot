@@ -2,6 +2,12 @@ use rspigot_domain::{BlockPos, Vec3};
 
 use crate::PathType;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Swimming {
+    WaterBound { allow_breaching: bool },
+    Amphibious { prefers_shallow: bool },
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct MobProfile {
     pub width: f32,
@@ -16,6 +22,8 @@ pub struct MobProfile {
     pub creaking_home: Option<BlockPos>,
     pub horizontal_step_cost: bool,
     pub flying: bool,
+    pub swimming: Option<Swimming>,
+    pub sea_level: i32,
     malus: [Option<f32>; PathType::COUNT],
 }
 
@@ -23,6 +31,10 @@ impl MobProfile {
     pub const DEFAULT_STEP_HEIGHT: f32 = 0.6;
     pub const DEFAULT_FOLLOW_RANGE: f32 = 16.0;
     pub const DEFAULT_MAX_FALL_DISTANCE: i32 = 3;
+    pub const DEFAULT_SEA_LEVEL: i32 = 63;
+    pub const AMPHIBIOUS_WALKABLE_MALUS: f32 = 6.0;
+    pub const AMPHIBIOUS_WATER_BORDER_MALUS: f32 = 4.0;
+    pub const SHALLOW_SWIMMING_DEPTH: i32 = 10;
 
     pub fn new(width: f32, height: f32) -> Self {
         Self {
@@ -38,8 +50,62 @@ impl MobProfile {
             creaking_home: None,
             horizontal_step_cost: false,
             flying: false,
+            swimming: None,
+            sea_level: Self::DEFAULT_SEA_LEVEL,
             malus: [None; PathType::COUNT],
         }
+    }
+
+    pub fn water_bound(mut self, allow_breaching: bool) -> Self {
+        self.swimming = Some(Swimming::WaterBound { allow_breaching });
+        self.can_pass_doors = false;
+        self
+    }
+
+    pub fn amphibious(mut self, prefers_shallow: bool) -> Self {
+        self.swimming = Some(Swimming::Amphibious { prefers_shallow });
+        self
+    }
+
+    pub fn is_water_bound(&self) -> bool {
+        matches!(self.swimming, Some(Swimming::WaterBound { .. }))
+    }
+
+    pub fn is_amphibious(&self) -> bool {
+        matches!(self.swimming, Some(Swimming::Amphibious { .. }))
+    }
+
+    pub fn allows_breaching(&self) -> bool {
+        matches!(
+            self.swimming,
+            Some(Swimming::WaterBound {
+                allow_breaching: true
+            })
+        )
+    }
+
+    pub fn prefers_shallow_swimming(&self) -> bool {
+        matches!(
+            self.swimming,
+            Some(Swimming::Amphibious {
+                prefers_shallow: true
+            })
+        )
+    }
+
+    pub fn max_vertical_distance_to_waypoint(&self) -> f64 {
+        if self.is_water_bound() { 0.5 } else { 1.0 }
+    }
+
+    pub(crate) fn prepared_for_search(&self) -> std::borrow::Cow<'_, Self> {
+        if !self.is_amphibious() {
+            return std::borrow::Cow::Borrowed(self);
+        }
+        let mut prepared = self.clone();
+        prepared.set_malus(PathType::Water, 0.0);
+        prepared.set_malus(PathType::Walkable, Self::AMPHIBIOUS_WALKABLE_MALUS);
+        prepared.set_malus(PathType::WaterBorder, Self::AMPHIBIOUS_WATER_BORDER_MALUS);
+        std::borrow::Cow::Owned(prepared)
     }
 
     pub fn flying(mut self, can_float: bool) -> Self {

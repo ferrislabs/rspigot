@@ -552,6 +552,15 @@ pub fn finalize_spawn(
             species::allay::finalize(base, living, environment, group, level)
         }
         Some(Species::Bat(_)) => species::bat::finalize(base, living, environment, group, level),
+        Some(Species::Squid(_)) => {
+            species::squid::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Dolphin(_)) => {
+            species::dolphin::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Fish(_)) => {
+            species::fish::finalize(base, living, environment, group, level, own)
+        }
         Some(Species::Parrot) => species::parrot::finalize(base, living, environment, group, level),
         Some(Species::Phantom(_)) => {
             species::phantom::finalize(base, living, environment, group, level)

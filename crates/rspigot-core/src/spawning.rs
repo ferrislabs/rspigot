@@ -138,6 +138,16 @@ fn chunk_noise_biome(chunks: &ChunkManager, origin: ChunkPos, x: i32, y: i32, z:
     }
 }
 
+fn is_bucketed_fish(entity: &Entity) -> bool {
+    matches!(
+        entity
+            .living()
+            .and_then(|living| living.mob.as_ref())
+            .map(|mob| mob.species),
+        Some(Species::Fish(_))
+    ) && rspigot_domain::entity::species::fish::from_bucket(&entity.base)
+}
+
 fn is_persistent(entity: &Entity) -> bool {
     match &entity.state {
         EntityState::Living(living) => {
@@ -147,6 +157,7 @@ fn is_persistent(entity: &Entity) -> bool {
                 .is_some_and(|mob| mob.persistence_required)
                 || entity.extra.contains_key(LEASH)
                 || rspigot_domain::entity::species::enderman::carries_block(&entity.base)
+                || is_bucketed_fish(entity)
         }
         EntityState::Inert(nbt) => {
             nbt.get_bool(PERSISTENCE_REQUIRED).unwrap_or(false) || nbt.contains_key(LEASH)
@@ -308,10 +319,16 @@ impl<L: ClientLink> NaturalSpawnHost for Server<L> {
             &mut own,
         );
         let id = entity.base.id;
+        let follows = crate::kinds::fish_facts_of(&entity)
+            .0
+            .filter(|leader| *leader != id);
         self.spawn_entity(
             entity,
             Birth::of(CreatureSpawnReason::Natural).with_random(own),
         );
+        if let Some(leader) = follows {
+            self.fish_joined_school(leader);
+        }
         (self.spawning_now(id), group)
     }
 }
@@ -504,7 +521,10 @@ impl<L: ClientLink> Server<L> {
                 .as_ref()
                 .is_some_and(|mob| mob.persistence_required),
             requires_custom_persistence: entity.extra.contains_key(LEASH)
-                || rspigot_domain::entity::species::enderman::carries_block(&entity.base),
+                || rspigot_domain::entity::species::enderman::carries_block(&entity.base)
+                || is_bucketed_fish(entity),
+            from_bucket: is_bucketed_fish(entity),
+            named: entity.base.custom_name().is_some(),
             no_action_time: living.no_action_time,
             chicken_jockey: matches!(
                 living.mob.as_ref().map(|mob| &mob.species),
@@ -774,15 +794,18 @@ mod tests {
                 EntityKind::Cat,
                 EntityKind::CaveSpider,
                 EntityKind::Chicken,
+                EntityKind::Cod,
                 EntityKind::CopperGolem,
                 EntityKind::Cow,
                 EntityKind::Creaking,
                 EntityKind::Creeper,
+                EntityKind::Dolphin,
                 EntityKind::Enderman,
                 EntityKind::Endermite,
                 EntityKind::Fox,
                 EntityKind::Frog,
                 EntityKind::Ghast,
+                EntityKind::GlowSquid,
                 EntityKind::Goat,
                 EntityKind::Hoglin,
                 EntityKind::Husk,
@@ -798,7 +821,9 @@ mod tests {
                 EntityKind::PiglinBrute,
                 EntityKind::Pillager,
                 EntityKind::PolarBear,
+                EntityKind::Pufferfish,
                 EntityKind::Rabbit,
+                EntityKind::Salmon,
                 EntityKind::Sheep,
                 EntityKind::Shulker,
                 EntityKind::Silverfish,
@@ -806,7 +831,9 @@ mod tests {
                 EntityKind::Sniffer,
                 EntityKind::SnowGolem,
                 EntityKind::Spider,
+                EntityKind::Squid,
                 EntityKind::Stray,
+                EntityKind::TropicalFish,
                 EntityKind::Vex,
                 EntityKind::Villager,
                 EntityKind::WanderingTrader,

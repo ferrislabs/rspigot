@@ -17,6 +17,8 @@ pub struct FarAwayFacts {
     pub villager_progress: bool,
     pub patrolling: bool,
     pub distance_sqr: f64,
+    pub from_bucket: bool,
+    pub named: bool,
 }
 
 pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<bool> {
@@ -32,6 +34,7 @@ pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<boo
         | MobClass::Warden => false,
         MobClass::Chicken => facts.chicken_jockey,
         MobClass::ZombieVillager => !facts.villager_progress,
+        MobClass::AbstractFish => !(facts.from_bucket || facts.named),
         MobClass::Raider => {
             !(facts.patrolling && facts.distance_sqr <= raider::PATROL_KEEP_DISTANCE_SQR)
         }
@@ -51,6 +54,8 @@ pub struct DespawnFacts {
     pub tick_count: i32,
     pub villager_progress: bool,
     pub patrolling: bool,
+    pub from_bucket: bool,
+    pub named: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -88,6 +93,8 @@ pub fn check_despawn(
         villager_progress: facts.villager_progress,
         patrolling: facts.patrolling,
         distance_sqr: distance,
+        from_bucket: facts.from_bucket,
+        named: facts.named,
     };
     let far = || remove_when_far_away(kind, far_facts).unwrap_or(false);
     let despawn = i32::from(category.despawn_distance()).pow(2);
@@ -149,6 +156,8 @@ mod tests {
             tick_count: 0,
             villager_progress: false,
             patrolling: false,
+            from_bucket: false,
+            named: false,
         }
     }
 

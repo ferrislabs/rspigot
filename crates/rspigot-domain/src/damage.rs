@@ -24,6 +24,7 @@ pub enum DamageType {
     Generic,
     Starve,
     Drown,
+    DryOut,
     Magic,
     IndirectMagic,
     Wither,
@@ -94,6 +95,7 @@ impl DamageType {
             Self::Generic => "minecraft:generic",
             Self::Starve => "minecraft:starve",
             Self::Drown => "minecraft:drown",
+            Self::DryOut => "minecraft:dry_out",
             Self::Magic => "minecraft:magic",
             Self::IndirectMagic => "minecraft:indirect_magic",
             Self::Wither => "minecraft:wither",
@@ -128,6 +130,7 @@ impl DamageType {
             Self::Generic => "generic",
             Self::Starve => "starve",
             Self::Drown => "drown",
+            Self::DryOut => "dryout",
             Self::Magic => "magic",
             Self::IndirectMagic => "indirectMagic",
             Self::Wither => "wither",
@@ -150,7 +153,11 @@ impl DamageType {
     pub const fn exhaustion(self) -> f32 {
         match self {
             Self::FallingAnvil | Self::FallingBlock | Self::FallingStalactite => 0.1,
-            Self::PlayerAttack | Self::MobAttack | Self::MobAttackNoAggro | Self::Sting => 0.1,
+            Self::PlayerAttack
+            | Self::MobAttack
+            | Self::MobAttackNoAggro
+            | Self::Sting
+            | Self::DryOut => 0.1,
             Self::InFire
             | Self::Lava
             | Self::Arrow

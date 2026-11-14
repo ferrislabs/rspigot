@@ -103,6 +103,9 @@ pub fn mob_can_attack(mob: &MobView, world: &impl AiWorld, target: &Living) -> b
 }
 
 fn refuses(mob: &MobView, target: &Living) -> bool {
+    if mob.kind == EntityKind::Dolphin && mob.baby {
+        return true;
+    }
     if mob.tamed && mob.owner == Some(target.id) {
         return true;
     }

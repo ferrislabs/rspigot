@@ -262,6 +262,9 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             hero_of_the_village: player.effects.has("minecraft:hero_of_the_village"),
             cube_size: 0,
             sniffer_state: 0,
+            school_leader: None,
+            school_size: 0,
+            swimming: false,
         },
     }
 }
@@ -345,6 +348,9 @@ fn entity_facts(
         } else {
             0
         },
+        school_leader: crate::kinds::fish_facts_of(entity).0,
+        school_size: crate::kinds::fish_facts_of(entity).1,
+        swimming: false,
         cube_size: if base.kind.extends("AbstractCubeMob") {
             u8::try_from(rspigot_domain::entity::reward::cube_size(entity).clamp(0, 255))
                 .unwrap_or(u8::MAX)
@@ -1120,7 +1126,22 @@ impl<L: ClientLink> Server<L> {
             .players
             .values()
             .filter(|player| !player.vitals.removed)
-            .map(|player| player_target(player, game_time))
+            .map(|player| {
+                let mut target = player_target(player, game_time);
+                let in_water = |at: Vec3| {
+                    self.world.chunks.block(at.block()).is_some_and(|state| {
+                        state.flags().contains(rspigot_blocks::StateFlags::WATER)
+                    })
+                };
+                let eyes = Vec3::new(
+                    player.position.x,
+                    player.position.y + player.eye_height(),
+                    player.position.z,
+                );
+                target.in_water = in_water(player.position);
+                target.facts.swimming = player.sprinting && target.in_water && in_water(eyes);
+                target
+            })
             .collect();
         players.sort_by_key(|player| player.id);
         self.entities.mobs.players = players;
@@ -1351,6 +1372,7 @@ impl<L: ClientLink> Server<L> {
         }) = self.entities.store.get_mut(id)
         {
             apply_body(base, state, &mob, &body);
+            state.has_target = entry.ai.target().is_some();
             if let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut()) {
                 ageable::custom_server_ai_step(ageable);
             }
@@ -1510,6 +1532,19 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     }
     if base.kind == Kind::Vex {
         species::vex::set_charging(base, body.vex.charging);
+    }
+    if let Some(Species::Fish(fish)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        fish.inflate_counter = body.fish.inflate_counter;
+        fish.deflate_timer = body.fish.deflate_timer;
+    }
+    if let Some(Species::Squid(squid)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        squid.movement = body.squid.movement;
+    }
+    if let Some(Species::Dolphin(dolphin)) = state.mob.as_mut().map(|mob| &mut mob.species) {
+        dolphin.treasure_pos = body.dolphin.treasure_pos;
+    }
+    if base.kind == Kind::Dolphin && species::dolphin::got_fish(base) != body.dolphin.got_fish {
+        species::dolphin::set_got_fish(base, body.dolphin.got_fish);
     }
     if let Some(Species::Bee(bee)) = state.mob.as_mut().map(|mob| &mut mob.species) {
         let facts = body.bee;
@@ -2297,6 +2332,7 @@ impl<L: ClientLink> Server<L> {
             golem: false,
             hoglin: false,
             bee: false,
+            puffer: None,
         };
         self.strike(None, victim, &source, damage, AfterHurt::MobAttack(follow))
     }
@@ -2311,6 +2347,12 @@ impl<L: ClientLink> Server<L> {
             hoglin,
             ..
         } = follow;
+        if let Some(puff) = follow.puffer {
+            if hurt {
+                self.pufferfish_finish_sting(attacker, target, puff);
+            }
+            return;
+        }
         if follow.bee {
             self.bee_finish_attack(attacker, target, hurt);
             return;

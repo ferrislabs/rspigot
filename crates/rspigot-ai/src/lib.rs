@@ -1,4 +1,5 @@
 mod action;
+#[macro_use]
 mod air;
 mod allay;
 mod animal;
@@ -58,6 +59,8 @@ mod shulker;
 mod silverfish;
 mod sniffer;
 mod sweep;
+mod swim;
+mod swimmers;
 mod tame;
 mod targeting;
 mod vex;
@@ -133,7 +136,7 @@ pub use combat::{
 };
 pub use control::{
     BodyRotationControl, HEAD_ROT_SPEED, JumpControl, LookControl, MAX_HEAD_X_ROT, MAX_HEAD_Y_ROT,
-    MoveControl, MoveStyle, Operation, can_reach, rotate_towards,
+    MoveControl, MoveStyle, Operation, SmoothSwimming, can_reach, rotate_towards,
 };
 pub use copper_golem::{
     COOLDOWN_TICKS as TRANSPORT_COOLDOWN_TICKS, COPPER_GOLEM_MEMORIES, ChestSide,
@@ -201,7 +204,7 @@ pub use piglin::{
     is_pos_near_nearest_repellent,
 };
 pub use polar_bear::{PolarBearAction, PolarBearFacts, PolarBearGoal};
-pub use profile::{MobProfile, MobState, combat_fall_distance};
+pub use profile::{MobProfile, MobState, Swimming, combat_fall_distance};
 pub use rabbit::{HopSound, MORE_CARROT_TICKS, RabbitHop, RaidGardenGoal};
 pub use raider::{
     LongDistancePatrolGoal, NearestAttackableWitchTargetGoal, NearestHealableRaiderTargetGoal,
@@ -231,6 +234,14 @@ pub use sniffer::{
     Scenting as SnifferScenting, Searching as SnifferSearching, SnifferAction, SnifferFacts,
     Sniffing as SnifferSniffing, calculate_dig_position, can_dig as sniffer_can_dig,
     can_sniff as sniffer_can_sniff,
+};
+pub use swimmers::{
+    AIR_ASSIST_SPEED, BreathAirGoal, DolphinFacts, DolphinJumpGoal, DolphinMoveToItemGoal,
+    DolphinPlayWithItemsGoal, DolphinSwimToTreasureGoal, DolphinSwimWithPlayerGoal, FishFacts,
+    FollowFlockLeaderGoal, GRACE_TICKS, ITEM_EYE_DROP, ITEM_PICKUP_DELAY, PufferfishPuffGoal,
+    RandomSwimmingGoal, SquidFacts, SquidFleeGoal, SquidRandomMovementGoal, TryFindWaterGoal,
+    WaterAction, WaterGoal, is_scary_kind_to_pufferfish, is_scary_to_pufferfish, motion_direction,
+    thrown_item_velocity,
 };
 pub use tame::{
     FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal, should_try_teleport_to_owner,
