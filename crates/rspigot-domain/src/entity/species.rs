@@ -12,6 +12,7 @@ use crate::random::RandomSource;
 use crate::{BiomeId, biome};
 
 pub mod armadillo;
+pub mod bat;
 pub mod blaze;
 pub mod cat;
 pub mod copper_golem;
@@ -26,6 +27,8 @@ pub mod hoglin;
 pub mod iron_golem;
 pub mod ocelot;
 pub mod panda;
+pub mod parrot;
+pub mod phantom;
 pub mod piglin;
 pub mod pillager;
 pub mod polar_bear;
@@ -35,6 +38,7 @@ pub mod shulker;
 pub mod silverfish;
 pub mod sniffer;
 pub mod snow_golem;
+pub mod vex;
 pub mod villager;
 pub mod wandering_trader;
 pub mod warden;
@@ -202,6 +206,10 @@ pub enum Species {
     SnowGolem(snow_golem::SnowGolemState),
     Blaze(blaze::BlazeState),
     Ghast(ghast::GhastState),
+    Vex(vex::VexState),
+    Bat(bat::BatState),
+    Phantom(phantom::PhantomState),
+    Parrot,
     Shulker(shulker::ShulkerState),
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
@@ -380,6 +388,19 @@ impl Species {
         }
         if kind == EntityKind::Ghast {
             return Self::Ghast(ghast::define(base));
+        }
+        if kind == EntityKind::Vex {
+            return Self::Vex(vex::define(base));
+        }
+        if kind == EntityKind::Bat {
+            return Self::Bat(bat::define(base));
+        }
+        if kind == EntityKind::Phantom {
+            return Self::Phantom(phantom::define(base));
+        }
+        if kind == EntityKind::Parrot {
+            parrot::define(base);
+            return Self::Parrot;
         }
         if kind == EntityKind::Shulker {
             return Self::Shulker(shulker::define(base));

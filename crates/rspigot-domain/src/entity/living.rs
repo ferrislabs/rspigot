@@ -76,6 +76,11 @@ const GHAST_FLYING_SPEEDS: FlyingSpeeds = FlyingSpeeds {
     lava: 0.02,
     air: 0.02,
 };
+const PHANTOM_FLYING_SPEEDS: FlyingSpeeds = FlyingSpeeds {
+    water: 0.02,
+    lava: 0.02,
+    air: 0.2,
+};
 const SLOW_FALLING_GRAVITY: f64 = 0.01;
 const LEVITATION_SPEED: f64 = 0.05;
 const LEVITATION_BLEND: f64 = 0.2;
@@ -1094,7 +1099,11 @@ pub fn travel_in_air<V: BlockView>(
     let drag_modifier = living.attribute(AIR_DRAG_MODIFIER) as f32;
     let horizontal_drag = compute_modified_friction(AIR_FRICTION, drag_modifier);
     let horizontal = block_friction * horizontal_drag;
-    let vertical = compute_modified_friction(AIR_DRAG, drag_modifier);
+    let vertical = if omnidirectional_air_mover(base.kind) {
+        horizontal
+    } else {
+        compute_modified_friction(AIR_DRAG, drag_modifier)
+    };
     base.velocity = if living.discard_friction {
         Vec3::new(movement.x, y, movement.z)
     } else {
@@ -1105,6 +1114,10 @@ pub fn travel_in_air<V: BlockView>(
         )
     };
     landing
+}
+
+pub fn omnidirectional_air_mover(kind: EntityKind) -> bool {
+    matches!(kind, EntityKind::Parrot | EntityKind::Bee)
 }
 
 pub fn begin_ai_step(base: &mut EntityBase, living: &mut LivingState) {
@@ -1302,6 +1315,9 @@ pub fn travel<V: BlockView>(
 ) -> Option<Landing> {
     if base.kind == EntityKind::Ghast {
         return travel_flying(base, living, view, input, GHAST_FLYING_SPEEDS);
+    }
+    if base.kind == EntityKind::Phantom {
+        return travel_flying(base, living, view, input, PHANTOM_FLYING_SPEEDS);
     }
     if base.fluid.in_liquid() {
         travel_in_fluid(base, living, view, input)
@@ -1511,6 +1527,42 @@ mod tests {
         assert_eq!(base.velocity, Vec3::new(drag, 0.5 * drag, 0.0));
         assert!((base.position.x - 1.5).abs() < 1.0e-9);
         assert!((base.position.y - 80.5).abs() < 1.0e-9);
+    }
+
+    fn flier(kind: EntityKind) -> (EntityBase, LivingState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), kind);
+        base.position = Vec3::new(0.5, 80.0, 0.5);
+        base.old_position = base.position;
+        base.set_no_gravity(true);
+        let living = LivingState::new(&mut base, 0.0);
+        (base, living)
+    }
+
+    #[test]
+    fn an_omnidirectional_mover_slows_vertically_like_horizontally_and_a_walker_does_not() {
+        for (kind, vertical) in [
+            (EntityKind::Parrot, f64::from(0.91f32)),
+            (EntityKind::Bee, f64::from(0.91f32)),
+            (EntityKind::Zombie, f64::from(0.98f32)),
+        ] {
+            let (mut base, mut living) = flier(kind);
+            base.velocity = Vec3::new(1.0, 1.0, 0.0);
+            travel(&mut base, &mut living, &Air, Vec3::ZERO);
+            assert_eq!(base.velocity.x, f64::from(0.91f32), "{kind:?}");
+            assert_eq!(base.velocity.y, vertical, "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn a_flier_off_the_ground_accelerates_at_the_flying_speed_of_a_fiftieth() {
+        let (mut base, mut living) = flier(EntityKind::Parrot);
+        travel(&mut base, &mut living, &Air, Vec3::new(0.0, 0.0, 1.0));
+        let expected = 0.02 * f64::from(0.91f32);
+        assert!(
+            (base.velocity.z - expected).abs() < 1.0e-9,
+            "{}",
+            base.velocity.z
+        );
     }
 
     #[test]

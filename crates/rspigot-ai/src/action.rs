@@ -166,4 +166,5 @@ pub enum MobAction {
     Piglin(PiglinAction),
     Villager(crate::villager::VillagerAction),
     Warden(crate::warden::WardenAction),
+    Air(crate::AirAction),
 }

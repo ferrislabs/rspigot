@@ -1,7 +1,9 @@
 mod action;
+mod air;
 mod animal;
 mod animals;
 mod armadillo;
+mod bat;
 mod behavior;
 mod blaze;
 mod blocks;
@@ -17,6 +19,7 @@ mod crossbow;
 mod enderman;
 mod evade;
 mod finder;
+mod fly;
 mod fox;
 mod frog;
 mod ghast;
@@ -31,8 +34,10 @@ mod mock;
 mod navigation;
 mod neutral;
 mod panda;
+mod parrot;
 mod path;
 mod path_type;
+mod phantom;
 mod piglin;
 mod polar_bear;
 mod profile;
@@ -53,6 +58,7 @@ mod sniffer;
 mod sweep;
 mod tame;
 mod targeting;
+mod vex;
 mod view;
 mod village;
 mod villager;
@@ -63,6 +69,7 @@ mod world;
 mod zombified_piglin;
 
 pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequest};
+pub use air::{AirAction, AirGoal};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };
@@ -70,6 +77,7 @@ pub use armadillo::{
     ArmadilloAction, ArmadilloBallUp, ArmadilloFacts, ArmadilloPanic, ArmadilloScareSensor,
     RollOutWithoutDanger, can_stay_rolled_up, is_scared_by,
 };
+pub use bat::{BatAction, BatFacts, BatGoal};
 pub use behavior::{
     ALLOWED_ANGLES, Activity, ActivityData, AdultSensor, AnimalMakeLove, AnimalPanic, AwayFrom,
     BabyFollowAdult, Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState, Codec,
@@ -160,8 +168,17 @@ pub use navigation::{
 };
 pub use neutral::ResetUniversalAngerGoal;
 pub use panda::{PandaAction, PandaBrain, PandaFacts, PandaGoal};
+pub use parrot::{
+    AMBIENT_SOUND as PARROT_AMBIENT_SOUND, FollowMobGoal, IMITATIONS as PARROT_IMITATIONS,
+    WANDER_PROBABILITY as PARROT_WANDER_PROBABILITY, WanderGoal as ParrotWanderGoal,
+    imitated_sound as parrot_imitated_sound,
+};
 pub use path::{Path, PathNode};
 pub use path_type::PathType;
+pub use phantom::{
+    AttackPhase, AttackPlayerTargetGoal, AttackStrategyGoal, CircleAroundAnchorGoal, PhantomAction,
+    PhantomBrain, PhantomFacts, SweepAttackGoal,
+};
 pub use piglin::{
     ADMIRE_DURATION, ATE_RECENTLY_TICKS, BackUpIfTooClose, BecomePassiveIfMemoryPresent, CopyIf,
     CopyMemoryWithExpiry, CrossbowAttack, HoglinCondition, HoglinFacts, HoglinSensor, NetherFinder,
@@ -181,10 +198,13 @@ pub use raider::{
 };
 pub use random::{MobRandom, RandomSource};
 pub use random_pos::{
+    air_and_water_pos, air_pos_towards, hover_pos, land_pos_away, land_pos_towards,
+    move_up_to_above_solid, pos_away, pos_towards,
+};
+pub use random_pos::{
     default_pos, is_solid, is_stable_destination, land_pos, light_magic_value,
     mob_light_magic_value, move_up_out_of_solid, random_direction, walk_target_value,
 };
-pub use random_pos::{land_pos_away, land_pos_towards, pos_away, pos_towards};
 pub use ranged::RangedAttackGoal;
 pub use registry::{GoalSettings, ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER};
 pub use restriction::MoveTowardsRestrictionGoal;
@@ -209,6 +229,7 @@ pub use targeting::{
     TargetingConditions, can_attack, goal_can_attack, is_angry_at, mob_can_attack, nearest,
     nearest_player, valid_mob_target, valid_player_target, valid_target,
 };
+pub use vex::{VexAction, VexFacts};
 pub use view::BlockView;
 pub use village::{find_section_closest_to_village, sections_to_village};
 pub use villager::{

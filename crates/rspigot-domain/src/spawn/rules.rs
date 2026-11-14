@@ -14,6 +14,7 @@ const RABBITS_SPAWNABLE_ON: &str = "minecraft:rabbits_spawnable_on";
 const GOATS_SPAWNABLE_ON: &str = "minecraft:goats_spawnable_on";
 const ARMADILLO_SPAWNABLE_ON: &str = "minecraft:armadillo_spawnable_on";
 const FROGS_SPAWNABLE_ON: &str = "minecraft:frogs_spawnable_on";
+const PARROTS_SPAWNABLE_ON: &str = "minecraft:parrots_spawnable_on";
 const LEAVES: &str = "minecraft:leaves";
 const OCELOT_SPAWN_CHANCE: i32 = 3;
 const ANIMAL_MIN_BRIGHTNESS: i32 = 8;
@@ -84,6 +85,8 @@ pub fn check_predicate(
             super::silverfish::check_spawn_rules(level, kind, reason, pos)
         }
         SpawnPredicate::Ghast => super::ghast::check_ghast_spawn_rules(level, kind, reason, pos),
+        SpawnPredicate::Bat => super::bat::check_bat_spawn_rules(level, kind, reason, pos),
+        SpawnPredicate::Parrot => check_bright_spawnable_on(level, pos, PARROTS_SPAWNABLE_ON),
         SpawnPredicate::Endermite => {
             super::endermite::check_endermite_spawn_rules(level, kind, reason, pos)
         }
@@ -152,6 +155,8 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Silverfish
                 | SpawnPredicate::Endermite
                 | SpawnPredicate::Ghast
+                | SpawnPredicate::Bat
+                | SpawnPredicate::Parrot
         )
     });
     let walk = match spawn.check_spawn_rules {
