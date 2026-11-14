@@ -39,6 +39,7 @@ mod guardian;
 mod heap;
 mod holdable;
 mod iron_golem;
+mod llama;
 #[cfg(test)]
 mod mock;
 mod nautilus;
@@ -205,6 +206,10 @@ pub use guardian::{
     GuardianRestrictionGoal, GuardianStrollGoal,
 };
 pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal, is_enemy};
+pub use llama::{
+    CaravanFacts, LlamaAction, LlamaFacts, LlamaFollowCaravanGoal, LlamaGoal,
+    LlamaHurtByTargetGoal, TraderLlamaDefendWanderingTraderGoal,
+};
 pub use nautilus::{ChargeAttack as NautilusChargeAttack, NautilusAction};
 pub use navigation::{
     MobTick, MoveTarget, Navigation, can_cut_corner, can_cut_corner_for, find_surface_position,

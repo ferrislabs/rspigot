@@ -135,6 +135,22 @@ pub fn shoot(
     base.set_pitch((mth::atan2(movement.y, horizontal) * mth::RAD_TO_DEG) as f32);
 }
 
+pub fn smothered(blocks: &impl crate::entity::BlockView, base: &EntityBase) -> bool {
+    let bounds = base.bounding_box();
+    let low = |value: f64| value.floor() as i32;
+    for x in low(bounds.min_x)..=low(bounds.max_x) {
+        for y in low(bounds.min_y)..=low(bounds.max_y) {
+            for z in low(bounds.min_z)..=low(bounds.max_z) {
+                let state = blocks.block(crate::BlockPos::new(x, y, z));
+                if state.is_none_or(|state| state.is_air()) {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
 pub fn apply_gravity(base: &mut EntityBase) {
     if !base.is_no_gravity() {
         base.velocity = base.velocity + Vec3::new(0.0, -gravity(base.kind), 0.0);

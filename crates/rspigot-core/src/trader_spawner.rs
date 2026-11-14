@@ -1,5 +1,6 @@
 use rand::Rng;
 use rspigot_ai::AiWorld;
+use rspigot_domain::entity::save::uuid_tag;
 use rspigot_domain::entity::spawn::finalize_spawn;
 use rspigot_domain::entity::species::Species;
 use rspigot_domain::poi::{Occupancy, PoiType};
@@ -8,6 +9,7 @@ use rspigot_domain::spawn::SpawnReason;
 use rspigot_domain::spawn::placement::is_spawn_position_ok;
 use rspigot_domain::{BlockPos, Vec3};
 use rspigot_entities::EntityKind;
+use rspigot_nbt::Compound;
 
 use crate::mob_actions::new_mob;
 use crate::mobs::{ServerRandom, sky_darken};
@@ -15,6 +17,7 @@ use crate::plugins::Birth;
 use crate::plugins::events::CreatureSpawnReason;
 use crate::ports::ClientLink;
 use crate::server::Server;
+use crate::spawning::LEASH;
 
 const OVERWORLD: &str = "minecraft:overworld";
 const TICK_DELAY: i32 = 1_200;
@@ -26,6 +29,8 @@ const CHANCE_ROLL: i32 = 100;
 const SPAWN_ODDS: i32 = 10;
 const SPAWN_RADIUS: i32 = 48;
 const SPAWN_TRIES: i32 = 10;
+const TRADER_LLAMAS: i32 = 2;
+const LLAMA_RADIUS: i32 = 4;
 const HOME_RADIUS: i32 = 16;
 const NO_TRADERS: &str = "minecraft:without_wandering_trader_spawns";
 const BIOME_REGISTRY: &str = "minecraft:worldgen/biome";
@@ -150,11 +155,45 @@ impl<L: ClientLink> Server<L> {
             mob.home_pos = target;
             mob.home_radius = HOME_RADIUS;
         }
+        let trader = entity.base.uuid;
         self.spawn_entity(
             entity,
             Birth::of(CreatureSpawnReason::Natural).with_random(own),
         );
+        for _ in 0..TRADER_LLAMAS {
+            self.spawn_trader_llama(trader, spawn);
+        }
         true
+    }
+
+    fn spawn_trader_llama(&mut self, trader: uuid::Uuid, around: BlockPos) {
+        let Some(pos) = self.find_spawn_position_near(around, LLAMA_RADIUS) else {
+            return;
+        };
+        let mut llama = new_mob(self.new_entity_base(EntityKind::TraderLlama));
+        let mut own = LegacyRandom::new(self.rng.random());
+        let center = Vec3::new(
+            f64::from(pos.x) + 0.5,
+            f64::from(pos.y),
+            f64::from(pos.z) + 0.5,
+        );
+        llama.base.snap_to(center, 0.0, 0.0);
+        let environment = self.spawn_environment(center);
+        finalize_spawn(
+            &mut llama,
+            &environment,
+            SpawnReason::Event,
+            None,
+            &mut ServerRandom(&mut self.rng),
+            &mut own,
+        );
+        let mut holder = Compound::new();
+        holder.insert("UUID", uuid_tag(trader));
+        llama.extra.insert(LEASH, holder);
+        self.spawn_entity(
+            llama,
+            Birth::of(CreatureSpawnReason::Natural).with_random(own),
+        );
     }
 
     fn find_spawn_position_near(&mut self, reference: BlockPos, radius: i32) -> Option<BlockPos> {

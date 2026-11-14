@@ -106,7 +106,7 @@ pub fn strength(base: &EntityBase) -> i32 {
 pub fn set_strength(base: &mut EntityBase, value: i32) {
     base.data.set(
         DATA_STRENGTH,
-        SyncedValue::Int(value.min(MAX_STRENGTH).max(MIN_STRENGTH)),
+        SyncedValue::Int(value.clamp(MIN_STRENGTH, MAX_STRENGTH)),
     );
 }
 

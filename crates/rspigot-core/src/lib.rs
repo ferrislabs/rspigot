@@ -44,6 +44,7 @@ mod input;
 mod interact;
 mod items;
 mod kinds;
+mod leash;
 mod lectern;
 pub mod lighting;
 pub mod loot;
