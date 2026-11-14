@@ -23,7 +23,7 @@ use crate::plugins::events::{
 use crate::plugins::steps::{
     AfterHurt, Outcome, VehicleDestroyStep, VehicleHurtStep, VehiclePlaceStep, VehiclePushStep,
 };
-use crate::plugins::{Birth, Continuation, EventPayload, Spawned, plugin_face_of, slot_of};
+use crate::plugins::{Birth, Continuation, EventPayload, Spawned, slot_of};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -42,12 +42,13 @@ fn drop_item_of(kind: Kind) -> Option<ItemKind> {
 }
 
 pub(crate) fn is_vehicle_state(state: &EntityState) -> bool {
-    matches!(state, EntityState::Boat(_))
+    matches!(state, EntityState::Boat(_) | EntityState::Minecart(_))
 }
 
 pub(crate) fn cargo_of(entity: &Entity) -> Option<&vehicle::Cargo> {
     match &entity.state {
         EntityState::Boat(state) => state.cargo.as_ref(),
+        EntityState::Minecart(state) => state.cargo.as_ref(),
         _ => None,
     }
 }
@@ -55,6 +56,7 @@ pub(crate) fn cargo_of(entity: &Entity) -> Option<&vehicle::Cargo> {
 pub(crate) fn cargo_mut(entity: &mut Entity) -> Option<&mut vehicle::Cargo> {
     match &mut entity.state {
         EntityState::Boat(state) => state.cargo.as_mut(),
+        EntityState::Minecart(state) => state.cargo.as_mut(),
         _ => None,
     }
 }
@@ -288,7 +290,7 @@ impl<L: ClientLink> Server<L> {
         id: PlayerId,
         hand: Hand,
         entity: Entity,
-        hit: (rspigot_domain::BlockPos, rspigot_blocks::Face),
+        hit: (rspigot_domain::BlockPos, crate::plugins::events::Face),
     ) {
         let view = crate::plugins::view_of_entity(&entity);
         let step = VehiclePlaceStep {
@@ -303,7 +305,7 @@ impl<L: ClientLink> Server<L> {
             move |server| {
                 Some(EventPayload::EntityPlace(EntityPlace {
                     block: hit.0,
-                    block_face: plugin_face_of(hit.1),
+                    block_face: hit.1,
                     entity_type: view.kind.clone(),
                     entity: view,
                     hand: slot_of(hand),
@@ -343,11 +345,15 @@ impl<L: ClientLink> Server<L> {
         self.consume_held(player, hand, 1);
     }
 
-    pub(crate) fn push_vehicle(&mut self, vehicle: EntityId, other: EntityId) {
+    pub(crate) fn push_vehicle(&mut self, vehicle: EntityId, other: EntityId, ride: bool) {
         let lane = self.lane_for(None, vehicle);
         self.fire(
             lane,
-            Continuation::PushVehicle(VehiclePushStep { vehicle, other }),
+            Continuation::PushVehicle(VehiclePushStep {
+                vehicle,
+                other,
+                ride,
+            }),
             move |server| {
                 Some(EventPayload::VehicleEntityCollision(
                     VehicleEntityCollision {
@@ -365,8 +371,16 @@ impl<L: ClientLink> Server<L> {
         if cancelled {
             return;
         }
-        let VehiclePushStep { vehicle, other } = step;
-        self.shove_apart(vehicle, other);
+        let VehiclePushStep {
+            vehicle,
+            other,
+            ride,
+        } = step;
+        if ride {
+            self.start_riding(other, vehicle, false, true);
+        } else {
+            self.shove_apart(vehicle, other);
+        }
     }
 
     fn shove_apart(&mut self, vehicle: EntityId, other: EntityId) {

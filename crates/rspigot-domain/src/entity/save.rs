@@ -23,6 +23,7 @@ use super::living::{
     self, EQUIPMENT_SLOTS, LivingState, MobState, health, is_left_handed, is_no_ai, set_health,
     set_left_handed, set_no_ai,
 };
+use super::minecart;
 use super::orb::{self, OrbState};
 use super::species::{self, Species};
 use super::thrown::{self, ThrownState};
@@ -202,6 +203,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
     ) || hurting::is_hurting_projectile(kind)
         || kind.extends("Mob")
         || kind.extends("AbstractBoat")
+        || kind.extends("AbstractMinecart")
 }
 
 fn doubles(v: Vec3) -> Tag {
@@ -1159,6 +1161,9 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         }
         EntityKind::ArmorStand => EntityState::Stand(Box::new(armor_stand::define(&mut base))),
         _ if kind.extends("AbstractBoat") => EntityState::Boat(Box::new(boat::define(&mut base))),
+        _ if kind.extends("AbstractMinecart") => {
+            EntityState::Minecart(Box::new(minecart::define(&mut base)))
+        }
         EntityKind::AreaEffectCloud => EntityState::Cloud(Box::new(cloud::define(&mut base))),
         EntityKind::LightningBolt => EntityState::Lightning(lightning::LightningState::new(
             (fallback_uuid.as_u64_pair().0 % 3) as i32 + 1,
@@ -1256,6 +1261,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Boat(boat_state) => {
             boat::read(nbt, boat_state);
             &[&ENTITY_KEYS, boat::KEYS]
+        }
+        EntityState::Minecart(cart_state) => {
+            minecart::read(nbt, cart_state);
+            &[&ENTITY_KEYS, minecart::KEYS]
         }
         EntityState::Lightning(_) | EntityState::Inert(_) => &[],
     };
@@ -1691,6 +1700,7 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
             armor_stand::write(&entity.base, stand_state, &mut out);
         }
         EntityState::Boat(boat_state) => boat::write(boat_state, &mut out),
+        EntityState::Minecart(cart_state) => minecart::write(cart_state, &mut out),
         EntityState::Lightning(_) | EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {

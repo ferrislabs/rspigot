@@ -365,6 +365,9 @@ impl<L: ClientLink> Server<L> {
         if let Some(result) = self.boat_interact(id, target) {
             return result;
         }
+        if let Some(result) = self.minecart_interact(id, target) {
+            return result;
+        }
         let Some(entity) = self.entities.store.get(target) else {
             return Interaction::Pass;
         };

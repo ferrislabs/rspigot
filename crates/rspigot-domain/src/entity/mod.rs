@@ -19,6 +19,7 @@ pub mod item;
 pub mod leash;
 pub mod lightning;
 pub mod living;
+pub mod minecart;
 pub mod neutral;
 pub mod orb;
 pub mod physics;
@@ -73,6 +74,7 @@ pub enum EntityState {
     Hanging(hanging::HangingState),
     Stand(Box<armor_stand::StandState>),
     Boat(Box<boat::BoatState>),
+    Minecart(Box<minecart::MinecartState>),
     Living(Box<LivingState>),
     Orb(OrbState),
     Inert(Compound),

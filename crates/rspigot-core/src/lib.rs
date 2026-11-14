@@ -65,6 +65,7 @@ pub mod lighting;
 mod lightning;
 pub mod loot;
 mod menu;
+mod minecarts;
 mod mob_actions;
 mod mob_effects;
 mod mob_life;

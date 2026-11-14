@@ -134,6 +134,9 @@ impl<L: ClientLink> Server<L> {
         if let Some(open) = self.boat_can_take(vehicle) {
             return open;
         }
+        if let Some(open) = self.cart_can_take(vehicle) {
+            return open;
+        }
         match entity.base.kind {
             Kind::Strider => seated == 0 && !self.eye_in_lava(vehicle),
             kind => seated < riding::max_passengers(kind),

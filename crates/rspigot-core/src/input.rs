@@ -581,6 +581,10 @@ impl<L: ClientLink> Server<L> {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;
         }
+        if self.use_minecart(id, hand, pos, face, clicked) {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+            return;
+        }
         if let Some(held) = &stack
             && !matches!(game_mode, GameMode::Adventure | GameMode::Spectator)
             && self.spawn_from_egg_on_block(id, slot, held, pos, face, clicked)

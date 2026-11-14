@@ -455,6 +455,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Hanging(_) => self.tick_hanging(id),
                 EntityState::Stand(_) => self.tick_stand(id),
                 EntityState::Boat(_) => self.tick_boat(id),
+                EntityState::Minecart(_) => self.tick_minecart(id),
                 EntityState::Cloud(_) => self.tick_cloud(id),
                 EntityState::Inert(_) => {}
             }

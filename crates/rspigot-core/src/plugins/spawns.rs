@@ -55,7 +55,7 @@ pub(crate) fn spawn_kind(entity: &Entity) -> EventKind {
         EntityState::Living(_) if entity.base.kind != Kind::Player => EventKind::CreatureSpawn,
         EntityState::Item(_) => EventKind::ItemSpawn,
         EntityState::Lightning(_) => EventKind::LightningStrike,
-        EntityState::Boat(_) => EventKind::VehicleCreate,
+        EntityState::Boat(_) | EntityState::Minecart(_) => EventKind::VehicleCreate,
         EntityState::Arrow(_)
         | EntityState::Thrown(_)
         | EntityState::Hurting(_)

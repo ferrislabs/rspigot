@@ -8,7 +8,7 @@ use rspigot_entities::EntityKind as Kind;
 use crate::events::Hand;
 use crate::interact::Interaction;
 use crate::plugins::events::{VehicleBlockCollision, VehicleMove, VehicleUpdate};
-use crate::plugins::{EventKind, EventPayload, ray_end};
+use crate::plugins::{EventKind, EventPayload, plugin_face_of, ray_end};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -86,7 +86,7 @@ impl<L: ClientLink> Server<L> {
             return true;
         }
         let entity = Entity::new(base, EntityState::Boat(Box::new(state)));
-        self.place_vehicle(id, hand, entity, (hit.pos, hit.face));
+        self.place_vehicle(id, hand, entity, (hit.pos, plugin_face_of(hit.face)));
         true
     }
 
@@ -192,7 +192,7 @@ impl<L: ClientLink> Server<L> {
         self.crowd_boat(id, piloted);
     }
 
-    fn vehicle_block_collision(&mut self, id: EntityId, block: BlockPos) {
+    pub(crate) fn vehicle_block_collision(&mut self, id: EntityId, block: BlockPos) {
         if !self.listened(EventKind::VehicleBlockCollision) {
             return;
         }
@@ -296,7 +296,7 @@ impl<L: ClientLink> Server<L> {
             floor <= this.min_y
         };
         if reaches {
-            self.push_vehicle(boat, other);
+            self.push_vehicle(boat, other, false);
         }
     }
 

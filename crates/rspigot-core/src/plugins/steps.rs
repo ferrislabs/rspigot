@@ -766,6 +766,7 @@ pub(crate) struct VehicleDestroyStep {
 pub(crate) struct VehiclePushStep {
     pub(crate) vehicle: EntityId,
     pub(crate) other: EntityId,
+    pub(crate) ride: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
