@@ -45,7 +45,7 @@ impl<L: ClientLink> Server<L> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::sync::Arc;
     use std::time::Duration;
 
@@ -65,7 +65,7 @@ mod tests {
     use crate::ports::{ChunkGenerator, ChunkStore, EntityStore, StoreError};
     use crate::status::StatusBoard;
 
-    struct Quiet;
+    pub(crate) struct Quiet;
 
     impl ClientLink for Quiet {
         fn send(&self, _: ClientEvent) {}
