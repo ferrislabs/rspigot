@@ -236,6 +236,17 @@ pub fn sync_equipment(base: &EntityBase, living: &mut LivingState) -> bool {
     true
 }
 
+pub fn age_boundary_reached(base: &mut EntityBase, living: &mut LivingState) {
+    let baby = living
+        .mob
+        .as_ref()
+        .and_then(|mob| mob.ageable.as_ref())
+        .is_some_and(|ageable| crate::entity::ageable::is_baby(base, ageable));
+    if !baby {
+        crate::entity::species::cube::set_size(base, living, ADULT_SIZE, true);
+    }
+}
+
 pub fn can_hold_item(
     base: &EntityBase,
     living: &LivingState,
