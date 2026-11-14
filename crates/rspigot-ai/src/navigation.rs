@@ -120,6 +120,11 @@ impl Navigation {
         }
     }
 
+    pub fn set_required_path_length(&mut self, length: f32, follow_range: f64) {
+        self.required_path_length = length;
+        self.update_max_visited_nodes(follow_range);
+    }
+
     pub fn max_path_length(&self, follow_range: f64) -> f32 {
         (follow_range as f32).max(self.required_path_length)
     }

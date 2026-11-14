@@ -16,6 +16,7 @@ const HEAD_STABLE_ANGLE: f32 = 15.0;
 const DELAY_UNTIL_FACING_FORWARD: i32 = 10;
 const TIME_TO_FACE_FORWARD: f32 = 10.0;
 const STRAFE_SPEED_MODIFIER: f64 = 0.25;
+const HOP_WATER_SPEED: f64 = 1.5;
 
 pub fn rotate_towards(from: f32, to: f32, max: f32) -> f32 {
     let difference = mth::degrees_difference(from, to);
@@ -27,15 +28,32 @@ fn set_speed(living: &mut LivingState, speed: f32) {
     living.zza = speed;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LookControl {
     y_max_rot_speed: f32,
     x_max_rot_angle: f32,
     look_at_cooldown: i32,
     wanted: Vec3,
+    max_head_x_rot: f32,
+}
+
+impl Default for LookControl {
+    fn default() -> Self {
+        Self {
+            y_max_rot_speed: 0.0,
+            x_max_rot_angle: 0.0,
+            look_at_cooldown: 0,
+            wanted: Vec3::ZERO,
+            max_head_x_rot: MAX_HEAD_X_ROT,
+        }
+    }
 }
 
 impl LookControl {
+    pub fn set_max_head_x_rot(&mut self, max: f32) {
+        self.max_head_x_rot = max;
+    }
+
     pub fn set_look_at(&mut self, at: Vec3, y_max_rot_speed: f32, x_max_rot_angle: f32) {
         self.wanted = at;
         self.y_max_rot_speed = y_max_rot_speed;
@@ -44,7 +62,7 @@ impl LookControl {
     }
 
     pub fn look_at(&mut self, at: Vec3) {
-        self.set_look_at(at, HEAD_ROT_SPEED, MAX_HEAD_X_ROT);
+        self.set_look_at(at, HEAD_ROT_SPEED, self.max_head_x_rot);
     }
 
     pub fn is_looking_at_target(&self) -> bool {
@@ -73,7 +91,19 @@ impl LookControl {
     }
 
     pub fn tick(&mut self, base: &mut EntityBase, living: &LivingState, navigating: bool) {
-        base.set_pitch(0.0);
+        self.tick_with(base, living, navigating, true);
+    }
+
+    pub fn tick_with(
+        &mut self,
+        base: &mut EntityBase,
+        living: &LivingState,
+        navigating: bool,
+        reset_x_rot: bool,
+    ) {
+        if reset_x_rot {
+            base.set_pitch(0.0);
+        }
         if self.look_at_cooldown > 0 {
             self.look_at_cooldown -= 1;
             if let Some(yaw) = self.y_rot_d(base) {
@@ -109,6 +139,9 @@ pub struct MoveControl {
     strafe_forwards: f32,
     strafe_right: f32,
     operation: Operation,
+    hop: bool,
+    in_water: bool,
+    next_jump_speed: f64,
 }
 
 fn rotlerp(current: f32, target: f32, max: f32) -> f32 {
@@ -139,7 +172,27 @@ impl MoveControl {
         self.speed_modifier
     }
 
+    pub fn enable_hop(&mut self) {
+        self.hop = true;
+    }
+
+    pub fn set_in_water(&mut self, in_water: bool) {
+        self.in_water = in_water;
+    }
+
+    pub fn next_jump_speed(&self) -> f64 {
+        self.next_jump_speed
+    }
+
     pub fn set_wanted_position(&mut self, position: Vec3, speed_modifier: f64) {
+        let speed_modifier = if self.hop && self.in_water {
+            HOP_WATER_SPEED
+        } else {
+            speed_modifier
+        };
+        if self.hop && speed_modifier > 0.0 {
+            self.next_jump_speed = speed_modifier;
+        }
         self.wanted = position;
         self.speed_modifier = speed_modifier;
         if self.operation != Operation::Jumping {
@@ -272,6 +325,10 @@ impl JumpControl {
 
     pub fn is_jumping(&self) -> bool {
         self.jump
+    }
+
+    pub fn take(&mut self) -> bool {
+        std::mem::take(&mut self.jump)
     }
 
     pub fn tick(&mut self, living: &mut LivingState) {

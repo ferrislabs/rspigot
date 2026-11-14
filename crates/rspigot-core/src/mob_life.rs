@@ -1,6 +1,7 @@
 use rand::Rng;
-use rspigot_data::variants::Farm;
+use rspigot_data::variants::VariantFamily;
 use rspigot_domain::damage::DamageType;
+use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
 use rspigot_domain::entity::ageable;
 use rspigot_domain::entity::fire;
 use rspigot_domain::entity::living::{self, EQUIPMENT_SLOTS, slot_index};
@@ -12,24 +13,31 @@ use rspigot_domain::player::GameMode;
 use rspigot_domain::random::{LegacyRandom, RandomSource};
 use rspigot_domain::spawn::{SpawnLevel, SpawnReason, placement, rules};
 use rspigot_domain::{BlockPos, EntityId, Vec3};
-use rspigot_entities::{EntityKind as Kind, SoundSource};
+use rspigot_entities::{EntityKind as Kind, SoundSource, VoicePitch};
 use rspigot_items::EquipmentSlot;
 
+use crate::commands::Target;
 use crate::events::{ClientEvent, EntityStatus};
 use crate::health::DamageSource;
 use crate::loot::{self, LootContext};
-use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause};
+use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause, EntityRemoveCause};
 use crate::plugins::{Birth, Combuster, Continuation, Holder, Spawned};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
+const ZOMBIE_IGNITE_CHANCE: f32 = 0.3;
+const ZOMBIE_IGNITE_SECONDS: i32 = 2;
+const HUSK_HUNGER_TICKS: i32 = 140;
 const CREEPER_PRIMED: &str = "minecraft:entity.creeper.primed";
 const CHICKEN_EGG: &str = "minecraft:entity.chicken.egg";
 const CHICKEN_LAY: &str = "minecraft:gameplay/chicken_lay";
 const AMBIENT_CHANCE: i32 = 1000;
 const ANIMAL_AMBIENT_INTERVAL: i32 = 120;
 const MOB_AMBIENT_INTERVAL: i32 = 80;
+const OCELOT_AMBIENT_INTERVAL: i32 = 900;
 const SPAWN_ITEM_DELAY: u16 = 10;
+const BABY_PITCH: f32 = 1.5;
+const BABY_ZOMBIE_VILLAGER_PITCH: f32 = 2.0;
 const ITEM_SPREAD: f64 = 0.2;
 const ITEM_LIFT: f64 = 0.2;
 const BURN_IN_DAYLIGHT: &str = "minecraft:burn_in_daylight";
@@ -42,17 +50,41 @@ pub(crate) fn type_in_tag(kind: Kind, tag: &str) -> bool {
         .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
 }
 
-pub(crate) fn ambient_sound(entity: &Entity) -> Option<&'static str> {
+pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static str> {
     let base = &entity.base;
     let mob = entity.living()?.mob.as_ref()?;
-    if let Some(farm) = mob.species.farm() {
+    if let Some(farm) = mob.species.variant_family() {
         return species::sound_set(base, farm, entity.is_baby())?.ambient;
     }
     match base.kind {
+        Kind::Enderman => Some(if species::enderman::is_creepy(base) {
+            "minecraft:entity.enderman.scream"
+        } else {
+            "minecraft:entity.enderman.ambient"
+        }),
+        Kind::Endermite => Some("minecraft:entity.endermite.ambient"),
         Kind::Sheep => Some("minecraft:entity.sheep.ambient"),
         Kind::Zombie => Some("minecraft:entity.zombie.ambient"),
+        Kind::Husk => Some("minecraft:entity.husk.ambient"),
+        Kind::ZombieVillager => Some("minecraft:entity.zombie_villager.ambient"),
+        Kind::PolarBear => Some(if entity.is_baby() {
+            "minecraft:entity.polar_bear.ambient_baby"
+        } else {
+            "minecraft:entity.polar_bear.ambient"
+        }),
+        Kind::ZombifiedPiglin => Some(
+            if mob.neutral.is_some_and(|anger| anger.is_angry(game_time)) {
+                "minecraft:entity.zombified_piglin.angry"
+            } else {
+                "minecraft:entity.zombified_piglin.ambient"
+            },
+        ),
         Kind::Skeleton => Some("minecraft:entity.skeleton.ambient"),
         Kind::Spider => Some("minecraft:entity.spider.ambient"),
+        Kind::Rabbit => Some("minecraft:entity.rabbit.ambient"),
+        Kind::Ocelot => Some("minecraft:entity.ocelot.ambient"),
+        Kind::Silverfish => Some("minecraft:entity.silverfish.ambient"),
+        Kind::Panda => Some(species::panda::ambient_sound(base)),
         _ => None,
     }
 }
@@ -62,13 +94,19 @@ pub(crate) fn variant_sound(
     pick: fn(&rspigot_data::variants::SoundSet) -> Option<&'static str>,
 ) -> Option<Option<&'static str>> {
     let mob = entity.living()?.mob.as_ref()?;
-    let farm = mob.species.farm()?;
-    let set = species::sound_set(&entity.base, farm, entity.is_baby() && farm != Farm::Cow)?;
+    let farm = mob.species.variant_family()?;
+    let set = species::sound_set(
+        &entity.base,
+        farm,
+        entity.is_baby() && farm != VariantFamily::Cow,
+    )?;
     Some(pick(&set))
 }
 
 fn ambient_interval(kind: Kind) -> i32 {
-    if kind.extends("Animal") {
+    if kind == Kind::Ocelot {
+        OCELOT_AMBIENT_INTERVAL
+    } else if kind.extends("Animal") {
         ANIMAL_AMBIENT_INTERVAL
     } else {
         MOB_AMBIENT_INTERVAL
@@ -90,6 +128,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn species_pre_tick(&mut self, id: EntityId) -> bool {
+        if !self.kind_pre_tick(id) {
+            return false;
+        }
         let now = self.current_tick() as i64;
         let Some(Entity {
             base,
@@ -143,6 +184,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn species_post_tick(&mut self, id: EntityId) {
+        self.kind_post_tick(id);
         let now = self.current_tick() as i64;
         let Some(Entity {
             base,
@@ -152,9 +194,14 @@ impl<L: ClientLink> Server<L> {
         else {
             return;
         };
-        if base.kind != Kind::Zombie {
+        if !matches!(base.kind, Kind::Zombie | Kind::Husk) {
             return;
         }
+        let (converts_to, event) = if base.kind == Kind::Husk {
+            (Kind::Zombie, species::HUSK_CONVERSION_EVENT)
+        } else {
+            (Kind::Drowned, species::DROWNED_CONVERSION_EVENT)
+        };
         let alive = !living::is_dead_or_dying(base, state) && !base.is_removed();
         let no_ai = living::is_no_ai(base);
         let eye_in_water = base.eye_in_water;
@@ -173,7 +220,7 @@ impl<L: ClientLink> Server<L> {
             now,
         );
         if step == ConversionStep::Convert {
-            self.convert_mob(id, Kind::Drowned, species::DROWNED_CONVERSION_EVENT);
+            self.convert_mob(id, converts_to, event);
         }
     }
 
@@ -198,7 +245,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         entry.ambient_sound_time = -ambient_interval(kind);
-        self.play_mob_voice(id, ambient_sound);
+        self.play_ambient_sound(id);
     }
 
     pub(crate) fn reset_ambient_sound(&mut self, id: EntityId) {
@@ -211,11 +258,14 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn play_mob_voice(
         &mut self,
         id: EntityId,
-        pick: fn(&Entity) -> Option<&'static str>,
+        pick: impl Fn(&Entity) -> Option<&'static str>,
     ) {
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
+        if entity.base.is_silent() {
+            return;
+        }
         let Some(sound) = pick(entity) else {
             return;
         };
@@ -227,7 +277,12 @@ impl<L: ClientLink> Server<L> {
         let mut random = self.mob_random(id);
         let spread = (random.next_float() - random.next_float()) * 0.2;
         self.store_mob_random(id, random);
-        let pitch = spread + if baby { 1.5 } else { 1.0 };
+        let baby_pitch = if sounds.pitch == VoicePitch::ZombieVillager {
+            BABY_ZOMBIE_VILLAGER_PITCH
+        } else {
+            BABY_PITCH
+        };
+        let pitch = spread + if baby { baby_pitch } else { 1.0 };
         self.entity_sound(id, sound, volume, pitch);
     }
 
@@ -403,6 +458,67 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn zombie_attack_effects(&mut self, attacker: EntityId, target: Target) {
+        let Some(entity) = self.entities.store.get(attacker) else {
+            return;
+        };
+        let kind = entity.base.kind;
+        if !matches!(
+            kind,
+            Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
+        ) {
+            return;
+        }
+        let bare = entity
+            .living()
+            .is_some_and(|living| living.equipment(EquipmentSlot::Mainhand).is_none());
+        if !bare {
+            return;
+        }
+        let effective = self.difficulty_at(entity.base.position.block()).effective;
+        let on_fire = fire::is_on_fire(&entity.base);
+        if on_fire {
+            let mut random = self.mob_random(attacker);
+            let ignite = random.next_float() < effective * ZOMBIE_IGNITE_CHANCE;
+            self.store_mob_random(attacker, random);
+            if ignite && let Some(source) = self.entity_view(attacker) {
+                let holder = match target {
+                    Target::Player(player) => Holder::Player(player),
+                    Target::Entity(entity) => Holder::Mob(entity),
+                };
+                self.combust(
+                    holder,
+                    (ZOMBIE_IGNITE_SECONDS * effective as i32) as f32,
+                    Combuster::Entity(source),
+                );
+            }
+        }
+        let living_target = match target {
+            Target::Player(_) => true,
+            Target::Entity(entity) => self
+                .entities
+                .store
+                .get(entity)
+                .is_some_and(|e| e.living().is_some()),
+        };
+        if kind == Kind::Husk
+            && living_target
+            && let Some(hunger) = EffectId::from_name("minecraft:hunger")
+        {
+            let ticks = (HUSK_HUNGER_TICKS * effective as i32).max(0) as u32;
+            let effect = EffectInstance::new(hunger, EffectDuration::Ticks(ticks), 0, true);
+            let cause = EntityPotionEffectCause::Attack;
+            match target {
+                Target::Player(player) => {
+                    self.apply_effect(player, effect, Some(cause));
+                }
+                Target::Entity(entity) => {
+                    self.apply_entity_effect(entity, effect, cause);
+                }
+            }
+        }
+    }
+
     pub(crate) fn damage_mob_equipment(&mut self, id: EntityId, slot: EquipmentSlot, amount: i32) {
         if amount == 0 {
             return;
@@ -526,7 +642,7 @@ impl<L: ClientLink> Server<L> {
         }
         living::set_left_handed(&mut base, living::is_left_handed(&old_base));
         living::set_no_ai(&mut base, living::is_no_ai(&old_base));
-        if kind == Kind::Drowned {
+        if species::is_zombie(kind) {
             let difficulty = self.difficulty_at(old_base.position.block());
             let mut own = LegacyRandom::new(self.rng.random());
             rspigot_domain::entity::spawn::zombie_handle_attributes(
@@ -632,7 +748,11 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;
         };
-        if entity.base.kind != Kind::Zombie {
+        let kind = entity.base.kind;
+        if !matches!(
+            kind,
+            Kind::Zombie | Kind::Husk | Kind::ZombieVillager | Kind::ZombifiedPiglin
+        ) {
             return;
         }
         let position = entity.base.position;
@@ -666,26 +786,26 @@ impl<L: ClientLink> Server<L> {
             };
             let (rx, ry, rz) = (x + offset(), y + offset(), z + offset());
             let pos = BlockPos::new(rx, ry, rz);
-            if !self.reinforcement_spot(pos) {
+            if !self.reinforcement_spot(kind, pos) {
                 continue;
             }
             let at = Vec3::new(f64::from(rx), f64::from(ry), f64::from(rz));
-            if !self.reinforcement_fits(at) {
+            if !self.reinforcement_fits(kind, at) {
                 continue;
             }
             self.store_mob_random(id, random);
-            self.spawn_reinforcement(id, at, target);
+            self.spawn_reinforcement(kind, id, at, target);
             return;
         }
         self.store_mob_random(id, random);
     }
 
-    fn reinforcement_spot(&mut self, pos: BlockPos) -> bool {
-        placement::is_spawn_position_ok(self, Kind::Zombie, pos)
-            && rules::check_spawn_rules(self, Kind::Zombie, SpawnReason::Reinforcement, pos)
+    fn reinforcement_spot(&mut self, kind: Kind, pos: BlockPos) -> bool {
+        placement::is_spawn_position_ok(self, kind, pos)
+            && rules::check_spawn_rules(self, kind, SpawnReason::Reinforcement, pos)
     }
 
-    fn reinforcement_fits(&self, at: Vec3) -> bool {
+    fn reinforcement_fits(&self, kind: Kind, at: Vec3) -> bool {
         let range = REINFORCEMENT_PLAYER_RANGE * REINFORCEMENT_PLAYER_RANGE;
         let near_player = self.players.values().any(|p| {
             !p.vitals.is_dead()
@@ -695,15 +815,15 @@ impl<L: ClientLink> Server<L> {
         if near_player {
             return false;
         }
-        let dimensions = Kind::Zombie.dimensions();
+        let dimensions = kind.dimensions();
         let area = Aabb::of_size(at, dimensions.width, dimensions.height);
         self.is_unobstructed(&area)
             && rules::no_collision(self, &area)
             && !rules::contains_any_liquid(self, &area)
     }
 
-    fn spawn_reinforcement(&mut self, caller: EntityId, at: Vec3, target: EntityId) {
-        let base = self.new_entity_base(Kind::Zombie);
+    fn spawn_reinforcement(&mut self, kind: Kind, caller: EntityId, at: Vec3, target: EntityId) {
+        let base = self.new_entity_base(kind);
         let mut zombie = crate::mob_actions::new_mob(base);
         zombie.base.snap_to(at, 0.0, 0.0);
         let environment = self.spawn_environment(at);

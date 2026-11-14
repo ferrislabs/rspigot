@@ -440,6 +440,18 @@ pub(crate) struct LoveStep {
     pub(crate) item: Option<ItemStack>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct PigAngerStep {
+    pub(crate) mob: EntityId,
+    pub(crate) anger: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct TameStep {
+    pub(crate) target: EntityId,
+    pub(crate) owner: PlayerId,
+}
+
 #[derive(Debug)]
 pub(crate) struct DyeStep {
     pub(crate) player: PlayerId,
@@ -499,6 +511,7 @@ pub(crate) struct RelocateStep {
     pub(crate) entity: EntityId,
     pub(crate) to: Vec3,
     pub(crate) command: bool,
+    pub(crate) from: Option<Vec3>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -539,6 +552,7 @@ pub(crate) enum Spawned {
         connection: u64,
         request: u64,
     },
+    Poof,
 }
 
 #[derive(Debug)]
@@ -631,6 +645,7 @@ pub(crate) struct MobAttackFollow {
     pub(crate) target: Target,
     pub(crate) knockback: f32,
     pub(crate) yaw: f32,
+    pub(crate) golem: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -695,6 +710,19 @@ pub(crate) struct RegainStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct MobRegainStep {
+    pub(crate) target: EntityId,
+    pub(crate) amount: f32,
+    pub(crate) repair: Option<GolemRepair>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct GolemRepair {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct ExhaustStep {
     pub(crate) player: PlayerId,
     pub(crate) amount: f32,
@@ -748,6 +776,38 @@ pub(crate) enum Grief {
         rabbit: EntityId,
         pos: BlockPos,
     },
+    Berries {
+        fox: EntityId,
+        pos: BlockPos,
+        glow: bool,
+    },
+    Merge {
+        silverfish: EntityId,
+        pos: BlockPos,
+    },
+    WakeFriends {
+        silverfish: EntityId,
+        origin: BlockPos,
+        next: u32,
+        pos: BlockPos,
+    },
+    EndermanTake {
+        enderman: EntityId,
+        pos: BlockPos,
+        carried: BlockStateId,
+    },
+    EndermanPlace {
+        enderman: EntityId,
+        pos: BlockPos,
+        state: BlockStateId,
+    },
+}
+
+#[derive(Debug)]
+pub(crate) struct GatherStep {
+    pub(crate) fox: EntityId,
+    pub(crate) item: EntityId,
+    pub(crate) stack: ItemStack,
 }
 
 #[derive(Debug)]
@@ -758,6 +818,13 @@ pub(crate) struct ChangeStep {
 #[derive(Debug)]
 pub(crate) struct PickupStep {
     pub(crate) player: PlayerId,
+    pub(crate) collector: EntityId,
+    pub(crate) item: EntityId,
+    pub(crate) stack: ItemStack,
+}
+
+#[derive(Debug)]
+pub(crate) struct MobPickupStep {
     pub(crate) collector: EntityId,
     pub(crate) item: EntityId,
     pub(crate) stack: ItemStack,
@@ -889,6 +956,7 @@ pub(crate) enum Continuation {
     Strike(Box<HurtStep>),
     MobDeath(Box<LootStep>),
     Regain(RegainStep),
+    MobRegain(MobRegainStep),
     Exhaust(ExhaustStep),
     Food(FoodStep),
     Potion(PotionStep),
@@ -896,6 +964,8 @@ pub(crate) enum Continuation {
     Knock(KnockStep),
     ItemDespawn(EntityId),
     PickupItem(Box<PickupStep>),
+    Gather(Box<GatherStep>),
+    MobPickup(Box<MobPickupStep>),
     ChangeBlock(Box<ChangeStep>),
     Regrow(EntityId),
     EggBreak { mob: EntityId, pos: BlockPos },
@@ -907,6 +977,8 @@ pub(crate) enum Continuation {
     Aim(AimStep),
     Breed(Box<BreedStep>),
     Love(Box<LoveStep>),
+    Tame(TameStep),
+    PigAnger(PigAngerStep),
     Dye(Box<DyeStep>),
     Window(Box<WindowPacket>),
     Click(EventKind, Box<WindowClick>),
@@ -983,14 +1055,16 @@ impl Continuation {
             Self::EntityDrop(_) => EventKind::EntityDropItem,
             Self::Hurt(step) | Self::Strike(step) => step.kind,
             Self::MobDeath(_) => EventKind::EntityDeath,
-            Self::Regain(_) => EventKind::EntityRegainHealth,
+            Self::Regain(_) | Self::MobRegain(_) => EventKind::EntityRegainHealth,
             Self::Exhaust(_) => EventKind::EntityExhaustion,
             Self::Food(_) => EventKind::FoodLevelChange,
             Self::Potion(_) => EventKind::EntityPotionEffect,
             Self::Combust(step) => step.kind,
             Self::Knock(step) => step.kind,
             Self::ItemDespawn(_) => EventKind::ItemDespawn,
-            Self::PickupItem(_) => EventKind::EntityPickupItem,
+            Self::PickupItem(_) | Self::Gather(_) | Self::MobPickup(_) => {
+                EventKind::EntityPickupItem
+            }
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::EggBreak { .. } => EventKind::EntityInteract,
@@ -1002,6 +1076,8 @@ impl Continuation {
             Self::Aim(_) => EventKind::EntityTargetLivingEntity,
             Self::Breed(_) => EventKind::EntityBreed,
             Self::Love(_) => EventKind::EntityEnterLoveMode,
+            Self::Tame(_) => EventKind::EntityTame,
+            Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Dye(_) => EventKind::SheepDyeWool,
             Self::Window(_) => EventKind::InventoryClick,
             Self::Click(kind, _) => *kind,
@@ -1052,11 +1128,20 @@ impl Continuation {
             | Self::Knock(KnockStep { target: holder, .. }) => *holder == Holder::Mob(id),
             Self::ItemDespawn(item) | Self::Regrow(item) => *item == id,
             Self::PickupItem(step) => step.item == id || step.collector == id,
+            Self::Gather(step) => step.item == id || step.fox == id,
+            Self::MobPickup(step) => step.item == id || step.collector == id,
             Self::ChangeBlock(step) => match &step.change {
                 Grief::Fall { .. } => false,
                 Grief::Land(landing) => landing.falling == id,
                 Grief::Graze { sheep, .. } => *sheep == id,
                 Grief::Raid { rabbit, .. } => *rabbit == id,
+                Grief::Berries { fox, .. } => *fox == id,
+                Grief::Merge { silverfish, .. } | Grief::WakeFriends { silverfish, .. } => {
+                    *silverfish == id
+                }
+                Grief::EndermanTake { enderman, .. } | Grief::EndermanPlace { enderman, .. } => {
+                    *enderman == id
+                }
             },
             Self::EggBreak { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
@@ -1066,6 +1151,9 @@ impl Continuation {
             Self::Aim(step) => step.mob == id,
             Self::Breed(step) => step.parent == id || step.partner == id,
             Self::Love(step) => step.target == id,
+            Self::Tame(step) => step.target == id,
+            Self::MobRegain(step) => step.target == id,
+            Self::PigAnger(step) => step.mob == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::InteractEntity(step) => step.target == id,
@@ -1107,6 +1195,12 @@ impl Continuation {
             (Self::PickupItem(one), Self::PickupItem(other)) => {
                 one.player == other.player && one.item == other.item
             }
+            (Self::Gather(one), Self::Gather(other)) => {
+                one.fox == other.fox && one.item == other.item
+            }
+            (Self::MobPickup(one), Self::MobPickup(other)) => {
+                one.collector == other.collector && one.item == other.item
+            }
             (Self::Potion(one), Self::Potion(other)) => {
                 matches!((one.potion, other.potion), (Potion::Expire(a), Potion::Expire(b)) if a.effect == b.effect)
                     && one.holder == other.holder
@@ -1122,7 +1216,11 @@ impl Continuation {
         match self {
             Self::Hurt(step) => step.repeats(),
             Self::Potion(step) => matches!(step.potion, Potion::Expire(_)),
-            Self::Combust(_) | Self::ItemDespawn(_) | Self::PickupItem(_) => true,
+            Self::Combust(_)
+            | Self::ItemDespawn(_)
+            | Self::PickupItem(_)
+            | Self::Gather(_)
+            | Self::MobPickup(_) => true,
             Self::ChangeBlock(step) => matches!(step.change, Grief::Fall { .. }),
             Self::EggBreak { .. } | Self::Prime(_) | Self::ProjectileHit { .. } => true,
             Self::Aim(step) => step.deferred,

@@ -157,6 +157,17 @@ pub fn server(plugins: PluginSettings) -> Server<Link> {
 }
 
 pub fn configured(adjust: impl FnOnce(&mut GameConfig)) -> Server<Link> {
+    configured_level(adjust, |_| {})
+}
+
+pub fn calm_server() -> Server<Link> {
+    configured_level(|_| {}, |level| level.day_time = 18_000)
+}
+
+pub fn configured_level(
+    adjust: impl FnOnce(&mut GameConfig),
+    level: impl FnOnce(&mut LevelData),
+) -> Server<Link> {
     let mut config = GameConfig {
         view_distance: 3,
         chunk_workers: 2,
@@ -164,9 +175,14 @@ pub fn configured(adjust: impl FnOnce(&mut GameConfig)) -> Server<Link> {
         ..GameConfig::default()
     };
     adjust(&mut config);
+    let mut data = LevelData {
+        spawn_mobs: false,
+        ..LevelData::default()
+    };
+    level(&mut data);
     let mut server = Server::new(
         config,
-        LevelData::default(),
+        data,
         Arc::new(NoStore),
         Arc::new(Floor),
         StatusBoard::new(20),

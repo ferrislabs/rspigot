@@ -59,12 +59,12 @@ pub(crate) enum Interaction {
 }
 
 impl Interaction {
-    fn consumes(self) -> bool {
+    pub(crate) fn consumes(self) -> bool {
         self != Self::Pass
     }
 }
 
-fn item_tag(item: ItemId, tag: &str) -> bool {
+pub(crate) fn item_tag(item: ItemId, tag: &str) -> bool {
     rspigot_data::tags::tag("minecraft:item", tag)
         .is_some_and(|ids| ids.binary_search(&u32::from(item.0)).is_ok())
 }
@@ -75,11 +75,16 @@ fn food_tag(kind: Kind) -> Option<&'static str> {
         Kind::Pig => "minecraft:pig_food",
         Kind::Sheep => "minecraft:sheep_food",
         Kind::Chicken => "minecraft:chicken_food",
+        Kind::Fox => "minecraft:fox_food",
+        Kind::Wolf => "minecraft:wolf_food",
+        Kind::Cat => "minecraft:cat_food",
+        Kind::Rabbit => "minecraft:rabbit_food",
+        Kind::Ocelot => "minecraft:ocelot_food",
         _ => return None,
     })
 }
 
-fn dye_color(item: ItemId) -> Option<u8> {
+pub(crate) fn dye_color(item: ItemId) -> Option<u8> {
     let name = item.kind()?.name();
     DYES.iter()
         .position(|dye| *dye == name)
@@ -231,7 +236,7 @@ impl<L: ClientLink> Server<L> {
         self.push(Audience::Trackers(entity), event);
     }
 
-    fn held(&self, id: PlayerId, hand: Hand) -> Option<ItemStack> {
+    pub(crate) fn held(&self, id: PlayerId, hand: Hand) -> Option<ItemStack> {
         let player = self.players.get(&id)?;
         player
             .inventory
@@ -239,20 +244,20 @@ impl<L: ClientLink> Server<L> {
             .cloned()
     }
 
-    fn set_held(&mut self, id: PlayerId, hand: Hand, stack: Option<ItemStack>) {
+    pub(crate) fn set_held(&mut self, id: PlayerId, hand: Hand, stack: Option<ItemStack>) {
         if let Some(player) = self.players.get_mut(&id) {
             let slot = hand_slot(hand, player.inventory.selected_hotbar);
             player.inventory.set(slot, stack);
         }
     }
 
-    fn infinite_materials(&self, id: PlayerId) -> bool {
+    pub(crate) fn infinite_materials(&self, id: PlayerId) -> bool {
         self.players
             .get(&id)
             .is_some_and(|p| p.abilities().instant_build)
     }
 
-    fn shrink_held(&mut self, id: PlayerId, hand: Hand, amount: u8) {
+    pub(crate) fn shrink_held(&mut self, id: PlayerId, hand: Hand, amount: u8) {
         let Some(stack) = self.held(id, hand) else {
             return;
         };
@@ -264,13 +269,13 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    fn consume_held(&mut self, id: PlayerId, hand: Hand, amount: u8) {
+    pub(crate) fn consume_held(&mut self, id: PlayerId, hand: Hand, amount: u8) {
         if !self.infinite_materials(id) {
             self.shrink_held(id, hand, amount);
         }
     }
 
-    fn hurt_held(&mut self, id: PlayerId, hand: Hand, amount: i32) {
+    pub(crate) fn hurt_held(&mut self, id: PlayerId, hand: Hand, amount: i32) {
         self.wear(id, hand, amount);
     }
 
@@ -413,6 +418,11 @@ impl<L: ClientLink> Server<L> {
         let Some(mut child) = child else {
             return false;
         };
+        if kind == Kind::Fox
+            && let Some(player) = self.players.get(&id)
+        {
+            species::fox::add_trusted(&mut child.base, player.profile.id.0);
+        }
         let EntityState::Living(state) = &mut child.state else {
             return false;
         };
@@ -436,7 +446,7 @@ impl<L: ClientLink> Server<L> {
         {
             child.base.set_custom_name(Some(name));
         }
-        if kind == Kind::Zombie {
+        if species::is_zombie(kind) {
             let special = self.difficulty_at(position.block()).special_multiplier();
             let mut random = self.mob_random(parent);
             let loot = random.next_float() < 0.55 * special;
@@ -582,6 +592,9 @@ impl<L: ClientLink> Server<L> {
         let Some(kind) = self.entities.store.get(target).map(|e| e.base.kind) else {
             return Interaction::Pass;
         };
+        if let Some(result) = self.kind_interact(id, target, hand, held.as_ref()) {
+            return result;
+        }
         let Some(stack) = held else {
             return Interaction::Pass;
         };
@@ -792,7 +805,7 @@ impl<L: ClientLink> Server<L> {
         self.hurt_held(id, hand, 1);
     }
 
-    fn animal_interact(
+    pub(crate) fn animal_interact(
         &mut self,
         id: PlayerId,
         target: EntityId,
@@ -887,6 +900,15 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn eating_sound(&mut self, target: EntityId) {
+        if self
+            .entities
+            .store
+            .get(target)
+            .is_some_and(|e| e.base.kind == Kind::Fox)
+        {
+            self.entity_sound(target, "minecraft:entity.fox.eat", 1.0, 1.0);
+            return;
+        }
         let is_pig = self
             .entities
             .store
@@ -1025,7 +1047,7 @@ impl<L: ClientLink> Server<L> {
         self.refresh_hands(id);
     }
 
-    fn ask_love(
+    pub(crate) fn ask_love(
         &mut self,
         id: PlayerId,
         target: EntityId,

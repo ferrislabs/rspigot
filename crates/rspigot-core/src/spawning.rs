@@ -6,7 +6,7 @@ use rspigot_data::spawns::DimensionSpawns;
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::difficulty::{DifficultyInstance, moon_brightness};
 use rspigot_domain::entity::spawn::{SpawnEnvironment, finalize_spawn};
-use rspigot_domain::entity::species::Species;
+use rspigot_domain::entity::species::{Species, ocelot};
 use rspigot_domain::entity::{
     Aabb, BlockView, Entity, EntityBase, EntityState, RemovalReason, save,
 };
@@ -41,7 +41,7 @@ use crate::plugins::{Birth, Continuation};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
-const LEASH: &str = "leash";
+pub(crate) const LEASH: &str = "leash";
 const PERSISTENCE_REQUIRED: &str = "PersistenceRequired";
 const OVERWORLD: &str = "minecraft:overworld";
 const PLAYER_WIDTH: f32 = 0.6;
@@ -55,6 +55,10 @@ pub(crate) struct Spawning {
 }
 
 impl Spawning {
+    pub(crate) fn has_ceiling(&self) -> bool {
+        self.dimension.has_ceiling
+    }
+
     pub(crate) fn new(seed: i64, dimension: &Dimension) -> Self {
         Self {
             zoom_seed: hashed_seed(seed),
@@ -65,7 +69,7 @@ impl Spawning {
     }
 }
 
-fn dimension_spawns(dimension: &Dimension) -> &'static DimensionSpawns {
+pub(crate) fn dimension_spawns(dimension: &Dimension) -> &'static DimensionSpawns {
     rspigot_data::spawns::dimension(dimension.dimension_type.as_str())
         .or_else(|| rspigot_data::spawns::dimension(OVERWORLD))
         .unwrap_or(&OVERWORLD_FALLBACK)
@@ -137,6 +141,7 @@ fn is_persistent(entity: &Entity) -> bool {
                 .as_ref()
                 .is_some_and(|mob| mob.persistence_required)
                 || entity.extra.contains_key(LEASH)
+                || rspigot_domain::entity::species::enderman::carries_block(&entity.base)
         }
         EntityState::Inert(nbt) => {
             nbt.get_bool(PERSISTENCE_REQUIRED).unwrap_or(false) || nbt.contains_key(LEASH)
@@ -226,6 +231,15 @@ impl<L: ClientLink> SpawnLevel for Server<L> {
 
     fn no_entity_collision(&self, area: &Aabb) -> bool {
         !self.entity_in(area, collides_with_spawns)
+    }
+
+    fn survival_player_within(&self, center: Vec3, distance: f64) -> bool {
+        self.players.values().any(|player| {
+            !player.vitals.removed
+                && player.game_mode != GameMode::Spectator
+                && player.game_mode != GameMode::Creative
+                && player.position.distance_squared(center) < distance * distance
+        })
     }
 }
 
@@ -484,14 +498,25 @@ impl<L: ClientLink> Server<L> {
                 .mob
                 .as_ref()
                 .is_some_and(|mob| mob.persistence_required),
-            requires_custom_persistence: entity.extra.contains_key(LEASH),
+            requires_custom_persistence: entity.extra.contains_key(LEASH)
+                || rspigot_domain::entity::species::enderman::carries_block(&entity.base),
             no_action_time: living.no_action_time,
             chicken_jockey: matches!(
                 living.mob.as_ref().map(|mob| &mob.species),
                 Some(Species::Chicken(chicken)) if chicken.jockey
             ),
-            trusting: false,
+            trusting: matches!(
+                living.mob.as_ref().map(|mob| &mob.species),
+                Some(Species::Ocelot(_))
+            ) && ocelot::is_trusting(&entity.base),
+            tame: entity.base.kind.extends("TamableAnimal")
+                && rspigot_domain::entity::tamable::is_tame(&entity.base),
             tick_count: entity.base.tick_count,
+            villager_progress: matches!(
+                living.mob.as_ref().map(|mob| &mob.species),
+                Some(Species::Zombie(zombie))
+                    if zombie.villager.is_some_and(|villager| villager.keeps_when_far(&entity.base))
+            ),
         };
         let distance = nearest_distance_sqr(&self.spawning.players, entity.base.position);
         let difficulty = self.world.difficulty;
@@ -611,6 +636,10 @@ impl SpawnLevel for Generation<'_> {
     fn no_entity_collision(&self, _: &Aabb) -> bool {
         true
     }
+
+    fn survival_player_within(&self, _: Vec3, _: f64) -> bool {
+        false
+    }
 }
 
 impl RandomSource for Generation<'_> {
@@ -659,6 +688,7 @@ impl GenerationHost for Generation<'_> {
                 moon_brightness(0, self.has_skylight),
             ),
             halloween: is_halloween(today()),
+            moon_brightness: moon_brightness(0, self.has_skylight),
         };
         let mut own = LegacyRandom::new(rand::rng().random());
         let group = finalize_spawn(
@@ -725,22 +755,33 @@ mod tests {
             spawning,
             vec![
                 EntityKind::Bogged,
+                EntityKind::Cat,
                 EntityKind::CaveSpider,
                 EntityKind::Chicken,
                 EntityKind::Cow,
                 EntityKind::Creeper,
+                EntityKind::Enderman,
+                EntityKind::Endermite,
+                EntityKind::Fox,
                 EntityKind::Husk,
+                EntityKind::IronGolem,
                 EntityKind::Mooshroom,
                 EntityKind::Ocelot,
+                EntityKind::Panda,
                 EntityKind::Parched,
                 EntityKind::Pig,
+                EntityKind::PolarBear,
                 EntityKind::Rabbit,
                 EntityKind::Sheep,
+                EntityKind::Silverfish,
                 EntityKind::Skeleton,
                 EntityKind::Spider,
                 EntityKind::Stray,
                 EntityKind::WitherSkeleton,
+                EntityKind::Wolf,
                 EntityKind::Zombie,
+                EntityKind::ZombieVillager,
+                EntityKind::ZombifiedPiglin,
             ]
         );
         for kind in EntityKind::ALL {
@@ -751,6 +792,21 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn a_carried_block_makes_an_enderman_persistent() {
+        use rspigot_domain::entity::species::enderman;
+        use rspigot_domain::entity::{Entity, EntityBase, LivingState};
+        let mut base = EntityBase::new(EntityId(1), uuid::Uuid::from_u128(1), EntityKind::Enderman);
+        let living = LivingState::new(&mut base, 0.0);
+        let mut entity = Entity::new(base, EntityState::Living(Box::new(living)));
+        assert!(!is_persistent(&entity));
+        enderman::set_carried_block(
+            &mut entity.base,
+            Some(rspigot_blocks::BlockKind::Dirt.default_state()),
+        );
+        assert!(is_persistent(&entity));
     }
 
     #[test]

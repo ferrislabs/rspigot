@@ -406,6 +406,7 @@ impl<L: ClientLink> Server<L> {
                 let context = LootContext::block(step.state, step.held.as_ref(), Some(&breaker));
                 stacks = loot::block_drops(&context, &mut self.rng);
             }
+            self.spawn_after_break(pos, step.state, step.held.as_ref());
         }
         self.ask_drop_items(id, pos, step.state, stacks, exp);
     }

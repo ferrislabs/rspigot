@@ -474,6 +474,7 @@ impl<L: ClientLink> Server<L> {
             if state.is_air() {
                 continue;
             }
+            self.spawn_after_break(*pos, state, None);
             let context = LootContext {
                 explosion_radius: decay,
                 ..LootContext::block(state, None, this.as_ref())

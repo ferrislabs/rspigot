@@ -22,6 +22,7 @@ pub struct GameRules {
     pub mob_explosion_drop_decay: bool,
     pub block_drops: bool,
     pub universal_anger: bool,
+    pub forgive_dead_players: bool,
 }
 
 impl Default for GameRules {
@@ -37,6 +38,7 @@ impl Default for GameRules {
             mob_explosion_drop_decay: true,
             block_drops: true,
             universal_anger: false,
+            forgive_dead_players: true,
         }
     }
 }

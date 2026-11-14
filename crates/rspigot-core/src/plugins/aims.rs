@@ -29,6 +29,13 @@ const fn reason_of(reason: TargetReason) -> EntityTargetReason {
         TargetReason::ReinforcementTarget => EntityTargetReason::ReinforcementTarget,
         TargetReason::ForgotTarget => EntityTargetReason::ForgotTarget,
         TargetReason::Tempt => EntityTargetReason::Tempt,
+        TargetReason::TargetAttackedOwner => EntityTargetReason::TargetAttackedOwner,
+        TargetReason::OwnerAttackedTarget => EntityTargetReason::OwnerAttackedTarget,
+        TargetReason::RandomTarget => EntityTargetReason::RandomTarget,
+        TargetReason::DefendVillage => EntityTargetReason::DefendVillage,
+        TargetReason::Collision => EntityTargetReason::Collision,
+        TargetReason::PigZombieTarget => EntityTargetReason::PigZombieTarget,
+        TargetReason::FollowLeader => EntityTargetReason::FollowLeader,
         TargetReason::Unknown => EntityTargetReason::Unknown,
     }
 }
@@ -46,6 +53,9 @@ impl<L: ClientLink> Server<L> {
         seeker: Seeker,
         deferred: bool,
     ) {
+        if request.from.is_none() && request.to.is_some() {
+            self.kind_acquired_target(mob.id);
+        }
         let reason = match (request.reason, request.to, request.from) {
             (TargetReason::Unknown, None, Some(from)) if self.living_entity_alive(from) => {
                 EntityTargetReason::ForgotTarget
@@ -91,6 +101,9 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         for request in requests {
+            if !deferred {
+                self.kind_target_changed(id, request.to);
+            }
             let seeker = if request.tempt {
                 Seeker::Tempt
             } else {
@@ -118,6 +131,26 @@ impl<L: ClientLink> Server<L> {
         self.target_event(mob, request, Seeker::Mob, deferred);
     }
 
+    pub(crate) fn forget_target(&mut self, mob: EntityId, reason: TargetReason) {
+        let Some(view) = self.entity_view(mob) else {
+            return;
+        };
+        let Some(from) = self.mob_target(mob) else {
+            return;
+        };
+        let deferred = self.defers_targets();
+        if !deferred {
+            self.point_mob(mob, None);
+        }
+        let request = TargetRequest {
+            from: Some(from),
+            to: None,
+            reason,
+            tempt: false,
+        };
+        self.target_event(view, request, Seeker::Mob, deferred);
+    }
+
     fn mob_known(&self, mob: EntityId) -> bool {
         self.entities.store.get(mob).is_some()
             || self.decisions.anywhere(
@@ -127,7 +160,12 @@ impl<L: ClientLink> Server<L> {
 
     fn point_mob(&mut self, mob: EntityId, target: Option<EntityId>) {
         match self.entities.mobs.entries.get_mut(&mob) {
-            Some(entry) => entry.ai.set_target(target),
+            Some(entry) => {
+                entry.ai.set_target(target);
+                if target.is_none() {
+                    self.kind_target_cleared(mob);
+                }
+            }
             None => match target {
                 Some(target) => {
                     self.entities.mobs.initial_targets.insert(mob, target);
@@ -137,6 +175,7 @@ impl<L: ClientLink> Server<L> {
                 }
             },
         }
+        self.kind_target_changed(mob, target);
     }
 
     pub(super) fn finish_aim(

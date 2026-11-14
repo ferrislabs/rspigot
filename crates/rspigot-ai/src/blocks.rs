@@ -1,5 +1,6 @@
 use rspigot_blocks::{BlockKind, StateId};
 use rspigot_domain::particle::{Particle, ParticleData};
+use rspigot_domain::poi::Occupancy;
 use rspigot_domain::{BlockPos, Vec3};
 use rspigot_entities::SoundSource;
 use rspigot_items::ItemKind;
@@ -7,7 +8,9 @@ use rspigot_items::ItemKind;
 use crate::action::MobAction;
 use crate::brain::AiContext;
 use crate::goal::reduced_tick_delay;
+use crate::path::Path;
 use crate::random::RandomSource;
+use crate::random_pos::{HALF_PI, land_pos_scored, pos_towards};
 use crate::scan::closer_to_center_than;
 use crate::world::{AiWorld, Hand};
 
@@ -412,11 +415,154 @@ impl BreakDoorGoal {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct MoveThroughVillageGoal;
+const VILLAGE_FAR_SECTIONS: i32 = 6;
+const VILLAGE_POI_RANGE: i32 = 10;
+const VISITED_LIMIT: usize = 15;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MoveThroughVillageGoal {
+    speed_modifier: f64,
+    only_at_night: bool,
+    distance_to_poi: i32,
+    path: Option<Path>,
+    poi_pos: BlockPos,
+    visited: Vec<BlockPos>,
+}
+
+impl Default for MoveThroughVillageGoal {
+    fn default() -> Self {
+        Self::new(1.0, true, 4)
+    }
+}
+
+fn dist_sqr(a: BlockPos, b: BlockPos) -> f64 {
+    let dx = f64::from(a.x - b.x);
+    let dy = f64::from(a.y - b.y);
+    let dz = f64::from(a.z - b.z);
+    dx * dx + dy * dy + dz * dz
+}
 
 impl MoveThroughVillageGoal {
-    pub(crate) fn can_use<W: AiWorld>(&mut self, _context: &mut AiContext<'_, W>) -> bool {
-        false
+    pub fn new(speed_modifier: f64, only_at_night: bool, distance_to_poi: i32) -> Self {
+        Self {
+            speed_modifier,
+            only_at_night,
+            distance_to_poi,
+            path: None,
+            poi_pos: BlockPos::new(0, 0, 0),
+            visited: Vec::new(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn is_ready(&self) -> bool {
+        self.path.is_some()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn visited(&self) -> &[BlockPos] {
+        &self.visited
+    }
+
+    #[cfg(test)]
+    pub(crate) fn mark_visited(&mut self, pos: BlockPos) {
+        self.visited.push(pos);
+    }
+
+    fn has_not_visited(visited: &[BlockPos], poi: BlockPos) -> bool {
+        !visited.contains(&poi)
+    }
+
+    fn find_unvisited_poi<W: AiWorld>(
+        world: &W,
+        visited: &[BlockPos],
+        center: BlockPos,
+    ) -> Option<BlockPos> {
+        world
+            .pois_in_range(center, VILLAGE_POI_RANGE, Occupancy::IsOccupied)
+            .into_iter()
+            .filter(|record| record.kind().is_village())
+            .map(|record| record.pos())
+            .find(|pos| Self::has_not_visited(visited, *pos))
+    }
+
+    fn create_path<W: AiWorld>(context: &mut AiContext<'_, W>, pos: BlockPos) -> Option<Path> {
+        context.brain.profile.can_open_doors = context.brain.can_break_doors;
+        let path = context.create_path_to(pos, 0);
+        context.brain.profile.can_open_doors = true;
+        path
+    }
+
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        if self.visited.len() > VISITED_LIMIT {
+            self.visited.remove(0);
+        }
+        if self.only_at_night && context.world.bright_outside() {
+            return false;
+        }
+        let pos = context.mob.block_pos();
+        if !context.world.is_close_to_village(pos, VILLAGE_FAR_SECTIONS) {
+            return false;
+        }
+        let visited = self.visited.clone();
+        let Some(land) = land_pos_scored(context, 15, 7, |context, candidate| {
+            if !context.world.is_village(candidate) {
+                return f64::NEG_INFINITY;
+            }
+            Self::find_unvisited_poi(context.world, &visited, candidate)
+                .map_or(f64::NEG_INFINITY, |poi| -dist_sqr(poi, pos))
+        }) else {
+            return false;
+        };
+        let Some(target) = Self::find_unvisited_poi(context.world, &self.visited, land.block())
+        else {
+            return false;
+        };
+        self.poi_pos = target;
+        let mut path = Self::create_path(context, target);
+        if path.is_none() {
+            let Some(partial) = pos_towards(context, 10, 7, target.center(), HALF_PI) else {
+                return false;
+            };
+            path = Self::create_path(context, partial.block());
+            if path.is_none() {
+                return false;
+            }
+        }
+        if let Some(found) = &path {
+            for index in 0..found.node_count() {
+                let node = found.node(index).pos;
+                if is_wooden_door(context.world.state(node.offset(0, 1, 0))) {
+                    path = context.create_path_to(node, 0);
+                    break;
+                }
+            }
+        }
+        self.path = path;
+        self.path.is_some()
+    }
+
+    pub(crate) fn can_continue_to_use<W: AiWorld>(
+        &mut self,
+        context: &mut AiContext<'_, W>,
+    ) -> bool {
+        if context.brain.navigation.is_done() {
+            return false;
+        }
+        let reach = f64::from(context.mob.width + self.distance_to_poi as f32);
+        !closer_to_center_than(self.poi_pos, context.mob.position, reach)
+    }
+
+    pub(crate) fn start<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        context.move_along(self.path.clone(), self.speed_modifier);
+    }
+
+    pub(crate) fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        let reach = f64::from(self.distance_to_poi);
+        if context.brain.navigation.is_done()
+            || closer_to_center_than(self.poi_pos, context.mob.position, reach)
+        {
+            self.visited.push(self.poi_pos);
+        }
     }
 }

@@ -2,8 +2,8 @@ use std::cell::Cell;
 use std::collections::HashMap;
 
 use rspigot_ai::{
-    AiWorld, GoalSettings, Living, MORE_CARROT_TICKS, MobAction, MobAi, MobBody, MobGoal, MobView,
-    TargetKind,
+    AiWorld, Facts, GoalSettings, Living, MORE_CARROT_TICKS, MobAction, MobAi, MobBody, MobGoal,
+    MobView, TargetKind,
 };
 use rspigot_blocks::{BlockKind, StateId};
 use rspigot_domain::entity::living::LivingState;
@@ -115,6 +115,7 @@ fn living(id: i32, kind: EntityKind, position: Vec3) -> Living {
         panicking: false,
         has_target: false,
         scared: false,
+        facts: Facts::default(),
     }
 }
 
@@ -222,12 +223,12 @@ fn ocelots_register_the_vanilla_goals_and_targets() {
         vec![
             (1, "float"),
             (3, "tempt"),
-            (4, "avoid"),
             (7, "leap"),
             (8, "ocelot_attack"),
             (9, "breed"),
             (10, "stroll"),
             (11, "look"),
+            (4, "avoid"),
         ]
     );
     let targets: Vec<i32> = ai
@@ -308,19 +309,18 @@ fn rabbits_nibble_ripe_carrots_underfoot_then_want_no_more() {
         );
     }
     assert_eq!(raided, vec![MobAction::RaidCarrot(BlockPos::new(0, 64, 0))]);
-    assert!(ai.brain().more_carrot_ticks > 0);
-    assert!(ai.brain().more_carrot_ticks <= MORE_CARROT_TICKS);
 }
 
 #[test]
 fn rabbits_ignore_carrots_while_they_still_have_a_full_belly() {
     let (mut base, state) = mob(EntityKind::Rabbit, Vec3::new(0.5, 64.0, 0.5));
     let mut ai = MobAi::new(EntityKind::Rabbit, 11, GoalSettings::default());
-    ai.brain_mut().more_carrot_ticks = MORE_CARROT_TICKS;
     let mut world = World::new();
     ripe_garden(&mut world, BlockPos::new(0, 64, 0));
     for _ in 0..6 {
-        let actions = step(&mut ai, &mut base, &state, &world, |_| {});
+        let actions = step(&mut ai, &mut base, &state, &world, |view| {
+            view.more_carrot_ticks = MORE_CARROT_TICKS;
+        });
         assert!(!actions.contains(&MobAction::RaidCarrot(BlockPos::new(0, 64, 0))));
     }
 }
@@ -362,14 +362,13 @@ fn rabbits_ignore_carrots_that_are_not_ripe_or_when_griefing_is_off() {
 
 #[test]
 fn the_carrot_appetite_fades_by_zero_to_two_ticks_each_tick() {
-    let (mut base, state) = mob(EntityKind::Rabbit, Vec3::new(0.5, 64.0, 0.5));
+    let (mut base, mut state) = mob(EntityKind::Rabbit, Vec3::new(0.5, 64.0, 0.5));
     let mut ai = MobAi::new(EntityKind::Rabbit, 5, GoalSettings::default());
-    ai.brain_mut().more_carrot_ticks = MORE_CARROT_TICKS;
-    let world = World::new();
     let mut last = MORE_CARROT_TICKS;
+    let mut now = last;
     for _ in 0..80 {
-        step(&mut ai, &mut base, &state, &world, |_| {});
-        let now = ai.brain().more_carrot_ticks;
+        ai.brain_mut()
+            .rabbit_ai_step(&mut base, &mut state, false, None, &mut now);
         assert!((last - 2..=last).contains(&now) || now == 0);
         last = now;
     }
@@ -572,4 +571,309 @@ fn ocelots_pick_chickens_as_targets() {
         }
     }
     assert_eq!(ai.target(), Some(EntityId(2)));
+}
+
+fn rabbit_at_rest() -> (EntityBase, LivingState, MobAi) {
+    let (base, state) = mob(EntityKind::Rabbit, Vec3::new(0.5, 64.0, 0.5));
+    let mut ai = MobAi::new(EntityKind::Rabbit, 21, GoalSettings::default());
+    let (mut base, mut state) = (base, state);
+    for _ in 0..11 {
+        hop_step(&mut ai, &mut base, &mut state, false, None);
+    }
+    ai.brain_mut().take_hop_sounds();
+    (base, state, ai)
+}
+
+fn hop_step(
+    ai: &mut MobAi,
+    base: &mut EntityBase,
+    state: &mut LivingState,
+    evil: bool,
+    target: Option<Vec3>,
+) {
+    let mut carrots = 0;
+    ai.brain_mut()
+        .rabbit_ai_step(base, state, evil, target, &mut carrots);
+}
+
+#[test]
+fn a_rabbit_with_a_destination_hops_towards_it_and_faces_it() {
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    ai.brain_mut()
+        .movement
+        .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 0.6);
+    hop_step(&mut ai, &mut base, &mut state, false, None);
+    assert!(state.jumping);
+    assert!((base.yaw - (-90.0)).abs() < 1.0e-3);
+    let sounds = ai.brain_mut().take_hop_sounds();
+    assert_eq!(sounds.len(), 1);
+    assert!((0.64..=0.96).contains(&sounds[0].pitch));
+    assert_eq!(ai.brain().hop().map(|hop| hop.jump_duration()), Some(15));
+}
+
+#[test]
+fn a_rabbit_without_a_destination_stays_put() {
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    hop_step(&mut ai, &mut base, &mut state, false, None);
+    assert!(!state.jumping);
+    assert!(ai.brain_mut().take_hop_sounds().is_empty());
+}
+
+#[test]
+fn landing_sets_a_ten_tick_delay_or_three_when_fleeing() {
+    let delay_after_landing = |speed: f64| {
+        let (mut base, mut state, mut ai) = rabbit_at_rest();
+        base.on_ground = false;
+        hop_step(&mut ai, &mut base, &mut state, false, None);
+        ai.brain_mut()
+            .movement
+            .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), speed);
+        base.on_ground = true;
+        state.jumping = true;
+        hop_step(&mut ai, &mut base, &mut state, false, None);
+        assert!(!state.jumping);
+        ai.brain().hop().map(|hop| hop.jump_delay_ticks()).unwrap()
+    };
+    assert_eq!(delay_after_landing(0.6), 10);
+    assert_eq!(delay_after_landing(2.2), 3);
+}
+
+#[test]
+fn the_hop_delay_counts_down_before_the_next_hop() {
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    base.on_ground = false;
+    hop_step(&mut ai, &mut base, &mut state, false, None);
+    base.on_ground = true;
+    ai.brain_mut()
+        .movement
+        .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 0.6);
+    hop_step(&mut ai, &mut base, &mut state, false, None);
+    assert!(!state.jumping);
+    let mut jumped_after = None;
+    for tick in 1..=12 {
+        hop_step(&mut ai, &mut base, &mut state, false, None);
+        if state.jumping {
+            jumped_after = Some(tick);
+            break;
+        }
+    }
+    assert_eq!(jumped_after, Some(10));
+}
+
+#[test]
+fn a_killer_bunny_lunges_at_a_target_within_four_blocks() {
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    hop_step(
+        &mut ai,
+        &mut base,
+        &mut state,
+        true,
+        Some(Vec3::new(3.5, 64.0, 0.5)),
+    );
+    assert!(state.jumping);
+    assert!((base.yaw - (-90.0)).abs() < 1.0e-3);
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    hop_step(
+        &mut ai,
+        &mut base,
+        &mut state,
+        true,
+        Some(Vec3::new(4.5, 64.0, 0.5)),
+    );
+    assert!(!state.jumping);
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    hop_step(
+        &mut ai,
+        &mut base,
+        &mut state,
+        false,
+        Some(Vec3::new(2.5, 64.0, 0.5)),
+    );
+    assert!(!state.jumping);
+}
+
+#[test]
+fn the_jump_flag_is_released_after_fifteen_ticks_of_hop() {
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    ai.brain_mut()
+        .movement
+        .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 0.6);
+    hop_step(&mut ai, &mut base, &mut state, false, None);
+    assert!(state.jumping);
+    for _ in 0..15 {
+        ai.brain_mut().rabbit_post_ai_step(&mut state);
+        assert!(state.jumping);
+    }
+    ai.brain_mut().rabbit_post_ai_step(&mut state);
+    assert!(!state.jumping);
+    assert_eq!(ai.brain().hop().map(|hop| hop.jump_duration()), Some(0));
+}
+
+#[test]
+fn the_move_control_of_a_swimming_rabbit_always_asks_for_one_and_a_half() {
+    let (_, _, mut ai) = rabbit_at_rest();
+    ai.brain_mut().movement.set_in_water(true);
+    ai.brain_mut()
+        .movement
+        .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 0.6);
+    assert_eq!(ai.brain().movement.speed_modifier(), 1.5);
+    assert_eq!(ai.brain().movement.next_jump_speed(), 1.5);
+    ai.brain_mut().movement.set_in_water(false);
+    ai.brain_mut()
+        .movement
+        .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 0.0);
+    assert_eq!(ai.brain().movement.speed_modifier(), 0.0);
+    assert_eq!(ai.brain().movement.next_jump_speed(), 1.5);
+}
+
+#[test]
+fn other_mobs_keep_the_plain_move_control() {
+    let mut ai = MobAi::new(EntityKind::Cow, 1, GoalSettings::default());
+    ai.brain_mut().movement.set_in_water(true);
+    ai.brain_mut()
+        .movement
+        .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 0.6);
+    assert_eq!(ai.brain().movement.speed_modifier(), 0.6);
+    assert!(ai.brain().hop().is_none());
+}
+
+#[test]
+fn acting_tunes_the_jump_of_a_rabbit_to_its_speed_and_the_terrain() {
+    let tuned = |speed: f64, wanted_y: f64, jumping: bool| {
+        let (mut base, mut state, mut ai) = rabbit_at_rest();
+        let view = World::new();
+        ai.brain_mut()
+            .movement
+            .set_wanted_position(Vec3::new(5.5, wanted_y, 0.5), speed);
+        state.jumping = jumping;
+        ai.act(&mut base, &mut state, &view);
+        state.jump_tuning
+    };
+    let slow = tuned(0.6, 64.0, true);
+    assert!((slow.multiplier - 0.2 / 0.42).abs() < 1.0e-6);
+    let quick = tuned(1.0, 64.0, true);
+    assert!((quick.multiplier - 0.3 / 0.42).abs() < 1.0e-6);
+    let climbing = tuned(1.0, 65.0, true);
+    assert!((climbing.multiplier - 0.5 / 0.42).abs() < 1.0e-6);
+    assert_eq!(quick.hop, Some(1.5));
+}
+
+#[test]
+fn a_baby_rabbit_hops_with_a_shorter_push() {
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    base.data
+        .set(16, rspigot_domain::entity::SyncedValue::Boolean(true));
+    ai.brain_mut()
+        .movement
+        .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 1.0);
+    state.jumping = true;
+    ai.act(&mut base, &mut state, &World::new());
+    assert_eq!(state.jump_tuning.hop, Some(0.5));
+}
+
+#[test]
+fn an_idle_rabbit_on_the_ground_drops_its_speed_modifier_to_zero_when_acting() {
+    let (mut base, mut state, mut ai) = rabbit_at_rest();
+    ai.brain_mut()
+        .movement
+        .set_wanted_position(Vec3::new(5.5, 64.0, 0.5), 1.0);
+    ai.act(&mut base, &mut state, &World::new());
+    assert_eq!(ai.brain().movement.next_jump_speed(), 1.0);
+    assert_eq!(ai.brain().movement.speed_modifier(), 0.0);
+    assert_eq!(state.speed, 0.0);
+}
+
+#[test]
+fn the_killer_variant_adds_its_melee_goal_and_its_targets() {
+    let mut ai = MobAi::new(EntityKind::Rabbit, 1, GoalSettings::default());
+    ai.become_killer_bunny();
+    let (mut base, state) = mob(EntityKind::Rabbit, Vec3::new(0.5, 64.0, 0.5));
+    step(&mut ai, &mut base, &state, &World::new(), |_| {});
+    let summary = goal_summary(&ai);
+    assert_eq!(summary.len(), 12);
+    assert_eq!(summary.last(), Some(&(4, "other")));
+    let targets: Vec<i32> = ai
+        .targets()
+        .goals()
+        .iter()
+        .map(|goal| goal.priority())
+        .collect();
+    assert_eq!(targets, vec![1, 2, 2]);
+    assert!(matches!(
+        ai.targets().goals()[0].goal(),
+        MobGoal::HurtByTarget(_)
+    ));
+}
+
+#[test]
+fn a_killer_bunny_no_longer_flees_players() {
+    let flees = |evil: bool| {
+        let (mut base, state) = mob(EntityKind::Rabbit, Vec3::new(0.5, 64.0, 0.5));
+        let mut ai = MobAi::new(EntityKind::Rabbit, 9, GoalSettings::default());
+        let mut world = World::new();
+        world.players = vec![player(Vec3::new(3.5, 64.0, 0.5))];
+        let mut ever = false;
+        for _ in 0..20 {
+            step(&mut ai, &mut base, &state, &world, |view| view.evil = evil);
+            ever |= running(&ai, |goal| matches!(goal, MobGoal::AvoidEntity(_)));
+        }
+        ever
+    };
+    assert!(flees(false));
+    assert!(!flees(true));
+}
+
+#[test]
+fn trust_removes_the_avoid_goal_and_losing_it_adds_it_back_last() {
+    let mut ai = MobAi::new(EntityKind::Ocelot, 1, GoalSettings::default());
+    let (mut base, state) = mob(EntityKind::Ocelot, Vec3::new(0.5, 64.0, 0.5));
+    ai.reassess_trusting(true);
+    step(&mut ai, &mut base, &state, &World::new(), |_| {});
+    assert!(goal_summary(&ai).iter().all(|(_, label)| *label != "avoid"));
+    ai.reassess_trusting(false);
+    step(&mut ai, &mut base, &state, &World::new(), |_| {});
+    assert_eq!(goal_summary(&ai).last(), Some(&(4, "avoid")));
+    ai.reassess_trusting(false);
+    step(&mut ai, &mut base, &state, &World::new(), |_| {});
+    let avoids = goal_summary(&ai)
+        .iter()
+        .filter(|(_, label)| *label == "avoid")
+        .count();
+    assert_eq!(avoids, 1);
+}
+
+#[test]
+fn trusting_while_fleeing_stops_the_flight_at_once() {
+    let (mut base, state) = mob(EntityKind::Ocelot, Vec3::new(0.5, 64.0, 0.5));
+    let mut ai = MobAi::new(EntityKind::Ocelot, 4, GoalSettings::default());
+    let mut world = World::new();
+    world.players = vec![player(Vec3::new(10.5, 64.0, 0.5))];
+    for _ in 0..40 {
+        step(&mut ai, &mut base, &state, &world, |_| {});
+        if running(&ai, |goal| matches!(goal, MobGoal::AvoidEntity(_))) {
+            break;
+        }
+    }
+    assert!(running(&ai, |goal| matches!(goal, MobGoal::AvoidEntity(_))));
+    ai.reassess_trusting(true);
+    step(&mut ai, &mut base, &state, &world, |_| {});
+    assert!(!running(&ai, |goal| matches!(
+        goal,
+        MobGoal::AvoidEntity(_)
+    )));
+}
+
+#[test]
+fn the_tempt_goal_reports_when_it_is_running() {
+    let (mut base, state) = mob(EntityKind::Ocelot, Vec3::new(0.5, 64.0, 0.5));
+    let mut ai = MobAi::new(EntityKind::Ocelot, 2, GoalSettings::default());
+    assert!(!ai.is_tempting());
+    let mut world = World::new();
+    let mut holder = player(Vec3::new(4.5, 64.0, 0.5));
+    holder.main_hand = Some(ocelot_food());
+    world.players = vec![holder];
+    for _ in 0..6 {
+        step(&mut ai, &mut base, &state, &world, |_| {});
+    }
+    assert!(ai.is_tempting());
 }

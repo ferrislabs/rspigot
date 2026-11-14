@@ -11,10 +11,10 @@ rspigot-data = { workspace = true }
 rspigot-domain = { workspace = true }
 rspigot-entities = { workspace = true }
 rspigot-items = { workspace = true }
+uuid = "1"
 
 [dev-dependencies]
 proptest = "1"
-uuid = "1"
 
 [lints]
 workspace = true

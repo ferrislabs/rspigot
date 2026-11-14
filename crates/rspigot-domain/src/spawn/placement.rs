@@ -57,12 +57,50 @@ pub fn is_block_dangerous(kind: EntityKind, state: BlockStateId) -> bool {
 }
 
 pub fn is_valid_empty_spawn_block(state: BlockStateId, kind: EntityKind) -> bool {
+    !state.flags().has_fluid() && is_valid_empty_spawn_block_ignoring_fluid(state, kind)
+}
+
+pub fn is_valid_empty_spawn_block_ignoring_fluid(state: BlockStateId, kind: EntityKind) -> bool {
     let flags = state.flags();
     !flags.contains(StateFlags::FULL_COLLISION_CUBE)
         && !flags.contains(StateFlags::SIGNAL_SOURCE)
-        && !flags.has_fluid()
         && !has_tag(state, PREVENT_MOB_SPAWNING_INSIDE)
         && !is_block_dangerous(kind, state)
+}
+
+pub fn top_face_is_full(state: BlockStateId) -> bool {
+    const SLICE: f64 = 1.0 - 1.0e-7;
+    let boxes: Vec<_> = state
+        .collision_shape()
+        .iter()
+        .filter(|shape| shape.min_y < SLICE && shape.max_y > SLICE)
+        .collect();
+    if boxes.is_empty() {
+        return false;
+    }
+    let mut xs = vec![0.0, 1.0];
+    let mut zs = vec![0.0, 1.0];
+    for shape in &boxes {
+        xs.extend([shape.min_x, shape.max_x]);
+        zs.extend([shape.min_z, shape.max_z]);
+    }
+    xs.sort_by(f64::total_cmp);
+    zs.sort_by(f64::total_cmp);
+    xs.windows(2)
+        .filter(|pair| pair[0] >= 0.0 && pair[1] <= 1.0 && pair[1] - pair[0] > 1.0e-7)
+        .all(|x| {
+            zs.windows(2)
+                .filter(|pair| pair[0] >= 0.0 && pair[1] <= 1.0 && pair[1] - pair[0] > 1.0e-7)
+                .all(|z| {
+                    let (cx, cz) = ((x[0] + x[1]) / 2.0, (z[0] + z[1]) / 2.0);
+                    boxes.iter().any(|shape| {
+                        shape.min_x <= cx
+                            && cx <= shape.max_x
+                            && shape.min_z <= cz
+                            && cz <= shape.max_z
+                    })
+                })
+        })
 }
 
 pub fn is_redstone_conductor(state: BlockStateId) -> bool {

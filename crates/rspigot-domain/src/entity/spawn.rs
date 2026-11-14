@@ -8,6 +8,7 @@ use super::ageable::{self, BABY_START_AGE};
 use super::base::EntityBase;
 use super::living::{self, FOLLOW_RANGE, LivingState, MAX_HEALTH, RANDOM_SPAWN_BONUS, slot_index};
 use super::species::{self, Species};
+use super::variants::VariantContext;
 use super::{Entity, EntityState};
 use crate::BiomeId;
 use crate::difficulty::DifficultyInstance;
@@ -52,6 +53,7 @@ pub struct SpawnEnvironment {
     pub biome: BiomeId,
     pub difficulty: DifficultyInstance,
     pub halloween: bool,
+    pub moon_brightness: f32,
 }
 
 fn stack(kind: ItemKind) -> ItemStack {
@@ -62,7 +64,7 @@ pub fn set_item_slot(living: &mut LivingState, slot: EquipmentSlot, item: Option
     living.equipment[slot_index(slot)] = item;
 }
 
-fn mob_finalize(
+pub(crate) fn mob_finalize(
     base: &mut EntityBase,
     living: &mut LivingState,
     group: Option<SpawnGroupData>,
@@ -86,7 +88,7 @@ fn mob_finalize(
     group
 }
 
-fn ageable_finalize(
+pub(crate) fn ageable_finalize(
     base: &mut EntityBase,
     living: &mut LivingState,
     group: Option<SpawnGroupData>,
@@ -277,10 +279,14 @@ pub fn zombie_handle_attributes(
     reason: SpawnReason,
     own: &mut impl RandomSource,
 ) {
-    living.attributes.set_base(
-        SPAWN_REINFORCEMENTS,
-        own.next_double() * REINFORCEMENT_SPREAD,
-    );
+    let reinforcements = if base.kind == EntityKind::ZombifiedPiglin {
+        0.0
+    } else {
+        own.next_double() * REINFORCEMENT_SPREAD
+    };
+    living
+        .attributes
+        .set_base(SPAWN_REINFORCEMENTS, reinforcements);
     let knockback = own.next_double() * KNOCKBACK_BONUS;
     add_or_replace(
         living,
@@ -344,6 +350,9 @@ fn zombie_finalize(
     level: &mut impl RandomSource,
     own: &mut impl RandomSource,
 ) -> Option<SpawnGroupData> {
+    if base.kind == EntityKind::ZombieVillager {
+        species::zombie_villager::randomize_profession(base, own, environment.biome);
+    }
     let group = mob_finalize(base, living, group, level);
     let difficulty = environment.difficulty;
     let special = difficulty.special_multiplier();
@@ -370,25 +379,33 @@ fn zombie_finalize(
             zombie.can_break_doors = doors;
         }
         if reason != SpawnReason::Conversion {
-            populate_armor(living, &difficulty, level);
-            let chance = if difficulty.base == Difficulty::Hard {
-                HARD_WEAPON_CHANCE
-            } else {
-                WEAPON_CHANCE
-            };
-            if level.next_float() < chance {
-                let weapon = match level.next_int(6) {
-                    0 => ItemKind::IronSword,
-                    1 => ItemKind::IronSpear,
-                    _ => ItemKind::IronShovel,
-                };
+            if base.kind == EntityKind::ZombifiedPiglin {
+                let weapon = species::zombified_piglin::default_weapon(level);
                 set_item_slot(living, EquipmentSlot::Mainhand, Some(stack(weapon)));
+            } else {
+                populate_armor(living, &difficulty, level);
+                let chance = if difficulty.base == Difficulty::Hard {
+                    HARD_WEAPON_CHANCE
+                } else {
+                    WEAPON_CHANCE
+                };
+                if level.next_float() < chance {
+                    let weapon = match level.next_int(6) {
+                        0 => ItemKind::IronSword,
+                        1 => ItemKind::IronSpear,
+                        _ => ItemKind::IronShovel,
+                    };
+                    set_item_slot(living, EquipmentSlot::Mainhand, Some(stack(weapon)));
+                }
             }
             enchantment_rolls(living, &difficulty, level);
         }
     }
     halloween_head(living, environment, level);
     zombie_handle_attributes(base, living, special, reason, own);
+    if base.kind == EntityKind::Husk && reason != SpawnReason::Conversion {
+        set_can_pick_up_loot(living, level.next_float() < PICK_UP_LOOT_CHANCE * special);
+    }
     Some(group)
 }
 
@@ -471,7 +488,11 @@ pub fn finalize_spawn(
     match species {
         Some(Species::Cow | Species::Pig | Species::Chicken(_)) => {
             if let Some(farm) = species.and_then(|s| s.farm()) {
-                if let Some(id) = species::select_variant(farm, environment.biome, level) {
+                if let Some(id) = species::select_variant(
+                    farm,
+                    &VariantContext::in_biome(environment.biome),
+                    level,
+                ) {
                     species::set_variant(base, farm, id);
                 }
                 let sound = species::pick_sound_variant(farm, level);
@@ -484,10 +505,45 @@ pub fn finalize_spawn(
             species::set_wool_color(base, color);
             ageable_finalize(base, living, group, level)
         }
-        Some(Species::Zombie(_)) if kind == EntityKind::Zombie => {
+        Some(Species::Zombie(_))
+            if matches!(
+                kind,
+                EntityKind::Zombie
+                    | EntityKind::Husk
+                    | EntityKind::ZombieVillager
+                    | EntityKind::ZombifiedPiglin
+            ) =>
+        {
             zombie_finalize(base, living, environment, reason, group, level, own)
         }
         Some(Species::Skeleton(_)) => skeleton_finalize(base, living, environment, group, level),
+        Some(Species::Wolf(_)) => species::wolf::finalize(base, living, environment, group, level),
+        Some(Species::Cat(_)) => species::cat::finalize(base, living, environment, group, level),
+        Some(Species::Fox(_)) => species::fox::finalize(base, living, environment, group, level),
+        Some(Species::Panda(_)) => {
+            species::panda::finalize(base, living, environment, group, level)
+        }
+        Some(Species::PolarBear(_)) => {
+            species::polar_bear::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Enderman(_)) => {
+            species::enderman::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Endermite(_)) => {
+            species::endermite::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Silverfish(_)) => {
+            species::silverfish::finalize(base, living, environment, group, level)
+        }
+        Some(Species::IronGolem(_)) => {
+            species::iron_golem::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Rabbit(_)) => {
+            species::rabbit::finalize(base, living, environment, group, level)
+        }
+        Some(Species::Ocelot(_)) => {
+            species::ocelot::finalize(base, living, environment, group, level)
+        }
         _ if kind == EntityKind::Spider => spider_finalize(base, living, environment, group, level),
         _ if kind.extends("AgeableMob") => ageable_finalize(base, living, group, level),
         _ => mob_finalize(base, living, group, level),
@@ -515,6 +571,7 @@ mod tests {
             biome: BiomeId(rspigot_data::registries::biome_id(biome).unwrap()),
             difficulty: DifficultyInstance::new(difficulty, 0, 0, 1.0),
             halloween: false,
+            moon_brightness: 0.0,
         }
     }
 
@@ -533,7 +590,7 @@ mod tests {
             &mut own,
         );
         assert_eq!(
-            species::variant(&cow.base, rspigot_data::variants::Farm::Cow),
+            species::variant(&cow.base, rspigot_data::variants::VariantFamily::Cow),
             0
         );
         assert_eq!(
@@ -551,6 +608,52 @@ mod tests {
                 .attributes
                 .has_modifier(FOLLOW_RANGE, RANDOM_SPAWN_BONUS)
         );
+    }
+
+    #[test]
+    fn cats_get_a_variant_with_the_moon_and_a_sound_variant_at_spawn() {
+        use rspigot_data::variants::VariantFamily::Cat;
+        let all_black = Cat.variant_index("minecraft:all_black");
+        let mut full = environment("minecraft:plains", Difficulty::Normal);
+        full.moon_brightness = 1.0;
+        let mut black = 0;
+        let mut other = 0;
+        for seed in 0..80 {
+            let mut cat = mob(EntityKind::Cat);
+            let mut level = LegacyRandom::new(seed);
+            let mut own = LegacyRandom::new(seed + 1000);
+            finalize_spawn(
+                &mut cat,
+                &full,
+                SpawnReason::Natural,
+                None,
+                &mut level,
+                &mut own,
+            );
+            let variant = species::variant(&cat.base, Cat);
+            assert!(species::sound_variant(&cat.base, Cat) < Cat.sound_variants().len() as u32);
+            if Some(variant) == all_black {
+                black += 1;
+            } else {
+                other += 1;
+            }
+        }
+        assert!(black > 0 && other > 0);
+        let new_moon = environment("minecraft:plains", Difficulty::Normal);
+        for seed in 0..80 {
+            let mut cat = mob(EntityKind::Cat);
+            let mut level = LegacyRandom::new(seed);
+            let mut own = LegacyRandom::new(seed + 1000);
+            finalize_spawn(
+                &mut cat,
+                &new_moon,
+                SpawnReason::Natural,
+                None,
+                &mut level,
+                &mut own,
+            );
+            assert_ne!(Some(species::variant(&cat.base, Cat)), all_black);
+        }
     }
 
     #[test]
@@ -595,6 +698,36 @@ mod tests {
                 .attributes
                 .has_modifier(KNOCKBACK_RESISTANCE, RANDOM_SPAWN_BONUS)
         );
+    }
+
+    #[test]
+    fn husks_finalize_like_zombies_and_roll_pick_up_loot_twice() {
+        let env = environment("minecraft:desert", Difficulty::Hard);
+        let mut babies = 0;
+        for seed in 0..400 {
+            let mut husk = mob(EntityKind::Husk);
+            let mut level = LegacyRandom::new(seed);
+            let mut own = LegacyRandom::new(seed + 1000);
+            let group = finalize_spawn(
+                &mut husk,
+                &env,
+                SpawnReason::Natural,
+                None,
+                &mut level,
+                &mut own,
+            );
+            assert!(matches!(group, Some(SpawnGroupData::Zombie { .. })));
+            assert!(
+                husk.living()
+                    .unwrap()
+                    .attributes
+                    .has_modifier(KNOCKBACK_RESISTANCE, RANDOM_SPAWN_BONUS)
+            );
+            if husk.is_baby() {
+                babies += 1;
+            }
+        }
+        assert!((5..=45).contains(&babies), "{babies}");
     }
 
     #[test]

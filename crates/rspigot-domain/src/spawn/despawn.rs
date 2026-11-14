@@ -11,12 +11,15 @@ const OCELOT_PERSISTENT_TICKS: i32 = 2400;
 pub struct FarAwayFacts {
     pub chicken_jockey: bool,
     pub trusting: bool,
+    pub tame: bool,
     pub tick_count: i32,
+    pub villager_progress: bool,
 }
 
 pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<bool> {
     Some(match kind.mob_spawn()?.remove_when_far_away {
         MobClass::Mob => true,
+        MobClass::Cat => !facts.tame && facts.tick_count > OCELOT_PERSISTENT_TICKS,
         MobClass::Ocelot => !facts.trusting && facts.tick_count > OCELOT_PERSISTENT_TICKS,
         MobClass::Animal
         | MobClass::AbstractGolem
@@ -24,6 +27,7 @@ pub fn remove_when_far_away(kind: EntityKind, facts: FarAwayFacts) -> Option<boo
         | MobClass::WanderingTrader
         | MobClass::Allay => false,
         MobClass::Chicken => facts.chicken_jockey,
+        MobClass::ZombieVillager => !facts.villager_progress,
         _ => return None,
     })
 }
@@ -36,7 +40,9 @@ pub struct DespawnFacts {
     pub no_action_time: i32,
     pub chicken_jockey: bool,
     pub trusting: bool,
+    pub tame: bool,
     pub tick_count: i32,
+    pub villager_progress: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -65,7 +71,9 @@ pub fn check_despawn(
     let far_facts = FarAwayFacts {
         chicken_jockey: facts.chicken_jockey,
         trusting: facts.trusting,
+        tame: facts.tame,
         tick_count: facts.tick_count,
+        villager_progress: facts.villager_progress,
     };
     let far = || remove_when_far_away(kind, far_facts).unwrap_or(false);
     let despawn = i32::from(category.despawn_distance()).pow(2);
@@ -123,7 +131,9 @@ mod tests {
             no_action_time: 0,
             chicken_jockey: false,
             trusting: false,
+            tame: false,
             tick_count: 0,
+            villager_progress: false,
         }
     }
 
@@ -152,6 +162,11 @@ mod tests {
     #[test]
     fn animals_and_persistent_mobs_stay() {
         let mut random = Fixed(0);
+        let panda = DespawnFacts {
+            no_action_time: 700,
+            ..facts(EntityKind::Panda)
+        };
+        assert!(!check_despawn(&panda, Difficulty::Normal, Some(1e6), &mut random).discard);
         let cow = DespawnFacts {
             no_action_time: 700,
             ..facts(EntityKind::Cow)
@@ -220,6 +235,44 @@ mod tests {
             ..old
         };
         assert!(!check_despawn(&trusting, Difficulty::Normal, Some(1e6), &mut random).discard);
+    }
+
+    #[test]
+    fn wild_cats_fade_after_two_minutes_but_tame_ones_stay() {
+        let mut random = Fixed(5);
+        let young = DespawnFacts {
+            tick_count: 2400,
+            ..facts(EntityKind::Cat)
+        };
+        assert!(!check_despawn(&young, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let old = DespawnFacts {
+            tick_count: 2401,
+            ..facts(EntityKind::Cat)
+        };
+        assert!(check_despawn(&old, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let tame = DespawnFacts { tame: true, ..old };
+        assert!(!check_despawn(&tame, Difficulty::Normal, Some(1e6), &mut random).discard);
+    }
+
+    #[test]
+    fn zombie_villagers_with_experience_or_a_cure_underway_never_fade() {
+        let mut random = Fixed(5);
+        let plain = facts(EntityKind::ZombieVillager);
+        assert!(check_despawn(&plain, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let cured = DespawnFacts {
+            villager_progress: true,
+            ..plain
+        };
+        assert!(!check_despawn(&cured, Difficulty::Normal, Some(1e6), &mut random).discard);
+    }
+
+    #[test]
+    fn polar_bears_never_fade_but_zombified_piglins_do() {
+        let mut random = Fixed(5);
+        let bear = facts(EntityKind::PolarBear);
+        assert!(!check_despawn(&bear, Difficulty::Normal, Some(1e6), &mut random).discard);
+        let piglin = facts(EntityKind::ZombifiedPiglin);
+        assert!(check_despawn(&piglin, Difficulty::Normal, Some(1e6), &mut random).discard);
     }
 
     #[test]

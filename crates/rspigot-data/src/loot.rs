@@ -287,7 +287,7 @@ mod tests {
     const BLOCK_TABLE_FILES: usize = 1201;
     const ENTITY_TABLE_FILES: usize = 109;
     const REFERENCED_TABLES: usize = 1;
-    const GAMEPLAY_TABLES: usize = 2;
+    const GAMEPLAY_TABLES: usize = 4;
     const SHEEP_COLOUR_TABLES: usize = 16;
     const CHARGED_CREEPER_TABLES: usize = 6;
     const TILL_TABLES: usize = 1;

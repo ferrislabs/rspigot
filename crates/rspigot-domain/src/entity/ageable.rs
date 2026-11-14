@@ -289,7 +289,12 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
         EntityKind::Pig => dims(0.45, 0.45, 0.40625),
         EntityKind::Sheep => dims(0.45, 0.65, 0.65625),
         EntityKind::Chicken => dims(0.3, 0.4, 0.28125),
+        EntityKind::Fox => dims(adult.width * 0.6, adult.height * 0.6, 0.34375),
+        EntityKind::Panda => dims(adult.width * 0.5, adult.height * 0.5, 0.28125),
         EntityKind::Zombie | EntityKind::Husk | EntityKind::Drowned => dims(0.49, 0.98, 0.775),
+        EntityKind::ZombifiedPiglin => dims(0.49, 0.98, 0.78),
+        EntityKind::ZombieVillager => dims(0.49, 0.98, 0.67),
+        EntityKind::PolarBear => dims(0.7, 0.7, 0.34375),
         _ => dims(
             adult.width * 0.5,
             adult.height * 0.5,
@@ -312,6 +317,23 @@ mod tests {
         let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Cow);
         let state = AgeableState::new(&mut base);
         (base, state)
+    }
+
+    #[test]
+    fn babies_of_the_neutral_and_villager_mobs_use_their_own_boxes() {
+        let bear = dimensions(EntityKind::PolarBear, true);
+        assert_eq!(
+            (bear.width, bear.height, bear.eye_height),
+            (0.7, 0.7, 0.34375)
+        );
+        let piglin = dimensions(EntityKind::ZombifiedPiglin, true);
+        assert_eq!(
+            (piglin.width, piglin.height, piglin.eye_height),
+            (0.49, 0.98, 0.78)
+        );
+        let villager = dimensions(EntityKind::ZombieVillager, true);
+        assert_eq!(villager.eye_height, 0.67);
+        assert_eq!(dimensions(EntityKind::PolarBear, false).height, 1.4);
     }
 
     #[test]

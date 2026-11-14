@@ -8,6 +8,7 @@ pub mod fire;
 pub mod fluid;
 pub mod item;
 pub mod living;
+pub mod neutral;
 pub mod orb;
 pub mod physics;
 #[cfg(test)]
@@ -18,8 +19,10 @@ pub mod save;
 pub mod spawn;
 pub mod species;
 mod store;
+pub mod tamable;
 pub mod tracker;
 mod tracking_range;
+pub mod variants;
 
 use rspigot_nbt::Compound;
 

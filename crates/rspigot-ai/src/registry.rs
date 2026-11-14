@@ -15,6 +15,9 @@ use crate::goals::{
 };
 use crate::rabbit::RaidGardenGoal;
 use crate::world::TargetKind;
+use crate::{
+    cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
+};
 
 pub const ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER: bool = true;
 pub const WEAPON_PRIORITY: i32 = 4;
@@ -34,63 +37,63 @@ impl Default for GoalSettings {
     }
 }
 
-struct Goals<'a> {
-    goals: &'a mut GoalSelector<MobGoal>,
-    targets: &'a mut GoalSelector<MobGoal>,
-    brain: &'a mut Brain,
+pub(crate) struct Goals<'a> {
+    pub(crate) goals: &'a mut GoalSelector<MobGoal>,
+    pub(crate) targets: &'a mut GoalSelector<MobGoal>,
+    pub(crate) brain: &'a mut Brain,
 }
 
 impl Goals<'_> {
-    fn goal(&mut self, priority: i32, goal: MobGoal) {
+    pub(crate) fn goal(&mut self, priority: i32, goal: MobGoal) {
         self.goals.add_goal(priority, goal);
     }
 
-    fn target_goal(&mut self, priority: i32, goal: MobGoal) {
+    pub(crate) fn target_goal(&mut self, priority: i32, goal: MobGoal) {
         self.targets.add_goal(priority, goal);
     }
 
-    fn float(&mut self, priority: i32) {
+    pub(crate) fn float(&mut self, priority: i32) {
         self.brain.profile.can_float = true;
         self.goal(priority, MobGoal::Float(FloatGoal));
     }
 
-    fn tempt(&mut self, priority: i32, speed: f64, items: TemptItems) {
+    pub(crate) fn tempt(&mut self, priority: i32, speed: f64, items: TemptItems) {
         self.goal(priority, MobGoal::Tempt(TemptGoal::new(speed, items)));
     }
 
-    fn stroll(&mut self, priority: i32, speed: f64) {
+    pub(crate) fn stroll(&mut self, priority: i32, speed: f64) {
         self.goal(
             priority,
             MobGoal::Stroll(RandomStrollGoal::water_avoiding(speed)),
         );
     }
 
-    fn stroll_rarely_in_water(&mut self, priority: i32, speed: f64, probability: f32) {
+    pub(crate) fn stroll_rarely_in_water(&mut self, priority: i32, speed: f64, probability: f32) {
         self.goal(
             priority,
             MobGoal::Stroll(RandomStrollGoal::water_avoiding_with(speed, probability)),
         );
     }
 
-    fn look(&mut self, priority: i32, distance: f32) {
+    pub(crate) fn look(&mut self, priority: i32, distance: f32) {
         self.goal(
             priority,
             MobGoal::LookAtPlayer(LookAtPlayerGoal::new(distance)),
         );
     }
 
-    fn look_around(&mut self, priority: i32) {
+    pub(crate) fn look_around(&mut self, priority: i32) {
         self.goal(
             priority,
             MobGoal::RandomLookAround(RandomLookAroundGoal::default()),
         );
     }
 
-    fn target(&mut self, priority: i32, goal: NearestAttackableTargetGoal) {
+    pub(crate) fn target(&mut self, priority: i32, goal: NearestAttackableTargetGoal) {
         self.target_goal(priority, MobGoal::NearestAttackableTarget(goal));
     }
 
-    fn animal(
+    pub(crate) fn animal(
         &mut self,
         panic: f64,
         breed: i32,
@@ -171,7 +174,7 @@ pub fn register_goals(
             add.look(6, 6.0);
             add.look_around(7);
         }
-        EntityKind::Zombie | EntityKind::Husk => {
+        EntityKind::Zombie | EntityKind::Husk | EntityKind::ZombieVillager => {
             add.goal(
                 4,
                 MobGoal::RemoveTurtleEgg(RemoveTurtleEggGoal::new(1.0, 3)),
@@ -179,7 +182,10 @@ pub fn register_goals(
             add.look(8, 8.0);
             add.look_around(8);
             add.goal(3, MobGoal::MeleeAttack(MeleeAttackGoal::zombie(1.0)));
-            add.goal(6, MobGoal::MoveThroughVillage(MoveThroughVillageGoal));
+            add.goal(
+                6,
+                MobGoal::MoveThroughVillage(MoveThroughVillageGoal::new(1.0, true, 4)),
+            );
             add.stroll(7, 1.0);
             add.target_goal(
                 1,
@@ -344,20 +350,15 @@ pub fn register_goals(
                     TemptItems::Tag("minecraft:ocelot_food"),
                 )),
             );
-            add.goal(
-                4,
-                MobGoal::AvoidEntity(AvoidEntityGoal::unless_trusting(
-                    TargetKind::Player,
-                    16.0,
-                    0.8,
-                    1.33,
-                )),
-            );
             add.goal(7, MobGoal::LeapAtTarget(LeapAtTargetGoal::new(0.3)));
             add.goal(8, MobGoal::OcelotAttack(OcelotAttackGoal::default()));
             add.goal(9, MobGoal::Breed(BreedGoal::new(0.8)));
-            add.stroll_rarely_in_water(10, 0.8, 1.0e-5);
+            add.stroll_rarely_in_water(10, 0.8, 1.000_000_1e-5);
             add.look(11, 10.0);
+            add.goal(
+                OCELOT_AVOID_PRIORITY,
+                MobGoal::AvoidEntity(ocelot_avoid_players()),
+            );
             add.target(
                 1,
                 NearestAttackableTargetGoal::new(TargetKind::Class("Chicken"), false),
@@ -372,6 +373,65 @@ pub fn register_goals(
                 ),
             );
         }
+
+        EntityKind::Wolf => wolf::register(&mut add, kind),
+        EntityKind::Cat => cat::register(&mut add, kind),
+        EntityKind::Fox => fox::register(&mut add, kind),
+        EntityKind::Panda => panda::register(&mut add, kind),
+        EntityKind::PolarBear => polar_bear::register(&mut add, kind),
+        EntityKind::ZombifiedPiglin => zombified_piglin::register(&mut add),
+        EntityKind::Enderman => enderman::register(&mut add, kind),
+        EntityKind::Endermite => {
+            add.float(1);
+            add.goal(
+                1,
+                MobGoal::ClimbOnTopOfPowderSnow(ClimbOnTopOfPowderSnowGoal),
+            );
+            add.goal(2, MobGoal::MeleeAttack(MeleeAttackGoal::new(1.0, false)));
+            add.stroll(3, 1.0);
+            add.look(7, 8.0);
+            add.look_around(8);
+            add.target_goal(1, MobGoal::HurtByTarget(HurtByTargetGoal::alerting(&[])));
+            add.target(
+                2,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+        }
+        EntityKind::Silverfish => silverfish::register(&mut add, kind),
+        EntityKind::IronGolem => iron_golem::register(&mut add, kind),
         _ => {}
     }
+}
+
+pub(crate) const OCELOT_AVOID_PRIORITY: i32 = 4;
+const KILLER_MELEE_PRIORITY: i32 = 4;
+const KILLER_MELEE_SPEED: f64 = 1.4;
+
+pub(crate) fn ocelot_avoid_players() -> AvoidEntityGoal {
+    AvoidEntityGoal::unless_trusting(TargetKind::Player, 16.0, 0.8, 1.33)
+}
+
+pub(crate) fn add_killer_bunny_goals(
+    goals: &mut GoalSelector<MobGoal>,
+    targets: &mut GoalSelector<MobGoal>,
+) {
+    goals.add_goal(
+        KILLER_MELEE_PRIORITY,
+        MobGoal::MeleeAttack(MeleeAttackGoal::new(KILLER_MELEE_SPEED, true)),
+    );
+    targets.add_goal(1, MobGoal::HurtByTarget(HurtByTargetGoal::alerting(&[])));
+    targets.add_goal(
+        2,
+        MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::new(
+            TargetKind::Player,
+            true,
+        )),
+    );
+    targets.add_goal(
+        2,
+        MobGoal::NearestAttackableTarget(NearestAttackableTargetGoal::new(
+            TargetKind::Class("Wolf"),
+            true,
+        )),
+    );
 }

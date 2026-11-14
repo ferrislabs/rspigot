@@ -1,5 +1,5 @@
 use rspigot_ai::{
-    AiContext, AiWorld, Brain, Flag, GoalSettings, Living, MobAi, MobBody, MobGoal, MobView,
+    AiContext, AiWorld, Brain, Facts, Flag, GoalSettings, Living, MobAi, MobBody, MobGoal, MobView,
     TargetKind, TemptItems, default_pos, land_pos,
 };
 use rspigot_blocks::{BlockKind, StateId};
@@ -77,6 +77,7 @@ fn player(position: Vec3, held: Option<ItemId>) -> Living {
         panicking: false,
         has_target: false,
         scared: false,
+        facts: Facts::default(),
     }
 }
 

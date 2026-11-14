@@ -133,14 +133,23 @@ pub fn table_drops<R: Rng + ?Sized>(
     roller.drops
 }
 
-fn held_enchantments(_stack: Option<&ItemStack>) -> &'static [(&'static str, i32)] {
-    &[]
+const ENCHANTMENTS: &str = "minecraft:enchantments";
+
+fn held_enchantments(stack: Option<&ItemStack>) -> Vec<(String, i32)> {
+    let Some(compound) = stack.and_then(|stack| stack.components.get_compound(ENCHANTMENTS)) else {
+        return Vec::new();
+    };
+    let levels = compound.get_compound("levels").unwrap_or(compound);
+    levels
+        .iter()
+        .filter_map(|(name, tag)| Some((name.to_owned(), i32::try_from(tag.as_i64()?).ok()?)))
+        .collect()
 }
 
 fn enchantment_level(stack: Option<&ItemStack>, enchantment: &str) -> i32 {
     held_enchantments(stack)
         .iter()
-        .find(|(name, _)| *name == enchantment)
+        .find(|(name, _)| name == enchantment)
         .map_or(0, |(_, level)| *level)
 }
 
@@ -150,11 +159,11 @@ fn entity_enchantment_level(entity: Option<&LootEntity>, enchantment: &str) -> i
         .map_or(0, |e| enchantment_level(e.mainhand.as_ref(), enchantment))
 }
 
-fn enchantment_matches(predicate: &EnchantmentPredicate, held: &[(&str, i32)]) -> bool {
+fn enchantment_matches(predicate: &EnchantmentPredicate, held: &[(String, i32)]) -> bool {
     match (predicate.enchantments, predicate.levels) {
         (Some(names), levels) => names.iter().any(|name| {
             held.iter().any(|(held_name, level)| {
-                held_name == name
+                held_name.as_str() == *name
                     && *level != 0
                     && levels.is_none_or(|range| range.contains(*level))
             })
@@ -172,7 +181,7 @@ fn item_matches(predicate: &ItemPredicate, stack: Option<&ItemStack>) -> bool {
         && predicate
             .enchantments
             .iter()
-            .all(|enchantment| enchantment_matches(enchantment, held_enchantments(stack)))
+            .all(|enchantment| enchantment_matches(enchantment, &held_enchantments(stack)))
 }
 
 fn block_matches(predicate: &BlockPredicate, state: Option<BlockStateId>) -> bool {

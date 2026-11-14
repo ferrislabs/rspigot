@@ -64,6 +64,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
                 DamageType::Fall => EntityDamageCause::Fall,
                 DamageType::InFire => EntityDamageCause::Fire,
                 DamageType::Starve => EntityDamageCause::Starvation,
+                DamageType::Drown => EntityDamageCause::Drowning,
                 DamageType::Wither => EntityDamageCause::Wither,
                 DamageType::OnFire => EntityDamageCause::FireTick,
                 DamageType::Magic => EntityDamageCause::Magic,
@@ -253,6 +254,9 @@ impl<L: ClientLink> Server<L> {
             };
             if hurt { Outcome::Hurt } else { Outcome::Missed }
         };
+        if let Struck::Mob(id) = victim {
+            self.kind_hurt_settled(id, source);
+        }
         self.after_hurt(then, outcome);
         outcome.hurt()
     }

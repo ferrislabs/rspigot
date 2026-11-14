@@ -1,5 +1,6 @@
 use rspigot_domain::entity::EntityBase;
 use rspigot_domain::entity::living::LivingState;
+use rspigot_domain::entity::species::fox;
 use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::EntityKind;
 
@@ -9,7 +10,7 @@ use crate::combat::{MeleeAttackGoal, RangedBowAttackGoal};
 use crate::control::{BodyRotationControl, JumpControl, LookControl, MoveControl};
 use crate::goal::{Flag, GoalSelector};
 use crate::goals::MobGoal;
-use crate::random::{MobRandom, RandomSource};
+use crate::random::MobRandom;
 use crate::registry;
 use crate::sensing::Sensing;
 use crate::targeting;
@@ -38,7 +39,10 @@ pub struct Brain {
     pub defer_targets: bool,
     pub target_requests: Vec<TargetRequest>,
     pub tempt_verdict: Option<Option<EntityId>>,
-    pub more_carrot_ticks: i32,
+    pub fox: crate::FoxFacts,
+    pub can_break_doors: bool,
+    pub hop: Option<crate::rabbit::RabbitHop>,
+    pub panda: crate::PandaBrain,
     follow_range: f64,
 }
 
@@ -56,7 +60,7 @@ impl Brain {
         if kind == EntityKind::Chicken {
             profile.set_malus(PathType::Water, 0.0);
         }
-        Self {
+        let mut brain = Self {
             random: MobRandom::new(seed),
             look: LookControl::default(),
             movement: MoveControl::default(),
@@ -70,9 +74,16 @@ impl Brain {
             defer_targets: false,
             target_requests: Vec::new(),
             tempt_verdict: None,
-            more_carrot_ticks: 0,
+            fox: crate::FoxFacts::default(),
+            can_break_doors: false,
+            hop: None,
+            panda: crate::PandaBrain::default(),
             follow_range,
+        };
+        if kind == EntityKind::Rabbit {
+            brain.enable_hop();
         }
+        brain
     }
 }
 
@@ -105,12 +116,12 @@ impl<W: AiWorld> AiContext<'_, W> {
     pub fn target(&self) -> Option<Living> {
         let id = self.brain.target?;
         let living = self.world.living(id)?;
-        targeting::valid_target(self.world, living)
+        targeting::valid_mob_target(self.mob, self.world, living)
     }
 
     pub fn set_target(&mut self, target: Option<Living>, reason: TargetReason) {
         let to = target
-            .and_then(|living| targeting::valid_target(self.world, living))
+            .and_then(|living| targeting::valid_mob_target(self.mob, self.world, living))
             .map(|living| living.id);
         let from = self.brain.target;
         if to == from {
@@ -179,6 +190,10 @@ impl<W: AiWorld> AiContext<'_, W> {
     }
 
     pub fn move_to_entity(&mut self, target: &Living, speed_modifier: f64) -> bool {
+        self.move_to_entity_at(target.position, speed_modifier)
+    }
+
+    pub fn move_to_entity_at(&mut self, position: Vec3, speed_modifier: f64) -> bool {
         let profile = self.path_profile();
         let tick = self.tick_state();
         let follow = self.mob.follow_range;
@@ -186,7 +201,7 @@ impl<W: AiWorld> AiContext<'_, W> {
             self.world,
             &profile,
             &tick,
-            target.position,
+            position,
             speed_modifier,
             follow,
         )
@@ -228,6 +243,9 @@ impl<W: AiWorld> AiContext<'_, W> {
 enum GoalChange {
     Weapon { bow: bool, interval: i32 },
     BreakDoors(bool),
+    CatTame(bool),
+    Trusting(bool),
+    KillerBunny,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -267,13 +285,32 @@ impl MobAi {
         self.pending.push(GoalChange::Weapon { bow, interval });
     }
 
+    pub fn reassess_trusting(&mut self, trusting: bool) {
+        self.pending.push(GoalChange::Trusting(trusting));
+    }
+
+    pub fn become_killer_bunny(&mut self) {
+        self.pending.push(GoalChange::KillerBunny);
+    }
+
     pub fn set_can_break_doors(&mut self, can_break_doors: bool) {
         if self.brain.navigation.is_climber() || self.can_break_doors == can_break_doors {
             return;
         }
         self.can_break_doors = can_break_doors;
+        self.brain.can_break_doors = can_break_doors;
         self.brain.profile.can_open_doors = can_break_doors;
         self.pending.push(GoalChange::BreakDoors(can_break_doors));
+    }
+
+    pub fn reassess_cat_tame_goals(&mut self, tame: bool) {
+        self.pending.push(GoalChange::CatTame(tame));
+    }
+
+    pub fn is_tempting(&self) -> bool {
+        self.goals.goals().iter().any(|goal| {
+            goal.is_running() && matches!(goal.goal(), MobGoal::Tempt(tempt) if tempt.is_running())
+        })
     }
 
     pub fn can_break_doors(&self) -> bool {
@@ -281,10 +318,14 @@ impl MobAi {
     }
 
     pub fn is_panicking(&self) -> bool {
-        self.goals
-            .goals()
-            .iter()
-            .any(|goal| goal.is_running() && matches!(goal.goal(), MobGoal::Panic(_)))
+        self.goals.goals().iter().any(|goal| {
+            goal.is_running()
+                && match goal.goal() {
+                    MobGoal::Panic(_) => true,
+                    MobGoal::Panda(panda) => panda.is_panic(),
+                    _ => false,
+                }
+        })
     }
 
     pub fn eat_animation_tick(&self) -> i32 {
@@ -308,6 +349,10 @@ impl MobAi {
 
     pub fn targets(&self) -> &GoalSelector<MobGoal> {
         &self.targets
+    }
+
+    pub fn targets_mut(&mut self) -> &mut GoalSelector<MobGoal> {
+        &mut self.targets
     }
 
     pub fn brain(&self) -> &Brain {
@@ -348,6 +393,7 @@ impl MobAi {
 
     pub fn think<W: AiWorld>(&mut self, mob: &MobView, world: &W, body: &mut MobBody) {
         self.brain.sensing.tick();
+        self.brain.movement.set_in_water(mob.fluid.in_water);
         if self.brain.follow_range != mob.follow_range {
             self.brain.follow_range = mob.follow_range;
             self.brain
@@ -358,6 +404,11 @@ impl MobAi {
             self.brain.profile.width = mob.width;
             self.brain.profile.height = mob.height;
         }
+        self.brain.fox = mob.species.fox;
+        self.brain.look.set_max_head_x_rot(mob.max_head_x_rot());
+        if self.brain.panda.active {
+            self.brain.panda.facts = mob.species.panda;
+        }
         let mut context = AiContext {
             mob,
             world,
@@ -366,6 +417,7 @@ impl MobAi {
         };
         apply_pending(
             &mut self.goals,
+            &mut self.targets,
             std::mem::take(&mut self.pending),
             &mut context,
         );
@@ -378,28 +430,60 @@ impl MobAi {
             self.goals.tick(&mut context);
         }
         context.tick_navigation();
-        if self.brain.more_carrot_ticks > 0 {
-            let decay = self.brain.random.next_int(3);
-            self.brain.more_carrot_ticks = (self.brain.more_carrot_ticks - decay).max(0);
+        if mob.kind == EntityKind::Fox {
+            self.settle_fox(mob);
         }
+    }
+
+    fn settle_fox(&mut self, mob: &MobView) {
+        let brain = &mut self.brain;
+        let retargeting = brain
+            .target_requests
+            .iter()
+            .any(|request| request.to.is_some());
+        if brain.target.is_none() && !brain.defer_targets && !retargeting {
+            brain.fox.set_defending(false);
+        }
+        if brain.fox.flags != mob.species.fox.flags {
+            let flags = brain.fox.flags;
+            brain
+                .actions
+                .insert(0, MobAction::Fox(crate::FoxAction::SetFlags(flags)));
+        }
+    }
+
+    pub fn fox_target_goals(&mut self, red: bool) {
+        crate::fox::add_target_goals(&mut self.targets, red);
     }
 
     pub fn act(&mut self, base: &mut EntityBase, living: &mut LivingState, view: &impl BlockView) {
         let brain = &mut self.brain;
+        brain.hop_move_pre_tick(base, living);
         let profile = &brain.profile;
         let state = MobState {
             position: base.position,
             on_ground: base.on_ground,
             in_floatable_fluid: base.fluid.in_water,
         };
-        brain
-            .movement
-            .tick(base, living, view, &mut brain.jump, |pos| {
-                crate::walk::mob_path_type(view, profile, state, pos) == PathType::Walkable
-            });
+        if (base.kind != EntityKind::Fox || fox::can_move(base)) && brain.panda.can_move() {
+            brain
+                .movement
+                .tick(base, living, view, &mut brain.jump, |pos| {
+                    crate::walk::mob_path_type(view, profile, state, pos) == PathType::Walkable
+                });
+        }
         let navigating = brain.navigation.is_in_progress();
-        brain.look.tick(base, living, navigating);
-        brain.jump.tick(living);
+        if base.kind == EntityKind::Fox {
+            crate::fox::tick_look(&mut brain.look, base, living, navigating);
+        } else {
+            brain.look.tick(base, living, navigating);
+        }
+        if brain.hop.is_some() {
+            brain.hop_jump_tick(base, living);
+            brain.hop_tune_jump(base, living);
+        } else {
+            brain.jump.tick(living);
+        }
     }
 
     pub fn block_changed<W: AiWorld>(&mut self, pos: BlockPos, mob: &MobView, world: &W) {
@@ -433,6 +517,7 @@ impl MobAi {
 
 fn apply_pending<W: AiWorld>(
     goals: &mut GoalSelector<MobGoal>,
+    targets: &mut GoalSelector<MobGoal>,
     pending: Vec<GoalChange>,
     context: &mut AiContext<'_, W>,
 ) {
@@ -459,9 +544,31 @@ fn apply_pending<W: AiWorld>(
                     MobGoal::BreakDoor(BreakDoorGoal::default()),
                 );
             }
+            GoalChange::CatTame(tame) => {
+                goals.remove_goals(
+                    context,
+                    |goal| matches!(goal, MobGoal::AvoidEntity(avoid) if avoid.is_tame_gated()),
+                );
+                if !tame {
+                    goals.add_goal(crate::cat::AVOID_PRIORITY, crate::cat::avoid_players());
+                }
+            }
             GoalChange::BreakDoors(false) => {
                 goals.remove_goals(context, |goal| matches!(goal, MobGoal::BreakDoor(_)));
             }
+            GoalChange::Trusting(trusting) => {
+                goals.remove_goals(
+                    context,
+                    |goal| matches!(goal, MobGoal::AvoidEntity(avoid) if avoid.is_trust_gated()),
+                );
+                if !trusting {
+                    goals.add_goal(
+                        registry::OCELOT_AVOID_PRIORITY,
+                        MobGoal::AvoidEntity(registry::ocelot_avoid_players()),
+                    );
+                }
+            }
+            GoalChange::KillerBunny => registry::add_killer_bunny_goals(goals, targets),
         }
     }
 }

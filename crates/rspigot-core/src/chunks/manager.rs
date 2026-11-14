@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use rspigot_domain::chunk::ChunkColumn;
+use rspigot_domain::poi::PoiManager;
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos};
 use rspigot_nbt::Compound;
@@ -81,10 +82,12 @@ pub struct ChunkManager {
     events: ChunkEvents,
     relight: FxHashSet<ChunkPos>,
     mob_generation: Option<super::MobGeneration>,
+    poi: PoiManager,
 }
 
 impl ChunkManager {
     pub fn new(dimension: Arc<Dimension>, config: ChunkManagerConfig) -> Self {
+        let poi = PoiManager::new(dimension.height);
         Self {
             dimension,
             config,
@@ -95,7 +98,16 @@ impl ChunkManager {
             events: ChunkEvents::default(),
             relight: FxHashSet::default(),
             mob_generation: None,
+            poi,
         }
+    }
+
+    pub fn poi(&self) -> &PoiManager {
+        &self.poi
+    }
+
+    pub fn poi_mut(&mut self) -> &mut PoiManager {
+        &mut self.poi
     }
 
     pub fn set_mob_generation(&mut self, generation: Option<super::MobGeneration>) {
@@ -198,6 +210,7 @@ impl ChunkManager {
                     ChunkSource::Generated => self.stats.generated += 1,
                 }
                 self.stats.total_load_time += elapsed;
+                self.poi.load_chunk(&chunk);
                 self.loaded.insert(
                     pos,
                     Loaded {
@@ -259,6 +272,7 @@ impl ChunkManager {
         if save && loaded.dirty {
             self.submit_save(loaded.chunk, workers);
         }
+        self.poi.unload_chunk(pos);
         self.events.unloaded.push(pos);
         self.stats.unloaded += 1;
         true
@@ -332,6 +346,7 @@ impl ChunkManager {
         if state.is_air() {
             chunk.remove_block_entity(pos);
         }
+        self.poi.on_block_change(pos, current, state);
         if crate::lighting::affects_light(current, state) {
             self.relight.insert(pos.chunk());
         }
@@ -576,6 +591,87 @@ mod tests {
             store.saved.lock().map(|s| s.clone()).unwrap_or_default(),
             vec![pos]
         );
+        workers.shutdown();
+    }
+
+    struct BellStore {
+        bell: BlockPos,
+    }
+
+    impl ChunkStore for BellStore {
+        fn load(&self, _: &Identifier, pos: ChunkPos) -> Result<Option<ChunkColumn>, StoreError> {
+            Ok((pos == self.bell.chunk()).then(|| {
+                let mut chunk = ChunkColumn::empty(pos, Dimension::overworld().height, BiomeId(0));
+                chunk.set_block(self.bell, rspigot_blocks::BlockKind::Bell.default_state());
+                chunk
+            }))
+        }
+
+        fn save(&self, _: &Identifier, _: &ChunkColumn) -> Result<(), StoreError> {
+            Ok(())
+        }
+
+        fn flush(&self) -> Result<(), StoreError> {
+            Ok(())
+        }
+    }
+
+    impl crate::ports::EntityStore for BellStore {
+        fn load_entities(
+            &self,
+            _: &Identifier,
+            _: ChunkPos,
+        ) -> Result<Option<Vec<Compound>>, StoreError> {
+            Ok(None)
+        }
+
+        fn save_entities(
+            &self,
+            _: &Identifier,
+            _: ChunkPos,
+            _: &[Compound],
+        ) -> Result<(), StoreError> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn points_of_interest_follow_the_loaded_chunks_and_their_block_changes() {
+        let bell = BlockPos::new(4, 64, 4);
+        let workers =
+            ChunkWorkers::spawn(1, Arc::new(BellStore { bell }), Arc::new(EmptyGenerator));
+        let mut manager = ChunkManager::new(
+            Arc::new(Dimension::overworld()),
+            ChunkManagerConfig {
+                unload_delay_ticks: 3,
+                autosave_interval_ticks: 0,
+            },
+        );
+        assert_eq!(manager.poi().record_count(), 0);
+        manager.add_ticket(bell.chunk(), Priority(1), &workers);
+        drain(&mut manager, &workers, 1);
+        assert_eq!(
+            manager.poi().type_at(bell),
+            Some(rspigot_domain::poi::PoiType::Meeting)
+        );
+        let lectern = BlockPos::new(5, 64, 4);
+        manager.set_block(lectern, rspigot_blocks::BlockKind::Lectern.default_state());
+        assert_eq!(
+            manager.poi().type_at(lectern),
+            Some(rspigot_domain::poi::PoiType::Librarian)
+        );
+        manager.set_block(lectern, BlockStateId::AIR);
+        assert_eq!(manager.poi().type_at(lectern), None);
+        manager.set_block(bell, BlockStateId::AIR);
+        assert_eq!(manager.poi().record_count(), 0);
+        manager.set_block(bell, rspigot_blocks::BlockKind::Bell.default_state());
+        assert_eq!(manager.poi().record_count(), 1);
+        manager.remove_ticket(bell.chunk());
+        (0..3).for_each(|_| {
+            manager.tick();
+        });
+        assert!(manager.unload(bell.chunk(), false, &workers));
+        assert_eq!(manager.poi().record_count(), 0);
         workers.shutdown();
     }
 

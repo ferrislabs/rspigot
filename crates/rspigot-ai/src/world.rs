@@ -1,14 +1,49 @@
 use rspigot_domain::entity::fluid::FluidContact;
 use rspigot_domain::entity::living::{self, LivingState};
+use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{Aabb, EntityBase};
+use rspigot_domain::poi::{Occupancy, PoiRecord};
 use rspigot_domain::{BlockPos, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind;
 use rspigot_items::EquipmentSlot;
+use uuid::Uuid;
 
 use crate::BlockView;
 
 pub const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
 pub const TEMPT_RANGE: &str = "minecraft:tempt_range";
+const WOLF_SITTING_MAX_HEAD_X_ROT: f32 = 20.0;
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Facts {
+    pub uuid: Uuid,
+    pub tamed: bool,
+    pub owner: Option<EntityId>,
+    pub sleeping: bool,
+    pub sleep_timer: i32,
+    pub cat_relaxing: bool,
+    pub last_hurt_by_mob: Option<EntityId>,
+    pub last_hurt_by_mob_at: i32,
+    pub last_hurt_mob: Option<EntityId>,
+    pub last_hurt_mob_at: i32,
+    pub retaliable: bool,
+    pub tick_count: i32,
+    pub sitting: bool,
+    pub llama_strength: i32,
+    pub gaze_disguise: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DroppedItem {
+    pub id: EntityId,
+    pub position: Vec3,
+    pub item: ItemId,
+    pub bounds: Aabb,
+    pub has_pickup_delay: bool,
+    pub alive: bool,
+}
+
+pub const NO_VILLAGE: i32 = rspigot_domain::poi::NO_VILLAGE;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Living {
@@ -36,6 +71,7 @@ pub struct Living {
     pub panicking: bool,
     pub has_target: bool,
     pub scared: bool,
+    pub facts: Facts,
 }
 
 impl Living {
@@ -141,13 +177,103 @@ pub trait AiWorld: BlockView {
         true
     }
 
+    fn raw_brightness_undarkened(&self, pos: BlockPos) -> i32 {
+        self.raw_brightness(pos)
+    }
+
+    fn any_entity_in(&self, _area: &Aabb, _except: EntityId) -> bool {
+        false
+    }
+
     fn universal_anger(&self) -> bool {
         false
+    }
+
+    fn can_harm_player(&self, _attacker: EntityId, _victim: EntityId) -> bool {
+        true
+    }
+
+    fn chest_open_count(&self, _pos: BlockPos) -> i32 {
+        0
     }
 
     fn peaceful(&self) -> bool {
         self.difficulty() == 0
     }
+
+    fn thundering(&self) -> bool {
+        false
+    }
+
+    fn items_in(&self, _area: &Aabb) -> Vec<DroppedItem> {
+        Vec::new()
+    }
+
+    fn sections_to_village(&self, _pos: BlockPos) -> i32 {
+        NO_VILLAGE
+    }
+
+    fn pois_in_range(
+        &self,
+        _center: BlockPos,
+        _radius: i32,
+        _occupancy: Occupancy,
+    ) -> Vec<PoiRecord> {
+        Vec::new()
+    }
+
+    fn villagers_wanting_golem(&self, _area: &Aabb) -> Vec<Living> {
+        Vec::new()
+    }
+
+    fn villager_reputation(&self, _villager: EntityId, _player: EntityId) -> i32 {
+        0
+    }
+
+    fn is_close_to_village(&self, pos: BlockPos, sections: i32) -> bool {
+        sections <= 6 && self.sections_to_village(pos) <= sections
+    }
+
+    fn is_village(&self, pos: BlockPos) -> bool {
+        self.is_close_to_village(pos, 1)
+    }
+
+    fn motion_blocking_no_leaves_pos(&self, pos: BlockPos) -> BlockPos {
+        let blocks = |state: rspigot_blocks::StateId| {
+            !state.collision_shape().is_empty()
+                || state.flags().contains(rspigot_blocks::StateFlags::WATER)
+        };
+        let mut y = self.max_y();
+        while y >= self.min_y() {
+            let at = BlockPos::new(pos.x, y, pos.z);
+            let leaves = self.state(at).is_some_and(|state| {
+                state
+                    .kind()
+                    .is_some_and(|kind| crate::animal::kind_in_block_tag(kind, "minecraft:leaves"))
+            });
+            if !leaves && self.state(at).is_some_and(blocks) {
+                return BlockPos::new(pos.x, y + 1, pos.z);
+            }
+            y -= 1;
+        }
+        BlockPos::new(pos.x, self.min_y(), pos.z)
+    }
+
+    fn aggressive_panda(&self, _id: EntityId) -> bool {
+        false
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct KindFacts {
+    pub wolf: crate::WolfFacts,
+    pub cat: crate::CatFacts,
+    pub fox: crate::FoxFacts,
+    pub panda: crate::PandaFacts,
+    pub polar_bear: crate::PolarBearFacts,
+    pub enderman: crate::EndermanFacts,
+    pub silverfish: crate::SilverfishFacts,
+    pub iron_golem: crate::IronGolemFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -184,6 +310,7 @@ pub struct MobView {
     pub last_hurt_by_mob: Option<EntityId>,
     pub last_hurt_by_mob_at: i32,
     pub panic: bool,
+    pub panic_environmental: bool,
     pub on_fire: bool,
     pub head_empty: bool,
     pub main_hand: Option<ItemId>,
@@ -198,6 +325,18 @@ pub struct MobView {
     pub was_in_powder_snow: bool,
     pub evil: bool,
     pub trusting: bool,
+    pub more_carrot_ticks: i32,
+    pub uuid: Uuid,
+    pub tamed: bool,
+    pub ordered_to_sit: bool,
+    pub sitting: bool,
+    pub owner: Option<EntityId>,
+    pub angry: bool,
+    pub anger_target: Option<EntityId>,
+    pub leashed: bool,
+    pub passenger: bool,
+    pub player_created: bool,
+    pub species: KindFacts,
 }
 
 pub fn attribute(kind: EntityKind, living: &LivingState, name: &str) -> f64 {
@@ -210,6 +349,9 @@ pub fn attribute(kind: EntityKind, living: &LivingState, name: &str) -> f64 {
 impl MobView {
     pub fn of(base: &EntityBase, living: &LivingState) -> Self {
         let dimensions = base.dimensions;
+        let tamable_state = living.mob.as_ref().and_then(|mob| mob.tamable);
+        let tame = tamable_state.is_some();
+        let ordered_to_sit = tamable_state.is_some_and(|state| state.ordered_to_sit);
         let (home_pos, home_radius) = living
             .mob
             .as_ref()
@@ -249,6 +391,7 @@ impl MobView {
             last_hurt_by_mob: living.damage.last_hurt_by_mob,
             last_hurt_by_mob_at: living.damage.last_hurt_by_mob_at,
             panic: false,
+            panic_environmental: false,
             on_fire: false,
             head_empty: living.equipment(EquipmentSlot::Head).is_none(),
             main_hand: living.equipment(EquipmentSlot::Mainhand).map(|s| s.item),
@@ -263,6 +406,26 @@ impl MobView {
             was_in_powder_snow: base.was_in_powder_snow,
             evil: false,
             trusting: false,
+            more_carrot_ticks: 0,
+            uuid: base.uuid,
+            tamed: tame && tamable::is_tame(base),
+            ordered_to_sit,
+            sitting: tame && tamable::is_in_sitting_pose(base),
+            owner: None,
+            angry: false,
+            anger_target: None,
+            leashed: false,
+            passenger: false,
+            player_created: false,
+            species: KindFacts::default(),
+        }
+    }
+
+    pub fn max_head_x_rot(&self) -> f32 {
+        if self.kind == EntityKind::Wolf && self.sitting {
+            WOLF_SITTING_MAX_HEAD_X_ROT
+        } else {
+            crate::control::MAX_HEAD_X_ROT
         }
     }
 

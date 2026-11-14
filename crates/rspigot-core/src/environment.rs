@@ -76,6 +76,10 @@ impl<L: ClientLink> Server<L> {
             biome: self.biome_at(pos),
             difficulty: self.difficulty_at(pos),
             halloween: is_halloween(today()),
+            moon_brightness: difficulty::moon_brightness(
+                self.world.level.day_time,
+                self.world.dimension.has_skylight,
+            ),
         }
     }
 

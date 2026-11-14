@@ -218,6 +218,11 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             Spawned::Converted { old, event } => self.finish_conversion(old, event),
+            Spawned::Poof => {
+                if let Some((id, _)) = placed {
+                    self.spawn_anim(id);
+                }
+            }
             Spawned::Answered {
                 connection,
                 request,

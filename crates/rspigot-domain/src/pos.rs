@@ -30,6 +30,63 @@ impl BlockPos {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub struct SectionPos {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
+}
+
+impl SectionPos {
+    pub const fn new(x: i32, y: i32, z: i32) -> Self {
+        Self { x, y, z }
+    }
+
+    pub const fn of(pos: BlockPos) -> Self {
+        Self::new(pos.x >> 4, pos.y >> 4, pos.z >> 4)
+    }
+
+    pub const fn from_chunk(chunk: ChunkPos, y: i32) -> Self {
+        Self::new(chunk.x, y, chunk.z)
+    }
+
+    pub const fn chunk(self) -> ChunkPos {
+        ChunkPos::new(self.x, self.z)
+    }
+
+    pub const fn origin(self) -> BlockPos {
+        BlockPos::new(self.x << 4, self.y << 4, self.z << 4)
+    }
+
+    pub const fn center(self) -> BlockPos {
+        self.origin().offset(8, 8, 8)
+    }
+
+    pub const fn offset(self, dx: i32, dy: i32, dz: i32) -> Self {
+        Self::new(self.x + dx, self.y + dy, self.z + dz)
+    }
+
+    pub const fn chebyshev_distance(self, other: Self) -> i32 {
+        let dx = (self.x - other.x).abs();
+        let dy = (self.y - other.y).abs();
+        let dz = (self.z - other.z).abs();
+        let horizontal = if dx > dz { dx } else { dz };
+        if horizontal > dy { horizontal } else { dy }
+    }
+
+    pub fn cube(self, radius: i32) -> impl Iterator<Item = Self> {
+        let (x, y, z) = (self.x, self.y, self.z);
+        (z - radius..=z + radius).flat_map(move |sz| {
+            (y - radius..=y + radius)
+                .flat_map(move |sy| (x - radius..=x + radius).map(move |sx| Self::new(sx, sy, sz)))
+        })
+    }
+
+    pub const fn relative(pos: BlockPos) -> u16 {
+        (((pos.x & 15) << 8) | ((pos.y & 15) << 4) | (pos.z & 15)) as u16
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct ChunkPos {
     pub x: i32,
     pub z: i32,

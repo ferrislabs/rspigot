@@ -71,6 +71,20 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::Item(stack) => MetadataValue::Item(stack.clone()),
                 SyncedValue::BlockPos(pos) => MetadataValue::BlockPos(*pos),
                 SyncedValue::Variant(kind, id) => MetadataValue::Variant(*kind, *id),
+                SyncedValue::Long(v) => MetadataValue::Long(*v),
+                SyncedValue::OptionalEntity(v) => MetadataValue::OptionalEntity(*v),
+                SyncedValue::OptionalBlockState(v) => {
+                    MetadataValue::OptionalBlockState(v.map(|state| u32::from(state.0)))
+                }
+                SyncedValue::VillagerData {
+                    kind,
+                    profession,
+                    level,
+                } => MetadataValue::VillagerData {
+                    kind: *kind,
+                    profession: *profession,
+                    level: *level,
+                },
             },
         })
         .collect()
@@ -403,6 +417,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.mob_ambient_tick(id);
         self.forget_dead_attackers(id);
+        self.kind_ai_step(id);
         if let Some(Entity {
             base,
             state: EntityState::Living(state),

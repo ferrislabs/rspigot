@@ -1,9 +1,9 @@
 use rspigot_blocks::{BlockKind, StateFlags};
 use rspigot_domain::{BlockPos, EntityId, Vec3};
+use rspigot_entities::EntityKind;
 
 use crate::action::MobAction;
 use crate::brain::AiContext;
-use crate::control::MAX_HEAD_X_ROT;
 use crate::goal::adjusted_tick_delay;
 use crate::random::RandomSource;
 use crate::random_pos;
@@ -28,6 +28,11 @@ const ADULT_EAT_CHANCE: i32 = 1000;
 pub const EAT_GRASS_EVENT: i8 = 10;
 const EDIBLE_FOR_SHEEP: &str = "minecraft:edible_for_sheep";
 
+pub(crate) fn kind_in_block_tag(kind: BlockKind, tag: &str) -> bool {
+    rspigot_data::tags::tag("minecraft:block", tag)
+        .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
+}
+
 pub(crate) fn block_tag(state: Option<rspigot_blocks::StateId>, tag: &str) -> bool {
     state.and_then(|state| state.kind()).is_some_and(|kind| {
         rspigot_data::tags::tag("minecraft:block", tag)
@@ -41,6 +46,8 @@ pub struct PanicGoal {
     wanted: Vec3,
     running: bool,
     rabbit: bool,
+    tamable: bool,
+    environmental: bool,
 }
 
 impl PanicGoal {
@@ -50,6 +57,22 @@ impl PanicGoal {
             wanted: Vec3::ZERO,
             running: false,
             rabbit: false,
+            tamable: false,
+            environmental: false,
+        }
+    }
+
+    pub fn tamable(speed_modifier: f64) -> Self {
+        Self {
+            tamable: true,
+            ..Self::new(speed_modifier)
+        }
+    }
+
+    pub fn tamable_environmental(speed_modifier: f64) -> Self {
+        Self {
+            environmental: true,
+            ..Self::tamable(speed_modifier)
         }
     }
 
@@ -87,7 +110,12 @@ impl PanicGoal {
     }
 
     pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
-        if !context.mob.panic {
+        let panic = if self.environmental {
+            context.mob.panic_environmental
+        } else {
+            context.mob.panic
+        };
+        if !panic {
             return false;
         }
         if context.mob.on_fire
@@ -113,6 +141,9 @@ impl PanicGoal {
     }
 
     pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+        if self.tamable {
+            crate::tame::teleport_to_distant_owner(context);
+        }
         if !self.rabbit {
             return;
         }
@@ -139,6 +170,10 @@ impl BreedGoal {
         }
     }
 
+    pub(crate) fn partner(&self) -> Option<EntityId> {
+        self.partner
+    }
+
     fn free_partner<W: AiWorld>(context: &mut AiContext<'_, W>) -> Option<Living> {
         let mob = context.mob;
         let area = inflate(&mob.bounds(), PARTNER_RANGE, PARTNER_RANGE, PARTNER_RANGE);
@@ -158,7 +193,10 @@ impl BreedGoal {
             let can_mate = candidate.id != mob.id
                 && candidate.kind == mob.kind
                 && mob.in_love
-                && candidate.in_love;
+                && candidate.in_love
+                && (mob.kind != EntityKind::Wolf
+                    || (mob.tamed && candidate.facts.tamed && !candidate.facts.sitting))
+                && (mob.kind != EntityKind::Cat || (mob.tamed && candidate.facts.tamed));
             let distance = mob.distance_to_sqr(candidate.position);
             if can_mate && !candidate.panicking && distance < best {
                 best = distance;
@@ -199,7 +237,7 @@ impl BreedGoal {
         context
             .brain
             .look
-            .set_look_at(eye, BREED_LOOK_SPEED, MAX_HEAD_X_ROT);
+            .set_look_at(eye, BREED_LOOK_SPEED, context.mob.max_head_x_rot());
         context.move_to_entity(&partner, self.speed_modifier);
         self.love_time += 1;
         if self.love_time >= adjusted_tick_delay(false, BREED_DELAY)

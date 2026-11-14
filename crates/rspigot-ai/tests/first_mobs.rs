@@ -1,5 +1,5 @@
 use rspigot_ai::{
-    AiWorld, GoalSettings, Living, MobAction, MobAi, MobBody, MobGoal, MobView, TargetKind,
+    AiWorld, Facts, GoalSettings, Living, MobAction, MobAi, MobBody, MobGoal, MobView, TargetKind,
     bow_power,
 };
 use rspigot_blocks::{BlockKind, StateId};
@@ -85,6 +85,7 @@ fn living(id: i32, kind: EntityKind, position: Vec3) -> Living {
         panicking: false,
         has_target: false,
         scared: false,
+        facts: Facts::default(),
     }
 }
 
@@ -124,6 +125,12 @@ fn label(goal: &MobGoal) -> &'static str {
         MobGoal::ClimbOnTopOfPowderSnow(_) => "climb_powder_snow",
         MobGoal::OcelotAttack(_) => "ocelot_attack",
         MobGoal::RaidGarden(_) => "raid_garden",
+        MobGoal::SitWhenOrdered(_) => "sit",
+        MobGoal::FollowOwner(_) => "follow_owner",
+        MobGoal::OwnerTarget(_) => "owner_target",
+        MobGoal::ResetUniversalAnger(_) => "reset_anger",
+        #[allow(unreachable_patterns)]
+        _ => "other",
     }
 }
 
