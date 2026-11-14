@@ -1,4 +1,5 @@
-use rand::Rng;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use rspigot_blocks::{BlockKind, Face, StateFlags, Support};
 use rspigot_domain::{BlockPos, BlockStateId};
 
@@ -105,6 +106,16 @@ impl<L: ClientLink> Server<L> {
         self.can_stay_alive(pos) && !has_water(self.block_or_air(at(pos, Face::Up)))
     }
 
+    fn spread_seed(&self, pos: BlockPos) -> u64 {
+        let mut seed = self.world.level.game_time as u64;
+        for part in [pos.x, pos.y, pos.z] {
+            seed = seed
+                .wrapping_mul(0x9E37_79B9_7F4A_7C15)
+                .wrapping_add(part as u64);
+        }
+        seed
+    }
+
     pub(crate) fn spreading_snowy_tick(&mut self, pos: BlockPos, kind: BlockKind) {
         if !self.can_stay_alive(pos) {
             self.nature_change(Nature::Fade, pos, BlockKind::Dirt.default_state(), pos);
@@ -113,10 +124,11 @@ impl<L: ClientLink> Server<L> {
         if self.raw_brightness(at(pos, Face::Up)) < SPREAD_LIGHT {
             return;
         }
+        let mut random = StdRng::seed_from_u64(self.spread_seed(pos));
         for _ in 0..SPREAD_ATTEMPTS {
-            let dx = self.rng.random_range(0..3) - 1;
-            let dy = self.rng.random_range(0..5) - 3;
-            let dz = self.rng.random_range(0..3) - 1;
+            let dx = random.random_range(0..3) - 1;
+            let dy = random.random_range(0..5) - 3;
+            let dz = random.random_range(0..3) - 1;
             let target = pos.offset(dx, dy, dz);
             if self.block_or_air(target).kind() != Some(BlockKind::Dirt)
                 || !self.can_propagate(target)
