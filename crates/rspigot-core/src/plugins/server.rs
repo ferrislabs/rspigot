@@ -598,6 +598,13 @@ impl<L: ClientLink> Server<L> {
             Continuation::Teleport(step) => {
                 self.finish_teleport(step, cancelled, patch_of!(patch, PlayerTeleport))
             }
+            Continuation::Portal(step) => {
+                self.finish_portal(step, cancelled, patch_of!(patch, PlayerPortal))
+            }
+            Continuation::EntityPortal(step) => {
+                self.finish_entity_portal(step, cancelled, patch_of!(patch, EntityPortal));
+                Vec::new()
+            }
             Continuation::Velocity(_) if cancelled => Vec::new(),
             Continuation::Velocity(step) => {
                 self.finish_velocity(step, patch_of!(patch, PlayerVelocity));
@@ -1227,7 +1234,7 @@ impl<L: ClientLink> Server<L> {
             id: player.id,
             name: player.profile.name.clone(),
             entity_id: player.entity_id.0,
-            world: self.world.dimension.key.to_string(),
+            world: player.dim.to_string(),
             position: player.position,
             rotation: player.rotation,
             game_mode: player.game_mode,

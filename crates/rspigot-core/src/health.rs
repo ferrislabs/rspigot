@@ -184,6 +184,7 @@ pub struct Vitals {
     pub waiting_for_respawn: bool,
     pub load_timeout: u32,
     pub death_location: Option<BlockPos>,
+    pub death_dimension: Option<rspigot_domain::Identifier>,
     pub hurt_dir: f32,
     pub equipment: Vec<(ItemSlot, ItemId)>,
     pub experience: PlayerExperience,
@@ -234,6 +235,7 @@ impl Default for Vitals {
             waiting_for_respawn: false,
             load_timeout: CLIENT_LOAD_TIMEOUT,
             death_location: None,
+            death_dimension: None,
             hurt_dir: 0.0,
             equipment: Vec::new(),
             experience: PlayerExperience::default(),
@@ -667,6 +669,7 @@ impl<L: ClientLink> Server<L> {
         vitals.death_time = 0;
         vitals.waiting_for_respawn = true;
         vitals.death_location = Some(player.position.block());
+        vitals.death_dimension = Some(player.dim.clone());
         vitals.combat.recheck(now, false);
         let entity = player.entity_id;
         let feet = player.position;
@@ -805,6 +808,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let death_location = player.vitals.death_location;
+        let death_dimension = player.vitals.death_dimension.clone();
         let kept = player.vitals.experience;
         let heard_effects = self.listened(EventKind::EntityPotionEffect);
         let Some(player) = self.players.get_mut(&id) else {
@@ -834,6 +838,7 @@ impl<L: ClientLink> Server<L> {
         experience.last_sent = -1;
         player.vitals = Vitals {
             death_location,
+            death_dimension: death_dimension.clone(),
             experience,
             warden_tracker: player.vitals.warden_tracker,
             ..Vitals::default()
@@ -858,7 +863,12 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let mut spawn_info = self.spawn_info(player);
-        spawn_info.death_location = death_location.map(|pos| (dimension.clone(), pos));
+        spawn_info.death_location = death_location.map(|pos| {
+            (
+                death_dimension.clone().unwrap_or_else(|| dimension.clone()),
+                pos,
+            )
+        });
         player.link.send(ClientEvent::Respawn {
             spawn: spawn_info,
             keep_data: 0,
