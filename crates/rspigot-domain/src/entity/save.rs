@@ -820,7 +820,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Warden(state) => species::warden::read(nbt, base, state),
         Species::CopperGolem(state) => species::copper_golem::read(nbt, base, state),
-        Species::Cube(state) => species::cube::read(nbt, state),
+        Species::Cube(state) => species::cube::read(nbt, base, state),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -1072,7 +1072,7 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Villager(_) => species::villager::KEYS,
         Species::WanderingTrader(_) => species::wandering_trader::KEYS,
         Species::Warden(_) => species::warden::KEYS,
-        Species::Cube(_) => species::cube::KEYS,
+        Species::Cube(_) => species::cube::keys(base_kind),
         Species::CopperGolem(_) => species::copper_golem::KEYS,
         Species::Plain => &[],
     });
@@ -1303,7 +1303,10 @@ fn write_living(base: &EntityBase, living: &LivingState, out: &mut Compound) {
             let saved: Vec<&AttributeModifier> = instance
                 .modifiers
                 .iter()
-                .filter(|m| !TRANSIENT_MODIFIERS.contains(&m.id.as_ref()))
+                .filter(|m| {
+                    !TRANSIENT_MODIFIERS.contains(&m.id.as_ref())
+                        && !species::sulfur_cube::is_archetype_modifier(&m.id)
+                })
                 .collect();
             if !saved.is_empty() {
                 entry.insert(

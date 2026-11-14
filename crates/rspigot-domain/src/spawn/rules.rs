@@ -89,6 +89,7 @@ pub fn check_predicate(
             super::silverfish::check_spawn_rules(level, kind, reason, pos)
         }
         SpawnPredicate::Slime => super::slime::check_slime_spawn_rules(level, kind, reason, pos),
+        SpawnPredicate::SulfurCube => true,
         SpawnPredicate::MagmaCube => super::slime::check_magma_cube_spawn_rules(level),
         SpawnPredicate::Ghast => super::ghast::check_ghast_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Bat => super::bat::check_bat_spawn_rules(level, kind, reason, pos),
@@ -107,7 +108,6 @@ pub fn check_predicate(
         SpawnPredicate::Endermite => {
             super::endermite::check_endermite_spawn_rules(level, kind, reason, pos)
         }
-        _ => return None,
     })
 }
 
@@ -198,6 +198,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Endermite
                 | SpawnPredicate::Ghast
                 | SpawnPredicate::Slime
+                | SpawnPredicate::SulfurCube
                 | SpawnPredicate::MagmaCube
                 | SpawnPredicate::Bat
                 | SpawnPredicate::Parrot
@@ -1199,6 +1200,7 @@ mod tests {
             assert!(rules_ported(kind), "{kind:?}");
         }
         assert!(rules_ported(EntityKind::Slime));
+        assert!(rules_ported(EntityKind::SulfurCube));
         assert!(rules_ported(EntityKind::MagmaCube));
         assert!(rules_ported(EntityKind::TropicalFish));
         assert!(!rules_ported(EntityKind::Item));

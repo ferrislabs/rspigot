@@ -2299,6 +2299,140 @@ def emit_trading(enchantments, enchantability, trades, trade_sets):
     return head + text
 
 
+ARCHETYPE_KEYS = {
+    "items",
+    "attribute_modifiers",
+    "buoyant",
+    "explosion",
+    "contact_damage",
+    "knockback_modifiers",
+    "sound_settings",
+}
+ARCHETYPE_OPERATIONS = {
+    "add_value": "AddValue",
+    "add_multiplied_base": "AddMultipliedBase",
+    "add_multiplied_total": "AddMultipliedTotal",
+}
+
+
+def build_sulfur_cube_archetypes(datapack, tag_table):
+    root = os.path.join(datapack, "sulfur_cube_archetype")
+    item_tags = tag_table["minecraft:item"]
+    archetypes = []
+    claimed = {}
+    for name in json_names(root):
+        value = load_json(os.path.join(root, name + ".json"))
+        where = "sulfur cube archetype " + name
+        expect_keys(value, ARCHETYPE_KEYS, where)
+        items = value["items"]
+        if not items.startswith("#") or normalize_id(items[1:]) not in item_tags:
+            fail("unexpected items of %s: %s" % (where, items))
+        tag = normalize_id(items[1:])
+        for item in item_tags[tag]:
+            if item in claimed:
+                fail("item %d in %s and %s" % (item, claimed[item], where))
+            claimed[item] = where
+        modifiers = []
+        for entry in value["attribute_modifiers"]:
+            expect_keys(entry, {"attribute", "id", "amount", "operation"}, where)
+            if entry["operation"] not in ARCHETYPE_OPERATIONS:
+                fail("unknown operation in %s: %s" % (where, entry["operation"]))
+            modifiers.append(
+                rs_struct(
+                    "AttributeEntry",
+                    [
+                        ("attribute", rs_str(normalize_id(entry["attribute"]))),
+                        ("id", rs_str(normalize_id(entry["id"]))),
+                        ("amount", rs_f64(entry["amount"])),
+                        ("operation", Atom("Operation::" + ARCHETYPE_OPERATIONS[entry["operation"]])),
+                    ],
+                )
+            )
+        explosion = None
+        if "explosion" in value:
+            data = value["explosion"]
+            expect_keys(data, {"power", "causes_fire", "fuse"}, where)
+            explosion = rs_struct(
+                "Explosion",
+                [
+                    ("power", rs_int(data["power"])),
+                    ("causes_fire", rs_bool(data["causes_fire"])),
+                    ("fuse", rs_int(data["fuse"])),
+                ],
+            )
+        contact = None
+        if "contact_damage" in value:
+            data = value["contact_damage"]
+            expect_keys(data, {"amount", "attribute_to_source", "damage_type"}, where)
+            if not isinstance(data["amount"], (int, float)):
+                fail("unsupported contact damage amount in %s" % where)
+            contact = rs_struct(
+                "ContactDamage",
+                [
+                    ("damage_type", rs_str(normalize_id(data["damage_type"]))),
+                    ("amount", rs_f32(data["amount"])),
+                    ("attribute_to_source", rs_bool(data["attribute_to_source"])),
+                ],
+            )
+        knockback = value["knockback_modifiers"]
+        expect_keys(knockback, {"horizontal_power", "vertical_power"}, where)
+        sounds = value["sound_settings"]
+        expect_keys(
+            sounds,
+            {"hit_sound", "push_sound", "push_sound_cooldown", "push_sound_impulse_threshold"},
+            where,
+        )
+        archetypes.append(
+            rs_struct(
+                "Archetype",
+                [
+                    ("name", rs_str("minecraft:" + name)),
+                    ("items", rs_str(tag)),
+                    ("attribute_modifiers", rs_slice(modifiers)),
+                    ("buoyant", rs_bool(value.get("buoyant", False))),
+                    ("explosion", rs_option(explosion)),
+                    ("contact_damage", rs_option(contact)),
+                    (
+                        "knockback_modifiers",
+                        rs_struct(
+                            "Knockback",
+                            [
+                                ("horizontal_power", rs_f32(knockback["horizontal_power"])),
+                                ("vertical_power", rs_f32(knockback["vertical_power"])),
+                            ],
+                        ),
+                    ),
+                    (
+                        "sound_settings",
+                        rs_struct(
+                            "Sounds",
+                            [
+                                ("hit_sound", rs_str(normalize_id(sounds["hit_sound"]))),
+                                ("push_sound", rs_str(normalize_id(sounds["push_sound"]))),
+                                (
+                                    "push_sound_impulse_threshold",
+                                    rs_f32(sounds["push_sound_impulse_threshold"]),
+                                ),
+                                ("push_sound_cooldown", rs_f32(sounds["push_sound_cooldown"])),
+                            ],
+                        ),
+                    ),
+                ],
+            )
+        )
+    return archetypes
+
+
+def emit_sulfur_cube_archetypes(archetypes):
+    out = ["pub(crate) static ARCHETYPES: [Archetype; %d] = [" % len(archetypes)]
+    for node in archetypes:
+        out.extend(render(node, "    ", "", ","))
+    out.append("];")
+    text = "\n".join(out) + "\n"
+    names = ["Archetype", "AttributeEntry", "ContactDamage", "Explosion", "Knockback", "Operation", "Sounds"]
+    return "use crate::sulfur_cube::{%s};\n\n" % ", ".join(used_imports(text, names)) + text
+
+
 def emit_mod():
     return "\n".join(
         [
@@ -2308,6 +2442,7 @@ def emit_mod():
             "pub mod loot;",
             "pub mod spawns;",
             "pub mod static_registries;",
+            "pub mod sulfur_cube;",
             "pub mod synced;",
             "pub mod tags;",
             "pub mod trading;",
@@ -2359,6 +2494,7 @@ def main():
     transformers = build_transformers(args.datapack)
     compost_providers, compostables = build_compostables(args.reports, args.datapack, static_registries)
     trading = build_trading(args.datapack, args.reports, static_registries, synced, tag_table)
+    sulfur_cube = build_sulfur_cube_archetypes(args.datapack, tag_table)
 
     files = {
         "mod.rs": emit_mod(),
@@ -2372,6 +2508,7 @@ def main():
         "block_transformers.rs": emit_transformers(transformers),
         "compostable.rs": emit_compostables(compost_providers, compostables),
         "trading.rs": emit_trading(*trading),
+        "sulfur_cube.rs": emit_sulfur_cube_archetypes(sulfur_cube),
     }
     write_files(args.out, files)
 
@@ -2400,6 +2537,7 @@ def main():
     for constant, entries in mob_variants + sound_variants:
         print("variants %-24s %3d" % (constant, len(entries)))
     print("dye mixes %d" % len(dye_mixes))
+    print("sulfur cube archetypes %d" % len(sulfur_cube))
     print("compostable items %d" % len(compostables))
     print("enchantments %d, trades %d, trade sets %d" % (len(trading[0]), len(trading[2]), len(trading[3])))
     for construct in sorted(ignored):

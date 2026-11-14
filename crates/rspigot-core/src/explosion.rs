@@ -158,6 +158,14 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn tnt_block_interaction(&self) -> BlockInteraction {
+        if self.config.rules.mob_griefing {
+            BlockInteraction::Destroy
+        } else {
+            BlockInteraction::Keep
+        }
+    }
+
     pub(crate) fn discard_cause(&self, id: EntityId) -> EntityRemoveCause {
         let projectile = self
             .entities

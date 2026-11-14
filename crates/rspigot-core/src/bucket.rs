@@ -1,7 +1,7 @@
 use rspigot_blocks::{BlockKind, StateFlags};
-use rspigot_domain::entity::ageable;
-use rspigot_domain::entity::save::component_from_tag;
-use rspigot_domain::entity::species::{self, Species, fish};
+use rspigot_domain::entity::ageable::{self, AgeableState};
+use rspigot_domain::entity::save::{component_from_tag, item_stack_from_nbt, item_stack_to_nbt};
+use rspigot_domain::entity::species::{self, Species, fish, sulfur_cube};
 use rspigot_domain::entity::{Entity, EntityState, FLAG_GLOWING, living};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
@@ -49,6 +49,7 @@ pub(crate) fn bucket_item_of(kind: Kind) -> Option<ItemKind> {
         Kind::TropicalFish => Some(ItemKind::TropicalFishBucket),
         Kind::Axolotl => Some(ItemKind::AxolotlBucket),
         Kind::Tadpole => Some(ItemKind::TadpoleBucket),
+        Kind::SulfurCube => Some(ItemKind::SulfurCubeBucket),
         _ => None,
     }
 }
@@ -69,6 +70,7 @@ fn pickup_sound(kind: Kind) -> &'static str {
     match kind {
         Kind::Axolotl => AXOLOTL_PICKUP_SOUND,
         Kind::Tadpole => TADPOLE_PICKUP_SOUND,
+        Kind::SulfurCube => sulfur_cube::BUCKET_FILL_SOUND,
         _ => PICKUP_SOUND,
     }
 }
@@ -155,6 +157,17 @@ impl<L: ClientLink> Server<L> {
                 }
                 data.insert("AgeLocked", species::tadpole::is_age_locked(base));
             }
+            Kind::SulfurCube => {
+                if let Some(ageable) = state.mob.as_ref().and_then(|mob| mob.ageable.as_ref()) {
+                    data.insert("age", ageable.age);
+                }
+                data.insert("age_locked", ageable::is_age_locked(base));
+                if let Some(content) = sulfur_cube::body_item(state) {
+                    stack
+                        .components
+                        .insert(sulfur_cube::SULFUR_CUBE_CONTENT, item_stack_to_nbt(content));
+                }
+            }
             _ => {}
         }
         stack.components.insert(BUCKET_ENTITY_DATA, data);
@@ -196,10 +209,15 @@ impl<L: ClientLink> Server<L> {
         held: Option<&ItemStack>,
     ) -> Option<Interaction> {
         let stack = held?;
-        if stack.item != ItemKind::WaterBucket.id() {
+        let entity = self.entities.store.get(target)?;
+        let required = if entity.base.kind == Kind::SulfurCube {
+            ItemKind::Bucket
+        } else {
+            ItemKind::WaterBucket
+        };
+        if stack.item != required.id() {
             return None;
         }
-        let entity = self.entities.store.get(target)?;
         let alive = entity
             .living()
             .is_some_and(|state| !living::is_dead_or_dying(&entity.base, state));
@@ -315,6 +333,9 @@ impl<L: ClientLink> Server<L> {
         let Some(stack) = self.held(id, hand) else {
             return false;
         };
+        if stack.item == ItemKind::SulfurCubeBucket.id() {
+            return self.use_sulfur_cube_bucket(id, hand, rotation, &stack);
+        }
         let Some(kind) = mob_of_bucket(stack.item) else {
             return false;
         };
@@ -368,6 +389,46 @@ impl<L: ClientLink> Server<L> {
                 }))
             },
         );
+        true
+    }
+
+    fn use_sulfur_cube_bucket(
+        &mut self,
+        id: PlayerId,
+        hand: Hand,
+        rotation: Rotation,
+        stack: &ItemStack,
+    ) -> bool {
+        let Some(hit) = self.look_block(id, rotation) else {
+            return false;
+        };
+        let (dx, dy, dz) = direction_of(hit.face).offset();
+        let relative = hit.pos.offset(dx, dy, dz);
+        let adventure = self
+            .players
+            .get(&id)
+            .is_some_and(|player| player.game_mode == GameMode::Adventure);
+        if self.is_protected(id, hit.pos) || self.is_protected(id, relative) || adventure {
+            return true;
+        }
+        let position = Vec3::new(
+            f64::from(relative.x) + 0.5,
+            f64::from(relative.y),
+            f64::from(relative.z) + 0.5,
+        );
+        self.play_sound(
+            None,
+            position,
+            sulfur_cube::BUCKET_EMPTY_SOUND,
+            SoundSource::Neutral,
+            1.0,
+            1.0,
+        );
+        self.spawn_bucketed_fish(id, Kind::SulfurCube, stack, relative);
+        if !self.infinite_materials(id) {
+            let empty = ItemStack::new(ItemKind::Bucket.id(), std::num::NonZeroU8::MIN);
+            self.set_held(id, hand, Some(empty));
+        }
         true
     }
 
@@ -480,6 +541,16 @@ fn apply_bucket_components(entity: &mut Entity, stack: &ItemStack) {
         return;
     };
     let components = &stack.components;
+    if base.kind == Kind::SulfurCube
+        && let Some(content) = components
+            .get_compound(sulfur_cube::SULFUR_CUBE_CONTENT)
+            .and_then(item_stack_from_nbt)
+    {
+        living.equipment[sulfur_cube::slot_index_of_body()] = Some(content);
+        if let Some(mob) = living.mob.as_mut() {
+            mob.drop_chances[sulfur_cube::slot_index_of_body()] = sulfur_cube::GUARANTEED_DROP;
+        }
+    }
     match base.kind {
         Kind::Salmon => {
             if let Some(variant) = components
@@ -549,6 +620,12 @@ fn apply_bucket_components(entity: &mut Entity, stack: &ItemStack) {
                     state.pending_hunting_cooldown = data.get_i64("HuntingCooldown");
                 }
             }
+            Some(mob) if base.kind == Kind::SulfurCube => {
+                if let Some(ageable) = mob.ageable.as_mut() {
+                    ageable::set_age(base, ageable, data.get_i32("age").unwrap_or(0));
+                }
+                ageable::set_age_locked(base, data.get_bool("age_locked").unwrap_or(false));
+            }
             Some(mob) if base.kind == Kind::Tadpole => {
                 if let Species::Tadpole(state) = &mut mob.species {
                     state.age = data.get_i32("Age").unwrap_or(0);
@@ -557,6 +634,15 @@ fn apply_bucket_components(entity: &mut Entity, stack: &ItemStack) {
             }
             _ => {}
         }
+    }
+    if base.kind == Kind::SulfurCube
+        && living
+            .mob
+            .as_mut()
+            .and_then(|mob| mob.ageable.as_mut())
+            .is_some_and(AgeableState::take_grew_up)
+    {
+        sulfur_cube::age_boundary_reached(base, living);
     }
     match base.kind {
         Kind::Axolotl => {
@@ -569,6 +655,9 @@ fn apply_bucket_components(entity: &mut Entity, stack: &ItemStack) {
             species::axolotl::set_from_bucket(base, true);
         }
         Kind::Tadpole => {}
+        Kind::SulfurCube => {
+            sulfur_cube::set_from_bucket(base, true);
+        }
         _ => fish::set_from_bucket(base, true),
     }
 }
