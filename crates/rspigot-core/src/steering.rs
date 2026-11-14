@@ -42,6 +42,19 @@ impl<L: ClientLink> Server<L> {
                 .find(|p| p.entity_id == first)
                 .map(|p| p.id);
         }
+        if entity.base.kind == Kind::HappyGhast {
+            if !crate::kinds::happy_ghast::wears_harness(entity)
+                || crate::kinds::happy_ghast::is_on_still_timeout(entity)
+            {
+                return None;
+            }
+            let first = self.entities.rides.first_passenger(vehicle)?;
+            return self
+                .players
+                .values()
+                .find(|p| p.entity_id == first)
+                .map(|p| p.id);
+        }
         let item = steering_item(entity.base.kind)?;
         entity.living()?.equipment(EquipmentSlot::Saddle)?;
         let first = self.entities.rides.first_passenger(vehicle)?;
@@ -60,6 +73,10 @@ impl<L: ClientLink> Server<L> {
         let Some(rotation) = self.players.get(&player).map(|p| p.rotation) else {
             return;
         };
+        if self.kind_of(vehicle) == Some(Kind::HappyGhast) {
+            self.happy_ghast_ridden_rotation(vehicle, rotation.yaw, rotation.pitch);
+            return;
+        }
         let Some(entity) = self.entities.store.get_mut(vehicle) else {
             return;
         };

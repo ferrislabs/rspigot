@@ -147,17 +147,28 @@ impl<L: ClientLink> Server<L> {
         );
         let entity_width = entity.base.dimensions.width;
         let holder_width = other.base.dimensions.width;
-        if leash::snaps(distance) {
+        let (elastic, snap) = leash::distances(entity.base.kind);
+        if leash::snaps_at(snap, distance) {
             let at = other.base.position;
             self.play_sound(None, at, LEAD_BREAK_SOUND, SoundSource::Neutral, 1.0, 1.0);
             self.drop_leash(id, EntityUnleashReason::Distance);
             return;
         }
-        if leash::must_pull(distance, entity_width, holder_width) {
+        let kind = entity.base.kind;
+        let holder_kind = other.base.kind;
+        if leash::must_pull_at(elastic, distance, entity_width, holder_width) {
             self.pull_on_leash(id, holder);
-            if self.kind_of(id).is_some_and(|kind| kind.extends("Camel")) {
+            if kind.extends("Camel") {
                 self.camel_on_leash_pull(id);
             }
+            if kind == rspigot_entities::EntityKind::HappyGhast {
+                self.happy_ghast_on_leash_pull(id);
+            }
+        }
+        if kind == rspigot_entities::EntityKind::HappyGhast
+            && holder_kind == rspigot_entities::EntityKind::HappyGhast
+        {
+            self.happy_ghast_notify_leash_holder(holder);
         }
         self.spin_on_leash(id);
     }
@@ -183,7 +194,9 @@ impl<L: ClientLink> Server<L> {
             other.base.velocity
         };
         let movement = entity.base.velocity;
-        let Some(pull) = leash::elastic_pull(&body(entity), &body(other), movement) else {
+        let elastic = leash::distances(entity.base.kind).0;
+        let Some(pull) = leash::elastic_pull_at(elastic, &body(entity), &body(other), movement)
+        else {
             return;
         };
         let push = leash::impulse(&pull, holder_movement, movement);

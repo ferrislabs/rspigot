@@ -1,3 +1,5 @@
+use rspigot_entities::EntityKind;
+
 use crate::{Vec3, mth};
 
 pub const SNAP_DISTANCE: f64 = 12.0;
@@ -30,12 +32,31 @@ pub fn center_distance(a: Vec3, b: Vec3) -> f64 {
     a.distance_squared(b).sqrt()
 }
 
+pub fn distances(kind: EntityKind) -> (f64, f64) {
+    if kind == EntityKind::HappyGhast {
+        (
+            super::species::happy_ghast::LEASH_ELASTIC,
+            super::species::happy_ghast::LEASH_SNAP,
+        )
+    } else {
+        (ELASTIC_DISTANCE, SNAP_DISTANCE)
+    }
+}
+
 pub fn must_pull(distance: f64, entity_width: f32, holder_width: f32) -> bool {
-    ELASTIC_DISTANCE - f64::from(holder_width) - f64::from(entity_width) < distance
+    must_pull_at(ELASTIC_DISTANCE, distance, entity_width, holder_width)
+}
+
+pub fn must_pull_at(elastic: f64, distance: f64, entity_width: f32, holder_width: f32) -> bool {
+    elastic - f64::from(holder_width) - f64::from(entity_width) < distance
 }
 
 pub fn snaps(distance: f64) -> bool {
-    SNAP_DISTANCE < distance
+    snaps_at(SNAP_DISTANCE, distance)
+}
+
+pub fn snaps_at(snap: f64, distance: f64) -> bool {
+    snap < distance
 }
 
 fn y_rot(vector: Vec3, angle: f32) -> Vec3 {
@@ -67,6 +88,15 @@ fn dampened_spring(
 }
 
 pub fn elastic_pull(entity: &Body, holder: &Body, entity_movement: Vec3) -> Option<Pull> {
+    elastic_pull_at(ELASTIC_DISTANCE, entity, holder, entity_movement)
+}
+
+pub fn elastic_pull_at(
+    elastic: f64,
+    entity: &Body,
+    holder: &Body,
+    entity_movement: Vec3,
+) -> Option<Pull> {
     let entity_yaw = entity.yaw * DEG_TO_RAD;
     let holder_yaw = holder.yaw * DEG_TO_RAD;
     let entity_size = (
@@ -92,7 +122,7 @@ pub fn elastic_pull(entity: &Body, holder: &Body, entity_movement: Vec3) -> Opti
     dampened_spring(
         holder_point,
         entity_point,
-        ELASTIC_DISTANCE,
+        elastic,
         entity_movement,
         lever_arm,
     )

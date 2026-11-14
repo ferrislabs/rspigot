@@ -858,6 +858,7 @@ mod tests {
                 EntityKind::GlowSquid,
                 EntityKind::Goat,
                 EntityKind::Guardian,
+                EntityKind::HappyGhast,
                 EntityKind::Hoglin,
                 EntityKind::Horse,
                 EntityKind::Husk,
