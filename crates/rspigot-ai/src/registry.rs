@@ -199,7 +199,11 @@ pub fn register_goals(
                 ),
             );
         }
-        EntityKind::Skeleton | EntityKind::WitherSkeleton => {
+        EntityKind::Skeleton
+        | EntityKind::WitherSkeleton
+        | EntityKind::Stray
+        | EntityKind::Bogged
+        | EntityKind::Parched => {
             add.goal(2, MobGoal::RestrictSun(RestrictSunGoal));
             add.goal(3, MobGoal::FleeSun(FleeSunGoal::new(1.0)));
             add.goal(

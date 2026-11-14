@@ -319,6 +319,9 @@ fn variants_share_the_goals_of_their_base_mob() {
     let settings = GoalSettings::default();
     for (variant, base) in [
         (EntityKind::Husk, EntityKind::Zombie),
+        (EntityKind::Stray, EntityKind::Skeleton),
+        (EntityKind::Bogged, EntityKind::Skeleton),
+        (EntityKind::Parched, EntityKind::Skeleton),
         (EntityKind::CaveSpider, EntityKind::Spider),
         (EntityKind::Mooshroom, EntityKind::Cow),
     ] {

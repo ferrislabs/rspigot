@@ -53,8 +53,23 @@ pub fn check_predicate(
             check_monster_spawn_rules(level, kind, reason, pos)
                 && (reason.is_spawner() || can_see_sky(level, pos))
         }
+        SpawnPredicate::Stray => check_stray_spawn_rules(level, kind, reason, pos),
         _ => return None,
     })
+}
+
+fn check_stray_spawn_rules(
+    level: &mut impl RandomLevel,
+    kind: EntityKind,
+    reason: SpawnReason,
+    pos: BlockPos,
+) -> bool {
+    let mut above = pos.offset(0, 1, 0);
+    while level.block_or_air(above).kind() == Some(BlockKind::PowderSnow) {
+        above = above.offset(0, 1, 0);
+    }
+    check_monster_spawn_rules(level, kind, reason, pos)
+        && (reason.is_spawner() || can_see_sky(level, above.offset(0, -1, 0)))
 }
 
 pub fn rules_ported(kind: EntityKind) -> bool {
@@ -70,6 +85,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::Monster
                 | SpawnPredicate::AnyLightMonster
                 | SpawnPredicate::SurfaceMonsters
+                | SpawnPredicate::Stray
         )
     });
     let walk = match spawn.check_spawn_rules {
@@ -280,6 +296,27 @@ mod tests {
             SpawnReason::Natural,
             pos
         ));
+    }
+
+    #[test]
+    fn strays_spawn_in_the_dark_under_the_open_sky() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut level = Level::floor(Stone::DEFAULT_STATE, 63);
+        level.sky_darken = 15;
+        assert!(check_spawn_rules(
+            &mut level,
+            EntityKind::Stray,
+            SpawnReason::Natural,
+            pos
+        ));
+        level.sky_darken = 0;
+        assert!(!check_spawn_rules(
+            &mut level,
+            EntityKind::Stray,
+            SpawnReason::Natural,
+            pos
+        ));
+        assert!(rules_ported(EntityKind::Stray));
     }
 
     #[test]
