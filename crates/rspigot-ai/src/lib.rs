@@ -155,7 +155,7 @@ pub use camel::{
 pub use cat::{CatAction, CatFacts, CatGoal};
 pub use combat::{
     HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, MeleeKind, OcelotAttackGoal,
-    RangedBowAttackGoal, SwellGoal, bow_power, default_attack_reach, look_at_entity,
+    RangedBowAttackGoal, SwellGoal, bow_power, default_attack_reach, look_at_entity, look_at_point,
     within_melee_range,
 };
 pub use control::{
@@ -178,6 +178,7 @@ pub use crossbow::{
 pub use cube::{
     AttackGoal as CubeAttackGoal, CubeFacts, CubeGoal, CubeSound, FloatGoal as CubeFloatGoal,
     KeepOnJumpingGoal as CubeKeepOnJumpingGoal, RandomDirectionGoal as CubeRandomDirectionGoal,
+    SearchForItemsGoal as CubeSearchForItemsGoal,
 };
 pub use drowned::{
     DrownedAttackGoal, DrownedFacts, DrownedGoToBeachGoal, DrownedGoToWaterGoal, DrownedGoal,

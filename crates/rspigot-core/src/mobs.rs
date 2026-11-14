@@ -1858,6 +1858,10 @@ impl<L: ClientLink> Server<L> {
     ) -> Option<f32> {
         let hurt_source = hurt_source_of(source, id);
         self.panda_stand_up(id);
+        if self.kind_of(id) == Some(Kind::SulfurCube) && self.sulfur_cube_hurt_override(id, source)
+        {
+            return None;
+        }
         let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -2012,7 +2016,12 @@ impl<L: ClientLink> Server<L> {
         let position = entity.base.position;
         let volume = sounds.volume.get(state.baby, reward::cube_size(entity));
         let source = crate::kinds::kind_sound_source(entity).unwrap_or(sounds.source);
-        let pitch = self.voice_pitch(sounds.pitch, state.baby);
+        let cube = species::cube::is_cube(entity.base.kind);
+        let pitch = if cube {
+            species::cube::sound_pitch(&entity.base, &mut ServerRandom(&mut self.rng))
+        } else {
+            self.voice_pitch(sounds.pitch, state.baby)
+        };
         self.play_sound(None, position, sound, source, volume, pitch);
     }
 

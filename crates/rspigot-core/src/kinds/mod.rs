@@ -58,6 +58,7 @@ mod snow_golem;
 mod spellcaster;
 mod squid;
 mod strider;
+mod sulfur_cube;
 mod tadpole;
 mod turtle;
 mod vex;
@@ -121,6 +122,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Guardian | Kind::ElderGuardian => self.guardian_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
             Kind::Slime | Kind::MagmaCube => self.cube_view(entity, view),
+            Kind::SulfurCube => self.sulfur_cube_view(entity, view),
             Kind::Parrot => self.parrot_view(entity, view),
             Kind::Bee => self.bee_view(entity, view),
             Kind::Shulker => self.shulker_view(entity, view),
@@ -207,6 +209,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Pufferfish) => self.fish_pre_tick(id),
             Some(Kind::Strider) => self.strider_pre_tick(id),
             Some(Kind::Camel | Kind::CamelHusk) => self.camel_pre_tick(id),
+            Some(Kind::SulfurCube) => self.sulfur_cube_pre_tick(id),
             Some(
                 Kind::Horse
                 | Kind::Donkey
@@ -256,6 +259,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Camel | Kind::CamelHusk) => self.camel_post_tick(id),
             Some(Kind::HappyGhast) => self.happy_ghast_post_tick(id),
             Some(Kind::Slime | Kind::MagmaCube) => self.cube_post_tick(id),
+            Some(Kind::SulfurCube) => self.sulfur_cube_post_tick(id),
             _ => {}
         }
     }
@@ -407,6 +411,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Evoker | Kind::Illusioner) => self.spellcaster_custom_ai_step(id),
             Some(Kind::Camel | Kind::CamelHusk) => self.camel_custom_ai_step(id),
             Some(Kind::HappyGhast) => self.happy_ghast_custom_ai_step(id),
+            Some(Kind::SulfurCube) => self.sulfur_cube_custom_ai_step(id),
             _ => {}
         }
     }
@@ -427,6 +432,7 @@ impl<L: ClientLink> Server<L> {
         match self.kind_of(target) {
             Some(Kind::Camel | Kind::CamelHusk) => self.camel_interact(player, target, hand, held),
             Some(Kind::HappyGhast) => self.happy_ghast_interact(player, target, hand, held),
+            Some(Kind::SulfurCube) => self.sulfur_cube_interact(player, target, hand, held),
             Some(
                 Kind::Horse
                 | Kind::Donkey

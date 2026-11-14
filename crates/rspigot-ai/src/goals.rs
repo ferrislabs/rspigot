@@ -415,6 +415,7 @@ pub enum TemptItems {
     Tag(&'static str),
     Item(ItemKind),
     HappyGhast,
+    SulfurCube,
 }
 
 impl TemptItems {
@@ -438,6 +439,13 @@ impl TemptItems {
                 };
                 Self::Tag(tag).matches(Some(item))
             }
+            Self::SulfurCube => {
+                if food_only {
+                    rspigot_data::sulfur_cube::is_food(item.0)
+                } else {
+                    rspigot_data::sulfur_cube::is_swallowable(item.0)
+                }
+            }
         }
     }
 }
@@ -452,6 +460,7 @@ pub struct TemptGoal {
     running: bool,
     scare: Scare,
     non_tame: bool,
+    cube_controls: bool,
     selected: Option<EntityId>,
     last_position: Vec3,
     last_pitch: f64,
@@ -476,6 +485,7 @@ impl TemptGoal {
             running: false,
             scare: Scare::Never,
             non_tame: false,
+            cube_controls: false,
             selected: None,
             last_position: Vec3::ZERO,
             last_pitch: 0.0,
@@ -500,6 +510,26 @@ impl TemptGoal {
             scare: Scare::UnlessSelected,
             non_tame: true,
             ..Self::new(speed_modifier, items)
+        }
+    }
+
+    pub fn sulfur_cube(speed_modifier: f64, stop_distance: f64) -> Self {
+        Self {
+            cube_controls: true,
+            stop_distance,
+            ..Self::new(speed_modifier, TemptItems::SulfurCube)
+        }
+    }
+
+    pub fn cube_controls(&self) -> bool {
+        self.cube_controls
+    }
+
+    fn stop_moving<W: AiWorld>(&self, context: &mut AiContext<'_, W>) {
+        if self.cube_controls {
+            context.brain.movement.set_cube_wanted(0.0);
+        } else {
+            context.stop_navigation();
         }
     }
 
@@ -604,7 +634,7 @@ impl TemptGoal {
 
     fn stop<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         self.player = None;
-        context.stop_navigation();
+        self.stop_moving(context);
         self.calm_down = reduced_tick_delay(TEMPT_CALM_DOWN);
         self.running = false;
     }
@@ -631,7 +661,7 @@ impl TemptGoal {
             .look
             .set_look_at(at, MAX_HEAD_Y_ROT + 20.0, context.mob.max_head_x_rot());
         if context.mob.distance_to_sqr(player.position) < self.stop_distance * self.stop_distance {
-            context.stop_navigation();
+            self.stop_moving(context);
         } else {
             context.move_to_entity(&player, self.speed_modifier);
         }
@@ -975,6 +1005,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::MoveTowardsRestriction(_) => movement,
             Self::LookAtPlayer(goal) if goal.is_interact() => movement.with(Flag::Look),
             Self::LookAtPlayer(_) => Flags::of(Flag::Look),
+            Self::Tempt(goal) if goal.cube_controls() => Flags::of(Flag::Look),
             Self::RandomLookAround(_)
             | Self::Tempt(_)
             | Self::Breed(_)

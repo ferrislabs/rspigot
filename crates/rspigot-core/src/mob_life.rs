@@ -404,6 +404,9 @@ impl<L: ClientLink> Server<L> {
         if grew_up && self.kind_of(id) == Some(Kind::Turtle) {
             self.turtle_grew_up(id);
         }
+        if grew_up && self.kind_of(id) == Some(Kind::SulfurCube) {
+            self.sulfur_cube_grew_up(id);
+        }
     }
 
     fn lay_egg(&mut self, id: EntityId) {

@@ -362,6 +362,11 @@ pub fn refresh_dimensions(base: &mut EntityBase, baby: bool) {
     base.dimensions =
         if base.kind == EntityKind::Sniffer && super::species::sniffer::is_digging(base) {
             super::species::sniffer::digging_dimensions(baby)
+        } else if super::species::cube::is_cube(base.kind) {
+            super::species::cube::scaled_dimensions(
+                base.kind.dimensions(),
+                super::species::cube::size(base),
+            )
         } else if let Some(scale) = super::species::fish::dimension_scale(base) {
             super::species::fish::scaled_dimensions(base.kind.dimensions(), scale)
         } else {

@@ -1,17 +1,20 @@
 use rspigot_entities::{EntityDimensions, EntityKind};
 use rspigot_nbt::Compound;
 
+use crate::entity::ageable;
 use crate::entity::base::EntityBase;
 use crate::entity::data::SyncedValue;
 use crate::entity::living::{
     ARMOR, ATTACK_DAMAGE, LivingState, MAX_HEALTH, MOVEMENT_SPEED, set_health,
 };
 use crate::entity::spawn::{SpawnEnvironment, ageable_finalize};
+use crate::entity::species::sulfur_cube::{self, SulfurState};
 use crate::random::RandomSource;
 use crate::spawn::SpawnGroupData;
 
 pub const DATA_SIZE: u8 = 18;
 pub const KEYS: &[&str] = &["Size", "wasOnGround"];
+pub const SULFUR_KEYS: &[&str] = &["Size", "wasOnGround", "pickup_timer", "from_bucket", "fuse"];
 pub const MIN_SIZE: i32 = 1;
 pub const MAX_SIZE: i32 = 127;
 pub const BASE_SPEED: f32 = 0.2;
@@ -39,14 +42,34 @@ pub const BIG_PITCH: f32 = 0.8;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CubeState {
     pub was_on_ground: bool,
+    pub sulfur: SulfurState,
 }
 
 pub fn is_cube(kind: EntityKind) -> bool {
-    matches!(kind, EntityKind::Slime | EntityKind::MagmaCube)
+    matches!(
+        kind,
+        EntityKind::Slime | EntityKind::MagmaCube | EntityKind::SulfurCube
+    )
+}
+
+pub fn keys(kind: EntityKind) -> &'static [&'static str] {
+    if kind == EntityKind::SulfurCube {
+        SULFUR_KEYS
+    } else {
+        KEYS
+    }
 }
 
 pub fn define(base: &mut EntityBase) -> CubeState {
     base.data.define(DATA_SIZE, SyncedValue::Int(MIN_SIZE));
+    if base.kind == EntityKind::SulfurCube {
+        base.data.define(
+            sulfur_cube::DATA_MAX_FUSE,
+            SyncedValue::Int(sulfur_cube::NO_FUSE),
+        );
+        base.data
+            .define(sulfur_cube::DATA_FROM_BUCKET, SyncedValue::Boolean(false));
+    }
     base.dimensions = scaled_dimensions(base.kind.dimensions(), MIN_SIZE);
     CubeState::default()
 }
@@ -80,9 +103,12 @@ pub fn set_size(base: &mut EntityBase, living: &mut LivingState, size: i32, upda
         base.set_yaw(base.head_yaw);
         living.body_yaw = base.head_yaw;
     }
-    living
-        .attributes
-        .set_base(MAX_HEALTH, f64::from(clamped * clamped));
+    let health = if base.kind == EntityKind::SulfurCube {
+        clamped * sulfur_cube::HEALTH_PER_SIZE
+    } else {
+        clamped * clamped
+    };
+    living.attributes.set_base(MAX_HEALTH, f64::from(health));
     living.attributes.set_base(
         MOVEMENT_SPEED,
         f64::from(BASE_SPEED + SPEED_PER_SIZE * clamped as f32),
@@ -91,9 +117,17 @@ pub fn set_size(base: &mut EntityBase, living: &mut LivingState, size: i32, upda
         let max = living.max_health() as f32;
         set_health(base, living, max);
     }
-    living
-        .attributes
-        .set_base(ATTACK_DAMAGE, f64::from(self::size(base)));
+    if base.kind != EntityKind::SulfurCube {
+        living
+            .attributes
+            .set_base(ATTACK_DAMAGE, f64::from(self::size(base)));
+    } else if update_health
+        && clamped == sulfur_cube::BABY_SIZE
+        && let Some(ageable) = living.mob.as_mut().and_then(|mob| mob.ageable.as_mut())
+        && !ageable::is_baby(base, ageable)
+    {
+        ageable::set_baby(base, ageable, true);
+    }
     if base.kind == EntityKind::MagmaCube {
         living
             .attributes
@@ -106,13 +140,19 @@ pub fn read_size(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState
     set_size(base, living, stored.saturating_add(1), false);
 }
 
-pub fn read(nbt: &Compound, state: &mut CubeState) {
+pub fn read(nbt: &Compound, base: &mut EntityBase, state: &mut CubeState) {
     state.was_on_ground = nbt.get_bool("wasOnGround").unwrap_or(false);
+    if base.kind == EntityKind::SulfurCube {
+        sulfur_cube::read(nbt, base, &mut state.sulfur);
+    }
 }
 
 pub fn write(base: &EntityBase, state: &CubeState, out: &mut Compound) {
     out.insert("Size", size(base) - 1);
     out.insert("wasOnGround", state.was_on_ground);
+    if base.kind == EntityKind::SulfurCube {
+        sulfur_cube::write(base, &state.sulfur, out);
+    }
 }
 
 pub fn jump_delay(kind: EntityKind, random: &mut impl RandomSource) -> i32 {
@@ -146,7 +186,9 @@ pub fn attack_damage(base: &EntityBase, living: &mut LivingState) -> f32 {
 }
 
 pub fn can_deal_damage(base: &EntityBase, effective_ai: bool) -> bool {
-    if base.kind == EntityKind::MagmaCube {
+    if base.kind == EntityKind::SulfurCube {
+        false
+    } else if base.kind == EntityKind::MagmaCube {
         effective_ai
     } else {
         !is_tiny(base) && effective_ai
@@ -164,6 +206,7 @@ pub fn sound_pitch(base: &EntityBase, random: &mut impl RandomSource) -> f32 {
 
 pub fn jump_sound(kind: EntityKind, tiny: bool) -> &'static str {
     match (kind, tiny) {
+        (EntityKind::SulfurCube, tiny) => sulfur_cube::jump_sound(tiny),
         (EntityKind::MagmaCube, _) => "minecraft:entity.magma_cube.jump",
         (_, true) => "minecraft:entity.slime.jump_small",
         (_, false) => "minecraft:entity.slime.jump",
@@ -207,6 +250,21 @@ pub fn finalize(
     group: Option<SpawnGroupData>,
     level: &mut impl RandomSource,
 ) -> Option<SpawnGroupData> {
+    if base.kind == EntityKind::SulfurCube {
+        let group = ageable_finalize(base, living, group, level);
+        let baby = living
+            .mob
+            .as_ref()
+            .and_then(|mob| mob.ageable.as_ref())
+            .is_some_and(|ageable| ageable::is_baby(base, ageable));
+        let size = if baby {
+            sulfur_cube::BABY_SIZE
+        } else {
+            sulfur_cube::ADULT_SIZE
+        };
+        set_size(base, living, size, true);
+        return group;
+    }
     let group = group.or(Some(SpawnGroupData::ageable(false)));
     let group = ageable_finalize(base, living, group, level);
     set_spawn_size(

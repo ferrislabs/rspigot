@@ -1,6 +1,6 @@
 use rspigot_ai::{MobView, clip_misses, default_attack_reach, inflate};
 use rspigot_domain::damage::DamageType;
-use rspigot_domain::entity::species::{Species, cube};
+use rspigot_domain::entity::species::{Species, cube, sulfur_cube};
 use rspigot_domain::entity::{Aabb, Entity, EntityBase, EntityState, RemovalReason, fire, living};
 use rspigot_domain::player::GameMode;
 use rspigot_domain::random::RandomSource;
@@ -59,12 +59,15 @@ impl<L: ClientLink> Server<L> {
         self.cube_landing(id);
     }
 
-    fn cube_landing(&mut self, id: EntityId) {
+    pub(crate) fn cube_landing(&mut self, id: EntityId) {
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
         let on_ground = entity.base.on_ground;
         let kind = entity.base.kind;
+        let has_body_item = entity
+            .living()
+            .is_some_and(|living| sulfur_cube::has_body_item(&entity.base, living));
         let width = entity.base.dimensions.width;
         let tiny = cube::is_tiny(&entity.base);
         let volume = cube::sound_volume(&entity.base);
@@ -90,7 +93,12 @@ impl<L: ClientLink> Server<L> {
         let pitch =
             ((random.next_float() - random.next_float()) * 0.2 + 1.0) / SQUISH_PITCH_DIVISOR;
         self.store_mob_random(id, random);
-        self.entity_sound(id, cube::squish_sound(kind, tiny), volume, pitch);
+        let sound = if kind == Kind::SulfurCube {
+            sulfur_cube::squish_sound(tiny, has_body_item)
+        } else {
+            cube::squish_sound(kind, tiny)
+        };
+        self.entity_sound(id, sound, volume, pitch);
     }
 
     fn cube_alive(&self, id: EntityId) -> bool {
@@ -265,9 +273,18 @@ impl<L: ClientLink> Server<L> {
         if self.splitting(id) {
             return true;
         }
-        let mut random = self.mob_random(id);
-        let count = cube::split_count(&mut random);
-        self.store_mob_random(id, random);
+        let count = if entity.base.kind == Kind::SulfurCube {
+            if entity.living().is_some_and(sulfur_cube::is_primed) {
+                0
+            } else {
+                sulfur_cube::SPLIT_COUNT
+            }
+        } else {
+            let mut random = self.mob_random(id);
+            let count = cube::split_count(&mut random);
+            self.store_mob_random(id, random);
+            count
+        };
         let lane = self.lane_for(None, id);
         self.fire(
             lane,

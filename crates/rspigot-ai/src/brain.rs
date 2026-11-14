@@ -66,6 +66,7 @@ pub struct Brain {
     pub guardian: crate::GuardianBrain,
     pub drowned_target: Option<(f64, bool)>,
     pub happy_ghast: crate::happy_ghast::HappyGhastBrain,
+    pub sulfur_body: bool,
     follow_range: f64,
 }
 
@@ -219,6 +220,7 @@ impl Brain {
             guardian: crate::GuardianBrain::default(),
             drowned_target: None,
             happy_ghast: crate::happy_ghast::HappyGhastBrain::default(),
+            sulfur_body: false,
             follow_range,
         };
         if kind == EntityKind::Warden {
@@ -1130,9 +1132,36 @@ impl MobAi {
         }
     }
 
+    fn sync_sulfur_cube<W: AiWorld>(&mut self, mob: &MobView, world: &W, body: &mut MobBody) {
+        let has_body_item = mob.species.cube.has_body_item;
+        if self.brain.sulfur_body == has_body_item {
+            return;
+        }
+        self.brain.sulfur_body = has_body_item;
+        if has_body_item {
+            let mut context = AiContext {
+                mob,
+                world,
+                brain: &mut self.brain,
+                body,
+            };
+            self.goals.remove_goals(&mut context, |_| true);
+        } else {
+            let mut add = registry::Goals {
+                goals: &mut self.goals,
+                targets: &mut self.targets,
+                brain: &mut self.brain,
+            };
+            crate::cube::sulfur_cube_goals(&mut add);
+        }
+    }
+
     pub fn think<W: AiWorld>(&mut self, mob: &MobView, world: &W, body: &mut MobBody) {
         if mob.kind == EntityKind::HappyGhast {
             self.sync_happy_ghast(mob, world, body);
+        }
+        if mob.kind == EntityKind::SulfurCube {
+            self.sync_sulfur_cube(mob, world, body);
         }
         let ghast_adult = mob.kind == EntityKind::HappyGhast && !mob.baby;
         let ghast_baby = mob.kind == EntityKind::HappyGhast && mob.baby;
@@ -1337,6 +1366,7 @@ impl MobAi {
                     let target = brain.phantom.move_target;
                     brain.movement.tick_phantom(base, living, target);
                 }
+                MoveStyle::Cube if base.kind == EntityKind::SulfurCube && brain.sulfur_body => {}
                 MoveStyle::Cube => {
                     if let Some(sound) =
                         brain
@@ -1374,6 +1404,8 @@ impl MobAi {
             brain.look.tick_happy_ghast(base, living, still);
         } else if brain.look.smooth_swimming().is_some() {
             brain.look.tick_smooth(base, living, !navigating);
+        } else if base.kind == EntityKind::SulfurCube && brain.sulfur_body {
+            brain.look.snap_to_quarter_turn(base);
         } else if base.kind != EntityKind::Phantom {
             brain.look.tick(base, living, navigating);
         }

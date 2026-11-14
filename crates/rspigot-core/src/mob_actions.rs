@@ -384,6 +384,18 @@ impl<L: ClientLink> Server<L> {
         if species::equine::is_equine(kind) {
             return self.equine_offspring(parent, partner, random);
         }
+        if kind == Kind::SulfurCube {
+            let mut child = new_mob(self.new_entity_base(kind));
+            if let Entity {
+                base,
+                state: EntityState::Living(state),
+                ..
+            } = &mut child
+            {
+                species::cube::set_size(base, state, species::sulfur_cube::BABY_SIZE, true);
+            }
+            return Some(child);
+        }
         if !matches!(
             kind,
             Kind::Cow

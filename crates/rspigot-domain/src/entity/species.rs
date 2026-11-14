@@ -57,6 +57,7 @@ pub mod snow_golem;
 pub mod spellcaster;
 pub mod squid;
 pub mod strider;
+pub mod sulfur_cube;
 pub mod tadpole;
 pub mod turtle;
 pub mod vex;

@@ -612,8 +612,13 @@ impl LivingState {
     pub fn move_traits(&mut self, base: &EntityBase) -> MoveTraits {
         let air_drag =
             compute_modified_friction(AIR_DRAG, self.attribute(AIR_DRAG_MODIFIER) as f32);
+        let max_up_step = if super::species::sulfur_cube::has_body_item(base, self) {
+            0.0
+        } else {
+            self.attribute(STEP_HEIGHT) as f32
+        };
         MoveTraits {
-            max_up_step: self.attribute(STEP_HEIGHT) as f32,
+            max_up_step,
             living: true,
             bounciness: self.attribute(BOUNCINESS),
             suppress_bounce: false,
@@ -1149,7 +1154,7 @@ pub fn travel_in_air<V: BlockView>(
     let drag_modifier = living.attribute(AIR_DRAG_MODIFIER) as f32;
     let horizontal_drag = compute_modified_friction(AIR_FRICTION, drag_modifier);
     let horizontal = block_friction * horizontal_drag;
-    let vertical = if omnidirectional_air_mover(base.kind) {
+    let vertical = if omnidirectional_air_mover(base, living) {
         horizontal
     } else {
         compute_modified_friction(AIR_DRAG, drag_modifier)
@@ -1166,8 +1171,9 @@ pub fn travel_in_air<V: BlockView>(
     landing
 }
 
-pub fn omnidirectional_air_mover(kind: EntityKind) -> bool {
-    matches!(kind, EntityKind::Parrot | EntityKind::Bee)
+pub fn omnidirectional_air_mover(base: &EntityBase, living: &LivingState) -> bool {
+    matches!(base.kind, EntityKind::Parrot | EntityKind::Bee)
+        || super::species::sulfur_cube::has_body_item(base, living)
 }
 
 pub fn begin_ai_step(base: &mut EntityBase, living: &mut LivingState) {
@@ -1560,7 +1566,12 @@ fn travel_on_land<V: BlockView>(
         return travel_flying(base, living, view, input, speeds);
     }
     if base.fluid.in_liquid() {
-        travel_in_fluid(base, living, view, input)
+        let landing = travel_in_fluid(base, living, view, input);
+        let lift = super::species::sulfur_cube::buoyancy(base, living, base.tick_count);
+        if lift > 0.0 {
+            base.velocity = base.velocity + Vec3::new(0.0, lift, 0.0);
+        }
+        landing
     } else {
         travel_in_air(base, living, view, input)
     }
