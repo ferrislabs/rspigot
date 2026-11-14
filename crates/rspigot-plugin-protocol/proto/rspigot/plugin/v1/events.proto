@@ -430,7 +430,6 @@ message VehicleDamagePatch { optional double damage = 2; }
 message VehicleDestroy { EntitySnapshot attacker = 1; EntitySnapshot vehicle = 2; }
 message VehicleEnter { EntitySnapshot entered = 1; EntitySnapshot vehicle = 2; }
 message VehicleEntityCollision { bool collision_cancelled = 1; EntitySnapshot entity = 2; bool pickup_cancelled = 3; EntitySnapshot vehicle = 4; }
-message VehicleEntityCollisionPatch { optional bool collision_cancelled = 1; optional bool pickup_cancelled = 3; }
 message VehicleExit { EntitySnapshot exited = 1; EntitySnapshot vehicle = 2; }
 message VehicleMove { Location from = 1; Location to = 2; EntitySnapshot vehicle = 3; }
 message VehicleUpdate { EntitySnapshot vehicle = 1; }
@@ -818,7 +817,6 @@ message Patch {
     TradeSelectPatch trade_select = 247;
     VaultDisplayItemPatch vault_display_item = 249;
     VehicleDamagePatch vehicle_damage = 252;
-    VehicleEntityCollisionPatch vehicle_entity_collision = 255;
     VillagerAcquireTradePatch villager_acquire_trade = 259;
     VillagerCareerChangePatch villager_career_change = 260;
     VillagerReplenishTradePatch villager_replenish_trade = 261;

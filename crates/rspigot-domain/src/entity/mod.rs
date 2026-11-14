@@ -3,6 +3,7 @@ pub mod ageable;
 pub mod armor_stand;
 pub mod arrow;
 mod base;
+pub mod boat;
 pub mod bullet;
 pub mod cloud;
 pub mod crystal;
@@ -18,6 +19,7 @@ pub mod item;
 pub mod leash;
 pub mod lightning;
 pub mod living;
+pub mod minecart;
 pub mod neutral;
 pub mod orb;
 pub mod physics;
@@ -37,6 +39,7 @@ mod tracking_range;
 pub mod trade_gen;
 pub mod trading;
 pub mod variants;
+pub mod vehicle;
 
 use rspigot_nbt::Compound;
 
@@ -70,6 +73,8 @@ pub enum EntityState {
     Lightning(lightning::LightningState),
     Hanging(hanging::HangingState),
     Stand(Box<armor_stand::StandState>),
+    Boat(Box<boat::BoatState>),
+    Minecart(Box<minecart::MinecartState>),
     Living(Box<LivingState>),
     Orb(OrbState),
     Inert(Compound),

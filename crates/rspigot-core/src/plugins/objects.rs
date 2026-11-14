@@ -314,6 +314,7 @@ impl<L: ClientLink> Server<L> {
         if self.players.contains_key(&step.player) {
             if item_ok
                 && (self.use_mob_bucket(step.player, step.hand, step.rotation)
+                    || self.use_boat(step.player, step.hand, step.rotation)
                     || self.use_steering_item(step.player, step.hand)
                     || self.use_throwable(step.player, step.hand))
             {

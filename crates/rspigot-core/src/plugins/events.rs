@@ -7180,30 +7180,6 @@ impl VehicleDamagePatch {
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct VehicleEntityCollisionPatch {
-    pub collision_cancelled: Option<bool>,
-    pub pickup_cancelled: Option<bool>,
-}
-
-impl VehicleEntityCollisionPatch {
-    fn then(self, later: Self) -> Self {
-        Self {
-            collision_cancelled: later.collision_cancelled.or(self.collision_cancelled),
-            pickup_cancelled: later.pickup_cancelled.or(self.pickup_cancelled),
-        }
-    }
-
-    fn settle(self, event: &mut VehicleEntityCollision) {
-        if let Some(value) = self.collision_cancelled {
-            event.collision_cancelled = value;
-        }
-        if let Some(value) = self.pickup_cancelled {
-            event.pickup_cancelled = value;
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Default)]
 pub struct VillagerAcquireTradePatch {
     pub recipe: Option<Trade>,
 }
@@ -7921,7 +7897,6 @@ pub enum EventPatch {
     TradeSelect(TradeSelectPatch),
     VaultDisplayItem(VaultDisplayItemPatch),
     VehicleDamage(VehicleDamagePatch),
-    VehicleEntityCollision(VehicleEntityCollisionPatch),
     VillagerAcquireTrade(VillagerAcquireTradePatch),
     VillagerCareerChange(VillagerCareerChangePatch),
     VillagerReplenishTrade(VillagerReplenishTradePatch),
@@ -8043,7 +8018,6 @@ impl EventPatch {
             Self::TradeSelect(_) => EventKind::TradeSelect,
             Self::VaultDisplayItem(_) => EventKind::VaultDisplayItem,
             Self::VehicleDamage(_) => EventKind::VehicleDamage,
-            Self::VehicleEntityCollision(_) => EventKind::VehicleEntityCollision,
             Self::VillagerAcquireTrade(_) => EventKind::VillagerAcquireTrade,
             Self::VillagerCareerChange(_) => EventKind::VillagerCareerChange,
             Self::VillagerReplenishTrade(_) => EventKind::VillagerReplenishTrade,
@@ -8385,9 +8359,6 @@ impl EventPatch {
             (Self::VehicleDamage(earlier), Self::VehicleDamage(later)) => {
                 Self::VehicleDamage(earlier.then(later))
             }
-            (Self::VehicleEntityCollision(earlier), Self::VehicleEntityCollision(later)) => {
-                Self::VehicleEntityCollision(earlier.then(later))
-            }
             (Self::VillagerAcquireTrade(earlier), Self::VillagerAcquireTrade(later)) => {
                 Self::VillagerAcquireTrade(earlier.then(later))
             }
@@ -8646,9 +8617,6 @@ impl EventPatch {
                 patch.settle(event)
             }
             (Self::VehicleDamage(patch), EventPayload::VehicleDamage(event)) => patch.settle(event),
-            (Self::VehicleEntityCollision(patch), EventPayload::VehicleEntityCollision(event)) => {
-                patch.settle(event)
-            }
             (Self::VillagerAcquireTrade(patch), EventPayload::VillagerAcquireTrade(event)) => {
                 patch.settle(event)
             }
@@ -8902,9 +8870,6 @@ impl EventPatch {
             (patch @ Self::TradeSelect(_), EventKind::TradeSelect) => Some(patch),
             (patch @ Self::VaultDisplayItem(_), EventKind::VaultDisplayItem) => Some(patch),
             (patch @ Self::VehicleDamage(_), EventKind::VehicleDamage) => Some(patch),
-            (patch @ Self::VehicleEntityCollision(_), EventKind::VehicleEntityCollision) => {
-                Some(patch)
-            }
             (patch @ Self::VillagerAcquireTrade(_), EventKind::VillagerAcquireTrade) => Some(patch),
             (patch @ Self::VillagerCareerChange(_), EventKind::VillagerCareerChange) => Some(patch),
             (patch @ Self::VillagerReplenishTrade(_), EventKind::VillagerReplenishTrade) => {

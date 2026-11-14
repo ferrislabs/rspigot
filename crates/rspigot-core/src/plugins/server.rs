@@ -1101,6 +1101,22 @@ impl<L: ClientLink> Server<L> {
                 self.finish_stand_place(*step, cancelled);
                 Vec::new()
             }
+            Continuation::PlaceVehicle(step) => {
+                self.finish_vehicle_place(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::HurtVehicle(step) => {
+                self.finish_vehicle_hurt(*step, cancelled, patch_of!(patch, VehicleDamage).damage);
+                Vec::new()
+            }
+            Continuation::DestroyVehicle(step) => {
+                self.finish_vehicle_destroy(step, cancelled);
+                Vec::new()
+            }
+            Continuation::PushVehicle(step) => {
+                self.finish_vehicle_push(step, cancelled);
+                Vec::new()
+            }
             Continuation::SwapStand(step) => {
                 self.finish_stand_swap(*step, cancelled);
                 Vec::new()
