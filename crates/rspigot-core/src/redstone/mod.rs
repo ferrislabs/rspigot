@@ -1,6 +1,7 @@
 mod analog;
 mod controls;
 mod diode;
+mod dispenser;
 mod event;
 mod hopper;
 mod lamp;
@@ -20,6 +21,7 @@ use rustc_hash::FxHashMap;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
+pub(crate) use dispenser::DispenseStep;
 pub(crate) use event::{RedstoneChange, RedstoneStep};
 pub(crate) use hopper::{HopperStep, Stage as HopperStage};
 pub(crate) use piston::PistonStep;
@@ -157,6 +159,9 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::PistonHead) => self.piston_head_neighbor_changed(pos, state),
             Some(BlockKind::Hopper) => self.hopper_neighbor_changed(pos, state),
             Some(BlockKind::Tnt) => self.tnt_neighbor_changed(pos, source),
+            Some(BlockKind::Dispenser | BlockKind::Dropper) => {
+                self.dispenser_neighbor_changed(pos, state);
+            }
             Some(BlockKind::MovingPiston) if !self.falls.redstone.moving.contains_key(&pos) => {
                 self.schedule(pos, BlockKind::MovingPiston, 1);
             }
@@ -223,6 +228,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::RedstoneLamp => self.lamp_tick(pos, state),
             BlockKind::Repeater | BlockKind::Comparator => self.diode_tick(pos, state),
             BlockKind::Observer => self.observer_tick(pos, state),
+            BlockKind::Dispenser | BlockKind::Dropper => self.dispenser_tick(pos, state),
             BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),
             _ if is_plate(kind) => self.plate_tick(pos, state),

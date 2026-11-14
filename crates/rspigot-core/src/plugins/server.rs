@@ -848,6 +848,27 @@ impl<L: ClientLink> Server<L> {
                 self.finish_tnt_prime(*step, cancelled);
                 Vec::new()
             }
+            Continuation::Dispense(step) => {
+                let step = *step;
+                match step.kind() {
+                    EventKind::BlockDispenseArmor => {
+                        let patch = patch_of!(patch, BlockDispenseArmor);
+                        self.finish_dispense(step, cancelled, patch.item, patch.velocity, None);
+                    }
+                    EventKind::InventoryMoveItem => {
+                        let patch = patch_of!(patch, InventoryMoveItem);
+                        self.finish_dispense(step, cancelled, None, None, patch.item);
+                    }
+                    EventKind::BlockShearEntity => {
+                        self.finish_dispense(step, cancelled, None, None, None);
+                    }
+                    _ => {
+                        let patch = patch_of!(patch, BlockDispense);
+                        self.finish_dispense(step, cancelled, patch.item, patch.velocity, None);
+                    }
+                }
+                Vec::new()
+            }
             Continuation::Hopper(step) => {
                 let step = *step;
                 match step.stage.clone() {
