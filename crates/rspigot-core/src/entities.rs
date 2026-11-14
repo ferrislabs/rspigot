@@ -576,6 +576,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         self.crossbow_use_tick(id);
+        let mut shed_arrow = 0;
         if let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -583,8 +584,14 @@ impl<L: ClientLink> Server<L> {
         }) = self.entities.store.get_mut(id)
         {
             living::tick_using_item(base, state);
+            let arrows = living::arrow_count(base);
             living::tick_arrows(base, state);
+            shed_arrow = living::arrow_count(base) - arrows;
+            living::set_arrow_count(base, arrows);
             living::begin_ai_step(base, state);
+        }
+        if shed_arrow != 0 {
+            self.ask_arrow_count(id, shed_arrow);
         }
         self.trader_item_use_tick(id);
         self.mob_server_ai_step(id);

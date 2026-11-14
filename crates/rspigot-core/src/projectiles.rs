@@ -16,8 +16,10 @@ use crate::events::Hand;
 use crate::events::{ClientEvent, GameEvent};
 use crate::game_events::GameEventContext;
 use crate::health::{DamageSource, SourceEntity};
-use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause, PlayerPickupArrow};
-use crate::plugins::steps::ArrowStep;
+use crate::plugins::events::{
+    ArrowBodyCountChange, CreatureSpawnReason, EntityRemoveCause, PlayerPickupArrow,
+};
+use crate::plugins::steps::{ArrowCountStep, ArrowStep};
 use crate::plugins::steps::{Draw, Shooter};
 use crate::plugins::{
     AfterHurt, ArrowFollow, Combuster, Continuation, EventPayload, Holder, spec_of,
@@ -669,17 +671,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if hurt {
-            if let Some(Entity {
-                base,
-                state: EntityState::Living(_),
-                ..
-            }) = self.entities.store.get_mut(target)
-            {
-                let count = living::arrow_count(base);
-                living::set_arrow_count(base, count + 1);
-            } else if let Some(player) = target_player {
-                self.add_player_arrow(player);
-            }
+            self.ask_arrow_count(target, 1);
             if let (Some(_), Some(owner)) = (target_player, owner_id)
                 && let Some(shooter) = self.player_of_entity(owner)
                 && Some(shooter) != target_player
@@ -791,11 +783,60 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn add_player_arrow(&mut self, player: PlayerId) {
-        if let Some(player) = self.players.get_mut(&player) {
-            player.vitals.arrow_count += 1;
+    fn arrow_count_of(&self, target: EntityId) -> Option<i32> {
+        if let Some(player) = self.players.values().find(|p| p.entity_id == target) {
+            return Some(player.vitals.arrow_count);
         }
-        self.broadcast_metadata(player);
+        self.entities
+            .store
+            .get(target)
+            .filter(|entity| entity.living().is_some())
+            .map(|entity| living::arrow_count(&entity.base))
+    }
+
+    pub(crate) fn ask_arrow_count(&mut self, target: EntityId, delta: i32) {
+        let Some(old) = self.arrow_count_of(target) else {
+            return;
+        };
+        let new = (old + delta).max(0);
+        let lane = self.lane_for(None, target);
+        let step = ArrowCountStep { target, delta };
+        self.fire(lane, Continuation::ArrowCount(step), move |server| {
+            let entity = server.subject_view(target)?;
+            Some(EventPayload::ArrowBodyCountChange(ArrowBodyCountChange {
+                entity_type: entity.kind.clone(),
+                entity,
+                new_amount: new,
+                old_amount: old,
+                reset: false,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_arrow_count(
+        &mut self,
+        step: ArrowCountStep,
+        cancelled: bool,
+        patched: Option<i32>,
+    ) {
+        if cancelled {
+            return;
+        }
+        let Some(old) = self.arrow_count_of(step.target) else {
+            return;
+        };
+        let amount = patched.unwrap_or_else(|| (old + step.delta).max(0));
+        if let Some(player) = self
+            .players
+            .values_mut()
+            .find(|p| p.entity_id == step.target)
+        {
+            player.vitals.arrow_count = amount;
+            let id = player.id;
+            self.broadcast_metadata(id);
+        } else if let Some(entity) = self.entities.store.get_mut(step.target) {
+            living::set_arrow_count(&mut entity.base, amount);
+        }
     }
 
     pub(crate) fn collect_arrows(&mut self) {

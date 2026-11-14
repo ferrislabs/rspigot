@@ -993,8 +993,8 @@ impl<L: ClientLink> Server<L> {
                 }
                 vitals.remove_arrow_time -= 1;
                 if vitals.remove_arrow_time <= 0 {
-                    vitals.arrow_count -= 1;
-                    self.broadcast_metadata(id);
+                    let entity = player.entity_id;
+                    self.ask_arrow_count(entity, -1);
                 }
             }
             self.tick_player_fire(id);

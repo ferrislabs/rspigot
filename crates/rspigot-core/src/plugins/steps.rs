@@ -503,6 +503,12 @@ pub(crate) struct AirStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct ArrowCountStep {
+    pub(crate) target: EntityId,
+    pub(crate) delta: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct PigAngerStep {
     pub(crate) mob: EntityId,
     pub(crate) anger: i32,
@@ -1388,6 +1394,7 @@ pub(crate) enum Continuation {
     Tame(TameStep),
     PigAnger(PigAngerStep),
     Reputation(ReputationStep),
+    ArrowCount(ArrowCountStep),
     Air(AirStep),
     Game(crate::game_events::GameStep),
     Flow(crate::fluids::FlowStep),
@@ -1525,6 +1532,7 @@ impl Continuation {
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Reputation(_) => EventKind::VillagerReputationChange,
+            Self::ArrowCount(_) => EventKind::ArrowBodyCountChange,
             Self::Air(_) => EventKind::EntityAirChange,
             Self::Game(_) => EventKind::GenericGame,
             Self::Flow(_) => EventKind::BlockFromTo,
@@ -1644,6 +1652,7 @@ impl Continuation {
             Self::MobRegain(step) => step.target == id,
             Self::PigAnger(step) => step.mob == id,
             Self::Reputation(step) => step.villager == id,
+            Self::ArrowCount(step) => step.target == id,
             Self::Air(step) => step.entity == id,
             Self::Career(step) => step.villager == id,
             Self::Dye(step) => step.target == id,
