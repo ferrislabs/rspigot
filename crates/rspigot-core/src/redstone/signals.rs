@@ -100,13 +100,7 @@ impl<L: ClientLink> Server<L> {
                     0
                 }
             }
-            _ if is_plate(kind) => {
-                if direction == Face::Up {
-                    signal(state, direction)
-                } else {
-                    0
-                }
-            }
+            _ if is_plate(kind) && direction == Face::Up => signal(state, direction),
             _ => 0,
         }
     }

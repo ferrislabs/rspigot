@@ -144,10 +144,8 @@ impl<L: ClientLink> Server<L> {
                 self.piston_neighbor_changed(pos, state);
             }
             Some(BlockKind::PistonHead) => self.piston_head_neighbor_changed(pos, state),
-            Some(BlockKind::MovingPiston) => {
-                if !self.falls.redstone.moving.contains_key(&pos) {
-                    self.schedule(pos, BlockKind::MovingPiston, 1);
-                }
+            Some(BlockKind::MovingPiston) if !self.falls.redstone.moving.contains_key(&pos) => {
+                self.schedule(pos, BlockKind::MovingPiston, 1);
             }
             _ => {}
         }

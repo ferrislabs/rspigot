@@ -120,9 +120,8 @@ impl<L: ClientLink> Server<L> {
     ) -> Option<(Vec<BlockPos>, Vec<BlockPos>)> {
         let lookup = |at: BlockPos| self.block_or_air(at);
         let mut resolver = Resolver::new(&lookup, self.piston_limits(), pos, direction, extending);
-        resolver
-            .resolve()
-            .then(|| (resolver.to_push, resolver.to_destroy))
+        let resolved = resolver.resolve();
+        resolved.then_some((resolver.to_push, resolver.to_destroy))
     }
 
     fn queue_block_event(&mut self, event: BlockEvent) {
