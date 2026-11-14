@@ -237,6 +237,7 @@ pub enum Jockey {
     StriderPiglin { baby: bool },
     StriderBaby,
     ZombieHorseRider,
+    CamelHuskRider,
 }
 
 pub fn skeleton_jockey_roll(random: &mut impl RandomSource) -> bool {
@@ -431,6 +432,13 @@ fn zombie_finalize(
     if base.kind == EntityKind::Husk && reason != SpawnReason::Conversion {
         set_can_pick_up_loot(living, level.next_float() < PICK_UP_LOOT_CHANCE * special);
     }
+    if base.kind == EntityKind::Husk
+        && reason == SpawnReason::Natural
+        && let Some(mob) = living.mob.as_mut()
+        && mob.jockey.is_none()
+    {
+        mob.jockey = Some(Jockey::CamelHuskRider);
+    }
     Some(group)
 }
 
@@ -615,6 +623,7 @@ pub fn finalize_spawn(
         }
         Some(Species::Witch(_)) => species::witch::finalize(base, living, reason, group, level),
         Some(Species::Llama(_)) => species::llama::finalize(base, living, reason, group, level),
+        Some(Species::Camel(_)) => species::camel::finalize(base, living, reason, group, level),
         _ if living.mob.as_ref().is_some_and(|mob| mob.mount.is_some()) => {
             species::equine::finalize(base, living, reason, group, level)
         }
@@ -925,5 +934,32 @@ mod tests {
         );
         assert_eq!(jockey_of(EntityKind::Spider, Vec::new(), 1), None);
         assert_eq!(jockey_of(EntityKind::Cow, Vec::new(), 0), None);
+    }
+
+    #[test]
+    fn only_a_natural_adult_husk_plans_a_camel_husk_ride() {
+        let adult = vec![0.9; 12];
+        assert_eq!(
+            jockey_of(EntityKind::Husk, adult, 5),
+            Some(Jockey::CamelHuskRider)
+        );
+        let mut husk = mob(EntityKind::Husk);
+        let env = environment("minecraft:desert", Difficulty::Normal);
+        let mut own = LegacyRandom::new(2);
+        finalize_spawn(
+            &mut husk,
+            &env,
+            SpawnReason::Command,
+            None,
+            &mut LegacyRandom::new(4),
+            &mut own,
+        );
+        assert_eq!(
+            husk.living()
+                .and_then(|living| living.mob.as_ref())
+                .and_then(|mob| mob.jockey),
+            None
+        );
+        assert_eq!(jockey_of(EntityKind::Zombie, vec![0.9; 12], 5), None);
     }
 }

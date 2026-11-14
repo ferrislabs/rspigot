@@ -510,6 +510,7 @@ pub struct KindFacts {
     pub trader: crate::villager::TraderFacts,
     pub equine: crate::EquineFacts,
     pub llama: crate::llama::LlamaFacts,
+    pub camel: crate::camel::CamelFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

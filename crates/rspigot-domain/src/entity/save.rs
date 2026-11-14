@@ -795,6 +795,13 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Goat(state) => species::goat::read(nbt, base, state),
         Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
         Species::Llama(state) => species::llama::read(nbt, base, state),
+        Species::Camel(_) => {
+            let baby = mob
+                .ageable
+                .as_ref()
+                .is_some_and(|age| ageable::is_baby(base, age));
+            species::camel::read(nbt, base, baby);
+        }
         Species::Sniffer(_) | Species::Frog(_) | Species::Strider(_) => {}
         Species::Creaking(state) => species::creaking::read(nbt, base, state),
         Species::Villager(state) => {
@@ -1055,6 +1062,7 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Goat(_) => species::goat::KEYS,
         Species::Armadillo(_) => species::armadillo::KEYS,
         Species::Llama(_) => species::llama::KEYS,
+        Species::Camel(_) => species::camel::KEYS,
         Species::Sniffer(_) => species::sniffer::KEYS,
         Species::Frog(_) => species::frog::KEYS,
         Species::Strider(_) => species::strider::KEYS,
@@ -1531,6 +1539,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Goat(state) => species::goat::write(base, state, out),
         Species::Armadillo(state) => species::armadillo::write(base, state, out),
         Species::Llama(state) => species::llama::write(base, state, out),
+        Species::Camel(_) => species::camel::write(base, out),
         Species::Sniffer(_) | Species::Frog(_) | Species::Strider(_) => {}
         Species::Creaking(state) => species::creaking::write(base, state, out),
         Species::Villager(state) => {

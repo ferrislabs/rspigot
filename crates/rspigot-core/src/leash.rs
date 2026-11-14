@@ -111,6 +111,9 @@ impl<L: ClientLink> Server<L> {
         }
         if leash::must_pull(distance, entity_width, holder_width) {
             self.pull_on_leash(id, holder);
+            if self.kind_of(id).is_some_and(|kind| kind.extends("Camel")) {
+                self.camel_on_leash_pull(id);
+            }
         }
         self.spin_on_leash(id);
     }

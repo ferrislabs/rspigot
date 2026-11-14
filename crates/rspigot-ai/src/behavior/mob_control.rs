@@ -195,6 +195,8 @@ mob_behaviors! {
     ArmadilloBallUp(ArmadilloBallUp),
     AllayGiveItems(crate::allay::GoAndGiveItemsToTarget),
     ArmadilloPanic(ArmadilloPanic),
+    CamelPanic(crate::camel::CamelPanic),
+    CamelRandomSitting(crate::camel::RandomSitting),
     BreezeShoot(BreezeShoot),
     BreezeLongJump(BreezeLongJump),
     BreezeShootWhenStuck(BreezeShootWhenStuck),

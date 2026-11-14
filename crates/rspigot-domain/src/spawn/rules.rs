@@ -15,6 +15,7 @@ const GOATS_SPAWNABLE_ON: &str = "minecraft:goats_spawnable_on";
 const ARMADILLO_SPAWNABLE_ON: &str = "minecraft:armadillo_spawnable_on";
 const FROGS_SPAWNABLE_ON: &str = "minecraft:frogs_spawnable_on";
 const PARROTS_SPAWNABLE_ON: &str = "minecraft:parrots_spawnable_on";
+const CAMELS_SPAWNABLE_ON: &str = "minecraft:camels_spawnable_on";
 const BEE_AIR_WALK_TARGET: f32 = 10.0;
 const LEAVES: &str = "minecraft:leaves";
 const OCELOT_SPAWN_CHANCE: i32 = 3;
@@ -92,6 +93,7 @@ pub fn check_predicate(
         SpawnPredicate::Ghast => super::ghast::check_ghast_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Bat => super::bat::check_bat_spawn_rules(level, kind, reason, pos),
         SpawnPredicate::Parrot => check_bright_spawnable_on(level, pos, PARROTS_SPAWNABLE_ON),
+        SpawnPredicate::Camel => check_bright_spawnable_on(level, pos, CAMELS_SPAWNABLE_ON),
         SpawnPredicate::SurfaceWaterAnimal | SpawnPredicate::SurfaceAgeableWaterCreature => {
             super::water::check_surface_water_spawn_rules(level, pos)
         }
@@ -199,6 +201,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::MagmaCube
                 | SpawnPredicate::Bat
                 | SpawnPredicate::Parrot
+                | SpawnPredicate::Camel
                 | SpawnPredicate::SurfaceWaterAnimal
                 | SpawnPredicate::SurfaceAgeableWaterCreature
                 | SpawnPredicate::TropicalFish
@@ -761,6 +764,7 @@ mod tests {
                 GrassBlock::DEFAULT_STATE,
                 Stone::DEFAULT_STATE,
             ),
+            (EntityKind::Camel, Sand::DEFAULT_STATE, Stone::DEFAULT_STATE),
         ] {
             let mut ground = Level::floor(good, 63);
             assert!(
