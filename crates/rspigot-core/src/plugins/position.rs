@@ -121,6 +121,7 @@ impl<L: ClientLink> Server<L> {
                     dimension,
                     position,
                     rotation,
+                    platform: false,
                 },
             );
             return dropped;

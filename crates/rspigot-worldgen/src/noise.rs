@@ -2,6 +2,7 @@ use rspigot_core::ports::ChunkGenerator;
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{ChunkPos, Vec3};
+use rspigot_nbt::Compound;
 
 use crate::dimension::DimensionKind;
 use crate::end::End;
@@ -102,5 +103,12 @@ impl ChunkGenerator for NoiseGenerator {
 
     fn spawns_original_mobs(&self, dimension: &Dimension) -> bool {
         DimensionKind::of(dimension) != DimensionKind::End
+    }
+
+    fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
+        match DimensionKind::of(dimension) {
+            DimensionKind::End => self.state.end.pillars().crystals(pos),
+            DimensionKind::Overworld | DimensionKind::Nether => Vec::new(),
+        }
     }
 }

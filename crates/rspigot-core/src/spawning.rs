@@ -623,6 +623,7 @@ impl<L: ClientLink> Server<L> {
 struct Generation<'a> {
     chunk: &'a ChunkColumn,
     has_skylight: bool,
+    has_day_cycle: bool,
     sea_level: i32,
     dimension: &'static DimensionSpawns,
     zoom_seed: i64,
@@ -762,10 +763,10 @@ impl GenerationHost for Generation<'_> {
                 self.difficulty,
                 0,
                 0,
-                moon_brightness(0, self.has_skylight),
+                moon_brightness(0, self.has_day_cycle),
             ),
             halloween: is_halloween(today()),
-            moon_brightness: moon_brightness(0, self.has_skylight),
+            moon_brightness: moon_brightness(0, self.has_day_cycle),
         };
         let mut own = LegacyRandom::new(rand::rng().random());
         let group = finalize_spawn(
@@ -796,6 +797,7 @@ pub(crate) fn original_mobs(
     let mut host = Generation {
         chunk,
         has_skylight: dimension.has_skylight,
+        has_day_cycle: dimension.has_day_cycle(),
         sea_level: dimension.sea_level,
         dimension: dimension_spawns(dimension),
         zoom_seed: mobs.zoom_seed,
@@ -821,6 +823,17 @@ pub(crate) fn original_mobs(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn endermen_spawn_naturally_in_the_end_under_its_own_light_rules() {
+        assert!(naturally_spawns(EntityKind::Enderman));
+        let end = dimension_spawns(&Dimension::end());
+        assert_eq!(
+            end.monster_spawn_light,
+            rspigot_data::spawns::SpawnCount::Constant(15)
+        );
+        assert_eq!(end.monster_spawn_block_light_limit, 0);
+    }
 
     #[test]
     fn mobs_with_goals_spawn_naturally() {

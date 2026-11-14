@@ -11,6 +11,8 @@ rspigot-auth = { workspace = true }
 rspigot-core = { workspace = true }
 rspigot-data = { workspace = true }
 rspigot-domain = { workspace = true }
+rspigot-blocks = { workspace = true }
+rspigot-nbt = { workspace = true }
 rspigot-network = { workspace = true }
 rspigot-plugins = { workspace = true }
 rspigot-worldgen = { workspace = true }

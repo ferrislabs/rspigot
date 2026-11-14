@@ -73,6 +73,10 @@ pub trait ChunkGenerator: Send + Sync + 'static {
     fn spawns_original_mobs(&self, _dimension: &Dimension) -> bool {
         false
     }
+
+    fn structure_entities(&self, _dimension: &Dimension, _pos: ChunkPos) -> Vec<Compound> {
+        Vec::new()
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

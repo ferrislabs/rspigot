@@ -3,6 +3,7 @@ use rspigot_domain::world::Dimension;
 use rspigot_domain::{BiomeId, ChunkPos, Vec3};
 
 use crate::buffer::ChunkBuffer;
+use crate::end_spikes::Pillars;
 use crate::overworld::smooth;
 use crate::perlin::Fractal;
 use crate::resources::{Biome, BlockKind, Resources};
@@ -17,6 +18,7 @@ pub(crate) struct End {
     islands: Fractal,
     tiny: Fractal,
     jitter: Fractal,
+    pillars: Pillars,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -31,6 +33,7 @@ impl End {
             islands: Fractal::new(mix(seed ^ 0xE4D1_5A11), 3),
             tiny: Fractal::new(mix(seed ^ 0x71E7_0001), 2),
             jitter: Fractal::new(mix(seed ^ 0x517C_C1B7), 2),
+            pillars: Pillars::new(seed as i64),
         }
     }
 
@@ -123,11 +126,16 @@ impl End {
                 }
             }
         }
+        self.pillars.place(&mut buffer, pos);
         let cells: [BiomeId; 16] = std::array::from_fn(|c| {
             let (cx, cz) = ((c & 3) as i32, (c >> 2) as i32);
             resources.biomes[self.biome(x0 + cx * 4 + 2, z0 + cz * 4 + 2)]
         });
         buffer.finish(pos, &cells, &resources.classifier)
+    }
+
+    pub(crate) fn pillars(&self) -> &Pillars {
+        &self.pillars
     }
 
     pub(crate) fn spawn_point(&self, dimension: &Dimension) -> Vec3 {

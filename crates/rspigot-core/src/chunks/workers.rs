@@ -222,12 +222,15 @@ fn load<S: ChunkStore + EntityStore, G: ChunkGenerator>(
     if stale || !lighting::has_light(&chunk) {
         lighting::compute(&mut chunk, dimension.has_skylight);
     }
-    if source == ChunkSource::Generated
-        && entities.is_none()
-        && generator.spawns_original_mobs(&dimension)
-        && let Some(mobs) = mobs
-    {
-        entities = Some(crate::spawning::original_mobs(&chunk, &dimension, mobs));
+    if source == ChunkSource::Generated && entities.is_none() {
+        let mut generated = generator.structure_entities(&dimension, pos);
+        let mobs_spawn = generator.spawns_original_mobs(&dimension);
+        if mobs_spawn && let Some(mobs) = mobs {
+            generated.extend(crate::spawning::original_mobs(&chunk, &dimension, mobs));
+        }
+        if mobs_spawn && mobs.is_some() || !generated.is_empty() {
+            entities = Some(generated);
+        }
     }
     ChunkResult::Loaded {
         dimension,

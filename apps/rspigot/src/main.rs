@@ -1,5 +1,6 @@
 mod config;
 mod console;
+mod dimensions;
 mod files;
 mod logging;
 
@@ -126,6 +127,7 @@ fn main() -> anyhow::Result<()> {
         level.seed,
         files.properties.string("generator-settings"),
     ));
+    dimensions::install(Arc::clone(&store), Arc::clone(&generator));
     let status = StatusBoard::new(0);
     let game_config = files.game_config(admin);
     let network_config = files.network_config(files::read_favicon(&args.root))?;
@@ -167,6 +169,7 @@ fn main() -> anyhow::Result<()> {
         generator,
         status.clone(),
     )
+    .with_dimension_provider(dimensions::provide)
     .with_admin_sink(admin_updates)
     .with_player_store(Arc::clone(&store))
     .with_startup_inbox(game_inbox.clone());

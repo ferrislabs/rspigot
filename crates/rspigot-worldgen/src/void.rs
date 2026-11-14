@@ -2,6 +2,7 @@ use rspigot_core::ports::ChunkGenerator;
 use rspigot_domain::chunk::{ChunkColumn, ChunkSection};
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{ChunkPos, Vec3};
+use rspigot_nbt::Compound;
 
 use crate::dimension::DimensionKind;
 use crate::noise::NoiseGenerator;
@@ -71,5 +72,9 @@ impl ChunkGenerator for VoidGenerator {
                 self.other_dimensions.spawn_point(dimension)
             }
         }
+    }
+
+    fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
+        self.other_dimensions.structure_entities(dimension, pos)
     }
 }
