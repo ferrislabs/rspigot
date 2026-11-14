@@ -330,6 +330,8 @@ impl<L: ClientLink> Server<L> {
                 })
                 .filter(|(_, bounds, _)| bounds.intersects(area)),
         );
+        out.retain(|(id, _, _)| !self.entities.dragons.contains_key(id));
+        out.extend(self.dragon_part_candidates(area));
         out.retain(|(id, _, _)| (left_owner || Some(*id) != owner) && !pierced.contains(id));
         out
     }

@@ -22,6 +22,7 @@ mod copper_statue;
 mod crops;
 mod crossbow;
 mod doors;
+mod dragon;
 mod drops;
 mod durability;
 mod eating;

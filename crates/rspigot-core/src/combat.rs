@@ -146,6 +146,17 @@ impl<L: ClientLink> Server<L> {
                 velocity: player.vitals.velocity,
             });
         }
+        if let Some((dragon, part)) = self.dragon_part_of(target) {
+            let entity = self.entities.store.get(dragon)?;
+            return Some(Victim {
+                target: Target::Entity(dragon),
+                entity: dragon,
+                bounds: self.dragon_part_box(dragon, part)?,
+                living: true,
+                attackable: true,
+                velocity: entity.base.velocity,
+            });
+        }
         let entity = self.entities.store.get(target)?;
         Some(Victim {
             target: Target::Entity(target),
@@ -203,6 +214,9 @@ impl<L: ClientLink> Server<L> {
                 ),
             );
             return;
+        }
+        if let Some((dragon, part)) = self.dragon_part_of(target) {
+            self.dragon_note_part(dragon, part);
         }
         self.attack(id, victim);
     }

@@ -31,7 +31,7 @@ impl<L: ClientLink> Server<L> {
                 Some((resistance, player.vitals.velocity, player.on_ground))
             }
             Holder::Mob(id) => {
-                if !self.creaking_can_move(id) {
+                if !self.creaking_can_move(id) || self.dragon_blocks_knockback(id) {
                     return None;
                 }
                 let entity = self.entities.store.get_mut(id)?;

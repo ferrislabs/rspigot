@@ -184,6 +184,10 @@ impl<'a> PotionContents<'a> {
         let Some(contents) = stack.components.get_compound(CONTENTS) else {
             return Self::default();
         };
+        Self::of_compound(contents)
+    }
+
+    pub fn of_compound(contents: &'a Compound) -> Self {
         Self {
             potion: contents.get_str("potion"),
             custom_color: contents.get_i32("custom_color"),

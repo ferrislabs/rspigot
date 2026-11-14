@@ -19,6 +19,7 @@ use rspigot_domain::chunk::{
 };
 use rspigot_domain::dye::dye_color_id;
 use rspigot_domain::effect::{AttributeOperation, AttributeState, EffectInstance};
+use rspigot_domain::entity::ParticleSetting;
 use rspigot_domain::entity::save::component_from_tag;
 use rspigot_domain::entity::trading::{ItemCost, MerchantOffer};
 use rspigot_domain::item::{CUSTOM_NAME, ENCHANTMENTS, ItemStack, LORE, MAX_LORE_LINES, Slot};
@@ -704,6 +705,23 @@ fn registry_variant(kind: VariantKind) -> RegistryVariant {
             RegistryVariant::Frog
         }
         VariantKind::ZombieNautilus => RegistryVariant::ZombieNautilus,
+    }
+}
+
+fn particle_metadata(setting: &ParticleSetting) -> EntityDataValue {
+    let (name, data) = match setting {
+        ParticleSetting::Named(name) => (name.as_str(), Vec::new()),
+        ParticleSetting::Power { name, power } => (name.as_str(), power.to_be_bytes().to_vec()),
+        ParticleSetting::Color { name, argb } => (name.as_str(), argb.to_be_bytes().to_vec()),
+    };
+    let kind = rspigot_data::registries::static_index("minecraft:particle_type", name)
+        .and_then(|id| i32::try_from(id).ok())
+        .unwrap_or(0);
+    let mut bytes = Vec::new();
+    cb::ParticleOptions { kind, data }.encode(&mut bytes);
+    EntityDataValue::Raw {
+        serializer: rspigot_protocol::play::metadata::serializer::PARTICLE,
+        data: bytes,
     }
 }
 
@@ -1407,6 +1425,7 @@ impl Encoder {
                                 MetadataValue::OptionalBlockPos(pos) => {
                                     EntityDataValue::OptionalBlockPos(pos.map(position))
                                 }
+                                MetadataValue::Particle(setting) => particle_metadata(setting),
                                 MetadataValue::Variant(kind, id) => EntityDataValue::Variant {
                                     kind: registry_variant(*kind),
                                     id: *id as i32,

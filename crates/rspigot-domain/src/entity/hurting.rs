@@ -58,6 +58,7 @@ pub fn is_hurting_projectile(kind: EntityKind) -> bool {
         kind,
         EntityKind::SmallFireball
             | EntityKind::Fireball
+            | EntityKind::DragonFireball
             | EntityKind::WitherSkull
             | EntityKind::BreezeWindCharge
             | EntityKind::WindCharge
@@ -135,7 +136,10 @@ pub fn set_dangerous(base: &mut EntityBase, dangerous: bool) {
 }
 
 pub fn should_burn(base: &EntityBase) -> bool {
-    base.kind != EntityKind::WitherSkull && !is_wind_charge(base.kind)
+    !matches!(
+        base.kind,
+        EntityKind::WitherSkull | EntityKind::DragonFireball
+    ) && !is_wind_charge(base.kind)
 }
 
 pub fn inertia(base: &EntityBase) -> f32 {
@@ -372,17 +376,16 @@ mod tests {
     }
 
     #[test]
-    fn the_three_projectiles_are_simulated_and_the_dragon_fireball_is_not() {
+    fn the_four_fireball_projectiles_are_simulated() {
         for kind in [
             EntityKind::SmallFireball,
             EntityKind::Fireball,
+            EntityKind::DragonFireball,
             EntityKind::WitherSkull,
         ] {
             assert!(is_simulated(kind), "{kind:?}");
             assert!(is_hurting_projectile(kind), "{kind:?}");
         }
-        assert!(!is_hurting_projectile(EntityKind::DragonFireball));
-        assert!(!is_simulated(EntityKind::DragonFireball));
     }
 
     #[test]

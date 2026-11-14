@@ -987,6 +987,30 @@ impl<L: ClientLink> Server<L> {
                 self.finish_prime(step, cancelled, patch_of!(patch, ExplosionPrime));
                 Vec::new()
             }
+            Continuation::DragonPhase(step) => {
+                self.finish_dragon_phase(
+                    *step,
+                    cancelled,
+                    patch_of!(patch, EnderDragonChangePhase),
+                );
+                Vec::new()
+            }
+            Continuation::CloudApply(step) => {
+                self.finish_cloud_apply(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Kindle(step) => {
+                self.finish_kindle(step, cancelled);
+                Vec::new()
+            }
+            Continuation::CrystalBlast(step) => {
+                self.finish_crystal_blast(*step, cancelled, patch_of!(patch, ExplosionPrime));
+                Vec::new()
+            }
+            Continuation::DragonWalls(step) => {
+                self.finish_dragon_walls(*step, cancelled, patch_of!(patch, EntityExplode));
+                Vec::new()
+            }
             Continuation::Relocate(step) => {
                 self.finish_relocate(step, cancelled, patch_of!(patch, EntityTeleport));
                 Vec::new()
