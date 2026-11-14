@@ -578,6 +578,7 @@ pub(crate) enum Follow {
     Nothing,
     Infection { at: Option<BlockPos> },
     Cure { starter: Option<uuid::Uuid> },
+    Metamorphosis,
 }
 
 #[derive(Debug)]
@@ -932,6 +933,11 @@ pub(crate) enum Grief {
     TurtleEgg {
         turtle: EntityId,
         at: BlockPos,
+        pos: BlockPos,
+        state: BlockStateId,
+    },
+    Frogspawn {
+        frog: EntityId,
         pos: BlockPos,
         state: BlockStateId,
     },
@@ -1401,6 +1407,7 @@ impl Continuation {
                 Grief::WitherBreak { wither, .. } => *wither == id,
                 Grief::BeeGrow { bee, .. } => *bee == id,
                 Grief::TurtleEgg { turtle, .. } => *turtle == id,
+                Grief::Frogspawn { frog, .. } => *frog == id,
             },
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,

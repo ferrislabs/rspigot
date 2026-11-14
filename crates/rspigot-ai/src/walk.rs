@@ -200,6 +200,15 @@ impl<'a, V: BlockView> Walker<'a, V> {
         if let Some(kind) = self.mob_types.get(&pos) {
             return *kind;
         }
+        if self.profile.frog_nodes
+            && crate::animal::block_tag(
+                self.view.state(pos.offset(0, -1, 0)),
+                crate::behavior::FROG_PREFER_JUMP_TO,
+            )
+        {
+            self.mob_types.insert(pos, PathType::Open);
+            return PathType::Open;
+        }
         if self.profile.is_water_bound() {
             let kind = self.swim_type(pos);
             self.mob_types.insert(pos, kind);
@@ -273,9 +282,10 @@ impl<'a, V: BlockView> Walker<'a, V> {
         }
         if self.profile.is_amphibious() && self.mob.in_floatable_fluid {
             let area = self.profile.bounding_box(self.mob.position);
+            let rise = if self.profile.frog_nodes { 0.0 } else { 0.5 };
             let origin = BlockPos::new(
                 area.min_x.floor() as i32,
-                (area.min_y + 0.5).floor() as i32,
+                (area.min_y + rise).floor() as i32,
                 area.min_z.floor() as i32,
             );
             return self.start_node(origin);

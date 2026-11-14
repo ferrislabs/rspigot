@@ -317,6 +317,7 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
             adult.eye_height * 0.3,
         ),
         EntityKind::Squid | EntityKind::GlowSquid => dims(0.5, 0.5, 0.37),
+        EntityKind::Axolotl => dims(0.375, 0.21, 0.09375),
         _ => dims(
             adult.width * 0.5,
             adult.height * 0.5,

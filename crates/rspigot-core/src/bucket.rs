@@ -1,6 +1,7 @@
 use rspigot_blocks::{BlockKind, StateFlags};
+use rspigot_domain::entity::ageable;
 use rspigot_domain::entity::save::component_from_tag;
-use rspigot_domain::entity::species::fish;
+use rspigot_domain::entity::species::{self, Species, fish};
 use rspigot_domain::entity::{Entity, EntityState, FLAG_GLOWING, living};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
@@ -29,8 +30,13 @@ const TROPICAL_BASE_COLOR: &str = "minecraft:tropical_fish/base_color";
 const TROPICAL_PATTERN_COLOR: &str = "minecraft:tropical_fish/pattern_color";
 const SALMON_SIZE: &str = "minecraft:salmon/size";
 const CUSTOM_NAME: &str = "minecraft:custom_name";
+const AXOLOTL_VARIANT: &str = "minecraft:axolotl/variant";
 const PICKUP_SOUND: &str = "minecraft:item.bucket.fill_fish";
 const EMPTY_SOUND: &str = "minecraft:item.bucket.empty_fish";
+const AXOLOTL_PICKUP_SOUND: &str = "minecraft:item.bucket.fill_axolotl";
+const AXOLOTL_EMPTY_SOUND: &str = "minecraft:item.bucket.empty_axolotl";
+const TADPOLE_PICKUP_SOUND: &str = "minecraft:item.bucket.fill_tadpole";
+const TADPOLE_EMPTY_SOUND: &str = "minecraft:item.bucket.empty_tadpole";
 const FIZZ_SOUND: &str = "minecraft:block.fire.extinguish";
 const THE_NETHER: &str = "minecraft:the_nether";
 const WATERLOGGED: &str = "waterlogged";
@@ -41,6 +47,8 @@ pub(crate) fn bucket_item_of(kind: Kind) -> Option<ItemKind> {
         Kind::Salmon => Some(ItemKind::SalmonBucket),
         Kind::Pufferfish => Some(ItemKind::PufferfishBucket),
         Kind::TropicalFish => Some(ItemKind::TropicalFishBucket),
+        Kind::Axolotl => Some(ItemKind::AxolotlBucket),
+        Kind::Tadpole => Some(ItemKind::TadpoleBucket),
         _ => None,
     }
 }
@@ -51,7 +59,25 @@ pub(crate) fn mob_of_bucket(item: ItemId) -> Option<Kind> {
         ItemKind::SalmonBucket => Some(Kind::Salmon),
         ItemKind::PufferfishBucket => Some(Kind::Pufferfish),
         ItemKind::TropicalFishBucket => Some(Kind::TropicalFish),
+        ItemKind::AxolotlBucket => Some(Kind::Axolotl),
+        ItemKind::TadpoleBucket => Some(Kind::Tadpole),
         _ => None,
+    }
+}
+
+fn pickup_sound(kind: Kind) -> &'static str {
+    match kind {
+        Kind::Axolotl => AXOLOTL_PICKUP_SOUND,
+        Kind::Tadpole => TADPOLE_PICKUP_SOUND,
+        _ => PICKUP_SOUND,
+    }
+}
+
+fn empty_sound(kind: Kind) -> &'static str {
+    match kind {
+        Kind::Axolotl => AXOLOTL_EMPTY_SOUND,
+        Kind::Tadpole => TADPOLE_EMPTY_SOUND,
+        _ => EMPTY_SOUND,
     }
 }
 
@@ -113,8 +139,31 @@ impl<L: ClientLink> Server<L> {
             data.insert("PersistenceRequired", true);
         }
         data.insert("Health", living::health(base));
+        match base.kind {
+            Kind::Axolotl => {
+                if let Some(ageable) = state.mob.as_ref().and_then(|mob| mob.ageable.as_ref()) {
+                    data.insert("Age", ageable.age);
+                }
+                data.insert("AgeLocked", ageable::is_age_locked(base));
+                if let Some(ticks) = self.axolotl_hunting_cooldown(target) {
+                    data.insert("HuntingCooldown", ticks);
+                }
+            }
+            Kind::Tadpole => {
+                if let Some(Species::Tadpole(tadpole)) = state.mob.as_ref().map(|mob| mob.species) {
+                    data.insert("Age", tadpole.age);
+                }
+                data.insert("AgeLocked", species::tadpole::is_age_locked(base));
+            }
+            _ => {}
+        }
         stack.components.insert(BUCKET_ENTITY_DATA, data);
         match base.kind {
+            Kind::Axolotl => {
+                stack
+                    .components
+                    .insert(AXOLOTL_VARIANT, species::axolotl::variant(base).name());
+            }
             Kind::Salmon => {
                 stack
                     .components
@@ -211,7 +260,12 @@ impl<L: ClientLink> Server<L> {
         if !alive || self.held(player, hand).as_ref() != Some(&stack) {
             return;
         }
-        self.entity_sound(target, PICKUP_SOUND, 1.0, 1.0);
+        let sound = self
+            .entities
+            .store
+            .get(target)
+            .map_or(PICKUP_SOUND, |entity| pickup_sound(entity.base.kind));
+        self.entity_sound(target, sound, 1.0, 1.0);
         self.fill_bucket_in_hand(player, hand, bucket);
         self.remove_entity(
             target,
@@ -358,14 +412,28 @@ impl<L: ClientLink> Server<L> {
                 {
                     self.set_block(block, state);
                 }
-                self.play_sound(None, position, EMPTY_SOUND, SoundSource::Neutral, 1.0, 1.0);
+                self.play_sound(
+                    None,
+                    position,
+                    empty_sound(kind),
+                    SoundSource::Neutral,
+                    1.0,
+                    1.0,
+                );
             }
             Placement::Place { destroy } => {
                 if destroy {
                     self.break_block_naturally(block);
                 }
                 self.set_block(block, BlockKind::Water.default_state());
-                self.play_sound(None, position, EMPTY_SOUND, SoundSource::Neutral, 1.0, 1.0);
+                self.play_sound(
+                    None,
+                    position,
+                    empty_sound(kind),
+                    SoundSource::Neutral,
+                    1.0,
+                    1.0,
+                );
             }
         }
         self.spawn_bucketed_fish(player, kind, &stack, block);
@@ -471,6 +539,36 @@ fn apply_bucket_components(entity: &mut Entity, stack: &ItemStack) {
         if let Some(health) = data.get_f64("Health") {
             living::set_health(base, living, health as f32);
         }
+        match living.mob.as_mut() {
+            Some(mob) if base.kind == Kind::Axolotl => {
+                if let Some(ageable) = mob.ageable.as_mut() {
+                    ageable::set_age(base, ageable, data.get_i32("Age").unwrap_or(0));
+                }
+                ageable::set_age_locked(base, data.get_bool("AgeLocked").unwrap_or(false));
+                if let Species::Axolotl(state) = &mut mob.species {
+                    state.pending_hunting_cooldown = data.get_i64("HuntingCooldown");
+                }
+            }
+            Some(mob) if base.kind == Kind::Tadpole => {
+                if let Species::Tadpole(state) = &mut mob.species {
+                    state.age = data.get_i32("Age").unwrap_or(0);
+                }
+                species::tadpole::set_age_locked(base, data.get_bool("AgeLocked").unwrap_or(false));
+            }
+            _ => {}
+        }
     }
-    fish::set_from_bucket(base, true);
+    match base.kind {
+        Kind::Axolotl => {
+            if let Some(variant) = components
+                .get_str(AXOLOTL_VARIANT)
+                .and_then(species::axolotl::Variant::from_name)
+            {
+                species::axolotl::set_variant(base, variant);
+            }
+            species::axolotl::set_from_bucket(base, true);
+        }
+        Kind::Tadpole => {}
+        _ => fish::set_from_bucket(base, true),
+    }
 }

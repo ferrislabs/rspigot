@@ -11,6 +11,7 @@ use crate::{BlockPos, BlockStateId};
 pub enum VariantKind {
     Mob(VariantFamily),
     Sound(VariantFamily),
+    ZombieNautilus,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

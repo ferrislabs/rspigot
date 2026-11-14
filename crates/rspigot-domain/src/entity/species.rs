@@ -13,6 +13,7 @@ use crate::{BiomeId, biome};
 
 pub mod allay;
 pub mod armadillo;
+pub mod axolotl;
 pub mod bat;
 pub mod bee;
 pub mod blaze;
@@ -31,6 +32,7 @@ pub mod goat;
 pub mod guardian;
 pub mod hoglin;
 pub mod iron_golem;
+pub mod nautilus;
 pub mod ocelot;
 pub mod panda;
 pub mod parrot;
@@ -45,6 +47,7 @@ pub mod silverfish;
 pub mod sniffer;
 pub mod snow_golem;
 pub mod squid;
+pub mod tadpole;
 pub mod turtle;
 pub mod vex;
 pub mod villager;
@@ -221,6 +224,9 @@ pub enum Species {
     Squid(squid::SquidState),
     Dolphin(dolphin::DolphinState),
     Turtle(turtle::TurtleState),
+    Axolotl(axolotl::AxolotlState),
+    Tadpole(tadpole::TadpoleState),
+    Nautilus(nautilus::NautilusState),
     Guardian(guardian::GuardianState),
     Allay(allay::AllayState),
     Wither(wither::WitherState),
@@ -418,6 +424,15 @@ impl Species {
         }
         if kind == EntityKind::Bat {
             return Self::Bat(bat::define(base));
+        }
+        if kind == EntityKind::Tadpole {
+            return Self::Tadpole(tadpole::define(base));
+        }
+        if kind == EntityKind::Axolotl {
+            return Self::Axolotl(axolotl::define(base));
+        }
+        if nautilus::is_nautilus(kind) {
+            return Self::Nautilus(nautilus::define(base));
         }
         if fish::is_fish(kind) {
             return Self::Fish(fish::define(base));

@@ -18,6 +18,7 @@ pub enum TargetFinder {
     Memory(MemoryModuleType),
     HurtBySource,
     Nether(NetherFinder),
+    Nautilus,
 }
 
 impl TargetFinder {
@@ -32,6 +33,7 @@ impl TargetFinder {
                 .and_then(|damage| damage.entity)
                 .and_then(|id| cx.ai.world.living(id)),
             Self::Nether(finder) => finder.find(cx),
+            Self::Nautilus => crate::nautilus::NautilusFinder::find(cx),
         }
     }
 }
@@ -153,6 +155,7 @@ pub enum TargetErased {
     #[default]
     Nothing,
     Warden,
+    Axolotl,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -224,7 +227,14 @@ impl Trigger for StopAttackingIfTargetInvalid {
                 (TargetErased::Warden, Some(erased)) => {
                     crate::warden::on_target_invalid(cx, erased);
                 }
-                (TargetErased::Warden, None) | (TargetErased::Nothing, _) => {}
+                (TargetErased::Axolotl, Some(erased)) => {
+                    cx.ai
+                        .act(MobAction::Axolotl(crate::AxolotlAction::TargetErased(
+                            erased,
+                        )));
+                }
+                (TargetErased::Warden | TargetErased::Axolotl, None)
+                | (TargetErased::Nothing, _) => {}
             }
             cx.brain.memories.erase(MemoryModuleType::AttackTarget);
         }
@@ -303,11 +313,20 @@ impl Trigger for MeleeAttack {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SetWalkTargetFromAttackTargetIfTargetOutOfReach {
     speed_modifier: f32,
+    in_water_speed: Option<f32>,
 }
 
 impl SetWalkTargetFromAttackTargetIfTargetOutOfReach {
     pub fn new(speed_modifier: f32) -> Self {
-        Self { speed_modifier }
+        Self {
+            speed_modifier,
+            in_water_speed: None,
+        }
+    }
+
+    pub fn in_water(mut self, speed_modifier: f32) -> Self {
+        self.in_water_speed = Some(speed_modifier);
+        self
     }
 
     pub fn conditions(&self) -> Vec<Condition> {
@@ -345,7 +364,10 @@ impl Trigger for SetWalkTargetFromAttackTargetIfTargetOutOfReach {
             cx,
             WalkTarget {
                 target: PositionTracker::of_entity(target.id, false),
-                speed_modifier: self.speed_modifier,
+                speed_modifier: match self.in_water_speed {
+                    Some(speed) if cx.ai.mob.fluid.in_water => speed,
+                    _ => self.speed_modifier,
+                },
                 close_enough_dist: 0,
             },
         );

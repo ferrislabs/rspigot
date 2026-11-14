@@ -5,6 +5,9 @@ use rspigot_domain::{BlockPos, EntityId};
 use rspigot_entities::EntityKind;
 
 use crate::action::MobAction;
+use crate::amphibious::{
+    FROG_TRIES_TO_FIND_LAND_NEAR, TryFindLandNearLiquid, TryLaySpawnOnFluidNearLand,
+};
 use crate::behavior::{
     Activity, ActivityData, AnimalMakeLove, Behavior, BehaviorBrain, BehaviorCx, Condition,
     EntityFilter, FROG_PREFER_JUMP_TO, FollowTemptation, Gate, HurtBySensor, IsInWaterSensor,
@@ -55,6 +58,7 @@ pub enum FrogAction {
         velocity: rspigot_domain::Vec3,
     },
     Eat(EntityId),
+    LaySpawn(BlockPos),
 }
 
 pub fn init_memories(memories: &mut Memories, long_jump: i32) {
@@ -552,6 +556,12 @@ fn swim_activity() -> ActivityData<MobControl> {
                     RunningPolicy::TryAll,
                     vec![
                         (
+                            MobControl::one_shot(MobTrigger::RandomStroll(RandomStroll::swim(
+                                0.75,
+                            ))),
+                            1,
+                        ),
+                        (
                             MobControl::one_shot(MobTrigger::RandomStroll(
                                 RandomStroll::stroll_from_water(1.0, true),
                             )),
@@ -584,6 +594,18 @@ fn lay_spawn_activity() -> ActivityData<MobControl> {
         vec![
             (0, look_sometimes()),
             (1, start_attacking()),
+            (
+                2,
+                MobControl::one_shot(MobTrigger::TryFindLandNearLiquid(
+                    TryFindLandNearLiquid::new(8, 1.0, FROG_TRIES_TO_FIND_LAND_NEAR),
+                )),
+            ),
+            (
+                3,
+                MobControl::one_shot(MobTrigger::TryLaySpawnOnFluidNearLand(
+                    TryLaySpawnOnFluidNearLand,
+                )),
+            ),
             (
                 4,
                 MobControl::Gate(Gate::run_one(vec![
@@ -697,12 +719,12 @@ pub fn frog_activities() -> Vec<ActivityData<MobControl>> {
     ]
 }
 
-pub const GATED_ACTIVITIES: [Activity; 2] = [Activity::Swim, Activity::LaySpawn];
-
 pub fn update_activity(brain: &mut BehaviorBrain<MobControl>) {
     brain.state_mut().set_active_activity_to_first_valid(&[
         Activity::Tongue,
+        Activity::LaySpawn,
         Activity::LongJump,
+        Activity::Swim,
         Activity::Idle,
     ]);
 }

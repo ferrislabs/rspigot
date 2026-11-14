@@ -14,6 +14,7 @@ use crate::server::Server;
 mod air;
 mod allay;
 mod armadillo;
+mod axolotl;
 mod bat;
 mod bee;
 mod blaze;
@@ -28,11 +29,13 @@ mod endermite;
 mod fish;
 mod fox;
 mod frog;
+mod frogspawn;
 mod ghast;
 mod goat;
 mod guardian;
 mod hoglin;
 mod iron_golem;
+mod nautilus;
 mod ocelot;
 mod panda;
 mod parrot;
@@ -46,6 +49,7 @@ mod silverfish;
 mod sniffer;
 mod snow_golem;
 mod squid;
+mod tadpole;
 mod turtle;
 mod vex;
 pub(crate) mod villager;
@@ -130,6 +134,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Goat) => self.goat_registered(id, ai),
             Some(Kind::Sniffer) => self.sniffer_registered(id),
             Some(Kind::Frog) => self.frog_registered(id, ai),
+            Some(Kind::Axolotl) => self.axolotl_registered(id, ai),
+            Some(Kind::Nautilus | Kind::ZombieNautilus) => self.nautilus_registered(id, ai),
             Some(Kind::Villager) => self.villager_registered(id, ai),
             Some(Kind::Warden) => self.warden_registered(id, ai),
             Some(Kind::Wither) => self.wither_registered(id),
@@ -208,6 +214,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn kind_ai_step(&mut self, id: EntityId) {
         match self.kind_of(id) {
             Some(Kind::Fox) => self.fox_ai_step(id),
+            Some(Kind::Tadpole) => self.tadpole_ai_step(id),
             Some(Kind::Enderman) => self.enderman_ai_step(id),
             Some(Kind::Blaze) => self.blaze_ai_step(id),
             Some(Kind::Witch) => self.witch_ai_step(id),
@@ -294,6 +301,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_custom_ai_step(id),
             Some(Kind::Goat) => self.goat_custom_ai_step(id),
             Some(Kind::Armadillo) => self.armadillo_custom_ai_step(id),
+            Some(Kind::Axolotl) => self.axolotl_post_brain(id),
+            Some(Kind::Nautilus | Kind::ZombieNautilus) => self.nautilus_custom_ai_step(id),
             Some(Kind::Villager) => self.villager_custom_ai_step(id),
             Some(Kind::WanderingTrader) => self.wandering_trader_custom_ai_step(id),
             Some(Kind::Wither) => self.wither_custom_ai_step(id),
@@ -342,6 +351,11 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Bee) => self.bee_interact(player, target, hand, held),
             Some(Kind::Allay) => self.allay_interact(player, target, hand, held),
             Some(Kind::Dolphin) => self.dolphin_interact(player, target, hand, held),
+            Some(Kind::Tadpole) => self.tadpole_interact(player, target, hand, held),
+            Some(Kind::Axolotl) => self.fish_interact(player, target, hand, held),
+            Some(Kind::Nautilus | Kind::ZombieNautilus) => {
+                self.nautilus_interact(player, target, hand, held)
+            }
             Some(Kind::Cod | Kind::Salmon | Kind::Pufferfish | Kind::TropicalFish) => {
                 self.fish_interact(player, target, hand, held)
             }
@@ -377,6 +391,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_hurt_amount(id, source, amount),
             Some(Kind::Ocelot) => self.ocelot_hurt_amount(id, source, amount),
             Some(Kind::Armadillo) => Some(self.armadillo_hurt_amount(id, amount)),
+            Some(Kind::Axolotl) => self.axolotl_hurt_amount(id, source, amount),
             Some(Kind::Breeze) => self.breeze_hurt_amount(id, source, amount),
             Some(Kind::Creaking) => self.creaking_hurt_amount(id, source, amount),
             Some(Kind::Warden) if self.warden_hurt_amount(id, source) => None,
@@ -420,6 +435,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_after_hurt(id, source, dead),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
+            Some(Kind::Nautilus | Kind::ZombieNautilus) => self.nautilus_after_hurt(id, source),
             Some(Kind::Sniffer) if dead => self.sniffer_died(id),
             Some(Kind::Parrot) => self.parrot_after_hurt(id, dead),
             Some(Kind::Bee) => self.bee_after_hurt(id),

@@ -110,6 +110,24 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
         Kind::Armadillo => crate::kinds::armadillo_ambient_sound(entity),
         Kind::Sniffer => crate::kinds::sniffer_ambient_sound(entity),
         Kind::Frog => Some("minecraft:entity.frog.ambient"),
+        Kind::Axolotl => {
+            (!species::axolotl::is_playing_dead(base)).then_some(if base.fluid.in_water {
+                "minecraft:entity.axolotl.idle_water"
+            } else {
+                "minecraft:entity.axolotl.idle_air"
+            })
+        }
+        Kind::Nautilus => Some(match (entity.is_baby(), base.eye_in_water) {
+            (true, true) => "minecraft:entity.baby_nautilus.ambient",
+            (true, false) => "minecraft:entity.baby_nautilus.ambient_land",
+            (false, true) => "minecraft:entity.nautilus.ambient",
+            (false, false) => "minecraft:entity.nautilus.ambient_land",
+        }),
+        Kind::ZombieNautilus => Some(if base.eye_in_water {
+            "minecraft:entity.zombie_nautilus.ambient"
+        } else {
+            "minecraft:entity.zombie_nautilus.ambient_land"
+        }),
         Kind::Phantom => Some("minecraft:entity.phantom.ambient"),
         _ => None,
     }
@@ -737,6 +755,10 @@ impl<L: ClientLink> Server<L> {
             (Kind::ZombieVillager, Kind::Villager) => {
                 (CreatureSpawnReason::Cured, EntityTransformReason::Cured)
             }
+            (Kind::Tadpole, Kind::Frog) => (
+                CreatureSpawnReason::Metamorphosis,
+                EntityTransformReason::Metamorphosis,
+            ),
             _ => (CreatureSpawnReason::Drowned, EntityTransformReason::Drowned),
         };
         let mut extra = Compound::new();
@@ -764,6 +786,18 @@ impl<L: ClientLink> Server<L> {
         }
         let mut converted = Entity::new(base, EntityState::Living(Box::new(state)));
         converted.extra = extra;
+        if kind == Kind::Frog && old_base.kind == Kind::Tadpole {
+            let environment = self.spawn_environment(old_base.position);
+            let mut own = LegacyRandom::new(self.rng.random());
+            rspigot_domain::entity::spawn::finalize_spawn(
+                &mut converted,
+                &environment,
+                SpawnReason::Conversion,
+                None,
+                &mut crate::mobs::ServerRandom(&mut self.rng),
+                &mut own,
+            );
+        }
         let birth = Birth::of(reason).then(Spawned::Converted {
             old: id,
             event,
