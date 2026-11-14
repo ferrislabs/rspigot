@@ -276,6 +276,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn sees(&self, player: &Player<L>, entity: &Entity, range: i32) -> bool {
+        if player.dim != self.world.dimension.key {
+            return false;
+        }
         let range = f64::from(range.min(self.view_distance_blocks(player)));
         let dx = player.position.x - entity.base.position.x;
         let dz = player.position.z - entity.base.position.z;

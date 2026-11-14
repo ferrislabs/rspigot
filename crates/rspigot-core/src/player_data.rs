@@ -1,3 +1,4 @@
+use rspigot_domain::Identifier;
 use rspigot_domain::effect::EffectInstance;
 use rspigot_domain::entity::save::{
     effect_from_nbt, effect_to_nbt, item_stack_from_nbt, item_stack_to_nbt,
@@ -11,8 +12,6 @@ use rspigot_nbt::{Compound, Tag};
 
 use crate::containers::{read_items_at, write_items_at};
 use crate::player::Player;
-
-pub const DIMENSION: &str = "minecraft:overworld";
 
 const STORAGE_SLOTS: i64 = 36;
 const EQUIPMENT: [(usize, &str); 5] = [
@@ -37,6 +36,7 @@ pub enum PlayerDataError {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlayerSave {
+    pub dimension: Identifier,
     pub position: Vec3,
     pub rotation: Rotation,
     pub game_mode: Option<GameMode>,
@@ -59,6 +59,7 @@ impl PlayerSave {
     pub fn capture<L>(player: &Player<L>) -> Self {
         let vitals = &player.vitals;
         Self {
+            dimension: player.dim.clone(),
             position: player.position,
             rotation: player.rotation,
             game_mode: Some(player.game_mode),
@@ -125,7 +126,7 @@ impl PlayerSave {
                 Tag::Float(self.rotation.pitch),
             ]),
         );
-        out.insert("Dimension", DIMENSION);
+        out.insert("Dimension", self.dimension.as_str());
         if let Some(mode) = self.game_mode {
             out.insert("playerGameType", i32::from(mode.id()));
         }
@@ -236,6 +237,10 @@ impl PlayerSave {
             .filter_map(effect_from_nbt)
             .collect();
         Ok(Self {
+            dimension: data
+                .get_str("Dimension")
+                .and_then(|raw| Identifier::parse(raw).ok())
+                .unwrap_or_else(|| Identifier::minecraft("overworld")),
             position,
             rotation,
             game_mode: data.get_i32("playerGameType").and_then(GameMode::from_id),
@@ -324,6 +329,7 @@ mod tests {
         };
         let speed = EffectId::from_name("minecraft:speed").expect("speed");
         PlayerSave {
+            dimension: Identifier::minecraft("the_end"),
             position: Vec3::new(120.5, 71.0, -33.25),
             rotation: Rotation::new(90.0, -12.5),
             game_mode: Some(GameMode::Creative),
@@ -365,6 +371,14 @@ mod tests {
     }
 
     #[test]
+    fn a_save_without_a_dimension_is_in_the_overworld() {
+        let mut nbt = sample().to_nbt();
+        nbt.remove("Dimension");
+        let decoded = PlayerSave::from_nbt(&nbt).expect("decodes");
+        assert_eq!(decoded.dimension, Identifier::minecraft("overworld"));
+    }
+
+    #[test]
     fn the_ender_chest_items_are_saved_under_ender_items() {
         let nbt = sample().to_nbt();
         let slots: Vec<i64> = nbt
@@ -397,7 +411,7 @@ mod tests {
         let pos = nbt.get_list("Pos").expect("Pos");
         assert_eq!(pos.len(), 3);
         assert_eq!(pos[0].as_f64(), Some(120.5));
-        assert_eq!(nbt.get_str("Dimension"), Some(DIMENSION));
+        assert_eq!(nbt.get_str("Dimension"), Some("minecraft:the_end"));
         assert_eq!(nbt.get_i32("playerGameType"), Some(1));
         assert_eq!(nbt.get_i32("previousPlayerGameType"), Some(0));
         assert_eq!(nbt.get_i32("XpLevel"), Some(7));

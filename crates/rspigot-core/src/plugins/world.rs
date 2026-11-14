@@ -170,10 +170,10 @@ impl<L: ClientLink> Server<L> {
         match rule {
             GameRule::DaylightCycle => {
                 let event = self.time_event();
-                self.push(Audience::All, event);
+                self.push(Audience::Dimension(self.world.dimension.key.clone()), event);
             }
             GameRule::ImmediateRespawn => self.push(
-                Audience::All,
+                Audience::Dimension(self.world.dimension.key.clone()),
                 ClientEvent::GameEvent(GameEvent::ImmediateRespawn(value)),
             ),
             _ => {}

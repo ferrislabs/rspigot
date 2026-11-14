@@ -21,6 +21,8 @@ mod cooking;
 mod copper_statue;
 mod crops;
 mod crossbow;
+#[cfg(test)]
+mod dimension_audience;
 mod doors;
 mod dragon;
 mod drops;
