@@ -29,6 +29,8 @@ pub(crate) enum RedstoneChange {
     Observer {
         on: bool,
     },
+    Opener,
+    Detector,
 }
 
 #[derive(Debug, Clone)]
@@ -77,6 +79,8 @@ impl<L: ClientLink> Server<L> {
             RedstoneChange::Plate => self.finish_plate(pos, old, new),
             RedstoneChange::Diode { on } => self.finish_diode(pos, new, on),
             RedstoneChange::Observer { on } => self.finish_observer(pos, new, on),
+            RedstoneChange::Opener => self.finish_opener(pos, new),
+            RedstoneChange::Detector => self.finish_detector(pos, new),
         }
     }
 }

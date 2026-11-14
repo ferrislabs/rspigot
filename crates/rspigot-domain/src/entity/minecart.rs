@@ -36,6 +36,10 @@ const TURN_THRESHOLD: f64 = 0.001;
 const DEFAULT_DISPLAY_OFFSET: i32 = 6;
 const CHEST_DISPLAY_OFFSET: i32 = 8;
 const HOPPER_DISPLAY_OFFSET: i32 = 1;
+const BRAKE_LIMIT: f64 = 0.03;
+const BOOST: f64 = 0.06;
+const KICK: f64 = 0.02;
+const BOOST_THRESHOLD: f64 = 0.01;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MinecartState {
@@ -253,6 +257,39 @@ fn come_off_track(base: &mut EntityBase, view: &impl BlockView, hit: &mut Option
     }
 }
 
+fn boost_on_powered_rail(
+    base: &mut EntityBase,
+    view: &impl BlockView,
+    block: BlockPos,
+    shape: &str,
+) {
+    let speed = base.velocity.horizontal_distance_sqr().sqrt();
+    if speed > BOOST_THRESHOLD {
+        base.velocity = base.velocity
+            + Vec3::new(
+                base.velocity.x / speed * BOOST,
+                0.0,
+                base.velocity.z / speed * BOOST,
+            );
+        return;
+    }
+    let conductor =
+        |at: BlockPos| crate::spawn::placement::is_redstone_conductor(view.block_or_air(at));
+    let velocity = base.velocity;
+    let kicked = match shape {
+        "east_west" if conductor(block.offset(-1, 0, 0)) => Vec3::new(KICK, velocity.y, velocity.z),
+        "east_west" if conductor(block.offset(1, 0, 0)) => Vec3::new(-KICK, velocity.y, velocity.z),
+        "north_south" if conductor(block.offset(0, 0, -1)) => {
+            Vec3::new(velocity.x, velocity.y, KICK)
+        }
+        "north_south" if conductor(block.offset(0, 0, 1)) => {
+            Vec3::new(velocity.x, velocity.y, -KICK)
+        }
+        _ => return,
+    };
+    base.velocity = kicked;
+}
+
 fn move_along_track(
     base: &mut EntityBase,
     state: &MinecartState,
@@ -303,6 +340,16 @@ fn move_along_track(
     let power = 2.0_f64.min(velocity.horizontal_distance_sqr().sqrt());
     velocity = Vec3::new(power * xd / length, velocity.y, power * zd / length);
     base.velocity = velocity;
+    let rail_state = view.block_or_air(block);
+    let on_powered_rail = rail_state.kind() == Some(rspigot_blocks::BlockKind::PoweredRail);
+    let rail_powered = on_powered_rail && rail_state.property("powered") == Some("true");
+    if on_powered_rail && !rail_powered {
+        if base.velocity.horizontal_distance_sqr().sqrt() < BRAKE_LIMIT {
+            base.velocity = Vec3::ZERO;
+        } else {
+            base.velocity = base.velocity.multiply(0.5, 0.0, 0.5);
+        }
+    }
     let xa = f64::from(block.x) + 0.5 + f64::from(exits.first.0) * 0.5;
     let za = f64::from(block.z) + 0.5 + f64::from(exits.first.2) * 0.5;
     let xb = f64::from(block.x) + 0.5 + f64::from(exits.second.0) * 0.5;
@@ -350,6 +397,9 @@ fn move_along_track(
             base.velocity = base.velocity.multiply(scale, 1.0, scale);
         }
         base.position = Vec3::new(base.position.x, now.y, base.position.z);
+    }
+    if rail_powered {
+        boost_on_powered_rail(base, view, block, shape);
     }
     let (nx, nz) = (
         base.position.x.floor() as i32,

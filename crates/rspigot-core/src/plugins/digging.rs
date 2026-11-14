@@ -173,6 +173,7 @@ impl<L: ClientLink> Server<L> {
             self.ack_block(id, sequence);
             return;
         };
+        self.note_attacked(pos, state);
         match game_mode {
             GameMode::Creative => {
                 let refused = !mines_in_creative(held.as_ref());

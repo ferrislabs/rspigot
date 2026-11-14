@@ -39,6 +39,7 @@ impl Holder {
             BlockKind::Dispenser => "DISPENSER",
             BlockKind::Dropper => "DROPPER",
             BlockKind::Barrel => "BARREL",
+            BlockKind::Crafter => "CRAFTER",
             BlockKind::Furnace => "FURNACE",
             BlockKind::BlastFurnace => "BLAST_FURNACE",
             BlockKind::Smoker => "SMOKER",

@@ -22,7 +22,7 @@ pub struct Seed {
     pub pos: BlockPos,
     pub kind: BlockKind,
     pub properties: Vec<(&'static str, &'static str)>,
-    pub items: Vec<(&'static str, u8)>,
+    pub items: Vec<Option<(&'static str, u8)>>,
 }
 
 impl Seed {
@@ -41,7 +41,12 @@ impl Seed {
     }
 
     pub fn holding(mut self, key: &'static str, count: u8) -> Self {
-        self.items.push((key, count));
+        self.items.push(Some((key, count)));
+        self
+    }
+
+    pub fn gap(mut self) -> Self {
+        self.items.push(None);
         self
     }
 }
@@ -71,12 +76,13 @@ impl ChunkGenerator for Seeded {
                 .items
                 .iter()
                 .enumerate()
+                .filter_map(|(slot, item)| item.map(|item| (slot, item)))
                 .map(|(slot, (key, count))| {
                     Tag::Compound(
                         Compound::new()
                             .with("Slot", slot as i8)
-                            .with("id", *key)
-                            .with("count", i32::from(*count)),
+                            .with("id", key)
+                            .with("count", i32::from(count)),
                     )
                 })
                 .collect();

@@ -30,6 +30,7 @@ const WINDOWS: i32 = 100;
 const MAX_VIEW_DISTANCE_SQUARED: f64 = 64.0;
 const ITEMS: &str = "Items";
 const CONTAINER_STACK_LIMIT: u32 = 64;
+const CRAFTER_SLOTS: usize = 9;
 pub(crate) const LOCK: &str = "lock";
 pub(crate) const CHEST_HALF_SLOTS: usize = 27;
 const BLOCK_EVENT_RANGE: f64 = 64.0;
@@ -242,6 +243,9 @@ fn opening_of(state: BlockStateId) -> Option<Opening> {
 }
 
 pub(crate) fn container_entity(state: BlockStateId) -> Option<&'static str> {
+    if state.kind() == Some(BlockKind::Crafter) {
+        return Some("crafter");
+    }
     if campfire::is_campfire(state) {
         return Some("campfire");
     }
@@ -377,6 +381,13 @@ impl<L: ClientLink> Server<L> {
         }
         if campfire::is_campfire(old) {
             return self.campfire_items_lost_by(pos, old, new);
+        }
+        if old.kind() == Some(BlockKind::Crafter) {
+            return self
+                .half_items(pos, CRAFTER_SLOTS)
+                .into_iter()
+                .flatten()
+                .collect();
         }
         let Some(opening) = opening_of(old).filter(|opening| opening.entity.is_some()) else {
             return Vec::new();
@@ -526,6 +537,17 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn storage_backing(&self, pos: BlockPos) -> Option<(Backing, usize)> {
         let state = self.block_or_air(pos);
+        if state.kind() == Some(BlockKind::Crafter) {
+            let backing = Backing {
+                pos,
+                second: None,
+                entity: Some("crafter"),
+                ender: false,
+                block: BlockKind::Crafter,
+                lid: Lid::None,
+            };
+            return Some((backing, CRAFTER_SLOTS));
+        }
         let opening = opening_of(state).filter(|opening| {
             opening.entity.is_some()
                 && !opening.kind.is_furnace()

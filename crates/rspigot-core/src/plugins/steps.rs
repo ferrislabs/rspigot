@@ -1569,6 +1569,9 @@ pub(crate) enum Continuation {
     Redstone(Box<crate::redstone::RedstoneStep>),
     Piston(Box<crate::redstone::PistonStep>),
     Hopper(Box<crate::redstone::HopperStep>),
+    Note(crate::redstone::NoteStep),
+    Bell(crate::redstone::BellStep),
+    Crafter(Box<crate::redstone::CrafterStep>),
     Dispense(Box<crate::redstone::DispenseStep>),
     TntPrime(Box<crate::tnt::TntPrimeStep>),
     Cook(Box<CookStep>),
@@ -1779,6 +1782,9 @@ impl Continuation {
             Self::Redstone(_) => EventKind::BlockRedstone,
             Self::Piston(step) => step.kind(),
             Self::Hopper(step) => step.kind(),
+            Self::Note(_) => EventKind::NotePlay,
+            Self::Bell(_) => EventKind::BellRing,
+            Self::Crafter(_) => EventKind::CrafterCraft,
             Self::Dispense(step) => step.kind(),
             Self::TntPrime(_) => EventKind::TNTPrime,
             Self::Cook(_) => EventKind::BlockCook,
@@ -2047,6 +2053,9 @@ impl Continuation {
             (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
             (Self::Piston(one), Self::Piston(other)) => **one == **other,
             (Self::Hopper(one), Self::Hopper(other)) => **one == **other,
+            (Self::Note(one), Self::Note(other)) => one.pos == other.pos,
+            (Self::Bell(one), Self::Bell(other)) => one.pos == other.pos,
+            (Self::Crafter(one), Self::Crafter(other)) => one.pos == other.pos,
             (Self::Dispense(one), Self::Dispense(other)) => one.pos == other.pos,
             (Self::TntPrime(one), Self::TntPrime(other)) => one.pos == other.pos,
             (Self::Redstone(one), Self::Redstone(other)) => {
@@ -2152,6 +2161,9 @@ impl Continuation {
             | Self::Redstone(_)
             | Self::Piston(_)
             | Self::Hopper(_)
+            | Self::Note(_)
+            | Self::Bell(_)
+            | Self::Crafter(_)
             | Self::Dispense(_)
             | Self::TntPrime(_)
             | Self::Ignite(_)

@@ -869,6 +869,19 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Note(step) => {
+                self.finish_note(step, cancelled, None);
+                Vec::new()
+            }
+            Continuation::Bell(step) => {
+                self.finish_bell(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Crafter(step) => {
+                let patch = patch_of!(patch, CrafterCraft);
+                self.finish_crafter(*step, cancelled, patch.result);
+                Vec::new()
+            }
             Continuation::Hopper(step) => {
                 let step = *step;
                 match step.stage.clone() {

@@ -539,6 +539,10 @@ impl<L: ClientLink> Server<L> {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
+            if !sneaking && self.use_bell(id, pos, clicked, block_face(face), cursor.y) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
             if !(sneaking && holding) && self.use_tnt(id, hand, stack.as_ref(), pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;

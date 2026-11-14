@@ -197,6 +197,9 @@ impl<L: ClientLink> Server<L> {
         if matches!(kind, BlockKind::Repeater | BlockKind::Comparator) {
             return self.use_diode(id, pos, state);
         }
+        if kind == BlockKind::NoteBlock {
+            return self.use_note_block(pos, state);
+        }
         false
     }
 

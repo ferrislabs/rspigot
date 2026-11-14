@@ -1,12 +1,17 @@
 mod analog;
+mod bell;
 mod controls;
+mod crafter;
 mod diode;
 mod dispenser;
 mod event;
 mod hopper;
 mod lamp;
+mod note;
 mod observer;
+mod openers;
 mod piston;
+mod rails;
 mod reactions;
 mod resolver;
 mod signals;
@@ -21,9 +26,12 @@ use rustc_hash::FxHashMap;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
+pub(crate) use bell::BellStep;
+pub(crate) use crafter::CrafterStep;
 pub(crate) use dispenser::DispenseStep;
 pub(crate) use event::{RedstoneChange, RedstoneStep};
 pub(crate) use hopper::{HopperStep, Stage as HopperStage};
+pub(crate) use note::NoteStep;
 pub(crate) use piston::PistonStep;
 pub(crate) use signals::{connected_direction, is_conductor};
 
@@ -53,6 +61,7 @@ pub(crate) struct Runtime {
     pub(crate) moving: FxHashMap<BlockPos, piston::Moving>,
     pub(crate) events: Vec<piston::BlockEvent>,
     pub(crate) hoppers: FxHashMap<BlockPos, hopper::Clock>,
+    pub(crate) bells: FxHashMap<BlockPos, bell::Ringing>,
     quiet: bool,
 }
 
@@ -159,6 +168,15 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::PistonHead) => self.piston_head_neighbor_changed(pos, state),
             Some(BlockKind::Hopper) => self.hopper_neighbor_changed(pos, state),
             Some(BlockKind::Tnt) => self.tnt_neighbor_changed(pos, source),
+            Some(BlockKind::NoteBlock) => self.note_neighbor_changed(pos, state),
+            Some(BlockKind::Bell) => self.bell_neighbor_changed(pos, state),
+            Some(BlockKind::Crafter) => self.crafter_neighbor_changed(pos, state),
+            Some(BlockKind::PoweredRail | BlockKind::ActivatorRail) => {
+                self.powered_rail_changed(pos, state);
+            }
+            Some(_) if openers::is_opener(state) => {
+                self.opener_neighbor_changed(pos, state);
+            }
             Some(BlockKind::Dispenser | BlockKind::Dropper) => {
                 self.dispenser_neighbor_changed(pos, state);
             }
@@ -192,6 +210,15 @@ impl<L: ClientLink> Server<L> {
         }
         if new.kind() == Some(BlockKind::Hopper) && old.kind() != new.kind() {
             self.hopper_neighbor_changed(pos, new);
+        }
+        if old.kind() != new.kind() {
+            match new.kind() {
+                Some(BlockKind::PoweredRail | BlockKind::ActivatorRail) => {
+                    self.powered_rail_changed(pos, new);
+                }
+                Some(BlockKind::DetectorRail) => self.detector_check(pos),
+                _ => {}
+            }
         }
         if new.kind() == Some(BlockKind::Tnt) && old.kind() != new.kind() {
             self.tnt_neighbor_changed(pos, pos);
@@ -229,6 +256,8 @@ impl<L: ClientLink> Server<L> {
             BlockKind::Repeater | BlockKind::Comparator => self.diode_tick(pos, state),
             BlockKind::Observer => self.observer_tick(pos, state),
             BlockKind::Dispenser | BlockKind::Dropper => self.dispenser_tick(pos, state),
+            BlockKind::DetectorRail => self.detector_tick(pos, state),
+            BlockKind::Crafter => self.crafter_tick(pos, state),
             BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),
             _ if is_plate(kind) => self.plate_tick(pos, state),
@@ -243,6 +272,9 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::Repeater) => self.repeater_shape(pos, state, direction),
             Some(BlockKind::Observer) => self.observer_shape(pos, state, direction),
             Some(BlockKind::PistonHead) => self.piston_head_shape(pos, state, direction),
+            Some(BlockKind::NoteBlock) => self.note_shape(pos, state, direction),
+            Some(BlockKind::Lever) => self.attached_shape(pos, state, direction),
+            Some(kind) if is_button(kind) => self.attached_shape(pos, state, direction),
             _ => {}
         }
     }
@@ -252,6 +284,8 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::RedstoneWire) => self.wire_placement(pos, state),
             Some(BlockKind::RedstoneLamp) => self.lamp_placement(pos, state),
             Some(BlockKind::Repeater) => self.repeater_placement(pos, state),
+            Some(BlockKind::NoteBlock) => self.note_placement(pos, state),
+            Some(_) if openers::is_opener(state) => self.opener_placement(pos, state),
             _ => state,
         }
     }
