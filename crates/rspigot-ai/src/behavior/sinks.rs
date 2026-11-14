@@ -32,11 +32,22 @@ const MOVE_MAX_TIMEOUT: i32 = 250;
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Swim {
     chance: f32,
+    requires_can_move: bool,
 }
 
 impl Swim {
     pub fn new(chance: f32) -> Self {
-        Self { chance }
+        Self {
+            chance,
+            requires_can_move: false,
+        }
+    }
+
+    pub fn creaking(chance: f32) -> Self {
+        Self {
+            chance,
+            requires_can_move: true,
+        }
     }
 
     fn in_floatable_fluid<W: AiWorld>(&self, cx: &BehaviorCx<'_, '_, W>) -> bool {
@@ -56,7 +67,7 @@ impl Behavior for Swim {
     }
 
     fn check_extra_start_conditions<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>) -> bool {
-        self.in_floatable_fluid(cx)
+        (!self.requires_can_move || cx.ai.brain.creaking.can_move) && self.in_floatable_fluid(cx)
     }
 
     fn can_still_use<W: AiWorld>(&mut self, cx: &mut BehaviorCx<'_, '_, W>, _now: i64) -> bool {

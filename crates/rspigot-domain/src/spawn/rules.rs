@@ -165,6 +165,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Pillager
                     | MobClass::Enderman
                     | MobClass::Hoglin
+                    | MobClass::Creaking
             )
         ),
         _ => false,
@@ -275,6 +276,7 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::Giant => level.light_level_dependent_magic_value(pos) - 0.5,
         MobClass::Pillager => 0.0,
         MobClass::Enderman => 0.0,
+        MobClass::Creaking => 0.0,
         MobClass::Hoglin => super::piglin::hoglin_walk_target_value(level, pos),
         _ => return None,
     })

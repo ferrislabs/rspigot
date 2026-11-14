@@ -171,7 +171,12 @@ impl<'a, V: BlockView> Walker<'a, V> {
         if let Some(kind) = self.mob_types.get(&pos) {
             return *kind;
         }
-        let kind = self.compute_mob_type(pos);
+        let kind = match self.profile.creaking_home {
+            Some(home) if crate::creaking::blocks_path(home, pos, self.mob.position.block()) => {
+                PathType::Blocked
+            }
+            _ => self.compute_mob_type(pos),
+        };
         self.mob_types.insert(pos, kind);
         kind
     }

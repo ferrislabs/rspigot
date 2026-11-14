@@ -302,6 +302,13 @@ impl MemoryValue {
         }
     }
 
+    pub fn as_hurt_by(&self) -> Option<LastDamage> {
+        match self {
+            Self::HurtBy(damage) => Some(*damage),
+            _ => None,
+        }
+    }
+
     pub fn as_walk_target(&self) -> Option<&WalkTarget> {
         match self {
             Self::WalkTarget(target) => Some(target),
@@ -635,5 +642,42 @@ impl NearestVisibleLivingEntities {
         filter: impl Fn(&Living) -> bool,
     ) -> bool {
         self.find_closest(cx, memories, filter).is_some()
+    }
+}
+
+#[cfg(test)]
+mod walk_target_tests {
+    use rspigot_domain::{BlockPos, Vec3};
+
+    use super::WalkTarget;
+    use crate::mock::Mock;
+
+    #[test]
+    fn a_walk_target_built_from_a_vector_centres_on_the_containing_block() {
+        let world = Mock::default();
+        let target = WalkTarget::position(Vec3::new(1.3, 64.9, -2.7), 1.0, 2);
+        assert_eq!(
+            target.target.current_position(&world),
+            Some(Vec3::new(1.5, 64.5, -2.5))
+        );
+        assert_eq!(
+            target.target.current_block_position(&world),
+            Some(BlockPos::new(1, 64, -3))
+        );
+        assert_eq!(target.close_enough_dist, 2);
+    }
+
+    #[test]
+    fn a_position_tracker_built_from_a_vector_keeps_the_exact_vector() {
+        let world = Mock::default();
+        let tracker = crate::behavior::PositionTracker::of_position(Vec3::new(1.3, 64.9, -2.7));
+        assert_eq!(
+            tracker.current_position(&world),
+            Some(Vec3::new(1.3, 64.9, -2.7))
+        );
+        assert_eq!(
+            tracker.current_block_position(&world),
+            Some(BlockPos::new(1, 64, -3))
+        );
     }
 }

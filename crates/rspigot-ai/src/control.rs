@@ -363,6 +363,12 @@ impl MoveControl {
         self.next_jump_speed
     }
 
+    pub fn stop_in_place(&mut self) {
+        self.operation = Operation::Wait;
+        self.strafe_forwards = 0.0;
+        self.strafe_right = 0.0;
+    }
+
     pub fn set_wanted_position(&mut self, position: Vec3, speed_modifier: f64) {
         let speed_modifier = if self.hop && self.in_water {
             HOP_WATER_SPEED

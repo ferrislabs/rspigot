@@ -13,7 +13,9 @@ use crate::server::Server;
 
 mod armadillo;
 mod blaze;
+mod breeze;
 mod cat;
+mod creaking;
 mod enderman;
 mod endermite;
 mod fox;
@@ -72,6 +74,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Hoglin | Kind::Zoglin => self.hoglin_view(entity, view),
             Kind::Goat => self.goat_view(entity, view),
             Kind::Armadillo => self.armadillo_view(entity, view),
+            Kind::Creaking => self.creaking_view(entity, view),
             Kind::Piglin | Kind::PiglinBrute => self.piglin_view(entity, view),
             _ => {}
         }
@@ -88,8 +91,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn kind_attack_sound(&mut self, id: EntityId) {
-        if let Some(Kind::Rabbit) = self.kind_of(id) {
-            self.rabbit_attack_sound(id);
+        match self.kind_of(id) {
+            Some(Kind::Rabbit) => self.rabbit_attack_sound(id),
+            Some(Kind::Creaking) => self.creaking_attack_event(id),
+            _ => {}
         }
     }
 
@@ -132,6 +137,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ocelot) => self.ocelot_post_tick(id),
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_post_tick(id),
             Some(Kind::Armadillo) => self.armadillo_post_tick(id),
+            Some(Kind::Creaking) => self.creaking_post_tick(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
             _ => {}
         }
@@ -143,6 +149,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Enderman) => self.enderman_ai_step(id),
             Some(Kind::Blaze) => self.blaze_ai_step(id),
             Some(Kind::Witch) => self.witch_ai_step(id),
+            Some(Kind::Creaking) => self.creaking_ai_step(id),
             _ => {}
         }
     }
@@ -270,6 +277,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Rabbit) => self.rabbit_hurt_amount(id, source, amount),
             Some(Kind::Ocelot) => self.ocelot_hurt_amount(id, source, amount),
             Some(Kind::Armadillo) => Some(self.armadillo_hurt_amount(id, amount)),
+            Some(Kind::Breeze) => self.breeze_hurt_amount(id, source, amount),
+            Some(Kind::Creaking) => self.creaking_hurt_amount(id, source, amount),
             _ => Some(amount),
         }
     }

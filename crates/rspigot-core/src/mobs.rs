@@ -221,6 +221,7 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
         has_target: false,
         scared: false,
         facts: Facts {
+            head_yaw: player.rotation.yaw,
             piglin_safe_armor: ARMOR_SLOTS
                 .filter(|slot| {
                     player
@@ -276,6 +277,7 @@ fn entity_facts(
         state.mob.as_ref().is_some_and(|mob| mob.tamable.is_some()) && tamable::is_tame(base);
     Facts {
         uuid: base.uuid,
+        head_yaw: base.head_yaw,
         tamed: tame,
         owner: tame
             .then(|| tamable::owner(base))
@@ -1237,6 +1239,9 @@ fn apply_body(base: &mut EntityBase, state: &mut LivingState, mob: &MobView, bod
     }
     if body.body_yaw != mob.body_yaw {
         state.body_yaw = body.body_yaw;
+    }
+    if body.head_yaw != mob.head_yaw {
+        base.head_yaw = body.head_yaw;
     }
     if body.pitch != mob.pitch {
         base.set_pitch(body.pitch);

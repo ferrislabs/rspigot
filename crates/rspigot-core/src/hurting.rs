@@ -55,9 +55,14 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn tick_hurting(&mut self, id: EntityId) {
-        if self.projectile_waits(id) {
+        if self.projectile_waits(id) || self.wind_charge_out_of_world(id) {
             return;
         }
+        self.tick_hurting_flight(id);
+        self.wind_charge_age(id);
+    }
+
+    fn tick_hurting_flight(&mut self, id: EntityId) {
         let in_rain = self
             .entities
             .store
@@ -176,6 +181,10 @@ impl<L: ClientLink> Server<L> {
         let EntityState::Hurting(state) = &entity.state else {
             return;
         };
+        if hurting::is_wind_charge(entity.base.kind) {
+            self.wind_charge_hit_block(id, hit);
+            return;
+        }
         if entity.base.kind != Kind::SmallFireball || !state.incendiary {
             self.hurting_on_hit(id);
             return;
@@ -311,6 +320,9 @@ impl<L: ClientLink> Server<L> {
                 };
                 self.strike(None, victim, &source, amount, AfterHurt::Hurting(follow));
             }
+            Kind::BreezeWindCharge | Kind::WindCharge => {
+                self.wind_charge_hit_entity(id, victim, follow, causing, direct);
+            }
             _ => self.hurting_on_hit(id),
         }
     }
@@ -383,6 +395,14 @@ impl<L: ClientLink> Server<L> {
         match kind {
             Kind::SmallFireball if !hurt => self.restore_fire_ticks(target, saved_fire),
             Kind::WitherSkull => self.skull_aftermath(target, owner, hurt),
+            Kind::BreezeWindCharge | Kind::WindCharge => {
+                let at = self
+                    .entities
+                    .store
+                    .get(projectile)
+                    .map_or(Vec3::ZERO, |entity| entity.base.position);
+                self.wind_charge_explode(projectile, at);
+            }
             _ => {}
         }
         self.hurting_on_hit(projectile);
@@ -553,6 +573,9 @@ impl<L: ClientLink> Server<L> {
         else {
             return false;
         };
+        if !hurting::can_be_deflected(base, state) {
+            return false;
+        }
         hurting::deflect_aim(base, look, 1.0);
         state.owner = Some(deflector);
         hurting::on_deflection(state, true);

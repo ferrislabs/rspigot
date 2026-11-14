@@ -13,6 +13,16 @@ pub const DATA_ITEM_STACK: u8 = 8;
 pub const DATA_DANGEROUS: u8 = 8;
 pub const INITIAL_ACCELERATION_POWER: f64 = 0.1;
 pub const DEFLECTION_SCALE: f64 = 0.5;
+pub const WIND_CHARGE_ACCELERATION_POWER: f64 = 0.0;
+pub const WIND_CHARGE_INERTIA: f32 = 1.0;
+pub const WIND_CHARGE_DAMAGE: f32 = 1.0;
+pub const WIND_CHARGE_BOX_DROP: f64 = 0.15;
+pub const WIND_CHARGE_NO_DEFLECT_TICKS: i32 = 5;
+pub const WIND_CHARGE_BLOCK_OFFSET: f64 = 0.25;
+pub const WIND_CHARGE_OUT_OF_WORLD_MARGIN: i32 = 30;
+pub const WIND_CHARGE_RADIUS: f32 = 1.2;
+pub const WIND_CHARGE_KNOCKBACK: f32 = 1.22;
+pub const BREEZE_WIND_CHARGE_RADIUS: f32 = 3.0;
 pub const AIR_INERTIA: f32 = 0.95;
 pub const DANGEROUS_INERTIA: f32 = 0.73;
 pub const LIQUID_INERTIA: f32 = 0.8;
@@ -40,13 +50,22 @@ pub struct HurtingState {
     pub acceleration_power: f64,
     pub explosion_power: i32,
     pub incendiary: bool,
+    pub no_deflect_ticks: i32,
 }
 
 pub fn is_hurting_projectile(kind: EntityKind) -> bool {
     matches!(
         kind,
-        EntityKind::SmallFireball | EntityKind::Fireball | EntityKind::WitherSkull
+        EntityKind::SmallFireball
+            | EntityKind::Fireball
+            | EntityKind::WitherSkull
+            | EntityKind::BreezeWindCharge
+            | EntityKind::WindCharge
     )
+}
+
+pub fn is_wind_charge(kind: EntityKind) -> bool {
+    matches!(kind, EntityKind::BreezeWindCharge | EntityKind::WindCharge)
 }
 
 pub fn is_fireball(kind: EntityKind) -> bool {
@@ -66,14 +85,26 @@ impl HurtingState {
             base.data
                 .define(DATA_DANGEROUS, SyncedValue::Boolean(false));
         }
+        if is_wind_charge(base.kind) {
+            base.custom_box = Some(wind_charge_box(base));
+        }
         Self {
             owner: None,
             left_owner: false,
             left_owner_checked: false,
             has_been_shot: false,
-            acceleration_power: INITIAL_ACCELERATION_POWER,
+            acceleration_power: if is_wind_charge(base.kind) {
+                WIND_CHARGE_ACCELERATION_POWER
+            } else {
+                INITIAL_ACCELERATION_POWER
+            },
             explosion_power: DEFAULT_EXPLOSION_POWER,
             incendiary: true,
+            no_deflect_ticks: if base.kind == EntityKind::WindCharge {
+                WIND_CHARGE_NO_DEFLECT_TICKS
+            } else {
+                0
+            },
         }
     }
 }
@@ -104,11 +135,13 @@ pub fn set_dangerous(base: &mut EntityBase, dangerous: bool) {
 }
 
 pub fn should_burn(base: &EntityBase) -> bool {
-    base.kind != EntityKind::WitherSkull
+    base.kind != EntityKind::WitherSkull && !is_wind_charge(base.kind)
 }
 
 pub fn inertia(base: &EntityBase) -> f32 {
-    if base.fluid.in_water {
+    if is_wind_charge(base.kind) {
+        WIND_CHARGE_INERTIA
+    } else if base.fluid.in_water {
         LIQUID_INERTIA
     } else if is_dangerous(base) {
         DANGEROUS_INERTIA
@@ -156,6 +189,23 @@ pub fn rotate_towards_movement(base: &mut EntityBase, speed: f32) {
 pub fn deflect_aim(base: &mut EntityBase, look: Vec3, scale: f64) {
     base.velocity = look.scale(scale);
     base.needs_sync = true;
+}
+
+pub fn wind_charge_box(base: &EntityBase) -> crate::entity::Aabb {
+    let half = f64::from(base.dimensions.width / 2.0);
+    let height = f64::from(base.dimensions.height);
+    crate::entity::Aabb::new(
+        -half,
+        -WIND_CHARGE_BOX_DROP,
+        -half,
+        half,
+        height - WIND_CHARGE_BOX_DROP,
+        half,
+    )
+}
+
+pub fn can_be_deflected(base: &EntityBase, state: &HurtingState) -> bool {
+    base.kind != EntityKind::WindCharge || state.no_deflect_ticks < 1
 }
 
 pub fn on_deflection(state: &mut HurtingState, by_attack: bool) {
@@ -400,5 +450,57 @@ mod tests {
         let (skull, _) = projectile(EntityKind::WitherSkull);
         assert!(should_burn(&small));
         assert!(!should_burn(&skull));
+    }
+
+    #[test]
+    fn a_wind_charge_starts_with_no_acceleration_keeps_its_speed_and_never_burns() {
+        for kind in [EntityKind::WindCharge, EntityKind::BreezeWindCharge] {
+            let (mut base, state) = projectile(kind);
+            assert!(is_hurting_projectile(kind));
+            assert!(is_simulated(kind));
+            assert_eq!(state.acceleration_power, 0.0);
+            assert!(!should_burn(&base));
+            base.velocity = Vec3::new(0.0, 0.0, 0.7);
+            base.fluid.in_water = true;
+            apply_inertia(&mut base, &state);
+            assert_eq!(base.velocity, Vec3::new(0.0, 0.0, 0.7));
+            assert!(item(&base).is_none());
+        }
+    }
+
+    #[test]
+    fn a_wind_charge_box_hangs_fifteen_hundredths_below_its_position() {
+        let (base, _) = projectile(EntityKind::BreezeWindCharge);
+        let bounds = base.bounding_box();
+        let half = f64::from(0.3125f32 / 2.0);
+        assert_eq!(bounds.min_y, -0.15);
+        assert_eq!(bounds.max_y, f64::from(0.3125f32) - 0.15);
+        assert_eq!((bounds.min_x, bounds.max_x), (-half, half));
+    }
+
+    #[test]
+    fn only_a_player_wind_charge_resists_deflection_for_its_first_five_ticks() {
+        let (player_base, mut player) = projectile(EntityKind::WindCharge);
+        assert_eq!(player.no_deflect_ticks, 5);
+        assert!(!can_be_deflected(&player_base, &player));
+        player.no_deflect_ticks = 0;
+        assert!(can_be_deflected(&player_base, &player));
+        let (breeze_base, breeze) = projectile(EntityKind::BreezeWindCharge);
+        assert_eq!(breeze.no_deflect_ticks, 0);
+        assert!(can_be_deflected(&breeze_base, &breeze));
+    }
+
+    #[test]
+    fn a_wind_charge_saves_its_zero_acceleration_and_no_explosion_power() {
+        let nbt = Compound::new().with("id", "minecraft:breeze_wind_charge");
+        let entity = load(&nbt);
+        let EntityState::Hurting(state) = &entity.state else {
+            panic!("a hurting projectile");
+        };
+        assert_eq!(state.acceleration_power, 0.0);
+        let saved = save_entity(&entity, None).unwrap();
+        assert_eq!(saved.get_f64("acceleration_power"), Some(0.0));
+        assert!(!saved.contains_key("ExplosionPower"));
+        assert!(!saved.contains_key("Item"));
     }
 }

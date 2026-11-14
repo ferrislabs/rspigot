@@ -59,3 +59,4 @@ pub mod status;
 pub mod streaming;
 mod tamable;
 mod thrown;
+mod wind_charge;
