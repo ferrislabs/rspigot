@@ -282,6 +282,7 @@ pub enum GhastGoal {
     RandomFloatAround(RandomFloatAroundGoal),
     Look(GhastLookGoal),
     ShootFireball(GhastShootFireballGoal),
+    HappyFloat(crate::happy_ghast::HappyGhastFloatGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for GhastGoal {
@@ -289,6 +290,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for GhastGoal {
         match self {
             Self::RandomFloatAround(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Look(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::HappyFloat(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::ShootFireball(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
@@ -297,6 +299,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for GhastGoal {
         match self {
             Self::RandomFloatAround(goal) => Goal::can_use(goal, context),
             Self::Look(goal) => Goal::can_use(goal, context),
+            Self::HappyFloat(goal) => Goal::can_use(goal, context),
             Self::ShootFireball(goal) => Goal::can_use(goal, context),
         }
     }
@@ -305,6 +308,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for GhastGoal {
         match self {
             Self::RandomFloatAround(goal) => Goal::can_continue_to_use(goal, context),
             Self::Look(goal) => Goal::can_continue_to_use(goal, context),
+            Self::HappyFloat(goal) => Goal::can_continue_to_use(goal, context),
             Self::ShootFireball(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
@@ -313,6 +317,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for GhastGoal {
         match self {
             Self::RandomFloatAround(goal) => Goal::start(goal, context),
             Self::Look(goal) => Goal::start(goal, context),
+            Self::HappyFloat(goal) => Goal::start(goal, context),
             Self::ShootFireball(goal) => Goal::start(goal, context),
         }
     }
@@ -321,6 +326,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for GhastGoal {
         match self {
             Self::RandomFloatAround(goal) => Goal::stop(goal, context),
             Self::Look(goal) => Goal::stop(goal, context),
+            Self::HappyFloat(goal) => Goal::stop(goal, context),
             Self::ShootFireball(goal) => Goal::stop(goal, context),
         }
     }
@@ -331,6 +337,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for GhastGoal {
                 Goal::<AiContext<'_, W>>::requires_update_every_tick(goal)
             }
             Self::Look(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::HappyFloat(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::ShootFireball(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
         }
     }
@@ -339,6 +346,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for GhastGoal {
         match self {
             Self::RandomFloatAround(goal) => Goal::tick(goal, context),
             Self::Look(goal) => Goal::tick(goal, context),
+            Self::HappyFloat(goal) => Goal::tick(goal, context),
             Self::ShootFireball(goal) => Goal::tick(goal, context),
         }
     }

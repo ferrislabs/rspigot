@@ -649,7 +649,7 @@ fn can_move_directly(
     match profile.swimming {
         Some(Swimming::WaterBound { .. }) => clip_misses(view, from, end),
         Some(Swimming::Amphibious { .. }) => mob.in_liquid && clip_misses(view, from, end),
-        None => false,
+        None => profile.direct_flight && clip_misses(view, from, end),
     }
 }
 

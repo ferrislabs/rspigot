@@ -22,6 +22,7 @@ pub struct MobProfile {
     pub creaking_home: Option<BlockPos>,
     pub horizontal_step_cost: bool,
     pub flying: bool,
+    pub direct_flight: bool,
     pub swimming: Option<Swimming>,
     pub frog_nodes: bool,
     pub sea_level: i32,
@@ -51,6 +52,7 @@ impl MobProfile {
             creaking_home: None,
             horizontal_step_cost: false,
             flying: false,
+            direct_flight: false,
             swimming: None,
             frog_nodes: false,
             sea_level: Self::DEFAULT_SEA_LEVEL,
@@ -120,6 +122,11 @@ impl MobProfile {
         self.can_pass_doors = true;
         self.can_open_doors = false;
         self.can_float = can_float;
+        self
+    }
+
+    pub fn direct_flight(mut self) -> Self {
+        self.direct_flight = true;
         self
     }
 
