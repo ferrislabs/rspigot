@@ -43,6 +43,7 @@ pub(crate) struct EntityWorld {
     pub mobs: crate::mobs::MobTable,
     pub boss_bars: FxHashMap<EntityId, rspigot_domain::boss_event::ServerBossEvent>,
     pub poses: FxHashMap<EntityId, rspigot_domain::entity::Pose>,
+    pub leash_spin: FxHashMap<EntityId, f64>,
     pending_saves: FxHashMap<ChunkPos, (u64, Arc<Vec<Compound>>)>,
     stored_empty: FxHashSet<ChunkPos>,
     generation: u64,
@@ -243,6 +244,7 @@ impl<L: ClientLink> Server<L> {
             self.notify_removal(id, cause);
         }
         self.stop_mob_brain(id);
+        self.llama_removed(id);
         self.release_riding(id, reason);
         let mut entity = self.entities.store.remove(id)?;
         entity.base.removal = Some(reason);

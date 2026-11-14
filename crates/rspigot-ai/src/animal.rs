@@ -175,6 +175,7 @@ pub struct BreedGoal {
     partner: Option<EntityId>,
     love_time: i32,
     equine: bool,
+    llama: bool,
 }
 
 impl BreedGoal {
@@ -184,6 +185,15 @@ impl BreedGoal {
             partner: None,
             love_time: 0,
             equine: false,
+            llama: false,
+        }
+    }
+
+    pub fn llama(speed_modifier: f64) -> Self {
+        Self {
+            equine: true,
+            llama: true,
+            ..Self::new(speed_modifier)
         }
     }
 
@@ -201,7 +211,9 @@ impl BreedGoal {
     fn free_partner<W: AiWorld>(&self, context: &mut AiContext<'_, W>) -> Option<Living> {
         let mob = context.mob;
         let area = inflate(&mob.bounds(), PARTNER_RANGE, PARTNER_RANGE, PARTNER_RANGE);
-        let class = if self.equine {
+        let class = if self.llama {
+            mob.kind.class()
+        } else if self.equine {
             "AbstractHorse"
         } else {
             mob.kind.class()

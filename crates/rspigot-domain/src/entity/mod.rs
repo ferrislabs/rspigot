@@ -11,6 +11,7 @@ pub mod fluid;
 pub mod gossip;
 pub mod hurting;
 pub mod item;
+pub mod leash;
 pub mod living;
 pub mod neutral;
 pub mod orb;

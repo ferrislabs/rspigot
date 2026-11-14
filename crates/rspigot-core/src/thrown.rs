@@ -72,6 +72,15 @@ impl<L: ClientLink> Server<L> {
         if self.projectile_waits(id) {
             return;
         }
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| thrown::is_spit(entity.base.kind))
+        {
+            self.tick_spit(id);
+            return;
+        }
         let in_rain = self
             .entities
             .store
@@ -134,6 +143,108 @@ impl<L: ClientLink> Server<L> {
             Strike::Entity(target) => self.ask_projectile_hit(id, target),
             Strike::Block(hit) => self.thrown_hit_block(id, hit),
         }
+    }
+
+    fn tick_spit(&mut self, id: EntityId) {
+        let chunks = &self.world.chunks;
+        let Some(Entity {
+            base,
+            state: EntityState::Thrown(state),
+            ..
+        }) = self.entities.store.get_mut(id)
+        else {
+            return;
+        };
+        base.old_position = base.position;
+        base.tick_count = base.tick_count.wrapping_add(1);
+        fluid::update(base, chunks);
+        let movement = base.velocity;
+        let from = base.position;
+        let to = from + movement;
+        let margin = f64::from(arrow::hit_margin(base.tick_count));
+        let area = arrow::search_box(base);
+        let (owner, left_owner) = (state.owner, state.left_owner);
+        let strike = self.find_strike(id, owner, left_owner, from, to, margin, &area);
+        let Some(Entity {
+            base,
+            state: EntityState::Thrown(state),
+            ..
+        }) = self.entities.store.get_mut(id)
+        else {
+            return;
+        };
+        state.has_been_shot = true;
+        base.position = to;
+        thrown::update_rotation(base);
+        let smothered = thrown::smothered(&self.world.chunks, base);
+        let in_water = base.fluid.in_water;
+        if !smothered && !in_water {
+            base.velocity = movement.scale(f64::from(thrown::AIR_DRAG));
+            thrown::apply_gravity(base);
+        }
+        self.apply_fire_inside(id);
+        self.check_thrown_left_owner(id);
+        if let Some(Entity {
+            base,
+            state: EntityState::Thrown(state),
+            ..
+        }) = self.entities.store.get_mut(id)
+        {
+            fire::base_tick(base);
+            let on_fire = base.remaining_fire_ticks > 0;
+            fire::set_on_fire_flag(base, on_fire);
+            state.left_owner_checked = false;
+        }
+        match strike.0 {
+            Strike::Miss => {}
+            Strike::Entity(target) => self.ask_projectile_hit(id, target),
+            Strike::Block(hit) => self.thrown_hit_block(id, hit),
+        }
+        if smothered || in_water {
+            self.remove_entity(
+                id,
+                RemovalReason::Discarded,
+                Some(EntityRemoveCause::Despawn),
+            );
+        }
+    }
+
+    fn spit_hit_entity(&mut self, id: EntityId, target: EntityId) {
+        let Some(entity) = self.entities.store.get(id) else {
+            return;
+        };
+        let EntityState::Thrown(state) = &entity.state else {
+            return;
+        };
+        let Some(owner) = self.owner_entity(state.owner) else {
+            return;
+        };
+        let knockback = thrown::knockback_direction(&entity.base);
+        let Some(causing) = self.source_for(owner) else {
+            return;
+        };
+        if !causing.kind.living() {
+            return;
+        }
+        let Some(direct) = self.mob_source(id) else {
+            return;
+        };
+        let source = DamageSource {
+            kind: DamageType::Spit,
+            causing: Some(causing),
+            direct: Some(direct),
+            position: None,
+            knockback: Some(knockback),
+            direct_block: None,
+        };
+        let victim = self.struck(target);
+        self.strike(
+            None,
+            victim,
+            &source,
+            thrown::SPIT_DAMAGE,
+            AfterHurt::Nothing,
+        );
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -229,6 +340,10 @@ impl<L: ClientLink> Server<L> {
             self.potion_hit_entity(id, target);
             return;
         }
+        if thrown::is_spit(entity.base.kind) {
+            self.spit_hit_entity(id, target);
+            return;
+        }
         if !self.living_entity_alive(target) {
             self.finish_thrown(id);
             return;
@@ -284,13 +399,20 @@ impl<L: ClientLink> Server<L> {
         if self.entities.store.get(id).is_none() {
             return;
         }
-        self.push(
-            Audience::Trackers(id),
-            ClientEvent::EntityStatus {
-                entity: id,
-                status: EntityStatus::Event(thrown::HIT_EVENT),
-            },
-        );
+        if !self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| thrown::is_spit(entity.base.kind))
+        {
+            self.push(
+                Audience::Trackers(id),
+                ClientEvent::EntityStatus {
+                    entity: id,
+                    status: EntityStatus::Event(thrown::HIT_EVENT),
+                },
+            );
+        }
         self.remove_entity(id, RemovalReason::Discarded, Some(EntityRemoveCause::Hit));
     }
 }

@@ -274,6 +274,12 @@ impl Brain {
                 .navigation
                 .set_required_path_length(48.0, follow_range);
         }
+        if kind.extends("Llama") {
+            brain.navigation.set_required_path_length(
+                rspigot_domain::entity::species::llama::SPIT_REQUIRED_PATH_LENGTH,
+                follow_range,
+            );
+        }
         if kind == EntityKind::CopperGolem {
             brain.navigation.set_required_path_length(
                 rspigot_domain::entity::species::copper_golem::PATH_LENGTH,

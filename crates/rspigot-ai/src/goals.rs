@@ -634,6 +634,8 @@ pub enum TargetFilter {
     HealableRaider,
     Attackable,
     NotBaby,
+    Untamed,
+    NotZombifiedPiglin,
 }
 
 impl TargetFilter {
@@ -663,6 +665,8 @@ impl TargetFilter {
             Self::DrownedOk => crate::drowned::drowned_ok_target(world, target),
             Self::Attackable => target.kind != EntityKind::ArmorStand,
             Self::NotBaby => !target.baby,
+            Self::Untamed => !target.facts.tamed,
+            Self::NotZombifiedPiglin => target.kind != EntityKind::ZombifiedPiglin,
             Self::HealableRaider => {
                 mob.species.raider.has_active_raid() && target.kind != EntityKind::Witch
             }
@@ -926,6 +930,7 @@ pub enum MobGoal {
     Air(crate::air::AirGoal),
     Spell(crate::spell::SpellGoal),
     Equine(crate::equine::EquineGoal),
+    Llama(crate::llama::LlamaGoal),
     StriderGoToLava(crate::strider::StriderGoToLavaGoal),
     Water(crate::swimmers::WaterGoal),
     Turtle(crate::turtle::TurtleGoal),
@@ -985,6 +990,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Spell(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Equine(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Llama(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::StriderGoToLava(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Water(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Turtle(goal) => Goal::<AiContext<'_, W>>::flags(goal),
@@ -1044,6 +1050,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::can_use(goal, context),
             Self::Spell(goal) => Goal::can_use(goal, context),
             Self::Equine(goal) => Goal::can_use(goal, context),
+            Self::Llama(goal) => Goal::can_use(goal, context),
             Self::StriderGoToLava(goal) => Goal::can_use(goal, context),
             Self::Water(goal) => Goal::can_use(goal, context),
             Self::Turtle(goal) => Goal::can_use(goal, context),
@@ -1102,6 +1109,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::can_continue_to_use(goal, context),
             Self::Spell(goal) => Goal::can_continue_to_use(goal, context),
             Self::Equine(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Llama(goal) => Goal::can_continue_to_use(goal, context),
             Self::StriderGoToLava(goal) => Goal::can_continue_to_use(goal, context),
             Self::Water(goal) => Goal::can_continue_to_use(goal, context),
             Self::Turtle(goal) => Goal::can_continue_to_use(goal, context),
@@ -1189,6 +1197,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::start(goal, context),
             Self::Spell(goal) => Goal::start(goal, context),
             Self::Equine(goal) => Goal::start(goal, context),
+            Self::Llama(goal) => Goal::start(goal, context),
             Self::StriderGoToLava(goal) => Goal::start(goal, context),
             Self::Water(goal) => Goal::start(goal, context),
             Self::Turtle(goal) => Goal::start(goal, context),
@@ -1248,6 +1257,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::stop(goal, context),
             Self::Spell(goal) => Goal::stop(goal, context),
             Self::Equine(goal) => Goal::stop(goal, context),
+            Self::Llama(goal) => Goal::stop(goal, context),
             Self::StriderGoToLava(goal) => Goal::stop(goal, context),
             Self::Water(goal) => Goal::stop(goal, context),
             Self::Turtle(goal) => Goal::stop(goal, context),
@@ -1308,6 +1318,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Air(goal) => Goal::tick(goal, context),
             Self::Spell(goal) => Goal::tick(goal, context),
             Self::Equine(goal) => Goal::tick(goal, context),
+            Self::Llama(goal) => Goal::tick(goal, context),
             Self::StriderGoToLava(goal) => Goal::tick(goal, context),
             Self::Water(goal) => Goal::tick(goal, context),
             Self::Turtle(goal) => Goal::tick(goal, context),
@@ -1379,6 +1390,7 @@ impl MobGoal {
             | Self::Air(_)
             | Self::Spell(_)
             | Self::Equine(_)
+            | Self::Llama(_)
             | Self::StriderGoToLava(_)
             | Self::Water(_)
             | Self::Turtle(_)

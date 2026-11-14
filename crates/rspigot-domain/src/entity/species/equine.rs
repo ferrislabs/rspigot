@@ -100,7 +100,15 @@ pub fn has_horse_variant(kind: EntityKind) -> bool {
 }
 
 pub fn can_perform_rearing(kind: EntityKind) -> bool {
-    is_equine(kind)
+    is_equine(kind) && !super::llama::is_llama(kind) && !is_camel(kind)
+}
+
+pub fn is_camel(kind: EntityKind) -> bool {
+    kind.extends("Camel")
+}
+
+pub fn can_eat_grass(kind: EntityKind) -> bool {
+    is_equine(kind) && !super::llama::is_llama(kind)
 }
 
 impl MountState {
