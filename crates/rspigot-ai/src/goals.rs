@@ -31,6 +31,7 @@ const STROLL_INTERVAL: i32 = 120;
 const NO_ACTION_LIMIT: i32 = 100;
 const WATER_AVOIDING_PROBABILITY: f32 = 0.001;
 const LOOK_PROBABILITY: f32 = 0.02;
+const LOOK_AT_MOB_HEIGHT: f64 = 3.0;
 const TEMPT_STOP_DISTANCE: f64 = 2.5;
 const TEMPT_CALM_DOWN: i32 = 100;
 const TEMPT_SCARE_DISTANCE_SQR: f64 = 36.0;
@@ -206,6 +207,7 @@ pub struct LookAtPlayerGoal {
     look_distance: f32,
     probability: f32,
     only_horizontal: bool,
+    at_mobs: bool,
     look_at: Option<EntityId>,
     look_time: i32,
 }
@@ -216,8 +218,23 @@ impl LookAtPlayerGoal {
             look_distance,
             probability: LOOK_PROBABILITY,
             only_horizontal: false,
+            at_mobs: false,
             look_at: None,
             look_time: 0,
+        }
+    }
+
+    pub fn with_probability(look_distance: f32, probability: f32) -> Self {
+        Self {
+            probability,
+            ..Self::new(look_distance)
+        }
+    }
+
+    pub fn at_mobs(look_distance: f32) -> Self {
+        Self {
+            at_mobs: true,
+            ..Self::new(look_distance)
         }
     }
 
@@ -231,8 +248,16 @@ impl LookAtPlayerGoal {
         }
         let conditions = TargetingConditions::for_non_combat().range(f64::from(self.look_distance));
         let origin = context.mob.eye_position();
-        self.look_at = targeting::nearest_player(context, conditions, |_| true, origin)
-            .map(|player| player.id);
+        self.look_at = if self.at_mobs {
+            let reach = f64::from(self.look_distance);
+            let area = inflate(&context.mob.bounds(), reach, LOOK_AT_MOB_HEIGHT, reach);
+            let world = context.world;
+            let candidates = world.living_of(TargetKind::Class("Mob"), &area);
+            targeting::nearest(context, candidates, conditions, |_| true, origin)
+        } else {
+            targeting::nearest_player(context, conditions, |_| true, origin)
+        }
+        .map(|found| found.id);
         self.look_at.is_some()
     }
 
@@ -757,6 +782,7 @@ pub enum MobGoal {
     IronGolem(crate::IronGolemGoal),
     Ghast(crate::ghast::GhastGoal),
     Raider(crate::raider::RaiderGoal),
+    Crossbow(crate::crossbow::CrossbowGoal),
     WitchTarget(crate::raider::NearestAttackableWitchTargetGoal),
 }
 
@@ -803,6 +829,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
@@ -850,6 +877,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::can_use(goal, context),
             Self::Ghast(goal) => Goal::can_use(goal, context),
             Self::Raider(goal) => Goal::can_use(goal, context),
+            Self::Crossbow(goal) => Goal::can_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_use(goal, context),
         }
     }
@@ -896,6 +924,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::can_continue_to_use(goal, context),
             Self::Ghast(goal) => Goal::can_continue_to_use(goal, context),
             Self::Raider(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Crossbow(goal) => Goal::can_continue_to_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
@@ -912,6 +941,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
+            Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::is_interruptable(goal),
             _ => true,
         }
@@ -960,6 +990,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::start(goal, context),
             Self::Ghast(goal) => Goal::start(goal, context),
             Self::Raider(goal) => Goal::start(goal, context),
+            Self::Crossbow(goal) => Goal::start(goal, context),
             Self::WitchTarget(goal) => Goal::start(goal, context),
         }
     }
@@ -1007,6 +1038,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::stop(goal, context),
             Self::Ghast(goal) => Goal::stop(goal, context),
             Self::Raider(goal) => Goal::stop(goal, context),
+            Self::Crossbow(goal) => Goal::stop(goal, context),
             Self::WitchTarget(goal) => Goal::stop(goal, context),
         }
     }
@@ -1023,6 +1055,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Ghast(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
+            Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             Self::BlazeAttack(goal) => Goal::<AiContext<'_, W>>::requires_update_every_tick(goal),
             _ => self.requires_update_every_tick_base(),
@@ -1041,6 +1074,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::IronGolem(goal) => Goal::tick(goal, context),
             Self::Ghast(goal) => Goal::tick(goal, context),
             Self::Raider(goal) => Goal::tick(goal, context),
+            Self::Crossbow(goal) => Goal::tick(goal, context),
             Self::WitchTarget(goal) => Goal::tick(goal, context),
             Self::BlazeAttack(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
@@ -1101,6 +1135,7 @@ impl MobGoal {
             | Self::MoveTowardsRestriction(_)
             | Self::Ghast(_)
             | Self::Raider(_)
+            | Self::Crossbow(_)
             | Self::WitchTarget(_)
             | Self::Wolf(_)
             | Self::Cat(_)
@@ -1111,5 +1146,45 @@ impl MobGoal {
             | Self::Silverfish(_)
             | Self::IronGolem(_) => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod look_tests {
+    use rspigot_domain::Vec3;
+    use rspigot_entities::EntityKind;
+
+    use super::*;
+    use crate::mock::{Harness, Mock, living};
+
+    const SEED: i64 = 17;
+
+    #[test]
+    fn the_mob_look_goal_picks_the_nearest_mob_within_reach_and_a_player_goal_ignores_mobs() {
+        let world = Mock {
+            others: vec![
+                living(2, EntityKind::Zombie, Vec3::new(9.5, 64.0, 0.5)),
+                living(3, EntityKind::Cow, Vec3::new(4.5, 64.0, 0.5)),
+                living(4, EntityKind::Zombie, Vec3::new(25.5, 64.0, 0.5)),
+            ],
+            ..Mock::default()
+        };
+        let mut harness =
+            Harness::new(EntityKind::Pillager, Vec3::new(0.5, 64.0, 0.5), world, SEED);
+        let mut mobs = LookAtPlayerGoal::at_mobs(15.0);
+        mobs.probability = 1.0;
+        assert!(harness.run(|context| mobs.can_use(context)));
+        assert_eq!(mobs.look_at(), Some(EntityId(3)));
+        let mut players = LookAtPlayerGoal::with_probability(15.0, 1.0);
+        assert!(!harness.run(|context| players.can_use(context)));
+        let mut empty = Harness::new(
+            EntityKind::Pillager,
+            Vec3::new(0.5, 64.0, 0.5),
+            Mock::default(),
+            SEED,
+        );
+        let mut lonely = LookAtPlayerGoal::at_mobs(15.0);
+        lonely.probability = 1.0;
+        assert!(!empty.run(|context| lonely.can_use(context)));
     }
 }

@@ -43,6 +43,18 @@ impl<L: ClientLink> Server<L> {
                     raider.set_patrol_target(target);
                 }
             }
+            RaiderAction::ShoutTarget {
+                mob,
+                target,
+                aggressive,
+            } => {
+                if let Some(view) = self.entity_view(mob) {
+                    self.request_target(view, target, TargetReason::FollowLeader);
+                }
+                if aggressive && let Some(entity) = self.entities.store.get_mut(mob) {
+                    living::set_aggressive(&mut entity.base, true);
+                }
+            }
         }
     }
 

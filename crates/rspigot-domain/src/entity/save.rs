@@ -743,6 +743,10 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Ocelot(state) => species::ocelot::read(nbt, base, state),
         Species::Witch(state) => species::witch::read(nbt, base, state),
+        Species::Pillager(state) => {
+            species::pillager::read(nbt, base, state);
+            mob.can_pick_up_loot = true;
+        }
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }
@@ -908,6 +912,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Rabbit(_) => species::rabbit::KEYS,
         Species::Ocelot(_) => species::ocelot::KEYS,
         Species::Witch(_) => species::witch::KEYS,
+        Species::Pillager(_) => species::pillager::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1328,6 +1333,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Rabbit(state) => species::rabbit::write(base, state, out),
         Species::Ocelot(state) => species::ocelot::write(base, state, out),
         Species::Witch(state) => species::witch::write(base, state, out),
+        Species::Pillager(state) => species::pillager::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
     }
 }

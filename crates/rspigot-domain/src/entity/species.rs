@@ -20,6 +20,7 @@ pub mod ghast;
 pub mod iron_golem;
 pub mod ocelot;
 pub mod panda;
+pub mod pillager;
 pub mod polar_bear;
 pub mod rabbit;
 pub mod raider;
@@ -192,6 +193,7 @@ pub enum Species {
     Rabbit(rabbit::RabbitState),
     Ocelot(ocelot::OcelotState),
     Witch(witch::WitchState),
+    Pillager(pillager::PillagerState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -238,6 +240,7 @@ impl Species {
     pub fn raider(&self) -> Option<&raider::RaiderState> {
         match self {
             Self::Witch(state) => Some(&state.raider),
+            Self::Pillager(state) => Some(&state.raider),
             _ => None,
         }
     }
@@ -245,6 +248,7 @@ impl Species {
     pub fn raider_mut(&mut self) -> Option<&mut raider::RaiderState> {
         match self {
             Self::Witch(state) => Some(&mut state.raider),
+            Self::Pillager(state) => Some(&mut state.raider),
             _ => None,
         }
     }
@@ -358,6 +362,9 @@ impl Species {
         }
         if kind == EntityKind::Witch {
             return Self::Witch(witch::define(base));
+        }
+        if kind == EntityKind::Pillager {
+            return Self::Pillager(pillager::define(base));
         }
         Self::Plain
     }

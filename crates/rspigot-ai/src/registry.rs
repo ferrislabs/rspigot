@@ -9,6 +9,7 @@ use crate::combat::{
     HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, OcelotAttackGoal, SwellGoal,
 };
 use crate::control::MoveStyle;
+use crate::crossbow::{CrossbowGoal, HoldGroundAttackGoal, RangedCrossbowAttackGoal};
 use crate::evade::{AvoidEntityGoal, FleeSunGoal, RestrictSunGoal};
 use crate::ghast::{GhastGoal, GhastLookGoal, GhastShootFireballGoal, RandomFloatAroundGoal};
 use crate::goal::GoalSelector;
@@ -38,6 +39,15 @@ const WITCH_ATTACK_INTERVAL: i32 = 60;
 const WITCH_ATTACK_RADIUS: f32 = 10.0;
 const WITCH_LOOK_DISTANCE: f32 = 8.0;
 const WITCH_IGNORED_DAMAGE: &[&str] = &["Raider"];
+const PILLAGER_AVOID_DISTANCE: f32 = 8.0;
+const PILLAGER_AVOID_WALK_SPEED: f64 = 1.0;
+const PILLAGER_AVOID_SPRINT_SPEED: f64 = 1.2;
+const PILLAGER_HOLD_GROUND_RADIUS: f32 = 10.0;
+const PILLAGER_CROSSBOW_SPEED: f64 = 1.0;
+const PILLAGER_CROSSBOW_RADIUS: f32 = 8.0;
+const PILLAGER_STROLL_SPEED: f64 = 0.6;
+const PILLAGER_LOOK_DISTANCE: f32 = 15.0;
+const PILLAGER_IGNORED_DAMAGE: &[&str] = &["Raider"];
 const ZOMBIE_ALERT_IGNORED: &[EntityKind] = &[EntityKind::ZombifiedPiglin];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -500,6 +510,65 @@ pub fn register_goals(
             add.target_goal(
                 3,
                 MobGoal::WitchTarget(NearestAttackableWitchTargetGoal::default()),
+            );
+        }
+        EntityKind::Pillager => {
+            raider::register(&mut add);
+            add.float(0);
+            add.goal(
+                1,
+                MobGoal::AvoidEntity(AvoidEntityGoal::new(
+                    TargetKind::Class("Creaking"),
+                    PILLAGER_AVOID_DISTANCE,
+                    PILLAGER_AVOID_WALK_SPEED,
+                    PILLAGER_AVOID_SPRINT_SPEED,
+                )),
+            );
+            add.goal(
+                2,
+                MobGoal::Crossbow(CrossbowGoal::HoldGround(HoldGroundAttackGoal::new(
+                    PILLAGER_HOLD_GROUND_RADIUS,
+                ))),
+            );
+            add.goal(
+                3,
+                MobGoal::Crossbow(CrossbowGoal::RangedAttack(RangedCrossbowAttackGoal::new(
+                    PILLAGER_CROSSBOW_SPEED,
+                    PILLAGER_CROSSBOW_RADIUS,
+                ))),
+            );
+            add.goal(
+                8,
+                MobGoal::Stroll(RandomStrollGoal::new(PILLAGER_STROLL_SPEED)),
+            );
+            add.goal(
+                9,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::with_probability(
+                    PILLAGER_LOOK_DISTANCE,
+                    1.0,
+                )),
+            );
+            add.goal(
+                10,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(PILLAGER_LOOK_DISTANCE)),
+            );
+            add.target_goal(
+                1,
+                MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(
+                    PILLAGER_IGNORED_DAMAGE,
+                )),
+            );
+            add.target(
+                2,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::AbstractVillager, false),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::IronGolem, true),
             );
         }
         _ => {}
