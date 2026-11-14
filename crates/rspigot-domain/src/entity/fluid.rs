@@ -1,5 +1,7 @@
 use rspigot_blocks::{BlockKind, StateFlags};
 
+use rspigot_entities::EntityKind;
+
 use super::aabb::Aabb;
 use super::base::EntityBase;
 use super::physics::{BlockView, mth_floor, water_height};
@@ -96,7 +98,9 @@ pub fn update(base: &mut EntityBase, view: &impl BlockView) {
 }
 
 pub fn jump_threshold(base: &EntityBase) -> f64 {
-    if f64::from(base.eye_height()) < JUMP_THRESHOLD {
+    if base.kind == EntityKind::SulfurCube {
+        super::species::sulfur_cube::jump_threshold(base)
+    } else if f64::from(base.eye_height()) < JUMP_THRESHOLD {
         0.0
     } else {
         JUMP_THRESHOLD
