@@ -13,6 +13,7 @@ pub mod crop;
 pub mod crossbow;
 pub mod damage;
 pub mod difficulty;
+pub mod dragon;
 pub mod dye;
 pub mod effect;
 pub mod entity;
