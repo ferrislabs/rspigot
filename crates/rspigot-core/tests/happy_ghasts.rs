@@ -376,3 +376,121 @@ fn a_snowball_speeds_up_a_ghastling_and_a_spawn_egg_on_an_adult_hatches_one() {
         .expect("a ghastling");
     assert!(age_of(&s, hatched) <= -23000);
 }
+
+fn place_on_floor(s: &mut Scene, item: &str, x: i32) {
+    console(s, &format!("give Alice minecraft:{item} 1"));
+    s.tick(1);
+    let alice = s.players[0].clone();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::UseItemOn {
+            hand: Hand::Main,
+            pos: BlockPos::new(x, 63, 1),
+            face: rspigot_core::events::Direction::Up,
+            cursor: rspigot_domain::Vec3::new(0.5, 1.0, 0.5),
+            inside_block: false,
+            sequence: 2,
+        },
+    );
+    s.tick(2);
+}
+
+fn block_at(s: &Scene, x: i32) -> Option<rspigot_domain::BlockStateId> {
+    s.server.block_state_at(BlockPos::new(x, 64, 1))
+}
+
+struct Pool;
+
+impl rspigot_core::ports::ChunkGenerator for Pool {
+    fn generate(
+        &self,
+        dimension: &rspigot_domain::world::Dimension,
+        pos: rspigot_domain::ChunkPos,
+    ) -> rspigot_domain::chunk::ChunkColumn {
+        let mut chunk = rspigot_domain::chunk::ChunkColumn::empty(
+            pos,
+            dimension.height,
+            rspigot_domain::BiomeId(0),
+        );
+        for x in 0..16 {
+            for z in 0..16 {
+                for y in 60..=63 {
+                    chunk.set_block(
+                        BlockPos::new(pos.min_block_x() + x, y, pos.min_block_z() + z),
+                        rspigot_domain::BlockStateId(1),
+                    );
+                }
+            }
+        }
+        if pos.x == 0 && pos.z == 0 {
+            chunk.set_block(
+                BlockPos::new(2, 64, 1),
+                rspigot_blocks::BlockKind::Water.default_state(),
+            );
+        }
+        chunk
+    }
+
+    fn spawn_point(&self, _: &rspigot_domain::world::Dimension) -> rspigot_domain::Vec3 {
+        rspigot_domain::Vec3::new(0.5, 64.0, 0.5)
+    }
+}
+
+fn pool_world() -> Scene {
+    let config = rspigot_core::config::GameConfig {
+        view_distance: 3,
+        chunk_workers: 2,
+        spawn_protection: 0,
+        ..rspigot_core::config::GameConfig::default()
+    };
+    let data = rspigot_core::config::LevelData {
+        spawn_mobs: false,
+        ..rspigot_core::config::LevelData::default()
+    };
+    let mut server = rspigot_core::server::Server::new(
+        config,
+        data,
+        std::sync::Arc::new(NoStore),
+        std::sync::Arc::new(Pool),
+        rspigot_core::status::StatusBoard::new(20),
+    );
+    server.wait_for_spawn(std::time::Duration::from_secs(10));
+    let mut s = scene_on(server, &["Alice"], Vec::new());
+    stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
+    s.tick(60);
+    s
+}
+
+#[test]
+fn a_dried_ghast_placed_in_water_is_waterlogged_and_in_time_hatches_a_ghastling() {
+    let mut s = pool_world();
+    console(&mut s, "gamemode creative Alice");
+    console(&mut s, "tp Alice 2.5 64 4.5");
+    place_on_floor(&mut s, "dried_ghast", 2);
+    let state = block_at(&s, 2).expect("a block");
+    assert_eq!(state.kind(), Some(rspigot_blocks::BlockKind::DriedGhast));
+    assert_eq!(state.property("waterlogged"), Some("true"), "{state:?}");
+    assert_eq!(state.property("hydration"), Some("0"));
+    s.tick(40_000);
+    let ghastlings = s.server.entities_of(Kind::HappyGhast);
+    assert_eq!(ghastlings.len(), 1);
+    assert!(age_of(&s, ghastlings[0].id) < 0);
+    assert_ne!(
+        block_at(&s, 2).and_then(rspigot_domain::BlockStateId::kind),
+        Some(rspigot_blocks::BlockKind::DriedGhast)
+    );
+}
+
+#[test]
+fn a_dried_ghast_on_dry_land_never_hatches() {
+    let mut s = world();
+    console(&mut s, "gamemode creative Alice");
+    console(&mut s, "tp Alice 2.5 64 4.5");
+    place_on_floor(&mut s, "dried_ghast", 3);
+    let state = block_at(&s, 3).expect("a block");
+    assert_eq!(state.kind(), Some(rspigot_blocks::BlockKind::DriedGhast));
+    assert_eq!(state.property("waterlogged"), Some("false"));
+    s.tick(10_000);
+    assert!(s.server.entities_of(Kind::HappyGhast).is_empty());
+}

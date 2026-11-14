@@ -25,6 +25,7 @@ pub(crate) mod copper_golem;
 mod creaking;
 mod cube;
 mod dolphin;
+mod dried_ghast;
 mod drowned;
 mod enderman;
 mod endermite;
