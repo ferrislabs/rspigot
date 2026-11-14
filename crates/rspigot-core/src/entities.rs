@@ -155,6 +155,19 @@ fn pairing_events(entity: &Entity, tracker: &EntityTracker, data: i32) -> Vec<Cl
             entries: metadata(&pairing.data),
         });
     }
+    if let EntityState::Stand(state) = &entity.state {
+        let slots: Vec<(EquipmentSlot, rspigot_domain::item::Slot)> = EQUIPMENT_SLOTS
+            .iter()
+            .filter_map(|slot| {
+                state.equipment[living::slot_index(*slot)]
+                    .clone()
+                    .map(|stack| (wire_slot(*slot), Some(stack)))
+            })
+            .collect();
+        if !slots.is_empty() {
+            events.push(ClientEvent::EntityEquipment { entity: id, slots });
+        }
+    }
     if let EntityState::Living(state) = &entity.state {
         let attributes = state.attributes.syncable(&state.effects);
         if !attributes.is_empty() {
@@ -440,6 +453,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Lightning(_) => self.tick_lightning(id),
                 EntityState::Crystal(_) => self.tick_crystal(id),
                 EntityState::Hanging(_) => self.tick_hanging(id),
+                EntityState::Stand(_) => self.tick_stand(id),
                 EntityState::Cloud(_) => self.tick_cloud(id),
                 EntityState::Inert(_) => {}
             }

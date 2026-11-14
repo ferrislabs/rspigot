@@ -1097,6 +1097,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_hanging_place(*step, cancelled);
                 Vec::new()
             }
+            Continuation::PlaceStand(step) => {
+                self.finish_stand_place(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::SwapStand(step) => {
+                self.finish_stand_swap(*step, cancelled);
+                Vec::new()
+            }
             Continuation::BreakHanging(step) => {
                 self.finish_hanging_break(*step, cancelled);
                 Vec::new()

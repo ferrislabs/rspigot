@@ -218,7 +218,7 @@ impl<L: ClientLink> Server<L> {
         if let Some((dragon, part)) = self.dragon_part_of(target) {
             self.dragon_note_part(dragon, part);
         }
-        if self.hanging_attack(id, target) {
+        if self.hanging_attack(id, target) || self.stand_attack_refused(id, target) {
             return;
         }
         self.attack(id, victim);

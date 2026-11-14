@@ -209,6 +209,7 @@ pub(crate) struct InteractStep {
     pub(crate) target: EntityId,
     pub(crate) hand: Hand,
     pub(crate) stack: Option<ItemStack>,
+    pub(crate) location: Vec3,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -724,6 +725,21 @@ pub(crate) struct HangingPlaceStep {
     pub(crate) entity: Entity,
 }
 
+#[derive(Debug)]
+pub(crate) struct StandPlaceStep {
+    pub(crate) player: PlayerId,
+    pub(crate) slot: usize,
+    pub(crate) entity: Entity,
+}
+
+#[derive(Debug)]
+pub(crate) struct StandSwapStep {
+    pub(crate) player: PlayerId,
+    pub(crate) target: EntityId,
+    pub(crate) hand: Hand,
+    pub(crate) slot: rspigot_items::EquipmentSlot,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Breaking {
     Survival,
@@ -918,6 +934,7 @@ pub(crate) enum Struck {
     Projectile(EntityId),
     Crystal(EntityId),
     Hanging(EntityId),
+    Stand(EntityId),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1521,6 +1538,8 @@ pub(crate) enum Continuation {
     DragonWalls(Box<DragonWallStep>),
     PlaceCrystal(Box<CrystalPlaceStep>),
     PlaceHanging(Box<HangingPlaceStep>),
+    PlaceStand(Box<StandPlaceStep>),
+    SwapStand(Box<StandSwapStep>),
     BreakHanging(Box<HangingBreakStep>),
     Relocate(RelocateStep),
     Shoot(Box<ShotStep>),
@@ -1688,6 +1707,8 @@ impl Continuation {
             Self::DragonWalls(_) => EventKind::EntityExplode,
             Self::PlaceCrystal(_) => EventKind::EntityPlace,
             Self::PlaceHanging(_) => EventKind::HangingPlace,
+            Self::PlaceStand(_) => EventKind::EntityPlace,
+            Self::SwapStand(_) => EventKind::PlayerArmorStandManipulate,
             Self::BreakHanging(step) => {
                 if step.by_entity {
                     EventKind::HangingBreakByEntity
@@ -1755,7 +1776,7 @@ impl Continuation {
                 matches!(step.birth.then, Spawned::Converted { old, .. } if old == id)
             }
             Self::Hurt(step) | Self::Strike(step) => {
-                matches!(step.victim, Struck::Mob(victim) | Struck::Item(victim) | Struck::Projectile(victim) | Struck::Crystal(victim) | Struck::Hanging(victim) if victim == id)
+                matches!(step.victim, Struck::Mob(victim) | Struck::Item(victim) | Struck::Projectile(victim) | Struck::Crystal(victim) | Struck::Hanging(victim) | Struck::Stand(victim) if victim == id)
             }
             Self::MobDeath(step) => step.victim == id,
             Self::Potion(PotionStep { holder, .. })
@@ -1820,6 +1841,8 @@ impl Continuation {
             Self::DragonWalls(step) => step.dragon == id,
             Self::PlaceCrystal(step) => step.entity.base.id == id,
             Self::PlaceHanging(step) => step.entity.base.id == id,
+            Self::PlaceStand(step) => step.entity.base.id == id,
+            Self::SwapStand(step) => step.target == id,
             Self::BreakHanging(step) => step.id == id,
             Self::Relocate(step) => step.entity == id,
             Self::EntityPortal(step) => step.entity == id,

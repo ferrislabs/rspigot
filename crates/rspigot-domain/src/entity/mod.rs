@@ -1,5 +1,6 @@
 mod aabb;
 pub mod ageable;
+pub mod armor_stand;
 pub mod arrow;
 mod base;
 pub mod bullet;
@@ -68,6 +69,7 @@ pub enum EntityState {
     Falling(FallingState),
     Lightning(lightning::LightningState),
     Hanging(hanging::HangingState),
+    Stand(Box<armor_stand::StandState>),
     Living(Box<LivingState>),
     Orb(OrbState),
     Inert(Compound),

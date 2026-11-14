@@ -493,7 +493,11 @@ impl<L: ClientLink> Server<L> {
                 .store
                 .get(target.id)
                 .is_some_and(|e| matches!(e.state, EntityState::Hanging(_)));
-            if hanging && !blocklike {
+            let stand = self.entities.store.get(target.id).is_some_and(|e| {
+                matches!(e.state, EntityState::Stand(_))
+                    && !rspigot_domain::entity::armor_stand::is_invisible(&e.base)
+            });
+            if (hanging || stand) && !blocklike {
                 continue;
             }
             let victim = match target.player {
@@ -501,6 +505,7 @@ impl<L: ClientLink> Server<L> {
                 None if crystal => Struck::Crystal(target.id),
                 None if target.living => Struck::Mob(target.id),
                 None if hanging => Struck::Hanging(target.id),
+                None if stand => Struck::Stand(target.id),
                 None => Struck::Item(target.id),
             };
             self.strike(None, victim, damage, amount, then);
