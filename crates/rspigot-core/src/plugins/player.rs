@@ -1,6 +1,7 @@
 use std::ops::RangeInclusive;
 
 use rand::Rng;
+use rspigot_domain::Identifier;
 use rspigot_domain::attribute::MOVEMENT_SPEED;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::food::{MAX_FOOD, MAX_SATURATION};
@@ -79,6 +80,31 @@ impl<L: ClientLink> Server<L> {
                     id,
                     position,
                     Some(rotation),
+                    PlayerTeleportCause::Plugin,
+                    None,
+                );
+            }
+            PlayerOrder::TeleportTo {
+                world,
+                position,
+                rotation,
+            } => {
+                let position = resolve::position_of(position)?;
+                let dimension = if world.is_empty() {
+                    None
+                } else {
+                    let key = Identifier::parse(&world)
+                        .map_err(|_| format!("`{world}` is not a world key"))?;
+                    if !self.ensure_dimension(&key) {
+                        return Err(format!("unknown world `{world}`"));
+                    }
+                    Some(key)
+                };
+                self.ask_teleport_in(
+                    id,
+                    dimension,
+                    position,
+                    rotation,
                     PlayerTeleportCause::Plugin,
                     None,
                 );

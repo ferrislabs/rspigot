@@ -119,6 +119,7 @@ pub struct Server<L> {
     pub(crate) impacts: Impacts,
     pub(crate) dormant: FxHashMap<crate::world_state::DimensionKey, crate::world_state::WorldState>,
     pub(crate) dimension_provider: Option<crate::travel::DimensionProvider<L>>,
+    pub(crate) command_dimension: Option<crate::world_state::DimensionKey>,
     pub(crate) portal_queue: Vec<(
         crate::world_state::DimensionKey,
         crate::end_portal::Traveler,
@@ -191,6 +192,7 @@ impl<L: ClientLink> Server<L> {
             impacts: Impacts::default(),
             dormant: FxHashMap::default(),
             dimension_provider: None,
+            command_dimension: None,
             portal_queue: Vec::new(),
             arrivals: FxHashMap::default(),
             startup: None,

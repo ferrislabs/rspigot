@@ -51,7 +51,7 @@ message PlayerOrder {
     bool set_allow_flight = 35; bool set_flying = 36; float set_fly_speed = 37; float set_walk_speed = 38; bool set_op = 39;
     Empty respawn = 40; string perform_command = 41; string chat = 42; Sound play_sound = 43; Particle spawn_particle = 44;
     string hide_player = 45; string show_player = 46; uint64 open_inventory = 47; Empty close_inventory = 48; Empty update_inventory = 49;
-    BanTerms ban = 50;
+    BanTerms ban = 50; Location teleport_to = 51;
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10; SetSlot set = 11; RemoveItems remove = 12; Empty clear = 13; int32 set_held_slot = 14; } }

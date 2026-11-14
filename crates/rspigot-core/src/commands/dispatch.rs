@@ -5,7 +5,7 @@ use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::text::{Component, NamedColor};
 use rspigot_domain::world::Difficulty;
-use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
+use rspigot_domain::{BlockPos, EntityId, Identifier, ItemId, Rotation, Vec3};
 use rspigot_items::ItemKind;
 use rspigot_nbt::Compound;
 
@@ -152,6 +152,15 @@ pub trait CommandContext {
         }
     }
 
+    fn run_in_dimension(
+        &mut self,
+        _dimension: &Identifier,
+        _swap: bool,
+        _run: impl FnOnce(&mut Self),
+    ) -> bool {
+        false
+    }
+
     fn teleport_target(&mut self, target: Target, position: Vec3) {
         if let Target::Player(id) = target {
             self.teleport(id, position);
@@ -193,7 +202,8 @@ pub trait CommandContext {
     }
 }
 
-const ADMIN_COMMANDS: [&str; 25] = [
+const ADMIN_COMMANDS: [&str; 26] = [
+    "execute",
     "summon",
     "effect",
     "kill",
@@ -305,6 +315,7 @@ pub fn execute<C: CommandContext>(
         "msg" | "tell" | "w" => private_message(ctx, sender, &args),
         "gamemode" => gamemode(ctx, sender, &args),
         "tp" | "teleport" => teleport(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
+        "execute" => execute_in(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "summon" => summon(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "time" => time(ctx, sender, &args),
         "give" => give(ctx, sender, &args),
@@ -748,6 +759,67 @@ fn teleport<C: CommandContext>(
     };
     ctx.reply(sender, message);
     Ok(CommandOutcome::Success)
+}
+
+fn execute_in<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    rest: &str,
+) -> Result<CommandOutcome, CommandOutcome> {
+    let usage_text = "/execute in <dimension> run <command>";
+    let mut dimension = None;
+    let mut cursor = rest;
+    let command = loop {
+        let Some((word, after)) = next_argument(cursor) else {
+            return Err(usage(ctx, sender, usage_text));
+        };
+        match word {
+            "in" => {
+                let Some((name, after)) = next_argument(after) else {
+                    return Err(usage(ctx, sender, usage_text));
+                };
+                dimension = Some(name);
+                cursor = after;
+            }
+            "run" => break after.trim(),
+            _ => return Err(usage(ctx, sender, usage_text)),
+        }
+    };
+    let (Some(name), false) = (dimension, command.is_empty()) else {
+        return Err(usage(ctx, sender, usage_text));
+    };
+    let Ok(key) = Identifier::parse(name) else {
+        return Err(unknown_dimension(ctx, sender, name));
+    };
+    let head = command
+        .trim_start_matches('/')
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let head = head.strip_prefix("minecraft:").unwrap_or(&head);
+    let swap = !matches!(head, "tp" | "teleport");
+    let mut outcome = CommandOutcome::Success;
+    let found = ctx.run_in_dimension(&key, swap, |ctx| {
+        outcome = execute(ctx, sender, command);
+    });
+    if !found {
+        return Err(unknown_dimension(ctx, sender, name));
+    }
+    Ok(outcome)
+}
+
+fn unknown_dimension<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    name: &str,
+) -> CommandOutcome {
+    fail(
+        ctx,
+        sender,
+        "argument.dimension.invalid",
+        vec![Component::text(name)],
+    )
 }
 
 fn summon<C: CommandContext>(

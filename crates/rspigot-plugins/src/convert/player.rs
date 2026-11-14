@@ -22,6 +22,11 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
             shared::vec3(required(facing.position)?),
             shared::rotation(required(facing.rotation)?),
         ),
+        Wire::TeleportTo(location) => PlayerOrder::TeleportTo {
+            world: location.world,
+            position: shared::vec3(required(location.position)?),
+            rotation: location.rotation.map(shared::rotation),
+        },
         Wire::SetGameMode(mode) => PlayerOrder::SetGameMode(game_mode(mode)?),
         Wire::Kick(reason) => PlayerOrder::Kick(reason),
         Wire::SetHealth(health) => PlayerOrder::SetHealth(health),
@@ -290,6 +295,27 @@ mod tests {
             }))
             .unwrap(),
             PlayerOrder::TeleportFacing(Vec3::new(1.5, 70.0, -2.5), Rotation::new(90.0, 10.0))
+        );
+        assert_eq!(
+            convert(player_order::Order::TeleportTo(v1::Location {
+                world: "minecraft:the_end".into(),
+                position: Some(wire_vec3(0.5, 80.0, 0.5)),
+                rotation: None,
+            }))
+            .unwrap(),
+            PlayerOrder::TeleportTo {
+                world: "minecraft:the_end".into(),
+                position: Vec3::new(0.5, 80.0, 0.5),
+                rotation: None,
+            }
+        );
+        assert!(
+            convert(player_order::Order::TeleportTo(v1::Location {
+                world: String::new(),
+                position: None,
+                rotation: None,
+            }))
+            .is_err()
         );
         assert_eq!(
             convert(player_order::Order::SpawnParticle(v1::Particle {
