@@ -204,6 +204,7 @@ impl RandomStrollGoal {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct LookAtPlayerGoal {
+    interact: bool,
     look_distance: f32,
     probability: f32,
     only_horizontal: bool,
@@ -215,6 +216,7 @@ pub struct LookAtPlayerGoal {
 impl LookAtPlayerGoal {
     pub fn new(look_distance: f32) -> Self {
         Self {
+            interact: false,
             look_distance,
             probability: LOOK_PROBABILITY,
             only_horizontal: false,
@@ -238,11 +240,22 @@ impl LookAtPlayerGoal {
         }
     }
 
+    pub fn interact(look_distance: f32, probability: f32) -> Self {
+        Self {
+            interact: true,
+            ..Self::with_probability(look_distance, probability)
+        }
+    }
+
     pub fn at_mobs(look_distance: f32) -> Self {
         Self {
             at_mobs: true,
             ..Self::new(look_distance)
         }
+    }
+
+    pub fn is_interact(&self) -> bool {
+        self.interact
     }
 
     pub fn look_at(&self) -> Option<EntityId> {
@@ -831,6 +844,7 @@ pub enum MobGoal {
     Raider(crate::raider::RaiderGoal),
     Crossbow(crate::crossbow::CrossbowGoal),
     WitchTarget(crate::raider::NearestAttackableWitchTargetGoal),
+    Trader(crate::villager::TraderGoal),
 }
 
 impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
@@ -845,6 +859,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::FleeSun(_)
             | Self::MoveThroughVillage(_)
             | Self::MoveTowardsRestriction(_) => movement,
+            Self::LookAtPlayer(goal) if goal.is_interact() => movement.with(Flag::Look),
             Self::LookAtPlayer(_) => Flags::of(Flag::Look),
             Self::RandomLookAround(_)
             | Self::Tempt(_)
@@ -879,6 +894,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::Trader(goal) => Goal::<AiContext<'_, W>>::flags(goal),
         }
     }
 
@@ -928,6 +944,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Raider(goal) => Goal::can_use(goal, context),
             Self::Crossbow(goal) => Goal::can_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_use(goal, context),
+            Self::Trader(goal) => Goal::can_use(goal, context),
         }
     }
 
@@ -976,6 +993,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Raider(goal) => Goal::can_continue_to_use(goal, context),
             Self::Crossbow(goal) => Goal::can_continue_to_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_continue_to_use(goal, context),
+            Self::Trader(goal) => Goal::can_continue_to_use(goal, context),
         }
     }
 
@@ -1044,6 +1062,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Raider(goal) => Goal::start(goal, context),
             Self::Crossbow(goal) => Goal::start(goal, context),
             Self::WitchTarget(goal) => Goal::start(goal, context),
+            Self::Trader(goal) => Goal::start(goal, context),
         }
     }
 
@@ -1093,6 +1112,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Raider(goal) => Goal::stop(goal, context),
             Self::Crossbow(goal) => Goal::stop(goal, context),
             Self::WitchTarget(goal) => Goal::stop(goal, context),
+            Self::Trader(goal) => Goal::stop(goal, context),
         }
     }
 
@@ -1132,6 +1152,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Crossbow(goal) => Goal::tick(goal, context),
             Self::WitchTarget(goal) => Goal::tick(goal, context),
             Self::BlazeAttack(goal) => Goal::tick(goal, context),
+            Self::Trader(goal) => Goal::tick(goal, context),
             _ => self.tick_base(context),
         }
     }
@@ -1193,6 +1214,7 @@ impl MobGoal {
             | Self::Raider(_)
             | Self::Crossbow(_)
             | Self::WitchTarget(_)
+            | Self::Trader(_)
             | Self::Wolf(_)
             | Self::Cat(_)
             | Self::Fox(_)

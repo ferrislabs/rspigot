@@ -32,6 +32,7 @@ mod rabbit;
 mod shulker;
 mod silverfish;
 mod snow_golem;
+pub(crate) mod villager;
 mod witch;
 mod wolf;
 mod zombified_piglin;
@@ -76,6 +77,8 @@ impl<L: ClientLink> Server<L> {
             Kind::Armadillo => self.armadillo_view(entity, view),
             Kind::Creaking => self.creaking_view(entity, view),
             Kind::Piglin | Kind::PiglinBrute => self.piglin_view(entity, view),
+            Kind::Villager => self.villager_view(entity, view),
+            Kind::WanderingTrader => self.wandering_trader_view(entity, view),
             _ => {}
         }
     }
@@ -86,6 +89,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ocelot) => self.ocelot_registered(id, ai),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_registered(id, ai),
             Some(Kind::Goat) => self.goat_registered(id, ai),
+            Some(Kind::Villager) => self.villager_registered(id, ai),
             _ => {}
         }
     }
@@ -188,6 +192,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Hoglin | Kind::Zoglin | Kind::Piglin | Kind::PiglinBrute) => {
                 self.brain_ambient_voice(id);
             }
+            Some(Kind::Villager) => self.villager_ambient_voice(id),
             _ => {
                 let game_time = self.world.level.game_time;
                 self.play_mob_voice(id, |entity| {
@@ -216,6 +221,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_custom_ai_step(id),
             Some(Kind::Goat) => self.goat_custom_ai_step(id),
             Some(Kind::Armadillo) => self.armadillo_custom_ai_step(id),
+            Some(Kind::Villager) => self.villager_custom_ai_step(id),
+            Some(Kind::WanderingTrader) => self.wandering_trader_custom_ai_step(id),
             _ => {}
         }
     }
@@ -251,6 +258,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ocelot) => self.ocelot_interact(player, target, hand, held),
             Some(Kind::Piglin) => self.piglin_interact(player, target, hand, held),
             Some(Kind::Armadillo) => self.armadillo_interact(player, target, hand, held),
+            Some(Kind::Villager) => self.villager_interact(player, target, hand, held),
             _ => None,
         }
     }
@@ -319,6 +327,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_after_hurt(id, source, dead),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
+            Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
             _ => {}
         }
     }

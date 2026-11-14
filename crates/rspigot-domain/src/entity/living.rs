@@ -13,6 +13,7 @@ use super::physics::{
     has_tag, move_entity, movement_affecting_pos,
 };
 use super::species::Species;
+use super::species::villager::MerchantState;
 use super::tamable::{self, TamableState};
 use crate::attribute;
 use crate::combat::{CombatEntry, CombatTracker};
@@ -323,6 +324,7 @@ pub struct MobState {
     pub ageable: Option<AgeableState>,
     pub neutral: Option<NeutralState>,
     pub tamable: Option<TamableState>,
+    pub merchant: Option<Box<MerchantState>>,
     pub species: Species,
 }
 
@@ -340,6 +342,7 @@ impl Default for MobState {
             ageable: None,
             neutral: None,
             tamable: None,
+            merchant: None,
             species: Species::Plain,
         }
     }
@@ -482,10 +485,17 @@ impl LivingState {
                 }
                 mob.neutral = Some(NeutralState::default());
             }
+            if kind.extends("AbstractVillager") {
+                mob.merchant = Some(Box::new(MerchantState::new()));
+            }
             mob.species = Species::new(base);
             mob.can_pick_up_loot = matches!(
                 kind,
-                EntityKind::Fox | EntityKind::Panda | EntityKind::Piglin | EntityKind::PiglinBrute
+                EntityKind::Fox
+                    | EntityKind::Panda
+                    | EntityKind::Piglin
+                    | EntityKind::PiglinBrute
+                    | EntityKind::Villager
             );
         }
         if kind.extends("Spider") {
