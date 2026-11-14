@@ -25,6 +25,7 @@ pub(crate) mod copper_golem;
 mod creaking;
 mod cube;
 mod dolphin;
+mod dried_ghast;
 mod drowned;
 mod enderman;
 mod endermite;
@@ -36,6 +37,7 @@ mod frogspawn;
 mod ghast;
 mod goat;
 mod guardian;
+pub(crate) mod happy_ghast;
 mod hoglin;
 mod illager;
 mod iron_golem;
@@ -143,6 +145,7 @@ impl<L: ClientLink> Server<L> {
             }
             Kind::Llama | Kind::TraderLlama => self.llama_view(entity, view),
             Kind::Camel | Kind::CamelHusk => self.camel_view(entity, view),
+            Kind::HappyGhast => self.happy_ghast_view(entity, view),
             _ => {}
         }
     }
@@ -251,6 +254,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
             Some(Kind::Strider) => self.strider_post_tick(id),
             Some(Kind::Camel | Kind::CamelHusk) => self.camel_post_tick(id),
+            Some(Kind::HappyGhast) => self.happy_ghast_post_tick(id),
             Some(Kind::Slime | Kind::MagmaCube) => self.cube_post_tick(id),
             _ => {}
         }
@@ -273,6 +277,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Bee) => self.bee_ai_step(id),
             Some(Kind::Wither) => self.wither_ai_step(id),
             Some(Kind::Allay) => self.allay_ai_step(id),
+            Some(Kind::HappyGhast) => self.happy_ghast_ai_step(id),
             Some(Kind::TraderLlama) => {
                 self.equine_ai_step(id);
                 self.trader_llama_ai_step(id);
@@ -401,6 +406,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Vindicator) => self.vindicator_custom_ai_step(id),
             Some(Kind::Evoker | Kind::Illusioner) => self.spellcaster_custom_ai_step(id),
             Some(Kind::Camel | Kind::CamelHusk) => self.camel_custom_ai_step(id),
+            Some(Kind::HappyGhast) => self.happy_ghast_custom_ai_step(id),
             _ => {}
         }
     }
@@ -420,6 +426,7 @@ impl<L: ClientLink> Server<L> {
     ) -> Option<Interaction> {
         match self.kind_of(target) {
             Some(Kind::Camel | Kind::CamelHusk) => self.camel_interact(player, target, hand, held),
+            Some(Kind::HappyGhast) => self.happy_ghast_interact(player, target, hand, held),
             Some(
                 Kind::Horse
                 | Kind::Donkey

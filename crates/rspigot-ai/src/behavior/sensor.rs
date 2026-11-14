@@ -1,7 +1,7 @@
 use crate::armadillo::ArmadilloScareSensor;
 use crate::behavior::memory::{Memories, MemoryModuleType, MemoryValue};
 use crate::behavior::sensors::{
-    AdultSensor, DummySensor, HurtBySensor, IsInWaterSensor, NearestItemSensor,
+    AdultSensor, AdultSensorAnyType, DummySensor, HurtBySensor, IsInWaterSensor, NearestItemSensor,
     NearestLivingEntitySensor, PlayerSensor, TemptingSensor,
 };
 use crate::brain::AiContext;
@@ -83,6 +83,7 @@ pub enum SensorKind {
     HurtBy(HurtBySensor),
     IsInWater(IsInWaterSensor),
     NearestAdult(AdultSensor),
+    NearestAdultAnyType(AdultSensorAnyType),
     Tempting(TemptingSensor),
     HoglinSpecific(HoglinSensor),
     PiglinSpecific(PiglinSensor),
@@ -109,6 +110,7 @@ impl SensorKind {
             Self::HurtBy(_) => SensorType::HurtBy,
             Self::IsInWater(_) => SensorType::IsInWater,
             Self::NearestAdult(_) => SensorType::NearestAdult,
+            Self::NearestAdultAnyType(_) => SensorType::NearestAdultAnyType,
             Self::Tempting(sensor) => sensor.sensor_type(),
             Self::HoglinSpecific(_) => SensorType::HoglinSpecificSensor,
             Self::PiglinSpecific(_) => SensorType::PiglinSpecificSensor,
@@ -137,6 +139,7 @@ impl Sensor for SensorKind {
             Self::HurtBy(sensor) => sensor.scan_rate(),
             Self::IsInWater(sensor) => sensor.scan_rate(),
             Self::NearestAdult(sensor) => sensor.scan_rate(),
+            Self::NearestAdultAnyType(sensor) => sensor.scan_rate(),
             Self::Tempting(sensor) => sensor.scan_rate(),
             Self::HoglinSpecific(sensor) => sensor.scan_rate(),
             Self::PiglinSpecific(sensor) => sensor.scan_rate(),
@@ -163,6 +166,7 @@ impl Sensor for SensorKind {
             Self::HurtBy(sensor) => sensor.requires(),
             Self::IsInWater(sensor) => sensor.requires(),
             Self::NearestAdult(sensor) => sensor.requires(),
+            Self::NearestAdultAnyType(sensor) => sensor.requires(),
             Self::Tempting(sensor) => sensor.requires(),
             Self::HoglinSpecific(sensor) => sensor.requires(),
             Self::PiglinSpecific(sensor) => sensor.requires(),
@@ -189,6 +193,7 @@ impl Sensor for SensorKind {
             Self::HurtBy(sensor) => sensor.do_tick(cx, memories),
             Self::IsInWater(sensor) => sensor.do_tick(cx, memories),
             Self::NearestAdult(sensor) => sensor.do_tick(cx, memories),
+            Self::NearestAdultAnyType(sensor) => sensor.do_tick(cx, memories),
             Self::Tempting(sensor) => sensor.do_tick(cx, memories),
             Self::HoglinSpecific(sensor) => sensor.do_tick(cx, memories),
             Self::PiglinSpecific(sensor) => sensor.do_tick(cx, memories),

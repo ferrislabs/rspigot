@@ -1,4 +1,4 @@
-use rspigot_blocks::Face;
+use rspigot_blocks::{BlockKind, Face, StateFlags};
 use rspigot_domain::entity::EntityBase;
 use rspigot_domain::entity::living::LivingState;
 use rspigot_domain::entity::physics::has_tag;
@@ -136,6 +136,33 @@ impl LookControl {
         } else if angle > limit {
             living.body_yaw += SMOOTH_BODY_TURN;
         }
+    }
+
+    pub fn tick_happy_ghast(
+        &mut self,
+        base: &mut EntityBase,
+        living: &mut LivingState,
+        stays_still: bool,
+    ) {
+        if stays_still {
+            let yaw = base.yaw;
+            base.set_yaw(yaw - wrap_degrees_90(yaw));
+            base.head_yaw = base.yaw;
+            return;
+        }
+        if self.look_at_cooldown < 1 {
+            let velocity = base.velocity;
+            let yaw = -(mth::atan2(velocity.x, velocity.z) as f32) * RAD_TO_DEG_F32;
+            base.set_yaw(yaw);
+            living.body_yaw = base.yaw;
+            return;
+        }
+        self.look_at_cooldown -= 1;
+        let dx = self.wanted.x - base.position.x;
+        let dz = self.wanted.z - base.position.z;
+        base.set_yaw(-(mth::atan2(dx, dz) as f32) * RAD_TO_DEG_F32);
+        living.body_yaw = base.yaw;
+        base.head_yaw = living.body_yaw;
     }
 
     pub fn set_shulker_face(&mut self, face: Option<Face>) {
@@ -327,6 +354,20 @@ pub struct MoveControl {
     hovers_in_place: bool,
     phantom_speed: f32,
     cube: CubeMove,
+    careful: bool,
+}
+
+const RAD_TO_DEG_F32: f32 = 57.295_776;
+
+pub fn wrap_degrees_90(degrees: f32) -> f32 {
+    let mut wrapped = degrees % 90.0;
+    if wrapped >= 45.0 {
+        wrapped -= 90.0;
+    }
+    if wrapped < -45.0 {
+        wrapped += 90.0;
+    }
+    wrapped
 }
 
 fn rotlerp(current: f32, target: f32, max: f32) -> f32 {
@@ -399,6 +440,107 @@ fn block_traversal_possible(
     !collided_with_shape_moving_from(base, from, to, &shapes)
 }
 
+const REACH_INFLATE: f64 = 9.999_999_747_378_752e-6;
+const HAPPY_GHAST_AVOIDS: &str = "minecraft:happy_ghast_avoids";
+
+fn fluid_height(
+    view: &impl BlockView,
+    pos: BlockPos,
+    flag: StateFlags,
+    kind: BlockKind,
+) -> Option<f64> {
+    let state = view
+        .state(pos)
+        .filter(|state| state.flags().contains(flag))?;
+    if view
+        .state(pos.offset(0, 1, 0))
+        .is_some_and(|above| above.flags().contains(flag))
+    {
+        return Some(1.0);
+    }
+    let amount = if state.kind() == Some(kind) {
+        let level = state
+            .property("level")
+            .and_then(|level| level.parse::<i32>().ok())
+            .unwrap_or(0);
+        if level >= 8 { 8 } else { 8 - level }
+    } else {
+        8
+    };
+    Some(f64::from(amount as f32 / 9.0))
+}
+
+fn fluid_box(view: &impl BlockView, pos: BlockPos) -> Option<(Aabb, bool)> {
+    let origin = Vec3::new(f64::from(pos.x), f64::from(pos.y), f64::from(pos.z));
+    let (height, is_water) = match fluid_height(view, pos, StateFlags::WATER, BlockKind::Water) {
+        Some(height) => (height, true),
+        None => (
+            fluid_height(view, pos, StateFlags::LAVA, BlockKind::Lava)?,
+            false,
+        ),
+    };
+    Some((
+        Aabb::new(0.0, 0.0, 0.0, 1.0, height, 1.0).move_by(origin),
+        is_water,
+    ))
+}
+
+fn careful_traversal(
+    base: &EntityBase,
+    view: &impl BlockView,
+    path: Option<(Vec3, Vec3)>,
+    pos: BlockPos,
+    through_water: bool,
+    through_lava: bool,
+) -> bool {
+    let Some(state) = view.state(pos).filter(|state| !state.is_air()) else {
+        return true;
+    };
+    let clear = match path {
+        None => state.collision_shape().is_empty(),
+        Some((from, to)) => block_traversal_possible(base, view, from, to, pos),
+    };
+    if has_tag(state, HAPPY_GHAST_AVOIDS) {
+        return false;
+    }
+    let Some((fluid, is_water)) = fluid_box(view, pos) else {
+        return clear;
+    };
+    if let Some((from, to)) = path
+        && !collided_with_shape_moving_from(base, from, to, &[fluid])
+    {
+        return clear;
+    }
+    if is_water {
+        through_water
+    } else {
+        through_lava
+    }
+}
+
+pub fn can_reach_carefully(base: &EntityBase, view: &impl BlockView, delta: Vec3) -> bool {
+    let current = base.bounding_box();
+    let moved = current.move_by(delta);
+    let grown = moved.inflate(REACH_INFLATE);
+    for x in mth::floor(grown.min_x)..=mth::floor(grown.max_x) {
+        for y in mth::floor(grown.min_y)..=mth::floor(grown.max_y) {
+            for z in mth::floor(grown.min_z)..=mth::floor(grown.max_z) {
+                if !careful_traversal(base, view, None, BlockPos::new(x, y, z), false, false) {
+                    return false;
+                }
+            }
+        }
+    }
+    let in_water = base.fluid.in_water;
+    let in_lava = base.fluid.in_lava();
+    let from = base.position;
+    let to = from + delta;
+    all_blocks_intersected_between(from, to, &moved, |pos| {
+        current.intersects(&Aabb::block(pos))
+            || careful_traversal(base, view, Some((from, to)), pos, in_water, in_lava)
+    })
+}
+
 pub fn can_reach(base: &EntityBase, view: &impl BlockView, delta: Vec3) -> bool {
     let current = base.bounding_box();
     let moved = current.move_by(delta);
@@ -412,6 +554,10 @@ pub fn can_reach(base: &EntityBase, view: &impl BlockView, delta: Vec3) -> bool 
 impl MoveControl {
     pub fn style(&self) -> MoveStyle {
         self.style
+    }
+
+    pub fn set_careful(&mut self, careful: bool) {
+        self.careful = careful;
     }
 
     pub fn set_style(&mut self, style: MoveStyle) {
@@ -829,7 +975,12 @@ impl MoveControl {
         }
         self.float_duration += random.next_int(GHAST_FLOAT_RANGE) + GHAST_FLOAT_BASE;
         let delta = self.wanted - base.position;
-        if can_reach(base, view, delta) {
+        let reachable = if self.careful {
+            can_reach_carefully(base, view, delta)
+        } else {
+            can_reach(base, view, delta)
+        };
+        if reachable {
             let thrust =
                 living.attribute(FLYING_SPEED) * GHAST_THRUST_NUMERATOR / GHAST_THRUST_DENOMINATOR;
             base.velocity = base.velocity + delta.normalize().scale(thrust);

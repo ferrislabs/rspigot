@@ -20,6 +20,7 @@ pub fn after_brain_tick<W: AiWorld>(
         EntityKind::Goat => goat::update_activity(brain),
         EntityKind::Armadillo => armadillo::update_activity(brain),
         EntityKind::Camel | EntityKind::CamelHusk => crate::camel::after_brain_tick(brain, ai),
+        EntityKind::HappyGhast => crate::happy_ghast::update_activity(brain),
         EntityKind::Allay => crate::allay::update_activity(brain),
         EntityKind::Sniffer => crate::sniffer::update_activity(brain),
         EntityKind::Frog => crate::frog::update_activity(brain),
@@ -51,6 +52,11 @@ pub fn brain_for(
                 &[],
                 crate::camel::camel_sensors(kind),
                 crate::camel::camel_activities(),
+            ),
+            EntityKind::HappyGhast => (
+                &[],
+                crate::happy_ghast::happy_ghast_sensors(),
+                crate::happy_ghast::happy_ghast_activities(),
             ),
             EntityKind::Allay => (
                 &crate::allay::ALLAY_MEMORIES,

@@ -281,6 +281,35 @@ impl Sensor for AdultSensor {
     }
 }
 
+const FOLLOWABLE_FRIENDLY_MOBS: &str = "minecraft:followable_friendly_mobs";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct AdultSensorAnyType;
+
+impl Sensor for AdultSensorAnyType {
+    fn requires(&self) -> &'static [MemoryModuleType] {
+        AdultSensor.requires()
+    }
+
+    fn do_tick<W: AiWorld>(&mut self, cx: &mut AiContext<'_, W>, memories: &mut Memories) {
+        if !memories.has_value(MemoryModuleType::NearestVisibleLivingEntities) {
+            return;
+        }
+        nearest_visible_entity(
+            cx,
+            memories,
+            MemoryModuleType::NearestVisibleAdult,
+            |entity| {
+                !entity.baby
+                    && rspigot_data::tags::tag("minecraft:entity_type", FOLLOWABLE_FRIENDLY_MOBS)
+                        .is_some_and(|ids| {
+                            ids.binary_search(&u32::from(entity.kind.id().0)).is_ok()
+                        })
+            },
+        );
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TemptingSensor {
     ty: SensorType,

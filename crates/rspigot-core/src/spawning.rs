@@ -855,6 +855,7 @@ mod tests {
                 EntityKind::Fox,
                 EntityKind::Frog,
                 EntityKind::Ghast,
+                EntityKind::HappyGhast,
                 EntityKind::GlowSquid,
                 EntityKind::Goat,
                 EntityKind::Guardian,

@@ -34,6 +34,7 @@ pub mod frog;
 pub mod ghast;
 pub mod goat;
 pub mod guardian;
+pub mod happy_ghast;
 pub mod hoglin;
 pub mod illusioner;
 pub mod iron_golem;
@@ -268,6 +269,7 @@ pub enum Species {
     Cube(cube::CubeState),
     Llama(llama::LlamaState),
     Camel(camel::CamelState),
+    HappyGhast(happy_ghast::HappyGhastState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -548,6 +550,9 @@ impl Species {
         }
         if camel::is_camel(kind) {
             return Self::Camel(camel::define(base));
+        }
+        if kind == EntityKind::HappyGhast {
+            return Self::HappyGhast(happy_ghast::define(base));
         }
         if kind == EntityKind::Sniffer {
             return Self::Sniffer(sniffer::define(base));

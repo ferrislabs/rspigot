@@ -159,6 +159,9 @@ impl<L: ClientLink> Server<L> {
             return Some(state);
         };
         let replaced = self.block_or_air(pos);
+        if kind == BlockKind::DriedGhast {
+            return Some(waterlogged(state, water_source(replaced)));
+        }
         match kind.gravity() {
             Gravity::ConcretePowder => Some(match kind.concrete() {
                 Some(concrete) if has_water(replaced) || self.touches_liquid(pos) => {
@@ -185,7 +188,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn schedule(&mut self, pos: BlockPos, kind: BlockKind, delay: u64) {
+    pub(crate) fn schedule(&mut self, pos: BlockPos, kind: BlockKind, delay: u64) {
         if self.falls.pending.insert((pos, kind)) {
             let due = self.current_tick() + delay;
             self.falls.due.entry(due).or_default().push((pos, kind));
@@ -357,6 +360,10 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == BlockKind::Frogspawn {
             self.frogspawn_tick(pos);
+            return;
+        }
+        if kind == BlockKind::DriedGhast {
+            self.dried_ghast_tick(pos);
             return;
         }
         match kind.gravity() {

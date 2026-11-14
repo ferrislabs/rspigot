@@ -427,6 +427,14 @@ impl MobControl {
         )
     }
 
+    pub fn animal_panic_flying(speed_multiplier: f32, fly_height: i32) -> Self {
+        Self::behavior_for(
+            MobBehavior::AnimalPanic(AnimalPanic::flying(speed_multiplier, fly_height)),
+            AnimalPanic::min_duration(),
+            AnimalPanic::max_duration(),
+        )
+    }
+
     pub fn random_look_around(behavior: RandomLookAround) -> Self {
         Self::behavior(MobBehavior::RandomLookAround(behavior))
     }
