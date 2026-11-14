@@ -316,6 +316,7 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
             let (width, height, eye) = super::species::camel::baby_standing_dimensions();
             dims(width, height, eye)
         }
+        EntityKind::HappyGhast => super::species::happy_ghast::baby_dimensions(),
         EntityKind::Goat => dims(0.45, 0.65, 0.59375),
         EntityKind::Armadillo => dims(adult.width * 0.6, adult.height * 0.6, 0.21875),
         EntityKind::Dolphin => dims(adult.width * 0.65, adult.height * 0.65, 0.09375),

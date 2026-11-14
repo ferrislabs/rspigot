@@ -156,7 +156,7 @@ pub fn max_passengers(kind: EntityKind) -> usize {
     } else if kind.extends("Camel") {
         super::species::camel::MAX_PASSENGERS
     } else if kind == EntityKind::HappyGhast {
-        4
+        super::species::happy_ghast::MAX_PASSENGERS
     } else {
         1
     }
