@@ -67,11 +67,17 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(super) fn dragon_body(&self, id: EntityId, runtime: &DragonRuntime) -> Option<DragonBody> {
-        let mut entity = self.entities.store.get(id)?.clone();
+        let entity = self.entities.store.get(id)?;
         let base = &entity.base;
         let (position, velocity, yaw, silent) =
             (base.position, base.velocity, base.yaw, base.is_silent());
-        let state = *state_of(&mut entity)?;
+        let Some(Species::EnderDragon(state)) = entity
+            .living()
+            .and_then(|living| living.mob.as_ref())
+            .map(|mob| mob.species)
+        else {
+            return None;
+        };
         Some(DragonBody {
             position,
             velocity,

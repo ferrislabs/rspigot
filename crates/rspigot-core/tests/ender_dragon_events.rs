@@ -8,7 +8,8 @@ use rspigot_blocks::BlockKind;
 use rspigot_core::config::{GameConfig, LevelData, PluginSettings};
 use rspigot_core::events::{Inbound, PlayerInput};
 use rspigot_core::plugins::events::{
-    BlockIgniteCause, EnderDragonChangePhasePatch, EnderDragonPhase, EntityRegainHealthRegainReason,
+    BlockIgniteCause, CreatureSpawnReason, EnderDragonChangePhasePatch, EnderDragonPhase,
+    EntityRegainHealthRegainReason,
 };
 use rspigot_core::plugins::{EventKind, EventPatch, EventPayload, HandlerSpec};
 use rspigot_core::ports::ChunkGenerator;
@@ -44,6 +45,14 @@ impl ChunkGenerator for Island {
 }
 
 fn ready(seed: u64, handlers: Vec<HandlerSpec>) -> Scene {
+    ready_with(seed, handlers, None)
+}
+
+fn ready_with(
+    seed: u64,
+    handlers: Vec<HandlerSpec>,
+    fight: Option<rspigot_nbt::Compound>,
+) -> Scene {
     let config = GameConfig {
         view_distance: 8,
         chunk_workers: 2,
@@ -58,6 +67,7 @@ fn ready(seed: u64, handlers: Vec<HandlerSpec>) -> Scene {
         spawn_mobs: false,
         day_time: 6_000,
         daylight_cycle: false,
+        dragon_fight: fight,
         ..LevelData::default()
     };
     let mut server = Server::new(
@@ -315,4 +325,80 @@ fn the_dragon_death_reports_the_first_kill_experience() {
     };
     assert_eq!(death.entity_type, "minecraft:ender_dragon");
     assert_eq!(death.dropped_exp, 12_000);
+}
+
+#[test]
+fn placing_a_crystal_asks_entity_place_and_a_cancel_keeps_the_item() {
+    use rspigot_core::events::{Direction, Hand};
+    use rspigot_core::plugins::events::Face;
+    let mut s = ready(7, vec![deciding(1, EventKind::EntityPlace)]);
+    console(&mut s, "gamemode survival Alice");
+    console(&mut s, "give Alice minecraft:end_crystal 2");
+    console(&mut s, "tp Alice 0.5 66 0.5");
+    s.tick(3);
+    let alice = s.players[0].clone();
+    let place = |s: &mut Scene| {
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::UseItemOn {
+                hand: Hand::Main,
+                pos: BlockPos::new(3, 63, 0),
+                face: Direction::Up,
+                cursor: Vec3::new(0.5, 1.0, 0.5),
+                inside_block: false,
+                sequence: 3,
+            },
+        );
+        s.tick(1);
+    };
+    s.act(rspigot_core::plugins::Order::Block {
+        pos: BlockPos::new(3, 63, 0),
+        order: rspigot_core::plugins::BlockOrder::SetWith {
+            kind: "minecraft:bedrock".to_owned(),
+            properties: Vec::new(),
+        },
+    });
+    place(&mut s);
+    let asked = asked_for(&s.plugin, EventKind::EntityPlace);
+    assert_eq!(asked.len(), 1);
+    let EventPayload::EntityPlace(placed) = &asked[0].payload else {
+        panic!("a placement");
+    };
+    assert_eq!(placed.block, BlockPos::new(3, 63, 0));
+    assert_eq!(placed.block_face, Face::Up);
+    assert_eq!(placed.entity_type, "minecraft:end_crystal");
+    rule_on(&mut s.server, 1, asked[0].id, true, None);
+    s.tick(2);
+    assert!(s.server.entities_of(Kind::EndCrystal).is_empty());
+}
+
+#[test]
+fn a_saved_fight_without_a_dragon_creates_one_above_the_island_with_a_creature_spawn_event() {
+    let fight = rspigot_nbt::Compound::new()
+        .with("needs_state_scanning", false)
+        .with("dragon_killed", false)
+        .with("previously_killed", true);
+    let mut s = ready_with(8, vec![observe(1, EventKind::CreatureSpawn)], Some(fight));
+    s.tick(60);
+    let dragons = s.server.entities_of(Kind::EnderDragon);
+    assert_eq!(dragons.len(), 1);
+    assert!(
+        (dragons[0].position.y - 128.0).abs() < 20.0,
+        "{:?}",
+        dragons[0]
+    );
+    let data = s.server.dragon_fight_data().unwrap();
+    assert_eq!(data.dragon_uuid, Some(dragons[0].uuid));
+    assert!(data.previously_killed);
+    let spawns: Vec<_> = settled_for(&s.plugin, EventKind::CreatureSpawn)
+        .into_iter()
+        .filter_map(|event| match event.payload {
+            EventPayload::CreatureSpawn(spawn) => Some(spawn),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(spawns.len(), 1);
+    assert_eq!(spawns[0].entity_type, "minecraft:ender_dragon");
+    assert_eq!(spawns[0].spawn_reason, CreatureSpawnReason::Default);
 }
