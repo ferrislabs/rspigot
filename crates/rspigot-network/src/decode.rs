@@ -4,11 +4,13 @@ use rspigot_core::events::{
     ClickInput, ContainerClick, DigAction, Direction, Hand, HashedItem, HashedSlot, InputState,
     MovementAction, PlayerInput,
 };
+use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::GameMode;
 use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
-use rspigot_nbt::Compound;
+use rspigot_nbt::{Compound, Tag};
 use rspigot_protocol::codec::Position;
+use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::play::serverbound::{
     ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction,
@@ -19,6 +21,41 @@ use rspigot_protocol::play::types::{
 };
 
 use crate::connection::client_settings;
+
+fn pack_status(action: ResourcePackAction) -> ResourcePackStatus {
+    match action {
+        ResourcePackAction::SuccessfullyLoaded => ResourcePackStatus::SuccessfullyLoaded,
+        ResourcePackAction::Declined => ResourcePackStatus::Declined,
+        ResourcePackAction::FailedDownload => ResourcePackStatus::FailedDownload,
+        ResourcePackAction::Accepted => ResourcePackStatus::Accepted,
+        ResourcePackAction::Downloaded => ResourcePackStatus::Downloaded,
+        ResourcePackAction::InvalidUrl => ResourcePackStatus::InvalidUrl,
+        ResourcePackAction::FailedReload => ResourcePackStatus::FailedReload,
+        ResourcePackAction::Discarded => ResourcePackStatus::Discarded,
+    }
+}
+
+fn tag_json(tag: &Tag) -> serde_json::Value {
+    use serde_json::{Number, Value};
+    let number = |value: f64| Number::from_f64(value).map_or(Value::Null, Value::Number);
+    match tag {
+        Tag::Byte(v) => Value::from(*v),
+        Tag::Short(v) => Value::from(*v),
+        Tag::Int(v) => Value::from(*v),
+        Tag::Long(v) => Value::from(*v),
+        Tag::Float(v) => number(f64::from(*v)),
+        Tag::Double(v) => number(*v),
+        Tag::String(v) => Value::from(v.as_str()),
+        Tag::ByteArray(v) => v.iter().map(|b| Value::from(*b as i8)).collect(),
+        Tag::IntArray(v) => v.iter().map(|n| Value::from(*n)).collect(),
+        Tag::LongArray(v) => v.iter().map(|n| Value::from(*n)).collect(),
+        Tag::List(v) => v.iter().map(tag_json).collect(),
+        Tag::Compound(v) => v
+            .iter()
+            .map(|(key, value)| (key.to_owned(), tag_json(value)))
+            .collect(),
+    }
+}
 
 pub enum Decoded {
     Input(PlayerInput),
@@ -269,6 +306,14 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             button: p.button_id,
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
+        ServerboundPlay::ResourcePack(p) => input(PlayerInput::ResourcePack {
+            id: p.id,
+            status: pack_status(p.action),
+        }),
+        ServerboundPlay::CustomClickAction(p) => input(PlayerInput::CustomClick {
+            id: p.id.to_string(),
+            data: p.payload.as_ref().map(|tag| tag_json(tag).to_string()),
+        }),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -351,6 +396,45 @@ mod tests {
                 count: 5,
                 patched: true,
             }))
+        );
+    }
+
+    #[test]
+    fn a_resource_pack_answer_becomes_an_input() {
+        let mut body = 7u128.to_be_bytes().to_vec();
+        body.push(1);
+        assert_eq!(
+            decoded(sb::RESOURCE_PACK, &body),
+            PlayerInput::ResourcePack {
+                id: uuid::Uuid::from_u128(7),
+                status: ResourcePackStatus::Declined,
+            }
+        );
+    }
+
+    #[test]
+    fn a_custom_click_carries_its_payload_as_json() {
+        let mut body = vec![8];
+        body.extend_from_slice(b"shop:buy");
+        let mut nbt = vec![10, 3, 0, 1, b'n', 0, 0, 0, 5, 0];
+        body.push(u8::try_from(nbt.len()).unwrap());
+        body.append(&mut nbt);
+        assert_eq!(
+            decoded(sb::CUSTOM_CLICK_ACTION, &body),
+            PlayerInput::CustomClick {
+                id: "shop:buy".to_owned(),
+                data: Some("{\"n\":5}".to_owned()),
+            }
+        );
+        let mut bare = vec![8];
+        bare.extend_from_slice(b"shop:buy");
+        bare.extend_from_slice(&[1, 0]);
+        assert_eq!(
+            decoded(sb::CUSTOM_CLICK_ACTION, &bare),
+            PlayerInput::CustomClick {
+                id: "shop:buy".to_owned(),
+                data: None,
+            }
         );
     }
 

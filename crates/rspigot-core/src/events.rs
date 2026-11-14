@@ -171,6 +171,14 @@ pub enum PlayerInput {
         secondary: Option<i32>,
     },
     SelectTrade(i32),
+    ResourcePack {
+        id: uuid::Uuid,
+        status: crate::plugins::events::ResourcePackStatus,
+    },
+    CustomClick {
+        id: String,
+        data: Option<String>,
+    },
     Latency(i32),
 }
 

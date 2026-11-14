@@ -15,6 +15,7 @@ mod digging;
 mod entity;
 pub mod events;
 pub(crate) mod furnaces;
+mod heard;
 mod inputs;
 mod inventory;
 mod items;

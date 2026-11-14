@@ -580,6 +580,7 @@ impl<L: ClientLink> Server<L> {
                 self.finish_kick(step, patch_of!(patch, PlayerKick));
                 Vec::new()
             }
+            Continuation::Heard(_) => Vec::new(),
             Continuation::Settings(step) => {
                 if let Some(settings) = step.settings {
                     self.apply_settings(step.player, settings);
