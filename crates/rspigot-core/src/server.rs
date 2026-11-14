@@ -1003,6 +1003,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_open_menus();
         self.tick_pressure_plates();
         self.tick_falling_blocks();
+        self.tick_block_events();
         self.tick_random_blocks();
         self.tick_fluids();
         self.update_tracking();

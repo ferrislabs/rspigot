@@ -4,6 +4,9 @@ mod diode;
 mod event;
 mod lamp;
 mod observer;
+mod piston;
+mod reactions;
+mod resolver;
 mod signals;
 mod torch;
 mod wire;
@@ -16,6 +19,7 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 
 pub(crate) use event::{RedstoneChange, RedstoneStep};
+pub(crate) use piston::PistonStep;
 pub(crate) use signals::{connected_direction, is_conductor};
 
 pub(crate) const MAX_POWER: i32 = 15;
@@ -41,6 +45,8 @@ pub(crate) enum TickPriority {
 pub(crate) struct Runtime {
     pub(crate) toggles: Vec<(BlockPos, u64)>,
     pub(crate) outputs: FxHashMap<BlockPos, i32>,
+    pub(crate) moving: FxHashMap<BlockPos, piston::Moving>,
+    pub(crate) events: Vec<piston::BlockEvent>,
     quiet: bool,
 }
 
@@ -134,6 +140,15 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::Repeater | BlockKind::Comparator) => {
                 self.diode_neighbor_changed(pos, state);
             }
+            Some(BlockKind::Piston | BlockKind::StickyPiston) => {
+                self.piston_neighbor_changed(pos, state);
+            }
+            Some(BlockKind::PistonHead) => self.piston_head_neighbor_changed(pos, state),
+            Some(BlockKind::MovingPiston) => {
+                if !self.falls.redstone.moving.contains_key(&pos) {
+                    self.schedule(pos, BlockKind::MovingPiston, 1);
+                }
+            }
             _ => {}
         }
     }
@@ -191,6 +206,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::RedstoneLamp => self.lamp_tick(pos, state),
             BlockKind::Repeater | BlockKind::Comparator => self.diode_tick(pos, state),
             BlockKind::Observer => self.observer_tick(pos, state),
+            BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),
             _ if is_plate(kind) => self.plate_tick(pos, state),
             _ => return false,
@@ -203,6 +219,7 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::RedstoneWire) => self.wire_shape(pos, state, direction),
             Some(BlockKind::Repeater) => self.repeater_shape(pos, state, direction),
             Some(BlockKind::Observer) => self.observer_shape(pos, state, direction),
+            Some(BlockKind::PistonHead) => self.piston_head_shape(pos, state, direction),
             _ => {}
         }
     }
