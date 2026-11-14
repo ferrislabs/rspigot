@@ -81,6 +81,7 @@ mod tamable;
 mod thrown;
 mod trader_spawner;
 mod trading;
+mod travel;
 mod wind_charge;
 mod wither_summon;
 mod world_state;
