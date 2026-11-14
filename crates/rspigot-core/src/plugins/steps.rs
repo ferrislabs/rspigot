@@ -1565,6 +1565,7 @@ pub(crate) enum Continuation {
     Place(Box<PlaceStep>),
     MultiPlace(Box<PlaceStep>),
     Physics(PhysicsStep),
+    Redstone(Box<crate::redstone::RedstoneStep>),
     Cook(Box<CookStep>),
     CampfireStart(Box<CampfireStep>),
     Exp(ExpStep),
@@ -1770,6 +1771,7 @@ impl Continuation {
             Self::Place(_) => EventKind::BlockPlace,
             Self::MultiPlace(_) => EventKind::BlockMultiPlace,
             Self::Physics(_) => EventKind::BlockPhysics,
+            Self::Redstone(_) => EventKind::BlockRedstone,
             Self::Cook(_) => EventKind::BlockCook,
             Self::CampfireStart(_) => EventKind::CampfireStart,
             Self::Exp(_) => EventKind::BlockExp,
@@ -2034,6 +2036,9 @@ impl Continuation {
             }
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
             (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
+            (Self::Redstone(one), Self::Redstone(other)) => {
+                one.pos == other.pos && one.change == other.change
+            }
             (Self::Cauldron(one), Self::Cauldron(other)) => {
                 one.by.is_none() && other.by.is_none() && one.pos == other.pos
             }
@@ -2131,6 +2136,7 @@ impl Continuation {
             | Self::Form(_)
             | Self::Nature(_)
             | Self::Sponge(_)
+            | Self::Redstone(_)
             | Self::Ignite(_)
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,

@@ -838,6 +838,10 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Redstone(step) => {
+                self.finish_redstone(*step, patch_of!(patch, BlockRedstone));
+                Vec::new()
+            }
             Continuation::Cook(step) => {
                 if !cancelled {
                     self.finish_cook(*step, patch_of!(patch, BlockCook));
