@@ -26,6 +26,7 @@ mod neutral;
 mod panda;
 mod path;
 mod path_type;
+mod piglin;
 mod polar_bear;
 mod profile;
 mod rabbit;
@@ -51,7 +52,7 @@ mod wolf;
 mod world;
 mod zombified_piglin;
 
-pub use action::{MobAction, TargetReason, TargetRequest};
+pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequest};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };
@@ -122,6 +123,16 @@ pub use neutral::ResetUniversalAngerGoal;
 pub use panda::{PandaAction, PandaBrain, PandaFacts, PandaGoal};
 pub use path::{Path, PathNode};
 pub use path_type::PathType;
+pub use piglin::{
+    ADMIRE_DURATION, ATE_RECENTLY_TICKS, BackUpIfTooClose, BecomePassiveIfMemoryPresent, CopyIf,
+    CopyMemoryWithExpiry, CrossbowAttack, HoglinCondition, HoglinFacts, HoglinSensor, NetherFinder,
+    PIGLIN_INVENTORY_SIZE, PiglinBruteSensor, PiglinCondition, PiglinFacts, PiglinSensor,
+    RememberIfHoglinWasKilled, StartAdmiringItemIfSeen, StartCelebratingIfTargetDead,
+    StartHuntingHoglin, StopAdmiringIfItemTooFarAway, StopAdmiringIfTiredOfTryingToReachItem,
+    StopHoldingItemIfNoLongerAdmiring, TIME_BETWEEN_HUNTS, can_replace_current_item,
+    equipment_slot_for, is_barter_currency, is_food, is_loved_item, is_player_holding_loved_item,
+    is_pos_near_nearest_repellent,
+};
 pub use polar_bear::{PolarBearAction, PolarBearFacts, PolarBearGoal};
 pub use profile::{MobProfile, MobState, combat_fall_distance};
 pub use rabbit::{HopSound, MORE_CARROT_TICKS, RabbitHop, RaidGardenGoal};

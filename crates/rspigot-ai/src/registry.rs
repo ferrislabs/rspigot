@@ -144,10 +144,10 @@ impl Goals<'_> {
 }
 
 pub fn register_brain(
-    _kind: EntityKind,
-    _random: &mut crate::random::MobRandom,
+    kind: EntityKind,
+    random: &mut crate::random::MobRandom,
 ) -> Option<crate::behavior::BehaviorBrain<crate::behavior::MobControl>> {
-    None
+    crate::piglin::brain_for(kind, random)
 }
 
 pub fn register_goals(

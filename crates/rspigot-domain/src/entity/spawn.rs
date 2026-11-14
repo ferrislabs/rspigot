@@ -557,6 +557,14 @@ pub fn finalize_spawn(
             species::ocelot::finalize(base, living, environment, group, level)
         }
         Some(Species::Witch(_)) => species::witch::finalize(base, living, reason, group, level),
+        Some(Species::Hoglin(_)) if kind == EntityKind::Hoglin => {
+            species::hoglin::finalize_hoglin(base, living, group, level)
+        }
+        Some(Species::Hoglin(_)) => species::hoglin::finalize_zoglin(base, living, group, level),
+        Some(Species::Piglin(_)) if kind == EntityKind::Piglin => {
+            species::piglin::finalize_piglin(base, living, environment, reason, group, level, own)
+        }
+        Some(Species::Piglin(_)) => species::piglin::finalize_brute(base, living, group, level),
         Some(Species::Pillager(_)) => {
             species::pillager::finalize(base, living, reason, group, level)
         }

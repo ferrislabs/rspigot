@@ -17,9 +17,11 @@ pub mod enderman;
 pub mod endermite;
 pub mod fox;
 pub mod ghast;
+pub mod hoglin;
 pub mod iron_golem;
 pub mod ocelot;
 pub mod panda;
+pub mod piglin;
 pub mod pillager;
 pub mod polar_bear;
 pub mod rabbit;
@@ -196,6 +198,8 @@ pub enum Species {
     Ocelot(ocelot::OcelotState),
     Witch(witch::WitchState),
     Pillager(pillager::PillagerState),
+    Hoglin(hoglin::HoglinState),
+    Piglin(piglin::PiglinState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -370,6 +374,12 @@ impl Species {
         }
         if kind == EntityKind::Pillager {
             return Self::Pillager(pillager::define(base));
+        }
+        if matches!(kind, EntityKind::Hoglin | EntityKind::Zoglin) {
+            return Self::Hoglin(hoglin::define(base));
+        }
+        if matches!(kind, EntityKind::Piglin | EntityKind::PiglinBrute) {
+            return Self::Piglin(piglin::define(base));
         }
         Self::Plain
     }

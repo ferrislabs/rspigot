@@ -482,7 +482,10 @@ impl LivingState {
                 mob.neutral = Some(NeutralState::default());
             }
             mob.species = Species::new(base);
-            mob.can_pick_up_loot = matches!(kind, EntityKind::Fox | EntityKind::Panda);
+            mob.can_pick_up_loot = matches!(
+                kind,
+                EntityKind::Fox | EntityKind::Panda | EntityKind::Piglin | EntityKind::PiglinBrute
+            );
         }
         if kind.extends("Spider") {
             base.data.define(DATA_SPIDER_FLAGS, SyncedValue::Byte(0));

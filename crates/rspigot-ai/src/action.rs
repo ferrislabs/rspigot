@@ -37,6 +37,49 @@ pub struct TargetRequest {
     pub tempt: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BrainMessage {
+    HoglinAttackIfCloser {
+        target: EntityId,
+    },
+    HoglinRetreat {
+        target: EntityId,
+    },
+    HoglinHurtBy {
+        attacker: EntityId,
+    },
+    HoglinHitTarget {
+        target: EntityId,
+    },
+    ZoglinHurtBy {
+        attacker: EntityId,
+    },
+    PiglinAngerIfCloser {
+        target: EntityId,
+    },
+    PiglinRetreat {
+        target: EntityId,
+    },
+    PiglinDontHunt,
+    PiglinUniversalAnger,
+    PiglinHurtBy {
+        attacker: EntityId,
+    },
+    PiglinBruteHurtBy {
+        attacker: EntityId,
+    },
+    PiglinAngerFromPlayer {
+        player: EntityId,
+        only_if_sees: bool,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PiglinAction {
+    StopHoldingOffHand { bartering_enabled: bool },
+    SetDancing(bool),
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum MobAction {
     Swing(Hand),
@@ -94,4 +137,10 @@ pub enum MobAction {
     Raider(RaiderAction),
     Crossbow(CrossbowAction),
     AmbientSound,
+    Voice(&'static str),
+    Message {
+        to: EntityId,
+        message: BrainMessage,
+    },
+    Piglin(PiglinAction),
 }
