@@ -13,6 +13,10 @@ mod table;
 pub use table::POTIONS;
 
 pub const CONTENTS: &str = "minecraft:potion_contents";
+pub const LINGER_RADIUS: f32 = 3.0;
+pub const LINGER_RADIUS_ON_USE: f32 = -0.5;
+pub const LINGER_WAIT_TIME: i32 = 10;
+pub const LINGER_DURATION: i32 = 600;
 pub const DURATION_SCALE: &str = "minecraft:potion_duration_scale";
 pub const REGISTRY: &str = "minecraft:potion";
 pub const DEFAULT_COLOR: i32 = -13_083_194;

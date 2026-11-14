@@ -22,7 +22,7 @@ use crate::events::{ClientEvent, EntityStatus};
 use crate::health::DamageSource;
 use crate::loot::{self, LootContext};
 use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause, EntityRemoveCause};
-use crate::plugins::events::{EntityTransform, EntityTransformReason};
+use crate::plugins::events::{EntityTransform, EntityTransformReason, PigZap};
 use crate::plugins::steps::TransformStep;
 use crate::plugins::{
     AfterHurt, Birth, Combuster, Continuation, EventPayload, Follow, Holder, Spawned, Struck,
@@ -773,6 +773,10 @@ impl<L: ClientLink> Server<L> {
             );
         }
         let (reason, transform) = match (old_base.kind, kind) {
+            (Kind::Pig, Kind::ZombifiedPiglin) => (
+                CreatureSpawnReason::Lightning,
+                EntityTransformReason::Lightning,
+            ),
             (_, Kind::Stray) => (CreatureSpawnReason::Frozen, EntityTransformReason::Frozen),
             (_, Kind::Zoglin | Kind::ZombifiedPiglin) => {
                 if let Some(nausea) = EffectId::from_name("minecraft:nausea") {
@@ -824,6 +828,15 @@ impl<L: ClientLink> Server<L> {
             }
             _ => {}
         }
+        if old_base.kind == Kind::Pig && kind == Kind::ZombifiedPiglin {
+            let mut own = LegacyRandom::new(self.rng.random());
+            let weapon = species::zombified_piglin::default_weapon(&mut own);
+            state.equipment[slot_index(EquipmentSlot::Mainhand)] =
+                Some(ItemStack::new(weapon.id(), std::num::NonZeroU8::MIN));
+            if let Some(mob) = state.mob.as_mut() {
+                mob.persistence_required = true;
+            }
+        }
         let mut converted = Entity::new(base, EntityState::Living(Box::new(state)));
         converted.extra = extra;
         if kind == Kind::Frog && old_base.kind == Kind::Tadpole {
@@ -859,11 +872,31 @@ impl<L: ClientLink> Server<L> {
         };
         let transformed = crate::plugins::view_of_entity(&converted);
         let lane = self.lane_for(None, old);
+        let zap = match birth.then {
+            Spawned::Converted {
+                follow: Follow::Zap { bolt },
+                ..
+            } => Some(bolt),
+            _ => None,
+        };
         let step = TransformStep {
             old,
             converted,
             birth,
         };
+        if let Some(bolt) = zap {
+            self.fire(lane, Continuation::Zap(Box::new(step)), move |server| {
+                Some(EventPayload::PigZap(PigZap {
+                    entity_type: view.kind.clone(),
+                    entity: view,
+                    lightning: server.entity_view(bolt)?,
+                    transform_reason: reason,
+                    transformed_entities: vec![transformed.clone()],
+                    transformed_entity: transformed,
+                }))
+            });
+            return;
+        }
         self.fire(lane, Continuation::Transform(Box::new(step)), move |_| {
             Some(EventPayload::EntityTransform(EntityTransform {
                 entity_type: view.kind.clone(),

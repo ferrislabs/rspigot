@@ -549,7 +549,9 @@ fn inventory_throw_drops_one_then_the_rest_of_the_slot() {
     assert!(inventory_resyncs(&events).is_empty(), "{events:?}");
     pump(&mut server, &mut [&mut alice], 2);
     assert!(inventory_resyncs(&alice.drain()).is_empty());
-    assert_eq!(server.items_on_ground(), 2);
+    let ground = server.ground_items();
+    assert_eq!(ground.len(), 1);
+    assert_eq!(ground[0].1.count.get(), 5);
 }
 
 #[test]

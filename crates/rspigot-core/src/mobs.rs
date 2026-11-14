@@ -1975,11 +1975,11 @@ impl<L: ClientLink> Server<L> {
             }
         }
         if dead {
-            if outcome == HurtOutcome::Full && !self.kind_death_sound(id) {
-                self.make_entity_sound(id, |sounds| sounds.death, |set| set.death);
+            let full = outcome == HurtOutcome::Full;
+            if self.ask_resurrect(Holder::Mob(id), source, full) {
+                return true;
             }
-            self.charged_creeper_drops(source.causing.as_ref().map(|c| c.entity), id);
-            self.die_mob(id, source);
+            self.resume_mob_death(id, source, full);
         } else if outcome == HurtOutcome::Full {
             self.reset_ambient_sound(id);
             if !self.kind_hurt_sound(id) {
@@ -1991,6 +1991,14 @@ impl<L: ClientLink> Server<L> {
         }
         self.kind_after_hurt(id, source, dead);
         true
+    }
+
+    pub(crate) fn resume_mob_death(&mut self, id: EntityId, source: &DamageSource, full: bool) {
+        if full && !self.kind_death_sound(id) {
+            self.make_entity_sound(id, |sounds| sounds.death, |set| set.death);
+        }
+        self.charged_creeper_drops(source.causing.as_ref().map(|c| c.entity), id);
+        self.die_mob(id, source);
     }
 
     pub(crate) fn make_entity_sound(

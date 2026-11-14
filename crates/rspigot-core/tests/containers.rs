@@ -1808,7 +1808,7 @@ fn without_block_drops_a_broken_chest_drops_what_it_holds_but_not_itself() {
 }
 
 #[test]
-fn a_big_stack_falls_in_pieces_of_ten_to_thirty() {
+fn a_big_stack_drops_every_item_when_its_container_breaks() {
     let mut world = world();
     world.place_chest();
     world.console("give Alice minecraft:stone 64");
@@ -1821,9 +1821,6 @@ fn a_big_stack_falls_in_pieces_of_ten_to_thirty() {
 
     let pieces = on_the_ground(&world, "minecraft:stone");
     assert_eq!(pieces.iter().sum::<u32>(), 64);
-    assert!(pieces.len() >= 3);
-    assert!(pieces.iter().all(|count| *count <= 30));
-    assert!(pieces[..pieces.len() - 1].iter().all(|count| *count >= 10));
 }
 
 #[test]

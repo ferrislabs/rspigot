@@ -297,7 +297,7 @@ mod tests {
     const SHEEP_COLOUR_TABLES: usize = 16;
     const CHARGED_CREEPER_TABLES: usize = 6;
     const TILL_TABLES: usize = 1;
-    const HARVEST_TABLES: usize = 1;
+    const HARVEST_TABLES: usize = 3;
     const ENTITY_TYPES_WITH_TABLE: usize = 93;
     const WALL_VARIANTS_WITHOUT_OWN_TABLE: usize = 63;
 

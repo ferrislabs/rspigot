@@ -269,7 +269,7 @@ impl<L: ClientLink> Server<L> {
         follow: Follow,
     ) {
         match follow {
-            Follow::Nothing => {}
+            Follow::Nothing | Follow::Zap { .. } => {}
             Follow::Metamorphosis => self.tadpole_metamorphosed(old, placed),
             Follow::Infection { at } => {
                 if let Some(pos) = at {

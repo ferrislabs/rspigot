@@ -302,6 +302,65 @@ pub(crate) struct ShearStep {
     pub(crate) parked: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct MergeStep {
+    pub(crate) from: EntityId,
+    pub(crate) to: EntityId,
+}
+
+#[derive(Debug)]
+pub(crate) struct HatchStep {
+    pub(crate) player: Option<PlayerId>,
+    pub(crate) position: Vec3,
+    pub(crate) yaw: f32,
+    pub(crate) hatching: bool,
+    pub(crate) kind: rspigot_entities::EntityKind,
+    pub(crate) count: i8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct BottleStep {
+    pub(crate) position: Vec3,
+    pub(crate) experience: i32,
+}
+
+#[derive(Debug)]
+pub(crate) struct LingerStep {
+    pub(crate) potion: EntityId,
+    pub(crate) cloud: Option<Entity>,
+    pub(crate) hit: SplashHit,
+    pub(crate) pos: BlockPos,
+    pub(crate) color: i32,
+    pub(crate) instant: bool,
+    pub(crate) silent: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct HarvestStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
+    pub(crate) drops: Vec<ItemStack>,
+    pub(crate) glow: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct ResurrectStep {
+    pub(crate) holder: Holder,
+    pub(crate) hand: Option<Hand>,
+    pub(crate) totem: Option<ItemStack>,
+    pub(crate) source: crate::health::DamageSource,
+    pub(crate) full: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct LeashStep {
+    pub(crate) player: PlayerId,
+    pub(crate) target: EntityId,
+    pub(crate) hand: Hand,
+    pub(crate) stack: Option<ItemStack>,
+    pub(crate) parked: bool,
+}
+
 #[derive(Debug)]
 pub(crate) struct BucketEntityStep {
     pub(crate) player: PlayerId,
@@ -703,6 +762,7 @@ pub(crate) enum Follow {
     Infection { at: Option<BlockPos> },
     Cure { starter: Option<uuid::Uuid> },
     Metamorphosis,
+    Zap { bolt: EntityId },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -735,6 +795,11 @@ pub(crate) enum Spawned {
         player: PlayerId,
         slot: usize,
         item: ItemStack,
+    },
+    Thrown {
+        player: PlayerId,
+        hand: Hand,
+        stack: ItemStack,
     },
     Converted {
         old: EntityId,
@@ -894,6 +959,7 @@ pub(crate) struct ArrowFollow {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ThrownFollow {
     pub(crate) projectile: EntityId,
+    pub(crate) target: Option<EntityId>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -908,6 +974,17 @@ pub(crate) struct HurtingFollow {
     pub(crate) target: EntityId,
     pub(crate) owner: Option<EntityId>,
     pub(crate) saved_fire: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct EmpowerStep {
+    pub(crate) creeper: EntityId,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ScorchStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1038,6 +1115,10 @@ pub(crate) enum Grief {
     },
     Raid {
         rabbit: EntityId,
+        pos: BlockPos,
+    },
+    Vines {
+        player: PlayerId,
         pos: BlockPos,
     },
     Berries {
@@ -1308,6 +1389,14 @@ pub(crate) enum Continuation {
     ExpChange(OrbStep),
     PickupArrow(ArrowStep),
     Shear(Box<ShearStep>),
+    Resurrect(Box<ResurrectStep>),
+    Harvest(Box<HarvestStep>),
+    Hatch(Box<HatchStep>),
+    Bottle(BottleStep),
+    Linger(Box<LingerStep>),
+    Merge(MergeStep),
+    Leash(Box<LeashStep>),
+    Unleash(Box<LeashStep>),
     BucketEntity(Box<BucketEntityStep>),
     BucketEmpty(Box<BucketEmptyStep>),
     Damage(Box<DamageStep>),
@@ -1350,6 +1439,9 @@ pub(crate) enum Continuation {
     Replenish(ReplenishStep),
     SelectTrade(SelectTradeStep),
     Transform(Box<TransformStep>),
+    Zap(Box<TransformStep>),
+    Empower(EmpowerStep),
+    Scorch(ScorchStep),
     Split(SplitStep),
     Scatter(Box<ScatterStep>),
     ChangeBlock(Box<ChangeStep>),
@@ -1486,6 +1578,14 @@ impl Continuation {
             Self::ExpChange(_) => EventKind::PlayerExpChange,
             Self::PickupArrow(_) => EventKind::PlayerPickupArrow,
             Self::Shear(_) => EventKind::PlayerShearEntity,
+            Self::Resurrect(_) => EventKind::EntityResurrect,
+            Self::Harvest(_) => EventKind::PlayerHarvestBlock,
+            Self::Hatch(_) => EventKind::PlayerEggThrow,
+            Self::Bottle(_) => EventKind::ExpBottle,
+            Self::Linger(_) => EventKind::LingeringPotionSplash,
+            Self::Merge(_) => EventKind::ItemMerge,
+            Self::Leash(_) => EventKind::PlayerLeashEntity,
+            Self::Unleash(_) => EventKind::PlayerUnleashEntity,
             Self::BucketEntity(_) => EventKind::PlayerBucketEntity,
             Self::BucketEmpty(_) => EventKind::PlayerBucketEmpty,
             Self::Damage(_) => EventKind::BlockDamage,
@@ -1523,6 +1623,9 @@ impl Continuation {
             Self::Replenish(_) => EventKind::VillagerReplenishTrade,
             Self::SelectTrade(_) => EventKind::TradeSelect,
             Self::Transform(_) | Self::Scatter(_) => EventKind::EntityTransform,
+            Self::Zap(_) => EventKind::PigZap,
+            Self::Empower(_) => EventKind::CreeperPower,
+            Self::Scorch(_) => EventKind::BlockIgnite,
             Self::Split(_) => EventKind::CubeMobSplit,
             Self::ChangeBlock(_) => EventKind::EntityChangeBlock,
             Self::Form(_) => EventKind::EntityBlockForm,
@@ -1631,11 +1734,14 @@ impl Continuation {
             Self::Barter(step) => step.piglin == id,
             Self::Acquire(step) => step.merchant == id,
             Self::Replenish(step) => step.merchant == id,
-            Self::Transform(step) => step.old == id,
+            Self::Transform(step) | Self::Zap(step) => step.old == id,
+            Self::Empower(step) => step.creeper == id,
+            Self::Merge(step) => step.from == id || step.to == id,
+            Self::Linger(step) => step.potion == id,
             Self::Split(step) => step.id == id,
             Self::Scatter(step) => step.id == id,
             Self::ChangeBlock(step) => match &step.change {
-                Grief::Fall { .. } => false,
+                Grief::Fall { .. } | Grief::Vines { .. } => false,
                 Grief::Land(landing) => landing.falling == id,
                 Grief::Graze { sheep, .. } => *sheep == id,
                 Grief::Raid { rabbit, .. } => *rabbit == id,
@@ -1691,6 +1797,7 @@ impl Continuation {
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::BucketEntity(step) => step.target == id,
+            Self::Leash(step) | Self::Unleash(step) => step.target == id,
             Self::InteractEntity(step) => step.target == id,
             _ => false,
         }

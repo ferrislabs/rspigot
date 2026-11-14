@@ -83,7 +83,7 @@ fn empty_sound(kind: Kind) -> &'static str {
     }
 }
 
-fn slot_of(hand: Hand) -> Slot {
+pub(crate) fn slot_of(hand: Hand) -> Slot {
     match hand {
         Hand::Main => Slot::Hand,
         Hand::Off => Slot::OffHand,

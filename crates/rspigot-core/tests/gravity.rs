@@ -198,6 +198,14 @@ impl ChunkGenerator for Terrain {
     }
 }
 
+fn items_total(server: &Server<Link>) -> u32 {
+    server
+        .ground_items()
+        .iter()
+        .map(|(_, stack)| u32::from(stack.count.get()))
+        .sum()
+}
+
 fn server() -> Server<Link> {
     let config = GameConfig {
         view_distance: 3,
@@ -612,7 +620,7 @@ fn stalactite_column_falls_when_its_root_breaks_and_shatters_on_landing() {
     for y in 64..=74 {
         assert_eq!(block_at(&events, BlockPos::new(x, y, z)), None);
     }
-    assert_eq!(server.items_on_ground(), 4);
+    assert_eq!(items_total(&server), 4);
 }
 
 #[test]
@@ -687,7 +695,7 @@ fn scaffolding_seven_blocks_from_its_last_support_breaks() {
         );
     }
     assert_eq!(server.falling_blocks(), 0);
-    assert_eq!(server.items_on_ground(), 3);
+    assert_eq!(items_total(&server), 3);
 }
 
 #[test]

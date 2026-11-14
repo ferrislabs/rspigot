@@ -15,6 +15,7 @@ use super::falling::FallingState;
 use super::fangs::{self, FangsState};
 use super::hurting::{self, HurtingState};
 use super::item::{self, ItemState};
+use super::lightning;
 use super::living::{
     self, EQUIPMENT_SLOTS, LivingState, MobState, health, is_left_handed, is_no_ai, set_health,
     set_left_handed, set_no_ai,
@@ -182,11 +183,15 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::Trident
             | EntityKind::Snowball
             | EntityKind::SplashPotion
+            | EntityKind::LingeringPotion
+            | EntityKind::Egg
+            | EntityKind::ExperienceBottle
             | EntityKind::LlamaSpit
             | EntityKind::ShulkerBullet
             | EntityKind::EvokerFangs
             | EntityKind::EndCrystal
             | EntityKind::AreaEffectCloud
+            | EntityKind::LightningBolt
     ) || hurting::is_hurting_projectile(kind)
         || kind.extends("Mob")
 }
@@ -1095,7 +1100,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
     let name = nbt.get_str("id").ok_or(LoadError::MissingId)?;
     let kind =
         EntityKind::from_name(name).ok_or_else(|| LoadError::UnknownType(name.to_owned()))?;
-    if !kind.can_serialize() {
+    if !kind.can_serialize() && kind != EntityKind::LightningBolt {
         return Err(LoadError::NotSerializable(kind.name()));
     }
     let mut base = EntityBase::new(id, fallback_uuid, kind);
@@ -1123,7 +1128,12 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Arrow(Box::new(ArrowState::new_trident(&mut base, seed)))
         }
-        EntityKind::Snowball | EntityKind::SplashPotion | EntityKind::LlamaSpit => {
+        EntityKind::Snowball
+        | EntityKind::SplashPotion
+        | EntityKind::LingeringPotion
+        | EntityKind::Egg
+        | EntityKind::ExperienceBottle
+        | EntityKind::LlamaSpit => {
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Thrown(Box::new(ThrownState::new(&mut base, seed)))
         }
@@ -1137,6 +1147,9 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityKind::EvokerFangs => EntityState::Fangs(FangsState::default()),
         EntityKind::EndCrystal => EntityState::Crystal(crystal::define(&mut base)),
         EntityKind::AreaEffectCloud => EntityState::Cloud(Box::new(cloud::define(&mut base))),
+        EntityKind::LightningBolt => EntityState::Lightning(lightning::LightningState::new(
+            (fallback_uuid.as_u64_pair().0 % 3) as i32 + 1,
+        )),
         _ => EntityState::Living(Box::new(LivingState::new(&mut base, 0.0))),
     };
     read_base(nbt, &mut base)?;
@@ -1219,7 +1232,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             cloud::read(nbt, &mut base, cloud_state);
             &[&ENTITY_KEYS, cloud::KEYS]
         }
-        EntityState::Inert(_) => &[],
+        EntityState::Lightning(_) | EntityState::Inert(_) => &[],
     };
     let extra = extra_keys(nbt, known);
     Ok(Entity { base, state, extra })
@@ -1646,7 +1659,7 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         }
         EntityState::Crystal(_) => crystal::write(&entity.base, &mut out),
         EntityState::Cloud(cloud_state) => cloud::write(&entity.base, cloud_state, &mut out),
-        EntityState::Inert(_) => {}
+        EntityState::Lightning(_) | EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {
         if !out.contains_key(key) {

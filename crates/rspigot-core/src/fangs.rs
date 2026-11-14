@@ -66,7 +66,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn living_in(&self, area: &Aabb) -> Vec<EntityId> {
+    pub(crate) fn living_in(&self, area: &Aabb) -> Vec<EntityId> {
         let mut found: Vec<EntityId> = self
             .players
             .values()

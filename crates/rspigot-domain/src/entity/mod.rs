@@ -14,6 +14,7 @@ pub mod gossip;
 pub mod hurting;
 pub mod item;
 pub mod leash;
+pub mod lightning;
 pub mod living;
 pub mod neutral;
 pub mod orb;
@@ -64,6 +65,7 @@ pub enum EntityState {
     Crystal(crystal::CrystalState),
     Cloud(Box<cloud::CloudState>),
     Falling(FallingState),
+    Lightning(lightning::LightningState),
     Living(Box<LivingState>),
     Orb(OrbState),
     Inert(Compound),
