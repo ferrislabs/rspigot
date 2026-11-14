@@ -508,6 +508,18 @@ pub(crate) struct ArrowCountStep {
     pub(crate) delta: i32,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) enum PlatformTraveler {
+    Player(PlayerId, crate::world_state::DimensionKey),
+    Entity(EntityId),
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct PlatformStep {
+    pub(crate) traveler: PlatformTraveler,
+    pub(crate) destination: crate::travel::Destination,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct PigAngerStep {
     pub(crate) mob: EntityId,
@@ -1394,6 +1406,7 @@ pub(crate) enum Continuation {
     Tame(TameStep),
     PigAnger(PigAngerStep),
     Reputation(ReputationStep),
+    Platform(Box<PlatformStep>),
     Swim {
         entity: EntityId,
         swimming: bool,
@@ -1536,6 +1549,7 @@ impl Continuation {
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Reputation(_) => EventKind::VillagerReputationChange,
+            Self::Platform(_) => EventKind::PortalCreate,
             Self::Swim { .. } => EventKind::EntityToggleSwim,
             Self::ArrowCount(_) => EventKind::ArrowBodyCountChange,
             Self::Air(_) => EventKind::EntityAirChange,
@@ -1657,6 +1671,9 @@ impl Continuation {
             Self::MobRegain(step) => step.target == id,
             Self::PigAnger(step) => step.mob == id,
             Self::Reputation(step) => step.villager == id,
+            Self::Platform(step) => {
+                matches!(step.traveler, PlatformTraveler::Entity(entity) if entity == id)
+            }
             Self::Swim { entity, .. } => *entity == id,
             Self::ArrowCount(step) => step.target == id,
             Self::Air(step) => step.entity == id,

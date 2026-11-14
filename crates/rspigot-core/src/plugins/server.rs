@@ -1104,6 +1104,7 @@ impl<L: ClientLink> Server<L> {
                 }
                 Vec::new()
             }
+            Continuation::Platform(step) => self.finish_platform(*step, cancelled),
             Continuation::Career(step) => {
                 if !cancelled {
                     self.finish_career(step, patch_of!(patch, VillagerCareerChange).profession);
