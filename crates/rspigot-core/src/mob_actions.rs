@@ -108,6 +108,7 @@ impl<L: ClientLink> Server<L> {
                     stage: stage as i8,
                 },
             ),
+            MobAction::Spell(action) => self.spell_action(id, action),
             MobAction::Wolf(action) => self.wolf_action(id, action),
             MobAction::Cat(action) => self.cat_action(id, action),
             MobAction::Fox(action) => self.fox_action(id, action),

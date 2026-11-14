@@ -382,6 +382,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Thrown(_) => self.tick_thrown(id),
                 EntityState::Hurting(_) => self.tick_hurting(id),
                 EntityState::Bullet(_) => self.tick_bullet(id),
+                EntityState::Fangs(_) => self.tick_fangs(id),
                 EntityState::Inert(_) => {}
             }
             self.entities.store.reindex(id);

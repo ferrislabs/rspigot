@@ -63,6 +63,7 @@ pub struct Facts {
     pub school_leader: Option<EntityId>,
     pub school_size: i32,
     pub swimming: bool,
+    pub wool_color: u8,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -187,6 +188,7 @@ pub struct MobBody {
     pub armadillo: crate::ArmadilloFacts,
     pub sniffer: crate::SnifferFacts,
     pub vex: crate::VexFacts,
+    pub spell: crate::SpellFacts,
     pub phantom: crate::PhantomFacts,
     pub bee: crate::BeeFacts,
     pub fish: crate::FishFacts,
@@ -214,6 +216,7 @@ impl MobBody {
             armadillo: mob.species.armadillo,
             sniffer: mob.species.sniffer,
             vex: mob.species.vex,
+            spell: mob.species.spell,
             phantom: mob.species.phantom,
             bee: mob.species.bee,
             fish: mob.species.fish,
@@ -488,6 +491,7 @@ pub struct KindFacts {
     pub breeze: crate::BreezeFacts,
     pub creaking: crate::CreakingFacts,
     pub vex: crate::VexFacts,
+    pub spell: crate::SpellFacts,
     pub bat: crate::BatFacts,
     pub phantom: crate::PhantomFacts,
     pub bee: crate::BeeFacts,

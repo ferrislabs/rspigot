@@ -7,7 +7,8 @@ use crate::blaze::BlazeAttackGoal;
 use crate::blocks::{MoveThroughVillageGoal, RemoveTurtleEggGoal};
 use crate::brain::Brain;
 use crate::combat::{
-    HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, OcelotAttackGoal, SwellGoal,
+    HurtByTargetGoal, LeapAtTargetGoal, MeleeAttackGoal, OcelotAttackGoal, RangedBowAttackGoal,
+    SwellGoal,
 };
 use crate::control::MoveStyle;
 use crate::crossbow::{CrossbowGoal, HoldGroundAttackGoal, RangedCrossbowAttackGoal};
@@ -36,6 +37,7 @@ use crate::raider::{
 use crate::ranged::RangedAttackGoal;
 use crate::restriction::MoveTowardsRestrictionGoal;
 use crate::shulker::{ShulkerAttackGoal, ShulkerGoal, ShulkerPeekGoal};
+use crate::spell::{CastingGoal, SpellGoal, UseSpellGoal};
 use crate::swimmers::{
     BreathAirGoal, DolphinJumpGoal, DolphinMoveToItemGoal, DolphinPlayWithItemsGoal,
     DolphinSwimToTreasureGoal, DolphinSwimWithPlayerGoal, FollowFlockLeaderGoal,
@@ -50,6 +52,7 @@ use crate::world::TargetKind;
 use crate::{
     cat, enderman, fox, iron_golem, panda, polar_bear, silverfish, wolf, zombified_piglin,
 };
+use rspigot_domain::entity::species::spellcaster::IllagerSpell;
 use rspigot_domain::entity::species::{drowned, guardian};
 
 pub const ZOMBIE_AGGRESSIVE_TOWARDS_VILLAGER: bool = true;
@@ -77,6 +80,16 @@ const VINDICATOR_LOOK_PLAYER_DISTANCE: f32 = 3.0;
 const VINDICATOR_LOOK_MOB_DISTANCE: f32 = 8.0;
 const VINDICATOR_MELEE_SPEED: f64 = 1.0;
 const VINDICATOR_HOLD_GROUND_RADIUS: f32 = 10.0;
+const SPELLCASTER_UNSEEN_MEMORY: i32 = 300;
+const SPELLCASTER_STROLL_SPEED: f64 = 0.6;
+const SPELLCASTER_LOOK_PLAYER_DISTANCE: f32 = 3.0;
+const SPELLCASTER_LOOK_MOB_DISTANCE: f32 = 8.0;
+const EVOKER_AVOID_DISTANCE: f32 = 8.0;
+const EVOKER_AVOID_WALK_SPEED: f64 = 0.6;
+const EVOKER_AVOID_SPRINT_SPEED: f64 = 1.0;
+const ILLUSIONER_BOW_SPEED: f64 = 0.5;
+const ILLUSIONER_BOW_INTERVAL: i32 = 20;
+const ILLUSIONER_BOW_RADIUS: f32 = 15.0;
 const RAVAGER_VILLAGER_INTERVAL: i32 = 10;
 const RAVAGER_MELEE_SPEED: f64 = 1.0;
 const RAVAGER_STROLL_SPEED: f64 = 0.4;
@@ -1217,6 +1230,111 @@ pub fn register_goals(
                 MobGoal::Raider(RaiderGoal::JohnnyAttack(
                     crate::raider::JohnnyAttackGoal::default(),
                 )),
+            );
+        }
+        EntityKind::Evoker | EntityKind::Illusioner => {
+            let evoker = kind == EntityKind::Evoker;
+            raider::register(&mut add);
+            add.float(0);
+            add.goal(
+                1,
+                MobGoal::Spell(SpellGoal::Casting(CastingGoal::new(evoker))),
+            );
+            if evoker {
+                add.goal(
+                    2,
+                    MobGoal::AvoidEntity(AvoidEntityGoal::new(
+                        TargetKind::Player,
+                        EVOKER_AVOID_DISTANCE,
+                        EVOKER_AVOID_WALK_SPEED,
+                        EVOKER_AVOID_SPRINT_SPEED,
+                    )),
+                );
+                add.goal(
+                    3,
+                    MobGoal::AvoidEntity(AvoidEntityGoal::new(
+                        TargetKind::Class("Creaking"),
+                        EVOKER_AVOID_DISTANCE,
+                        EVOKER_AVOID_WALK_SPEED,
+                        EVOKER_AVOID_SPRINT_SPEED,
+                    )),
+                );
+                for (priority, spell) in [
+                    (4, IllagerSpell::SummonVex),
+                    (5, IllagerSpell::Fangs),
+                    (6, IllagerSpell::Wololo),
+                ] {
+                    add.goal(
+                        priority,
+                        MobGoal::Spell(SpellGoal::Use(UseSpellGoal::new(spell))),
+                    );
+                }
+            } else {
+                add.goal(
+                    3,
+                    MobGoal::AvoidEntity(AvoidEntityGoal::new(
+                        TargetKind::Class("Creaking"),
+                        PILLAGER_AVOID_DISTANCE,
+                        PILLAGER_AVOID_WALK_SPEED,
+                        PILLAGER_AVOID_SPRINT_SPEED,
+                    )),
+                );
+                for (priority, spell) in
+                    [(4, IllagerSpell::Disappear), (5, IllagerSpell::Blindness)]
+                {
+                    add.goal(
+                        priority,
+                        MobGoal::Spell(SpellGoal::Use(UseSpellGoal::new(spell))),
+                    );
+                }
+                add.goal(
+                    6,
+                    MobGoal::RangedBowAttack(RangedBowAttackGoal::new(
+                        ILLUSIONER_BOW_SPEED,
+                        ILLUSIONER_BOW_INTERVAL,
+                        ILLUSIONER_BOW_RADIUS,
+                    )),
+                );
+            }
+            add.goal(
+                8,
+                MobGoal::Stroll(RandomStrollGoal::new(SPELLCASTER_STROLL_SPEED)),
+            );
+            add.goal(
+                9,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::with_probability(
+                    SPELLCASTER_LOOK_PLAYER_DISTANCE,
+                    1.0,
+                )),
+            );
+            add.goal(
+                10,
+                MobGoal::LookAtPlayer(LookAtPlayerGoal::at_mobs(SPELLCASTER_LOOK_MOB_DISTANCE)),
+            );
+            add.target_goal(
+                1,
+                MobGoal::HurtByTarget(HurtByTargetGoal::ignoring_damage_from_alerting(
+                    PILLAGER_IGNORED_DAMAGE,
+                )),
+            );
+            add.target(
+                2,
+                NearestAttackableTargetGoal::new(TargetKind::Player, true)
+                    .with_unseen_memory(SPELLCASTER_UNSEEN_MEMORY),
+            );
+            add.target(
+                3,
+                NearestAttackableTargetGoal::new(TargetKind::AbstractVillager, false)
+                    .with_unseen_memory(SPELLCASTER_UNSEEN_MEMORY),
+            );
+            let golems = NearestAttackableTargetGoal::new(TargetKind::IronGolem, false);
+            add.target(
+                3,
+                if evoker {
+                    golems
+                } else {
+                    golems.with_unseen_memory(SPELLCASTER_UNSEEN_MEMORY)
+                },
             );
         }
         EntityKind::Ravager => {

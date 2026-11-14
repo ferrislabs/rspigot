@@ -44,6 +44,8 @@ pub(crate) fn celebrate_sound(kind: Kind) -> Option<&'static str> {
         Kind::Pillager => Some(rspigot_domain::entity::species::pillager::CELEBRATE_SOUND),
         Kind::Vindicator => Some(vindicator::CELEBRATE_SOUND),
         Kind::Ravager => Some(ravager::CELEBRATE_SOUND),
+        Kind::Evoker => Some(rspigot_domain::entity::species::evoker::CELEBRATE_SOUND),
+        Kind::Illusioner => Some(rspigot_domain::entity::species::illusioner::AMBIENT_SOUND),
         _ => None,
     }
 }

@@ -33,6 +33,7 @@ pub mod experience;
 pub(crate) mod explosion;
 mod fall;
 mod falling;
+mod fangs;
 mod fire;
 mod fluids;
 mod game_events;

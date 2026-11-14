@@ -174,6 +174,7 @@ pub enum MobAction {
     Villager(crate::villager::VillagerAction),
     Warden(crate::warden::WardenAction),
     Air(crate::AirAction),
+    Spell(crate::SpellAction),
     Water(crate::WaterAction),
     Turtle(crate::TurtleAction),
     Guardian(crate::GuardianAction),
