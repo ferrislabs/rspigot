@@ -312,6 +312,7 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             button: p.button_id,
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
+        ServerboundPlay::RenameItem(p) => input(PlayerInput::RenameItem(p.name)),
         ServerboundPlay::RecipeBookSettings(p) => input(PlayerInput::RecipeBookSettings {
             kind: match p.book {
                 RecipeBookType::Crafting => BookKind::Crafting,
@@ -411,6 +412,14 @@ mod tests {
                 )],
                 carried: HashedSlot::EMPTY,
             })
+        );
+    }
+
+    #[test]
+    fn renaming_carries_the_typed_name() {
+        assert_eq!(
+            decoded(sb::RENAME_ITEM, &[2, b'h', b'i']),
+            PlayerInput::RenameItem("hi".into())
         );
     }
 
