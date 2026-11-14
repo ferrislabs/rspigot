@@ -5,6 +5,7 @@ use rspigot_plugin_protocol::v1::player_order::Order;
 use rspigot_plugin_protocol::v1::{self, answer, from_plugin, question};
 use uuid::Uuid;
 
+use crate::contract::Location;
 use crate::custom_inventory::CustomInventory;
 use crate::inventory::Inventory;
 use crate::link::Link;
@@ -161,6 +162,14 @@ impl Player {
         self.order(Order::TeleportFacing(v1::Facing {
             position: Some(position.to_wire()),
             rotation: Some(rotation.to_wire()),
+        }));
+    }
+
+    pub fn teleport_to(&self, location: &Location) {
+        self.order(Order::TeleportTo(v1::Location {
+            world: location.world.clone(),
+            position: Some(location.position.to_wire()),
+            rotation: Some(location.rotation.to_wire()),
         }));
     }
 
