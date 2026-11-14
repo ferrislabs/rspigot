@@ -724,6 +724,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_shear(*step);
                 Vec::new()
             }
+            Continuation::Leash(step) => {
+                self.finish_leash(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::Unleash(step) => {
+                self.finish_unleash(*step, cancelled);
+                Vec::new()
+            }
             Continuation::BucketEntity(step) => {
                 self.finish_bucket_entity(*step, cancelled);
                 Vec::new()

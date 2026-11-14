@@ -388,6 +388,9 @@ impl<L: ClientLink> Server<L> {
                 }
             }
         }
+        if let Some(result) = self.leash_interact(id, target, hand, held.as_ref()) {
+            return result;
+        }
         self.mob_interact(id, target, hand, held)
     }
 

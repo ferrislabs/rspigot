@@ -196,6 +196,8 @@ PlayerSignOpen = "a player right-clicking an unwaxed sign (cause INTERACT, the s
 SignChange = "a player finishing a sign edit, asked with the four typed lines (control characters removed) and the side, only when that player was sent the editor of that sign; a patched line replaces the typed one and a cancel keeps the old text; the editor right is spent either way"
 PlayerEditBook = "a player saving or signing a writable book from a hotbar or offhand slot, asked before the book changes, with the old meta, the new meta (pages, and for a signature the title and the player name as author) and the signing flag; a patched meta and signing flag replace them, a signature turns the item into a written book and a cancel keeps the book and resends the inventory; the 20 tick edit rate limit is not enforced"
 PlayerRecipeBookSettingsChange = "observer only, a client changing the open or the filtering state of one of its four recipe books (crafting, furnace, blast furnace, smoker), with the book and the new state, before it is stored; the state is kept per player and saved under recipeBook in the player data; the server does not send the saved state back to the client yet"
+PlayerLeashEntity = "a player right-clicking a mob with a lead (not a hostile mob, within the snap distance, not already held by a player), asked before the mob is tied to the player and the lead consumed; a cancel keeps the lead and resends the item and the link; the lead on a fence knot, the lead on the nearby mobs a sneaking player is holding and shears do not exist yet"
+PlayerUnleashEntity = "a player right-clicking a mob it holds on a lead, reaching EntityUnleash handlers too with reason PLAYER_UNLEASH, asked before the lead is dropped as an item (or removed in creative); a cancel resends the link; the lead snapping, a dead holder and a plugin unleash fire EntityUnleash only"
 
 [states]
 ready = []
@@ -256,14 +258,12 @@ PlayerEggThrow = "egg throwing"
 PlayerFish = "fishing"
 PlayerHarvestBlock = "berry harvesting"
 PlayerItemMend = "enchanting (#47)"
-PlayerLeashEntity = "mounts, leads and taming"
 PlayerLinksSend = "server links, which the server does not have (no configuration, no ServerLinks packet sent), and a Spigot that fires it during the configuration phase, before the player exists in the core"
 PlayerRecipeBookClick = "recipe placement from the recipe book (the PlaceRecipe packet and recipe display ids), which needs recipe matching and a server side recipe book (#24)"
 PlayerRecipeDiscover = "recipe discovery (awarding recipes, recipe unlock triggers and the recipe book packets to the client) (#24)"
 PlayerRiptide = "tridents"
 PlayerSpawnChange = "per-player spawn points"
 PlayerStatisticIncrement = "advancements, statistics and the recipe book (#24)"
-PlayerUnleashEntity = "a player who unleashes a mob, which does not exist yet: no lead can be used on a mob or a fence"
 PrepareAnvil = "anvil logic: no result is computed (repair, merge, rename, cost), which needs the enchantment definitions (max level, anvil cost, exclusive sets), repair materials and the RenameItem packet"
 PrepareGrindstone = "grindstone logic: no result is computed (merge durability, strip enchantments), which needs the enchantment definitions (minimum cost for the experience) and the curse tag handling on take"
 PrepareItemEnchant = "enchanting (#47)"

@@ -303,6 +303,15 @@ pub(crate) struct ShearStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct LeashStep {
+    pub(crate) player: PlayerId,
+    pub(crate) target: EntityId,
+    pub(crate) hand: Hand,
+    pub(crate) stack: Option<ItemStack>,
+    pub(crate) parked: bool,
+}
+
+#[derive(Debug)]
 pub(crate) struct BucketEntityStep {
     pub(crate) player: PlayerId,
     pub(crate) target: EntityId,
@@ -1308,6 +1317,8 @@ pub(crate) enum Continuation {
     ExpChange(OrbStep),
     PickupArrow(ArrowStep),
     Shear(Box<ShearStep>),
+    Leash(Box<LeashStep>),
+    Unleash(Box<LeashStep>),
     BucketEntity(Box<BucketEntityStep>),
     BucketEmpty(Box<BucketEmptyStep>),
     Damage(Box<DamageStep>),
@@ -1486,6 +1497,8 @@ impl Continuation {
             Self::ExpChange(_) => EventKind::PlayerExpChange,
             Self::PickupArrow(_) => EventKind::PlayerPickupArrow,
             Self::Shear(_) => EventKind::PlayerShearEntity,
+            Self::Leash(_) => EventKind::PlayerLeashEntity,
+            Self::Unleash(_) => EventKind::PlayerUnleashEntity,
             Self::BucketEntity(_) => EventKind::PlayerBucketEntity,
             Self::BucketEmpty(_) => EventKind::PlayerBucketEmpty,
             Self::Damage(_) => EventKind::BlockDamage,
@@ -1691,6 +1704,7 @@ impl Continuation {
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::BucketEntity(step) => step.target == id,
+            Self::Leash(step) | Self::Unleash(step) => step.target == id,
             Self::InteractEntity(step) => step.target == id,
             _ => false,
         }
