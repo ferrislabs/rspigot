@@ -780,6 +780,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_bucket_fill(*step, cancelled, patch_of!(patch, PlayerBucketFill));
                 Vec::new()
             }
+            Continuation::Cauldron(step) => {
+                self.finish_cauldron(*step, cancelled);
+                Vec::new()
+            }
             Continuation::Sponge(step) => {
                 self.finish_sponge(*step, cancelled);
                 Vec::new()

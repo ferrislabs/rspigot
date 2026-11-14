@@ -526,6 +526,11 @@ impl<L: ClientLink> Server<L> {
             {
                 return;
             }
+            if !(sneaking && holding)
+                && self.use_cauldron(id, hand, stack.as_ref(), pos, clicked, sequence)
+            {
+                return;
+            }
             if !(sneaking && holding) && self.use_bed(id, pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;

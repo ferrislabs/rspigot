@@ -11,6 +11,7 @@ mod brain_mobs;
 mod bucket;
 mod bullet;
 mod campfire;
+mod cauldron;
 mod chests;
 pub mod chunks;
 mod combat;

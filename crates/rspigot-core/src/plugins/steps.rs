@@ -384,6 +384,17 @@ pub(crate) struct BucketEmptyStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct CauldronStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) expected: BlockStateId,
+    pub(crate) state: BlockStateId,
+    pub(crate) reason: crate::plugins::events::CauldronLevelChangeReason,
+    pub(crate) entity: Option<EntityId>,
+    pub(crate) extinguish: bool,
+    pub(crate) by: Option<crate::cauldron::Handled>,
+}
+
+#[derive(Debug)]
 pub(crate) struct SpongeStep {
     pub(crate) pos: BlockPos,
     pub(crate) expected: BlockStateId,
@@ -1543,6 +1554,7 @@ pub(crate) enum Continuation {
     BucketEmpty(Box<BucketEmptyStep>),
     BucketFill(Box<BucketFillStep>),
     Sponge(Box<SpongeStep>),
+    Cauldron(Box<CauldronStep>),
     LiquidEmpty(Box<LiquidEmptyStep>),
     Damage(Box<DamageStep>),
     Break(Box<BreakStep>),
@@ -1749,6 +1761,7 @@ impl Continuation {
             Self::BucketEmpty(_) | Self::LiquidEmpty(_) => EventKind::PlayerBucketEmpty,
             Self::BucketFill(_) => EventKind::PlayerBucketFill,
             Self::Sponge(_) => EventKind::SpongeAbsorb,
+            Self::Cauldron(_) => EventKind::CauldronLevelChange,
             Self::Damage(_) => EventKind::BlockDamage,
             Self::Break(_) | Self::Finish(_) => EventKind::BlockBreak,
             Self::Abort(_) => EventKind::BlockDamageAbort,
@@ -2021,6 +2034,9 @@ impl Continuation {
             }
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
             (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
+            (Self::Cauldron(one), Self::Cauldron(other)) => {
+                one.by.is_none() && other.by.is_none() && one.pos == other.pos
+            }
             (Self::EggBreak { mob: one, .. }, Self::EggBreak { mob: other, .. }) => one == other,
             (
                 Self::DoorOpen {
@@ -2118,6 +2134,7 @@ impl Continuation {
             | Self::Ignite(_)
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,
+            Self::Cauldron(step) => step.by.is_none(),
             Self::Aim(step) => step.deferred,
             Self::Breed(_)
             | Self::Air(_)

@@ -15,11 +15,12 @@ use crate::plugins::{Continuation, EventPayload, direction_of, plugin_face_of, s
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
-const FILL_SOUND: &str = "minecraft:item.bucket.fill";
-const FILL_LAVA_SOUND: &str = "minecraft:item.bucket.fill_lava";
-const FILL_POWDER_SNOW_SOUND: &str = "minecraft:item.bucket.fill_powder_snow";
-const EMPTY_SOUND: &str = "minecraft:item.bucket.empty";
-const EMPTY_LAVA_SOUND: &str = "minecraft:item.bucket.empty_lava";
+pub(crate) const FILL_SOUND: &str = "minecraft:item.bucket.fill";
+pub(crate) const FILL_LAVA_SOUND: &str = "minecraft:item.bucket.fill_lava";
+pub(crate) const FILL_POWDER_SNOW_SOUND: &str = "minecraft:item.bucket.fill_powder_snow";
+pub(crate) const EMPTY_SOUND: &str = "minecraft:item.bucket.empty";
+pub(crate) const EMPTY_LAVA_SOUND: &str = "minecraft:item.bucket.empty_lava";
+pub(crate) const EMPTY_POWDER_SNOW_SOUND: &str = "minecraft:item.bucket.empty_powder_snow";
 const WATERLOGGED: &str = "waterlogged";
 
 struct Pickup {
@@ -60,7 +61,7 @@ fn pickup_of(state: BlockStateId) -> Option<Pickup> {
     }
 }
 
-fn single(item: ItemKind) -> ItemStack {
+pub(crate) fn single(item: ItemKind) -> ItemStack {
     ItemStack::new(item.id(), NonZeroU8::MIN)
 }
 
@@ -189,7 +190,12 @@ impl<L: ClientLink> Server<L> {
         self.deliver_filled_bucket(player, hand, result);
     }
 
-    fn deliver_filled_bucket(&mut self, player: PlayerId, hand: Hand, result: Option<ItemStack>) {
+    pub(crate) fn deliver_filled_bucket(
+        &mut self,
+        player: PlayerId,
+        hand: Hand,
+        result: Option<ItemStack>,
+    ) {
         if self.infinite_materials(player) {
             let Some(result) = result else {
                 return;

@@ -14,6 +14,7 @@ pub const LAVA_SECONDS: f32 = 15.0;
 pub const FIRE_SECONDS: f32 = 8.0;
 pub const SUN_SECONDS: f32 = 8.0;
 pub const PLAYER_FIRE_IMMUNE_TICKS: i32 = 20;
+const CAULDRON_INSET: f64 = 0.125;
 const INSIDE_DEFLATE: f64 = 9.999_999_747_378_752e-6;
 
 pub fn is_on_fire(base: &EntityBase) -> bool {
@@ -75,6 +76,7 @@ pub enum InsideEffect {
     LavaIgnite(BlockPos),
     LavaHurt(BlockPos),
     MeltPowderSnow(BlockPos),
+    Cauldron(BlockPos),
     Extinguish,
 }
 
@@ -87,6 +89,7 @@ struct StepEffects {
     lava: Option<BlockPos>,
     lava_hurt: usize,
     melt: Vec<BlockPos>,
+    cauldrons: Vec<BlockPos>,
     extinguish: bool,
 }
 
@@ -111,11 +114,23 @@ impl StepEffects {
             ));
         }
         out.extend(self.melt.into_iter().map(InsideEffect::MeltPowderSnow));
+        out.extend(self.cauldrons.into_iter().map(InsideEffect::Cauldron));
         if self.extinguish {
             out.push(InsideEffect::Extinguish);
         }
         out
     }
+}
+
+fn cauldron_content_height(state: BlockStateId) -> Option<f64> {
+    if !matches!(
+        state.kind()?,
+        BlockKind::WaterCauldron | BlockKind::PowderSnowCauldron
+    ) {
+        return None;
+    }
+    let level: f64 = state.property("level")?.parse().ok()?;
+    Some((6.0 + 3.0 * level) / 16.0)
 }
 
 fn fire_damage(state: BlockStateId) -> Option<f32> {
@@ -159,6 +174,17 @@ pub fn inside_effects(base: &mut EntityBase, view: &impl BlockView) -> Vec<Insid
                     && water_height(view, pos).is_some_and(|h| bb.min_y < f64::from(y) + h)
                 {
                     step.extinguish = true;
+                }
+                if is_on_fire(base)
+                    && cauldron_content_height(state).is_some_and(|h| {
+                        bb.min_y < f64::from(y) + h
+                            && bb.max_x > f64::from(x) + CAULDRON_INSET
+                            && bb.min_x < f64::from(x) + 1.0 - CAULDRON_INSET
+                            && bb.max_z > f64::from(z) + CAULDRON_INSET
+                            && bb.min_z < f64::from(z) + 1.0 - CAULDRON_INSET
+                    })
+                {
+                    step.cauldrons.push(pos);
                 }
                 if lava_height(view, pos).is_some_and(|h| bb.min_y < f64::from(y) + h) {
                     step.clear_freeze = true;
