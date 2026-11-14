@@ -104,6 +104,10 @@ pub enum PlayerInput {
         rotation: Rotation,
         on_ground: bool,
     },
+    PaddleBoat {
+        left: bool,
+        right: bool,
+    },
     TeleportConfirm(i32),
     Chat(String),
     Command(String),

@@ -12,7 +12,7 @@ use crate::plugins::decisions::{Continuation, Lane};
 use crate::plugins::entity::refusal;
 use crate::plugins::events::{
     CreatureSpawn, CreatureSpawnReason, EntityDropItem, EntityRemove, EntityRemoveCause,
-    EntitySpawn, ItemSpawn, LightningStrike, LightningStrikeCause, ProjectileLaunch,
+    EntitySpawn, ItemSpawn, LightningStrike, LightningStrikeCause, ProjectileLaunch, VehicleCreate,
 };
 use crate::plugins::steps::{Birth, Carried, Follow, SpawnStep, Spawned};
 use crate::plugins::{Answer, EntityView, EventKind, EventPayload, ToPlugin};
@@ -55,6 +55,7 @@ pub(crate) fn spawn_kind(entity: &Entity) -> EventKind {
         EntityState::Living(_) if entity.base.kind != Kind::Player => EventKind::CreatureSpawn,
         EntityState::Item(_) => EventKind::ItemSpawn,
         EntityState::Lightning(_) => EventKind::LightningStrike,
+        EntityState::Boat(_) | EntityState::Minecart(_) => EventKind::VehicleCreate,
         EntityState::Arrow(_)
         | EntityState::Thrown(_)
         | EntityState::Hurting(_)
@@ -147,6 +148,9 @@ impl<L: ClientLink> Server<L> {
                 entity_type,
                 location,
             }),
+            EventKind::VehicleCreate => {
+                EventPayload::VehicleCreate(VehicleCreate { vehicle: entity })
+            }
             EventKind::ProjectileLaunch => EventPayload::ProjectileLaunch(ProjectileLaunch {
                 entity,
                 entity_type,
@@ -251,6 +255,11 @@ impl<L: ClientLink> Server<L> {
                 stack,
             } => {
                 self.finish_throw(player, hand, &stack, placed.map(|(id, _)| id));
+            }
+            Spawned::Placed { player, hand } => {
+                if let Some((id, _)) = placed {
+                    self.finish_vehicle_placed(player, hand, id);
+                }
             }
             Spawned::Converted { old, event, follow } => {
                 self.follow_conversion(old, placed.as_ref().map(|(id, _)| *id), follow);

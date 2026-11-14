@@ -46,6 +46,7 @@ impl<L: ClientLink> Server<L> {
                 rotation,
                 on_ground,
             } => self.move_vehicle(id, position, rotation, on_ground),
+            PlayerInput::PaddleBoat { left, right } => self.paddle_boat(id, left, right),
             PlayerInput::TeleportConfirm(teleport) => {
                 if let Some(player) = self.players.get_mut(&id)
                     && player.pending_teleport == Some(teleport)
@@ -577,6 +578,10 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if self.use_armor_stand(id, slot, pos, face, clicked) {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+            return;
+        }
+        if self.use_minecart(id, hand, pos, face, clicked) {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;
         }

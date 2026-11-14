@@ -44,6 +44,14 @@ impl<L: ClientLink> Server<L> {
                 .find(|p| p.entity_id == first)
                 .map(|p| p.id);
         }
+        if matches!(entity.state, EntityState::Boat(_)) {
+            let first = self.entities.rides.first_passenger(vehicle)?;
+            return self
+                .players
+                .values()
+                .find(|p| p.entity_id == first)
+                .map(|p| p.id);
+        }
         if entity.base.kind == Kind::HappyGhast {
             if !crate::kinds::happy_ghast::wears_harness(entity)
                 || crate::kinds::happy_ghast::is_on_still_timeout(entity)
