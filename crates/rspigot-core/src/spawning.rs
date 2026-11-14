@@ -557,7 +557,11 @@ impl<L: ClientLink> Server<L> {
             requires_custom_persistence: entity.extra.contains_key(LEASH)
                 || self.entities.rides.is_passenger(id)
                 || rspigot_domain::entity::species::enderman::carries_block(&entity.base)
-                || is_bucketed_fish(entity),
+                || is_bucketed_fish(entity)
+                || rspigot_domain::entity::species::sulfur_cube::requires_persistence(
+                    &entity.base,
+                    living,
+                ),
             from_bucket: is_bucketed_fish(entity),
             named: entity.base.custom_name().is_some(),
             no_action_time: living.no_action_time,
