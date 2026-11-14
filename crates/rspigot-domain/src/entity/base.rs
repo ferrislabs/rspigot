@@ -249,6 +249,10 @@ impl EntityBase {
         self.data.set_flag(DATA_SHARED_FLAGS, FLAG_GLOWING, glowing);
     }
 
+    pub fn shared_flag(&self, mask: u8) -> bool {
+        self.data.flag(DATA_SHARED_FLAGS, mask)
+    }
+
     pub fn set_shared_flag(&mut self, mask: u8, value: bool) {
         self.data.set_flag(DATA_SHARED_FLAGS, mask, value);
     }

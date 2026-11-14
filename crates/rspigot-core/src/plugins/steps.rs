@@ -1394,6 +1394,10 @@ pub(crate) enum Continuation {
     Tame(TameStep),
     PigAnger(PigAngerStep),
     Reputation(ReputationStep),
+    Swim {
+        entity: EntityId,
+        swimming: bool,
+    },
     ArrowCount(ArrowCountStep),
     Air(AirStep),
     Game(crate::game_events::GameStep),
@@ -1532,6 +1536,7 @@ impl Continuation {
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Reputation(_) => EventKind::VillagerReputationChange,
+            Self::Swim { .. } => EventKind::EntityToggleSwim,
             Self::ArrowCount(_) => EventKind::ArrowBodyCountChange,
             Self::Air(_) => EventKind::EntityAirChange,
             Self::Game(_) => EventKind::GenericGame,
@@ -1652,6 +1657,7 @@ impl Continuation {
             Self::MobRegain(step) => step.target == id,
             Self::PigAnger(step) => step.mob == id,
             Self::Reputation(step) => step.villager == id,
+            Self::Swim { entity, .. } => *entity == id,
             Self::ArrowCount(step) => step.target == id,
             Self::Air(step) => step.entity == id,
             Self::Career(step) => step.villager == id,
@@ -1710,6 +1716,16 @@ impl Continuation {
             ) => one == other && one_awake == other_awake,
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
+            (
+                Self::Swim {
+                    entity: one,
+                    swimming: one_swimming,
+                },
+                Self::Swim {
+                    entity: other,
+                    swimming: other_swimming,
+                },
+            ) => one == other && one_swimming == other_swimming,
             (Self::Air(one), Self::Air(other)) => one.entity == other.entity,
             (Self::Flow(one), Self::Flow(other)) => one.is_same(other),
             (Self::FluidLevel(one), Self::FluidLevel(other)) => one.is_same(other),
@@ -1772,6 +1788,7 @@ impl Continuation {
             Self::Aim(step) => step.deferred,
             Self::Breed(_)
             | Self::Air(_)
+            | Self::Swim { .. }
             | Self::Career(_)
             | Self::Flow(_)
             | Self::FluidLevel(_) => true,

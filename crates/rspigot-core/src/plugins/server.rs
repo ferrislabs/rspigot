@@ -1098,6 +1098,12 @@ impl<L: ClientLink> Server<L> {
                 );
                 Vec::new()
             }
+            Continuation::Swim { entity, swimming } => {
+                if !cancelled {
+                    self.finish_swim_toggle(entity, swimming);
+                }
+                Vec::new()
+            }
             Continuation::Career(step) => {
                 if !cancelled {
                     self.finish_career(step, patch_of!(patch, VillagerCareerChange).profession);
