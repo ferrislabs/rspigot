@@ -11,12 +11,14 @@ use crate::effect::{AttributeModifier, AttributeOperation};
 use crate::random::RandomSource;
 use crate::{BiomeId, biome};
 
+pub mod armadillo;
 pub mod blaze;
 pub mod cat;
 pub mod enderman;
 pub mod endermite;
 pub mod fox;
 pub mod ghast;
+pub mod goat;
 pub mod hoglin;
 pub mod iron_golem;
 pub mod ocelot;
@@ -200,6 +202,8 @@ pub enum Species {
     Pillager(pillager::PillagerState),
     Hoglin(hoglin::HoglinState),
     Piglin(piglin::PiglinState),
+    Goat(goat::GoatState),
+    Armadillo(armadillo::ArmadilloState),
 }
 
 pub fn farm_of(kind: EntityKind) -> Option<VariantFamily> {
@@ -380,6 +384,12 @@ impl Species {
         }
         if matches!(kind, EntityKind::Piglin | EntityKind::PiglinBrute) {
             return Self::Piglin(piglin::define(base));
+        }
+        if kind == EntityKind::Goat {
+            return Self::Goat(goat::define(base));
+        }
+        if kind == EntityKind::Armadillo {
+            return Self::Armadillo(armadillo::define(base));
         }
         Self::Plain
     }

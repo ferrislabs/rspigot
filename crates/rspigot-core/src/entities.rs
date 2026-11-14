@@ -73,6 +73,8 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::Variant(kind, id) => MetadataValue::Variant(*kind, *id),
                 SyncedValue::Long(v) => MetadataValue::Long(*v),
                 SyncedValue::Direction(face) => MetadataValue::Direction(*face as u8),
+                SyncedValue::State(kind, id) => MetadataValue::State(*kind, *id),
+                SyncedValue::OptionalUnsignedInt(v) => MetadataValue::OptionalUnsignedInt(*v),
                 SyncedValue::OptionalEntity(v) => MetadataValue::OptionalEntity(*v),
                 SyncedValue::OptionalBlockState(v) => {
                     MetadataValue::OptionalBlockState(v.map(|state| u32::from(state.0)))

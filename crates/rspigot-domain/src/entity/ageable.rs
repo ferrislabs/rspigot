@@ -2,7 +2,7 @@ use rspigot_entities::{EntityDimensions, EntityKind};
 use uuid::Uuid;
 
 use super::base::EntityBase;
-use super::data::SyncedValue;
+use super::data::{Pose, SyncedValue};
 use crate::Vec3;
 use crate::item::ItemStack;
 use crate::particle::Particle;
@@ -15,6 +15,7 @@ pub const PARENT_AGE_AFTER_BREEDING: i32 = 6000;
 pub const LOVE_TICKS: i32 = 600;
 pub const DEFAULT_BABY_CHANCE: f32 = 0.05;
 pub const SHEEP_REGROWTH_SECONDS: i32 = 60;
+const GOAT_LONG_JUMP_SCALE: f32 = 0.7;
 const FORCED_AGE_TICKS: i32 = 40;
 const FORCED_AGE_PARTICLE_PERIOD: i32 = 4;
 const AGE_LOCK_TICKS: i32 = 40;
@@ -297,6 +298,8 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
         EntityKind::PolarBear => dims(0.7, 0.7, 0.34375),
         EntityKind::Hoglin | EntityKind::Zoglin => dims(0.75, 0.85, 0.625),
         EntityKind::Piglin => dims(0.49, 0.98, 0.78),
+        EntityKind::Goat => dims(0.45, 0.65, 0.59375),
+        EntityKind::Armadillo => dims(adult.width * 0.6, adult.height * 0.6, 0.21875),
         _ => dims(
             adult.width * 0.5,
             adult.height * 0.5,
@@ -305,8 +308,24 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
     }
 }
 
+pub fn dimensions_in_pose(kind: EntityKind, baby: bool, pose: Pose) -> EntityDimensions {
+    let dimensions = dimensions(kind, baby);
+    match (kind, pose) {
+        (EntityKind::Goat, Pose::LongJumping) => scaled(dimensions, GOAT_LONG_JUMP_SCALE),
+        _ => dimensions,
+    }
+}
+
+fn scaled(dimensions: EntityDimensions, factor: f32) -> EntityDimensions {
+    dims(
+        dimensions.width * factor,
+        dimensions.height * factor,
+        dimensions.eye_height * factor,
+    )
+}
+
 pub fn refresh_dimensions(base: &mut EntityBase, baby: bool) {
-    base.dimensions = dimensions(base.kind, baby);
+    base.dimensions = dimensions_in_pose(base.kind, baby, base.pose());
 }
 
 #[cfg(test)]
@@ -314,6 +333,22 @@ mod tests {
     use super::*;
     use crate::EntityId;
     use crate::random::LegacyRandom;
+
+    #[test]
+    fn a_long_jumping_goat_shrinks_to_seven_tenths_of_its_size() {
+        let adult = dimensions_in_pose(EntityKind::Goat, false, Pose::LongJumping);
+        let standing = dimensions_in_pose(EntityKind::Goat, false, Pose::Standing);
+        assert_eq!(standing, EntityKind::Goat.dimensions());
+        assert_eq!(adult.width, standing.width * 0.7);
+        assert_eq!(adult.height, standing.height * 0.7);
+        assert_eq!(adult.eye_height, standing.eye_height * 0.7);
+        let baby = dimensions_in_pose(EntityKind::Goat, true, Pose::LongJumping);
+        assert_eq!(baby.width, 0.45 * 0.7);
+        assert_eq!(
+            dimensions_in_pose(EntityKind::Cow, false, Pose::LongJumping),
+            EntityKind::Cow.dimensions()
+        );
+    }
 
     fn cow() -> (EntityBase, AgeableState) {
         let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::Cow);

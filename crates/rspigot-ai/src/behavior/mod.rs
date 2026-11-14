@@ -2,10 +2,12 @@ mod activity;
 mod attack;
 mod brain;
 mod control;
+mod long_jump;
 mod love;
 mod memory;
 mod mob_control;
 mod nbt;
+mod ram;
 mod sensor;
 mod sensors;
 mod shuffling;
@@ -25,6 +27,11 @@ pub use control::{
     Behavior, BehaviorControl, BehaviorCx, DEFAULT_DURATION, DoNothing, Gate, OneShot, OrderPolicy,
     RunOne, RunningPolicy, Sequence, Status, Timed, Trigger, TriggerGate, has_required_memories,
 };
+pub use long_jump::{
+    ALLOWED_ANGLES, JumpBody, JumpDimensions, JumpSound, LONG_JUMP_TIME_OUT, LandingSpot,
+    LongJumpMidJump, LongJumpToRandomPos, MID_JUMP_TIME_OUT, calculate_jump_vector_for_angle,
+    default_acceptable_landing_spot,
+};
 pub use love::{AnimalMakeLove, FollowTemptation, MAKE_LOVE_DURATION, TemptDistance};
 pub use memory::{
     Codec, Condition, ExpirableValue, GlobalPos, Memories, MemoryModuleType, MemorySlot,
@@ -32,6 +39,10 @@ pub use memory::{
 };
 pub use mob_control::{CountDownCooldownTicks, MobBehavior, MobControl, MobTrigger};
 pub use nbt::PackedMemories;
+pub use ram::{
+    PREPARE_RAM_TIME_OUT, PrepareRamNearestTarget, RAM_TIME_OUT, RamTarget, RamTimings,
+    START_RAM_EVENT, STOP_RAM_EVENT, ram_accepts,
+};
 pub use sensor::{
     DEFAULT_SCAN_RATE, Sensor, SensorKind, SensorSlot, SensorType, is_entity_attackable,
     is_entity_attackable_ignoring_line_of_sight, is_entity_targetable, nearest_visible_entity,

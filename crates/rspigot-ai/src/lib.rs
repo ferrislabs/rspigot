@@ -1,5 +1,7 @@
 mod action;
 mod animal;
+mod animals;
+mod armadillo;
 mod behavior;
 mod blaze;
 mod blocks;
@@ -16,6 +18,7 @@ mod fox;
 mod ghast;
 mod goal;
 mod goals;
+mod goat;
 mod heap;
 mod holdable;
 mod iron_golem;
@@ -56,24 +59,32 @@ pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequ
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
 };
+pub use armadillo::{
+    ArmadilloAction, ArmadilloBallUp, ArmadilloFacts, ArmadilloPanic, ArmadilloScareSensor,
+    RollOutWithoutDanger, can_stay_rolled_up, is_scared_by,
+};
 pub use behavior::{
-    Activity, ActivityData, AdultSensor, AnimalMakeLove, AnimalPanic, AwayFrom, BabyFollowAdult,
-    Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState, Codec, Condition,
-    CountDownCooldownTicks, DEFAULT_DURATION, DEFAULT_SCAN_RATE, DoNothing, DummySensor,
+    ALLOWED_ANGLES, Activity, ActivityData, AdultSensor, AnimalMakeLove, AnimalPanic, AwayFrom,
+    BabyFollowAdult, Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState, Codec,
+    Condition, CountDownCooldownTicks, DEFAULT_DURATION, DEFAULT_SCAN_RATE, DoNothing, DummySensor,
     EntityFilter, EraseMemoryIf, ExpirableValue, FollowTemptation, Gate, GlobalPos,
     GoToTargetLocation, GoToWantedItem, HurtBySensor, InteractWith, IsInWaterSensor, ItemWish,
+    JumpBody, JumpDimensions, JumpSound, LandingSpot, LongJumpMidJump, LongJumpToRandomPos,
     LookAtTargetSink, MAKE_LOVE_DURATION, MeleeAttack, Memories, MemoryModuleType, MemorySlot,
     MemoryStatus, MemoryValue, MobBehavior, MobControl, MobPredicate, MobTrigger, MoveToTargetSink,
     NO_EXPIRY, NearestItemSensor, NearestLivingEntitySensor, NearestVisibleLivingEntities, OneShot,
-    OrderPolicy, PackedMemories, PlayerSensor, PositionTracker, RandomLookAround, RandomStroll,
-    RunOne, RunningPolicy, SCHEDULE_UPDATE_INTERVAL, Schedule, Sensor, SensorKind, SensorSlot,
-    SensorType, Sequence, SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract,
+    OrderPolicy, PackedMemories, PlayerSensor, PositionTracker, PrepareRamNearestTarget, RamTarget,
+    RamTimings, RandomLookAround, RandomStroll, RunOne, RunningPolicy, SCHEDULE_UPDATE_INTERVAL,
+    START_RAM_EVENT, STOP_RAM_EVENT, Schedule, Sensor, SensorKind, SensorSlot, SensorType,
+    Sequence, SetEntityLookTarget, SetEntityLookTargetSometimes, SetLookAndInteract,
     SetWalkTargetAwayFrom, SetWalkTargetFromAttackTargetIfTargetOutOfReach,
     SetWalkTargetFromLookTarget, ShufflingList, StartAttacking, Status, StopAttackCondition,
     StopAttackingIfTargetInvalid, StopBeingAngryIfTargetDead, StrollAroundPoi, StrollToPoi, Swim,
     TargetErased, TargetFinder, TemptDistance, TemptingSensor, Timed, Trigger, TriggerGate,
-    UniformInt, VILLAGER_PERIOD_TICKS, WalkTarget, has_required_memories, is_entity_attackable,
+    UniformInt, VILLAGER_PERIOD_TICKS, WalkTarget, calculate_jump_vector_for_angle,
+    default_acceptable_landing_spot, has_required_memories, is_entity_attackable,
     is_entity_attackable_ignoring_line_of_sight, is_entity_targetable, nearest_visible_entity,
+    ram_accepts,
 };
 pub use blaze::{BlazeAction, BlazeAttackGoal};
 pub use blocks::{
@@ -114,6 +125,7 @@ pub use goals::{
     ClimbOnTopOfPowderSnowGoal, FloatGoal, LookAtPlayerGoal, MobGoal, NearestAttackableTargetGoal,
     RandomLookAroundGoal, RandomStrollGoal, TargetFilter, TemptGoal, TemptItems,
 };
+pub use goat::{GoatAction, GoatFacts};
 pub use iron_golem::{IronGolemAction, IronGolemFacts, IronGolemGoal, is_enemy};
 pub use navigation::{
     MobTick, MoveTarget, Navigation, can_cut_corner, find_surface_position, ground_y, temp_mob_pos,

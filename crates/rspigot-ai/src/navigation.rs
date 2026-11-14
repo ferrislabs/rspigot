@@ -158,6 +158,19 @@ impl Navigation {
         reach: i32,
         follow_range: f64,
     ) -> Option<Path> {
+        let max_path_length = self.max_path_length(follow_range);
+        self.create_path_limited(view, profile, mob, target, reach, max_path_length)
+    }
+
+    pub fn create_path_limited(
+        &mut self,
+        view: &impl BlockView,
+        profile: &MobProfile,
+        mob: &MobTick,
+        target: BlockPos,
+        reach: i32,
+        max_path_length: f32,
+    ) -> Option<Path> {
         if self.climber {
             self.path_to_position = Some(target);
         }
@@ -174,7 +187,6 @@ impl Navigation {
         {
             return Some(path.clone());
         }
-        let max_path_length = self.max_path_length(follow_range);
         let start = mob.state.block_pos();
         let radius = (max_path_length + BLOCK_REGION_OFFSET) as i32;
         let region = Region {

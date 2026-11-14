@@ -147,7 +147,7 @@ pub fn register_brain(
     kind: EntityKind,
     random: &mut crate::random::MobRandom,
 ) -> Option<crate::behavior::BehaviorBrain<crate::behavior::MobControl>> {
-    crate::piglin::brain_for(kind, random)
+    crate::piglin::brain_for(kind, random).or_else(|| crate::animals::brain_for(kind, random))
 }
 
 pub fn register_goals(

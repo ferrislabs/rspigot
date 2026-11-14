@@ -3,7 +3,7 @@ use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::fluid::FluidContact;
 use rspigot_domain::entity::living::{self, LivingState};
 use rspigot_domain::entity::tamable;
-use rspigot_domain::entity::{Aabb, EntityBase};
+use rspigot_domain::entity::{Aabb, EntityBase, Pose};
 use rspigot_domain::poi::{Occupancy, PoiRecord};
 use rspigot_domain::{BlockPos, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind;
@@ -52,6 +52,8 @@ pub struct Facts {
     pub cannot_be_hunted: bool,
     pub sees_player_holding_loved_item: bool,
     pub hunted_recently: bool,
+    pub sprinting: bool,
+    pub passenger: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -164,6 +166,9 @@ pub struct MobBody {
     pub swell_dir: i32,
     pub using_item: Option<Hand>,
     pub fall_distance: f64,
+    pub pose: Pose,
+    pub discard_friction: bool,
+    pub armadillo: crate::ArmadilloFacts,
 }
 
 impl MobBody {
@@ -177,6 +182,9 @@ impl MobBody {
             swell_dir: mob.swell_dir,
             using_item: mob.using_item,
             fall_distance: mob.fall_distance,
+            pose: mob.pose,
+            discard_friction: mob.discard_friction,
+            armadillo: mob.species.armadillo,
         }
     }
 }
@@ -364,6 +372,8 @@ pub struct KindFacts {
     pub raider: crate::RaiderFacts,
     pub crossbow: crate::CrossbowFacts,
     pub shulker: ShulkerFacts,
+    pub goat: crate::GoatFacts,
+    pub armadillo: crate::ArmadilloFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -431,6 +441,13 @@ pub struct MobView {
     pub can_pick_up_loot: bool,
     pub team: bool,
     pub custom_box: Option<Aabb>,
+    pub pose: Pose,
+    pub discard_friction: bool,
+    pub jump_strength: f64,
+    pub gravity: f64,
+    pub jump_boost_power: f32,
+    pub speed_effect_level: i32,
+    pub slowness_effect_level: i32,
     pub species: KindFacts,
 }
 
@@ -439,6 +456,27 @@ pub fn attribute(kind: EntityKind, living: &LivingState, name: &str) -> f64 {
         || kind.default_attribute(name).unwrap_or(0.0),
         |state| rspigot_domain::attribute::value(&state),
     )
+}
+
+const JUMP_BOOST_STEP: f32 = 0.1;
+const SLOW_FALLING_GRAVITY: f64 = 0.01;
+
+fn effect_level(living: &LivingState, name: &str) -> i32 {
+    living
+        .effect(name)
+        .map_or(0, |effect| i32::from(effect.amplifier) + 1)
+}
+
+fn gravity(base: &EntityBase, living: &LivingState) -> f64 {
+    if base.is_no_gravity() {
+        return 0.0;
+    }
+    let gravity = attribute(base.kind, living, living::GRAVITY);
+    if base.velocity.y > 0.0 || living.effect("minecraft:slow_falling").is_none() {
+        gravity
+    } else {
+        gravity.min(SLOW_FALLING_GRAVITY)
+    }
 }
 
 impl MobView {
@@ -517,6 +555,15 @@ impl MobView {
             can_pick_up_loot: living.mob.as_ref().is_some_and(|mob| mob.can_pick_up_loot),
             team: false,
             custom_box: base.custom_box,
+            pose: base.pose(),
+            discard_friction: living.discard_friction,
+            jump_strength: attribute(base.kind, living, living::JUMP_STRENGTH),
+            gravity: gravity(base, living),
+            jump_boost_power: living.effect("minecraft:jump_boost").map_or(0.0, |effect| {
+                JUMP_BOOST_STEP * (effect.amplifier as f32 + 1.0)
+            }),
+            speed_effect_level: effect_level(living, "minecraft:speed"),
+            slowness_effect_level: effect_level(living, "minecraft:slowness"),
             species: KindFacts::default(),
         }
     }
