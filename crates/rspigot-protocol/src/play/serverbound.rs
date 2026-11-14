@@ -267,6 +267,14 @@ wire_struct! {
 
 wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct PaddleBoat = sb::PADDLE_BOAT {
+        pub left: bool,
+        pub right: bool,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct PickItemFromBlock = sb::PICK_ITEM_FROM_BLOCK {
         pub pos: Position,
         pub include_data: bool,
@@ -684,6 +692,7 @@ pub enum ServerboundPlay {
     MovePlayerRot(MovePlayerRot),
     MovePlayerStatusOnly(MovePlayerStatusOnly),
     MoveVehicle(MoveVehicle),
+    PaddleBoat(PaddleBoat),
     PickItemFromBlock(PickItemFromBlock),
     PickItemFromEntity(PickItemFromEntity),
     PingRequest(PingRequest),
@@ -741,6 +750,7 @@ impl ServerboundPlay {
             sb::MOVE_PLAYER_ROT => Self::MovePlayerRot(decode_exact(body)?),
             sb::MOVE_PLAYER_STATUS_ONLY => Self::MovePlayerStatusOnly(decode_exact(body)?),
             sb::MOVE_VEHICLE => Self::MoveVehicle(decode_exact(body)?),
+            sb::PADDLE_BOAT => Self::PaddleBoat(decode_exact(body)?),
             sb::PICK_ITEM_FROM_BLOCK => Self::PickItemFromBlock(decode_exact(body)?),
             sb::PICK_ITEM_FROM_ENTITY => Self::PickItemFromEntity(decode_exact(body)?),
             sb::PING_REQUEST => Self::PingRequest(decode_exact(body)?),
@@ -771,7 +781,6 @@ impl ServerboundPlay {
             | sb::ENTITY_TAG_QUERY
             | sb::JIGSAW_GENERATE
             | sb::LOCK_DIFFICULTY
-            | sb::PADDLE_BOAT
             | sb::PLACE_RECIPE
             | sb::RECIPE_BOOK_SEEN_RECIPE
             | sb::SET_COMMAND_MINECART
@@ -822,10 +831,21 @@ mod tests {
     #[test]
     fn unhandled_ids_skip_body() {
         assert_eq!(
-            ServerboundPlay::decode(sb::PADDLE_BOAT, &[1, 0, 9, 9]).unwrap(),
+            ServerboundPlay::decode(sb::LOCK_DIFFICULTY, &[1, 0, 9, 9]).unwrap(),
             ServerboundPlay::Unhandled {
-                id: sb::PADDLE_BOAT
+                id: sb::LOCK_DIFFICULTY
             }
+        );
+    }
+
+    #[test]
+    fn paddle_boat_reads_both_paddles() {
+        assert_eq!(
+            ServerboundPlay::decode(sb::PADDLE_BOAT, &[1, 0]).unwrap(),
+            ServerboundPlay::PaddleBoat(PaddleBoat {
+                left: true,
+                right: false
+            })
         );
     }
 

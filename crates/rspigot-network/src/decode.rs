@@ -171,6 +171,10 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
                 on_ground: p.on_ground,
             })
         }
+        ServerboundPlay::PaddleBoat(p) => input(PlayerInput::PaddleBoat {
+            left: p.left,
+            right: p.right,
+        }),
         ServerboundPlay::MovePlayerStatusOnly(p) => input(PlayerInput::Move {
             position: None,
             rotation: None,
@@ -371,6 +375,17 @@ mod tests {
                 position: Vec3::new(1.0, 2.0, 3.0),
                 rotation: Rotation::new(90.0, 0.0),
                 on_ground: true,
+            }
+        );
+    }
+
+    #[test]
+    fn paddles_become_inputs() {
+        assert_eq!(
+            decoded(sb::PADDLE_BOAT, &[0, 1]),
+            PlayerInput::PaddleBoat {
+                left: false,
+                right: true,
             }
         );
     }

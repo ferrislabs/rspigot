@@ -19,7 +19,7 @@ use rspigot_domain::game_event::GameEvent;
 
 #[derive(Debug, Default)]
 pub(crate) struct Impacts {
-    last: Option<bool>,
+    pub(crate) last: Option<bool>,
     pub(crate) knocked: Option<Vec<(PlayerId, rspigot_domain::Vec3)>>,
 }
 
@@ -150,6 +150,11 @@ impl<L: ClientLink> Server<L> {
         amount: f32,
         then: AfterHurt,
     ) -> bool {
+        if let Some(entity) = self.struck_entity(victim)
+            && self.is_vehicle_entity(entity)
+        {
+            return self.strike_vehicle(entity, source, amount, then);
+        }
         let asked = match victim {
             Struck::Player(id) => self.ask_hurt_player(id, source, amount),
             Struck::Mob(id) => self.ask_hurt_mob(id, source, amount),
@@ -352,7 +357,7 @@ impl<L: ClientLink> Server<L> {
             .is_none_or(|player| player.vitals.is_dead())
     }
 
-    fn after_hurt(&mut self, then: AfterHurt, outcome: Outcome) {
+    pub(crate) fn after_hurt(&mut self, then: AfterHurt, outcome: Outcome) {
         match then {
             AfterHurt::Nothing => {}
             AfterHurt::Attack(follow) => self.finish_attack(*follow, outcome.hurt()),

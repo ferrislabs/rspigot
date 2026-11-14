@@ -73,7 +73,7 @@ impl<L: ClientLink> Server<L> {
         self.entities.rides.is_vehicle(id)
     }
 
-    fn is_player_entity(&self, id: EntityId) -> bool {
+    pub(crate) fn is_player_entity(&self, id: EntityId) -> bool {
         self.players.values().any(|player| player.entity_id == id)
     }
 
@@ -131,6 +131,9 @@ impl<L: ClientLink> Server<L> {
             return false;
         };
         let seated = self.entities.rides.passengers_of(vehicle).len();
+        if let Some(open) = self.boat_can_take(vehicle) {
+            return open;
+        }
         match entity.base.kind {
             Kind::Strider => seated == 0 && !self.eye_in_lava(vehicle),
             kind => seated < riding::max_passengers(kind),
@@ -490,7 +493,9 @@ impl<L: ClientLink> Server<L> {
             .iter()
             .position(|candidate| *candidate == passenger)
             .unwrap_or(0);
-        let attach = if carrier.kind.extends("Camel") {
+        let attach = if let Some(offset) = self.boat_seat_offset(vehicle, rider.kind, index) {
+            offset
+        } else if carrier.kind.extends("Camel") {
             self.camel_passenger_attachment(vehicle, index)
         } else {
             riding::passenger_attachment(

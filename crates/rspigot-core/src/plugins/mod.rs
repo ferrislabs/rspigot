@@ -75,7 +75,7 @@ pub use items::ItemSpec;
 pub(crate) use items::{spec_of, stack_of};
 pub use menus::MAX_PLUGIN_INVENTORIES;
 pub(crate) use menus::{PluginInventories, PluginMenu};
-pub(crate) use objects::UseMemo;
+pub(crate) use objects::{UseMemo, slot_of};
 pub use orders::{
     BlockOrder, CustomInventoryOrder, EffectSpec, EntityOrder, GameRule, InventoryOrder, Order,
     ParticleDataSpec, ParticleSpec, PlayerOrder, ServerOrder, SoundSpec, TitleSpec, WorldOrder,
@@ -92,7 +92,7 @@ pub(crate) use steps::{
     SplitStep, Struck, SuggestStep, SweepFollow,
 };
 pub use targets::MAX_TARGET_DISTANCE;
-pub(crate) use targets::direction_of;
+pub(crate) use targets::{direction_of, ray_end};
 pub(crate) use visibility::Visibility;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

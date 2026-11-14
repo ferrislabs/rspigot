@@ -362,6 +362,9 @@ impl<L: ClientLink> Server<L> {
         if let Some(result) = self.stand_interact(id, target, hand, location) {
             return result;
         }
+        if let Some(result) = self.boat_interact(id, target) {
+            return result;
+        }
         let Some(entity) = self.entities.store.get(target) else {
             return Interaction::Pass;
         };

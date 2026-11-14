@@ -11,6 +11,7 @@ use super::ageable::{self, AgeableState};
 use super::armor_stand;
 use super::arrow::{self, ArrowState};
 use super::base::{EntityBase, MAX_AIR_SUPPLY, RemovalReason};
+use super::boat;
 use super::bullet::{self, BulletState};
 use super::falling::FallingState;
 use super::fangs::{self, FangsState};
@@ -200,6 +201,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::LightningBolt
     ) || hurting::is_hurting_projectile(kind)
         || kind.extends("Mob")
+        || kind.extends("AbstractBoat")
 }
 
 fn doubles(v: Vec3) -> Tag {
@@ -1156,6 +1158,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             EntityState::Hanging(hanging::define(&mut base))
         }
         EntityKind::ArmorStand => EntityState::Stand(Box::new(armor_stand::define(&mut base))),
+        _ if kind.extends("AbstractBoat") => EntityState::Boat(Box::new(boat::define(&mut base))),
         EntityKind::AreaEffectCloud => EntityState::Cloud(Box::new(cloud::define(&mut base))),
         EntityKind::LightningBolt => EntityState::Lightning(lightning::LightningState::new(
             (fallback_uuid.as_u64_pair().0 % 3) as i32 + 1,
@@ -1249,6 +1252,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Stand(stand_state) => {
             armor_stand::read(nbt, &mut base, stand_state);
             &[&ENTITY_KEYS, armor_stand::KEYS]
+        }
+        EntityState::Boat(boat_state) => {
+            boat::read(nbt, boat_state);
+            &[&ENTITY_KEYS, boat::KEYS]
         }
         EntityState::Lightning(_) | EntityState::Inert(_) => &[],
     };
@@ -1683,6 +1690,7 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         EntityState::Stand(stand_state) => {
             armor_stand::write(&entity.base, stand_state, &mut out);
         }
+        EntityState::Boat(boat_state) => boat::write(boat_state, &mut out),
         EntityState::Lightning(_) | EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {
@@ -1916,10 +1924,10 @@ mod tests {
     #[test]
     fn unknown_types_are_kept_verbatim() {
         let nbt = Compound::new()
-            .with("id", "minecraft:armor_stand")
+            .with("id", "minecraft:block_display")
             .with("Pos", doubles(Vec3::new(0.0, 70.0, 0.0)))
-            .with("ShowArms", true)
-            .with("Pose", Compound::new().with("Head", Tag::List(Vec::new())));
+            .with("transformation", Tag::List(Vec::new()))
+            .with("Glow", Compound::new().with("Head", Tag::List(Vec::new())));
         let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
         assert!(!entity.is_simulated());
         assert_eq!(save_entity(&entity, None), Some(nbt));

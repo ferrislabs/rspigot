@@ -740,6 +740,34 @@ pub(crate) struct StandSwapStep {
     pub(crate) slot: rspigot_items::EquipmentSlot,
 }
 
+#[derive(Debug)]
+pub(crate) struct VehiclePlaceStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) entity: Entity,
+}
+
+#[derive(Debug)]
+pub(crate) struct VehicleHurtStep {
+    pub(crate) vehicle: EntityId,
+    pub(crate) source: DamageSource,
+    pub(crate) amount: f32,
+    pub(crate) then: AfterHurt,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct VehicleDestroyStep {
+    pub(crate) vehicle: EntityId,
+    pub(crate) attacker: Option<EntityId>,
+    pub(crate) creative: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct VehiclePushStep {
+    pub(crate) vehicle: EntityId,
+    pub(crate) other: EntityId,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Breaking {
     Survival,
@@ -841,6 +869,10 @@ pub(crate) enum Spawned {
         player: PlayerId,
         hand: Hand,
         stack: ItemStack,
+    },
+    Placed {
+        player: PlayerId,
+        hand: Hand,
     },
     Converted {
         old: EntityId,
@@ -1539,6 +1571,10 @@ pub(crate) enum Continuation {
     PlaceCrystal(Box<CrystalPlaceStep>),
     PlaceHanging(Box<HangingPlaceStep>),
     PlaceStand(Box<StandPlaceStep>),
+    PlaceVehicle(Box<VehiclePlaceStep>),
+    HurtVehicle(Box<VehicleHurtStep>),
+    DestroyVehicle(VehicleDestroyStep),
+    PushVehicle(VehiclePushStep),
     SwapStand(Box<StandSwapStep>),
     BreakHanging(Box<HangingBreakStep>),
     Relocate(RelocateStep),
@@ -1707,7 +1743,10 @@ impl Continuation {
             Self::DragonWalls(_) => EventKind::EntityExplode,
             Self::PlaceCrystal(_) => EventKind::EntityPlace,
             Self::PlaceHanging(_) => EventKind::HangingPlace,
-            Self::PlaceStand(_) => EventKind::EntityPlace,
+            Self::PlaceStand(_) | Self::PlaceVehicle(_) => EventKind::EntityPlace,
+            Self::HurtVehicle(_) => EventKind::VehicleDamage,
+            Self::DestroyVehicle(_) => EventKind::VehicleDestroy,
+            Self::PushVehicle(_) => EventKind::VehicleEntityCollision,
             Self::SwapStand(_) => EventKind::PlayerArmorStandManipulate,
             Self::BreakHanging(step) => {
                 if step.by_entity {
@@ -1842,6 +1881,10 @@ impl Continuation {
             Self::PlaceCrystal(step) => step.entity.base.id == id,
             Self::PlaceHanging(step) => step.entity.base.id == id,
             Self::PlaceStand(step) => step.entity.base.id == id,
+            Self::PlaceVehicle(step) => step.entity.base.id == id,
+            Self::HurtVehicle(step) => step.vehicle == id,
+            Self::DestroyVehicle(step) => step.vehicle == id,
+            Self::PushVehicle(step) => step.vehicle == id || step.other == id,
             Self::SwapStand(step) => step.target == id,
             Self::BreakHanging(step) => step.id == id,
             Self::Relocate(step) => step.entity == id,
