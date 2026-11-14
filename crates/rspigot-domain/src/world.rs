@@ -125,7 +125,7 @@ impl Dimension {
             key: Identifier::minecraft("the_end"),
             dimension_type: Identifier::minecraft("the_end"),
             height: WorldHeight::END,
-            has_skylight: false,
+            has_skylight: true,
             has_ceiling: false,
             has_fixed_time: true,
             sea_level: 0,
@@ -133,7 +133,30 @@ impl Dimension {
         }
     }
 
+    pub fn has_day_cycle(&self) -> bool {
+        self.has_skylight && !self.has_fixed_time
+    }
+
     pub fn can_have_weather(&self) -> bool {
         self.has_skylight && !self.has_ceiling && self.key != Identifier::minecraft("the_end")
+    }
+}
+
+#[cfg(test)]
+mod dimension_tests {
+    use super::*;
+
+    #[test]
+    fn the_end_has_skylight_but_no_day_cycle_or_weather() {
+        let end = Dimension::end();
+        assert!(end.has_skylight);
+        assert!(!end.has_day_cycle());
+        assert!(!end.can_have_weather());
+    }
+
+    #[test]
+    fn only_the_overworld_has_a_day_cycle() {
+        assert!(Dimension::overworld().has_day_cycle());
+        assert!(!Dimension::nether().has_day_cycle());
     }
 }

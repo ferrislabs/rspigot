@@ -151,4 +151,30 @@ mod tests {
         assert_eq!(nether.monster_spawn_block_light_limit, 15);
         assert!(dimension("minecraft:nope").is_none());
     }
+
+    #[test]
+    fn every_end_biome_spawns_endermen_and_the_end_dimension_allows_any_light() {
+        let enderman = entities::id("minecraft:enderman").unwrap();
+        for name in [
+            "minecraft:the_end",
+            "minecraft:end_highlands",
+            "minecraft:end_midlands",
+            "minecraft:small_end_islands",
+            "minecraft:end_barrens",
+        ] {
+            let end = biome(registries::biome_id(name).unwrap());
+            let found = end.monster.iter().find(|s| s.entity == enderman);
+            assert_eq!(
+                found.map(|s| (s.weight, s.count)),
+                Some((10, SpawnCount::Constant(4))),
+                "{name}"
+            );
+            assert_eq!(end.monster.len(), 1, "{name}");
+            assert!(end.creature.is_empty(), "{name}");
+        }
+        let end = dimension("minecraft:the_end").expect("the_end dimension type");
+        assert_eq!(end.monster_spawn_block_light_limit, 0);
+        assert_eq!(end.monster_spawn_light, SpawnCount::Constant(15));
+        assert!(!end.has_ceiling);
+    }
 }
