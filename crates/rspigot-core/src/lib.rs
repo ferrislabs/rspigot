@@ -29,8 +29,12 @@ mod drops;
 mod durability;
 mod eating;
 mod effects;
+mod end_credits;
+mod end_gateway;
 mod end_platform;
 mod end_portal;
+#[cfg(test)]
+mod end_tests;
 pub mod entities;
 mod environment;
 pub mod events;

@@ -695,6 +695,8 @@ impl<L: ClientLink> Server<L> {
             vitals: Default::default(),
             known_movement: Vec3::ZERO,
             portal_cooldown: 0,
+            seen_credits: false,
+            won_game: false,
             moved_this_tick: false,
             using_item: None,
             open_menu: None,
@@ -950,7 +952,7 @@ impl<L: ClientLink> Server<L> {
             self.ask_chunk_unload(pos);
         }
         self.handle_chunk_events();
-        for player in self.players.values_mut() {
+        for player in self.players.values_mut().filter(|player| !player.won_game) {
             player.streamer.tick(&self.world.chunks, &player.link);
         }
         self.world.chunks.relight();
@@ -966,6 +968,8 @@ impl<L: ClientLink> Server<L> {
         self.tick_dragon_fight();
         self.tick_entities();
         self.tick_portals();
+        self.tick_gateways();
+        self.tick_gateway_travelers();
         self.tick_ride_players();
         self.tick_golem_chests();
         self.collect_items();
