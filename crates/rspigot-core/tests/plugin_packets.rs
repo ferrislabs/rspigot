@@ -302,3 +302,161 @@ mod signs {
         assert_eq!(causes, vec![PlayerSignOpenCause::Place]);
     }
 }
+
+mod books {
+    use super::*;
+    use rspigot_core::events::Inbound;
+    use rspigot_core::plugins::events::{PlayerEditBook, PlayerEditBookPatch};
+    use rspigot_core::plugins::{Answer, BookMeta, EventPatch, ItemSpec, Question};
+
+    fn writable_with(handlers: Vec<rspigot_core::plugins::HandlerSpec>) -> Scene {
+        let mut s = scene_with(&["Alice"], handlers);
+        s.server
+            .handle(Inbound::Console("give Alice writable_book 1".to_owned()));
+        s.server.deliver();
+        s
+    }
+
+    fn book(s: &mut Scene) -> ItemSpec {
+        let Answer::Inventory(inventory) = s.ask(Question::Inventory(s.players[0].id)) else {
+            panic!("expected the inventory");
+        };
+        inventory
+            .slots
+            .into_iter()
+            .flatten()
+            .find(|item| item.key.ends_with("_book"))
+            .expect("a book")
+    }
+
+    fn content(item: &ItemSpec, key: &str) -> rspigot_nbt::Compound {
+        let mut bytes = item.components.as_slice();
+        let tag = rspigot_nbt::read_network_compound(&mut bytes)
+            .unwrap()
+            .expect("components");
+        tag.get_compound(key).cloned().expect("the book content")
+    }
+
+    fn page_strings(content: &rspigot_nbt::Compound) -> Vec<String> {
+        content
+            .get_list("pages")
+            .unwrap_or_default()
+            .iter()
+            .map(|page| match page {
+                rspigot_nbt::Tag::String(text) => text.clone(),
+                other => panic!("unexpected page {other:?}"),
+            })
+            .collect()
+    }
+
+    fn edit(s: &mut Scene, title: Option<&str>) {
+        let alice = s.players[0].clone();
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::EditBook {
+                slot: 0,
+                pages: vec!["first".to_owned(), "second".to_owned()],
+                title: title.map(str::to_owned),
+            },
+        );
+    }
+
+    #[test]
+    fn saving_a_book_tells_the_plugins_and_writes_its_pages() {
+        let mut s = writable_with(vec![observe(1, EventKind::PlayerEditBook)]);
+        edit(&mut s, None);
+        let events = fired(&s.plugin);
+        let EventPayload::PlayerEditBook(PlayerEditBook {
+            new_book_meta,
+            previous_book_meta,
+            signing,
+            player,
+        }) = &events[0].payload
+        else {
+            panic!("expected an edit, got {:?}", events[0]);
+        };
+        assert!(!*signing);
+        assert_eq!(player.id, s.players[0].id);
+        assert_eq!(new_book_meta.pages, vec!["first", "second"]);
+        assert!(previous_book_meta.pages.is_empty());
+        let item = book(&mut s);
+        assert_eq!(item.key, "minecraft:writable_book");
+        assert_eq!(
+            page_strings(&content(&item, "minecraft:writable_book_content")),
+            vec!["first", "second"]
+        );
+    }
+
+    #[test]
+    fn signing_a_book_makes_a_written_book_with_the_title_and_the_author() {
+        let mut s = writable_with(vec![observe(1, EventKind::PlayerEditBook)]);
+        edit(&mut s, Some("Tale"));
+        let events = fired(&s.plugin);
+        let EventPayload::PlayerEditBook(PlayerEditBook {
+            new_book_meta,
+            signing,
+            ..
+        }) = &events[0].payload
+        else {
+            panic!("expected an edit");
+        };
+        assert!(*signing);
+        assert_eq!(new_book_meta.title.as_deref(), Some("Tale"));
+        assert_eq!(new_book_meta.author.as_deref(), Some("Alice"));
+        let item = book(&mut s);
+        assert_eq!(item.key, "minecraft:written_book");
+        let written = content(&item, "minecraft:written_book_content");
+        assert_eq!(written.get_str("author"), Some("Alice"));
+        assert_eq!(page_strings(&written), vec!["first", "second"]);
+    }
+
+    #[test]
+    fn a_cancelled_edit_keeps_the_book_and_resends_the_inventory() {
+        let mut s = writable_with(vec![deciding(1, EventKind::PlayerEditBook)]);
+        s.players[0].link.take();
+        edit(&mut s, None);
+        let asked = last_asked(&s.plugin, EventKind::PlayerEditBook);
+        rule_on(&mut s.server, 1, asked.id, true, None);
+        let item = book(&mut s);
+        assert!(item.components.is_empty());
+        assert!(s.players[0].link.take().iter().any(|event| matches!(
+            event,
+            rspigot_core::events::ClientEvent::InventoryContent { .. }
+        )));
+    }
+
+    #[test]
+    fn a_patch_can_replace_the_pages_and_turn_a_save_into_a_signature() {
+        let mut s = writable_with(vec![deciding(1, EventKind::PlayerEditBook)]);
+        edit(&mut s, None);
+        let asked = last_asked(&s.plugin, EventKind::PlayerEditBook);
+        rule_on(
+            &mut s.server,
+            1,
+            asked.id,
+            false,
+            Some(EventPatch::PlayerEditBook(PlayerEditBookPatch {
+                new_book_meta: Some(BookMeta {
+                    title: Some("Patched".to_owned()),
+                    author: Some("Bob".to_owned()),
+                    pages: vec!["only".to_owned()],
+                }),
+                signing: Some(true),
+            })),
+        );
+        let item = book(&mut s);
+        assert_eq!(item.key, "minecraft:written_book");
+        let written = content(&item, "minecraft:written_book_content");
+        assert_eq!(written.get_str("title"), Some("Patched"));
+        assert_eq!(written.get_str("author"), Some("Bob"));
+        assert_eq!(page_strings(&written), vec!["only"]);
+    }
+
+    #[test]
+    fn an_edit_of_something_that_is_not_a_writable_book_is_ignored() {
+        let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::PlayerEditBook)]);
+        edit(&mut s, None);
+        assert!(fired(&s.plugin).is_empty());
+    }
+}

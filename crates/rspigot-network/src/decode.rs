@@ -306,6 +306,11 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             button: p.button_id,
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
+        ServerboundPlay::EditBook(p) => input(PlayerInput::EditBook {
+            slot: p.slot,
+            pages: p.pages.clone(),
+            title: p.title.clone(),
+        }),
         ServerboundPlay::SignUpdate(p) => input(PlayerInput::SignUpdate {
             pos: block_pos(p.pos),
             front: matches!(p.slot, SignTextSlot::Front),
@@ -402,6 +407,24 @@ mod tests {
                 count: 5,
                 patched: true,
             }))
+        );
+    }
+
+    #[test]
+    fn an_edit_book_carries_its_slot_pages_and_optional_title() {
+        let mut body = vec![0, 2];
+        for page in ["a", "bc"] {
+            page.to_owned().encode(&mut body);
+        }
+        body.push(1);
+        "T".to_owned().encode(&mut body);
+        assert_eq!(
+            decoded(sb::EDIT_BOOK, &body),
+            PlayerInput::EditBook {
+                slot: 0,
+                pages: vec!["a".to_owned(), "bc".to_owned()],
+                title: Some("T".to_owned()),
+            }
         );
     }
 

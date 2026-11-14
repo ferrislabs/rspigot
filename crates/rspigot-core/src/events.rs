@@ -171,6 +171,11 @@ pub enum PlayerInput {
         secondary: Option<i32>,
     },
     SelectTrade(i32),
+    EditBook {
+        slot: i32,
+        pages: Vec<String>,
+        title: Option<String>,
+    },
     SignUpdate {
         pos: BlockPos,
         front: bool,

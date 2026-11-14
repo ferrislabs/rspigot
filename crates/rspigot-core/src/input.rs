@@ -143,6 +143,9 @@ impl<L: ClientLink> Server<L> {
                 self.handle_set_beacon(id, primary, secondary);
             }
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
+            PlayerInput::EditBook { slot, pages, title } => {
+                self.handle_edit_book(id, slot, pages, title);
+            }
             PlayerInput::SignUpdate { pos, front, lines } => {
                 self.handle_sign_update(id, pos, front, lines);
             }
