@@ -244,6 +244,54 @@ pub fn sleepers_needed(active: i32, percent: i32) -> i32 {
     wanted.max(1)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SleepStatus {
+    pub active: i32,
+    pub sleeping: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Sleeper {
+    pub spectator: bool,
+    pub sleeping: bool,
+    pub deep: bool,
+}
+
+impl SleepStatus {
+    pub fn enough_sleeping(&self, percent: i32) -> bool {
+        sleepers_needed(self.active, percent) <= self.sleeping
+    }
+
+    pub fn enough_deep_sleeping(&self, percent: i32, players: &[Sleeper]) -> bool {
+        let deep = players
+            .iter()
+            .filter(|player| !player.spectator && player.deep)
+            .count() as i32;
+        players.iter().any(|player| player.deep) && sleepers_needed(self.active, percent) <= deep
+    }
+
+    pub fn clear(&mut self) {
+        self.sleeping = 0;
+    }
+
+    pub fn update(&mut self, players: &[Sleeper]) -> bool {
+        let (before_active, before_sleeping) = (self.active, self.sleeping);
+        self.active = 0;
+        self.sleeping = 0;
+        let mut anyone = false;
+        for player in players.iter().filter(|player| !player.spectator) {
+            self.active += 1;
+            if player.sleeping {
+                self.sleeping += 1;
+                anyone = true;
+            }
+        }
+        anyone
+            && (before_sleeping >= 1 || self.sleeping >= 1)
+            && (before_active != self.active || before_sleeping != self.sleeping)
+    }
+}
+
 pub fn skip_target(day_time: i64) -> i64 {
     let day = day_time.div_euclid(DAY_LENGTH);
     (day + 1) * DAY_LENGTH + WAKE_UP_DAY_TICK
@@ -580,6 +628,43 @@ mod tests {
         assert_eq!(sleepers_needed(3, 50), 2);
         assert_eq!(sleepers_needed(0, 100), 1);
         assert_eq!(sleepers_needed(10, 100), 10);
+    }
+
+    #[test]
+    fn the_sleep_status_announces_only_a_real_change_with_someone_in_bed() {
+        let asleep = Sleeper {
+            spectator: false,
+            sleeping: true,
+            deep: false,
+        };
+        let awake = Sleeper {
+            sleeping: false,
+            ..asleep
+        };
+        let mut status = SleepStatus::default();
+        assert!(status.update(&[asleep, awake]));
+        assert_eq!((status.active, status.sleeping), (2, 1));
+        assert!(!status.update(&[asleep, awake]));
+        assert!(!status.update(&[awake, awake]));
+        assert!(status.enough_sleeping(50) || !status.enough_sleeping(100));
+    }
+
+    #[test]
+    fn deep_sleep_needs_someone_who_slept_long_enough() {
+        let mut status = SleepStatus::default();
+        let light = Sleeper {
+            spectator: false,
+            sleeping: true,
+            deep: false,
+        };
+        let deep = Sleeper {
+            deep: true,
+            ..light
+        };
+        status.update(&[light, deep]);
+        assert!(status.enough_sleeping(100));
+        assert!(!status.enough_deep_sleeping(100, &[light, deep]));
+        assert!(status.enough_deep_sleeping(50, &[light, deep]));
     }
 
     #[test]

@@ -878,7 +878,7 @@ impl<L: ClientLink> Server<L> {
         self.set_bed_occupied(pos, true);
     }
 
-    fn villager_stop_sleeping(&mut self, id: EntityId) {
+    pub(crate) fn villager_stop_sleeping(&mut self, id: EntityId) {
         let now = self.world.level.game_time;
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;

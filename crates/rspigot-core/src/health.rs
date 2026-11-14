@@ -465,6 +465,16 @@ impl<L: ClientLink> Server<L> {
         let fall_damage = self.config.rules.fall_damage;
         let now = self.current_tick();
         let kind = source.kind;
+        let wakes = self.players.get(&id).is_some_and(|player| {
+            player.sleeping.is_some()
+                && !(invulnerable_to(player, kind, fall_damage)
+                    || (player.abilities().invulnerable
+                        && !kind.is(DamageTag::BypassesInvulnerability))
+                    || player.vitals.is_dead())
+        });
+        if wakes {
+            self.stop_sleep_in_bed(id, true, true);
+        }
         let Some(player) = self.players.get_mut(&id) else {
             return false;
         };
@@ -601,6 +611,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn die(&mut self, id: PlayerId, source: &DamageSource) {
+        self.stop_sleep_in_bed(id, true, true);
         let keep_rule = self.config.rules.keep_inventory;
         let Some(player) = self.players.get_mut(&id) else {
             return;

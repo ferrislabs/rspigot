@@ -139,7 +139,7 @@ fn step(pos: BlockPos, face: Face) -> BlockPos {
 }
 
 impl<L: ClientLink> Server<L> {
-    fn block_or_air(&self, pos: BlockPos) -> BlockStateId {
+    pub(crate) fn block_or_air(&self, pos: BlockPos) -> BlockStateId {
         self.world.chunks.block(pos).unwrap_or(BlockStateId::AIR)
     }
 

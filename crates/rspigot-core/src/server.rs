@@ -59,6 +59,7 @@ pub struct World {
     pub level: LevelData,
     pub spawn: Vec3,
     pub difficulty: Difficulty,
+    pub sleep: rspigot_domain::bed::SleepStatus,
 }
 
 struct TpsMeter {
@@ -170,6 +171,7 @@ impl<L: ClientLink> Server<L> {
                 level,
                 spawn,
                 difficulty: config.difficulty,
+                sleep: Default::default(),
             },
             workers,
             players: FxHashMap::default(),
@@ -860,6 +862,7 @@ impl<L: ClientLink> Server<L> {
         self.notify_undone(forgotten, crate::plugins::Phase::Settled);
         self.visibility.forget(id);
         self.forget_sign_editor(id);
+        self.leave_bed_for_good(id);
         let Some(mut player) = self.players.remove(&id) else {
             return;
         };
@@ -873,6 +876,7 @@ impl<L: ClientLink> Server<L> {
             }
         }
         self.push(Audience::All, ClientEvent::PlayerInfoRemove(vec![id]));
+        self.update_sleeping_list();
         self.refresh_status();
         self.leave_event(snapshot, player.kick_leave_message.take(), announce);
     }
@@ -967,6 +971,7 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_health();
+        self.tick_sleeping();
         self.tick_eating();
         self.tick_delayed_destroys();
         self.tick_spawning();

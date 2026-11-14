@@ -742,6 +742,7 @@ pub(crate) struct RelocateStep {
 pub(crate) struct TimeStep {
     pub(crate) skipped: i64,
     pub(crate) applied: bool,
+    pub(crate) wake: bool,
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -86,6 +86,7 @@ impl<L: ClientLink> Server<L> {
                 MovementAction::StopSprinting => self.toggle_sprint(id, false),
                 MovementAction::StartRidingJump(power) => self.start_riding_jump(id, power),
                 MovementAction::OpenVehicleInventory => self.open_vehicle_inventory(id),
+                MovementAction::LeaveBed => self.stop_sleep_in_bed(id, false, true),
                 _ => {}
             },
             PlayerInput::Input(state) => self.press(id, state),
@@ -201,7 +202,8 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
-        if player.pending_teleport.is_some() || player.vitals.is_dead() {
+        if player.pending_teleport.is_some() || player.vitals.is_dead() || player.sleeping.is_some()
+        {
             return;
         }
         let from = reference.unwrap_or(player.position);
@@ -521,6 +523,10 @@ impl<L: ClientLink> Server<L> {
             if !(sneaking && holding)
                 && self.use_beehive(id, hand, stack.as_ref(), pos, clicked, sequence)
             {
+                return;
+            }
+            if !(sneaking && holding) && self.use_bed(id, pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
             if !(sneaking && holding)
