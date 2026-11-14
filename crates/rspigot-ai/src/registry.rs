@@ -501,6 +501,7 @@ pub fn register_goals(
         | EntityKind::Mule
         | EntityKind::SkeletonHorse
         | EntityKind::ZombieHorse => crate::equine::equine_goals(kind, &mut add),
+        EntityKind::Llama | EntityKind::TraderLlama => crate::llama::llama_goals(kind, &mut add),
         EntityKind::Strider => {
             add.goal(1, MobGoal::Panic(PanicGoal::new(strider::PANIC_SPEED)));
             add.goal(strider::BREED_PRIORITY, MobGoal::Breed(BreedGoal::new(1.0)));

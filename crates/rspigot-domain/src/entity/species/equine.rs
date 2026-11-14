@@ -65,6 +65,7 @@ const ZOMBIE_SPEED_DIVISOR: f64 = 42.159_999_847_412_11;
 pub struct MountState {
     pub temper: i32,
     pub max_domestication: i32,
+    pub fixed_max_temper: Option<i32>,
     pub owner: Option<Uuid>,
     pub can_gallop: bool,
     pub inventory: Vec<Slot>,
@@ -99,7 +100,15 @@ pub fn has_horse_variant(kind: EntityKind) -> bool {
 }
 
 pub fn can_perform_rearing(kind: EntityKind) -> bool {
-    is_equine(kind)
+    is_equine(kind) && !super::llama::is_llama(kind) && !is_camel(kind)
+}
+
+pub fn is_camel(kind: EntityKind) -> bool {
+    super::camel::is_camel(kind)
+}
+
+pub fn can_eat_grass(kind: EntityKind) -> bool {
+    is_equine(kind) && !super::llama::is_llama(kind)
 }
 
 impl MountState {
@@ -115,6 +124,7 @@ impl MountState {
         Self {
             temper: 0,
             max_domestication: DEFAULT_MAX_DOMESTICATION,
+            fixed_max_temper: super::llama::is_llama(kind).then_some(super::llama::MAX_TEMPER),
             owner: None,
             can_gallop: !is_chested(kind),
             inventory: Vec::new(),
@@ -138,7 +148,7 @@ impl MountState {
     }
 
     pub fn max_temper(&self) -> i32 {
-        self.max_domestication
+        self.fixed_max_temper.unwrap_or(self.max_domestication)
     }
 
     pub fn modify_temper(&mut self, amount: i32) -> i32 {
@@ -147,6 +157,9 @@ impl MountState {
     }
 
     pub fn inventory_columns(&self, base: &EntityBase) -> usize {
+        if super::llama::is_llama(base.kind) {
+            return usize::try_from(super::llama::inventory_columns(base)).unwrap_or(0);
+        }
         if is_chested(base.kind) && has_chest(base) {
             CHEST_COLUMNS
         } else {
@@ -294,7 +307,7 @@ pub fn set_flag(base: &mut EntityBase, mask: u8, value: bool) {
 }
 
 pub fn is_tamed(base: &EntityBase) -> bool {
-    flag(base, FLAG_TAME)
+    is_camel(base.kind) || flag(base, FLAG_TAME)
 }
 
 pub fn set_tamed(base: &mut EntityBase, value: bool) {
@@ -536,6 +549,7 @@ pub fn offspring_kind(parent: EntityKind, partner: EntityKind) -> Option<EntityK
         (EntityKind::Mule, _) => Some(EntityKind::Mule),
         (EntityKind::SkeletonHorse, _) => Some(EntityKind::SkeletonHorse),
         (EntityKind::ZombieHorse, _) => Some(EntityKind::ZombieHorse),
+        (EntityKind::Camel, EntityKind::Camel) => Some(EntityKind::Camel),
         _ => None,
     }
 }
@@ -546,11 +560,12 @@ pub fn can_mate_kind(kind: EntityKind, partner: EntityKind) -> bool {
 }
 
 pub fn can_fall_in_love(kind: EntityKind) -> bool {
-    kind != EntityKind::ZombieHorse
+    kind != EntityKind::ZombieHorse && super::camel::can_fall_in_love(kind)
 }
 
 pub fn can_age_up(kind: EntityKind) -> bool {
     !matches!(kind, EntityKind::SkeletonHorse | EntityKind::ZombieHorse)
+        && super::camel::can_be_baby(kind)
 }
 
 pub fn read(nbt: &Compound, base: &mut EntityBase, state: &mut MountState) {
@@ -564,6 +579,9 @@ pub fn read(nbt: &Compound, base: &mut EntityBase, state: &mut MountState) {
         .unwrap_or(state.max_domestication);
     if has_horse_variant(base.kind) {
         set_type_variant(base, nbt.get_i32("Variant").unwrap_or(0));
+    }
+    if super::llama::is_llama(base.kind) {
+        super::llama::read_strength(nbt, base);
     }
     if is_chested(base.kind) {
         set_chest(base, nbt.get_bool("ChestedHorse").unwrap_or(false));

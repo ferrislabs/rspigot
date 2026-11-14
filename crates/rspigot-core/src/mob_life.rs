@@ -131,9 +131,13 @@ pub(crate) fn ambient_sound(entity: &Entity, game_time: i64) -> Option<&'static 
             "minecraft:entity.zombie_nautilus.ambient_land"
         }),
         Kind::Phantom => Some("minecraft:entity.phantom.ambient"),
-        Kind::Horse | Kind::Donkey | Kind::Mule | Kind::SkeletonHorse | Kind::ZombieHorse => {
-            crate::kinds::equine_ambient_sound(entity)
-        }
+        Kind::Horse
+        | Kind::Donkey
+        | Kind::Mule
+        | Kind::SkeletonHorse
+        | Kind::ZombieHorse
+        | Kind::Llama
+        | Kind::TraderLlama => crate::kinds::equine_ambient_sound(entity),
         _ => None,
     }
 }
@@ -237,6 +241,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn species_post_tick(&mut self, id: EntityId) {
+        self.tick_leash(id);
         self.kind_post_tick(id);
         self.mob_steps_on_egg(id);
         let now = self.current_tick() as i64;

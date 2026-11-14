@@ -645,6 +645,10 @@ pub(crate) enum Spawned {
     Mounted {
         rider: EntityId,
     },
+    MountedWith {
+        rider: EntityId,
+        then: Box<Carried>,
+    },
     Rides {
         vehicle: EntityId,
     },

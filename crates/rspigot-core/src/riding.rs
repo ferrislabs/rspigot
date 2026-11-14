@@ -22,7 +22,7 @@ use crate::mobs::ServerRandom;
 use crate::plugins::events::{
     CreatureSpawnReason, EntityDismount, EntityMount, VehicleEnter, VehicleExit,
 };
-use crate::plugins::steps::RideStep;
+use crate::plugins::steps::{Carried, RideStep};
 use crate::plugins::{Birth, Continuation, EventKind, EventPayload, Spawned};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
@@ -31,6 +31,7 @@ const PORTALS: &str = "minecraft:portals";
 const FREE_POSITION_RADIUS: f32 = 4.0;
 const PIGLIN_STACK_DEPTH: i32 = 3;
 const HORSE_DISMOUNT_REACH: f64 = 0.75;
+const CAMEL_HUSK_CHANCE: f32 = 0.1;
 const STRIDER_ESCAPE_ANGLES: [f32; 5] = [0.0, -22.5, 22.5, -45.0, 45.0];
 
 struct JockeyRider {
@@ -482,14 +483,18 @@ impl<L: ClientLink> Server<L> {
             .iter()
             .position(|candidate| *candidate == passenger)
             .unwrap_or(0);
-        let attach = riding::passenger_attachment(
-            carrier.kind,
-            carrier.baby,
-            carrier.height,
-            carrier.scale,
-            carrier.yaw,
-            index,
-        );
+        let attach = if carrier.kind.extends("Camel") {
+            self.camel_passenger_attachment(vehicle, index)
+        } else {
+            riding::passenger_attachment(
+                carrier.kind,
+                carrier.baby,
+                carrier.height,
+                carrier.scale,
+                carrier.yaw,
+                index,
+            )
+        };
         let own = riding::vehicle_attachment(rider.kind, rider.baby, rider.scale, rider.yaw);
         let lift = if carrier.kind.extends("AbstractHorse") {
             self.equine_position_offset(vehicle)
@@ -873,6 +878,7 @@ impl<L: ClientLink> Server<L> {
                     ..JockeyRider::of(Kind::Zombie)
                 },
             ),
+            Some(Jockey::CamelHuskRider) => self.try_camel_husk_ride(id),
             Some(Jockey::StriderBaby) => self.spawn_rider_on(
                 id,
                 JockeyRider {
@@ -882,6 +888,60 @@ impl<L: ClientLink> Server<L> {
             ),
             None => {}
         }
+    }
+
+    fn try_camel_husk_ride(&mut self, husk: EntityId) {
+        let Some((position, yaw)) = self
+            .entities
+            .store
+            .get(husk)
+            .map(|entity| (entity.base.position, entity.base.yaw))
+        else {
+            return;
+        };
+        let block = position.block();
+        let center = Vec3::new(
+            f64::from(block.x) + 0.5,
+            f64::from(block.y),
+            f64::from(block.z) + 0.5,
+        );
+        let size = Kind::CamelHusk.dimensions();
+        let area = Aabb::of_size(center, size.width, size.height);
+        if !rspigot_domain::entity::fluid::is_free_of_collision(&self.world.chunks, &area) {
+            return;
+        }
+        let roll: f32 = rand::Rng::random(&mut self.rng);
+        if roll >= CAMEL_HUSK_CHANCE {
+            return;
+        }
+        if let Some(living) = self
+            .entities
+            .store
+            .get_mut(husk)
+            .and_then(|entity| entity.living_mut())
+        {
+            spawn::set_item_slot(
+                living,
+                EquipmentSlot::Mainhand,
+                Some(ItemStack::new(ItemKind::IronSpear.id(), NonZeroU8::MIN)),
+            );
+        }
+        let mut camel = new_mob(self.new_entity_base(Kind::CamelHusk));
+        camel.base.snap_to(position, 0.0, 0.0);
+        self.finalize_part(&mut camel, SpawnReason::Natural, None);
+        let mut parched = new_mob(self.new_entity_base(Kind::Parched));
+        parched.base.snap_to(position, yaw, 0.0);
+        self.finalize_part(&mut parched, SpawnReason::Natural, None);
+        self.spawn_entity(
+            camel,
+            Birth::of(CreatureSpawnReason::Default).then(Spawned::MountedWith {
+                rider: husk,
+                then: Box::new(Carried {
+                    rider: parched,
+                    reason: CreatureSpawnReason::Default,
+                }),
+            }),
+        );
     }
 
     fn mount_loose_chicken(&mut self, rider: EntityId) {

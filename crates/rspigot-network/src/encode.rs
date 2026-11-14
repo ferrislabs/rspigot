@@ -1468,6 +1468,13 @@ impl Encoder {
                     passengers: passengers.iter().map(|e| e.0).collect(),
                 },
             ),
+            ClientEvent::EntityLink { entity, holder } => Self::queue(
+                writer,
+                &cb::SetEntityLink {
+                    source: entity.0,
+                    dest: holder.map_or(0, |holder| holder.0),
+                },
+            ),
             ClientEvent::InventoryContent {
                 state_id,
                 slots,

@@ -31,6 +31,8 @@ const GUARANTEED_DROP: f32 = 2.0;
 const SADDLE_SOUND: &str = "minecraft:entity.horse.saddle";
 const ARMOR_UNEQUIP_SOUND: &str = "minecraft:item.horse_armor.unequip";
 const ARMOR_SOUND: &str = "minecraft:entity.horse.armor";
+const CARPET_SOUND: &str = "minecraft:entity.llama.swag";
+const CARPET_UNEQUIP_SOUND: &str = "minecraft:item.llama_carpet.unequip";
 const CHEST_EQUIP_SOUND_VOLUME: f32 = 1.0;
 const BODY_ARMOR_MODIFIER: &str = "minecraft:armor.body";
 const BODY_ARMOR_ATTRIBUTES: [&str; 3] = [
@@ -42,6 +44,7 @@ const CAN_EQUIP_SADDLE: &str = "minecraft:can_equip_saddle";
 const CAN_WEAR_HORSE_ARMOR: &str = "minecraft:can_wear_horse_armor";
 const HORSE_FOOD: &str = "minecraft:horse_food";
 const ZOMBIE_HORSE_FOOD: &str = "minecraft:zombie_horse_food";
+const LLAMA_FOOD: &str = "minecraft:llama_food";
 const REGEN_ROLL: i32 = 900;
 const EAT_GRASS_ROLL: i32 = 300;
 const TAIL_ROLL: i32 = 200;
@@ -61,6 +64,24 @@ struct Feed {
     age_up: i32,
     temper: i32,
     love: bool,
+}
+
+fn llama_feed_of(item: ItemKind) -> Option<Feed> {
+    Some(match item {
+        ItemKind::Wheat => Feed {
+            heal: 2.0,
+            age_up: 10,
+            temper: 3,
+            love: false,
+        },
+        ItemKind::HayBlock => Feed {
+            heal: 10.0,
+            age_up: 90,
+            temper: 6,
+            love: true,
+        },
+        _ => return None,
+    })
 }
 
 fn feed_of(item: ItemKind) -> Option<Feed> {
@@ -96,6 +117,7 @@ pub(crate) fn mount_of(entity: &Entity) -> Option<&MountState> {
 pub(crate) fn can_use_slot(entity: &Entity, slot: EquipmentSlot) -> bool {
     let kind = entity.base.kind;
     match slot {
+        _ if kind.extends("Llama") => true,
         EquipmentSlot::Saddle => {
             matches!(kind, Kind::Horse | Kind::SkeletonHorse | Kind::ZombieHorse)
                 || (entity
@@ -115,12 +137,19 @@ pub(crate) fn is_equippable_in(entity: &Entity, stack: &ItemStack, slot: Equipme
     if item.equippable() != Some(slot) || !can_use_slot(entity, slot) {
         return false;
     }
+    if slot == EquipmentSlot::Body && is_carpet(item) {
+        return entity.base.kind.extends("Llama");
+    }
     let allowed = match slot {
         EquipmentSlot::Saddle => CAN_EQUIP_SADDLE,
         EquipmentSlot::Body => CAN_WEAR_HORSE_ARMOR,
         _ => return false,
     };
     type_in_tag(entity.base.kind, allowed)
+}
+
+fn is_carpet(item: ItemKind) -> bool {
+    item.name().ends_with("_carpet")
 }
 
 fn voice(kind: Kind, baby: bool, adult: &'static str, young: &'static str) -> &'static str {
@@ -150,6 +179,8 @@ pub(crate) fn ambient_sound(entity: &Entity) -> Option<&'static str> {
             }
         }
         Kind::ZombieHorse => "minecraft:entity.zombie_horse.ambient",
+        Kind::Llama | Kind::TraderLlama => super::llama::ambient_sound(),
+        Kind::Camel | Kind::CamelHusk => super::camel::ambient_sound(entity.base.kind),
         _ => return None,
     })
 }
@@ -166,6 +197,7 @@ fn angry_sound(entity: &Entity) -> Option<&'static str> {
         Kind::Donkey => "minecraft:entity.donkey.angry",
         Kind::Mule => "minecraft:entity.mule.angry",
         Kind::ZombieHorse => "minecraft:entity.zombie_horse.angry",
+        Kind::Llama | Kind::TraderLlama => super::llama::angry_sound(),
         _ => return None,
     })
 }
@@ -182,6 +214,8 @@ fn eating_sound(entity: &Entity) -> Option<&'static str> {
         Kind::Donkey => "minecraft:entity.donkey.eat",
         Kind::Mule => "minecraft:entity.mule.eat",
         Kind::ZombieHorse => "minecraft:entity.zombie_horse.eat",
+        Kind::Llama | Kind::TraderLlama => super::llama::eating_sound(),
+        Kind::Camel | Kind::CamelHusk => super::camel::eating_sound(entity.base.kind),
         _ => return None,
     })
 }
@@ -190,6 +224,10 @@ pub(crate) fn food_tag(kind: Kind) -> Option<&'static str> {
     match kind {
         Kind::Horse | Kind::Donkey | Kind::Mule | Kind::SkeletonHorse => Some(HORSE_FOOD),
         Kind::ZombieHorse => Some(ZOMBIE_HORSE_FOOD),
+        Kind::Llama | Kind::TraderLlama => Some(LLAMA_FOOD),
+        Kind::Camel | Kind::CamelHusk => {
+            Some(rspigot_domain::entity::species::camel::food_tag(kind))
+        }
         _ => None,
     }
 }
@@ -220,13 +258,14 @@ impl<L: ClientLink> Server<L> {
                 .values()
                 .any(|player| player.entity_id == *passenger)
         });
-        let mob_controlled = base.kind == Kind::ZombieHorse
+        let mob_controlled = (base.kind == Kind::ZombieHorse
             && first.is_some_and(|passenger| {
                 self.entities
                     .store
                     .get(passenger)
                     .is_some_and(|rider| rider.living().is_some_and(LivingState::is_mob))
-            });
+            }))
+            || self.camel_mob_controlled(id);
         EquineFacts {
             temper: mount.temper,
             max_temper: mount.max_temper(),
@@ -372,7 +411,12 @@ impl<L: ClientLink> Server<L> {
                 mount.trap_time += 1;
                 expired = spent >= equine::TRAP_LIFETIME;
             }
-            if !vehicle && !equine::is_eating(base) && eat_roll && below_grass {
+            if !vehicle
+                && !equine::is_eating(base)
+                && eat_roll
+                && below_grass
+                && equine::can_eat_grass(kind)
+            {
                 equine::set_eating(base, true);
             }
             if equine::is_eating(base) {
@@ -527,7 +571,12 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn handle_eating(&mut self, player: PlayerId, target: EntityId, stack: &ItemStack) -> bool {
-        let Some(feed) = stack.item.kind().and_then(feed_of) else {
+        let llama = self.is_llama(target);
+        let Some(feed) = stack
+            .item
+            .kind()
+            .and_then(if llama { llama_feed_of } else { feed_of })
+        else {
             return false;
         };
         let Some(entity) = self.entities.store.get(target) else {
@@ -587,7 +636,12 @@ impl<L: ClientLink> Server<L> {
             }
             fed = true;
         }
-        if fed {
+        if fed && llama {
+            let mut random = self.mob_random(target);
+            let pitch = (random.next_float() - random.next_float()) * 0.2 + 1.0;
+            self.store_mob_random(target, random);
+            self.entity_sound(target, super::llama::eating_sound(), 1.0, pitch);
+        } else if fed {
             self.equine_eating(target);
             if let Some(at) = self.entities.store.get(target).map(|e| e.base.position) {
                 let rider = self.players.get(&player).map(|p| p.entity_id);
@@ -612,7 +666,12 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn mount_equip(&mut self, id: EntityId, slot: EquipmentSlot, stack: Option<ItemStack>) {
+    pub(crate) fn mount_equip(
+        &mut self,
+        id: EntityId,
+        slot: EquipmentSlot,
+        stack: Option<ItemStack>,
+    ) {
         let Some(living) = self
             .entities
             .store
@@ -657,6 +716,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn do_player_ride(&mut self, player: PlayerId, target: EntityId) {
+        if self.trader_llama_blocks_ride(target) {
+            return;
+        }
         if let Some((base, mount)) = self
             .entities
             .store
@@ -729,14 +791,12 @@ impl<L: ClientLink> Server<L> {
                         .is_some_and(|l| l.equipment(EquipmentSlot::Body).is_none())
             });
             if armor {
-                self.equip_one(
-                    player,
-                    target,
-                    hand,
-                    stack,
-                    EquipmentSlot::Body,
-                    ARMOR_SOUND,
-                );
+                let sound = if stack.item.kind().is_some_and(is_carpet) {
+                    CARPET_SOUND
+                } else {
+                    ARMOR_SOUND
+                };
+                self.equip_one(player, target, hand, stack, EquipmentSlot::Body, sound);
                 return Interaction::Predicted;
             }
         }
@@ -837,10 +897,10 @@ impl<L: ClientLink> Server<L> {
         let mut random = self.mob_random(target);
         let pitch = (random.next_float() - random.next_float()) * 0.2 + 1.0;
         self.store_mob_random(target, random);
-        let sound = if self.kind_of(target) == Some(Kind::Mule) {
-            "minecraft:entity.mule.chest"
-        } else {
-            "minecraft:entity.donkey.chest"
+        let sound = match self.kind_of(target) {
+            Some(Kind::Mule) => "minecraft:entity.mule.chest",
+            Some(kind) if kind.extends("Llama") => super::llama::chest_sound(),
+            _ => "minecraft:entity.donkey.chest",
         };
         self.entity_sound(target, sound, CHEST_EQUIP_SOUND_VOLUME, pitch);
         self.consume_held(player, hand, 1);
@@ -981,6 +1041,9 @@ impl<L: ClientLink> Server<L> {
         if power <= 0 {
             return;
         }
+        if self.kind_of(horse).is_some_and(equine::is_camel) && !self.camel_can_jump(horse) {
+            return;
+        }
         if let Some((_, mount)) = self
             .entities
             .store
@@ -1009,6 +1072,10 @@ impl<L: ClientLink> Server<L> {
             .and_then(|entity| equine_state(entity))
         {
             mount.allow_stand_sliding = true;
+        }
+        if self.kind_of(horse).is_some_and(equine::is_camel) {
+            self.camel_start_dash(horse);
+            return;
         }
         self.equine_stand_if_possible(horse);
         self.play_jump_sound(horse);
@@ -1049,6 +1116,12 @@ impl<L: ClientLink> Server<L> {
         partner: EntityId,
         random: &mut rspigot_domain::random::LegacyRandom,
     ) -> Option<Entity> {
+        if self.is_llama(parent) {
+            return self.llama_offspring(parent, partner, random);
+        }
+        if self.kind_of(parent).is_some_and(equine::is_camel) {
+            return self.camel_offspring(parent, partner);
+        }
         let parent_entity = self.entities.store.get(parent)?;
         let partner_entity = self.entities.store.get(partner)?;
         let kind = equine::offspring_kind(parent_entity.base.kind, partner_entity.base.kind)?;
@@ -1133,8 +1206,14 @@ impl<L: ClientLink> Server<L> {
         };
         self.hurt_held(player, hand, 1);
         self.mount_equip(target, EquipmentSlot::Body, None);
+        let carpet = armor.item.kind().is_some_and(is_carpet);
         self.drop_at_location(target, height, armor, Vec3::ZERO);
-        self.entity_sound(target, ARMOR_UNEQUIP_SOUND, 1.0, 1.0);
+        let sound = if carpet {
+            CARPET_UNEQUIP_SOUND
+        } else {
+            ARMOR_UNEQUIP_SOUND
+        };
+        self.entity_sound(target, sound, 1.0, 1.0);
         true
     }
 }

@@ -14,6 +14,11 @@ use crate::{Vec3, mth};
 
 pub const DATA_ITEM_STACK: u8 = 8;
 pub const GRAVITY: f64 = 0.03;
+pub const SPIT_GRAVITY: f64 = 0.06;
+pub const SPIT_DAMAGE: f32 = 1.0;
+pub const SPIT_OFFSET: f64 = 0.100_000_001_490_116_12;
+pub const SPIT_POWER: f32 = 1.5;
+pub const SPIT_UNCERTAINTY: f32 = 10.0;
 pub const AIR_DRAG: f32 = 0.99;
 pub const WATER_DRAG: f32 = 0.8;
 pub const HIT_EVENT: i8 = 3;
@@ -40,7 +45,15 @@ pub fn is_potion(kind: EntityKind) -> bool {
 }
 
 pub fn is_thrown(kind: EntityKind) -> bool {
-    kind == EntityKind::Snowball || is_potion(kind)
+    kind == EntityKind::Snowball || kind == EntityKind::LlamaSpit || is_potion(kind)
+}
+
+pub fn is_spit(kind: EntityKind) -> bool {
+    kind == EntityKind::LlamaSpit
+}
+
+pub fn carries_item(kind: EntityKind) -> bool {
+    !is_spit(kind)
 }
 
 pub fn default_item_of(kind: EntityKind) -> ItemStack {
@@ -53,16 +66,19 @@ pub fn default_item_of(kind: EntityKind) -> ItemStack {
 pub fn gravity(kind: EntityKind) -> f64 {
     match kind {
         EntityKind::SplashPotion => potion::GRAVITY,
+        EntityKind::LlamaSpit => SPIT_GRAVITY,
         _ => GRAVITY,
     }
 }
 
 impl ThrownState {
     pub fn new(base: &mut EntityBase, seed: i64) -> Self {
-        base.data.define(
-            DATA_ITEM_STACK,
-            SyncedValue::Item(Some(default_item_of(base.kind))),
-        );
+        if carries_item(base.kind) {
+            base.data.define(
+                DATA_ITEM_STACK,
+                SyncedValue::Item(Some(default_item_of(base.kind))),
+            );
+        }
         Self {
             owner: None,
             left_owner: false,
@@ -117,6 +133,22 @@ pub fn shoot(
     let horizontal = (movement.x * movement.x + movement.z * movement.z).sqrt();
     base.set_yaw((mth::atan2(movement.x, movement.z) * mth::RAD_TO_DEG) as f32);
     base.set_pitch((mth::atan2(movement.y, horizontal) * mth::RAD_TO_DEG) as f32);
+}
+
+pub fn smothered(blocks: &impl crate::entity::BlockView, base: &EntityBase) -> bool {
+    let bounds = base.bounding_box();
+    let low = |value: f64| value.floor() as i32;
+    for x in low(bounds.min_x)..=low(bounds.max_x) {
+        for y in low(bounds.min_y)..=low(bounds.max_y) {
+            for z in low(bounds.min_z)..=low(bounds.max_z) {
+                let state = blocks.block(crate::BlockPos::new(x, y, z));
+                if state.is_none_or(|state| state.is_air()) {
+                    return false;
+                }
+            }
+        }
+    }
+    true
 }
 
 pub fn apply_gravity(base: &mut EntityBase) {
@@ -292,6 +324,51 @@ mod tests {
         let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::SplashPotion);
         let state = ThrownState::new(&mut base, 9);
         (base, state)
+    }
+
+    fn spit() -> (EntityBase, ThrownState) {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::LlamaSpit);
+        let state = ThrownState::new(&mut base, 9);
+        (base, state)
+    }
+
+    #[test]
+    fn a_llama_spit_carries_no_item_and_falls_at_six_hundredths() {
+        let (mut base, _) = spit();
+        assert!(item(&base).is_none());
+        assert!(base.data.get(DATA_ITEM_STACK).is_none());
+        assert!(is_thrown(EntityKind::LlamaSpit));
+        assert!(is_spit(EntityKind::LlamaSpit));
+        assert!(!carries_item(EntityKind::LlamaSpit));
+        base.velocity = Vec3::new(0.5, 0.2, -0.3);
+        let drag = f64::from(0.99f32);
+        let mut expected = base.velocity;
+        for _ in 0..40 {
+            apply_gravity(&mut base);
+            apply_inertia(&mut base);
+            expected = (expected + Vec3::new(0.0, -0.06, 0.0)).scale(drag);
+            assert_eq!(base.velocity, expected);
+        }
+    }
+
+    #[test]
+    fn a_llama_spit_round_trips_without_an_item() {
+        use crate::entity::save::{is_simulated, load_entity, save_entity};
+        use rspigot_nbt::Compound;
+        assert!(is_simulated(EntityKind::LlamaSpit));
+        let owner = Uuid::from_u128(77);
+        let nbt = Compound::new()
+            .with("id", "minecraft:llama_spit")
+            .with("Owner", crate::entity::save::uuid_tag(owner))
+            .with("HasBeenShot", true);
+        let entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        let crate::entity::EntityState::Thrown(state) = &entity.state else {
+            panic!("a llama spit loads as a thrown projectile");
+        };
+        assert_eq!(state.owner, Some(owner));
+        let saved = save_entity(&entity, None).unwrap();
+        assert!(!saved.contains_key("Item"));
+        assert_eq!(saved.get_bool("HasBeenShot"), Some(true));
     }
 
     #[test]

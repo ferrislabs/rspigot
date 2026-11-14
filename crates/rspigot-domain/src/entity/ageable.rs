@@ -312,6 +312,10 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
             scaled(adult, 0.7)
         }
         EntityKind::Piglin => dims(0.49, 0.98, 0.78),
+        EntityKind::Camel | EntityKind::CamelHusk => {
+            let (width, height, eye) = super::species::camel::baby_standing_dimensions();
+            dims(width, height, eye)
+        }
         EntityKind::Goat => dims(0.45, 0.65, 0.59375),
         EntityKind::Armadillo => dims(adult.width * 0.6, adult.height * 0.6, 0.21875),
         EntityKind::Dolphin => dims(adult.width * 0.65, adult.height * 0.65, 0.09375),
@@ -333,6 +337,12 @@ pub fn dimensions(kind: EntityKind, baby: bool) -> EntityDimensions {
 pub fn dimensions_in_pose(kind: EntityKind, baby: bool, pose: Pose) -> EntityDimensions {
     let dimensions = dimensions(kind, baby);
     match (kind, pose) {
+        (EntityKind::Camel | EntityKind::CamelHusk, Pose::Sitting) => {
+            let adult = kind.dimensions();
+            let (width, height, eye) =
+                super::species::camel::sitting_dimensions((adult.width, adult.height), baby);
+            dims(width, height, eye)
+        }
         (EntityKind::Goat, Pose::LongJumping) => scaled(dimensions, GOAT_LONG_JUMP_SCALE),
         (EntityKind::Warden, pose) => super::species::warden::dimensions_in_pose(pose),
         _ => dimensions,

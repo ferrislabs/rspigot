@@ -56,6 +56,7 @@ pub enum MenuKind {
         columns: u8,
         saddle: bool,
         armor: bool,
+        carpet: bool,
     },
 }
 
@@ -306,7 +307,12 @@ impl MenuKind {
                 _ => true,
             },
             Self::Merchant => slot != MERCHANT_RESULT,
-            Self::Mount { saddle, armor, .. } => match slot {
+            Self::Mount {
+                saddle,
+                armor,
+                carpet,
+                ..
+            } => match slot {
                 MOUNT_SADDLE_SLOT => {
                     saddle
                         && stack.item.kind().and_then(ItemKind::equippable)
@@ -316,6 +322,11 @@ impl MenuKind {
                     armor
                         && stack.item.kind().and_then(ItemKind::equippable)
                             == Some(EquipmentSlot::Body)
+                        && stack
+                            .item
+                            .kind()
+                            .is_some_and(|item| item.name().ends_with("_carpet"))
+                            == carpet
                 }
                 _ => true,
             },
@@ -2990,6 +3001,7 @@ mod tests {
         columns: 5,
         saddle: true,
         armor: false,
+        carpet: false,
     };
 
     #[test]
@@ -3000,7 +3012,22 @@ mod tests {
             columns: 0,
             saddle: true,
             armor: true,
+            carpet: false,
         };
+        let llama = MenuKind::Mount {
+            columns: 3,
+            saddle: false,
+            armor: true,
+            carpet: true,
+        };
+        assert!(accepts_at(llama, 1, stack("minecraft:white_carpet", 1)));
+        assert!(!accepts_at(
+            llama,
+            1,
+            stack("minecraft:iron_horse_armor", 1)
+        ));
+        assert!(!accepts_at(llama, 0, stack("minecraft:saddle", 1)));
+        assert!(!accepts_at(bare, 1, stack("minecraft:white_carpet", 1)));
         assert_eq!(bare.container_size(), 2);
         assert!(accepts_at(bare, 0, stack("minecraft:saddle", 1)));
         assert!(!accepts_at(bare, 0, stack("minecraft:iron_horse_armor", 1)));

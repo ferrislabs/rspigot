@@ -43,6 +43,7 @@ pub enum DamageType {
     SonicBoom,
     Thorns,
     Trident,
+    Spit,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -116,6 +117,7 @@ impl DamageType {
             Self::SonicBoom => "minecraft:sonic_boom",
             Self::Thorns => "minecraft:thorns",
             Self::Trident => "minecraft:trident",
+            Self::Spit => "minecraft:spit",
         }
     }
 
@@ -153,6 +155,7 @@ impl DamageType {
             Self::SonicBoom => "sonic_boom",
             Self::Thorns => "thorns",
             Self::Trident => "trident",
+            Self::Spit => "mob",
         }
     }
 
@@ -176,7 +179,8 @@ impl DamageType {
             | Self::Explosion
             | Self::PlayerExplosion
             | Self::WindCharge
-            | Self::Trident => 0.1,
+            | Self::Trident
+            | Self::Spit => 0.1,
             _ => 0.0,
         }
     }
