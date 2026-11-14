@@ -68,6 +68,24 @@ pub fn look_at_entity(mob: &MobView, body: &mut MobBody, target: &Living, y_max:
     body.yaw = rotlerp(body.yaw, yaw, y_max);
 }
 
+pub fn look_at_point(
+    mob: &MobView,
+    body: &mut MobBody,
+    at: Vec3,
+    at_y: f64,
+    y_max: f32,
+    x_max: f32,
+) {
+    let dx = at.x - mob.position.x;
+    let dz = at.z - mob.position.z;
+    let dy = at_y - mob.eye_y();
+    let horizontal = (dx * dx + dz * dz).sqrt();
+    let yaw = (mth::atan2(dz, dx) * mth::RAD_TO_DEG) as f32 - 90.0;
+    let pitch = (-(mth::atan2(dy, horizontal) * mth::RAD_TO_DEG)) as f32;
+    body.pitch = rotlerp(body.pitch, pitch, x_max);
+    body.yaw = rotlerp(body.yaw, yaw, y_max);
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MeleeKind {
     Plain,
