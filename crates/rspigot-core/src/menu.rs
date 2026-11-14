@@ -167,6 +167,7 @@ impl<L: ClientLink> Server<L> {
                 | MenuEffect::StonecutterTaken
                 | MenuEffect::SmithingTaken
                 | MenuEffect::AnvilTaken { .. }
+                | MenuEffect::GrindstoneTaken { .. }
                 | MenuEffect::Traded { .. }
                 | MenuEffect::TradeUpdated { .. } => {}
                 MenuEffect::FullResync => self.send_inventory(id),

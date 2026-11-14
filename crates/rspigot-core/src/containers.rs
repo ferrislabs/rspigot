@@ -884,6 +884,7 @@ impl<L: ClientLink> Server<L> {
         let mut traded = Vec::new();
         let mut updated = Vec::new();
         let mut anvil = Vec::new();
+        let mut ground = Vec::new();
         for effect in effects {
             match effect {
                 MenuEffect::Drop { .. } => drops.push(effect),
@@ -891,6 +892,7 @@ impl<L: ClientLink> Server<L> {
                 MenuEffect::Traded { offer } => traded.push(offer),
                 MenuEffect::TradeUpdated { valid } => updated.push(valid),
                 MenuEffect::AnvilTaken { levels, wear } => anvil.push((levels, wear)),
+                MenuEffect::GrindstoneTaken { experience } => ground.push(experience),
                 _ => {}
             }
         }
@@ -906,6 +908,9 @@ impl<L: ClientLink> Server<L> {
         }
         for (levels, wear) in anvil {
             self.anvil_used(id, backing.pos, levels, wear);
+        }
+        for experience in ground {
+            self.grindstone_used(backing.pos, experience);
         }
         if cut {
             self.play_sound(

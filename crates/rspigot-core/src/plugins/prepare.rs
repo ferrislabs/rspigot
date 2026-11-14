@@ -1,5 +1,6 @@
 use rspigot_domain::anvil;
 use rspigot_domain::container_menu::MenuKind;
+use rspigot_domain::grindstone;
 use rspigot_domain::item::{ItemStack, Slot, same_item, stacks_match};
 use rspigot_domain::menu::{ClickInput, RESULT_SLOT};
 use rspigot_domain::player::PlayerId;
@@ -10,8 +11,8 @@ use crate::menu::Move;
 use crate::plugins::clicks::written;
 use crate::plugins::decisions::{Continuation, Lane};
 use crate::plugins::events::{
-    PrepareAnvil, PrepareAnvilPatch, PrepareItemCraft, PrepareItemCraftPatch, PrepareSmithing,
-    PrepareSmithingPatch,
+    PrepareAnvil, PrepareAnvilPatch, PrepareGrindstone, PrepareGrindstonePatch, PrepareItemCraft,
+    PrepareItemCraftPatch, PrepareSmithing, PrepareSmithingPatch,
 };
 use crate::plugins::views::Window;
 use crate::plugins::{Access, EventKind, EventPatch, EventPayload, ItemSpec, spec_of};
@@ -47,6 +48,7 @@ pub(crate) fn settled_result(patch: Option<EventPatch>) -> Option<Option<ItemSpe
         Some(EventPatch::PrepareItemCraft(PrepareItemCraftPatch { result })) => result,
         Some(EventPatch::PrepareSmithing(PrepareSmithingPatch { result })) => result,
         Some(EventPatch::PrepareAnvil(PrepareAnvilPatch { result })) => result,
+        Some(EventPatch::PrepareGrindstone(PrepareGrindstonePatch { result })) => result,
         _ => None,
     }
 }
@@ -61,6 +63,7 @@ impl<L: ClientLink> Server<L> {
         match kind {
             MenuKind::Crafting => Some(EventKind::PrepareItemCraft),
             MenuKind::Anvil => Some(EventKind::PrepareAnvil),
+            MenuKind::Grindstone => Some(EventKind::PrepareGrindstone),
             MenuKind::Smithing => {
                 let made = smithing::craft(
                     inputs.get(smithing::TEMPLATE)?,
@@ -80,6 +83,7 @@ impl<L: ClientLink> Server<L> {
                 MenuKind::Crafting => Some(CRAFT_RESULT),
                 MenuKind::Smithing => Some(smithing::RESULT),
                 MenuKind::Anvil => Some(anvil::RESULT),
+                MenuKind::Grindstone => Some(grindstone::RESULT),
                 _ => None,
             },
             Window::Plugin(_) => None,
@@ -101,6 +105,7 @@ impl<L: ClientLink> Server<L> {
         let kind = match menu {
             Some(MenuKind::Smithing) => EventKind::PrepareSmithing,
             Some(MenuKind::Anvil) => EventKind::PrepareAnvil,
+            Some(MenuKind::Grindstone) => EventKind::PrepareGrindstone,
             _ => EventKind::PrepareItemCraft,
         };
         !inputs.is_empty() && self.plugins.listens(kind, Access::Decide)
@@ -207,6 +212,14 @@ impl<L: ClientLink> Server<L> {
                         view: described.view,
                         viewers: described.viewers,
                     }),
+                    EventKind::PrepareGrindstone => {
+                        EventPayload::PrepareGrindstone(PrepareGrindstone {
+                            inventory: described.top,
+                            result,
+                            view: described.view,
+                            viewers: described.viewers,
+                        })
+                    }
                     _ => EventPayload::PrepareItemCraft(PrepareItemCraft {
                         inventory: described.top,
                         recipe: recipe.map(|recipe| recipe.id.to_owned()),

@@ -26,6 +26,7 @@ pub mod flammable;
 pub mod food;
 pub mod furnace;
 pub mod game_event;
+pub mod grindstone;
 pub mod ident;
 pub mod ids;
 pub mod item;

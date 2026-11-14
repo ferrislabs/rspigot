@@ -6,6 +6,7 @@ use crate::crafting;
 use crate::entity::reward::max_damage;
 use crate::entity::trading::{MerchantOffer, MerchantOffers};
 use crate::furnace;
+use crate::grindstone;
 use crate::item::{
     HOTBAR_START, Inventory, ItemStack, Slot, count, max_stack, menu_slot, same_item,
     same_item_same_components, split, stacks_match, with_count,
@@ -740,6 +741,9 @@ impl Session<'_> {
                 if self.kind == MenuKind::Anvil && index != anvil::RESULT {
                     self.refresh_anvil();
                 }
+                if self.kind == MenuKind::Grindstone && index != grindstone::RESULT {
+                    self.refresh_grindstone();
+                }
                 if self.kind == MenuKind::Merchant && index < MERCHANT_RESULT {
                     self.update_sell_item();
                 }
@@ -900,6 +904,25 @@ impl Session<'_> {
         self.anvil.only_renaming = outcome.only_renaming;
     }
 
+    fn refresh_grindstone(&mut self) {
+        self.container[grindstone::RESULT] = grindstone::compute(
+            &self.container[grindstone::FIRST],
+            &self.container[grindstone::SECOND],
+        );
+    }
+
+    fn take_grindstone(&mut self) {
+        let experience = grindstone::experience(
+            &self.container[grindstone::FIRST],
+            &self.container[grindstone::SECOND],
+        );
+        self.container[grindstone::FIRST] = None;
+        self.container[grindstone::SECOND] = None;
+        self.refresh_grindstone();
+        self.effects
+            .push(MenuEffect::GrindstoneTaken { experience });
+    }
+
     fn may_pickup(&self, slot: usize) -> bool {
         !anvil_unaffordable(self.kind, slot, self.anvil.cost, self.levels, self.infinite)
     }
@@ -965,6 +988,10 @@ impl Session<'_> {
         }
         if self.kind == MenuKind::Anvil && slot == anvil::RESULT && taken.is_some() {
             self.take_anvil();
+            return;
+        }
+        if self.kind == MenuKind::Grindstone && slot == grindstone::RESULT && taken.is_some() {
+            self.take_grindstone();
             return;
         }
         if self.kind == MenuKind::Stonecutter && slot == CUTTER_RESULT && taken.is_some() {
@@ -1235,6 +1262,7 @@ impl Session<'_> {
         } else if (self.kind.is_furnace() && slot == furnace::RESULT_SLOT)
             || (self.kind == MenuKind::Smithing && slot == smithing::RESULT)
             || (self.kind == MenuKind::Anvil && slot == anvil::RESULT)
+            || (self.kind == MenuKind::Grindstone && slot == grindstone::RESULT)
         {
             self.took(slot, &Some(copy.clone()), moved_count);
         }
@@ -4692,6 +4720,61 @@ mod tests {
                 levels: 1,
                 wear: true
             }]
+        );
+        assert_eq!(container[0], None);
+    }
+
+    fn sharp_sword() -> ItemStack {
+        let mut sword = stack("minecraft:diamond_sword", 1);
+        sword.set_enchantments(&[
+            ("minecraft:sharpness".to_owned(), 3),
+            ("minecraft:vanishing_curse".to_owned(), 1),
+        ]);
+        sword
+    }
+
+    #[test]
+    fn the_grindstone_strips_an_enchanted_item_and_pays_experience_when_taken() {
+        let (mut menu, mut container, mut player) = workstation(MenuKind::Grindstone);
+        menu.set_slot(&mut container, &mut player, 0, Some(sharp_sword()));
+        let result = container[2].clone().expect("a result");
+        assert_eq!(
+            result.enchantments(),
+            vec![("minecraft:vanishing_curse".to_owned(), 1)]
+        );
+        let effects = click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            2,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(
+            effects,
+            vec![MenuEffect::GrindstoneTaken { experience: 23 }]
+        );
+        assert_eq!(menu.carried(), &Some(result));
+        assert_eq!(container, vec![None, None, None]);
+    }
+
+    #[test]
+    fn the_grindstone_gives_nothing_for_a_plain_item_and_shift_click_takes_the_result() {
+        let (mut menu, mut container, mut player) = workstation(MenuKind::Grindstone);
+        menu.set_slot(
+            &mut container,
+            &mut player,
+            0,
+            Some(stack("minecraft:diamond_sword", 1)),
+        );
+        assert_eq!(container[2], None);
+        menu.set_slot(&mut container, &mut player, 0, Some(sharp_sword()));
+        let (moved, effects) =
+            menu.quick_move_once(&mut container, &mut player, 2, Clicker::default());
+        assert!(moved.is_some());
+        assert_eq!(
+            effects,
+            vec![MenuEffect::GrindstoneTaken { experience: 23 }]
         );
         assert_eq!(container[0], None);
     }

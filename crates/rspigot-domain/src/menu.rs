@@ -93,6 +93,9 @@ pub enum MenuEffect {
     },
     StonecutterTaken,
     SmithingTaken,
+    GrindstoneTaken {
+        experience: i32,
+    },
     AnvilTaken {
         levels: i32,
         wear: bool,

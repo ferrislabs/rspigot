@@ -1,6 +1,7 @@
 use rand::Rng;
 use rspigot_blocks::BlockKind;
 use rspigot_domain::container_menu::MenuKind;
+use rspigot_domain::grindstone;
 use rspigot_domain::menu::Clicker;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::{BlockPos, BlockStateId};
@@ -9,6 +10,7 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 
 const ANVIL_DAMAGE_CHANCE: f32 = 0.12;
+const GRINDSTONE_USED_EVENT: i32 = 1042;
 const ANVIL_USED_EVENT: i32 = 1030;
 const ANVIL_DESTROYED_EVENT: i32 = 1029;
 
@@ -70,6 +72,13 @@ impl<L: ClientLink> Server<L> {
             self.store_open_items(id, &before, items);
         }
         changed
+    }
+
+    pub(crate) fn grindstone_used(&mut self, pos: BlockPos, base: i32) {
+        let rng = &mut self.rng;
+        let amount = grindstone::award(base, |bound| rng.random_range(0..bound));
+        self.award_experience(pos.center(), amount);
+        self.level_event(GRINDSTONE_USED_EVENT, pos, 0);
     }
 
     pub(crate) fn anvil_used(&mut self, id: PlayerId, pos: BlockPos, levels: i32, wear: bool) {
