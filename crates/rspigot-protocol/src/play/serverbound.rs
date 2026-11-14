@@ -448,6 +448,19 @@ wire_enum! {
     pub enum SignTextSlot: Zero { Back, Front }
 }
 
+wire_enum! {
+    pub enum RecipeBookType: Strict { Crafting, Furnace, BlastFurnace, Smoker }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct ChangeRecipeBookSettings = sb::RECIPE_BOOK_CHANGE_SETTINGS {
+        pub book: RecipeBookType,
+        pub open: bool,
+        pub filtering: bool,
+    }
+}
+
 pub struct SignLines;
 
 impl FieldCodec<[String; SIGN_LINES]> for SignLines {
@@ -681,6 +694,7 @@ pub enum ServerboundPlay {
     PlayerLoaded(PlayerLoaded),
     Pong(Pong),
     Punch(Punch),
+    RecipeBookSettings(ChangeRecipeBookSettings),
     RenameItem(RenameItem),
     ResourcePack(ResourcePackResponse),
     SeenAdvancements(SeenAdvancements),
@@ -737,6 +751,7 @@ impl ServerboundPlay {
             sb::PLAYER_LOADED => Self::PlayerLoaded(decode_exact(body)?),
             sb::PONG => Self::Pong(decode_exact(body)?),
             sb::PUNCH => Self::Punch(decode_exact(body)?),
+            sb::RECIPE_BOOK_CHANGE_SETTINGS => Self::RecipeBookSettings(decode_exact(body)?),
             sb::RENAME_ITEM => Self::RenameItem(decode_exact(body)?),
             sb::RESOURCE_PACK => Self::ResourcePack(decode_exact(body)?),
             sb::SEEN_ADVANCEMENTS => Self::SeenAdvancements(decode_exact(body)?),
@@ -758,7 +773,6 @@ impl ServerboundPlay {
             | sb::LOCK_DIFFICULTY
             | sb::PADDLE_BOAT
             | sb::PLACE_RECIPE
-            | sb::RECIPE_BOOK_CHANGE_SETTINGS
             | sb::RECIPE_BOOK_SEEN_RECIPE
             | sb::SET_COMMAND_MINECART
             | sb::SET_GAME_RULE
@@ -1210,6 +1224,15 @@ mod tests {
     #[test]
     fn rename_trade_beacon_advancements() {
         assert_eq!(roundtrip(&RenameItem { name: "x".into() }), vec![1, b'x']);
+        assert_eq!(
+            roundtrip(&ChangeRecipeBookSettings {
+                book: RecipeBookType::BlastFurnace,
+                open: true,
+                filtering: false,
+            }),
+            vec![2, 1, 0]
+        );
+        assert!(decode_exact::<ChangeRecipeBookSettings>(&[4, 0, 0]).is_err());
         assert_eq!(roundtrip(&SelectTrade { item: 2 }), vec![2]);
         assert_eq!(
             roundtrip(&SetBeacon {

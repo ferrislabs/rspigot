@@ -580,6 +580,23 @@ impl<L: ClientLink> Server<L> {
                 self.finish_kick(step, patch_of!(patch, PlayerKick));
                 Vec::new()
             }
+            Continuation::Heard(_) => Vec::new(),
+            Continuation::BookSetting(step) => {
+                self.finish_book_setting(step);
+                Vec::new()
+            }
+            Continuation::EditBook(step) => {
+                self.finish_edit_book(*step, cancelled, patch_of!(patch, PlayerEditBook));
+                Vec::new()
+            }
+            Continuation::SignOpen(step) => {
+                self.finish_sign_open(step, cancelled);
+                Vec::new()
+            }
+            Continuation::SignEdit(step) => {
+                self.finish_sign_edit(step, cancelled, patch_of!(patch, SignChange));
+                Vec::new()
+            }
             Continuation::Settings(step) => {
                 if let Some(settings) = step.settings {
                     self.apply_settings(step.player, settings);

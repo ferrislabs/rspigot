@@ -171,6 +171,29 @@ pub enum PlayerInput {
         secondary: Option<i32>,
     },
     SelectTrade(i32),
+    RecipeBookSettings {
+        kind: crate::recipe_book::BookKind,
+        open: bool,
+        filtering: bool,
+    },
+    EditBook {
+        slot: i32,
+        pages: Vec<String>,
+        title: Option<String>,
+    },
+    SignUpdate {
+        pos: BlockPos,
+        front: bool,
+        lines: Vec<String>,
+    },
+    ResourcePack {
+        id: uuid::Uuid,
+        status: crate::plugins::events::ResourcePackStatus,
+    },
+    CustomClick {
+        id: String,
+        data: Option<String>,
+    },
     Latency(i32),
 }
 
@@ -416,6 +439,10 @@ pub enum ClientEvent {
     BlockUpdate {
         pos: BlockPos,
         state: BlockStateId,
+    },
+    OpenSignEditor {
+        pos: BlockPos,
+        front: bool,
     },
     BlockEntityUpdate {
         pos: BlockPos,

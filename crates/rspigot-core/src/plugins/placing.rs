@@ -190,6 +190,9 @@ impl<L: ClientLink> Server<L> {
             if using.game_mode == GameMode::Survival {
                 self.consume_one(id, using.slot, using.stack);
             }
+            if let Some(target) = step.changes.last() {
+                self.open_placed_sign(id, target.pos, target.new);
+            }
             return;
         };
         let pos = using.against;

@@ -143,6 +143,23 @@ impl<L: ClientLink> Server<L> {
                 self.handle_set_beacon(id, primary, secondary);
             }
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
+            PlayerInput::RecipeBookSettings {
+                kind,
+                open,
+                filtering,
+            } => self.change_recipe_book_settings(id, kind, open, filtering),
+            PlayerInput::EditBook { slot, pages, title } => {
+                self.handle_edit_book(id, slot, pages, title);
+            }
+            PlayerInput::SignUpdate { pos, front, lines } => {
+                self.handle_sign_update(id, pos, front, lines);
+            }
+            PlayerInput::ResourcePack { id: pack, status } => {
+                self.hear_resource_pack(id, pack, status);
+            }
+            PlayerInput::CustomClick { id: click, data } => {
+                self.hear_custom_click(id, click, data);
+            }
             PlayerInput::Latency(millis) => {
                 if let Some(player) = self.players.get_mut(&id) {
                     player.latency = player.latency.wrapping_mul(3).wrapping_add(millis) / 4;
@@ -473,6 +490,10 @@ impl<L: ClientLink> Server<L> {
                     .players
                     .get(&id)
                     .is_some_and(|player| player.inventory.get(OFFHAND_SLOT).is_some());
+            if !(sneaking && holding) && self.use_sign(id, pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
             if !(sneaking && holding) && self.place_book_on_lectern(id, slot, pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;

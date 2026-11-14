@@ -246,6 +246,14 @@ impl Packet for BlockEntityData {
 }
 
 wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct OpenSignEditor = id::OPEN_SIGN_EDITOR {
+        pub pos: Position,
+        pub front: bool,
+    }
+}
+
+wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct ClockState {
         pub total_ticks: i64 as VarL,
@@ -467,6 +475,17 @@ mod tests {
     use super::*;
     use crate::codec::decode_exact;
     use crate::play::wire::testing::{encoded, roundtrip};
+
+    #[test]
+    fn open_sign_editor_is_a_position_and_a_side() {
+        let packet = OpenSignEditor {
+            pos: Position { x: 1, y: 64, z: 2 },
+            front: true,
+        };
+        let bytes = roundtrip(&packet);
+        assert_eq!(bytes.len(), 9);
+        assert_eq!(bytes[8], 1);
+    }
 
     #[test]
     fn explode_matches_the_26_3_stream_codec() {

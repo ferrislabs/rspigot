@@ -107,6 +107,7 @@ pub struct Server<L> {
     pub(crate) entities: EntityWorld,
     pub(crate) falls: ScheduledFalls,
     pub(crate) game_events: crate::game_events::GameEvents,
+    pub(crate) sign_editors: FxHashMap<PlayerId, rspigot_domain::BlockPos>,
     pub(crate) fluids: crate::fluids::ScheduledFluids,
     pub(crate) rng: StdRng,
     pub(crate) spawning: Spawning,
@@ -180,6 +181,7 @@ impl<L: ClientLink> Server<L> {
             entities: EntityWorld::default(),
             falls: ScheduledFalls::default(),
             game_events: crate::game_events::GameEvents::default(),
+            sign_editors: FxHashMap::default(),
             fluids: crate::fluids::ScheduledFluids::default(),
             rng: StdRng::from_os_rng(),
             spawning,
@@ -698,6 +700,7 @@ impl<L: ClientLink> Server<L> {
             known_movement: Vec3::ZERO,
             portal_cooldown: 0,
             seen_credits: false,
+            recipe_book: Default::default(),
             won_game: false,
             moved_this_tick: false,
             using_item: None,
@@ -853,6 +856,7 @@ impl<L: ClientLink> Server<L> {
         let forgotten = self.decisions.forget(id);
         self.notify_undone(forgotten, crate::plugins::Phase::Settled);
         self.visibility.forget(id);
+        self.forget_sign_editor(id);
         let Some(mut player) = self.players.remove(&id) else {
             return;
         };

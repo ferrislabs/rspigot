@@ -46,9 +46,9 @@ pub mod clientbound {
     pub use super::world::{
         BlockChangedAck, BlockDestruction, BlockEntityData, BlockEvent, BlockUpdate,
         ChunkBatchFinished, ChunkBatchStart, Explode, ExplosionParticle, GameEvent, GameRuleValues,
-        InitializeBorder, LevelEvent, LevelParticles, ParticleOptions, ParticleRandomization,
-        SectionBlocksUpdate, SetChunkCacheCenter, SetChunkCacheRadius, SetSimulationDistance,
-        SetTime, Sound,
+        InitializeBorder, LevelEvent, LevelParticles, OpenSignEditor, ParticleOptions,
+        ParticleRandomization, SectionBlocksUpdate, SetChunkCacheCenter, SetChunkCacheRadius,
+        SetSimulationDistance, SetTime, Sound,
     };
 }
 
@@ -109,6 +109,7 @@ mod tests {
             (<BlockDestruction as Packet>::ID, 5),
             (<SectionBlocksUpdate as Packet>::ID, 86),
             (<BlockEntityData as Packet>::ID, 6),
+            (<OpenSignEditor as Packet>::ID, 61),
             (<ContainerSetContent as Packet>::ID, 18),
             (<ContainerSetData as Packet>::ID, 19),
             (<ContainerSetSlot as Packet>::ID, 20),

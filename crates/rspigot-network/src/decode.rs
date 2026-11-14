@@ -4,14 +4,18 @@ use rspigot_core::events::{
     ClickInput, ContainerClick, DigAction, Direction, Hand, HashedItem, HashedSlot, InputState,
     MovementAction, PlayerInput,
 };
+use rspigot_core::plugins::events::ResourcePackStatus;
+use rspigot_core::recipe_book::BookKind;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::GameMode;
 use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
-use rspigot_nbt::Compound;
+use rspigot_nbt::{Compound, Tag};
 use rspigot_protocol::codec::Position;
+use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::play::serverbound::{
-    ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction,
+    ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction, RecipeBookType,
+    SignTextSlot,
 };
 use rspigot_protocol::play::slot::{HashedStack, ItemStack as WireStack};
 use rspigot_protocol::play::types::{
@@ -19,6 +23,41 @@ use rspigot_protocol::play::types::{
 };
 
 use crate::connection::client_settings;
+
+fn pack_status(action: ResourcePackAction) -> ResourcePackStatus {
+    match action {
+        ResourcePackAction::SuccessfullyLoaded => ResourcePackStatus::SuccessfullyLoaded,
+        ResourcePackAction::Declined => ResourcePackStatus::Declined,
+        ResourcePackAction::FailedDownload => ResourcePackStatus::FailedDownload,
+        ResourcePackAction::Accepted => ResourcePackStatus::Accepted,
+        ResourcePackAction::Downloaded => ResourcePackStatus::Downloaded,
+        ResourcePackAction::InvalidUrl => ResourcePackStatus::InvalidUrl,
+        ResourcePackAction::FailedReload => ResourcePackStatus::FailedReload,
+        ResourcePackAction::Discarded => ResourcePackStatus::Discarded,
+    }
+}
+
+fn tag_json(tag: &Tag) -> serde_json::Value {
+    use serde_json::{Number, Value};
+    let number = |value: f64| Number::from_f64(value).map_or(Value::Null, Value::Number);
+    match tag {
+        Tag::Byte(v) => Value::from(*v),
+        Tag::Short(v) => Value::from(*v),
+        Tag::Int(v) => Value::from(*v),
+        Tag::Long(v) => Value::from(*v),
+        Tag::Float(v) => number(f64::from(*v)),
+        Tag::Double(v) => number(*v),
+        Tag::String(v) => Value::from(v.as_str()),
+        Tag::ByteArray(v) => v.iter().map(|b| Value::from(*b as i8)).collect(),
+        Tag::IntArray(v) => v.iter().map(|n| Value::from(*n)).collect(),
+        Tag::LongArray(v) => v.iter().map(|n| Value::from(*n)).collect(),
+        Tag::List(v) => v.iter().map(tag_json).collect(),
+        Tag::Compound(v) => v
+            .iter()
+            .map(|(key, value)| (key.to_owned(), tag_json(value)))
+            .collect(),
+    }
+}
 
 pub enum Decoded {
     Input(PlayerInput),
@@ -269,6 +308,34 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             button: p.button_id,
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
+        ServerboundPlay::RecipeBookSettings(p) => input(PlayerInput::RecipeBookSettings {
+            kind: match p.book {
+                RecipeBookType::Crafting => BookKind::Crafting,
+                RecipeBookType::Furnace => BookKind::Furnace,
+                RecipeBookType::BlastFurnace => BookKind::BlastFurnace,
+                RecipeBookType::Smoker => BookKind::Smoker,
+            },
+            open: p.open,
+            filtering: p.filtering,
+        }),
+        ServerboundPlay::EditBook(p) => input(PlayerInput::EditBook {
+            slot: p.slot,
+            pages: p.pages.clone(),
+            title: p.title.clone(),
+        }),
+        ServerboundPlay::SignUpdate(p) => input(PlayerInput::SignUpdate {
+            pos: block_pos(p.pos),
+            front: matches!(p.slot, SignTextSlot::Front),
+            lines: p.lines.to_vec(),
+        }),
+        ServerboundPlay::ResourcePack(p) => input(PlayerInput::ResourcePack {
+            id: p.id,
+            status: pack_status(p.action),
+        }),
+        ServerboundPlay::CustomClickAction(p) => input(PlayerInput::CustomClick {
+            id: p.id.to_string(),
+            data: p.payload.as_ref().map(|tag| tag_json(tag).to_string()),
+        }),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -277,6 +344,7 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
 
 #[cfg(test)]
 mod tests {
+    use rspigot_protocol::codec::Encode;
     use rspigot_protocol::ids::play::serverbound as sb;
 
     use super::*;
@@ -351,6 +419,99 @@ mod tests {
                 count: 5,
                 patched: true,
             }))
+        );
+    }
+
+    #[test]
+    fn recipe_book_settings_carry_the_book_and_both_flags() {
+        assert_eq!(
+            decoded(sb::RECIPE_BOOK_CHANGE_SETTINGS, &[3, 1, 1]),
+            PlayerInput::RecipeBookSettings {
+                kind: BookKind::Smoker,
+                open: true,
+                filtering: true,
+            }
+        );
+    }
+
+    #[test]
+    fn an_edit_book_carries_its_slot_pages_and_optional_title() {
+        let mut body = vec![0, 2];
+        for page in ["a", "bc"] {
+            page.to_owned().encode(&mut body);
+        }
+        body.push(1);
+        "T".to_owned().encode(&mut body);
+        assert_eq!(
+            decoded(sb::EDIT_BOOK, &body),
+            PlayerInput::EditBook {
+                slot: 0,
+                pages: vec!["a".to_owned(), "bc".to_owned()],
+                title: Some("T".to_owned()),
+            }
+        );
+    }
+
+    #[test]
+    fn a_sign_update_carries_its_side_and_four_lines() {
+        let mut body = Vec::new();
+        Position { x: 1, y: 64, z: 2 }.encode(&mut body);
+        for line in ["a", "", "c", "d"] {
+            line.to_owned().encode(&mut body);
+        }
+        body.push(0);
+        assert_eq!(
+            decoded(sb::SIGN_UPDATE, &body),
+            PlayerInput::SignUpdate {
+                pos: BlockPos::new(1, 64, 2),
+                front: false,
+                lines: ["a", "", "c", "d"].map(str::to_owned).to_vec(),
+            }
+        );
+        let last = body.len() - 1;
+        body[last] = 1;
+        assert!(matches!(
+            decoded(sb::SIGN_UPDATE, &body),
+            PlayerInput::SignUpdate { front: true, .. }
+        ));
+    }
+
+    #[test]
+    fn a_resource_pack_answer_becomes_an_input() {
+        let mut body = 7u128.to_be_bytes().to_vec();
+        body.push(1);
+        assert_eq!(
+            decoded(sb::RESOURCE_PACK, &body),
+            PlayerInput::ResourcePack {
+                id: uuid::Uuid::from_u128(7),
+                status: ResourcePackStatus::Declined,
+            }
+        );
+    }
+
+    #[test]
+    fn a_custom_click_carries_its_payload_as_json() {
+        let mut body = vec![8];
+        body.extend_from_slice(b"shop:buy");
+        let mut nbt = vec![10, 3, 0, 1, b'n', 0, 0, 0, 5, 0];
+        body.push(u8::try_from(nbt.len()).unwrap());
+        body.append(&mut nbt);
+        assert_eq!(
+            decoded(sb::CUSTOM_CLICK_ACTION, &body),
+            PlayerInput::CustomClick {
+                id: "shop:buy".to_owned(),
+                data: Some("{\"n\":5}".to_owned()),
+            }
+        );
+        let mut bare = vec![8];
+        bare.extend_from_slice(b"shop:buy");
+        bare.extend_from_slice(&[1, 0]);
+        assert_eq!(
+            decoded(sb::CUSTOM_CLICK_ACTION, &bare),
+            PlayerInput::CustomClick {
+                id: "shop:buy".to_owned(),
+                data: None,
+            }
         );
     }
 
