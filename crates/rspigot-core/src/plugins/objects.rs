@@ -443,6 +443,7 @@ impl<L: ClientLink> Server<L> {
             target,
             hand,
             stack,
+            location,
         };
         self.fire(
             id,
@@ -470,7 +471,7 @@ impl<L: ClientLink> Server<L> {
             self.refresh_hands(step.player);
             return;
         }
-        self.interact_now(step.player, step.target, step.hand);
+        self.interact_now(step.player, step.target, step.hand, step.location);
     }
 
     pub(crate) fn ask_drop(

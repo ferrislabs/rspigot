@@ -461,8 +461,8 @@ fn unloaded_cow_comes_back_with_the_same_uuid_and_position() {
 fn entities_of_unsimulated_types_round_trip_byte_for_byte() {
     let store = Arc::new(MemoryStore::default());
     let chunk = ChunkPos::new(6, 6);
-    let stand = Compound::new()
-        .with("id", "minecraft:armor_stand")
+    let display = Compound::new()
+        .with("id", "minecraft:block_display")
         .with(
             "Pos",
             Tag::List(vec![
@@ -479,18 +479,18 @@ fn entities_of_unsimulated_types_round_trip_byte_for_byte() {
         )
         .with("Weird", Tag::LongArray(vec![i64::MIN, 7]))
         .with("Empty", Tag::List(Vec::new()));
-    store.put(chunk, std::slice::from_ref(&stand));
+    store.put(chunk, std::slice::from_ref(&display));
     let original = store.stored(chunk).unwrap();
     let mut server = server(Arc::clone(&store));
     let mut alice = join(&mut server, "Alice");
     server.handle(Inbound::Console("tp Alice 100 64 104".to_owned()));
     pump(&mut server, &mut [&mut alice], 40);
-    let stands = server.entities_of(Kind::ArmorStand);
-    assert_eq!(stands.len(), 1);
-    assert!(!stands[0].simulated);
+    let displays = server.entities_of(Kind::BlockDisplay);
+    assert_eq!(displays.len(), 1);
+    assert!(!displays[0].simulated);
     server.handle(Inbound::Console("tp Alice 2000 64 2000".to_owned()));
     pump(&mut server, &mut [&mut alice], 40);
-    assert!(server.entities_of(Kind::ArmorStand).is_empty());
+    assert!(server.entities_of(Kind::BlockDisplay).is_empty());
     assert_eq!(store.stored(chunk), Some(original));
 }
 

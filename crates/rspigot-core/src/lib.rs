@@ -1,4 +1,5 @@
 pub mod admin;
+mod armor_stand;
 mod beacon;
 mod beehive;
 mod block_tools;
@@ -47,6 +48,7 @@ mod fangs;
 mod fire;
 mod fluids;
 mod game_events;
+mod hanging;
 mod harvest;
 pub mod health;
 mod hurting;
