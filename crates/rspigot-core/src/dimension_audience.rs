@@ -168,3 +168,113 @@ fn a_dimension_clock_reaches_only_its_own_players() {
     assert_eq!(count(&here.take(), is_time), 1);
     assert_eq!(count(&away.take(), is_time), 1);
 }
+
+fn the_end() -> Identifier {
+    Identifier::minecraft("the_end")
+}
+
+fn with_end_player(server: &mut Server<Tap>) -> (PlayerId, Tap) {
+    server.load_dimension(
+        the_end(),
+        rspigot_domain::world::Dimension::end(),
+        Arc::new(Quiet),
+        Arc::new(Quiet),
+    );
+    let (bob, link) = join(server, "Bob");
+    if let Some(player) = server.players.get_mut(&bob) {
+        player.dim = the_end();
+    }
+    (bob, link)
+}
+
+fn rain_packets(events: &[ClientEvent]) -> usize {
+    count(events, |event| {
+        matches!(
+            event,
+            ClientEvent::GameEvent(
+                crate::events::GameEvent::StartRaining
+                    | crate::events::GameEvent::RainLevelChange(_)
+            )
+        )
+    })
+}
+
+#[test]
+fn a_fixed_time_dimension_keeps_its_day_time_while_the_overworld_advances() {
+    let mut server = server();
+    join(&mut server, "Alice");
+    with_end_player(&mut server);
+    let start = server.world.level.day_time;
+    for _ in 0..40 {
+        server.tick();
+    }
+    assert_eq!(server.world.level.day_time, start + 40);
+    let end = &server.dormant[&the_end()].world.level;
+    assert_eq!(end.day_time, 0);
+    assert!(end.game_time >= 40);
+}
+
+#[test]
+fn a_fixed_time_dimension_never_announces_a_moving_day_time() {
+    let mut server = server();
+    join(&mut server, "Alice");
+    let (_, away) = with_end_player(&mut server);
+    for _ in 0..40 {
+        server.tick();
+    }
+    let events = away.take();
+    assert!(count(&events, is_time) >= 1);
+    assert!(events.iter().all(|event| !matches!(
+        event,
+        ClientEvent::Time {
+            advance_time: true,
+            ..
+        }
+    )));
+}
+
+#[test]
+fn the_end_gets_no_rain() {
+    let mut server = server();
+    join(&mut server, "Alice");
+    let (_, away) = with_end_player(&mut server);
+    away.take();
+    server.in_dimension(&the_end(), |server| server.change_weather(true, true));
+    for _ in 0..5 {
+        server.tick();
+    }
+    let level = &server.dormant[&the_end()].world.level;
+    assert!(!level.raining);
+    assert!(!level.thundering);
+    assert_eq!(rain_packets(&away.take()), 0);
+}
+
+#[test]
+fn the_rain_of_the_overworld_does_not_reach_another_dimension() {
+    let mut server = server();
+    let (_, here) = join(&mut server, "Alice");
+    let (_, away) = with_end_player(&mut server);
+    here.take();
+    away.take();
+    server.change_weather(true, false);
+    for _ in 0..5 {
+        server.tick();
+    }
+    assert!(server.world.level.raining);
+    assert!(!server.dormant[&the_end()].world.level.raining);
+    assert!(rain_packets(&here.take()) > 0);
+    assert_eq!(rain_packets(&away.take()), 0);
+}
+
+#[test]
+fn a_new_dimension_does_not_inherit_the_weather_of_the_overworld() {
+    let mut server = server();
+    server.world.level.raining = true;
+    server.world.level.thundering = true;
+    server.world.level.day_time = 5000;
+    with_end_player(&mut server);
+    let end = &server.dormant[&the_end()].world.level;
+    assert!(!end.raining);
+    assert!(!end.thundering);
+    assert_eq!(end.day_time, 0);
+}

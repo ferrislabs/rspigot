@@ -87,6 +87,8 @@ pub struct Dimension {
     pub dimension_type: Identifier,
     pub height: WorldHeight,
     pub has_skylight: bool,
+    pub has_ceiling: bool,
+    pub has_fixed_time: bool,
     pub sea_level: i32,
     pub piglins_zombify: bool,
 }
@@ -98,6 +100,8 @@ impl Dimension {
             dimension_type: Identifier::minecraft("overworld"),
             height: WorldHeight::OVERWORLD,
             has_skylight: true,
+            has_ceiling: false,
+            has_fixed_time: false,
             sea_level: 63,
             piglins_zombify: true,
         }
@@ -109,6 +113,8 @@ impl Dimension {
             dimension_type: Identifier::minecraft("the_nether"),
             height: WorldHeight::NETHER,
             has_skylight: false,
+            has_ceiling: true,
+            has_fixed_time: true,
             sea_level: 32,
             piglins_zombify: false,
         }
@@ -120,8 +126,14 @@ impl Dimension {
             dimension_type: Identifier::minecraft("the_end"),
             height: WorldHeight::END,
             has_skylight: false,
+            has_ceiling: false,
+            has_fixed_time: true,
             sea_level: 0,
             piglins_zombify: true,
         }
+    }
+
+    pub fn can_have_weather(&self) -> bool {
+        self.has_skylight && !self.has_ceiling && self.key != Identifier::minecraft("the_end")
     }
 }

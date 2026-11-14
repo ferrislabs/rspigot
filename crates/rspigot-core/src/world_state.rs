@@ -42,6 +42,11 @@ impl<L: ClientLink> Server<L> {
         let mut level = self.world.level.clone();
         level.spawn = Some(spawn.block());
         level.raids = None;
+        level.raining = false;
+        level.thundering = false;
+        if dimension.has_fixed_time {
+            level.day_time = 0;
+        }
         let workers = ChunkWorkers::spawn(self.config.chunk_workers, store, generator);
         let mut chunks = ChunkManager::new(Arc::clone(&dimension), self.config.chunks);
         chunks.set_mob_generation(level.spawn_mobs.then_some(MobGeneration {
