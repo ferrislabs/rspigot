@@ -755,3 +755,28 @@ fn the_kill_command_removes_the_dragon_at_once_and_ends_the_fight() {
     assert!(s.server.dragon_fight_data().unwrap().dragon_killed);
     assert_eq!(block_at(&s, 0, 67, 0), Some(BlockKind::DragonEgg));
 }
+
+#[test]
+fn a_dragon_circling_near_a_player_strafes_and_throws_a_dragon_fireball() {
+    use rspigot_core::events::ClientEvent;
+    let mut s = ready(11);
+    console(&mut s, "gamemode survival Alice");
+    console(&mut s, "effect give Alice minecraft:resistance 1000 4");
+    summon(&mut s, Kind::EnderDragon, "40.5 80 8.5", "{DragonPhase:0}");
+    s.players[0].link.take();
+    let mut thrown = false;
+    let mut seen = false;
+    for _ in 0..40 {
+        s.tick(50);
+        seen |= !s.server.entities_of(Kind::DragonFireball).is_empty();
+        thrown |= s.players[0]
+            .link
+            .take()
+            .iter()
+            .any(|event| matches!(event, ClientEvent::LevelEvent { event: 1017, .. }));
+        if thrown && seen {
+            break;
+        }
+    }
+    assert!(thrown, "the fireball sound event went out");
+}

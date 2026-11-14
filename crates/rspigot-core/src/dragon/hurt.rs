@@ -25,6 +25,14 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
+    pub(crate) fn dragon_parts_intersect(&self, dragon: EntityId, area: &Aabb) -> bool {
+        self.entities.dragons.get(&dragon).is_some_and(|runtime| {
+            Part::ALL
+                .into_iter()
+                .any(|part| parts::part_box(part, runtime.parts[part.index()]).intersects(area))
+        })
+    }
+
     pub(crate) fn dragon_note_part(&mut self, dragon: EntityId, part: Part) {
         if let Some(runtime) = self.entities.dragons.get_mut(&dragon) {
             runtime.hit_part = Some(part);

@@ -590,6 +590,14 @@ pub(crate) struct CrystalBlastStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct CrystalPlaceStep {
+    pub(crate) player: PlayerId,
+    pub(crate) slot: usize,
+    pub(crate) pos: BlockPos,
+    pub(crate) entity: Entity,
+}
+
+#[derive(Debug)]
 pub(crate) struct DragonWallStep {
     pub(crate) dragon: EntityId,
     pub(crate) blocks: Vec<BlockPos>,
@@ -1319,6 +1327,7 @@ pub(crate) enum Continuation {
     Kindle(KindleStep),
     CrystalBlast(Box<CrystalBlastStep>),
     DragonWalls(Box<DragonWallStep>),
+    PlaceCrystal(Box<CrystalPlaceStep>),
     Relocate(RelocateStep),
     Shoot(Box<ShotStep>),
     ProjectileHit {
@@ -1448,6 +1457,7 @@ impl Continuation {
             Self::Kindle(_) => EventKind::BlockIgnite,
             Self::CrystalBlast(_) => EventKind::ExplosionPrime,
             Self::DragonWalls(_) => EventKind::EntityExplode,
+            Self::PlaceCrystal(_) => EventKind::EntityPlace,
             Self::Relocate(_) => EventKind::EntityTeleport,
             Self::Shoot(_) => EventKind::EntityShootBow,
             Self::ProjectileHit { .. } => EventKind::ProjectileHit,
@@ -1557,6 +1567,7 @@ impl Continuation {
             Self::Kindle(step) => step.crystal == id,
             Self::CrystalBlast(step) => step.crystal == id,
             Self::DragonWalls(step) => step.dragon == id,
+            Self::PlaceCrystal(step) => step.entity.base.id == id,
             Self::Relocate(step) => step.entity == id,
             Self::ProjectileHit { arrow, target } => *arrow == id || *target == id,
             Self::Aim(step) => step.mob == id,
