@@ -15,6 +15,7 @@ mod air;
 mod allay;
 mod armadillo;
 mod bat;
+mod bee;
 mod blaze;
 mod breeze;
 mod cat;
@@ -86,6 +87,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Bat => self.bat_view(entity, view),
             Kind::Phantom => self.phantom_view(entity, view),
             Kind::Parrot => self.parrot_view(entity, view),
+            Kind::Bee => self.bee_view(entity, view),
             Kind::Shulker => self.shulker_view(entity, view),
             Kind::ZombifiedPiglin => self.zombified_piglin_view(entity, view),
             Kind::Rabbit => self.rabbit_view(entity, view),
@@ -188,6 +190,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Witch) => self.witch_ai_step(id),
             Some(Kind::Creaking) => self.creaking_ai_step(id),
             Some(Kind::Parrot) => self.parrot_ai_step(id),
+            Some(Kind::Bee) => self.bee_ai_step(id),
             Some(Kind::Wither) => self.wither_ai_step(id),
             Some(Kind::Allay) => self.allay_ai_step(id),
             _ => {}
@@ -266,6 +269,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Villager) => self.villager_custom_ai_step(id),
             Some(Kind::WanderingTrader) => self.wandering_trader_custom_ai_step(id),
             Some(Kind::Wither) => self.wither_custom_ai_step(id),
+            Some(Kind::Bee) => self.bee_custom_ai_step(id),
             _ => {}
         }
     }
@@ -306,6 +310,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::WanderingTrader) => self.trader_interact(player, target, hand, held),
             Some(Kind::CopperGolem) => self.copper_golem_interact(player, target, hand, held),
             Some(Kind::Parrot) => self.parrot_interact(player, target, hand, held),
+            Some(Kind::Bee) => self.bee_interact(player, target, hand, held),
             Some(Kind::Allay) => self.allay_interact(player, target, hand, held),
             _ => None,
         }
@@ -381,6 +386,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
             Some(Kind::Sniffer) if dead => self.sniffer_died(id),
             Some(Kind::Parrot) => self.parrot_after_hurt(id, dead),
+            Some(Kind::Bee) => self.bee_after_hurt(id),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
             Some(Kind::Warden) if !dead => self.warden_after_hurt(id, source),
             Some(Kind::CopperGolem) => self.copper_golem_after_hurt(id, !dead),

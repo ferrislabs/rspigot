@@ -520,6 +520,18 @@ impl<L: ClientLink> Server<L> {
         let this = source
             .and_then(|id| self.entities.store.get(id))
             .map(|e| LootEntity::of(e.base.kind));
+        let harmful = source
+            .and_then(|id| self.entities.store.get(id))
+            .is_some_and(|e| {
+                matches!(
+                    e.base.kind,
+                    Kind::Tnt
+                        | Kind::Creeper
+                        | Kind::WitherSkull
+                        | Kind::Wither
+                        | Kind::TntMinecart
+                )
+            });
         let mut stacks: Vec<(BlockPos, ItemStack)> = Vec::new();
         for pos in blocks {
             let Some(state) = self.world.chunks.block(*pos) else {
@@ -528,6 +540,7 @@ impl<L: ClientLink> Server<L> {
             if state.is_air() {
                 continue;
             }
+            let hive = self.hive_snapshot(*pos);
             self.spawn_after_break(*pos, state, None);
             let context = LootContext {
                 explosion_radius: decay,
@@ -538,6 +551,7 @@ impl<L: ClientLink> Server<L> {
                 merge_stack(&mut stacks, *pos, drop);
             }
             self.set_block(*pos, BlockStateId::AIR);
+            self.hive_exploded(*pos, state, hive, harmful);
         }
         if !self.config.rules.block_drops {
             return;

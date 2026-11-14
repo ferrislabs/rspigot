@@ -1,5 +1,6 @@
 pub mod admin;
 mod beacon;
+mod beehive;
 mod block_tools;
 mod boss_bars;
 mod bow;

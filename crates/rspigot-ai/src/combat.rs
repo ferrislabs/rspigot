@@ -722,6 +722,7 @@ pub struct HurtByTargetGoal {
     ignore_damage: &'static [&'static str],
     polar_bear: bool,
     panda_alert: bool,
+    bee: bool,
 }
 
 impl Default for HurtByTargetGoal {
@@ -739,6 +740,7 @@ impl HurtByTargetGoal {
             ignore_damage: &[],
             polar_bear: false,
             panda_alert: false,
+            bee: false,
         }
     }
 
@@ -760,6 +762,14 @@ impl HurtByTargetGoal {
     pub const fn polar_bear() -> Self {
         Self {
             polar_bear: true,
+            ..Self::new()
+        }
+    }
+
+    pub const fn bee() -> Self {
+        Self {
+            alert_others: Some(&[]),
+            bee: true,
             ..Self::new()
         }
     }
@@ -822,11 +832,11 @@ impl HurtByTargetGoal {
         self.timestamp = context.mob.last_hurt_by_mob_at;
         self.memory.unseen_memory_ticks = HURT_BY_MEMORY;
         if let Some(ignored) = self.alert_others {
-            Self::alert(context, ignored, false, self.panda_alert);
+            Self::alert(context, ignored, false, self.panda_alert, self.bee);
         }
         self.memory.start();
         if self.polar_bear && context.mob.baby {
-            Self::alert(context, &[], true, false);
+            Self::alert(context, &[], true, false, false);
             self.memory.stop(context);
         }
     }
@@ -836,6 +846,7 @@ impl HurtByTargetGoal {
         ignored: &[EntityKind],
         adults_only: bool,
         panda: bool,
+        bee: bool,
     ) {
         let Some(attacker) = context.mob.last_hurt_by_mob else {
             return;
@@ -867,6 +878,24 @@ impl HurtByTargetGoal {
                 && (mob.owner != other.facts.owner
                     || (other.facts.tamed && other.facts.owner == Some(attacker)))
             {
+                continue;
+            }
+            if bee {
+                let world = context.world;
+                let sees = world.living(attacker).is_some_and(|living| {
+                    context
+                        .brain
+                        .sensing
+                        .has_line_of_sight(world, context.mob, &living)
+                });
+                if sees {
+                    context.act(MobAction::Air(crate::AirAction::Bee(
+                        crate::BeeAction::Alert {
+                            mob: other.id,
+                            target: attacker,
+                        },
+                    )));
+                }
                 continue;
             }
             if panda {

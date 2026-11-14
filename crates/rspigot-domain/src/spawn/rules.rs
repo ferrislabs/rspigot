@@ -15,6 +15,7 @@ const GOATS_SPAWNABLE_ON: &str = "minecraft:goats_spawnable_on";
 const ARMADILLO_SPAWNABLE_ON: &str = "minecraft:armadillo_spawnable_on";
 const FROGS_SPAWNABLE_ON: &str = "minecraft:frogs_spawnable_on";
 const PARROTS_SPAWNABLE_ON: &str = "minecraft:parrots_spawnable_on";
+const BEE_AIR_WALK_TARGET: f32 = 10.0;
 const LEAVES: &str = "minecraft:leaves";
 const OCELOT_SPAWN_CHANCE: i32 = 3;
 const ANIMAL_MIN_BRIGHTNESS: i32 = 8;
@@ -173,6 +174,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Pillager
                     | MobClass::Enderman
                     | MobClass::Hoglin
+                    | MobClass::Bee
                     | MobClass::Creaking
                     | MobClass::Warden
             )
@@ -292,6 +294,13 @@ pub fn walk_target_value(level: &impl SpawnLevel, kind: EntityKind, pos: BlockPo
         MobClass::Creaking => 0.0,
         MobClass::Warden => 0.0,
         MobClass::Hoglin => super::piglin::hoglin_walk_target_value(level, pos),
+        MobClass::Bee => {
+            if level.block_or_air(pos).is_air() {
+                BEE_AIR_WALK_TARGET
+            } else {
+                0.0
+            }
+        }
         _ => return None,
     })
 }
@@ -822,6 +831,26 @@ mod tests {
             rspigot_blocks::Water::DEFAULT_STATE,
         );
         assert!(!check_spawn_obstruction(&level, EntityKind::Ocelot, &area));
+    }
+
+    #[test]
+    fn bees_value_open_air_and_accept_any_position() {
+        let pos = BlockPos::new(4, 64, 4);
+        let mut level = Level::floor(Stone::DEFAULT_STATE, 63);
+        assert_eq!(walk_target_value(&level, EntityKind::Bee, pos), Some(10.0));
+        assert!(mob_check_spawn_rules(
+            &level,
+            EntityKind::Bee,
+            Vec3::new(4.5, 64.0, 4.5)
+        ));
+        level.set(pos, Stone::DEFAULT_STATE);
+        assert_eq!(walk_target_value(&level, EntityKind::Bee, pos), Some(0.0));
+        assert!(mob_check_spawn_rules(
+            &level,
+            EntityKind::Bee,
+            Vec3::new(4.5, 64.0, 4.5)
+        ));
+        assert!(rules_ported(EntityKind::Bee));
     }
 
     #[test]

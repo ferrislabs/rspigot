@@ -84,6 +84,16 @@ pub fn is_stable_destination(view: &impl BlockView, pos: BlockPos) -> bool {
         .is_some_and(|state| state.flags().contains(StateFlags::SOLID_RENDER))
 }
 
+fn is_stable<W: AiWorld>(context: &AiContext<'_, W>, pos: BlockPos) -> bool {
+    if context.mob.kind == EntityKind::Bee {
+        return context
+            .world
+            .state(pos.offset(0, -1, 0))
+            .is_some_and(|state| !state.is_air());
+    }
+    is_stable_destination(context.world, pos)
+}
+
 pub fn is_solid(view: &impl BlockView, pos: BlockPos) -> bool {
     view.state(pos)
         .is_some_and(|state| state.flags().contains(StateFlags::LEGACY_SOLID))
@@ -185,7 +195,7 @@ fn default_toward<W: AiWorld>(
     );
     let rejected = is_outside_limits(context.world, pos)
         || (restricted && !context.mob.is_within_home(pos))
-        || !is_stable_destination(context.world, pos)
+        || !is_stable(context, pos)
         || has_malus(context, pos);
     (!rejected).then_some(pos)
 }
@@ -340,7 +350,7 @@ fn land_pos_in_direction<W: AiWorld>(
         );
         if is_outside_limits(context.world, pos)
             || (restricted && !context.mob.is_within_home(pos))
-            || !is_stable_destination(context.world, pos)
+            || !is_stable(context, pos)
         {
             return None;
         }
@@ -378,7 +388,7 @@ pub fn land_pos_scored<W: AiWorld>(
             );
             if is_outside_limits(context.world, pos)
                 || (restricted && !context.mob.is_within_home(pos))
-                || !is_stable_destination(context.world, pos)
+                || !is_stable(context, pos)
             {
                 return None;
             }
@@ -516,7 +526,7 @@ pub fn hover_pos<W: AiWorld>(
         );
         if is_outside_limits(context.world, pos)
             || (restricted && !context.mob.is_within_home(pos))
-            || !is_stable_destination(context.world, pos)
+            || !is_stable(context, pos)
         {
             return None;
         }

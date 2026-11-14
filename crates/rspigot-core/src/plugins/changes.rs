@@ -103,6 +103,11 @@ impl<L: ClientLink> Server<L> {
                     self.finish_golem_statue(golem, pos, state);
                 }
             }
+            Grief::BeeGrow { bee, pos, to } => {
+                if !cancelled {
+                    self.finish_bee_grow(bee, pos, to);
+                }
+            }
             Grief::WitherBreak { wither, pos } => {
                 if !cancelled {
                     self.finish_wither_break(wither, pos);

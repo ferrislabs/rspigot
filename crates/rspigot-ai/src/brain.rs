@@ -51,6 +51,7 @@ pub struct Brain {
     pub warden: crate::WardenState,
     pub target_position: Option<Vec3>,
     pub phantom: crate::PhantomBrain,
+    pub bee: crate::BeeBrain,
     pub wither: crate::WitherBrain,
     pub wither_targets: [i32; 3],
     follow_range: f64,
@@ -118,6 +119,14 @@ impl Brain {
             profile.set_malus(PathType::Fire, -1.0);
             profile.set_malus(PathType::Cocoa, -1.0);
         }
+        if kind == EntityKind::Bee {
+            profile = profile.flying(false);
+            profile.set_malus(PathType::Fire, -1.0);
+            profile.set_malus(PathType::Water, -1.0);
+            profile.set_malus(PathType::WaterBorder, 16.0);
+            profile.set_malus(PathType::Cocoa, -1.0);
+            profile.set_malus(PathType::Fence, -1.0);
+        }
         if kind == EntityKind::Wither {
             profile = profile.flying(true);
         }
@@ -153,6 +162,7 @@ impl Brain {
             warden: crate::WardenState::default(),
             target_position: None,
             phantom: crate::PhantomBrain::default(),
+            bee: crate::BeeBrain::default(),
             wither: crate::WitherBrain::default(),
             wither_targets: [0; 3],
             follow_range,
@@ -165,6 +175,13 @@ impl Brain {
         }
         if matches!(kind, EntityKind::Parrot | EntityKind::Wither) {
             brain.movement.set_flying(10, false);
+        }
+        if kind == EntityKind::Bee {
+            brain.movement.set_flying(20, true);
+            brain.navigation.set_required_path_length(
+                rspigot_domain::entity::species::bee::PATH_LENGTH,
+                follow_range,
+            );
         }
         if kind == EntityKind::Allay {
             brain.movement.set_flying(20, true);
@@ -942,6 +959,14 @@ impl MobAi {
         std::mem::take(&mut self.brain.target_requests)
     }
 
+    pub fn stop_pollinating(&mut self) {
+        self.brain.bee.pollinating = false;
+    }
+
+    pub fn is_pollinating(&self) -> bool {
+        self.brain.bee.pollinating
+    }
+
     pub fn defer_targets(&mut self, defer: bool) {
         self.brain.defer_targets = defer;
     }
@@ -976,6 +1001,7 @@ impl MobAi {
             mob
         };
         self.brain.fox = mob.species.fox;
+        self.brain.bee.angry = mob.angry;
         if mob.kind == EntityKind::Vex {
             self.brain.target_position = self
                 .brain
@@ -1022,7 +1048,8 @@ impl MobAi {
             };
             crate::creaking::apply_can_move(&mut cx);
         }
-        if context.brain.creaking.can_move || mob.kind != EntityKind::Creaking {
+        let pollinating = mob.kind == EntityKind::Bee && context.brain.bee.pollinating;
+        if (context.brain.creaking.can_move || mob.kind != EntityKind::Creaking) && !pollinating {
             context.tick_navigation();
         }
         if mob.kind == EntityKind::Wither {
@@ -1109,6 +1136,12 @@ impl MobAi {
         }
         if base.kind == EntityKind::Fox {
             crate::fox::tick_look(&mut brain.look, base, living, navigating);
+        } else if base.kind == EntityKind::Bee {
+            if !brain.bee.angry {
+                brain
+                    .look
+                    .tick_with(base, living, navigating, !brain.bee.pollinating);
+            }
         } else if base.kind != EntityKind::Phantom {
             brain.look.tick(base, living, navigating);
         }
