@@ -171,6 +171,11 @@ pub enum PlayerInput {
         secondary: Option<i32>,
     },
     SelectTrade(i32),
+    SignUpdate {
+        pos: BlockPos,
+        front: bool,
+        lines: Vec<String>,
+    },
     ResourcePack {
         id: uuid::Uuid,
         status: crate::plugins::events::ResourcePackStatus,
@@ -424,6 +429,10 @@ pub enum ClientEvent {
     BlockUpdate {
         pos: BlockPos,
         state: BlockStateId,
+    },
+    OpenSignEditor {
+        pos: BlockPos,
+        front: bool,
     },
     BlockEntityUpdate {
         pos: BlockPos,

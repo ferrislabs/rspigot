@@ -143,6 +143,9 @@ impl<L: ClientLink> Server<L> {
                 self.handle_set_beacon(id, primary, secondary);
             }
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
+            PlayerInput::SignUpdate { pos, front, lines } => {
+                self.handle_sign_update(id, pos, front, lines);
+            }
             PlayerInput::ResourcePack { id: pack, status } => {
                 self.hear_resource_pack(id, pack, status);
             }
@@ -479,6 +482,10 @@ impl<L: ClientLink> Server<L> {
                     .players
                     .get(&id)
                     .is_some_and(|player| player.inventory.get(OFFHAND_SLOT).is_some());
+            if !(sneaking && holding) && self.use_sign(id, pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
             if !(sneaking && holding) && self.place_book_on_lectern(id, slot, pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;

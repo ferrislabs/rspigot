@@ -13,7 +13,7 @@ use rspigot_protocol::codec::Position;
 use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::play::serverbound::{
-    ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction,
+    ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction, SignTextSlot,
 };
 use rspigot_protocol::play::slot::{HashedStack, ItemStack as WireStack};
 use rspigot_protocol::play::types::{
@@ -306,6 +306,11 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             button: p.button_id,
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
+        ServerboundPlay::SignUpdate(p) => input(PlayerInput::SignUpdate {
+            pos: block_pos(p.pos),
+            front: matches!(p.slot, SignTextSlot::Front),
+            lines: p.lines.to_vec(),
+        }),
         ServerboundPlay::ResourcePack(p) => input(PlayerInput::ResourcePack {
             id: p.id,
             status: pack_status(p.action),
@@ -322,6 +327,7 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
 
 #[cfg(test)]
 mod tests {
+    use rspigot_protocol::codec::Encode;
     use rspigot_protocol::ids::play::serverbound as sb;
 
     use super::*;
@@ -397,6 +403,30 @@ mod tests {
                 patched: true,
             }))
         );
+    }
+
+    #[test]
+    fn a_sign_update_carries_its_side_and_four_lines() {
+        let mut body = Vec::new();
+        Position { x: 1, y: 64, z: 2 }.encode(&mut body);
+        for line in ["a", "", "c", "d"] {
+            line.to_owned().encode(&mut body);
+        }
+        body.push(0);
+        assert_eq!(
+            decoded(sb::SIGN_UPDATE, &body),
+            PlayerInput::SignUpdate {
+                pos: BlockPos::new(1, 64, 2),
+                front: false,
+                lines: ["a", "", "c", "d"].map(str::to_owned).to_vec(),
+            }
+        );
+        let last = body.len() - 1;
+        body[last] = 1;
+        assert!(matches!(
+            decoded(sb::SIGN_UPDATE, &body),
+            PlayerInput::SignUpdate { front: true, .. }
+        ));
     }
 
     #[test]

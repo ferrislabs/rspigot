@@ -1158,6 +1158,13 @@ impl Encoder {
                     Ok(())
                 }
             }
+            ClientEvent::OpenSignEditor { pos, front } => Self::queue(
+                writer,
+                &cb::OpenSignEditor {
+                    pos: position(*pos),
+                    front: *front,
+                },
+            ),
             ClientEvent::BlockEvent {
                 pos,
                 action,
@@ -2710,6 +2717,18 @@ mod tests {
             encode(pickup),
             vec![(id::TAKE_ITEM_ENTITY, vec![0xAC, 0x02, 2, 1])]
         );
+    }
+
+    #[test]
+    fn open_sign_editor_golden_bytes() {
+        let event = ClientEvent::OpenSignEditor {
+            pos: BlockPos::new(1, 64, 2),
+            front: false,
+        };
+        let mut expected = Vec::new();
+        position(BlockPos::new(1, 64, 2)).encode(&mut expected);
+        expected.push(0);
+        assert_eq!(encode(event), vec![(id::OPEN_SIGN_EDITOR, expected)]);
     }
 
     #[test]

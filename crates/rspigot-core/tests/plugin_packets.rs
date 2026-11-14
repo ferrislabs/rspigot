@@ -65,3 +65,240 @@ fn a_custom_click_reaches_the_plugins_with_its_id_and_data() {
     assert_eq!(data.as_deref(), Some("{\"n\":1}"));
     assert_eq!(player.id, alice.id);
 }
+
+mod signs {
+    use super::*;
+    use rspigot_core::events::{ClientEvent, Direction, Hand, Inbound};
+    use rspigot_core::plugins::events::{
+        PlayerSignOpen, PlayerSignOpenCause, Side, SignChange, SignChangePatch,
+    };
+    use rspigot_core::plugins::{BlockOrder, EventPatch, ListDiff, Order};
+    use rspigot_domain::{BlockPos, Vec3};
+
+    const SIGN: BlockPos = BlockPos::new(2, 64, 2);
+
+    fn console(s: &mut Scene, line: &str) {
+        s.server.handle(Inbound::Console(line.to_owned()));
+        s.server.deliver();
+    }
+
+    fn go(s: &mut Scene, line: &str) {
+        console(s, line);
+        let alice = s.players[0].clone();
+        let id = alice.link.take().into_iter().find_map(|event| match event {
+            ClientEvent::Teleport { id, .. } => Some(id),
+            _ => None,
+        });
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::TeleportConfirm(id.expect("a teleport")),
+        );
+        s.tick(2);
+    }
+
+    fn standing(handlers: Vec<rspigot_core::plugins::HandlerSpec>) -> Scene {
+        let mut s = scene_with(&["Alice"], handlers);
+        stream_chunk_of(&mut s, SIGN);
+        s.act(Order::Block {
+            pos: SIGN,
+            order: BlockOrder::SetWith {
+                kind: "minecraft:oak_sign".to_owned(),
+                properties: vec![("rotation".to_owned(), "0".to_owned())],
+            },
+        });
+        go(&mut s, "tp Alice 2.5 64 5.5");
+        s.players[0].link.take();
+        s
+    }
+
+    fn click(s: &mut Scene) {
+        let alice = s.players[0].clone();
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::UseItemOn {
+                hand: Hand::Main,
+                pos: SIGN,
+                face: Direction::South,
+                cursor: Vec3::new(0.5, 0.5, 1.0),
+                inside_block: false,
+                sequence: 1,
+            },
+        );
+    }
+
+    fn edit(s: &mut Scene, lines: [&str; 4]) {
+        let alice = s.players[0].clone();
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::SignUpdate {
+                pos: SIGN,
+                front: true,
+                lines: lines.map(str::to_owned).to_vec(),
+            },
+        );
+    }
+
+    fn editor_opened(s: &Scene) -> Option<bool> {
+        s.players[0]
+            .link
+            .take()
+            .into_iter()
+            .find_map(|event| match event {
+                ClientEvent::OpenSignEditor { pos, front } if pos == SIGN => Some(front),
+                _ => None,
+            })
+    }
+
+    fn front_lines(s: &Scene) -> Vec<String> {
+        let data = s.server.block_entity_nbt(SIGN);
+        data.and_then(|data| {
+            data.get_compound("front_text").and_then(|text| {
+                text.get_list("messages").map(|messages| {
+                    messages
+                        .iter()
+                        .map(|line| match line {
+                            rspigot_nbt::Tag::String(text) => text.clone(),
+                            _ => String::new(),
+                        })
+                        .collect()
+                })
+            })
+        })
+        .unwrap_or_default()
+    }
+
+    const LINES: [&str; 4] = ["one", "two", "", "four"];
+
+    #[test]
+    fn right_clicking_a_sign_tells_the_plugins_and_opens_the_editor_on_the_facing_side() {
+        let mut s = standing(vec![observe(1, EventKind::PlayerSignOpen)]);
+        click(&mut s);
+        let events = fired(&s.plugin);
+        let EventPayload::PlayerSignOpen(PlayerSignOpen {
+            cause, side, sign, ..
+        }) = &events[0].payload
+        else {
+            panic!("expected a sign open, got {:?}", events[0]);
+        };
+        assert_eq!(*cause, PlayerSignOpenCause::Interact);
+        assert_eq!(*side, Side::Front);
+        assert_eq!(sign.pos, SIGN);
+        assert_eq!(editor_opened(&s), Some(true));
+    }
+
+    #[test]
+    fn the_back_of_a_sign_opens_the_back_editor() {
+        let mut s = standing(Vec::new());
+        go(&mut s, "tp Alice 2.5 64 -1.5");
+        s.players[0].link.take();
+        click(&mut s);
+        assert_eq!(editor_opened(&s), Some(false));
+    }
+
+    #[test]
+    fn a_cancelled_sign_open_opens_no_editor() {
+        let mut s = standing(vec![deciding(1, EventKind::PlayerSignOpen)]);
+        click(&mut s);
+        let asked = last_asked(&s.plugin, EventKind::PlayerSignOpen);
+        rule_on(&mut s.server, 1, asked.id, true, None);
+        s.tick(2);
+        assert_eq!(editor_opened(&s), None);
+        edit(&mut s, LINES);
+        assert!(front_lines(&s).is_empty());
+    }
+
+    #[test]
+    fn an_edit_without_an_open_editor_changes_nothing() {
+        let mut s = standing(vec![observe(1, EventKind::SignChange)]);
+        edit(&mut s, LINES);
+        assert!(fired(&s.plugin).is_empty());
+        assert!(front_lines(&s).is_empty());
+    }
+
+    #[test]
+    fn an_edit_reaches_the_plugins_and_writes_the_text_without_a_handler_decision() {
+        let mut s = standing(vec![observe(1, EventKind::SignChange)]);
+        click(&mut s);
+        edit(&mut s, LINES);
+        let events = fired(&s.plugin);
+        let change = events
+            .iter()
+            .find_map(|event| match &event.payload {
+                EventPayload::SignChange(SignChange {
+                    block, lines, side, ..
+                }) => Some((*block, lines.clone(), *side)),
+                _ => None,
+            })
+            .expect("a sign change");
+        assert_eq!(change.0, SIGN);
+        assert_eq!(change.1, LINES.to_vec());
+        assert_eq!(change.2, Side::Front);
+        assert_eq!(front_lines(&s), LINES.to_vec());
+    }
+
+    #[test]
+    fn a_cancelled_edit_keeps_the_old_text() {
+        let mut s = standing(vec![deciding(1, EventKind::SignChange)]);
+        click(&mut s);
+        edit(&mut s, LINES);
+        let asked = last_asked(&s.plugin, EventKind::SignChange);
+        rule_on(&mut s.server, 1, asked.id, true, None);
+        s.tick(2);
+        assert!(front_lines(&s).is_empty());
+    }
+
+    #[test]
+    fn a_patched_line_replaces_the_typed_one() {
+        let mut s = standing(vec![deciding(1, EventKind::SignChange)]);
+        click(&mut s);
+        edit(&mut s, LINES);
+        let asked = last_asked(&s.plugin, EventKind::SignChange);
+        rule_on(
+            &mut s.server,
+            1,
+            asked.id,
+            false,
+            Some(EventPatch::SignChange(SignChangePatch {
+                lines: ListDiff {
+                    removed: Vec::new(),
+                    replaced: vec![(1, "patched".to_owned())],
+                    added: Vec::new(),
+                },
+            })),
+        );
+        s.tick(2);
+        assert_eq!(front_lines(&s), vec!["one", "patched", "", "four"]);
+    }
+
+    #[test]
+    fn placing_a_sign_opens_its_editor_with_the_place_cause() {
+        let mut s = standing(vec![observe(1, EventKind::PlayerSignOpen)]);
+        console(&mut s, "give Alice minecraft:oak_sign");
+        s.tick(2);
+        let alice = s.players[0].clone();
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::UseItemOn {
+                hand: Hand::Main,
+                pos: BlockPos::new(4, 63, 5),
+                face: Direction::Up,
+                cursor: Vec3::new(0.5, 1.0, 0.5),
+                inside_block: false,
+                sequence: 2,
+            },
+        );
+        s.tick(2);
+        let causes: Vec<PlayerSignOpenCause> = fired(&s.plugin)
+            .into_iter()
+            .filter_map(|event| match event.payload {
+                EventPayload::PlayerSignOpen(open) => Some(open.cause),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(causes, vec![PlayerSignOpenCause::Place]);
+    }
+}

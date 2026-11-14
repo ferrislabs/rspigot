@@ -581,6 +581,14 @@ impl<L: ClientLink> Server<L> {
                 Vec::new()
             }
             Continuation::Heard(_) => Vec::new(),
+            Continuation::SignOpen(step) => {
+                self.finish_sign_open(step, cancelled);
+                Vec::new()
+            }
+            Continuation::SignEdit(step) => {
+                self.finish_sign_edit(step, cancelled, patch_of!(patch, SignChange));
+                Vec::new()
+            }
             Continuation::Settings(step) => {
                 if let Some(settings) = step.settings {
                     self.apply_settings(step.player, settings);
