@@ -4,6 +4,7 @@ pub mod compostable;
 pub mod loot;
 pub mod spawns;
 pub mod static_registries;
+pub mod sulfur_cube;
 pub mod synced;
 pub mod tags;
 pub mod trading;

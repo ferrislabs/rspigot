@@ -6,6 +6,7 @@ mod generated;
 pub mod loot;
 pub mod registries;
 pub mod spawns;
+pub mod sulfur_cube;
 pub mod tags;
 pub mod trading;
 pub mod transformers;
