@@ -40,9 +40,9 @@ use rspigot_core::plugins::events::{
     SculkBloomPatch, ServerCommandPatch, ServerListPingPatch, ServerLoadType, SheepDyeWoolPatch,
     Side, SignChangePatch, SmithItemPatch, SpellcasterSpell, Statistic, TNTPrimeCause,
     TabCompletePatch, TimeSkipPatch, TimeSkipReason, TradeSelectPatch, TreeType,
-    VaultDisplayItemPatch, VehicleDamagePatch, VehicleEntityCollisionPatch,
-    VillagerAcquireTradePatch, VillagerCareerChangePatch, VillagerCareerChangeReason,
-    VillagerReplenishTradePatch, VillagerReputationChangePatch,
+    VaultDisplayItemPatch, VehicleDamagePatch, VillagerAcquireTradePatch,
+    VillagerCareerChangePatch, VillagerCareerChangeReason, VillagerReplenishTradePatch,
+    VillagerReputationChangePatch,
 };
 use rspigot_plugin_protocol::v1::{self, event, patch};
 
@@ -2890,12 +2890,6 @@ pub(super) fn change(change: patch::Change) -> Result<EventPatch, Malformed> {
         patch::Change::VehicleDamage(patch) => EventPatch::VehicleDamage(VehicleDamagePatch {
             damage: patch.damage,
         }),
-        patch::Change::VehicleEntityCollision(patch) => {
-            EventPatch::VehicleEntityCollision(VehicleEntityCollisionPatch {
-                collision_cancelled: patch.collision_cancelled,
-                pickup_cancelled: patch.pickup_cancelled,
-            })
-        }
         patch::Change::VillagerAcquireTrade(patch) => {
             EventPatch::VillagerAcquireTrade(VillagerAcquireTradePatch {
                 recipe: patch.recipe.map(contract::trade).transpose()?,

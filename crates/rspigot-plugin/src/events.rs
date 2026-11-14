@@ -18295,7 +18295,6 @@ pub struct VehicleEntityCollision {
     entity: Entity,
     pickup_cancelled: bool,
     vehicle: Entity,
-    patch: v1::VehicleEntityCollisionPatch,
 }
 
 impl VehicleEntityCollision {
@@ -18312,7 +18311,6 @@ impl VehicleEntityCollision {
             entity: Entity::from_wire(required(message.entity, "entity")?, link)?,
             pickup_cancelled: message.pickup_cancelled,
             vehicle: Entity::from_wire(required(message.vehicle, "vehicle")?, link)?,
-            patch: v1::VehicleEntityCollisionPatch::default(),
         })
     }
 
@@ -18336,16 +18334,6 @@ impl VehicleEntityCollision {
         &self.vehicle
     }
 
-    pub fn set_collision_cancelled(&mut self, value: bool) {
-        self.patch.collision_cancelled = Some(value);
-        self.collision_cancelled = value;
-    }
-
-    pub fn set_pickup_cancelled(&mut self, value: bool) {
-        self.patch.pickup_cancelled = Some(value);
-        self.pickup_cancelled = value;
-    }
-
     pub const fn cancel(&mut self) {
         self.cancelled = true;
     }
@@ -18363,11 +18351,7 @@ impl From<VehicleEntityCollision> for Verdict {
     fn from(event: VehicleEntityCollision) -> Self {
         Self {
             cancel: event.cancelled,
-            patch: (event.patch != v1::VehicleEntityCollisionPatch::default()).then(|| {
-                Box::new(v1::Patch {
-                    change: Some(patch::Change::VehicleEntityCollision(event.patch)),
-                })
-            }),
+            patch: None,
         }
     }
 }
