@@ -304,6 +304,9 @@ impl<C: BehaviorControl> BehaviorBrain<C> {
             conditions,
             memories_to_erase_when_stopped,
         } = data;
+        for (ty, _) in &conditions {
+            self.state.memories.register(*ty);
+        }
         self.state
             .activity_requirements
             .insert(activity, conditions);

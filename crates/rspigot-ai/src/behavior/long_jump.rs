@@ -1,4 +1,4 @@
-use rspigot_blocks::{Aabb, BlockKind, StateFlags};
+use rspigot_blocks::{Aabb, BlockKind, StateFlags, StateId};
 use rspigot_domain::entity::Pose;
 use rspigot_domain::entity::ageable::dimensions_in_pose;
 use rspigot_domain::{BlockPos, Vec3};
@@ -10,10 +10,12 @@ use crate::behavior::memory::{Condition, MemoryModuleType, MemoryStatus, MemoryV
 use crate::behavior::support::{UniformInt, dist_sqr};
 use crate::behavior::tracker::PositionTracker;
 use crate::path::Path;
+use crate::path_type::PathType;
 use crate::random::RandomSource;
 use crate::view::collides;
 use crate::world::AiWorld;
 
+pub const FROG_PREFER_JUMP_TO: &str = "minecraft:frog_prefer_jump_to";
 pub const FIND_JUMP_TRIES: i32 = 20;
 pub const PREPARE_JUMP_DURATION: i64 = 40;
 pub const MIN_PATHFIND_DISTANCE_TO_VALID_JUMP: i32 = 8;
@@ -252,14 +254,56 @@ impl JumpSound {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LandingSpot {
     Default,
+    Frog,
 }
 
 impl LandingSpot {
     fn accepts<W: AiWorld>(self, cx: &BehaviorCx<'_, '_, W>, target: BlockPos) -> bool {
         match self {
             Self::Default => default_acceptable_landing_spot(cx, target),
+            Self::Frog => frog_acceptable_landing_spot(cx, target),
         }
     }
+}
+
+fn has_fluid(state: Option<rspigot_blocks::StateId>) -> bool {
+    state.is_some_and(|state| {
+        state.flags().contains(StateFlags::WATER) || state.flags().contains(StateFlags::LAVA)
+    })
+}
+
+fn in_block_tag(state: Option<rspigot_blocks::StateId>, tag: &str) -> bool {
+    crate::animal::block_tag(state, tag)
+}
+
+pub fn frog_acceptable_landing_spot<W: AiWorld>(
+    cx: &BehaviorCx<'_, '_, W>,
+    target: BlockPos,
+) -> bool {
+    let world = cx.ai.world;
+    let below = target.offset(0, -1, 0);
+    let above = target.offset(0, 1, 0);
+    if has_fluid(world.state(below))
+        || has_fluid(world.state(target))
+        || has_fluid(world.state(above))
+    {
+        return false;
+    }
+    let state = world.state(target);
+    let below_state = world.state(below);
+    if in_block_tag(state, FROG_PREFER_JUMP_TO) || in_block_tag(below_state, FROG_PREFER_JUMP_TO) {
+        return true;
+    }
+    let mob = cx.ai.tick_state().state;
+    let profile = &cx.ai.brain.profile;
+    let path_type = crate::walk::mob_path_type(world, profile, mob, target);
+    let below_type = crate::walk::mob_path_type(world, profile, mob, below);
+    if path_type == PathType::Trapdoor
+        || (state.is_some_and(StateId::is_air) && below_type == PathType::Trapdoor)
+    {
+        return true;
+    }
+    default_acceptable_landing_spot(cx, target)
 }
 
 pub fn default_acceptable_landing_spot<W: AiWorld>(
@@ -284,6 +328,14 @@ pub fn default_acceptable_landing_spot<W: AiWorld>(
 }
 
 #[derive(Debug, Clone, PartialEq)]
+struct Preference {
+    tag: &'static str,
+    chance: f32,
+    not_preferred: Vec<PossibleJump>,
+    wanting: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct LongJumpToRandomPos {
     time_between_long_jumps: UniformInt,
     max_long_jump_height: i32,
@@ -291,6 +343,7 @@ pub struct LongJumpToRandomPos {
     max_jump_velocity_multiplier: f32,
     jump_sound: JumpSound,
     acceptable_landing_spot: LandingSpot,
+    preference: Option<Preference>,
     jump_candidates: Vec<PossibleJump>,
     initial_position: Option<Vec3>,
     chosen_jump: Option<Vec3>,
@@ -322,12 +375,29 @@ impl LongJumpToRandomPos {
             max_jump_velocity_multiplier,
             jump_sound,
             acceptable_landing_spot: LandingSpot::Default,
+            preference: None,
             jump_candidates: Vec::new(),
             initial_position: None,
             chosen_jump: None,
             find_jump_tries: 0,
             prepare_jump_start: 0,
         }
+    }
+
+    pub fn preferring_blocks(
+        mut self,
+        tag: &'static str,
+        chance: f32,
+        landing: LandingSpot,
+    ) -> Self {
+        self.acceptable_landing_spot = landing;
+        self.preference = Some(Preference {
+            tag,
+            chance,
+            not_preferred: Vec::new(),
+            wanting: false,
+        });
+        self
     }
 
     fn set_cooldown_to_half<W: AiWorld>(&self, cx: &mut BehaviorCx<'_, '_, W>) {
@@ -339,6 +409,32 @@ impl LongJumpToRandomPos {
     }
 
     fn jump_candidate<W: AiWorld>(
+        &mut self,
+        cx: &mut BehaviorCx<'_, '_, W>,
+    ) -> Option<PossibleJump> {
+        if !self.preference.as_ref().is_some_and(|p| p.wanting) {
+            return self.random_candidate(cx);
+        }
+        while !self.jump_candidates.is_empty() {
+            let Some(candidate) = self.random_candidate(cx) else {
+                break;
+            };
+            let below = candidate.target_pos.offset(0, -1, 0);
+            let tag = self.preference.as_ref().map_or("", |p| p.tag);
+            if crate::animal::block_tag(cx.ai.world.state(below), tag) {
+                return Some(candidate);
+            }
+            if let Some(preference) = self.preference.as_mut() {
+                preference.not_preferred.push(candidate);
+            }
+        }
+        self.preference
+            .as_mut()
+            .filter(|p| !p.not_preferred.is_empty())
+            .map(|p| p.not_preferred.remove(0))
+    }
+
+    fn random_candidate<W: AiWorld>(
         &mut self,
         cx: &mut BehaviorCx<'_, '_, W>,
     ) -> Option<PossibleJump> {
@@ -488,6 +584,10 @@ impl Behavior for LongJumpToRandomPos {
                     }
                 }
             }
+        }
+        if let Some(preference) = self.preference.as_mut() {
+            preference.not_preferred.clear();
+            preference.wanting = cx.ai.brain.random.next_float() < preference.chance;
         }
     }
 

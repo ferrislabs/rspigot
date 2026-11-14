@@ -79,6 +79,16 @@ impl Brain {
         if kind == EntityKind::Chicken {
             profile.set_malus(PathType::Water, 0.0);
         }
+        if kind == EntityKind::Frog {
+            profile.set_malus(PathType::Water, 4.0);
+            profile.set_malus(PathType::Trapdoor, -1.0);
+        }
+        if kind == EntityKind::Sniffer {
+            profile.can_float = true;
+            profile.set_malus(PathType::Water, -1.0);
+            profile.set_malus(PathType::OnTopOfPowderSnow, -1.0);
+            profile.set_malus(PathType::DamageCautious, -1.0);
+        }
         if kind == EntityKind::Creaking {
             profile.can_float = true;
         }
@@ -162,6 +172,9 @@ fn path_profile_of<W: AiWorld>(
     world: &W,
 ) -> MobProfile {
     let mut profile = base.clone();
+    if mob.kind == EntityKind::Sniffer && (mob.on_fire || mob.fluid.in_water) {
+        profile.set_malus(PathType::Water, 0.0);
+    }
     profile.step_height = mob.step_height;
     profile.follow_range = mob.follow_range as f32;
     profile.max_fall_distance = if !has_target {
@@ -408,6 +421,12 @@ impl MobAi {
         self.behavior.is_some()
             || !self.goals.goals().is_empty()
             || !self.targets.goals().is_empty()
+    }
+
+    pub fn init_frog_memories(&mut self, long_jump: i32) {
+        if let Some(behavior) = self.behavior.as_mut() {
+            crate::frog::init_memories(behavior.memories_mut(), long_jump);
+        }
     }
 
     pub fn init_goat_memories(&mut self, long_jump: i32, ram: i32) {

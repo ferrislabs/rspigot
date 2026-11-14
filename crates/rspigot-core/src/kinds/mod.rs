@@ -20,6 +20,7 @@ mod creaking;
 mod enderman;
 mod endermite;
 mod fox;
+mod frog;
 mod ghast;
 mod goat;
 mod hoglin;
@@ -32,6 +33,7 @@ mod polar_bear;
 mod rabbit;
 mod shulker;
 mod silverfish;
+mod sniffer;
 mod snow_golem;
 pub(crate) mod villager;
 mod warden;
@@ -49,6 +51,7 @@ pub(crate) fn kind_sound_source(entity: &Entity) -> Option<rspigot_entities::Sou
 pub(crate) use armadillo::ambient_sound as armadillo_ambient_sound;
 pub(crate) use enderman::carried_block_drops;
 pub(crate) use goat::{GoatSound, voice as goat_voice};
+pub(crate) use sniffer::ambient_sound as sniffer_ambient_sound;
 pub(crate) use snow_golem::readiness_for_shearing;
 pub(crate) use zombie_villager::{carry_villager_into_zombie, carry_zombie_into_villager};
 
@@ -79,6 +82,7 @@ impl<L: ClientLink> Server<L> {
             Kind::Hoglin | Kind::Zoglin => self.hoglin_view(entity, view),
             Kind::Goat => self.goat_view(entity, view),
             Kind::Armadillo => self.armadillo_view(entity, view),
+            Kind::Sniffer => self.sniffer_view(entity, view),
             Kind::Creaking => self.creaking_view(entity, view),
             Kind::Piglin | Kind::PiglinBrute => self.piglin_view(entity, view),
             Kind::Villager => self.villager_view(entity, view),
@@ -93,6 +97,8 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ocelot) => self.ocelot_registered(id, ai),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_registered(id, ai),
             Some(Kind::Goat) => self.goat_registered(id, ai),
+            Some(Kind::Sniffer) => self.sniffer_registered(id),
+            Some(Kind::Frog) => self.frog_registered(id, ai),
             Some(Kind::Villager) => self.villager_registered(id, ai),
             Some(Kind::Warden) => self.warden_registered(id, ai),
             _ => {}
@@ -124,6 +130,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::ZombieVillager) => self.zombie_villager_pre_tick(id),
             Some(Kind::Rabbit) => self.rabbit_pre_tick(id),
             Some(Kind::Ocelot) => self.ocelot_pre_tick(id),
+            Some(Kind::Sniffer) => self.sniffer_pre_tick(id),
             _ => true,
         }
     }
@@ -340,6 +347,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Hoglin | Kind::Zoglin) => self.hoglin_after_hurt(id, source, dead),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_after_hurt(id, source, dead),
             Some(Kind::Armadillo) => self.armadillo_after_hurt(id, source, dead),
+            Some(Kind::Sniffer) if dead => self.sniffer_died(id),
             Some(Kind::Villager) => self.villager_after_hurt(id, source, dead),
             Some(Kind::Warden) if !dead => self.warden_after_hurt(id, source),
             Some(Kind::CopperGolem) => self.copper_golem_after_hurt(id, !dead),

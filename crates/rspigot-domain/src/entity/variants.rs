@@ -21,6 +21,7 @@ pub const fn default_variant(family: VariantFamily) -> &'static str {
         VariantFamily::Cow | VariantFamily::Pig | VariantFamily::Chicken => "minecraft:temperate",
         VariantFamily::Wolf => "minecraft:pale",
         VariantFamily::Cat => "minecraft:black",
+        VariantFamily::Frog => "minecraft:temperate",
     }
 }
 

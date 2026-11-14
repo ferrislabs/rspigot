@@ -155,6 +155,8 @@ pub enum MobAction {
     },
     Goat(GoatAction),
     Armadillo(ArmadilloAction),
+    Sniffer(crate::SnifferAction),
+    Frog(crate::FrogAction),
     Breeze(BreezeAction),
     Creaking(CreakingAction),
     Message {

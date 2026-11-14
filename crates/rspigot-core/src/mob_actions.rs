@@ -130,6 +130,8 @@ impl<L: ClientLink> Server<L> {
             } => self.entity_sound(id, sound, volume, pitch),
             MobAction::Goat(action) => self.goat_action(id, action),
             MobAction::Armadillo(action) => self.armadillo_action(id, action),
+            MobAction::Sniffer(action) => self.sniffer_action(id, action),
+            MobAction::Frog(action) => self.frog_action(id, action),
             MobAction::Breeze(action) => self.breeze_action(id, action),
             MobAction::Creaking(action) => self.creaking_action(id, action),
             MobAction::CopperGolem(action) => self.copper_golem_action(id, action),
@@ -453,6 +455,17 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn spawn_child_from_breeding(&mut self, parent: EntityId, partner: EntityId) {
+        match self.kind_of(parent) {
+            Some(Kind::Sniffer) => {
+                self.sniffer_lay_egg(parent, partner);
+                return;
+            }
+            Some(Kind::Frog) => {
+                self.frog_breed(parent, partner);
+                return;
+            }
+            _ => {}
+        }
         let mut random = self.mob_random(parent);
         let Some(mut child) = self.breed_offspring(parent, partner, &mut random) else {
             self.store_mob_random(parent, random);
@@ -499,6 +512,37 @@ impl<L: ClientLink> Server<L> {
                 mother,
             }))
         });
+    }
+
+    pub(crate) fn finish_childless_breeding(
+        &mut self,
+        parent: EntityId,
+        partner: EntityId,
+        position: Vec3,
+        experience: i32,
+    ) {
+        for id in [parent, partner] {
+            if let Some(Entity {
+                base,
+                state: EntityState::Living(state),
+                ..
+            }) = self.entities.store.get_mut(id)
+                && let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut())
+            {
+                ageable::set_age(base, ageable, PARENT_AGE_AFTER_BREEDING);
+                ageable.reset_love();
+            }
+        }
+        self.push(
+            Audience::Trackers(parent),
+            ClientEvent::EntityStatus {
+                entity: parent,
+                status: EntityStatus::Event(LOVE_EVENT),
+            },
+        );
+        if self.config.rules.mob_drops && experience > 0 {
+            self.spawn_orb(position, experience);
+        }
     }
 
     fn breeding_facts(

@@ -33,9 +33,9 @@ pub use door::{
     is_door_open, is_mob_interactable_door, nearest_living_entities, store_doors_to_close,
 };
 pub use long_jump::{
-    ALLOWED_ANGLES, JumpBody, JumpDimensions, JumpSound, LONG_JUMP_TIME_OUT, LandingSpot,
-    LongJumpMidJump, LongJumpToRandomPos, MID_JUMP_TIME_OUT, calculate_jump_vector_for_angle,
-    default_acceptable_landing_spot,
+    ALLOWED_ANGLES, FROG_PREFER_JUMP_TO, JumpBody, JumpDimensions, JumpSound, LONG_JUMP_TIME_OUT,
+    LandingSpot, LongJumpMidJump, LongJumpToRandomPos, MID_JUMP_TIME_OUT,
+    calculate_jump_vector_for_angle, default_acceptable_landing_spot,
 };
 pub use love::{AnimalMakeLove, FollowTemptation, MAKE_LOVE_DURATION, TemptDistance};
 pub use memory::{

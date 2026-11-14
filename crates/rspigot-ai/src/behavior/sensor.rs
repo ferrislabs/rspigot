@@ -6,6 +6,7 @@ use crate::behavior::sensors::{
 };
 use crate::brain::AiContext;
 use crate::breeze::BreezeAttackEntitySensor;
+use crate::frog::FrogAttackablesSensor;
 use crate::piglin::{HoglinSensor, PiglinBruteSensor, PiglinSensor};
 use crate::random::RandomSource;
 use crate::targeting::TargetingConditions;
@@ -94,6 +95,7 @@ pub enum SensorKind {
     VillagerHostiles(VillagerHostilesSensor),
     GolemDetected(GolemSensor),
     WardenEntity(WardenSensor),
+    FrogAttackables(FrogAttackablesSensor),
 }
 
 impl SensorKind {
@@ -118,6 +120,7 @@ impl SensorKind {
             Self::VillagerHostiles(_) => SensorType::VillagerHostiles,
             Self::GolemDetected(_) => SensorType::GolemDetected,
             Self::WardenEntity(_) => SensorType::WardenEntitySensor,
+            Self::FrogAttackables(_) => SensorType::FrogAttackables,
         }
     }
 }
@@ -144,6 +147,7 @@ impl Sensor for SensorKind {
             Self::VillagerHostiles(sensor) => sensor.scan_rate(),
             Self::GolemDetected(sensor) => sensor.scan_rate(),
             Self::WardenEntity(sensor) => sensor.scan_rate(),
+            Self::FrogAttackables(sensor) => sensor.scan_rate(),
         }
     }
 
@@ -168,6 +172,7 @@ impl Sensor for SensorKind {
             Self::VillagerHostiles(sensor) => sensor.requires(),
             Self::GolemDetected(sensor) => sensor.requires(),
             Self::WardenEntity(sensor) => sensor.requires(),
+            Self::FrogAttackables(sensor) => sensor.requires(),
         }
     }
 
@@ -192,6 +197,7 @@ impl Sensor for SensorKind {
             Self::VillagerHostiles(sensor) => sensor.do_tick(cx, memories),
             Self::GolemDetected(sensor) => sensor.do_tick(cx, memories),
             Self::WardenEntity(sensor) => sensor.do_tick(cx, memories),
+            Self::FrogAttackables(sensor) => sensor.do_tick(cx, memories),
         }
     }
 }
