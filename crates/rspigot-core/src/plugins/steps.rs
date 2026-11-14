@@ -303,6 +303,14 @@ pub(crate) struct ShearStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct HarvestStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) state: BlockStateId,
+    pub(crate) drops: Vec<ItemStack>,
+    pub(crate) glow: bool,
+}
+
+#[derive(Debug)]
 pub(crate) struct ResurrectStep {
     pub(crate) holder: Holder,
     pub(crate) hand: Option<Hand>,
@@ -1070,6 +1078,10 @@ pub(crate) enum Grief {
         rabbit: EntityId,
         pos: BlockPos,
     },
+    Vines {
+        player: PlayerId,
+        pos: BlockPos,
+    },
     Berries {
         fox: EntityId,
         pos: BlockPos,
@@ -1339,6 +1351,7 @@ pub(crate) enum Continuation {
     PickupArrow(ArrowStep),
     Shear(Box<ShearStep>),
     Resurrect(Box<ResurrectStep>),
+    Harvest(Box<HarvestStep>),
     Leash(Box<LeashStep>),
     Unleash(Box<LeashStep>),
     BucketEntity(Box<BucketEntityStep>),
@@ -1523,6 +1536,7 @@ impl Continuation {
             Self::PickupArrow(_) => EventKind::PlayerPickupArrow,
             Self::Shear(_) => EventKind::PlayerShearEntity,
             Self::Resurrect(_) => EventKind::EntityResurrect,
+            Self::Harvest(_) => EventKind::PlayerHarvestBlock,
             Self::Leash(_) => EventKind::PlayerLeashEntity,
             Self::Unleash(_) => EventKind::PlayerUnleashEntity,
             Self::BucketEntity(_) => EventKind::PlayerBucketEntity,
@@ -1678,7 +1692,7 @@ impl Continuation {
             Self::Split(step) => step.id == id,
             Self::Scatter(step) => step.id == id,
             Self::ChangeBlock(step) => match &step.change {
-                Grief::Fall { .. } => false,
+                Grief::Fall { .. } | Grief::Vines { .. } => false,
                 Grief::Land(landing) => landing.falling == id,
                 Grief::Graze { sheep, .. } => *sheep == id,
                 Grief::Raid { rabbit, .. } => *rabbit == id,

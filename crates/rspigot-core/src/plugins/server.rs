@@ -724,6 +724,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_shear(*step);
                 Vec::new()
             }
+            Continuation::Harvest(step) => {
+                self.finish_harvest(*step, cancelled, patch_of!(patch, PlayerHarvestBlock));
+                Vec::new()
+            }
             Continuation::Resurrect(step) => {
                 self.finish_resurrect(*step, cancelled);
                 Vec::new()

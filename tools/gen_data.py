@@ -444,6 +444,8 @@ EXTRA_TABLES = [
     ("minecraft:shearing/snow_golem", "minecraft:shearing"),
     ("minecraft:till/rooted_dirt", "minecraft:block_interact"),
     ("minecraft:harvest/beehive", "minecraft:block_interact"),
+    ("minecraft:harvest/sweet_berry_bush", "minecraft:block_interact"),
+    ("minecraft:harvest/cave_vine", "minecraft:block_interact"),
 ]
 
 REFERENCED_TABLE_TYPES = {"minecraft:block", "minecraft:entity", "minecraft:fishing", "minecraft:shearing"}

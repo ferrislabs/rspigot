@@ -47,6 +47,7 @@ mod fangs;
 mod fire;
 mod fluids;
 mod game_events;
+mod harvest;
 pub mod health;
 mod hurting;
 mod infestation;

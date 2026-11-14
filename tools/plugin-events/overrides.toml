@@ -202,6 +202,7 @@ LightningStrike = "a lightning bolt entering the world through /summon (cause CO
 CreeperPower = "a creeper inside the 3 block radius of a bolt (cause LIGHTNING), asked after the bolt burned and hurt it and before it is charged; a cancel keeps it uncharged; a plugin charge (SET_ON, SET_OFF) does not exist"
 PigZap = "a pig inside the 3 block radius of a bolt on a difficulty above peaceful, asked with the zombified piglin that would replace it (golden weapon, persistent, same AI flag) instead of EntityTransform; a cancel keeps the pig and the bolt does not hurt it"
 EntityResurrect = "any lethal damage that does not bypass invulnerability, to a player or a mob, asked before the death; with a totem of undying in the main or the off hand the hand is set and a cancel lets the entity die; without one it is seen cancelled by observers only (no decision, no way to resurrect without a totem), as Spigot starts it cancelled; allowed, the totem loses one item, health becomes 1, the effects are cleared then regeneration, fire resistance and absorption are applied (cause TOTEM) and status 35 is sent; statistics and the totem trigger do not exist yet"
+PlayerHarvestBlock = "a player right-clicking a sweet berry bush of age 2 or 3 (age 2 only without bone meal in hand) or a cave vine holding glow berries, asked before the berries drop, always with the main hand and the harvest loot table; a cave vine first asks EntityChangeBlock for the player; a cancel keeps the berries on the plant; a patched list replaces the dropped items; the bush returns to age 1 and the vine loses its berries"
 
 [states]
 ready = []
@@ -256,7 +257,6 @@ PlayerBedLeave = "sleeping"
 PlayerBucketFill = "fluids (#54)"
 PlayerEggThrow = "egg throwing"
 PlayerFish = "fishing"
-PlayerHarvestBlock = "berry harvesting"
 PlayerItemMend = "enchanting (#47)"
 PlayerLinksSend = "server links, which the server does not have (no configuration, no ServerLinks packet sent), and a Spigot that fires it during the configuration phase, before the player exists in the core"
 PlayerRecipeBookClick = "recipe placement from the recipe book (the PlaceRecipe packet and recipe display ids), which needs recipe matching and a server side recipe book (#24)"
