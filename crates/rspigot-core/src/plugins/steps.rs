@@ -303,6 +303,15 @@ pub(crate) struct ShearStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct ResurrectStep {
+    pub(crate) holder: Holder,
+    pub(crate) hand: Option<Hand>,
+    pub(crate) totem: Option<ItemStack>,
+    pub(crate) source: crate::health::DamageSource,
+    pub(crate) full: bool,
+}
+
+#[derive(Debug)]
 pub(crate) struct LeashStep {
     pub(crate) player: PlayerId,
     pub(crate) target: EntityId,
@@ -1329,6 +1338,7 @@ pub(crate) enum Continuation {
     ExpChange(OrbStep),
     PickupArrow(ArrowStep),
     Shear(Box<ShearStep>),
+    Resurrect(Box<ResurrectStep>),
     Leash(Box<LeashStep>),
     Unleash(Box<LeashStep>),
     BucketEntity(Box<BucketEntityStep>),
@@ -1512,6 +1522,7 @@ impl Continuation {
             Self::ExpChange(_) => EventKind::PlayerExpChange,
             Self::PickupArrow(_) => EventKind::PlayerPickupArrow,
             Self::Shear(_) => EventKind::PlayerShearEntity,
+            Self::Resurrect(_) => EventKind::EntityResurrect,
             Self::Leash(_) => EventKind::PlayerLeashEntity,
             Self::Unleash(_) => EventKind::PlayerUnleashEntity,
             Self::BucketEntity(_) => EventKind::PlayerBucketEntity,

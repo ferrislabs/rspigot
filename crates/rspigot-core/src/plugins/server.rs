@@ -724,6 +724,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_shear(*step);
                 Vec::new()
             }
+            Continuation::Resurrect(step) => {
+                self.finish_resurrect(*step, cancelled);
+                Vec::new()
+            }
             Continuation::Leash(step) => {
                 self.finish_leash(*step, cancelled);
                 Vec::new()

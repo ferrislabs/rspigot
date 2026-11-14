@@ -89,6 +89,7 @@ mod steering;
 pub mod streaming;
 mod tamable;
 mod thrown;
+mod totem;
 mod trader_spawner;
 mod trading;
 mod travel;

@@ -201,6 +201,7 @@ PlayerUnleashEntity = "a player right-clicking a mob it holds on a lead, reachin
 LightningStrike = "a lightning bolt entering the world through /summon (cause COMMAND), a plugin spawn (CUSTOM) or any other spawn reason (UNKNOWN), asked before the bolt is added; a cancel adds none; the thunderstorm strikes (WEATHER), the lightning rod and trident or channeling strikes do not exist yet, and the bolt does not ignite rods, wax copper or trigger advancements"
 CreeperPower = "a creeper inside the 3 block radius of a bolt (cause LIGHTNING), asked after the bolt burned and hurt it and before it is charged; a cancel keeps it uncharged; a plugin charge (SET_ON, SET_OFF) does not exist"
 PigZap = "a pig inside the 3 block radius of a bolt on a difficulty above peaceful, asked with the zombified piglin that would replace it (golden weapon, persistent, same AI flag) instead of EntityTransform; a cancel keeps the pig and the bolt does not hurt it"
+EntityResurrect = "any lethal damage that does not bypass invulnerability, to a player or a mob, asked before the death; with a totem of undying in the main or the off hand the hand is set and a cancel lets the entity die; without one it is seen cancelled by observers only (no decision, no way to resurrect without a totem), as Spigot starts it cancelled; allowed, the totem loses one item, health becomes 1, the effects are cleared then regeneration, fire resistance and absorption are applied (cause TOTEM) and status 35 is sent; statistics and the totem trigger do not exist yet"
 
 [states]
 ready = []
@@ -231,7 +232,6 @@ CrafterCraft = "redstone (#55)"
 EnchantItem = "enchanting (#47)"
 EntityBreakDoor = "the mobs or objects involved"
 EntityPortalExit = "a Spigot that fires it, which 26.3 never does"
-EntityResurrect = "the mobs or objects involved"
 EntityToggleGlide = "elytra gliding"
 ExpBottle = "thrown bottles and potions"
 FireworkExplode = "the mobs or objects involved"
