@@ -171,6 +171,11 @@ pub enum PlayerInput {
         secondary: Option<i32>,
     },
     SelectTrade(i32),
+    RecipeBookSettings {
+        kind: crate::recipe_book::BookKind,
+        open: bool,
+        filtering: bool,
+    },
     EditBook {
         slot: i32,
         pages: Vec<String>,

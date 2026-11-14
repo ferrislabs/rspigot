@@ -700,6 +700,7 @@ impl<L: ClientLink> Server<L> {
             known_movement: Vec3::ZERO,
             portal_cooldown: 0,
             seen_credits: false,
+            recipe_book: Default::default(),
             won_game: false,
             moved_this_tick: false,
             using_item: None,

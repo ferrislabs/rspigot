@@ -195,6 +195,7 @@ PlayerCustomClick = "observer only, every custom click action a client sends in 
 PlayerSignOpen = "a player right-clicking an unwaxed sign (cause INTERACT, the side facing the player) or placing a sign item (cause PLACE, front), asked before the editor is sent, with the sign text; a cancel opens no editor; players who cannot build and another player editing the same sign ask nothing; dyes, glow ink, honeycomb and click commands do not exist yet"
 SignChange = "a player finishing a sign edit, asked with the four typed lines (control characters removed) and the side, only when that player was sent the editor of that sign; a patched line replaces the typed one and a cancel keeps the old text; the editor right is spent either way"
 PlayerEditBook = "a player saving or signing a writable book from a hotbar or offhand slot, asked before the book changes, with the old meta, the new meta (pages, and for a signature the title and the player name as author) and the signing flag; a patched meta and signing flag replace them, a signature turns the item into a written book and a cancel keeps the book and resends the inventory; the 20 tick edit rate limit is not enforced"
+PlayerRecipeBookSettingsChange = "observer only, a client changing the open or the filtering state of one of its four recipe books (crafting, furnace, blast furnace, smoker), with the book and the new state, before it is stored; the state is kept per player and saved under recipeBook in the player data; the server does not send the saved state back to the client yet"
 
 [states]
 ready = []
@@ -258,7 +259,6 @@ PlayerItemMend = "enchanting (#47)"
 PlayerLeashEntity = "mounts, leads and taming"
 PlayerLinksSend = "resource packs, links and dialogs (#30)"
 PlayerRecipeBookClick = "advancements, statistics and the recipe book (#24)"
-PlayerRecipeBookSettingsChange = "advancements, statistics and the recipe book (#24)"
 PlayerRecipeDiscover = "advancements, statistics and the recipe book (#24)"
 PlayerRiptide = "tridents"
 PlayerSpawnChange = "per-player spawn points"

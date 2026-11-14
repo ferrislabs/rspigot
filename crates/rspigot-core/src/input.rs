@@ -143,6 +143,11 @@ impl<L: ClientLink> Server<L> {
                 self.handle_set_beacon(id, primary, secondary);
             }
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
+            PlayerInput::RecipeBookSettings {
+                kind,
+                open,
+                filtering,
+            } => self.change_recipe_book_settings(id, kind, open, filtering),
             PlayerInput::EditBook { slot, pages, title } => {
                 self.handle_edit_book(id, slot, pages, title);
             }

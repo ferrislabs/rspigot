@@ -460,3 +460,74 @@ mod books {
         assert!(fired(&s.plugin).is_empty());
     }
 }
+
+mod recipe_book {
+    use super::*;
+    use rspigot_core::player_data::PlayerSave;
+    use rspigot_core::plugins::events::{
+        PlayerRecipeBookSettingsChange, PlayerRecipeBookSettingsChangeRecipeBookType as Kind,
+    };
+    use rspigot_core::ports::PlayerStore;
+
+    fn change(s: &mut Scene, kind: Kind, open: bool, filtering: bool) {
+        let alice = s.players[0].clone();
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::RecipeBookSettings {
+                kind,
+                open,
+                filtering,
+            },
+        );
+    }
+
+    fn saved(s: &mut Scene, saves: &Saves) -> PlayerSave {
+        let alice = s.players[0].clone();
+        s.server.handle(leave_of(&alice));
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+        let data = loop {
+            if let Some(data) = saves.load_player(alice.id).expect("a store") {
+                break data;
+            }
+            assert!(std::time::Instant::now() < deadline, "the player was saved");
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        };
+        PlayerSave::from_nbt(&data).expect("the save decodes")
+    }
+
+    #[test]
+    fn a_settings_change_reaches_the_plugins_and_is_stored_for_the_player() {
+        let (mut s, saves) = saving_scene(
+            &["Alice"],
+            vec![observe(1, EventKind::PlayerRecipeBookSettingsChange)],
+        );
+        change(&mut s, Kind::Smoker, true, false);
+        let events = fired(&s.plugin);
+        let EventPayload::PlayerRecipeBookSettingsChange(PlayerRecipeBookSettingsChange {
+            filtering,
+            open,
+            recipe_book_type,
+            player,
+        }) = &events[0].payload
+        else {
+            panic!("expected a settings change, got {:?}", events[0]);
+        };
+        assert_eq!(
+            (*open, *filtering, *recipe_book_type),
+            (true, false, Kind::Smoker)
+        );
+        assert_eq!(player.id, s.players[0].id);
+        let save = saved(&mut s, &saves);
+        assert_eq!(save.recipe_book.get(Kind::Smoker), (true, false));
+        assert_eq!(save.recipe_book.get(Kind::Crafting), (false, false));
+    }
+
+    #[test]
+    fn without_a_handler_the_setting_is_stored_at_once() {
+        let (mut s, saves) = saving_scene(&["Alice"], Vec::new());
+        change(&mut s, Kind::Furnace, false, true);
+        let save = saved(&mut s, &saves);
+        assert_eq!(save.recipe_book.get(Kind::Furnace), (false, true));
+    }
+}

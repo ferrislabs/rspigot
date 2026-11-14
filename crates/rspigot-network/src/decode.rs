@@ -5,6 +5,7 @@ use rspigot_core::events::{
     MovementAction, PlayerInput,
 };
 use rspigot_core::plugins::events::ResourcePackStatus;
+use rspigot_core::recipe_book::BookKind;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::GameMode;
 use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
@@ -13,7 +14,8 @@ use rspigot_protocol::codec::Position;
 use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::play::serverbound::{
-    ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction, SignTextSlot,
+    ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction, RecipeBookType,
+    SignTextSlot,
 };
 use rspigot_protocol::play::slot::{HashedStack, ItemStack as WireStack};
 use rspigot_protocol::play::types::{
@@ -306,6 +308,16 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             button: p.button_id,
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
+        ServerboundPlay::RecipeBookSettings(p) => input(PlayerInput::RecipeBookSettings {
+            kind: match p.book {
+                RecipeBookType::Crafting => BookKind::Crafting,
+                RecipeBookType::Furnace => BookKind::Furnace,
+                RecipeBookType::BlastFurnace => BookKind::BlastFurnace,
+                RecipeBookType::Smoker => BookKind::Smoker,
+            },
+            open: p.open,
+            filtering: p.filtering,
+        }),
         ServerboundPlay::EditBook(p) => input(PlayerInput::EditBook {
             slot: p.slot,
             pages: p.pages.clone(),
@@ -407,6 +419,18 @@ mod tests {
                 count: 5,
                 patched: true,
             }))
+        );
+    }
+
+    #[test]
+    fn recipe_book_settings_carry_the_book_and_both_flags() {
+        assert_eq!(
+            decoded(sb::RECIPE_BOOK_CHANGE_SETTINGS, &[3, 1, 1]),
+            PlayerInput::RecipeBookSettings {
+                kind: BookKind::Smoker,
+                open: true,
+                filtering: true,
+            }
         );
     }
 

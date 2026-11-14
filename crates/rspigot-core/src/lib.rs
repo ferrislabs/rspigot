@@ -75,6 +75,7 @@ pub mod ports;
 mod potions;
 mod projectiles;
 mod raids;
+pub mod recipe_book;
 mod riding;
 mod sculk;
 pub mod server;
