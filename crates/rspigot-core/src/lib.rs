@@ -97,6 +97,7 @@ mod signal;
 mod sleeping;
 mod sound;
 mod spawning;
+mod sponge;
 pub mod status;
 mod steering;
 pub mod streaming;

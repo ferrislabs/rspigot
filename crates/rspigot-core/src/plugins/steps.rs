@@ -384,6 +384,13 @@ pub(crate) struct BucketEmptyStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct SpongeStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) expected: BlockStateId,
+    pub(crate) changes: Vec<crate::sponge::Absorbed>,
+}
+
+#[derive(Debug)]
 pub(crate) struct BucketFillStep {
     pub(crate) player: PlayerId,
     pub(crate) hand: Hand,
@@ -1535,6 +1542,7 @@ pub(crate) enum Continuation {
     BucketEntity(Box<BucketEntityStep>),
     BucketEmpty(Box<BucketEmptyStep>),
     BucketFill(Box<BucketFillStep>),
+    Sponge(Box<SpongeStep>),
     LiquidEmpty(Box<LiquidEmptyStep>),
     Damage(Box<DamageStep>),
     Break(Box<BreakStep>),
@@ -1740,6 +1748,7 @@ impl Continuation {
             Self::BucketEntity(_) => EventKind::PlayerBucketEntity,
             Self::BucketEmpty(_) | Self::LiquidEmpty(_) => EventKind::PlayerBucketEmpty,
             Self::BucketFill(_) => EventKind::PlayerBucketFill,
+            Self::Sponge(_) => EventKind::SpongeAbsorb,
             Self::Damage(_) => EventKind::BlockDamage,
             Self::Break(_) | Self::Finish(_) => EventKind::BlockBreak,
             Self::Abort(_) => EventKind::BlockDamageAbort,
@@ -2011,6 +2020,7 @@ impl Continuation {
                 one.nature == other.nature && one.pos == other.pos
             }
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
+            (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
             (Self::EggBreak { mob: one, .. }, Self::EggBreak { mob: other, .. }) => one == other,
             (
                 Self::DoorOpen {
@@ -2104,6 +2114,7 @@ impl Continuation {
             | Self::BatSleep { .. }
             | Self::Form(_)
             | Self::Nature(_)
+            | Self::Sponge(_)
             | Self::Ignite(_)
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,
