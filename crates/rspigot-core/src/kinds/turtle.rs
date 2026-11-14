@@ -276,6 +276,7 @@ impl<L: ClientLink> Server<L> {
             .collect::<Vec<i32>>();
         let mut sampler = LegacyRandom::new(sampler_seed(self.world.level.game_time));
         let mut eggs = Vec::new();
+        let mut ghasts = Vec::new();
         for chunk in chunks {
             let Some(column) = self.world.chunks.get(chunk) else {
                 continue;
@@ -286,15 +287,19 @@ impl<L: ClientLink> Server<L> {
                     let y = base_y + sampler.next_int(SECTION_SIZE);
                     let z = chunk.z * SECTION_SIZE + sampler.next_int(SECTION_SIZE);
                     let pos = BlockPos::new(x, y, z);
-                    if column.block(pos).and_then(BlockStateId::kind) == Some(BlockKind::TurtleEgg)
-                    {
-                        eggs.push(pos);
+                    match column.block(pos).and_then(BlockStateId::kind) {
+                        Some(BlockKind::TurtleEgg) => eggs.push(pos),
+                        Some(BlockKind::DriedGhast) => ghasts.push(pos),
+                        _ => {}
                     }
                 }
             }
         }
         for pos in eggs {
             self.turtle_egg_random_tick(pos);
+        }
+        for pos in ghasts {
+            self.dried_ghast_random_tick(pos);
         }
     }
 

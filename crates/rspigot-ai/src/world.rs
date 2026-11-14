@@ -511,6 +511,7 @@ pub struct KindFacts {
     pub equine: crate::EquineFacts,
     pub llama: crate::llama::LlamaFacts,
     pub camel: crate::camel::CamelFacts,
+    pub happy_ghast: crate::happy_ghast::HappyGhastFacts,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -6,6 +6,8 @@ use rspigot_entities::EntityKind as Kind;
 use rspigot_items::{EquipmentSlot, ItemKind};
 
 use crate::events::Hand;
+use crate::plugins::EventPayload;
+use crate::plugins::events::VehicleMove;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -42,6 +44,19 @@ impl<L: ClientLink> Server<L> {
                 .find(|p| p.entity_id == first)
                 .map(|p| p.id);
         }
+        if entity.base.kind == Kind::HappyGhast {
+            if !crate::kinds::happy_ghast::wears_harness(entity)
+                || crate::kinds::happy_ghast::is_on_still_timeout(entity)
+            {
+                return None;
+            }
+            let first = self.entities.rides.first_passenger(vehicle)?;
+            return self
+                .players
+                .values()
+                .find(|p| p.entity_id == first)
+                .map(|p| p.id);
+        }
         let item = steering_item(entity.base.kind)?;
         entity.living()?.equipment(EquipmentSlot::Saddle)?;
         let first = self.entities.rides.first_passenger(vehicle)?;
@@ -60,6 +75,10 @@ impl<L: ClientLink> Server<L> {
         let Some(rotation) = self.players.get(&player).map(|p| p.rotation) else {
             return;
         };
+        if self.kind_of(vehicle) == Some(Kind::HappyGhast) {
+            self.happy_ghast_ridden_rotation(vehicle, rotation.yaw, rotation.pitch);
+            return;
+        }
         let Some(entity) = self.entities.store.get_mut(vehicle) else {
             return;
         };
@@ -127,6 +146,7 @@ impl<L: ClientLink> Server<L> {
         {
             return;
         }
+        let from = (base.position, Rotation::new(base.yaw, base.pitch));
         base.old_position = base.position;
         base.velocity = position - base.position;
         base.position = position;
@@ -136,5 +156,21 @@ impl<L: ClientLink> Server<L> {
         base.needs_sync = true;
         self.entities.store.reindex(vehicle);
         self.position_riders(vehicle);
+        self.vehicle_moved(vehicle, from, (position, rotation));
+    }
+
+    fn vehicle_moved(&mut self, vehicle: EntityId, from: (Vec3, Rotation), to: (Vec3, Rotation)) {
+        if from == to {
+            return;
+        }
+        let Some(view) = self.subject_view(vehicle) else {
+            return;
+        };
+        let payload = EventPayload::VehicleMove(VehicleMove {
+            from: self.location_of(from.0, from.1),
+            to: self.location_of(to.0, to.1),
+            vehicle: view,
+        });
+        self.notify_now(payload);
     }
 }

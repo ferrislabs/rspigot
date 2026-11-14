@@ -2361,7 +2361,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn mob_landed(&mut self, id: EntityId, landing: Landing) {
         if matches!(
             self.kind_of(id),
-            Some(Kind::Ghast | Kind::Allay | Kind::Bee)
+            Some(Kind::Ghast | Kind::HappyGhast | Kind::Allay | Kind::Bee)
         ) {
             return;
         }

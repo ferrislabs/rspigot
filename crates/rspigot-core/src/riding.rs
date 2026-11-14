@@ -236,9 +236,13 @@ impl<L: ClientLink> Server<L> {
             entity.base.set_pose(Pose::Standing);
         }
         let players: Vec<EntityId> = self.players.values().map(|p| p.entity_id).collect();
+        let was_vehicle = self.entities.rides.is_vehicle(vehicle);
         self.entities
             .rides
             .attach(vehicle, rider, |id| players.contains(&id));
+        if self.kind_of(vehicle) == Some(Kind::HappyGhast) {
+            self.happy_ghast_passenger_added(vehicle, was_vehicle);
+        }
         self.position_rider(vehicle, rider);
         self.send_passengers(vehicle);
         if notify && let Some(at) = self.entities.store.get(vehicle).map(|e| e.base.position) {
@@ -400,6 +404,9 @@ impl<L: ClientLink> Server<L> {
 
     fn detach_rider(&mut self, rider: EntityId, vehicle: EntityId) {
         self.entities.rides.detach(vehicle, rider);
+        if self.kind_of(vehicle) == Some(Kind::HappyGhast) {
+            self.happy_ghast_passenger_removed(vehicle);
+        }
         self.send_passengers(vehicle);
         let at = self.entities.store.get(vehicle).map(|e| e.base.position);
         if let Some(at) = at {
@@ -706,6 +713,9 @@ impl<L: ClientLink> Server<L> {
         let default = Vec3::new(base.position.x, base.bounding_box().max_y, base.position.z);
         if base.kind == Kind::Strider {
             return self.strider_dismount(vehicle, rider).unwrap_or(default);
+        }
+        if base.kind == Kind::HappyGhast {
+            return default;
         }
         if base.kind.extends("AbstractHorse") {
             return self.horse_dismount(vehicle, rider);

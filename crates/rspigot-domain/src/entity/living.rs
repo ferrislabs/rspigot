@@ -1537,6 +1537,17 @@ fn travel_on_land<V: BlockView>(
     if base.kind == EntityKind::Ghast {
         return travel_flying(base, living, view, input, GHAST_FLYING_SPEEDS);
     }
+    if base.kind == EntityKind::HappyGhast {
+        let speed = super::species::happy_ghast::flying_speed_factor(
+            living.attribute("minecraft:flying_speed"),
+        );
+        let speeds = FlyingSpeeds {
+            water: speed,
+            lava: speed,
+            air: speed,
+        };
+        return travel_flying(base, living, view, input, speeds);
+    }
     if base.kind == EntityKind::Phantom {
         return travel_flying(base, living, view, input, PHANTOM_FLYING_SPEEDS);
     }
@@ -1759,6 +1770,22 @@ mod tests {
         assert_eq!(base.velocity, Vec3::new(drag, 0.5 * drag, 0.0));
         assert!((base.position.x - 1.5).abs() < 1.0e-9);
         assert!((base.position.y - 80.5).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn a_happy_ghast_pushes_by_five_thirds_of_its_flying_speed_without_gravity() {
+        let mut base = EntityBase::new(EntityId(1), Uuid::from_u128(1), EntityKind::HappyGhast);
+        base.position = Vec3::new(0.5, 80.0, 0.5);
+        let mut living = LivingState::new(&mut base, 0.0);
+        travel(&mut base, &mut living, &Air, Vec3::new(0.0, 0.0, 1.0));
+        let push = f64::from(0.05f32 * (5.0f32 / 3.0));
+        let drag = f64::from(0.91f32);
+        assert!(
+            (base.velocity.z - push * drag).abs() < 1.0e-6,
+            "{:?}",
+            base.velocity
+        );
+        assert!(base.velocity.y.abs() < 1.0e-9);
     }
 
     fn swimmer(kind: EntityKind) -> (EntityBase, LivingState) {

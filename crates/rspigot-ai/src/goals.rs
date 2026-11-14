@@ -47,7 +47,7 @@ const GHAST_TARGET_HEIGHT: f64 = 4.0;
 pub struct FloatGoal;
 
 impl FloatGoal {
-    fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
+    pub(crate) fn can_use<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) -> bool {
         let mob = context.mob;
         let threshold = if f64::from(mob.eye_height) < 0.4 {
             0.0
@@ -57,7 +57,7 @@ impl FloatGoal {
         mob.fluid.water_height > threshold || mob.fluid.in_lava()
     }
 
-    fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
+    pub(crate) fn tick<W: AiWorld>(&mut self, context: &mut AiContext<'_, W>) {
         if context.brain.random.next_float() < FLOAT_CHANCE {
             context.brain.jump.jump();
         }
@@ -414,10 +414,15 @@ impl RandomLookAroundGoal {
 pub enum TemptItems {
     Tag(&'static str),
     Item(ItemKind),
+    HappyGhast,
 }
 
 impl TemptItems {
     pub fn matches(self, item: Option<ItemId>) -> bool {
+        self.matches_for(false, item)
+    }
+
+    pub fn matches_for(self, food_only: bool, item: Option<ItemId>) -> bool {
         let Some(item) = item.filter(|item| *item != ItemId::AIR) else {
             return false;
         };
@@ -425,6 +430,14 @@ impl TemptItems {
             Self::Tag(name) => rspigot_data::tags::tag(ITEM_TAGS, name)
                 .is_some_and(|ids| ids.binary_search(&u32::from(item.0)).is_ok()),
             Self::Item(kind) => kind.id() == item,
+            Self::HappyGhast => {
+                let tag = if food_only {
+                    rspigot_domain::entity::species::happy_ghast::FOOD_TAG
+                } else {
+                    rspigot_domain::entity::species::happy_ghast::TEMPT_ITEMS_TAG
+                };
+                Self::Tag(tag).matches(Some(item))
+            }
         }
     }
 }
@@ -470,6 +483,11 @@ impl TemptGoal {
         }
     }
 
+    pub fn with_stop_distance(mut self, stop_distance: f64) -> Self {
+        self.stop_distance = stop_distance;
+        self
+    }
+
     pub fn scared_by_movement(speed_modifier: f64, items: TemptItems) -> Self {
         Self {
             scare: Scare::UnlessTrusting,
@@ -507,6 +525,7 @@ impl TemptGoal {
             return false;
         }
         let items = self.items;
+        let food_only = context.mob.species.happy_ghast.wearing_harness || context.mob.baby;
         let conditions = TargetingConditions::for_non_combat()
             .ignore_line_of_sight()
             .range(context.mob.tempt_range);
@@ -514,7 +533,10 @@ impl TemptGoal {
         let found = targeting::nearest_player(
             context,
             conditions,
-            |player| items.matches(player.main_hand) || items.matches(player.off_hand),
+            |player| {
+                items.matches_for(food_only, player.main_hand)
+                    || items.matches_for(food_only, player.off_hand)
+            },
             origin,
         )
         .map(|player| player.id);

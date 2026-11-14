@@ -55,8 +55,8 @@ pub use sensor::{
     is_entity_attackable_ignoring_line_of_sight, is_entity_targetable, nearest_visible_entity,
 };
 pub use sensors::{
-    AdultSensor, DummySensor, HurtBySensor, IsInWaterSensor, ItemWish, NearestItemSensor,
-    NearestLivingEntitySensor, PlayerSensor, TemptingSensor,
+    AdultSensor, AdultSensorAnyType, DummySensor, HurtBySensor, IsInWaterSensor, ItemWish,
+    NearestItemSensor, NearestLivingEntitySensor, PlayerSensor, TemptingSensor,
 };
 pub use shuffling::ShufflingList;
 pub use sinks::{AnimalPanic, LookAtTargetSink, MoveToTargetSink, RandomLookAround, Swim};
