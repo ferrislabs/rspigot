@@ -1,5 +1,6 @@
 mod action;
 mod animal;
+mod behavior;
 mod blaze;
 mod blocks;
 mod brain;
@@ -53,6 +54,18 @@ mod zombified_piglin;
 pub use action::{MobAction, TargetReason, TargetRequest};
 pub use animal::{
     BreedGoal, EAT_GRASS_EVENT, EatBlockGoal, FollowParentGoal, PanicGoal, is_edible_for_sheep,
+};
+pub use behavior::{
+    Activity, ActivityData, Behavior, BehaviorBrain, BehaviorControl, BehaviorCx, BrainState,
+    Codec, Condition, CountDownCooldownTicks, DEFAULT_DURATION, DEFAULT_SCAN_RATE, DoNothing,
+    DummySensor, ExpirableValue, Gate, GlobalPos, HurtBySensor, IsInWaterSensor, ItemWish,
+    Memories, MemoryModuleType, MemorySlot, MemoryStatus, MemoryValue, MobBehavior, MobControl,
+    NO_EXPIRY, NearestItemSensor, NearestLivingEntitySensor, NearestVisibleLivingEntities, OneShot,
+    OrderPolicy, PackedMemories, PlayerSensor, PositionTracker, RunOne, RunningPolicy,
+    SCHEDULE_UPDATE_INTERVAL, Schedule, Sensor, SensorKind, SensorSlot, SensorType, Sequence,
+    ShufflingList, Status, Timed, Trigger, TriggerGate, VILLAGER_PERIOD_TICKS, WalkTarget,
+    has_required_memories, is_entity_attackable, is_entity_attackable_ignoring_line_of_sight,
+    is_entity_targetable, nearest_visible_entity,
 };
 pub use blaze::{BlazeAction, BlazeAttackGoal};
 pub use blocks::{
@@ -137,6 +150,6 @@ pub use village::{find_section_closest_to_village, sections_to_village};
 pub use walk::{block_path_type, mob_path_type};
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{
-    AiWorld, DroppedItem, Facts, Hand, KindFacts, Living, MOVEMENT_SPEED, MobBody, MobView,
-    NO_VILLAGE, TEMPT_RANGE, TargetKind, inflate,
+    AiWorld, DroppedItem, Facts, Hand, KindFacts, LastDamage, Living, MOVEMENT_SPEED, MobBody,
+    MobView, NO_VILLAGE, TEMPT_RANGE, TargetKind, inflate,
 };
