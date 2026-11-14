@@ -217,6 +217,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
         level.day_time = ticks;
     }
     level.raids = optional_saved_data(world_root, "raids");
+    level.dragon_fight = optional_saved_data(world_root, "ender_dragon_fight");
     Ok(Some(level))
 }
 
@@ -316,6 +317,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         data.insert(OVERWORLD_CLOCK, clock);
         changed
     })?;
+    if let Some(fight) = &level.dragon_fight {
+        update_saved_data(world_root, "ender_dragon_fight", |data| {
+            let changed = data != fight;
+            data.clone_from(fight);
+            changed
+        })?;
+    }
     if let Some(raids) = &level.raids {
         update_saved_data(world_root, "raids", |data| {
             let changed = data != raids;
@@ -476,6 +484,7 @@ mod tests {
             spawn_monsters: false,
             uuid: None,
             raids: None,
+            dragon_fight: None,
         }
     }
 
@@ -545,11 +554,41 @@ mod tests {
         assert_eq!(read_level_data(&root).unwrap(), Some(level));
         let without = LevelData {
             raids: None,
+            dragon_fight: None,
             ..sample()
         };
         write_level_data(&root, &without).unwrap();
         let kept = read_level_data(&root).unwrap().unwrap();
         assert_eq!(kept.raids, Some(raids));
+    }
+
+    #[test]
+    fn the_dragon_fight_is_saved_in_its_own_data_file_and_read_back() {
+        let dir = TempDir::new("level-fight");
+        let root = dir.path().join("world");
+        let fight = Compound::new()
+            .with("needs_state_scanning", false)
+            .with("dragon_killed", true)
+            .with("previously_killed", true)
+            .with("respawn_time", 0)
+            .with("exit_portal_location", Tag::IntArray(vec![0, 63, 0]))
+            .with("gateways", Tag::List(vec![Tag::Int(3), Tag::Int(9)]));
+        let level = LevelData {
+            dragon_fight: Some(fight.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/ender_dragon_fight.dat");
+        assert_eq!(file.get_compound("data"), Some(&fight));
+        assert_eq!(file.get_i32("DataVersion"), Some(5023));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
+        let without = LevelData {
+            dragon_fight: None,
+            ..sample()
+        };
+        write_level_data(&root, &without).unwrap();
+        let kept = read_level_data(&root).unwrap().unwrap();
+        assert_eq!(kept.dragon_fight, Some(fight));
     }
 
     #[test]

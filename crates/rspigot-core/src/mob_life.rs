@@ -24,7 +24,9 @@ use crate::loot::{self, LootContext};
 use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause, EntityRemoveCause};
 use crate::plugins::events::{EntityTransform, EntityTransformReason};
 use crate::plugins::steps::TransformStep;
-use crate::plugins::{Birth, Combuster, Continuation, EventPayload, Follow, Holder, Spawned};
+use crate::plugins::{
+    AfterHurt, Birth, Combuster, Continuation, EventPayload, Follow, Holder, Spawned, Struck,
+};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -926,6 +928,24 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn hurt_entity(&mut self, id: EntityId, source: &DamageSource, amount: f32) -> bool {
+        if let Some((dragon, part)) = self.dragon_part_of(id) {
+            self.dragon_note_part(dragon, part);
+            return self.hurt_entity(dragon, source, amount);
+        }
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| entity.base.kind == Kind::EndCrystal)
+        {
+            return self.strike(
+                None,
+                Struck::Crystal(id),
+                source,
+                amount,
+                AfterHurt::Nothing,
+            );
+        }
         if let Some(player) = self
             .players
             .values()

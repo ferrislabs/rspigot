@@ -44,6 +44,7 @@ pub(crate) struct HitEntity {
     pub(crate) eye: Vec3,
     pub(crate) bounds: Aabb,
     pub(crate) living: bool,
+    pub(crate) part: Option<rspigot_domain::dragon::Part>,
 }
 
 impl<L: ClientLink> Server<L> {
@@ -384,6 +385,7 @@ impl<L: ClientLink> Server<L> {
             .store
             .iter()
             .filter(|e| Some(e.base.id) != source && !e.base.is_removed())
+            .filter(|e| !self.entities.dragons.contains_key(&e.base.id))
             .filter(|e| e.base.bounding_box().intersects(area))
             .filter(|e| e.is_simulated())
             .map(|e| HitEntity {
@@ -393,8 +395,10 @@ impl<L: ClientLink> Server<L> {
                 eye: Vec3::new(e.base.position.x, e.base.eye_y(), e.base.position.z),
                 bounds: e.base.bounding_box(),
                 living: e.living().is_some(),
+                part: None,
             })
             .collect();
+        out.extend(self.dragon_explosion_parts(source, area));
         out.extend(
             self.players
                 .values()
@@ -408,6 +412,7 @@ impl<L: ClientLink> Server<L> {
                         eye: p.eye_position(),
                         bounds,
                         living: true,
+                        part: None,
                     })
                 }),
         );
@@ -473,8 +478,17 @@ impl<L: ClientLink> Server<L> {
                 }
                 continue;
             }
+            if let Some(part) = target.part {
+                self.dragon_note_part(target.id, part);
+            }
+            let crystal = self
+                .entities
+                .store
+                .get(target.id)
+                .is_some_and(|e| e.base.kind == Kind::EndCrystal);
             let victim = match target.player {
                 Some(player) => Struck::Player(player),
+                None if crystal => Struck::Crystal(target.id),
                 None if target.living => Struck::Mob(target.id),
                 None => Struck::Item(target.id),
             };
@@ -519,7 +533,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn blow_up_blocks(
+    pub(crate) fn blow_up_blocks(
         &mut self,
         blocks: &[BlockPos],
         source: Option<EntityId>,

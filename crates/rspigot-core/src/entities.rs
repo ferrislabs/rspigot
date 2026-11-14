@@ -42,6 +42,8 @@ pub(crate) struct EntityWorld {
     pub tracked: FxHashMap<EntityId, TrackedEntity>,
     pub mobs: crate::mobs::MobTable,
     pub boss_bars: FxHashMap<EntityId, rspigot_domain::boss_event::ServerBossEvent>,
+    pub dragons: FxHashMap<EntityId, crate::dragon::DragonRuntime>,
+    pub fight: Option<crate::dragon::DragonFight>,
     pub poses: FxHashMap<EntityId, rspigot_domain::entity::Pose>,
     pub leash_spin: FxHashMap<EntityId, f64>,
     pub leash_links: FxHashMap<EntityId, EntityId>,
@@ -79,6 +81,7 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::Item(stack) => MetadataValue::Item(stack.clone()),
                 SyncedValue::BlockPos(pos) => MetadataValue::BlockPos(*pos),
                 SyncedValue::OptionalBlockPos(pos) => MetadataValue::OptionalBlockPos(*pos),
+                SyncedValue::Particle(particle) => MetadataValue::Particle(particle.clone()),
                 SyncedValue::Variant(kind, id) => MetadataValue::Variant(*kind, *id),
                 SyncedValue::Long(v) => MetadataValue::Long(*v),
                 SyncedValue::Direction(face) => MetadataValue::Direction(*face as u8),
@@ -253,6 +256,7 @@ impl<L: ClientLink> Server<L> {
         self.entities.leash_links.remove(&id);
         self.entities.leash_spin.remove(&id);
         self.remove_boss_bar(id);
+        self.entities.dragons.remove(&id);
         self.entities.mobs.entries.remove(&id);
         self.entities.mobs.initial_targets.remove(&id);
         for player in self.players.values_mut() {
@@ -415,6 +419,8 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Hurting(_) => self.tick_hurting(id),
                 EntityState::Bullet(_) => self.tick_bullet(id),
                 EntityState::Fangs(_) => self.tick_fangs(id),
+                EntityState::Crystal(_) => self.tick_crystal(id),
+                EntityState::Cloud(_) => self.tick_cloud(id),
                 EntityState::Inert(_) => {}
             }
             self.tick_passengers(id);
@@ -504,6 +510,10 @@ impl<L: ClientLink> Server<L> {
         self.mob_ambient_tick(id);
         self.forget_dead_attackers(id);
         self.kind_ai_step(id);
+        if self.kind_of(id) == Some(Kind::EnderDragon) {
+            self.dragon_step(id);
+            return;
+        }
         self.crossbow_use_tick(id);
         if let Some(Entity {
             base,
@@ -598,7 +608,10 @@ impl<L: ClientLink> Server<L> {
             self.entities.stored_empty.remove(&pos);
         }
         for nbt in entities {
-            let id = self.allocate_entity_id();
+            let id = match nbt.get_str("id").and_then(Kind::from_name) {
+                Some(kind) => self.allocate_entity_id_for(kind),
+                None => self.allocate_entity_id(),
+            };
             let uuid = self.random_uuid();
             match save::load_entity(&nbt, id, uuid) {
                 Ok(entity) => {
@@ -726,6 +739,35 @@ impl<L: ClientLink> Server<L> {
 
     pub fn block_state_at(&self, pos: BlockPos) -> Option<rspigot_domain::BlockStateId> {
         self.world.chunks.block(pos)
+    }
+
+    pub fn dragon_parts(
+        &self,
+        id: EntityId,
+    ) -> Option<[Vec3; rspigot_domain::dragon::parts::PART_COUNT]> {
+        self.entities.dragons.get(&id).map(|runtime| runtime.parts)
+    }
+
+    pub fn dragon_phase_of(
+        &self,
+        id: EntityId,
+    ) -> Option<rspigot_domain::dragon::phase::DragonPhase> {
+        self.entities
+            .dragons
+            .get(&id)
+            .map(|runtime| runtime.phases.current())
+    }
+
+    pub fn level_snapshot(&self) -> crate::config::LevelData {
+        let mut level = self.world.level.clone();
+        if let Some(fight) = &self.entities.fight {
+            level.dragon_fight = Some(fight.data.to_nbt());
+        }
+        level
+    }
+
+    pub fn dragon_fight_data(&self) -> Option<rspigot_domain::dragon::fight::FightData> {
+        self.entities.fight.as_ref().map(|fight| fight.data.clone())
     }
 
     pub fn entities_of(&self, kind: Kind) -> Vec<EntitySnapshot> {

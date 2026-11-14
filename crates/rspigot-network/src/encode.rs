@@ -19,6 +19,7 @@ use rspigot_domain::chunk::{
 };
 use rspigot_domain::dye::dye_color_id;
 use rspigot_domain::effect::{AttributeOperation, AttributeState, EffectInstance};
+use rspigot_domain::entity::ParticleSetting;
 use rspigot_domain::entity::save::component_from_tag;
 use rspigot_domain::entity::trading::{ItemCost, MerchantOffer};
 use rspigot_domain::item::{CUSTOM_NAME, ENCHANTMENTS, ItemStack, LORE, MAX_LORE_LINES, Slot};
@@ -704,6 +705,23 @@ fn registry_variant(kind: VariantKind) -> RegistryVariant {
             RegistryVariant::Frog
         }
         VariantKind::ZombieNautilus => RegistryVariant::ZombieNautilus,
+    }
+}
+
+fn particle_metadata(setting: &ParticleSetting) -> EntityDataValue {
+    let (name, data) = match setting {
+        ParticleSetting::Named(name) => (name.as_str(), Vec::new()),
+        ParticleSetting::Power { name, power } => (name.as_str(), power.to_be_bytes().to_vec()),
+        ParticleSetting::Color { name, argb } => (name.as_str(), argb.to_be_bytes().to_vec()),
+    };
+    let kind = rspigot_data::registries::static_index("minecraft:particle_type", name)
+        .and_then(|id| i32::try_from(id).ok())
+        .unwrap_or(0);
+    let mut bytes = Vec::new();
+    cb::ParticleOptions { kind, data }.encode(&mut bytes);
+    EntityDataValue::Raw {
+        serializer: rspigot_protocol::play::metadata::serializer::PARTICLE,
+        data: bytes,
     }
 }
 
@@ -1407,6 +1425,7 @@ impl Encoder {
                                 MetadataValue::OptionalBlockPos(pos) => {
                                     EntityDataValue::OptionalBlockPos(pos.map(position))
                                 }
+                                MetadataValue::Particle(setting) => particle_metadata(setting),
                                 MetadataValue::Variant(kind, id) => EntityDataValue::Variant {
                                     kind: registry_variant(*kind),
                                     id: *id as i32,
@@ -2117,6 +2136,66 @@ mod tests {
         expected.extend_from_slice(&packed.to_be_bytes());
         expected.push(0xFF);
         assert_eq!(encode(event), vec![(id::SET_ENTITY_DATA, expected)]);
+    }
+
+    #[test]
+    fn particle_metadata_golden_bytes_for_breath_and_effect_clouds() {
+        let breath = rspigot_data::registries::static_index(
+            "minecraft:particle_type",
+            "minecraft:dragon_breath",
+        )
+        .unwrap();
+        let effect = rspigot_data::registries::static_index(
+            "minecraft:particle_type",
+            "minecraft:entity_effect",
+        )
+        .unwrap();
+        let event = ClientEvent::EntityMetadata {
+            entity: EntityId(5),
+            entries: vec![
+                MetadataEntry {
+                    index: 10,
+                    value: MetadataValue::Particle(ParticleSetting::Power {
+                        name: "minecraft:dragon_breath".to_owned(),
+                        power: 1.0,
+                    }),
+                },
+                MetadataEntry {
+                    index: 10,
+                    value: MetadataValue::Particle(ParticleSetting::Color {
+                        name: "minecraft:entity_effect".to_owned(),
+                        argb: -1,
+                    }),
+                },
+            ],
+        };
+        let mut expected = vec![5, 10, 16, u8::try_from(breath).unwrap()];
+        expected.extend_from_slice(&1.0f32.to_be_bytes());
+        expected.extend_from_slice(&[10, 16, u8::try_from(effect).unwrap()]);
+        expected.extend_from_slice(&(-1i32).to_be_bytes());
+        expected.push(0xFF);
+        assert_eq!(encode(event), vec![(id::SET_ENTITY_DATA, expected)]);
+    }
+
+    #[test]
+    fn dragon_phase_and_crystal_beam_metadata_golden_bytes() {
+        let event = ClientEvent::EntityMetadata {
+            entity: EntityId(9),
+            entries: vec![
+                MetadataEntry {
+                    index: 16,
+                    value: MetadataValue::VarInt(4),
+                },
+                MetadataEntry {
+                    index: 8,
+                    value: MetadataValue::OptionalBlockPos(None),
+                },
+            ],
+        };
+        assert_eq!(
+            encode(event),
+            vec![(id::SET_ENTITY_DATA, vec![9, 16, 1, 4, 8, 11, 0, 0xFF])]
+        );
     }
 
     fn stone(count: u8) -> rspigot_domain::item::Slot {

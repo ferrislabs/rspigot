@@ -108,11 +108,21 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn struck_entity(&self, victim: Struck) -> Option<EntityId> {
         match victim {
             Struck::Player(id) => self.players.get(&id).map(|player| player.entity_id),
-            Struck::Mob(id) | Struck::Item(id) | Struck::Projectile(id) => Some(id),
+            Struck::Mob(id) | Struck::Item(id) | Struck::Projectile(id) | Struck::Crystal(id) => {
+                Some(id)
+            }
         }
     }
 
     pub(crate) fn struck(&self, id: EntityId) -> Struck {
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| entity.base.kind == rspigot_entities::EntityKind::EndCrystal)
+        {
+            return Struck::Crystal(id);
+        }
         self.player_of_entity(id)
             .map_or(Struck::Mob(id), Struck::Player)
     }
@@ -130,6 +140,7 @@ impl<L: ClientLink> Server<L> {
             Struck::Mob(id) => self.ask_hurt_mob(id, source, amount),
             Struck::Item(id) => self.ask_hurt_item(id, amount),
             Struck::Projectile(id) => self.ask_hurt_projectile(id, amount),
+            Struck::Crystal(id) => self.ask_hurt_crystal(id, source, amount),
         };
         let (Some(amount), Some(subject)) = (asked, self.struck_entity(victim)) else {
             self.after_hurt(then, Outcome::Missed);
@@ -200,7 +211,7 @@ impl<L: ClientLink> Server<L> {
                     .is_some_and(|causing| causing.entity == id);
                 self.mob_final_damage(id, source.kind, self_inflicted, amount)
             }
-            Struck::Item(_) | Struck::Projectile(_) => amount,
+            Struck::Item(_) | Struck::Projectile(_) | Struck::Crystal(_) => amount,
         });
         let damage = f64::from(amount);
         let damage_source = self.damage_view(source);
@@ -270,6 +281,7 @@ impl<L: ClientLink> Server<L> {
                 Struck::Mob(id) => self.apply_hurt_mob(id, source, amount),
                 Struck::Item(id) => self.apply_hurt_item(id, amount),
                 Struck::Projectile(id) => self.apply_hurt_projectile(id, source),
+                Struck::Crystal(id) => self.apply_hurt_crystal(id, source),
             };
             if hurt {
                 self.emit_damage_event(victim);
@@ -287,7 +299,7 @@ impl<L: ClientLink> Server<L> {
         let entity = match victim {
             Struck::Player(id) => self.players.get(&id).map(|player| player.entity_id),
             Struck::Mob(id) => Some(id),
-            Struck::Item(_) | Struck::Projectile(_) => None,
+            Struck::Item(_) | Struck::Projectile(_) | Struck::Crystal(_) => None,
         };
         let Some(entity) = entity else {
             return;
