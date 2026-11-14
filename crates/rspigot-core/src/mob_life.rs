@@ -494,7 +494,7 @@ impl<L: ClientLink> Server<L> {
         if !alive
             || !rspigot_domain::difficulty::monsters_burn(
                 self.world.level.day_time,
-                self.world.dimension.has_skylight,
+                self.world.dimension.has_day_cycle(),
             )
         {
             return;
