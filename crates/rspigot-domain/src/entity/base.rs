@@ -45,6 +45,10 @@ impl RemovalReason {
     pub const fn should_save(self) -> bool {
         matches!(self, Self::UnloadedToChunk)
     }
+
+    pub const fn should_destroy(self) -> bool {
+        matches!(self, Self::Killed | Self::Discarded)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

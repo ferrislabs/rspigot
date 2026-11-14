@@ -40,6 +40,11 @@ impl<L: ClientLink> Server<L> {
                 rotation,
                 on_ground,
             } => self.handle_move(id, position, rotation, on_ground),
+            PlayerInput::MoveVehicle {
+                position,
+                rotation,
+                on_ground,
+            } => self.move_vehicle(id, position, rotation, on_ground),
             PlayerInput::TeleportConfirm(teleport) => {
                 if let Some(player) = self.players.get_mut(&id)
                     && player.pending_teleport == Some(teleport)
@@ -160,6 +165,11 @@ impl<L: ClientLink> Server<L> {
         on_ground: bool,
     ) {
         let reference = self.decisions.reference(id);
+        let riding = self
+            .players
+            .get(&id)
+            .is_some_and(|player| self.entities.rides.is_passenger(player.entity_id));
+        let position = if riding { None } else { position };
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };

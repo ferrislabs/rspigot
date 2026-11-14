@@ -52,6 +52,7 @@ pub mod sniffer;
 pub mod snow_golem;
 pub mod spellcaster;
 pub mod squid;
+pub mod strider;
 pub mod tadpole;
 pub mod turtle;
 pub mod vex;
@@ -208,6 +209,7 @@ pub enum Species {
     Plain,
     Cow,
     Pig,
+    Strider(strider::StriderState),
     Chicken(ChickenState),
     Sheep(SheepState),
     Zombie(ZombieState),
@@ -523,6 +525,9 @@ impl Species {
         }
         if matches!(kind, EntityKind::Hoglin | EntityKind::Zoglin) {
             return Self::Hoglin(hoglin::define(base));
+        }
+        if kind == EntityKind::Strider {
+            return Self::Strider(strider::define(base));
         }
         if matches!(kind, EntityKind::Piglin | EntityKind::PiglinBrute) {
             return Self::Piglin(piglin::define(base));

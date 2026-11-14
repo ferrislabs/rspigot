@@ -605,6 +605,11 @@ impl<L: ClientLink> Server<L> {
         if let Some(result) = self.kind_interact(id, target, hand, held.as_ref()) {
             return result;
         }
+        if matches!(kind, Kind::Pig | Kind::Strider)
+            && self.try_ride_saddled(id, target, held.as_ref())
+        {
+            return Interaction::Predicted;
+        }
         let Some(stack) = held else {
             return Interaction::Pass;
         };
@@ -621,11 +626,13 @@ impl<L: ClientLink> Server<L> {
             return self.shear_sheep(id, target, hand);
         }
         let result = self.animal_interact(id, target, hand, &stack);
-        if result.consumes() || kind != Kind::Pig {
+        if result.consumes() || !matches!(kind, Kind::Pig | Kind::Strider) {
             return result;
         }
         match self.held(id, hand) {
-            Some(stack) if stack.item == ItemKind::Saddle.id() => self.saddle_pig(id, target, hand),
+            Some(stack) if stack.item == ItemKind::Saddle.id() => {
+                self.saddle_mount(id, target, hand)
+            }
             _ => Interaction::Pass,
         }
     }
@@ -990,7 +997,36 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn saddle_pig(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {
+    fn try_ride_saddled(
+        &mut self,
+        id: PlayerId,
+        target: EntityId,
+        held: Option<&ItemStack>,
+    ) -> bool {
+        let Some(player) = self.players.get(&id) else {
+            return false;
+        };
+        let (rider, sneaking) = (player.entity_id, player.sneaking);
+        let food_tag = if self.kind_of(target) == Some(Kind::Strider) {
+            "minecraft:strider_food"
+        } else {
+            "minecraft:pig_food"
+        };
+        let food = held.is_some_and(|stack| item_tag(stack.item, food_tag));
+        let saddled = self
+            .entities
+            .store
+            .get(target)
+            .and_then(Entity::living)
+            .is_some_and(|living| living.equipment(EquipmentSlot::Saddle).is_some());
+        if food || !saddled || sneaking || self.is_vehicle(target) {
+            return false;
+        }
+        self.start_riding(rider, target, false, true);
+        true
+    }
+
+    fn saddle_mount(&mut self, id: PlayerId, target: EntityId, hand: Hand) -> Interaction {
         let Some(entity) = self.entities.store.get_mut(target) else {
             return Interaction::Pass;
         };
@@ -1014,7 +1050,12 @@ impl<L: ClientLink> Server<L> {
                 slots: vec![(WireSlot::Saddle, Some(saddle))],
             },
         );
-        self.entity_sound(target, "minecraft:entity.pig.saddle", 1.0, 1.0);
+        let sound = if self.kind_of(target) == Some(Kind::Strider) {
+            "minecraft:entity.strider.saddle"
+        } else {
+            "minecraft:entity.pig.saddle"
+        };
+        self.entity_sound(target, sound, 1.0, 1.0);
         Interaction::Predicted
     }
 

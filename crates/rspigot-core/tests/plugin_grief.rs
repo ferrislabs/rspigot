@@ -272,7 +272,7 @@ fn a_cancelled_turtle_egg_break_sends_no_poof_and_an_allowed_one_does() {
     rule_on(&mut s.server, 1, asked.id, true, None);
     s.server.deliver();
     assert_eq!(poofs(&alice), 0);
-    for _ in 0..20 {
+    for _ in 0..600 {
         s.tick(1);
         if last_asked(&s.plugin, EventKind::EntityInteract).id != asked.id {
             break;

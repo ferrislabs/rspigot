@@ -52,6 +52,7 @@ mod sniffer;
 mod snow_golem;
 mod spellcaster;
 mod squid;
+mod strider;
 mod tadpole;
 mod turtle;
 mod vex;
@@ -188,6 +189,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Ocelot) => self.ocelot_pre_tick(id),
             Some(Kind::Sniffer) => self.sniffer_pre_tick(id),
             Some(Kind::Pufferfish) => self.fish_pre_tick(id),
+            Some(Kind::Strider) => self.strider_pre_tick(id),
             _ => true,
         }
     }
@@ -224,6 +226,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::CopperGolem) => self.copper_golem_post_tick(id),
             Some(Kind::Warden) => self.warden_post_tick(id),
             Some(Kind::Piglin | Kind::PiglinBrute) => self.piglin_post_tick(id),
+            Some(Kind::Strider) => self.strider_post_tick(id),
             Some(Kind::Slime | Kind::MagmaCube) => self.cube_post_tick(id),
             _ => {}
         }

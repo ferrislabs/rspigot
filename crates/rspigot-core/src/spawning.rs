@@ -555,6 +555,7 @@ impl<L: ClientLink> Server<L> {
                 .as_ref()
                 .is_some_and(|mob| mob.persistence_required),
             requires_custom_persistence: entity.extra.contains_key(LEASH)
+                || self.entities.rides.is_passenger(id)
                 || rspigot_domain::entity::species::enderman::carries_block(&entity.base)
                 || is_bucketed_fish(entity),
             from_bucket: is_bucketed_fish(entity),
@@ -885,6 +886,7 @@ mod tests {
                 EntityKind::Spider,
                 EntityKind::Squid,
                 EntityKind::Stray,
+                EntityKind::Strider,
                 EntityKind::Tadpole,
                 EntityKind::TropicalFish,
                 EntityKind::Turtle,

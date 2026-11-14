@@ -1,4 +1,4 @@
-use rspigot_blocks::BlockKind;
+use rspigot_blocks::{BlockKind, StateFlags};
 use rspigot_entities::{EntityKind, MobClass, SpawnPredicate};
 
 use super::{SpawnLevel, SpawnReason, sample_count};
@@ -66,6 +66,7 @@ pub fn check_predicate(
         SpawnPredicate::PatrollingMonster => {
             check_patrolling_monster_spawn_rules(level, kind, reason, pos)
         }
+        SpawnPredicate::Strider => check_strider_spawn_rules(level, pos),
         SpawnPredicate::Rabbit => check_rabbit_spawn_rules(level, pos),
         SpawnPredicate::Goat => check_bright_spawnable_on(level, pos, GOATS_SPAWNABLE_ON),
         SpawnPredicate::Armadillo => check_bright_spawnable_on(level, pos, ARMADILLO_SPAWNABLE_ON),
@@ -105,6 +106,17 @@ pub fn check_predicate(
         }
         _ => return None,
     })
+}
+
+fn check_strider_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
+    let mut above = pos;
+    loop {
+        above = above.offset(0, 1, 0);
+        if !level.block_or_air(above).flags().contains(StateFlags::LAVA) {
+            break;
+        }
+    }
+    level.block_or_air(above).is_air()
 }
 
 fn check_rabbit_spawn_rules(level: &impl SpawnLevel, pos: BlockPos) -> bool {
@@ -154,6 +166,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | SpawnPredicate::SurfaceMonsters
                 | SpawnPredicate::Stray
                 | SpawnPredicate::PatrollingMonster
+                | SpawnPredicate::Strider
                 | SpawnPredicate::Rabbit
                 | SpawnPredicate::Goat
                 | SpawnPredicate::Armadillo
@@ -197,6 +210,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                     | MobClass::Pillager
                     | MobClass::Enderman
                     | MobClass::Hoglin
+                    | MobClass::Strider
                     | MobClass::Bee
                     | MobClass::Creaking
                     | MobClass::Warden
@@ -216,6 +230,7 @@ pub fn rules_ported(kind: EntityKind) -> bool {
                 | MobClass::Ocelot
                 | MobClass::IronGolem
                 | MobClass::Ravager
+                | MobClass::Strider
                 | MobClass::ZombifiedPiglin
                 | MobClass::Warden
                 | MobClass::WaterAnimal

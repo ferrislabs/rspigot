@@ -114,6 +114,12 @@ impl Brain {
             profile.set_malus(PathType::OnTopOfPowderSnow, -1.0);
             profile.set_malus(PathType::DamageCautious, -1.0);
         }
+        if kind == EntityKind::Strider {
+            profile.set_malus(PathType::Water, -1.0);
+            profile.set_malus(PathType::Lava, 0.0);
+            profile.set_malus(PathType::FireInNeighbor, 0.0);
+            profile.set_malus(PathType::Fire, 0.0);
+        }
         if kind == EntityKind::Creaking {
             profile.can_float = true;
         }
@@ -316,7 +322,7 @@ pub fn mob_tick(mob: &MobView, game_time: i64) -> MobTick {
             in_floatable_fluid: mob.fluid.in_water,
         },
         in_liquid: mob.in_liquid(),
-        passenger: false,
+        passenger: mob.passenger,
         speed: mob.speed,
         game_time,
     }
@@ -711,6 +717,13 @@ impl MobAi {
 
     pub fn can_break_doors(&self) -> bool {
         self.can_break_doors
+    }
+
+    pub fn is_tempted(&self) -> bool {
+        self.goals
+            .goals()
+            .iter()
+            .any(|goal| goal.is_running() && matches!(goal.goal(), MobGoal::Tempt(_)))
     }
 
     pub fn is_panicking(&self) -> bool {

@@ -66,6 +66,7 @@ mod shulker;
 mod silverfish;
 mod sniffer;
 mod spell;
+mod strider;
 mod sweep;
 mod swim;
 mod swimmers;
@@ -84,7 +85,7 @@ mod wolf;
 mod world;
 mod zombified_piglin;
 
-pub use action::{BrainMessage, MobAction, PiglinAction, TargetReason, TargetRequest};
+pub use action::{BrainMessage, MobAction, PiglinAction, RideAction, TargetReason, TargetRequest};
 pub use air::{AirAction, AirGoal};
 pub use allay::{
     ALLAY_MEMORIES, AllayAction, AllayFacts, GoAndGiveItemsToTarget, StayCloseToTarget,
@@ -263,6 +264,7 @@ pub use sniffer::{
     can_sniff as sniffer_can_sniff,
 };
 pub use spell::{SpellAction, SpellFacts};
+pub use strider::{StriderGoToLavaGoal, is_lava_state};
 pub use swimmers::{
     AIR_ASSIST_SPEED, BreathAirGoal, DolphinFacts, DolphinJumpGoal, DolphinMoveToItemGoal,
     DolphinPlayWithItemsGoal, DolphinSwimToTreasureGoal, DolphinSwimWithPlayerGoal, FishFacts,
@@ -326,5 +328,5 @@ pub use wither::{
 pub use wolf::{BegGoal, WolfAction, WolfAvoidEntityGoal, WolfFacts, WolfGoal};
 pub use world::{
     AiWorld, ContainerView, DroppedItem, Facts, Hand, KindFacts, LastDamage, Living,
-    MOVEMENT_SPEED, MobBody, MobView, NO_VILLAGE, TEMPT_RANGE, TargetKind, inflate,
+    MOVEMENT_SPEED, MobBody, MobView, NO_VILLAGE, TEMPT_RANGE, TargetKind, attribute, inflate,
 };

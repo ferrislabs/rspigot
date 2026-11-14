@@ -12,6 +12,7 @@ use rspigot_domain::entity::living::{
 use rspigot_domain::entity::neutral;
 use rspigot_domain::entity::physics::{Landing, water_height};
 use rspigot_domain::entity::reward::EquipmentDrop;
+use rspigot_domain::entity::riding::Rides;
 use rspigot_domain::entity::species::{self, Species};
 use rspigot_domain::entity::tamable;
 use rspigot_domain::entity::{
@@ -237,6 +238,7 @@ fn player_target<L>(player: &Player<L>, game_time: i64) -> Living {
             hunted_recently: false,
             sprinting: player.sprinting,
             passenger: false,
+            hurt_by: false,
             uuid: player.profile.id.0,
             tamed: false,
             owner: None,
@@ -338,6 +340,7 @@ fn entity_facts(
         hunted_recently: false,
         sprinting: false,
         passenger: false,
+        hurt_by: false,
         villager: if base.kind == Kind::Villager {
             crate::kinds::villager::villager_facts(entity).peer()
         } else {
@@ -430,13 +433,19 @@ fn entity_target(
     })
 }
 
-fn with_mob_facts(mut living: Living, entries: &FxHashMap<EntityId, MobEntry>) -> Living {
+fn with_mob_facts(
+    mut living: Living,
+    entries: &FxHashMap<EntityId, MobEntry>,
+    rides: &Rides,
+) -> Living {
+    living.facts.passenger = rides.is_passenger(living.id);
     if let Some(entry) = entries.get(&living.id) {
         living.panicking = entry.ai.is_panicking();
         living.has_target = entry.ai.target().is_some();
         if let Some(brain) = entry.ai.behavior_brain() {
             let memories = brain.memories();
             living.facts.hunted_recently = memories.has_value(MemoryModuleType::HuntedRecently);
+            living.facts.hurt_by = memories.has_value(MemoryModuleType::HurtBy);
             living.facts.sees_player_holding_loved_item =
                 memories.has_value(MemoryModuleType::NearestPlayerHoldingWantedItem);
             if living.kind == Kind::Villager {
@@ -577,6 +586,7 @@ pub(crate) struct MobWorld<'a> {
     ambient_light: f32,
     sea_level: i32,
     raids: &'a rspigot_domain::raid::Raids,
+    rides: &'a Rides,
 }
 
 impl MobWorld<'_> {
@@ -687,7 +697,7 @@ impl AiWorld for MobWorld<'_> {
         self.store
             .get(id)
             .and_then(|entity| entity_target(entity, self.game_time, &resolve))
-            .map(|living| with_mob_facts(living, self.entries))
+            .map(|living| with_mob_facts(living, self.entries, self.rides))
     }
 
     fn living_of(&self, kind: TargetKind, area: &Aabb) -> Vec<Living> {
@@ -706,7 +716,7 @@ impl AiWorld for MobWorld<'_> {
             .filter(|entity| kind.matches(entity.base.kind))
             .filter(|entity| entity.base.bounding_box().intersects(area))
             .filter_map(|entity| entity_target(entity, self.game_time, &resolve))
-            .map(|living| with_mob_facts(living, self.entries))
+            .map(|living| with_mob_facts(living, self.entries, self.rides))
             .collect();
         if kind.matches(Kind::Player) {
             found.extend(
@@ -1282,6 +1292,7 @@ impl<L: ClientLink> Server<L> {
             ambient_light: ambient_light_of(&self.world.dimension),
             sea_level: self.world.dimension.sea_level,
             raids: &self.raids.set,
+            rides: &self.entities.rides,
         }
     }
 
@@ -1307,6 +1318,8 @@ impl<L: ClientLink> Server<L> {
             view.in_love = ageable.in_love();
         }
         view.baby = entity.is_baby();
+        view.vehicle = self.entities.rides.vehicle_of(id);
+        view.passenger = view.vehicle.is_some();
         view.on_fire = fire::is_on_fire(base);
         view.panic = state.damage.last_source.is_some_and(|(kind, at)| {
             self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY && kind.in_tag(PANIC_CAUSES)
@@ -1348,7 +1361,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn mob_server_ai_step(&mut self, id: EntityId) {
-        if self.kind_is_immobile(id) {
+        if self.kind_is_immobile(id)
+            || self.controlling_mob(id).is_some()
+            || self.controlling_player(id).is_some()
+        {
             return;
         }
         let sky_darken = sky_darken(&self.world.level);
