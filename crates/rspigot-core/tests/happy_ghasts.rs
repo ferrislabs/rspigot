@@ -2,6 +2,7 @@ mod common;
 
 use common::*;
 use rspigot_core::events::{ClientEvent, Hand, Inbound, PlayerInput};
+use rspigot_core::plugins::EventKind;
 use rspigot_domain::{BlockPos, EntityId};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Compound;
@@ -179,7 +180,7 @@ fn shears_take_the_harness_off_with_the_unequip_sound() {
 #[test]
 fn a_player_standing_on_the_back_makes_the_ghast_stay_still() {
     let mut s = world();
-    let ghast = summon_at(&mut s, Kind::HappyGhast, "3.5 66 0.5", "{}");
+    let ghast = summon_at(&mut s, Kind::HappyGhast, "3.5 66 0.5", "{NoAI:1b}");
     s.tick(5);
     assert_eq!(saved(&s, ghast).get_i32("still_timeout"), Some(0));
     console(&mut s, "tp Alice 3.5 70.2 0.5");
@@ -325,4 +326,53 @@ fn a_ghast_that_stays_still_ignores_the_steering_of_its_rider() {
     let before = position_of(&s, ghast);
     drive(&mut s, rspigot_domain::Vec3::new(5.5, 67.0, 4.5));
     assert_eq!(position_of(&s, ghast), before);
+}
+
+#[test]
+fn steering_a_ghast_announces_the_vehicle_move_to_plugins() {
+    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::VehicleMove)]);
+    stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
+    s.tick(60);
+    let ghast = summon_at(
+        &mut s,
+        Kind::HappyGhast,
+        "3.5 66 0.5",
+        &format!("{{NoAI:1b,{HARNESS}}}"),
+    );
+    interact_with(&mut s, ghast, false);
+    assert!(settled_for(&s.plugin, EventKind::VehicleMove).is_empty());
+    drive(&mut s, rspigot_domain::Vec3::new(5.5, 67.0, 4.5));
+    assert_eq!(settled_for(&s.plugin, EventKind::VehicleMove).len(), 1);
+}
+
+fn age_of(s: &Scene, id: EntityId) -> i32 {
+    saved(s, id).get_i32("Age").expect("an age")
+}
+
+#[test]
+fn a_snowball_speeds_up_a_ghastling_and_a_spawn_egg_on_an_adult_hatches_one() {
+    let mut s = world();
+    let baby = summon_at(
+        &mut s,
+        Kind::HappyGhast,
+        "3.5 66 0.5",
+        "{NoAI:1b,Age:-24000}",
+    );
+    console(&mut s, "give Alice minecraft:snowball 2");
+    let before = age_of(&s, baby);
+    interact_with(&mut s, baby, false);
+    assert!(age_of(&s, baby) > before + 1000, "{}", age_of(&s, baby));
+    let adult = summon_at(&mut s, Kind::HappyGhast, "3.5 66 6.5", "{NoAI:1b}");
+    console(&mut s, "clear Alice");
+    console(&mut s, "give Alice minecraft:happy_ghast_spawn_egg 1");
+    let known = s.server.entities_of(Kind::HappyGhast).len();
+    interact_with(&mut s, adult, false);
+    let ghasts = s.server.entities_of(Kind::HappyGhast);
+    assert_eq!(ghasts.len(), known + 1);
+    let hatched = ghasts
+        .into_iter()
+        .map(|entity| entity.id)
+        .find(|id| age_of(&s, *id) < 0 && *id != baby)
+        .expect("a ghastling");
+    assert!(age_of(&s, hatched) <= -23000);
 }
