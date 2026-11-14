@@ -50,7 +50,7 @@ impl Destination {
         }
     }
 
-    fn from_location(location: &Location, fallback: &DimensionKey) -> Self {
+    pub(crate) fn from_location(location: &Location, fallback: &DimensionKey) -> Self {
         Self {
             dimension: Identifier::parse(&location.world).unwrap_or_else(|_| fallback.clone()),
             position: location.position,
@@ -237,7 +237,7 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
-    fn leave_dimension(&mut self, id: PlayerId) {
+    pub(crate) fn leave_dimension(&mut self, id: PlayerId) {
         self.close_open_menu(id, false);
         if let Some(entity) = self.players.get(&id).map(|player| player.entity_id) {
             self.unride(entity);
