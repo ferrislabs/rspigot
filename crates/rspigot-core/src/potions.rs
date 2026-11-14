@@ -13,10 +13,10 @@ use crate::campfire;
 use crate::health::DamageSource;
 
 use crate::plugins::events::{
-    EntityPotionEffectCause, EntityRegainHealthRegainReason, EntityRemoveCause, PotionSplash,
-    PotionSplashPatch,
+    CreatureSpawnReason, EntityPotionEffectCause, EntityRegainHealthRegainReason,
+    EntityRemoveCause, LingeringPotionSplash, PotionSplash, PotionSplashPatch,
 };
-use crate::plugins::steps::{Grief, SplashHit, SplashStep};
+use crate::plugins::steps::{Grief, LingerStep, SplashHit, SplashStep};
 use crate::plugins::{Continuation, EntityView, EventPayload};
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -321,6 +321,7 @@ impl<L: ClientLink> Server<L> {
         let color = contents.color();
         let instant = contents.has_instant_potion();
         let silent = entity.base.is_silent();
+        let kind = entity.base.kind;
         let margin = f64::from(arrow::hit_margin(entity.base.tick_count));
         let position = entity.base.position;
         let reach = entity.base.bounding_box().inflate_by(
@@ -331,6 +332,21 @@ impl<L: ClientLink> Server<L> {
         let bounds = entity.base.bounding_box();
         let owner = self.potion_owner(id);
         self.affect_entities_around(id, facts);
+        if kind == rspigot_entities::EntityKind::LingeringPotion {
+            let cloud =
+                (!effects.is_empty()).then(|| self.lingering_cloud(id, &stack, owner, scale));
+            let step = LingerStep {
+                potion: id,
+                cloud,
+                hit,
+                pos: position.block(),
+                color,
+                instant,
+                silent,
+            };
+            self.ask_linger(step);
+            return;
+        }
         let mut affected: Vec<(EntityId, f64)> = Vec::new();
         for candidate in self.affectables_in(&reach) {
             if let Some(intensity) = potion::splash_intensity(&bounds, &candidate.bounds, margin) {
@@ -414,6 +430,17 @@ impl<L: ClientLink> Server<L> {
                 }
             }
         }
+        self.burst_potion(id, pos, color, instant, silent);
+    }
+
+    fn burst_potion(
+        &mut self,
+        id: EntityId,
+        pos: BlockPos,
+        color: i32,
+        instant: bool,
+        silent: bool,
+    ) {
         let (event, sound) = if instant {
             (
                 potion::INSTANT_SPLASH_EVENT,
@@ -429,6 +456,90 @@ impl<L: ClientLink> Server<L> {
         if self.entities.store.get(id).is_some() {
             self.remove_entity(id, RemovalReason::Discarded, Some(EntityRemoveCause::Hit));
         }
+    }
+
+    fn lingering_cloud(
+        &mut self,
+        id: EntityId,
+        stack: &rspigot_domain::item::ItemStack,
+        owner: Option<EntityId>,
+        scale: f32,
+    ) -> rspigot_domain::entity::Entity {
+        let position = self
+            .entities
+            .store
+            .get(id)
+            .map_or(Vec3::new(0.0, 0.0, 0.0), |entity| entity.base.position);
+        let owner_uuid = owner
+            .filter(|owner| self.owner_is_living(*owner))
+            .and_then(|owner| self.subject_view(owner))
+            .map(|view| view.uuid);
+        let mut entity = self.new_cloud(position);
+        if let EntityState::Cloud(state) = &mut entity.state {
+            state.owner = owner_uuid;
+            state.duration = potion::LINGER_DURATION;
+            state.radius_on_use = potion::LINGER_RADIUS_ON_USE;
+            state.wait_time = potion::LINGER_WAIT_TIME;
+            state.radius_per_tick = -potion::LINGER_RADIUS / potion::LINGER_DURATION as f32;
+            state.potion_duration_scale = scale;
+            if let Some(contents) = stack.components.get_compound(potion::CONTENTS) {
+                state.contents = contents.clone();
+            }
+            state.refresh_particle(&mut entity.base);
+        }
+        rspigot_domain::entity::cloud::set_radius(&mut entity.base, potion::LINGER_RADIUS);
+        entity
+    }
+
+    fn ask_linger(&mut self, step: LingerStep) {
+        let lane = self.lane_for(None, step.potion);
+        let Some(cloud) = step.cloud.as_ref() else {
+            self.finish_linger(step, false);
+            return;
+        };
+        let cloud_view = EntityView {
+            id: cloud.base.id,
+            uuid: cloud.base.uuid,
+            kind: cloud.base.kind.name().to_owned(),
+            position: cloud.base.position,
+        };
+        let potion = step.potion;
+        let hit = step.hit;
+        self.fire(lane, Continuation::Linger(Box::new(step)), move |server| {
+            let view = server.entity_view(potion)?;
+            let (hit_block, hit_block_face, hit_entity) = match hit {
+                SplashHit::Block { pos, face } => {
+                    (Some(pos), Some(crate::plugins::face_of(face)), None)
+                }
+                SplashHit::Entity(target) => (None, None, Some(server.subject_view(target)?)),
+            };
+            Some(EventPayload::LingeringPotionSplash(LingeringPotionSplash {
+                area_effect_cloud: cloud_view,
+                entity_type: view.kind.clone(),
+                entity: view,
+                hit_block,
+                hit_block_face,
+                hit_entity,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_linger(&mut self, step: LingerStep, cancelled: bool) {
+        let LingerStep {
+            potion,
+            cloud,
+            pos,
+            color,
+            instant,
+            silent,
+            ..
+        } = step;
+        if let Some(cloud) = cloud
+            && !cancelled
+        {
+            self.add_entity(cloud, CreatureSpawnReason::Default);
+        }
+        self.burst_potion(potion, pos, color, instant, silent);
     }
 
     fn splash_effect(

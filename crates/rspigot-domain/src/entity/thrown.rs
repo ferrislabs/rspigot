@@ -15,6 +15,7 @@ use crate::{Vec3, mth};
 pub const DATA_ITEM_STACK: u8 = 8;
 pub const GRAVITY: f64 = 0.03;
 pub const SPIT_GRAVITY: f64 = 0.06;
+pub const EXPERIENCE_BOTTLE_GRAVITY: f64 = 0.07;
 pub const SPIT_DAMAGE: f32 = 1.0;
 pub const SPIT_OFFSET: f64 = 0.100_000_001_490_116_12;
 pub const SPIT_POWER: f32 = 1.5;
@@ -41,11 +42,17 @@ pub fn default_item() -> ItemStack {
 }
 
 pub fn is_potion(kind: EntityKind) -> bool {
-    kind == EntityKind::SplashPotion
+    kind == EntityKind::SplashPotion || kind == EntityKind::LingeringPotion
 }
 
 pub fn is_thrown(kind: EntityKind) -> bool {
-    kind == EntityKind::Snowball || kind == EntityKind::LlamaSpit || is_potion(kind)
+    matches!(
+        kind,
+        EntityKind::Snowball
+            | EntityKind::Egg
+            | EntityKind::ExperienceBottle
+            | EntityKind::LlamaSpit
+    ) || is_potion(kind)
 }
 
 pub fn is_spit(kind: EntityKind) -> bool {
@@ -59,13 +66,21 @@ pub fn carries_item(kind: EntityKind) -> bool {
 pub fn default_item_of(kind: EntityKind) -> ItemStack {
     match kind {
         EntityKind::SplashPotion => ItemStack::new(ItemKind::SplashPotion.id(), NonZeroU8::MIN),
+        EntityKind::LingeringPotion => {
+            ItemStack::new(ItemKind::LingeringPotion.id(), NonZeroU8::MIN)
+        }
+        EntityKind::Egg => ItemStack::new(ItemKind::Egg.id(), NonZeroU8::MIN),
+        EntityKind::ExperienceBottle => {
+            ItemStack::new(ItemKind::ExperienceBottle.id(), NonZeroU8::MIN)
+        }
         _ => default_item(),
     }
 }
 
 pub fn gravity(kind: EntityKind) -> f64 {
     match kind {
-        EntityKind::SplashPotion => potion::GRAVITY,
+        EntityKind::SplashPotion | EntityKind::LingeringPotion => potion::GRAVITY,
+        EntityKind::ExperienceBottle => EXPERIENCE_BOTTLE_GRAVITY,
         EntityKind::LlamaSpit => SPIT_GRAVITY,
         _ => GRAVITY,
     }

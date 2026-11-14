@@ -309,6 +309,33 @@ pub(crate) struct MergeStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct HatchStep {
+    pub(crate) player: Option<PlayerId>,
+    pub(crate) position: Vec3,
+    pub(crate) yaw: f32,
+    pub(crate) hatching: bool,
+    pub(crate) kind: rspigot_entities::EntityKind,
+    pub(crate) count: i8,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct BottleStep {
+    pub(crate) position: Vec3,
+    pub(crate) experience: i32,
+}
+
+#[derive(Debug)]
+pub(crate) struct LingerStep {
+    pub(crate) potion: EntityId,
+    pub(crate) cloud: Option<Entity>,
+    pub(crate) hit: SplashHit,
+    pub(crate) pos: BlockPos,
+    pub(crate) color: i32,
+    pub(crate) instant: bool,
+    pub(crate) silent: bool,
+}
+
+#[derive(Debug)]
 pub(crate) struct HarvestStep {
     pub(crate) pos: BlockPos,
     pub(crate) state: BlockStateId,
@@ -769,6 +796,11 @@ pub(crate) enum Spawned {
         slot: usize,
         item: ItemStack,
     },
+    Thrown {
+        player: PlayerId,
+        hand: Hand,
+        stack: ItemStack,
+    },
     Converted {
         old: EntityId,
         event: Option<i32>,
@@ -927,6 +959,7 @@ pub(crate) struct ArrowFollow {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ThrownFollow {
     pub(crate) projectile: EntityId,
+    pub(crate) target: Option<EntityId>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1358,6 +1391,9 @@ pub(crate) enum Continuation {
     Shear(Box<ShearStep>),
     Resurrect(Box<ResurrectStep>),
     Harvest(Box<HarvestStep>),
+    Hatch(Box<HatchStep>),
+    Bottle(BottleStep),
+    Linger(Box<LingerStep>),
     Merge(MergeStep),
     Leash(Box<LeashStep>),
     Unleash(Box<LeashStep>),
@@ -1544,6 +1580,9 @@ impl Continuation {
             Self::Shear(_) => EventKind::PlayerShearEntity,
             Self::Resurrect(_) => EventKind::EntityResurrect,
             Self::Harvest(_) => EventKind::PlayerHarvestBlock,
+            Self::Hatch(_) => EventKind::PlayerEggThrow,
+            Self::Bottle(_) => EventKind::ExpBottle,
+            Self::Linger(_) => EventKind::LingeringPotionSplash,
             Self::Merge(_) => EventKind::ItemMerge,
             Self::Leash(_) => EventKind::PlayerLeashEntity,
             Self::Unleash(_) => EventKind::PlayerUnleashEntity,
@@ -1698,6 +1737,7 @@ impl Continuation {
             Self::Transform(step) | Self::Zap(step) => step.old == id,
             Self::Empower(step) => step.creeper == id,
             Self::Merge(step) => step.from == id || step.to == id,
+            Self::Linger(step) => step.potion == id,
             Self::Split(step) => step.id == id,
             Self::Scatter(step) => step.id == id,
             Self::ChangeBlock(step) => match &step.change {

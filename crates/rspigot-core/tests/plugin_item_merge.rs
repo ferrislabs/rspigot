@@ -43,7 +43,10 @@ fn stacks(s: &Scene) -> Vec<(String, u8)> {
         .into_iter()
         .map(|(_, stack)| {
             (
-                stack.item.kind().map_or_else(String::new, |kind| kind.name().to_owned()),
+                stack
+                    .item
+                    .kind()
+                    .map_or_else(String::new, |kind| kind.name().to_owned()),
                 stack.count.get(),
             )
         })

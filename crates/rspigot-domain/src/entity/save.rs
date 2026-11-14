@@ -183,6 +183,9 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::Trident
             | EntityKind::Snowball
             | EntityKind::SplashPotion
+            | EntityKind::LingeringPotion
+            | EntityKind::Egg
+            | EntityKind::ExperienceBottle
             | EntityKind::LlamaSpit
             | EntityKind::ShulkerBullet
             | EntityKind::EvokerFangs
@@ -1125,7 +1128,12 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Arrow(Box::new(ArrowState::new_trident(&mut base, seed)))
         }
-        EntityKind::Snowball | EntityKind::SplashPotion | EntityKind::LlamaSpit => {
+        EntityKind::Snowball
+        | EntityKind::SplashPotion
+        | EntityKind::LingeringPotion
+        | EntityKind::Egg
+        | EntityKind::ExperienceBottle
+        | EntityKind::LlamaSpit => {
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Thrown(Box::new(ThrownState::new(&mut base, seed)))
         }

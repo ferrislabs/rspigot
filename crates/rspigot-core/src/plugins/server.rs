@@ -724,6 +724,18 @@ impl<L: ClientLink> Server<L> {
                 self.finish_shear(*step);
                 Vec::new()
             }
+            Continuation::Hatch(step) => {
+                self.finish_hatch(*step, patch_of!(patch, PlayerEggThrow));
+                Vec::new()
+            }
+            Continuation::Bottle(step) => {
+                self.finish_bottle(step, patch_of!(patch, ExpBottle));
+                Vec::new()
+            }
+            Continuation::Linger(step) => {
+                self.finish_linger(*step, cancelled);
+                Vec::new()
+            }
             Continuation::Merge(step) => {
                 self.finish_item_merge(step, cancelled);
                 Vec::new()

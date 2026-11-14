@@ -42,12 +42,19 @@ impl<L: ClientLink> Server<L> {
 
     fn stacks_fit(&self, to: EntityId, from: EntityId) -> bool {
         let (Some(to), Some(from)) = (
-            self.entities.store.get(to).and_then(|e| item::stack(&e.base)),
-            self.entities.store.get(from).and_then(|e| item::stack(&e.base)),
+            self.entities
+                .store
+                .get(to)
+                .and_then(|e| item::stack(&e.base)),
+            self.entities
+                .store
+                .get(from)
+                .and_then(|e| item::stack(&e.base)),
         ) else {
             return false;
         };
-        u32::from(to.count.get()) + u32::from(from.count.get()) <= rspigot_domain::item::max_stack(from)
+        u32::from(to.count.get()) + u32::from(from.count.get())
+            <= rspigot_domain::item::max_stack(from)
             && rspigot_domain::item::same_item_same_components(to, from)
     }
 
@@ -55,10 +62,11 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(id) else {
             return Vec::new();
         };
-        let area: Aabb = entity
-            .base
-            .bounding_box()
-            .inflate_by(MERGE_RADIUS, MERGE_RADIUS - 0.5, MERGE_RADIUS);
+        let area: Aabb =
+            entity
+                .base
+                .bounding_box()
+                .inflate_by(MERGE_RADIUS, MERGE_RADIUS - 0.5, MERGE_RADIUS);
         let low = ChunkPos::from_block(area.min_x, area.min_z);
         let high = ChunkPos::from_block(area.max_x, area.max_z);
         let mut found = Vec::new();
@@ -93,7 +101,10 @@ impl<L: ClientLink> Server<L> {
                 continue;
             }
             let lane = Lane::Entity(id);
-            let then = Continuation::Merge(MergeStep { from: other, to: id });
+            let then = Continuation::Merge(MergeStep {
+                from: other,
+                to: id,
+            });
             let parked = self.parks(lane, &then);
             self.fire(lane, then, move |server| {
                 let entity = server.entity_view(other)?;

@@ -90,6 +90,7 @@ pub mod status;
 mod steering;
 pub mod streaming;
 mod tamable;
+mod throwing;
 mod thrown;
 mod totem;
 mod trader_spawner;

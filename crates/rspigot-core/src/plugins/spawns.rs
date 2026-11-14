@@ -245,6 +245,13 @@ impl<L: ClientLink> Server<L> {
                     self.use_spawn_egg(player, slot, &item);
                 }
             }
+            Spawned::Thrown {
+                player,
+                hand,
+                stack,
+            } => {
+                self.finish_throw(player, hand, &stack, placed.map(|(id, _)| id));
+            }
             Spawned::Converted { old, event, follow } => {
                 self.follow_conversion(old, placed.as_ref().map(|(id, _)| *id), follow);
                 self.finish_conversion(old, event, matches!(follow, Follow::Infection { .. }));

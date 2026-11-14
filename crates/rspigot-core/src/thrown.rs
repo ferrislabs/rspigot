@@ -11,7 +11,7 @@ use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
 use crate::plugins::AfterHurt;
 use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause};
-use crate::plugins::steps::ThrownFollow;
+use crate::plugins::steps::{SplashHit, ThrownFollow};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 use rspigot_domain::game_event::GameEvent;
@@ -329,7 +329,13 @@ impl<L: ClientLink> Server<L> {
             self.potion_hit_block(id, hit);
             return;
         }
-        self.finish_thrown(id);
+        self.finish_thrown(
+            id,
+            Some(SplashHit::Block {
+                pos: hit.pos,
+                face: hit.face,
+            }),
+        );
     }
 
     pub(crate) fn thrown_hit_entity(&mut self, id: EntityId, target: EntityId) {
@@ -345,7 +351,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if !self.living_entity_alive(target) {
-            self.finish_thrown(id);
+            self.finish_thrown(id, Some(SplashHit::Entity(target)));
             return;
         }
         let damage = match entity.base.kind {
@@ -387,17 +393,28 @@ impl<L: ClientLink> Server<L> {
             victim,
             &source,
             damage,
-            AfterHurt::Thrown(ThrownFollow { projectile: id }),
+            AfterHurt::Thrown(ThrownFollow {
+                projectile: id,
+                target: Some(target),
+            }),
         );
     }
 
     pub(crate) fn finish_thrown_hit(&mut self, follow: ThrownFollow) {
-        self.finish_thrown(follow.projectile);
+        self.finish_thrown(follow.projectile, follow.target.map(SplashHit::Entity));
     }
 
-    fn finish_thrown(&mut self, id: EntityId) {
-        if self.entities.store.get(id).is_none() {
+    fn finish_thrown(&mut self, id: EntityId, hit: Option<SplashHit>) {
+        let Some(kind) = self.entities.store.get(id).map(|entity| entity.base.kind) else {
             return;
+        };
+        match kind {
+            Kind::Egg => self.egg_hit(id),
+            Kind::ExperienceBottle => {
+                self.bottle_hit(id, hit);
+                return;
+            }
+            _ => {}
         }
         if !self
             .entities
