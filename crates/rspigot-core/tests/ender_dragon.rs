@@ -181,9 +181,9 @@ fn stand_by(s: &mut Scene, at: Vec3) {
 }
 
 fn strike_part(s: &mut Scene, dragon: EntityId, index: usize) {
-    let at = s.server.dragon_parts(dragon).unwrap()[index];
-    stand_by(s, Vec3::new(at.x, at.y + 1.0, at.z + 1.5));
     s.tick(15);
+    let at = s.server.dragon_parts(dragon).unwrap()[index];
+    console(s, &format!("tp Alice {} {} {}", at.x, at.y, at.z + 1.5));
     let player = s.players[0].clone();
     send_input(
         &mut s.server,
@@ -604,4 +604,154 @@ fn a_cloud_with_a_short_duration_disappears() {
     assert_eq!(s.server.entities_of(Kind::AreaEffectCloud).len(), 1);
     s.tick(10);
     assert!(s.server.entities_of(Kind::AreaEffectCloud).is_empty());
+}
+
+fn place_crystal_on(s: &mut Scene, x: i32, z: i32) {
+    use rspigot_core::events::{Direction, Hand, PlayerInput};
+    let player = s.players[0].clone();
+    send_input(
+        &mut s.server,
+        &player,
+        PlayerInput::UseItemOn {
+            hand: Hand::Main,
+            pos: BlockPos::new(x, 63, z),
+            face: Direction::Up,
+            cursor: Vec3::new(0.5, 1.0, 0.5),
+            inside_block: false,
+            sequence: 9,
+        },
+    );
+    s.tick(2);
+}
+
+#[test]
+fn four_crystals_around_the_exit_portal_respawn_the_dragon_in_stages() {
+    let mut s = ready(8);
+    summon(
+        &mut s,
+        Kind::EnderDragon,
+        "8.5 100 8.5",
+        "{DragonPhase:9,DragonDeathTime:195,Health:0f}",
+    );
+    s.tick(30);
+    assert!(s.server.dragon_fight_data().unwrap().dragon_killed);
+    console(&mut s, "gamemode survival Alice");
+    console(&mut s, "give Alice minecraft:end_crystal 4");
+    console(&mut s, "tp Alice 0.5 66 0.5");
+    s.tick(5);
+    for (x, z) in [(3, 0), (-3, 0), (0, 3)] {
+        place_crystal_on(&mut s, x, z);
+        assert!(
+            s.server
+                .dragon_fight_data()
+                .unwrap()
+                .respawn_stage
+                .is_none()
+        );
+    }
+    assert_eq!(crystals(&s).len(), 3);
+    place_crystal_on(&mut s, 0, -3);
+    assert_eq!(crystals(&s).len(), 4);
+    let fight = s.server.dragon_fight_data().unwrap();
+    assert_eq!(
+        fight.respawn_stage,
+        Some(rspigot_domain::dragon::fight::RespawnStage::PreparingToSummonPillars)
+    );
+    assert_eq!(fight.respawn_crystals.len(), 4);
+    s.tick(3);
+    for crystal in crystals(&s) {
+        assert_eq!(
+            saved(&s, crystal.id).get_int_array("beam_target"),
+            Some(&[0, 128, 0][..])
+        );
+    }
+    s.tick(120);
+    assert_eq!(
+        s.server.dragon_fight_data().unwrap().respawn_stage,
+        Some(rspigot_domain::dragon::fight::RespawnStage::SummoningPillars)
+    );
+    s.tick(900);
+    let fight = s.server.dragon_fight_data().unwrap();
+    assert_eq!(fight.respawn_stage, None);
+    assert!(!fight.dragon_killed);
+    let dragons = s.server.entities_of(Kind::EnderDragon);
+    assert_eq!(dragons.len(), 1, "{:?}", fight);
+    assert_eq!(fight.dragon_uuid, Some(dragons[0].uuid));
+    assert_ne!(
+        s.server.dragon_phase_of(dragons[0].id),
+        Some(DragonPhase::Hovering)
+    );
+    let pillars = rspigot_domain::dragon::spikes::spikes_for_seed(0);
+    let kept: Vec<_> = pillars
+        .iter()
+        .filter(|spike| {
+            crystals(&s).iter().any(|crystal| {
+                (crystal.position.x - (f64::from(spike.center_x) + 0.5)).abs() < 0.6
+                    && (crystal.position.y - f64::from(spike.height + 1)).abs() < 0.6
+            })
+        })
+        .collect();
+    assert_eq!(kept.len(), 10, "ten pillars carry a crystal again");
+    assert_eq!(
+        block_at(
+            &s,
+            pillars[0].center_x,
+            pillars[0].height - 1,
+            pillars[0].center_z
+        ),
+        Some(BlockKind::Obsidian)
+    );
+}
+
+#[test]
+fn a_dragon_in_flight_that_takes_a_lethal_blow_goes_to_the_dying_phase_at_one_health() {
+    let mut s = ready(9);
+    armed(&mut s);
+    let dragon = summon(
+        &mut s,
+        Kind::EnderDragon,
+        "8.5 100 8.5",
+        "{DragonPhase:0,Health:5f}",
+    );
+    s.tick(10);
+    strike_part(&mut s, dragon, 0);
+    assert_eq!(s.server.dragon_phase_of(dragon), Some(DragonPhase::Dying));
+    assert_eq!(health_of(&s, dragon), 1.0);
+    assert_eq!(saved(&s, dragon).get_i32("DragonPhase"), Some(9));
+    assert!(
+        s.server
+            .entities_of(Kind::EnderDragon)
+            .iter()
+            .any(|e| e.id == dragon)
+    );
+}
+
+#[test]
+fn a_sitting_dragon_that_takes_a_lethal_blow_dies_where_it_sits() {
+    let mut s = ready(9);
+    armed(&mut s);
+    let dragon = summon(
+        &mut s,
+        Kind::EnderDragon,
+        "8.5 100 8.5",
+        "{DragonPhase:6,Health:5f}",
+    );
+    s.tick(5);
+    strike_part(&mut s, dragon, 0);
+    assert!(health_of(&s, dragon) <= 0.0);
+    s.tick(205);
+    assert!(s.server.entities_of(Kind::EnderDragon).is_empty());
+    assert!(s.server.dragon_fight_data().unwrap().dragon_killed);
+}
+
+#[test]
+fn the_kill_command_removes_the_dragon_at_once_and_ends_the_fight() {
+    let mut s = ready(9);
+    summon(&mut s, Kind::EnderDragon, "8.5 100 8.5", "{}");
+    s.tick(3);
+    console(&mut s, "kill @e[type=minecraft:ender_dragon]");
+    s.tick(3);
+    assert!(s.server.entities_of(Kind::EnderDragon).is_empty());
+    assert!(s.server.dragon_fight_data().unwrap().dragon_killed);
+    assert_eq!(block_at(&s, 0, 67, 0), Some(BlockKind::DragonEgg));
 }
