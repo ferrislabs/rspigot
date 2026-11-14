@@ -2087,6 +2087,9 @@ impl<L: ClientLink> Server<L> {
             );
         }
         state.dying = true;
+        if self.kind_of(id) == Some(Kind::EnderDragon) {
+            self.dragon_handle_killing_blow(id);
+        }
         let killer = source
             .causing
             .as_ref()
@@ -2237,7 +2240,8 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         state.dying = false;
-        state.dead = true;
+        let dragon = base.kind == Kind::EnderDragon;
+        state.dead = !dragon;
         let position = base.position;
         self.clear_dropped_equipment(victim, &slots);
         let drops = patch.drops.apply_with(
@@ -2258,7 +2262,12 @@ impl<L: ClientLink> Server<L> {
                 self.wither_item_dropped(dropped.id);
             }
         }
-        self.award_experience(position, patch.dropped_exp.unwrap_or(experience));
+        let experience = patch.dropped_exp.unwrap_or(experience);
+        if dragon {
+            self.dragon_store_experience(victim, experience);
+        } else {
+            self.award_experience(position, experience);
+        }
         if let Some(entity) = self.entities.store.get_mut(victim) {
             entity.base.set_pose(rspigot_domain::entity::Pose::Dying);
         }
@@ -2310,6 +2319,9 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(id) else {
             return 0;
         };
+        if entity.base.kind == Kind::EnderDragon {
+            return self.dragon_experience_reward(id);
+        }
         if !(killed_by_player && reward::should_drop_experience(entity) && mob_drops) {
             return 0;
         }
@@ -2322,9 +2334,12 @@ impl<L: ClientLink> Server<L> {
             .store
             .get(id)
             .is_some_and(|e| e.living().is_some());
-        if living {
+        if living && self.entities.dragons.contains_key(&id) {
+            self.dragon_kill(id);
+        } else if living {
             self.hurt_mob(id, &DamageSource::new(DamageType::GenericKill), f32::MAX);
         } else {
+            self.crystal_killed(id);
             self.remove_entity(id, RemovalReason::Killed, Some(EntityRemoveCause::Death));
         }
         true

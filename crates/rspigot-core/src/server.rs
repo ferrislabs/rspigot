@@ -197,6 +197,7 @@ impl<L: ClientLink> Server<L> {
             config,
         };
         server.load_raids();
+        server.load_dragon_fight();
         let center = spawn.chunk();
         let radius = server.config.spawn_chunk_radius;
         for dx in -radius..=radius {
@@ -415,6 +416,17 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn allocate_entity_id(&mut self) -> EntityId {
         let id = EntityId(self.next_entity_id);
         self.next_entity_id += 1;
+        id
+    }
+
+    pub(crate) fn allocate_entity_id_for(
+        &mut self,
+        kind: rspigot_entities::EntityKind,
+    ) -> EntityId {
+        let id = self.allocate_entity_id();
+        if kind == rspigot_entities::EntityKind::EnderDragon {
+            self.next_entity_id += rspigot_domain::dragon::parts::PART_COUNT as i32;
+        }
         id
     }
 
@@ -853,6 +865,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_phantom_spawner();
         self.tick_trader_spawner();
         self.tick_raids();
+        self.tick_dragon_fight();
         self.tick_entities();
         self.tick_ride_players();
         self.tick_golem_chests();
@@ -1037,6 +1050,7 @@ impl<L: ClientLink> Server<L> {
         self.handle_chunk_events();
         self.save_all_entities();
         self.save_raids();
+        self.save_dragon_fight();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
         self.workers.shutdown();

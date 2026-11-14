@@ -24,6 +24,7 @@ pub mod creaking;
 pub mod cube;
 pub mod dolphin;
 pub mod drowned;
+pub mod ender_dragon;
 pub mod enderman;
 pub mod endermite;
 pub mod equine;
@@ -243,6 +244,7 @@ pub enum Species {
     Guardian(guardian::GuardianState),
     Allay(allay::AllayState),
     Wither(wither::WitherState),
+    EnderDragon(ender_dragon::DragonState),
     Bat(bat::BatState),
     Phantom(phantom::PhantomState),
     Parrot,
@@ -466,6 +468,9 @@ impl Species {
         }
         if kind == EntityKind::Wither {
             return Self::Wither(wither::define(base));
+        }
+        if kind == EntityKind::EnderDragon {
+            return Self::EnderDragon(ender_dragon::define(base));
         }
         if kind == EntityKind::Bat {
             return Self::Bat(bat::define(base));

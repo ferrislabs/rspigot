@@ -722,7 +722,7 @@ impl<L: ClientLink> Server<L> {
         let finalize = nbt.is_none();
         let mut compound = nbt.unwrap_or_default();
         compound.insert("id", kind.name());
-        let id = self.allocate_entity_id();
+        let id = self.allocate_entity_id_for(kind);
         let uuid = self.random_uuid();
         let mut entity = save::load_entity(&compound, id, uuid).map_err(|_| SUMMON_FAILED)?;
         let (yaw, pitch) = (entity.base.yaw, entity.base.pitch);

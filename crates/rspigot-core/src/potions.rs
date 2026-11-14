@@ -476,7 +476,7 @@ impl<L: ClientLink> Server<L> {
             && (kind == EffectKind::InstantDamage || PVP_BLOCKED.contains(&kind.name()))
     }
 
-    fn splash_instant(
+    pub(crate) fn splash_instant(
         &mut self,
         potion_id: EntityId,
         owner: Option<EntityId>,

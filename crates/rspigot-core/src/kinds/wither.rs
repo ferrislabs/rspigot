@@ -307,6 +307,10 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let at = entity.base.position;
+        self.global_level_event_near(at, wither::SPAWN_EVENT);
+    }
+
+    pub(crate) fn global_level_event_near(&mut self, at: Vec3, event: i32) {
         let range = f64::from(i32::from(self.config.view_distance) * 16);
         let events: Vec<(rspigot_domain::player::PlayerId, BlockPos)> = self
             .players
@@ -335,7 +339,7 @@ impl<L: ClientLink> Server<L> {
             self.push(
                 crate::server::Audience::One(player),
                 ClientEvent::GlobalLevelEvent {
-                    event: wither::SPAWN_EVENT,
+                    event,
                     pos,
                     data: 0,
                 },

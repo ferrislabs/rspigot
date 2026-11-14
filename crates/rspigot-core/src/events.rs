@@ -320,6 +320,7 @@ pub enum MetadataValue {
     Item(Slot),
     BlockPos(BlockPos),
     OptionalBlockPos(Option<BlockPos>),
+    Particle(rspigot_domain::entity::ParticleSetting),
     Variant(VariantKind, u32),
     Long(i64),
     Direction(u8),

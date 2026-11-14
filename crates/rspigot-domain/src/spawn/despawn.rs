@@ -81,6 +81,9 @@ pub fn check_despawn(
         outcome.reset_no_action_time = true;
         return outcome;
     }
+    if kind == EntityKind::EnderDragon {
+        return outcome;
+    }
     let persistent = facts.persistence_required || facts.requires_custom_persistence;
     let Some(distance) = nearest_player_distance_sqr else {
         return outcome;
@@ -182,6 +185,21 @@ mod tests {
         assert!(!edge.discard);
         let none = check_despawn(&zombie, Difficulty::Normal, None, &mut random);
         assert_eq!(none, DespawnOutcome::default());
+    }
+
+    #[test]
+    fn the_ender_dragon_never_despawns_whatever_the_distance_or_the_difficulty() {
+        let mut random = Fixed(0);
+        let dragon = DespawnFacts {
+            no_action_time: 700,
+            ..facts(EntityKind::EnderDragon)
+        };
+        for difficulty in [Difficulty::Hard, Difficulty::Peaceful] {
+            let far = check_despawn(&dragon, difficulty, Some(1e9), &mut random);
+            assert!(!far.discard && !far.reset_no_action_time);
+            let alone = check_despawn(&dragon, difficulty, None, &mut random);
+            assert!(!alone.discard);
+        }
     }
 
     #[test]

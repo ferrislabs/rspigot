@@ -45,6 +45,13 @@ pub enum Pose {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum ParticleSetting {
+    Named(String),
+    Power { name: String, power: f32 },
+    Color { name: String, argb: i32 },
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum SyncedValue {
     Byte(i8),
     Int(i32),
@@ -62,6 +69,7 @@ pub enum SyncedValue {
     OptionalEntity(Option<Uuid>),
     OptionalBlockState(Option<BlockStateId>),
     OptionalBlockPos(Option<BlockPos>),
+    Particle(ParticleSetting),
     VillagerData {
         kind: u32,
         profession: u32,

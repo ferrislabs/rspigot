@@ -170,9 +170,13 @@ impl<L: ClientLink> Server<L> {
         }
         let area = arrow::search_box(base);
         let owner = self.owner_entity(state.owner);
-        let left = owner
-            .and_then(|owner| self.entity_box(owner))
-            .is_none_or(|(_, _, bounds)| !bounds.intersects(&area));
+        let left = owner.is_none_or(|owner| {
+            if self.entities.dragons.contains_key(&owner) {
+                return !self.dragon_parts_intersect(owner, &area);
+            }
+            self.entity_box(owner)
+                .is_none_or(|(_, _, bounds)| !bounds.intersects(&area))
+        });
         if let Some(EntityState::Hurting(state)) = self
             .entities
             .store
@@ -481,6 +485,7 @@ impl<L: ClientLink> Server<L> {
         };
         match entity.base.kind {
             Kind::Fireball | Kind::WitherSkull => self.prime_projectile(id),
+            Kind::DragonFireball => self.dragon_fireball_burst(id),
             _ => {
                 self.remove_entity(id, RemovalReason::Discarded, Some(EntityRemoveCause::Hit));
             }
