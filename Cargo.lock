@@ -1423,9 +1423,11 @@ dependencies = [
  "crossbeam-channel",
  "rspigot-anvil",
  "rspigot-auth",
+ "rspigot-blocks",
  "rspigot-core",
  "rspigot-data",
  "rspigot-domain",
+ "rspigot-nbt",
  "rspigot-network",
  "rspigot-plugins",
  "rspigot-worldgen",
@@ -1673,9 +1675,12 @@ dependencies = [
  "rspigot-core",
  "rspigot-data",
  "rspigot-domain",
+ "rspigot-entities",
+ "rspigot-nbt",
  "serde",
  "serde_json",
  "thiserror",
+ "uuid",
 ]
 
 [[package]]
