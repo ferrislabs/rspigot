@@ -413,7 +413,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
     fn set_difficulty(&mut self, difficulty: Difficulty) {
         self.world.difficulty = difficulty;
         self.push(
-            Audience::All,
+            Audience::Dimension(self.world.dimension.key.clone()),
             ClientEvent::Difficulty {
                 difficulty,
                 locked: false,

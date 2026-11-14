@@ -88,7 +88,10 @@ impl<L: ClientLink> Server<L> {
         let level = &mut self.world.level;
         level.day_time = level.day_time.wrapping_add(amount);
         let update = self.time_event();
-        self.push(Audience::All, update);
+        self.push(
+            Audience::Dimension(self.world.dimension.key.clone()),
+            update,
+        );
     }
 
     pub(crate) fn finish_time_skip(&mut self, step: TimeStep, patch: TimeSkipPatch) {
@@ -125,7 +128,7 @@ impl<L: ClientLink> Server<L> {
             },
         );
         self.push(
-            Audience::All,
+            Audience::Dimension(self.world.dimension.key.clone()),
             ClientEvent::SpawnPosition {
                 dimension: self.world.dimension.key.clone(),
                 pos,
@@ -183,9 +186,12 @@ impl<L: ClientLink> Server<L> {
             } else {
                 GameEvent::StopRaining
             };
-            self.push(Audience::All, ClientEvent::GameEvent(start));
             self.push(
-                Audience::All,
+                Audience::Dimension(self.world.dimension.key.clone()),
+                ClientEvent::GameEvent(start),
+            );
+            self.push(
+                Audience::Dimension(self.world.dimension.key.clone()),
                 ClientEvent::GameEvent(GameEvent::RainLevelChange(level_of(to))),
             );
         }
@@ -210,7 +216,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.world.level.thundering = to;
         self.push(
-            Audience::All,
+            Audience::Dimension(self.world.dimension.key.clone()),
             ClientEvent::GameEvent(GameEvent::ThunderLevelChange(level_of(to))),
         );
     }

@@ -45,6 +45,7 @@ pub(crate) enum Audience {
     Trackers(EntityId),
     TrackersExcept(EntityId, PlayerId),
     ChunkViewers(ChunkPos),
+    Dimension(crate::world_state::DimensionKey),
     Nearby {
         position: Vec3,
         range: f64,
@@ -438,6 +439,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn deliver(&mut self) {
+        let active = self.world.dimension.key.clone();
         for (audience, event) in self.outbox.drain(..) {
             match audience {
                 Audience::One(id) => {
@@ -447,6 +449,11 @@ impl<L: ClientLink> Server<L> {
                 }
                 Audience::All => {
                     for player in self.players.values() {
+                        player.link.send(event.clone());
+                    }
+                }
+                Audience::Dimension(key) => {
+                    for player in self.players.values().filter(|p| p.dim == key) {
                         player.link.send(event.clone());
                     }
                 }
@@ -469,7 +476,11 @@ impl<L: ClientLink> Server<L> {
                     }
                 }
                 Audience::ChunkViewers(pos) => {
-                    for player in self.players.values().filter(|p| p.streamer.has_sent(pos)) {
+                    for player in self
+                        .players
+                        .values()
+                        .filter(|p| p.dim == active && p.streamer.has_sent(pos))
+                    {
                         player.link.send(event.clone());
                     }
                 }
@@ -479,7 +490,8 @@ impl<L: ClientLink> Server<L> {
                     except,
                 } => {
                     for player in self.players.values().filter(|p| {
-                        Some(p.id) != except
+                        p.dim == active
+                            && Some(p.id) != except
                             && except.is_none_or(|source| !self.visibility.hides(p.id, source))
                             && p.position.distance_squared(position) < range * range
                     }) {
@@ -636,6 +648,7 @@ impl<L: ClientLink> Server<L> {
             position,
             rotation: Rotation::new(self.world.level.spawn_angle, 0.0),
             on_ground: false,
+            dim: self.world.dimension.key.clone(),
             game_mode: self.config.default_game_mode,
             previous_game_mode: None,
             inventory: Default::default(),
@@ -674,6 +687,9 @@ impl<L: ClientLink> Server<L> {
         };
         if let Some(save) = &saved {
             save.restore(&mut player, self.world.spawn, self.world.level.spawn_angle);
+            if save.dimension == self.world.dimension.key {
+                player.dim = save.dimension.clone();
+            }
         }
         tracing::info!(
             "{}[/{}] logged in with entity id {} at ([{}]{:.1}, {:.1}, {:.1})",
@@ -890,7 +906,7 @@ impl<L: ClientLink> Server<L> {
         self.sync_vitals();
         if self.tick.is_multiple_of(20) {
             let time = self.time_event();
-            self.push(Audience::All, time);
+            self.push(Audience::Dimension(self.world.dimension.key.clone()), time);
         }
         let disconnected: Vec<PlayerId> = self
             .players
@@ -934,6 +950,7 @@ impl<L: ClientLink> Server<L> {
             position: Vec3,
             rotation: Rotation,
             chunk: ChunkPos,
+            dim: crate::world_state::DimensionKey,
             metadata: Vec<MetadataEntry>,
             held: Option<rspigot_domain::item::ItemStack>,
         }
@@ -947,6 +964,7 @@ impl<L: ClientLink> Server<L> {
                 position: p.position,
                 rotation: p.rotation,
                 chunk: p.position.chunk(),
+                dim: p.dim.clone(),
                 metadata: Self::metadata(p)
                     .into_iter()
                     .chain(Self::health_metadata(p))
@@ -965,7 +983,8 @@ impl<L: ClientLink> Server<L> {
                 if target.id == viewer.id {
                     continue;
                 }
-                let visible = viewer.position.distance_squared(target.position) <= range
+                let visible = viewer.dim == target.dim
+                    && viewer.position.distance_squared(target.position) <= range
                     && viewer.streamer.has_sent(target.chunk)
                     && !visibility.hides(viewer.id, target.id);
                 let tracking = viewer.tracked.contains(&target.entity);
