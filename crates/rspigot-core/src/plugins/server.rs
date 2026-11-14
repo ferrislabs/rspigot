@@ -1068,6 +1068,18 @@ impl<L: ClientLink> Server<L> {
                 self.finish_consume(*step, cancelled, patch_of!(patch, PlayerItemConsume).item);
                 Vec::new()
             }
+            Continuation::Flow(step) => {
+                self.finish_flow(step, cancelled);
+                Vec::new()
+            }
+            Continuation::FluidLevel(step) => {
+                self.finish_level_change(
+                    step,
+                    cancelled,
+                    patch_of!(patch, FluidLevelChange).new_data,
+                );
+                Vec::new()
+            }
             Continuation::Career(step) => {
                 if !cancelled {
                     self.finish_career(step, patch_of!(patch, VillagerCareerChange).profession);

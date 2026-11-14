@@ -1381,6 +1381,8 @@ pub(crate) enum Continuation {
     Tame(TameStep),
     PigAnger(PigAngerStep),
     Reputation(ReputationStep),
+    Flow(crate::fluids::FlowStep),
+    FluidLevel(crate::fluids::LevelStep),
     Consume(Box<ConsumeStep>),
     Career(CareerStep),
     Dye(Box<DyeStep>),
@@ -1514,6 +1516,8 @@ impl Continuation {
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
             Self::Reputation(_) => EventKind::VillagerReputationChange,
+            Self::Flow(_) => EventKind::BlockFromTo,
+            Self::FluidLevel(_) => EventKind::FluidLevelChange,
             Self::Consume(_) => EventKind::PlayerItemConsume,
             Self::Career(_) => EventKind::VillagerCareerChange,
             Self::Dye(_) => EventKind::SheepDyeWool,
@@ -1685,6 +1689,8 @@ impl Continuation {
             ) => one == other && one_awake == other_awake,
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
+            (Self::Flow(one), Self::Flow(other)) => one.is_same(other),
+            (Self::FluidLevel(one), Self::FluidLevel(other)) => one.is_same(other),
             (Self::Career(one), Self::Career(other)) => {
                 one.villager == other.villager && one.profession == other.profession
             }
@@ -1742,7 +1748,7 @@ impl Continuation {
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,
             Self::Aim(step) => step.deferred,
-            Self::Breed(_) | Self::Career(_) => true,
+            Self::Breed(_) | Self::Career(_) | Self::Flow(_) | Self::FluidLevel(_) => true,
             _ => matches!(
                 self,
                 Self::Velocity(_) | Self::PickupArrow(_) | Self::Cook(_) | Self::ChunkUnload(_)

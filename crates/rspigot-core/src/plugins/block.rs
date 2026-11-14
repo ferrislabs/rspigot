@@ -53,6 +53,10 @@ pub(crate) fn data_of(state: BlockStateId) -> BlockState {
     }
 }
 
+pub(crate) fn block_state_of(data: &BlockState) -> Option<BlockStateId> {
+    state_with(&data.kind, &data.properties).ok()
+}
+
 pub(crate) fn material_of(state: BlockStateId) -> &'static str {
     state.kind().map_or("minecraft:air", BlockKind::name)
 }
