@@ -22,7 +22,11 @@ use crate::health::DamageSource;
 use crate::interact::Interaction;
 use crate::loot::{self, LootContext};
 use crate::mobs::ServerRandom;
-use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause};
+use crate::plugins::EventPayload;
+use crate::plugins::events::{
+    CreatureSpawnReason, EntityPotionEffectCause, VillagerReputationChange,
+};
+use crate::plugins::steps::{Continuation, ReputationStep};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -405,24 +409,69 @@ impl<L: ClientLink> Server<L> {
         let Some(uuid) = self.entity_uuid(source) else {
             return;
         };
-        let Some(entity) = self.entities.store.get_mut(id) else {
+        let changes: &[(GossipType, i32)] = match event {
+            ReputationEvent::ZombieVillagerCured => &[
+                (GossipType::MajorPositive, 20),
+                (GossipType::MinorPositive, 25),
+            ],
+            ReputationEvent::Trade => &[(GossipType::Trading, 2)],
+            ReputationEvent::VillagerHurt => &[(GossipType::MinorNegative, HURT_REPUTATION)],
+            ReputationEvent::VillagerKilled => &[(GossipType::MajorNegative, KILL_REPUTATION)],
+        };
+        for &(kind, amount) in changes {
+            self.ask_reputation_change(id, uuid, source, kind, amount, event);
+        }
+    }
+
+    fn ask_reputation_change(
+        &mut self,
+        id: EntityId,
+        target: Uuid,
+        source: EntityId,
+        kind: GossipType,
+        amount: i32,
+        event: ReputationEvent,
+    ) {
+        let Some((old, value)) = self.entities.store.get_mut(id).and_then(|entity| {
+            with_villager(entity, |_, _, merchant| {
+                merchant.gossips.preview_add(target, kind, amount)
+            })
+        }) else {
+            return;
+        };
+        let step = ReputationStep {
+            villager: id,
+            target,
+            kind,
+            value,
+        };
+        let lane = self.lane_for(None, id);
+        self.fire(lane, Continuation::Reputation(step), move |server| {
+            let entity = server.entity_view(id)?;
+            Some(EventPayload::VillagerReputationChange(
+                VillagerReputationChange {
+                    entity_type: entity.kind.clone(),
+                    entity,
+                    max_value: kind.max(),
+                    new_value: value,
+                    old_value: old,
+                    reason: format!("minecraft:{}", event.id()),
+                    reputation_type: format!("minecraft:{}", kind.id()),
+                    target: server.subject_view(source),
+                    target_uuid: target,
+                },
+            ))
+        });
+    }
+
+    pub(crate) fn finish_reputation(&mut self, step: ReputationStep, patched: Option<i32>) {
+        let Some(entity) = self.entities.store.get_mut(step.villager) else {
             return;
         };
         with_villager(entity, |_, _, merchant| {
-            let gossips = &mut merchant.gossips;
-            match event {
-                ReputationEvent::ZombieVillagerCured => {
-                    gossips.add(uuid, GossipType::MajorPositive, 20);
-                    gossips.add(uuid, GossipType::MinorPositive, 25);
-                }
-                ReputationEvent::Trade => gossips.add(uuid, GossipType::Trading, 2),
-                ReputationEvent::VillagerHurt => {
-                    gossips.add(uuid, GossipType::MinorNegative, HURT_REPUTATION);
-                }
-                ReputationEvent::VillagerKilled => {
-                    gossips.add(uuid, GossipType::MajorNegative, KILL_REPUTATION);
-                }
-            }
+            merchant
+                .gossips
+                .store(step.target, step.kind, patched.unwrap_or(step.value));
         });
     }
 

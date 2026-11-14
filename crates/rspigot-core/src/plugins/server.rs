@@ -947,6 +947,12 @@ impl<L: ClientLink> Server<L> {
                 self.finish_enter_hive(bee, pos, cancelled);
                 Vec::new()
             }
+            Continuation::BatSleep { bat, awake } => {
+                if !cancelled {
+                    self.finish_bat_sleep(bat, awake);
+                }
+                Vec::new()
+            }
             Continuation::EggBreak { mob, pos, trample } => {
                 if !cancelled && trample {
                     self.finish_egg_trample(pos);
@@ -1056,6 +1062,15 @@ impl<L: ClientLink> Server<L> {
             }
             Continuation::PigAnger(step) => {
                 self.finish_pig_zombie_anger(step, cancelled, patch_of!(patch, PigZombieAnger));
+                Vec::new()
+            }
+            Continuation::Reputation(step) => {
+                if !cancelled {
+                    self.finish_reputation(
+                        step,
+                        patch_of!(patch, VillagerReputationChange).new_value,
+                    );
+                }
                 Vec::new()
             }
             Continuation::Dye(step) => {

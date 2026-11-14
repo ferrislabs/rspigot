@@ -7,6 +7,7 @@ use rspigot_core::config::PluginSettings;
 use rspigot_core::events::{ClientEvent, Hand, Inbound, PlayerInput};
 use rspigot_core::plugins::events::{
     EntityTransformReason, EventResult, TradeSelectPatch, VillagerAcquireTradePatch,
+    VillagerReputationChangePatch,
 };
 use rspigot_core::plugins::{EventKind, EventPatch, EventPayload};
 use rspigot_domain::{BlockPos, EntityId, Vec3};
@@ -282,4 +283,86 @@ fn a_cancelled_replenish_keeps_the_uses_of_the_offer() {
     }
     s.tick(1);
     assert_eq!(uses_of_first(&s, smith), Some(4));
+}
+
+fn gossip_values(s: &Scene, id: EntityId) -> Vec<(String, i32)> {
+    s.server
+        .saved_entity(id)
+        .and_then(|nbt| nbt.get_list("Gossips").map(<[_]>::to_vec))
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|tag| tag.as_compound())
+        .filter_map(|gossip| Some((gossip.get_str("Type")?.to_owned(), gossip.get_i32("Value")?)))
+        .collect()
+}
+
+fn hit(s: &mut Scene, target: EntityId) {
+    let alice = s.players[0].clone();
+    send_input(&mut s.server, &alice, PlayerInput::Attack(target));
+    s.tick(2);
+}
+
+#[test]
+fn hurting_a_villager_announces_the_reputation_change_with_its_values_and_applies_it() {
+    let mut s = ready(vec![observe(1, EventKind::VillagerReputationChange)]);
+    let villager = summon(&mut s, Kind::Villager, FARMER);
+    hit(&mut s, villager);
+    let changes: Vec<_> = fired(&s.plugin)
+        .into_iter()
+        .filter_map(|event| match event.payload {
+            EventPayload::VillagerReputationChange(change) => Some(change),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(changes.len(), 1);
+    let change = &changes[0];
+    assert_eq!(change.entity.id, villager);
+    assert_eq!(change.reason, "minecraft:villager_hurt");
+    assert_eq!(change.reputation_type, "minecraft:minor_negative");
+    assert_eq!(
+        (change.old_value, change.new_value, change.max_value),
+        (0, 25, 200)
+    );
+    let target = change.target.as_ref().expect("the attacker");
+    assert_eq!(target.kind, "minecraft:player");
+    assert_eq!(change.target_uuid.to_string(), target.uuid.to_string());
+    assert_eq!(
+        gossip_values(&s, villager),
+        [("minor_negative".to_owned(), 25)]
+    );
+}
+
+#[test]
+fn a_cancelled_reputation_change_leaves_the_villager_without_a_grudge() {
+    let mut s = patient(vec![deciding(1, EventKind::VillagerReputationChange)]);
+    let villager = summon(&mut s, Kind::Villager, FARMER);
+    hit(&mut s, villager);
+    let asked = last_asked(&s.plugin, EventKind::VillagerReputationChange);
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(2);
+    assert!(gossip_values(&s, villager).is_empty());
+}
+
+#[test]
+fn a_patched_new_value_is_the_reputation_the_villager_keeps_clamped_to_its_maximum() {
+    let mut s = patient(vec![deciding(1, EventKind::VillagerReputationChange)]);
+    let villager = summon(&mut s, Kind::Villager, FARMER);
+    hit(&mut s, villager);
+    let asked = last_asked(&s.plugin, EventKind::VillagerReputationChange);
+    rule_on(
+        &mut s.server,
+        1,
+        asked.id,
+        false,
+        Some(EventPatch::VillagerReputationChange(
+            VillagerReputationChangePatch {
+                new_value: Some(500),
+            },
+        )),
+    );
+    s.tick(2);
+    assert_eq!(
+        gossip_values(&s, villager),
+        [("minor_negative".to_owned(), 200)]
+    );
 }

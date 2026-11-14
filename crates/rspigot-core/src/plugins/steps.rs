@@ -475,6 +475,14 @@ pub(crate) struct LoveStep {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub(crate) struct ReputationStep {
+    pub(crate) villager: EntityId,
+    pub(crate) target: uuid::Uuid,
+    pub(crate) kind: rspigot_domain::entity::gossip::GossipType,
+    pub(crate) value: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct PigAngerStep {
     pub(crate) mob: EntityId,
     pub(crate) anger: i32,
@@ -1322,6 +1330,10 @@ pub(crate) enum Continuation {
         bee: EntityId,
         pos: BlockPos,
     },
+    BatSleep {
+        bat: EntityId,
+        awake: bool,
+    },
     DoorOpen {
         mob: EntityId,
         pos: BlockPos,
@@ -1355,6 +1367,7 @@ pub(crate) enum Continuation {
     Love(Box<LoveStep>),
     Tame(TameStep),
     PigAnger(PigAngerStep),
+    Reputation(ReputationStep),
     Dye(Box<DyeStep>),
     Window(Box<WindowPacket>),
     Click(EventKind, Box<WindowClick>),
@@ -1466,6 +1479,7 @@ impl Continuation {
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
             Self::RaidTrigger { .. } => EventKind::RaidTrigger,
             Self::EnterHive { .. } => EventKind::EntityEnterBlock,
+            Self::BatSleep { .. } => EventKind::BatToggleSleep,
             Self::TargetBlock { .. } => EventKind::EntityTargetBlock,
             Self::EntityExplode(_) => EventKind::EntityExplode,
             Self::Splash(_) => EventKind::PotionSplash,
@@ -1484,6 +1498,7 @@ impl Continuation {
             Self::Love(_) => EventKind::EntityEnterLoveMode,
             Self::Tame(_) => EventKind::EntityTame,
             Self::PigAnger(_) => EventKind::PigZombieAnger,
+            Self::Reputation(_) => EventKind::VillagerReputationChange,
             Self::Dye(_) => EventKind::SheepDyeWool,
             Self::Window(_) => EventKind::InventoryClick,
             Self::Click(kind, _) => *kind,
@@ -1574,6 +1589,7 @@ impl Continuation {
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
             Self::EnterHive { bee: mob, .. }
+            | Self::BatSleep { bat: mob, .. }
             | Self::EggBreak { mob, .. }
             | Self::DoorOpen { mob, .. }
             | Self::TargetBlock { mob, .. } => *mob == id,
@@ -1595,6 +1611,7 @@ impl Continuation {
             Self::Tame(step) => step.target == id,
             Self::MobRegain(step) => step.target == id,
             Self::PigAnger(step) => step.mob == id,
+            Self::Reputation(step) => step.villager == id,
             Self::Dye(step) => step.target == id,
             Self::Shear(step) => step.target == id,
             Self::BucketEntity(step) => step.target == id,
@@ -1638,6 +1655,16 @@ impl Continuation {
             (Self::TargetBlock { mob: one, .. }, Self::TargetBlock { mob: other, .. }) => {
                 one == other
             }
+            (
+                Self::BatSleep {
+                    bat: one,
+                    awake: one_awake,
+                },
+                Self::BatSleep {
+                    bat: other,
+                    awake: other_awake,
+                },
+            ) => one == other && one_awake == other_awake,
             (Self::Prime(one), Self::Prime(other)) => one.source == other.source,
             (Self::Breed(one), Self::Breed(other)) => one.parent == other.parent,
             (Self::Aim(one), Self::Aim(other)) => {
@@ -1688,6 +1715,7 @@ impl Continuation {
             Self::EggBreak { .. }
             | Self::DoorOpen { .. }
             | Self::TargetBlock { .. }
+            | Self::BatSleep { .. }
             | Self::Form(_)
             | Self::Ignite(_)
             | Self::Prime(_)

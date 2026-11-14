@@ -91,6 +91,17 @@ pub enum ReputationEvent {
     VillagerKilled,
 }
 
+impl ReputationEvent {
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::ZombieVillagerCured => "zombie_villager_cured",
+            Self::Trade => "trade",
+            Self::VillagerHurt => "villager_hurt",
+            Self::VillagerKilled => "villager_killed",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GossipEntry {
     pub target: Uuid,
@@ -211,18 +222,28 @@ impl GossipContainer {
             .count()
     }
 
-    pub fn add(&mut self, target: Uuid, kind: GossipType, amount: i32) {
-        let gossips = self.gossips.entry(target).or_default();
-        let old = gossips.get(kind);
+    pub fn preview_add(&self, target: Uuid, kind: GossipType, amount: i32) -> (i32, i32) {
+        let old = self.gossips.get(&target).map_or(0, |gossips| gossips.get(kind));
         let mut merged = old + amount;
         if merged > kind.max() {
             merged = kind.max().max(old);
         }
         let value = merged.min(kind.max()).max(0);
+        (old, if value < 2 { 0 } else { value })
+    }
+
+    pub fn store(&mut self, target: Uuid, kind: GossipType, value: i32) {
+        let value = value.min(kind.max());
+        let gossips = self.gossips.entry(target).or_default();
         gossips.entries[kind.slot()] = if value < 2 { 0 } else { value };
         if gossips.is_empty() {
             self.gossips.remove(&target);
         }
+    }
+
+    pub fn add(&mut self, target: Uuid, kind: GossipType, amount: i32) {
+        let (_, value) = self.preview_add(target, kind, amount);
+        self.store(target, kind, value);
     }
 
     pub fn set(&mut self, target: Uuid, kind: GossipType, amount: i32) {
@@ -377,6 +398,17 @@ mod tests {
         gossips.add(id(2), GossipType::Trading, 1);
         assert_eq!(gossips.reputation(id(2)), 0);
         assert_eq!(gossips.unpack().len(), 1);
+    }
+
+    #[test]
+    fn a_preview_gives_the_old_and_new_value_without_storing_and_a_store_clamps() {
+        let mut gossips = GossipContainer::default();
+        assert_eq!(gossips.preview_add(id(1), GossipType::MinorNegative, 25), (0, 25));
+        assert!(gossips.is_empty());
+        gossips.store(id(1), GossipType::MinorNegative, 500);
+        assert_eq!(gossips.preview_add(id(1), GossipType::MinorNegative, 5), (200, 200));
+        gossips.store(id(1), GossipType::MinorNegative, 1);
+        assert!(gossips.is_empty());
     }
 
     #[test]
