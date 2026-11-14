@@ -899,6 +899,7 @@ mod tests {
                 EntityKind::Squid,
                 EntityKind::Stray,
                 EntityKind::Strider,
+                EntityKind::SulfurCube,
                 EntityKind::Tadpole,
                 EntityKind::TraderLlama,
                 EntityKind::TropicalFish,

@@ -165,6 +165,12 @@ impl LookControl {
         base.head_yaw = living.body_yaw;
     }
 
+    pub fn snap_to_quarter_turn(&mut self, base: &mut EntityBase) {
+        let yaw = base.yaw;
+        base.set_yaw(yaw - wrap_degrees_90(yaw));
+        base.head_yaw = base.yaw;
+    }
+
     pub fn set_shulker_face(&mut self, face: Option<Face>) {
         self.shulker = face;
     }

@@ -1,9 +1,13 @@
 use crate::brain::AiContext;
-use crate::combat::look_at_entity;
+use crate::combat::{look_at_entity, look_at_point};
 use crate::goal::{Flag, Flags, Goal, adjusted_tick_delay, reduced_tick_delay};
+use crate::goals::{MobGoal, TemptGoal};
 use crate::random::RandomSource;
+use crate::registry::Goals;
 use crate::targeting;
-use crate::world::AiWorld;
+use crate::world::{AiWorld, inflate};
+use rspigot_data::sulfur_cube as cube_data;
+use rspigot_domain::EntityId;
 
 const FLOAT_SPEED: f64 = 1.2;
 const FLOAT_JUMP_CHANCE: f32 = 0.8;
@@ -13,10 +17,18 @@ const ATTACK_LOOK_SPEED: f32 = 10.0;
 const DIRECTION_INTERVAL_RANGE: i32 = 60;
 const DIRECTION_INTERVAL_BASE: i32 = 40;
 const DIRECTION_DEGREES: i32 = 360;
+const SEARCH_RANGE: f64 = 8.0;
+const SULFUR_TEMPT_PRIORITY: i32 = 2;
+const SULFUR_SEARCH_PRIORITY: i32 = 3;
+const SULFUR_TEMPT_SPEED: f64 = 1.0;
+const SULFUR_TEMPT_STOP_DISTANCE: f64 = 1.0;
+const SEARCH_LOOK_SPEED: f32 = 10.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CubeFacts {
     pub can_deal_damage: bool,
+    pub has_body_item: bool,
+    pub pickup_timer: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -167,9 +179,88 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for KeepOnJumpingGoal {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct SearchForItemsGoal {
+    target: Option<EntityId>,
+}
+
+impl SearchForItemsGoal {
+    pub fn target(&self) -> Option<EntityId> {
+        self.target
+    }
+}
+
+impl<W: AiWorld> Goal<AiContext<'_, W>> for SearchForItemsGoal {
+    fn flags(&self) -> Flags {
+        Flags::of(Flag::Look)
+    }
+
+    fn can_use(&mut self, context: &mut AiContext<'_, W>) -> bool {
+        let mob = context.mob;
+        if mob.baby || mob.species.cube.pickup_timer > 0 {
+            return false;
+        }
+        let area = inflate(&mob.bounds(), SEARCH_RANGE, SEARCH_RANGE, SEARCH_RANGE);
+        self.target = context
+            .world
+            .items_in(&area)
+            .into_iter()
+            .filter(|item| {
+                !item.has_pickup_delay && item.alive && cube_data::is_swallowable(item.item.0)
+            })
+            .min_by(|a, b| {
+                let a = a.position.distance_squared(mob.position);
+                let b = b.position.distance_squared(mob.position);
+                a.total_cmp(&b)
+            })
+            .map(|item| item.id);
+        self.target.is_some()
+    }
+
+    fn tick(&mut self, context: &mut AiContext<'_, W>) {
+        let Some(item) = self.target.and_then(|id| context.world.dropped_item(id)) else {
+            return;
+        };
+        let center = (item.bounds.min_y + item.bounds.max_y) / 2.0;
+        look_at_point(
+            context.mob,
+            context.body,
+            item.position,
+            center,
+            SEARCH_LOOK_SPEED,
+            SEARCH_LOOK_SPEED,
+        );
+        context
+            .brain
+            .movement
+            .set_cube_direction(context.body.yaw, true);
+    }
+}
+
+pub(crate) fn sulfur_cube_goals(add: &mut Goals<'_>) {
+    add.goal(1, MobGoal::Cube(CubeGoal::Float(FloatGoal)));
+    add.goal(
+        SULFUR_TEMPT_PRIORITY,
+        MobGoal::Tempt(TemptGoal::sulfur_cube(
+            SULFUR_TEMPT_SPEED,
+            SULFUR_TEMPT_STOP_DISTANCE,
+        )),
+    );
+    add.goal(
+        SULFUR_SEARCH_PRIORITY,
+        MobGoal::Cube(CubeGoal::SearchForItems(SearchForItemsGoal::default())),
+    );
+    add.goal(
+        4,
+        MobGoal::Cube(CubeGoal::RandomDirection(RandomDirectionGoal::default())),
+    );
+    add.goal(5, MobGoal::Cube(CubeGoal::KeepOnJumping(KeepOnJumpingGoal)));
+}
+
 goal_enum!(CubeGoal {
     Float(FloatGoal),
     RandomDirection(RandomDirectionGoal),
     Attack(AttackGoal),
     KeepOnJumping(KeepOnJumpingGoal),
+    SearchForItems(SearchForItemsGoal),
 });

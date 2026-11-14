@@ -870,6 +870,12 @@ pub fn register_goals(
                 NearestAttackableTargetGoal::new(TargetKind::Player, true),
             );
         }
+        EntityKind::SulfurCube => {
+            add.brain.movement.set_cube();
+            add.brain.look.set_max_head_x_rot(0.0);
+            add.brain.profile.can_float = true;
+            crate::cube::sulfur_cube_goals(&mut add);
+        }
         EntityKind::Slime | EntityKind::MagmaCube => {
             add.brain.movement.set_cube();
             add.brain.look.set_max_head_x_rot(0.0);
