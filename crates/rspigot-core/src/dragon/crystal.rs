@@ -152,6 +152,19 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
+    pub(crate) fn crystal_killed(&mut self, id: EntityId) {
+        if self
+            .entities
+            .store
+            .get(id)
+            .is_none_or(|entity| entity.base.kind != Kind::EndCrystal)
+        {
+            return;
+        }
+        let facts = self.crystal_facts(id);
+        self.fight_crystal_destroyed(facts, &DamageSource::new(DamageType::GenericKill));
+    }
+
     fn crystal_facts(&self, id: EntityId) -> CrystalFacts {
         let entity = self.entities.store.get(id);
         CrystalFacts {

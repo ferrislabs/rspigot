@@ -305,6 +305,19 @@ mod tests {
         assert_eq!(entity.base.dimensions.height, 0.5);
         assert_eq!(
             entity.base.data.get(10),
+            Some(&SyncedValue::Particle(ParticleSetting::Color {
+                name: ENTITY_EFFECT.to_owned(),
+                argb: potion::DEFAULT_COLOR | OPAQUE,
+            }))
+        );
+        let mut base = EntityBase::new(
+            EntityId(2),
+            Uuid::from_u128(2),
+            rspigot_entities::EntityKind::AreaEffectCloud,
+        );
+        define(&mut base);
+        assert_eq!(
+            base.data.get(10),
             Some(&SyncedValue::Particle(default_particle()))
         );
     }
