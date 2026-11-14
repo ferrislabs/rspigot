@@ -81,3 +81,4 @@ mod trader_spawner;
 mod trading;
 mod wind_charge;
 mod wither_summon;
+mod world_state;
