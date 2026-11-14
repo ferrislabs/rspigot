@@ -416,6 +416,7 @@ EXTRA_TABLES = [
     ("minecraft:gameplay/chicken_lay", "minecraft:gift"),
     ("minecraft:gameplay/panda_sneeze", "minecraft:gift"),
     ("minecraft:shearing/sheep", "minecraft:shearing"),
+    ("minecraft:shearing/snow_golem", "minecraft:shearing"),
     ("minecraft:till/rooted_dirt", "minecraft:block_interact"),
 ]
 

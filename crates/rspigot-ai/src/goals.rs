@@ -18,6 +18,7 @@ use crate::goal::{Flag, Flags, Goal, adjusted_tick_delay, reduced_tick_delay};
 use crate::neutral::ResetUniversalAngerGoal;
 use crate::rabbit::RaidGardenGoal;
 use crate::random_pos::{self, mob_light_magic_value};
+use crate::ranged::RangedAttackGoal;
 use crate::tame::{FollowOwnerGoal, OwnerTargetGoal, SitWhenOrderedToGoal};
 use crate::targeting::{self, TargetingConditions};
 use crate::world::{AiWorld, Living, MobView, TargetKind, inflate};
@@ -520,6 +521,7 @@ pub enum TargetFilter {
     AngryAt,
     ChickenOrRabbit,
     SchoolingFish,
+    Enemy,
     EnemyNonCreeper,
     Prey,
     MobIsAdult,
@@ -535,6 +537,7 @@ impl TargetFilter {
                 target.kind == EntityKind::Chicken || target.kind == EntityKind::Rabbit
             }
             Self::SchoolingFish => target.kind.extends("AbstractSchoolingFish"),
+            Self::Enemy => crate::iron_golem::is_enemy(target.kind),
             Self::EnemyNonCreeper => {
                 crate::iron_golem::is_enemy(target.kind) && target.kind != EntityKind::Creeper
             }
@@ -720,6 +723,7 @@ pub enum MobGoal {
     EatBlock(EatBlockGoal),
     MeleeAttack(MeleeAttackGoal),
     RangedBowAttack(RangedBowAttackGoal),
+    RangedAttack(RangedAttackGoal),
     Swell(SwellGoal),
     LeapAtTarget(LeapAtTargetGoal),
     HurtByTarget(HurtByTargetGoal),
@@ -762,7 +766,8 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             | Self::Breed(_)
             | Self::MeleeAttack(_)
             | Self::OcelotAttack(_)
-            | Self::RangedBowAttack(_) => movement.with(Flag::Look),
+            | Self::RangedBowAttack(_)
+            | Self::RangedAttack(_) => movement.with(Flag::Look),
             Self::EatBlock(_) => movement.with(Flag::Look).with(Flag::Jump),
             Self::SitWhenOrdered(_) => movement.with(Flag::Jump),
             Self::FollowOwner(_) => movement.with(Flag::Look),
@@ -803,6 +808,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::EatBlock(goal) => goal.can_use(context),
             Self::MeleeAttack(goal) => goal.can_use(context),
             Self::RangedBowAttack(goal) => goal.can_use(context),
+            Self::RangedAttack(goal) => goal.can_use(context),
             Self::Swell(goal) => goal.can_use(context),
             Self::LeapAtTarget(goal) => goal.can_use(context),
             Self::HurtByTarget(goal) => goal.can_use(context),
@@ -846,6 +852,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::EatBlock(goal) => goal.eat_animation_tick() > 0,
             Self::MeleeAttack(goal) => goal.can_continue_to_use(context),
             Self::RangedBowAttack(goal) => goal.can_continue_to_use(context),
+            Self::RangedAttack(goal) => goal.can_continue_to_use(context),
             Self::Swell(goal) => goal.can_use(context),
             Self::LeapAtTarget(goal) => goal.can_continue_to_use(context),
             Self::HurtByTarget(goal) => goal.memory().can_continue_to_use(context),
@@ -886,6 +893,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Float(_)
             | Self::ClimbOnTopOfPowderSnow(_)
             | Self::OcelotAttack(_)
+            | Self::RangedAttack(_)
             | Self::Breed(_) => {}
             Self::MoveThroughVillage(goal) => goal.start(context),
             Self::RaidGarden(goal) => goal.start(context),
@@ -942,6 +950,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::EatBlock(goal) => goal.stop(),
             Self::MeleeAttack(goal) => goal.stop(context),
             Self::RangedBowAttack(goal) => goal.stop(context),
+            Self::RangedAttack(goal) => goal.stop(context),
             Self::Swell(goal) => goal.stop(),
             Self::HurtByTarget(goal) => goal.memory().stop(context),
             Self::AvoidEntity(goal) => goal.stop(),
@@ -1003,6 +1012,7 @@ impl MobGoal {
                 | Self::RandomLookAround(_)
                 | Self::MeleeAttack(_)
                 | Self::RangedBowAttack(_)
+                | Self::RangedAttack(_)
                 | Self::Swell(_)
                 | Self::RemoveTurtleEgg(_)
                 | Self::BreakDoor(_)
@@ -1024,6 +1034,7 @@ impl MobGoal {
             Self::EatBlock(goal) => goal.tick(context),
             Self::MeleeAttack(goal) => goal.tick(context),
             Self::RangedBowAttack(goal) => goal.tick(context),
+            Self::RangedAttack(goal) => goal.tick(context),
             Self::Swell(goal) => goal.tick(context),
             Self::AvoidEntity(goal) => goal.tick(context),
             Self::RemoveTurtleEgg(goal) => goal.tick(context),

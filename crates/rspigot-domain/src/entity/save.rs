@@ -18,6 +18,7 @@ use super::living::{
 };
 use super::orb::{self, OrbState};
 use super::species::{self, Species};
+use super::thrown::{self, ThrownState};
 use super::{Entity, EntityState};
 use super::{neutral, tamable};
 use crate::effect::{
@@ -127,6 +128,7 @@ const ARROW_KEYS: [&str; 14] = [
     "item",
     "weapon",
 ];
+const THROWN_KEYS: [&str; 4] = ["Owner", "LeftOwner", "HasBeenShot", "Item"];
 const ITEM_KEYS: [&str; 6] = ["Health", "Age", "PickupDelay", "Thrower", "Owner", "Item"];
 const ORB_KEYS: [&str; 4] = ["Health", "Age", "Value", "Count"];
 const FALLING_KEYS: [&str; 8] = [
@@ -157,7 +159,11 @@ pub enum LoadError {
 pub fn is_simulated(kind: EntityKind) -> bool {
     matches!(
         kind,
-        EntityKind::Item | EntityKind::FallingBlock | EntityKind::ExperienceOrb | EntityKind::Arrow
+        EntityKind::Item
+            | EntityKind::FallingBlock
+            | EntityKind::ExperienceOrb
+            | EntityKind::Arrow
+            | EntityKind::Snowball
     ) || (kind.extends("Mob") && kind != EntityKind::EnderDragon)
 }
 
@@ -716,6 +722,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Endermite(state) => species::endermite::read(nbt, base, state),
         Species::Silverfish(state) => species::silverfish::read(nbt, base, state),
         Species::IronGolem(state) => species::iron_golem::read(nbt, base, state),
+        Species::SnowGolem(state) => species::snow_golem::read(nbt, base, state),
         Species::Rabbit(state) => {
             species::rabbit::read(nbt, base, &mut living.attributes, state);
         }
@@ -744,6 +751,29 @@ fn read_arrow(nbt: &Compound, base: &mut EntityBase, state: &mut ArrowState) {
         .and_then(item_stack_from_nbt)
         .unwrap_or_else(arrow::default_item);
     state.weapon = nbt.get_compound("weapon").and_then(item_stack_from_nbt);
+}
+
+fn read_thrown(nbt: &Compound, base: &mut EntityBase, state: &mut ThrownState) {
+    state.owner = nbt.get("Owner").and_then(read_uuid);
+    state.left_owner = nbt.get_bool("LeftOwner").unwrap_or(false);
+    state.has_been_shot = nbt.get_bool("HasBeenShot").unwrap_or(false);
+    let stack = nbt
+        .get_compound("Item")
+        .and_then(item_stack_from_nbt)
+        .unwrap_or_else(thrown::default_item);
+    thrown::set_item(base, &stack);
+}
+
+fn write_thrown(base: &EntityBase, state: &ThrownState, out: &mut Compound) {
+    if let Some(owner) = state.owner {
+        out.insert("Owner", uuid_tag(owner));
+    }
+    if state.left_owner {
+        out.insert("LeftOwner", true);
+    }
+    out.insert("HasBeenShot", bool_tag(state.has_been_shot));
+    let stack = thrown::item(base).unwrap_or_else(thrown::default_item);
+    out.insert("Item", item_stack_to_nbt(&stack));
 }
 
 fn write_arrow(base: &EntityBase, state: &ArrowState, out: &mut Compound) {
@@ -809,6 +839,7 @@ fn species_keys(mob: &MobState) -> Vec<&'static [&'static str]> {
         Species::Endermite(_) => species::endermite::KEYS,
         Species::Silverfish(_) => species::silverfish::KEYS,
         Species::IronGolem(_) => species::iron_golem::KEYS,
+        Species::SnowGolem(_) => species::snow_golem::KEYS,
         Species::Rabbit(_) => species::rabbit::KEYS,
         Species::Ocelot(_) => species::ocelot::KEYS,
         Species::Plain => &[],
@@ -850,6 +881,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityKind::Arrow => {
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Arrow(Box::new(ArrowState::new(&mut base, seed)))
+        }
+        EntityKind::Snowball => {
+            let seed = fallback_uuid.as_u64_pair().0 as i64;
+            EntityState::Thrown(Box::new(ThrownState::new(&mut base, seed)))
         }
         _ => EntityState::Living(Box::new(LivingState::new(&mut base, 0.0))),
     };
@@ -907,6 +942,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Arrow(arrow_state) => {
             read_arrow(nbt, &mut base, arrow_state);
             &[&ENTITY_KEYS, &ARROW_KEYS]
+        }
+        EntityState::Thrown(thrown_state) => {
+            read_thrown(nbt, &mut base, thrown_state);
+            &[&ENTITY_KEYS, &THROWN_KEYS]
         }
         EntityState::Inert(_) => &[],
     };
@@ -1210,6 +1249,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Endermite(state) => species::endermite::write(base, state, out),
         Species::Silverfish(state) => species::silverfish::write(base, state, out),
         Species::IronGolem(state) => species::iron_golem::write(base, state, out),
+        Species::SnowGolem(state) => species::snow_golem::write(base, state, out),
         Species::Rabbit(state) => species::rabbit::write(base, state, out),
         Species::Ocelot(state) => species::ocelot::write(base, state, out),
         Species::Plain | Species::Cow | Species::Pig => {}
@@ -1266,6 +1306,9 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
             out.insert("Count", orb_state.count);
         }
         EntityState::Arrow(arrow_state) => write_arrow(&entity.base, arrow_state, &mut out),
+        EntityState::Thrown(thrown_state) => {
+            write_thrown(&entity.base, thrown_state, &mut out);
+        }
         EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {

@@ -28,6 +28,7 @@ pub enum DamageType {
     InFire,
     Lava,
     Arrow,
+    Thrown,
     Explosion,
     PlayerExplosion,
 }
@@ -88,6 +89,7 @@ impl DamageType {
             Self::InFire => "minecraft:in_fire",
             Self::Lava => "minecraft:lava",
             Self::Arrow => "minecraft:arrow",
+            Self::Thrown => "minecraft:thrown",
             Self::Explosion => "minecraft:explosion",
             Self::PlayerExplosion => "minecraft:player_explosion",
         }
@@ -113,6 +115,7 @@ impl DamageType {
             Self::InFire => "inFire",
             Self::Lava => "lava",
             Self::Arrow => "arrow",
+            Self::Thrown => "thrown",
             Self::Explosion => "explosion",
             Self::PlayerExplosion => "explosion.player",
         }
@@ -122,9 +125,12 @@ impl DamageType {
         match self {
             Self::FallingAnvil | Self::FallingBlock | Self::FallingStalactite => 0.1,
             Self::PlayerAttack | Self::MobAttack => 0.1,
-            Self::InFire | Self::Lava | Self::Arrow | Self::Explosion | Self::PlayerExplosion => {
-                0.1
-            }
+            Self::InFire
+            | Self::Lava
+            | Self::Arrow
+            | Self::Thrown
+            | Self::Explosion
+            | Self::PlayerExplosion => 0.1,
             _ => 0.0,
         }
     }
@@ -220,6 +226,14 @@ mod tests {
     }
 
     #[test]
+    fn thrown_damage_is_registered_and_costs_a_tenth_of_exhaustion() {
+        assert!(DamageType::Thrown.registry_id().is_some());
+        assert_eq!(DamageType::Thrown.name(), "minecraft:thrown");
+        assert_eq!(DamageType::Thrown.message_id(), "thrown");
+        assert_eq!(DamageType::Thrown.exhaustion(), 0.1);
+    }
+
+    #[test]
     fn tags_come_from_the_datapack() {
         assert!(DamageType::OutOfWorld.is(DamageTag::BypassesInvulnerability));
         assert!(DamageType::GenericKill.is(DamageTag::BypassesInvulnerability));
@@ -238,6 +252,8 @@ mod tests {
         assert!(!DamageType::MobAttack.is(DamageTag::NoAnger));
         assert!(DamageType::Fall.in_tag("minecraft:no_knockback"));
         assert!(!DamageType::PlayerAttack.in_tag("minecraft:is_projectile"));
+        assert!(DamageType::Thrown.in_tag("minecraft:is_projectile"));
+        assert!(DamageType::Arrow.in_tag("minecraft:is_projectile"));
         assert!(!DamageType::PlayerAttack.in_tag("minecraft:nope"));
     }
 
