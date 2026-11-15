@@ -122,7 +122,7 @@ pub(crate) struct Tree {
     root: Option<roots::Root>,
 }
 
-pub(crate) fn compile(value: &Value) -> Option<Tree> {
+pub(crate) fn compile(value: &Value, compiler: &mut super::bodies::Compiler) -> Option<Tree> {
     let trunk_value = value.get("trunk_placer")?;
     let trunk = match short(trunk_value) {
         "straight_trunk_placer" => Trunk::Straight,
@@ -199,7 +199,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         leaves: State::compile(value.get("foliage_provider")?),
         below: State::compile(value.get("below_trunk_provider").unwrap_or(&Value::Null)),
         ignore_vines: flag(value, "ignore_vines", false),
-        decorators: treedeco::compile_all(value),
+        decorators: treedeco::compile_all(value, compiler),
         crown_config: crowns::Config::compile(crown_value),
         root,
     })

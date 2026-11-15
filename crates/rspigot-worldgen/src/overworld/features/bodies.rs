@@ -284,7 +284,7 @@ impl<'a> Compiler<'a> {
                 rocks: integer(value, "rock_count", 4),
                 holes: integer(value, "hole_count", 1),
             }),
-            "tree" => match super::tree::compile(value) {
+            "tree" => match super::tree::compile(value, self) {
                 Some(tree) => Feature::Tree(Box::new(tree)),
                 None => Feature::Unsupported,
             },

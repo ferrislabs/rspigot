@@ -1,11 +1,16 @@
+use std::sync::Arc;
+
 use rspigot_blocks::{Face, Support};
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
+use super::bodies::{Compiler, Feature};
 use super::place::Run;
 use super::prov::{Pos, State, integer, number, short};
 use crate::datapack::state_named;
 use crate::overworld::region::Heightmap;
+
+mod forest;
 
 const HORIZONTAL: [(&str, (i32, i32)); 4] = [
     ("north", (0, -1)),
@@ -35,6 +40,12 @@ pub(crate) enum Decorator {
         radius_xz: i32,
         radius_y: i32,
     },
+    PaleMoss {
+        chances: (f32, f32, f32),
+        patch: Arc<Feature>,
+    },
+    CreakingHeart(f32),
+    ShelfMushroom(f32),
 }
 
 fn direction(name: &str) -> (i32, i32, i32) {
@@ -49,7 +60,7 @@ fn direction(name: &str) -> (i32, i32, i32) {
 }
 
 impl Decorator {
-    pub(crate) fn compile(value: &Value) -> Option<Self> {
+    pub(crate) fn compile(value: &Value, compiler: &mut Compiler) -> Option<Self> {
         let probability = number(value, "probability", 0.0) as f32;
         let provider = |key: &str| State::compile(value.get(key).unwrap_or(&Value::Null));
         Some(match short(value) {
@@ -82,6 +93,16 @@ impl Decorator {
                 radius_xz: integer(value, "exclusion_radius_xz", 0),
                 radius_y: integer(value, "exclusion_radius_y", 0),
             },
+            "pale_moss" => Self::PaleMoss {
+                chances: (
+                    number(value, "leaves_probability", 0.0) as f32,
+                    number(value, "trunk_probability", 0.0) as f32,
+                    number(value, "ground_probability", 0.0) as f32,
+                ),
+                patch: compiler.configured_ref(&Value::String("minecraft:pale_moss_patch".into())),
+            },
+            "creaking_heart" => Self::CreakingHeart(probability),
+            "shelf_mushroom" => Self::ShelfMushroom(probability),
             _ => return None,
         })
     }
@@ -204,6 +225,9 @@ pub(crate) fn run(decorators: &[Decorator], context: &mut Context) {
                 directions,
                 (*probability, *empty, *radius_xz, *radius_y),
             ),
+            Decorator::PaleMoss { chances, patch } => forest::pale_moss(context, *chances, patch),
+            Decorator::CreakingHeart(probability) => forest::creaking_heart(context, *probability),
+            Decorator::ShelfMushroom(probability) => forest::shelf_mushroom(context, *probability),
         }
     }
 }
@@ -452,11 +476,16 @@ fn attached_to_leaves(
     }
 }
 
-pub(crate) fn compile_all(value: &Value) -> Vec<Decorator> {
+pub(crate) fn compile_all(value: &Value, compiler: &mut Compiler) -> Vec<Decorator> {
     value
         .get("decorators")
         .and_then(Value::as_array)
-        .map(|items| items.iter().filter_map(Decorator::compile).collect())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| Decorator::compile(item, compiler))
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -601,6 +630,51 @@ mod tests {
                 BlockKind::GrassBlock,
                 "minecraft:leaf_litter",
                 6
+            ) > 0
+        );
+    }
+
+    #[test]
+    fn pale_oaks_hang_moss_from_trunk_and_leaves() {
+        assert!(
+            grow(
+                "pale_oak",
+                BlockKind::GrassBlock,
+                "minecraft:pale_hanging_moss",
+                6
+            ) > 5
+        );
+    }
+
+    #[test]
+    fn pale_oaks_sometimes_hide_a_creaking_heart() {
+        assert!(
+            grow(
+                "pale_oak_creaking",
+                BlockKind::GrassBlock,
+                "minecraft:creaking_heart",
+                40
+            ) > 0
+        );
+        assert_eq!(
+            grow(
+                "pale_oak",
+                BlockKind::GrassBlock,
+                "minecraft:creaking_heart",
+                40
+            ),
+            0
+        );
+    }
+
+    #[test]
+    fn poplars_grow_shelf_mushrooms_on_their_trunk() {
+        assert!(
+            grow(
+                "orange_poplar",
+                BlockKind::GrassBlock,
+                "minecraft:shelf_mushroom",
+                30
             ) > 0
         );
     }
