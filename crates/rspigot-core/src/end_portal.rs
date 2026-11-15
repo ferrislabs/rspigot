@@ -195,7 +195,7 @@ impl<L: ClientLink> Server<L> {
         touched
     }
 
-    fn notify_portal_enter(&mut self, entity: EntityId, portals: Vec<BlockPos>) {
+    pub(crate) fn notify_portal_enter(&mut self, entity: EntityId, portals: Vec<BlockPos>) {
         let world = self.world_name();
         for pos in portals {
             let lane = self.lane_for(None, entity);

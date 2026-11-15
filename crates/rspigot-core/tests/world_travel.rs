@@ -296,3 +296,114 @@ fn loading_a_dimension_fires_world_init_then_world_load_for_that_world() {
     };
     assert_eq!(load.world, "minecraft:the_nether");
 }
+
+fn frame_block(s: &mut Scene, x: i32, y: i32, kind: &str) {
+    s.act(Order::Block {
+        pos: rspigot_domain::BlockPos::new(x, y, 8),
+        order: BlockOrder::Set(kind.to_owned()),
+    });
+}
+
+fn watch_the_frame(s: &mut Scene) {
+    s.server.handle(rspigot_core::events::Inbound::Console(
+        "tp Alice 12.5 64 8.5".to_owned(),
+    ));
+    s.server.deliver();
+}
+
+fn obsidian_frame(s: &mut Scene) {
+    for x in 7..=10 {
+        frame_block(s, x, 63, "minecraft:obsidian");
+        frame_block(s, x, 67, "minecraft:obsidian");
+    }
+    for y in 64..=66 {
+        frame_block(s, 7, y, "minecraft:obsidian");
+        frame_block(s, 10, y, "minecraft:obsidian");
+    }
+}
+
+fn portal_blocks_in(s: &mut Scene) -> usize {
+    s.tick(2);
+    let mut found = 0;
+    for x in 7..=10 {
+        for y in 63..=67 {
+            let at = rspigot_domain::BlockPos::new(x, y, 8);
+            if s.server
+                .block_at(at)
+                .is_some_and(|state| state.kind() == Some(rspigot_blocks::BlockKind::NetherPortal))
+            {
+                found += 1;
+            }
+        }
+    }
+    found
+}
+
+#[test]
+fn a_fire_in_an_obsidian_frame_asks_portal_create_with_the_frame_and_waits_for_the_answer() {
+    let mut s = scene_with_dimensions(vec![deciding(1, EventKind::PortalCreate)]);
+    watch_the_frame(&mut s);
+    obsidian_frame(&mut s);
+    frame_block(&mut s, 8, 64, "minecraft:fire");
+    let asked = last_asked(&s.plugin, EventKind::PortalCreate);
+    let EventPayload::PortalCreate(create) = &asked.payload else {
+        panic!("a portal creation");
+    };
+    assert_eq!(create.reason, PortalCreateReason::Fire);
+    assert_eq!(create.world, "minecraft:overworld");
+    assert_eq!(create.blocks.len(), 16);
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    assert_eq!(portal_blocks_in(&mut s), 0);
+}
+
+#[test]
+fn an_allowed_fire_creates_the_six_portal_blocks() {
+    let mut s = scene_with_dimensions(vec![deciding(1, EventKind::PortalCreate)]);
+    watch_the_frame(&mut s);
+    obsidian_frame(&mut s);
+    frame_block(&mut s, 8, 64, "minecraft:fire");
+    let asked = last_asked(&s.plugin, EventKind::PortalCreate);
+    rule_on(&mut s.server, 1, asked.id, false, None);
+    assert_eq!(portal_blocks_in(&mut s), 6);
+}
+
+#[test]
+fn a_player_in_a_nether_portal_asks_the_search_radii_and_a_cancelled_creation_keeps_them_home() {
+    let mut s = scene_with_dimensions(vec![
+        deciding(1, EventKind::PlayerPortal),
+        deciding(2, EventKind::PortalCreate),
+    ]);
+    let alice = s.players[0].clone();
+    obsidian_frame(&mut s);
+    frame_block(&mut s, 8, 64, "minecraft:fire");
+    let lit = last_asked(&s.plugin, EventKind::PortalCreate);
+    rule_on(&mut s.server, 2, lit.id, false, None);
+    assert_eq!(portal_blocks_in(&mut s), 6);
+    s.server.handle(rspigot_core::events::Inbound::Console(
+        "tp Alice 9.0 64 8.5".to_owned(),
+    ));
+    s.server.deliver();
+    s.tick(82);
+    let asked = last_asked(&s.plugin, EventKind::PlayerPortal);
+    let EventPayload::PlayerPortal(portal) = &asked.payload else {
+        panic!("a player portal");
+    };
+    assert_eq!(portal.cause, PlayerTeleportCause::NetherPortal);
+    assert!(portal.can_create_portal);
+    assert_eq!((portal.search_radius, portal.creation_radius), (16, 16));
+    let to = portal.to.as_ref().expect("destination");
+    assert_eq!(to.world, nether().to_string());
+    assert_eq!((to.position.x, to.position.z), (1.0, 1.0));
+    rule_on(&mut s.server, 1, asked.id, false, None);
+    let creation = last_asked(&s.plugin, EventKind::PortalCreate);
+    let EventPayload::PortalCreate(create) = &creation.payload else {
+        panic!("a portal creation");
+    };
+    assert_eq!(create.reason, PortalCreateReason::NetherPair);
+    assert_eq!(create.world, nether().to_string());
+    rule_on(&mut s.server, 2, creation.id, true, None);
+    assert_eq!(
+        s.server.player_dimension(alice.id),
+        Some(Identifier::minecraft("overworld"))
+    );
+}

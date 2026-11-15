@@ -4,6 +4,7 @@ use rspigot_data::multi_noise::overworld_biomes;
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
+use super::surface_random::SurfaceRandom;
 use crate::buffer::ChunkBuffer;
 use crate::climate::{NoiseStack, Positional, Xoroshiro};
 use crate::datapack::{block_state, noise_parameters, state_named, worldgen};
@@ -54,7 +55,7 @@ enum Cond {
     Steep,
     AbovePreliminary,
     Gradient {
-        factory: Positional,
+        factory: SurfaceRandom,
         below: Anchor,
         above: Anchor,
     },
@@ -71,7 +72,7 @@ enum Rule {
 struct Compiler<'a> {
     names: Vec<&'static str>,
     noise_names: Vec<String>,
-    seed_random: &'a Positional,
+    seed_random: &'a SurfaceRandom,
 }
 
 impl Compiler<'_> {
@@ -166,7 +167,7 @@ impl Compiler<'_> {
                     .and_then(Value::as_str)
                     .unwrap_or("");
                 Cond::Gradient {
-                    factory: self.seed_random.named(name).fork_positional(),
+                    factory: self.seed_random.named_positional(name),
                     below: Self::anchor(value.get("true_at_and_below").unwrap_or(&Value::Null)),
                     above: Self::anchor(value.get("false_at_and_above").unwrap_or(&Value::Null)),
                 }
@@ -212,6 +213,7 @@ pub(crate) struct SurfaceSystem {
     iceberg_surface: NoiseStack,
     bands: Vec<BlockStateId>,
     random: Positional,
+    selected: SurfaceRandom,
     stone: BlockStateId,
     water: BlockStateId,
     lava: BlockStateId,
@@ -228,6 +230,13 @@ fn stack(random: &Positional, name: &str) -> NoiseStack {
         panic!("noise {name} missing from the worldgen data");
     });
     NoiseStack::create(&parameters, &mut random.named(name))
+}
+
+fn selected_stack(random: &SurfaceRandom, name: &str) -> NoiseStack {
+    let parameters = noise_parameters(name).unwrap_or_else(|| {
+        panic!("noise {name} missing from the worldgen data");
+    });
+    random.noise(&parameters, name)
 }
 
 fn generate_bands(random: &mut Xoroshiro, palette: &Palette) -> Vec<BlockStateId> {
@@ -279,6 +288,13 @@ fn generate_bands(random: &mut Xoroshiro, palette: &Palette) -> Vec<BlockStateId
     bands
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Flavor {
+    Overworld,
+    Nether,
+    End,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Bounds {
     pub(crate) min_y: i32,
@@ -326,21 +342,54 @@ struct ColumnState<'a> {
 
 impl SurfaceSystem {
     pub(crate) fn new(seed: i64, palette: &Palette) -> Self {
+        Self::build(seed, palette, Flavor::Overworld)
+    }
+
+    pub(crate) fn nether(seed: i64, palette: &Palette) -> Self {
+        Self::build(seed, palette, Flavor::Nether)
+    }
+
+    pub(crate) fn end(seed: i64, palette: &Palette) -> Self {
+        Self::build(seed, palette, Flavor::End)
+    }
+
+    fn build(seed: i64, palette: &Palette, flavor: Flavor) -> Self {
         let random = Xoroshiro::from_seed(seed).fork_positional();
-        let names: Vec<&'static str> = overworld_biomes().to_vec();
+        let selected = match flavor {
+            Flavor::Overworld => SurfaceRandom::modern(seed),
+            Flavor::Nether | Flavor::End => SurfaceRandom::legacy(seed),
+        };
+        let names: Vec<&'static str> = match flavor {
+            Flavor::Overworld => overworld_biomes().to_vec(),
+            Flavor::Nether => crate::nether::NETHER_BIOMES.to_vec(),
+            Flavor::End => crate::end::END_BIOMES.to_vec(),
+        };
         let data = worldgen();
         let mut compiler = Compiler {
             names: names.clone(),
             noise_names: Vec::new(),
-            seed_random: &random,
+            seed_random: &selected,
         };
         let rules = data.get("surface_rule").cloned().unwrap_or(Value::Null);
-        let surface = compiler.rule(rules.get("surface").unwrap_or(&Value::Null));
-        let underground = compiler.rule(rules.get("underground").unwrap_or(&Value::Null));
+        let (surface, underground) = match flavor {
+            Flavor::Overworld => (
+                compiler.rule(rules.get("surface").unwrap_or(&Value::Null)),
+                compiler.rule(rules.get("underground").unwrap_or(&Value::Null)),
+            ),
+            Flavor::Nether | Flavor::End => {
+                let key = if flavor == Flavor::Nether {
+                    "nether"
+                } else {
+                    "end"
+                };
+                let rule = compiler.rule(rules.get(key).unwrap_or(&Value::Null));
+                (rule.clone(), rule)
+            }
+        };
         let noises = compiler
             .noise_names
             .iter()
-            .map(|name| stack(&random, name))
+            .map(|name| selected_stack(&selected, name))
             .collect();
         let climates = names
             .iter()
@@ -369,8 +418,8 @@ impl SurfaceSystem {
             surface,
             underground,
             noises,
-            surface_noise: stack(&random, "minecraft:surface"),
-            secondary: stack(&random, "minecraft:surface_secondary"),
+            surface_noise: selected_stack(&selected, "minecraft:surface"),
+            secondary: selected_stack(&selected, "minecraft:surface_secondary"),
             clay_offset: stack(&random, "minecraft:clay_bands_offset"),
             pillar: stack(&random, "minecraft:badlands_pillar"),
             pillar_roof: stack(&random, "minecraft:badlands_pillar_roof"),
@@ -380,6 +429,7 @@ impl SurfaceSystem {
             iceberg_surface: stack(&random, "minecraft:iceberg_surface"),
             bands,
             random,
+            selected,
             stone: palette[BlockKind::Stone],
             water: palette[BlockKind::Water],
             lava: palette[BlockKind::Lava],
@@ -413,7 +463,7 @@ impl SurfaceSystem {
 
     pub(crate) fn surface_depth(&self, x: i32, z: i32) -> i32 {
         let noise = f64::from(self.surface_noise.get(f64::from(x), 0.0, f64::from(z)));
-        let jitter = self.random.at(x, 0, z).next_double();
+        let jitter = self.selected.at(x, 0, z).next_double();
         (noise * 2.75 + 3.0 + jitter * 0.25) as i32
     }
 

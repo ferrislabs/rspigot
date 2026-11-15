@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn ten_pillars_stand_at_the_vanilla_positions_of_the_seed() {
-        let end = End::new(SEED as u64);
+        let end = End::new(SEED as u64, &crate::resources::Resources::resolve().blocks);
         let resources = Resources::resolve();
         let expected = spikes::spikes_for_seed(SEED);
         assert_eq!(end.pillars().spikes(), expected.as_slice());
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn a_pillar_crossing_a_chunk_border_is_built_in_both_chunks() {
-        let end = End::new(SEED as u64);
+        let end = End::new(SEED as u64, &crate::resources::Resources::resolve().blocks);
         let resources = Resources::resolve();
         let obsidian = BlockKind::Obsidian.default_state();
         for spike in end.pillars().spikes() {
@@ -212,7 +212,7 @@ mod tests {
 
     #[test]
     fn guarded_pillars_wear_a_cage_of_bars_and_the_others_do_not() {
-        let end = End::new(SEED as u64);
+        let end = End::new(SEED as u64, &crate::resources::Resources::resolve().blocks);
         let resources = Resources::resolve();
         let mut guarded = 0;
         for spike in end.pillars().spikes() {
@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn each_pillar_carries_one_crystal_on_top_in_its_own_chunk() {
-        let end = End::new(SEED as u64);
+        let end = End::new(SEED as u64, &crate::resources::Resources::resolve().blocks);
         let mut total = 0;
         for spike in end.pillars().spikes() {
             let chunk = BlockPos::new(spike.center_x, 0, spike.center_z).chunk();

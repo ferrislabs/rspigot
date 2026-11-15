@@ -126,6 +126,8 @@ pub struct Server<L> {
         crate::world_state::DimensionKey,
         crate::end_portal::Traveler,
     )>,
+    pub(crate) nether_queue: Vec<crate::nether_portal::NetherTrip>,
+    pub(crate) nether_time: FxHashMap<EntityId, i32>,
     arrivals: FxHashMap<u64, Arrival<L>>,
     startup: Option<Receiver<Inbound<L>>>,
     arrival_counter: u64,
@@ -198,6 +200,8 @@ impl<L: ClientLink> Server<L> {
             dimension_provider: None,
             command_dimension: None,
             portal_queue: Vec::new(),
+            nether_queue: Vec::new(),
+            nether_time: FxHashMap::default(),
             arrivals: FxHashMap::default(),
             startup: None,
             arrival_counter: 0,
@@ -771,6 +775,9 @@ impl<L: ClientLink> Server<L> {
         self.announce_settings(id, &initial);
         self.send_commands(id);
         self.ask_join(id);
+        if let Some(save) = &saved {
+            self.restore_login_dimension(id, &save.dimension);
+        }
     }
 
     fn send_join_sequence(&self, player: &mut Player<L>) {
@@ -927,6 +934,7 @@ impl<L: ClientLink> Server<L> {
             self.tick_dormant(&key);
         }
         self.run_portal_queue();
+        self.run_nether_queue();
     }
 
     fn tick_dormant(&mut self, key: &crate::world_state::DimensionKey) {
@@ -1000,6 +1008,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_dragon_fight();
         self.tick_entities();
         self.tick_portals();
+        self.tick_nether_portals();
         self.tick_gateways();
         self.tick_gateway_travelers();
         self.tick_ride_players();

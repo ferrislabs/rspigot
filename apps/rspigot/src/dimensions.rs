@@ -22,14 +22,17 @@ pub fn provide<L: ClientLink>(server: &mut Server<L>, key: &Identifier) {
     let Some(worlds) = WORLDS.get() else {
         return;
     };
-    if *key == Identifier::minecraft("the_end") {
-        server.load_dimension(
-            key.clone(),
-            Dimension::end(),
-            Arc::clone(&worlds.generator),
-            Arc::clone(&worlds.store),
-        );
-    }
+    let dimension = match key.as_str() {
+        "minecraft:the_nether" => Dimension::nether(),
+        "minecraft:the_end" => Dimension::end(),
+        _ => return,
+    };
+    server.load_dimension(
+        key.clone(),
+        dimension,
+        Arc::clone(&worlds.generator),
+        Arc::clone(&worlds.store),
+    );
 }
 
 #[cfg(test)]

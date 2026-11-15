@@ -156,6 +156,11 @@ pub(crate) enum Feature {
     Fossil(Box<super::fossil::Fossil>),
     Template(Box<super::templated::Templated>),
     Spread(Box<super::spread::Spread>),
+    ReplaceBlobs(Box<super::replace_blobs::ReplaceBlobs>),
+    Delta(Box<super::delta::Delta>),
+    Fungus(Box<super::fungus::Fungus>),
+    Chorus(super::chorus::Chorus),
+    EndIsland(super::end_island::EndIsland),
     Multiface(Box<super::multiface::Growth>),
     Sculk(super::sculk::Patch),
     Vegetation(Box<super::vegetation::Patch>),
@@ -357,6 +362,13 @@ impl<'a> Compiler<'a> {
             "random_neighbor_spread" => {
                 Feature::Spread(Box::new(super::spread::Spread::compile(value)))
             }
+            "netherrack_replace_blobs" => {
+                Feature::ReplaceBlobs(Box::new(super::replace_blobs::ReplaceBlobs::compile(value)))
+            }
+            "huge_fungus" => Feature::Fungus(Box::new(super::fungus::Fungus::compile(value))),
+            "end_island" => Feature::EndIsland(super::end_island::EndIsland::compile()),
+            "chorus_plant" => Feature::Chorus(super::chorus::Chorus::compile()),
+            "delta_feature" => Feature::Delta(Box::new(super::delta::Delta::compile(value))),
             "multiface_growth" => super::multiface::Growth::compile(value)
                 .map_or(Feature::Unsupported, |growth| {
                     Feature::Multiface(Box::new(growth))
@@ -483,6 +495,11 @@ impl Feature {
             Self::Fossil(fossil) => fossil.reach(),
             Self::Template(template) => template.reach(),
             Self::Spread(spread) => spread.reach(),
+            Self::ReplaceBlobs(blobs) => blobs.reach(),
+            Self::Delta(delta) => delta.reach(),
+            Self::Fungus(fungus) => fungus.reach(),
+            Self::Chorus(chorus) => chorus.reach(),
+            Self::EndIsland(island) => island.reach(),
             Self::Multiface(growth) => growth.reach(),
             Self::Sculk(patch) => patch.reach(),
             Self::Vegetation(patch) => patch.reach(),
@@ -532,6 +549,11 @@ impl Feature {
             Self::Fossil(fossil) => fossil.place(run, pos),
             Self::Template(template) => template.place(run, pos),
             Self::Spread(spread) => spread.place(run, pos),
+            Self::ReplaceBlobs(blobs) => blobs.place(run, pos),
+            Self::Delta(delta) => delta.place(run, pos),
+            Self::Fungus(fungus) => fungus.place(run, pos),
+            Self::Chorus(chorus) => chorus.place(run, pos),
+            Self::EndIsland(island) => island.place(run, pos),
             Self::Multiface(growth) => growth.place(run, pos),
             Self::Sculk(patch) => patch.place(run, pos),
             Self::Vegetation(patch) => patch.place(run, pos),

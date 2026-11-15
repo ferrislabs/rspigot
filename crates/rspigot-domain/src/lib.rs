@@ -39,6 +39,7 @@ pub mod particle;
 pub mod piston;
 pub mod player;
 pub mod poi;
+pub mod portal;
 pub mod pos;
 pub mod potion;
 pub mod raid;

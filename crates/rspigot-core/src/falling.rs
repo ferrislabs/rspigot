@@ -275,6 +275,11 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         self.redstone_shape(pos, state, direction);
+        if kind == BlockKind::NetherPortal {
+            let neighbour = self.block_or_air(step(pos, direction));
+            self.portal_neighbour_changed(pos, state, direction, neighbour);
+            return;
+        }
         if kind == BlockKind::Frogspawn {
             self.frogspawn_neighbour_changed(pos);
             return;

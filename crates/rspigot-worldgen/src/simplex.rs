@@ -18,14 +18,14 @@ const F2: f64 = 0.366_025_403_784_438_6;
 const G2: f64 = 0.211_324_865_405_187_13;
 
 #[derive(Debug, Clone)]
-struct Simplex {
+pub(crate) struct Simplex {
     p: [u8; 256],
     xo: f64,
     yo: f64,
 }
 
 impl Simplex {
-    fn new(random: &mut JavaRandom) -> Self {
+    pub(crate) fn new(random: &mut JavaRandom) -> Self {
         let xo = random.next_double() * 256.0;
         let yo = random.next_double() * 256.0;
         random.next_double();
@@ -52,7 +52,7 @@ impl Simplex {
         }
     }
 
-    fn value(&self, xin: f64, yin: f64) -> f64 {
+    pub(crate) fn value(&self, xin: f64, yin: f64) -> f64 {
         let s = (xin + yin) * F2;
         let i = (xin + s).floor() as i32;
         let j = (yin + s).floor() as i32;

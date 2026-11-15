@@ -30,15 +30,12 @@ impl Rng {
         Self { state: mix(seed) }
     }
 
-    pub(crate) fn for_chunk(seed: u64, x: i32, z: i32, salt: u64) -> Self {
-        Self::new(hash3(seed ^ salt, x, 0, z))
-    }
-
     pub(crate) fn next_u64(&mut self) -> u64 {
         self.state = self.state.wrapping_add(GOLDEN);
         finalize(self.state)
     }
 
+    #[cfg(test)]
     pub(crate) fn skip(&mut self, draws: u64) {
         self.state = self.state.wrapping_add(GOLDEN.wrapping_mul(draws));
     }
