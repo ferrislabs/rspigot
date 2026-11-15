@@ -31,6 +31,7 @@ pub(crate) enum RedstoneChange {
     },
     Opener,
     Detector,
+    Daylight,
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +82,7 @@ impl<L: ClientLink> Server<L> {
             RedstoneChange::Observer { on } => self.finish_observer(pos, new, on),
             RedstoneChange::Opener => self.finish_opener(pos, new),
             RedstoneChange::Detector => self.finish_detector(pos, new),
+            RedstoneChange::Daylight => self.finish_daylight(pos, new),
         }
     }
 }

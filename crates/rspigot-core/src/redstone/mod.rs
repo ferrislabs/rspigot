@@ -2,6 +2,7 @@ mod analog;
 mod bell;
 mod controls;
 mod crafter;
+mod daylight;
 mod diode;
 mod dispenser;
 mod event;

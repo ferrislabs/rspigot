@@ -200,6 +200,9 @@ impl<L: ClientLink> Server<L> {
         if kind == BlockKind::NoteBlock {
             return self.use_note_block(pos, state);
         }
+        if kind == BlockKind::DaylightDetector {
+            return self.use_daylight_detector(id, pos, state);
+        }
         false
     }
 

@@ -1,4 +1,6 @@
 mod common;
+#[path = "common/screen.rs"]
+mod screen;
 
 use common::*;
 use rspigot_core::plugins::{Answer, BlockOrder, EntityOrder, Order, Question};
@@ -92,4 +94,42 @@ fn an_arrow_near_the_edge_of_a_target_gives_less_power() {
     s.tick(4);
     let power: i32 = prop(&mut s, target, "power").parse().unwrap();
     assert!((1..15).contains(&power), "power {power}");
+}
+
+fn set_time(s: &mut Scene, ticks: i64) {
+    s.server
+        .handle(rspigot_core::events::Inbound::Console(format!(
+            "time set {ticks}"
+        )));
+    s.server.deliver();
+}
+
+#[test]
+fn a_daylight_detector_reads_the_sky_every_twenty_ticks() {
+    let mut s = scene(&["Alice"]);
+    let at = BlockPos::new(3, 64, 3);
+    let lamp = BlockPos::new(3, 64, 4);
+    set_time(&mut s, 6000);
+    put(&mut s, at, "minecraft:daylight_detector", &[]);
+    put(&mut s, lamp, "minecraft:redstone_lamp", &[]);
+    s.tick(40);
+    assert_eq!(prop(&mut s, at, "power"), "15");
+    assert_eq!(prop(&mut s, lamp, "lit"), "true");
+    set_time(&mut s, 18000);
+    s.tick(60);
+    assert_eq!(prop(&mut s, at, "power"), "0");
+}
+
+#[test]
+fn using_a_daylight_detector_inverts_it() {
+    let mut s = scene(&["Alice"]);
+    let at = BlockPos::new(3, 64, 3);
+    set_time(&mut s, 18000);
+    put(&mut s, at, "minecraft:daylight_detector", &[]);
+    s.tick(25);
+    assert_eq!(prop(&mut s, at, "power"), "0");
+    let alice = s.players[0].clone();
+    screen::use_block(&mut s, &alice, at);
+    assert_eq!(prop(&mut s, at, "inverted"), "true");
+    assert_eq!(prop(&mut s, at, "power"), "11");
 }
