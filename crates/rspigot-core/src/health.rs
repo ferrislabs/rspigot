@@ -410,6 +410,9 @@ impl<L: ClientLink> Server<L> {
         let player = self.players.get(&id)?;
         if invulnerable_to(player, kind, self.config.rules.fall_damage)
             || (source.attacker().is_some() && !self.config.pvp)
+            || source
+                .attacker()
+                .is_some_and(|attacker| self.friendly_fire_blocked(attacker, id))
             || (player.abilities().invulnerable && !kind.is(DamageTag::BypassesInvulnerability))
             || player.vitals.is_dead()
         {
@@ -728,7 +731,7 @@ impl<L: ClientLink> Server<L> {
         );
         if let Some(message) = spoken {
             tracing::info!("{}", crate::console::console_text(&message));
-            self.push(Audience::All, ClientEvent::system(message));
+            self.send_death_message(id, message);
         }
         self.forgive_dead_player(id);
         let keep_inventory = patch.keep_inventory.unwrap_or(step.keep);

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspigot_domain::EntityId;
 use rspigot_domain::player::PlayerId;
-use rspigot_domain::scoreboard::{Criteria, Scoreboard, ScoreboardMessage};
+use rspigot_domain::scoreboard::{Criteria, Scoreboard, ScoreboardMessage, Visibility};
 use rspigot_domain::text::Component;
 use rustc_hash::FxHashMap;
 
@@ -238,6 +238,51 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn friendly_fire_blocked(&self, attacker: PlayerId, victim: PlayerId) -> bool {
+        let board = &self.scoreboard.board;
+        let name = |id: &PlayerId| self.players.get(id).map(|p| p.profile.name.as_str());
+        let (Some(attacker), Some(victim)) = (name(&attacker), name(&victim)) else {
+            return false;
+        };
+        match (board.team_of(attacker), board.team_of(victim)) {
+            (Some(own), Some(other)) => own.name == other.name && !own.friendly_fire,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn send_death_message(&mut self, victim: PlayerId, message: Component) {
+        let team = self
+            .players
+            .get(&victim)
+            .and_then(|player| self.scoreboard.board.team_of(&player.profile.name));
+        let visibility = team.map(|team| (team.name.clone(), team.death_message_visibility));
+        let recipients: Vec<PlayerId> = self
+            .players
+            .values()
+            .filter(|player| {
+                let on_team = |name: &str| {
+                    self.scoreboard
+                        .board
+                        .team_of(&player.profile.name)
+                        .is_some_and(|team| team.name == name)
+                };
+                match &visibility {
+                    None | Some((_, Visibility::Always)) => true,
+                    Some((_, Visibility::Never)) => false,
+                    Some((team, Visibility::HideForOtherTeams)) => on_team(team),
+                    Some((team, Visibility::HideForOwnTeam)) => !on_team(team),
+                }
+            })
+            .map(|player| player.id)
+            .collect();
+        for recipient in recipients {
+            self.push(
+                Audience::One(recipient),
+                ClientEvent::system(message.clone()),
+            );
+        }
+    }
+
     pub(crate) fn forget_scoreboard_player(&mut self, id: PlayerId) {
         self.scoreboard.recorded.remove(&id);
     }
@@ -413,6 +458,70 @@ mod tests {
         server.award_kill_score(id, "zombie", false);
         assert_eq!(score(&server, "Alice", "all"), Some(2));
         assert_eq!(score(&server, "Alice", "players"), Some(1));
+    }
+
+    fn two_teams(server: &mut Server<Tap>) {
+        for name in ["red", "blue"] {
+            server
+                .scoreboard
+                .board
+                .add_team(Team::new(name, Component::text(name)))
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn friendly_fire_only_blocks_teammates_when_disabled() {
+        let (mut server, id, _) = arrive();
+        let bob = PlayerId::offline("Bob");
+        server.handle(Inbound::Join {
+            profile: GameProfile {
+                id: bob,
+                name: "Bob".to_owned(),
+                properties: Vec::new(),
+            },
+            settings: ClientSettings::default(),
+            link: Tap::default(),
+            address: [127, 0, 0, 3].into(),
+            session: 3,
+        });
+        two_teams(&mut server);
+        server.scoreboard.board.join_team("Alice", "red").unwrap();
+        server.scoreboard.board.join_team("Bob", "red").unwrap();
+        assert!(!server.friendly_fire_blocked(id, bob));
+        server
+            .scoreboard
+            .board
+            .modify_team("red", |team| team.friendly_fire = false);
+        assert!(server.friendly_fire_blocked(id, bob));
+        server.scoreboard.board.join_team("Bob", "blue").unwrap();
+        assert!(!server.friendly_fire_blocked(id, bob));
+    }
+
+    #[test]
+    fn death_messages_follow_the_team_visibility() {
+        let (mut server, id, link) = arrive();
+        two_teams(&mut server);
+        server.scoreboard.board.join_team("Alice", "red").unwrap();
+        link.take();
+        for (visibility, heard) in [
+            (Visibility::Always, true),
+            (Visibility::Never, false),
+            (Visibility::HideForOtherTeams, true),
+            (Visibility::HideForOwnTeam, false),
+        ] {
+            server
+                .scoreboard
+                .board
+                .modify_team("red", |team| team.death_message_visibility = visibility);
+            server.send_death_message(id, Component::text("Alice died"));
+            server.deliver();
+            let received = link
+                .take()
+                .into_iter()
+                .any(|event| matches!(event, ClientEvent::SystemChat { .. }));
+            assert_eq!(received, heard, "{visibility:?}");
+        }
     }
 
     #[test]
