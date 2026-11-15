@@ -146,6 +146,8 @@ pub(crate) struct Region<'a> {
     scratch: Option<ClimateScratch>,
     fixed_biome: u8,
     random: Xoroshiro,
+    #[cfg(test)]
+    pub(crate) changed: Vec<(i32, i32)>,
 }
 
 fn slot_index(dx: i32, dz: i32) -> usize {
@@ -167,6 +169,8 @@ impl<'a> Region<'a> {
             slots: std::array::from_fn(|_| None),
             scratch: Some(overworld.source.scratch()),
             fixed_biome: 0,
+            #[cfg(test)]
+            changed: Vec::new(),
             random: Xoroshiro::from_seed(0),
         }
     }
@@ -187,6 +191,7 @@ impl<'a> Region<'a> {
             slots: std::array::from_fn(|_| None),
             scratch: None,
             fixed_biome: biome,
+            changed: Vec::new(),
             random: Xoroshiro::from_seed(0),
         };
         for dz in -1..=1 {
@@ -284,6 +289,10 @@ impl<'a> Region<'a> {
         let Some(slot) = self.slots[index].as_mut() else {
             return false;
         };
+        #[cfg(test)]
+        if slot.buffer.get(lx, y, lz) != state {
+            self.changed.push((x, z));
+        }
         slot.buffer.set(lx, y, lz, state);
         let top = &mut slot.tops[(lz << 4) | lx];
         if state.is_air() {

@@ -76,6 +76,17 @@ pub(crate) struct Ore {
     scattered: bool,
 }
 
+impl Ore {
+    fn reach(&self) -> i32 {
+        if self.scattered {
+            return 8;
+        }
+        let spread = self.size as f32 / 8.0;
+        let half = (((self.size as f32 / 16.0 * 2.0 + 1.0) / 2.0).ceil()) as i32;
+        spread.ceil() as i32 + half
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct Layer {
     height: Int,
@@ -458,7 +469,7 @@ impl Feature {
     pub(crate) fn reach(&self) -> i32 {
         match self {
             Self::NoOp | Self::Simple { .. } | Self::Column(_) | Self::Spring(_) => 1,
-            Self::Ore(_) => 9,
+            Self::Ore(ore) => ore.reach(),
             Self::Tree(_) => 12,
             Self::Lake(_) => 16,
             Self::Blob(_) => 6,
