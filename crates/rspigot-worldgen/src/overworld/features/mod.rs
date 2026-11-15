@@ -1,6 +1,7 @@
 mod bodies;
 mod fallen;
 mod ice;
+mod magma;
 mod mushrooms;
 mod place;
 #[cfg(test)]

@@ -139,6 +139,7 @@ pub(crate) enum Feature {
     Vines,
     Mushroom(Box<super::mushrooms::Mushroom>),
     Fallen(Box<super::fallen::Fallen>),
+    Magma(super::magma::Magma),
     Spike(Box<super::ice::Spike>),
     Iceberg(super::ice::Iceberg),
     BlueIce(super::ice::BlueIce),
@@ -320,6 +321,7 @@ impl<'a> Compiler<'a> {
             "spike" => Feature::Spike(Box::new(super::ice::Spike::compile(value))),
             "iceberg" => Feature::Iceberg(super::ice::Iceberg::compile(value)),
             "blue_ice" => Feature::BlueIce(super::ice::BlueIce),
+            "underwater_magma" => Feature::Magma(super::magma::Magma::compile(value)),
             "fallen_tree" => Feature::Fallen(Box::new(super::fallen::Fallen::compile(value, self))),
             "huge_red_mushroom" => {
                 Feature::Mushroom(Box::new(super::mushrooms::Mushroom::compile(value, true)))
@@ -403,6 +405,7 @@ impl Feature {
             Self::Vines => 1,
             Self::Mushroom(mushroom) => mushroom.reach(),
             Self::Fallen(fallen) => fallen.reach(),
+            Self::Magma(magma) => magma.reach(),
             Self::Spike(spike) => spike.reach(),
             Self::Iceberg(iceberg) => iceberg.reach(),
             Self::BlueIce(ice) => ice.reach(),
@@ -437,6 +440,7 @@ impl Feature {
             Self::Vines => place_vines(run, pos),
             Self::Mushroom(mushroom) => mushroom.place(run, pos),
             Self::Fallen(fallen) => fallen.place(run, pos),
+            Self::Magma(magma) => magma.place(run, pos),
             Self::Spike(spike) => spike.place(run, pos),
             Self::Iceberg(iceberg) => iceberg.place(run, pos),
             Self::BlueIce(ice) => ice.place(run, pos),
