@@ -7,6 +7,7 @@ mod diode;
 mod dispenser;
 mod event;
 mod hopper;
+mod jukebox;
 mod lamp;
 mod lightning_rod;
 mod note;
@@ -19,6 +20,7 @@ mod signals;
 mod storage;
 mod target;
 mod torch;
+mod touch;
 mod tripwire;
 mod wire;
 
@@ -37,6 +39,7 @@ pub(crate) use hopper::{HopperStep, Stage as HopperStage};
 pub(crate) use note::NoteStep;
 pub(crate) use piston::PistonStep;
 pub(crate) use signals::{connected_direction, is_conductor};
+pub(crate) use touch::TouchStep;
 pub(crate) use tripwire::HookRun;
 
 pub(crate) const MAX_POWER: i32 = 15;

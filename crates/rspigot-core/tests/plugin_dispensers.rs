@@ -386,3 +386,185 @@ fn a_dispenser_lights_a_tnt_block_with_flint_and_steel() {
             if event.cause == rspigot_core::plugins::events::TNTPrimeCause::Dispenser
     )));
 }
+
+fn kinded(
+    s: &Scene,
+    kind: rspigot_entities::EntityKind,
+) -> Vec<rspigot_core::entities::EntitySnapshot> {
+    s.server.entities_of(kind)
+}
+
+#[test]
+fn a_dispenser_places_a_minecart_on_the_rail_in_front_of_it() {
+    let mut s = world(
+        vec![
+            dispenser(BlockKind::Dispenser, &[("minecraft:minecart", 2)]),
+            Seed::block(FRONT, BlockKind::Rail).with("shape", "north_south"),
+        ],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    let carts = kinded(&s, rspigot_entities::EntityKind::Minecart);
+    assert_eq!(carts.len(), 1);
+    assert!((carts[0].position.x - 4.625).abs() < 0.3);
+    assert!((carts[0].position.y - 64.1).abs() < 0.3);
+    assert_eq!(s.server.ground_items().len(), 0);
+}
+
+#[test]
+fn a_dispenser_drops_a_minecart_when_there_is_no_rail() {
+    let mut s = world(
+        vec![dispenser(
+            BlockKind::Dispenser,
+            &[("minecraft:minecart", 1)],
+        )],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    assert!(kinded(&s, rspigot_entities::EntityKind::Minecart).is_empty());
+    assert_eq!(s.server.ground_items().len(), 1);
+}
+
+#[test]
+fn a_dispenser_launches_a_boat_on_the_water_in_front_of_it() {
+    let mut s = world(
+        vec![
+            dispenser(BlockKind::Dispenser, &[("minecraft:oak_boat", 1)]),
+            Seed::block(FRONT, BlockKind::Water),
+        ],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    assert_eq!(kinded(&s, rspigot_entities::EntityKind::OakBoat).len(), 1);
+}
+
+#[test]
+fn a_dispenser_stands_an_armor_stand_in_front_of_it() {
+    let mut s = world(
+        vec![dispenser(
+            BlockKind::Dispenser,
+            &[("minecraft:armor_stand", 1)],
+        )],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    let stands = kinded(&s, rspigot_entities::EntityKind::ArmorStand);
+    assert_eq!(stands.len(), 1);
+    assert!((stands[0].position.x - 4.5).abs() < 1e-6);
+}
+
+#[test]
+fn a_dispenser_hatches_the_mob_of_a_spawn_egg() {
+    let mut s = world(
+        vec![dispenser(
+            BlockKind::Dispenser,
+            &[("minecraft:pig_spawn_egg", 1)],
+        )],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    assert_eq!(kinded(&s, rspigot_entities::EntityKind::Pig).len(), 1);
+}
+
+#[test]
+fn a_dispenser_turns_dirt_into_mud_with_a_water_bottle() {
+    let mut s = world(
+        vec![
+            Seed::block(DISPENSER, BlockKind::Dispenser)
+                .with("facing", "east")
+                .carrying(
+                    "Items",
+                    rspigot_nbt::Tag::List(vec![rspigot_nbt::Tag::Compound(
+                        rspigot_nbt::Compound::new()
+                            .with("Slot", 0_i8)
+                            .with("id", "minecraft:potion")
+                            .with("count", 1_i32)
+                            .with(
+                                "components",
+                                rspigot_nbt::Compound::new().with(
+                                    "minecraft:potion_contents",
+                                    rspigot_nbt::Compound::new().with("potion", "minecraft:water"),
+                                ),
+                            ),
+                    )]),
+                ),
+            Seed::block(FRONT, BlockKind::Dirt),
+        ],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    assert_eq!(kind_at(&mut s, FRONT), "minecraft:mud");
+    let alice = s.players[0].clone();
+    assert_eq!(
+        contents(&mut s, &alice, DISPENSER, 1),
+        [Some(("minecraft:glass_bottle", 1))]
+    );
+}
+
+#[test]
+fn a_dispenser_fills_a_glass_bottle_from_a_water_block() {
+    let mut s = world(
+        vec![
+            dispenser(BlockKind::Dispenser, &[("minecraft:glass_bottle", 1)]),
+            Seed::block(FRONT, BlockKind::Water),
+        ],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    let alice = s.players[0].clone();
+    let held = contents(&mut s, &alice, DISPENSER, 1);
+    assert_eq!(held, [Some(("minecraft:potion", 1))]);
+}
+
+#[test]
+fn a_dispenser_places_powder_snow_and_keeps_the_empty_bucket() {
+    let mut s = world(
+        vec![dispenser(
+            BlockKind::Dispenser,
+            &[("minecraft:powder_snow_bucket", 1)],
+        )],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    assert_eq!(kind_at(&mut s, FRONT), "minecraft:powder_snow");
+    let alice = s.players[0].clone();
+    assert_eq!(
+        contents(&mut s, &alice, DISPENSER, 1),
+        [Some(("minecraft:bucket", 1))]
+    );
+}
+
+#[test]
+fn a_dispenser_takes_honey_from_a_full_hive_and_resets_it() {
+    let mut s = world(
+        vec![
+            dispenser(BlockKind::Dispenser, &[("minecraft:glass_bottle", 1)]),
+            Seed::block(FRONT, BlockKind::BeeNest).with("honey_level", "5"),
+        ],
+        Vec::new(),
+    );
+    power(&mut s);
+    s.tick(5);
+    let alice = s.players[0].clone();
+    assert_eq!(
+        contents(&mut s, &alice, DISPENSER, 1),
+        [Some(("minecraft:honey_bottle", 1))]
+    );
+    match s.ask(Question::Block(FRONT)) {
+        Answer::Block(state) => assert!(
+            state
+                .properties
+                .iter()
+                .any(|(key, value)| key == "honey_level" && value == "0")
+        ),
+        other => panic!("expected a block, got {other:?}"),
+    }
+}

@@ -693,6 +693,18 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
+    pub(crate) fn release_honey(&mut self, pos: BlockPos, state: BlockStateId) {
+        if self.is_smokey_pos(pos) {
+            self.reset_honey_level(pos, state);
+            return;
+        }
+        if self.hive_at(pos).is_some_and(|hive| !hive.is_empty()) {
+            self.anger_nearby_bees(pos);
+        }
+        self.reset_honey_level(pos, state);
+        self.empty_hive(pos, state, None, ReleaseStatus::BeeReleased);
+    }
+
     fn reset_honey_level(&mut self, pos: BlockPos, state: BlockStateId) {
         if let Some(next) = state.with_property(HONEY_LEVEL, "0") {
             self.set_block(pos, next);

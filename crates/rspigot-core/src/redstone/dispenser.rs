@@ -18,7 +18,7 @@ use crate::plugins::events::{
 };
 use crate::plugins::steps::Birth;
 use crate::plugins::{
-    Continuation, EventKind, EventPayload, InventoryOwner, InventoryRef, Lane, spec_of, stack_of,
+    Continuation, EventKind, EventPayload, InventoryRef, Lane, spec_of, stack_of,
 };
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -57,6 +57,13 @@ pub(crate) enum Behavior {
     BoneMeal,
     Shear,
     Ignite,
+    Mud,
+    Bottle,
+    PowderSnow,
+    Cart(Kind),
+    Boat(Kind),
+    Stand,
+    Egg(Kind),
 }
 
 fn behavior_of(stack: &ItemStack) -> Behavior {
@@ -77,6 +84,19 @@ fn behavior_of(stack: &ItemStack) -> Behavior {
         ItemKind::BoneMeal => Behavior::BoneMeal,
         ItemKind::Shears => Behavior::Shear,
         ItemKind::FlintAndSteel | ItemKind::FireCharge => Behavior::Ignite,
+        ItemKind::Potion => Behavior::Mud,
+        ItemKind::GlassBottle => Behavior::Bottle,
+        ItemKind::PowderSnowBucket => Behavior::PowderSnow,
+        ItemKind::ArmorStand => Behavior::Stand,
+        _ if kind.class() == "MinecartItem" => {
+            Kind::from_name(kind.name()).map_or(Behavior::Drop, Behavior::Cart)
+        }
+        _ if kind.class() == "BoatItem" => {
+            Kind::from_name(kind.name()).map_or(Behavior::Drop, Behavior::Boat)
+        }
+        _ if Kind::from_spawn_egg(stack.item.0).is_some() => {
+            Kind::from_spawn_egg(stack.item.0).map_or(Behavior::Drop, Behavior::Egg)
+        }
         _ => match kind.equippable() {
             Some(
                 slot @ (EquipmentSlot::Head
@@ -117,6 +137,26 @@ impl DispenseStep {
             _ => EventKind::BlockDispense,
         }
     }
+}
+
+const HONEY_FULL: i32 = 5;
+
+fn yaw_of(face: Face) -> f32 {
+    match face {
+        Face::South => 0.0,
+        Face::West => 90.0,
+        Face::North => 180.0,
+        Face::East => 270.0,
+        _ => 0.0,
+    }
+}
+
+fn has_water(state: BlockStateId) -> bool {
+    state.flags().contains(rspigot_blocks::StateFlags::WATER)
+}
+
+fn stack_is_water(stack: &ItemStack) -> bool {
+    rspigot_domain::potion::PotionContents::of(stack).is(rspigot_domain::potion::WATER)
 }
 
 fn vector_of(face: Face) -> Vec3 {
@@ -200,7 +240,7 @@ impl<L: ClientLink> Server<L> {
         };
         let front = step(pos, direction);
         let dropper = state.kind() == Some(BlockKind::Dropper);
-        if dropper && let Some(destination) = self.holder_at(front) {
+        if dropper && let Some(destination) = self.container_at(front) {
             let transfer = Transfer {
                 source: me,
                 destination,
@@ -223,7 +263,8 @@ impl<L: ClientLink> Server<L> {
         } else {
             behavior_of(&stack)
         };
-        let Some((behavior, target, velocity)) = self.plan_dispense(pos, direction, behavior)
+        let Some((behavior, target, velocity)) =
+            self.plan_dispense(pos, direction, behavior, &stack)
         else {
             self.level_event(FAIL_EVENT, pos, 0);
             return;
@@ -267,6 +308,7 @@ impl<L: ClientLink> Server<L> {
         pos: BlockPos,
         direction: Face,
         behavior: Behavior,
+        stack: &ItemStack,
     ) -> Option<(Behavior, Option<EntityId>, Vec3)> {
         let front = step(pos, direction);
         let toward = vector_of(direction);
@@ -295,21 +337,21 @@ impl<L: ClientLink> Server<L> {
                 });
                 match target {
                     Some(target) => Some((behavior, Some(target), Vec3::ZERO)),
-                    None => self.plan_dispense(pos, direction, Behavior::Drop),
+                    None => self.plan_dispense(pos, direction, Behavior::Drop, stack),
                 }
             }
             Behavior::Pour { lava } => {
                 if self.empty_contents(front, None, lava).is_some() {
                     Some((behavior, None, Vec3::ZERO))
                 } else {
-                    self.plan_dispense(pos, direction, Behavior::Drop)
+                    self.plan_dispense(pos, direction, Behavior::Drop, stack)
                 }
             }
             Behavior::Scoop => {
                 if Self::scooped(self.block_or_air(front)).is_some() {
                     Some((behavior, None, Vec3::ZERO))
                 } else {
-                    self.plan_dispense(pos, direction, Behavior::Drop)
+                    self.plan_dispense(pos, direction, Behavior::Drop, stack)
                 }
             }
             Behavior::Tnt => Some((
@@ -332,7 +374,96 @@ impl<L: ClientLink> Server<L> {
                 sheep.map(|target| (behavior, Some(target), Vec3::ZERO))
             }
             Behavior::Ignite => Some((behavior, None, Vec3::ZERO)),
+            Behavior::Mud => {
+                let state = self.block_or_air(front);
+                if rspigot_domain::entity::physics::has_tag(state, "minecraft:convertible_to_mud")
+                    && stack_is_water(stack)
+                {
+                    Some((behavior, None, Vec3::ZERO))
+                } else {
+                    self.plan_dispense(pos, direction, Behavior::Drop, stack)
+                }
+            }
+            Behavior::Bottle => {
+                let state = self.block_or_air(front);
+                let honey = crate::beehive::is_hive_block(state)
+                    && crate::beehive::honey_level(state) >= HONEY_FULL;
+                if honey || has_water(state) {
+                    Some((behavior, None, Vec3::ZERO))
+                } else {
+                    self.plan_dispense(pos, direction, Behavior::Drop, stack)
+                }
+            }
+            Behavior::PowderSnow => {
+                if self.block_or_air(front).is_air()
+                    || crate::bucket::replaceable_by_water(self.block_or_air(front))
+                {
+                    Some((behavior, None, Vec3::ZERO))
+                } else {
+                    self.plan_dispense(pos, direction, Behavior::Drop, stack)
+                }
+            }
+            Behavior::Cart(_) => match self.cart_position(pos, direction) {
+                Some(at) => Some((behavior, None, at)),
+                None => self.plan_dispense(pos, direction, Behavior::Drop, stack),
+            },
+            Behavior::Boat(kind) => match self.boat_position(pos, direction, kind) {
+                Some(at) => Some((behavior, None, at)),
+                None => self.plan_dispense(pos, direction, Behavior::Drop, stack),
+            },
+            Behavior::Stand | Behavior::Egg(_) => Some((behavior, None, Vec3::ZERO)),
         }
+    }
+
+    fn cart_position(&self, pos: BlockPos, direction: Face) -> Option<Vec3> {
+        let toward = vector_of(direction);
+        let front = step(pos, direction);
+        let state = self.block_or_air(front);
+        let slope = |rail: BlockStateId| {
+            rail.property("shape")
+                .and_then(rspigot_domain::entity::minecart::exits_of)
+                .is_some_and(|exits| exits.slope)
+        };
+        let lift = if rspigot_domain::entity::minecart::is_rail(state) {
+            if slope(state) { 0.6 } else { 0.1 }
+        } else if state.is_air() {
+            let below = self.block_or_air(step(front, Face::Down));
+            if !rspigot_domain::entity::minecart::is_rail(below) {
+                return None;
+            }
+            if direction != Face::Down && slope(below) {
+                -0.4
+            } else {
+                -0.9
+            }
+        } else {
+            return None;
+        };
+        Some(Vec3::new(
+            f64::from(pos.x) + 0.5 + toward.x * 1.125,
+            f64::from(pos.y) + toward.y + lift,
+            f64::from(pos.z) + 0.5 + toward.z * 1.125,
+        ))
+    }
+
+    fn boat_position(&mut self, pos: BlockPos, direction: Face, kind: Kind) -> Option<Vec3> {
+        let toward = vector_of(direction);
+        let width = f64::from(self.new_entity_base(kind).dimensions.width);
+        let reach = width / 2.0 + 0.5625;
+        let front = step(pos, direction);
+        let state = self.block_or_air(front);
+        let lift = if has_water(state) {
+            1.0
+        } else if state.is_air() && has_water(self.block_or_air(step(front, Face::Down))) {
+            0.0
+        } else {
+            return None;
+        };
+        Some(Vec3::new(
+            f64::from(pos.x) + 0.5 + toward.x * reach,
+            f64::from(pos.y) + 0.5 + toward.y * 1.125 + lift,
+            f64::from(pos.z) + 0.5 + toward.z * reach,
+        ))
     }
 
     pub(crate) fn ask_dispense(&mut self, dispense: DispenseStep) {
@@ -380,7 +511,7 @@ impl<L: ClientLink> Server<L> {
 
     fn dispense_ref(holder: &Holder) -> InventoryRef {
         InventoryRef {
-            owner: InventoryOwner::Block(holder.pos),
+            owner: holder.owner(),
             size: i32::try_from(holder.size).unwrap_or(i32::MAX),
             kind: holder.kind_name().to_owned(),
             id: 0,
@@ -431,7 +562,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(Ok(Some(replaced))) = item.as_ref().map(stack_of) {
             if replaced.item != stack.item {
                 behavior = behavior_of(&replaced);
-                match self.plan_dispense(dispense.pos, direction, behavior) {
+                match self.plan_dispense(dispense.pos, direction, behavior, &replaced) {
                     Some((planned, planned_target, planned_velocity)) => {
                         behavior = planned;
                         target = planned_target;
@@ -505,8 +636,9 @@ impl<L: ClientLink> Server<L> {
         };
         let toward = direction.opposite();
         let slots = destination.slots_toward(toward);
+        let before = into.clone();
         let leftover = insert_stack(&mut into, &slots, stack, |at, candidate| {
-            destination.may_place(at, candidate, toward)
+            destination.may_place(at, candidate, toward, &before)
         });
         if leftover.is_some() {
             return;
@@ -618,6 +750,135 @@ impl<L: ClientLink> Server<L> {
                     wear: stack.item == ItemKind::FlintAndSteel.id(),
                 })
             }
+            Behavior::Mud => {
+                self.set_block(front, BlockKind::Mud.default_state());
+                self.play_sound(
+                    None,
+                    pos.center(),
+                    "minecraft:item.bottle.empty",
+                    rspigot_entities::SoundSource::Blocks,
+                    1.0,
+                    1.0,
+                );
+                Some(Outcome {
+                    remainder: Some(ItemStack::new(
+                        ItemKind::GlassBottle.id(),
+                        std::num::NonZeroU8::MIN,
+                    )),
+                    wear: false,
+                })
+            }
+            Behavior::Bottle => {
+                let state = self.block_or_air(front);
+                let filled = if crate::beehive::is_hive_block(state)
+                    && crate::beehive::honey_level(state) >= HONEY_FULL
+                {
+                    self.release_honey(front, state);
+                    ItemStack::new(ItemKind::HoneyBottle.id(), std::num::NonZeroU8::MIN)
+                } else if has_water(state) {
+                    rspigot_domain::potion::stack(ItemKind::Potion, rspigot_domain::potion::WATER)
+                } else {
+                    return None;
+                };
+                Some(Outcome {
+                    remainder: Some(filled),
+                    wear: false,
+                })
+            }
+            Behavior::PowderSnow => {
+                self.set_block(front, BlockKind::PowderSnow.default_state());
+                self.play_sound(
+                    None,
+                    front.center(),
+                    "minecraft:item.bucket.empty_powder_snow",
+                    rspigot_entities::SoundSource::Blocks,
+                    1.0,
+                    1.0,
+                );
+                Some(Outcome {
+                    remainder: Some(ItemStack::new(
+                        ItemKind::Bucket.id(),
+                        std::num::NonZeroU8::MIN,
+                    )),
+                    wear: false,
+                })
+            }
+            Behavior::Cart(kind) => {
+                let mut base = self.new_entity_base(kind);
+                let state = rspigot_domain::entity::minecart::define(&mut base);
+                rspigot_domain::entity::minecart::set_initial_position(&mut base, velocity);
+                self.name_from(&mut base, stack);
+                self.spawn_entity(
+                    Entity::new(base, EntityState::Minecart(Box::new(state))),
+                    Birth::of(CreatureSpawnReason::Default),
+                );
+                Some(plain)
+            }
+            Behavior::Boat(kind) => {
+                let mut base = self.new_entity_base(kind);
+                let state = rspigot_domain::entity::boat::define(&mut base);
+                rspigot_domain::entity::boat::set_initial_position(&mut base, velocity);
+                base.set_yaw(yaw_of(direction));
+                self.name_from(&mut base, stack);
+                self.spawn_entity(
+                    Entity::new(base, EntityState::Boat(Box::new(state))),
+                    Birth::of(CreatureSpawnReason::Default),
+                );
+                Some(plain)
+            }
+            Behavior::Stand => {
+                let mut base = self.new_entity_base(Kind::ArmorStand);
+                let state = rspigot_domain::entity::armor_stand::define(&mut base);
+                self.name_from(&mut base, stack);
+                let at = Vec3::new(
+                    f64::from(front.x) + 0.5,
+                    f64::from(front.y),
+                    f64::from(front.z) + 0.5,
+                );
+                base.snap_to(at, yaw_of(direction), 0.0);
+                self.spawn_entity(
+                    Entity::new(base, EntityState::Stand(Box::new(state))),
+                    Birth::of(CreatureSpawnReason::Default),
+                );
+                Some(plain)
+            }
+            Behavior::Egg(kind) => {
+                let at = Vec3::new(
+                    f64::from(front.x) + 0.5,
+                    f64::from(front.y),
+                    f64::from(front.z) + 0.5,
+                );
+                let (mut entity, random) = self
+                    .summon_entity(
+                        kind,
+                        at,
+                        None,
+                        rspigot_domain::spawn::SpawnReason::SpawnItemUse,
+                    )
+                    .ok()?;
+                if let Some(name) = stack
+                    .components
+                    .get("minecraft:custom_name")
+                    .and_then(rspigot_domain::entity::save::component_from_tag)
+                {
+                    entity.base.set_custom_name(Some(name));
+                }
+                self.spawn_entity(
+                    entity,
+                    Birth::of(CreatureSpawnReason::DispenseEgg).with_random(random),
+                );
+                Some(plain)
+            }
+        }
+    }
+
+    fn name_from(&self, base: &mut rspigot_domain::entity::EntityBase, stack: &ItemStack) {
+        if let Some(name) = stack
+            .components
+            .get("minecraft:custom_name")
+            .and_then(rspigot_domain::entity::save::component_from_tag)
+        {
+            base.set_custom_name(Some(name));
         }
     }
 
