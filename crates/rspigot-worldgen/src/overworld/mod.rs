@@ -26,7 +26,6 @@ use freeze::{FreezeContext, freeze_top_layer};
 pub(crate) use region::{ChunkBiomes, Region, TerrainChunk};
 pub(crate) use surface_rules::{Bounds, ColumnInput, SurfaceSystem};
 use terrain::Terrain;
-pub(crate) use terrain::smooth;
 
 const SALT_BEDROCK: u64 = 0xBED0_0C41;
 const SALT_DEEPSLATE: u64 = 0xDEE9_51A7;

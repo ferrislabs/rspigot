@@ -92,7 +92,14 @@ fn terrain_columns_match_the_vanilla_noise_chunk() {
     let mut total = 0;
     for (x, z, expected) in COLUMNS {
         let (x0, z0) = (x.div_euclid(16) * 16, z.div_euclid(16) * 16);
-        let corners = Corners::build(&density, x0, z0, 0, 128);
+        let corners = Corners::build(
+            |x, y, z| density.pre_interpolation(x, y, z),
+            super::density::NETHER_LATTICE,
+            x0,
+            z0,
+            0,
+            128,
+        );
         let mut column = [b'a'; 128];
         corners.fill(|cx, y, cz, value| {
             if cx as i32 == x - x0 && cz as i32 == z - z0 {

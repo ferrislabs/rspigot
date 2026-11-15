@@ -56,6 +56,24 @@ fn every_nether_biome_feature_is_supported() {
     );
 }
 
+#[test]
+fn every_end_biome_feature_is_supported_but_the_ones_the_end_places_itself() {
+    let handled = [
+        "minecraft:end_spike",
+        "minecraft:end_platform",
+        "minecraft:end_gateway",
+        "minecraft:end_gateway_return",
+        "minecraft:end_gateway_delayed",
+        "minecraft:end_podium_active",
+        "minecraft:end_podium_inactive",
+    ];
+    let missing: Vec<String> = unsupported(&crate::end::END_BIOMES)
+        .into_iter()
+        .filter(|name| !handled.contains(&name.as_str()))
+        .collect();
+    assert_eq!(missing, Vec::<String>::new());
+}
+
 fn unsupported(biomes: &[&str]) -> Vec<String> {
     use super::bodies::Feature;
     use serde_json::Value;

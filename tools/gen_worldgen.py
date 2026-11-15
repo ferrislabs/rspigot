@@ -179,6 +179,7 @@ def build(pack):
         "surface": resolve_material(pack, "minecraft:overworld/surface", noises),
         "underground": resolve_material(pack, "minecraft:overworld/underground", noises),
         "nether": resolve_material(pack, "minecraft:nether", noises),
+        "end": resolve_material(pack, "minecraft:end", noises),
     }
     biomes = {}
     for name in pack.names("biome"):

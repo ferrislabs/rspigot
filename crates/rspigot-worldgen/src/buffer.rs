@@ -98,6 +98,7 @@ pub(crate) fn biome_section_container(values: &[BiomeId]) -> PalettedContainer<B
     container(&raw, BiomeId).0
 }
 
+#[cfg(test)]
 pub(crate) fn biome_container(cells: &[BiomeId; 16]) -> PalettedContainer<BiomeId, Biomes> {
     let mut values = [0u16; 64];
     for layer in values.chunks_mut(16) {
@@ -160,6 +161,7 @@ impl ChunkBuffer {
         &self.blocks
     }
 
+    #[cfg(test)]
     pub(crate) fn finish(
         self,
         pos: ChunkPos,

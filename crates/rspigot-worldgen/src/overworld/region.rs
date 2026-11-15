@@ -8,6 +8,7 @@ use super::Overworld;
 use crate::buffer::ChunkBuffer;
 use crate::classify::{MOTION_BLOCKING, MOTION_BLOCKING_NO_LEAVES, OCEAN_FLOOR, WORLD_SURFACE};
 use crate::climate::{BiomeSource, ClimateScratch, Xoroshiro};
+use crate::end::End;
 use crate::nether::Nether;
 use crate::resources::Resources;
 
@@ -161,6 +162,7 @@ pub(crate) type Slot = TerrainChunk;
 pub(crate) enum Provider<'a> {
     Overworld(&'a Overworld, ClimateScratch),
     Nether(&'a Nether),
+    End(&'a End),
     #[cfg_attr(not(test), allow(dead_code))]
     Fixture,
 }
@@ -203,6 +205,15 @@ impl<'a> Region<'a> {
         center: ChunkPos,
     ) -> Self {
         Self::with_provider(Provider::Nether(nether), resources, dimension, center)
+    }
+
+    pub(crate) fn for_end(
+        end: &'a End,
+        resources: &'a Resources,
+        dimension: &'a Dimension,
+        center: ChunkPos,
+    ) -> Self {
+        Self::with_provider(Provider::End(end), resources, dimension, center)
     }
 
     fn with_provider(
@@ -267,7 +278,7 @@ impl<'a> Region<'a> {
 
     pub(crate) fn gen_depth(&self) -> i32 {
         match self.provider {
-            Provider::Nether(_) => 128,
+            Provider::Nether(_) | Provider::End(_) => 128,
             _ => self.dimension.height.height as i32,
         }
     }
@@ -318,6 +329,7 @@ impl<'a> Region<'a> {
                 (*overworld.terrain_cached(self.resources, self.dimension, pos, scratch)).clone()
             }
             Provider::Nether(nether) => nether.terrain_cached(self.resources, self.dimension, pos),
+            Provider::End(end) => end.terrain_for_region(self.resources, self.dimension, pos),
             Provider::Fixture => return,
         };
         self.slots[index] = Some(Box::new(terrain));
@@ -403,6 +415,9 @@ impl<'a> Region<'a> {
             Provider::Nether(nether) => slot
                 .biomes
                 .get_with(pos, lx, y, lz, |qx, _, qz| nether.biome_index(qx, qz)),
+            Provider::End(end) => slot
+                .biomes
+                .get_with(pos, lx, y, lz, |qx, _, qz| end.biome_index(qx, qz)),
             Provider::Fixture => fixed,
         }
     }
@@ -422,6 +437,9 @@ impl<'a> Region<'a> {
             Provider::Nether(nether) => slot
                 .biomes
                 .complete_with(center, |qx, _, qz| nether.biome_index(qx, qz)),
+            Provider::End(end) => slot
+                .biomes
+                .complete_with(center, |qx, _, qz| end.biome_index(qx, qz)),
             Provider::Fixture => vec![fixed; slot.biomes.cells.len()],
         };
         (slot.buffer, indices)

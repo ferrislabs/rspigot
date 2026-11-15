@@ -160,6 +160,7 @@ pub(crate) enum Feature {
     Delta(Box<super::delta::Delta>),
     Fungus(Box<super::fungus::Fungus>),
     Chorus(super::chorus::Chorus),
+    EndIsland(super::end_island::EndIsland),
     Multiface(Box<super::multiface::Growth>),
     Sculk(super::sculk::Patch),
     Vegetation(Box<super::vegetation::Patch>),
@@ -365,6 +366,7 @@ impl<'a> Compiler<'a> {
                 Feature::ReplaceBlobs(Box::new(super::replace_blobs::ReplaceBlobs::compile(value)))
             }
             "huge_fungus" => Feature::Fungus(Box::new(super::fungus::Fungus::compile(value))),
+            "end_island" => Feature::EndIsland(super::end_island::EndIsland::compile()),
             "chorus_plant" => Feature::Chorus(super::chorus::Chorus::compile()),
             "delta_feature" => Feature::Delta(Box::new(super::delta::Delta::compile(value))),
             "multiface_growth" => super::multiface::Growth::compile(value)
@@ -497,6 +499,7 @@ impl Feature {
             Self::Delta(delta) => delta.reach(),
             Self::Fungus(fungus) => fungus.reach(),
             Self::Chorus(chorus) => chorus.reach(),
+            Self::EndIsland(island) => island.reach(),
             Self::Multiface(growth) => growth.reach(),
             Self::Sculk(patch) => patch.reach(),
             Self::Vegetation(patch) => patch.reach(),
@@ -550,6 +553,7 @@ impl Feature {
             Self::Delta(delta) => delta.place(run, pos),
             Self::Fungus(fungus) => fungus.place(run, pos),
             Self::Chorus(chorus) => chorus.place(run, pos),
+            Self::EndIsland(island) => island.place(run, pos),
             Self::Multiface(growth) => growth.place(run, pos),
             Self::Sculk(patch) => patch.place(run, pos),
             Self::Vegetation(patch) => patch.place(run, pos),

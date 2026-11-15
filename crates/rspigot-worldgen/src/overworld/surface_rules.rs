@@ -292,6 +292,7 @@ fn generate_bands(random: &mut Xoroshiro, palette: &Palette) -> Vec<BlockStateId
 pub(crate) enum Flavor {
     Overworld,
     Nether,
+    End,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -348,15 +349,20 @@ impl SurfaceSystem {
         Self::build(seed, palette, Flavor::Nether)
     }
 
+    pub(crate) fn end(seed: i64, palette: &Palette) -> Self {
+        Self::build(seed, palette, Flavor::End)
+    }
+
     fn build(seed: i64, palette: &Palette, flavor: Flavor) -> Self {
         let random = Xoroshiro::from_seed(seed).fork_positional();
         let selected = match flavor {
             Flavor::Overworld => SurfaceRandom::modern(seed),
-            Flavor::Nether => SurfaceRandom::legacy(seed),
+            Flavor::Nether | Flavor::End => SurfaceRandom::legacy(seed),
         };
         let names: Vec<&'static str> = match flavor {
             Flavor::Overworld => overworld_biomes().to_vec(),
             Flavor::Nether => crate::nether::NETHER_BIOMES.to_vec(),
+            Flavor::End => crate::end::END_BIOMES.to_vec(),
         };
         let data = worldgen();
         let mut compiler = Compiler {
@@ -370,8 +376,13 @@ impl SurfaceSystem {
                 compiler.rule(rules.get("surface").unwrap_or(&Value::Null)),
                 compiler.rule(rules.get("underground").unwrap_or(&Value::Null)),
             ),
-            Flavor::Nether => {
-                let rule = compiler.rule(rules.get("nether").unwrap_or(&Value::Null));
+            Flavor::Nether | Flavor::End => {
+                let key = if flavor == Flavor::Nether {
+                    "nether"
+                } else {
+                    "end"
+                };
+                let rule = compiler.rule(rules.get(key).unwrap_or(&Value::Null));
                 (rule.clone(), rule)
             }
         };

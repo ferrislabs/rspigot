@@ -5,7 +5,7 @@ use rspigot_domain::world::Dimension;
 use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Vec3};
 
 mod biomes;
-mod density;
+pub(crate) mod density;
 #[cfg(test)]
 mod reference;
 
@@ -81,7 +81,8 @@ impl Nether {
         let lava = palette[BlockKind::Lava];
         let mut buffer = ChunkBuffer::new(height);
         let corners = density::Corners::build(
-            &self.density,
+            |x, y, z| self.density.pre_interpolation(x, y, z),
+            density::NETHER_LATTICE,
             x0,
             z0,
             bottom,

@@ -2,6 +2,7 @@ use crate::climate::{BiomeSource, ClimateScratch};
 use crate::perlin::Fractal;
 use crate::rng::mix;
 
+#[cfg(test)]
 pub(crate) fn smooth(from: f64, to: f64, value: f64) -> f64 {
     let t = ((value - from) / (to - from)).clamp(0.0, 1.0);
     t * t * (3.0 - 2.0 * t)

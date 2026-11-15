@@ -5,6 +5,7 @@ mod chorus;
 mod coral;
 mod delta;
 mod dungeon;
+mod end_island;
 mod fallen;
 mod floats;
 mod fossil;
