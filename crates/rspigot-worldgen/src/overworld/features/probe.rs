@@ -3,30 +3,59 @@ use rspigot_domain::{BlockStateId, ChunkPos};
 use super::tests::Bench;
 use crate::overworld::region::Region;
 
-pub(super) const GRASS: &[(i32, &str)] = &[(68, "stone"), (69, "grass_block")];
+pub(super) const GRASS: &str = "68:stone,69:grass_block";
 
 fn block(name: &str) -> BlockStateId {
     rspigot_blocks::BlockKind::from_name(name)
         .map_or(BlockStateId::AIR, rspigot_blocks::BlockKind::default_state)
 }
 
-pub(super) fn world<'a>(bench: &'a Bench, layers: &[(i32, &str)]) -> Region<'a> {
-    Region::fixture(
+fn span(text: &str) -> std::ops::RangeInclusive<i32> {
+    let (low, high) = text.split_once("..").unwrap_or((text, text));
+    low.parse().unwrap_or(0)..=high.parse().unwrap_or(0)
+}
+
+pub(super) fn world<'a>(bench: &'a Bench, spec: &str) -> Region<'a> {
+    let mut sections = spec.split(';');
+    let layers: Vec<(i32, BlockStateId)> = sections
+        .next()
+        .unwrap_or("")
+        .split(',')
+        .filter_map(|part| {
+            let (top, name) = part.split_once(':')?;
+            Some((top.parse().ok()?, block(name)))
+        })
+        .collect();
+    let mut region = Region::fixture(
         &bench.resources,
         &bench.dimension,
         ChunkPos::new(0, 0),
         0,
         |_, buffer| {
             let mut from = -64;
-            for (top, name) in layers {
-                let state = block(name);
+            for (top, state) in &layers {
                 for y in from..=*top {
-                    buffer.fill_layer(y, state);
+                    buffer.fill_layer(y, *state);
                 }
                 from = top + 1;
             }
         },
-    )
+    );
+    for fill in sections {
+        let Some((axes, name)) = fill.split_once('=') else {
+            continue;
+        };
+        let axes: Vec<&str> = axes.split('/').collect();
+        let state = block(name);
+        for x in span(axes[0]) {
+            for y in span(axes[1]) {
+                for z in span(axes[2]) {
+                    region.set(x, y, z, state);
+                }
+            }
+        }
+    }
+    region
 }
 
 fn describe(state: BlockStateId) -> String {
@@ -57,13 +86,13 @@ fn cells(region: &mut Region, (y0, y1): (i32, i32)) -> Vec<BlockStateId> {
 
 pub(super) fn fingerprint(
     bench: &Bench,
-    layers: &[(i32, &str)],
+    spec: &str,
     feature: &str,
     origin: (i32, i32, i32),
     seed: i64,
     band: (i32, i32),
 ) -> (usize, u64) {
-    let mut region = world(bench, layers);
+    let mut region = world(bench, spec);
     let before = cells(&mut region, band);
     bench.place(&mut region, feature, origin, seed);
     let after = cells(&mut region, band);

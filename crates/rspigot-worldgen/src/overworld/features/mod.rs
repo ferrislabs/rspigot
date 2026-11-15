@@ -1,4 +1,5 @@
 mod bodies;
+mod fallen;
 mod mushrooms;
 mod place;
 #[cfg(test)]

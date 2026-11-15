@@ -192,8 +192,8 @@ mod tests {
     use super::super::probe::{GRASS, fingerprint, world};
     use super::super::tests::Bench;
 
-    const MYCELIUM: &[(i32, &str)] = &[(68, "stone"), (69, "mycelium")];
-    const STONE: &[(i32, &str)] = &[(69, "stone")];
+    const MYCELIUM: &str = "68:stone,69:mycelium";
+    const STONE: &str = "69:stone";
 
     const GRASS_REFERENCE: [(&str, i64, usize, u64); 22] = [
         ("huge_red_mushroom", 1, 50, 0x2e74b06b0723bff5),
@@ -232,13 +232,13 @@ mod tests {
     #[test]
     fn huge_mushrooms_match_the_vanilla_feature_cell_for_cell() {
         let bench = Bench::new();
-        for (layers, table) in [
+        for (spec, table) in [
             (GRASS, GRASS_REFERENCE.as_slice()),
             (MYCELIUM, MYCELIUM_REFERENCE.as_slice()),
         ] {
             for (feature, seed, count, hash) in table {
                 assert_eq!(
-                    fingerprint(&bench, layers, feature, (8, 70, 8), *seed, (40, 130)),
+                    fingerprint(&bench, spec, feature, (8, 70, 8), *seed, (40, 130)),
                     (*count, *hash),
                     "{feature} seed {seed}"
                 );

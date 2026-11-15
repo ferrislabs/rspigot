@@ -46,6 +46,11 @@ pub(crate) enum Decorator {
     },
     CreakingHeart(f32),
     ShelfMushroom(f32),
+    AttachedToLogs {
+        probability: f32,
+        state: State,
+        directions: Vec<(i32, i32, i32)>,
+    },
 }
 
 fn direction(name: &str) -> (i32, i32, i32) {
@@ -57,6 +62,20 @@ fn direction(name: &str) -> (i32, i32, i32) {
         "west" => (-1, 0, 0),
         _ => (1, 0, 0),
     }
+}
+
+fn directions(value: &Value) -> Vec<(i32, i32, i32)> {
+    value
+        .get("directions")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(direction)
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 impl Decorator {
@@ -75,20 +94,15 @@ impl Decorator {
                 height: integer(value, "height", 1),
                 state: provider("block_state_provider"),
             },
+            "attached_to_logs" => Self::AttachedToLogs {
+                probability,
+                state: provider("block_provider"),
+                directions: directions(value),
+            },
             "attached_to_leaves" => Self::AttachedToLeaves {
                 probability,
                 state: provider("block_provider"),
-                directions: value
-                    .get("directions")
-                    .and_then(Value::as_array)
-                    .map(|items| {
-                        items
-                            .iter()
-                            .filter_map(Value::as_str)
-                            .map(direction)
-                            .collect()
-                    })
-                    .unwrap_or_default(),
+                directions: directions(value),
                 empty: integer(value, "required_empty_blocks", 1),
                 radius_xz: integer(value, "exclusion_radius_xz", 0),
                 radius_y: integer(value, "exclusion_radius_y", 0),
@@ -228,6 +242,11 @@ pub(crate) fn run(decorators: &[Decorator], context: &mut Context) {
             Decorator::PaleMoss { chances, patch } => forest::pale_moss(context, *chances, patch),
             Decorator::CreakingHeart(probability) => forest::creaking_heart(context, *probability),
             Decorator::ShelfMushroom(probability) => forest::shelf_mushroom(context, *probability),
+            Decorator::AttachedToLogs {
+                probability,
+                state,
+                directions,
+            } => attached_to_logs(context, state, directions, *probability),
         }
     }
 }
@@ -476,10 +495,35 @@ fn attached_to_leaves(
     }
 }
 
+fn attached_to_logs(
+    context: &mut Context,
+    state: &State,
+    directions: &[(i32, i32, i32)],
+    probability: f32,
+) {
+    if directions.is_empty() {
+        return;
+    }
+    let mut logs = context.logs.clone();
+    context.shuffle(&mut logs);
+    for log in logs {
+        let step = directions[context.run.rng.below(directions.len() as i32) as usize];
+        let target = add(log, step);
+        if context.run.rng.next_float() <= probability
+            && context.is_air(target)
+            && let Some(resolved) = state.resolve(context.run.region, context.run.rng, target)
+        {
+            context.put(target, resolved);
+        }
+    }
+}
+
 pub(crate) fn compile_all(value: &Value, compiler: &mut Compiler) -> Vec<Decorator> {
-    value
-        .get("decorators")
-        .and_then(Value::as_array)
+    compile_list(value.get("decorators"), compiler)
+}
+
+pub(crate) fn compile_list(list: Option<&Value>, compiler: &mut Compiler) -> Vec<Decorator> {
+    list.and_then(Value::as_array)
         .map(|items| {
             items
                 .iter()

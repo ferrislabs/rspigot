@@ -205,7 +205,7 @@ pub(crate) fn compile(value: &Value, compiler: &mut super::bodies::Compiler) -> 
     })
 }
 
-fn replaceable_by_trees(state: BlockStateId) -> bool {
+pub(super) fn replaceable_by_trees(state: BlockStateId) -> bool {
     static SET: OnceLock<BlockSet> = OnceLock::new();
     state.is_air()
         || SET

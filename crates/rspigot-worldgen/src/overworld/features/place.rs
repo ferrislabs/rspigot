@@ -135,7 +135,7 @@ impl Modifier {
     }
 }
 
-fn max_abs(provider: &Int) -> i32 {
+pub(super) fn max_abs(provider: &Int) -> i32 {
     match provider {
         Int::Constant(n) => n.abs(),
         Int::Uniform(a, b) | Int::BiasedToBottom(a, b) | Int::VeryBiasedToBottom(a, b) => {
