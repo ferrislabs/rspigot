@@ -307,7 +307,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn thrown_hit_block(&mut self, id: EntityId, hit: raycast::BlockHit) {
-        self.notice_block_hit(id, hit.pos, hit.face);
+        self.notice_block_hit(id, hit);
         let state_at = self.world.chunks.block(hit.pos).unwrap_or_default();
         if state_at.is_air() {
             return;

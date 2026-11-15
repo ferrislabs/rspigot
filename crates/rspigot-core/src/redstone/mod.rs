@@ -16,6 +16,7 @@ mod reactions;
 mod resolver;
 mod signals;
 mod storage;
+mod target;
 mod torch;
 mod wire;
 
@@ -220,6 +221,9 @@ impl<L: ClientLink> Server<L> {
                 _ => {}
             }
         }
+        if new.kind() == Some(BlockKind::Target) && old.kind() != new.kind() {
+            self.target_placed(pos, new);
+        }
         if new.kind() == Some(BlockKind::Tnt) && old.kind() != new.kind() {
             self.tnt_neighbor_changed(pos, pos);
         }
@@ -258,6 +262,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::Dispenser | BlockKind::Dropper => self.dispenser_tick(pos, state),
             BlockKind::DetectorRail => self.detector_tick(pos, state),
             BlockKind::Lectern => self.lectern_tick(pos),
+            BlockKind::Target => self.target_tick(pos, state),
             BlockKind::Crafter => self.crafter_tick(pos, state),
             BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),

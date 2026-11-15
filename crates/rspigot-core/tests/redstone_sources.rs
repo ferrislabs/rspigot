@@ -53,3 +53,43 @@ fn a_detector_rail_powers_a_lamp_beside_it_while_a_minecart_rides_it() {
     s.tick(30);
     assert_eq!(prop(&mut s, lamp, "lit"), "false");
 }
+
+fn shoot_arrow(s: &mut Scene, from: Vec3, velocity: Vec3) {
+    let Answer::Spawned(arrow) = s.ask(Question::Spawn {
+        kind: "minecraft:arrow".to_owned(),
+        position: from,
+    }) else {
+        panic!("a spawned arrow");
+    };
+    s.act(Order::Entity {
+        entity: arrow.id,
+        order: EntityOrder::SetVelocity(velocity),
+    });
+}
+
+#[test]
+fn an_arrow_into_the_centre_of_a_target_gives_nearly_fifteen_for_twenty_ticks() {
+    let mut s = scene(&["Alice"]);
+    let target = BlockPos::new(8, 64, 5);
+    let lamp = BlockPos::new(8, 65, 5);
+    put(&mut s, target, "minecraft:target", &[]);
+    put(&mut s, lamp, "minecraft:redstone_lamp", &[]);
+    shoot_arrow(&mut s, Vec3::new(4.5, 64.5, 5.5), Vec3::new(2.0, 0.0, 0.0));
+    s.tick(4);
+    let power: i32 = prop(&mut s, target, "power").parse().unwrap();
+    assert!(power >= 13, "power {power}");
+    assert_eq!(prop(&mut s, lamp, "lit"), "true");
+    s.tick(25);
+    assert_eq!(prop(&mut s, target, "power"), "0");
+}
+
+#[test]
+fn an_arrow_near_the_edge_of_a_target_gives_less_power() {
+    let mut s = scene(&["Alice"]);
+    let target = BlockPos::new(8, 64, 5);
+    put(&mut s, target, "minecraft:target", &[]);
+    shoot_arrow(&mut s, Vec3::new(4.5, 64.5, 5.05), Vec3::new(2.0, 0.0, 0.0));
+    s.tick(4);
+    let power: i32 = prop(&mut s, target, "power").parse().unwrap();
+    assert!((1..15).contains(&power), "power {power}");
+}
