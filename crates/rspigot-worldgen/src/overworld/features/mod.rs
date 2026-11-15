@@ -8,6 +8,7 @@ mod place;
 #[cfg(test)]
 mod probe;
 mod prov;
+mod spread;
 mod tree;
 mod treedeco;
 
