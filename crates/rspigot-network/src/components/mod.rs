@@ -45,6 +45,7 @@ pub(crate) enum Def {
     Float(f32),
     Str(&'static str),
     Empty,
+    With(fn() -> Tag),
 }
 
 impl Def {
@@ -55,6 +56,7 @@ impl Def {
             Self::Float(value) => Tag::Float(value),
             Self::Str(value) => Tag::String(value.to_owned()),
             Self::Empty => Tag::List(Vec::new()),
+            Self::With(build) => build(),
         }
     }
 }

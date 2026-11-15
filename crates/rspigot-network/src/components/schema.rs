@@ -240,6 +240,184 @@ const ENCHANTABLE: Node = Node::Rec(&[req("value", Node::Var)]);
 
 const REPAIRABLE: Node = Node::Rec(&[req("items", Node::Set(ITEM))]);
 
+const EQUIPMENT_SLOTS: &[&str] = &[
+    "mainhand", "feet", "legs", "chest", "head", "offhand", "body", "saddle",
+];
+
+const SLOT_GROUPS: &[&str] = &[
+    "any", "mainhand", "offhand", "hand", "feet", "legs", "chest", "head", "armor", "body",
+    "saddle",
+];
+
+const SWING: Node = Node::Rec(&[
+    def(
+        "type",
+        Node::Enum(&["none", "whack", "stab"]),
+        Def::Str("whack"),
+    ),
+    def("duration", Node::Var, Def::Int(6)),
+]);
+
+const ATTRIBUTE_DISPLAY: Node = Node::Custom(Custom {
+    enc: encode_attribute_display,
+    dec: decode_attribute_display,
+});
+
+const DISPLAY_TYPES: &[&str] = &["default", "hidden", "override"];
+
+fn encode_attribute_display(tag: &Tag, out: &mut Vec<u8>) -> Option<()> {
+    let display = tag.as_compound()?;
+    let name = display.get_str("type")?;
+    let index = DISPLAY_TYPES
+        .iter()
+        .position(|candidate| *candidate == name)?;
+    write_var(i32::try_from(index).ok()?, out);
+    if name == "override" {
+        Node::Text.encode(display.get("value")?, out)?;
+    }
+    Some(())
+}
+
+fn decode_attribute_display(input: &mut &[u8]) -> Option<Tag> {
+    let index = usize::try_from(read_var(input).ok()?).ok()?;
+    let name = *DISPLAY_TYPES.get(index)?;
+    let mut display = Compound::new().with("type", name);
+    if name == "override" {
+        display.insert("value", Node::Text.decode(input)?);
+    }
+    Some(Tag::Compound(display))
+}
+
+fn default_display() -> Tag {
+    Tag::Compound(Compound::new().with("type", "default"))
+}
+
+const ATTRIBUTE_ENTRY: Node = Node::Rec(&[
+    req("type", Node::Reg(Reg::Static("minecraft:attribute"))),
+    req("id", Node::Ident),
+    req("amount", Node::Double),
+    req(
+        "operation",
+        Node::Enum(&["add_value", "add_multiplied_base", "add_multiplied_total"]),
+    ),
+    def("slot", Node::Enum(SLOT_GROUPS), Def::Str("any")),
+    def("display", ATTRIBUTE_DISPLAY, Def::With(default_display)),
+]);
+
+const EQUIPPABLE: Node = Node::Rec(&[
+    req("slot", Node::Enum(EQUIPMENT_SLOTS)),
+    def(
+        "equip_sound",
+        SOUND,
+        Def::Str("minecraft:item.armor.equip_generic"),
+    ),
+    opt("asset_id", Node::Ident),
+    opt("camera_overlay", Node::Ident),
+    opt(
+        "allowed_entities",
+        Node::Set(Reg::Static("minecraft:entity_type")),
+    ),
+    def("dispensable", Node::Bool, Def::Bool(true)),
+    def("swappable", Node::Bool, Def::Bool(true)),
+    def("damage_on_hurt", Node::Bool, Def::Bool(true)),
+    def("equip_on_interact", Node::Bool, Def::Bool(false)),
+    def("can_be_sheared", Node::Bool, Def::Bool(false)),
+    def(
+        "shearing_sound",
+        SOUND,
+        Def::Str("minecraft:item.shears.snip"),
+    ),
+]);
+
+const ATTACK_RANGE: Node = Node::Rec(&[
+    def("min_reach", Node::Float, Def::Float(0.0)),
+    def("max_reach", Node::Float, Def::Float(3.0)),
+    def("min_creative_reach", Node::Float, Def::Float(0.0)),
+    def("max_creative_reach", Node::Float, Def::Float(5.0)),
+    def("hitbox_margin", Node::Float, Def::Float(0.3)),
+    def("mob_factor", Node::Float, Def::Float(1.0)),
+]);
+
+const DEATH_PROTECTION: Node = Node::Rec(&[def(
+    "death_effects",
+    Node::List(&CONSUME_EFFECT, 1 << 20),
+    Def::Empty,
+)]);
+
+fn default_reductions() -> Tag {
+    Tag::List(vec![Tag::Compound(
+        Compound::new()
+            .with("horizontal_blocking_angle", 90.0f32)
+            .with("base", 0.0f32)
+            .with("factor", 1.0f32),
+    )])
+}
+
+fn default_item_damage() -> Tag {
+    Tag::Compound(
+        Compound::new()
+            .with("threshold", 1.0f32)
+            .with("base", 0.0f32)
+            .with("factor", 1.0f32),
+    )
+}
+
+const DAMAGE_REDUCTION: Node = Node::Rec(&[
+    def("horizontal_blocking_angle", Node::Float, Def::Float(90.0)),
+    opt("type", Node::Set(DAMAGE_TYPE)),
+    req("base", Node::Float),
+    req("factor", Node::Float),
+]);
+
+const ITEM_DAMAGE_FUNCTION: Node = Node::Rec(&[
+    req("threshold", Node::Float),
+    req("base", Node::Float),
+    req("factor", Node::Float),
+]);
+
+const BLOCKS_ATTACKS: Node = Node::Rec(&[
+    def("block_delay_seconds", Node::Float, Def::Float(0.0)),
+    def("disable_cooldown_scale", Node::Float, Def::Float(1.0)),
+    def(
+        "damage_reductions",
+        Node::List(&DAMAGE_REDUCTION, 1 << 20),
+        Def::With(default_reductions),
+    ),
+    def(
+        "item_damage",
+        ITEM_DAMAGE_FUNCTION,
+        Def::With(default_item_damage),
+    ),
+    opt("bypassed_by", Node::Set(DAMAGE_TYPE)),
+    opt("block_sound", SOUND),
+    opt("disabled_sound", SOUND),
+]);
+
+const PIERCING_WEAPON: Node = Node::Rec(&[
+    def("deals_knockback", Node::Bool, Def::Bool(true)),
+    def("dismounts", Node::Bool, Def::Bool(false)),
+    opt("sound", SOUND),
+    opt("hit_sound", SOUND),
+]);
+
+const KINETIC_CONDITION: Node = Node::Rec(&[
+    req("max_duration_ticks", Node::Var),
+    def("min_speed", Node::Float, Def::Float(0.0)),
+    def("min_relative_speed", Node::Float, Def::Float(0.0)),
+]);
+
+const KINETIC_WEAPON: Node = Node::Rec(&[
+    def("contact_cooldown_ticks", Node::Var, Def::Int(10)),
+    def("delay_ticks", Node::Var, Def::Int(0)),
+    opt("dismount_conditions", KINETIC_CONDITION),
+    opt("knockback_conditions", KINETIC_CONDITION),
+    opt("damage_conditions", KINETIC_CONDITION),
+    def("forward_movement", Node::Float, Def::Float(0.0)),
+    def("damage_multiplier", Node::Float, Def::Float(1.0)),
+    opt("sound", SOUND),
+    opt("hit_sound", SOUND),
+]);
+
 const NEVER_HOLDER: Node = Node::Holder(DAMAGE_TYPE, &Node::Never);
 
 pub(super) fn node(name: &str) -> Option<Node> {
@@ -279,6 +457,14 @@ pub(super) fn node(name: &str) -> Option<Node> {
         "minecraft:enchantable" => ENCHANTABLE,
         "minecraft:repairable" => REPAIRABLE,
         "minecraft:dyed_color" => Node::Int,
+        "minecraft:attribute_modifiers" => Node::List(&ATTRIBUTE_ENTRY, 1 << 20),
+        "minecraft:equippable" => EQUIPPABLE,
+        "minecraft:attack_range" => ATTACK_RANGE,
+        "minecraft:death_protection" => DEATH_PROTECTION,
+        "minecraft:blocks_attacks" => BLOCKS_ATTACKS,
+        "minecraft:piercing_weapon" => PIERCING_WEAPON,
+        "minecraft:kinetic_weapon" => KINETIC_WEAPON,
+        "minecraft:attack_animation" | "minecraft:interact_animation" => SWING,
         _ => return None,
     })
 }

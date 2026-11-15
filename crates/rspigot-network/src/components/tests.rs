@@ -2,7 +2,10 @@ use rspigot_nbt::Tag;
 
 use super::{decode_components, encode_components, encode_value, schema};
 
-const GOLDEN: &[(&str, &str)] = &[("family1", include_str!("golden/family1.txt"))];
+const GOLDEN: &[(&str, &str)] = &[
+    ("family1", include_str!("golden/family1.txt")),
+    ("family2", include_str!("golden/family2.txt")),
+];
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
