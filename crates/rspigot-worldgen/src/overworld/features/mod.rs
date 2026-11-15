@@ -12,6 +12,7 @@ mod place;
 #[cfg(test)]
 mod probe;
 mod prov;
+mod root;
 mod sculk;
 mod spread;
 mod tree;
@@ -297,6 +298,37 @@ mod tests {
                 interest: None,
             };
             feature.place(&mut run, pos)
+        }
+
+        pub(super) fn place_config(
+            &self,
+            region: &mut Region,
+            config: &Value,
+            pos: (i32, i32, i32),
+            seed: i64,
+        ) -> bool {
+            let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
+            let feature = compiler.configured_ref(config);
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
+            let mut rng = Xoroshiro::from_seed(seed);
+            let mut run = Run {
+                region,
+                rng: &mut rng,
+                surface: &self.surface,
+                feature_id: 0,
+                biome_has: &[],
+                universal: &[],
+                interest: None,
+            };
+            feature.place(&mut run, pos)
+        }
+
+        pub(super) fn configured(&self, name: &str) -> Value {
+            self.compiler_data
+                .1
+                .get(&format!("minecraft:{name}"))
+                .cloned()
+                .unwrap_or(Value::Null)
         }
 
         pub(super) fn scatter(

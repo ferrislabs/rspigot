@@ -144,6 +144,7 @@ pub(crate) enum Feature {
     Multiface(Box<super::multiface::Growth>),
     Sculk(super::sculk::Patch),
     Vegetation(Box<super::vegetation::Patch>),
+    Root(Box<super::root::Root>),
     CoralTree(Arc<Placed>),
     CoralClaw(Arc<Placed>),
     Spike(Box<super::ice::Spike>),
@@ -351,6 +352,10 @@ impl<'a> Compiler<'a> {
                     kind == "waterlogged_vegetation_patch",
                 )
             }
+            "root_system" => {
+                let tree = self.placed_ref(value.get("feature").unwrap_or(&Value::Null));
+                super::root::feature(value, tree)
+            }
             "sculk_patch" => Feature::Sculk(super::sculk::Patch::compile(value)),
             "freeze_top_layer" => Feature::NoOp,
             "underwater_magma" => Feature::Magma(super::magma::Magma::compile(value)),
@@ -442,6 +447,7 @@ impl Feature {
             Self::Multiface(growth) => growth.reach(),
             Self::Sculk(patch) => patch.reach(),
             Self::Vegetation(patch) => patch.reach(),
+            Self::Root(root) => root.reach(),
             Self::CoralTree(placed) => super::coral::reach_of_tree(placed),
             Self::CoralClaw(placed) => super::coral::reach_of_claw(placed),
             Self::Spike(spike) => spike.reach(),
@@ -483,6 +489,7 @@ impl Feature {
             Self::Multiface(growth) => growth.place(run, pos),
             Self::Sculk(patch) => patch.place(run, pos),
             Self::Vegetation(patch) => patch.place(run, pos),
+            Self::Root(root) => root.place(run, pos),
             Self::CoralTree(placed) => super::coral::tree(placed, run, pos),
             Self::CoralClaw(placed) => super::coral::claw(placed, run, pos),
             Self::Spike(spike) => spike.place(run, pos),

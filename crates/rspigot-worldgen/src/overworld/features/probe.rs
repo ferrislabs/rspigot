@@ -134,6 +134,19 @@ fn hashed(lines: &[String]) -> (usize, u64) {
     (lines.len(), hash)
 }
 
+pub(super) fn config_fingerprint(
+    bench: &Bench,
+    spec: &str,
+    config: &serde_json::Value,
+    origin: (i32, i32, i32),
+    seed: i64,
+    band: (i32, i32),
+) -> (usize, u64) {
+    hashed(&changes(bench, spec, band, |region| {
+        bench.place_config(region, config, origin, seed);
+    }))
+}
+
 pub(super) fn scatter_fingerprint(
     bench: &Bench,
     spec: &str,
