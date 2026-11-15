@@ -429,6 +429,7 @@ impl<'a> Sampler<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn interpolated(
         &mut self,
         node: usize,

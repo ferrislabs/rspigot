@@ -226,6 +226,7 @@ def build(pack):
     surface_rule = {
         "surface": resolve_material(pack, "minecraft:overworld/surface", noises),
         "underground": resolve_material(pack, "minecraft:overworld/underground", noises),
+        "bedrock_floor": resolve_material(pack, "minecraft:bedrock_floor", noises),
         "nether": resolve_material(pack, "minecraft:nether", noises),
         "end": resolve_material(pack, "minecraft:end", noises),
     }

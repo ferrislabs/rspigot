@@ -14,7 +14,6 @@ use crate::temperature::{BiomeClimate, TemperatureNoise};
 const WAY_BELOW: i32 = i32::MIN / 2;
 const NO_WATER: i32 = i32::MIN;
 const BAND_COUNT: usize = 192;
-const DEEP_LIMIT: i32 = 48;
 const SURFACE_NOISE_COUNT: usize = 9;
 
 #[derive(Debug, Clone, Copy)]
@@ -201,6 +200,7 @@ impl Compiler<'_> {
 pub(crate) struct SurfaceSystem {
     surface: Rule,
     underground: Rule,
+    bedrock: Rule,
     noises: Vec<NoiseStack>,
     surface_noise: NoiseStack,
     secondary: NoiseStack,
@@ -320,6 +320,8 @@ pub(crate) struct ColumnInput<'a, F: Fn(i32) -> u8> {
     pub(crate) world_z: i32,
     pub(crate) top: i32,
     pub(crate) gradient: (i32, i32),
+    pub(crate) preliminary: Option<i32>,
+    pub(crate) vein: Option<&'a dyn Fn(i32, i32, i32) -> Option<BlockStateId>>,
     pub(crate) biome_at: F,
 }
 
@@ -371,6 +373,10 @@ impl SurfaceSystem {
             seed_random: &selected,
         };
         let rules = data.get("surface_rule").cloned().unwrap_or(Value::Null);
+        let bedrock = match flavor {
+            Flavor::Overworld => compiler.rule(rules.get("bedrock_floor").unwrap_or(&Value::Null)),
+            Flavor::Nether | Flavor::End => Rule::Sequence(Vec::new()),
+        };
         let (surface, underground) = match flavor {
             Flavor::Overworld => (
                 compiler.rule(rules.get("surface").unwrap_or(&Value::Null)),
@@ -417,6 +423,7 @@ impl SurfaceSystem {
         Self {
             surface,
             underground,
+            bedrock,
             noises,
             surface_noise: selected_stack(&selected, "minecraft:surface"),
             secondary: selected_stack(&selected, "minecraft:surface_secondary"),
@@ -492,6 +499,8 @@ impl SurfaceSystem {
             world_z,
             top,
             gradient,
+            preliminary,
+            vein,
             biome_at,
         } = input;
         let highest = top.max(bounds.sea_level - 1);
@@ -515,7 +524,7 @@ impl SurfaceSystem {
             surface_depth,
             secondary: Cell::new(None),
             gradient,
-            min_surface_level: top + surface_depth - 8,
+            min_surface_level: preliminary.unwrap_or(top) + surface_depth - 8,
             cache: std::array::from_fn(|_| Cell::new(f32::NAN)),
             y: 0,
             stone_above: 0,
@@ -551,9 +560,6 @@ impl SurfaceSystem {
             }
             state.stone_above += 1;
             state.stone_below = y - run_bottom + 1;
-            if state.stone_above > DEEP_LIMIT && state.stone_below > DEEP_LIMIT {
-                continue;
-            }
             state.y = y;
             state.biome.set(None);
             let biome = || {
@@ -563,6 +569,14 @@ impl SurfaceSystem {
                     value
                 })
             };
+            if let Some(result) = state.apply(&self.bedrock, &biome) {
+                buffer.set(x, y, z, result);
+                continue;
+            }
+            if let Some(result) = vein.and_then(|vein| vein(world_x, y, world_z)) {
+                buffer.set(x, y, z, result);
+                continue;
+            }
             let rule = if y >= state.min_surface_level {
                 &self.surface
             } else {
@@ -1147,6 +1161,8 @@ mod tests {
             world_z: 3,
             top,
             gradient: (0, 0),
+            preliminary: None,
+            vein: None,
             biome_at: |_| index,
         });
         (top - 8..=top + 1)

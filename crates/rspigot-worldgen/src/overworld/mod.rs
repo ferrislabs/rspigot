@@ -1,34 +1,28 @@
-mod caves;
 mod features;
 mod freeze;
 mod region;
 mod surface_random;
 mod surface_rules;
-mod terrain;
 
 use rspigot_domain::chunk::{ChunkColumn, HeightmapKind};
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use rspigot_domain::world::Dimension;
-use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Vec3};
+use rspigot_domain::{BiomeId, BlockPos, ChunkPos, Vec3};
 
 use crate::buffer::ChunkBuffer;
 use crate::climate::{BiomeSource, ClimateScratch};
 use crate::resources::{BlockKind, Palette, Resources, biome_id};
-use crate::rng::{hash3, unit};
+use crate::terrain::{Cell, Terrain};
 use rspigot_data::multi_noise::{ClimateVariant, overworld_biomes};
 use std::cell::RefCell;
 
-use caves::Caves;
 pub(crate) use features::Features;
 use freeze::{FreezeContext, freeze_top_layer};
 pub(crate) use region::{ChunkBiomes, Region, TerrainChunk};
 pub(crate) use surface_rules::{Bounds, ColumnInput, SurfaceSystem};
-use terrain::Terrain;
 
-const SALT_BEDROCK: u64 = 0xBED0_0C41;
-const SALT_DEEPSLATE: u64 = 0xDEE9_51A7;
 const SPAWN_STEP: i32 = 8;
 const SPAWN_RINGS: i32 = 200;
 
@@ -71,10 +65,9 @@ impl TerrainCache {
 #[derive(Debug, Clone)]
 pub(crate) struct Overworld {
     seed: u64,
-    terrain: Terrain,
+    terrain: Arc<Terrain>,
     source: Arc<BiomeSource>,
     placed: Arc<[PlacedBiome]>,
-    caves: Caves,
     surface: Arc<SurfaceSystem>,
     features: Arc<Features>,
     cache: Arc<Mutex<TerrainCache>>,
@@ -85,65 +78,30 @@ struct PlacedBiome {
     id: BiomeId,
 }
 
-fn rock(palette: &Palette, seed: u64, x: i32, y: i32, z: i32) -> BlockStateId {
-    let deep =
-        y < 0 || (y < 8 && unit(hash3(seed ^ SALT_DEEPSLATE, x, y, z)) < f64::from(8 - y) / 8.0);
-    if deep {
-        palette[BlockKind::Deepslate]
-    } else {
-        palette[BlockKind::Stone]
-    }
-}
-
 impl Overworld {
     pub(crate) fn new(seed: u64, variant: ClimateVariant, palette: &Palette) -> Self {
         Self {
             seed,
-            terrain: Terrain::new(seed),
+            terrain: Arc::new(Terrain::new(seed as i64, variant)),
             source: Arc::new(BiomeSource::new(seed as i64, variant)),
             placed: overworld_biomes()
                 .iter()
                 .map(|name| PlacedBiome { id: biome_id(name) })
                 .collect(),
-            caves: Caves::new(seed),
             surface: Arc::new(SurfaceSystem::new(seed as i64, palette)),
             features: Arc::new(Features::compile(overworld_biomes())),
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
         }
     }
 
-    fn clamp_height(dimension: &Dimension, height: f64) -> i32 {
-        let bounds = dimension.height;
-        (height.floor() as i32)
-            .min(bounds.max_y() - 24)
-            .max(bounds.min_y + 8)
-    }
-
     fn column_height(&self, dimension: &Dimension, x: i32, z: i32) -> i32 {
-        let mut scratch = self.source.scratch();
-        let corners = self
-            .terrain
-            .heights(&self.source, &mut scratch, x & !15, z & !15);
-        let base = corners.at((x & 15) as usize, (z & 15) as usize);
-        let shifted = base + self.terrain.detail(x, z) + f64::from(dimension.sea_level - 63);
-        Self::clamp_height(dimension, shifted)
-    }
-
-    fn tops(
-        &self,
-        dimension: &Dimension,
-        pos: ChunkPos,
-        scratch: &mut ClimateScratch,
-    ) -> [i32; 256] {
-        let (x0, z0) = (pos.x * 16, pos.z * 16);
-        let corners = self.terrain.heights(&self.source, scratch, x0, z0);
-        std::array::from_fn(|i| {
-            let (x, z) = ((i & 15) as i32, (i >> 4) as i32);
-            let base = corners.at(x as usize, z as usize);
-            let shifted =
-                base + self.terrain.detail(x0 + x, z0 + z) + f64::from(dimension.sea_level - 63);
-            Self::clamp_height(dimension, shifted)
-        })
+        let cells = self.terrain.column(x, z);
+        cells
+            .iter()
+            .rposition(|cell| *cell == Cell::Default)
+            .map_or(dimension.height.min_y, |index| {
+                self.terrain.min_y() + index as i32
+            })
     }
 
     pub(crate) fn terrain_cached(
@@ -165,8 +123,7 @@ impl Overworld {
         }
         let mut biomes = ChunkBiomes::new(dimension.height);
         let buffer = self.terrain(resources, dimension, pos, &mut biomes, scratch);
-        let tops = self.tops(dimension, pos, scratch);
-        let hint: [i32; 256] = std::array::from_fn(|i| tops[i].max(dimension.sea_level - 1) + 1);
+        let hint: [i32; 256] = [dimension.height.max_y() + 1; 256];
         let chunk = Arc::new(TerrainChunk::new(buffer, biomes, hint, dimension.height));
         if let Ok(mut cache) = self.cache.lock() {
             cache.insert(key, chunk.clone());
@@ -187,56 +144,40 @@ impl Overworld {
         let sea_level = dimension.sea_level;
         let min_y = height.min_y;
         let (x0, z0) = (pos.x * 16, pos.z * 16);
-        let tops = self.tops(dimension, pos, scratch);
+        let terrain = &*self.terrain;
+        let mut sampler = terrain.sampler();
+        let cells = terrain.fill(&mut sampler, x0, z0);
+        let levels = terrain.chunk_surface_levels(&mut sampler, x0, z0);
         let mut buffer = ChunkBuffer::new(height);
-        let lowest = tops.iter().copied().min().unwrap_or(min_y);
-        let uniform_top = (lowest - 10).max(min_y - 1);
-        for y in min_y..=uniform_top {
-            if y < 0 {
-                buffer.fill_layer(y, palette[BlockKind::Deepslate]);
-            } else if y >= 8 {
-                buffer.fill_layer(y, palette[BlockKind::Stone]);
-            } else {
-                for i in 0..256usize {
-                    let state = rock(
-                        palette,
-                        self.seed,
-                        x0 + (i & 15) as i32,
-                        y,
-                        z0 + (i >> 4) as i32,
-                    );
-                    buffer.set(i & 15, y, i >> 4, state);
-                }
-            }
-        }
-        let water = palette[BlockKind::Water];
-        let mut limits = [0i32; 256];
-        for i in 0..256usize {
-            let (x, z) = (i & 15, i >> 4);
-            let (wx, wz) = (x0 + x as i32, z0 + z as i32);
-            let top = tops[i];
-            for y in (uniform_top + 1)..=top {
-                buffer.set(x, y, z, rock(palette, self.seed, wx, y, wz));
-            }
-            for y in (top + 1)..sea_level {
-                buffer.set(x, y, z, water);
-            }
-            limits[i] = self.caves.limit(wx, wz, top, sea_level);
-        }
-        self.caves.carve(
-            &mut buffer,
-            pos,
-            &limits,
-            min_y + 10,
-            BlockStateId::AIR,
+        let mut tops = [min_y - 1; 256];
+        let (stone, water, lava) = (
+            palette[BlockKind::Stone],
+            palette[BlockKind::Water],
             palette[BlockKind::Lava],
         );
+        for (index, cell) in cells.iter().enumerate() {
+            let (i, yy) = (index & 255, (index >> 8) as i32);
+            let y = terrain.min_y() + yy;
+            let state = match cell {
+                Cell::Air => continue,
+                Cell::Default => stone,
+                Cell::Water => water,
+                Cell::Lava => lava,
+            };
+            if y < min_y || y > height.max_y() {
+                continue;
+            }
+            buffer.set(i & 15, y, i >> 4, state);
+            tops[i] = tops[i].max(y);
+        }
+        let sampler = RefCell::new(sampler);
+        let vein = |x: i32, y: i32, z: i32| terrain.vein(&mut sampler.borrow_mut(), x, y, z);
         let bounds = Bounds {
             min_y,
             max_y: height.max_y(),
             sea_level,
         };
-        let surface_height = |i: usize| tops[i].max(sea_level - 1) + 1;
+        let surface_height = |i: usize| tops[i] + 1;
         let cells = RefCell::new((biomes, scratch));
         for (i, top) in tops.iter().copied().enumerate() {
             let (x, z) = (i & 15, i >> 4);
@@ -255,6 +196,8 @@ impl Overworld {
                 world_z: z0 + z as i32,
                 top,
                 gradient,
+                preliminary: Some(levels[i].floor() as i32),
+                vein: Some(&vein),
                 biome_at: |y| {
                     let mut guard = cells.borrow_mut();
                     let (biomes, scratch) = &mut *guard;
@@ -262,7 +205,6 @@ impl Overworld {
                 },
             });
         }
-        self.bedrock(&mut buffer, palette, pos);
         buffer
     }
 
@@ -284,9 +226,7 @@ impl Overworld {
             let layer = ((y.clamp(min_y, height.max_y()) - min_y) >> 2) as usize;
             indices[layer * 16 + ((z >> 2) << 2) + (x >> 2)]
         };
-        let mut scratch = self.source.scratch();
-        let tops = self.tops(dimension, pos, &mut scratch);
-        let scan_from = tops.iter().copied().max().unwrap_or(min_y).max(sea_level) + 40;
+        let scan_from = height.max_y();
         freeze_top_layer(
             &mut buffer,
             &FreezeContext {
@@ -304,28 +244,6 @@ impl Overworld {
             .map(|index| self.placed[usize::from(*index)].id)
             .collect();
         buffer.finish_layered(pos, &stored, &resources.classifier)
-    }
-
-    fn bedrock(&self, buffer: &mut ChunkBuffer, palette: &Palette, pos: ChunkPos) {
-        let min_y = buffer.height().min_y;
-        let bedrock = palette[BlockKind::Bedrock];
-        for k in 0..5 {
-            let y = min_y + k;
-            let chance = f64::from(5 - k) / 5.0;
-            for z in 0..16usize {
-                for x in 0..16usize {
-                    let hash = hash3(
-                        self.seed ^ SALT_BEDROCK,
-                        pos.x * 16 + x as i32,
-                        y,
-                        pos.z * 16 + z as i32,
-                    );
-                    if k == 0 || unit(hash) < chance {
-                        buffer.set(x, y, z, bedrock);
-                    }
-                }
-            }
-        }
     }
 
     pub(crate) fn spawn_point(&self, resources: &Resources, dimension: &Dimension) -> Vec3 {
@@ -423,13 +341,63 @@ mod tests {
     }
 
     #[test]
-    fn rock_transitions_to_deepslate_between_zero_and_eight() {
-        let palette = Palette::resolve();
-        assert_eq!(rock(&palette, 1, 0, 20, 0), palette[BlockKind::Stone]);
-        assert_eq!(rock(&palette, 1, 0, -1, 0), palette[BlockKind::Deepslate]);
-        let mixed = (0..400)
-            .filter(|i| rock(&palette, 1, *i, 4, *i * 3) == palette[BlockKind::Deepslate])
-            .count();
-        assert!(mixed > 120 && mixed < 280, "{mixed}");
+    fn chunk_has_bedrock_floor_and_deepslate_below_zero() {
+        let resources = Resources::resolve();
+        let palette = &resources.blocks;
+        let dimension = Dimension::overworld();
+        let overworld = Overworld::new(77, ClimateVariant::Normal, palette);
+        let mut scratch = overworld.source.scratch();
+        let chunk =
+            overworld.terrain_cached(&resources, &dimension, ChunkPos::new(3, -5), &mut scratch);
+        let mut deepslate = 0;
+        let mut stone_deep = 0;
+        for z in 0..16 {
+            for x in 0..16 {
+                assert_eq!(chunk.buffer.get(x, -64, z), palette[BlockKind::Bedrock]);
+                for y in -50..-1 {
+                    let state = chunk.buffer.get(x, y, z);
+                    if state == palette[BlockKind::Deepslate] {
+                        deepslate += 1;
+                    } else if state == palette[BlockKind::Stone] {
+                        stone_deep += 1;
+                    }
+                }
+                assert_ne!(chunk.buffer.get(x, 40, z), palette[BlockKind::Deepslate]);
+            }
+        }
+        assert!(deepslate > 5000, "{deepslate}");
+        assert_eq!(stone_deep, 0);
+    }
+
+    #[test]
+    fn bedrock_floor_matches_the_vanilla_material_rule() {
+        let resources = Resources::resolve();
+        let palette = &resources.blocks;
+        let dimension = Dimension::overworld();
+        let overworld = Overworld::new(5, ClimateVariant::Normal, palette);
+        let mut scratch = overworld.source.scratch();
+        for line in include_str!("bedrock_columns.txt").lines() {
+            let mut parts = line.split(' ');
+            let _seed = parts.next();
+            let x: i32 = parts.next().unwrap().parse().unwrap();
+            let z: i32 = parts.next().unwrap().parse().unwrap();
+            let expected = parts.next().unwrap();
+            let chunk = overworld.terrain_cached(
+                &resources,
+                &dimension,
+                BlockPos::new(x, 0, z).chunk(),
+                &mut scratch,
+            );
+            let wanted: Vec<bool> = expected.chars().map(|c| c == 'b').collect();
+            let got: Vec<bool> = (0..wanted.len())
+                .map(|i| {
+                    chunk
+                        .buffer
+                        .get((x & 15) as usize, -64 + i as i32, (z & 15) as usize)
+                        == palette[BlockKind::Bedrock]
+                })
+                .collect();
+            assert_eq!(got, wanted, "{x} {z}");
+        }
     }
 }

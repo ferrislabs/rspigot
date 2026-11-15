@@ -5,7 +5,6 @@ use super::graph::Id;
 use crate::climate::Positional;
 
 pub(crate) const WAY_BELOW_MIN_Y: i32 = -2032 << 4;
-const AIR_LEVEL: i32 = -2032 * 2;
 const LAVA_LEVEL: i32 = -54;
 const SURFACE_OFFSETS: [(i32, i32); 13] = [
     (0, 0),
@@ -97,6 +96,7 @@ pub(crate) struct Aquifer {
 }
 
 impl Aquifer {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         sampler: &mut Sampler<'_>,
         ids: AquiferIds,
@@ -326,6 +326,7 @@ impl Aquifer {
         global.fluid
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn pressure(
         &self,
         sampler: &mut Sampler<'_>,

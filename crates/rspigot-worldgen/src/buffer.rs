@@ -131,6 +131,7 @@ impl ChunkBuffer {
         self.height
     }
 
+    #[cfg(test)]
     pub(crate) fn offset(&self, y: i32) -> usize {
         (y - self.height.min_y) as usize * LAYER
     }
@@ -149,6 +150,7 @@ impl ChunkBuffer {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn fill_layer(&mut self, y: i32, state: BlockStateId) {
         if self.height.contains(y) {
             let start = self.offset(y);
@@ -157,10 +159,6 @@ impl ChunkBuffer {
     }
 
     #[cfg(test)]
-    pub(crate) fn raw(&self) -> &[u16] {
-        &self.blocks
-    }
-
     #[cfg(test)]
     pub(crate) fn finish(
         self,

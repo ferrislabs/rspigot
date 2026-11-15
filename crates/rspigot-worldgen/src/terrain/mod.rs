@@ -6,11 +6,12 @@ use rspigot_data::multi_noise::ClimateVariant;
 use serde_json::Value;
 
 use crate::climate::{Positional, Xoroshiro};
-use crate::datapack::worldgen;
+use crate::datapack::{block_state, worldgen};
 pub(crate) use aquifer::Fluid;
 use aquifer::{Aquifer, AquiferIds};
 use eval::{Compiled, Sampler, lerp};
 use graph::{Compiler, Id, Node};
+use rspigot_domain::BlockStateId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Cell {
@@ -27,9 +28,22 @@ pub(crate) struct Terrain {
     chunk_surface_input: Id,
     ids: AquiferIds,
     aquifer_random: Positional,
+    ore_random: Positional,
+    veins: Vec<Vein>,
     sea_level: i32,
     min_y: i32,
     height: i32,
+}
+
+#[derive(Debug, Clone)]
+struct Vein {
+    ore: BlockStateId,
+    raw: BlockStateId,
+    filler: BlockStateId,
+    raw_chance: f32,
+    density: Id,
+    richness: Id,
+    filler_gap: Id,
 }
 
 fn variant_key(variant: ClimateVariant) -> &'static str {
@@ -62,12 +76,27 @@ impl Terrain {
             exclusion: build(&mut compiler, &aquifers["exclusion"]),
             surface_level: build(&mut compiler, &aquifers["surface_level"]),
         };
+        let mut veins = Vec::new();
+        for vein in settings["ore_veins"].as_array().into_iter().flatten() {
+            let state = |key: &str| {
+                block_state(&vein[key]).unwrap_or_else(|| panic!("ore vein block {key}"))
+            };
+            veins.push(Vein {
+                ore: state("ore_block"),
+                raw: state("raw_ore_block"),
+                filler: state("filler_block"),
+                raw_chance: vein["raw_ore_chance"].as_f64().unwrap_or(0.02) as f32,
+                density: build(&mut compiler, &vein["density"]),
+                richness: build(&mut compiler, &vein["richness"]),
+                filler_gap: build(&mut compiler, &vein["filler_gap"]),
+            });
+        }
         let graph = compiler.finish();
         let chunk_surface_input = match graph.nodes[chunk_surface as usize] {
             Node::Interpolated { input, .. } => input,
             _ => chunk_surface,
         };
-        let roots = [
+        let mut roots = vec![
             final_density,
             chunk_surface_input,
             ids.barrier,
@@ -77,10 +106,17 @@ impl Terrain {
             ids.exclusion,
             ids.surface_level,
         ];
+        for vein in &veins {
+            roots.extend([vein.density, vein.richness, vein.filler_gap]);
+        }
         let compiled = Compiled::new(graph, seed, &roots);
         let aquifer_random = Xoroshiro::from_seed(seed)
             .fork_positional()
             .named("minecraft:aquifer")
+            .fork_positional();
+        let ore_random = Xoroshiro::from_seed(seed)
+            .fork_positional()
+            .named("minecraft:ore")
             .fork_positional();
         Self {
             compiled,
@@ -88,6 +124,8 @@ impl Terrain {
             chunk_surface_input,
             ids,
             aquifer_random,
+            ore_random,
+            veins,
             sea_level: settings["sea_level"].as_i64().unwrap_or(63) as i32,
             min_y: settings["min_y"].as_i64().unwrap_or(-64) as i32,
             height: settings["height"].as_i64().unwrap_or(384) as i32,
@@ -100,10 +138,6 @@ impl Terrain {
 
     pub(crate) fn min_y(&self) -> i32 {
         self.min_y
-    }
-
-    pub(crate) fn height(&self) -> i32 {
-        self.height
     }
 
     pub(crate) fn fill(&self, sampler: &mut Sampler<'_>, x0: i32, z0: i32) -> Vec<Cell> {
@@ -157,8 +191,33 @@ impl Terrain {
         })
     }
 
-    pub(crate) fn density_at(&self, sampler: &mut Sampler<'_>, x: i32, y: i32, z: i32) -> f32 {
-        sampler.eval(self.final_density, x, y, z)
+    pub(crate) fn vein(
+        &self,
+        sampler: &mut Sampler<'_>,
+        x: i32,
+        y: i32,
+        z: i32,
+    ) -> Option<BlockStateId> {
+        for vein in &self.veins {
+            let density = sampler.eval(vein.density, x, y, z);
+            if density <= 0.0 {
+                continue;
+            }
+            let mut random = self.ore_random.at(x, y, z);
+            if density < random.next_float() {
+                continue;
+            }
+            let richness = sampler.eval(vein.richness, x, y, z);
+            if random.next_float() < richness && sampler.eval(vein.filler_gap, x, y, z) < 0.0 {
+                return Some(if vein.raw_chance <= random.next_float() {
+                    vein.ore
+                } else {
+                    vein.raw
+                });
+            }
+            return Some(vein.filler);
+        }
+        None
     }
 
     pub(crate) fn column(&self, x: i32, z: i32) -> Vec<Cell> {
