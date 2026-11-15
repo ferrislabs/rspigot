@@ -1,4 +1,5 @@
-use rspigot_blocks::BlockKind;
+use rspigot_blocks::{BlockKind, Face};
+use rspigot_domain::entity::{Aabb, hanging};
 use rspigot_domain::{BlockPos, BlockStateId};
 
 use crate::ports::ClientLink;
@@ -10,6 +11,21 @@ const CAKE_SLICES: i32 = 7;
 const ANCHOR_CHARGES: f32 = 4.0;
 
 impl<L: ClientLink> Server<L> {
+    pub(crate) fn item_frame_signal(&self, pos: BlockPos, toward: Face) -> Option<i32> {
+        let cell = Aabb::block(pos);
+        self.entities
+            .store
+            .iter()
+            .filter(|entity| {
+                entity.base.removal.is_none()
+                    && hanging::is_frame(entity.base.kind)
+                    && hanging::facing(&entity.base) == toward
+                    && entity.base.bounding_box().intersects(&cell)
+            })
+            .map(|entity| hanging::analog_output(&entity.base))
+            .next()
+    }
+
     pub(crate) fn analog_signal(&self, pos: BlockPos, state: BlockStateId) -> Option<i32> {
         match state.kind()? {
             BlockKind::Composter => Some(level(state, "level")),

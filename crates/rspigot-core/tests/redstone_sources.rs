@@ -319,3 +319,75 @@ fn the_new_sources_report_a_redstone_event_and_a_cancel_keeps_them_off() {
     s.tick(2);
     assert_eq!(prop(&mut s, rod, "powered"), "false");
 }
+
+#[test]
+fn a_comparator_reads_an_item_frame_behind_a_solid_block() {
+    let mut s = scene(&["Alice"]);
+    put(
+        &mut s,
+        BlockPos::new(3, 64, 5),
+        "minecraft:comparator",
+        &[("facing", "east")],
+    );
+    put(&mut s, BlockPos::new(4, 64, 5), "minecraft:stone", &[]);
+    put(
+        &mut s,
+        BlockPos::new(2, 64, 5),
+        "minecraft:redstone_wire",
+        &[],
+    );
+    s.server.handle(rspigot_core::events::Inbound::Console(
+        "summon minecraft:item_frame 5.5 64.5 5.5 {Facing:5b,TileX:5,TileY:64,TileZ:5,Item:{id:\"minecraft:stone\",count:1},ItemRotation:3b}"
+            .to_owned(),
+    ));
+    s.server.deliver();
+    assert_eq!(
+        s.server
+            .entities_of(rspigot_entities::EntityKind::ItemFrame)
+            .len(),
+        1
+    );
+    put(&mut s, BlockPos::new(3, 64, 5), "minecraft:air", &[]);
+    put(
+        &mut s,
+        BlockPos::new(3, 64, 5),
+        "minecraft:comparator",
+        &[("facing", "east")],
+    );
+    s.tick(6);
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "power"), "4");
+}
+
+#[test]
+fn a_comparator_two_blocks_from_a_cauldron_follows_its_level() {
+    let mut s = scene(&["Alice"]);
+    put(
+        &mut s,
+        BlockPos::new(3, 64, 5),
+        "minecraft:comparator",
+        &[("facing", "east")],
+    );
+    put(&mut s, BlockPos::new(4, 64, 5), "minecraft:stone", &[]);
+    put(
+        &mut s,
+        BlockPos::new(2, 64, 5),
+        "minecraft:redstone_wire",
+        &[],
+    );
+    put(
+        &mut s,
+        BlockPos::new(5, 64, 5),
+        "minecraft:water_cauldron",
+        &[("level", "3")],
+    );
+    s.tick(6);
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "power"), "3");
+    put(
+        &mut s,
+        BlockPos::new(5, 64, 5),
+        "minecraft:water_cauldron",
+        &[("level", "1")],
+    );
+    s.tick(6);
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "power"), "1");
+}

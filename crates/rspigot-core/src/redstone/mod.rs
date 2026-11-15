@@ -157,6 +157,24 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn update_neighbour_for_output_signal(&mut self, pos: BlockPos) {
+        for face in [Face::North, Face::East, Face::South, Face::West] {
+            let at = step(pos, face);
+            let state = self.block_or_air(at);
+            let target = if state.kind() == Some(BlockKind::Comparator) {
+                Some(at)
+            } else if is_conductor(state) {
+                let beyond = step(at, face);
+                (self.block_or_air(beyond).kind() == Some(BlockKind::Comparator)).then_some(beyond)
+            } else {
+                None
+            };
+            if let Some(comparator) = target {
+                self.neighbor_changed(comparator, pos);
+            }
+        }
+    }
+
     pub(crate) fn set_block_quiet(&mut self, pos: BlockPos, state: BlockStateId) -> bool {
         self.falls.redstone.quiet = true;
         let changed = self.set_block(pos, state);
@@ -237,6 +255,9 @@ impl<L: ClientLink> Server<L> {
             self.lightning_rod_placed(pos, new);
         }
         self.tripwire_changed(pos, old, new);
+        if !self.falls.redstone.quiet && old != new && self.analog_signal(pos, new).is_some() {
+            self.update_neighbour_for_output_signal(pos);
+        }
         if new.kind() == Some(BlockKind::Target) && old.kind() != new.kind() {
             self.target_placed(pos, new);
         }
