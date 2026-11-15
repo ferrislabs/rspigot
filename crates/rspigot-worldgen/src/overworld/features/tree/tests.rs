@@ -4,6 +4,20 @@ use crate::overworld::region::Region;
 use crate::resources::BlockKind;
 use rspigot_blocks::BlockKind as Kind;
 
+fn positions(region: &mut Region, name: &str) -> Vec<Pos> {
+    let mut found = Vec::new();
+    for x in -24..40 {
+        for z in -24..40 {
+            for y in 40..130 {
+                if region.get(x, y, z).kind().map(Kind::name) == Some(name) {
+                    found.push((x, y, z));
+                }
+            }
+        }
+    }
+    found
+}
+
 fn cells(region: &mut Region) -> Vec<(Pos, BlockStateId)> {
     let mut states = Vec::new();
     for x in -24..40 {
@@ -14,6 +28,91 @@ fn cells(region: &mut Region) -> Vec<(Pos, BlockStateId)> {
         }
     }
     states
+}
+
+fn snapshot(region: &mut Region) -> Vec<BlockStateId> {
+    cells(region).into_iter().map(|(_, state)| state).collect()
+}
+
+struct Shape {
+    feature: &'static str,
+    log: &'static str,
+    leaves: &'static str,
+    rise: (i32, i32),
+}
+
+const SHAPES: [Shape; 2] = [
+    Shape {
+        feature: "cherry",
+        log: "minecraft:cherry_log",
+        leaves: "minecraft:cherry_leaves",
+        rise: (4, 8),
+    },
+    Shape {
+        feature: "cherry_bees_005",
+        log: "minecraft:cherry_log",
+        leaves: "minecraft:cherry_leaves",
+        rise: (4, 8),
+    },
+];
+
+#[test]
+fn new_tree_families_grow_on_soil_within_their_height_bounds() {
+    let bench = Bench::new();
+    for shape in &SHAPES {
+        let mut grown = 0;
+        let mut region_count = 0;
+        for seed in 0..12 {
+            region_count += 1;
+            let mut region = bench.floor(BlockKind::GrassBlock, 69);
+            if !bench.place(&mut region, shape.feature, (8, 70, 8), seed) {
+                continue;
+            }
+            grown += 1;
+            let logs = positions(&mut region, shape.log);
+            let leaves = positions(&mut region, shape.leaves);
+            assert!(
+                !logs.is_empty(),
+                "{} seed {seed} has no trunk",
+                shape.feature
+            );
+            assert!(
+                !leaves.is_empty(),
+                "{} seed {seed} has no leaves",
+                shape.feature
+            );
+            let top = logs.iter().map(|pos| pos.1).max().unwrap_or(0) - 70;
+            assert!(
+                (shape.rise.0..=shape.rise.1).contains(&top),
+                "{} seed {seed} trunk rises {top}",
+                shape.feature
+            );
+        }
+        let needed = if shape.feature == "tall_mangrove" {
+            3
+        } else {
+            10
+        };
+        assert!(
+            grown >= needed,
+            "{} grew {grown} of {region_count}",
+            shape.feature
+        );
+    }
+}
+
+#[test]
+fn new_tree_families_are_deterministic_per_seed() {
+    let bench = Bench::new();
+    for shape in &SHAPES {
+        let run = |seed: i64| {
+            let mut region = bench.floor(BlockKind::GrassBlock, 69);
+            bench.place(&mut region, shape.feature, (8, 70, 8), seed);
+            snapshot(&mut region)
+        };
+        assert_eq!(run(3), run(3), "{}", shape.feature);
+        assert_ne!(run(3), run(4), "{}", shape.feature);
+    }
 }
 
 fn describe(state: BlockStateId) -> String {
@@ -67,7 +166,7 @@ fn fingerprint(bench: &Bench, feature: &str, seed: i64) -> (usize, u64) {
     (lines.len(), hash)
 }
 
-const REFERENCE: [(&str, i64, usize, u64); 42] = [
+const REFERENCE: [(&str, i64, usize, u64); 54] = [
     ("acacia", 1, 92, 0xc2385bb24eb84a74),
     ("acacia", 2, 94, 0x1f983ae25b632b84),
     ("birch", 1, 60, 0xce6936f52009cf57),
@@ -110,6 +209,18 @@ const REFERENCE: [(&str, i64, usize, u64); 42] = [
     ("super_birch_bees", 2, 65, 0x36b2df5cac9b73e4),
     ("swamp_oak", 1, 197, 0xcf4e2bd9c4d1f051),
     ("swamp_oak", 2, 205, 0xdc99b0626fca1648),
+    ("cherry", 1, 150, 0xdd6eb43efcaa6847),
+    ("cherry", 2, 148, 0x812c1fff4ab7d64d),
+    ("cherry", 3, 401, 0x3207cc5895e40fe6),
+    ("cherry", 4, 305, 0x66c3d8d8c3f5b214),
+    ("cherry", 5, 153, 0x545201570883fbb0),
+    ("cherry", 6, 289, 0x7bfc3e9b514b502f),
+    ("cherry_bees_005", 1, 150, 0xdd6eb43efcaa6847),
+    ("cherry_bees_005", 2, 148, 0x812c1fff4ab7d64d),
+    ("cherry_bees_005", 3, 402, 0xf539783adc80a86c),
+    ("cherry_bees_005", 4, 305, 0x66c3d8d8c3f5b214),
+    ("cherry_bees_005", 5, 153, 0x545201570883fbb0),
+    ("cherry_bees_005", 6, 289, 0x7bfc3e9b514b502f),
 ];
 
 #[test]

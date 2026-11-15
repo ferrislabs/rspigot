@@ -7,9 +7,11 @@ use super::place::Run;
 use super::prov::{BlockSet, Int, Pos, State, flag, integer, short};
 use super::treedeco::{self, Decorator};
 
+mod crowns;
 mod leaves;
+mod trunks;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 enum Trunk {
     Straight,
     Forking,
@@ -17,6 +19,7 @@ enum Trunk {
     MegaJungle,
     DarkOak,
     Fancy,
+    Cherry(trunks::Cherry),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +33,7 @@ enum Crown {
     MegaPine,
     Fancy,
     DarkOak,
+    Cherry,
 }
 
 #[derive(Debug, Clone)]
@@ -108,6 +112,7 @@ pub(crate) struct Tree {
     below: State,
     ignore_vines: bool,
     decorators: Vec<Decorator>,
+    crown_config: crowns::Config,
 }
 
 pub(crate) fn compile(value: &Value) -> Option<Tree> {
@@ -119,6 +124,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         "mega_jungle_trunk_placer" => Trunk::MegaJungle,
         "dark_oak_trunk_placer" => Trunk::DarkOak,
         "fancy_trunk_placer" => Trunk::Fancy,
+        "cherry_trunk_placer" => Trunk::Cherry(trunks::Cherry::compile(trunk_value)),
         _ => return None,
     };
     if value.get("root_placer").is_some() {
@@ -135,6 +141,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         "mega_pine_foliage_placer" => Crown::MegaPine,
         "fancy_foliage_placer" => Crown::Fancy,
         "dark_oak_foliage_placer" => Crown::DarkOak,
+        "cherry_foliage_placer" => Crown::Cherry,
         _ => return None,
     };
     let provider = |key: &str| Int::compile(crown_value.get(key).unwrap_or(&Value::Null));
@@ -180,6 +187,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         below: State::compile(value.get("below_trunk_provider").unwrap_or(&Value::Null)),
         ignore_vines: flag(value, "ignore_vines", false),
         decorators: treedeco::compile_all(value),
+        crown_config: crowns::Config::compile(crown_value),
     })
 }
 
@@ -320,6 +328,7 @@ impl Site<'_, '_, '_> {
                 let (a, b) = (sx as f32 + 0.5, sz as f32 + 0.5);
                 a * a + b * b > (range * range) as f32
             }
+            Crown::Cherry => self.cherry_skip(sx, y, sz, range),
             Crown::DarkOak => {
                 if y == -1 && !double {
                     sx == range && sz == range
@@ -430,6 +439,7 @@ impl Site<'_, '_, '_> {
                     j += 1;
                 }
             }
+            Crown::Cherry => self.cherry_crown(attachment, foliage_height, radius, offset),
             Crown::DarkOak => {
                 let at = (pos.0, pos.1 + offset, pos.2);
                 if double {
@@ -454,7 +464,8 @@ impl Site<'_, '_, '_> {
             | Crown::Fancy
             | Crown::Pine
             | Crown::Jungle
-            | Crown::MegaPine => self.tree.height.sample(self.run.rng),
+            | Crown::MegaPine
+            | Crown::Cherry => self.tree.height.sample(self.run.rng),
             Crown::Spruce => (tree_height - self.tree.trunk_height.sample(self.run.rng)).max(4),
             Crown::Acacia => 0,
             Crown::DarkOak => 4,
@@ -466,7 +477,8 @@ impl Site<'_, '_, '_> {
     }
 
     fn trunk(&mut self, height: i32, origin: Pos) -> Vec<Attachment> {
-        match self.tree.trunk {
+        let tree = self.tree;
+        match &tree.trunk {
             Trunk::Straight => {
                 self.dirt((origin.0, origin.1 - 1, origin.2));
                 for i in 0..height {
@@ -483,6 +495,7 @@ impl Site<'_, '_, '_> {
             Trunk::MegaJungle => self.mega_jungle(height, origin),
             Trunk::DarkOak => self.dark_oak(height, origin),
             Trunk::Fancy => self.fancy(height, origin),
+            Trunk::Cherry(cherry) => self.cherry(cherry, height, origin),
         }
     }
 
