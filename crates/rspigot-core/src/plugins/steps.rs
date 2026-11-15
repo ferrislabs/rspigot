@@ -1639,6 +1639,7 @@ pub(crate) enum Continuation {
     Redstone(Box<crate::redstone::RedstoneStep>),
     Piston(Box<crate::redstone::PistonStep>),
     Hopper(Box<crate::redstone::HopperStep>),
+    Touch(Box<crate::redstone::TouchStep>),
     Note(crate::redstone::NoteStep),
     Bell(crate::redstone::BellStep),
     Crafter(Box<crate::redstone::CrafterStep>),
@@ -1869,6 +1870,7 @@ impl Continuation {
             Self::Redstone(_) => EventKind::BlockRedstone,
             Self::Piston(step) => step.kind(),
             Self::Hopper(step) => step.kind(),
+            Self::Touch(step) => step.kind(),
             Self::Note(_) => EventKind::NotePlay,
             Self::Bell(_) => EventKind::BellRing,
             Self::Crafter(_) => EventKind::CrafterCraft,
@@ -2151,6 +2153,7 @@ impl Continuation {
             (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
             (Self::Piston(one), Self::Piston(other)) => **one == **other,
             (Self::Hopper(one), Self::Hopper(other)) => **one == **other,
+            (Self::Touch(one), Self::Touch(other)) => **one == **other,
             (Self::Note(one), Self::Note(other)) => one.pos == other.pos,
             (Self::Bell(one), Self::Bell(other)) => one.pos == other.pos,
             (Self::Crafter(one), Self::Crafter(other)) => one.pos == other.pos,
@@ -2261,6 +2264,7 @@ impl Continuation {
             | Self::Redstone(_)
             | Self::Piston(_)
             | Self::Hopper(_)
+            | Self::Touch(_)
             | Self::Note(_)
             | Self::Bell(_)
             | Self::Crafter(_)

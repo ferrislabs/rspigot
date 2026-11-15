@@ -13,7 +13,7 @@ use crate::signal::{flag, level};
 const LEVER_ON_PITCH: f32 = 0.6;
 const LEVER_OFF_PITCH: f32 = 0.5;
 const LEVER_VOLUME: f32 = 0.3;
-const PLAYER_WIDTH: f32 = 0.6;
+pub(super) const PLAYER_WIDTH: f32 = 0.6;
 const LIGHT_WEIGHT: i32 = 15;
 const HEAVY_WEIGHT: i32 = 150;
 const WEIGHTED_PRESSED_TIME: u64 = 10;
@@ -340,31 +340,38 @@ impl<L: ClientLink> Server<L> {
         (players + others) as i32
     }
 
-    fn plate_strength(&self, pos: BlockPos, kind: BlockKind) -> i32 {
-        let bounds = touch_bounds(pos);
-        let name = kind.name();
-        if name.contains("weighted") {
-            let max = if name.contains("heavy") {
-                HEAVY_WEIGHT
-            } else {
-                LIGHT_WEIGHT
-            };
-            let count = self.count_touching(&bounds, false).min(max);
-            return ((count as f32 / max as f32) * 15.0).ceil() as i32;
-        }
-        let living_only = family_of(kind) == Family::Stone;
-        if self.count_touching(&bounds, living_only) > 0 {
-            MAX_POWER
-        } else {
-            0
-        }
-    }
-
     fn check_plate(&mut self, pos: BlockPos, state: BlockStateId, old: i32) {
         let Some(kind) = state.kind() else {
             return;
         };
-        let new = self.plate_strength(pos, kind);
+        let name = kind.name();
+        let weighted = name.contains("weighted");
+        let limit = if !weighted {
+            0
+        } else if name.contains("heavy") {
+            HEAVY_WEIGHT
+        } else {
+            LIGHT_WEIGHT
+        };
+        let living_only = !weighted && family_of(kind) == Family::Stone;
+        let touchers = self.touchers_in(&touch_bounds(pos), living_only);
+        if touchers.is_empty() {
+            return self.plate_settled(pos, old, 0);
+        }
+        if !weighted && old > 0 {
+            return self.plate_settled(pos, old, MAX_POWER);
+        }
+        self.ask_touch(super::touch::TouchStep {
+            pos,
+            old,
+            what: super::touch::Touched::Plate { weighted, limit },
+            touchers,
+            at: 0,
+            accepted: 0,
+        });
+    }
+
+    pub(super) fn plate_settled(&mut self, pos: BlockPos, old: i32, new: i32) {
         if (old > 0) != (new > 0) {
             self.ask_redstone(RedstoneStep {
                 pos,
