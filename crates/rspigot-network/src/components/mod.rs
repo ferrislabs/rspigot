@@ -85,10 +85,7 @@ pub(crate) struct Custom {
 pub(crate) enum Node {
     Unit,
     Bool,
-    Byte,
-    Short,
     Int,
-    Long,
     Var,
     Float,
     Double,
@@ -100,6 +97,12 @@ pub(crate) enum Node {
     Reg(Reg),
     Holder(Reg, &'static Node),
     Set(Reg),
+    Fixed(&'static Node, usize),
+    EnumIds(&'static [(&'static str, i32)]),
+    Wrap(&'static str, &'static Node),
+    Filterable(&'static Node),
+    Constant(&'static Node),
+    Compact(&'static Node, usize),
     List(&'static Node, usize),
     Rec(&'static [Field]),
     Stack,
@@ -189,10 +192,7 @@ impl Node {
                 tag.as_compound()?;
             }
             Self::Bool => out.push(u8::from(number(tag)? != 0)),
-            Self::Byte => out.push(i8::try_from(number(tag)?).ok()?.to_be_bytes()[0]),
-            Self::Short => out.extend(i16::try_from(number(tag)?).ok()?.to_be_bytes()),
             Self::Int => out.extend(i32::try_from(number(tag)?).ok()?.to_be_bytes()),
-            Self::Long => out.extend(number(tag)?.to_be_bytes()),
             Self::Var => write_var(i32::try_from(number(tag)?).ok()?, out),
             Self::Float => out.extend((float(tag)? as f32).to_be_bytes()),
             Self::Double => out.extend(float(tag)?.to_be_bytes()),
@@ -216,6 +216,41 @@ impl Node {
                 }
             },
             Self::Set(registry) => encode_set(registry, tag, out)?,
+            Self::Fixed(element, len) => {
+                let items = tag.as_list()?;
+                if items.len() != len {
+                    return None;
+                }
+                for item in items {
+                    element.encode(item, out)?;
+                }
+            }
+            Self::EnumIds(names) => {
+                let name = tag.as_str()?;
+                write_var(
+                    names.iter().find(|(candidate, _)| *candidate == name)?.1,
+                    out,
+                );
+            }
+            Self::Wrap(key, inner) => match tag {
+                Tag::Compound(_) => inner.encode(tag, out)?,
+                other => inner.encode(
+                    &Tag::Compound(Compound::new().with(key, other.clone())),
+                    out,
+                )?,
+            },
+            Self::Filterable(inner) => encode_filterable(inner, tag, out)?,
+            Self::Compact(inner, max) => match tag {
+                Tag::List(_) => Self::List(inner, max).encode(tag, out)?,
+                single => {
+                    write_var(1, out);
+                    inner.encode(single, out)?;
+                }
+            },
+            Self::Constant(inner) => {
+                out.push(1);
+                inner.encode(tag, out)?;
+            }
             Self::List(element, max) => {
                 let items = tag.as_list()?;
                 if items.len() > max {
@@ -247,10 +282,7 @@ impl Node {
                 1 => 1,
                 _ => return None,
             }),
-            Self::Byte => Tag::Byte(i8::from_be_bytes(read_array(input)?)),
-            Self::Short => Tag::Short(i16::from_be_bytes(read_array(input)?)),
             Self::Int => Tag::Int(i32::from_be_bytes(read_array(input)?)),
-            Self::Long => Tag::Long(i64::from_be_bytes(read_array(input)?)),
             Self::Var => Tag::Int(read_var(input).ok()?),
             Self::Float => Tag::Float(f32::from_be_bytes(read_array(input)?)),
             Self::Double => Tag::Double(f64::from_be_bytes(read_array(input)?)),
@@ -267,6 +299,32 @@ impl Node {
                 id => Tag::String(registry.name(id.checked_sub(1)?)?.to_owned()),
             },
             Self::Set(registry) => decode_set(registry, input)?,
+            Self::Fixed(element, len) => {
+                let mut items = Vec::with_capacity(len);
+                for _ in 0..len {
+                    items.push(element.decode(input)?);
+                }
+                Tag::List(items)
+            }
+            Self::EnumIds(names) => {
+                let id = read_var(input).ok()?;
+                Tag::String(
+                    names
+                        .iter()
+                        .find(|(_, candidate)| *candidate == id)?
+                        .0
+                        .to_owned(),
+                )
+            }
+            Self::Wrap(_, inner) => inner.decode(input)?,
+            Self::Filterable(inner) => decode_filterable(inner, input)?,
+            Self::Compact(inner, max) => Self::List(inner, max).decode(input)?,
+            Self::Constant(inner) => {
+                if take(input, 1)?[0] != 1 {
+                    return None;
+                }
+                inner.decode(input)?
+            }
             Self::List(element, max) => {
                 let len = read_len(input, max)?;
                 let mut items = Vec::with_capacity(len.min(input.len()));
@@ -318,6 +376,45 @@ impl Field {
         }
         compound.insert(self.name, self.node.decode(input)?);
         Some(())
+    }
+}
+
+fn encode_filterable(inner: &Node, tag: &Tag, out: &mut Vec<u8>) -> Option<()> {
+    match tag
+        .as_compound()
+        .filter(|compound| compound.contains_key("raw"))
+    {
+        Some(filterable) => {
+            inner.encode(filterable.get("raw")?, out)?;
+            match filterable.get("filtered") {
+                Some(filtered) => {
+                    out.push(1);
+                    inner.encode(filtered, out)
+                }
+                None => {
+                    out.push(0);
+                    Some(())
+                }
+            }
+        }
+        None => {
+            inner.encode(tag, out)?;
+            out.push(0);
+            Some(())
+        }
+    }
+}
+
+fn decode_filterable(inner: &Node, input: &mut &[u8]) -> Option<Tag> {
+    let raw = inner.decode(input)?;
+    match take(input, 1)?[0] {
+        0 => Some(raw),
+        1 => Some(Tag::Compound(
+            Compound::new()
+                .with("raw", raw)
+                .with("filtered", inner.decode(input)?),
+        )),
+        _ => None,
     }
 }
 
@@ -465,7 +562,7 @@ impl Node {
     }
 }
 
-fn component_type(name: &str) -> Option<i32> {
+pub(crate) fn component_type(name: &str) -> Option<i32> {
     Reg::Static(DATA_COMPONENT_TYPE).index(name)
 }
 

@@ -5,6 +5,7 @@ use super::{decode_components, encode_components, encode_value, schema};
 const GOLDEN: &[(&str, &str)] = &[
     ("family1", include_str!("golden/family1.txt")),
     ("family2", include_str!("golden/family2.txt")),
+    ("family3", include_str!("golden/family3.txt")),
 ];
 
 fn hex(bytes: &[u8]) -> String {
@@ -82,4 +83,38 @@ fn styled_text_travels_as_network_nbt() {
     assert_eq!(compound.get_str("text"), Some("Hi"));
     assert_eq!(compound.get_str("color"), Some("gold"));
     assert_eq!(compound.get_bool("bold"), Some(true));
+}
+
+#[test]
+fn a_hidden_effect_nests_inside_the_effect_details() {
+    let effect = parse(
+        r#"{custom_effects:[{id:"minecraft:speed",amplifier:2,duration:100,hidden_effect:{amplifier:1,duration:50}}]}"#,
+    );
+    let encoded = encode_value("minecraft:potion_contents", &effect).unwrap();
+    let mut input = encoded.data.as_slice();
+    let decoded = schema::node("minecraft:potion_contents")
+        .unwrap()
+        .decode(&mut input)
+        .unwrap();
+    let effects = decoded
+        .as_compound()
+        .unwrap()
+        .get_list("custom_effects")
+        .unwrap();
+    let hidden = effects[0]
+        .as_compound()
+        .unwrap()
+        .get_compound("hidden_effect")
+        .unwrap();
+    assert_eq!(hidden.get_i32("duration"), Some(50));
+    assert_eq!(hidden.get_i32("amplifier"), Some(1));
+}
+
+#[test]
+fn a_map_post_processing_value_is_its_ordinal() {
+    let encoded = encode_value(
+        "minecraft:map_post_processing",
+        &Tag::String("scale".to_owned()),
+    );
+    assert_eq!(encoded.unwrap().data, vec![1]);
 }
