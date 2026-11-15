@@ -464,7 +464,7 @@ impl<L: ClientLink> Server<L> {
         match (nearest, block) {
             (Some((target, _)), _) => self.ask_projectile_hit(id, target),
             (None, Some(hit)) => {
-                self.notice_block_hit(id, hit.pos, hit.face);
+                self.notice_block_hit(id, hit);
                 if let Some(Entity { base, .. }) = self.entities.store.get_mut(id) {
                     let distance = hit.location.distance_squared(base.position).sqrt();
                     base.velocity = base.velocity.normalize().scale(distance);

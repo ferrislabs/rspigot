@@ -1966,6 +1966,34 @@ fn a_page_turned_by_one_reader_reaches_the_other_one() {
     assert_eq!(page_shown(&world.bob, WINDOW), Some(1));
 }
 
+fn lectern_powered_updates(player: &Player) -> Vec<bool> {
+    player
+        .log
+        .iter()
+        .filter_map(|event| match event {
+            ClientEvent::BlockUpdate { pos, state } if *pos == LECTERN => {
+                Some(state.property("powered") == Some("true"))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn turning_a_page_gives_the_lectern_a_two_tick_redstone_pulse() {
+    let mut world = world();
+    world.open_lectern();
+    world.press(WINDOW, 2);
+    world.press(WINDOW, 2);
+    let updates = lectern_powered_updates(&world.alice);
+    assert!(updates.contains(&true));
+    assert_eq!(updates.last(), Some(&false));
+    let before = updates.len();
+    world.press(WINDOW, 150);
+    world.press(WINDOW, 150);
+    assert_eq!(lectern_powered_updates(&world.alice).len(), before);
+}
+
 #[test]
 fn the_page_stays_when_the_lectern_is_closed_and_opened_again() {
     let mut world = world();

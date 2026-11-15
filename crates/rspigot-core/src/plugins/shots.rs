@@ -124,9 +124,9 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn notice_block_hit(
         &mut self,
         arrow: EntityId,
-        pos: rspigot_domain::BlockPos,
-        face: rspigot_blocks::Face,
+        hit: rspigot_domain::entity::raycast::BlockHit,
     ) {
+        let (pos, face) = (hit.pos, hit.face);
         let lane = self.lane_for(None, arrow);
         self.fire(
             lane,
@@ -142,6 +142,7 @@ impl<L: ClientLink> Server<L> {
                 }))
             },
         );
+        self.projectile_hit_state(arrow, hit);
     }
 
     pub(crate) fn projectile_waits(&self, projectile: EntityId) -> bool {

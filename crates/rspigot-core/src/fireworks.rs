@@ -220,7 +220,7 @@ impl<L: ClientLink> Server<L> {
             Strike::Miss => {}
             Strike::Entity(target) => self.ask_projectile_hit(id, target),
             Strike::Block(hit) => {
-                self.notice_block_hit(id, hit.pos, hit.face);
+                self.notice_block_hit(id, hit);
                 if explosive {
                     self.ask_burst(id);
                 }

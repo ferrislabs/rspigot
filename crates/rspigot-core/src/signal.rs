@@ -49,9 +49,14 @@ pub(crate) fn signal(state: BlockStateId, direction: Face) -> i32 {
         {
             MAX_SIGNAL
         }
-        BlockKind::TripwireHook if flag(state, "powered") => MAX_SIGNAL,
+        BlockKind::TripwireHook | BlockKind::DetectorRail | BlockKind::Lectern
+            if flag(state, "powered") =>
+        {
+            MAX_SIGNAL
+        }
         BlockKind::DaylightDetector | BlockKind::Target => level(state, "power"),
         _ if name.ends_with("_button") && flag(state, "powered") => MAX_SIGNAL,
+        _ if name.ends_with("lightning_rod") && flag(state, "powered") => MAX_SIGNAL,
         _ if name.ends_with("_pressure_plate") => {
             if name.contains("_weighted_") {
                 level(state, "power")

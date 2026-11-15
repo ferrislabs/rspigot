@@ -532,6 +532,7 @@ impl<L: ClientLink> Server<L> {
         }
         let kind = entity.base.kind;
         let at = entity.base.position;
+        let cell = state.pos;
         let framed = hanging::item(&entity.base).is_some();
         let held = self.held(id, hand);
         let placer = self.players.get(&id).map(|p| p.entity_id);
@@ -546,6 +547,7 @@ impl<L: ClientLink> Server<L> {
                 let next = hanging::rotation(base) + 1;
                 hanging::set_rotation(base, next);
             }
+            self.update_neighbour_for_output_signal(cell);
             self.game_event(GameEvent::BlockChange, at, GameEventContext::of(placer));
             return Some(Interaction::Predicted);
         }
@@ -559,6 +561,7 @@ impl<L: ClientLink> Server<L> {
             hanging::set_item(base, state, Some(stack));
         }
         self.play_hanging_sound(at, kind, HangingSound::AddItem);
+        self.update_neighbour_for_output_signal(cell);
         self.game_event(GameEvent::BlockChange, at, GameEventContext::of(placer));
         self.consume_held(id, hand, 1);
         Some(Interaction::Predicted)

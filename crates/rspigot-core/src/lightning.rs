@@ -39,6 +39,9 @@ impl<L: ClientLink> Server<L> {
                 self.spawn_lightning_fire(id, extra);
             }
         }
+        if step.strike {
+            self.lightning_strikes_rod(id);
+        }
         if step.hit {
             self.lightning_hit_area(id);
         }
@@ -49,6 +52,19 @@ impl<L: ClientLink> Server<L> {
                 Some(EntityRemoveCause::Despawn),
             );
         }
+    }
+
+    fn lightning_strikes_rod(&mut self, bolt: EntityId) {
+        let Some(position) = self
+            .entities
+            .store
+            .get(bolt)
+            .map(|entity| entity.base.position)
+        else {
+            return;
+        };
+        let strike = rspigot_domain::Vec3::new(position.x, position.y - 1.0e-6, position.z).block();
+        self.lightning_rod_struck(strike);
     }
 
     fn spawn_lightning_fire(&mut self, bolt: EntityId, extra: i32) {
