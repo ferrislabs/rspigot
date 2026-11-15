@@ -708,6 +708,10 @@ impl<L: ClientLink> Server<L> {
             won_game: false,
             moved_this_tick: false,
             using_item: None,
+            fishing: None,
+            fall_flying: false,
+            fall_fly_ticks: 0,
+            spin: None,
             open_menu: None,
             plugin_menu: None,
             window_counter: 0,
@@ -981,6 +985,8 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_health();
+        self.tick_spin_attacks();
+        self.tick_fall_flying();
         self.tick_stat_clocks();
         self.tick_advancements();
         self.tick_sleeping();
@@ -1049,6 +1055,10 @@ impl<L: ClientLink> Server<L> {
                 index: 6,
                 value: MetadataValue::Pose(if player.sleeping.is_some() {
                     Pose::Sleeping
+                } else if player.fall_flying {
+                    Pose::FallFlying
+                } else if player.spin.is_some() {
+                    Pose::SpinAttack
                 } else if player.sneaking && !player.flying {
                     Pose::Crouching
                 } else {

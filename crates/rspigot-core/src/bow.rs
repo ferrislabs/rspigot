@@ -89,12 +89,25 @@ fn can_use_items<L>(player: &Player<L>) -> bool {
 impl<L: ClientLink> Server<L> {
     pub(crate) fn start_using_item(&mut self, id: PlayerId, hand: Hand) {
         let tick = self.current_tick();
-        let Some(player) = self.players.get_mut(&id) else {
+        let Some(player) = self.players.get(&id) else {
             return;
         };
         if !can_use_items(player) || player.using_item.is_some() {
             return;
         }
+        let is_trident = player
+            .inventory
+            .get(hand_slot(player, hand))
+            .is_some_and(|stack| stack.item == ItemKind::Trident.id());
+        if is_trident {
+            if self.starts_trident(id, hand) {
+                self.begin_trident(id, hand);
+            }
+            return;
+        }
+        let Some(player) = self.players.get_mut(&id) else {
+            return;
+        };
         let is_bow = player
             .inventory
             .get(hand_slot(player, hand))
@@ -117,6 +130,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn release_use_item(&mut self, id: PlayerId) {
+        if self.release_trident(id) {
+            return;
+        }
         if let Some(shot) = self.take_drawn_shot(id) {
             if let Some(player) = self.players.get_mut(&id)
                 && !shot.creative

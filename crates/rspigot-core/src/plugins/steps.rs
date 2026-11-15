@@ -919,6 +919,14 @@ pub(crate) enum Spawned {
         player: PlayerId,
         hand: Hand,
     },
+    Hook {
+        player: PlayerId,
+    },
+    Trident {
+        player: PlayerId,
+        hand: Hand,
+        stack: ItemStack,
+    },
     Converted {
         old: EntityId,
         event: Option<i32>,
@@ -956,6 +964,41 @@ pub(crate) struct HiveRelease {
 pub(crate) struct Carried {
     pub(crate) rider: Entity,
     pub(crate) reason: CreatureSpawnReason,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct GlideStep {
+    pub(crate) player: PlayerId,
+    pub(crate) gliding: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct CastStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) hook: Entity,
+}
+
+#[derive(Debug)]
+pub(crate) enum ReelStage {
+    Fish {
+        item: Box<Entity>,
+        exp: i32,
+        rest: Vec<ItemStack>,
+    },
+    Entity {
+        caught: EntityId,
+    },
+    Ground,
+    Reel,
+}
+
+#[derive(Debug)]
+pub(crate) struct ReelStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) hook: EntityId,
+    pub(crate) stage: ReelStage,
 }
 
 #[derive(Debug)]
@@ -1555,6 +1598,11 @@ pub(crate) enum Continuation {
     Harvest(Box<HarvestStep>),
     Hatch(Box<HatchStep>),
     Bottle(BottleStep),
+    Cast(Box<CastStep>),
+    Reel(Box<ReelStep>),
+    Bite(EntityId),
+    Glide(GlideStep),
+    Burst(EntityId),
     Linger(Box<LingerStep>),
     Merge(MergeStep),
     Leash(Box<LeashStep>),
@@ -1778,6 +1826,9 @@ impl Continuation {
             Self::Harvest(_) => EventKind::PlayerHarvestBlock,
             Self::Hatch(_) => EventKind::PlayerEggThrow,
             Self::Bottle(_) => EventKind::ExpBottle,
+            Self::Cast(_) | Self::Reel(_) | Self::Bite(_) => EventKind::PlayerFish,
+            Self::Glide(_) => EventKind::EntityToggleGlide,
+            Self::Burst(_) => EventKind::FireworkExplode,
             Self::Linger(_) => EventKind::LingeringPotionSplash,
             Self::Merge(_) => EventKind::ItemMerge,
             Self::Leash(_) => EventKind::PlayerLeashEntity,
@@ -2004,6 +2055,9 @@ impl Continuation {
             | Self::TargetBlock { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
             Self::Splash(step) => step.potion == id,
+            Self::Bite(hook) => *hook == id,
+            Self::Burst(rocket) => *rocket == id,
+            Self::Reel(step) => step.hook == id,
             Self::Prime(step) => step.source == id,
             Self::DragonPhase(step) => step.dragon == id,
             Self::CloudApply(step) => step.cloud == id,
@@ -2120,6 +2174,8 @@ impl Continuation {
                 },
             ) => one == other && one_swimming == other_swimming,
             (Self::Air(one), Self::Air(other)) => one.entity == other.entity,
+            (Self::Glide(one), Self::Glide(other)) => one == other,
+            (Self::Burst(one), Self::Burst(other)) => one == other,
             (Self::Flow(one), Self::Flow(other)) => one.is_same(other),
             (Self::FluidLevel(one), Self::FluidLevel(other)) => one.is_same(other),
             (Self::Career(one), Self::Career(other)) => {
@@ -2191,6 +2247,8 @@ impl Continuation {
             Self::Cauldron(step) => step.by.is_none(),
             Self::Aim(step) => step.deferred,
             Self::Breed(_)
+            | Self::Glide(_)
+            | Self::Burst(_)
             | Self::Air(_)
             | Self::Swim { .. }
             | Self::Career(_)

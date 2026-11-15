@@ -57,6 +57,8 @@ pub(crate) fn spawn_kind(entity: &Entity) -> EventKind {
         EntityState::Lightning(_) => EventKind::LightningStrike,
         EntityState::Boat(_) | EntityState::Minecart(_) => EventKind::VehicleCreate,
         EntityState::Arrow(_)
+        | EntityState::Hook(_)
+        | EntityState::Firework(_)
         | EntityState::Thrown(_)
         | EntityState::Hurting(_)
         | EntityState::Bullet(_) => EventKind::ProjectileLaunch,
@@ -255,6 +257,18 @@ impl<L: ClientLink> Server<L> {
                 stack,
             } => {
                 self.finish_throw(player, hand, &stack, placed.map(|(id, _)| id));
+            }
+            Spawned::Trident {
+                player,
+                hand,
+                stack,
+            } => {
+                self.finish_trident_throw(player, hand, &stack, placed.map(|(id, _)| id));
+            }
+            Spawned::Hook { player } => {
+                if placed.is_none() {
+                    self.forget_hook(player);
+                }
             }
             Spawned::Placed { player, hand } => {
                 if let Some((id, _)) = placed {

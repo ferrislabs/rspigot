@@ -47,6 +47,7 @@ pub enum DamageType {
     Spit,
     SulfurCubeHot,
     LightningBolt,
+    Fireworks,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -124,6 +125,7 @@ impl DamageType {
             Self::Spit => "minecraft:spit",
             Self::SulfurCubeHot => "minecraft:sulfur_cube_hot",
             Self::LightningBolt => "minecraft:lightning_bolt",
+            Self::Fireworks => "minecraft:fireworks",
         }
     }
 
@@ -165,6 +167,7 @@ impl DamageType {
             Self::Spit => "mob",
             Self::SulfurCubeHot => "sulfurCubeHot",
             Self::LightningBolt => "lightningBolt",
+            Self::Fireworks => "fireworks",
         }
     }
 
@@ -192,7 +195,8 @@ impl DamageType {
             | Self::Trident
             | Self::Spit
             | Self::SulfurCubeHot
-            | Self::LightningBolt => 0.1,
+            | Self::LightningBolt
+            | Self::Fireworks => 0.1,
             _ => 0.0,
         }
     }

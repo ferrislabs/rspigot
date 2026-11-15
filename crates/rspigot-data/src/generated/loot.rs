@@ -1,7 +1,7 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1361] = [
+pub(crate) static TABLES: [(&str, LootTable); 1364] = [
     (
         "minecraft:blocks/acacia_button",
         LootTable {
@@ -12591,6 +12591,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1361] = [
                                 blocks: Some(HolderSet::Direct(&[616])),
                                 state: &[("half", "upper")],
                             }),
+                            biomes: &[],
                         },
                     ])),
                     modifier: &[],
@@ -12642,6 +12643,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1361] = [
                                 blocks: Some(HolderSet::Direct(&[616])),
                                 state: &[("half", "lower")],
                             }),
+                            biomes: &[],
                         },
                     ])),
                     modifier: &[],
@@ -26967,6 +26969,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1361] = [
                                 blocks: Some(HolderSet::Direct(&[615])),
                                 state: &[("half", "upper")],
                             }),
+                            biomes: &[],
                         },
                     ])),
                     modifier: &[],
@@ -27018,6 +27021,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1361] = [
                                 blocks: Some(HolderSet::Direct(&[615])),
                                 state: &[("half", "lower")],
                             }),
+                            biomes: &[],
                         },
                     ])),
                     modifier: &[],
@@ -36684,6 +36688,59 @@ pub(crate) static TABLES: [(&str, LootTable); 1361] = [
         },
     ),
     (
+        "minecraft:gameplay/fishing",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: -2,
+                            output: Output::Table("minecraft:gameplay/fishing/junk"),
+                        }),
+                    },
+                    Entry {
+                        condition: Some(Condition::EntityProperties {
+                            target: EntityTarget::This,
+                            predicate: Some(&EntityPredicate {
+                                kind: None,
+                                flags: EntityFlags { baby: None, on_fire: None },
+                                mainhand: None,
+                                vehicle: None,
+                                components: &[],
+                                sub: &[EntitySubPredicate::FishingHook {
+                                    in_open_water: Some(true),
+                                }],
+                            }),
+                        }),
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 2,
+                            output: Output::Table("minecraft:gameplay/fishing/treasure"),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 85,
+                            quality: -1,
+                            output: Output::Table("minecraft:gameplay/fishing/fish"),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
         "minecraft:gameplay/fishing/fish",
         LootTable {
             pools: &[Pool {
@@ -36726,6 +36783,270 @@ pub(crate) static TABLES: [(&str, LootTable); 1361] = [
                             weight: 13,
                             quality: 0,
                             output: Output::Item(1193),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/fishing/junk",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 17,
+                            quality: 0,
+                            output: Output::Item(497),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                min: 0.0,
+                                max: 0.9,
+                            }),
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1071),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1133),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1216),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetPotion("minecraft:water"),
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1271),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1062),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                min: 0.0,
+                                max: 0.9,
+                            }),
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1186),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1006),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1060),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(10),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1196),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(851),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1264),
+                        }),
+                    },
+                    Entry {
+                        condition: Some(Condition::LocationCheck {
+                            offset: [0, 0, 0],
+                            block: None,
+                            biomes: &[
+                                "minecraft:jungle",
+                                "minecraft:sparse_jungle",
+                                "minecraft:bamboo_jungle",
+                            ],
+                        }),
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(340),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:gameplay/fishing/treasure",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1413),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(949),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.0,
+                                    max: 0.25,
+                                }),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Constant(30),
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1008),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.0,
+                                    max: 0.25,
+                                }),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Constant(30),
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1186),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Constant(30),
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1146),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1484),
                         }),
                     },
                 ],

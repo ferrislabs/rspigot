@@ -379,6 +379,15 @@ fn passes(stack: &ItemStack, require: Require) -> bool {
     }
 }
 
+pub fn enchant_with_levels(
+    random: &mut impl RandomSource,
+    stack: ItemStack,
+    options_tag: &str,
+    levels: i32,
+) -> ItemStack {
+    enchant_item(random, stack, levels, &option_ids(options_tag))
+}
+
 fn apply_modifier(
     random: &mut impl RandomSource,
     stack: Option<ItemStack>,

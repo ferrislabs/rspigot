@@ -295,6 +295,8 @@ impl<L: ClientLink> Server<L> {
             EntityState::Thrown(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             EntityState::Hurting(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             EntityState::Bullet(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
+            EntityState::Hook(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
+            EntityState::Firework(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             _ => entity.add_entity_data(),
         }
     }
@@ -420,6 +422,9 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn tick_arrow(&mut self, id: EntityId) {
         if self.projectile_waits(id) {
+            return;
+        }
+        if self.tick_trident_return(id) {
             return;
         }
         let despawn = self.config.mobs.arrow_despawn_rate;
@@ -871,6 +876,8 @@ impl<L: ClientLink> Server<L> {
                     EntityState::Arrow(state) => {
                         (arrow::in_ground(&e.base) || e.base.no_physics)
                             && state.shake_time <= 0
+                            && (e.base.kind != Kind::Trident
+                                || state.owner.is_none_or(|owner| owner == player.0))
                             && e.base.bounding_box().intersects(&reach)
                     }
                     _ => false,
@@ -909,10 +916,9 @@ impl<L: ClientLink> Server<L> {
     fn can_hold(&self, player: PlayerId, item: &ItemStack) -> bool {
         self.players.get(&player).is_some_and(|player| {
             let mut trial = player.inventory.clone();
-            trial
-                .insert(item.item, 1, item.item.max_stack_size())
-                .remaining
-                == 0
+            let mut rest = Some(item.clone());
+            trial.add(&mut rest, false);
+            rest.is_none()
         })
     }
 
@@ -974,9 +980,7 @@ impl<L: ClientLink> Server<L> {
             let Some(player) = self.players.get_mut(&player_id) else {
                 return;
             };
-            player
-                .inventory
-                .insert(item.item, 1, item.item.max_stack_size());
+            player.inventory.add(&mut Some(item), false);
         }
         let event = ClientEvent::ItemPickup {
             collected: id,
