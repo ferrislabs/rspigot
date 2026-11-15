@@ -119,6 +119,7 @@ pub struct Server<L> {
     pub(crate) visibility: Visibility,
     pub(crate) plugin_inventories: PluginInventories,
     pub(crate) impacts: Impacts,
+    pub(crate) difficulty_locked: bool,
     pub(crate) dormant: FxHashMap<crate::world_state::DimensionKey, crate::world_state::WorldState>,
     pub(crate) dimension_provider: Option<crate::travel::DimensionProvider<L>>,
     pub(crate) command_dimension: Option<crate::world_state::DimensionKey>,
@@ -196,6 +197,7 @@ impl<L: ClientLink> Server<L> {
             visibility: Visibility::default(),
             plugin_inventories: PluginInventories::default(),
             impacts: Impacts::default(),
+            difficulty_locked: false,
             dormant: FxHashMap::default(),
             dimension_provider: None,
             command_dimension: None,
@@ -698,6 +700,8 @@ impl<L: ClientLink> Server<L> {
             fly_speed: 0.05,
             walk_speed: 0.1,
             latency: 0,
+            chat_session: None,
+            client_brand: None,
             tracked: FxHashSet::default(),
             loaded: false,
             operator,
@@ -802,7 +806,7 @@ impl<L: ClientLink> Server<L> {
         link.send(ClientEvent::Join(Box::new(info)));
         link.send(ClientEvent::Difficulty {
             difficulty: self.world.difficulty,
-            locked: false,
+            locked: self.difficulty_locked,
         });
         link.send(ClientEvent::Abilities(player.abilities()));
         link.send(ClientEvent::HeldSlot(player.inventory.selected_hotbar));

@@ -1,7 +1,9 @@
 use crate::codec::{Decode, DecodeError, Encode, Position, decode_exact, decode_string};
+use uuid::Uuid;
+
 use crate::common::{
-    ClientInformation, CookieResponse, CustomClickAction, KeepAlive, Pong, ResourcePackResponse,
-    ServerboundCustomPayload,
+    ClientInformation, CookieResponse, CustomClickAction, Identifier, KeepAlive, Pong,
+    ResourcePackResponse, ServerboundCustomPayload,
 };
 use crate::ids::play::serverbound as sb;
 use crate::play::chat::{
@@ -23,6 +25,7 @@ pub const MAX_BOOK_TITLE_CHARS: usize = 32;
 pub const MAX_SIGN_LINE_CHARS: usize = 384;
 pub const SIGN_LINES: usize = 4;
 pub const MAX_CHANGED_SLOTS: usize = 128;
+pub const MAX_GAME_RULE_ENTRIES: usize = 256;
 
 wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq)]
@@ -560,6 +563,51 @@ wire_struct! {
 }
 
 wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct LockDifficulty = sb::LOCK_DIFFICULTY {
+        pub locked: bool,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct TeleportToEntity = sb::TELEPORT_TO_ENTITY {
+        pub target: Uuid,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct BlockEntityTagQuery = sb::BLOCK_ENTITY_TAG_QUERY {
+        pub transaction_id: i32 as Var,
+        pub pos: Position,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct EntityTagQuery = sb::ENTITY_TAG_QUERY {
+        pub transaction_id: i32 as Var,
+        pub entity_id: i32 as Var,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct GameRuleEntry {
+        pub rule: Identifier,
+        pub value: String,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct SetGameRule = sb::SET_GAME_RULE {
+        pub entries: Vec<GameRuleEntry> as List<Plain, MAX_GAME_RULE_ENTRIES>,
+    }
+}
+
+wire_struct! {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct RenameItem = sb::RENAME_ITEM {
         pub name: String,
@@ -682,6 +730,7 @@ impl crate::Packet for SetCommandBlock {
 pub enum ServerboundPlay {
     AcceptTeleportation(AcceptTeleportation),
     Attack(Attack),
+    BlockEntityTagQuery(BlockEntityTagQuery),
     ChangeDifficulty(ChangeDifficulty),
     ChangeGameMode(ChangeGameMode),
     ChatAck(ChatAck),
@@ -701,8 +750,10 @@ pub enum ServerboundPlay {
     CookieResponse(CookieResponse),
     CustomPayload(ServerboundCustomPayload),
     EditBook(EditBook),
+    EntityTagQuery(EntityTagQuery),
     Interact(Interact),
     KeepAlive(KeepAlive),
+    LockDifficulty(LockDifficulty),
     MovePlayerPos(MovePlayerPos),
     MovePlayerPosRot(MovePlayerPosRot),
     MovePlayerRot(MovePlayerRot),
@@ -730,7 +781,9 @@ pub enum ServerboundPlay {
     SetCarriedItem(SetCarriedItem),
     SetCommandBlock(SetCommandBlock),
     SetCreativeModeSlot(SetCreativeModeSlot),
+    SetGameRule(SetGameRule),
     SignUpdate(SignUpdate),
+    TeleportToEntity(TeleportToEntity),
     UseItemOn(UseItemOn),
     UseItem(UseItem),
     CustomClickAction(CustomClickAction),
@@ -742,6 +795,7 @@ impl ServerboundPlay {
         Ok(match id {
             sb::ACCEPT_TELEPORTATION => Self::AcceptTeleportation(decode_exact(body)?),
             sb::ATTACK => Self::Attack(decode_exact(body)?),
+            sb::BLOCK_ENTITY_TAG_QUERY => Self::BlockEntityTagQuery(decode_exact(body)?),
             sb::CHANGE_DIFFICULTY => Self::ChangeDifficulty(decode_exact(body)?),
             sb::CHANGE_GAME_MODE => Self::ChangeGameMode(decode_exact(body)?),
             sb::CHAT_ACK => Self::ChatAck(decode_exact(body)?),
@@ -761,8 +815,10 @@ impl ServerboundPlay {
             sb::COOKIE_RESPONSE => Self::CookieResponse(decode_exact(body)?),
             sb::CUSTOM_PAYLOAD => Self::CustomPayload(decode_exact(body)?),
             sb::EDIT_BOOK => Self::EditBook(decode_exact(body)?),
+            sb::ENTITY_TAG_QUERY => Self::EntityTagQuery(decode_exact(body)?),
             sb::INTERACT => Self::Interact(decode_exact(body)?),
             sb::KEEP_ALIVE => Self::KeepAlive(decode_exact(body)?),
+            sb::LOCK_DIFFICULTY => Self::LockDifficulty(decode_exact(body)?),
             sb::MOVE_PLAYER_POS => Self::MovePlayerPos(decode_exact(body)?),
             sb::MOVE_PLAYER_POS_ROT => Self::MovePlayerPosRot(decode_exact(body)?),
             sb::MOVE_PLAYER_ROT => Self::MovePlayerRot(decode_exact(body)?),
@@ -790,24 +846,21 @@ impl ServerboundPlay {
             sb::SET_CARRIED_ITEM => Self::SetCarriedItem(decode_exact(body)?),
             sb::SET_COMMAND_BLOCK => Self::SetCommandBlock(decode_exact(body)?),
             sb::SET_CREATIVE_MODE_SLOT => Self::SetCreativeModeSlot(decode_exact(body)?),
+            sb::SET_GAME_RULE => Self::SetGameRule(decode_exact(body)?),
+            sb::TELEPORT_TO_ENTITY => Self::TeleportToEntity(decode_exact(body)?),
             sb::SIGN_UPDATE => Self::SignUpdate(decode_exact(body)?),
             sb::USE_ITEM_ON => Self::UseItemOn(decode_exact(body)?),
             sb::USE_ITEM => Self::UseItem(decode_exact(body)?),
             sb::CUSTOM_CLICK_ACTION => Self::CustomClickAction(decode_exact(body)?),
-            sb::BLOCK_ENTITY_TAG_QUERY
-            | sb::BUNDLE_ITEM_SELECTED
+            sb::BUNDLE_ITEM_SELECTED
             | sb::CONTAINER_SLOT_STATE_CHANGED
             | sb::DEBUG_SUBSCRIPTION_REQUEST
-            | sb::ENTITY_TAG_QUERY
             | sb::JIGSAW_GENERATE
-            | sb::LOCK_DIFFICULTY
             | sb::SET_COMMAND_MINECART
-            | sb::SET_GAME_RULE
             | sb::SET_JIGSAW_BLOCK
             | sb::SET_STRUCTURE_BLOCK
             | sb::SET_TEST_BLOCK
             | sb::SPECTATOR_ACTION
-            | sb::TELEPORT_TO_ENTITY
             | sb::TEST_INSTANCE_BLOCK_ACTION => Self::Unhandled { id },
             other => return Err(DecodeError::UnknownPacket(other)),
         })
@@ -849,11 +902,75 @@ mod tests {
     #[test]
     fn unhandled_ids_skip_body() {
         assert_eq!(
-            ServerboundPlay::decode(sb::LOCK_DIFFICULTY, &[1, 0, 9, 9]).unwrap(),
+            ServerboundPlay::decode(sb::SPECTATOR_ACTION, &[1, 0, 9, 9]).unwrap(),
             ServerboundPlay::Unhandled {
-                id: sb::LOCK_DIFFICULTY
+                id: sb::SPECTATOR_ACTION
             }
         );
+    }
+
+    #[test]
+    fn locking_the_difficulty_reads_one_flag() {
+        assert_eq!(
+            ServerboundPlay::decode(sb::LOCK_DIFFICULTY, &[1]).unwrap(),
+            ServerboundPlay::LockDifficulty(LockDifficulty { locked: true })
+        );
+        assert!(ServerboundPlay::decode(sb::LOCK_DIFFICULTY, &[]).is_err());
+    }
+
+    #[test]
+    fn teleporting_to_an_entity_reads_its_uuid() {
+        let mut body = 7u128.to_be_bytes().to_vec();
+        assert_eq!(
+            ServerboundPlay::decode(sb::TELEPORT_TO_ENTITY, &body).unwrap(),
+            ServerboundPlay::TeleportToEntity(TeleportToEntity {
+                target: Uuid::from_u128(7)
+            })
+        );
+        body.pop();
+        assert!(ServerboundPlay::decode(sb::TELEPORT_TO_ENTITY, &body).is_err());
+    }
+
+    #[test]
+    fn tag_queries_read_the_transaction_and_the_target() {
+        let mut body = vec![5];
+        Position { x: 1, y: 64, z: -2 }.encode(&mut body);
+        assert_eq!(
+            ServerboundPlay::decode(sb::BLOCK_ENTITY_TAG_QUERY, &body).unwrap(),
+            ServerboundPlay::BlockEntityTagQuery(BlockEntityTagQuery {
+                transaction_id: 5,
+                pos: Position { x: 1, y: 64, z: -2 },
+            })
+        );
+        assert_eq!(
+            ServerboundPlay::decode(sb::ENTITY_TAG_QUERY, &[5, 0x80, 0x01]).unwrap(),
+            ServerboundPlay::EntityTagQuery(EntityTagQuery {
+                transaction_id: 5,
+                entity_id: 128,
+            })
+        );
+    }
+
+    #[test]
+    fn setting_game_rules_reads_key_and_text_value_pairs() {
+        let mut body = vec![2];
+        for text in [
+            "minecraft:keep_inventory",
+            "true",
+            "minecraft:random_tick_speed",
+            "7",
+        ] {
+            text.to_owned().encode(&mut body);
+        }
+        let ServerboundPlay::SetGameRule(packet) =
+            ServerboundPlay::decode(sb::SET_GAME_RULE, &body).unwrap()
+        else {
+            panic!("not a game rule packet");
+        };
+        assert_eq!(packet.entries.len(), 2);
+        assert_eq!(packet.entries[0].rule.as_str(), "minecraft:keep_inventory");
+        assert_eq!(packet.entries[0].value, "true");
+        assert_eq!(packet.entries[1].value, "7");
     }
 
     #[test]

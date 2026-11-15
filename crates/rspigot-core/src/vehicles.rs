@@ -31,7 +31,7 @@ const CUSTOM_NAME: &str = "minecraft:custom_name";
 const PUSH_STRENGTH: f64 = 0.05;
 const PUSH_THRESHOLD: f64 = 0.01;
 
-fn drop_item_of(kind: Kind) -> Option<ItemKind> {
+pub(crate) fn drop_item_of(kind: Kind) -> Option<ItemKind> {
     if kind.extends("AbstractMinecart") {
         return Some(match kind {
             Kind::SpawnerMinecart | Kind::CommandBlockMinecart => ItemKind::Minecart,

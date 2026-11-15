@@ -43,6 +43,8 @@ pub struct Player<L> {
     pub fly_speed: f32,
     pub walk_speed: f32,
     pub latency: i32,
+    pub chat_session: Option<crate::events::ChatSessionKey>,
+    pub client_brand: Option<String>,
     pub tracked: FxHashSet<EntityId>,
     pub loaded: bool,
     pub operator: bool,

@@ -438,14 +438,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
     }
 
     fn set_difficulty(&mut self, difficulty: Difficulty) {
-        self.world.difficulty = difficulty;
-        self.push(
-            Audience::Dimension(self.world.dimension.key.clone()),
-            ClientEvent::Difficulty {
-                difficulty,
-                locked: false,
-            },
-        );
+        self.apply_difficulty(difficulty, true);
     }
 
     fn set_weather(&mut self, weather: Weather) {

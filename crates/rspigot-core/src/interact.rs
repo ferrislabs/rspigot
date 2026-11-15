@@ -195,7 +195,7 @@ impl<L: ClientLink> Server<L> {
         self.ask_interact_entity(id, target, hand, location);
     }
 
-    fn within_entity_reach(&self, id: PlayerId, target: EntityId) -> bool {
+    pub(crate) fn within_entity_reach(&self, id: PlayerId, target: EntityId) -> bool {
         let Some(bounds) = self
             .entities
             .store
