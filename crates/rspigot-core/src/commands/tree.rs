@@ -489,6 +489,104 @@ fn execute_tree(b: &mut TreeBuilder, root: usize) {
     }
 }
 
+fn data_endpoints(b: &mut TreeBuilder, parent: usize, source: bool) -> [usize; 3] {
+    let key = if source { "source" } else { "target" };
+    let entity = b.literal(parent, "entity", false);
+    let entity_node = b.argument(entity, key, single_entity(), false);
+    let block = b.literal(parent, "block", false);
+    let block_node = b.argument(
+        block,
+        if source { "sourcePos" } else { "targetPos" },
+        ArgumentParser::BlockPos,
+        false,
+    );
+    let storage = b.literal(parent, "storage", false);
+    let storage_node = b.argument(storage, key, ArgumentParser::ResourceLocation, false);
+    [entity_node, block_node, storage_node]
+}
+
+fn data_commands(b: &mut TreeBuilder, root: usize) {
+    let nbt_path = || ArgumentParser::Named("minecraft:nbt_path");
+    let data = b.literal(root, "data", false);
+    let merge = b.literal(data, "merge", false);
+    for node in data_endpoints(b, merge, false) {
+        b.argument(node, "nbt", ArgumentParser::NbtCompoundTag, true);
+    }
+    let get = b.literal(data, "get", false);
+    for node in data_endpoints(b, get, true) {
+        b.nodes[node].executable = true;
+        let path = b.argument(node, "path", nbt_path(), true);
+        b.argument(
+            path,
+            "scale",
+            ArgumentParser::Double {
+                min: None,
+                max: None,
+            },
+            true,
+        );
+    }
+    let remove = b.literal(data, "remove", false);
+    for node in data_endpoints(b, remove, false) {
+        b.argument(node, "path", nbt_path(), true);
+    }
+    let modify = b.literal(data, "modify", false);
+    for node in data_endpoints(b, modify, false) {
+        let path = b.argument(node, "targetPath", nbt_path(), false);
+        let mut operations = Vec::new();
+        for name in ["set", "merge", "append", "prepend"] {
+            operations.push(b.literal(path, name, false));
+        }
+        let insert = b.literal(path, "insert", false);
+        operations.push(b.argument(
+            insert,
+            "index",
+            ArgumentParser::Integer {
+                min: None,
+                max: None,
+            },
+            false,
+        ));
+        for operation in operations {
+            let from = b.literal(operation, "from", false);
+            for source in data_endpoints(b, from, true) {
+                b.nodes[source].executable = true;
+                b.argument(source, "sourcePath", nbt_path(), true);
+            }
+            let string = b.literal(operation, "string", false);
+            for source in data_endpoints(b, string, true) {
+                b.nodes[source].executable = true;
+                let path = b.argument(source, "sourcePath", nbt_path(), true);
+                let start = b.argument(
+                    path,
+                    "start",
+                    ArgumentParser::Integer {
+                        min: None,
+                        max: None,
+                    },
+                    true,
+                );
+                b.argument(
+                    start,
+                    "end",
+                    ArgumentParser::Integer {
+                        min: None,
+                        max: None,
+                    },
+                    true,
+                );
+            }
+            let value = b.literal(operation, "value", false);
+            b.argument(
+                value,
+                "value",
+                ArgumentParser::Named("minecraft:nbt_tag"),
+                true,
+            );
+        }
+    }
+}
+
 fn block_commands(b: &mut TreeBuilder, root: usize) {
     let setblock = b.literal(root, "setblock", false);
     let pos = position_argument(b, setblock, "pos");
@@ -533,6 +631,7 @@ fn block_commands(b: &mut TreeBuilder, root: usize) {
 
 fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     block_commands(b, root);
+    data_commands(b, root);
     b.literal(root, "seed", true);
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);

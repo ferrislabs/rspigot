@@ -408,6 +408,7 @@ pub fn execute<C: CommandContext>(
         "effect" => effect(ctx, sender, rest),
         "kill" => kill(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "difficulty" => difficulty(ctx, sender, &args),
+        "data" => super::data::run(ctx, sender, rest),
         "setblock" => super::blocks::setblock(ctx, sender, rest),
         "fill" => super::blocks::fill(ctx, sender, rest),
         "clone" => super::blocks::clone(ctx, sender, rest),

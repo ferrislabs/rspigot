@@ -202,6 +202,25 @@ impl NbtPath {
         changed
     }
 
+    pub fn update(&self, root: &mut Tag, mut change: impl FnMut(&mut Tag)) -> usize {
+        let mut current = vec![root];
+        for node in &self.nodes {
+            let mut next = Vec::new();
+            for tag in current {
+                collect_mut(node, tag, &mut next);
+            }
+            if next.is_empty() {
+                return 0;
+            }
+            current = next;
+        }
+        let count = current.len();
+        for tag in current {
+            change(tag);
+        }
+        count
+    }
+
     pub fn remove(&self, root: &mut Tag) -> usize {
         let Some((last, parents)) = self.nodes.split_last() else {
             return 0;
@@ -509,6 +528,22 @@ mod tests {
         assert_eq!(path("l[1]").set(&mut list, &Tag::Int(7)), 1);
         assert_eq!(path("l[].x").set(&mut list, &Tag::Int(7)), 0);
         assert_eq!(path("l").get(&list)[0].as_list().map(<[Tag]>::len), Some(3));
+    }
+
+    #[test]
+    fn update_edits_matched_tags_in_place() {
+        let mut root = tag("{l:[1,2],m:{n:[3]}}");
+        let changed = path("m.n").update(&mut root, |t| {
+            if let Tag::List(list) = t {
+                list.push(Tag::Int(4));
+            }
+        });
+        assert_eq!(changed, 1);
+        assert_eq!(
+            path("m.n").get(&root)[0].as_list().map(<[Tag]>::len),
+            Some(2)
+        );
+        assert_eq!(path("zzz").update(&mut root, |_| {}), 0);
     }
 
     #[test]

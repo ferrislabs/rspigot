@@ -1,5 +1,6 @@
 mod args;
 mod blocks;
+mod data;
 mod dispatch;
 mod execute;
 pub mod permission;
@@ -21,3 +22,6 @@ mod execute_chain_tests;
 
 #[cfg(test)]
 mod blocks_tests;
+
+#[cfg(test)]
+mod data_tests;
