@@ -22,6 +22,7 @@ pub mod commands;
 mod compost;
 pub mod config;
 pub mod console;
+mod container_loot;
 mod containers;
 mod context;
 mod cooking;

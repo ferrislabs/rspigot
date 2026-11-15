@@ -252,6 +252,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn open_cargo(&mut self, player: PlayerId, vehicle: EntityId) -> bool {
+        if self.unpack_cargo_loot(player, vehicle) {
+            return true;
+        }
         let Some(entity) = self.entities.store.get(vehicle) else {
             return false;
         };

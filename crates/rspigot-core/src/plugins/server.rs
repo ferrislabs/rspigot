@@ -1228,6 +1228,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_hanging_place(*step, cancelled);
                 Vec::new()
             }
+            Continuation::LootGenerate(step) => {
+                self.finish_loot_generate(*step, cancelled, patch_of!(patch, LootGenerate));
+                Vec::new()
+            }
             Continuation::SpawnerSpawn(step) => {
                 self.finish_spawner_spawn(*step, cancelled);
                 Vec::new()
