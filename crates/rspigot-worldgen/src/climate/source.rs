@@ -47,7 +47,7 @@ impl BiomeSource {
         qz: i32,
     ) -> u8 {
         let target = self.target(scratch, qx, qy, qz);
-        self.index.find(&target)
+        self.index.find(&target, &mut scratch.last_leaf)
     }
 
     #[cfg(test)]
@@ -78,7 +78,7 @@ mod tests {
         for i in -40..40 {
             let target = source.target(&mut scratch, i * 37, (i % 9) * 5 - 8, i * -53);
             assert_eq!(
-                source.index.find(&target),
+                source.index.find(&target, &mut None),
                 source.index.find_brute_force(&target),
                 "{target:?}"
             );

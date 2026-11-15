@@ -12,7 +12,7 @@ use rspigot_domain::world::Dimension;
 use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Vec3};
 
 use crate::buffer::ChunkBuffer;
-use crate::climate::BiomeSource;
+use crate::climate::{BiomeSource, ClimateScratch};
 use crate::perlin::Fractal;
 use crate::resources::{Biome, BlockKind, Palette, Resources, biome_id};
 use crate::rng::{Rng, hash2, hash3, mix, unit};
@@ -217,6 +217,32 @@ impl Overworld {
         }
     }
 
+    fn layered_biomes(
+        &self,
+        scratch: &mut ClimateScratch,
+        dimension: &Dimension,
+        pos: ChunkPos,
+    ) -> Vec<BiomeId> {
+        let layers = dimension.height.section_count() * 4;
+        let base = dimension.height.min_y.div_euclid(4);
+        let mut layered = vec![BiomeId(0); layers * 16];
+        for cz in 0..4usize {
+            for cx in 0..4usize {
+                for layer in 0..layers {
+                    let index = self.source.biome_index(
+                        scratch,
+                        pos.x * 4 + cx as i32,
+                        base + layer as i32,
+                        pos.z * 4 + cz as i32,
+                    );
+                    let slot = (layer >> 2) * 64 + ((layer & 3) << 4) + (cz << 2) + cx;
+                    layered[slot] = self.placed[usize::from(index)].id;
+                }
+            }
+        }
+        layered
+    }
+
     fn clamp_height(dimension: &Dimension, height: f64) -> i32 {
         let bounds = dimension.height;
         (height.floor() as i32)
@@ -267,8 +293,7 @@ impl Overworld {
         });
         let cell_biomes: [Biome; 16] =
             std::array::from_fn(|c| self.placed[usize::from(cell_indices[c])].surface);
-        let cell_ids: [BiomeId; 16] =
-            std::array::from_fn(|c| self.placed[usize::from(cell_indices[c])].id);
+        let layered = self.layered_biomes(&mut scratch, dimension, pos);
 
         let mut buffer = ChunkBuffer::new(height);
         let lowest = tops.iter().copied().min().unwrap_or(min_y);
@@ -370,7 +395,7 @@ impl Overworld {
         decor::trees(&mut buffer, palette, self.seed, pos, &columns, sea_level);
         decor::ground_cover(&mut buffer, palette, self.seed, pos, &columns);
         self.bedrock(&mut buffer, palette, pos);
-        buffer.finish(pos, &cell_ids, &resources.classifier)
+        buffer.finish_layered(pos, &layered, &resources.classifier)
     }
 
     fn emeralds(

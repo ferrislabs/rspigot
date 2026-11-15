@@ -978,3 +978,68 @@ fn emeralds_only_appear_inside_mountain_biomes() {
     assert!(emeralds > 0);
     assert!(highest >= 80, "{highest}");
 }
+
+#[test]
+fn generated_chunks_store_the_vanilla_biome_of_each_quart_cell() {
+    const VANILLA: [(i32, i32, i32, &str); 14] = [
+        (-513, -14, -1908, "minecraft:plains"),
+        (1424, -11, -1494, "minecraft:savanna"),
+        (-146, 10, 2691, "minecraft:river"),
+        (-2679, 71, 1831, "minecraft:old_growth_birch_forest"),
+        (747, 52, 2560, "minecraft:lukewarm_ocean"),
+        (2090, -9, 3978, "minecraft:lukewarm_ocean"),
+        (2017, 20, 17, "minecraft:swamp"),
+        (-835, 76, -3192, "minecraft:jungle"),
+        (-1239, 76, 1402, "minecraft:forest"),
+        (2647, 16, 3715, "minecraft:old_growth_birch_forest"),
+        (-1311, -3, 1292, "minecraft:flower_forest"),
+        (-2871, 22, -2293, "minecraft:old_growth_birch_forest"),
+        (-3054, -15, 543, "minecraft:river"),
+        (-367, -5, -1116, "minecraft:dripstone_caves"),
+    ];
+    let generator = NoiseGenerator::new(12345);
+    let dimension = Dimension::overworld();
+    for (qx, qy, qz, expected) in VANILLA {
+        let column = generator.generate(&dimension, ChunkPos::new(qx >> 2, qz >> 2));
+        let layer = (qy + 16) as usize;
+        let section = &column.sections()[layer >> 2];
+        let id = section.biome((qx & 3) as usize, layer & 3, (qz & 3) as usize);
+        assert_eq!(
+            registries::biome_name(id.0),
+            Some(expected),
+            "{qx} {qy} {qz}"
+        );
+    }
+}
+
+#[test]
+fn cave_biomes_only_exist_below_the_surface() {
+    const CAVES: [&str; 3] = [
+        "minecraft:lush_caves",
+        "minecraft:dripstone_caves",
+        "minecraft:deep_dark",
+    ];
+    let generator = NoiseGenerator::new(12345);
+    let dimension = Dimension::overworld();
+    let mut found = 0;
+    for cz in -20..20 {
+        for cx in -20..20 {
+            let column = generator.generate(&dimension, ChunkPos::new(cx * 3, cz * 3));
+            let surface = top_y(&column, HeightmapKind::WorldSurface, 8, 8);
+            for (index, section) in column.sections().iter().enumerate() {
+                let section_top = column.height().min_y + index as i32 * 16 + 15;
+                for y in 0..4 {
+                    let name = registries::biome_name(section.biome(2, y, 2).0).unwrap();
+                    if CAVES.contains(&name) {
+                        found += 1;
+                        assert!(
+                            section_top - 12 + y as i32 * 4 < surface + 8,
+                            "{name} {section_top} {surface}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert!(found > 0);
+}

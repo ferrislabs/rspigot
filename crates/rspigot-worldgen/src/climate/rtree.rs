@@ -157,11 +157,12 @@ impl Index {
         }
     }
 
-    pub(crate) fn find(&self, target: &[i64; 6]) -> u8 {
+    pub(crate) fn find(&self, target: &[i64; 6], last: &mut Option<usize>) -> u8 {
         let full = [
             target[0], target[1], target[2], target[3], target[4], target[5], 0,
         ];
-        let leaf = self.search(&self.root, &full, None);
+        let leaf = self.search(&self.root, &full, *last);
+        *last = Some(leaf);
         self.biomes[leaf]
     }
 
