@@ -10,7 +10,7 @@ use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::GameMode;
 use rspigot_domain::world::Difficulty;
 use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
-use rspigot_nbt::{Compound, Tag};
+use rspigot_nbt::Tag;
 use rspigot_protocol::codec::{Position, decode_string};
 use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
@@ -111,7 +111,7 @@ pub fn item_stack(stack: &WireStack) -> Option<ItemStack> {
     Some(ItemStack {
         item: ItemId(item),
         count,
-        components: Compound::new(),
+        components: crate::components::decode_components(&stack.components),
     })
 }
 
@@ -439,6 +439,22 @@ mod tests {
                 rotation: Rotation::new(90.0, 0.0),
                 on_ground: true,
             }
+        );
+    }
+
+    #[test]
+    fn a_creative_slot_keeps_the_components_of_the_client_stack() {
+        let body = [0, 36, 1, 1, 1, 1, 6, 4, 8, 0, 1, 0x41, 3];
+        let PlayerInput::CreativeSlot { slot, stack } = decoded(sb::SET_CREATIVE_MODE_SLOT, &body)
+        else {
+            panic!("not a creative slot");
+        };
+        assert_eq!(slot, 36);
+        let stack = stack.unwrap();
+        assert_eq!(stack.item, ItemId(1));
+        assert_eq!(
+            stack.components.get("minecraft:custom_name"),
+            Some(&Tag::String("A".to_owned()))
         );
     }
 
