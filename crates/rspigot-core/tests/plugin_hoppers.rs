@@ -518,3 +518,34 @@ fn a_hopper_minecart_on_a_powered_activator_rail_stops_pulling() {
     s.tick(3);
     assert!(counts(s.server.cargo_of(id)).is_empty());
 }
+
+fn crafter_fed(disabled: Option<Vec<i32>>) -> Vec<Seed> {
+    let mut crafter = Seed::block(STAND, BlockKind::Crafter);
+    if let Some(slots) = disabled {
+        crafter = crafter.carrying("disabled_slots", rspigot_nbt::Tag::IntArray(slots));
+    }
+    vec![
+        crafter,
+        Seed::block(STAND.offset(0, 1, 0), BlockKind::Hopper)
+            .with("facing", "down")
+            .holding("minecraft:stone", 3),
+    ]
+}
+
+#[test]
+fn a_hopper_fills_the_slots_of_a_crafter_one_stack_after_the_other() {
+    let mut s = world(crafter_fed(None), Vec::new());
+    s.tick(1);
+    s.tick(8);
+    s.tick(8);
+    assert_eq!(counts(s.server.block_items(STAND, 9)), [1, 1, 1]);
+}
+
+#[test]
+fn a_hopper_skips_the_disabled_slots_of_a_crafter() {
+    let mut s = world(crafter_fed(Some(vec![0, 1])), Vec::new());
+    s.tick(1);
+    let items = s.server.block_items(STAND, 9);
+    assert!(items[0].is_none() && items[1].is_none());
+    assert_eq!(items[2].as_ref().map(|stack| stack.count.get()), Some(1));
+}

@@ -431,6 +431,10 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub fn block_items(&self, pos: BlockPos, size: usize) -> Vec<Slot> {
+        self.half_items(pos, size)
+    }
+
     pub(crate) fn half_items(&self, pos: BlockPos, size: usize) -> Vec<Slot> {
         self.world
             .chunks

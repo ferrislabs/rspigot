@@ -18,6 +18,7 @@ use crate::server::Server;
 const FURNACE_INPUT: usize = 0;
 const FURNACE_FUEL: usize = 1;
 const FURNACE_OUTPUT: usize = 2;
+const CRAFTER_SLOTS: usize = 9;
 const BREWING_INGREDIENT: usize = rspigot_domain::brewing::INGREDIENT;
 const BREWING_FUEL: usize = rspigot_domain::brewing::FUEL;
 const CONTAINER_LIMIT: u32 = 64;
@@ -35,6 +36,7 @@ pub(crate) struct Holder {
     pub(crate) size: usize,
     backing: Option<Backing>,
     pub(crate) cart: Option<Cart>,
+    disabled: u16,
 }
 
 impl Holder {
@@ -51,6 +53,37 @@ impl Holder {
             Some(cart) => InventoryOwner::Entity(cart.id),
             None => InventoryOwner::Block(self.pos),
         }
+    }
+
+    pub(crate) fn is_crafter(&self) -> bool {
+        self.cart.is_none() && self.block == BlockKind::Crafter
+    }
+
+    fn crafter_slot_disabled(&self, slot: usize) -> bool {
+        slot < CRAFTER_SLOTS && self.disabled & (1 << slot) != 0
+    }
+
+    fn crafter_accepts(&self, slot: usize, items: &[Slot]) -> bool {
+        if slot >= CRAFTER_SLOTS || self.crafter_slot_disabled(slot) {
+            return false;
+        }
+        let Some(existing) = items.get(slot).and_then(Option::as_ref) else {
+            return true;
+        };
+        let count = existing.count.get();
+        if u32::from(count) >= u32::from(existing.item.max_stack_size()) {
+            return false;
+        }
+        !(slot + 1..CRAFTER_SLOTS)
+            .filter(|other| !self.crafter_slot_disabled(*other))
+            .any(|other| {
+                items
+                    .get(other)
+                    .and_then(Option::as_ref)
+                    .is_none_or(|stack| {
+                        stack.count.get() < count && same_item_same_components(stack, existing)
+                    })
+            })
     }
 
     pub(crate) fn is_jukebox(&self) -> bool {
@@ -106,6 +139,9 @@ impl Holder {
         direction: Face,
         items: &[Slot],
     ) -> bool {
+        if self.is_crafter() {
+            return self.crafter_accepts(slot, items);
+        }
         if self.is_jukebox() {
             return rspigot_domain::jukebox::is_playable(stack)
                 && items.get(slot).is_none_or(Option::is_none);
@@ -234,6 +270,7 @@ impl<L: ClientLink> Server<L> {
                 size: 1,
                 backing: None,
                 cart: None,
+                disabled: 0,
             });
         }
         if cooking_of(block).is_some() {
@@ -243,6 +280,7 @@ impl<L: ClientLink> Server<L> {
                 size: 3,
                 backing: None,
                 cart: None,
+                disabled: 0,
             });
         }
         let (backing, size) = self.storage_backing(pos)?;
@@ -252,7 +290,26 @@ impl<L: ClientLink> Server<L> {
             size,
             backing: Some(backing),
             cart: None,
+            disabled: if block == BlockKind::Crafter {
+                self.crafter_disabled_mask(pos)
+            } else {
+                0
+            },
         })
+    }
+
+    fn crafter_disabled_mask(&self, pos: BlockPos) -> u16 {
+        self.world
+            .chunks
+            .get(pos.chunk())
+            .and_then(|chunk| chunk.block_entity(pos))
+            .and_then(|entity| entity.data.get_int_array("disabled_slots"))
+            .map_or(0, |slots| {
+                slots
+                    .iter()
+                    .filter(|slot| (0..CRAFTER_SLOTS as i32).contains(slot))
+                    .fold(0, |mask, slot| mask | 1 << slot)
+            })
     }
 
     pub(crate) fn cart_holder(&self, id: EntityId) -> Option<Holder> {
@@ -267,6 +324,7 @@ impl<L: ClientLink> Server<L> {
             block: BlockKind::Air,
             size: cargo.items.len(),
             backing: None,
+            disabled: 0,
             cart: Some(Cart {
                 id,
                 hopper: entity.base.kind == rspigot_entities::EntityKind::HopperMinecart,
