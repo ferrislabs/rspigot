@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::Packet;
 use crate::codec::{
-    Decode, DecodeError, Encode, MAX_LIST_LEN, decode_len, decode_string, encode_len,
+    Decode, DecodeError, Encode, MAX_LIST_LEN, NetworkNbt, decode_len, decode_string, encode_len,
 };
 use crate::ids::play::clientbound as id;
 use crate::play::chat::ChatSession;
@@ -157,6 +157,14 @@ wire_struct! {
     pub struct ChangeDifficulty = id::CHANGE_DIFFICULTY {
         pub difficulty: Difficulty,
         pub locked: bool,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct TagQuery = id::TAG_QUERY {
+        pub transaction_id: i32 as Var,
+        pub tag: NetworkNbt,
     }
 }
 
@@ -377,6 +385,22 @@ mod tests {
     use crate::codec::{Position, decode_exact};
     use crate::play::types::Vec3;
     use crate::play::wire::testing::{encoded, roundtrip};
+
+    #[test]
+    fn a_tag_query_answer_carries_the_transaction_and_a_nameless_compound_or_nothing() {
+        let found = TagQuery {
+            transaction_id: 3,
+            tag: NetworkNbt(Some(Tag::Compound(
+                rspigot_nbt::Compound::new().with("n", 5i32),
+            ))),
+        };
+        assert_eq!(roundtrip(&found), [3, 10, 3, 0, 1, b'n', 0, 0, 0, 5, 0]);
+        let missing = TagQuery {
+            transaction_id: 3,
+            tag: NetworkNbt(None),
+        };
+        assert_eq!(roundtrip(&missing), [3, 0]);
+    }
 
     fn spawn_info() -> CommonPlayerSpawnInfo {
         CommonPlayerSpawnInfo {

@@ -161,7 +161,7 @@ impl<L: ClientLink> Server<L> {
         Ok(())
     }
 
-    fn set_game_rule(&mut self, rule: GameRule, value: bool) {
+    pub(crate) fn set_game_rule(&mut self, rule: GameRule, value: bool) {
         *rule_flag(
             &mut self.config.rules,
             &mut self.world.level.daylight_cycle,

@@ -206,6 +206,54 @@ impl Inventory {
         })
     }
 
+    pub fn find_matching(&self, stack: &ItemStack) -> Option<usize> {
+        (0..STORAGE_SLOTS).find(|slot| {
+            self.storage(*slot)
+                .as_ref()
+                .is_some_and(|held| same_item_same_components(held, stack))
+        })
+    }
+
+    pub fn suitable_hotbar_slot(&self) -> u8 {
+        let selected = usize::from(self.selected_hotbar);
+        let rotated = || (0..9).map(|offset| (offset + selected) % 9);
+        let slot = rotated()
+            .find(|slot| self.storage(*slot).is_none())
+            .or_else(|| {
+                rotated().find(|slot| {
+                    self.storage(*slot)
+                        .as_ref()
+                        .is_some_and(|stack| stack.enchantments().is_empty())
+                })
+            })
+            .unwrap_or(selected);
+        slot as u8
+    }
+
+    pub fn pick_slot(&mut self, inventory_slot: usize) {
+        self.selected_hotbar = self.suitable_hotbar_slot();
+        let (Some(from), Some(to)) = (
+            menu_slot(inventory_slot),
+            menu_slot(usize::from(self.selected_hotbar)),
+        ) else {
+            return;
+        };
+        self.slots.swap(from, to);
+    }
+
+    pub fn add_and_pick(&mut self, stack: ItemStack) {
+        self.selected_hotbar = self.suitable_hotbar_slot();
+        let Some(selected) = menu_slot(usize::from(self.selected_hotbar)) else {
+            return;
+        };
+        if self.slots[selected].is_some()
+            && let Some(free) = self.free_slot().and_then(menu_slot)
+        {
+            self.slots[free] = self.slots[selected].take();
+        }
+        self.slots[selected] = Some(stack);
+    }
+
     pub fn slot_with_remaining_space(&self, stack: &ItemStack) -> Option<usize> {
         let selected = usize::from(self.selected_hotbar);
         [selected, OFFHAND_INDEX]
@@ -404,6 +452,75 @@ mod tests {
         assert!(inventory.add(&mut stack, true));
         assert_eq!(stack, None);
         assert!(!inventory.add(&mut None, true));
+    }
+
+    fn enchanted(count: u8) -> ItemStack {
+        let mut stack = stone(count);
+        stack.set_enchantments(&[("minecraft:sharpness".to_owned(), 1)]);
+        stack
+    }
+
+    #[test]
+    fn a_matching_stack_is_found_in_the_hotbar_before_the_storage() {
+        let mut inventory = Inventory::default();
+        inventory.set(20, Some(stone(1)));
+        inventory.set(HOTBAR_START + 3, Some(stone(2)));
+        assert_eq!(inventory.find_matching(&stone(9)), Some(3));
+        assert_eq!(inventory.find_matching(&enchanted(1)), None);
+        inventory.set(HOTBAR_START + 3, None);
+        assert_eq!(inventory.find_matching(&stone(9)), Some(20));
+    }
+
+    #[test]
+    fn the_suitable_hotbar_slot_is_the_first_empty_one_after_the_selected_then_a_plain_item() {
+        let mut inventory = Inventory {
+            selected_hotbar: 7,
+            ..Inventory::default()
+        };
+        for slot in 0..9 {
+            inventory.set(HOTBAR_START + slot, Some(enchanted(1)));
+        }
+        assert_eq!(inventory.suitable_hotbar_slot(), 7);
+        inventory.set(HOTBAR_START + 1, Some(stone(1)));
+        assert_eq!(inventory.suitable_hotbar_slot(), 1);
+        inventory.set(HOTBAR_START + 8, None);
+        assert_eq!(inventory.suitable_hotbar_slot(), 8);
+    }
+
+    #[test]
+    fn picking_a_storage_slot_swaps_it_with_the_suitable_hotbar_slot() {
+        let mut inventory = Inventory {
+            selected_hotbar: 2,
+            ..Inventory::default()
+        };
+        inventory.set(20, Some(stone(5)));
+        inventory.set(HOTBAR_START + 2, Some(enchanted(1)));
+        inventory.pick_slot(20);
+        assert_eq!(inventory.selected_hotbar, 3);
+        assert_eq!(inventory.get(HOTBAR_START + 3), Some(&stone(5)));
+        assert_eq!(inventory.get(20), None);
+        assert_eq!(inventory.get(HOTBAR_START + 2), Some(&enchanted(1)));
+        inventory.set(HOTBAR_START + 4, Some(enchanted(1)));
+        for slot in [0, 1, 2, 3, 5, 6, 7, 8] {
+            inventory.set(HOTBAR_START + slot, Some(enchanted(1)));
+        }
+        inventory.set(21, Some(stone(7)));
+        inventory.pick_slot(21);
+        assert_eq!(inventory.selected_hotbar, 3);
+        assert_eq!(inventory.get(HOTBAR_START + 3), Some(&stone(7)));
+        assert_eq!(inventory.get(21), Some(&enchanted(1)));
+    }
+
+    #[test]
+    fn adding_and_picking_moves_the_displaced_item_to_the_first_free_slot() {
+        let mut inventory = Inventory::default();
+        for slot in 0..9 {
+            inventory.set(HOTBAR_START + slot, Some(enchanted(slot as u8 + 1)));
+        }
+        inventory.add_and_pick(stone(1));
+        assert_eq!(inventory.selected_hotbar, 0);
+        assert_eq!(inventory.get(HOTBAR_START), Some(&stone(1)));
+        assert_eq!(inventory.get(9), Some(&enchanted(1)));
     }
 
     #[test]

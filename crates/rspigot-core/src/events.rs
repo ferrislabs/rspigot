@@ -167,6 +167,10 @@ pub enum PlayerInput {
         pos: BlockPos,
         include_data: bool,
     },
+    PickEntity {
+        entity: EntityId,
+        include_data: bool,
+    },
     ChangeGameMode(GameMode),
     CommandSuggestion {
         id: i32,
@@ -208,6 +212,28 @@ pub enum PlayerInput {
         data: Option<String>,
     },
     Latency(i32),
+    ChangeDifficulty(Difficulty),
+    LockDifficulty(bool),
+    TeleportToEntity(uuid::Uuid),
+    SetGameRules(Vec<(String, String)>),
+    ChatSession(ChatSessionKey),
+    ClientBrand(String),
+    BlockTagQuery {
+        transaction: i32,
+        pos: BlockPos,
+    },
+    EntityTagQuery {
+        transaction: i32,
+        entity: EntityId,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChatSessionKey {
+    pub session: uuid::Uuid,
+    pub expires_at_ms: i64,
+    pub public_key: Vec<u8>,
+    pub key_signature: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -598,6 +624,10 @@ pub enum ClientEvent {
         movement: Movement,
     },
     BundleDelimiter,
+    TagQuery {
+        transaction: i32,
+        tag: Option<rspigot_nbt::Compound>,
+    },
     EntityHeadRotation {
         entity: EntityId,
         yaw: f32,

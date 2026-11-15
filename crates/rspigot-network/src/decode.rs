@@ -1,16 +1,17 @@
 use std::num::NonZeroU8;
 
 use rspigot_core::events::{
-    ClickInput, ContainerClick, DigAction, Direction, Hand, HashedItem, HashedSlot, InputState,
-    MovementAction, PlayerInput,
+    ChatSessionKey, ClickInput, ContainerClick, DigAction, Direction, Hand, HashedItem, HashedSlot,
+    InputState, MovementAction, PlayerInput,
 };
 use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_core::recipe_book::BookKind;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::GameMode;
+use rspigot_domain::world::Difficulty;
 use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
 use rspigot_nbt::{Compound, Tag};
-use rspigot_protocol::codec::Position;
+use rspigot_protocol::codec::{Position, decode_string};
 use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::play::serverbound::{
@@ -19,7 +20,8 @@ use rspigot_protocol::play::serverbound::{
 };
 use rspigot_protocol::play::slot::{HashedStack, ItemStack as WireStack};
 use rspigot_protocol::play::types::{
-    Direction as WireDirection, GameMode as WireGameMode, Hand as WireHand,
+    Difficulty as WireDifficulty, Direction as WireDirection, GameMode as WireGameMode,
+    Hand as WireHand,
 };
 
 use crate::connection::client_settings;
@@ -58,6 +60,9 @@ fn tag_json(tag: &Tag) -> serde_json::Value {
             .collect(),
     }
 }
+
+const BRAND_CHANNEL: &str = "minecraft:brand";
+const MAX_BRAND_CHARS: usize = 32_767;
 
 pub enum Decoded {
     Input(PlayerInput),
@@ -127,6 +132,15 @@ fn click_input(input: ContainerInput) -> ClickInput {
         ContainerInput::Throw => ClickInput::Throw,
         ContainerInput::QuickCraft => ClickInput::QuickCraft,
         ContainerInput::PickupAll => ClickInput::PickupAll,
+    }
+}
+
+fn difficulty(value: WireDifficulty) -> Difficulty {
+    match value {
+        WireDifficulty::Peaceful => Difficulty::Peaceful,
+        WireDifficulty::Easy => Difficulty::Easy,
+        WireDifficulty::Normal => Difficulty::Normal,
+        WireDifficulty::Hard => Difficulty::Hard,
     }
 }
 
@@ -353,6 +367,41 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
         ServerboundPlay::CustomClickAction(p) => input(PlayerInput::CustomClick {
             id: p.id.to_string(),
             data: p.payload.as_ref().map(|tag| tag_json(tag).to_string()),
+        }),
+        ServerboundPlay::ChangeDifficulty(p) => {
+            input(PlayerInput::ChangeDifficulty(difficulty(p.difficulty)))
+        }
+        ServerboundPlay::LockDifficulty(p) => input(PlayerInput::LockDifficulty(p.locked)),
+        ServerboundPlay::BlockEntityTagQuery(p) => input(PlayerInput::BlockTagQuery {
+            transaction: p.transaction_id,
+            pos: block_pos(p.pos),
+        }),
+        ServerboundPlay::EntityTagQuery(p) => input(PlayerInput::EntityTagQuery {
+            transaction: p.transaction_id,
+            entity: EntityId(p.entity_id),
+        }),
+        ServerboundPlay::TeleportToEntity(p) => input(PlayerInput::TeleportToEntity(p.target)),
+        ServerboundPlay::SetGameRule(p) => input(PlayerInput::SetGameRules(
+            p.entries
+                .into_iter()
+                .map(|entry| (entry.rule.as_str().to_owned(), entry.value))
+                .collect(),
+        )),
+        ServerboundPlay::ChatSessionUpdate(p) => input(PlayerInput::ChatSession(ChatSessionKey {
+            session: p.session.session_id,
+            expires_at_ms: p.session.expires_at,
+            public_key: p.session.public_key,
+            key_signature: p.session.key_signature,
+        })),
+        ServerboundPlay::CustomPayload(p) if p.channel.as_str() == BRAND_CHANNEL => {
+            match decode_string(&mut p.data.as_slice(), MAX_BRAND_CHARS) {
+                Ok(brand) => input(PlayerInput::ClientBrand(brand)),
+                Err(_) => Decoded::Ignored,
+            }
+        }
+        ServerboundPlay::PickItemFromEntity(p) => input(PlayerInput::PickEntity {
+            entity: EntityId(p.entity_id),
+            include_data: p.include_data,
         }),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
@@ -583,6 +632,116 @@ mod tests {
             PlayerInput::CustomClick {
                 id: "shop:buy".to_owned(),
                 data: None,
+            }
+        );
+    }
+
+    #[test]
+    fn difficulty_packets_become_a_change_and_a_lock() {
+        assert_eq!(
+            decoded(sb::CHANGE_DIFFICULTY, &[3]),
+            PlayerInput::ChangeDifficulty(Difficulty::Hard)
+        );
+        assert_eq!(
+            decoded(sb::LOCK_DIFFICULTY, &[1]),
+            PlayerInput::LockDifficulty(true)
+        );
+    }
+
+    #[test]
+    fn tag_queries_become_inputs() {
+        let mut body = vec![5];
+        Position { x: 1, y: 64, z: 2 }.encode(&mut body);
+        assert_eq!(
+            decoded(sb::BLOCK_ENTITY_TAG_QUERY, &body),
+            PlayerInput::BlockTagQuery {
+                transaction: 5,
+                pos: BlockPos::new(1, 64, 2),
+            }
+        );
+        assert_eq!(
+            decoded(sb::ENTITY_TAG_QUERY, &[5, 9]),
+            PlayerInput::EntityTagQuery {
+                transaction: 5,
+                entity: EntityId(9),
+            }
+        );
+    }
+
+    #[test]
+    fn teleporting_to_an_entity_carries_its_uuid() {
+        assert_eq!(
+            decoded(sb::TELEPORT_TO_ENTITY, &9u128.to_be_bytes()),
+            PlayerInput::TeleportToEntity(uuid::Uuid::from_u128(9))
+        );
+    }
+
+    #[test]
+    fn game_rule_entries_keep_their_key_and_text_value() {
+        let mut body = vec![1];
+        for text in ["minecraft:keep_inventory", "true"] {
+            text.to_owned().encode(&mut body);
+        }
+        assert_eq!(
+            decoded(sb::SET_GAME_RULE, &body),
+            PlayerInput::SetGameRules(vec![(
+                "minecraft:keep_inventory".to_owned(),
+                "true".to_owned()
+            )])
+        );
+    }
+
+    #[test]
+    fn a_chat_session_update_carries_its_key_material() {
+        let mut body = 5u128.to_be_bytes().to_vec();
+        body.extend_from_slice(&1_700_000_000_000i64.to_be_bytes());
+        body.extend_from_slice(&[3, 1, 2, 3, 2, 9, 8]);
+        assert_eq!(
+            decoded(sb::CHAT_SESSION_UPDATE, &body),
+            PlayerInput::ChatSession(ChatSessionKey {
+                session: uuid::Uuid::from_u128(5),
+                expires_at_ms: 1_700_000_000_000,
+                public_key: vec![1, 2, 3],
+                key_signature: vec![9, 8],
+            })
+        );
+    }
+
+    #[test]
+    fn the_brand_payload_becomes_the_client_brand_and_other_channels_are_ignored() {
+        let mut body = Vec::new();
+        "minecraft:brand".to_owned().encode(&mut body);
+        "vanilla".to_owned().encode(&mut body);
+        assert_eq!(
+            decoded(sb::CUSTOM_PAYLOAD, &body),
+            PlayerInput::ClientBrand("vanilla".to_owned())
+        );
+        let mut other = Vec::new();
+        "shop:buy".to_owned().encode(&mut other);
+        other.push(1);
+        assert!(matches!(
+            decode(ServerboundPlay::decode(sb::CUSTOM_PAYLOAD, &other).unwrap()),
+            Decoded::Ignored
+        ));
+    }
+
+    #[test]
+    fn picking_from_a_block_or_an_entity_keeps_the_target_and_the_data_flag() {
+        let mut body = Vec::new();
+        Position { x: 1, y: 64, z: 2 }.encode(&mut body);
+        body.push(1);
+        assert_eq!(
+            decoded(sb::PICK_ITEM_FROM_BLOCK, &body),
+            PlayerInput::PickBlock {
+                pos: BlockPos::new(1, 64, 2),
+                include_data: true,
+            }
+        );
+        assert_eq!(
+            decoded(sb::PICK_ITEM_FROM_ENTITY, &[9, 0]),
+            PlayerInput::PickEntity {
+                entity: EntityId(9),
+                include_data: false,
             }
         );
     }

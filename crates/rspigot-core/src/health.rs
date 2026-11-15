@@ -945,7 +945,7 @@ impl<L: ClientLink> Server<L> {
         });
         link.send(ClientEvent::Difficulty {
             difficulty,
-            locked: false,
+            locked: self.difficulty_locked,
         });
         let experience = player.vitals.experience;
         link.send(ClientEvent::Experience {
@@ -1323,6 +1323,18 @@ impl<L: ClientLink> Server<L> {
 
     pub fn player_absorption(&self, id: PlayerId) -> Option<f32> {
         self.players.get(&id).map(|p| p.vitals.absorption)
+    }
+
+    pub fn game_rules(&self) -> crate::config::GameRules {
+        self.config.rules
+    }
+
+    pub fn chat_session_of(&self, id: PlayerId) -> Option<crate::events::ChatSessionKey> {
+        self.players.get(&id)?.chat_session.clone()
+    }
+
+    pub fn client_brand_of(&self, id: PlayerId) -> Option<String> {
+        self.players.get(&id)?.client_brand.clone()
     }
 
     pub fn player_location(&self, id: PlayerId) -> Option<Vec3> {
