@@ -327,6 +327,7 @@ impl<L: ClientLink> Server<L> {
             amount: taken as i32,
         };
         player.link.send(pickup.clone());
+        self.count_picked_up(player_id, &stack, taken);
         self.sync_inventory(player_id);
         self.push(Audience::TrackersExcept(id, player_id), pickup);
         self.broadcast_held_item(player_id);

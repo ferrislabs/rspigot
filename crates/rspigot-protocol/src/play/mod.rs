@@ -8,6 +8,7 @@ pub mod entity;
 pub mod inventory;
 pub mod metadata;
 pub mod player;
+pub mod progress;
 pub mod serverbound;
 pub mod slot;
 pub mod types;
@@ -33,8 +34,9 @@ pub mod clientbound {
     };
     pub use super::inventory::{
         ContainerClose, ContainerSetContent, ContainerSetData, ContainerSetSlot, MerchantOffers,
-        MountScreenOpen, OpenScreen, RecipeBookSettings, SetCursorItem, SetPlayerInventory,
-        TradeCost, TradeOffer, UpdateRecipes,
+        MountScreenOpen, OpenScreen, PlaceGhostRecipe, RecipeBookAdd, RecipeBookEntry,
+        RecipeBookRemove, RecipeBookSettings, RecipeDisplay, RecipeDisplayEntry, SetCursorItem,
+        SetPlayerInventory, TradeCost, TradeOffer, UpdateRecipes,
     };
     pub use super::metadata::SetEntityData;
     pub use super::player::{
@@ -42,6 +44,10 @@ pub mod clientbound {
         PlayerInfoUpdate, PlayerPosition, PlayerRotation, Respawn, ServerData,
         SetDefaultSpawnPosition, SetExperience, SetHealth, SetHeldSlot, StartConfiguration,
         TabList, TickingState, TickingStep,
+    };
+    pub use super::progress::{
+        AdvancementData, AdvancementDisplay, AwardStats, CriterionEntry, PositionedAdvancement,
+        ProgressEntry, SelectAdvancementsTab, StatEntry, UpdateAdvancements,
     };
     pub use super::world::{
         BlockChangedAck, BlockDestruction, BlockEntityData, BlockEvent, BlockUpdate,
@@ -143,6 +149,12 @@ mod tests {
             (<HurtAnimation as Packet>::ID, 43),
             (<PlayerCombatKill as Packet>::ID, 69),
             (<BossEvent as Packet>::ID, 9),
+            (<AwardStats as Packet>::ID, 3),
+            (<UpdateAdvancements as Packet>::ID, 133),
+            (<SelectAdvancementsTab as Packet>::ID, 87),
+            (<RecipeBookAdd as Packet>::ID, 75),
+            (<RecipeBookRemove as Packet>::ID, 76),
+            (<PlaceGhostRecipe as Packet>::ID, 64),
         ];
         for (actual, expected) in table {
             assert_eq!(actual, expected);

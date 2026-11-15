@@ -1098,6 +1098,12 @@ impl Session<'_> {
         if self.kind != MenuKind::Crafting || slot != CRAFTING_RESULT || taken.is_none() {
             return;
         }
+        if let Some(stack) = taken {
+            self.effects.push(MenuEffect::Crafted {
+                item: stack.item,
+                amount,
+            });
+        }
         let mut cells = self.grid();
         let leftovers = crafting::take_result(3, 3, &mut cells);
         for (offset, cell) in cells.into_iter().enumerate() {
@@ -2458,11 +2464,17 @@ mod tests {
         assert_eq!(player.get(20), Some(&stack("minecraft:oak_planks", 64)));
         assert_eq!(
             effects,
-            vec![MenuEffect::Drop {
-                stack: stack("minecraft:oak_planks", 2),
-                thrower: false,
-                predicted: true,
-            }]
+            vec![
+                MenuEffect::Crafted {
+                    item: stack("minecraft:oak_planks", 1).item,
+                    amount: 2,
+                },
+                MenuEffect::Drop {
+                    stack: stack("minecraft:oak_planks", 2),
+                    thrower: false,
+                    predicted: true,
+                }
+            ]
         );
         assert_eq!(container[5], None);
     }
@@ -2497,11 +2509,17 @@ mod tests {
         );
         assert_eq!(
             effects,
-            vec![MenuEffect::Drop {
-                stack: stack("minecraft:oak_planks", 1),
-                thrower: true,
-                predicted: true,
-            }]
+            vec![
+                MenuEffect::Crafted {
+                    item: stack("minecraft:oak_planks", 1).item,
+                    amount: 1,
+                },
+                MenuEffect::Drop {
+                    stack: stack("minecraft:oak_planks", 1),
+                    thrower: true,
+                    predicted: true,
+                }
+            ]
         );
         assert_eq!(container[5], Some(stack("minecraft:oak_log", 2)));
         assert_eq!(container[0], Some(stack("minecraft:oak_planks", 4)));

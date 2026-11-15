@@ -1,10 +1,12 @@
 use rspigot_domain::player::GameProfile;
 
+use crate::advancements::PlayerAdvancements;
 use crate::player::Player;
 use crate::player_data::PlayerSave;
 use crate::player_io::PlayerIo;
-use crate::ports::ClientLink;
+use crate::ports::{ClientLink, ProgressFile};
 use crate::server::Server;
+use crate::stats::PlayerStats;
 use rspigot_domain::player::PlayerId;
 
 impl<L: ClientLink> Server<L> {
@@ -26,9 +28,45 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn load_stats(&self, id: PlayerId) -> PlayerStats {
+        let Some(io) = &self.player_io else {
+            return PlayerStats::default();
+        };
+        match io.load_progress(id, ProgressFile::Stats) {
+            Ok(text) => {
+                text.map_or_else(PlayerStats::default, |text| PlayerStats::from_json(&text))
+            }
+            Err(error) => {
+                tracing::warn!("Failed to load statistics for {id}: {error}");
+                PlayerStats::default()
+            }
+        }
+    }
+
+    pub(crate) fn load_advancements(&self, id: PlayerId) -> PlayerAdvancements {
+        let Some(io) = &self.player_io else {
+            return PlayerAdvancements::default();
+        };
+        match io.load_progress(id, ProgressFile::Advancements) {
+            Ok(text) => text.map_or_else(PlayerAdvancements::default, |text| {
+                PlayerAdvancements::from_json(&text)
+            }),
+            Err(error) => {
+                tracing::warn!("Failed to load advancements for {id}: {error}");
+                PlayerAdvancements::default()
+            }
+        }
+    }
+
     pub(crate) fn persist_player(&self, player: &Player<L>) {
         if let Some(io) = &self.player_io {
             io.save(player.id, PlayerSave::capture(player).to_nbt());
+            io.save_progress(player.id, ProgressFile::Stats, player.stats.to_json());
+            io.save_progress(
+                player.id,
+                ProgressFile::Advancements,
+                player.advancements.to_json(),
+            );
         }
     }
 

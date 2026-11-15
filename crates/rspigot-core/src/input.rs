@@ -145,6 +145,14 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::SetBeacon { primary, secondary } => {
                 self.handle_set_beacon(id, primary, secondary);
             }
+            PlayerInput::RequestStats => self.send_stats(id),
+            PlayerInput::PlaceRecipe {
+                window,
+                display_id,
+                max,
+            } => self.handle_place_recipe(id, window, display_id, max),
+            PlayerInput::RecipeSeen(display_id) => self.mark_recipe_seen(id, display_id),
+            PlayerInput::AdvancementTab(tab) => self.select_advancement_tab(id, tab.as_deref()),
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
             PlayerInput::RenameItem(name) => self.rename_item(id, &name),
             PlayerInput::RecipeBookSettings {
@@ -288,6 +296,7 @@ impl<L: ClientLink> Server<L> {
         let yaw = player.rotation.yaw;
         self.check_fall(id, to.y - from.y, on_ground);
         if position.is_some() {
+            self.count_movement(id, from, to);
             self.player_step(id, from, to, on_ground);
         }
         if position.is_some() || rotation.is_some() {

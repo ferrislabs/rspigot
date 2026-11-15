@@ -6,6 +6,8 @@ Layers: `rspigot-blocks`, `rspigot-items`, `rspigot-effects`, `rspigot-entities`
 
 Game objects: one generated struct per block, item, mob effect and entity type (`crates/rspigot-{blocks,items,effects,entities}`), never edited by hand. Regenerate with `tools/<kind>-dump/run.sh` then `python3 -I tools/gen_<kinds>.py` (block, item, effect, entity). Items also declare the crafting-table recipes that produce them (`Item::CRAFTS`, read from the datapack by `gen_items.py`). Behaviour lives in hand-written families (`src/family/`), mapped from vanilla classes in each crate's `families.txt`. Loot tables, registries and the tool block transformers (axe, hoe, shovel): `python3 -I tools/gen_data.py`. Pathfinding block classes (`crates/rspigot-ai/src/classify.rs`, template in `tools/ai-classify/emit.py`): `sh tools/ai-classify/run.sh`.
 
+Recipe book table (`crates/rspigot-data/src/generated/recipe_book.rs`): `python3 -I tools/gen_recipe_book.py`. Advancements with their tab layout (`.../generated/advancements.rs`): `python3 -I tools/gen_advancements.py`. Both take `--check`.
+
 Plugin contract (`crates/rspigot-plugin-protocol/proto`): regenerate the Rust code with `cargo run --manifest-path tools/plugin-protocol-gen/Cargo.toml` (needs `protoc`); `-- --check` fails when it is stale.
 
 Plugin SDK typed keys (`crates/rspigot-plugin/src/keys`): regenerate with `python3 -I tools/gen_plugin_keys.py`; `--check` fails when they are stale.

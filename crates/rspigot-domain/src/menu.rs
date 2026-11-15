@@ -87,6 +87,10 @@ pub enum MenuEffect {
         predicted: bool,
     },
     ResultUpdated,
+    Crafted {
+        item: ItemId,
+        amount: u32,
+    },
     FurnaceOutputTaken {
         item: ItemId,
         amount: u32,
@@ -280,6 +284,12 @@ impl Session<'_> {
     fn took(&mut self, slot: usize, taken: &Slot) {
         if slot != RESULT_SLOT || taken.is_none() {
             return;
+        }
+        if let Some(stack) = taken {
+            self.effects.push(MenuEffect::Crafted {
+                item: stack.item,
+                amount: u32::from(stack.count.get()),
+            });
         }
         let mut cells = self.grid();
         let leftovers = crafting::take_result(2, 2, &mut cells);

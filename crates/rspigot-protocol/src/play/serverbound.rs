@@ -469,6 +469,22 @@ wire_struct! {
     }
 }
 
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct PlaceRecipe = sb::PLACE_RECIPE {
+        pub container_id: i32 as Var,
+        pub recipe: i32 as Var,
+        pub use_max_items: bool,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct RecipeBookSeen = sb::RECIPE_BOOK_SEEN_RECIPE {
+        pub recipe: i32 as Var,
+    }
+}
+
 pub struct SignLines;
 
 impl FieldCodec<[String; SIGN_LINES]> for SignLines {
@@ -704,6 +720,8 @@ pub enum ServerboundPlay {
     Pong(Pong),
     Punch(Punch),
     RecipeBookSettings(ChangeRecipeBookSettings),
+    PlaceRecipe(PlaceRecipe),
+    RecipeBookSeen(RecipeBookSeen),
     RenameItem(RenameItem),
     ResourcePack(ResourcePackResponse),
     SeenAdvancements(SeenAdvancements),
@@ -762,6 +780,8 @@ impl ServerboundPlay {
             sb::PONG => Self::Pong(decode_exact(body)?),
             sb::PUNCH => Self::Punch(decode_exact(body)?),
             sb::RECIPE_BOOK_CHANGE_SETTINGS => Self::RecipeBookSettings(decode_exact(body)?),
+            sb::PLACE_RECIPE => Self::PlaceRecipe(decode_exact(body)?),
+            sb::RECIPE_BOOK_SEEN_RECIPE => Self::RecipeBookSeen(decode_exact(body)?),
             sb::RENAME_ITEM => Self::RenameItem(decode_exact(body)?),
             sb::RESOURCE_PACK => Self::ResourcePack(decode_exact(body)?),
             sb::SEEN_ADVANCEMENTS => Self::SeenAdvancements(decode_exact(body)?),
@@ -781,8 +801,6 @@ impl ServerboundPlay {
             | sb::ENTITY_TAG_QUERY
             | sb::JIGSAW_GENERATE
             | sb::LOCK_DIFFICULTY
-            | sb::PLACE_RECIPE
-            | sb::RECIPE_BOOK_SEEN_RECIPE
             | sb::SET_COMMAND_MINECART
             | sb::SET_GAME_RULE
             | sb::SET_JIGSAW_BLOCK

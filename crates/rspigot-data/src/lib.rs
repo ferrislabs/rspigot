@@ -1,3 +1,4 @@
+pub mod advancements;
 pub mod brewing;
 pub mod climate;
 pub mod compostable;
@@ -6,6 +7,7 @@ pub mod entities;
 #[rustfmt::skip]
 mod generated;
 pub mod loot;
+pub mod recipe_book;
 pub mod registries;
 pub mod spawns;
 pub mod sulfur_cube;
