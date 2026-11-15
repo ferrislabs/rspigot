@@ -1,4 +1,5 @@
 mod args;
+mod blocks;
 mod dispatch;
 mod execute;
 pub mod permission;
@@ -17,3 +18,6 @@ mod selector_tests;
 
 #[cfg(test)]
 mod execute_chain_tests;
+
+#[cfg(test)]
+mod blocks_tests;

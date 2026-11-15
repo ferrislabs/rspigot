@@ -205,6 +205,23 @@ pub trait CommandContext {
         ))
     }
 
+    fn place_block(
+        &mut self,
+        _pos: BlockPos,
+        _state: rspigot_blocks::StateId,
+        _nbt: Option<&Compound>,
+    ) -> bool {
+        false
+    }
+
+    fn destroy_block(&mut self, _pos: BlockPos) -> bool {
+        false
+    }
+
+    fn in_world_height(&self, _y: i32) -> bool {
+        true
+    }
+
     fn local_origin(&self, sender: CommandSender) -> Vec3 {
         self.sender_origin(sender)
     }
@@ -391,6 +408,9 @@ pub fn execute<C: CommandContext>(
         "effect" => effect(ctx, sender, rest),
         "kill" => kill(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "difficulty" => difficulty(ctx, sender, &args),
+        "setblock" => super::blocks::setblock(ctx, sender, rest),
+        "fill" => super::blocks::fill(ctx, sender, rest),
+        "clone" => super::blocks::clone(ctx, sender, rest),
         "weather" => weather(ctx, sender, &args),
         "setworldspawn" => set_world_spawn(ctx, sender, &args),
         "save-all" => {

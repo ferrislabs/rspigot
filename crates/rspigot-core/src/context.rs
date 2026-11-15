@@ -119,6 +119,37 @@ impl<L: ClientLink> CommandContext for Server<L> {
         );
     }
 
+    fn place_block(
+        &mut self,
+        pos: BlockPos,
+        state: rspigot_blocks::StateId,
+        nbt: Option<&Compound>,
+    ) -> bool {
+        let changed = self.set_block(pos, state);
+        let Some(nbt) = nbt else {
+            return changed;
+        };
+        let Some(mut data) = self.block_entity_nbt(pos) else {
+            return changed;
+        };
+        for (key, value) in nbt
+            .iter()
+            .filter(|(key, _)| !matches!(*key, "x" | "y" | "z"))
+        {
+            data.insert(key, value.clone());
+        }
+        let _ = self.set_command_data(&DataTarget::Block(pos), data);
+        true
+    }
+
+    fn destroy_block(&mut self, pos: BlockPos) -> bool {
+        self.break_block_naturally(pos)
+    }
+
+    fn in_world_height(&self, y: i32) -> bool {
+        self.world.dimension.height.contains(y)
+    }
+
     fn local_origin(&self, sender: CommandSender) -> Vec3 {
         let origin = self.sender_origin(sender);
         match &self.command_source {

@@ -489,7 +489,50 @@ fn execute_tree(b: &mut TreeBuilder, root: usize) {
     }
 }
 
+fn block_commands(b: &mut TreeBuilder, root: usize) {
+    let setblock = b.literal(root, "setblock", false);
+    let pos = position_argument(b, setblock, "pos");
+    let block = b.argument(pos, "block", ArgumentParser::BlockState, true);
+    for mode in ["destroy", "keep", "replace"] {
+        b.literal(block, mode, true);
+    }
+    let fill = b.literal(root, "fill", false);
+    let from = position_argument(b, fill, "from");
+    let to = position_argument(b, from, "to");
+    let block = b.argument(to, "block", ArgumentParser::BlockState, true);
+    let replace = b.literal(block, "replace", true);
+    b.argument(
+        replace,
+        "filter",
+        ArgumentParser::Named("minecraft:block_predicate"),
+        true,
+    );
+    for mode in ["keep", "outline", "hollow", "destroy"] {
+        b.literal(block, mode, true);
+    }
+    let clone = b.literal(root, "clone", false);
+    let begin = position_argument(b, clone, "begin");
+    let end = position_argument(b, begin, "end");
+    let destination = position_argument(b, end, "destination");
+    b.nodes[destination].executable = true;
+    let replace = b.literal(destination, "replace", true);
+    let masked = b.literal(destination, "masked", true);
+    let filtered = b.literal(destination, "filtered", false);
+    let filter = b.argument(
+        filtered,
+        "filter",
+        ArgumentParser::Named("minecraft:block_predicate"),
+        true,
+    );
+    for parent in [replace, masked, filter] {
+        for flag in ["force", "move", "normal"] {
+            b.literal(parent, flag, true);
+        }
+    }
+}
+
 fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
+    block_commands(b, root);
     b.literal(root, "seed", true);
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);

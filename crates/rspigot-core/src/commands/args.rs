@@ -128,6 +128,31 @@ impl BlockPredicate {
     }
 }
 
+pub fn parse_block_state(text: &str) -> Result<(StateId, Option<Compound>), Component> {
+    if text.starts_with('#') {
+        return Err(Component::translatable(
+            "argument.block.tag.disallowed",
+            Vec::new(),
+        ));
+    }
+    let predicate = BlockPredicate::parse(text)?;
+    let BlockMatcher::Kind(kind) = predicate.matcher else {
+        return Err(Component::translatable(
+            "argument.block.tag.disallowed",
+            Vec::new(),
+        ));
+    };
+    let properties: Vec<(&str, &str)> = predicate
+        .properties
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.as_str()))
+        .collect();
+    let state = kind
+        .state_with(&properties)
+        .unwrap_or_else(|| kind.default_state());
+    Ok((state, predicate.nbt))
+}
+
 pub fn take(input: &str) -> Option<(&str, &str)> {
     let (token, rest) = split_argument(input);
     (!token.is_empty()).then_some((token, rest))
