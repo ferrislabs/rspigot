@@ -586,6 +586,7 @@ impl<L: ClientLink> Server<L> {
             player.menu.set_remote(slot, left);
             player.vitals.attack_ticker = 0;
             self.swing_for_drop(id, step.predicted);
+            self.count_dropped(id, &step.stack);
             if let Some(thrown) = settled_drop(patch, step.stack) {
                 self.throw(step.launch, thrown, step.thrower.then_some(id.0));
             }
@@ -593,6 +594,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         self.swing_for_drop(id, step.predicted);
+        self.count_dropped(id, &step.stack);
         if let Some(thrown) = settled_drop(patch, step.stack) {
             self.throw(step.launch, thrown, step.thrower.then_some(id.0));
         }
@@ -735,6 +737,7 @@ impl<L: ClientLink> Server<L> {
         let broken = max_damage(&stack).is_some_and(|max| damage_value(&stack) >= max);
         let entity = player.entity_id;
         if broken {
+            self.count_broken(id, &stack);
             let broken_item = spec_of(&stack);
             self.fire(
                 id,

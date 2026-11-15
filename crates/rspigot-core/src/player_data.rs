@@ -53,7 +53,7 @@ pub struct PlayerSave {
     pub flying: bool,
     pub ender_items: Vec<Slot>,
     pub seen_credits: bool,
-    pub recipe_book: crate::recipe_book::RecipeBookSettings,
+    pub recipe_book: crate::recipe_book::RecipeBook,
     pub warden_tracker: rspigot_domain::warden::WardenSpawnTracker,
     pub respawn: Option<rspigot_domain::bed::RespawnConfig>,
     pub sleep_timer: i16,
@@ -80,7 +80,7 @@ impl PlayerSave {
             flying: player.flying,
             ender_items: player.ender_items.clone(),
             seen_credits: player.seen_credits,
-            recipe_book: player.recipe_book,
+            recipe_book: player.recipe_book.clone(),
             warden_tracker: vitals.warden_tracker,
             respawn: player.respawn.clone(),
             sleep_timer: player.sleep_counter.clamp(0, i32::from(i16::MAX)) as i16,
@@ -97,7 +97,7 @@ impl PlayerSave {
         }
         player.previous_game_mode = self.previous_game_mode;
         player.seen_credits = self.seen_credits;
-        player.recipe_book = self.recipe_book;
+        player.recipe_book = self.recipe_book.clone();
         player.inventory = self.inventory.clone();
         player.ender_items = self.ender_items.clone();
         player.ender_items.resize(ENDER_SLOTS, None);
@@ -282,7 +282,7 @@ impl PlayerSave {
                 .unwrap_or(false),
             ender_items: read_items_at(data, ENDER_ITEMS, ENDER_SLOTS),
             seen_credits: data.get_bool("seenCredits").unwrap_or(false),
-            recipe_book: crate::recipe_book::RecipeBookSettings::from_nbt(
+            recipe_book: crate::recipe_book::RecipeBook::from_nbt(
                 data.get_compound(crate::recipe_book::RECIPE_BOOK),
             ),
             warden_tracker: rspigot_domain::warden::WardenSpawnTracker::read_or_default(
@@ -401,9 +401,14 @@ mod tests {
             sleep_timer: 7,
             seen_credits: true,
             recipe_book: {
-                let mut book = crate::recipe_book::RecipeBookSettings::default();
-                book.set(crate::recipe_book::BookKind::Smoker, true, true);
-                book.set(crate::recipe_book::BookKind::Furnace, false, true);
+                let mut book = crate::recipe_book::RecipeBook::default();
+                book.settings
+                    .set(crate::recipe_book::BookKind::Smoker, true, true);
+                book.settings
+                    .set(crate::recipe_book::BookKind::Furnace, false, true);
+                book.add("minecraft:stick");
+                book.add("minecraft:acacia_planks");
+                book.see("minecraft:stick");
                 book
             },
         }

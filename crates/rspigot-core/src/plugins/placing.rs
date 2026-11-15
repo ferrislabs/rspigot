@@ -173,6 +173,7 @@ impl<L: ClientLink> Server<L> {
         let using = step.using;
         let id = using.player;
         let actor = self.players.get(&id).map(|player| player.entity_id);
+        self.count_used(id, &using.stack);
         if let Some(target) = step.changes.last() {
             let event = if step.tool.is_some() {
                 GameEvent::BlockChange

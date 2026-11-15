@@ -2068,6 +2068,12 @@ impl<L: ClientLink> Server<L> {
             self.players.get(&player).map(|p| Component::text(p.name()))
         });
         let victim = self.entity_name(id);
+        let credited = self
+            .entities
+            .store
+            .get(id)
+            .and_then(|e| e.living()?.damage.last_hurt_by_player)
+            .filter(|player| self.players.contains_key(player));
         let owner_message = self.owner_death_message(id, credit.as_ref());
         let Some(Entity {
             base,
@@ -2108,6 +2114,7 @@ impl<L: ClientLink> Server<L> {
             })
             .map(|player| player.id);
         self.raider_died(id, killer);
+        self.count_mob_kill(id, killer.or(credited));
         self.stop_mob_brain(id);
         if let Some((owner, message)) = owner_message {
             self.push(Audience::One(owner), ClientEvent::system(message));

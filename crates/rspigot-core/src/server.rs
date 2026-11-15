@@ -703,6 +703,8 @@ impl<L: ClientLink> Server<L> {
             portal_cooldown: 0,
             seen_credits: false,
             recipe_book: Default::default(),
+            stats: Default::default(),
+            advancements: Default::default(),
             won_game: false,
             moved_this_tick: false,
             using_item: None,
@@ -727,6 +729,8 @@ impl<L: ClientLink> Server<L> {
                 player.dim = save.dimension.clone();
             }
         }
+        player.stats = self.load_stats(player.id);
+        player.advancements = self.load_advancements(player.id);
         tracing::info!(
             "{}[/{}] logged in with entity id {} at ([{}]{:.1}, {:.1}, {:.1})",
             player.name(),
@@ -755,6 +759,7 @@ impl<L: ClientLink> Server<L> {
         let id = player.id;
         self.players.insert(id, player);
         self.update_player_view(id);
+        self.send_initial_advancements(id);
         if let Some(save) = &saved {
             self.announce_restored(id, save);
         }
@@ -791,6 +796,9 @@ impl<L: ClientLink> Server<L> {
         link.send(ClientEvent::Abilities(player.abilities()));
         link.send(ClientEvent::HeldSlot(player.inventory.selected_hotbar));
         link.send(ClientEvent::RecipeSync);
+        for event in crate::recipe_book::initial_events(&player.recipe_book) {
+            link.send(event);
+        }
         link.send(ClientEvent::OperatorLevel {
             entity: player.entity_id,
             level: if player.operator { 4 } else { 0 },
@@ -848,6 +856,7 @@ impl<L: ClientLink> Server<L> {
         if !self.players.contains_key(&id) {
             return;
         }
+        self.award_custom(id, crate::stats::custom::LEAVE_GAME, 1);
         self.settle_lane(Lane::Player(id), false);
         if !self.players.contains_key(&id) {
             return;
@@ -972,6 +981,8 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_health();
+        self.tick_stat_clocks();
+        self.tick_advancements();
         self.tick_sleeping();
         self.tick_eating();
         self.tick_delayed_destroys();

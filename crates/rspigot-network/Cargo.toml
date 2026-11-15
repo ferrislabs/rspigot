@@ -10,6 +10,7 @@ rspigot-blocks = { workspace = true }
 rspigot-core = { workspace = true }
 rspigot-data = { workspace = true }
 rspigot-domain = { workspace = true }
+rspigot-items = { workspace = true }
 rspigot-nbt = { workspace = true }
 rspigot-protocol = { workspace = true }
 base64 = "0.22"

@@ -15,7 +15,7 @@ use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::play::serverbound::{
     ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction, RecipeBookType,
-    SignTextSlot,
+    SeenAdvancements, SignTextSlot,
 };
 use rspigot_protocol::play::slot::{HashedStack, ItemStack as WireStack};
 use rspigot_protocol::play::types::{
@@ -188,6 +188,7 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
         }),
         ServerboundPlay::ClientCommand(p) => match p.action {
             ClientCommandAction::PerformRespawn => input(PlayerInput::Respawn),
+            ClientCommandAction::RequestStats => input(PlayerInput::RequestStats),
             _ => Decoded::Ignored,
         },
         ServerboundPlay::ClientInformation(info) => {
@@ -313,6 +314,18 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
         ServerboundPlay::RenameItem(p) => input(PlayerInput::RenameItem(p.name)),
+        ServerboundPlay::SeenAdvancements(action) => {
+            input(PlayerInput::AdvancementTab(match action {
+                SeenAdvancements::OpenedTab { tab } => Some(tab),
+                SeenAdvancements::ClosedScreen => None,
+            }))
+        }
+        ServerboundPlay::PlaceRecipe(p) => input(PlayerInput::PlaceRecipe {
+            window: p.container_id,
+            display_id: p.recipe,
+            max: p.use_max_items,
+        }),
+        ServerboundPlay::RecipeBookSeen(p) => input(PlayerInput::RecipeSeen(p.recipe)),
         ServerboundPlay::RecipeBookSettings(p) => input(PlayerInput::RecipeBookSettings {
             kind: match p.book {
                 RecipeBookType::Crafting => BookKind::Crafting,
@@ -444,6 +457,41 @@ mod tests {
                 patched: true,
             }))
         );
+    }
+
+    #[test]
+    fn placing_a_recipe_carries_the_window_the_display_id_and_the_maximum() {
+        assert_eq!(
+            decoded(sb::PLACE_RECIPE, &[1, 5, 1]),
+            PlayerInput::PlaceRecipe {
+                window: 1,
+                display_id: 5,
+                max: true,
+            }
+        );
+        assert_eq!(
+            decoded(sb::RECIPE_BOOK_SEEN_RECIPE, &[5]),
+            PlayerInput::RecipeSeen(5)
+        );
+    }
+
+    #[test]
+    fn opening_a_tab_or_closing_the_screen_decodes_to_the_tab() {
+        let mut opened = vec![0];
+        "minecraft:story/root".to_owned().encode(&mut opened);
+        assert_eq!(
+            decoded(sb::SEEN_ADVANCEMENTS, &opened),
+            PlayerInput::AdvancementTab(Some("minecraft:story/root".to_owned()))
+        );
+        assert_eq!(
+            decoded(sb::SEEN_ADVANCEMENTS, &[1]),
+            PlayerInput::AdvancementTab(None)
+        );
+    }
+
+    #[test]
+    fn a_client_command_asks_for_the_stats() {
+        assert_eq!(decoded(sb::CLIENT_COMMAND, &[1]), PlayerInput::RequestStats);
     }
 
     #[test]

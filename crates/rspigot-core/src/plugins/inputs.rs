@@ -139,8 +139,13 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(super) fn finish_input(&mut self, step: InputStep) {
-        if let Some(player) = self.players.get_mut(&step.player) {
-            player.last_input = step.state;
+        let Some(player) = self.players.get_mut(&step.player) else {
+            return;
+        };
+        let jumped = player.on_ground && step.state.jump && !player.last_input.jump;
+        player.last_input = step.state;
+        if jumped {
+            self.award_custom(step.player, crate::stats::custom::JUMP, 1);
         }
     }
 

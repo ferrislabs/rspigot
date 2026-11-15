@@ -164,6 +164,7 @@ impl<L: ClientLink> Server<L> {
         base.needs_sync = true;
         self.entities.store.reindex(vehicle);
         self.position_riders(vehicle);
+        self.count_vehicle_movement(id, vehicle, position - from.0);
         self.vehicle_moved(vehicle, from, (position, rotation));
     }
 

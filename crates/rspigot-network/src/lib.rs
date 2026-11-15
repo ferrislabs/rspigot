@@ -1,3 +1,4 @@
+mod book;
 mod cache;
 mod connection;
 mod decode;

@@ -14,7 +14,8 @@ use rspigot_core::plugins::{
     Phase, PlayerOrder, PluginIntro, Priority, Question, ToPlugin, Verdict,
 };
 use rspigot_core::ports::{
-    ChunkGenerator, ChunkStore, ClientLink, EntityStore, PlayerStore, PluginOutbox, StoreError,
+    ChunkGenerator, ChunkStore, ClientLink, EntityStore, PlayerStore, PluginOutbox, ProgressFile,
+    StoreError,
 };
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
@@ -392,9 +393,34 @@ pub fn scene_with(names: &[&str], handlers: Vec<HandlerSpec>) -> Scene {
 }
 
 #[derive(Default)]
-pub struct Saves(Mutex<HashMap<PlayerId, Compound>>);
+pub struct Saves(
+    Mutex<HashMap<PlayerId, Compound>>,
+    Mutex<HashMap<(PlayerId, ProgressFile), String>>,
+);
 
 impl Saves {
+    pub fn progress(&self, player: PlayerId, file: ProgressFile) -> Option<String> {
+        let deadline = std::time::Instant::now() + Duration::from_secs(2);
+        loop {
+            let found = self
+                .1
+                .lock()
+                .ok()
+                .and_then(|files| files.get(&(player, file)).cloned());
+            match found {
+                Some(text) => return Some(text),
+                None if std::time::Instant::now() > deadline => return None,
+                None => std::thread::sleep(Duration::from_millis(5)),
+            }
+        }
+    }
+
+    pub fn seed_progress(&self, player: PlayerId, file: ProgressFile, text: &str) {
+        if let Ok(mut files) = self.1.lock() {
+            files.insert((player, file), text.to_owned());
+        }
+    }
+
     pub fn items(&self, player: PlayerId) -> Vec<(String, u8)> {
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
         let saved = loop {
@@ -434,6 +460,30 @@ impl PlayerStore for Saves {
     fn save_player(&self, player: PlayerId, data: &Compound) -> Result<(), StoreError> {
         if let Ok(mut files) = self.0.lock() {
             files.insert(player, data.clone());
+        }
+        Ok(())
+    }
+
+    fn load_progress(
+        &self,
+        player: PlayerId,
+        file: ProgressFile,
+    ) -> Result<Option<String>, StoreError> {
+        Ok(self
+            .1
+            .lock()
+            .ok()
+            .and_then(|files| files.get(&(player, file)).cloned()))
+    }
+
+    fn save_progress(
+        &self,
+        player: PlayerId,
+        file: ProgressFile,
+        json: &str,
+    ) -> Result<(), StoreError> {
+        if let Ok(mut files) = self.1.lock() {
+            files.insert((player, file), json.to_owned());
         }
         Ok(())
     }

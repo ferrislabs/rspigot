@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use crate::book;
 use bytes::Bytes;
 use rspigot_core::commands::{
     ArgumentParser as CoreParser, CommandNodeKind as CoreNodeKind, CommandTree,
@@ -1065,6 +1066,54 @@ impl Encoder {
             ),
             ClientEvent::Abilities(a) => Self::queue(writer, &abilities(a)),
             ClientEvent::RecipeSync => Self::queue(writer, &update_recipes()),
+            ClientEvent::Advancements {
+                reset,
+                added,
+                removed,
+                progress,
+                show,
+            } => Self::queue(
+                writer,
+                &book::advancements_update(*reset, added, removed, progress, *show),
+            ),
+            ClientEvent::SelectAdvancementsTab(tab) => Self::queue(
+                writer,
+                &cb::SelectAdvancementsTab {
+                    tab: tab.map(str::to_owned),
+                },
+            ),
+            ClientEvent::RecipeBookSettings(settings) => {
+                Self::queue(writer, &book::book_settings(settings))
+            }
+            ClientEvent::RecipeBookAdd { entries, replace } => {
+                Self::queue(writer, &book::book_add(entries, *replace))
+            }
+            ClientEvent::RecipeBookRemove(recipes) => Self::queue(
+                writer,
+                &cb::RecipeBookRemove {
+                    recipes: recipes.clone(),
+                },
+            ),
+            ClientEvent::GhostRecipe { window, display } => Self::queue(
+                writer,
+                &cb::PlaceGhostRecipe {
+                    container_id: *window,
+                    display: book::recipe_display(display),
+                },
+            ),
+            ClientEvent::Stats(entries) => Self::queue(
+                writer,
+                &cb::AwardStats {
+                    stats: entries
+                        .iter()
+                        .map(|(stat_type, value, amount)| cb::StatEntry {
+                            stat_type: *stat_type,
+                            value: *value,
+                            amount: *amount,
+                        })
+                        .collect(),
+                },
+            ),
             ClientEvent::HeldSlot(slot) => Self::queue(
                 writer,
                 &cb::SetHeldSlot {
@@ -2801,6 +2850,85 @@ mod tests {
         assert_eq!(event.len(), 1);
         assert_eq!(event[0].0, id::UPDATE_RECIPES);
         assert_eq!(event[0].1[0], 9);
+    }
+
+    #[test]
+    fn recipe_book_events_become_their_packets() {
+        let removed = encode(ClientEvent::RecipeBookRemove(vec![5, 6]));
+        assert_eq!(removed[0].0, id::RECIPE_BOOK_REMOVE);
+        assert_eq!(removed[0].1, vec![2, 5, 6]);
+        let entry = rspigot_core::events::BookEntry {
+            display_id: 7,
+            display: rspigot_core::events::BookDisplay::Shapeless {
+                ingredients: vec![rspigot_items::ItemSet::Direct(&[rspigot_items::ItemId(3)])],
+                result: rspigot_core::events::BookStack {
+                    item: rspigot_items::ItemId(4),
+                    count: 2,
+                },
+                station: rspigot_items::ItemId(9),
+            },
+            group: 0,
+            category: 3,
+            requirements: vec![rspigot_items::ItemSet::Direct(&[rspigot_items::ItemId(3)])],
+            notify: true,
+            highlight: false,
+        };
+        let added = encode(ClientEvent::RecipeBookAdd {
+            entries: vec![entry],
+            replace: true,
+        });
+        assert_eq!(added[0].0, id::RECIPE_BOOK_ADD);
+        assert_eq!(&added[0].1[..4], &[1, 7, 0, 1]);
+        assert_eq!(added[0].1.last(), Some(&1));
+        let settings = encode(ClientEvent::RecipeBookSettings(
+            rspigot_core::recipe_book::RecipeBookSettings::default(),
+        ));
+        assert_eq!(settings[0].0, id::RECIPE_BOOK_SETTINGS);
+    }
+
+    #[test]
+    fn every_displayed_advancement_encodes_and_decodes_as_one_update() {
+        use rspigot_protocol::codec::decode_exact;
+        let shown: Vec<_> = rspigot_data::advancements::all()
+            .iter()
+            .filter(|found| found.display.is_some())
+            .collect();
+        assert_eq!(shown.len(), 126);
+        let event = encode(ClientEvent::Advancements {
+            reset: true,
+            added: shown.clone(),
+            removed: Vec::new(),
+            progress: vec![("minecraft:story/root", vec![("crafting_table", Some(7))])],
+            show: false,
+        });
+        assert_eq!(event[0].0, id::UPDATE_ADVANCEMENTS);
+        let update: cb::UpdateAdvancements = decode_exact(&event[0].1).expect("decodes");
+        assert_eq!(update.added.len(), shown.len());
+        assert!(update.reset && !update.show);
+        let root = update
+            .added
+            .iter()
+            .find(|added| added.id == "minecraft:story/root")
+            .expect("the root");
+        assert!(root.advancement.parent.is_none());
+        assert!(
+            root.advancement
+                .display
+                .as_ref()
+                .is_some_and(|display| display.background.is_some())
+        );
+        let tab = encode(ClientEvent::SelectAdvancementsTab(Some(
+            "minecraft:story/root",
+        )));
+        assert_eq!(tab[0].0, id::SELECT_ADVANCEMENTS_TAB);
+    }
+
+    #[test]
+    fn stats_are_one_award_stats_packet() {
+        let event = encode(ClientEvent::Stats(vec![(8, 23, 1)]));
+        assert_eq!(event.len(), 1);
+        assert_eq!(event[0].0, id::AWARD_STATS);
+        assert_eq!(event[0].1, vec![1, 8, 23, 1]);
     }
 
     #[test]

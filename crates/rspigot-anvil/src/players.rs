@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use rspigot_core::ports::{PlayerStore, StoreError};
+use rspigot_core::ports::{PlayerStore, ProgressFile, StoreError};
 use rspigot_domain::player::PlayerId;
 use rspigot_nbt::Compound;
 
@@ -23,7 +23,55 @@ fn corrupt(player: PlayerId, error: &AnvilError) -> StoreError {
     }
 }
 
+fn progress_file(world_root: &Path, player: PlayerId, file: ProgressFile) -> PathBuf {
+    let folder = match file {
+        ProgressFile::Stats => "stats",
+        ProgressFile::Advancements => "advancements",
+    };
+    world_root
+        .join(folder)
+        .join(format!("{}.json", player.0.hyphenated()))
+}
+
+fn stamp(json: &str) -> Result<String, StoreError> {
+    let mut document: serde_json::Value =
+        serde_json::from_str(json).map_err(|error| StoreError::Io(std::io::Error::other(error)))?;
+    if let Some(object) = document.as_object_mut() {
+        object.insert("DataVersion".to_owned(), DATA_VERSION.into());
+    }
+    serde_json::to_string_pretty(&document)
+        .map_err(|error| StoreError::Io(std::io::Error::other(error)))
+}
+
 impl PlayerStore for AnvilStore {
+    fn load_progress(
+        &self,
+        player: PlayerId,
+        file: ProgressFile,
+    ) -> Result<Option<String>, StoreError> {
+        match std::fs::read_to_string(progress_file(self.world_root(), player, file)) {
+            Ok(text) => Ok(Some(text)),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(StoreError::Io(error)),
+        }
+    }
+
+    fn save_progress(
+        &self,
+        player: PlayerId,
+        file: ProgressFile,
+        json: &str,
+    ) -> Result<(), StoreError> {
+        let path = progress_file(self.world_root(), player, file);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let temporary = path.with_extension("json.tmp");
+        std::fs::write(&temporary, stamp(json)?)?;
+        std::fs::rename(&temporary, &path)?;
+        Ok(())
+    }
+
     fn load_player(&self, player: PlayerId) -> Result<Option<Compound>, StoreError> {
         let current = player_file(self.world_root(), player, "dat");
         let backup = player_file(self.world_root(), player, "dat_old");
@@ -65,6 +113,30 @@ mod tests {
 
     fn sample(level: i32) -> Compound {
         Compound::new().with("XpLevel", level)
+    }
+
+    #[test]
+    fn progress_files_round_trip_with_a_data_version() {
+        let dir = TempDir::new("player-progress");
+        let store = store(&dir);
+        let alice = PlayerId::offline("Alice");
+        assert_eq!(
+            store
+                .load_progress(alice, ProgressFile::Stats)
+                .expect("loads"),
+            None
+        );
+        store
+            .save_progress(alice, ProgressFile::Stats, "{\"stats\":{}}")
+            .expect("saves");
+        let text = store
+            .load_progress(alice, ProgressFile::Stats)
+            .expect("loads")
+            .expect("a file");
+        let document: serde_json::Value = serde_json::from_str(&text).expect("json");
+        assert_eq!(document["DataVersion"], DATA_VERSION);
+        assert!(document["stats"].is_object());
+        assert!(dir.path().join("stats").is_dir());
     }
 
     #[test]
