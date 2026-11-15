@@ -93,6 +93,15 @@ message ScoreboardOrder {
     TeamEntry team_entry = 20; Empty discard = 21;
   }
 }
+message BossFlagOrder { string flag = 1; bool enabled = 2; }
+message BossBarOrder {
+  uint64 bar = 1;
+  oneof order {
+    string set_title = 10; string set_color = 11; string set_style = 12; double set_progress = 13; BossFlagOrder set_flag = 14;
+    string add_player = 15; string remove_player = 16; Empty remove_all_players = 17; bool set_visible = 18; Empty remove = 19;
+  }
+}
+message BossBarCreate { string title = 1; string color = 2; string style = 3; repeated string flags = 4; optional string key = 5; }
 message CustomInventoryOrder { uint64 inventory = 1; oneof order { SetSlot set = 10; Empty clear = 11; Empty close = 12; Empty discard = 13; } }
 
 message TargetQuery { string player = 1; double max_distance = 2; }
@@ -107,13 +116,14 @@ message Question {
     TargetQuery target_block = 14; TargetQuery target_entity = 15; Empty server = 16; Empty whitelist = 17;
     Empty operators = 18; Empty bans = 19; Empty ip_bans = 20; Empty world = 21; EntityQuery entities = 22;
     int32 entity = 23; BlockPos block = 24; Spawn spawn = 25; DropItem drop_item = 26; uint64 custom_inventory = 27; uint32 scoreboard = 28; Empty new_scoreboard = 29;
+    BossBarCreate create_boss_bar = 30; uint64 boss_bar = 31; Empty boss_bars = 32;
   }
 }
 message FromPlugin {
   oneof body {
     Hello hello = 1; Decision decision = 2; PlayerOrder player = 3; InventoryOrder inventory = 4; ServerOrder server = 5;
     WorldOrder world = 6; BlockOrder block = 7; EntityOrder entity = 8; CustomInventoryOrder custom_inventory = 9; Question question = 10;
-    ScoreboardOrder scoreboard = 12;
+    ScoreboardOrder scoreboard = 12; BossBarOrder boss_bar = 13;
   }
   optional uint64 origin = 11;
 }
@@ -144,13 +154,18 @@ message TeamState {
 }
 message SlotState { string slot = 1; string objective = 2; }
 message ScoreboardState { repeated ObjectiveState objectives = 1; repeated ScoreState scores = 2; repeated TeamState teams = 3; repeated SlotState slots = 4; }
+message BossBarState {
+  uint64 bar = 1; optional string key = 2; string title = 3; string color = 4; string style = 5; double progress = 6;
+  repeated string flags = 7; bool visible = 8; repeated string players = 9;
+}
+message BossBarList { repeated BossBarState bars = 1; }
 message Answer {
   uint64 request = 1;
   oneof body {
     PlayerState player = 2; PlayerList players = 3; NotFound not_found = 4; Refused refused = 5; InventoryState inventory = 6;
     Target target = 7; ServerState server = 8; ListedPlayers listed = 9; BanList bans = 10; WorldState world = 11; BlockState block = 12;
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
-    ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18;
+    ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
   }
 }
 message Warning { string message = 1; }

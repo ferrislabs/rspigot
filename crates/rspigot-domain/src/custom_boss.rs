@@ -138,6 +138,12 @@ impl CustomBossBar {
         self.event.set_progress(progress)
     }
 
+    pub fn set_progress(&mut self, progress: f32) -> BossMessages {
+        let progress = progress.clamp(0.0, 1.0);
+        self.value = (progress * self.max as f32).round() as i32;
+        self.event.set_progress(progress)
+    }
+
     pub fn display_name(&self) -> Component {
         Component::text("[")
             .append(self.event.name().clone())
@@ -344,6 +350,17 @@ mod tests {
         bar.set_max(50);
         assert_eq!(bar.event().progress(), 0.5);
         bar.set_value(500);
+        assert_eq!(bar.event().progress(), 1.0);
+    }
+
+    #[test]
+    fn setting_the_progress_keeps_it_exact_and_derives_the_value() {
+        let (mut bars, handle) = bars();
+        let bar = bars.get_mut(handle).unwrap();
+        bar.set_progress(0.37);
+        assert_eq!(bar.event().progress(), 0.37);
+        assert_eq!(bar.value(), 37);
+        bar.set_progress(2.0);
         assert_eq!(bar.event().progress(), 1.0);
     }
 
