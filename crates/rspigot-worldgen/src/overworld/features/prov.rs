@@ -357,6 +357,8 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
         lily: BlockSet,
         cannot_hold_snow: BlockSet,
         snow_override: BlockSet,
+        coral_plants: BlockSet,
+        wall_corals: BlockSet,
     }
     static SETS: OnceLock<Sets> = OnceLock::new();
     let sets = SETS.get_or_init(|| Sets {
@@ -371,6 +373,8 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
         lily: BlockSet::tag("minecraft:supports_lily_pad"),
         cannot_hold_snow: BlockSet::tag("minecraft:cannot_support_snow_layer"),
         snow_override: BlockSet::tag("minecraft:support_override_snow_layer"),
+        coral_plants: BlockSet::tag("minecraft:coral_plants"),
+        wall_corals: BlockSet::tag("minecraft:wall_corals"),
     });
     let Some(kind) = state.kind() else {
         return true;
@@ -380,6 +384,28 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
     let name = kind.name();
     if sets.saplings.contains(state) || sets.flowers.contains(state) {
         return sets.vegetation.contains(below);
+    }
+    if sets.coral_plants.contains(state) || name.ends_with("_coral_fan") {
+        return below.is_face_sturdy(Face::Up, Support::Full);
+    }
+    if sets.wall_corals.contains(state) {
+        let facing = state.property("facing").unwrap_or("north");
+        let (dx, dz) = match facing {
+            "north" => (0, 1),
+            "south" => (0, -1),
+            "west" => (1, 0),
+            _ => (-1, 0),
+        };
+        return region
+            .get(x + dx, y, z + dz)
+            .is_face_sturdy(face(facing), Support::Full);
+    }
+    if name == "minecraft:sea_pickle" {
+        return below.is_face_sturdy(Face::Up, Support::Full)
+            || below
+                .collision_shape()
+                .iter()
+                .any(|shape| shape.max_y >= 1.0);
     }
     match name {
         "minecraft:short_grass"
@@ -543,6 +569,8 @@ impl Pred {
     }
 }
 
+const DIRECTIONS: [&str; 6] = ["down", "up", "north", "south", "west", "east"];
+
 #[derive(Debug, Clone)]
 pub(crate) enum State {
     Fixed(BlockStateId),
@@ -557,6 +585,10 @@ pub(crate) enum State {
         values: Int,
     },
     Pick(Vec<BlockStateId>),
+    Rotated {
+        source: Box<State>,
+        direction: Option<&'static str>,
+    },
     Noise(NoiseBlocks),
     DualNoise {
         slow: Arc<NoiseStack>,
@@ -664,6 +696,13 @@ impl State {
                         .collect(),
                 )
             }
+            "rotated" => Self::Rotated {
+                source: Box::new(Self::compile(value.get("state").unwrap_or(&Value::Null))),
+                direction: DIRECTIONS
+                    .iter()
+                    .find(|name| Some(**name) == value.get("direction").and_then(Value::as_str))
+                    .copied(),
+            },
             "weighted" => Self::Weighted(
                 value
                     .get("entries")
@@ -722,6 +761,20 @@ impl State {
                 } else {
                     Some(options[rng.below(options.len() as i32) as usize])
                 }
+            }
+            Self::Rotated { source, direction } => {
+                let name = match direction {
+                    Some(name) => name,
+                    None => DIRECTIONS[rng.below(6) as usize],
+                };
+                let state = source.resolve(region, rng, pos)?;
+                let axis = match name {
+                    "up" | "down" => "y",
+                    "north" | "south" => "z",
+                    _ => "x",
+                };
+                let state = state.with_property("axis", axis).unwrap_or(state);
+                Some(state.with_property("facing", name).unwrap_or(state))
             }
             Self::Noise(blocks) => pick_by_noise(&blocks.states, blocks.value(pos)),
             Self::DualNoise {

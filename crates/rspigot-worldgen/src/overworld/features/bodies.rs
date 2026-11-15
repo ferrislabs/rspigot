@@ -140,6 +140,8 @@ pub(crate) enum Feature {
     Mushroom(Box<super::mushrooms::Mushroom>),
     Fallen(Box<super::fallen::Fallen>),
     Magma(super::magma::Magma),
+    CoralTree(Arc<Placed>),
+    CoralClaw(Arc<Placed>),
     Spike(Box<super::ice::Spike>),
     Iceberg(super::ice::Iceberg),
     BlueIce(super::ice::BlueIce),
@@ -321,6 +323,13 @@ impl<'a> Compiler<'a> {
             "spike" => Feature::Spike(Box::new(super::ice::Spike::compile(value))),
             "iceberg" => Feature::Iceberg(super::ice::Iceberg::compile(value)),
             "blue_ice" => Feature::BlueIce(super::ice::BlueIce),
+            "coral_tree" => {
+                Feature::CoralTree(self.placed_ref(value.get("feature").unwrap_or(&Value::Null)))
+            }
+            "coral_claw" => {
+                Feature::CoralClaw(self.placed_ref(value.get("feature").unwrap_or(&Value::Null)))
+            }
+            "overlay" => Feature::Sequence(self.placed_list(value.get("features"))),
             "underwater_magma" => Feature::Magma(super::magma::Magma::compile(value)),
             "fallen_tree" => Feature::Fallen(Box::new(super::fallen::Fallen::compile(value, self))),
             "huge_red_mushroom" => {
@@ -406,6 +415,8 @@ impl Feature {
             Self::Mushroom(mushroom) => mushroom.reach(),
             Self::Fallen(fallen) => fallen.reach(),
             Self::Magma(magma) => magma.reach(),
+            Self::CoralTree(placed) => super::coral::reach_of_tree(placed),
+            Self::CoralClaw(placed) => super::coral::reach_of_claw(placed),
             Self::Spike(spike) => spike.reach(),
             Self::Iceberg(iceberg) => iceberg.reach(),
             Self::BlueIce(ice) => ice.reach(),
@@ -441,6 +452,8 @@ impl Feature {
             Self::Mushroom(mushroom) => mushroom.place(run, pos),
             Self::Fallen(fallen) => fallen.place(run, pos),
             Self::Magma(magma) => magma.place(run, pos),
+            Self::CoralTree(placed) => super::coral::tree(placed, run, pos),
+            Self::CoralClaw(placed) => super::coral::claw(placed, run, pos),
             Self::Spike(spike) => spike.place(run, pos),
             Self::Iceberg(iceberg) => iceberg.place(run, pos),
             Self::BlueIce(ice) => ice.place(run, pos),

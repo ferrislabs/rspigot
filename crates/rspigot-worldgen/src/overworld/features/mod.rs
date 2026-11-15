@@ -1,4 +1,5 @@
 mod bodies;
+mod coral;
 mod fallen;
 mod ice;
 mod magma;
