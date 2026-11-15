@@ -387,12 +387,6 @@ fn a_dispenser_lights_a_tnt_block_with_flint_and_steel() {
     )));
 }
 
-fn console(s: &mut Scene, line: &str) {
-    s.server
-        .handle(rspigot_core::events::Inbound::Console(line.to_owned()));
-    s.server.deliver();
-}
-
 fn kinded(
     s: &Scene,
     kind: rspigot_entities::EntityKind,
