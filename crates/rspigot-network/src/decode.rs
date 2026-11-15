@@ -369,6 +369,14 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             input(PlayerInput::ChangeDifficulty(difficulty(p.difficulty)))
         }
         ServerboundPlay::LockDifficulty(p) => input(PlayerInput::LockDifficulty(p.locked)),
+        ServerboundPlay::BlockEntityTagQuery(p) => input(PlayerInput::BlockTagQuery {
+            transaction: p.transaction_id,
+            pos: block_pos(p.pos),
+        }),
+        ServerboundPlay::EntityTagQuery(p) => input(PlayerInput::EntityTagQuery {
+            transaction: p.transaction_id,
+            entity: EntityId(p.entity_id),
+        }),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -611,6 +619,26 @@ mod tests {
         assert_eq!(
             decoded(sb::LOCK_DIFFICULTY, &[1]),
             PlayerInput::LockDifficulty(true)
+        );
+    }
+
+    #[test]
+    fn tag_queries_become_inputs() {
+        let mut body = vec![5];
+        Position { x: 1, y: 64, z: 2 }.encode(&mut body);
+        assert_eq!(
+            decoded(sb::BLOCK_ENTITY_TAG_QUERY, &body),
+            PlayerInput::BlockTagQuery {
+                transaction: 5,
+                pos: BlockPos::new(1, 64, 2),
+            }
+        );
+        assert_eq!(
+            decoded(sb::ENTITY_TAG_QUERY, &[5, 9]),
+            PlayerInput::EntityTagQuery {
+                transaction: 5,
+                entity: EntityId(9),
+            }
         );
     }
 

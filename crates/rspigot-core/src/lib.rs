@@ -118,6 +118,7 @@ pub mod stats;
 pub mod status;
 mod steering;
 pub mod streaming;
+mod tag_query;
 mod tamable;
 mod throwing;
 mod thrown;

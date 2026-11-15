@@ -210,6 +210,14 @@ pub enum PlayerInput {
     Latency(i32),
     ChangeDifficulty(Difficulty),
     LockDifficulty(bool),
+    BlockTagQuery {
+        transaction: i32,
+        pos: BlockPos,
+    },
+    EntityTagQuery {
+        transaction: i32,
+        entity: EntityId,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -600,6 +608,10 @@ pub enum ClientEvent {
         movement: Movement,
     },
     BundleDelimiter,
+    TagQuery {
+        transaction: i32,
+        tag: Option<rspigot_nbt::Compound>,
+    },
     EntityHeadRotation {
         entity: EntityId,
         yaw: f32,

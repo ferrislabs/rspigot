@@ -1413,6 +1413,15 @@ impl Encoder {
                 Self::entity_move(writer, entity.0, movement)
             }
             ClientEvent::BundleDelimiter => Self::queue(writer, &cb::BundleDelimiter),
+            ClientEvent::TagQuery { transaction, tag } => Self::queue(
+                writer,
+                &cb::TagQuery {
+                    transaction_id: *transaction,
+                    tag: rspigot_protocol::codec::NetworkNbt(
+                        tag.clone().map(rspigot_nbt::Tag::Compound),
+                    ),
+                },
+            ),
             ClientEvent::EntityVelocity { entity, velocity } => Self::queue(
                 writer,
                 &cb::SetEntityMotion {
@@ -2106,6 +2115,23 @@ mod tests {
             encode(ClientEvent::BundleDelimiter),
             vec![(id::BUNDLE_DELIMITER, Vec::new())]
         );
+    }
+
+    #[test]
+    fn a_tag_query_answer_is_a_transaction_and_a_nameless_compound() {
+        let found = ClientEvent::TagQuery {
+            transaction: 4,
+            tag: Some(rspigot_nbt::Compound::new().with("n", 5i32)),
+        };
+        assert_eq!(
+            encode(found),
+            vec![(id::TAG_QUERY, vec![4, 10, 3, 0, 1, b'n', 0, 0, 0, 5, 0])]
+        );
+        let missing = ClientEvent::TagQuery {
+            transaction: 4,
+            tag: None,
+        };
+        assert_eq!(encode(missing), vec![(id::TAG_QUERY, vec![4, 0])]);
     }
 
     #[test]
