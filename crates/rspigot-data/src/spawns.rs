@@ -177,4 +177,57 @@ mod tests {
         assert_eq!(end.monster_spawn_light, SpawnCount::Constant(15));
         assert!(!end.has_ceiling);
     }
+
+    fn found(list: &[Spawner], name: &str) -> Option<(i32, SpawnCount)> {
+        let id = entities::id(name).unwrap();
+        list.iter()
+            .find(|s| s.entity == id)
+            .map(|s| (s.weight, s.count))
+    }
+
+    #[test]
+    fn nether_biomes_spawn_their_vanilla_mobs() {
+        let c = SpawnCount::Constant;
+        let u = |min, max| SpawnCount::Uniform { min, max };
+        let strider: Option<(i32, SpawnCount)> = Some((60, u(1, 2)));
+        let rows = [
+            ("nether_wastes", "ghast", true, Some((50, c(4)))),
+            ("nether_wastes", "zombified_piglin", true, Some((100, c(4)))),
+            ("nether_wastes", "magma_cube", true, Some((2, c(4)))),
+            ("nether_wastes", "enderman", true, Some((1, c(4)))),
+            ("nether_wastes", "piglin", true, Some((15, c(4)))),
+            ("nether_wastes", "strider", false, strider),
+            ("soul_sand_valley", "skeleton", true, Some((20, c(5)))),
+            ("soul_sand_valley", "ghast", true, Some((50, c(4)))),
+            ("soul_sand_valley", "enderman", true, Some((1, c(4)))),
+            ("soul_sand_valley", "strider", false, strider),
+            (
+                "crimson_forest",
+                "zombified_piglin",
+                true,
+                Some((1, u(2, 4))),
+            ),
+            ("crimson_forest", "hoglin", true, Some((9, u(3, 4)))),
+            ("crimson_forest", "piglin", true, Some((5, u(3, 4)))),
+            ("crimson_forest", "strider", false, strider),
+            ("warped_forest", "enderman", true, Some((1, c(4)))),
+            ("warped_forest", "strider", false, strider),
+            ("basalt_deltas", "ghast", true, Some((40, c(1)))),
+            ("basalt_deltas", "magma_cube", true, Some((100, u(2, 5)))),
+            ("basalt_deltas", "strider", false, strider),
+        ];
+        for (name, mob, monster, expected) in rows {
+            let spawns = biome(registries::biome_id(&format!("minecraft:{name}")).unwrap());
+            let list = if monster {
+                spawns.monster
+            } else {
+                spawns.creature
+            };
+            assert_eq!(
+                found(list, &format!("minecraft:{mob}")),
+                expected,
+                "{name} {mob}"
+            );
+        }
+    }
 }
