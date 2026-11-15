@@ -143,6 +143,7 @@ pub(crate) enum Feature {
     Spread(Box<super::spread::Spread>),
     Multiface(Box<super::multiface::Growth>),
     Sculk(super::sculk::Patch),
+    Vegetation(Box<super::vegetation::Patch>),
     CoralTree(Arc<Placed>),
     CoralClaw(Arc<Placed>),
     Spike(Box<super::ice::Spike>),
@@ -341,6 +342,15 @@ impl<'a> Compiler<'a> {
                 .map_or(Feature::Unsupported, |growth| {
                     Feature::Multiface(Box::new(growth))
                 }),
+            "vegetation_patch" | "waterlogged_vegetation_patch" => {
+                let vegetation =
+                    self.placed_ref(value.get("vegetation_feature").unwrap_or(&Value::Null));
+                super::vegetation::feature(
+                    value,
+                    vegetation,
+                    kind == "waterlogged_vegetation_patch",
+                )
+            }
             "sculk_patch" => Feature::Sculk(super::sculk::Patch::compile(value)),
             "freeze_top_layer" => Feature::NoOp,
             "underwater_magma" => Feature::Magma(super::magma::Magma::compile(value)),
@@ -431,6 +441,7 @@ impl Feature {
             Self::Spread(spread) => spread.reach(),
             Self::Multiface(growth) => growth.reach(),
             Self::Sculk(patch) => patch.reach(),
+            Self::Vegetation(patch) => patch.reach(),
             Self::CoralTree(placed) => super::coral::reach_of_tree(placed),
             Self::CoralClaw(placed) => super::coral::reach_of_claw(placed),
             Self::Spike(spike) => spike.reach(),
@@ -471,6 +482,7 @@ impl Feature {
             Self::Spread(spread) => spread.place(run, pos),
             Self::Multiface(growth) => growth.place(run, pos),
             Self::Sculk(patch) => patch.place(run, pos),
+            Self::Vegetation(patch) => patch.place(run, pos),
             Self::CoralTree(placed) => super::coral::tree(placed, run, pos),
             Self::CoralClaw(placed) => super::coral::claw(placed, run, pos),
             Self::Spike(spike) => spike.place(run, pos),
@@ -530,6 +542,10 @@ fn place_simple(state: &State, run: &mut Run, pos: Pos) -> bool {
     };
     if !survives(run.region, resolved, pos) {
         return false;
+    }
+    if resolved.kind() == Some(rspigot_blocks::BlockKind::PaleMossCarpet) {
+        super::mossy::place_at(run, pos);
+        return true;
     }
     if let Some(upper) = double_plant_upper(resolved) {
         if !run.region.get(pos.0, pos.1 + 1, pos.2).is_air() {
@@ -720,7 +736,7 @@ fn place_column(column: &Column, run: &mut Run, (x, y, z): Pos) -> bool {
     if total == 0 {
         return false;
     }
-    let mut at = y;
+    let mut at = y + step;
     for k in 0..total {
         if !column.allowed.test(run.region, (x, at, z)) {
             let mut remove = total - k;

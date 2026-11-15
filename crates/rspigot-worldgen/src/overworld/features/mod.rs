@@ -3,7 +3,9 @@ mod cave;
 mod coral;
 mod fallen;
 mod ice;
+mod javaset;
 mod magma;
+mod mossy;
 mod multiface;
 mod mushrooms;
 mod place;
@@ -14,6 +16,7 @@ mod sculk;
 mod spread;
 mod tree;
 mod treedeco;
+mod vegetation;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -172,6 +175,13 @@ impl Features {
     pub(crate) fn decorate(&self, region: &mut Region, seed: i64, surface: &SurfaceSystem) {
         let center = region.center();
         let min_y = region.height().min_y;
+        region.set_random(
+            Xoroshiro::from_seed(seed)
+                .fork_positional()
+                .named("minecraft:worldgen_region_random")
+                .fork_positional()
+                .at(center.x * 16, 0, center.z * 16),
+        );
         let mut rng = Xoroshiro::from_seed(0);
         for dz in -1..=1 {
             for dx in -1..=1 {
@@ -275,6 +285,7 @@ mod tests {
         ) -> bool {
             let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
             let feature = compiler.configured_ref(&Value::String(format!("minecraft:{name}")));
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
             let mut rng = Xoroshiro::from_seed(seed);
             let mut run = Run {
                 region,
@@ -298,6 +309,7 @@ mod tests {
         ) -> bool {
             let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
             let feature = compiler.configured_ref(&Value::String(format!("minecraft:{name}")));
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
             let mut rng = Xoroshiro::from_seed(seed);
             let mut any = false;
             for _ in 0..count {
@@ -327,6 +339,7 @@ mod tests {
         ) -> bool {
             let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
             let placed = compiler.placed_ref(&Value::String(format!("minecraft:{name}")));
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
             let mut rng = Xoroshiro::from_seed(seed);
             let mut run = Run {
                 region,

@@ -306,6 +306,14 @@ fn describe(state: BlockStateId) -> String {
         .map_or("air", Kind::name)
         .trim_start_matches("minecraft:")
         .to_owned();
+    if state.kind() == Some(Kind::PaleMossCarpet) {
+        let mut all: Vec<_> = state.properties().collect();
+        all.sort_unstable();
+        for (key, value) in all {
+            text.push_str(&format!(" {key}={value}"));
+        }
+        return text;
+    }
     for key in [
         "age",
         "axis",
@@ -458,16 +466,16 @@ const REFERENCE: [(&str, i64, usize, u64); 116] = [
     ("yellow_poplar_leaf_litter", 6, 326, 0x7b980dbf612fedf3),
     ("pale_oak", 1, 211, 0x98245722b41b33f0),
     ("pale_oak", 2, 177, 0xd825cce59bda306d),
-    ("pale_oak", 3, 185, 0xed4dbfdf02d33f7b),
+    ("pale_oak", 3, 251, 0xb2154e193374bff),
     ("pale_oak", 4, 171, 0xaee5d0afe062add1),
     ("pale_oak", 5, 175, 0x1863f2ebd6f07480),
-    ("pale_oak", 6, 171, 0x417cc746d5016853),
+    ("pale_oak", 6, 246, 0x75a78f7748833a42),
     ("pale_oak_creaking", 1, 211, 0x98245722b41b33f0),
     ("pale_oak_creaking", 2, 177, 0xd825cce59bda306d),
-    ("pale_oak_creaking", 3, 185, 0xed4dbfdf02d33f7b),
+    ("pale_oak_creaking", 3, 251, 0xb2154e193374bff),
     ("pale_oak_creaking", 4, 171, 0x78136f24310337e),
     ("pale_oak_creaking", 5, 175, 0x1863f2ebd6f07480),
-    ("pale_oak_creaking", 6, 171, 0x417cc746d5016853),
+    ("pale_oak_creaking", 6, 246, 0x75a78f7748833a42),
 ];
 
 #[test]
