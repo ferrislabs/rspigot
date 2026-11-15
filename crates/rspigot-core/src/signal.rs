@@ -4,7 +4,7 @@ use rspigot_domain::{BlockPos, BlockStateId};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
-const MAX_SIGNAL: i32 = 15;
+pub(crate) const MAX_SIGNAL: i32 = 15;
 
 fn face_name(face: Face) -> &'static str {
     match face {
@@ -17,18 +17,18 @@ fn face_name(face: Face) -> &'static str {
     }
 }
 
-fn flag(state: BlockStateId, name: &str) -> bool {
+pub(crate) fn flag(state: BlockStateId, name: &str) -> bool {
     state.property(name) == Some("true")
 }
 
-fn level(state: BlockStateId, name: &str) -> i32 {
+pub(crate) fn level(state: BlockStateId, name: &str) -> i32 {
     state
         .property(name)
         .and_then(|value| value.parse().ok())
         .unwrap_or(0)
 }
 
-fn faces(state: BlockStateId, direction: Face) -> bool {
+pub(crate) fn faces(state: BlockStateId, direction: Face) -> bool {
     state.property("facing") == Some(face_name(direction))
 }
 
@@ -44,12 +44,13 @@ pub(crate) fn signal(state: BlockStateId, direction: Face) -> i32 {
             MAX_SIGNAL
         }
         BlockKind::Lever if flag(state, "powered") => MAX_SIGNAL,
-        BlockKind::Observer | BlockKind::TripwireHook
+        BlockKind::Observer | BlockKind::Repeater
             if flag(state, "powered") && faces(state, direction) =>
         {
             MAX_SIGNAL
         }
-        BlockKind::DaylightDetector => level(state, "power"),
+        BlockKind::TripwireHook if flag(state, "powered") => MAX_SIGNAL,
+        BlockKind::DaylightDetector | BlockKind::Target => level(state, "power"),
         _ if name.ends_with("_button") && flag(state, "powered") => MAX_SIGNAL,
         _ if name.ends_with("_pressure_plate") => {
             if name.contains("_weighted_") {

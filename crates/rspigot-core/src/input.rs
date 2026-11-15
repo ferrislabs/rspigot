@@ -441,6 +441,7 @@ impl<L: ClientLink> Server<L> {
                     self.hive_fire_placed(pos);
                 }
                 self.try_spawn_copper_golem(pos, old, state);
+                self.redstone_block_changed(pos, old, state);
                 true
             }
             _ => false,
@@ -485,7 +486,10 @@ impl<L: ClientLink> Server<L> {
         let stack = player.inventory.get(slot).cloned();
         let clicked = step.clicked;
         if block_ok {
-            if !sneaking && self.use_block(id, pos, clicked, sneaking) {
+            if !sneaking
+                && (self.use_block(id, pos, clicked, sneaking)
+                    || self.use_redstone(id, pos, clicked))
+            {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
@@ -634,8 +638,8 @@ impl<L: ClientLink> Server<L> {
             self.refuse_block(id, target, sequence);
             return;
         };
-        let Some(state) = self.placement_state(target, placement.state, rotation.pitch, sneaking)
-        else {
+        let attached = crate::redstone::attached(placement.state, block_face(face), rotation.yaw);
+        let Some(state) = self.placement_state(target, attached, rotation.pitch, sneaking) else {
             self.refuse_block(id, target, sequence);
             return;
         };

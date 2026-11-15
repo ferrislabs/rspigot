@@ -29,6 +29,7 @@ const STONECUTTER_TAKE_RESULT: &str = "minecraft:ui.stonecutter.take_result";
 const WINDOWS: i32 = 100;
 const MAX_VIEW_DISTANCE_SQUARED: f64 = 64.0;
 const ITEMS: &str = "Items";
+const CONTAINER_STACK_LIMIT: u32 = 64;
 pub(crate) const LOCK: &str = "lock";
 pub(crate) const CHEST_HALF_SLOTS: usize = 27;
 const BLOCK_EVENT_RANGE: f64 = 64.0;
@@ -434,6 +435,20 @@ impl<L: ClientLink> Server<L> {
             }
             None => self.half_items(backing.pos, size),
         }
+    }
+
+    pub(crate) fn container_fill_signal(&self, pos: BlockPos, state: BlockStateId) -> Option<i32> {
+        let opening = opening_of(state).filter(|opening| opening.entity.is_some())?;
+        let items = self.half_items(pos, opening.kind.container_size());
+        let mut fill = 0.0_f32;
+        let mut used = 0;
+        for stack in items.iter().flatten() {
+            let limit = rspigot_domain::item::max_stack(stack).min(CONTAINER_STACK_LIMIT);
+            fill += stack.count.get() as f32 / limit as f32;
+            used += 1;
+        }
+        fill /= items.len() as f32;
+        Some((fill * 14.0).floor() as i32 + i32::from(used > 0))
     }
 
     pub(crate) fn backing_items(&self, backing: Backing) -> Vec<Slot> {
