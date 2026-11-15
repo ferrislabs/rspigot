@@ -384,6 +384,46 @@ pub(crate) struct BucketEmptyStep {
 }
 
 #[derive(Debug)]
+pub(crate) struct CauldronStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) expected: BlockStateId,
+    pub(crate) state: BlockStateId,
+    pub(crate) reason: crate::plugins::events::CauldronLevelChangeReason,
+    pub(crate) entity: Option<EntityId>,
+    pub(crate) extinguish: bool,
+    pub(crate) by: Option<crate::cauldron::Handled>,
+}
+
+#[derive(Debug)]
+pub(crate) struct SpongeStep {
+    pub(crate) pos: BlockPos,
+    pub(crate) expected: BlockStateId,
+    pub(crate) changes: Vec<crate::sponge::Absorbed>,
+}
+
+#[derive(Debug)]
+pub(crate) struct BucketFillStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) stack: ItemStack,
+    pub(crate) pos: BlockPos,
+    pub(crate) before: BlockStateId,
+    pub(crate) after: BlockStateId,
+    pub(crate) filled: ItemStack,
+    pub(crate) sound: &'static str,
+}
+
+#[derive(Debug)]
+pub(crate) struct LiquidEmptyStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) stack: ItemStack,
+    pub(crate) lava: bool,
+    pub(crate) block: BlockPos,
+    pub(crate) placement: crate::bucket::Placement,
+}
+
+#[derive(Debug)]
 pub(crate) struct DamageStep {
     pub(crate) player: PlayerId,
     pub(crate) pos: BlockPos,
@@ -1512,6 +1552,10 @@ pub(crate) enum Continuation {
     Unleash(Box<LeashStep>),
     BucketEntity(Box<BucketEntityStep>),
     BucketEmpty(Box<BucketEmptyStep>),
+    BucketFill(Box<BucketFillStep>),
+    Sponge(Box<SpongeStep>),
+    Cauldron(Box<CauldronStep>),
+    LiquidEmpty(Box<LiquidEmptyStep>),
     Damage(Box<DamageStep>),
     Break(Box<BreakStep>),
     Finish(FinishStep),
@@ -1714,7 +1758,10 @@ impl Continuation {
             Self::Leash(_) => EventKind::PlayerLeashEntity,
             Self::Unleash(_) => EventKind::PlayerUnleashEntity,
             Self::BucketEntity(_) => EventKind::PlayerBucketEntity,
-            Self::BucketEmpty(_) => EventKind::PlayerBucketEmpty,
+            Self::BucketEmpty(_) | Self::LiquidEmpty(_) => EventKind::PlayerBucketEmpty,
+            Self::BucketFill(_) => EventKind::PlayerBucketFill,
+            Self::Sponge(_) => EventKind::SpongeAbsorb,
+            Self::Cauldron(_) => EventKind::CauldronLevelChange,
             Self::Damage(_) => EventKind::BlockDamage,
             Self::Break(_) | Self::Finish(_) => EventKind::BlockBreak,
             Self::Abort(_) => EventKind::BlockDamageAbort,
@@ -1986,6 +2033,10 @@ impl Continuation {
                 one.nature == other.nature && one.pos == other.pos
             }
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
+            (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
+            (Self::Cauldron(one), Self::Cauldron(other)) => {
+                one.by.is_none() && other.by.is_none() && one.pos == other.pos
+            }
             (Self::EggBreak { mob: one, .. }, Self::EggBreak { mob: other, .. }) => one == other,
             (
                 Self::DoorOpen {
@@ -2079,9 +2130,11 @@ impl Continuation {
             | Self::BatSleep { .. }
             | Self::Form(_)
             | Self::Nature(_)
+            | Self::Sponge(_)
             | Self::Ignite(_)
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,
+            Self::Cauldron(step) => step.by.is_none(),
             Self::Aim(step) => step.deferred,
             Self::Breed(_)
             | Self::Air(_)

@@ -290,6 +290,11 @@ impl<L: ClientLink> Server<L> {
         if !self.world.level.raining {
             return;
         }
+        self.accumulate_snow(above);
+        self.cauldron_precipitation(below);
+    }
+
+    fn accumulate_snow(&mut self, above: BlockPos) {
         let limit = self.config.rules.max_snow_accumulation_height;
         if limit <= 0 || !self.should_snow(above) {
             return;
