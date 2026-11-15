@@ -16,6 +16,7 @@ mod resources;
 mod rng;
 mod simplex;
 mod temperature;
+mod terrain;
 mod void;
 
 use rspigot_core::ports::ChunkGenerator;

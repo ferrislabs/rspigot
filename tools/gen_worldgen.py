@@ -173,6 +173,54 @@ def processor_list_names(node, found):
             processor_list_names(item, found)
 
 
+TERRAIN_VARIANTS = [
+    ("normal", "overworld"),
+    ("large_biomes", "large_biomes"),
+    ("amplified", "amplified"),
+]
+TERRAIN_FOLDERS = ["overworld", "overworld_large_biomes", "overworld_amplified"]
+TERRAIN_ROOT_FUNCTIONS = ["minecraft:shift_x", "minecraft:shift_z", "minecraft:y", "minecraft:zero"]
+
+
+def density_function_table(pack):
+    table = {}
+    for name in TERRAIN_ROOT_FUNCTIONS:
+        table[name] = pack.load("density_function", name)
+    for folder in TERRAIN_FOLDERS:
+        base = os.path.join(pack.root, "density_function", folder)
+        for current, _, files in os.walk(base):
+            for file in files:
+                if file.endswith(".json"):
+                    relative = os.path.relpath(os.path.join(current, file), os.path.join(pack.root, "density_function"))
+                    name = "minecraft:" + relative[:-5].replace(os.sep, "/")
+                    table[name] = load_json(os.path.join(current, file))
+    return table
+
+
+def terrain_section(pack, noises):
+    functions = density_function_table(pack)
+    variants = {}
+    for key, settings_name in TERRAIN_VARIANTS:
+        settings = load_json(os.path.join(pack.root, "noise_settings", settings_name + ".json"))
+        veins = []
+        for entry in load_json(os.path.join(pack.root, "material_rule", "overworld.json"))["sequence"]:
+            if isinstance(entry, str):
+                rule = pack.load("material_rule", entry)
+                if rule.get("type") == "minecraft:ore_vein":
+                    veins.append(rule)
+        variants[key] = {
+            "router": settings["noise_router"],
+            "aquifers": settings["aquifers"],
+            "ore_veins": veins,
+            "sea_level": settings["sea_level"],
+            "min_y": settings["noise"]["min_y"],
+            "height": settings["noise"]["height"],
+        }
+    collect_feature_noises(functions, noises)
+    collect_feature_noises(variants, noises)
+    return {"functions": functions, "variants": variants}
+
+
 def build(pack):
     noises = set(SURFACE_NOISES)
     surface_rule = {
@@ -196,9 +244,11 @@ def build(pack):
     processor_list_names(configured, processor_names)
     collect_feature_noises(placed, noises)
     collect_feature_noises(configured, noises)
+    terrain = terrain_section(pack, noises)
     noise_table = {name: noise_entry(pack, name) for name in sorted(noises)}
     return {
         "surface_rule": surface_rule,
+        "terrain": terrain,
         "biomes": biomes,
         "placed": placed,
         "configured": configured,
