@@ -1,23 +1,25 @@
 use rspigot_blocks::{BlockKind, Face};
-use rspigot_domain::entity::Aabb;
-use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
+use rspigot_domain::game_event::GameEvent;
+use rspigot_domain::piston::motion::STEP_PER_TICK;
+use rspigot_domain::piston::{Limits, Reaction, Resolver, is_pushable, reaction_of};
+use rspigot_domain::{BlockPos, BlockStateId};
 use rspigot_entities::SoundSource;
 use rustc_hash::FxHashMap;
 
-use super::resolver::{Limits, Reaction, Resolver, is_pushable, reaction_of};
-use super::{facing, step};
+use super::{face_code, facing, step};
+use crate::events::ClientEvent;
+use crate::game_events::GameEventContext;
 use crate::plugins::events::{BlockPistonExtend, BlockPistonRetract};
 use crate::plugins::{Continuation, EventKind, EventPayload, Lane, face_of};
 use crate::ports::ClientLink;
-use crate::server::Server;
+use crate::server::{Audience, Server};
 use crate::signal::flag;
 
 const EXTEND_SOUND: &str = "minecraft:block.piston.extend";
 const CONTRACT_SOUND: &str = "minecraft:block.piston.contract";
 const SOUND_VOLUME: f32 = 0.5;
-const MOVE_TICKS: u64 = 2;
-const STEP_DISTANCE: f64 = 0.5;
 const EVENT_LIMIT: usize = 4096;
+const BLOCK_EVENT_RANGE: f64 = 64.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct BlockEvent {
@@ -34,6 +36,7 @@ pub(crate) struct Moving {
     pub(crate) extending: bool,
     pub(crate) source: bool,
     pub(crate) created: u64,
+    pub(crate) progress: f32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -53,6 +56,20 @@ pub(crate) struct PistonStep {
 }
 
 impl PistonStep {
+    pub(crate) fn movement(&self) -> Face {
+        match self.action {
+            PistonAction::Extend => self.direction,
+            PistonAction::Pull | PistonAction::Retract(_) => self.direction.opposite(),
+        }
+    }
+
+    pub(crate) fn event_direction(&self) -> Face {
+        match self.action {
+            PistonAction::Pull => self.direction.opposite(),
+            PistonAction::Extend | PistonAction::Retract(_) => self.direction,
+        }
+    }
+
     pub(crate) fn kind(&self) -> EventKind {
         match self.action {
             PistonAction::Extend => EventKind::BlockPistonExtend,
@@ -63,16 +80,6 @@ impl PistonStep {
 
 fn is_piston_kind(kind: BlockKind) -> bool {
     matches!(kind, BlockKind::Piston | BlockKind::StickyPiston)
-}
-
-fn offset_by(pos: BlockPos, face: Face, count: i32) -> BlockPos {
-    let (dx, dy, dz) = face.offset();
-    pos.offset(dx * count, dy * count, dz * count)
-}
-
-fn vector_of(face: Face) -> Vec3 {
-    let (dx, dy, dz) = face.offset();
-    Vec3::new(f64::from(dx), f64::from(dy), f64::from(dz))
 }
 
 fn piston_type(sticky: bool) -> &'static str {
@@ -190,7 +197,8 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn ask_piston(&mut self, step: PistonStep) {
-        let (piston, direction, sticky) = (step.piston, step.direction, step.sticky);
+        let (piston, sticky) = (step.piston, step.sticky);
+        let direction = step.event_direction();
         let blocks = step.blocks.clone();
         let extending = step.action == PistonAction::Extend;
         self.fire(
@@ -214,6 +222,23 @@ impl<L: ClientLink> Server<L> {
                 })
             },
         );
+    }
+
+    pub(crate) fn refuse_piston(&mut self, plan: &PistonStep) {
+        let movement = plan.movement();
+        let mut resent: Vec<BlockPos> = Vec::with_capacity(plan.blocks.len() * 2);
+        for at in &plan.blocks {
+            resent.push(*at);
+            resent.push(step(*at, movement));
+        }
+        for at in resent {
+            if let Some(state) = self.world.chunks.block(at) {
+                self.push(
+                    Audience::ChunkViewers(at.chunk()),
+                    ClientEvent::BlockUpdate { pos: at, state },
+                );
+            }
+        }
     }
 
     pub(crate) fn finish_piston(&mut self, step: PistonStep) {
@@ -247,6 +272,14 @@ impl<L: ClientLink> Server<L> {
                     SOUND_VOLUME,
                     pitch,
                 );
+                self.announce_block_event(step.piston, state, 0, step.direction);
+                if let Some(extended) = state.with_property("extended", "true") {
+                    self.game_event(
+                        GameEvent::BlockActivate,
+                        step.piston.center(),
+                        GameEventContext::block(extended),
+                    );
+                }
             }
             PistonAction::Pull => {
                 if let Some((pushed, destroyed)) = self.resolves(step.piston, step.direction, false)
@@ -339,7 +372,7 @@ impl<L: ClientLink> Server<L> {
             .default_state()
             .with_property("facing", direction.name())
             .unwrap_or(base.default_state());
-        self.set_block_quiet(pos, moving_state(direction, sticky));
+        self.set_block_unsent(pos, moving_state(direction, sticky));
         let created = self.current_tick();
         self.falls.redstone.moving.insert(
             pos,
@@ -349,6 +382,7 @@ impl<L: ClientLink> Server<L> {
                 extending: false,
                 source: true,
                 created,
+                progress: 0.0,
             },
         );
         self.schedule(pos, BlockKind::MovingPiston, 1);
@@ -366,6 +400,40 @@ impl<L: ClientLink> Server<L> {
             SoundSource::Blocks,
             SOUND_VOLUME,
             pitch,
+        );
+        self.announce_block_event(pos, returning, id, direction);
+        let extended = returning
+            .with_property("extended", "true")
+            .unwrap_or(returning);
+        self.game_event(
+            GameEvent::BlockDeactivate,
+            pos.center(),
+            GameEventContext::block(extended),
+        );
+    }
+
+    fn announce_block_event(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        id: u8,
+        direction: Face,
+    ) {
+        let Some(kind) = state.kind() else {
+            return;
+        };
+        self.push(
+            Audience::Nearby {
+                position: pos.center(),
+                range: BLOCK_EVENT_RANGE,
+                except: None,
+            },
+            ClientEvent::BlockEvent {
+                pos,
+                action: id,
+                data: face_code(direction),
+                block: kind.id().0,
+            },
         );
     }
 
@@ -446,7 +514,7 @@ impl<L: ClientLink> Server<L> {
         for (index, at) in pushed.iter().enumerate().rev() {
             let target = step(*at, push);
             vacated.remove(&target);
-            self.set_block_quiet(target, moving_state(direction, false));
+            self.set_block_unsent(target, moving_state(direction, false));
             self.falls.redstone.moving.insert(
                 target,
                 Moving {
@@ -455,6 +523,7 @@ impl<L: ClientLink> Server<L> {
                     extending,
                     source: false,
                     created,
+                    progress: 0.0,
                 },
             );
             arrivals.push(target);
@@ -467,7 +536,7 @@ impl<L: ClientLink> Server<L> {
                 .unwrap_or(BlockKind::PistonHead.default_state());
             let front = step(pos, direction);
             vacated.remove(&front);
-            self.set_block_quiet(front, moving_state(direction, sticky));
+            self.set_block_unsent(front, moving_state(direction, sticky));
             self.falls.redstone.moving.insert(
                 front,
                 Moving {
@@ -476,6 +545,7 @@ impl<L: ClientLink> Server<L> {
                     extending: true,
                     source: true,
                     created,
+                    progress: 0.0,
                 },
             );
             arrivals.push(front);
@@ -495,31 +565,26 @@ impl<L: ClientLink> Server<L> {
             self.update_neighbors_at(step(pos, direction));
         }
         for at in arrivals {
-            self.schedule(at, BlockKind::MovingPiston, 1);
+            self.moving_tick(at);
         }
     }
 
     pub(crate) fn moving_tick(&mut self, pos: BlockPos) {
-        let now = self.current_tick();
         let Some(moving) = self.falls.redstone.moving.get(&pos).cloned() else {
-            if self.block_or_air(pos).kind() == Some(BlockKind::MovingPiston) {
-                self.set_block(pos, BlockStateId::AIR);
-            }
             return;
         };
-        let elapsed = now.saturating_sub(moving.created).min(MOVE_TICKS);
-        let direction = if moving.extending {
-            moving.direction
-        } else {
-            moving.direction.opposite()
-        };
-        let before = (elapsed.saturating_sub(1)) as f64 * STEP_DISTANCE;
-        self.push_entities(pos, direction, before);
-        if elapsed >= MOVE_TICKS {
+        if moving.progress >= 1.0 {
             self.finish_moving(pos, false);
-        } else {
-            self.schedule(pos, BlockKind::MovingPiston, 1);
+            self.forget_old_pushes();
+            return;
         }
+        let new_progress = moving.progress + STEP_PER_TICK;
+        self.move_collided_entities(pos, &moving, new_progress);
+        self.move_stuck_entities(pos, &moving, new_progress);
+        if let Some(stored) = self.falls.redstone.moving.get_mut(&pos) {
+            stored.progress = new_progress.min(1.0);
+        }
+        self.schedule(pos, BlockKind::MovingPiston, 1);
     }
 
     pub(crate) fn finish_moving(&mut self, pos: BlockPos, forced: bool) {
@@ -543,37 +608,54 @@ impl<L: ClientLink> Server<L> {
         self.neighbor_changed(pos, pos);
     }
 
-    fn push_entities(&mut self, pos: BlockPos, direction: Face, progress: f64) {
-        let delta = vector_of(direction).scale(STEP_DISTANCE);
-        let start = offset_by(pos, direction.opposite(), 1);
-        let base = Aabb::block(start).move_by(vector_of(direction).scale(progress));
-        let region = base.expand_towards(delta);
-        let ids: Vec<EntityId> = self
-            .entities
-            .store
-            .iter()
-            .filter(|entity| {
-                entity.base.removal.is_none() && entity.base.bounding_box().intersects(&region)
-            })
-            .map(|entity| entity.base.id)
-            .collect();
-        for id in ids {
-            if let Some(entity) = self.entities.store.get_mut(id) {
-                entity.base.position = entity.base.position + delta;
-                entity.base.needs_sync = true;
-            }
-            self.entities.store.reindex(id);
+    fn fitting_base(
+        &self,
+        head: BlockPos,
+        state: BlockStateId,
+    ) -> Option<(BlockPos, BlockStateId)> {
+        let direction = facing(state)?;
+        let base = step(head, direction.opposite());
+        let candidate = self.block_or_air(base);
+        let expected = if state.property("type") == Some("sticky") {
+            BlockKind::StickyPiston
+        } else {
+            BlockKind::Piston
+        };
+        (candidate.kind() == Some(expected)
+            && flag(candidate, "extended")
+            && facing(candidate) == Some(direction))
+        .then_some((base, candidate))
+    }
+
+    pub(crate) fn piston_head_removed(&mut self, pos: BlockPos, state: BlockStateId) {
+        if let Some((base, candidate)) = self.fitting_base(pos, state) {
+            self.destroy_block(base, candidate);
         }
-        let players: Vec<(rspigot_domain::player::PlayerId, Vec3)> = self
-            .players
-            .iter()
-            .filter(|(_, player)| {
-                Aabb::of_size(player.position, 0.6, player.height() as f32).intersects(&region)
-            })
-            .map(|(id, player)| (*id, player.position + delta))
-            .collect();
-        for (id, position) in players {
-            self.teleport_player(id, position);
+    }
+
+    pub(crate) fn piston_will_destroy(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        creative: bool,
+    ) {
+        match state.kind() {
+            Some(BlockKind::PistonHead) if creative => {
+                if let Some((base, _)) = self.fitting_base(pos, state) {
+                    self.set_block(base, BlockStateId::AIR);
+                }
+            }
+            Some(BlockKind::MovingPiston) => {
+                let Some(direction) = facing(state) else {
+                    return;
+                };
+                let base = step(pos, direction.opposite());
+                let candidate = self.block_or_air(base);
+                if candidate.kind().is_some_and(is_piston_kind) && flag(candidate, "extended") {
+                    self.set_block(base, BlockStateId::AIR);
+                }
+            }
+            _ => {}
         }
     }
 

@@ -876,7 +876,9 @@ impl<L: ClientLink> Server<L> {
                 Vec::new()
             }
             Continuation::Piston(step) => {
-                if !cancelled {
+                if cancelled {
+                    self.refuse_piston(&step);
+                } else {
                     self.finish_piston(*step);
                 }
                 Vec::new()

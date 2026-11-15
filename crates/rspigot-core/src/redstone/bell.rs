@@ -4,7 +4,7 @@ use rspigot_domain::entity::{Aabb, living};
 use rspigot_domain::{BlockPos, BlockStateId, EntityId};
 use rspigot_entities::{EntityKind, SoundSource};
 
-use super::facing;
+use super::{face_code, facing};
 use crate::events::ClientEvent;
 use crate::plugins::events::{BellResonate, BellRing, EntityPotionEffectCause};
 use crate::plugins::{Continuation, EventKind, EventPayload, Lane, face_of};
@@ -36,17 +36,6 @@ pub(crate) struct BellStep {
     pub(crate) pos: BlockPos,
     pub(crate) entity: Option<EntityId>,
     pub(crate) direction: Face,
-}
-
-fn code_of(face: Face) -> u8 {
-    match face {
-        Face::Down => 0,
-        Face::Up => 1,
-        Face::North => 2,
-        Face::South => 3,
-        Face::West => 4,
-        Face::East => 5,
-    }
 }
 
 fn axis_of(face: Face) -> u8 {
@@ -148,7 +137,7 @@ impl<L: ClientLink> Server<L> {
             ClientEvent::BlockEvent {
                 pos: bell.pos,
                 action: RING_EVENT,
-                data: code_of(bell.direction),
+                data: face_code(bell.direction),
                 block: BlockKind::Bell.id().0,
             },
         );

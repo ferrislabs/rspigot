@@ -13,9 +13,8 @@ mod note;
 mod observer;
 mod openers;
 mod piston;
+mod piston_entities;
 mod rails;
-mod reactions;
-mod resolver;
 mod signals;
 mod storage;
 mod target;
@@ -68,11 +67,25 @@ pub(crate) struct Runtime {
     pub(crate) hoppers: FxHashMap<BlockPos, hopper::Clock>,
     pub(crate) bells: FxHashMap<BlockPos, bell::Ringing>,
     quiet: bool,
+    pub(crate) unsent: bool,
+    pub(crate) pushed:
+        FxHashMap<piston_entities::Mover, rspigot_domain::piston::motion::Restriction>,
 }
 
 pub(crate) fn step(pos: BlockPos, face: Face) -> BlockPos {
     let (dx, dy, dz) = face.offset();
     pos.offset(dx, dy, dz)
+}
+
+pub(crate) fn face_code(face: Face) -> u8 {
+    match face {
+        Face::Down => 0,
+        Face::Up => 1,
+        Face::North => 2,
+        Face::South => 3,
+        Face::West => 4,
+        Face::East => 5,
+    }
 }
 
 pub(crate) fn face_named(name: &str) -> Option<Face> {
@@ -182,6 +195,13 @@ impl<L: ClientLink> Server<L> {
         changed
     }
 
+    pub(crate) fn set_block_unsent(&mut self, pos: BlockPos, state: BlockStateId) -> bool {
+        self.falls.redstone.unsent = true;
+        let changed = self.set_block_quiet(pos, state);
+        self.falls.redstone.unsent = false;
+        changed
+    }
+
     pub(crate) fn neighbor_changed(&mut self, pos: BlockPos, source: BlockPos) {
         let state = self.block_or_air(pos);
         match state.kind() {
@@ -211,9 +231,6 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::Dispenser | BlockKind::Dropper) => {
                 self.dispenser_neighbor_changed(pos, state);
             }
-            Some(BlockKind::MovingPiston) if !self.falls.redstone.moving.contains_key(&pos) => {
-                self.schedule(pos, BlockKind::MovingPiston, 1);
-            }
             _ => {}
         }
     }
@@ -224,6 +241,9 @@ impl<L: ClientLink> Server<L> {
         old: BlockStateId,
         new: BlockStateId,
     ) {
+        if old.kind() == Some(BlockKind::PistonHead) && new.kind() != old.kind() {
+            self.piston_head_removed(pos, old);
+        }
         if new.kind() == Some(BlockKind::RedstoneWire) && old.kind() != new.kind() {
             self.wire_placed(pos, new);
         }
