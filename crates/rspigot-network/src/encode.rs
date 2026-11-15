@@ -292,6 +292,9 @@ fn write_pot_side(side: Option<&rspigot_nbt::Compound>, out: &mut Vec<u8>) -> Op
 }
 
 fn component_value(name: &str, value: &rspigot_nbt::Tag) -> Option<ComponentValue> {
+    if let Some(encoded) = crate::components::encode_value(name, value) {
+        return Some(encoded);
+    }
     let mut data = Vec::new();
     match name {
         "minecraft:damage" | "minecraft:ominous_bottle_amplifier" => {
