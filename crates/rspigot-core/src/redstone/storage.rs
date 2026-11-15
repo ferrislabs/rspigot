@@ -53,6 +53,10 @@ impl Holder {
         }
     }
 
+    pub(crate) fn is_jukebox(&self) -> bool {
+        self.cart.is_none() && self.block == BlockKind::Jukebox
+    }
+
     pub(crate) fn is_brewing_stand(&self) -> bool {
         self.cart.is_none() && self.block == BlockKind::BrewingStand
     }
@@ -63,6 +67,7 @@ impl Holder {
         }
         match self.block {
             BlockKind::BrewingStand => "BREWING",
+            BlockKind::Jukebox => "JUKEBOX",
             BlockKind::Hopper => "HOPPER",
             BlockKind::Dispenser => "DISPENSER",
             BlockKind::Dropper => "DROPPER",
@@ -101,6 +106,10 @@ impl Holder {
         direction: Face,
         items: &[Slot],
     ) -> bool {
+        if self.is_jukebox() {
+            return rspigot_domain::jukebox::is_playable(stack)
+                && items.get(slot).is_none_or(Option::is_none);
+        }
         if self.is_brewing_stand() {
             return match slot {
                 BREWING_FUEL => brewing::is_fuel(stack),
@@ -218,6 +227,15 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn holder_at(&self, pos: BlockPos) -> Option<Holder> {
         let state: BlockStateId = self.block_or_air(pos);
         let block = state.kind()?;
+        if block == BlockKind::Jukebox {
+            return Some(Holder {
+                pos,
+                block,
+                size: 1,
+                backing: None,
+                cart: None,
+            });
+        }
         if cooking_of(block).is_some() {
             return Some(Holder {
                 pos,
@@ -289,6 +307,9 @@ impl<L: ClientLink> Server<L> {
                 .and_then(crate::vehicles::cargo_of)
                 .map_or_else(|| vec![None; holder.size], |cargo| cargo.items.clone());
         }
+        if holder.is_jukebox() {
+            return vec![self.jukebox_record(holder.pos)];
+        }
         match holder.backing {
             Some(backing) => self.container_items(backing, holder.size),
             None => self
@@ -310,6 +331,13 @@ impl<L: ClientLink> Server<L> {
                         cell.clone_from(stack);
                     }
                 }
+            }
+            return;
+        }
+        if holder.is_jukebox() {
+            let next = items.first().cloned().flatten();
+            if next != self.jukebox_record(holder.pos) {
+                self.set_jukebox_record(holder.pos, next);
             }
             return;
         }

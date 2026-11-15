@@ -7,6 +7,7 @@ mod diode;
 mod dispenser;
 mod event;
 mod hopper;
+mod jukebox;
 mod lamp;
 mod lightning_rod;
 mod note;

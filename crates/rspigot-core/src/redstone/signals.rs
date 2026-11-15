@@ -40,6 +40,13 @@ impl<L: ClientLink> Server<L> {
     ) -> i32 {
         match state.kind() {
             Some(BlockKind::RedstoneWire) => wire_signal(state, direction, wires),
+            Some(BlockKind::Jukebox) => {
+                if self.jukebox_playing(pos) {
+                    MAX_POWER
+                } else {
+                    0
+                }
+            }
             Some(BlockKind::Comparator) => {
                 if flag(state, "powered") && facing(state) == Some(direction) {
                     self.falls.redstone.outputs.get(&pos).copied().unwrap_or(0)
