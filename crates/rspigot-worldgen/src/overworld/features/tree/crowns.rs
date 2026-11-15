@@ -1,7 +1,7 @@
 use serde_json::Value;
 
 use super::{Attachment, HORIZONTAL, Site};
-use crate::overworld::features::prov::{Pos, number};
+use crate::overworld::features::prov::{Pos, integer, number};
 
 #[derive(Debug, Clone, Default)]
 pub(super) struct Config {
@@ -9,6 +9,7 @@ pub(super) struct Config {
     wide_bottom_hole: f32,
     hanging: f32,
     hanging_extension: f32,
+    attempts: i32,
 }
 
 impl Config {
@@ -19,6 +20,7 @@ impl Config {
             wide_bottom_hole: chance("wide_bottom_layer_hole_chance"),
             hanging: chance("hanging_leaves_chance"),
             hanging_extension: chance("hanging_leaves_extension_chance"),
+            attempts: integer(value, "leaf_placement_attempts", 0),
         }
     }
 }
@@ -109,5 +111,14 @@ impl Site<'_, '_, '_> {
             return false;
         }
         self.leaf(pos)
+    }
+
+    pub(super) fn random_spread(&mut self, pos: Pos, foliage_height: i32, radius: i32) {
+        for _ in 0..self.tree.crown_config.attempts {
+            let dx = self.run.rng.below(radius) - self.run.rng.below(radius);
+            let dy = self.run.rng.below(foliage_height) - self.run.rng.below(foliage_height);
+            let dz = self.run.rng.below(radius) - self.run.rng.below(radius);
+            self.leaf((pos.0 + dx, pos.1 + dy, pos.2 + dz));
+        }
     }
 }

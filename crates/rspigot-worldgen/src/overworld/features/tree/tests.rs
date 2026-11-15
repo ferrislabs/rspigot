@@ -41,7 +41,7 @@ struct Shape {
     rise: (i32, i32),
 }
 
-const SHAPES: [Shape; 2] = [
+const SHAPES: [Shape; 5] = [
     Shape {
         feature: "cherry",
         log: "minecraft:cherry_log",
@@ -54,7 +54,33 @@ const SHAPES: [Shape; 2] = [
         leaves: "minecraft:cherry_leaves",
         rise: (4, 8),
     },
+    Shape {
+        feature: "azalea_tree",
+        log: "minecraft:oak_log",
+        leaves: "minecraft:azalea_leaves",
+        rise: (4, 6),
+    },
+    Shape {
+        feature: "mangrove",
+        log: "minecraft:mangrove_log",
+        leaves: "minecraft:mangrove_leaves",
+        rise: (2, 14),
+    },
+    Shape {
+        feature: "tall_mangrove",
+        log: "minecraft:mangrove_log",
+        leaves: "minecraft:mangrove_leaves",
+        rise: (4, 28),
+    },
 ];
+
+fn ground<'a>(bench: &'a Bench, feature: &str) -> Region<'a> {
+    if feature.contains("mangrove") {
+        swamp(bench)
+    } else {
+        bench.floor(BlockKind::GrassBlock, 69)
+    }
+}
 
 #[test]
 fn new_tree_families_grow_on_soil_within_their_height_bounds() {
@@ -64,7 +90,7 @@ fn new_tree_families_grow_on_soil_within_their_height_bounds() {
         let mut region_count = 0;
         for seed in 0..12 {
             region_count += 1;
-            let mut region = bench.floor(BlockKind::GrassBlock, 69);
+            let mut region = ground(&bench, shape.feature);
             if !bench.place(&mut region, shape.feature, (8, 70, 8), seed) {
                 continue;
             }
@@ -106,12 +132,123 @@ fn new_tree_families_are_deterministic_per_seed() {
     let bench = Bench::new();
     for shape in &SHAPES {
         let run = |seed: i64| {
-            let mut region = bench.floor(BlockKind::GrassBlock, 69);
+            let mut region = ground(&bench, shape.feature);
             bench.place(&mut region, shape.feature, (8, 70, 8), seed);
             snapshot(&mut region)
         };
         assert_eq!(run(3), run(3), "{}", shape.feature);
         assert_ne!(run(3), run(4), "{}", shape.feature);
+    }
+}
+
+#[test]
+fn azalea_trunks_lean_away_from_the_vertical() {
+    let bench = Bench::new();
+    for seed in 0..12 {
+        let mut region = bench.floor(BlockKind::GrassBlock, 69);
+        assert!(bench.place(&mut region, "azalea_tree", (8, 70, 8), seed));
+        let logs = positions(&mut region, "minecraft:oak_log");
+        let reach = logs
+            .iter()
+            .map(|pos| (pos.0 - 8).abs().max((pos.2 - 8).abs()))
+            .max()
+            .unwrap_or(0);
+        assert!((1..=4).contains(&reach), "seed {seed} reaches {reach}");
+        assert!(logs.iter().any(|pos| (pos.0, pos.2) == (8, 8)));
+    }
+}
+
+fn swamp(bench: &Bench) -> Region<'_> {
+    let mut region = bench.floor(BlockKind::Dirt, 69);
+    let water = bench.resources.blocks[BlockKind::Water];
+    let mud = crate::datapack::state_named("minecraft:mud", &[]).unwrap_or(water);
+    for x in -24..40 {
+        for z in -24..40 {
+            for y in 67..70 {
+                region.set(x, y, z, mud);
+            }
+            for y in 70..76 {
+                region.set(x, y, z, water);
+            }
+        }
+    }
+    region
+}
+
+fn grow_mangrove<'a>(bench: &'a Bench, feature: &str, seed: i64) -> Option<Region<'a>> {
+    let mut region = swamp(bench);
+    bench
+        .place(&mut region, feature, (8, 70, 8), seed)
+        .then_some(region)
+}
+
+#[test]
+fn mangroves_root_in_water_and_mud() {
+    let bench = Bench::new();
+    for feature in ["mangrove", "tall_mangrove"] {
+        let mut muddy = 0;
+        let mut wet = 0;
+        for seed in 0..12 {
+            let Some(mut region) = grow_mangrove(&bench, feature, seed) else {
+                continue;
+            };
+            let roots = positions(&mut region, "minecraft:mangrove_roots");
+            assert!(!roots.is_empty(), "{feature} seed {seed} has no roots");
+            muddy += positions(&mut region, "minecraft:muddy_mangrove_roots").len();
+            wet += roots
+                .iter()
+                .filter(|pos| {
+                    region.get(pos.0, pos.1, pos.2).property("waterlogged") == Some("true")
+                })
+                .count();
+        }
+        assert!(muddy > 0, "{feature} never muddied a root");
+        assert!(wet > 0, "{feature} roots are never waterlogged");
+    }
+}
+
+#[test]
+fn mangroves_hang_propagules_under_their_leaves() {
+    let bench = Bench::new();
+    let mut hanging = 0;
+    for seed in 0..40 {
+        let Some(mut region) = grow_mangrove(&bench, "mangrove", seed) else {
+            continue;
+        };
+        for pos in positions(&mut region, "minecraft:mangrove_propagule") {
+            let state = region.get(pos.0, pos.1, pos.2);
+            assert_eq!(state.property("hanging"), Some("true"));
+            let above = region.get(pos.0, pos.1 + 1, pos.2);
+            assert_eq!(
+                above.kind().map(Kind::name),
+                Some("minecraft:mangrove_leaves")
+            );
+            hanging += 1;
+        }
+    }
+    assert!(hanging > 0);
+}
+
+#[test]
+fn mangrove_trunks_stay_within_the_configured_height() {
+    let bench = Bench::new();
+    for seed in 0..12 {
+        let Some(mut region) = grow_mangrove(&bench, "mangrove", seed) else {
+            continue;
+        };
+        let logs = positions(&mut region, "minecraft:mangrove_log");
+        let column: Vec<i32> = logs
+            .iter()
+            .filter(|pos| (pos.0, pos.2) == (8, 8))
+            .map(|pos| pos.1)
+            .collect();
+        let low = column.iter().copied().min().unwrap_or(0);
+        assert!((71..=73).contains(&low), "trunk starts at {low}");
+        assert!(
+            (2..=7).contains(&column.len()),
+            "trunk is {} tall",
+            column.len()
+        );
     }
 }
 
@@ -142,7 +279,7 @@ fn describe(state: BlockStateId) -> String {
 }
 
 fn fingerprint(bench: &Bench, feature: &str, seed: i64) -> (usize, u64) {
-    let mut region = bench.floor(BlockKind::GrassBlock, 69);
+    let mut region = ground(bench, feature);
     let before = cells(&mut region);
     bench.place(&mut region, feature, (8, 70, 8), seed);
     let after = cells(&mut region);
@@ -166,7 +303,7 @@ fn fingerprint(bench: &Bench, feature: &str, seed: i64) -> (usize, u64) {
     (lines.len(), hash)
 }
 
-const REFERENCE: [(&str, i64, usize, u64); 54] = [
+const REFERENCE: [(&str, i64, usize, u64); 68] = [
     ("acacia", 1, 92, 0xc2385bb24eb84a74),
     ("acacia", 2, 94, 0x1f983ae25b632b84),
     ("birch", 1, 60, 0xce6936f52009cf57),
@@ -221,6 +358,20 @@ const REFERENCE: [(&str, i64, usize, u64); 54] = [
     ("cherry_bees_005", 4, 305, 0x66c3d8d8c3f5b214),
     ("cherry_bees_005", 5, 153, 0x545201570883fbb0),
     ("cherry_bees_005", 6, 289, 0x7bfc3e9b514b502f),
+    ("azalea_tree", 1, 97, 0x48f7f6c66a3b30cf),
+    ("azalea_tree", 2, 107, 0x1037da9e72f33db7),
+    ("azalea_tree", 3, 125, 0x5baa0679a23ac206),
+    ("azalea_tree", 4, 105, 0x78cbca49e1968167),
+    ("azalea_tree", 5, 92, 0xe529fa3f7dcd2f5b),
+    ("azalea_tree", 6, 75, 0x6a259e8c3c0c8c0),
+    ("mangrove", 1, 66, 0xb4c3fcf274e1bfd2),
+    ("mangrove", 2, 62, 0x9e98fd73b9b49080),
+    ("mangrove", 3, 322, 0x783c4a94ef7cc05a),
+    ("mangrove", 4, 78, 0xf4db2cff986e6eb1),
+    ("tall_mangrove", 1, 373, 0xc6bbee63b652564d),
+    ("tall_mangrove", 2, 290, 0xf0ce290f1c0057cb),
+    ("tall_mangrove", 3, 0, 0xcbf29ce484222325),
+    ("tall_mangrove", 4, 513, 0x6193c4211a08ba8e),
 ];
 
 #[test]

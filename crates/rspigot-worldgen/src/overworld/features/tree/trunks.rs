@@ -1,7 +1,8 @@
+use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
 use super::{Attachment, Site};
-use crate::overworld::features::prov::{Int, Pos, integer};
+use crate::overworld::features::prov::{BlockSet, Int, Pos, integer, number};
 
 fn axis_of(direction: (i32, i32)) -> &'static str {
     if direction.0 != 0 { "x" } else { "z" }
@@ -53,6 +54,44 @@ impl Cherry {
                     .unwrap_or(&Value::Null),
             ),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct Bending {
+    min_height_for_leaves: i32,
+    bend: Int,
+}
+
+impl Bending {
+    pub(super) fn compile(value: &Value) -> Self {
+        Self {
+            min_height_for_leaves: integer(value, "min_height_for_leaves", 1),
+            bend: Int::compile(value.get("bend_length").unwrap_or(&Value::Null)),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct Upwards {
+    steps: Int,
+    probability: f32,
+    length: Int,
+    through: BlockSet,
+}
+
+impl Upwards {
+    pub(super) fn compile(value: &Value) -> Self {
+        Self {
+            steps: Int::compile(value.get("extra_branch_steps").unwrap_or(&Value::Null)),
+            probability: number(value, "place_branch_per_log_probability", 0.0) as f32,
+            length: Int::compile(value.get("extra_branch_length").unwrap_or(&Value::Null)),
+            through: BlockSet::compile(value.get("can_grow_through").unwrap_or(&Value::Null)),
+        }
+    }
+
+    pub(super) fn grows_through(&self, state: BlockStateId) -> bool {
+        self.through.contains(state)
     }
 }
 
@@ -142,5 +181,95 @@ impl Site<'_, '_, '_> {
             self.put_log(at, if climb { None } else { Some(axis) });
         }
         attachment((end.0, end.1 + 1, end.2))
+    }
+
+    pub(super) fn bending(
+        &mut self,
+        config: &Bending,
+        height: i32,
+        origin: Pos,
+    ) -> Vec<Attachment> {
+        let direction = self.random_horizontal();
+        let top = height - 1;
+        let mut at = origin;
+        self.dirt((origin.0, origin.1 - 1, origin.2));
+        let mut result = Vec::new();
+        for i in 0..=top {
+            if i + 1 >= top + self.run.rng.below(2) {
+                at = step(at, direction);
+            }
+            self.log(at);
+            if i >= config.min_height_for_leaves {
+                result.push(attachment(at));
+            }
+            at.1 += 1;
+        }
+        let bend = config.bend.sample(self.run.rng);
+        for _ in 0..=bend {
+            self.log(at);
+            result.push(attachment(at));
+            at = step(at, direction);
+        }
+        result
+    }
+
+    pub(super) fn upwards(
+        &mut self,
+        config: &Upwards,
+        height: i32,
+        origin: Pos,
+    ) -> Vec<Attachment> {
+        let mut result = Vec::new();
+        for i in 0..height {
+            let y = origin.1 + i;
+            let placed = self.log((origin.0, y, origin.2));
+            if placed && i < height - 1 && self.run.rng.next_float() < config.probability {
+                let direction = self.random_horizontal();
+                let length = config.length.sample(self.run.rng);
+                let start = 0.max(length - config.length.sample(self.run.rng) - 1);
+                let steps = config.steps.sample(self.run.rng);
+                self.upwards_branch(
+                    height,
+                    &mut result,
+                    (origin.0, y, origin.2),
+                    (direction, start, steps),
+                );
+            }
+            if i == height - 1 {
+                result.push(attachment((origin.0, y + 1, origin.2)));
+            }
+        }
+        result
+    }
+
+    fn upwards_branch(
+        &mut self,
+        height: i32,
+        result: &mut Vec<Attachment>,
+        (x0, y, z0): Pos,
+        (direction, start, steps): ((i32, i32), i32, i32),
+    ) {
+        let mut last = y + start;
+        let (mut x, mut z) = (x0, z0);
+        let mut remaining = steps;
+        let mut i = start;
+        while i < height && remaining > 0 {
+            if i >= 1 {
+                let at_y = y + i;
+                x += direction.0;
+                z += direction.1;
+                last = at_y;
+                if self.log((x, at_y, z)) {
+                    last += 1;
+                }
+                result.push(attachment((x, at_y, z)));
+            }
+            i += 1;
+            remaining -= 1;
+        }
+        if last - y > 1 {
+            result.push(attachment((x, last, z)));
+            result.push(attachment((x, last - 2, z)));
+        }
     }
 }

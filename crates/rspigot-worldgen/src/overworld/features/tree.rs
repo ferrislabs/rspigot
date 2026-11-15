@@ -9,6 +9,7 @@ use super::treedeco::{self, Decorator};
 
 mod crowns;
 mod leaves;
+mod roots;
 mod trunks;
 
 #[derive(Debug, Clone)]
@@ -20,6 +21,8 @@ enum Trunk {
     DarkOak,
     Fancy,
     Cherry(trunks::Cherry),
+    Bending(trunks::Bending),
+    Upwards(trunks::Upwards),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -34,6 +37,7 @@ enum Crown {
     Fancy,
     DarkOak,
     Cherry,
+    RandomSpread,
 }
 
 #[derive(Debug, Clone)]
@@ -113,6 +117,7 @@ pub(crate) struct Tree {
     ignore_vines: bool,
     decorators: Vec<Decorator>,
     crown_config: crowns::Config,
+    root: Option<roots::Root>,
 }
 
 pub(crate) fn compile(value: &Value) -> Option<Tree> {
@@ -125,11 +130,14 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         "dark_oak_trunk_placer" => Trunk::DarkOak,
         "fancy_trunk_placer" => Trunk::Fancy,
         "cherry_trunk_placer" => Trunk::Cherry(trunks::Cherry::compile(trunk_value)),
+        "bending_trunk_placer" => Trunk::Bending(trunks::Bending::compile(trunk_value)),
+        "upwards_branching_trunk_placer" => Trunk::Upwards(trunks::Upwards::compile(trunk_value)),
         _ => return None,
     };
-    if value.get("root_placer").is_some() {
-        return None;
-    }
+    let root = match value.get("root_placer") {
+        Some(placer) => Some(roots::Root::compile(placer)?),
+        None => None,
+    };
     let crown_value = value.get("foliage_placer")?;
     let crown = match short(crown_value) {
         "blob_foliage_placer" => Crown::Blob,
@@ -142,6 +150,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         "fancy_foliage_placer" => Crown::Fancy,
         "dark_oak_foliage_placer" => Crown::DarkOak,
         "cherry_foliage_placer" => Crown::Cherry,
+        "random_spread_foliage_placer" => Crown::RandomSpread,
         _ => return None,
     };
     let provider = |key: &str| Int::compile(crown_value.get(key).unwrap_or(&Value::Null));
@@ -175,10 +184,10 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         crown,
         radius: provider("radius"),
         offset: provider("offset"),
-        height: if crown == Crown::MegaPine {
-            provider("crown_height")
-        } else {
-            provider("height")
+        height: match crown {
+            Crown::MegaPine => provider("crown_height"),
+            Crown::RandomSpread => provider("foliage_height"),
+            _ => provider("height"),
         },
         trunk_height: provider("trunk_height"),
         size,
@@ -188,6 +197,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         ignore_vines: flag(value, "ignore_vines", false),
         decorators: treedeco::compile_all(value),
         crown_config: crowns::Config::compile(crown_value),
+        root,
     })
 }
 
@@ -211,6 +221,7 @@ struct Site<'a, 'b, 'r> {
     run: &'a mut Run<'b, 'r>,
     logs: Vec<Pos>,
     leaves: Vec<Pos>,
+    roots: Vec<Pos>,
 }
 
 const HORIZONTAL: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
@@ -223,6 +234,10 @@ impl Site<'_, '_, '_> {
     fn trunk_valid(&mut self, pos: Pos) -> bool {
         let state = self.run.region.get(pos.0, pos.1, pos.2);
         replaceable_by_trees(state)
+            || match &self.tree.trunk {
+                Trunk::Upwards(upwards) => upwards.grows_through(state),
+                _ => false,
+            }
     }
 
     fn is_free(&mut self, pos: Pos) -> bool {
@@ -329,6 +344,7 @@ impl Site<'_, '_, '_> {
                 a * a + b * b > (range * range) as f32
             }
             Crown::Cherry => self.cherry_skip(sx, y, sz, range),
+            Crown::RandomSpread => false,
             Crown::DarkOak => {
                 if y == -1 && !double {
                     sx == range && sz == range
@@ -440,6 +456,7 @@ impl Site<'_, '_, '_> {
                 }
             }
             Crown::Cherry => self.cherry_crown(attachment, foliage_height, radius, offset),
+            Crown::RandomSpread => self.random_spread(pos, foliage_height, radius),
             Crown::DarkOak => {
                 let at = (pos.0, pos.1 + offset, pos.2);
                 if double {
@@ -465,7 +482,8 @@ impl Site<'_, '_, '_> {
             | Crown::Pine
             | Crown::Jungle
             | Crown::MegaPine
-            | Crown::Cherry => self.tree.height.sample(self.run.rng),
+            | Crown::Cherry
+            | Crown::RandomSpread => self.tree.height.sample(self.run.rng),
             Crown::Spruce => (tree_height - self.tree.trunk_height.sample(self.run.rng)).max(4),
             Crown::Acacia => 0,
             Crown::DarkOak => 4,
@@ -496,6 +514,8 @@ impl Site<'_, '_, '_> {
             Trunk::DarkOak => self.dark_oak(height, origin),
             Trunk::Fancy => self.fancy(height, origin),
             Trunk::Cherry(cherry) => self.cherry(cherry, height, origin),
+            Trunk::Bending(bending) => self.bending(bending, height, origin),
+            Trunk::Upwards(upwards) => self.upwards(upwards, height, origin),
         }
     }
 
@@ -780,6 +800,7 @@ impl Tree {
             run,
             logs: Vec::new(),
             leaves: Vec::new(),
+            roots: Vec::new(),
         };
         let height = self.base_height
             + site.run.rng.below(self.rand_a + 1)
@@ -789,31 +810,41 @@ impl Tree {
         if self.crown == Crown::Pine {
             radius += site.run.rng.below((height - foliage_height + 1).max(1));
         }
+        let trunk_origin = match &self.root {
+            Some(root) => (origin.0, origin.1 + root.offset(site.run.rng), origin.2),
+            None => origin,
+        };
         let region_height = site.run.region.height();
-        if origin.1 < region_height.min_y + 1 || origin.1 + height + 1 > region_height.max_y() + 1 {
+        let lowest = origin.1.min(trunk_origin.1);
+        let highest = origin.1.max(trunk_origin.1) + height + 1;
+        if lowest < region_height.min_y + 1 || highest > region_height.max_y() + 1 {
             return false;
         }
-        let free = site.free_height(height, origin);
+        let free = site.free_height(height, trunk_origin);
         if free < height && self.size.clipped().is_none_or(|clipped| free < clipped) {
             return false;
         }
-        let attachments = site.trunk(free, origin);
+        if self.root.is_some() && !site.place_roots(origin, trunk_origin) {
+            return false;
+        }
+        let attachments = site.trunk(free, trunk_origin);
         for attachment in attachments {
             site.foliage(attachment, foliage_height, radius);
         }
         let logs = std::mem::take(&mut site.logs);
         let leaves = std::mem::take(&mut site.leaves);
+        let roots = std::mem::take(&mut site.roots);
         if logs.is_empty() && leaves.is_empty() {
             return false;
         }
         let mut decorated = Vec::new();
         if !self.decorators.is_empty() {
-            let mut context = treedeco::Context::new(site.run, &logs, &leaves, &[]);
+            let mut context = treedeco::Context::new(site.run, &logs, &leaves, &roots);
             treedeco::run(&self.decorators, &mut context);
             decorated = std::mem::take(&mut context.placed);
         }
-        let filled = decorated.clone();
-        if let Some(bounds) = leaves::Bounds::of(&[&logs, &leaves, &decorated]) {
+        let filled: Vec<Pos> = decorated.iter().chain(&roots).copied().collect();
+        if let Some(bounds) = leaves::Bounds::of(&[&roots, &logs, &leaves, &decorated]) {
             leaves::update(site.run, &bounds, &logs, &filled);
         }
         true
