@@ -505,8 +505,9 @@ impl<L: ClientLink> Server<L> {
         };
         let toward = direction.opposite();
         let slots = destination.slots_toward(toward);
+        let before = into.clone();
         let leftover = insert_stack(&mut into, &slots, stack, |at, candidate| {
-            destination.may_place(at, candidate, toward)
+            destination.may_place(at, candidate, toward, &before)
         });
         if leftover.is_some() {
             return;

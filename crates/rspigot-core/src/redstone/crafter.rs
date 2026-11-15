@@ -147,8 +147,9 @@ impl<L: ClientLink> Server<L> {
             let mut into = self.holder_items(&destination);
             let toward = front.opposite();
             let slots = destination.slots_toward(toward);
+            let before = into.clone();
             let leftover = insert_stack(&mut into, &slots, stack, |at, candidate| {
-                destination.may_place(at, candidate, toward)
+                destination.may_place(at, candidate, toward, &before)
             });
             self.store_holder(&destination, &into);
             if let Some(rest) = leftover {

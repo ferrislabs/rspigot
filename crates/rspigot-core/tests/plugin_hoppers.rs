@@ -293,3 +293,94 @@ fn a_hopper_inventory_search_can_redirect_the_hopper() {
         [Some(("minecraft:stone", 1))]
     );
 }
+
+const STAND: BlockPos = BlockPos::new(3, 64, 3);
+
+fn stand_with_hopper(
+    hopper_at: BlockPos,
+    facing: &'static str,
+    item: (&'static str, u8),
+) -> Vec<Seed> {
+    vec![
+        Seed::block(STAND, BlockKind::BrewingStand),
+        Seed::block(hopper_at, BlockKind::Hopper)
+            .with("facing", facing)
+            .holding(item.0, item.1),
+    ]
+}
+
+#[test]
+fn a_hopper_above_a_brewing_stand_feeds_the_ingredient_slot() {
+    let mut s = world(
+        stand_with_hopper(STAND.offset(0, 1, 0), "down", ("minecraft:nether_wart", 2)),
+        Vec::new(),
+    );
+    let alice = s.players[0].clone();
+    s.tick(1);
+    assert_eq!(
+        contents(&mut s, &alice, STAND, 5),
+        [None, None, None, Some(("minecraft:nether_wart", 1)), None]
+    );
+}
+
+#[test]
+fn a_hopper_beside_a_brewing_stand_feeds_the_fuel_slot_and_only_with_blaze_powder() {
+    let mut s = world(
+        stand_with_hopper(STAND.offset(1, 0, 0), "west", ("minecraft:blaze_powder", 2)),
+        Vec::new(),
+    );
+    let alice = s.players[0].clone();
+    s.tick(1);
+    assert_eq!(
+        contents(&mut s, &alice, STAND, 5),
+        [None, None, None, None, Some(("minecraft:blaze_powder", 1))]
+    );
+    let mut s = world(
+        stand_with_hopper(STAND.offset(1, 0, 0), "west", ("minecraft:nether_wart", 2)),
+        Vec::new(),
+    );
+    let alice = s.players[0].clone();
+    s.tick(1);
+    assert_eq!(
+        contents(&mut s, &alice, STAND, 5),
+        [None, None, None, None, None]
+    );
+}
+
+#[test]
+fn a_hopper_beside_a_brewing_stand_fills_an_empty_bottle_slot_only_with_a_bottle() {
+    let mut s = world(
+        stand_with_hopper(STAND.offset(1, 0, 0), "west", ("minecraft:glass_bottle", 2)),
+        Vec::new(),
+    );
+    let alice = s.players[0].clone();
+    s.tick(1);
+    assert_eq!(
+        contents(&mut s, &alice, STAND, 5),
+        [Some(("minecraft:glass_bottle", 1)), None, None, None, None]
+    );
+}
+
+#[test]
+fn a_hopper_under_a_brewing_stand_takes_the_bottles_and_leaves_the_ingredient() {
+    let seeds = vec![
+        Seed::block(STAND.offset(0, 1, 0), BlockKind::BrewingStand)
+            .holding("minecraft:glass_bottle", 1)
+            .gap()
+            .gap()
+            .holding("minecraft:nether_wart", 3),
+        Seed::block(STAND, BlockKind::Hopper).with("facing", "east"),
+    ];
+    let mut s = world(seeds, Vec::new());
+    let alice = s.players[0].clone();
+    s.tick(1);
+    assert_eq!(
+        contents(&mut s, &alice, STAND, 1),
+        [Some(("minecraft:glass_bottle", 1))]
+    );
+    s.tick(8);
+    assert_eq!(
+        contents(&mut s, &alice, STAND.offset(0, 1, 0), 5),
+        [None, None, None, Some(("minecraft:nether_wart", 3)), None]
+    );
+}

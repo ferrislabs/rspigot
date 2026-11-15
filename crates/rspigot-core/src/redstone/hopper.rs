@@ -290,7 +290,7 @@ impl<L: ClientLink> Server<L> {
                 continue;
             };
             if !takes_all(&target, &slots, &one, |at, stack| {
-                destination.may_place(at, stack, direction)
+                destination.may_place(at, stack, direction, &target)
             }) {
                 continue;
             }
@@ -422,8 +422,9 @@ impl<L: ClientLink> Server<L> {
         };
         let slots = destination.slots_toward(direction.unwrap_or(Face::Down));
         let was_empty = is_empty(&into, &slots);
+        let before = into.clone();
         let leftover = insert_stack(&mut into, &slots, moved, |at, candidate| {
-            direction.is_none_or(|face| destination.may_place(at, candidate, face))
+            direction.is_none_or(|face| destination.may_place(at, candidate, face, &before))
         });
         if leftover.is_some() {
             return proceed(self, changed);

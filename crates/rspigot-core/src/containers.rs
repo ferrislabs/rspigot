@@ -561,7 +561,6 @@ impl<L: ClientLink> Server<L> {
         let opening = opening_of(state).filter(|opening| {
             opening.entity.is_some()
                 && !opening.kind.is_furnace()
-                && opening.kind != MenuKind::BrewingStand
                 && opening.kind != MenuKind::Lectern
         })?;
         let mut size = opening.kind.container_size();

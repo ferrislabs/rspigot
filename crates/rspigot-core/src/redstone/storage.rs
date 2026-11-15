@@ -3,6 +3,7 @@ use std::num::NonZeroU8;
 use rspigot_blocks::{BlockKind, Face};
 use rspigot_domain::BlockPos;
 use rspigot_domain::BlockStateId;
+use rspigot_domain::brewing;
 use rspigot_domain::item::{ItemStack, Slot, same_item_same_components};
 use rspigot_items::ItemKind;
 
@@ -14,6 +15,8 @@ use crate::server::Server;
 const FURNACE_INPUT: usize = 0;
 const FURNACE_FUEL: usize = 1;
 const FURNACE_OUTPUT: usize = 2;
+const BREWING_INGREDIENT: usize = rspigot_domain::brewing::INGREDIENT;
+const BREWING_FUEL: usize = rspigot_domain::brewing::FUEL;
 const CONTAINER_LIMIT: u32 = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -33,8 +36,13 @@ impl Holder {
         self.block == BlockKind::Hopper
     }
 
+    pub(crate) fn is_brewing_stand(&self) -> bool {
+        self.block == BlockKind::BrewingStand
+    }
+
     pub(crate) fn kind_name(&self) -> &'static str {
         match self.block {
+            BlockKind::BrewingStand => "BREWING",
             BlockKind::Hopper => "HOPPER",
             BlockKind::Dispenser => "DISPENSER",
             BlockKind::Dropper => "DROPPER",
@@ -49,6 +57,13 @@ impl Holder {
     }
 
     pub(crate) fn slots_toward(&self, direction: Face) -> Vec<usize> {
+        if self.is_brewing_stand() {
+            return match direction {
+                Face::Up => vec![BREWING_INGREDIENT],
+                Face::Down => vec![0, 1, 2, BREWING_INGREDIENT],
+                _ => vec![0, 1, 2, BREWING_FUEL],
+            };
+        }
         if !self.is_furnace() {
             return (0..self.size).collect();
         }
@@ -59,12 +74,30 @@ impl Holder {
         }
     }
 
-    pub(crate) fn may_place(&self, slot: usize, stack: &ItemStack, direction: Face) -> bool {
+    pub(crate) fn may_place(
+        &self,
+        slot: usize,
+        stack: &ItemStack,
+        direction: Face,
+        items: &[Slot],
+    ) -> bool {
+        if self.is_brewing_stand() {
+            return match slot {
+                BREWING_FUEL => brewing::is_fuel(stack),
+                BREWING_INGREDIENT => brewing::is_reagent(stack),
+                _ => brewing::is_container(stack) && items.get(slot).is_none_or(Option::is_none),
+            };
+        }
         if self.is_furnace() {
             return match slot {
                 FURNACE_OUTPUT => false,
                 FURNACE_FUEL => {
-                    rspigot_domain::furnace::is_fuel(stack) || stack.item == ItemKind::Bucket.id()
+                    rspigot_domain::furnace::is_fuel(stack)
+                        || stack.item == ItemKind::Bucket.id()
+                            && items
+                                .get(FURNACE_FUEL)
+                                .and_then(Option::as_ref)
+                                .is_none_or(|fuel| fuel.item != ItemKind::Bucket.id())
                 }
                 _ => direction != Face::Down,
             };
@@ -79,6 +112,9 @@ impl Holder {
     }
 
     pub(crate) fn may_take(&self, slot: usize, stack: &ItemStack, direction: Face) -> bool {
+        if self.is_brewing_stand() && slot == BREWING_INGREDIENT {
+            return stack.item == ItemKind::GlassBottle.id();
+        }
         if self.is_furnace() && direction == Face::Down && slot == FURNACE_FUEL {
             return stack.item == ItemKind::Bucket.id() || stack.item == ItemKind::WaterBucket.id();
         }
