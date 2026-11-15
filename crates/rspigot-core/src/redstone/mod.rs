@@ -2,11 +2,13 @@ mod analog;
 mod bell;
 mod controls;
 mod crafter;
+mod daylight;
 mod diode;
 mod dispenser;
 mod event;
 mod hopper;
 mod lamp;
+mod lightning_rod;
 mod note;
 mod observer;
 mod openers;
@@ -16,7 +18,9 @@ mod reactions;
 mod resolver;
 mod signals;
 mod storage;
+mod target;
 mod torch;
+mod tripwire;
 mod wire;
 
 use rspigot_blocks::{BlockKind, Face, StateFlags};
@@ -34,6 +38,7 @@ pub(crate) use hopper::{HopperStep, Stage as HopperStage};
 pub(crate) use note::NoteStep;
 pub(crate) use piston::PistonStep;
 pub(crate) use signals::{connected_direction, is_conductor};
+pub(crate) use tripwire::HookRun;
 
 pub(crate) const MAX_POWER: i32 = 15;
 pub(crate) const UPDATE_ORDER: [Face; 6] = [
@@ -89,7 +94,7 @@ pub(crate) fn attached(state: BlockStateId, clicked: Face, yaw: f32) -> BlockSta
         };
         return state.with_property("facing", facing).unwrap_or(state);
     }
-    if kind != BlockKind::Lever && !is_button(kind) {
+    if kind != BlockKind::Lever && !is_button(kind) && kind != BlockKind::TripwireHook {
         return state;
     }
     let looking = match ((f64::from(yaw) / 90.0 + 0.5).floor() as i64).rem_euclid(4) {
@@ -98,6 +103,14 @@ pub(crate) fn attached(state: BlockStateId, clicked: Face, yaw: f32) -> BlockSta
         2 => "north",
         _ => "east",
     };
+    if kind == BlockKind::TripwireHook {
+        let toward = if clicked.is_horizontal() {
+            clicked.name()
+        } else {
+            face_named(looking).map_or("north", |face| face.opposite().name())
+        };
+        return state.with_property("facing", toward).unwrap_or(state);
+    }
     let (face, facing) = match clicked {
         Face::Up => ("floor", looking),
         Face::Down => ("ceiling", looking),
@@ -141,6 +154,24 @@ impl<L: ClientLink> Server<L> {
         self.update_neighbors_at(pos);
         for face in UPDATE_ORDER {
             self.update_neighbors_at(step(pos, face));
+        }
+    }
+
+    pub(crate) fn update_neighbour_for_output_signal(&mut self, pos: BlockPos) {
+        for face in [Face::North, Face::East, Face::South, Face::West] {
+            let at = step(pos, face);
+            let state = self.block_or_air(at);
+            let target = if state.kind() == Some(BlockKind::Comparator) {
+                Some(at)
+            } else if is_conductor(state) {
+                let beyond = step(at, face);
+                (self.block_or_air(beyond).kind() == Some(BlockKind::Comparator)).then_some(beyond)
+            } else {
+                None
+            };
+            if let Some(comparator) = target {
+                self.neighbor_changed(comparator, pos);
+            }
         }
     }
 
@@ -220,6 +251,16 @@ impl<L: ClientLink> Server<L> {
                 _ => {}
             }
         }
+        if new.kind().is_some_and(lightning_rod::is_lightning_rod) && old.kind() != new.kind() {
+            self.lightning_rod_placed(pos, new);
+        }
+        self.tripwire_changed(pos, old, new);
+        if !self.falls.redstone.quiet && old != new && self.analog_signal(pos, new).is_some() {
+            self.update_neighbour_for_output_signal(pos);
+        }
+        if new.kind() == Some(BlockKind::Target) && old.kind() != new.kind() {
+            self.target_placed(pos, new);
+        }
         if new.kind() == Some(BlockKind::Tnt) && old.kind() != new.kind() {
             self.tnt_neighbor_changed(pos, pos);
         }
@@ -257,6 +298,11 @@ impl<L: ClientLink> Server<L> {
             BlockKind::Observer => self.observer_tick(pos, state),
             BlockKind::Dispenser | BlockKind::Dropper => self.dispenser_tick(pos, state),
             BlockKind::DetectorRail => self.detector_tick(pos, state),
+            BlockKind::Lectern => self.lectern_tick(pos),
+            BlockKind::Target => self.target_tick(pos, state),
+            BlockKind::TripwireHook => self.hook_tick(pos, state),
+            BlockKind::Tripwire => self.tripwire_tick(pos, state),
+            kind if lightning_rod::is_lightning_rod(kind) => self.lightning_rod_tick(pos, state),
             BlockKind::Crafter => self.crafter_tick(pos, state),
             BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),
@@ -274,6 +320,8 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::PistonHead) => self.piston_head_shape(pos, state, direction),
             Some(BlockKind::NoteBlock) => self.note_shape(pos, state, direction),
             Some(BlockKind::Lever) => self.attached_shape(pos, state, direction),
+            Some(BlockKind::Tripwire) => self.tripwire_shape(pos, state, direction),
+            Some(BlockKind::TripwireHook) => self.hook_shape(pos, state, direction),
             Some(kind) if is_button(kind) => self.attached_shape(pos, state, direction),
             _ => {}
         }
@@ -285,6 +333,7 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::RedstoneLamp) => self.lamp_placement(pos, state),
             Some(BlockKind::Repeater) => self.repeater_placement(pos, state),
             Some(BlockKind::NoteBlock) => self.note_placement(pos, state),
+            Some(BlockKind::Tripwire) => self.tripwire_placement(pos, state),
             Some(_) if openers::is_opener(state) => self.opener_placement(pos, state),
             _ => state,
         }

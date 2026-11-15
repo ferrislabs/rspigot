@@ -79,7 +79,12 @@ impl<L: ClientLink> Server<L> {
         }
         if input < MAX_POWER && is_conductor(block) {
             let beyond = step(at, toward);
-            if let Some(analog) = self.analog_signal(beyond, self.block_or_air(beyond)) {
+            let found = self
+                .item_frame_signal(beyond, toward)
+                .into_iter()
+                .chain(self.analog_signal(beyond, self.block_or_air(beyond)))
+                .max();
+            if let Some(analog) = found {
                 return analog;
             }
         }

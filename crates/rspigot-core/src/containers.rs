@@ -503,6 +503,7 @@ impl<L: ClientLink> Server<L> {
             kind: Identifier::minecraft(entity),
             data,
         });
+        self.update_neighbour_for_output_signal(pos);
     }
 
     pub(crate) fn store_container(&mut self, backing: Backing, items: &[Slot]) {

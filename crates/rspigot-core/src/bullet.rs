@@ -192,7 +192,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn bullet_hit_block(&mut self, id: EntityId, hit: raycast::BlockHit) {
-        self.notice_block_hit(id, hit.pos, hit.face);
+        self.notice_block_hit(id, hit);
         let Some(position) = self.entities.store.get(id).map(|e| e.base.position) else {
             return;
         };

@@ -83,12 +83,26 @@ impl<L: ClientLink> Server<L> {
                     0
                 }
             }
+            BlockKind::DetectorRail | BlockKind::Lectern => {
+                if flag(state, "powered") && direction == Face::Up {
+                    MAX_POWER
+                } else {
+                    0
+                }
+            }
             BlockKind::Observer | BlockKind::Repeater | BlockKind::Comparator => {
                 self.state_signal(state, pos, direction, wires)
             }
             BlockKind::RedstoneWire => {
                 if wires {
                     self.state_signal(state, pos, direction, wires)
+                } else {
+                    0
+                }
+            }
+            _ if super::lightning_rod::is_lightning_rod(kind) => {
+                if flag(state, "powered") && facing(state) == Some(direction) {
+                    MAX_POWER
                 } else {
                     0
                 }
