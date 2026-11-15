@@ -104,6 +104,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_wither_prime(step, cancelled, patch);
                 return;
             }
+            PrimeKind::Tnt => {
+                self.finish_tnt_explosion(step, cancelled, patch);
+                return;
+            }
             PrimeKind::Creeper => {}
         }
         let id = step.source;
@@ -576,6 +580,11 @@ impl<L: ClientLink> Server<L> {
                 continue;
             };
             if state.is_air() {
+                continue;
+            }
+            if state.kind() == Some(BlockKind::Tnt) {
+                self.set_block(*pos, BlockStateId::AIR);
+                self.prime_exploded_tnt(*pos, source);
                 continue;
             }
             let hive = self.hive_snapshot(*pos);

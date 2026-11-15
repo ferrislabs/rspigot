@@ -1,13 +1,21 @@
 mod analog;
+mod bell;
 mod controls;
+mod crafter;
 mod diode;
+mod dispenser;
 mod event;
+mod hopper;
 mod lamp;
+mod note;
 mod observer;
+mod openers;
 mod piston;
+mod rails;
 mod reactions;
 mod resolver;
 mod signals;
+mod storage;
 mod torch;
 mod wire;
 
@@ -18,7 +26,12 @@ use rustc_hash::FxHashMap;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
+pub(crate) use bell::BellStep;
+pub(crate) use crafter::CrafterStep;
+pub(crate) use dispenser::DispenseStep;
 pub(crate) use event::{RedstoneChange, RedstoneStep};
+pub(crate) use hopper::{HopperStep, Stage as HopperStage};
+pub(crate) use note::NoteStep;
 pub(crate) use piston::PistonStep;
 pub(crate) use signals::{connected_direction, is_conductor};
 
@@ -47,6 +60,8 @@ pub(crate) struct Runtime {
     pub(crate) outputs: FxHashMap<BlockPos, i32>,
     pub(crate) moving: FxHashMap<BlockPos, piston::Moving>,
     pub(crate) events: Vec<piston::BlockEvent>,
+    pub(crate) hoppers: FxHashMap<BlockPos, hopper::Clock>,
+    pub(crate) bells: FxHashMap<BlockPos, bell::Ringing>,
     quiet: bool,
 }
 
@@ -67,6 +82,13 @@ pub(crate) fn attached(state: BlockStateId, clicked: Face, yaw: f32) -> BlockSta
     let Some(kind) = state.kind() else {
         return state;
     };
+    if kind == BlockKind::Hopper {
+        let facing = match clicked.opposite() {
+            Face::Up => "down",
+            side => side.name(),
+        };
+        return state.with_property("facing", facing).unwrap_or(state);
+    }
     if kind != BlockKind::Lever && !is_button(kind) {
         return state;
     }
@@ -129,7 +151,7 @@ impl<L: ClientLink> Server<L> {
         changed
     }
 
-    pub(crate) fn neighbor_changed(&mut self, pos: BlockPos, _source: BlockPos) {
+    pub(crate) fn neighbor_changed(&mut self, pos: BlockPos, source: BlockPos) {
         let state = self.block_or_air(pos);
         match state.kind() {
             Some(BlockKind::RedstoneWire) => self.wire_neighbor_changed(pos, state),
@@ -144,6 +166,20 @@ impl<L: ClientLink> Server<L> {
                 self.piston_neighbor_changed(pos, state);
             }
             Some(BlockKind::PistonHead) => self.piston_head_neighbor_changed(pos, state),
+            Some(BlockKind::Hopper) => self.hopper_neighbor_changed(pos, state),
+            Some(BlockKind::Tnt) => self.tnt_neighbor_changed(pos, source),
+            Some(BlockKind::NoteBlock) => self.note_neighbor_changed(pos, state),
+            Some(BlockKind::Bell) => self.bell_neighbor_changed(pos, state),
+            Some(BlockKind::Crafter) => self.crafter_neighbor_changed(pos, state),
+            Some(BlockKind::PoweredRail | BlockKind::ActivatorRail) => {
+                self.powered_rail_changed(pos, state);
+            }
+            Some(_) if openers::is_opener(state) => {
+                self.opener_neighbor_changed(pos, state);
+            }
+            Some(BlockKind::Dispenser | BlockKind::Dropper) => {
+                self.dispenser_neighbor_changed(pos, state);
+            }
             Some(BlockKind::MovingPiston) if !self.falls.redstone.moving.contains_key(&pos) => {
                 self.schedule(pos, BlockKind::MovingPiston, 1);
             }
@@ -171,6 +207,21 @@ impl<L: ClientLink> Server<L> {
         ) && old.kind() != new.kind()
         {
             self.diode_placed(pos, new);
+        }
+        if new.kind() == Some(BlockKind::Hopper) && old.kind() != new.kind() {
+            self.hopper_neighbor_changed(pos, new);
+        }
+        if old.kind() != new.kind() {
+            match new.kind() {
+                Some(BlockKind::PoweredRail | BlockKind::ActivatorRail) => {
+                    self.powered_rail_changed(pos, new);
+                }
+                Some(BlockKind::DetectorRail) => self.detector_check(pos),
+                _ => {}
+            }
+        }
+        if new.kind() == Some(BlockKind::Tnt) && old.kind() != new.kind() {
+            self.tnt_neighbor_changed(pos, pos);
         }
         if old.kind() == Some(BlockKind::Comparator) && new.kind() != old.kind() {
             self.falls.redstone.outputs.remove(&pos);
@@ -204,6 +255,9 @@ impl<L: ClientLink> Server<L> {
             BlockKind::RedstoneLamp => self.lamp_tick(pos, state),
             BlockKind::Repeater | BlockKind::Comparator => self.diode_tick(pos, state),
             BlockKind::Observer => self.observer_tick(pos, state),
+            BlockKind::Dispenser | BlockKind::Dropper => self.dispenser_tick(pos, state),
+            BlockKind::DetectorRail => self.detector_tick(pos, state),
+            BlockKind::Crafter => self.crafter_tick(pos, state),
             BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),
             _ if is_plate(kind) => self.plate_tick(pos, state),
@@ -218,6 +272,9 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::Repeater) => self.repeater_shape(pos, state, direction),
             Some(BlockKind::Observer) => self.observer_shape(pos, state, direction),
             Some(BlockKind::PistonHead) => self.piston_head_shape(pos, state, direction),
+            Some(BlockKind::NoteBlock) => self.note_shape(pos, state, direction),
+            Some(BlockKind::Lever) => self.attached_shape(pos, state, direction),
+            Some(kind) if is_button(kind) => self.attached_shape(pos, state, direction),
             _ => {}
         }
     }
@@ -227,7 +284,31 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::RedstoneWire) => self.wire_placement(pos, state),
             Some(BlockKind::RedstoneLamp) => self.lamp_placement(pos, state),
             Some(BlockKind::Repeater) => self.repeater_placement(pos, state),
+            Some(BlockKind::NoteBlock) => self.note_placement(pos, state),
+            Some(_) if openers::is_opener(state) => self.opener_placement(pos, state),
             _ => state,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_hopper_faces_away_from_the_clicked_side_and_down_from_the_top() {
+        let hopper = BlockKind::Hopper.default_state();
+        assert_eq!(
+            attached(hopper, Face::North, 0.0).property("facing"),
+            Some("south")
+        );
+        assert_eq!(
+            attached(hopper, Face::Up, 0.0).property("facing"),
+            Some("down")
+        );
+        assert_eq!(
+            attached(hopper, Face::Down, 0.0).property("facing"),
+            Some("down")
+        );
     }
 }

@@ -719,6 +719,7 @@ pub(crate) enum PrimeKind {
     Creeper,
     Projectile,
     WitherSpawn,
+    Tnt,
 }
 
 #[derive(Debug)]
@@ -1567,6 +1568,12 @@ pub(crate) enum Continuation {
     Physics(PhysicsStep),
     Redstone(Box<crate::redstone::RedstoneStep>),
     Piston(Box<crate::redstone::PistonStep>),
+    Hopper(Box<crate::redstone::HopperStep>),
+    Note(crate::redstone::NoteStep),
+    Bell(crate::redstone::BellStep),
+    Crafter(Box<crate::redstone::CrafterStep>),
+    Dispense(Box<crate::redstone::DispenseStep>),
+    TntPrime(Box<crate::tnt::TntPrimeStep>),
     Cook(Box<CookStep>),
     CampfireStart(Box<CampfireStep>),
     Exp(ExpStep),
@@ -1774,6 +1781,12 @@ impl Continuation {
             Self::Physics(_) => EventKind::BlockPhysics,
             Self::Redstone(_) => EventKind::BlockRedstone,
             Self::Piston(step) => step.kind(),
+            Self::Hopper(step) => step.kind(),
+            Self::Note(_) => EventKind::NotePlay,
+            Self::Bell(_) => EventKind::BellRing,
+            Self::Crafter(_) => EventKind::CrafterCraft,
+            Self::Dispense(step) => step.kind(),
+            Self::TntPrime(_) => EventKind::TNTPrime,
             Self::Cook(_) => EventKind::BlockCook,
             Self::CampfireStart(_) => EventKind::CampfireStart,
             Self::Exp(_) => EventKind::BlockExp,
@@ -2039,6 +2052,12 @@ impl Continuation {
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
             (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
             (Self::Piston(one), Self::Piston(other)) => **one == **other,
+            (Self::Hopper(one), Self::Hopper(other)) => **one == **other,
+            (Self::Note(one), Self::Note(other)) => one.pos == other.pos,
+            (Self::Bell(one), Self::Bell(other)) => one.pos == other.pos,
+            (Self::Crafter(one), Self::Crafter(other)) => one.pos == other.pos,
+            (Self::Dispense(one), Self::Dispense(other)) => one.pos == other.pos,
+            (Self::TntPrime(one), Self::TntPrime(other)) => one.pos == other.pos,
             (Self::Redstone(one), Self::Redstone(other)) => {
                 one.pos == other.pos && one.change == other.change
             }
@@ -2141,6 +2160,12 @@ impl Continuation {
             | Self::Sponge(_)
             | Self::Redstone(_)
             | Self::Piston(_)
+            | Self::Hopper(_)
+            | Self::Note(_)
+            | Self::Bell(_)
+            | Self::Crafter(_)
+            | Self::Dispense(_)
+            | Self::TntPrime(_)
             | Self::Ignite(_)
             | Self::Prime(_)
             | Self::ProjectileHit { .. } => true,

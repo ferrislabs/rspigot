@@ -27,6 +27,7 @@ use super::minecart;
 use super::orb::{self, OrbState};
 use super::species::{self, Species};
 use super::thrown::{self, ThrownState};
+use super::tnt;
 use super::{Entity, EntityState};
 use super::{cloud, crystal};
 use super::{neutral, tamable};
@@ -194,6 +195,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::ShulkerBullet
             | EntityKind::EvokerFangs
             | EntityKind::EndCrystal
+            | EntityKind::Tnt
             | EntityKind::ItemFrame
             | EntityKind::GlowItemFrame
             | EntityKind::Painting
@@ -1156,6 +1158,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         }
         EntityKind::EvokerFangs => EntityState::Fangs(FangsState::default()),
         EntityKind::EndCrystal => EntityState::Crystal(crystal::define(&mut base)),
+        EntityKind::Tnt => EntityState::Tnt(tnt::define(&mut base)),
         EntityKind::ItemFrame | EntityKind::GlowItemFrame | EntityKind::Painting => {
             EntityState::Hanging(hanging::define(&mut base))
         }
@@ -1245,6 +1248,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Crystal(_) => {
             crystal::read(nbt, &mut base);
             &[&ENTITY_KEYS, crystal::KEYS]
+        }
+        EntityState::Tnt(tnt_state) => {
+            tnt::read(nbt, &mut base, tnt_state);
+            &[&ENTITY_KEYS, tnt::KEYS]
         }
         EntityState::Cloud(cloud_state) => {
             cloud::read(nbt, &mut base, cloud_state);
@@ -1692,6 +1699,7 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
             }
         }
         EntityState::Crystal(_) => crystal::write(&entity.base, &mut out),
+        EntityState::Tnt(tnt_state) => tnt::write(&entity.base, tnt_state, &mut out),
         EntityState::Cloud(cloud_state) => cloud::write(&entity.base, cloud_state, &mut out),
         EntityState::Hanging(hanging_state) => {
             hanging::write(&entity.base, hanging_state, &mut out);

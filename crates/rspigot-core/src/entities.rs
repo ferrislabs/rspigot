@@ -452,6 +452,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Fangs(_) => self.tick_fangs(id),
                 EntityState::Lightning(_) => self.tick_lightning(id),
                 EntityState::Crystal(_) => self.tick_crystal(id),
+                EntityState::Tnt(_) => self.tick_tnt(id),
                 EntityState::Hanging(_) => self.tick_hanging(id),
                 EntityState::Stand(_) => self.tick_stand(id),
                 EntityState::Boat(_) => self.tick_boat(id),

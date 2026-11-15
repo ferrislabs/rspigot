@@ -34,6 +34,7 @@ pub mod species;
 mod store;
 pub mod tamable;
 pub mod thrown;
+pub mod tnt;
 pub mod tracker;
 mod tracking_range;
 pub mod trade_gen;
@@ -68,6 +69,7 @@ pub enum EntityState {
     Bullet(Box<bullet::BulletState>),
     Fangs(fangs::FangsState),
     Crystal(crystal::CrystalState),
+    Tnt(tnt::TntState),
     Cloud(Box<cloud::CloudState>),
     Falling(FallingState),
     Lightning(lightning::LightningState),
