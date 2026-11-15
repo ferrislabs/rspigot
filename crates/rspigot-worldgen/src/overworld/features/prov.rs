@@ -113,6 +113,23 @@ impl Int {
         }
     }
 
+    pub(crate) fn max_inclusive(&self) -> i32 {
+        match self {
+            Self::Constant(n) => *n,
+            Self::Uniform(_, max)
+            | Self::BiasedToBottom(_, max)
+            | Self::VeryBiasedToBottom(_, max)
+            | Self::Clamped(_, _, max)
+            | Self::ClampedNormal { max, .. }
+            | Self::Trapezoid { max, .. } => *max,
+            Self::Weighted(entries) => entries
+                .iter()
+                .map(|(provider, _)| provider.max_inclusive())
+                .max()
+                .unwrap_or(0),
+        }
+    }
+
     pub(crate) fn sample(&self, rng: &mut Xoroshiro) -> i32 {
         match self {
             Self::Constant(n) => *n,

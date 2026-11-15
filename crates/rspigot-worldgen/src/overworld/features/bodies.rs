@@ -140,6 +140,7 @@ pub(crate) enum Feature {
     Mushroom(Box<super::mushrooms::Mushroom>),
     Fallen(Box<super::fallen::Fallen>),
     Magma(super::magma::Magma),
+    Geode(Box<super::geode::Geode>),
     Spread(Box<super::spread::Spread>),
     Multiface(Box<super::multiface::Growth>),
     Sculk(super::sculk::Patch),
@@ -370,6 +371,7 @@ impl<'a> Compiler<'a> {
             }
             "sculk_patch" => Feature::Sculk(super::sculk::Patch::compile(value)),
             "freeze_top_layer" => Feature::NoOp,
+            "geode" => Feature::Geode(Box::new(super::geode::Geode::compile(value))),
             "underwater_magma" => Feature::Magma(super::magma::Magma::compile(value)),
             "fallen_tree" => Feature::Fallen(Box::new(super::fallen::Fallen::compile(value, self))),
             "huge_red_mushroom" => {
@@ -455,6 +457,7 @@ impl Feature {
             Self::Mushroom(mushroom) => mushroom.reach(),
             Self::Fallen(fallen) => fallen.reach(),
             Self::Magma(magma) => magma.reach(),
+            Self::Geode(geode) => geode.reach(),
             Self::Spread(spread) => spread.reach(),
             Self::Multiface(growth) => growth.reach(),
             Self::Sculk(patch) => patch.reach(),
@@ -500,6 +503,7 @@ impl Feature {
             Self::Mushroom(mushroom) => mushroom.place(run, pos),
             Self::Fallen(fallen) => fallen.place(run, pos),
             Self::Magma(magma) => magma.place(run, pos),
+            Self::Geode(geode) => geode.place(run, pos),
             Self::Spread(spread) => spread.place(run, pos),
             Self::Multiface(growth) => growth.place(run, pos),
             Self::Sculk(patch) => patch.place(run, pos),

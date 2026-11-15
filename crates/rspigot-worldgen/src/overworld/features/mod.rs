@@ -3,6 +3,7 @@ mod cave;
 mod coral;
 mod fallen;
 mod floats;
+mod geode;
 mod ice;
 mod javaset;
 mod large;
@@ -217,6 +218,7 @@ impl Features {
                             rng: &mut rng,
                             surface,
                             feature_id: id,
+                            seed,
                             biome_has: &self.biome_has,
                             universal: &self.universal,
                             interest,
@@ -296,6 +298,7 @@ mod tests {
                 rng: &mut rng,
                 surface: &self.surface,
                 feature_id: 0,
+                seed,
                 biome_has: &[],
                 universal: &[],
                 interest: None,
@@ -319,6 +322,7 @@ mod tests {
                 rng: &mut rng,
                 surface: &self.surface,
                 feature_id: 0,
+                seed,
                 biome_has: &[],
                 universal: &[],
                 interest: None,
@@ -356,6 +360,7 @@ mod tests {
                     rng: &mut rng,
                     surface: &self.surface,
                     feature_id: 0,
+                    seed,
                     biome_has: &[],
                     universal: &[],
                     interest: None,
@@ -381,6 +386,7 @@ mod tests {
                 rng: &mut rng,
                 surface: &self.surface,
                 feature_id: 0,
+                seed,
                 biome_has: &[],
                 universal: &[true],
                 interest: None,
