@@ -37,7 +37,7 @@ const AXOLOTL_PICKUP_SOUND: &str = "minecraft:item.bucket.fill_axolotl";
 const AXOLOTL_EMPTY_SOUND: &str = "minecraft:item.bucket.empty_axolotl";
 const TADPOLE_PICKUP_SOUND: &str = "minecraft:item.bucket.fill_tadpole";
 const TADPOLE_EMPTY_SOUND: &str = "minecraft:item.bucket.empty_tadpole";
-const FIZZ_SOUND: &str = "minecraft:block.fire.extinguish";
+pub(crate) const FIZZ_SOUND: &str = "minecraft:block.fire.extinguish";
 const THE_NETHER: &str = "minecraft:the_nether";
 const WATERLOGGED: &str = "waterlogged";
 
@@ -90,12 +90,12 @@ pub(crate) fn slot_of(hand: Hand) -> Slot {
     }
 }
 
-fn replaceable_by_water(state: rspigot_domain::BlockStateId) -> bool {
+pub(crate) fn replaceable_by_water(state: rspigot_domain::BlockStateId) -> bool {
     let flags = state.flags();
     flags.contains(StateFlags::REPLACEABLE) || !flags.contains(StateFlags::LEGACY_SOLID)
 }
 
-fn can_waterlog(state: rspigot_domain::BlockStateId) -> bool {
+pub(crate) fn can_waterlog(state: rspigot_domain::BlockStateId) -> bool {
     state.property(WATERLOGGED) == Some("false")
 }
 
@@ -296,7 +296,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn fill_bucket_in_hand(&mut self, player: PlayerId, hand: Hand, filled: ItemStack) {
+    pub(crate) fn fill_bucket_in_hand(&mut self, player: PlayerId, hand: Hand, filled: ItemStack) {
         self.consume_held(player, hand, 1);
         if self.held(player, hand).is_none() {
             self.set_held(player, hand, Some(filled));
@@ -305,23 +305,24 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn empty_contents(
+    pub(crate) fn empty_contents(
         &self,
         target: BlockPos,
         hit: Option<(BlockPos, rspigot_blocks::Face)>,
+        lava: bool,
     ) -> Option<(BlockPos, Placement)> {
         let state = self.world.chunks.block(target)?;
         let ultra_warm = self.world.dimension.dimension_type.as_str() == THE_NETHER;
-        let free = state.is_air() || replaceable_by_water(state) || can_waterlog(state);
+        let free = state.is_air() || replaceable_by_water(state) || (!lava && can_waterlog(state));
         if !free {
             let (pos, face) = hit?;
             let (dx, dy, dz) = direction_of(face).offset();
-            return self.empty_contents(pos.offset(dx, dy, dz), None);
+            return self.empty_contents(pos.offset(dx, dy, dz), None, lava);
         }
-        if ultra_warm {
+        if ultra_warm && !lava {
             return Some((target, Placement::Evaporate));
         }
-        if can_waterlog(state) {
+        if !lava && can_waterlog(state) {
             return Some((target, Placement::Waterlog));
         }
         let liquid = state.flags().has_fluid();
@@ -359,7 +360,8 @@ impl<L: ClientLink> Server<L> {
         } else {
             relative
         };
-        let Some((block, placement)) = self.empty_contents(target, Some((hit.pos, hit.face)))
+        let Some((block, placement)) =
+            self.empty_contents(target, Some((hit.pos, hit.face)), false)
         else {
             return true;
         };

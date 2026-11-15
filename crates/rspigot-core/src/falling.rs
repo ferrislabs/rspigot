@@ -223,6 +223,10 @@ impl<L: ClientLink> Server<L> {
             self.fire_placed(pos);
             return;
         }
+        if matches!(kind, BlockKind::Sponge | BlockKind::WetSponge) {
+            self.schedule(pos, kind, 0);
+            return;
+        }
         if kind == BlockKind::Frogspawn {
             let delay = self.frogspawn_placed();
             self.schedule(pos, kind, delay);
@@ -245,6 +249,10 @@ impl<L: ClientLink> Server<L> {
         };
         if kind == BlockKind::Frogspawn {
             self.frogspawn_neighbour_changed(pos);
+            return;
+        }
+        if kind == BlockKind::Sponge {
+            self.schedule(pos, kind, 0);
             return;
         }
         if is_leaves(kind) {
@@ -382,6 +390,14 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == BlockKind::Fire {
             self.fire_tick(pos, state);
+            return;
+        }
+        if kind == BlockKind::Sponge {
+            self.sponge_tick(pos);
+            return;
+        }
+        if kind == BlockKind::WetSponge {
+            self.wet_sponge_tick(pos);
             return;
         }
         if is_leaves(kind) {

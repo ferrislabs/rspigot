@@ -63,6 +63,19 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn look_block(&self, id: PlayerId, rotation: Rotation) -> Option<BlockHit> {
+        self.look_with(id, rotation, sight_shape)
+    }
+
+    pub(crate) fn look_source(&self, id: PlayerId, rotation: Rotation) -> Option<BlockHit> {
+        self.look_with(id, rotation, source_shape)
+    }
+
+    fn look_with(
+        &self,
+        id: PlayerId,
+        rotation: Rotation,
+        shape: fn(BlockStateId) -> &'static [rspigot_blocks::Aabb],
+    ) -> Option<BlockHit> {
         let player = self.players.get(&id)?;
         let reach = if player.game_mode == GameMode::Creative {
             CREATIVE_BLOCK_RANGE
@@ -74,12 +87,7 @@ impl<L: ClientLink> Server<L> {
             chunks: &self.world.chunks,
             eyes: from.block(),
         };
-        raycast::clip_blocks_with(
-            &sightline,
-            from,
-            ray_end(from, rotation, reach),
-            sight_shape,
-        )
+        raycast::clip_blocks_with(&sightline, from, ray_end(from, rotation, reach), shape)
     }
 
     pub(crate) fn punch_target(&self, id: PlayerId) -> Punched {
@@ -211,6 +219,18 @@ fn sight_shape(state: BlockStateId) -> &'static [rspigot_blocks::Aabb] {
         [] => ShapeId::FULL.boxes(),
         shape => shape,
     }
+}
+
+fn source_shape(state: BlockStateId) -> &'static [rspigot_blocks::Aabb] {
+    let source = matches!(state.kind(), Some(BlockKind::Water | BlockKind::Lava))
+        && state.property("level") == Some("0");
+    if source
+        || state.kind() == Some(BlockKind::BubbleColumn)
+        || state.property("waterlogged") == Some("true")
+    {
+        return ShapeId::FULL.boxes();
+    }
+    sight_shape(state)
 }
 
 pub(crate) const fn direction_of(face: Face) -> Direction {

@@ -203,7 +203,7 @@ impl<L: ClientLink> Server<L> {
             .is_some_and(|entity| fire::is_on_fire(&entity.base))
     }
 
-    fn extinguish_entity(&mut self, id: EntityId) {
+    pub(crate) fn extinguish_entity(&mut self, id: EntityId) {
         let was_on_fire = self.entity_on_fire(id);
         if let Some(player) = self
             .players

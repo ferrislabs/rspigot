@@ -122,6 +122,7 @@ impl<L: ClientLink> Server<L> {
                     self.destroy_block_silently(pos);
                 }
             }
+            InsideEffect::Cauldron(pos) => self.cauldron_extinguishes(id, pos),
             InsideEffect::Extinguish => {
                 if let Some(entity) = self.entities.store.get_mut(id) {
                     fire::clear_fire(&mut entity.base);
@@ -315,6 +316,11 @@ impl<L: ClientLink> Server<L> {
             InsideEffect::Extinguish => {
                 if let Some(player) = self.players.get_mut(&id) {
                     player.vitals.fire_ticks = player.vitals.fire_ticks.min(0);
+                }
+            }
+            InsideEffect::Cauldron(pos) => {
+                if let Some(entity) = self.players.get(&id).map(|player| player.entity_id) {
+                    self.cauldron_extinguishes(entity, pos);
                 }
             }
             InsideEffect::Freeze | InsideEffect::ClearFreeze => {}
