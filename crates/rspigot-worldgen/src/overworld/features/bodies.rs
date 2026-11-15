@@ -141,6 +141,8 @@ pub(crate) enum Feature {
     Fallen(Box<super::fallen::Fallen>),
     Magma(super::magma::Magma),
     Spread(Box<super::spread::Spread>),
+    Multiface(Box<super::multiface::Growth>),
+    Sculk(super::sculk::Patch),
     CoralTree(Arc<Placed>),
     CoralClaw(Arc<Placed>),
     Spike(Box<super::ice::Spike>),
@@ -154,6 +156,7 @@ pub(crate) enum Feature {
     Weighted(Vec<(Arc<Placed>, i32)>),
     Boolean(Arc<Placed>, Arc<Placed>),
     Sequence(Vec<Arc<Placed>>),
+    Overlay(Vec<Arc<Placed>>),
     Unsupported,
 }
 
@@ -330,10 +333,15 @@ impl<'a> Compiler<'a> {
             "coral_claw" => {
                 Feature::CoralClaw(self.placed_ref(value.get("feature").unwrap_or(&Value::Null)))
             }
-            "overlay" => Feature::Sequence(self.placed_list(value.get("features"))),
+            "overlay" => Feature::Overlay(self.placed_list(value.get("features"))),
             "random_neighbor_spread" => {
                 Feature::Spread(Box::new(super::spread::Spread::compile(value)))
             }
+            "multiface_growth" => super::multiface::Growth::compile(value)
+                .map_or(Feature::Unsupported, |growth| {
+                    Feature::Multiface(Box::new(growth))
+                }),
+            "sculk_patch" => Feature::Sculk(super::sculk::Patch::compile(value)),
             "freeze_top_layer" => Feature::NoOp,
             "underwater_magma" => Feature::Magma(super::magma::Magma::compile(value)),
             "fallen_tree" => Feature::Fallen(Box::new(super::fallen::Fallen::compile(value, self))),
@@ -421,6 +429,8 @@ impl Feature {
             Self::Fallen(fallen) => fallen.reach(),
             Self::Magma(magma) => magma.reach(),
             Self::Spread(spread) => spread.reach(),
+            Self::Multiface(growth) => growth.reach(),
+            Self::Sculk(patch) => patch.reach(),
             Self::CoralTree(placed) => super::coral::reach_of_tree(placed),
             Self::CoralClaw(placed) => super::coral::reach_of_claw(placed),
             Self::Spike(spike) => spike.reach(),
@@ -433,7 +443,7 @@ impl Feature {
                 .chain([default.margin])
                 .max()
                 .unwrap_or(1),
-            Self::Simple2(items) | Self::Sequence(items) => {
+            Self::Simple2(items) | Self::Sequence(items) | Self::Overlay(items) => {
                 items.iter().map(|p| p.margin).max().unwrap_or(1)
             }
             Self::Weighted(items) => items.iter().map(|(p, _)| p.margin).max().unwrap_or(1),
@@ -459,6 +469,8 @@ impl Feature {
             Self::Fallen(fallen) => fallen.place(run, pos),
             Self::Magma(magma) => magma.place(run, pos),
             Self::Spread(spread) => spread.place(run, pos),
+            Self::Multiface(growth) => growth.place(run, pos),
+            Self::Sculk(patch) => patch.place(run, pos),
             Self::CoralTree(placed) => super::coral::tree(placed, run, pos),
             Self::CoralClaw(placed) => super::coral::claw(placed, run, pos),
             Self::Spike(spike) => spike.place(run, pos),
@@ -500,7 +512,8 @@ impl Feature {
                     no.place(run, pos)
                 }
             }
-            Self::Sequence(items) => {
+            Self::Sequence(items) => items.iter().all(|placed| placed.place(run, pos)),
+            Self::Overlay(items) => {
                 let mut any = false;
                 for placed in items {
                     any |= placed.place(run, pos);

@@ -84,17 +84,15 @@ fn cells(region: &mut Region, (y0, y1): (i32, i32)) -> Vec<BlockStateId> {
     states
 }
 
-pub(super) fn lines(
+fn changes(
     bench: &Bench,
     spec: &str,
-    feature: &str,
-    origin: (i32, i32, i32),
-    seed: i64,
     band: (i32, i32),
+    act: impl FnOnce(&mut Region),
 ) -> Vec<String> {
     let mut region = world(bench, spec);
     let before = cells(&mut region, band);
-    bench.place(&mut region, feature, origin, seed);
+    act(&mut region);
     let after = cells(&mut region, band);
     let mut lines = Vec::new();
     let mut index = 0;
@@ -112,6 +110,44 @@ pub(super) fn lines(
     lines
 }
 
+pub(super) fn lines(
+    bench: &Bench,
+    spec: &str,
+    feature: &str,
+    origin: (i32, i32, i32),
+    seed: i64,
+    band: (i32, i32),
+) -> Vec<String> {
+    changes(bench, spec, band, |region| {
+        bench.place(region, feature, origin, seed);
+    })
+}
+
+fn hashed(lines: &[String]) -> (usize, u64) {
+    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+    for line in lines {
+        for byte in line.bytes().chain(std::iter::once(b'\n')) {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x0100_0000_01b3);
+        }
+    }
+    (lines.len(), hash)
+}
+
+pub(super) fn scatter_fingerprint(
+    bench: &Bench,
+    spec: &str,
+    feature: &str,
+    area: [i32; 6],
+    count: usize,
+    seed: i64,
+    band: (i32, i32),
+) -> (usize, u64) {
+    hashed(&changes(bench, spec, band, |region| {
+        bench.scatter(region, feature, area, count, seed);
+    }))
+}
+
 pub(super) fn fingerprint(
     bench: &Bench,
     spec: &str,
@@ -120,13 +156,5 @@ pub(super) fn fingerprint(
     seed: i64,
     band: (i32, i32),
 ) -> (usize, u64) {
-    let lines = lines(bench, spec, feature, origin, seed, band);
-    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
-    for line in &lines {
-        for byte in line.bytes().chain(std::iter::once(b'\n')) {
-            hash ^= u64::from(byte);
-            hash = hash.wrapping_mul(0x0100_0000_01b3);
-        }
-    }
-    (lines.len(), hash)
+    hashed(&lines(bench, spec, feature, origin, seed, band))
 }

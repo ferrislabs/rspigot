@@ -1,13 +1,16 @@
 mod bodies;
+mod cave;
 mod coral;
 mod fallen;
 mod ice;
 mod magma;
+mod multiface;
 mod mushrooms;
 mod place;
 #[cfg(test)]
 mod probe;
 mod prov;
+mod sculk;
 mod spread;
 mod tree;
 mod treedeco;
@@ -283,6 +286,36 @@ mod tests {
                 interest: None,
             };
             feature.place(&mut run, pos)
+        }
+
+        pub(super) fn scatter(
+            &self,
+            region: &mut Region,
+            name: &str,
+            [x0, y0, z0, x1, y1, z1]: [i32; 6],
+            count: usize,
+            seed: i64,
+        ) -> bool {
+            let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
+            let feature = compiler.configured_ref(&Value::String(format!("minecraft:{name}")));
+            let mut rng = Xoroshiro::from_seed(seed);
+            let mut any = false;
+            for _ in 0..count {
+                let x = x0 + rng.below(x1 - x0 + 1);
+                let y = y0 + rng.below(y1 - y0 + 1);
+                let z = z0 + rng.below(z1 - z0 + 1);
+                let mut run = Run {
+                    region,
+                    rng: &mut rng,
+                    surface: &self.surface,
+                    feature_id: 0,
+                    biome_has: &[],
+                    universal: &[],
+                    interest: None,
+                };
+                any |= feature.place(&mut run, (x, y, z));
+            }
+            any
         }
 
         pub(super) fn place_placed(
