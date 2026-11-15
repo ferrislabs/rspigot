@@ -493,6 +493,38 @@ fn creative_drag_out_drops_the_stack_and_is_throttled() {
 }
 
 #[test]
+fn a_creative_drag_out_honours_the_max_stack_size_component_of_the_stack() {
+    let mut server = server(Arc::default());
+    let mut alice = join(&mut server, "Alice");
+    input(
+        &mut server,
+        alice.id,
+        PlayerInput::ChangeGameMode(GameMode::Creative),
+    );
+    alice.drain();
+    let mut sticks = stack(ItemKind::Stick, 70);
+    input(
+        &mut server,
+        alice.id,
+        PlayerInput::CreativeSlot {
+            slot: -1,
+            stack: Some(sticks.clone()),
+        },
+    );
+    assert!(dropped(&alice.drain()).is_empty());
+    sticks.components.insert("minecraft:max_stack_size", 99);
+    input(
+        &mut server,
+        alice.id,
+        PlayerInput::CreativeSlot {
+            slot: -1,
+            stack: Some(sticks.clone()),
+        },
+    );
+    assert_eq!(dropped(&alice.drain()), vec![sticks]);
+}
+
+#[test]
 fn creative_slot_packets_from_survival_are_ignored() {
     let mut server = server(Arc::default());
     let mut alice = join(&mut server, "Alice");

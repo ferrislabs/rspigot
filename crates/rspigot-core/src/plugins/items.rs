@@ -2,7 +2,9 @@ use std::num::NonZeroU8;
 use std::ops::RangeInclusive;
 
 use rspigot_data::registries::synced_index;
-use rspigot_domain::item::{CUSTOM_NAME, ENCHANTMENTS, ItemStack, LORE, MAX_LORE_LINES};
+use rspigot_domain::item::{
+    CUSTOM_MODEL_DATA, CUSTOM_NAME, CustomModelData, ENCHANTMENTS, ItemStack, LORE, MAX_LORE_LINES,
+};
 use rspigot_domain::text::Component;
 use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
@@ -19,6 +21,7 @@ pub struct ItemSpec {
     pub name: Option<String>,
     pub lore: Vec<String>,
     pub enchantments: Vec<(String, i32)>,
+    pub custom_model_data: Option<Box<CustomModelData>>,
     pub components: Vec<u8>,
 }
 
@@ -30,6 +33,7 @@ impl ItemSpec {
             name: None,
             lore: Vec::new(),
             enchantments: Vec::new(),
+            custom_model_data: None,
             components: Vec::new(),
         }
     }
@@ -63,12 +67,13 @@ pub(crate) fn stack_of(spec: &ItemSpec) -> Result<Option<ItemStack>, String> {
     let lore: Vec<Component> = spec.lore.iter().map(|line| text(line)).collect();
     stack.set_lore(&lore);
     stack.set_enchantments(&enchantments);
+    stack.set_custom_model_data(spec.custom_model_data.as_deref());
     Ok(Some(stack))
 }
 
 pub(crate) fn spec_of(stack: &ItemStack) -> ItemSpec {
     let mut others = stack.components.clone();
-    for typed in [CUSTOM_NAME, LORE, ENCHANTMENTS] {
+    for typed in [CUSTOM_NAME, LORE, ENCHANTMENTS, CUSTOM_MODEL_DATA] {
         others.remove(typed);
     }
     let mut components = Vec::new();
@@ -89,6 +94,7 @@ pub(crate) fn spec_of(stack: &ItemStack) -> ItemSpec {
             .into_iter()
             .map(|(key, level)| (key, i32::from(level)))
             .collect(),
+        custom_model_data: stack.custom_model_data().map(Box::new),
         components,
     }
 }

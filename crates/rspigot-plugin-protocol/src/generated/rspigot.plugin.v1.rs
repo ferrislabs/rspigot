@@ -48,6 +48,18 @@ pub struct Enchant {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CustomModelData {
+    #[prost(float, repeated, tag = "1")]
+    pub floats: ::prost::alloc::vec::Vec<f32>,
+    #[prost(bool, repeated, tag = "2")]
+    pub flags: ::prost::alloc::vec::Vec<bool>,
+    #[prost(string, repeated, tag = "3")]
+    pub strings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int32, repeated, tag = "4")]
+    pub colors: ::prost::alloc::vec::Vec<i32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Item {
     #[prost(string, tag = "1")]
     pub key: ::prost::alloc::string::String,
@@ -61,6 +73,8 @@ pub struct Item {
     pub enchantments: ::prost::alloc::vec::Vec<Enchant>,
     #[prost(bytes = "vec", tag = "6")]
     pub components: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "7")]
+    pub custom_model_data: ::core::option::Option<CustomModelData>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]

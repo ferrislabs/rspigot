@@ -35,7 +35,7 @@ pub use entity::{Entities, Entity, EntityState};
 pub use error::Error;
 pub use events::*;
 pub use inventory::{ArmorSlot, Inventory, InventorySlot, InventoryState};
-pub use item::ItemStack;
+pub use item::{CustomModelData, ItemStack};
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
@@ -55,9 +55,9 @@ pub mod prelude {
     pub use crate::events::*;
     pub use crate::{
         ArmorSlot, Block, BlockPos, BlockSnapshot, BlockState, BlockTarget, BlockType, ChatColor,
-        Color, CommandSender, CustomInventory, CustomInventoryState, DamageSource, Difficulty,
-        Effect, EffectType, Enchantment, Entity, EntityState, EntityType, Error, GameMode,
-        GameRule, Inventory, InventoryOwner, InventoryRef, InventorySlot, InventoryState,
+        Color, CommandSender, CustomInventory, CustomInventoryState, CustomModelData, DamageSource,
+        Difficulty, Effect, EffectType, Enchantment, Entity, EntityState, EntityType, Error,
+        GameMode, GameRule, Inventory, InventoryOwner, InventoryRef, InventorySlot, InventoryState,
         InventoryView, ItemStack, Listeners, Location, Material, Particle, Player, PlayerState,
         Plugin, Position, Priority, Rotation, Server, ServerState, Sound, Target, Title, Vector,
         Weather, World, WorldState, listeners, run, run_with,
