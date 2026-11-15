@@ -219,6 +219,8 @@ mod tests {
         let alice = ListEntry {
             name: "Alice".into(),
             uuid: Some(Uuid::from_u128(1)),
+            level: None,
+            bypasses_player_limit: false,
         };
         assert_eq!(
             answered(Answer::Names(vec![ListEntry::named("Carol"), alice])),
@@ -285,6 +287,8 @@ mod tests {
                 target: ListEntry {
                     name: "Steve".into(),
                     uuid: Some(Uuid::from_u128(1)),
+                    level: None,
+                    bypasses_player_limit: false,
                 },
                 created,
                 source: "Alice".into(),
