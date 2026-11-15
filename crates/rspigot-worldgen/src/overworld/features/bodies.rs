@@ -76,6 +76,17 @@ pub(crate) struct Ore {
     scattered: bool,
 }
 
+impl Ore {
+    fn reach(&self) -> i32 {
+        if self.scattered {
+            return 8;
+        }
+        let spread = self.size as f32 / 8.0;
+        let half = (((self.size as f32 / 16.0 * 2.0 + 1.0) / 2.0).ceil()) as i32;
+        spread.ceil() as i32 + half
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct Layer {
     height: Int,
@@ -137,6 +148,26 @@ pub(crate) enum Feature {
     Blob(Blob),
     Bamboo(f32),
     Vines,
+    Mushroom(Box<super::mushrooms::Mushroom>),
+    Fallen(Box<super::fallen::Fallen>),
+    Magma(super::magma::Magma),
+    Geode(Box<super::geode::Geode>),
+    MonsterRoom(super::dungeon::MonsterRoom),
+    Fossil(Box<super::fossil::Fossil>),
+    Template(Box<super::templated::Templated>),
+    Spread(Box<super::spread::Spread>),
+    Multiface(Box<super::multiface::Growth>),
+    Sculk(super::sculk::Patch),
+    Vegetation(Box<super::vegetation::Patch>),
+    Root(Box<super::root::Root>),
+    Speleothem(Box<super::speleothem::Speleothem>),
+    Cluster(Box<super::speleothem::Cluster>),
+    Large(Box<super::large::Large>),
+    CoralTree(Arc<Placed>),
+    CoralClaw(Arc<Placed>),
+    Spike(Box<super::ice::Spike>),
+    Iceberg(super::ice::Iceberg),
+    BlueIce(super::ice::BlueIce),
     RandomSelector {
         entries: Vec<(f32, Arc<Placed>)>,
         default: Arc<Placed>,
@@ -145,6 +176,7 @@ pub(crate) enum Feature {
     Weighted(Vec<(Arc<Placed>, i32)>),
     Boolean(Arc<Placed>, Arc<Placed>),
     Sequence(Vec<Arc<Placed>>),
+    Overlay(Vec<Arc<Placed>>),
     Unsupported,
 }
 
@@ -284,7 +316,7 @@ impl<'a> Compiler<'a> {
                 rocks: integer(value, "rock_count", 4),
                 holes: integer(value, "hole_count", 1),
             }),
-            "tree" => match super::tree::compile(value) {
+            "tree" => match super::tree::compile(value, self) {
                 Some(tree) => Feature::Tree(Box::new(tree)),
                 None => Feature::Unsupported,
             },
@@ -312,6 +344,63 @@ impl<'a> Compiler<'a> {
             }),
             "bamboo" => Feature::Bamboo(number(value, "probability", 0.0) as f32),
             "vines" => Feature::Vines,
+            "spike" => Feature::Spike(Box::new(super::ice::Spike::compile(value))),
+            "iceberg" => Feature::Iceberg(super::ice::Iceberg::compile(value)),
+            "blue_ice" => Feature::BlueIce(super::ice::BlueIce),
+            "coral_tree" => {
+                Feature::CoralTree(self.placed_ref(value.get("feature").unwrap_or(&Value::Null)))
+            }
+            "coral_claw" => {
+                Feature::CoralClaw(self.placed_ref(value.get("feature").unwrap_or(&Value::Null)))
+            }
+            "overlay" => Feature::Overlay(self.placed_list(value.get("features"))),
+            "random_neighbor_spread" => {
+                Feature::Spread(Box::new(super::spread::Spread::compile(value)))
+            }
+            "multiface_growth" => super::multiface::Growth::compile(value)
+                .map_or(Feature::Unsupported, |growth| {
+                    Feature::Multiface(Box::new(growth))
+                }),
+            "vegetation_patch" | "waterlogged_vegetation_patch" => {
+                let vegetation =
+                    self.placed_ref(value.get("vegetation_feature").unwrap_or(&Value::Null));
+                super::vegetation::feature(
+                    value,
+                    vegetation,
+                    kind == "waterlogged_vegetation_patch",
+                )
+            }
+            "speleothem" => super::speleothem::Speleothem::compile(value)
+                .map_or(Feature::Unsupported, |item| {
+                    Feature::Speleothem(Box::new(item))
+                }),
+            "speleothem_cluster" => super::speleothem::Cluster::compile(value)
+                .map_or(Feature::Unsupported, |item| {
+                    Feature::Cluster(Box::new(item))
+                }),
+            "large_dripstone" => Feature::Large(Box::new(super::large::Large::compile(value))),
+            "root_system" => {
+                let tree = self.placed_ref(value.get("feature").unwrap_or(&Value::Null));
+                super::root::feature(value, tree)
+            }
+            "sculk_patch" => Feature::Sculk(super::sculk::Patch::compile(value)),
+            "freeze_top_layer" => Feature::NoOp,
+            "fossil" => super::fossil::Fossil::compile(value)
+                .map_or(Feature::Unsupported, |item| Feature::Fossil(Box::new(item))),
+            "template" => super::templated::Templated::compile(value)
+                .map_or(Feature::Unsupported, |item| {
+                    Feature::Template(Box::new(item))
+                }),
+            "monster_room" => Feature::MonsterRoom(super::dungeon::MonsterRoom::compile()),
+            "geode" => Feature::Geode(Box::new(super::geode::Geode::compile(value))),
+            "underwater_magma" => Feature::Magma(super::magma::Magma::compile(value)),
+            "fallen_tree" => Feature::Fallen(Box::new(super::fallen::Fallen::compile(value, self))),
+            "huge_red_mushroom" => {
+                Feature::Mushroom(Box::new(super::mushrooms::Mushroom::compile(value, true)))
+            }
+            "huge_brown_mushroom" => {
+                Feature::Mushroom(Box::new(super::mushrooms::Mushroom::compile(value, false)))
+            }
             "random_selector" => {
                 let entries = value
                     .get("features")
@@ -380,12 +469,32 @@ impl Feature {
     pub(crate) fn reach(&self) -> i32 {
         match self {
             Self::NoOp | Self::Simple { .. } | Self::Column(_) | Self::Spring(_) => 1,
-            Self::Ore(_) => 9,
+            Self::Ore(ore) => ore.reach(),
             Self::Tree(_) => 12,
             Self::Lake(_) => 16,
             Self::Blob(_) => 6,
             Self::Bamboo(_) => 5,
             Self::Vines => 1,
+            Self::Mushroom(mushroom) => mushroom.reach(),
+            Self::Fallen(fallen) => fallen.reach(),
+            Self::Magma(magma) => magma.reach(),
+            Self::Geode(geode) => geode.reach(),
+            Self::MonsterRoom(room) => room.reach(),
+            Self::Fossil(fossil) => fossil.reach(),
+            Self::Template(template) => template.reach(),
+            Self::Spread(spread) => spread.reach(),
+            Self::Multiface(growth) => growth.reach(),
+            Self::Sculk(patch) => patch.reach(),
+            Self::Vegetation(patch) => patch.reach(),
+            Self::Root(root) => root.reach(),
+            Self::Speleothem(item) => item.reach(),
+            Self::Cluster(item) => item.reach(),
+            Self::Large(item) => item.reach(),
+            Self::CoralTree(placed) => super::coral::reach_of_tree(placed),
+            Self::CoralClaw(placed) => super::coral::reach_of_claw(placed),
+            Self::Spike(spike) => spike.reach(),
+            Self::Iceberg(iceberg) => iceberg.reach(),
+            Self::BlueIce(ice) => ice.reach(),
             Self::Disk(_) => 8,
             Self::RandomSelector { entries, default } => entries
                 .iter()
@@ -393,7 +502,7 @@ impl Feature {
                 .chain([default.margin])
                 .max()
                 .unwrap_or(1),
-            Self::Simple2(items) | Self::Sequence(items) => {
+            Self::Simple2(items) | Self::Sequence(items) | Self::Overlay(items) => {
                 items.iter().map(|p| p.margin).max().unwrap_or(1)
             }
             Self::Weighted(items) => items.iter().map(|(p, _)| p.margin).max().unwrap_or(1),
@@ -415,6 +524,26 @@ impl Feature {
             Self::Blob(blob) => place_blob(blob, run, pos),
             Self::Bamboo(probability) => place_bamboo(*probability, run, pos),
             Self::Vines => place_vines(run, pos),
+            Self::Mushroom(mushroom) => mushroom.place(run, pos),
+            Self::Fallen(fallen) => fallen.place(run, pos),
+            Self::Magma(magma) => magma.place(run, pos),
+            Self::Geode(geode) => geode.place(run, pos),
+            Self::MonsterRoom(room) => room.place(run, pos),
+            Self::Fossil(fossil) => fossil.place(run, pos),
+            Self::Template(template) => template.place(run, pos),
+            Self::Spread(spread) => spread.place(run, pos),
+            Self::Multiface(growth) => growth.place(run, pos),
+            Self::Sculk(patch) => patch.place(run, pos),
+            Self::Vegetation(patch) => patch.place(run, pos),
+            Self::Root(root) => root.place(run, pos),
+            Self::Speleothem(item) => item.place(run, pos),
+            Self::Cluster(item) => item.place(run, pos),
+            Self::Large(item) => item.place(run, pos),
+            Self::CoralTree(placed) => super::coral::tree(placed, run, pos),
+            Self::CoralClaw(placed) => super::coral::claw(placed, run, pos),
+            Self::Spike(spike) => spike.place(run, pos),
+            Self::Iceberg(iceberg) => iceberg.place(run, pos),
+            Self::BlueIce(ice) => ice.place(run, pos),
             Self::RandomSelector { entries, default } => {
                 for (chance, placed) in entries {
                     if run.rng.next_float() < *chance {
@@ -451,7 +580,8 @@ impl Feature {
                     no.place(run, pos)
                 }
             }
-            Self::Sequence(items) => {
+            Self::Sequence(items) => items.iter().all(|placed| placed.place(run, pos)),
+            Self::Overlay(items) => {
                 let mut any = false;
                 for placed in items {
                     any |= placed.place(run, pos);
@@ -468,6 +598,10 @@ fn place_simple(state: &State, run: &mut Run, pos: Pos) -> bool {
     };
     if !survives(run.region, resolved, pos) {
         return false;
+    }
+    if resolved.kind() == Some(rspigot_blocks::BlockKind::PaleMossCarpet) {
+        super::mossy::place_at(run, pos);
+        return true;
     }
     if let Some(upper) = double_plant_upper(resolved) {
         if !run.region.get(pos.0, pos.1 + 1, pos.2).is_air() {
@@ -658,7 +792,7 @@ fn place_column(column: &Column, run: &mut Run, (x, y, z): Pos) -> bool {
     if total == 0 {
         return false;
     }
-    let mut at = y;
+    let mut at = y + step;
     for k in 0..total {
         if !column.allowed.test(run.region, (x, at, z)) {
             let mut remove = total - k;

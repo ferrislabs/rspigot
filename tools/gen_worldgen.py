@@ -159,6 +159,18 @@ def reachable_features(pack, biomes):
     return placed, configured
 
 
+def processor_list_names(node, found):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in ("fossil_processors", "overlay_processors") and isinstance(value, str):
+                found.add(value)
+            else:
+                processor_list_names(value, found)
+    elif isinstance(node, list):
+        for item in node:
+            processor_list_names(item, found)
+
+
 def build(pack):
     noises = set(SURFACE_NOISES)
     surface_rule = {
@@ -176,6 +188,8 @@ def build(pack):
         }
     placed = {name: pack.load("placed_feature", name) for name in pack.names("placed_feature")}
     configured = {name: pack.load("feature", name) for name in pack.names("feature")}
+    processor_names = set()
+    processor_list_names(configured, processor_names)
     collect_feature_noises(placed, noises)
     collect_feature_noises(configured, noises)
     noise_table = {name: noise_entry(pack, name) for name in sorted(noises)}
@@ -185,6 +199,7 @@ def build(pack):
         "placed": placed,
         "configured": configured,
         "noises": noise_table,
+        "processor_lists": {name: pack.load("processor_list", name) for name in sorted(processor_names)},
         "providers": {name: pack.load("block_state_provider", name) for name in pack.names("block_state_provider")},
     }
 
