@@ -91,6 +91,13 @@ pub(crate) fn block_container(
     container(values, BlockStateId)
 }
 
+pub(crate) const SECTION_BIOMES: usize = 64;
+
+pub(crate) fn biome_section_container(values: &[BiomeId]) -> PalettedContainer<BiomeId, Biomes> {
+    let raw: Vec<u16> = values.iter().map(|biome| biome.0).collect();
+    container(&raw, BiomeId).0
+}
+
 pub(crate) fn biome_container(cells: &[BiomeId; 16]) -> PalettedContainer<BiomeId, Biomes> {
     let mut values = [0u16; 64];
     for layer in values.chunks_mut(16) {
@@ -155,18 +162,41 @@ impl ChunkBuffer {
         cells: &[BiomeId; 16],
         classifier: &Classifier,
     ) -> ChunkColumn {
-        let count = self.height.section_count();
         let biomes = biome_container(cells);
+        self.assemble(pos, cells[0], classifier, |_| biomes.clone())
+    }
+
+    pub(crate) fn finish_layered(
+        self,
+        pos: ChunkPos,
+        biomes: &[BiomeId],
+        classifier: &Classifier,
+    ) -> ChunkColumn {
+        let fallback = biomes.first().copied().unwrap_or(BiomeId(0));
+        self.assemble(pos, fallback, classifier, |section| {
+            let start = section * SECTION_BIOMES;
+            biome_section_container(&biomes[start..start + SECTION_BIOMES])
+        })
+    }
+
+    fn assemble(
+        self,
+        pos: ChunkPos,
+        fallback: BiomeId,
+        classifier: &Classifier,
+        biomes: impl Fn(usize) -> PalettedContainer<BiomeId, Biomes>,
+    ) -> ChunkColumn {
+        let count = self.height.section_count();
         let mut uniform = Vec::with_capacity(count);
         let mut sections = Vec::with_capacity(count);
-        for values in self.blocks.chunks(SECTION) {
+        for (index, values) in self.blocks.chunks(SECTION).enumerate() {
             let (blocks, single) = block_container(values);
             uniform.push(single);
-            sections.push(ChunkSection::from_parts(blocks, biomes.clone()));
+            sections.push(ChunkSection::from_parts(blocks, biomes(index)));
         }
         let heightmaps = classifier.heightmaps(&self.blocks, &uniform, self.height);
         let mut column = ChunkColumn::from_sections(pos, self.height, sections)
-            .unwrap_or_else(|| ChunkColumn::empty(pos, self.height, cells[0]));
+            .unwrap_or_else(|| ChunkColumn::empty(pos, self.height, fallback));
         column.heightmaps = heightmaps;
         column
     }
@@ -218,6 +248,30 @@ mod tests {
             biome_container(&[BiomeId(3); 16]).single_value(),
             Some(BiomeId(3))
         );
+    }
+
+    #[test]
+    fn layered_biomes_keep_each_section_apart() {
+        let height = WorldHeight::OVERWORLD;
+        let sections = height.section_count();
+        let biomes: Vec<BiomeId> = (0..sections * SECTION_BIOMES)
+            .map(|i| BiomeId((i / SECTION_BIOMES) as u16 % 3 + (i % 4 == 0) as u16 * 10))
+            .collect();
+        let column = ChunkBuffer::new(height).finish_layered(
+            ChunkPos::new(0, 0),
+            &biomes,
+            &Classifier::new(),
+        );
+        for (index, section) in column.sections().iter().enumerate() {
+            for local in 0..SECTION_BIOMES {
+                let (x, z, y) = (local & 3, (local >> 2) & 3, local >> 4);
+                assert_eq!(
+                    section.biome(x, y, z),
+                    biomes[index * SECTION_BIOMES + local],
+                    "{index} {local}"
+                );
+            }
+        }
     }
 
     #[test]

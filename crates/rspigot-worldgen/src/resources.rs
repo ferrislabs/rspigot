@@ -90,6 +90,13 @@ macro_rules! biome_table {
 
         impl Biome {
             pub(crate) const COUNT: usize = [$(Self::$variant),*].len();
+
+            pub(crate) fn from_name(name: &str) -> Option<Self> {
+                match name {
+                    $($name => Some(Self::$variant),)*
+                    _ => None,
+                }
+            }
         }
 
         const BIOME_NAMES: [&str; Biome::COUNT] = [$($name),*];
