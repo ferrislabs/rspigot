@@ -847,6 +847,14 @@ impl<L: ClientLink> Server<L> {
             self.shear_copper_golem(id, target, hand);
             return;
         }
+        self.shear_sheep_wool(target);
+        self.hurt_held(id, hand, 1);
+    }
+
+    pub(crate) fn shear_sheep_wool(&mut self, target: EntityId) {
+        let Some(entity) = self.entities.store.get(target) else {
+            return;
+        };
         let position = entity.base.position;
         let facts = crate::mobs::loot_facts_of(entity);
         self.play_sound(
@@ -883,7 +891,6 @@ impl<L: ClientLink> Server<L> {
         if let Some(entity) = self.entities.store.get_mut(target) {
             species::set_sheared(&mut entity.base, true);
         }
-        self.hurt_held(id, hand, 1);
     }
 
     pub(crate) fn animal_interact(

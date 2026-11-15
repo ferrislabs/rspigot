@@ -23,13 +23,13 @@ pub(crate) const EMPTY_LAVA_SOUND: &str = "minecraft:item.bucket.empty_lava";
 pub(crate) const EMPTY_POWDER_SNOW_SOUND: &str = "minecraft:item.bucket.empty_powder_snow";
 const WATERLOGGED: &str = "waterlogged";
 
-struct Pickup {
-    bucket: ItemKind,
-    after: BlockStateId,
+pub(crate) struct Pickup {
+    pub(crate) bucket: ItemKind,
+    pub(crate) after: BlockStateId,
     sound: &'static str,
 }
 
-fn pickup_of(state: BlockStateId) -> Option<Pickup> {
+pub(crate) fn pickup_of(state: BlockStateId) -> Option<Pickup> {
     let source = state.property("level") == Some("0");
     match state.kind()? {
         BlockKind::Water if source => Some(Pickup {

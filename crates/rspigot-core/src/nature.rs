@@ -111,6 +111,20 @@ impl<L: ClientLink> Server<L> {
             self.drop_block_resources(step.pos, step.expected);
         }
         self.set_block(step.pos, step.state);
+        if step.nature == Nature::Burn
+            && step.expected.kind() == Some(rspigot_blocks::BlockKind::Tnt)
+        {
+            self.prime_tnt(
+                crate::tnt::TntPrimeStep {
+                    remove: false,
+                    ..crate::tnt::TntPrimeStep::of(
+                        step.pos,
+                        crate::plugins::events::TNTPrimeCause::Fire,
+                    )
+                }
+                .by_block(step.source),
+            );
+        }
     }
 
     fn drop_block_resources(&mut self, pos: BlockPos, state: BlockStateId) {

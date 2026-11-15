@@ -106,6 +106,7 @@ pub mod streaming;
 mod tamable;
 mod throwing;
 mod thrown;
+mod tnt;
 mod totem;
 mod trader_spawner;
 mod trading;
