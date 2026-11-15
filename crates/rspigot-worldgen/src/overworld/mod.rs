@@ -2,6 +2,7 @@ mod caves;
 mod features;
 mod freeze;
 mod region;
+mod surface_random;
 mod surface_rules;
 mod terrain;
 
@@ -20,10 +21,10 @@ use rspigot_data::multi_noise::{ClimateVariant, overworld_biomes};
 use std::cell::RefCell;
 
 use caves::Caves;
-use features::Features;
+pub(crate) use features::Features;
 use freeze::{FreezeContext, freeze_top_layer};
-use region::{ChunkBiomes, Region, TerrainChunk};
-use surface_rules::{Bounds, ColumnInput, SurfaceSystem};
+pub(crate) use region::{ChunkBiomes, Region, TerrainChunk};
+pub(crate) use surface_rules::{Bounds, ColumnInput, SurfaceSystem};
 use terrain::Terrain;
 pub(crate) use terrain::smooth;
 
@@ -34,23 +35,32 @@ const SPAWN_RINGS: i32 = 200;
 
 const CACHE_CAPACITY: usize = 192;
 
-type TerrainKey = (i32, i32, i32, u32, i32);
+pub(crate) type TerrainKey = (i32, i32, i32, u32, i32);
 
-#[derive(Debug, Default)]
-struct TerrainCache {
+#[derive(Debug)]
+pub(crate) struct TerrainCache {
     map: HashMap<TerrainKey, Arc<TerrainChunk>>,
     order: VecDeque<TerrainKey>,
+    capacity: usize,
 }
 
 impl TerrainCache {
-    fn get(&self, key: &TerrainKey) -> Option<Arc<TerrainChunk>> {
+    pub(crate) fn with_capacity(capacity: usize) -> Self {
+        Self {
+            capacity,
+            map: HashMap::new(),
+            order: VecDeque::new(),
+        }
+    }
+
+    pub(crate) fn get(&self, key: &TerrainKey) -> Option<Arc<TerrainChunk>> {
         self.map.get(key).cloned()
     }
 
-    fn insert(&mut self, key: TerrainKey, chunk: Arc<TerrainChunk>) {
+    pub(crate) fn insert(&mut self, key: TerrainKey, chunk: Arc<TerrainChunk>) {
         if self.map.insert(key, chunk).is_none() {
             self.order.push_back(key);
-            while self.order.len() > CACHE_CAPACITY {
+            while self.order.len() > self.capacity.max(1) {
                 if let Some(old) = self.order.pop_front() {
                     self.map.remove(&old);
                 }
@@ -98,8 +108,8 @@ impl Overworld {
                 .collect(),
             caves: Caves::new(seed),
             surface: Arc::new(SurfaceSystem::new(seed as i64, palette)),
-            features: Arc::new(Features::compile()),
-            cache: Arc::new(Mutex::new(TerrainCache::default())),
+            features: Arc::new(Features::compile(overworld_biomes())),
+            cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
         }
     }
 

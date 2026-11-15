@@ -8,6 +8,7 @@ use super::Overworld;
 use crate::buffer::ChunkBuffer;
 use crate::classify::{MOTION_BLOCKING, MOTION_BLOCKING_NO_LEAVES, OCEAN_FLOOR, WORLD_SURFACE};
 use crate::climate::{BiomeSource, ClimateScratch, Xoroshiro};
+use crate::nether::Nether;
 use crate::resources::Resources;
 
 const UNKNOWN: u8 = u8::MAX;
@@ -66,6 +67,19 @@ impl ChunkBiomes {
         y: i32,
         z: usize,
     ) -> u8 {
+        self.get_with(pos, x, y, z, |qx, qy, qz| {
+            source.biome_index(scratch, qx, qy, qz)
+        })
+    }
+
+    pub(crate) fn get_with(
+        &self,
+        pos: ChunkPos,
+        x: usize,
+        y: i32,
+        z: usize,
+        compute: impl FnOnce(i32, i32, i32) -> u8,
+    ) -> u8 {
         let layer = ((y >> 2) - self.base).clamp(0, self.layers as i32 - 1) as usize;
         let (cx, cz) = (x >> 2, z >> 2);
         let slot = layer * 16 + cz * 4 + cx;
@@ -73,8 +87,7 @@ impl ChunkBiomes {
         if known != UNKNOWN {
             return known;
         }
-        let value = source.biome_index(
-            scratch,
+        let value = compute(
             pos.x * 4 + cx as i32,
             self.base + layer as i32,
             pos.z * 4 + cz as i32,
@@ -89,10 +102,18 @@ impl ChunkBiomes {
         scratch: &mut ClimateScratch,
         pos: ChunkPos,
     ) -> Vec<u8> {
+        self.complete_with(pos, |qx, qy, qz| source.biome_index(scratch, qx, qy, qz))
+    }
+
+    pub(crate) fn complete_with(
+        &self,
+        pos: ChunkPos,
+        mut compute: impl FnMut(i32, i32, i32) -> u8,
+    ) -> Vec<u8> {
         for layer in 0..self.layers {
             for cell in 0..16usize {
                 let y = (self.base + layer as i32) << 2;
-                self.get(source, scratch, pos, (cell & 3) << 2, y, (cell >> 2) << 2);
+                self.get_with(pos, (cell & 3) << 2, y, (cell >> 2) << 2, &mut compute);
             }
         }
         self.cells
@@ -137,13 +158,19 @@ pub(crate) struct TerrainChunk {
 
 pub(crate) type Slot = TerrainChunk;
 
+pub(crate) enum Provider<'a> {
+    Overworld(&'a Overworld, ClimateScratch),
+    Nether(&'a Nether),
+    #[cfg_attr(not(test), allow(dead_code))]
+    Fixture,
+}
+
 pub(crate) struct Region<'a> {
-    overworld: Option<&'a Overworld>,
+    provider: Provider<'a>,
     resources: &'a Resources,
     dimension: &'a Dimension,
     center: ChunkPos,
     slots: [Option<Box<Slot>>; 9],
-    scratch: Option<ClimateScratch>,
     fixed_biome: u8,
     random: Xoroshiro,
     #[cfg(test)]
@@ -161,13 +188,35 @@ impl<'a> Region<'a> {
         dimension: &'a Dimension,
         center: ChunkPos,
     ) -> Self {
+        Self::with_provider(
+            Provider::Overworld(overworld, overworld.source.scratch()),
+            resources,
+            dimension,
+            center,
+        )
+    }
+
+    pub(crate) fn for_nether(
+        nether: &'a Nether,
+        resources: &'a Resources,
+        dimension: &'a Dimension,
+        center: ChunkPos,
+    ) -> Self {
+        Self::with_provider(Provider::Nether(nether), resources, dimension, center)
+    }
+
+    fn with_provider(
+        provider: Provider<'a>,
+        resources: &'a Resources,
+        dimension: &'a Dimension,
+        center: ChunkPos,
+    ) -> Self {
         Self {
-            overworld: Some(overworld),
+            provider,
             resources,
             dimension,
             center,
             slots: std::array::from_fn(|_| None),
-            scratch: Some(overworld.source.scratch()),
             fixed_biome: 0,
             #[cfg(test)]
             changed: Vec::new(),
@@ -184,12 +233,11 @@ impl<'a> Region<'a> {
         fill: impl Fn(ChunkPos, &mut ChunkBuffer),
     ) -> Self {
         let mut region = Self {
-            overworld: None,
+            provider: Provider::Fixture,
             resources,
             dimension,
             center,
             slots: std::array::from_fn(|_| None),
-            scratch: None,
             fixed_biome: biome,
             changed: Vec::new(),
             random: Xoroshiro::from_seed(0),
@@ -215,6 +263,13 @@ impl<'a> Region<'a> {
 
     pub(crate) fn height(&self) -> WorldHeight {
         self.dimension.height
+    }
+
+    pub(crate) fn gen_depth(&self) -> i32 {
+        match self.provider {
+            Provider::Nether(_) => 128,
+            _ => self.dimension.height.height as i32,
+        }
     }
 
     pub(crate) fn sea_level(&self) -> i32 {
@@ -256,16 +311,16 @@ impl<'a> Region<'a> {
         if self.slots[index].is_some() {
             return;
         }
-        let Some(overworld) = self.overworld else {
-            return;
-        };
         let (dx, dz) = ((index % 3) as i32 - 1, (index / 3) as i32 - 1);
         let pos = ChunkPos::new(self.center.x + dx, self.center.z + dz);
-        let Some(scratch) = self.scratch.as_mut() else {
-            return;
+        let terrain = match &mut self.provider {
+            Provider::Overworld(overworld, scratch) => {
+                (*overworld.terrain_cached(self.resources, self.dimension, pos, scratch)).clone()
+            }
+            Provider::Nether(nether) => nether.terrain_cached(self.resources, self.dimension, pos),
+            Provider::Fixture => return,
         };
-        let terrain = overworld.terrain_cached(self.resources, self.dimension, pos, scratch);
-        self.slots[index] = Some(Box::new((*terrain).clone()));
+        self.slots[index] = Some(Box::new(terrain));
     }
 
     pub(crate) fn get(&mut self, x: i32, y: i32, z: i32) -> BlockStateId {
@@ -337,12 +392,18 @@ impl<'a> Region<'a> {
         self.ensure(index);
         let (dx, dz) = ((index % 3) as i32 - 1, (index / 3) as i32 - 1);
         let pos = ChunkPos::new(self.center.x + dx, self.center.z + dz);
-        let (Some(overworld), Some(scratch)) = (self.overworld, self.scratch.as_mut()) else {
-            return self.fixed_biome;
+        let fixed = self.fixed_biome;
+        let Some(slot) = self.slots[index].as_mut() else {
+            return fixed;
         };
-        match self.slots[index].as_mut() {
-            Some(slot) => slot.biomes.get(&overworld.source, scratch, pos, lx, y, lz),
-            None => self.fixed_biome,
+        match &mut self.provider {
+            Provider::Overworld(overworld, scratch) => {
+                slot.biomes.get(&overworld.source, scratch, pos, lx, y, lz)
+            }
+            Provider::Nether(nether) => slot
+                .biomes
+                .get_with(pos, lx, y, lz, |qx, _, qz| nether.biome_index(qx, qz)),
+            Provider::Fixture => fixed,
         }
     }
 
@@ -351,16 +412,17 @@ impl<'a> Region<'a> {
         self.ensure(index);
         let center = self.center;
         let fixed = self.fixed_biome;
-        let overworld = self.overworld;
-        let mut scratch = self.scratch.take();
         let Some(slot) = self.slots[index].take() else {
             return (ChunkBuffer::new(self.dimension.height), Vec::new());
         };
-        let indices = match (overworld, scratch.as_mut()) {
-            (Some(overworld), Some(scratch)) => {
+        let indices = match &mut self.provider {
+            Provider::Overworld(overworld, scratch) => {
                 slot.biomes.complete(&overworld.source, scratch, center)
             }
-            _ => vec![fixed; slot.biomes.cells.len()],
+            Provider::Nether(nether) => slot
+                .biomes
+                .complete_with(center, |qx, _, qz| nether.biome_index(qx, qz)),
+            Provider::Fixture => vec![fixed; slot.biomes.cells.len()],
         };
         (slot.buffer, indices)
     }

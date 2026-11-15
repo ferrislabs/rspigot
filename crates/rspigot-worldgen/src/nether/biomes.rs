@@ -100,7 +100,7 @@ impl NetherBiomes {
         best
     }
 
-    pub(crate) fn biome(&self, qx: i32, qz: i32) -> BiomeId {
-        self.ids[self.index(qx, qz)]
+    pub(crate) fn ids(&self) -> &[BiomeId; 5] {
+        &self.ids
     }
 }

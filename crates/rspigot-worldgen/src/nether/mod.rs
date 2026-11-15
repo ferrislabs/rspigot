@@ -1,49 +1,35 @@
+use std::sync::{Arc, Mutex};
+
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::Dimension;
-use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, Vec3};
+use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Vec3};
 
 mod biomes;
 mod density;
 #[cfg(test)]
 mod reference;
 
+pub(crate) use biomes::NETHER_BIOMES;
+
 use crate::buffer::ChunkBuffer;
+use crate::overworld::{
+    Bounds, ChunkBiomes, ColumnInput, Features, Region, SurfaceSystem, TerrainCache, TerrainChunk,
+};
 use crate::resources::{BlockKind, Palette, Resources};
-use crate::rng::{hash3, unit};
-use crate::veins::{Hosts, Vein, place};
 
 const CEILING: i32 = 127;
 const NOISE_HEIGHT: i32 = 128;
-const SALT_ORE: u64 = 0x4E37_0B1E;
-const SALT_BEDROCK: u64 = 0xB3D2_0C0F;
-const SALT_MAGMA: u64 = 0x3A61_7A11;
 const SPAWN_RINGS: i32 = 6;
+const CACHE_CAPACITY: usize = 64;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Nether {
     seed: u64,
     density: density::NetherDensity,
     biomes: biomes::NetherBiomes,
-    veins: Vec<Vein>,
-}
-
-fn nether_veins(palette: &Palette) -> Vec<Vein> {
-    let vein = |ore: BlockKind, count, size, min_y, max_y| Vein {
-        count,
-        size,
-        min_y,
-        max_y,
-        triangle: false,
-        spread: 3,
-        rarity: 1,
-        in_stone: palette[ore],
-        in_deep: palette[ore],
-    };
-    vec![
-        vein(BlockKind::NetherQuartzOre, 16, 14, 10, 117),
-        vein(BlockKind::NetherGoldOre, 10, 10, 10, 117),
-        vein(BlockKind::Gravel, 3, 20, 5, 41),
-    ]
+    surface: Arc<SurfaceSystem>,
+    features: Arc<Features>,
+    cache: Arc<Mutex<TerrainCache>>,
 }
 
 impl Nether {
@@ -52,20 +38,43 @@ impl Nether {
             seed,
             density: density::NetherDensity::new(seed as i64),
             biomes: biomes::NetherBiomes::new(seed as i64),
-            veins: nether_veins(palette),
+            surface: Arc::new(SurfaceSystem::nether(seed as i64, palette)),
+            features: Arc::new(Features::compile(&NETHER_BIOMES)),
+            cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
         }
     }
 
-    pub(crate) fn generate(
+    pub(crate) fn biome_index(&self, qx: i32, qz: i32) -> u8 {
+        self.biomes.index(qx, qz) as u8
+    }
+
+    pub(crate) fn terrain_cached(
         &self,
         resources: &Resources,
         dimension: &Dimension,
         pos: ChunkPos,
-    ) -> ChunkColumn {
+    ) -> TerrainChunk {
+        let key = (
+            pos.x,
+            pos.z,
+            dimension.height.min_y,
+            dimension.height.height,
+            dimension.sea_level,
+        );
+        if let Some(found) = self.cache.lock().map_or(None, |cache| cache.get(&key)) {
+            return (*found).clone();
+        }
+        let chunk = Arc::new(self.terrain(resources, dimension, pos));
+        if let Ok(mut cache) = self.cache.lock() {
+            cache.insert(key, chunk.clone());
+        }
+        (*chunk).clone()
+    }
+
+    fn terrain(&self, resources: &Resources, dimension: &Dimension, pos: ChunkPos) -> TerrainChunk {
         let palette = &resources.blocks;
         let height = dimension.height;
         let bottom = height.min_y;
-        let top = CEILING.min(height.max_y());
         let x0 = pos.x * 16;
         let z0 = pos.z * 16;
         let netherrack = palette[BlockKind::Netherrack];
@@ -86,81 +95,46 @@ impl Nether {
                 buffer.set(x, y, z, lava);
             }
         });
-        place(
-            &mut buffer,
-            pos,
-            self.seed,
-            SALT_ORE,
-            &self.veins,
-            Hosts {
-                stone: netherrack,
-                deep: netherrack,
-            },
-        );
-        self.magma(&mut buffer, palette, pos, dimension.sea_level);
-        self.bedrock(&mut buffer, palette, pos, bottom, top);
-        let sections = height.section_count();
-        let mut biomes = Vec::with_capacity(sections * 64);
-        for _ in 0..sections * 4 {
-            for qz in 0..4 {
-                for qx in 0..4 {
-                    biomes.push(self.biomes.biome(pos.x * 4 + qx, pos.z * 4 + qz));
-                }
-            }
+        let biomes = ChunkBiomes::new(height);
+        let bounds = Bounds {
+            min_y: bottom,
+            max_y: CEILING.min(height.max_y()),
+            sea_level: dimension.sea_level,
+        };
+        for i in 0..256usize {
+            let (x, z) = (i & 15, i >> 4);
+            let index = self.biome_index(pos.x * 4 + (x >> 2) as i32, pos.z * 4 + (z >> 2) as i32);
+            self.surface.column(ColumnInput {
+                bounds,
+                buffer: &mut buffer,
+                x,
+                z,
+                world_x: x0 + x as i32,
+                world_z: z0 + z as i32,
+                top: bounds.max_y,
+                gradient: (0, 0),
+                biome_at: |_| index,
+            });
         }
-        buffer.finish_layered(pos, &biomes, &resources.classifier)
+        TerrainChunk::new(buffer, biomes, [bounds.max_y + 1; 256], height)
     }
 
-    fn magma(&self, buffer: &mut ChunkBuffer, palette: &Palette, pos: ChunkPos, sea_level: i32) {
-        let netherrack = palette[BlockKind::Netherrack];
-        let magma = palette[BlockKind::MagmaBlock];
-        for z in 0..16usize {
-            for x in 0..16usize {
-                for y in (sea_level - 4)..=(sea_level + 2) {
-                    if buffer.get(x, y, z) != netherrack {
-                        continue;
-                    }
-                    let hash = hash3(
-                        self.seed ^ SALT_MAGMA,
-                        pos.x * 16 + x as i32,
-                        y,
-                        pos.z * 16 + z as i32,
-                    );
-                    if unit(hash) < 0.06 {
-                        buffer.set(x, y, z, magma);
-                    }
-                }
-            }
-        }
-    }
-
-    fn bedrock(
+    pub(crate) fn generate(
         &self,
-        buffer: &mut ChunkBuffer,
-        palette: &Palette,
+        resources: &Resources,
+        dimension: &Dimension,
         pos: ChunkPos,
-        bottom: i32,
-        top: i32,
-    ) {
-        let bedrock = palette[BlockKind::Bedrock];
-        for k in 0..5 {
-            let chance = f64::from(5 - k) / 5.0;
-            for (y, always) in [(bottom + k, k == 0), (top - k, k == 0)] {
-                for z in 0..16usize {
-                    for x in 0..16usize {
-                        let hash = hash3(
-                            self.seed ^ SALT_BEDROCK,
-                            pos.x * 16 + x as i32,
-                            y,
-                            pos.z * 16 + z as i32,
-                        );
-                        if always || unit(hash) < chance {
-                            buffer.set(x, y, z, bedrock);
-                        }
-                    }
-                }
-            }
-        }
+    ) -> ChunkColumn {
+        let mut region = Region::for_nether(self, resources, dimension, pos);
+        self.features
+            .decorate(&mut region, self.seed as i64, &self.surface);
+        let (buffer, indices) = region.finish();
+        let ids: Vec<BiomeId> = self.biomes.ids().to_vec();
+        let stored: Vec<BiomeId> = indices
+            .iter()
+            .map(|index| ids[usize::from(*index)])
+            .collect();
+        buffer.finish_layered(pos, &stored, &resources.classifier)
     }
 
     pub(crate) fn spawn_point(&self, resources: &Resources, dimension: &Dimension) -> Vec3 {

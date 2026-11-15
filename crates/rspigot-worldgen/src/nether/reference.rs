@@ -115,3 +115,58 @@ fn terrain_columns_match_the_vanilla_noise_chunk() {
     }
     assert!(wrong * 500 <= total, "{wrong} of {total}");
 }
+
+#[test]
+fn a_decorated_nether_region_holds_every_biome_surface_and_feature() {
+    use crate::resources::Resources;
+    use rspigot_domain::world::Dimension;
+    let resources = Resources::resolve();
+    let dimension = Dimension::nether();
+    let mut counts = std::collections::BTreeMap::new();
+    for seed in [SEED as u64, 2] {
+        let nether = super::Nether::new(seed, &resources.blocks);
+        for cx in -8..8 {
+            for cz in -8..8 {
+                let column = nether.generate(
+                    &resources,
+                    &dimension,
+                    rspigot_domain::ChunkPos::new(cx, cz),
+                );
+                for y in 0..128 {
+                    for z in 0..16 {
+                        for x in 0..16 {
+                            let pos = rspigot_domain::BlockPos::new(cx * 16 + x, y, cz * 16 + z);
+                            if let Some(state) = column.block(pos) {
+                                let name = state.kind().map_or("?", |kind| kind.name());
+                                *counts.entry(name).or_insert(0usize) += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    for expected in [
+        "minecraft:netherrack",
+        "minecraft:lava",
+        "minecraft:bedrock",
+        "minecraft:glowstone",
+        "minecraft:nether_quartz_ore",
+        "minecraft:nether_gold_ore",
+        "minecraft:magma_block",
+        "minecraft:soul_sand",
+        "minecraft:soul_soil",
+        "minecraft:gravel",
+        "minecraft:blackstone",
+        "minecraft:basalt",
+        "minecraft:crimson_nylium",
+        "minecraft:warped_nylium",
+        "minecraft:crimson_stem",
+        "minecraft:warped_stem",
+        "minecraft:shroomlight",
+        "minecraft:fire",
+        "minecraft:ancient_debris",
+    ] {
+        assert!(counts.contains_key(expected), "{expected}");
+    }
+}
