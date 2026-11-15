@@ -108,9 +108,11 @@ pub(crate) fn biome_container(cells: &[BiomeId; 16]) -> PalettedContainer<BiomeI
     container(&values, BiomeId).0
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct ChunkBuffer {
     height: WorldHeight,
+    min_y: i32,
+    max_y: i32,
     blocks: Vec<u16>,
 }
 
@@ -118,6 +120,8 @@ impl ChunkBuffer {
     pub(crate) fn new(height: WorldHeight) -> Self {
         Self {
             height,
+            min_y: height.min_y,
+            max_y: height.max_y(),
             blocks: vec![0u16; height.height as usize * LAYER],
         }
     }
@@ -131,15 +135,15 @@ impl ChunkBuffer {
     }
 
     pub(crate) fn get(&self, x: usize, y: i32, z: usize) -> BlockStateId {
-        if !self.height.contains(y) {
+        if y < self.min_y || y > self.max_y {
             return BlockStateId::AIR;
         }
-        BlockStateId(self.blocks[self.offset(y) + (z << 4) + x])
+        BlockStateId(self.blocks[((y - self.min_y) as usize) * LAYER + (z << 4) + x])
     }
 
     pub(crate) fn set(&mut self, x: usize, y: i32, z: usize, state: BlockStateId) {
-        if self.height.contains(y) {
-            let index = self.offset(y) + (z << 4) + x;
+        if y >= self.min_y && y <= self.max_y {
+            let index = ((y - self.min_y) as usize) * LAYER + (z << 4) + x;
             self.blocks[index] = state.0;
         }
     }

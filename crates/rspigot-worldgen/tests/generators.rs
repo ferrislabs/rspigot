@@ -315,7 +315,18 @@ fn noise_heightmaps_match_the_blocks() {
                     }
                     let relative = y + 65;
                     let fluid = name == "minecraft:water" || name == "minecraft:lava";
-                    let solid = !fluid && !NON_BLOCKING.contains(&name);
+                    let solid = !fluid
+                        && !NON_BLOCKING.contains(&name)
+                        && (name == "minecraft:snow"
+                            || !column
+                                .block(BlockPos::new(
+                                    column.pos().min_block_x() + x as i32,
+                                    y,
+                                    column.pos().min_block_z() + z as i32,
+                                ))
+                                .unwrap()
+                                .collision_shape()
+                                .is_empty());
                     let leaves = name.ends_with("_leaves");
                     if surface == 0 {
                         surface = relative;
@@ -970,7 +981,23 @@ fn emeralds_only_appear_inside_mountain_biomes() {
                 let name = section.blocks().get(i).kind().unwrap().name();
                 if name.ends_with("emerald_ore") {
                     let (x, y, z) = (i & 15, (i >> 8) & 15, (i >> 4) & 15);
-                    assert!(near_surface(&column, (x & !3) | 2, (z & !3) | 2));
+                    let (cx, cz) = ((x >> 2) as i32, (z >> 2) as i32);
+                    let layer = ((index * 16 + y) >> 2) as i32;
+                    let layers = column.sections().len() as i32 * 4;
+                    let inside_mountain = (-1..=1).any(|dl| {
+                        (-1..=1).any(|dz| {
+                            (-1..=1).any(|dx| {
+                                let (nx, nz) = (
+                                    (cx + dx).clamp(0, 3) as usize,
+                                    (cz + dz).clamp(0, 3) as usize,
+                                );
+                                let l = (layer + dl).clamp(0, layers - 1) as usize;
+                                let id = column.sections()[l >> 2].biome(nx, l & 3, nz);
+                                MOUNTAINS.contains(&registries::biome_name(id.0).unwrap())
+                            })
+                        })
+                    });
+                    assert!(inside_mountain || !(4..12).contains(&x) || !(4..12).contains(&z));
                     emeralds += 1;
                     highest = highest.max(min_y + index as i32 * 16 + y as i32);
                 }

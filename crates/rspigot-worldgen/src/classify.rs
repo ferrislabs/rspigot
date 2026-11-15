@@ -64,12 +64,25 @@ impl Classifier {
         }
         let flags = (0..rspigot_blocks::STATE_COUNT)
             .map(|state| {
-                u16::try_from(state)
-                    .ok()
-                    .and_then(|state| BlockStateId(state).kind())
+                let Ok(state) = u16::try_from(state) else {
+                    return 0;
+                };
+                let id = BlockStateId(state);
+                let base = id
+                    .kind()
                     .and_then(|kind| per_block.get(usize::from(kind.id().0)))
                     .copied()
-                    .unwrap_or(0)
+                    .unwrap_or(0);
+                let full =
+                    WORLD_SURFACE | OCEAN_FLOOR | MOTION_BLOCKING | MOTION_BLOCKING_NO_LEAVES;
+                if base == full
+                    && id.collision_shape().is_empty()
+                    && id.kind().map(rspigot_blocks::BlockKind::name) != Some("minecraft:snow")
+                {
+                    WORLD_SURFACE
+                } else {
+                    base
+                }
             })
             .collect();
         Self { flags }
