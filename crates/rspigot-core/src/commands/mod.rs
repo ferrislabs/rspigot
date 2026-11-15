@@ -5,6 +5,7 @@ mod dispatch;
 mod execute;
 pub mod permission;
 pub mod selector;
+mod server_commands;
 pub mod source;
 mod tree;
 
@@ -25,3 +26,6 @@ mod blocks_tests;
 
 #[cfg(test)]
 mod data_tests;
+
+#[cfg(test)]
+mod server_command_tests;

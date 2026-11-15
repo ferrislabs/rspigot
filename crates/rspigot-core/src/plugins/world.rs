@@ -216,7 +216,7 @@ fn address_of(raw: &str) -> Result<IpAddr, String> {
         .map_err(|_| format!("{raw} is not an IP address"))
 }
 
-const fn rule_flag<'a>(
+pub(crate) const fn rule_flag<'a>(
     rules: &'a mut GameRules,
     daylight: &'a mut bool,
     rule: GameRule,

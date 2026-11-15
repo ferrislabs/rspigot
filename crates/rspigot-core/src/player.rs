@@ -49,6 +49,7 @@ pub struct Player<L> {
     pub loaded: bool,
     pub operator: bool,
     pub op_level: u8,
+    pub tags: Vec<String>,
     pub effects: ActiveEffects,
     pub vitals: Vitals,
     pub known_movement: Vec3,

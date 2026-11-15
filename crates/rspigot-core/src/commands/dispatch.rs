@@ -222,6 +222,59 @@ pub trait CommandContext {
         true
     }
 
+    fn default_game_mode(&self) -> GameMode {
+        GameMode::Survival
+    }
+
+    fn set_default_game_mode(&mut self, _mode: GameMode) {}
+
+    fn game_rule_text(&self, _name: &str) -> Option<String> {
+        None
+    }
+
+    fn set_game_rule_text(&mut self, _name: &str, _value: &str) -> Result<(), &'static str> {
+        Err("argument.rule.invalid")
+    }
+
+    fn experience_state(&self, _player: PlayerId) -> Option<(i32, i32)> {
+        None
+    }
+
+    fn add_experience(&mut self, _player: PlayerId, _amount: i32, _levels: bool) {}
+
+    fn set_experience(&mut self, _player: PlayerId, _amount: i32, _levels: bool) -> bool {
+        false
+    }
+
+    fn tags_of(&self, _target: Target) -> Vec<String> {
+        Vec::new()
+    }
+
+    fn add_tag(&mut self, _target: Target, _tag: &str) -> bool {
+        false
+    }
+
+    fn remove_tag(&mut self, _target: Target, _tag: &str) -> bool {
+        false
+    }
+
+    fn set_saving(&mut self, _enabled: bool) -> bool {
+        false
+    }
+
+    fn random_between(&mut self, min: i32, _max: i32) -> i32 {
+        min
+    }
+
+    fn set_spawn_point(
+        &mut self,
+        _player: PlayerId,
+        _dimension: Identifier,
+        _pos: BlockPos,
+        _angle: f32,
+    ) {
+    }
+
     fn local_origin(&self, sender: CommandSender) -> Vec3 {
         self.sender_origin(sender)
     }
@@ -408,6 +461,8 @@ pub fn execute<C: CommandContext>(
         "effect" => effect(ctx, sender, rest),
         "kill" => kill(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "difficulty" => difficulty(ctx, sender, &args),
+        "defaultgamemode" | "gamerule" | "experience" | "xp" | "tag" | "save-on" | "save-off"
+        | "random" | "spawnpoint" => super::server_commands::run(ctx, sender, &label, rest),
         "data" => super::data::run(ctx, sender, rest),
         "setblock" => super::blocks::setblock(ctx, sender, rest),
         "fill" => super::blocks::fill(ctx, sender, rest),

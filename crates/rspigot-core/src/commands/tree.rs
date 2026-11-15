@@ -174,8 +174,9 @@ pub fn build_tree(level: u8) -> CommandTree {
         admin_commands(&mut b, root);
     }
     if level >= LEVEL_OWNERS {
-        b.literal(root, "save-all", true);
-        b.literal(root, "stop", true);
+        for name in ["save-all", "save-on", "save-off", "stop"] {
+            b.literal(root, name, true);
+        }
     }
     CommandTree {
         nodes: b.nodes,
@@ -587,6 +588,91 @@ fn data_commands(b: &mut TreeBuilder, root: usize) {
     }
 }
 
+fn rule_commands(b: &mut TreeBuilder, root: usize) {
+    let gamerule = b.literal(root, "gamerule", false);
+    for name in crate::game_rule_packet::RULE_NAMES {
+        let rule = b.literal(gamerule, name, true);
+        let numeric = matches!(
+            name,
+            "players_sleeping_percentage"
+                | "random_tick_speed"
+                | "fire_spread_radius_around_player"
+                | "max_snow_accumulation_height"
+        );
+        let parser = if numeric {
+            ArgumentParser::Integer {
+                min: None,
+                max: None,
+            }
+        } else {
+            ArgumentParser::Bool
+        };
+        b.argument(rule, "value", parser, true);
+    }
+    let default_mode = b.literal(root, "defaultgamemode", false);
+    b.argument(default_mode, "gamemode", ArgumentParser::GameMode, true);
+    let experience = b.literal(root, "experience", false);
+    for action in ["add", "set"] {
+        let node = b.literal(experience, action, false);
+        let targets = b.argument(node, "targets", player_targets(), false);
+        let amount = b.argument(
+            targets,
+            "amount",
+            ArgumentParser::Integer {
+                min: if action == "set" { Some(0) } else { None },
+                max: None,
+            },
+            true,
+        );
+        for unit in ["points", "levels"] {
+            b.literal(amount, unit, true);
+        }
+    }
+    let query = b.literal(experience, "query", false);
+    let target = b.argument(query, "targets", player_arg(), false);
+    for unit in ["points", "levels"] {
+        b.literal(target, unit, true);
+    }
+    b.alias(root, "xp", experience);
+    let tag = b.literal(root, "tag", false);
+    let targets = b.argument(tag, "targets", entities(), false);
+    for action in ["add", "remove"] {
+        let node = b.literal(targets, action, false);
+        b.argument(node, "name", ArgumentParser::Word, true);
+    }
+    b.literal(targets, "list", true);
+    let random = b.literal(root, "random", false);
+    for mode in ["value", "roll"] {
+        let node = b.literal(random, mode, false);
+        let range = b.argument(
+            node,
+            "range",
+            ArgumentParser::Named("minecraft:int_range"),
+            true,
+        );
+        b.argument(range, "sequence", ArgumentParser::ResourceLocation, true);
+    }
+    let spawnpoint = b.literal(root, "spawnpoint", true);
+    let targets = b.argument(spawnpoint, "targets", player_targets(), true);
+    let pos = b.argument(targets, "pos", ArgumentParser::BlockPos, true);
+    b.argument(
+        pos,
+        "angle",
+        ArgumentParser::Float {
+            min: None,
+            max: None,
+        },
+        true,
+    );
+}
+
+fn player_targets() -> ArgumentParser {
+    ArgumentParser::Entity {
+        single: false,
+        players_only: true,
+    }
+}
+
 fn block_commands(b: &mut TreeBuilder, root: usize) {
     let setblock = b.literal(root, "setblock", false);
     let pos = position_argument(b, setblock, "pos");
@@ -632,6 +718,7 @@ fn block_commands(b: &mut TreeBuilder, root: usize) {
 fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     block_commands(b, root);
     data_commands(b, root);
+    rule_commands(b, root);
     b.literal(root, "seed", true);
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);

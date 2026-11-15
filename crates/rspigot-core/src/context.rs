@@ -150,6 +150,108 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.world.dimension.height.contains(y)
     }
 
+    fn default_game_mode(&self) -> GameMode {
+        self.config.default_game_mode
+    }
+
+    fn set_default_game_mode(&mut self, mode: GameMode) {
+        self.config.default_game_mode = mode;
+    }
+
+    fn game_rule_text(&self, name: &str) -> Option<String> {
+        Server::game_rule_text(self, name)
+    }
+
+    fn set_game_rule_text(&mut self, name: &str, value: &str) -> Result<(), &'static str> {
+        self.apply_game_rule(name, value)
+    }
+
+    fn experience_state(&self, player: PlayerId) -> Option<(i32, i32)> {
+        self.experience_levels_and_points(player)
+    }
+
+    fn add_experience(&mut self, player: PlayerId, amount: i32, levels: bool) {
+        if levels {
+            self.give_experience_levels(player, amount);
+        } else {
+            self.give_experience(player, amount);
+        }
+    }
+
+    fn set_experience(&mut self, player: PlayerId, amount: i32, levels: bool) -> bool {
+        if levels {
+            let current = self
+                .experience_levels_and_points(player)
+                .map_or(0, |(level, _)| level);
+            self.give_experience_levels(player, amount - current);
+            true
+        } else {
+            self.set_experience_points(player, amount)
+        }
+    }
+
+    fn tags_of(&self, target: Target) -> Vec<String> {
+        match target {
+            Target::Player(id) => self.players.get(&id).map(|p| p.tags.clone()),
+            Target::Entity(id) => self.entities.store.get(id).map(|e| e.base.tags.clone()),
+        }
+        .unwrap_or_default()
+    }
+
+    fn add_tag(&mut self, target: Target, tag: &str) -> bool {
+        let tags = match target {
+            Target::Player(id) => self.players.get_mut(&id).map(|p| &mut p.tags),
+            Target::Entity(id) => self.entities.store.get_mut(id).map(|e| &mut e.base.tags),
+        };
+        match tags {
+            Some(tags) if tags.len() < 1024 && !tags.iter().any(|t| t == tag) => {
+                tags.push(tag.to_owned());
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn remove_tag(&mut self, target: Target, tag: &str) -> bool {
+        let tags = match target {
+            Target::Player(id) => self.players.get_mut(&id).map(|p| &mut p.tags),
+            Target::Entity(id) => self.entities.store.get_mut(id).map(|e| &mut e.base.tags),
+        };
+        tags.is_some_and(|tags| {
+            let before = tags.len();
+            tags.retain(|t| t != tag);
+            tags.len() != before
+        })
+    }
+
+    fn set_saving(&mut self, enabled: bool) -> bool {
+        let changed = self.saving_enabled != enabled;
+        self.saving_enabled = enabled;
+        changed
+    }
+
+    fn random_between(&mut self, min: i32, max: i32) -> i32 {
+        rand::Rng::random_range(&mut self.rng, min..=max)
+    }
+
+    fn set_spawn_point(
+        &mut self,
+        player: PlayerId,
+        dimension: Identifier,
+        pos: BlockPos,
+        angle: f32,
+    ) {
+        if let Some(p) = self.players.get_mut(&player) {
+            p.respawn = Some(rspigot_domain::bed::RespawnConfig {
+                dimension,
+                pos,
+                yaw: angle,
+                pitch: 0.0,
+                forced: true,
+            });
+        }
+    }
+
     fn local_origin(&self, sender: CommandSender) -> Vec3 {
         let origin = self.sender_origin(sender);
         match &self.command_source {
@@ -971,7 +1073,7 @@ impl<L: ClientLink> Server<L> {
                 position: p.position,
                 bounds: Aabb::of_size(p.position, 0.6, p.height() as f32),
                 name: p.profile.name.clone(),
-                tags: &[],
+                tags: &p.tags,
                 alive: !p.vitals.is_dead(),
             })
             .collect();
