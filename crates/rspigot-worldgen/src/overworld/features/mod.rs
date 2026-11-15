@@ -1,5 +1,8 @@
 mod bodies;
+mod mushrooms;
 mod place;
+#[cfg(test)]
+mod probe;
 mod prov;
 mod tree;
 mod treedeco;

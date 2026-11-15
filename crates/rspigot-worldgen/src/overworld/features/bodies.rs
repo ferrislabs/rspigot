@@ -137,6 +137,7 @@ pub(crate) enum Feature {
     Blob(Blob),
     Bamboo(f32),
     Vines,
+    Mushroom(Box<super::mushrooms::Mushroom>),
     RandomSelector {
         entries: Vec<(f32, Arc<Placed>)>,
         default: Arc<Placed>,
@@ -312,6 +313,12 @@ impl<'a> Compiler<'a> {
             }),
             "bamboo" => Feature::Bamboo(number(value, "probability", 0.0) as f32),
             "vines" => Feature::Vines,
+            "huge_red_mushroom" => {
+                Feature::Mushroom(Box::new(super::mushrooms::Mushroom::compile(value, true)))
+            }
+            "huge_brown_mushroom" => {
+                Feature::Mushroom(Box::new(super::mushrooms::Mushroom::compile(value, false)))
+            }
             "random_selector" => {
                 let entries = value
                     .get("features")
@@ -386,6 +393,7 @@ impl Feature {
             Self::Blob(_) => 6,
             Self::Bamboo(_) => 5,
             Self::Vines => 1,
+            Self::Mushroom(mushroom) => mushroom.reach(),
             Self::Disk(_) => 8,
             Self::RandomSelector { entries, default } => entries
                 .iter()
@@ -415,6 +423,7 @@ impl Feature {
             Self::Blob(blob) => place_blob(blob, run, pos),
             Self::Bamboo(probability) => place_bamboo(*probability, run, pos),
             Self::Vines => place_vines(run, pos),
+            Self::Mushroom(mushroom) => mushroom.place(run, pos),
             Self::RandomSelector { entries, default } => {
                 for (chance, placed) in entries {
                     if run.rng.next_float() < *chance {

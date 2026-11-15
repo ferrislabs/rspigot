@@ -1,0 +1,91 @@
+use rspigot_domain::{BlockStateId, ChunkPos};
+
+use super::tests::Bench;
+use crate::overworld::region::Region;
+
+pub(super) const GRASS: &[(i32, &str)] = &[(68, "stone"), (69, "grass_block")];
+
+fn block(name: &str) -> BlockStateId {
+    rspigot_blocks::BlockKind::from_name(name)
+        .map_or(BlockStateId::AIR, rspigot_blocks::BlockKind::default_state)
+}
+
+pub(super) fn world<'a>(bench: &'a Bench, layers: &[(i32, &str)]) -> Region<'a> {
+    Region::fixture(
+        &bench.resources,
+        &bench.dimension,
+        ChunkPos::new(0, 0),
+        0,
+        |_, buffer| {
+            let mut from = -64;
+            for (top, name) in layers {
+                let state = block(name);
+                for y in from..=*top {
+                    buffer.fill_layer(y, state);
+                }
+                from = top + 1;
+            }
+        },
+    )
+}
+
+fn describe(state: BlockStateId) -> String {
+    let mut text = state
+        .kind()
+        .map_or("air", rspigot_blocks::BlockKind::name)
+        .trim_start_matches("minecraft:")
+        .to_owned();
+    let mut properties: Vec<_> = state.properties().collect();
+    properties.sort_unstable();
+    for (name, value) in properties {
+        text.push_str(&format!(" {name}={value}"));
+    }
+    text
+}
+
+fn cells(region: &mut Region, (y0, y1): (i32, i32)) -> Vec<BlockStateId> {
+    let mut states = Vec::new();
+    for x in -24..40 {
+        for z in -24..40 {
+            for y in y0..y1 {
+                states.push(region.get(x, y, z));
+            }
+        }
+    }
+    states
+}
+
+pub(super) fn fingerprint(
+    bench: &Bench,
+    layers: &[(i32, &str)],
+    feature: &str,
+    origin: (i32, i32, i32),
+    seed: i64,
+    band: (i32, i32),
+) -> (usize, u64) {
+    let mut region = world(bench, layers);
+    let before = cells(&mut region, band);
+    bench.place(&mut region, feature, origin, seed);
+    let after = cells(&mut region, band);
+    let mut lines = Vec::new();
+    let mut index = 0;
+    for x in -24..40 {
+        for z in -24..40 {
+            for y in band.0..band.1 {
+                if before[index] != after[index] {
+                    lines.push(format!("{x},{y},{z} {}", describe(after[index])));
+                }
+                index += 1;
+            }
+        }
+    }
+    lines.sort();
+    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+    for line in &lines {
+        for byte in line.bytes().chain(std::iter::once(b'\n')) {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x0100_0000_01b3);
+        }
+    }
+    (lines.len(), hash)
+}
