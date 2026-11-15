@@ -26,6 +26,8 @@ SURFACE_NOISES = [
     "minecraft:iceberg_pillar",
     "minecraft:iceberg_pillar_roof",
     "minecraft:iceberg_surface",
+    "minecraft:nether/temperature",
+    "minecraft:nether/vegetation",
 ]
 
 
@@ -176,6 +178,7 @@ def build(pack):
     surface_rule = {
         "surface": resolve_material(pack, "minecraft:overworld/surface", noises),
         "underground": resolve_material(pack, "minecraft:overworld/underground", noises),
+        "nether": resolve_material(pack, "minecraft:nether", noises),
     }
     biomes = {}
     for name in pack.names("biome"):

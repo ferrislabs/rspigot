@@ -1,47 +1,29 @@
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::Dimension;
-use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, Vec3};
+
+mod biomes;
+mod density;
+#[cfg(test)]
+mod reference;
 
 use crate::buffer::ChunkBuffer;
-use crate::grid::{Grid, WEIGHTS, trilinear};
-use crate::perlin::Fractal;
-use crate::resources::{Biome, BlockKind, Palette, Resources};
-use crate::rng::{hash3, mix, unit};
+use crate::resources::{BlockKind, Palette, Resources};
+use crate::rng::{hash3, unit};
 use crate::veins::{Hosts, Vein, place};
 
 const CEILING: i32 = 127;
-const SOLID_THRESHOLD: f32 = 0.12;
+const NOISE_HEIGHT: i32 = 128;
 const SALT_ORE: u64 = 0x4E37_0B1E;
 const SALT_BEDROCK: u64 = 0xB3D2_0C0F;
 const SALT_MAGMA: u64 = 0x3A61_7A11;
 const SPAWN_RINGS: i32 = 6;
 
-const PROFILE: [(f32, f32); 8] = [
-    (0.0, 1.6),
-    (20.0, 0.5),
-    (34.0, 0.0),
-    (50.0, -0.12),
-    (90.0, -0.15),
-    (108.0, 0.05),
-    (118.0, 0.8),
-    (127.0, 1.6),
-];
-
-fn profile(y: f32) -> f32 {
-    for pair in PROFILE.windows(2) {
-        let (y0, v0) = pair[0];
-        let (y1, v1) = pair[1];
-        if y <= y1 {
-            return v0 + (v1 - v0) * ((y - y0) / (y1 - y0)).clamp(0.0, 1.0);
-        }
-    }
-    PROFILE[PROFILE.len() - 1].1
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct Nether {
     seed: u64,
-    density: Fractal,
+    density: density::NetherDensity,
+    biomes: biomes::NetherBiomes,
     veins: Vec<Vein>,
 }
 
@@ -68,7 +50,8 @@ impl Nether {
     pub(crate) fn new(seed: u64, palette: &Palette) -> Self {
         Self {
             seed,
-            density: Fractal::new(mix(seed ^ 0x6E37_4E52), 3),
+            density: density::NetherDensity::new(seed as i64),
+            biomes: biomes::NetherBiomes::new(seed as i64),
             veins: nether_veins(palette),
         }
     }
@@ -85,40 +68,24 @@ impl Nether {
         let top = CEILING.min(height.max_y());
         let x0 = pos.x * 16;
         let z0 = pos.z * 16;
-        let cells = ((top - bottom + 1) as usize).div_ceil(4);
-        let grid = Grid::<1>::build(cells + 1, |i, j, k| {
-            let x = f64::from(x0 + 4 * i as i32);
-            let y = f64::from(bottom + 4 * j as i32);
-            let z = f64::from(z0 + 4 * k as i32);
-            let noise = self.density.at3(x * 0.019, y * 0.03, z * 0.019) * 1.8;
-            [noise as f32 + profile(y as f32)]
-        });
         let netherrack = palette[BlockKind::Netherrack];
         let lava = palette[BlockKind::Lava];
         let mut buffer = ChunkBuffer::new(height);
-        for j in 0..cells {
-            for k in 0..4 {
-                for i in 0..4 {
-                    let corners = grid.corners(i, j, k);
-                    for (dz, &wz) in WEIGHTS.iter().enumerate() {
-                        for (dx, &wx) in WEIGHTS.iter().enumerate() {
-                            for (dy, &wy) in WEIGHTS.iter().enumerate() {
-                                let y = bottom + (j * 4 + dy) as i32;
-                                if y > top {
-                                    break;
-                                }
-                                let [value] = trilinear(&corners, wx, wy, wz);
-                                if value > SOLID_THRESHOLD {
-                                    buffer.set(i * 4 + dx, y, k * 4 + dz, netherrack);
-                                } else if y < dimension.sea_level {
-                                    buffer.set(i * 4 + dx, y, k * 4 + dz, lava);
-                                }
-                            }
-                        }
-                    }
-                }
+        let corners = density::Corners::build(
+            &self.density,
+            x0,
+            z0,
+            bottom,
+            (height.height as i32).min(NOISE_HEIGHT),
+        );
+        corners.fill(|x, dy, z, value| {
+            let y = bottom + dy as i32;
+            if value > 0.0 {
+                buffer.set(x, y, z, netherrack);
+            } else if y < dimension.sea_level {
+                buffer.set(x, y, z, lava);
             }
-        }
+        });
         place(
             &mut buffer,
             pos,
@@ -132,8 +99,16 @@ impl Nether {
         );
         self.magma(&mut buffer, palette, pos, dimension.sea_level);
         self.bedrock(&mut buffer, palette, pos, bottom, top);
-        let biome: BiomeId = resources.biomes[Biome::NetherWastes];
-        buffer.finish(pos, &[biome; 16], &resources.classifier)
+        let sections = height.section_count();
+        let mut biomes = Vec::with_capacity(sections * 64);
+        for _ in 0..sections * 4 {
+            for qz in 0..4 {
+                for qx in 0..4 {
+                    biomes.push(self.biomes.biome(pos.x * 4 + qx, pos.z * 4 + qz));
+                }
+            }
+        }
+        buffer.finish_layered(pos, &biomes, &resources.classifier)
     }
 
     fn magma(&self, buffer: &mut ChunkBuffer, palette: &Palette, pos: ChunkPos, sea_level: i32) {
@@ -251,14 +226,6 @@ fn ring_chunks(ring: i32) -> Vec<(i32, i32)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn profile_is_solid_at_the_extremes_and_open_between() {
-        assert!(profile(0.0) > SOLID_THRESHOLD + 1.0);
-        assert!(profile(127.0) > SOLID_THRESHOLD + 1.0);
-        assert!(profile(70.0) < 0.0);
-        assert!(profile(300.0) > 1.0);
-    }
 
     #[test]
     fn ring_chunks_enumerate_the_perimeter() {

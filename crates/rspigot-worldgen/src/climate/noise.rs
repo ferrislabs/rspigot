@@ -89,7 +89,7 @@ pub(crate) struct Perlin {
 }
 
 impl Perlin {
-    fn new(rng: &mut impl NoiseDraw) -> Self {
+    pub(crate) fn new(rng: &mut impl NoiseDraw) -> Self {
         let offset = [
             rng.draw_double() * 256.0,
             rng.draw_double() * 256.0,
@@ -108,15 +108,41 @@ impl Perlin {
     }
 
     fn get(&self, x: f64, y: f64, z: f64) -> f32 {
+        self.get_smeared(x, y, z, None)
+    }
+
+    fn get_smeared(&self, x: f64, y: f64, z: f64, fudge_scale: Option<f64>) -> f32 {
+        let wy = wrap(y);
         let x = wrap(x) + self.offset[0];
-        let y = wrap(y) + self.offset[1];
+        let wy = wy + self.offset[1];
         let z = wrap(z) + self.offset[2];
         let xi = x.floor() as i32;
-        let yi = y.floor() as i32;
+        let yi = wy.floor() as i32;
         let zi = z.floor() as i32;
         let rx = (x - f64::from(xi)) as f32;
-        let ry = (y - f64::from(yi)) as f32;
+        let fy = wy - f64::from(yi);
         let rz = (z - f64::from(zi)) as f32;
+        let shifted = match fudge_scale {
+            Some(scale) => {
+                let relative = if (0.0..fy).contains(&y) { y } else { fy };
+                (relative / scale + 1.000_000_011_686_097_4e-7).floor() * scale
+            }
+            None => 0.0,
+        };
+        self.sample_and_lerp(xi, yi, zi, rx, (fy - shifted) as f32, rz, fy as f32)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn sample_and_lerp(
+        &self,
+        xi: i32,
+        yi: i32,
+        zi: i32,
+        rx: f32,
+        ry: f32,
+        rz: f32,
+        smooth_y: f32,
+    ) -> f32 {
         let a = self.permute(xi);
         let b = self.permute(xi + 1);
         let aa = self.permute(a + yi);
@@ -132,7 +158,7 @@ impl Perlin {
         let c101 = g(self.permute(ba + zi + 1), rx - 1.0, ry, rz - 1.0);
         let c011 = g(self.permute(ab + zi + 1), rx, ry - 1.0, rz - 1.0);
         let c111 = g(self.permute(bb + zi + 1), rx - 1.0, ry - 1.0, rz - 1.0);
-        let (sx, sy, sz) = (smoothstep(rx), smoothstep(ry), smoothstep(rz));
+        let (sx, sy, sz) = (smoothstep(rx), smoothstep(smooth_y), smoothstep(rz));
         lerp(
             sz,
             lerp2(sx, sy, c000, c100, c010, c110),
@@ -213,6 +239,38 @@ fn normalization(octaves: &[Octave]) -> f64 {
     }
 }
 
+fn legacy_fbm(
+    rng: &mut JavaRandom,
+    first_octave: i32,
+    amplitudes: &[f64],
+) -> Vec<(Perlin, f64, f32)> {
+    let count = amplitudes.len() as i32;
+    let start = -first_octave;
+    let mut perlins: Vec<Option<Perlin>> = (0..count).map(|_| None).collect();
+    let first = Perlin::new(rng);
+    if (0..count).contains(&start) && amplitudes[start as usize] != 0.0 {
+        perlins[start as usize] = Some(first);
+    }
+    for index in (0..start).rev() {
+        if index < count && amplitudes[index as usize] != 0.0 {
+            perlins[index as usize] = Some(Perlin::new(rng));
+        } else {
+            rng.skip(262);
+        }
+    }
+    let mut frequency = 2.0_f64.powi(-start);
+    let mut weight = 2.0_f64.powi(count - 1) / (2.0_f64.powi(count) - 1.0);
+    let mut result = Vec::new();
+    for (index, perlin) in perlins.into_iter().enumerate() {
+        if let Some(perlin) = perlin {
+            result.push((perlin, frequency, (weight * amplitudes[index]) as f32));
+        }
+        frequency *= 2.0;
+        weight /= 2.0;
+    }
+    result
+}
+
 impl NoiseStack {
     pub(crate) fn create(parameters: &NoiseParameters, rng: &mut Xoroshiro) -> Self {
         let first: Positional = rng.fork_positional();
@@ -261,6 +319,35 @@ impl NoiseStack {
         Self { layers }
     }
 
+    pub(crate) fn create_legacy_nether(parameters: &NoiseParameters, seed: i64) -> Self {
+        let mut rng = JavaRandom::new(seed);
+        let octaves = octaves(parameters);
+        let factor = normalization(&octaves);
+        let amplitudes: Vec<f64> = (0..parameters.octave_count as usize)
+            .map(|i| {
+                parameters
+                    .amplitude_modifiers
+                    .get(i)
+                    .copied()
+                    .unwrap_or(1.0)
+            })
+            .collect();
+        let scale = (factor * parameters.base_amplitude) as f32;
+        let mut layers = Vec::new();
+        for frequency in [1.0, SECOND_LAYER_FREQUENCY] {
+            for (perlin, octave_frequency, amplitude) in
+                legacy_fbm(&mut rng, parameters.base_octave, &amplitudes)
+            {
+                layers.push(Layer {
+                    perlin,
+                    frequency: octave_frequency * frequency,
+                    amplitude: scale * amplitude,
+                });
+            }
+        }
+        Self { layers }
+    }
+
     pub(crate) fn get(&self, x: f64, y: f64, z: f64) -> f32 {
         let mut total = 0.0_f32;
         for layer in &self.layers {
@@ -285,5 +372,55 @@ mod tests {
     #[test]
     fn compensated_sum_matches_plain_sum_for_exact_values() {
         assert_eq!(compensated_sum(&[1.0, 0.5, 0.25]), 1.75);
+    }
+}
+
+#[derive(Debug, Clone)]
+struct SmearedLayer {
+    perlin: Perlin,
+    frequency: f64,
+    amplitude: f32,
+    fudge: f64,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct SmearedStack {
+    layers: Vec<SmearedLayer>,
+}
+
+impl SmearedStack {
+    pub(crate) fn create(
+        rng: &mut impl NoiseDraw,
+        first_octave: i32,
+        smear_scale_y: f64,
+        value_factor: f64,
+    ) -> Self {
+        let count = 1 - first_octave;
+        let mut frequency = 1.0_f64;
+        let mut amplitude = value_factor / (2.0_f64.powi(count) - 1.0);
+        let mut layers = Vec::with_capacity(count as usize);
+        for _ in 0..count {
+            layers.push(SmearedLayer {
+                perlin: Perlin::new(rng),
+                frequency,
+                amplitude: amplitude as f32,
+                fudge: smear_scale_y * frequency,
+            });
+            frequency /= 2.0;
+            amplitude *= 2.0;
+        }
+        Self { layers }
+    }
+
+    pub(crate) fn get(&self, x: f64, y: f64, z: f64) -> f32 {
+        let mut total = 0.0_f32;
+        for layer in &self.layers {
+            let f = layer.frequency;
+            let value = layer
+                .perlin
+                .get_smeared(x * f, y * f, z * f, Some(layer.fudge));
+            total += layer.amplitude * value;
+        }
+        total
     }
 }

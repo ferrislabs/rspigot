@@ -779,9 +779,17 @@ fn nether_has_bedrock_shell_lava_sea_and_open_sky_above_the_roof() {
                 assert!(y < 32, "lava at {y}");
             }
         });
-        assert_eq!(
-            registries::biome_name(column.sections()[0].biome(0, 0, 0).0),
-            Some("minecraft:nether_wastes")
+        let biome = registries::biome_name(column.sections()[0].biome(0, 0, 0).0);
+        assert!(
+            [
+                "minecraft:nether_wastes",
+                "minecraft:soul_sand_valley",
+                "minecraft:crimson_forest",
+                "minecraft:warped_forest",
+                "minecraft:basalt_deltas",
+            ]
+            .contains(&biome.unwrap_or("")),
+            "{biome:?}"
         );
     }
     for expected in [
