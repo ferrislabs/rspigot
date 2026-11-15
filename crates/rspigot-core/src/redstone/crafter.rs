@@ -143,12 +143,13 @@ impl<L: ClientLink> Server<L> {
 
     fn crafter_output(&mut self, pos: BlockPos, front: Face, stack: ItemStack) {
         let target = step(pos, front);
-        if let Some(destination) = self.holder_at(target) {
+        if let Some(destination) = self.container_at(target) {
             let mut into = self.holder_items(&destination);
             let toward = front.opposite();
             let slots = destination.slots_toward(toward);
+            let before = into.clone();
             let leftover = insert_stack(&mut into, &slots, stack, |at, candidate| {
-                destination.may_place(at, candidate, toward)
+                destination.may_place(at, candidate, toward, &before)
             });
             self.store_holder(&destination, &into);
             if let Some(rest) = leftover {

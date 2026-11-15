@@ -873,6 +873,14 @@ impl<L: ClientLink> Server<L> {
         self.entities.fight.as_ref().map(|fight| fight.data.clone())
     }
 
+    pub fn cargo_of(&self, id: EntityId) -> Vec<rspigot_domain::item::Slot> {
+        self.entities
+            .store
+            .get(id)
+            .and_then(crate::vehicles::cargo_of)
+            .map_or_else(Vec::new, |cargo| cargo.items.clone())
+    }
+
     pub fn entities_of(&self, kind: Kind) -> Vec<EntitySnapshot> {
         self.entities
             .store

@@ -327,7 +327,26 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let was = flag(state, "powered");
-        let pressed = self.count_touching(&wire_bounds(pos, state), false) > 0;
+        let bounds = wire_bounds(pos, state);
+        let pressed = self.count_touching(&bounds, false) > 0;
+        if !was && pressed && flag(state, "attached") {
+            return self.ask_touch(super::touch::TouchStep {
+                pos,
+                old: 0,
+                what: super::touch::Touched::Wire,
+                touchers: self.touchers_in(&bounds, false),
+                at: 0,
+                accepted: 0,
+            });
+        }
+        self.tripwire_apply(pos, was, pressed);
+    }
+
+    pub(super) fn tripwire_apply(&mut self, pos: BlockPos, was: bool, pressed: bool) {
+        let state = self.block_or_air(pos);
+        if !is_wire(state) {
+            return;
+        }
         if was != pressed {
             let next = with_flag(state, "powered", pressed);
             self.set_block(pos, next);

@@ -423,6 +423,9 @@ impl<L: ClientLink> Server<L> {
             .map(|old| self.contents_lost_by(pos, old, state))
             .unwrap_or_default();
         let book = before.and_then(|old| self.lectern_book_lost_by(pos, old, state));
+        let jukebox = before
+            .filter(|old| old.kind() == Some(BlockKind::Jukebox) && old.kind() != state.kind());
+        let record = jukebox.and_then(|_| self.jukebox_record(pos));
         let owed = match before {
             Some(old) => self.furnace_experience_lost_by(pos, old, state),
             None => Vec::new(),
@@ -430,6 +433,9 @@ impl<L: ClientLink> Server<L> {
         match self.world.chunks.set_block(pos, state) {
             Some(old) if old != state => {
                 self.drop_contents(pos, lost);
+                if let Some(old_jukebox) = jukebox {
+                    self.jukebox_removed(pos, old_jukebox, record);
+                }
                 self.pop_furnace_experience(pos, owed);
                 if let Some((at, book)) = book {
                     self.pop_book(at, book);
@@ -450,6 +456,7 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_portal_entity(pos, state);
                 self.ensure_gateway_entity(pos, state);
                 self.ensure_beehive_entity(pos, state);
+                self.ensure_jukebox_entity(pos, state);
                 self.ensure_spawner_entity(pos, state);
                 if state.kind() == Some(BlockKind::Fire) {
                     self.hive_fire_placed(pos);
@@ -541,6 +548,11 @@ impl<L: ClientLink> Server<L> {
             }
             if !(sneaking && holding)
                 && self.use_beehive(id, hand, stack.as_ref(), pos, clicked, sequence)
+            {
+                return;
+            }
+            if !(sneaking && holding)
+                && self.use_jukebox(id, hand, stack.as_ref(), pos, clicked, sequence)
             {
                 return;
             }

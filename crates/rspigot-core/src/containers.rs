@@ -431,6 +431,10 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub fn block_items(&self, pos: BlockPos, size: usize) -> Vec<Slot> {
+        self.half_items(pos, size)
+    }
+
     pub(crate) fn half_items(&self, pos: BlockPos, size: usize) -> Vec<Slot> {
         self.world
             .chunks
@@ -561,7 +565,6 @@ impl<L: ClientLink> Server<L> {
         let opening = opening_of(state).filter(|opening| {
             opening.entity.is_some()
                 && !opening.kind.is_furnace()
-                && opening.kind != MenuKind::BrewingStand
                 && opening.kind != MenuKind::Lectern
         })?;
         let mut size = opening.kind.container_size();
