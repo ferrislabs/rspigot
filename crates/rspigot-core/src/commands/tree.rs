@@ -588,6 +588,50 @@ fn data_commands(b: &mut TreeBuilder, root: usize) {
     }
 }
 
+fn text_commands(b: &mut TreeBuilder, root: usize) {
+    let component = || ArgumentParser::Named("minecraft:component");
+    let tellraw = b.literal(root, "tellraw", false);
+    let targets = b.argument(tellraw, "targets", player_targets(), false);
+    b.argument(targets, "message", component(), true);
+    let title = b.literal(root, "title", false);
+    let targets = b.argument(title, "targets", player_targets(), false);
+    for name in ["clear", "reset"] {
+        b.literal(targets, name, true);
+    }
+    for name in ["title", "subtitle", "actionbar"] {
+        let node = b.literal(targets, name, false);
+        b.argument(node, "title", component(), true);
+    }
+    let times = b.literal(targets, "times", false);
+    let fade_in = b.argument(
+        times,
+        "fadeIn",
+        ArgumentParser::Integer {
+            min: Some(0),
+            max: None,
+        },
+        false,
+    );
+    let stay = b.argument(
+        fade_in,
+        "stay",
+        ArgumentParser::Integer {
+            min: Some(0),
+            max: None,
+        },
+        false,
+    );
+    b.argument(
+        stay,
+        "fadeOut",
+        ArgumentParser::Integer {
+            min: Some(0),
+            max: None,
+        },
+        true,
+    );
+}
+
 fn rule_commands(b: &mut TreeBuilder, root: usize) {
     let gamerule = b.literal(root, "gamerule", false);
     for name in crate::game_rule_packet::RULE_NAMES {
@@ -719,6 +763,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     block_commands(b, root);
     data_commands(b, root);
     rule_commands(b, root);
+    text_commands(b, root);
     b.literal(root, "seed", true);
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);

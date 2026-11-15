@@ -127,7 +127,10 @@ fn tags_apply_to_players_and_mobs_and_feed_selectors() {
         rig.run("tag @e[type=cow] add herd"),
         CommandOutcome::Success
     );
-    assert_eq!(rig.texts(), ["commands.tag.add.success.single herd entity.minecraft.cow"]);
+    assert_eq!(
+        rig.texts(),
+        ["commands.tag.add.success.single herd entity.minecraft.cow"]
+    );
     assert_eq!(
         rig.run("tag @e[type=cow] add herd"),
         CommandOutcome::Failure
@@ -215,4 +218,49 @@ fn spawnpoint_sets_the_respawn_config() {
         ["commands.spawnpoint.success.single 10 70 -5 90 minecraft:overworld Alice"]
     );
     assert_eq!(rig.run("spawnpoint"), CommandOutcome::Success);
+}
+
+#[test]
+fn tellraw_and_title_reach_the_player() {
+    let mut rig = rig();
+    rig.texts();
+    assert_eq!(
+        rig.run(r#"tellraw @a {"text":"hello","color":"green"}"#),
+        CommandOutcome::Success
+    );
+    assert_eq!(rig.texts(), ["hello"]);
+    assert_eq!(rig.run("tellraw @a {oops"), CommandOutcome::Failure);
+    rig.link.take();
+    assert_eq!(rig.run(r#"title @s title "Big""#), CommandOutcome::Success);
+    assert_eq!(
+        rig.run(r#"title @s actionbar {"text":"bar"}"#),
+        CommandOutcome::Success
+    );
+    assert_eq!(rig.run("title @s times 5 20 5"), CommandOutcome::Success);
+    assert_eq!(rig.run("title @s clear"), CommandOutcome::Success);
+    let events = rig.link.take();
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, ClientEvent::TitleText(t) if t.plain_text() == "Big"))
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, ClientEvent::SystemChat { overlay: true, .. }))
+    );
+    assert!(events.iter().any(|e| matches!(
+        e,
+        ClientEvent::TitleTimes {
+            fade_in: 5,
+            stay: 20,
+            fade_out: 5
+        }
+    )));
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, ClientEvent::ClearTitles { reset: false }))
+    );
+    assert_eq!(rig.run("title @s times 1 2"), CommandOutcome::Failure);
 }

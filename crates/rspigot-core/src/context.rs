@@ -19,7 +19,7 @@ use crate::admin::{AdminLists, Ban, BanEntry, IpBanEntry, ListEntry, MAX_PERMISS
 use crate::chunks::{ChunkJob, Priority};
 use crate::commands::selector::{self, Selector, SelectorBase, Sort, TypeMatch};
 use crate::commands::source::{Anchor, DataTarget, Relation, Source};
-use crate::commands::{CommandContext, CommandSender, Target, Weather};
+use crate::commands::{CommandContext, CommandSender, Target, TitleAction, Weather};
 use crate::events::ClientEvent;
 use crate::mobs::ServerRandom;
 use crate::plugins::events::{CreatureSpawnReason, PlayerTeleportCause, TimeSkipReason};
@@ -250,6 +250,32 @@ impl<L: ClientLink> CommandContext for Server<L> {
                 forced: true,
             });
         }
+    }
+
+    fn tell_player(&mut self, player: PlayerId, message: Component, overlay: bool) {
+        self.push(
+            Audience::One(player),
+            ClientEvent::SystemChat { message, overlay },
+        );
+    }
+
+    fn title_player(&mut self, player: PlayerId, action: TitleAction) {
+        let event = match action {
+            TitleAction::Title(text) => ClientEvent::TitleText(text),
+            TitleAction::Subtitle(text) => ClientEvent::SubtitleText(text),
+            TitleAction::Times {
+                fade_in,
+                stay,
+                fade_out,
+            } => ClientEvent::TitleTimes {
+                fade_in,
+                stay,
+                fade_out,
+            },
+            TitleAction::Clear => ClientEvent::ClearTitles { reset: false },
+            TitleAction::Reset => ClientEvent::ClearTitles { reset: true },
+        };
+        self.push(Audience::One(player), event);
     }
 
     fn local_origin(&self, sender: CommandSender) -> Vec3 {

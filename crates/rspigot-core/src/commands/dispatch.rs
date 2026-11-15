@@ -26,6 +26,19 @@ pub enum CommandSender {
     Player(PlayerId),
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum TitleAction {
+    Title(Component),
+    Subtitle(Component),
+    Times {
+        fade_in: i32,
+        stay: i32,
+        fade_out: i32,
+    },
+    Clear,
+    Reset,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Weather {
     Clear,
@@ -275,6 +288,10 @@ pub trait CommandContext {
     ) {
     }
 
+    fn tell_player(&mut self, _player: PlayerId, _message: Component, _overlay: bool) {}
+
+    fn title_player(&mut self, _player: PlayerId, _action: TitleAction) {}
+
     fn local_origin(&self, sender: CommandSender) -> Vec3 {
         self.sender_origin(sender)
     }
@@ -463,6 +480,7 @@ pub fn execute<C: CommandContext>(
         "difficulty" => difficulty(ctx, sender, &args),
         "defaultgamemode" | "gamerule" | "experience" | "xp" | "tag" | "save-on" | "save-off"
         | "random" | "spawnpoint" => super::server_commands::run(ctx, sender, &label, rest),
+        "tellraw" | "title" => super::text_commands::run(ctx, sender, &label, rest),
         "data" => super::data::run(ctx, sender, rest),
         "setblock" => super::blocks::setblock(ctx, sender, rest),
         "fill" => super::blocks::fill(ctx, sender, rest),
