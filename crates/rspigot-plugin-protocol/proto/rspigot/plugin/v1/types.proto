@@ -10,7 +10,8 @@ message Rotation { float yaw = 1; float pitch = 2; }
 message BlockPos { int32 x = 1; int32 y = 2; int32 z = 3; }
 message Property { string name = 1; string value = 2; }
 message Enchant { string key = 1; int32 level = 2; }
-message Item { string key = 1; int32 count = 2; optional string name = 3; repeated string lore = 4; repeated Enchant enchantments = 5; bytes components = 6; }
+message CustomModelData { repeated float floats = 1; repeated bool flags = 2; repeated string strings = 3; repeated int32 colors = 4; }
+message Item { string key = 1; int32 count = 2; optional string name = 3; repeated string lore = 4; repeated Enchant enchantments = 5; bytes components = 6; optional CustomModelData custom_model_data = 7; }
 message Slot { int32 slot = 1; Item item = 2; }
 message Effect { string key = 1; int32 duration = 2; int32 amplifier = 3; bool ambient = 4; bool particles = 5; bool icon = 6; }
 message PlayerSnapshot { string uuid = 1; string name = 2; int32 entity_id = 3; string world = 4; Vec3 position = 5; GameMode game_mode = 6; Rotation rotation = 7; }

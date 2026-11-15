@@ -18,12 +18,10 @@ use rspigot_domain::boss_event::{
 use rspigot_domain::chunk::{
     ChunkColumn, HeightmapKind as DomainHeightmap, LightArray as DomainLight,
 };
-use rspigot_domain::dye::dye_color_id;
 use rspigot_domain::effect::{AttributeOperation, AttributeState, EffectInstance};
 use rspigot_domain::entity::ParticleSetting;
-use rspigot_domain::entity::save::component_from_tag;
 use rspigot_domain::entity::trading::{ItemCost, MerchantOffer};
-use rspigot_domain::item::{CUSTOM_NAME, ENCHANTMENTS, ItemStack, LORE, MAX_LORE_LINES, Slot};
+use rspigot_domain::item::{ItemStack, Slot};
 use rspigot_domain::particle::ParticleData;
 use rspigot_domain::player::GameMode as DomainGameMode;
 use rspigot_domain::world::Difficulty as DomainDifficulty;
@@ -207,210 +205,8 @@ pub fn update_recipes() -> cb::UpdateRecipes {
     }
 }
 
-fn component_type(name: &str) -> Option<i32> {
-    rspigot_data::registries::static_index("minecraft:data_component_type", name)
-        .and_then(|id| i32::try_from(id).ok())
-}
-
-fn optional_absent(out: &mut Vec<u8>) {
-    false.encode(out);
-}
-
-const FIREWORK_SHAPES: [&str; 5] = ["small_ball", "large_ball", "star", "creeper", "burst"];
-
-fn write_var_len(len: usize, out: &mut Vec<u8>) -> Option<()> {
-    write_var(i32::try_from(len).ok()?, out);
-    Some(())
-}
-
-fn write_colors(value: Option<&[rspigot_nbt::Tag]>, out: &mut Vec<u8>) -> Option<()> {
-    let colors = value.unwrap_or_default();
-    write_var_len(colors.len(), out)?;
-    for color in colors {
-        out.extend_from_slice(&i32::try_from(color.as_i64()?).ok()?.to_be_bytes());
-    }
-    Some(())
-}
-
-fn write_explosion(explosion: &rspigot_nbt::Compound, out: &mut Vec<u8>) -> Option<()> {
-    let name = explosion.get_str("shape")?;
-    let shape = FIREWORK_SHAPES.iter().position(|shape| *shape == name)?;
-    write_var(i32::try_from(shape).ok()?, out);
-    write_colors(explosion.get_list("colors"), out)?;
-    write_colors(explosion.get_list("fade_colors"), out)?;
-    explosion.get_bool("has_trail").unwrap_or(false).encode(out);
-    explosion
-        .get_bool("has_twinkle")
-        .unwrap_or(false)
-        .encode(out);
-    Some(())
-}
-
-fn write_banner_layer(layer: &rspigot_nbt::Compound, out: &mut Vec<u8>) -> Option<()> {
-    match layer.get("pattern")? {
-        rspigot_nbt::Tag::String(name) => {
-            let id = rspigot_data::registries::synced_index("minecraft:banner_pattern", name)?;
-            write_var(i32::try_from(id).ok()?.checked_add(1)?, out);
-        }
-        rspigot_nbt::Tag::Compound(direct) => {
-            write_var(0, out);
-            direct.get_str("asset_id")?.encode(out);
-            direct.get_str("translation_key")?.encode(out);
-        }
-        _ => return None,
-    }
-    write_var(
-        i32::try_from(dye_color_id(layer.get_str("color")?)?).ok()?,
-        out,
-    );
-    Some(())
-}
-
-fn write_pot_side(side: Option<&rspigot_nbt::Compound>, out: &mut Vec<u8>) -> Option<()> {
-    let Some(template) = side else {
-        false.encode(out);
-        return Some(());
-    };
-    true.encode(out);
-    let item = rspigot_data::registries::static_index("minecraft:item", template.get_str("id")?)?;
-    write_var(i32::try_from(item).ok()?, out);
-    write_var(template.get_i32("count").unwrap_or(1), out);
-    let patch = DataComponentPatch {
-        added: template
-            .get_compound("components")
-            .map(|components| {
-                components
-                    .iter()
-                    .filter_map(|(name, value)| component_value(name, value))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        removed: Vec::new(),
-    };
-    patch.encode_trusted(out);
-    Some(())
-}
-
 fn component_value(name: &str, value: &rspigot_nbt::Tag) -> Option<ComponentValue> {
-    let mut data = Vec::new();
-    match name {
-        "minecraft:damage" | "minecraft:ominous_bottle_amplifier" => {
-            let value = i32::try_from(value.as_i64()?).ok()?;
-            write_var(value, &mut data);
-        }
-        "minecraft:potion_contents" => {
-            let potion = value.as_compound()?.get_str("potion");
-            match potion.and_then(|p| rspigot_data::registries::static_index("minecraft:potion", p))
-            {
-                Some(id) => {
-                    true.encode(&mut data);
-                    write_var(i32::try_from(id).ok()?, &mut data);
-                }
-                None => optional_absent(&mut data),
-            }
-            optional_absent(&mut data);
-            write_var(0, &mut data);
-            optional_absent(&mut data);
-        }
-        "minecraft:trim" => {
-            let trim = value.as_compound()?;
-            for (key, registry) in [
-                ("material", "minecraft:trim_material"),
-                ("pattern", "minecraft:trim_pattern"),
-            ] {
-                let id = rspigot_data::registries::synced_index(registry, trim.get_str(key)?)?;
-                write_var(i32::try_from(id).ok()?.checked_add(1)?, &mut data);
-            }
-        }
-        "minecraft:dyed_color" => {
-            data.extend_from_slice(&i32::try_from(value.as_i64()?).ok()?.to_be_bytes());
-        }
-        "minecraft:base_color" => {
-            write_var(
-                i32::try_from(dye_color_id(value.as_str()?)?).ok()?,
-                &mut data,
-            );
-        }
-        "minecraft:tropical_fish/base_color" | "minecraft:tropical_fish/pattern_color" => {
-            write_var(
-                i32::try_from(dye_color_id(value.as_str()?)?).ok()?,
-                &mut data,
-            );
-        }
-        "minecraft:tropical_fish/pattern" => {
-            let name = value.as_str()?;
-            let pattern = rspigot_domain::entity::species::fish::Pattern::ALL
-                .into_iter()
-                .find(|pattern| pattern.name() == name)?;
-            write_var(pattern.packed_id(), &mut data);
-        }
-        "minecraft:salmon/size" => {
-            let size = rspigot_domain::entity::species::fish::Variant::from_name(value.as_str()?)?;
-            write_var(size.id(), &mut data);
-        }
-        "minecraft:firework_explosion" => write_explosion(value.as_compound()?, &mut data)?,
-        "minecraft:fireworks" => {
-            let fireworks = value.as_compound()?;
-            write_var(fireworks.get_i32("flight_duration").unwrap_or(0), &mut data);
-            let explosions = fireworks.get_list("explosions").unwrap_or_default();
-            write_var_len(explosions.len(), &mut data)?;
-            for explosion in explosions {
-                write_explosion(explosion.as_compound()?, &mut data)?;
-            }
-        }
-        "minecraft:banner_patterns" => {
-            let layers = value.as_list()?;
-            write_var_len(layers.len(), &mut data)?;
-            for layer in layers {
-                write_banner_layer(layer.as_compound()?, &mut data)?;
-            }
-        }
-        "minecraft:pot_decorations" => {
-            let sides = value.as_compound()?;
-            for side in ["back", "left", "right", "front"] {
-                write_pot_side(sides.get_compound(side), &mut data)?;
-            }
-        }
-        CUSTOM_NAME => text(&component_from_tag(value)?).encode(&mut data),
-        LORE => {
-            let lines = value.as_list()?;
-            if lines.len() > MAX_LORE_LINES {
-                return None;
-            }
-            write_var_len(lines.len(), &mut data)?;
-            for line in lines {
-                text(&component_from_tag(line)?).encode(&mut data);
-            }
-        }
-        ENCHANTMENTS => {
-            let enchantments = value.as_compound()?;
-            let levels = enchantments.get_compound("levels").unwrap_or(enchantments);
-            write_var_len(levels.len(), &mut data)?;
-            for (name, level) in levels.iter() {
-                let id = rspigot_data::registries::synced_index("minecraft:enchantment", name)?;
-                write_var(i32::try_from(id).ok()?, &mut data);
-                write_var(i32::try_from(level.as_i64()?).ok()?, &mut data);
-            }
-        }
-        "minecraft:suspicious_stew_effects" => {
-            let entries = value.as_list()?;
-            write_var(i32::try_from(entries.len()).ok()?, &mut data);
-            for entry in entries {
-                let entry = entry.as_compound()?;
-                let effect = rspigot_data::registries::static_index(
-                    "minecraft:mob_effect",
-                    entry.get_str("id")?,
-                )?;
-                write_var(i32::try_from(effect).ok()?, &mut data);
-                write_var(entry.get_i32("duration")?, &mut data);
-            }
-        }
-        _ => return None,
-    }
-    Some(ComponentValue {
-        type_id: component_type(name)?,
-        data,
-    })
+    crate::components::encode_value(name, value)
 }
 
 fn trade_cost(cost: &ItemCost) -> cb::TradeCost {
@@ -448,10 +244,7 @@ pub fn stack(slot: &Slot) -> WireStack {
             components,
         }) => {
             let mut wire = WireStack::new(i32::from(item.0), i32::from(count.get()));
-            wire.components.added = components
-                .iter()
-                .filter_map(|(name, value)| component_value(name, value))
-                .collect();
+            wire.components = crate::components::encode_components(components);
             wire
         }
         None => WireStack::EMPTY,
@@ -2565,7 +2358,8 @@ mod tests {
             "minecraft:fire_resistance",
         )
         .unwrap();
-        let component = component_type("minecraft:suspicious_stew_effects").unwrap();
+        let component =
+            crate::components::component_type("minecraft:suspicious_stew_effects").unwrap();
         assert_eq!(
             body[body.len() - 6..],
             [

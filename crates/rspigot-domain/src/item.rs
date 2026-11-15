@@ -8,9 +8,102 @@ use crate::text::Component;
 
 pub const CUSTOM_NAME: &str = "minecraft:custom_name";
 pub const LORE: &str = "minecraft:lore";
+pub const CUSTOM_MODEL_DATA: &str = "minecraft:custom_model_data";
+pub const MAX_STACK_SIZE: &str = "minecraft:max_stack_size";
+const MAX_STACK_COMPONENT: u32 = 99;
 pub const ENCHANTMENTS: &str = "minecraft:enchantments";
 pub const MAX_LORE_LINES: usize = 256;
 const ENCHANTMENT_LEVELS: &str = "levels";
+
+#[derive(Debug, Clone, Default)]
+pub struct CustomModelData {
+    pub floats: Vec<f32>,
+    pub flags: Vec<bool>,
+    pub strings: Vec<String>,
+    pub colors: Vec<i32>,
+}
+
+impl PartialEq for CustomModelData {
+    fn eq(&self, other: &Self) -> bool {
+        self.floats.len() == other.floats.len()
+            && self
+                .floats
+                .iter()
+                .zip(&other.floats)
+                .all(|(a, b)| a.to_bits() == b.to_bits())
+            && self.flags == other.flags
+            && self.strings == other.strings
+            && self.colors == other.colors
+    }
+}
+
+impl Eq for CustomModelData {}
+
+impl CustomModelData {
+    pub fn is_empty(&self) -> bool {
+        self.floats.is_empty()
+            && self.flags.is_empty()
+            && self.strings.is_empty()
+            && self.colors.is_empty()
+    }
+
+    fn to_tag(&self) -> Tag {
+        let mut out = Compound::new();
+        if !self.floats.is_empty() {
+            out.insert(
+                "floats",
+                Tag::List(self.floats.iter().map(|value| Tag::Float(*value)).collect()),
+            );
+        }
+        if !self.flags.is_empty() {
+            out.insert(
+                "flags",
+                Tag::List(self.flags.iter().map(|value| Tag::from(*value)).collect()),
+            );
+        }
+        if !self.strings.is_empty() {
+            out.insert(
+                "strings",
+                Tag::List(
+                    self.strings
+                        .iter()
+                        .map(|value| Tag::from(value.as_str()))
+                        .collect(),
+                ),
+            );
+        }
+        if !self.colors.is_empty() {
+            out.insert(
+                "colors",
+                Tag::List(self.colors.iter().map(|value| Tag::Int(*value)).collect()),
+            );
+        }
+        Tag::Compound(out)
+    }
+
+    fn from_tag(tag: &Tag) -> Option<Self> {
+        let data = tag.as_compound()?;
+        let list = |key: &str| data.get_list(key).unwrap_or_default();
+        Some(Self {
+            floats: list("floats")
+                .iter()
+                .filter_map(|value| value.as_f64().map(|value| value as f32))
+                .collect(),
+            flags: list("flags")
+                .iter()
+                .filter_map(|value| value.as_i64().map(|value| value != 0))
+                .collect(),
+            strings: list("strings")
+                .iter()
+                .filter_map(|value| value.as_str().map(str::to_owned))
+                .collect(),
+            colors: list("colors")
+                .iter()
+                .filter_map(|value| value.as_i64().and_then(|value| i32::try_from(value).ok()))
+                .collect(),
+        })
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ItemStack {
@@ -57,6 +150,19 @@ impl ItemStack {
         }
     }
 
+    pub fn custom_model_data(&self) -> Option<CustomModelData> {
+        self.components
+            .get(CUSTOM_MODEL_DATA)
+            .and_then(CustomModelData::from_tag)
+    }
+
+    pub fn set_custom_model_data(&mut self, data: Option<&CustomModelData>) {
+        match data {
+            Some(data) => self.components.insert(CUSTOM_MODEL_DATA, data.to_tag()),
+            None => self.components.remove(CUSTOM_MODEL_DATA),
+        };
+    }
+
     pub fn enchantments(&self) -> Vec<(String, u8)> {
         let Some(enchantments) = self.components.get_compound(ENCHANTMENTS) else {
             return Vec::new();
@@ -96,7 +202,12 @@ pub fn count(slot: &Slot) -> u32 {
 }
 
 pub fn max_stack(stack: &ItemStack) -> u32 {
-    u32::from(stack.item.max_stack_size())
+    stack
+        .components
+        .get_i32(MAX_STACK_SIZE)
+        .and_then(|size| u32::try_from(size).ok())
+        .filter(|size| (1..=MAX_STACK_COMPONENT).contains(size))
+        .unwrap_or_else(|| u32::from(stack.item.max_stack_size()))
 }
 
 pub fn with_count(stack: &ItemStack, count: u32) -> Slot {
@@ -419,6 +530,38 @@ mod tests {
 
     fn stone(count: u8) -> ItemStack {
         ItemStack::new(ItemId(1), NonZeroU8::new(count).unwrap())
+    }
+
+    #[test]
+    fn custom_model_data_round_trips_through_the_component() {
+        let mut stack = stone(1);
+        assert_eq!(stack.custom_model_data(), None);
+        let data = CustomModelData {
+            floats: vec![1.5, 2.0],
+            flags: vec![true, false],
+            strings: vec!["a".to_owned()],
+            colors: vec![0xFF0000],
+        };
+        stack.set_custom_model_data(Some(&data));
+        assert_eq!(stack.custom_model_data(), Some(data));
+        let stored = stack.components.get_compound(CUSTOM_MODEL_DATA).unwrap();
+        assert_eq!(stored.get_list("colors").unwrap().len(), 1);
+        stack.set_custom_model_data(None);
+        assert!(stack.components.is_empty());
+    }
+
+    #[test]
+    fn a_max_stack_size_component_replaces_the_item_default_within_vanilla_bounds() {
+        let mut stack = stone(1);
+        assert_eq!(max_stack(&stack), 64);
+        stack.components.insert(MAX_STACK_SIZE, 16);
+        assert_eq!(max_stack(&stack), 16);
+        stack.components.insert(MAX_STACK_SIZE, 99);
+        assert_eq!(max_stack(&stack), 99);
+        stack.components.insert(MAX_STACK_SIZE, 0);
+        assert_eq!(max_stack(&stack), 64);
+        stack.components.insert(MAX_STACK_SIZE, 100);
+        assert_eq!(max_stack(&stack), 64);
     }
 
     #[test]

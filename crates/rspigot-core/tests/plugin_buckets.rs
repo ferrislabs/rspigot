@@ -61,6 +61,7 @@ fn spec(key: &str) -> ItemSpec {
         name: None,
         lore: Vec::new(),
         enchantments: Vec::new(),
+        custom_model_data: None,
         components: Vec::new(),
     }
 }

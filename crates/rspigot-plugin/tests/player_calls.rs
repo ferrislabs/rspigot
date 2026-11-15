@@ -42,6 +42,7 @@ fn diamond_sword(components: Vec<u8>) -> v1::Item {
         lore: Vec::new(),
         enchantments: Vec::new(),
         components,
+        custom_model_data: None,
     }
 }
 
@@ -398,6 +399,7 @@ async fn inventory_calls_use_spigot_slot_numbers() {
                 level: 5,
             }],
             components: vec![],
+            custom_model_data: None,
         })),
         stocked(inventory_order::Order::Remove(v1::RemoveItems {
             key: "minecraft:cobblestone".to_owned(),
@@ -447,6 +449,7 @@ async fn an_item_keeps_one_level_per_enchantment_and_its_last_name_and_lore() {
                 },
             ],
             components: vec![],
+            custom_model_data: None,
         }))
     );
     called.finished().await;

@@ -1,5 +1,6 @@
 mod book;
 mod cache;
+mod components;
 mod connection;
 mod decode;
 mod encode;
