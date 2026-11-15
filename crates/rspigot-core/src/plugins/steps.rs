@@ -922,6 +922,11 @@ pub(crate) enum Spawned {
     Hook {
         player: PlayerId,
     },
+    Trident {
+        player: PlayerId,
+        hand: Hand,
+        stack: ItemStack,
+    },
     Converted {
         old: EntityId,
         event: Option<i32>,

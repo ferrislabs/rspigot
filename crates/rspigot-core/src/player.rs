@@ -57,6 +57,7 @@ pub struct Player<L> {
     pub won_game: bool,
     pub moved_this_tick: bool,
     pub using_item: Option<UsingItem>,
+    pub(crate) spin: Option<crate::trident::SpinAttack>,
     pub(crate) fishing: Option<rspigot_domain::EntityId>,
     pub(crate) open_menu: Option<OpenMenu>,
     pub(crate) plugin_menu: Option<PluginMenu>,

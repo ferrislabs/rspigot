@@ -257,6 +257,13 @@ impl<L: ClientLink> Server<L> {
             } => {
                 self.finish_throw(player, hand, &stack, placed.map(|(id, _)| id));
             }
+            Spawned::Trident {
+                player,
+                hand,
+                stack,
+            } => {
+                self.finish_trident_throw(player, hand, &stack, placed.map(|(id, _)| id));
+            }
             Spawned::Hook { player } => {
                 if placed.is_none() {
                     self.forget_hook(player);

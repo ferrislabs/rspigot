@@ -709,6 +709,7 @@ impl<L: ClientLink> Server<L> {
             moved_this_tick: false,
             using_item: None,
             fishing: None,
+            spin: None,
             open_menu: None,
             plugin_menu: None,
             window_counter: 0,
@@ -982,6 +983,7 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_health();
+        self.tick_spin_attacks();
         self.tick_stat_clocks();
         self.tick_advancements();
         self.tick_sleeping();
