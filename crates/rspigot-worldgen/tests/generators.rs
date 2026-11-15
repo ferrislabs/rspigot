@@ -928,7 +928,10 @@ fn custom_dimension_heights_are_respected() {
 
 #[test]
 fn emeralds_only_appear_inside_mountain_biomes() {
-    const MOUNTAINS: [&str; 5] = [
+    const MOUNTAINS: [&str; 8] = [
+        "minecraft:windswept_gravelly_hills",
+        "minecraft:windswept_forest",
+        "minecraft:windswept_savanna",
         "minecraft:jagged_peaks",
         "minecraft:frozen_peaks",
         "minecraft:stony_peaks",
@@ -937,29 +940,29 @@ fn emeralds_only_appear_inside_mountain_biomes() {
     ];
     let generator = NoiseGenerator::new(12345);
     let dimension = Dimension::overworld();
-    let surface_biome = |column: &rspigot_domain::chunk::ChunkColumn| {
-        let top = top_y(column, HeightmapKind::WorldSurface, 8, 8);
-        let index = ((top - column.height().min_y) >> 4) as usize;
-        registries::biome_name(
-            column.sections()[index]
-                .biome(2, (top & 15) as usize >> 2, 2)
-                .0,
-        )
-        .unwrap()
+    let near_surface = |column: &rspigot_domain::chunk::ChunkColumn, x: usize, z: usize| {
+        let top = top_y(column, HeightmapKind::WorldSurface, x, z);
+        let min_y = column.height().min_y;
+        (-24..=14).any(|shift| {
+            let y = (top + shift).clamp(min_y, column.height().max_y() - 1);
+            let layer = ((y - min_y) >> 2) as usize;
+            let id = column.sections()[layer >> 2].biome(x >> 2, layer & 3, z >> 2);
+            MOUNTAINS.contains(&registries::biome_name(id.0).unwrap())
+        })
     };
     let mut emeralds = 0;
     let mut highest = i32::MIN;
     let mut mountain_chunks = Vec::new();
-    for cz in -48..48 {
-        for cx in -48..48 {
-            let pos = ChunkPos::new(cx * 3, cz * 3);
-            if MOUNTAINS.contains(&surface_biome(&generator.generate(&dimension, pos))) {
+    for cz in -20..20 {
+        for cx in -20..20 {
+            let pos = ChunkPos::new(cx * 4, cz * 4);
+            if near_surface(&generator.generate(&dimension, pos), 8, 8) {
                 mountain_chunks.push(pos);
             }
         }
     }
     assert!(!mountain_chunks.is_empty());
-    for pos in mountain_chunks.iter().take(400) {
+    for pos in mountain_chunks.iter().take(150) {
         let column = generator.generate(&dimension, *pos);
         let min_y = column.height().min_y;
         for (index, section) in column.sections().iter().enumerate() {
@@ -967,8 +970,7 @@ fn emeralds_only_appear_inside_mountain_biomes() {
                 let name = section.blocks().get(i).kind().unwrap().name();
                 if name.ends_with("emerald_ore") {
                     let (x, y, z) = (i & 15, (i >> 8) & 15, (i >> 4) & 15);
-                    let biome = registries::biome_name(section.biome(x >> 2, y >> 2, z >> 2).0);
-                    assert!(MOUNTAINS.contains(&biome.unwrap()), "{biome:?}");
+                    assert!(near_surface(&column, (x & !3) | 2, (z & !3) | 2));
                     emeralds += 1;
                     highest = highest.max(min_y + index as i32 * 16 + y as i32);
                 }

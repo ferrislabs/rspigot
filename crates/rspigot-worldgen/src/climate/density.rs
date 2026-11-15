@@ -12,7 +12,6 @@ pub(crate) struct ClimateFunctions {
 
 #[derive(Debug, Clone)]
 pub(crate) struct Scratch {
-    pub(crate) last_leaf: Option<usize>,
     column: Vec<f32>,
     point: Vec<f32>,
     column_key: Option<(i32, i32)>,
@@ -21,7 +20,6 @@ pub(crate) struct Scratch {
 impl Scratch {
     fn new(nodes: usize) -> Self {
         Self {
-            last_leaf: None,
             column: vec![f32::NAN; nodes],
             point: vec![f32::NAN; nodes],
             column_key: None,
