@@ -3,6 +3,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use rspigot_core::plugins::{
     EffectSpec, ItemSpec, ParticleDataSpec, ParticleSpec, SoundSpec, TitleSpec,
 };
+use rspigot_domain::item::CustomModelData;
 use rspigot_domain::{BlockPos, Rotation, Vec3};
 use rspigot_plugin_protocol::v1::{self, particle};
 use uuid::Uuid;
@@ -144,6 +145,12 @@ pub(super) fn item(item: v1::Item) -> ItemSpec {
             .into_iter()
             .map(|enchant| (enchant.key, enchant.level))
             .collect(),
+        custom_model_data: item.custom_model_data.map(|data| CustomModelData {
+            floats: data.floats,
+            flags: data.flags,
+            strings: data.strings,
+            colors: data.colors,
+        }),
         components: item.components,
     }
 }
@@ -160,6 +167,12 @@ pub(super) fn wire_item(item: ItemSpec) -> v1::Item {
             .map(|(key, level)| v1::Enchant { key, level })
             .collect(),
         components: item.components,
+        custom_model_data: item.custom_model_data.map(|data| v1::CustomModelData {
+            floats: data.floats,
+            flags: data.flags,
+            strings: data.strings,
+            colors: data.colors,
+        }),
     }
 }
 

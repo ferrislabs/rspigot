@@ -6,8 +6,8 @@ use uuid::Uuid;
 
 use crate::link::Link;
 use crate::{
-    Block, BlockPos, Effect, EffectType, Enchantment, EntityType, Error, ItemStack, Material,
-    Particle, Position, Vector, World,
+    Block, BlockPos, CustomModelData, Effect, EffectType, Enchantment, EntityType, Error,
+    ItemStack, Material, Particle, Position, Vector, World,
 };
 
 impl Position {
@@ -92,6 +92,12 @@ impl ItemStack {
             name: item.name,
             lore: item.lore,
             enchantments,
+            custom_model_data: item.custom_model_data.map(|data| CustomModelData {
+                floats: data.floats,
+                flags: data.flags,
+                strings: data.strings,
+                colors: data.colors,
+            }),
             components: item.components,
         })
     }
@@ -115,6 +121,12 @@ impl ItemStack {
                 })
                 .collect(),
             components: self.components,
+            custom_model_data: self.custom_model_data.map(|data| v1::CustomModelData {
+                floats: data.floats,
+                flags: data.flags,
+                strings: data.strings,
+                colors: data.colors,
+            }),
         }
     }
 }
@@ -288,5 +300,25 @@ pub(crate) fn player_entity(player: &v1::PlayerSnapshot) -> v1::EntitySnapshot {
         uuid: player.uuid.clone(),
         kind: "minecraft:player".to_owned(),
         position: player.position,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn custom_model_data_survives_the_wire() {
+        let stack = ItemStack::new(Material::Stick, 1).custom_model_data(CustomModelData {
+            floats: vec![1.5],
+            flags: vec![true],
+            strings: vec!["skin".to_owned()],
+            colors: vec![255],
+        });
+        let wire = stack.to_wire();
+        let data = wire.custom_model_data.clone().unwrap();
+        assert_eq!(data.floats, [1.5]);
+        assert_eq!(data.strings, ["skin"]);
+        assert_eq!(ItemStack::from_wire(wire).unwrap(), stack);
     }
 }

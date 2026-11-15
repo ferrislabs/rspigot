@@ -76,6 +76,7 @@ mod tests {
                 level: 5,
             }],
             components: vec![10, 0],
+            custom_model_data: None,
         }
     }
 
@@ -87,6 +88,33 @@ mod tests {
             components: vec![10, 0],
             ..ItemSpec::of("minecraft:diamond_sword", 1)
         }
+    }
+
+    #[test]
+    fn custom_model_data_converts_both_ways() {
+        let wire = v1::Item {
+            custom_model_data: Some(v1::CustomModelData {
+                floats: vec![1.5],
+                flags: vec![true],
+                strings: vec!["skin".into()],
+                colors: vec![255],
+            }),
+            ..wire_sword()
+        };
+        let spec = ItemSpec {
+            custom_model_data: Some(rspigot_domain::item::CustomModelData {
+                floats: vec![1.5],
+                flags: vec![true],
+                strings: vec!["skin".into()],
+                colors: vec![255],
+            }),
+            ..sword()
+        };
+        assert_eq!(
+            convert(inventory_order::Order::Add(wire.clone())).unwrap(),
+            InventoryOrder::Add(spec.clone())
+        );
+        assert_eq!(super::super::shared::wire_item(spec), wire);
     }
 
     #[test]
