@@ -15,7 +15,7 @@ use rspigot_domain::{BlockPos, EntityId, Identifier, ItemId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Compound;
 
-use crate::admin::{AdminLists, Ban, BanEntry, IpBanEntry, ListEntry};
+use crate::admin::{AdminLists, Ban, BanEntry, IpBanEntry, ListEntry, MAX_PERMISSION_LEVEL};
 use crate::chunks::{ChunkJob, Priority};
 use crate::commands::selector::{self, Selector, SelectorBase, Sort, TypeMatch};
 use crate::commands::{CommandContext, CommandSender, Target, Weather};
@@ -42,10 +42,13 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.push(Audience::All, ClientEvent::system(message));
     }
 
-    fn is_operator(&self, sender: CommandSender) -> bool {
+    fn permission_level(&self, sender: CommandSender) -> u8 {
         match sender {
-            CommandSender::Console => true,
-            CommandSender::Player(id) => self.players.get(&id).is_some_and(|p| p.operator),
+            CommandSender::Console => MAX_PERMISSION_LEVEL,
+            CommandSender::Player(id) => self
+                .players
+                .get(&id)
+                .map_or(0, |player| player.permission_level()),
         }
     }
 
@@ -182,9 +185,11 @@ impl<L: ClientLink> CommandContext for Server<L> {
 
     fn set_operator(&mut self, name: &str, operator: bool) -> bool {
         let online = self.find_player(name);
+        let level = self.config.op_permission_level;
         let entry = online
             .and_then(|id| self.players.get(&id))
-            .map_or_else(|| ListEntry::named(name), |p| ListEntry::of(&p.profile));
+            .map_or_else(|| ListEntry::named(name), |p| ListEntry::of(&p.profile))
+            .operator(level);
         let changed = if operator {
             AdminLists::add(&mut self.admin.operators, entry)
         } else {
@@ -196,9 +201,10 @@ impl<L: ClientLink> CommandContext for Server<L> {
         if let Some(id) = online {
             if let Some(p) = self.players.get_mut(&id) {
                 p.operator = operator;
+                p.op_level = level;
                 p.link.send(ClientEvent::OperatorLevel {
                     entity: p.entity_id,
-                    level: if operator { 4 } else { 0 },
+                    level: p.permission_level(),
                 });
             }
             self.send_commands(id);

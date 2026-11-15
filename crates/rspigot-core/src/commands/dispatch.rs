@@ -42,7 +42,7 @@ pub enum CommandOutcome {
 pub trait CommandContext {
     fn reply(&mut self, sender: CommandSender, message: Component);
     fn broadcast(&mut self, message: Component);
-    fn is_operator(&self, sender: CommandSender) -> bool;
+    fn permission_level(&self, sender: CommandSender) -> u8;
     fn sender_name(&self, sender: CommandSender) -> String;
     fn find_player(&self, name: &str) -> Option<PlayerId>;
     fn player_name(&self, player: PlayerId) -> Option<String>;
@@ -113,6 +113,8 @@ pub trait CommandContext {
         self.player_name(player).map(|name| ListEntry {
             name,
             uuid: Some(player.0),
+            level: None,
+            bypasses_player_limit: false,
         })
     }
 
@@ -202,35 +204,6 @@ pub trait CommandContext {
     }
 }
 
-const ADMIN_COMMANDS: [&str; 26] = [
-    "execute",
-    "summon",
-    "effect",
-    "kill",
-    "whitelist",
-    "say",
-    "gamemode",
-    "tp",
-    "teleport",
-    "time",
-    "give",
-    "clear",
-    "kick",
-    "op",
-    "deop",
-    "difficulty",
-    "weather",
-    "setworldspawn",
-    "save-all",
-    "stop",
-    "defaultgamemode",
-    "ban",
-    "ban-ip",
-    "pardon",
-    "pardon-ip",
-    "banlist",
-];
-
 pub fn execute<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -248,13 +221,8 @@ pub fn execute<C: CommandContext>(
         .unwrap_or(&label)
         .to_owned();
     let args: Vec<&str> = parts.collect();
-    if ADMIN_COMMANDS.contains(&label.as_str()) && !ctx.is_operator(sender) {
-        ctx.reply(
-            sender,
-            Component::text("I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error.")
-                .color(NamedColor::Red),
-        );
-        return CommandOutcome::Denied;
+    if !super::permission::may_use(&label, ctx.permission_level(sender)) {
+        return refuse(ctx, sender, line);
     }
     let rest = line
         .split_once(char::is_whitespace)
@@ -357,6 +325,29 @@ pub fn execute<C: CommandContext>(
     outcome
 }
 
+fn refuse<C: CommandContext>(ctx: &mut C, sender: CommandSender, line: &str) -> CommandOutcome {
+    ctx.reply(
+        sender,
+        Component::translatable("command.unknown.command", Vec::new()).color(NamedColor::Red),
+    );
+    ctx.reply(
+        sender,
+        Component::text("")
+            .color(NamedColor::Gray)
+            .append(
+                Component::text(line)
+                    .color(NamedColor::Red)
+                    .underlined(true),
+            )
+            .append(
+                Component::translatable("command.context.here", Vec::new())
+                    .color(NamedColor::Red)
+                    .italic(true),
+            ),
+    );
+    CommandOutcome::Denied
+}
+
 fn usage<C: CommandContext>(ctx: &mut C, sender: CommandSender, text: &str) -> CommandOutcome {
     ctx.reply(
         sender,
@@ -380,13 +371,14 @@ fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome
         "/list",
         "/me <action>",
         "/msg <player> <message>",
-        "/seed",
         "/tps",
         "/version",
         "/plugins",
     ];
-    if ctx.is_operator(sender) {
+    let level = ctx.permission_level(sender);
+    if level >= super::permission::LEVEL_GAMEMASTERS {
         lines.extend([
+            "/seed",
             "/say <message>",
             "/gamemode <mode> [player]",
             "/tp <x> <y> <z> | <player> [target]",
@@ -395,15 +387,16 @@ fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome
             "/clear [player]",
             "/kill [targets]",
             "/summon <entity> [pos] [nbt]",
-            "/kick <player> [reason]",
-            "/op <player>",
-            "/deop <player>",
             "/difficulty [level]",
             "/weather <clear|rain|thunder>",
             "/setworldspawn [x y z]",
-            "/save-all",
-            "/stop",
         ]);
+    }
+    if level >= super::permission::LEVEL_ADMINS {
+        lines.extend(["/kick <player> [reason]", "/op <player>", "/deop <player>"]);
+    }
+    if level >= super::permission::LEVEL_OWNERS {
+        lines.extend(["/save-all", "/stop"]);
     }
     ctx.reply(
         sender,
@@ -1708,6 +1701,7 @@ mod tests {
         replies: Vec<(CommandSender, String)>,
         broadcasts: Vec<String>,
         operator: bool,
+        level: Option<u8>,
         modes: Vec<(PlayerId, GameMode)>,
         teleports: Vec<(PlayerId, Vec3)>,
         day_time: i64,
@@ -1730,8 +1724,8 @@ mod tests {
         fn broadcast(&mut self, message: Component) {
             self.broadcasts.push(message.plain_text());
         }
-        fn is_operator(&self, _: CommandSender) -> bool {
-            self.operator
+        fn permission_level(&self, _: CommandSender) -> u8 {
+            self.level.unwrap_or(if self.operator { 4 } else { 0 })
         }
         fn sender_name(&self, sender: CommandSender) -> String {
             match sender {
@@ -2171,6 +2165,68 @@ mod tests {
             CommandOutcome::Denied
         );
         assert!(ctx.killed.is_empty());
+    }
+
+    #[test]
+    fn a_gamemaster_runs_gameplay_commands_but_not_admin_ones() {
+        let mut ctx = FakeContext {
+            level: Some(2),
+            ..FakeContext::default()
+        };
+        let player = CommandSender::Player(alice());
+        assert_eq!(
+            execute(&mut ctx, player, "/say hi"),
+            CommandOutcome::Success
+        );
+        assert_eq!(
+            execute(&mut ctx, player, "/op Alice"),
+            CommandOutcome::Denied
+        );
+        assert_eq!(
+            execute(&mut ctx, player, "/ban Alice"),
+            CommandOutcome::Denied
+        );
+        assert_eq!(execute(&mut ctx, player, "/stop"), CommandOutcome::Denied);
+        assert!(!ctx.stopped);
+    }
+
+    #[test]
+    fn an_admin_cannot_stop_the_server_and_the_console_can() {
+        let mut ctx = FakeContext {
+            level: Some(3),
+            ..FakeContext::default()
+        };
+        let player = CommandSender::Player(alice());
+        assert_eq!(execute(&mut ctx, player, "/stop"), CommandOutcome::Denied);
+        assert_eq!(
+            execute(&mut ctx, player, "/save-all"),
+            CommandOutcome::Denied
+        );
+        assert_ne!(
+            execute(&mut ctx, player, "/kick Alice"),
+            CommandOutcome::Denied
+        );
+        ctx.level = Some(4);
+        execute(&mut ctx, CommandSender::Console, "stop");
+        assert!(ctx.stopped);
+    }
+
+    #[test]
+    fn a_refusal_looks_like_vanilla() {
+        let mut ctx = FakeContext::default();
+        execute(
+            &mut ctx,
+            CommandSender::Player(alice()),
+            "/gamemode creative",
+        );
+        let texts: Vec<&str> = ctx.replies.iter().map(|r| r.1.as_str()).collect();
+        assert_eq!(
+            texts,
+            [
+                "command.unknown.command",
+                "gamemode creativecommand.context.here"
+            ]
+        );
     }
 
     #[test]

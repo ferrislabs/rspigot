@@ -54,7 +54,11 @@ fn flag(value: &str) -> Option<bool> {
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn handle_set_game_rules(&mut self, id: PlayerId, entries: Vec<(String, String)>) {
-        if !self.players.get(&id).is_some_and(|player| player.operator) {
+        if !self
+            .players
+            .get(&id)
+            .is_some_and(|player| player.permission_level() >= 2)
+        {
             return;
         }
         for (key, value) in entries {

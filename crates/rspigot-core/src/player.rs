@@ -48,6 +48,7 @@ pub struct Player<L> {
     pub tracked: FxHashSet<EntityId>,
     pub loaded: bool,
     pub operator: bool,
+    pub op_level: u8,
     pub effects: ActiveEffects,
     pub vitals: Vitals,
     pub known_movement: Vec3,
@@ -80,6 +81,10 @@ pub struct Player<L> {
 }
 
 impl<L> Player<L> {
+    pub fn permission_level(&self) -> u8 {
+        if self.operator { self.op_level } else { 0 }
+    }
+
     pub fn name(&self) -> &str {
         &self.profile.name
     }

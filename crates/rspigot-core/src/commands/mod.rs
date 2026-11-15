@@ -1,4 +1,5 @@
 mod dispatch;
+pub mod permission;
 pub mod selector;
 mod tree;
 

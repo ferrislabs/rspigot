@@ -655,12 +655,8 @@ fn perform_command_runs_with_the_players_rights() {
         PlayerOrder::PerformCommand("time set 1000".into()),
     ));
     let replies = texts(&alice);
-    assert_eq!(replies.len(), 1);
-    assert!(
-        replies[0]
-            .0
-            .starts_with("I'm sorry, but you do not have permission")
-    );
+    assert_eq!(replies.len(), 2);
+    assert!(replies[0].0.starts_with("command.unknown.command"));
 
     s.act(to(&alice, PlayerOrder::SetOp(true)));
     assert!(
