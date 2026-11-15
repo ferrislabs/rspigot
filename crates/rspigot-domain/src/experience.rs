@@ -16,6 +16,7 @@ pub struct PlayerExperience {
     pub last_sent: i32,
     pub last_level_up: i32,
     pub old_level: i32,
+    pub seed: i32,
 }
 
 impl Default for PlayerExperience {
@@ -28,6 +29,7 @@ impl Default for PlayerExperience {
             last_sent: INITIAL_SENT,
             last_level_up: 0,
             old_level: -1,
+            seed: 0,
         }
     }
 }

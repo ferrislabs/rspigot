@@ -1347,6 +1347,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_prepare(*step, settled_result(patch));
                 Vec::new()
             }
+            Continuation::PrepareEnchant(step) => {
+                self.finish_prepare_enchant(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Enchant(step) => {
+                self.finish_enchant(*step, cancelled, patch_of!(patch, EnchantItem));
+                Vec::new()
+            }
             Continuation::Open(step) => {
                 self.finish_open(*step, cancelled);
                 Vec::new()

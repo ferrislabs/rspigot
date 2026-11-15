@@ -34,6 +34,7 @@ mod drops;
 mod durability;
 mod eating;
 mod effects;
+mod enchanting;
 mod end_credits;
 mod end_gateway;
 mod end_platform;

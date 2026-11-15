@@ -49,6 +49,7 @@ pub(crate) enum TopType {
     BlastFurnace,
     Smoker,
     Anvil,
+    Enchanting,
     Smithing,
     Grindstone,
     Stonecutter,
@@ -74,6 +75,7 @@ impl TopType {
             MenuKind::BlastFurnace => Self::BlastFurnace,
             MenuKind::Smoker => Self::Smoker,
             MenuKind::Anvil => Self::Anvil,
+            MenuKind::Enchantment => Self::Enchanting,
             MenuKind::Smithing => Self::Smithing,
             MenuKind::Grindstone => Self::Grindstone,
             MenuKind::Stonecutter => Self::Stonecutter,
@@ -101,6 +103,7 @@ impl TopType {
             Self::BlastFurnace => "BLAST_FURNACE",
             Self::Smoker => "SMOKER",
             Self::Anvil => "ANVIL",
+            Self::Enchanting => "ENCHANTING",
             Self::Smithing => "SMITHING",
             Self::Grindstone => "GRINDSTONE",
             Self::Stonecutter => "STONECUTTER",
@@ -125,7 +128,7 @@ impl TopType {
             Self::Anvil | Self::Cartography | Self::Grindstone | Self::Merchant => 2,
             Self::Stonecutter => 1,
             Self::Loom | Self::Smithing => 3,
-            Self::Beacon => return InventoryTypeSlotType::Crafting,
+            Self::Beacon | Self::Enchanting => return InventoryTypeSlotType::Crafting,
             _ => return InventoryTypeSlotType::Container,
         };
         if raw == result_at {

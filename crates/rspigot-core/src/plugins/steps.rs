@@ -11,6 +11,7 @@ use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Rotation, Vec3}
 
 use crate::combat::{Strike, Victim};
 use crate::commands::{CommandSender, Target};
+use crate::enchanting::{EnchantStep, PrepareEnchantStep};
 use crate::events::{Direction, Hand, InputState, PreLoginVerdict};
 use crate::explosion::BlockInteraction;
 use crate::health::DamageSource;
@@ -1699,6 +1700,8 @@ pub(crate) enum Continuation {
     Furnace(EventKind, Box<FurnaceStep>),
     Extract(ExtractStep),
     Prepare(EventKind, Box<PrepareStep>),
+    PrepareEnchant(PrepareEnchantStep),
+    Enchant(Box<EnchantStep>),
     Open(Box<OpenStep>),
     OpenPlugin(PluginOpenStep),
     Close(ClosePacket),
@@ -1893,6 +1896,8 @@ impl Continuation {
             Self::Furnace(kind, _) => *kind,
             Self::Extract(_) => EventKind::FurnaceExtract,
             Self::Prepare(kind, _) => *kind,
+            Self::PrepareEnchant(_) => EventKind::PrepareItemEnchant,
+            Self::Enchant(_) => EventKind::EnchantItem,
             Self::Open(_) | Self::OpenPlugin(_) => EventKind::InventoryOpen,
             Self::Close(_) => EventKind::InventoryClose,
             Self::Button(_) => EventKind::InventoryClick,

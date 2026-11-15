@@ -19,6 +19,7 @@ pub mod dragon;
 pub mod dye;
 pub mod effect;
 pub mod enchant;
+pub mod enchanting;
 pub mod entity;
 pub mod experience;
 pub mod explosion;
