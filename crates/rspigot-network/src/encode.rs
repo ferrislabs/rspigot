@@ -1066,6 +1066,22 @@ impl Encoder {
             ),
             ClientEvent::Abilities(a) => Self::queue(writer, &abilities(a)),
             ClientEvent::RecipeSync => Self::queue(writer, &update_recipes()),
+            ClientEvent::Advancements {
+                reset,
+                added,
+                removed,
+                progress,
+                show,
+            } => Self::queue(
+                writer,
+                &book::advancements_update(*reset, added, removed, progress, *show),
+            ),
+            ClientEvent::SelectAdvancementsTab(tab) => Self::queue(
+                writer,
+                &cb::SelectAdvancementsTab {
+                    tab: tab.map(str::to_owned),
+                },
+            ),
             ClientEvent::RecipeBookSettings(settings) => {
                 Self::queue(writer, &book::book_settings(settings))
             }
@@ -2868,6 +2884,43 @@ mod tests {
             rspigot_core::recipe_book::RecipeBookSettings::default(),
         ));
         assert_eq!(settings[0].0, id::RECIPE_BOOK_SETTINGS);
+    }
+
+    #[test]
+    fn every_displayed_advancement_encodes_and_decodes_as_one_update() {
+        use rspigot_protocol::codec::decode_exact;
+        let shown: Vec<_> = rspigot_data::advancements::all()
+            .iter()
+            .filter(|found| found.display.is_some())
+            .collect();
+        assert_eq!(shown.len(), 126);
+        let event = encode(ClientEvent::Advancements {
+            reset: true,
+            added: shown.clone(),
+            removed: Vec::new(),
+            progress: vec![("minecraft:story/root", vec![("crafting_table", Some(7))])],
+            show: false,
+        });
+        assert_eq!(event[0].0, id::UPDATE_ADVANCEMENTS);
+        let update: cb::UpdateAdvancements = decode_exact(&event[0].1).expect("decodes");
+        assert_eq!(update.added.len(), shown.len());
+        assert!(update.reset && !update.show);
+        let root = update
+            .added
+            .iter()
+            .find(|added| added.id == "minecraft:story/root")
+            .expect("the root");
+        assert!(root.advancement.parent.is_none());
+        assert!(
+            root.advancement
+                .display
+                .as_ref()
+                .is_some_and(|display| display.background.is_some())
+        );
+        let tab = encode(ClientEvent::SelectAdvancementsTab(Some(
+            "minecraft:story/root",
+        )));
+        assert_eq!(tab[0].0, id::SELECT_ADVANCEMENTS_TAB);
     }
 
     #[test]

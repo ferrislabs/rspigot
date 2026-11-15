@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod advancements;
 mod anvil;
 mod armor_stand;
 mod beacon;

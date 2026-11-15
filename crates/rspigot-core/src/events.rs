@@ -154,6 +154,7 @@ pub enum PlayerInput {
         max: bool,
     },
     RecipeSeen(i32),
+    AdvancementTab(Option<String>),
     ClientTickEnd,
     Attack(EntityId),
     Interact {
@@ -413,6 +414,8 @@ pub struct Abilities {
     pub walk_speed: f32,
 }
 
+pub type CriterionProgress = Vec<(&'static str, Option<i64>)>;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BookStack {
     pub item: rspigot_items::ItemId,
@@ -467,6 +470,14 @@ pub enum ClientEvent {
     Abilities(Abilities),
     HeldSlot(u8),
     RecipeSync,
+    Advancements {
+        reset: bool,
+        added: Vec<&'static rspigot_data::advancements::Advancement>,
+        removed: Vec<&'static str>,
+        progress: Vec<(&'static str, CriterionProgress)>,
+        show: bool,
+    },
+    SelectAdvancementsTab(Option<&'static str>),
     RecipeBookSettings(crate::recipe_book::RecipeBookSettings),
     RecipeBookAdd {
         entries: Vec<BookEntry>,

@@ -1,3 +1,4 @@
+pub mod advancements;
 pub mod block_transformers;
 pub mod brewing;
 pub mod climate;

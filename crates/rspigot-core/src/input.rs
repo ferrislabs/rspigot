@@ -152,6 +152,7 @@ impl<L: ClientLink> Server<L> {
                 max,
             } => self.handle_place_recipe(id, window, display_id, max),
             PlayerInput::RecipeSeen(display_id) => self.mark_recipe_seen(id, display_id),
+            PlayerInput::AdvancementTab(tab) => self.select_advancement_tab(id, tab.as_deref()),
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
             PlayerInput::RenameItem(name) => self.rename_item(id, &name),
             PlayerInput::RecipeBookSettings {

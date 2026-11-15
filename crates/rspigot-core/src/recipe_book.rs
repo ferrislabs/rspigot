@@ -300,9 +300,13 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
-        let entries: Vec<BookEntry> = recipes
+        let fresh: Vec<&'static CatalogRecipe> = recipes
             .iter()
+            .copied()
             .filter(|recipe| player.recipe_book.add(recipe.id))
+            .collect();
+        let entries: Vec<BookEntry> = fresh
+            .iter()
             .filter_map(|recipe| entry_of(recipe, NOTIFY_AND_HIGHLIGHT))
             .collect();
         if entries.is_empty() {
@@ -312,6 +316,9 @@ impl<L: ClientLink> Server<L> {
             entries,
             replace: false,
         });
+        for recipe in fresh {
+            self.trigger_recipe_unlocked(id, recipe.id);
+        }
     }
 
     pub fn take_recipes(&mut self, id: PlayerId, recipes: &[&str]) -> usize {

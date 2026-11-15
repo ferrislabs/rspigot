@@ -44,6 +44,7 @@ pub mod custom {
     pub const ENCHANT_ITEM: &str = "minecraft:enchant_item";
     pub const TRADED_WITH_VILLAGER: &str = "minecraft:traded_with_villager";
     pub const SLEEP_IN_BED: &str = "minecraft:sleep_in_bed";
+    pub const SLEEP_IN_STRAW_BED: &str = "minecraft:sleep_in_straw_bed";
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -458,10 +459,12 @@ impl<L: ClientLink> Server<L> {
         self.reset_stat(id, custom::TIME_SINCE_REST);
         if let Some(cause) = &source.causing {
             self.award(id, StatKind::KilledBy, cause.kind.name(), 1);
+            self.trigger_entity_killed_player(id);
         }
         if let Some(killer) = killer.or_else(|| source.attacker()) {
             self.award_custom(killer, custom::PLAYER_KILLS, 1);
             self.award(killer, StatKind::Killed, Kind::Player.name(), 1);
+            self.trigger_killed_entity(killer, Kind::Player.name());
         }
     }
 
@@ -471,6 +474,7 @@ impl<L: ClientLink> Server<L> {
         };
         self.award_custom(killer, custom::MOB_KILLS, 1);
         self.award(killer, StatKind::Killed, kind.name(), 1);
+        self.trigger_killed_entity(killer, kind.name());
     }
 
     pub(crate) fn count_movement(&mut self, id: PlayerId, from: Vec3, to: Vec3) {

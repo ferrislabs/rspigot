@@ -704,6 +704,7 @@ impl<L: ClientLink> Server<L> {
             seen_credits: false,
             recipe_book: Default::default(),
             stats: Default::default(),
+            advancements: Default::default(),
             won_game: false,
             moved_this_tick: false,
             using_item: None,
@@ -729,6 +730,7 @@ impl<L: ClientLink> Server<L> {
             }
         }
         player.stats = self.load_stats(player.id);
+        player.advancements = self.load_advancements(player.id);
         tracing::info!(
             "{}[/{}] logged in with entity id {} at ([{}]{:.1}, {:.1}, {:.1})",
             player.name(),
@@ -757,6 +759,7 @@ impl<L: ClientLink> Server<L> {
         let id = player.id;
         self.players.insert(id, player);
         self.update_player_view(id);
+        self.send_initial_advancements(id);
         if let Some(save) = &saved {
             self.announce_restored(id, save);
         }
@@ -979,6 +982,7 @@ impl<L: ClientLink> Server<L> {
         self.send_entity_changes();
         self.tick_health();
         self.tick_stat_clocks();
+        self.tick_advancements();
         self.tick_sleeping();
         self.tick_eating();
         self.tick_delayed_destroys();

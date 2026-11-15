@@ -403,6 +403,13 @@ impl<L: ClientLink> Server<L> {
             self.bed_problem(id, kind, rule, pos, state, Problem::Other);
             return;
         }
+        let slept_in = if kind == BlockKind::StrawBed {
+            crate::stats::custom::SLEEP_IN_STRAW_BED
+        } else {
+            crate::stats::custom::SLEEP_IN_BED
+        };
+        self.award_custom(id, slept_in, 1);
+        self.trigger_slept_in_bed(id);
         if !self.can_sleep_through_nights() {
             self.overlay(id, bed::SLEEP_NOT_POSSIBLE_MESSAGE);
         }

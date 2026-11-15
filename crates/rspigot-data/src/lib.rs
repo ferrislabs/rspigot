@@ -1,3 +1,4 @@
+pub mod advancements;
 pub mod brewing;
 pub mod climate;
 pub mod compostable;

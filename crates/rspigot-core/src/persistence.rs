@@ -1,5 +1,6 @@
 use rspigot_domain::player::GameProfile;
 
+use crate::advancements::PlayerAdvancements;
 use crate::player::Player;
 use crate::player_data::PlayerSave;
 use crate::player_io::PlayerIo;
@@ -42,10 +43,30 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn load_advancements(&self, id: PlayerId) -> PlayerAdvancements {
+        let Some(io) = &self.player_io else {
+            return PlayerAdvancements::default();
+        };
+        match io.load_progress(id, ProgressFile::Advancements) {
+            Ok(text) => text.map_or_else(PlayerAdvancements::default, |text| {
+                PlayerAdvancements::from_json(&text)
+            }),
+            Err(error) => {
+                tracing::warn!("Failed to load advancements for {id}: {error}");
+                PlayerAdvancements::default()
+            }
+        }
+    }
+
     pub(crate) fn persist_player(&self, player: &Player<L>) {
         if let Some(io) = &self.player_io {
             io.save(player.id, PlayerSave::capture(player).to_nbt());
             io.save_progress(player.id, ProgressFile::Stats, player.stats.to_json());
+            io.save_progress(
+                player.id,
+                ProgressFile::Advancements,
+                player.advancements.to_json(),
+            );
         }
     }
 

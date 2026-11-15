@@ -594,6 +594,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_book_click(step, patch_of!(patch, PlayerRecipeBookClick));
                 Vec::new()
             }
+            Continuation::Criterion(step) => {
+                self.finish_criterion(step, cancelled);
+                Vec::new()
+            }
             Continuation::Stat(step) => {
                 self.finish_stat(step, cancelled);
                 Vec::new()

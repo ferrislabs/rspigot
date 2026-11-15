@@ -53,6 +53,7 @@ pub struct Player<L> {
     pub seen_credits: bool,
     pub recipe_book: crate::recipe_book::RecipeBook,
     pub stats: crate::stats::PlayerStats,
+    pub advancements: crate::advancements::PlayerAdvancements,
     pub won_game: bool,
     pub moved_this_tick: bool,
     pub using_item: Option<UsingItem>,

@@ -1,5 +1,7 @@
-use rspigot_core::events::{BookDisplay, BookEntry, BookStack};
+use rspigot_core::events::{BookDisplay, BookEntry, BookStack, CriterionProgress};
 use rspigot_core::recipe_book::{BookKind, RecipeBookSettings};
+use rspigot_data::advancements::Advancement;
+use rspigot_domain::text::Component;
 use rspigot_items::ItemSet;
 use rspigot_protocol::play::clientbound as cb;
 use rspigot_protocol::play::inventory::{RecipeBookTypeSettings, SlotDisplay, recipe_book_flags};
@@ -117,5 +119,70 @@ pub(crate) fn book_settings(settings: &RecipeBookSettings) -> cb::RecipeBookSett
         furnace: of(BookKind::Furnace),
         blast_furnace: of(BookKind::BlastFurnace),
         smoker: of(BookKind::Smoker),
+    }
+}
+
+fn text(key: &str) -> rspigot_protocol::types::Text {
+    rspigot_protocol::types::Text(crate::text::to_nbt(&Component::translatable(
+        key.to_owned(),
+        Vec::new(),
+    )))
+}
+
+fn positioned(found: &Advancement) -> cb::PositionedAdvancement {
+    cb::PositionedAdvancement {
+        id: found.id.to_owned(),
+        advancement: cb::AdvancementData {
+            parent: found.parent.map(str::to_owned),
+            display: found.display.map(|display| cb::AdvancementDisplay {
+                title: text(display.title),
+                description: text(display.description),
+                icon: ItemStackTemplate {
+                    item: i32::from(display.icon),
+                    count: 1,
+                    components: DataComponentPatch::EMPTY,
+                },
+                frame: i32::from(display.frame),
+                show_toast: display.show_toast,
+                hidden: display.hidden,
+                background: display.background.map(str::to_owned),
+            }),
+            requirements: found
+                .requirements
+                .iter()
+                .map(|group| group.iter().map(|name| (*name).to_owned()).collect())
+                .collect(),
+            telemetry: found.telemetry,
+        },
+        x: found.display.map_or(0.0, |display| display.x),
+        y: found.display.map_or(0.0, |display| display.y),
+    }
+}
+
+pub(crate) fn advancements_update(
+    reset: bool,
+    added: &[&'static Advancement],
+    removed: &[&'static str],
+    progress: &[(&'static str, CriterionProgress)],
+    show: bool,
+) -> cb::UpdateAdvancements {
+    cb::UpdateAdvancements {
+        reset,
+        added: added.iter().map(|found| positioned(found)).collect(),
+        removed: removed.iter().map(|id| (*id).to_owned()).collect(),
+        progress: progress
+            .iter()
+            .map(|(id, criteria)| cb::ProgressEntry {
+                id: (*id).to_owned(),
+                criteria: criteria
+                    .iter()
+                    .map(|(name, obtained)| cb::CriterionEntry {
+                        name: (*name).to_owned(),
+                        obtained: *obtained,
+                    })
+                    .collect(),
+            })
+            .collect(),
+        show,
     }
 }

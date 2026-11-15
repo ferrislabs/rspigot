@@ -45,7 +45,10 @@ pub mod clientbound {
         SetDefaultSpawnPosition, SetExperience, SetHealth, SetHeldSlot, StartConfiguration,
         TabList, TickingState, TickingStep,
     };
-    pub use super::progress::{AwardStats, StatEntry};
+    pub use super::progress::{
+        AdvancementData, AdvancementDisplay, AwardStats, CriterionEntry, PositionedAdvancement,
+        ProgressEntry, SelectAdvancementsTab, StatEntry, UpdateAdvancements,
+    };
     pub use super::world::{
         BlockChangedAck, BlockDestruction, BlockEntityData, BlockEvent, BlockUpdate,
         ChunkBatchFinished, ChunkBatchStart, Explode, ExplosionParticle, GameEvent, GameRuleValues,
@@ -147,6 +150,8 @@ mod tests {
             (<PlayerCombatKill as Packet>::ID, 69),
             (<BossEvent as Packet>::ID, 9),
             (<AwardStats as Packet>::ID, 3),
+            (<UpdateAdvancements as Packet>::ID, 133),
+            (<SelectAdvancementsTab as Packet>::ID, 87),
             (<RecipeBookAdd as Packet>::ID, 75),
             (<RecipeBookRemove as Packet>::ID, 76),
             (<PlaceGhostRecipe as Packet>::ID, 64),
