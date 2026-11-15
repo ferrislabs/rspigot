@@ -1,11 +1,13 @@
+use std::sync::Arc;
+
 use rspigot_blocks::{BlockKind as Kind, Face, Support};
 use rspigot_data::tags::tag;
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
 use super::super::region::Region;
-use crate::climate::Xoroshiro;
-use crate::datapack::block_state;
+use crate::climate::{NoiseStack, Xoroshiro};
+use crate::datapack::{block_state, inline_noise_parameters};
 
 pub(crate) type Pos = (i32, i32, i32);
 
@@ -555,11 +557,54 @@ pub(crate) enum State {
         values: Int,
     },
     Pick(Vec<BlockStateId>),
+    Noise(NoiseBlocks),
+    DualNoise {
+        slow: Arc<NoiseStack>,
+        slow_scale: f32,
+        min: i32,
+        max: i32,
+        fast: NoiseBlocks,
+    },
     Threshold {
-        default: BlockStateId,
+        noise: NoiseBlocks,
+        threshold: f32,
         chance: f32,
+        default: BlockStateId,
+        low: Vec<BlockStateId>,
         high: Vec<BlockStateId>,
     },
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct NoiseBlocks {
+    noise: Arc<NoiseStack>,
+    scale: f64,
+    states: Vec<BlockStateId>,
+}
+
+impl NoiseBlocks {
+    fn compile(value: &Value, states: Vec<BlockStateId>) -> Self {
+        let parameters = inline_noise_parameters(value.get("noise").unwrap_or(&Value::Null));
+        let seed = value.get("seed").and_then(Value::as_i64).unwrap_or(0);
+        Self {
+            noise: Arc::new(NoiseStack::create_legacy(&parameters, seed)),
+            scale: f64::from(number(value, "scale", 1.0) as f32),
+            states,
+        }
+    }
+
+    fn value(&self, (x, y, z): Pos) -> f32 {
+        self.noise.get(
+            f64::from(x) * self.scale,
+            f64::from(y) * self.scale,
+            f64::from(z) * self.scale,
+        )
+    }
+}
+
+fn pick_by_noise(states: &[BlockStateId], noise: f32) -> Option<BlockStateId> {
+    let unit = ((noise + 1.0) / 2.0).clamp(0.0, 0.9999_f32);
+    states.get((unit * states.len() as f32) as usize).copied()
 }
 
 impl State {
@@ -579,13 +624,34 @@ impl State {
                 .unwrap_or_default()
         };
         match short(value) {
-            "noise" | "dual_noise" => Self::Pick(states("states")),
+            "noise" => Self::Noise(NoiseBlocks::compile(value, states("states"))),
+            "dual_noise" => {
+                let range = value.get("variety").and_then(Value::as_array);
+                let bound = |index: usize| {
+                    range
+                        .and_then(|items| items.get(index))
+                        .and_then(Value::as_i64)
+                        .unwrap_or(1) as i32
+                };
+                let slow = inline_noise_parameters(value.get("slow_noise").unwrap_or(&Value::Null));
+                let seed = value.get("seed").and_then(Value::as_i64).unwrap_or(0);
+                Self::DualNoise {
+                    slow: Arc::new(NoiseStack::create_legacy(&slow, seed)),
+                    slow_scale: number(value, "slow_scale", 1.0) as f32,
+                    min: bound(0),
+                    max: bound(1),
+                    fast: NoiseBlocks::compile(value, states("states")),
+                }
+            }
             "noise_threshold" => Self::Threshold {
+                noise: NoiseBlocks::compile(value, Vec::new()),
+                threshold: number(value, "threshold", 0.0) as f32,
+                chance: number(value, "high_chance", 0.0) as f32,
                 default: value
                     .get("default_state")
                     .and_then(block_state)
                     .unwrap_or(BlockStateId::AIR),
-                chance: number(value, "high_chance", 0.0) as f32,
+                low: states("low_states"),
                 high: states("high_states"),
             },
             "random_block" => {
@@ -657,16 +723,47 @@ impl State {
                     Some(options[rng.below(options.len() as i32) as usize])
                 }
             }
+            Self::Noise(blocks) => pick_by_noise(&blocks.states, blocks.value(pos)),
+            Self::DualNoise {
+                slow,
+                slow_scale,
+                min,
+                max,
+                fast,
+            } => {
+                let slow_at = |(x, y, z): Pos| {
+                    slow.get(
+                        f64::from(x as f32 * slow_scale),
+                        f64::from(y as f32 * slow_scale),
+                        f64::from(z as f32 * slow_scale),
+                    )
+                };
+                let unit = ((f64::from(slow_at(pos)) + 1.0) / 2.0).clamp(0.0, 1.0);
+                let low = f64::from(*min);
+                let count = (low + unit * (f64::from(*max + 1) - low)) as i32;
+                let chosen: Vec<BlockStateId> = (0..count)
+                    .filter_map(|i| {
+                        let at = (pos.0 + i * 0xd511, pos.1, pos.2 + i * 0x85ba);
+                        pick_by_noise(&fast.states, slow_at(at))
+                    })
+                    .collect();
+                pick_by_noise(&chosen, fast.value(pos))
+            }
             Self::Threshold {
-                default,
+                noise,
+                threshold,
                 chance,
+                default,
+                low,
                 high,
             } => {
-                if !high.is_empty() && rng.next_float() < *chance {
-                    Some(high[rng.below(high.len() as i32) as usize])
-                } else {
-                    Some(*default)
+                if noise.value(pos) < *threshold {
+                    return low.get(rng.below(low.len() as i32) as usize).copied();
                 }
+                if rng.next_float() < *chance {
+                    return high.get(rng.below(high.len() as i32) as usize).copied();
+                }
+                Some(*default)
             }
             Self::Weighted(entries) => {
                 let total: i32 = entries.iter().map(|(_, weight)| weight).sum();
@@ -700,5 +797,55 @@ impl State {
                 state.with_property(property, &value).or(Some(state))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::overworld::features::tests::Bench;
+
+    fn names(provider: &str, rng_seed: i64) -> Vec<String> {
+        let bench = Bench::new();
+        let mut region = bench.floor(crate::resources::BlockKind::Stone, 64);
+        let state = State::compile(&Value::String(format!("minecraft:{provider}")));
+        let mut rng = Xoroshiro::from_seed(rng_seed);
+        (0..24)
+            .map(|i| {
+                let pos = (i * 37 - 400, 64 + i % 3, i * -53 + 100);
+                state
+                    .resolve(&mut region, &mut rng, pos)
+                    .and_then(|s| s.kind())
+                    .map_or("none".to_owned(), |kind| {
+                        kind.name().replace("minecraft:", "")
+                    })
+            })
+            .collect()
+    }
+
+    #[test]
+    fn flower_forest_noise_matches_vanilla() {
+        let expected = "red_tulip azure_bluet orange_tulip azure_bluet white_tulip white_tulip orange_tulip red_tulip white_tulip white_tulip white_tulip orange_tulip oxeye_daisy orange_tulip red_tulip red_tulip azure_bluet azure_bluet white_tulip white_tulip orange_tulip white_tulip red_tulip white_tulip";
+        assert_eq!(names("flower_flower_forest", 1).join(" "), expected);
+    }
+
+    #[test]
+    fn meadow_dual_noise_matches_vanilla() {
+        let expected = "cornflower cornflower cornflower cornflower cornflower cornflower oxeye_daisy cornflower dandelion cornflower azure_bluet oxeye_daisy oxeye_daisy oxeye_daisy poppy oxeye_daisy cornflower cornflower cornflower cornflower cornflower cornflower cornflower dandelion";
+        assert_eq!(names("flower_meadow", 1).join(" "), expected);
+    }
+
+    #[test]
+    fn plains_flowers_are_dandelions_or_the_high_set() {
+        let allowed = [
+            "dandelion",
+            "poppy",
+            "azure_bluet",
+            "oxeye_daisy",
+            "cornflower",
+        ];
+        let found = names("flower_plain", 3);
+        assert!(found.iter().all(|name| allowed.contains(&name.as_str())));
+        assert!(found.iter().filter(|name| *name == "dandelion").count() > 12);
     }
 }

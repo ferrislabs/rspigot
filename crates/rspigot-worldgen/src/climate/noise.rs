@@ -1,6 +1,38 @@
 use rspigot_data::multi_noise::NoiseParameters;
 
 use super::random::{Positional, Xoroshiro};
+use crate::legacy::JavaRandom;
+
+pub(crate) trait NoiseDraw {
+    fn draw_double(&mut self) -> f64;
+    fn draw_bounded(&mut self, bound: u32) -> u32;
+}
+
+impl NoiseDraw for Xoroshiro {
+    fn draw_double(&mut self) -> f64 {
+        self.next_double()
+    }
+
+    fn draw_bounded(&mut self, bound: u32) -> u32 {
+        self.next_int(bound)
+    }
+}
+
+impl NoiseDraw for JavaRandom {
+    fn draw_double(&mut self) -> f64 {
+        self.next_double()
+    }
+
+    fn draw_bounded(&mut self, bound: u32) -> u32 {
+        self.next_int(bound as i32) as u32
+    }
+}
+
+fn java_hash(name: &str) -> i32 {
+    name.encode_utf16().fold(0i32, |hash, unit| {
+        hash.wrapping_mul(31).wrapping_add(i32::from(unit))
+    })
+}
 
 const GRADIENTS: [[i8; 3]; 16] = [
     [1, 1, 0],
@@ -57,15 +89,15 @@ pub(crate) struct Perlin {
 }
 
 impl Perlin {
-    fn new(rng: &mut Xoroshiro) -> Self {
+    fn new(rng: &mut impl NoiseDraw) -> Self {
         let offset = [
-            rng.next_double() * 256.0,
-            rng.next_double() * 256.0,
-            rng.next_double() * 256.0,
+            rng.draw_double() * 256.0,
+            rng.draw_double() * 256.0,
+            rng.draw_double() * 256.0,
         ];
         let mut perms: [u8; 256] = std::array::from_fn(|i| i as u8);
         for i in 0..256usize {
-            let j = rng.next_int(256 - i as u32) as usize;
+            let j = rng.draw_bounded(256 - i as u32) as usize;
             perms.swap(i, i + j);
         }
         Self { perms, offset }
@@ -198,6 +230,30 @@ impl NoiseStack {
             });
             layers.push(Layer {
                 perlin: Perlin::new(&mut second.named(&seed)),
+                frequency: octave.frequency * SECOND_LAYER_FREQUENCY,
+                amplitude,
+            });
+        }
+        Self { layers }
+    }
+
+    pub(crate) fn create_legacy(parameters: &NoiseParameters, seed: i64) -> Self {
+        let mut rng = JavaRandom::new(seed);
+        let first = rng.next_long();
+        let second = rng.next_long();
+        let octaves = octaves(parameters);
+        let factor = normalization(&octaves);
+        let mut layers = Vec::with_capacity(octaves.len() * 2);
+        for octave in &octaves {
+            let hash = i64::from(java_hash(&format!("octave_{}", octave.index)));
+            let amplitude = (factor * octave.amplitude) as f32;
+            layers.push(Layer {
+                perlin: Perlin::new(&mut JavaRandom::new(hash ^ first)),
+                frequency: octave.frequency,
+                amplitude,
+            });
+            layers.push(Layer {
+                perlin: Perlin::new(&mut JavaRandom::new(hash ^ second)),
                 frequency: octave.frequency * SECOND_LAYER_FREQUENCY,
                 amplitude,
             });
