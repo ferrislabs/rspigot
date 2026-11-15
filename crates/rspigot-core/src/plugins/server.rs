@@ -4,6 +4,7 @@ use rspigot_domain::effect::EffectInstance;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::{EntityId, Rotation, Vec3};
 
+use crate::brewing::BrewingAnswer;
 use crate::commands::CommandContext;
 use crate::events::ClientEvent;
 use crate::player::Player;
@@ -1339,12 +1340,35 @@ impl<L: ClientLink> Server<L> {
                 self.finish_furnace(*step, cancelled, answer);
                 Vec::new()
             }
+            Continuation::Mend(step) => {
+                self.apply_mend(*step, cancelled, patch_of!(patch, PlayerItemMend));
+                Vec::new()
+            }
+            Continuation::Brewing(kind, step) => {
+                let answer = match kind {
+                    EventKind::BrewingStandFuel => {
+                        BrewingAnswer::Fuel(patch_of!(patch, BrewingStandFuel))
+                    }
+                    EventKind::BrewingStart => BrewingAnswer::Start(patch_of!(patch, BrewingStart)),
+                    _ => BrewingAnswer::Brew,
+                };
+                self.finish_brewing(*step, cancelled, answer);
+                Vec::new()
+            }
             Continuation::Extract(step) => {
                 self.finish_extract(step, patch_of!(patch, FurnaceExtract));
                 Vec::new()
             }
             Continuation::Prepare(_, step) => {
                 self.finish_prepare(*step, settled_result(patch));
+                Vec::new()
+            }
+            Continuation::PrepareEnchant(step) => {
+                self.finish_prepare_enchant(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Enchant(step) => {
+                self.finish_enchant(*step, cancelled, patch_of!(patch, EnchantItem));
                 Vec::new()
             }
             Continuation::Open(step) => {

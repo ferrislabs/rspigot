@@ -1,8 +1,10 @@
 use rspigot_items::{CookingKind, EquipmentSlot, ItemId, ItemKind};
 
 use crate::anvil;
+use crate::brewing;
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
+use crate::enchanting;
 use crate::entity::reward::max_damage;
 use crate::entity::trading::{MerchantOffer, MerchantOffers};
 use crate::furnace;
@@ -46,6 +48,8 @@ pub enum MenuKind {
     BlastFurnace,
     Smoker,
     Anvil,
+    Enchantment,
+    BrewingStand,
     Smithing,
     Grindstone,
     Stonecutter,
@@ -79,6 +83,8 @@ impl MenuKind {
             Self::BlastFurnace => 10,
             Self::Smoker => 22,
             Self::Anvil => 8,
+            Self::Enchantment => 13,
+            Self::BrewingStand => 11,
             Self::Smithing => 21,
             Self::Grindstone => 15,
             Self::Stonecutter => 24,
@@ -101,6 +107,8 @@ impl MenuKind {
             Self::Furnace | Self::BlastFurnace | Self::Smoker => 3,
             Self::Grindstone | Self::CartographyTable => 3,
             Self::Anvil => 3,
+            Self::Enchantment => 2,
+            Self::BrewingStand => brewing::SLOTS,
             Self::Smithing | Self::Loom => 4,
             Self::Stonecutter => 2,
             Self::Lectern | Self::Beacon => 1,
@@ -114,6 +122,8 @@ impl MenuKind {
             Self::Furnace | Self::BlastFurnace | Self::Smoker => 4,
             Self::Anvil | Self::Smithing | Self::Stonecutter | Self::Loom | Self::Lectern => 1,
             Self::Beacon => 3,
+            Self::Enchantment => enchanting::DATA,
+            Self::BrewingStand => 4,
             _ => 0,
         }
     }
@@ -205,6 +215,32 @@ impl MenuKind {
                 }
                 _ => vec![(MERCHANT_PLAYER_START, MERCHANT_MAIN_END, false)],
             },
+            Self::BrewingStand => {
+                let main = brewing::SLOTS;
+                let hotbar = main + MAIN_SLOTS;
+                match slot {
+                    0..=4 => vec![(main, total, true)],
+                    _ if brewing::is_fuel(stack) => {
+                        let mut plan = vec![(brewing::FUEL, brewing::SLOTS, false)];
+                        if brewing::is_reagent(stack) {
+                            plan.push((brewing::INGREDIENT, brewing::FUEL, false));
+                        }
+                        plan
+                    }
+                    _ if brewing::is_reagent(stack) => {
+                        vec![(brewing::INGREDIENT, brewing::FUEL, false)]
+                    }
+                    _ if brewing::is_container(stack) => vec![(0, brewing::BOTTLES, false)],
+                    _ if slot < hotbar => vec![(hotbar, total, false)],
+                    _ => vec![(main, hotbar, false)],
+                }
+            }
+            Self::Enchantment => match slot {
+                0 | 1 => vec![(2, total, true)],
+                _ if enchanting::is_lapis(stack) => vec![(1, 2, false)],
+                _ if container.first().is_some_and(Option::is_none) => vec![(0, 1, false)],
+                _ => Vec::new(),
+            },
             Self::Beacon => match slot {
                 0 => vec![(1, total, true)],
                 _ if container.first().is_some_and(Option::is_none)
@@ -282,6 +318,9 @@ impl MenuKind {
         if self == Self::Beacon {
             return slot == 0;
         }
+        if self == Self::Enchantment {
+            return slot < 2;
+        }
         if self == Self::Merchant {
             return slot < MERCHANT_RESULT;
         }
@@ -333,6 +372,12 @@ impl MenuKind {
                 _ => true,
             },
             Self::Beacon if slot == 0 => in_item_tag(stack, "minecraft:beacon_payment_items"),
+            Self::Enchantment if slot == enchanting::LAPIS => enchanting::is_lapis(stack),
+            Self::BrewingStand => match slot {
+                0..=2 => brewing::is_container(stack),
+                brewing::INGREDIENT => brewing::is_reagent(stack),
+                _ => brewing::is_fuel(stack),
+            },
             Self::Grindstone if slot < 2 => is_damageable(stack) || has_enchantments(stack),
             Self::CartographyTable if slot == 0 => is_map(stack),
             Self::CartographyTable if slot == 1 => is_map_material(stack),
@@ -455,7 +500,26 @@ pub struct ContainerMenu {
     cutter: Cutter,
     trade: Trade,
     anvil: AnvilState,
+    enchant: EnchantState,
     held: Option<Hold>,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+struct EnchantState {
+    seed: i32,
+    bookshelves: i32,
+    offers: enchanting::Offers,
+    pending: bool,
+    fresh: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnchantPlan {
+    pub button: usize,
+    pub cost: i32,
+    pub lapis: u32,
+    pub clue: (i32, i32),
+    pub picks: Vec<(String, u8)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -489,6 +553,7 @@ struct Session<'a> {
     cutter: &'a mut Cutter,
     trade: &'a mut Trade,
     anvil: &'a mut AnvilState,
+    enchant: &'a mut EnchantState,
     levels: i32,
     infinite: bool,
     effects: Vec<MenuEffect>,
@@ -590,7 +655,10 @@ fn cell(kind: MenuKind, slot: usize) -> Option<Cell> {
 }
 
 fn stack_limit(kind: MenuKind, slot: usize, stack: &ItemStack) -> u32 {
-    if kind == MenuKind::Beacon && slot == 0 {
+    if matches!(kind, MenuKind::Beacon | MenuKind::Enchantment) && slot == 0 {
+        return 1;
+    }
+    if kind == MenuKind::BrewingStand && slot < brewing::BOTTLES {
         return 1;
     }
     if matches!(kind, MenuKind::Mount { .. }) && slot < MOUNT_EXTRA_SLOTS {
@@ -658,8 +726,9 @@ impl ClickView for Look<'_> {
     }
 
     fn container_limit(&self, slot: usize) -> u32 {
-        if (self.kind == MenuKind::Beacon && slot == 0)
+        if (matches!(self.kind, MenuKind::Beacon | MenuKind::Enchantment) && slot == 0)
             || (matches!(self.kind, MenuKind::Mount { .. }) && slot < MOUNT_EXTRA_SLOTS)
+            || (self.kind == MenuKind::BrewingStand && slot < brewing::BOTTLES)
         {
             1
         } else {
@@ -740,6 +809,9 @@ impl Session<'_> {
                 }
                 if self.kind == MenuKind::Anvil && index != anvil::RESULT {
                     self.refresh_anvil();
+                }
+                if self.kind == MenuKind::Enchantment && index < 2 {
+                    self.refresh_enchant();
                 }
                 if self.kind == MenuKind::Grindstone && index != grindstone::RESULT {
                     self.refresh_grindstone();
@@ -889,6 +961,15 @@ impl Session<'_> {
         if let Some(cost) = &offer.cost_b {
             self.move_to_payment(1, cost);
         }
+    }
+
+    fn refresh_enchant(&mut self) {
+        let offers = match &self.container[enchanting::ITEM] {
+            Some(item) => enchanting::offers(item, self.enchant.seed, self.enchant.bookshelves),
+            None => enchanting::Offers::NONE,
+        };
+        self.enchant.offers = offers;
+        self.enchant.fresh = self.container[enchanting::ITEM].is_some();
     }
 
     fn refresh_anvil(&mut self) {
@@ -1457,6 +1538,7 @@ impl ContainerMenu {
             cutter: Cutter::default(),
             trade: Trade::default(),
             anvil: AnvilState::default(),
+            enchant: EnchantState::default(),
             held: None,
         }
     }
@@ -1487,6 +1569,7 @@ impl ContainerMenu {
             cutter: &mut self.cutter,
             trade: &mut self.trade,
             anvil: &mut self.anvil,
+            enchant: &mut self.enchant,
             levels: clicker.experience_level,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
@@ -1574,6 +1657,7 @@ impl ContainerMenu {
             cutter: &mut self.cutter,
             trade: &mut self.trade,
             anvil: &mut self.anvil,
+            enchant: &mut self.enchant,
             levels: 0,
             infinite: false,
             effects: Vec::new(),
@@ -1604,6 +1688,7 @@ impl ContainerMenu {
             cutter: &mut self.cutter,
             trade: &mut self.trade,
             anvil: &mut self.anvil,
+            enchant: &mut self.enchant,
             levels: 0,
             infinite: false,
             effects: Vec::new(),
@@ -1628,6 +1713,7 @@ impl ContainerMenu {
             cutter: &mut self.cutter,
             trade: &mut self.trade,
             anvil: &mut self.anvil,
+            enchant: &mut self.enchant,
             levels: clicker.experience_level,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
@@ -1694,6 +1780,7 @@ impl ContainerMenu {
             cutter: &mut self.cutter,
             trade: &mut self.trade,
             anvil: &mut self.anvil,
+            enchant: &mut self.enchant,
             levels: 0,
             infinite: false,
             effects: Vec::new(),
@@ -1718,6 +1805,7 @@ impl ContainerMenu {
             cutter: &mut self.cutter,
             trade: &mut self.trade,
             anvil: &mut self.anvil,
+            enchant: &mut self.enchant,
             levels: 0,
             infinite: false,
             effects: Vec::new(),
@@ -1732,8 +1820,130 @@ impl ContainerMenu {
             MenuKind::Stonecutter => vec![i16::try_from(self.cutter.selected).unwrap_or(-1)],
             MenuKind::Smithing => vec![i16::from(self.cutter.error)],
             MenuKind::Anvil => vec![i16::try_from(self.anvil.cost).unwrap_or(i16::MAX)],
+            MenuKind::Enchantment => self.enchant_data(),
             _ => Vec::new(),
         }
+    }
+
+    fn enchant_data(&self) -> Vec<i16> {
+        let offers = if self.enchant.pending {
+            enchanting::Offers::NONE
+        } else {
+            self.enchant.offers
+        };
+        let short = |value: i32| i16::try_from(value).unwrap_or(-1);
+        let mut data: Vec<i16> = offers.costs.iter().map(|v| short(*v)).collect();
+        data.push((self.enchant.seed & 0xFFFF) as i16);
+        data.extend(offers.clues.iter().map(|v| short(*v)));
+        data.extend(offers.levels.iter().map(|v| short(*v)));
+        data
+    }
+
+    pub fn set_enchant_seed(&mut self, seed: i32) {
+        self.enchant.seed = seed;
+    }
+
+    pub fn set_bookshelves(&mut self, bookshelves: i32) {
+        self.enchant.bookshelves = bookshelves;
+    }
+
+    pub fn offers_recomputed(&mut self) -> bool {
+        std::mem::take(&mut self.enchant.fresh)
+    }
+
+    pub fn offers(&self) -> enchanting::Offers {
+        self.enchant.offers
+    }
+
+    pub fn bookshelves(&self) -> i32 {
+        self.enchant.bookshelves
+    }
+
+    pub fn hold_offers(&mut self) {
+        self.enchant.pending = true;
+    }
+
+    pub fn release_offers(&mut self) {
+        self.enchant.pending = false;
+    }
+
+    pub fn clear_offers(&mut self) {
+        self.enchant.offers = enchanting::Offers::NONE;
+        self.enchant.pending = false;
+    }
+
+    pub fn enchant_plan(
+        &self,
+        container: &[Slot],
+        button: i32,
+        clicker: Clicker,
+    ) -> Option<EnchantPlan> {
+        if self.kind != MenuKind::Enchantment || self.enchant.pending {
+            return None;
+        }
+        let index = usize::try_from(button).ok().filter(|index| *index < 3)?;
+        let item = container.get(enchanting::ITEM)?.as_ref()?;
+        let lapis = u32::try_from(index + 1).ok()?;
+        let held = container
+            .get(enchanting::LAPIS)
+            .and_then(Option::as_ref)
+            .map_or(0, |stack| u32::from(stack.count.get()));
+        let cost = self.enchant.offers.costs[index];
+        let level = clicker.experience_level;
+        if !clicker.infinite_materials && (held < lapis || level < lapis as i32 || level < cost) {
+            return None;
+        }
+        if cost <= 0 {
+            return None;
+        }
+        let picks: Vec<(String, u8)> = enchanting::list(item, self.enchant.seed, index, cost)
+            .into_iter()
+            .map(|(def, level)| (def.name.to_owned(), level))
+            .collect();
+        if picks.is_empty() {
+            return None;
+        }
+        Some(EnchantPlan {
+            button: index,
+            cost,
+            lapis,
+            clue: (
+                self.enchant.offers.clues[index],
+                self.enchant.offers.levels[index],
+            ),
+            picks,
+        })
+    }
+
+    pub fn enchant(
+        &mut self,
+        container: &mut Vec<Slot>,
+        plan: &EnchantPlan,
+        picks: &[(String, u8)],
+        new_seed: i32,
+        clicker: Clicker,
+    ) {
+        if self.kind != MenuKind::Enchantment {
+            return;
+        }
+        container.resize(self.kind.container_size(), None);
+        if let Some(item) = container[enchanting::ITEM].take() {
+            container[enchanting::ITEM] = Some(enchanting::enchanted(&item, picks));
+        }
+        if !clicker.infinite_materials {
+            container[enchanting::LAPIS] = container[enchanting::LAPIS].take().and_then(|lapis| {
+                with_count(
+                    &lapis,
+                    u32::from(lapis.count.get()).saturating_sub(plan.lapis),
+                )
+            });
+        }
+        self.enchant.seed = new_seed;
+        self.enchant.offers = match &container[enchanting::ITEM] {
+            Some(item) => enchanting::offers(item, new_seed, self.enchant.bookshelves),
+            None => enchanting::Offers::NONE,
+        };
+        self.enchant.fresh = true;
     }
 
     pub fn rename(
@@ -1762,6 +1972,7 @@ impl ContainerMenu {
             cutter: &mut self.cutter,
             trade: &mut self.trade,
             anvil: &mut self.anvil,
+            enchant: &mut self.enchant,
             levels: clicker.experience_level,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
@@ -4777,5 +4988,176 @@ mod tests {
             vec![MenuEffect::GrindstoneTaken { experience: 23 }]
         );
         assert_eq!(container[0], None);
+    }
+
+    fn enchanting_table() -> (ContainerMenu, Vec<Slot>, Inventory) {
+        let mut menu = ContainerMenu::new(MenuKind::Enchantment);
+        menu.set_enchant_seed(1234);
+        menu.set_bookshelves(15);
+        (menu, vec![None; 2], Inventory::default())
+    }
+
+    #[test]
+    fn the_enchanting_menu_publishes_ten_data_slots_and_two_inputs() {
+        assert_eq!(MenuKind::Enchantment.container_size(), 2);
+        assert_eq!(MenuKind::Enchantment.data_count(), 10);
+        let index =
+            rspigot_data::registries::static_index("minecraft:menu", "minecraft:enchantment")
+                .unwrap();
+        assert_eq!(MenuKind::Enchantment.protocol_id(), index as i32);
+        let (menu, _, _) = enchanting_table();
+        assert_eq!(menu.data().len(), 10);
+        assert_eq!(&menu.data()[..3], &[0, 0, 0]);
+    }
+
+    #[test]
+    fn placing_an_item_in_the_table_computes_its_offers() {
+        let (mut menu, mut container, mut player) = enchanting_table();
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:diamond_sword", 1),
+        );
+        let data = menu.data();
+        assert!(data[0] > 0 && data[2] >= 30);
+        assert!(data[4] >= 0 && data[7] >= 1);
+        assert!(menu.offers_recomputed());
+        assert!(!menu.offers_recomputed());
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:stick", 1),
+        );
+        assert_eq!(&menu.data()[..3], &[0, 0, 0]);
+    }
+
+    #[test]
+    fn a_held_table_shows_no_offers_and_refuses_buttons() {
+        let (mut menu, mut container, mut player) = enchanting_table();
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:diamond_sword", 1),
+        );
+        container[1] = Some(stack("minecraft:lapis_lazuli", 3));
+        let rich = Clicker {
+            infinite_materials: false,
+            experience_level: 30,
+        };
+        assert!(menu.enchant_plan(&container, 2, rich).is_some());
+        menu.hold_offers();
+        assert_eq!(&menu.data()[..3], &[0, 0, 0]);
+        assert!(menu.enchant_plan(&container, 2, rich).is_none());
+        menu.release_offers();
+        assert!(menu.enchant_plan(&container, 2, rich).is_some());
+    }
+
+    #[test]
+    fn an_offer_needs_its_lapis_and_levels() {
+        let (mut menu, mut container, mut player) = enchanting_table();
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:diamond_sword", 1),
+        );
+        let rich = Clicker {
+            infinite_materials: false,
+            experience_level: 50,
+        };
+        assert!(menu.enchant_plan(&container, 0, rich).is_none());
+        container[1] = Some(stack("minecraft:lapis_lazuli", 1));
+        assert!(menu.enchant_plan(&container, 0, rich).is_some());
+        assert!(menu.enchant_plan(&container, 1, rich).is_none());
+        let poor = Clicker {
+            infinite_materials: false,
+            experience_level: 0,
+        };
+        assert!(menu.enchant_plan(&container, 0, poor).is_none());
+        let creative = Clicker {
+            infinite_materials: true,
+            experience_level: 0,
+        };
+        container[1] = None;
+        assert!(menu.enchant_plan(&container, 2, creative).is_some());
+    }
+
+    #[test]
+    fn enchanting_spends_the_lapis_and_changes_the_seed() {
+        let (mut menu, mut container, mut player) = enchanting_table();
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:diamond_sword", 1),
+        );
+        container[1] = Some(stack("minecraft:lapis_lazuli", 5));
+        let rich = Clicker {
+            infinite_materials: false,
+            experience_level: 50,
+        };
+        let plan = menu.enchant_plan(&container, 1, rich).unwrap();
+        let picks = plan.picks.clone();
+        menu.enchant(&mut container, &plan, &picks, 777, rich);
+        assert_eq!(container[1].as_ref().unwrap().count.get(), 3);
+        assert!(crate::enchant::has_any(container[0].as_ref().unwrap()));
+        assert_eq!(menu.data()[3], 777);
+        assert_eq!(&menu.data()[..3], &[0, 0, 0]);
+    }
+
+    #[test]
+    fn only_lapis_goes_in_the_lapis_slot_and_the_item_slot_holds_one() {
+        assert!(MenuKind::Enchantment.accepts(1, &stack("minecraft:lapis_lazuli", 1)));
+        assert!(!MenuKind::Enchantment.accepts(1, &stack("minecraft:diamond", 1)));
+        assert!(MenuKind::Enchantment.accepts(0, &stack("minecraft:diamond", 1)));
+        assert_eq!(
+            stack_limit(MenuKind::Enchantment, 0, &stack("minecraft:stick", 1)),
+            1
+        );
+    }
+
+    #[test]
+    fn closing_the_table_returns_both_inputs() {
+        let (mut menu, mut container, mut player) = enchanting_table();
+        container[0] = Some(stack("minecraft:diamond_sword", 1));
+        container[1] = Some(stack("minecraft:lapis_lazuli", 4));
+        menu.close_transient(&mut container, &mut player);
+        assert!(container.iter().all(Option::is_none));
+        assert!(player.slots().iter().flatten().count() >= 2);
+    }
+
+    #[test]
+    fn the_brewing_menu_has_five_slots_four_data_slots_and_its_slot_rules() {
+        let kind = MenuKind::BrewingStand;
+        assert_eq!(kind.container_size(), 5);
+        assert_eq!(kind.data_count(), 4);
+        let index =
+            rspigot_data::registries::static_index("minecraft:menu", "minecraft:brewing_stand")
+                .unwrap();
+        assert_eq!(kind.protocol_id(), index as i32);
+        let water = crate::potion::stack(rspigot_items::ItemKind::Potion, "minecraft:water");
+        assert!(kind.accepts(0, &water));
+        assert!(!kind.accepts(3, &water));
+        assert!(kind.accepts(3, &stack("minecraft:nether_wart", 1)));
+        assert!(kind.accepts(4, &stack("minecraft:blaze_powder", 1)));
+        assert!(!kind.accepts(4, &stack("minecraft:coal", 1)));
+        assert_eq!(stack_limit(kind, 1, &water), 1);
+    }
+
+    #[test]
+    fn shift_clicking_powder_fills_the_fuel_slot_first() {
+        let kind = MenuKind::BrewingStand;
+        let powder = stack("minecraft:blaze_powder", 4);
+        let plan = kind.quick_move_plan(20, &powder, &vec![None; 5]);
+        assert_eq!(plan[0], (4, 5, false));
+        assert_eq!(plan[1], (3, 4, false));
     }
 }

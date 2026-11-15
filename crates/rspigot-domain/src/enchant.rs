@@ -78,6 +78,24 @@ pub fn increased_repair_cost(cost: i32) -> i32 {
     i32::try_from((i64::from(cost) * 2 + 1).min(i64::from(i32::MAX))).unwrap_or(i32::MAX)
 }
 
+pub fn damage_after_unbreaking(
+    level: i32,
+    armor: bool,
+    amount: i32,
+    mut roll: impl FnMut() -> f32,
+) -> i32 {
+    if level <= 0 || amount <= 0 {
+        return amount;
+    }
+    let level = level as f32;
+    let removed = if armor {
+        (2.0 * level) / (10.0 + 5.0 * (level - 1.0))
+    } else {
+        level / (level + 1.0)
+    };
+    (0..amount).filter(|_| roll() >= removed).count() as i32
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use std::num::NonZeroU8;
@@ -97,6 +115,18 @@ pub(crate) mod tests {
         assert!(!book.components.contains_key(ENCHANTMENTS));
         assert_eq!(levels(&book), vec![("minecraft:sharpness".to_owned(), 3)]);
         assert!(has_any(&book));
+    }
+
+    #[test]
+    fn unbreaking_removes_damage_by_the_enchantment_odds() {
+        assert_eq!(damage_after_unbreaking(0, false, 3, || 0.0), 3);
+        assert_eq!(damage_after_unbreaking(1, false, 4, || 0.49), 0);
+        assert_eq!(damage_after_unbreaking(1, false, 4, || 0.51), 4);
+        assert_eq!(damage_after_unbreaking(3, false, 4, || 0.74), 0);
+        assert_eq!(damage_after_unbreaking(3, false, 4, || 0.76), 4);
+        assert_eq!(damage_after_unbreaking(1, true, 4, || 0.19), 0);
+        assert_eq!(damage_after_unbreaking(1, true, 4, || 0.21), 4);
+        assert_eq!(damage_after_unbreaking(5, true, 0, || 0.0), 0);
     }
 
     #[test]

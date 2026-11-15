@@ -164,6 +164,7 @@ impl PlayerSave {
         out.insert("XpLevel", self.experience.level);
         out.insert("XpP", self.experience.progress);
         out.insert("XpTotal", self.experience.total);
+        out.insert("XpSeed", self.experience.seed);
         out.insert(
             "Fire",
             self.fire_ticks.clamp(-1, i32::from(i16::MAX)) as i16,
@@ -245,6 +246,7 @@ impl PlayerSave {
             level: data.get_i32("XpLevel").unwrap_or(0).max(0),
             progress: finite(data.get_f64("XpP"), 0.0).clamp(0.0, 1.0) as f32,
             total: data.get_i32("XpTotal").unwrap_or(0).max(0),
+            seed: data.get_i32("XpSeed").unwrap_or(0),
             ..PlayerExperience::default()
         };
         let effects = data
