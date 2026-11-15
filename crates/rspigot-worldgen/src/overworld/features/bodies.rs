@@ -142,6 +142,7 @@ pub(crate) enum Feature {
     Magma(super::magma::Magma),
     Geode(Box<super::geode::Geode>),
     MonsterRoom(super::dungeon::MonsterRoom),
+    Template(Box<super::templated::Templated>),
     Spread(Box<super::spread::Spread>),
     Multiface(Box<super::multiface::Growth>),
     Sculk(super::sculk::Patch),
@@ -372,6 +373,10 @@ impl<'a> Compiler<'a> {
             }
             "sculk_patch" => Feature::Sculk(super::sculk::Patch::compile(value)),
             "freeze_top_layer" => Feature::NoOp,
+            "template" => super::templated::Templated::compile(value)
+                .map_or(Feature::Unsupported, |item| {
+                    Feature::Template(Box::new(item))
+                }),
             "monster_room" => Feature::MonsterRoom(super::dungeon::MonsterRoom::compile()),
             "geode" => Feature::Geode(Box::new(super::geode::Geode::compile(value))),
             "underwater_magma" => Feature::Magma(super::magma::Magma::compile(value)),
@@ -461,6 +466,7 @@ impl Feature {
             Self::Magma(magma) => magma.reach(),
             Self::Geode(geode) => geode.reach(),
             Self::MonsterRoom(room) => room.reach(),
+            Self::Template(template) => template.reach(),
             Self::Spread(spread) => spread.reach(),
             Self::Multiface(growth) => growth.reach(),
             Self::Sculk(patch) => patch.reach(),
@@ -508,6 +514,7 @@ impl Feature {
             Self::Magma(magma) => magma.place(run, pos),
             Self::Geode(geode) => geode.place(run, pos),
             Self::MonsterRoom(room) => room.place(run, pos),
+            Self::Template(template) => template.place(run, pos),
             Self::Spread(spread) => spread.place(run, pos),
             Self::Multiface(growth) => growth.place(run, pos),
             Self::Sculk(patch) => patch.place(run, pos),

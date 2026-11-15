@@ -20,8 +20,8 @@ mod root;
 mod sculk;
 mod speleothem;
 mod spread;
-#[allow(dead_code)]
 mod structure;
+mod templated;
 mod tree;
 mod treedeco;
 mod vegetation;
