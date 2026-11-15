@@ -145,6 +145,9 @@ pub(crate) enum Feature {
     Sculk(super::sculk::Patch),
     Vegetation(Box<super::vegetation::Patch>),
     Root(Box<super::root::Root>),
+    Speleothem(Box<super::speleothem::Speleothem>),
+    Cluster(Box<super::speleothem::Cluster>),
+    Large(Box<super::large::Large>),
     CoralTree(Arc<Placed>),
     CoralClaw(Arc<Placed>),
     Spike(Box<super::ice::Spike>),
@@ -352,6 +355,15 @@ impl<'a> Compiler<'a> {
                     kind == "waterlogged_vegetation_patch",
                 )
             }
+            "speleothem" => super::speleothem::Speleothem::compile(value)
+                .map_or(Feature::Unsupported, |item| {
+                    Feature::Speleothem(Box::new(item))
+                }),
+            "speleothem_cluster" => super::speleothem::Cluster::compile(value)
+                .map_or(Feature::Unsupported, |item| {
+                    Feature::Cluster(Box::new(item))
+                }),
+            "large_dripstone" => Feature::Large(Box::new(super::large::Large::compile(value))),
             "root_system" => {
                 let tree = self.placed_ref(value.get("feature").unwrap_or(&Value::Null));
                 super::root::feature(value, tree)
@@ -448,6 +460,9 @@ impl Feature {
             Self::Sculk(patch) => patch.reach(),
             Self::Vegetation(patch) => patch.reach(),
             Self::Root(root) => root.reach(),
+            Self::Speleothem(item) => item.reach(),
+            Self::Cluster(item) => item.reach(),
+            Self::Large(item) => item.reach(),
             Self::CoralTree(placed) => super::coral::reach_of_tree(placed),
             Self::CoralClaw(placed) => super::coral::reach_of_claw(placed),
             Self::Spike(spike) => spike.reach(),
@@ -490,6 +505,9 @@ impl Feature {
             Self::Sculk(patch) => patch.place(run, pos),
             Self::Vegetation(patch) => patch.place(run, pos),
             Self::Root(root) => root.place(run, pos),
+            Self::Speleothem(item) => item.place(run, pos),
+            Self::Cluster(item) => item.place(run, pos),
+            Self::Large(item) => item.place(run, pos),
             Self::CoralTree(placed) => super::coral::tree(placed, run, pos),
             Self::CoralClaw(placed) => super::coral::claw(placed, run, pos),
             Self::Spike(spike) => spike.place(run, pos),
