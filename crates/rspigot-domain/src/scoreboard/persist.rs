@@ -44,7 +44,7 @@ fn is_plain(component: &Component) -> bool {
         && matches!(component.content, Content::Text(_))
 }
 
-pub(super) fn component_to_tag(component: &Component) -> Tag {
+pub(crate) fn component_to_tag(component: &Component) -> Tag {
     if is_plain(component)
         && let Content::Text(text) = &component.content
     {
@@ -75,7 +75,7 @@ pub(super) fn component_to_tag(component: &Component) -> Tag {
     Tag::Compound(out)
 }
 
-pub(super) fn component_from_tag(tag: &Tag) -> Option<Component> {
+pub(crate) fn component_from_tag(tag: &Tag) -> Option<Component> {
     match tag {
         Tag::String(text) => Some(Component::text(text.clone())),
         Tag::List(items) => {
