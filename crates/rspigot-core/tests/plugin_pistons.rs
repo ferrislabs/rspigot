@@ -245,6 +245,7 @@ fn a_sticky_retract_event_lists_the_pulled_block() {
         panic!("a retract event");
     };
     assert_eq!(event.blocks, vec![at(5)]);
+    assert_eq!(event.direction, Face::West);
     assert!(event.sticky);
 }
 
@@ -558,4 +559,79 @@ fn an_entity_is_pushed_no_further_than_a_wall_allows() {
     s.tick(5);
     let (position, _) = details(&mut s, cart);
     assert!(position.x < 5.52, "{position:?}");
+}
+
+fn updates_at(events: &[ClientEvent]) -> Vec<BlockPos> {
+    events
+        .iter()
+        .filter_map(|event| match event {
+            ClientEvent::BlockUpdate { pos, .. } => Some(*pos),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_cancelled_extension_resends_the_blocks_it_would_have_moved() {
+    let mut s = scene_with(&["Alice"], vec![deciding(1, EventKind::BlockPistonExtend)]);
+    put(&mut s, at(4), "minecraft:stone", &[]);
+    put(&mut s, at(5), "minecraft:torch", &[]);
+    piston(&mut s, "minecraft:piston");
+    power_on(&mut s);
+    s.tick(1);
+    let asked = last_asked(&s.plugin, EventKind::BlockPistonExtend);
+    s.players[0].link.take();
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    s.tick(1);
+    let resent = updates_at(&s.players[0].link.take());
+    for pos in [at(4), at(5), at(6)] {
+        assert!(resent.contains(&pos), "{pos:?} in {resent:?}");
+    }
+}
+
+fn observer_pulses_within(s: &mut Scene, observer: BlockPos, ticks: u32) -> bool {
+    for _ in 0..ticks {
+        s.tick(1);
+        if prop(s, observer, "powered") == "true" {
+            return true;
+        }
+    }
+    false
+}
+
+#[test]
+fn an_observer_sees_a_block_arrive_where_a_piston_pushed_it() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, at(4), "minecraft:stone", &[]);
+    let observer = BlockPos::new(5, 64, 4);
+    put(
+        &mut s,
+        observer,
+        "minecraft:observer",
+        &[("facing", "north"), ("powered", "false")],
+    );
+    piston(&mut s, "minecraft:piston");
+    s.tick(3);
+    assert_eq!(prop(&mut s, observer, "powered"), "false");
+    power_on(&mut s);
+    assert!(observer_pulses_within(&mut s, observer, 8));
+}
+
+#[test]
+fn an_observer_sees_the_block_a_piston_pushed_away_from_in_front_of_it() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, at(4), "minecraft:stone", &[]);
+    let observer = BlockPos::new(4, 64, 4);
+    put(
+        &mut s,
+        observer,
+        "minecraft:observer",
+        &[("facing", "north"), ("powered", "false")],
+    );
+    piston(&mut s, "minecraft:piston");
+    s.tick(3);
+    power_on(&mut s);
+    assert!(observer_pulses_within(&mut s, observer, 8));
+    s.tick(10);
+    assert_eq!(kind_at(&mut s, at(5)), "minecraft:stone");
 }

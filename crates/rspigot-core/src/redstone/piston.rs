@@ -56,6 +56,20 @@ pub(crate) struct PistonStep {
 }
 
 impl PistonStep {
+    pub(crate) fn movement(&self) -> Face {
+        match self.action {
+            PistonAction::Extend => self.direction,
+            PistonAction::Pull | PistonAction::Retract(_) => self.direction.opposite(),
+        }
+    }
+
+    pub(crate) fn event_direction(&self) -> Face {
+        match self.action {
+            PistonAction::Pull => self.direction.opposite(),
+            PistonAction::Extend | PistonAction::Retract(_) => self.direction,
+        }
+    }
+
     pub(crate) fn kind(&self) -> EventKind {
         match self.action {
             PistonAction::Extend => EventKind::BlockPistonExtend,
@@ -183,7 +197,8 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn ask_piston(&mut self, step: PistonStep) {
-        let (piston, direction, sticky) = (step.piston, step.direction, step.sticky);
+        let (piston, sticky) = (step.piston, step.sticky);
+        let direction = step.event_direction();
         let blocks = step.blocks.clone();
         let extending = step.action == PistonAction::Extend;
         self.fire(
@@ -207,6 +222,23 @@ impl<L: ClientLink> Server<L> {
                 })
             },
         );
+    }
+
+    pub(crate) fn refuse_piston(&mut self, plan: &PistonStep) {
+        let movement = plan.movement();
+        let mut resent: Vec<BlockPos> = Vec::with_capacity(plan.blocks.len() * 2);
+        for at in &plan.blocks {
+            resent.push(*at);
+            resent.push(step(*at, movement));
+        }
+        for at in resent {
+            if let Some(state) = self.world.chunks.block(at) {
+                self.push(
+                    Audience::ChunkViewers(at.chunk()),
+                    ClientEvent::BlockUpdate { pos: at, state },
+                );
+            }
+        }
     }
 
     pub(crate) fn finish_piston(&mut self, step: PistonStep) {
