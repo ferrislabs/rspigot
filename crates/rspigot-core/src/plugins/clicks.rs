@@ -3,7 +3,7 @@ use rspigot_domain::click::{Classified, ClickAction, ClickType, Drag};
 use rspigot_domain::container_menu::MenuKind;
 use rspigot_domain::crafting;
 use rspigot_domain::grindstone;
-use rspigot_domain::item::{Slot, stacks_match};
+use rspigot_domain::item::{Slot, max_stack, stacks_match};
 use rspigot_domain::menu::{ClickInput, Clicker, InventoryMenu, OUTSIDE, RESULT_SLOT};
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::smithing;
@@ -985,7 +985,7 @@ impl<L: ClientLink> Server<L> {
         let placed = CREATIVE_SLOTS.contains(&slot);
         let valid = stack
             .as_ref()
-            .is_none_or(|stack| stack.count.get() <= stack.item.max_stack_size());
+            .is_none_or(|stack| u32::from(stack.count.get()) <= max_stack(stack));
         let current = menu_index(slot)
             .filter(|_| placed)
             .and_then(|index| player.inventory.get(index))
