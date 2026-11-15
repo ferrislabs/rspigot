@@ -1,10 +1,10 @@
 use rspigot_blocks::{BlockKind, Face};
 use rspigot_domain::entity::Aabb;
+use rspigot_domain::piston::{Limits, Reaction, Resolver, is_pushable, reaction_of};
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
 use rspigot_entities::SoundSource;
 use rustc_hash::FxHashMap;
 
-use super::resolver::{Limits, Reaction, Resolver, is_pushable, reaction_of};
 use super::{facing, step};
 use crate::plugins::events::{BlockPistonExtend, BlockPistonRetract};
 use crate::plugins::{Continuation, EventKind, EventPayload, Lane, face_of};

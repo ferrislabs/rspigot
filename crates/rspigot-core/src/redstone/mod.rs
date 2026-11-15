@@ -14,8 +14,6 @@ mod observer;
 mod openers;
 mod piston;
 mod rails;
-mod reactions;
-mod resolver;
 mod signals;
 mod storage;
 mod target;

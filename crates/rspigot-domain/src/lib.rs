@@ -35,6 +35,7 @@ pub mod item;
 pub mod menu;
 pub mod mth;
 pub mod particle;
+pub mod piston;
 pub mod player;
 pub mod poi;
 pub mod pos;
