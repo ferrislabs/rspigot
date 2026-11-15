@@ -4,6 +4,7 @@ mod coral;
 mod dungeon;
 mod fallen;
 mod floats;
+mod fossil;
 mod geode;
 mod ice;
 mod javaset;
