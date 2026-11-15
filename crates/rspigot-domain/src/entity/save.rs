@@ -1273,7 +1273,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             minecart::read(nbt, cart_state);
             &[&ENTITY_KEYS, minecart::KEYS]
         }
-        EntityState::Lightning(_) | EntityState::Inert(_) => &[],
+        EntityState::Lightning(_) | EntityState::Hook(_) | EntityState::Inert(_) => &[],
     };
     let extra = extra_keys(nbt, known);
     Ok(Entity { base, state, extra })
@@ -1709,7 +1709,7 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         }
         EntityState::Boat(boat_state) => boat::write(boat_state, &mut out),
         EntityState::Minecart(cart_state) => minecart::write(cart_state, &mut out),
-        EntityState::Lightning(_) | EntityState::Inert(_) => {}
+        EntityState::Lightning(_) | EntityState::Hook(_) | EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {
         if !out.contains_key(key) {

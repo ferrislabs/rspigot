@@ -319,7 +319,8 @@ impl<L: ClientLink> Server<L> {
                     || self.use_liquid_bucket(step.player, step.hand, step.rotation)
                     || self.use_boat(step.player, step.hand, step.rotation)
                     || self.use_steering_item(step.player, step.hand)
-                    || self.use_throwable(step.player, step.hand))
+                    || self.use_throwable(step.player, step.hand)
+                    || self.use_fishing_rod(step.player, step.hand, step.rotation))
             {
             } else if item_ok {
                 self.start_using_item(step.player, step.hand);

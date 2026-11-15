@@ -919,6 +919,9 @@ pub(crate) enum Spawned {
         player: PlayerId,
         hand: Hand,
     },
+    Hook {
+        player: PlayerId,
+    },
     Converted {
         old: EntityId,
         event: Option<i32>,
@@ -956,6 +959,35 @@ pub(crate) struct HiveRelease {
 pub(crate) struct Carried {
     pub(crate) rider: Entity,
     pub(crate) reason: CreatureSpawnReason,
+}
+
+#[derive(Debug)]
+pub(crate) struct CastStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) hook: Entity,
+}
+
+#[derive(Debug)]
+pub(crate) enum ReelStage {
+    Fish {
+        item: Box<Entity>,
+        exp: i32,
+        rest: Vec<ItemStack>,
+    },
+    Entity {
+        caught: EntityId,
+    },
+    Ground,
+    Reel,
+}
+
+#[derive(Debug)]
+pub(crate) struct ReelStep {
+    pub(crate) player: PlayerId,
+    pub(crate) hand: Hand,
+    pub(crate) hook: EntityId,
+    pub(crate) stage: ReelStage,
 }
 
 #[derive(Debug)]
@@ -1555,6 +1587,9 @@ pub(crate) enum Continuation {
     Harvest(Box<HarvestStep>),
     Hatch(Box<HatchStep>),
     Bottle(BottleStep),
+    Cast(Box<CastStep>),
+    Reel(Box<ReelStep>),
+    Bite(EntityId),
     Linger(Box<LingerStep>),
     Merge(MergeStep),
     Leash(Box<LeashStep>),
@@ -1778,6 +1813,7 @@ impl Continuation {
             Self::Harvest(_) => EventKind::PlayerHarvestBlock,
             Self::Hatch(_) => EventKind::PlayerEggThrow,
             Self::Bottle(_) => EventKind::ExpBottle,
+            Self::Cast(_) | Self::Reel(_) | Self::Bite(_) => EventKind::PlayerFish,
             Self::Linger(_) => EventKind::LingeringPotionSplash,
             Self::Merge(_) => EventKind::ItemMerge,
             Self::Leash(_) => EventKind::PlayerLeashEntity,
@@ -2004,6 +2040,8 @@ impl Continuation {
             | Self::TargetBlock { mob, .. } => *mob == id,
             Self::EntityExplode(step) => step.discard == Some(id),
             Self::Splash(step) => step.potion == id,
+            Self::Bite(hook) => *hook == id,
+            Self::Reel(step) => step.hook == id,
             Self::Prime(step) => step.source == id,
             Self::DragonPhase(step) => step.dragon == id,
             Self::CloudApply(step) => step.cloud == id,

@@ -7,7 +7,9 @@ use rspigot_data::loot::{
     FunctionKind, IntProvider, ItemPredicate, Leaf, LootTable, Output, Pool,
 };
 use rspigot_domain::damage::DamageType;
+use rspigot_domain::entity::trade_gen;
 use rspigot_domain::item::ItemStack;
+use rspigot_domain::random::LegacyRandom;
 use rspigot_domain::{BlockStateId, ItemId};
 use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
@@ -34,6 +36,7 @@ pub struct LootEntity {
     pub sheared: Option<bool>,
     pub cube_size: Option<i32>,
     pub raider: Option<RaiderFacts>,
+    pub open_water: Option<bool>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -69,6 +72,7 @@ pub struct LootContext<'a> {
     pub player: Option<&'a LootEntity>,
     pub luck: f32,
     pub explosion_radius: Option<f32>,
+    pub biome: Option<&'a str>,
 }
 
 impl<'a> LootContext<'a> {
@@ -135,6 +139,7 @@ pub fn table_drops<R: Rng + ?Sized>(
 }
 
 const ENCHANTMENTS: &str = "minecraft:enchantments";
+const DAMAGE: &str = "minecraft:damage";
 
 fn held_enchantments(stack: Option<&ItemStack>) -> Vec<(String, i32)> {
     let Some(compound) = stack.and_then(|stack| stack.components.get_compound(ENCHANTMENTS)) else {
@@ -210,6 +215,9 @@ fn sub_matches(predicate: &EntitySubPredicate, entity: &LootEntity) -> bool {
             raider.has_raid == has_raid.unwrap_or(false)
                 && raider.captain == captain.unwrap_or(false)
         }),
+        EntitySubPredicate::FishingHook { in_open_water } => entity
+            .open_water
+            .is_some_and(|value| in_open_water.is_none_or(|wanted| wanted == value)),
     }
 }
 
@@ -575,6 +583,27 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                     stack.count = kept;
                 }
             }
+            FunctionKind::SetDamage(fraction) => {
+                let fraction = self.float(fraction);
+                let max = ItemId(stack.item)
+                    .kind()
+                    .and_then(|kind| kind.max_damage())
+                    .and_then(|max| i32::try_from(max).ok());
+                if let Some(max) = max {
+                    let damage = ((1.0 - fraction) * max as f32).floor() as i32;
+                    stack.components.insert(DAMAGE, damage.clamp(0, max));
+                }
+            }
+            FunctionKind::EnchantWithLevels { options, levels } => {
+                let levels = self.int(levels);
+                let mut random = LegacyRandom::new(self.rng.random::<i64>());
+                let mut single = ItemStack::new(ItemId(stack.item), NonZeroU8::MIN);
+                single.components = stack.components.clone();
+                let enchanted =
+                    trade_gen::enchant_with_levels(&mut random, single, options, levels);
+                stack.item = enchanted.item.0;
+                stack.components = enchanted.components;
+            }
             FunctionKind::Components(_) => {}
         }
         stack
@@ -651,7 +680,13 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 Some(radius) => self.rng.random::<f32>() <= 1.0 / radius,
                 None => true,
             },
-            Condition::LocationCheck { .. } => true,
+            Condition::LocationCheck { biomes, .. } => {
+                biomes.is_empty()
+                    || self
+                        .context
+                        .biome
+                        .is_some_and(|biome| biomes.contains(&biome))
+            }
             Condition::MatchBlock(predicate) => block_matches(predicate, self.context.block),
             Condition::MatchTool(predicate) => item_matches(predicate, self.context.tool),
             Condition::EntityProperties { target, predicate } => predicate
@@ -712,6 +747,35 @@ mod tests {
     use rspigot_domain::damage::DamageType;
 
     use super::*;
+
+    fn fishing_treasures(open_water: bool, rolls: u64) -> usize {
+        let table = rspigot_data::loot::table("minecraft:gameplay/fishing").unwrap();
+        let this = LootEntity {
+            open_water: Some(open_water),
+            ..LootEntity::of(EntityKind::FishingBobber)
+        };
+        let context = LootContext {
+            this: Some(&this),
+            biome: Some("minecraft:plains"),
+            ..LootContext::default()
+        };
+        let treasure = [
+            ItemKind::NameTag.id(),
+            ItemKind::Saddle.id(),
+            ItemKind::NautilusShell.id(),
+        ];
+        let mut rng = StdRng::seed_from_u64(5);
+        (0..rolls)
+            .flat_map(|_| table_drops(table, &context, &mut rng))
+            .filter(|stack| treasure.contains(&stack.item))
+            .count()
+    }
+
+    #[test]
+    fn the_fishing_table_gives_treasure_only_in_open_water() {
+        assert_eq!(fishing_treasures(false, 2_000), 0);
+        assert!(fishing_treasures(true, 2_000) > 0);
+    }
 
     const RUNS: u64 = 10_000;
 

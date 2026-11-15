@@ -55,6 +55,7 @@ pub enum Condition {
     LocationCheck {
         offset: [i32; 3],
         block: Option<BlockPredicate>,
+        biomes: &'static [&'static str],
     },
     EntityProperties {
         target: EntityTarget,
@@ -105,6 +106,9 @@ pub enum EntitySubPredicate {
     Raider {
         has_raid: Option<bool>,
         captain: Option<bool>,
+    },
+    FishingHook {
+        in_open_water: Option<bool>,
     },
 }
 
@@ -218,6 +222,11 @@ pub enum FunctionKind {
         max_level: i32,
     },
     SetOminousBottleAmplifier(IntProvider),
+    SetDamage(FloatProvider),
+    EnchantWithLevels {
+        options: &'static str,
+        levels: IntProvider,
+    },
     Components(&'static str),
 }
 
@@ -292,6 +301,7 @@ mod tests {
     const ENTITY_TABLE_FILES: usize = 109;
     const REFERENCED_TABLES: usize = 1;
     const GAMEPLAY_TABLES: usize = 22;
+    const FISHING_TABLES: usize = 3;
     const BRUSH_TABLES: usize = 1;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
     const SHEEP_COLOUR_TABLES: usize = 16;
@@ -375,6 +385,7 @@ mod tests {
                 + ENTITY_TABLE_FILES
                 + REFERENCED_TABLES
                 + GAMEPLAY_TABLES
+                + FISHING_TABLES
                 + BRUSH_TABLES
                 + SHEEP_COLOUR_TABLES
                 + SNOW_GOLEM_SHEARING_TABLES

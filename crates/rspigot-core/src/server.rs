@@ -708,6 +708,7 @@ impl<L: ClientLink> Server<L> {
             won_game: false,
             moved_this_tick: false,
             using_item: None,
+            fishing: None,
             open_menu: None,
             plugin_menu: None,
             window_counter: 0,

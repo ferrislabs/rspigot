@@ -15,6 +15,7 @@ use crate::server::Server;
 
 pub mod custom {
     pub const LEAVE_GAME: &str = "minecraft:leave_game";
+    pub const FISH_CAUGHT: &str = "minecraft:fish_caught";
     pub const PLAY_TIME: &str = "minecraft:play_time";
     pub const TOTAL_WORLD_TIME: &str = "minecraft:total_world_time";
     pub const TIME_SINCE_DEATH: &str = "minecraft:time_since_death";

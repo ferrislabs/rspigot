@@ -53,6 +53,7 @@ mod falling;
 mod fangs;
 mod fire;
 mod fire_spread;
+mod fishing;
 mod fluids;
 mod game_events;
 mod ground;
