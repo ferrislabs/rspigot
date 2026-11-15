@@ -79,6 +79,18 @@ impl Xoroshiro {
         (product >> 32) as u32
     }
 
+    pub(crate) fn next_float(&mut self) -> f32 {
+        (self.next_long() >> 40) as f32 * 5.960_464_5e-8_f32
+    }
+
+    pub(crate) fn next_boolean(&mut self) -> bool {
+        self.next_long() & 1 != 0
+    }
+
+    pub(crate) fn between(&mut self, min: i32, max: i32) -> i32 {
+        min + self.next_int((max - min + 1) as u32) as i32
+    }
+
     pub(crate) fn next_double(&mut self) -> f64 {
         (self.next_long() >> 11) as f64 * 1.110_223_024_625_156_5e-16
     }
@@ -97,6 +109,17 @@ pub(crate) struct Positional {
 }
 
 impl Positional {
+    pub(crate) fn at(&self, x: i32, y: i32, z: i32) -> Xoroshiro {
+        let mut l = i64::from(x.wrapping_mul(3_129_871))
+            ^ i64::from(z).wrapping_mul(116_129_781)
+            ^ i64::from(y);
+        l = l
+            .wrapping_mul(l)
+            .wrapping_mul(42_317_861)
+            .wrapping_add(l.wrapping_mul(11));
+        Xoroshiro::from_parts(((l >> 16) as u64) ^ self.lo, self.hi)
+    }
+
     pub(crate) fn named(&self, name: &str) -> Xoroshiro {
         let seed = Seed128::of_hash(name);
         Xoroshiro::from_parts(seed.lo ^ self.lo, seed.hi ^ self.hi)
