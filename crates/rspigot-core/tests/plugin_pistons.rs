@@ -1,9 +1,11 @@
 mod common;
 
 use common::*;
+use rspigot_blocks::BlockKind;
+use rspigot_core::events::{ClientEvent, DigAction, Direction, Hand, Inbound, PlayerInput};
 use rspigot_core::plugins::events::Face;
 use rspigot_core::plugins::{Answer, BlockOrder, EventKind, EventPayload, Order, Question};
-use rspigot_domain::BlockPos;
+use rspigot_domain::{BlockPos, Vec3};
 
 const PISTON: BlockPos = BlockPos::new(3, 64, 3);
 const POWER: BlockPos = BlockPos::new(3, 64, 2);
@@ -288,4 +290,156 @@ fn a_moving_block_carries_the_player_standing_in_its_way() {
         other => panic!("expected a player, got {other:?}"),
     };
     assert!(after > before + 0.9, "{before} -> {after}");
+}
+
+fn block_events(s: &Scene) -> Vec<(BlockPos, u8, u8, u16)> {
+    s.players[0]
+        .link
+        .take()
+        .into_iter()
+        .filter_map(|event| match event {
+            ClientEvent::BlockEvent {
+                pos,
+                action,
+                data,
+                block,
+            } => Some((pos, action, data, block)),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn an_extension_tells_nearby_players_with_a_block_event() {
+    let mut s = scene(&["Alice"]);
+    piston(&mut s, "minecraft:piston");
+    s.players[0].link.take();
+    power_on(&mut s);
+    s.tick(4);
+    assert_eq!(
+        block_events(&s),
+        vec![(PISTON, 0, 5, BlockKind::Piston.id().0)]
+    );
+}
+
+#[test]
+fn a_retraction_tells_nearby_players_with_a_block_event() {
+    let mut s = scene(&["Alice"]);
+    piston(&mut s, "minecraft:sticky_piston");
+    power_on(&mut s);
+    s.tick(4);
+    s.players[0].link.take();
+    power_off(&mut s);
+    s.tick(4);
+    assert_eq!(
+        block_events(&s),
+        vec![(PISTON, 1, 5, BlockKind::StickyPiston.id().0)]
+    );
+}
+
+#[test]
+fn a_blocked_extension_sends_no_block_event() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, at(4), "minecraft:obsidian", &[]);
+    piston(&mut s, "minecraft:piston");
+    s.players[0].link.take();
+    power_on(&mut s);
+    s.tick(4);
+    assert!(block_events(&s).is_empty());
+}
+
+#[test]
+fn moving_blocks_are_not_sent_as_block_updates() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, at(4), "minecraft:stone", &[]);
+    piston(&mut s, "minecraft:piston");
+    s.players[0].link.take();
+    power_on(&mut s);
+    s.tick(1);
+    let sent: Vec<_> = s.players[0].link.take();
+    assert!(!sent.iter().any(|event| matches!(
+        event,
+        ClientEvent::BlockUpdate { state, .. } if state.kind() == Some(BlockKind::MovingPiston)
+    )));
+}
+
+fn extended_piston(s: &mut Scene) {
+    piston(s, "minecraft:piston");
+    power_on(s);
+    s.tick(4);
+    assert_eq!(kind_at(s, at(4)), "minecraft:piston_head");
+}
+
+#[test]
+fn losing_the_head_breaks_the_piston_and_drops_it() {
+    let mut s = scene(&["Alice"]);
+    extended_piston(&mut s);
+    put(&mut s, at(4), "minecraft:air", &[]);
+    assert_eq!(kind_at(&mut s, PISTON), "minecraft:air");
+    assert_eq!(s.server.items_on_ground(), 1);
+}
+
+#[test]
+fn a_creative_player_breaking_the_head_leaves_no_piston_item() {
+    let mut s = scene(&["Alice"]);
+    extended_piston(&mut s);
+    s.server
+        .handle(Inbound::Console("gamemode creative Alice".to_owned()));
+    s.server.deliver();
+    let alice = s.players[0].clone();
+    common::send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::Dig {
+            action: DigAction::Start,
+            pos: at(4),
+            face: Direction::Up,
+            sequence: 1,
+        },
+    );
+    assert_eq!(kind_at(&mut s, at(4)), "minecraft:air");
+    assert_eq!(kind_at(&mut s, PISTON), "minecraft:air");
+    assert_eq!(s.server.items_on_ground(), 0);
+}
+
+#[test]
+fn a_head_with_no_matching_base_does_not_break_the_block_behind_it() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, PISTON, "minecraft:stone", &[]);
+    put(
+        &mut s,
+        at(4),
+        "minecraft:piston_head",
+        &[("facing", "east"), ("type", "normal"), ("short", "false")],
+    );
+    put(&mut s, at(4), "minecraft:air", &[]);
+    assert_eq!(kind_at(&mut s, PISTON), "minecraft:stone");
+}
+
+#[test]
+fn using_a_moving_block_that_nothing_animates_removes_it() {
+    let mut s = scene(&["Alice"]);
+    put(
+        &mut s,
+        at(4),
+        "minecraft:moving_piston",
+        &[("facing", "east"), ("type", "normal")],
+    );
+    s.tick(3);
+    assert_eq!(kind_at(&mut s, at(4)), "minecraft:moving_piston");
+    let alice = s.players[0].clone();
+    common::send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::UseItemOn {
+            hand: Hand::Main,
+            pos: at(4),
+            face: Direction::West,
+            cursor: Vec3::new(0.5, 0.5, 0.5),
+            inside_block: false,
+            sequence: 3,
+        },
+    );
+    s.tick(1);
+    assert_eq!(kind_at(&mut s, at(4)), "minecraft:air");
 }

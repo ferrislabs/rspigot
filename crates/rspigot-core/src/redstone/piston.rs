@@ -1,15 +1,18 @@
 use rspigot_blocks::{BlockKind, Face};
 use rspigot_domain::entity::Aabb;
+use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::piston::{Limits, Reaction, Resolver, is_pushable, reaction_of};
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
 use rspigot_entities::SoundSource;
 use rustc_hash::FxHashMap;
 
-use super::{facing, step};
+use super::{face_code, facing, step};
+use crate::events::ClientEvent;
+use crate::game_events::GameEventContext;
 use crate::plugins::events::{BlockPistonExtend, BlockPistonRetract};
 use crate::plugins::{Continuation, EventKind, EventPayload, Lane, face_of};
 use crate::ports::ClientLink;
-use crate::server::Server;
+use crate::server::{Audience, Server};
 use crate::signal::flag;
 
 const EXTEND_SOUND: &str = "minecraft:block.piston.extend";
@@ -18,6 +21,7 @@ const SOUND_VOLUME: f32 = 0.5;
 const MOVE_TICKS: u64 = 2;
 const STEP_DISTANCE: f64 = 0.5;
 const EVENT_LIMIT: usize = 4096;
+const BLOCK_EVENT_RANGE: f64 = 64.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct BlockEvent {
@@ -247,6 +251,14 @@ impl<L: ClientLink> Server<L> {
                     SOUND_VOLUME,
                     pitch,
                 );
+                self.announce_block_event(step.piston, state, 0, step.direction);
+                if let Some(extended) = state.with_property("extended", "true") {
+                    self.game_event(
+                        GameEvent::BlockActivate,
+                        step.piston.center(),
+                        GameEventContext::block(extended),
+                    );
+                }
             }
             PistonAction::Pull => {
                 if let Some((pushed, destroyed)) = self.resolves(step.piston, step.direction, false)
@@ -339,7 +351,7 @@ impl<L: ClientLink> Server<L> {
             .default_state()
             .with_property("facing", direction.name())
             .unwrap_or(base.default_state());
-        self.set_block_quiet(pos, moving_state(direction, sticky));
+        self.set_block_unsent(pos, moving_state(direction, sticky));
         let created = self.current_tick();
         self.falls.redstone.moving.insert(
             pos,
@@ -366,6 +378,40 @@ impl<L: ClientLink> Server<L> {
             SoundSource::Blocks,
             SOUND_VOLUME,
             pitch,
+        );
+        self.announce_block_event(pos, returning, id, direction);
+        let extended = returning
+            .with_property("extended", "true")
+            .unwrap_or(returning);
+        self.game_event(
+            GameEvent::BlockDeactivate,
+            pos.center(),
+            GameEventContext::block(extended),
+        );
+    }
+
+    fn announce_block_event(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        id: u8,
+        direction: Face,
+    ) {
+        let Some(kind) = state.kind() else {
+            return;
+        };
+        self.push(
+            Audience::Nearby {
+                position: pos.center(),
+                range: BLOCK_EVENT_RANGE,
+                except: None,
+            },
+            ClientEvent::BlockEvent {
+                pos,
+                action: id,
+                data: face_code(direction),
+                block: kind.id().0,
+            },
         );
     }
 
@@ -446,7 +492,7 @@ impl<L: ClientLink> Server<L> {
         for (index, at) in pushed.iter().enumerate().rev() {
             let target = step(*at, push);
             vacated.remove(&target);
-            self.set_block_quiet(target, moving_state(direction, false));
+            self.set_block_unsent(target, moving_state(direction, false));
             self.falls.redstone.moving.insert(
                 target,
                 Moving {
@@ -467,7 +513,7 @@ impl<L: ClientLink> Server<L> {
                 .unwrap_or(BlockKind::PistonHead.default_state());
             let front = step(pos, direction);
             vacated.remove(&front);
-            self.set_block_quiet(front, moving_state(direction, sticky));
+            self.set_block_unsent(front, moving_state(direction, sticky));
             self.falls.redstone.moving.insert(
                 front,
                 Moving {
@@ -502,9 +548,6 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn moving_tick(&mut self, pos: BlockPos) {
         let now = self.current_tick();
         let Some(moving) = self.falls.redstone.moving.get(&pos).cloned() else {
-            if self.block_or_air(pos).kind() == Some(BlockKind::MovingPiston) {
-                self.set_block(pos, BlockStateId::AIR);
-            }
             return;
         };
         let elapsed = now.saturating_sub(moving.created).min(MOVE_TICKS);
@@ -574,6 +617,57 @@ impl<L: ClientLink> Server<L> {
             .collect();
         for (id, position) in players {
             self.teleport_player(id, position);
+        }
+    }
+
+    fn fitting_base(
+        &self,
+        head: BlockPos,
+        state: BlockStateId,
+    ) -> Option<(BlockPos, BlockStateId)> {
+        let direction = facing(state)?;
+        let base = step(head, direction.opposite());
+        let candidate = self.block_or_air(base);
+        let expected = if state.property("type") == Some("sticky") {
+            BlockKind::StickyPiston
+        } else {
+            BlockKind::Piston
+        };
+        (candidate.kind() == Some(expected)
+            && flag(candidate, "extended")
+            && facing(candidate) == Some(direction))
+        .then_some((base, candidate))
+    }
+
+    pub(crate) fn piston_head_removed(&mut self, pos: BlockPos, state: BlockStateId) {
+        if let Some((base, candidate)) = self.fitting_base(pos, state) {
+            self.destroy_block(base, candidate);
+        }
+    }
+
+    pub(crate) fn piston_will_destroy(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        creative: bool,
+    ) {
+        match state.kind() {
+            Some(BlockKind::PistonHead) if creative => {
+                if let Some((base, _)) = self.fitting_base(pos, state) {
+                    self.set_block(base, BlockStateId::AIR);
+                }
+            }
+            Some(BlockKind::MovingPiston) => {
+                let Some(direction) = facing(state) else {
+                    return;
+                };
+                let base = step(pos, direction.opposite());
+                let candidate = self.block_or_air(base);
+                if candidate.kind().is_some_and(is_piston_kind) && flag(candidate, "extended") {
+                    self.set_block(base, BlockStateId::AIR);
+                }
+            }
+            _ => {}
         }
     }
 

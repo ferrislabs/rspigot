@@ -401,6 +401,7 @@ impl<L: ClientLink> Server<L> {
             self.anger_nearby_piglins(id, false);
         }
         let hive = self.hive_snapshot(pos);
+        self.piston_will_destroy(pos, step.state, step.game_mode == GameMode::Creative);
         self.set_block(pos, BlockStateId::AIR);
         let actor = self.players.get(&id).map(|player| player.entity_id);
         self.block_game_event(
