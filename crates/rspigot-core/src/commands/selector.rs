@@ -165,7 +165,10 @@ fn parse_double(raw: &str) -> Result<f64, Component> {
         .map_err(|_| error("parsing.double.invalid", vec![Component::text(raw.trim())]))
 }
 
-fn parse_range(raw: &str, ordered: bool) -> Result<(Option<f64>, Option<f64>), Component> {
+pub(crate) fn parse_range(
+    raw: &str,
+    ordered: bool,
+) -> Result<(Option<f64>, Option<f64>), Component> {
     let raw = raw.trim();
     let (min, max) = match raw.split_once("..") {
         Some((min, max)) => (min, max),
@@ -191,7 +194,7 @@ fn parse_range(raw: &str, ordered: bool) -> Result<(Option<f64>, Option<f64>), C
     Ok((min, max))
 }
 
-fn parse_int_range(raw: &str) -> Result<IntRange, Component> {
+pub(crate) fn parse_int_range(raw: &str) -> Result<IntRange, Component> {
     let raw = raw.trim();
     let (min, max) = match raw.split_once("..") {
         Some((min, max)) => (min, max),

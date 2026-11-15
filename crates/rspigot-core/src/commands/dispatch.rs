@@ -10,7 +10,9 @@ use rspigot_items::ItemKind;
 use rspigot_nbt::Compound;
 
 use super::selector::split_argument;
+use super::source::{Anchor, DataTarget, Relation, Source};
 use crate::admin::{Ban, BanEntry, IpBanEntry, ListEntry, ban_reason};
+use rspigot_domain::chunk::HeightmapKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Target {
@@ -196,11 +198,101 @@ pub trait CommandContext {
         _entity: rspigot_entities::EntityKind,
         _position: Vec3,
         _nbt: Option<Compound>,
-    ) -> Result<(), Component> {
+    ) -> Result<Option<EntityId>, Component> {
         Err(Component::translatable(
             "commands.summon.failed",
             Vec::new(),
         ))
+    }
+
+    fn local_origin(&self, sender: CommandSender) -> Vec3 {
+        self.sender_origin(sender)
+    }
+
+    fn command_source(&self, sender: CommandSender) -> Source {
+        Source {
+            executor: match sender {
+                CommandSender::Player(id) => Some(Target::Player(id)),
+                CommandSender::Console => None,
+            },
+            position: self.sender_origin(sender),
+            rotation: self.sender_rotation(sender),
+            anchor: Anchor::Feet,
+            dimension: None,
+        }
+    }
+
+    fn run_with_source(&mut self, _source: &Source, run: impl FnOnce(&mut Self)) {
+        run(self);
+    }
+
+    fn current_dimension(&self) -> Option<Identifier> {
+        None
+    }
+
+    fn block_state_at(&self, _pos: BlockPos) -> Option<rspigot_blocks::StateId> {
+        None
+    }
+
+    fn block_entity_data(&self, _pos: BlockPos) -> Option<Compound> {
+        None
+    }
+
+    fn is_position_loaded(&self, _pos: BlockPos) -> bool {
+        false
+    }
+
+    fn biome_name_at(&self, _pos: BlockPos) -> Option<String> {
+        None
+    }
+
+    fn surface_height(&self, _kind: HeightmapKind, _x: i32, _z: i32) -> Option<i32> {
+        None
+    }
+
+    fn target_rotation(&self, _target: Target) -> Option<Rotation> {
+        None
+    }
+
+    fn target_eye_height(&self, _target: Target) -> f64 {
+        0.0
+    }
+
+    fn target_dimension(&self, _target: Target) -> Option<Identifier> {
+        None
+    }
+
+    fn related_targets(&self, _target: Target, _relation: Relation) -> Vec<Target> {
+        Vec::new()
+    }
+
+    fn record_result(&mut self, _value: i32) {}
+
+    fn take_result(&mut self) -> Option<i32> {
+        None
+    }
+
+    fn read_data(&self, _target: &DataTarget) -> Result<Compound, Component> {
+        Err(Component::translatable(
+            "commands.data.entity.invalid",
+            Vec::new(),
+        ))
+    }
+
+    fn write_data(&mut self, _target: &DataTarget, _data: Compound) -> Result<(), Component> {
+        Err(Component::translatable(
+            "commands.data.entity.invalid",
+            Vec::new(),
+        ))
+    }
+
+    fn set_boss_bar_value(&mut self, id: &Identifier, _maximum: bool, _value: i32) -> bool {
+        let _ = id;
+        false
+    }
+
+    fn function_exists(&self, _id: &Identifier) -> bool {
+        false
     }
 }
 
@@ -283,7 +375,7 @@ pub fn execute<C: CommandContext>(
         "msg" | "tell" | "w" => private_message(ctx, sender, &args),
         "gamemode" => gamemode(ctx, sender, &args),
         "tp" | "teleport" => teleport(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
-        "execute" => execute_in(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
+        "execute" => super::execute::run(ctx, sender, rest),
         "summon" => summon(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "time" => time(ctx, sender, &args),
         "give" => give(ctx, sender, &args),
@@ -348,7 +440,11 @@ fn refuse<C: CommandContext>(ctx: &mut C, sender: CommandSender, line: &str) -> 
     CommandOutcome::Denied
 }
 
-fn usage<C: CommandContext>(ctx: &mut C, sender: CommandSender, text: &str) -> CommandOutcome {
+pub(super) fn usage<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    text: &str,
+) -> CommandOutcome {
     ctx.reply(
         sender,
         Component::text(format!("Usage: {text}")).color(NamedColor::Red),
@@ -568,6 +664,7 @@ pub(crate) fn parse_vec3<C: CommandContext>(
                 })?;
             }
         }
+        let origin = ctx.local_origin(sender);
         let rotation = ctx.sender_rotation(sender);
         let radians = 0.017_453_292f32;
         let f = mth_cos((rotation.yaw + 90.0) * radians);
@@ -600,12 +697,12 @@ pub(crate) fn parse_vec3<C: CommandContext>(
     ))
 }
 
-fn next_argument(input: &str) -> Option<(&str, &str)> {
+pub(super) fn next_argument(input: &str) -> Option<(&str, &str)> {
     let (token, rest) = split_argument(input);
     (!token.is_empty()).then_some((token, rest))
 }
 
-fn looks_like_coordinate(token: &str) -> bool {
+pub(super) fn looks_like_coordinate(token: &str) -> bool {
     token.starts_with('~') || token.starts_with('^') || token.parse::<f64>().is_ok()
 }
 
@@ -660,10 +757,8 @@ fn teleport<C: CommandContext>(
     let Some((first, after_first)) = next_argument(rest) else {
         return Err(usage(ctx, sender, usage_text));
     };
-    let self_target = || match sender {
-        CommandSender::Player(id) => Some(Target::Player(id)),
-        CommandSender::Console => None,
-    };
+    let executor = ctx.command_source(sender).executor;
+    let self_target = || executor;
     let (targets, destination, destination_name) = if looks_like_coordinate(first) {
         let position = match take_vec3(ctx, sender, rest) {
             Ok(Some((position, _))) => position,
@@ -722,6 +817,7 @@ fn teleport<C: CommandContext>(
     for target in &targets {
         ctx.teleport_target(*target, destination);
     }
+    ctx.record_result(targets.len() as i32);
     let message = match (targets.as_slice(), destination_name) {
         ([single], None) => Component::translatable(
             "commands.teleport.success.location.single",
@@ -754,55 +850,7 @@ fn teleport<C: CommandContext>(
     Ok(CommandOutcome::Success)
 }
 
-fn execute_in<C: CommandContext>(
-    ctx: &mut C,
-    sender: CommandSender,
-    rest: &str,
-) -> Result<CommandOutcome, CommandOutcome> {
-    let usage_text = "/execute in <dimension> run <command>";
-    let mut dimension = None;
-    let mut cursor = rest;
-    let command = loop {
-        let Some((word, after)) = next_argument(cursor) else {
-            return Err(usage(ctx, sender, usage_text));
-        };
-        match word {
-            "in" => {
-                let Some((name, after)) = next_argument(after) else {
-                    return Err(usage(ctx, sender, usage_text));
-                };
-                dimension = Some(name);
-                cursor = after;
-            }
-            "run" => break after.trim(),
-            _ => return Err(usage(ctx, sender, usage_text)),
-        }
-    };
-    let (Some(name), false) = (dimension, command.is_empty()) else {
-        return Err(usage(ctx, sender, usage_text));
-    };
-    let Ok(key) = Identifier::parse(name) else {
-        return Err(unknown_dimension(ctx, sender, name));
-    };
-    let head = command
-        .trim_start_matches('/')
-        .split_whitespace()
-        .next()
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    let head = head.strip_prefix("minecraft:").unwrap_or(&head);
-    let swap = !matches!(head, "tp" | "teleport");
-    let mut outcome = CommandOutcome::Success;
-    let found = ctx.run_in_dimension(&key, swap, |ctx| {
-        outcome = execute(ctx, sender, command);
-    });
-    if !found {
-        return Err(unknown_dimension(ctx, sender, name));
-    }
-    Ok(outcome)
-}
-
-fn unknown_dimension<C: CommandContext>(
+pub(super) fn unknown_dimension<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     name: &str,
@@ -870,7 +918,7 @@ fn summon<C: CommandContext>(
         }
     };
     match ctx.summon(sender, kind, position, nbt) {
-        Ok(()) => Ok(CommandOutcome::Success),
+        Ok(_) => Ok(CommandOutcome::Success),
         Err(message) => {
             ctx.reply(sender, message.color(NamedColor::Red));
             Err(CommandOutcome::Failure)
@@ -903,6 +951,7 @@ fn time<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) ->
                 return usage(ctx, sender, "/time set <day|noon|night|midnight|ticks>");
             };
             ctx.set_day_time(ticks);
+            ctx.record_result((ticks.rem_euclid(24_000)) as i32);
             ctx.reply(
                 sender,
                 Component::translatable(
@@ -918,6 +967,7 @@ fn time<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) ->
             };
             let now = ctx.day_time() + ticks;
             ctx.skip_day_time(now);
+            ctx.record_result(now.rem_euclid(24_000) as i32);
             ctx.reply(
                 sender,
                 Component::translatable(
@@ -934,6 +984,7 @@ fn time<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) ->
                 "day" => ctx.day_time().div_euclid(24000),
                 _ => return usage(ctx, sender, "/time query <daytime|gametime|day>"),
             };
+            ctx.record_result((value % i64::from(i32::MAX)) as i32);
             ctx.reply(
                 sender,
                 Component::translatable(
@@ -1072,7 +1123,7 @@ const INSTANT_EFFECTS: [&str; 3] = [
     "minecraft:saturation",
 ];
 
-fn fail<C: CommandContext>(
+pub(super) fn fail<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     key: &str,
@@ -1328,6 +1379,7 @@ fn kill<C: CommandContext>(
     for target in &targets {
         ctx.kill_target(*target);
     }
+    ctx.record_result(targets.len() as i32);
     let message = match names.as_slice() {
         [single] => Component::translatable("commands.kill.success.single", vec![single.clone()]),
         many => Component::translatable(

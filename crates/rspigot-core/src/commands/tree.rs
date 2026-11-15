@@ -22,6 +22,9 @@ pub enum ArgumentParser {
     ResourceLocation,
     Resource { registry: String },
     NbtCompoundTag,
+    ScoreHolder { multiple: bool },
+    ResourceOrTag { registry: String },
+    Named(&'static str),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -180,6 +183,312 @@ pub fn build_tree(level: u8) -> CommandTree {
     }
 }
 
+fn redirecting(b: &mut TreeBuilder, node: usize, target: usize) {
+    b.nodes[node].redirect = Some(target);
+}
+
+fn position_argument(b: &mut TreeBuilder, parent: usize, name: &str) -> usize {
+    b.argument(parent, name, ArgumentParser::BlockPos, false)
+}
+
+fn data_target_nodes(
+    b: &mut TreeBuilder,
+    parent: usize,
+    mut leaf: impl FnMut(&mut TreeBuilder, usize),
+) {
+    let entity = b.literal(parent, "entity", false);
+    let target = b.argument(entity, "target", single_entity(), false);
+    let path = b.argument(
+        target,
+        "path",
+        ArgumentParser::Named("minecraft:nbt_path"),
+        false,
+    );
+    leaf(b, path);
+    let block = b.literal(parent, "block", false);
+    let pos = position_argument(b, block, "targetPos");
+    let path = b.argument(
+        pos,
+        "path",
+        ArgumentParser::Named("minecraft:nbt_path"),
+        false,
+    );
+    leaf(b, path);
+    let storage = b.literal(parent, "storage", false);
+    let target = b.argument(storage, "target", ArgumentParser::ResourceLocation, false);
+    let path = b.argument(
+        target,
+        "path",
+        ArgumentParser::Named("minecraft:nbt_path"),
+        false,
+    );
+    leaf(b, path);
+}
+
+fn condition_tree(b: &mut TreeBuilder, parent: usize, execute: usize) {
+    let finish = |b: &mut TreeBuilder, node: usize| {
+        b.nodes[node].executable = true;
+        redirecting(b, node, execute);
+    };
+    let block = b.literal(parent, "block", false);
+    let pos = position_argument(b, block, "pos");
+    let predicate = b.argument(
+        pos,
+        "block",
+        ArgumentParser::Named("minecraft:block_predicate"),
+        false,
+    );
+    finish(b, predicate);
+    let biome = b.literal(parent, "biome", false);
+    let pos = position_argument(b, biome, "pos");
+    let resource = b.argument(
+        pos,
+        "biome",
+        ArgumentParser::ResourceOrTag {
+            registry: "minecraft:worldgen/biome".to_owned(),
+        },
+        false,
+    );
+    finish(b, resource);
+    let loaded = b.literal(parent, "loaded", false);
+    let pos = position_argument(b, loaded, "pos");
+    finish(b, pos);
+    let dimension = b.literal(parent, "dimension", false);
+    let key = b.argument(dimension, "dimension", ArgumentParser::Dimension, false);
+    finish(b, key);
+    let score = b.literal(parent, "score", false);
+    let holder = b.argument(
+        score,
+        "target",
+        ArgumentParser::ScoreHolder { multiple: false },
+        false,
+    );
+    let objective = b.argument(
+        holder,
+        "targetObjective",
+        ArgumentParser::Named("minecraft:objective"),
+        false,
+    );
+    for operator in ["=", "<", "<=", ">", ">="] {
+        let op = b.literal(objective, operator, false);
+        let source = b.argument(
+            op,
+            "source",
+            ArgumentParser::ScoreHolder { multiple: false },
+            false,
+        );
+        let source_objective = b.argument(
+            source,
+            "sourceObjective",
+            ArgumentParser::Named("minecraft:objective"),
+            false,
+        );
+        finish(b, source_objective);
+    }
+    let matches = b.literal(objective, "matches", false);
+    let range = b.argument(
+        matches,
+        "range",
+        ArgumentParser::Named("minecraft:int_range"),
+        false,
+    );
+    finish(b, range);
+    let blocks = b.literal(parent, "blocks", false);
+    let start = position_argument(b, blocks, "start");
+    let end = position_argument(b, start, "end");
+    let destination = position_argument(b, end, "destination");
+    for mode in ["all", "masked"] {
+        let node = b.literal(destination, mode, false);
+        finish(b, node);
+    }
+    let entity = b.literal(parent, "entity", false);
+    let entities_node = b.argument(entity, "entities", entities(), false);
+    finish(b, entities_node);
+    let predicate = b.literal(parent, "predicate", false);
+    let id = b.argument(
+        predicate,
+        "predicate",
+        ArgumentParser::Named("minecraft:loot_predicate"),
+        false,
+    );
+    finish(b, id);
+    let function = b.literal(parent, "function", false);
+    let name = b.argument(
+        function,
+        "name",
+        ArgumentParser::Named("minecraft:function"),
+        false,
+    );
+    finish(b, name);
+    let data = b.literal(parent, "data", false);
+    let entity = b.literal(data, "entity", false);
+    let source = b.argument(entity, "source", single_entity(), false);
+    let path = b.argument(
+        source,
+        "path",
+        ArgumentParser::Named("minecraft:nbt_path"),
+        false,
+    );
+    finish(b, path);
+    let block = b.literal(data, "block", false);
+    let pos = position_argument(b, block, "sourcePos");
+    let path = b.argument(
+        pos,
+        "path",
+        ArgumentParser::Named("minecraft:nbt_path"),
+        false,
+    );
+    finish(b, path);
+    let storage = b.literal(data, "storage", false);
+    let source = b.argument(storage, "source", ArgumentParser::ResourceLocation, false);
+    let path = b.argument(
+        source,
+        "path",
+        ArgumentParser::Named("minecraft:nbt_path"),
+        false,
+    );
+    finish(b, path);
+}
+
+fn store_tree(b: &mut TreeBuilder, parent: usize, execute: usize) {
+    let score = b.literal(parent, "score", false);
+    let holders = b.argument(
+        score,
+        "targets",
+        ArgumentParser::ScoreHolder { multiple: true },
+        false,
+    );
+    let objective = b.argument(
+        holders,
+        "objective",
+        ArgumentParser::Named("minecraft:objective"),
+        false,
+    );
+    redirecting(b, objective, execute);
+    let bossbar = b.literal(parent, "bossbar", false);
+    let id = b.argument(bossbar, "id", ArgumentParser::ResourceLocation, false);
+    for field in ["value", "max"] {
+        let node = b.literal(id, field, false);
+        redirecting(b, node, execute);
+    }
+    data_target_nodes(b, parent, |b, path| {
+        for kind in ["int", "float", "short", "long", "double", "byte"] {
+            let node = b.literal(path, kind, false);
+            let scale = b.argument(
+                node,
+                "scale",
+                ArgumentParser::Double {
+                    min: None,
+                    max: None,
+                },
+                false,
+            );
+            redirecting(b, scale, execute);
+        }
+    });
+}
+
+fn execute_tree(b: &mut TreeBuilder, root: usize) {
+    let execute = b.literal(root, "execute", false);
+    let run = b.literal(execute, "run", false);
+    redirecting(b, run, root);
+    for name in ["if", "unless"] {
+        let node = b.literal(execute, name, false);
+        condition_tree(b, node, execute);
+    }
+    for name in ["as", "at"] {
+        let node = b.literal(execute, name, false);
+        let targets = b.argument(node, "targets", entities(), false);
+        redirecting(b, targets, execute);
+    }
+    let store = b.literal(execute, "store", false);
+    for mode in ["result", "success"] {
+        let node = b.literal(store, mode, false);
+        store_tree(b, node, execute);
+    }
+    let positioned = b.literal(execute, "positioned", false);
+    let pos = b.argument(positioned, "pos", ArgumentParser::Vec3, false);
+    redirecting(b, pos, execute);
+    let positioned_as = b.literal(positioned, "as", false);
+    let targets = b.argument(positioned_as, "targets", entities(), false);
+    redirecting(b, targets, execute);
+    let over = b.literal(positioned, "over", false);
+    let map = b.argument(
+        over,
+        "heightmap",
+        ArgumentParser::Named("minecraft:heightmap"),
+        false,
+    );
+    redirecting(b, map, execute);
+    let rotated = b.literal(execute, "rotated", false);
+    let rot = b.argument(
+        rotated,
+        "rot",
+        ArgumentParser::Named("minecraft:rotation"),
+        false,
+    );
+    redirecting(b, rot, execute);
+    let rotated_as = b.literal(rotated, "as", false);
+    let targets = b.argument(rotated_as, "targets", entities(), false);
+    redirecting(b, targets, execute);
+    let facing = b.literal(execute, "facing", false);
+    let facing_entity = b.literal(facing, "entity", false);
+    let targets = b.argument(facing_entity, "targets", entities(), false);
+    let anchor = b.argument(
+        targets,
+        "anchor",
+        ArgumentParser::Named("minecraft:entity_anchor"),
+        false,
+    );
+    redirecting(b, anchor, execute);
+    let pos = b.argument(facing, "pos", ArgumentParser::Vec3, false);
+    redirecting(b, pos, execute);
+    let align = b.literal(execute, "align", false);
+    let axes = b.argument(
+        align,
+        "axes",
+        ArgumentParser::Named("minecraft:swizzle"),
+        false,
+    );
+    redirecting(b, axes, execute);
+    let anchored = b.literal(execute, "anchored", false);
+    let anchor = b.argument(
+        anchored,
+        "anchor",
+        ArgumentParser::Named("minecraft:entity_anchor"),
+        false,
+    );
+    redirecting(b, anchor, execute);
+    let within = b.literal(execute, "in", false);
+    let dimension = b.argument(within, "dimension", ArgumentParser::Dimension, false);
+    redirecting(b, dimension, execute);
+    let summon = b.literal(execute, "summon", false);
+    let entity = b.suggesting(
+        summon,
+        "entity",
+        ArgumentParser::Resource {
+            registry: "minecraft:entity_type".to_owned(),
+        },
+        "minecraft:summonable_entities",
+        false,
+    );
+    redirecting(b, entity, execute);
+    let on = b.literal(execute, "on", false);
+    for relation in [
+        "owner",
+        "leasher",
+        "target",
+        "attacker",
+        "vehicle",
+        "controller",
+        "origin",
+        "passengers",
+    ] {
+        let node = b.literal(on, relation, false);
+        redirecting(b, node, execute);
+    }
+}
+
 fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     b.literal(root, "seed", true);
     let say = b.literal(root, "say", false);
@@ -196,11 +505,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     b.argument(teleport, "location", ArgumentParser::Vec3, true);
     b.argument(teleport, "destination", single_entity(), true);
     b.alias(root, "tp", teleport);
-    let execute = b.literal(root, "execute", false);
-    let within = b.literal(execute, "in", false);
-    let dimension = b.argument(within, "dimension", ArgumentParser::Dimension, false);
-    let run = b.literal(dimension, "run", false);
-    b.nodes[run].redirect = Some(root);
+    execute_tree(b, root);
     let summon = b.literal(root, "summon", false);
     let entity = b.suggesting(
         summon,
@@ -346,6 +651,62 @@ mod tests {
                 assert!(target < tree.nodes.len());
             }
             assert!(node.children.iter().all(|c| *c < tree.nodes.len()));
+        }
+    }
+
+    #[test]
+    fn execute_offers_every_vanilla_modifier_and_redirects_back() {
+        let tree = build_tree(2);
+        let literal = |parent: usize, name: &str| {
+            tree.nodes[parent]
+                .children
+                .iter()
+                .copied()
+                .find(|c| tree.nodes[*c].kind == CommandNodeKind::Literal(name.to_owned()))
+        };
+        let execute = literal(tree.root, "execute").expect("execute");
+        for name in [
+            "as",
+            "at",
+            "positioned",
+            "rotated",
+            "facing",
+            "align",
+            "anchored",
+            "in",
+            "on",
+            "summon",
+            "if",
+            "unless",
+            "store",
+            "run",
+        ] {
+            assert!(literal(execute, name).is_some(), "{name}");
+        }
+        let run = literal(execute, "run").expect("run");
+        assert_eq!(tree.nodes[run].redirect, Some(tree.root));
+        let at = literal(execute, "at").expect("at");
+        let targets = tree.nodes[at].children[0];
+        assert_eq!(tree.nodes[targets].redirect, Some(execute));
+        let unless = literal(execute, "unless").expect("unless");
+        for name in [
+            "block",
+            "blocks",
+            "biome",
+            "loaded",
+            "dimension",
+            "score",
+            "entity",
+            "predicate",
+            "function",
+            "data",
+        ] {
+            assert!(literal(unless, name).is_some(), "{name}");
+        }
+        let store = literal(execute, "store").expect("store");
+        let result = literal(store, "result").expect("result");
+        for name in ["score", "bossbar", "entity", "block", "storage"] {
+            assert!(literal(result, name).is_some(), "{name}");
         }
     }
 

@@ -18,6 +18,7 @@ use rspigot_nbt::Compound;
 use crate::admin::{AdminLists, Ban, BanEntry, IpBanEntry, ListEntry, MAX_PERMISSION_LEVEL};
 use crate::chunks::{ChunkJob, Priority};
 use crate::commands::selector::{self, Selector, SelectorBase, Sort, TypeMatch};
+use crate::commands::source::{Anchor, DataTarget, Relation, Source};
 use crate::commands::{CommandContext, CommandSender, Target, Weather};
 use crate::events::ClientEvent;
 use crate::mobs::ServerRandom;
@@ -28,6 +29,7 @@ use crate::plugins::{Birth, Holder, Potion, ShulkerHop, Spawned, name_of_entity}
 use crate::plugins::{Continuation, EventPayload};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use rspigot_domain::chunk::HeightmapKind;
 
 impl<L: ClientLink> CommandContext for Server<L> {
     fn reply(&mut self, sender: CommandSender, message: Component) {
@@ -115,6 +117,109 @@ impl<L: ClientLink> CommandContext for Server<L> {
             PlayerTeleportCause::Command,
             None,
         );
+    }
+
+    fn local_origin(&self, sender: CommandSender) -> Vec3 {
+        let origin = self.sender_origin(sender);
+        match &self.command_source {
+            Some(source) if source.anchor == Anchor::Eyes => match source.executor {
+                Some(executor) => Vec3::new(
+                    origin.x,
+                    origin.y + self.target_eye_height(executor),
+                    origin.z,
+                ),
+                None => origin,
+            },
+            _ => origin,
+        }
+    }
+
+    fn run_with_source(&mut self, source: &Source, run: impl FnOnce(&mut Self)) {
+        let previous = self.command_source.replace(source.clone());
+        run(self);
+        self.command_source = previous;
+    }
+
+    fn current_dimension(&self) -> Option<Identifier> {
+        Some(
+            self.command_dimension
+                .clone()
+                .unwrap_or_else(|| self.world.dimension.key.clone()),
+        )
+    }
+
+    fn block_state_at(&self, pos: BlockPos) -> Option<rspigot_blocks::StateId> {
+        self.world.chunks.block(pos)
+    }
+
+    fn block_entity_data(&self, pos: BlockPos) -> Option<Compound> {
+        self.block_entity_nbt(pos)
+    }
+
+    fn is_position_loaded(&self, pos: BlockPos) -> bool {
+        self.world.chunks.is_loaded(pos.chunk())
+    }
+
+    fn biome_name_at(&self, pos: BlockPos) -> Option<String> {
+        rspigot_data::registries::biome_name(self.biome_at(pos).0).map(str::to_owned)
+    }
+
+    fn surface_height(&self, kind: HeightmapKind, x: i32, z: i32) -> Option<i32> {
+        let column = self.world.chunks.get(BlockPos::new(x, 0, z).chunk())?;
+        let value = column
+            .heightmaps
+            .get(kind)?
+            .get((x & 15) as usize, (z & 15) as usize);
+        Some(column.height().min_y + i32::from(value))
+    }
+
+    fn target_rotation(&self, target: Target) -> Option<Rotation> {
+        match target {
+            Target::Player(id) => self.players.get(&id).map(|p| p.rotation),
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)
+                .map(|e| Rotation::new(e.base.yaw, e.base.pitch)),
+        }
+    }
+
+    fn target_eye_height(&self, target: Target) -> f64 {
+        match target {
+            Target::Player(id) => self.players.get(&id).map_or(0.0, |p| p.eye_height()),
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)
+                .map_or(0.0, |e| f64::from(e.base.eye_height())),
+        }
+    }
+
+    fn target_dimension(&self, target: Target) -> Option<Identifier> {
+        match target {
+            Target::Player(id) => self.players.get(&id).map(|p| p.dim.clone()),
+            Target::Entity(_) => self.current_dimension(),
+        }
+    }
+
+    fn related_targets(&self, target: Target, relation: Relation) -> Vec<Target> {
+        self.relations_of(target, relation)
+    }
+
+    fn record_result(&mut self, value: i32) {
+        self.command_result = Some(value);
+    }
+
+    fn take_result(&mut self) -> Option<i32> {
+        self.command_result.take()
+    }
+
+    fn read_data(&self, target: &DataTarget) -> Result<Compound, Component> {
+        self.command_data(target)
+    }
+
+    fn write_data(&mut self, target: &DataTarget, data: Compound) -> Result<(), Component> {
+        self.set_command_data(target, data)
     }
 
     fn run_in_dimension(
@@ -474,6 +579,9 @@ impl<L: ClientLink> CommandContext for Server<L> {
     }
 
     fn sender_rotation(&self, sender: CommandSender) -> Rotation {
+        if let Some(source) = &self.command_source {
+            return source.rotation;
+        }
         match sender {
             CommandSender::Player(id) => self
                 .players
@@ -484,6 +592,9 @@ impl<L: ClientLink> CommandContext for Server<L> {
     }
 
     fn sender_origin(&self, sender: CommandSender) -> Vec3 {
+        if let Some(source) = &self.command_source {
+            return source.position;
+        }
         match sender {
             CommandSender::Player(id) => self.players.get(&id).map_or(Vec3::ZERO, |p| p.position),
             CommandSender::Console => {
@@ -548,7 +659,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
         kind: Kind,
         position: Vec3,
         nbt: Option<Compound>,
-    ) -> Result<(), Component> {
+    ) -> Result<Option<EntityId>, Component> {
         let failed = |key: &str| Component::translatable(key, Vec::new());
         let (entity, random) = self
             .summon_entity(kind, position, nbt, SpawnReason::Command)
@@ -560,8 +671,9 @@ impl<L: ClientLink> CommandContext for Server<L> {
         if let CommandSender::Player(player) = sender {
             birth = birth.by(player);
         }
+        let id = entity.base.id;
         self.spawn_entity(entity, birth);
-        Ok(())
+        Ok(Some(id))
     }
 }
 
@@ -1004,14 +1116,21 @@ impl<L: ClientLink> Server<L> {
                         .is_some_and(|e| e.base.uuid == *uuid),
                 })
                 .collect(),
-            SelectorBase::Sender => match sender {
-                CommandSender::Player(id) => self
-                    .candidates(false)
-                    .into_iter()
-                    .filter(|c| c.target == Target::Player(id) && matches(c))
-                    .collect(),
-                CommandSender::Console => Vec::new(),
-            },
+            SelectorBase::Sender => {
+                let executor = match (&self.command_source, sender) {
+                    (Some(source), _) => source.executor,
+                    (None, CommandSender::Player(id)) => Some(Target::Player(id)),
+                    (None, CommandSender::Console) => None,
+                };
+                match executor {
+                    Some(executor) => self
+                        .candidates(true)
+                        .into_iter()
+                        .filter(|c| c.target == executor && matches(c))
+                        .collect(),
+                    None => Vec::new(),
+                }
+            }
             SelectorBase::Search => self
                 .candidates(selector.includes_entities)
                 .into_iter()

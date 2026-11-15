@@ -19,6 +19,7 @@ mod chat_session;
 mod chests;
 pub mod chunks;
 mod combat;
+mod command_data;
 pub mod commands;
 mod compost;
 pub mod config;

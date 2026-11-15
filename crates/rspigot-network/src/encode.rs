@@ -442,7 +442,39 @@ fn parser(p: &CoreParser) -> WireParser {
             registry: registry.clone(),
         },
         CoreParser::NbtCompoundTag => simple(parser::NBT_COMPOUND_TAG),
+        CoreParser::ScoreHolder { multiple } => WireParser::ScoreHolder {
+            multiple: *multiple,
+        },
+        CoreParser::ResourceOrTag { registry } => WireParser::ResourceOrTag {
+            registry: registry.clone(),
+        },
+        CoreParser::Named(name) => named_parser(name),
     }
+}
+
+fn named_parser(name: &str) -> WireParser {
+    let id = match name {
+        "minecraft:rotation" => parser::ROTATION,
+        "minecraft:swizzle" => parser::SWIZZLE,
+        "minecraft:entity_anchor" => parser::ENTITY_ANCHOR,
+        "minecraft:block_predicate" => parser::BLOCK_PREDICATE,
+        "minecraft:nbt_path" => parser::NBT_PATH,
+        "minecraft:nbt_tag" => parser::NBT_TAG,
+        "minecraft:objective" => parser::OBJECTIVE,
+        "minecraft:heightmap" => parser::HEIGHTMAP,
+        "minecraft:function" => parser::FUNCTION,
+        "minecraft:int_range" => parser::INT_RANGE,
+        "minecraft:float_range" => parser::FLOAT_RANGE,
+        "minecraft:loot_predicate" => parser::LOOT_PREDICATE,
+        "minecraft:vec2" => parser::VEC2,
+        "minecraft:column_pos" => parser::COLUMN_POS,
+        "minecraft:angle" => parser::ANGLE,
+        "minecraft:operation" => parser::OPERATION,
+        "minecraft:component" => parser::COMPONENT,
+        "minecraft:uuid" => parser::UUID,
+        _ => return WireParser::String(StringKind::SingleWord),
+    };
+    simple(id)
 }
 
 fn commands(tree: &CommandTree) -> cb::Commands {
