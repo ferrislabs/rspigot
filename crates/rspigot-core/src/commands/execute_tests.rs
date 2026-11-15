@@ -117,5 +117,11 @@ fn dimension_keys_are_completed_after_in() {
         ClientEvent::CommandSuggestions { matches, .. } => Some(matches),
         _ => None,
     });
-    assert_eq!(matches, Some(vec!["minecraft:the_end".to_owned()]));
+    assert_eq!(
+        matches,
+        Some(vec![
+            "minecraft:the_end".to_owned(),
+            "minecraft:the_nether".to_owned()
+        ])
+    );
 }

@@ -460,6 +460,9 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_spawner_entity(pos, state);
                 if state.kind() == Some(BlockKind::Fire) {
                     self.hive_fire_placed(pos);
+                    if old.kind() != Some(BlockKind::Fire) {
+                        self.try_light_portal(pos);
+                    }
                 }
                 self.try_spawn_copper_golem(pos, old, state);
                 self.redstone_block_changed(pos, old, state);
@@ -829,6 +832,7 @@ impl<L: ClientLink> Server<L> {
         names.push(self.world.dimension.key.to_string());
         if self.dimension_provider.is_some() {
             names.push("minecraft:overworld".to_owned());
+            names.push("minecraft:the_nether".to_owned());
             names.push("minecraft:the_end".to_owned());
         }
         names.sort();

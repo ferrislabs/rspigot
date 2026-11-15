@@ -62,6 +62,8 @@ impl ServerFiles {
             hardcore: p.bool("hardcore"),
             pvp: true,
             allow_flight: p.bool("allow-flight"),
+            allow_nether: p.string("allow-nether") != "false"
+                && self.bukkit.string("settings.allow-nether", "true") != "false",
             spawn_protection: p.int("spawn-protection", 16).max(0) as u32,
             player_tracking_range: self.spigot.float(
                 "world-settings.default.entity-tracking-range.players",
