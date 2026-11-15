@@ -21,6 +21,7 @@ impl<L: ClientLink> Server<L> {
                 Some((level(state, "charges") as f32 / ANCHOR_CHARGES * 15.0).floor() as i32)
             }
             BlockKind::EndPortalFrame => Some(if flag(state, "eye") { 15 } else { 0 }),
+            BlockKind::Lectern => Some(self.lectern_signal(pos)),
             BlockKind::SculkSensor | BlockKind::CalibratedSculkSensor => {
                 Some(level(state, "power"))
             }

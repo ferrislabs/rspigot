@@ -83,6 +83,13 @@ impl<L: ClientLink> Server<L> {
                     0
                 }
             }
+            BlockKind::DetectorRail | BlockKind::Lectern => {
+                if flag(state, "powered") && direction == Face::Up {
+                    MAX_POWER
+                } else {
+                    0
+                }
+            }
             BlockKind::Observer | BlockKind::Repeater | BlockKind::Comparator => {
                 self.state_signal(state, pos, direction, wires)
             }

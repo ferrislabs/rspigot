@@ -1,5 +1,5 @@
 use rand::Rng;
-use rspigot_blocks::BlockKind;
+use rspigot_blocks::{BlockKind, Face};
 use rspigot_domain::chunk::BlockEntity;
 use rspigot_domain::entity::save::{item_stack_from_nbt, item_stack_to_nbt};
 use rspigot_domain::item::{ItemStack, Slot};
@@ -10,6 +10,7 @@ use rspigot_nbt::Compound;
 
 use crate::chests::Dir;
 use crate::ports::ClientLink;
+use crate::redstone::step;
 use crate::server::Server;
 
 const BOOK: &str = "Book";
@@ -25,6 +26,8 @@ const PAGE_JUMP_START: i32 = 100;
 const POP_OFFSET: f64 = 0.25;
 const POP_PICKUP_DELAY: u16 = 10;
 const PAGE_DATA: i16 = 0;
+const PAGE_PULSE: u64 = 2;
+const MAX_PAGE_SIGNAL: f32 = 14.0;
 
 pub(crate) fn is_lectern(state: BlockStateId) -> bool {
     state.kind() == Some(BlockKind::Lectern)
@@ -98,6 +101,36 @@ impl<L: ClientLink> Server<L> {
         }
         self.store_lectern(pos, Some(&book), page);
         self.send_menu_data(pos, PAGE_DATA, i16::try_from(page).unwrap_or(i16::MAX));
+        self.lectern_page_changed(pos);
+    }
+
+    fn lectern_page_changed(&mut self, pos: BlockPos) {
+        self.set_lectern_powered(pos, true);
+        self.schedule(pos, BlockKind::Lectern, PAGE_PULSE);
+    }
+
+    fn set_lectern_powered(&mut self, pos: BlockPos, powered: bool) {
+        let state = self.block_or_air(pos);
+        let Some(next) = state.with_property("powered", if powered { "true" } else { "false" })
+        else {
+            return;
+        };
+        self.set_block(pos, next);
+        self.update_neighbors_at(step(pos, Face::Down));
+    }
+
+    pub(crate) fn lectern_tick(&mut self, pos: BlockPos) {
+        self.set_lectern_powered(pos, false);
+    }
+
+    pub(crate) fn lectern_signal(&self, pos: BlockPos) -> i32 {
+        let pages = self.lectern_book(pos).map_or(0, |book| page_count(&book));
+        let progress = if pages < 2 {
+            1.0
+        } else {
+            self.lectern_page(pos) as f32 / (pages - 1) as f32
+        };
+        (progress * MAX_PAGE_SIGNAL).floor() as i32 + i32::from(self.lectern_book(pos).is_some())
     }
 
     fn take_book(&mut self, id: PlayerId, pos: BlockPos, window: i32) {
@@ -127,6 +160,7 @@ impl<L: ClientLink> Server<L> {
                 .and_then(|state| state.with_property("has_book", "false"))
         {
             self.set_block(pos, next);
+            self.update_neighbors_at(step(pos, Face::Down));
         }
         self.give_or_drop(id, book);
     }
@@ -198,6 +232,7 @@ impl<L: ClientLink> Server<L> {
             .and_then(|state| state.with_property("has_book", "true"))
         {
             self.set_block(pos, next);
+            self.update_neighbors_at(step(pos, Face::Down));
         }
         if mode != GameMode::Creative {
             self.consume_one(id, slot, held);

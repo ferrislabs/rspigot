@@ -257,6 +257,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::Observer => self.observer_tick(pos, state),
             BlockKind::Dispenser | BlockKind::Dropper => self.dispenser_tick(pos, state),
             BlockKind::DetectorRail => self.detector_tick(pos, state),
+            BlockKind::Lectern => self.lectern_tick(pos),
             BlockKind::Crafter => self.crafter_tick(pos, state),
             BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),
