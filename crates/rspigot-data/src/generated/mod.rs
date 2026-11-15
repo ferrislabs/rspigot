@@ -5,6 +5,7 @@ pub mod climate;
 pub mod compostable;
 pub mod enchantments;
 pub mod loot;
+pub mod multi_noise;
 pub mod recipe_book;
 pub mod spawns;
 pub mod static_registries;

@@ -2887,6 +2887,48 @@ mod tests {
     }
 
     #[test]
+    fn chunk_packet_carries_every_biome_id_of_the_synced_registry() {
+        use rspigot_domain::BiomeId;
+        use rspigot_domain::chunk::ChunkSection;
+        use rspigot_domain::world::WorldHeight;
+        use rspigot_protocol::codec::decode_exact;
+        use rspigot_protocol::play::chunk::decode_sections;
+
+        let height = WorldHeight::OVERWORLD;
+        let registry = rspigot_data::registries::synced_entries("minecraft:worldgen/biome")
+            .expect("biome registry")
+            .len();
+        assert!(registry >= 67);
+        let mut busy = ChunkSection::empty(BiomeId(0));
+        let expected: Vec<u32> = (0..64u32).map(|i| registry as u32 - 1 - i).collect();
+        for (i, id) in expected.iter().enumerate() {
+            busy.set_biome(i & 3, i >> 4, (i >> 2) & 3, BiomeId(*id as u16));
+        }
+        let mut sections: Vec<ChunkSection> = (0..height.section_count())
+            .map(|_| ChunkSection::empty(BiomeId(1)))
+            .collect();
+        sections[3] = busy;
+        let column = ChunkColumn::from_sections(ChunkPos::new(0, 0), height, sections)
+            .expect("section count");
+        let mut out = Vec::new();
+        chunk_packet(&column, &mut out);
+        let packet: cb::LevelChunkWithLight = decode_exact(&out[1..]).expect("decodes");
+        let decoded = decode_sections(
+            &packet.chunk.data,
+            height.section_count(),
+            &PaletteStrategy::blocks(rspigot_blocks::STATE_COUNT as u32),
+            &PaletteStrategy::biomes(registry as u32),
+        )
+        .expect("sections decode");
+        let strategy = PaletteStrategy::biomes(registry as u32);
+        assert_eq!(decoded[3].biomes.entries(&strategy), expected);
+        assert_eq!(
+            decoded[0].biomes.entries(&strategy),
+            vec![1; strategy.entries]
+        );
+    }
+
+    #[test]
     fn every_displayed_advancement_encodes_and_decodes_as_one_update() {
         use rspigot_protocol::codec::decode_exact;
         let shown: Vec<_> = rspigot_data::advancements::all()

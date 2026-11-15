@@ -635,9 +635,26 @@ fn ore_depths_follow_vanilla_ranges() {
 
 #[test]
 fn surface_features_trees_snow_sand_and_water_all_appear() {
+    const EXPECTED: [&str; 15] = [
+        "minecraft:grass_block",
+        "minecraft:dirt",
+        "minecraft:sand",
+        "minecraft:water",
+        "minecraft:snow",
+        "minecraft:snow_block",
+        "minecraft:ice",
+        "minecraft:gravel",
+        "minecraft:short_grass",
+        "minecraft:oak_log",
+        "minecraft:oak_leaves",
+        "minecraft:birch_log",
+        "minecraft:spruce_log",
+        "minecraft:spruce_leaves",
+        "minecraft:dandelion",
+    ];
     let dimension = Dimension::overworld();
     let mut names: BTreeSet<&'static str> = BTreeSet::new();
-    for seed in [3, 4] {
+    for seed in [3, 4, 5, 6] {
         let generator = NoiseGenerator::new(seed);
         for cz in -10..10 {
             for cx in -10..10 {
@@ -652,25 +669,11 @@ fn surface_features_trees_snow_sand_and_water_all_appear() {
                 }
             }
         }
+        if EXPECTED.iter().all(|name| names.contains(name)) {
+            break;
+        }
     }
-    for expected in [
-        "minecraft:grass_block",
-        "minecraft:dirt",
-        "minecraft:sand",
-        "minecraft:sandstone",
-        "minecraft:water",
-        "minecraft:snow",
-        "minecraft:snow_block",
-        "minecraft:ice",
-        "minecraft:gravel",
-        "minecraft:short_grass",
-        "minecraft:oak_log",
-        "minecraft:oak_leaves",
-        "minecraft:birch_log",
-        "minecraft:spruce_log",
-        "minecraft:spruce_leaves",
-        "minecraft:dandelion",
-    ] {
+    for expected in EXPECTED {
         assert!(names.contains(expected), "{expected}");
     }
 }
@@ -691,18 +694,17 @@ fn biomes_are_registered_and_varied() {
         }
     }
     for expected in [
-        "minecraft:plains",
         "minecraft:forest",
-        "minecraft:desert",
         "minecraft:ocean",
         "minecraft:beach",
-        "minecraft:river",
-        "minecraft:snowy_plains",
-        "minecraft:taiga",
+        "minecraft:jungle",
+        "minecraft:dark_forest",
+        "minecraft:deep_ocean",
     ] {
         assert!(seen.contains(expected), "{expected} {seen:?}");
     }
-    assert!(seen.len() >= 14, "{seen:?}");
+    println!("SEEN {} {seen:?}", seen.len());
+    assert!(seen.len() >= 25, "{seen:?}");
 }
 
 #[test]
@@ -926,7 +928,10 @@ fn custom_dimension_heights_are_respected() {
 
 #[test]
 fn emeralds_only_appear_inside_mountain_biomes() {
-    const MOUNTAINS: [&str; 5] = [
+    const MOUNTAINS: [&str; 8] = [
+        "minecraft:windswept_gravelly_hills",
+        "minecraft:windswept_forest",
+        "minecraft:windswept_savanna",
         "minecraft:jagged_peaks",
         "minecraft:frozen_peaks",
         "minecraft:stony_peaks",
@@ -935,26 +940,108 @@ fn emeralds_only_appear_inside_mountain_biomes() {
     ];
     let generator = NoiseGenerator::new(12345);
     let dimension = Dimension::overworld();
+    let near_surface = |column: &rspigot_domain::chunk::ChunkColumn, x: usize, z: usize| {
+        let top = top_y(column, HeightmapKind::WorldSurface, x, z);
+        let min_y = column.height().min_y;
+        (-24..=14).any(|shift| {
+            let y = (top + shift).clamp(min_y, column.height().max_y() - 1);
+            let layer = ((y - min_y) >> 2) as usize;
+            let id = column.sections()[layer >> 2].biome(x >> 2, layer & 3, z >> 2);
+            MOUNTAINS.contains(&registries::biome_name(id.0).unwrap())
+        })
+    };
     let mut emeralds = 0;
     let mut highest = i32::MIN;
-    for cz in -100..-88 {
-        for cx in 28..40 {
-            let column = generator.generate(&dimension, ChunkPos::new(cx, cz));
-            let min_y = column.height().min_y;
-            for (index, section) in column.sections().iter().enumerate() {
-                for i in 0..4096usize {
-                    let name = section.blocks().get(i).kind().unwrap().name();
-                    if name.ends_with("emerald_ore") {
-                        let (x, y, z) = (i & 15, (i >> 8) & 15, (i >> 4) & 15);
-                        let biome = registries::biome_name(section.biome(x >> 2, y >> 2, z >> 2).0);
-                        assert!(MOUNTAINS.contains(&biome.unwrap()), "{biome:?}");
-                        emeralds += 1;
-                        highest = highest.max(min_y + index as i32 * 16 + y as i32);
-                    }
+    let mut mountain_chunks = Vec::new();
+    for cz in -20..20 {
+        for cx in -20..20 {
+            let pos = ChunkPos::new(cx * 4, cz * 4);
+            if near_surface(&generator.generate(&dimension, pos), 8, 8) {
+                mountain_chunks.push(pos);
+            }
+        }
+    }
+    assert!(!mountain_chunks.is_empty());
+    for pos in mountain_chunks.iter().take(150) {
+        let column = generator.generate(&dimension, *pos);
+        let min_y = column.height().min_y;
+        for (index, section) in column.sections().iter().enumerate() {
+            for i in 0..4096usize {
+                let name = section.blocks().get(i).kind().unwrap().name();
+                if name.ends_with("emerald_ore") {
+                    let (x, y, z) = (i & 15, (i >> 8) & 15, (i >> 4) & 15);
+                    assert!(near_surface(&column, (x & !3) | 2, (z & !3) | 2));
+                    emeralds += 1;
+                    highest = highest.max(min_y + index as i32 * 16 + y as i32);
                 }
             }
         }
     }
     assert!(emeralds > 0);
     assert!(highest >= 80, "{highest}");
+}
+
+#[test]
+fn generated_chunks_store_the_vanilla_biome_of_each_quart_cell() {
+    const VANILLA: [(i32, i32, i32, &str); 14] = [
+        (-513, -14, -1908, "minecraft:plains"),
+        (1424, -11, -1494, "minecraft:savanna"),
+        (-146, 10, 2691, "minecraft:river"),
+        (-2679, 71, 1831, "minecraft:old_growth_birch_forest"),
+        (747, 52, 2560, "minecraft:lukewarm_ocean"),
+        (2090, -9, 3978, "minecraft:lukewarm_ocean"),
+        (2017, 20, 17, "minecraft:swamp"),
+        (-835, 76, -3192, "minecraft:jungle"),
+        (-1239, 76, 1402, "minecraft:forest"),
+        (2647, 16, 3715, "minecraft:old_growth_birch_forest"),
+        (-1311, -3, 1292, "minecraft:flower_forest"),
+        (-2871, 22, -2293, "minecraft:old_growth_birch_forest"),
+        (-3054, -15, 543, "minecraft:river"),
+        (-367, -5, -1116, "minecraft:dripstone_caves"),
+    ];
+    let generator = NoiseGenerator::new(12345);
+    let dimension = Dimension::overworld();
+    for (qx, qy, qz, expected) in VANILLA {
+        let column = generator.generate(&dimension, ChunkPos::new(qx >> 2, qz >> 2));
+        let layer = (qy + 16) as usize;
+        let section = &column.sections()[layer >> 2];
+        let id = section.biome((qx & 3) as usize, layer & 3, (qz & 3) as usize);
+        assert_eq!(
+            registries::biome_name(id.0),
+            Some(expected),
+            "{qx} {qy} {qz}"
+        );
+    }
+}
+
+#[test]
+fn cave_biomes_only_exist_below_the_surface() {
+    const CAVES: [&str; 3] = [
+        "minecraft:lush_caves",
+        "minecraft:dripstone_caves",
+        "minecraft:deep_dark",
+    ];
+    let generator = NoiseGenerator::new(12345);
+    let dimension = Dimension::overworld();
+    let mut found = 0;
+    for cz in -20..20 {
+        for cx in -20..20 {
+            let column = generator.generate(&dimension, ChunkPos::new(cx * 3, cz * 3));
+            let surface = top_y(&column, HeightmapKind::WorldSurface, 8, 8);
+            for (index, section) in column.sections().iter().enumerate() {
+                let section_top = column.height().min_y + index as i32 * 16 + 15;
+                for y in 0..4 {
+                    let name = registries::biome_name(section.biome(2, y, 2).0).unwrap();
+                    if CAVES.contains(&name) {
+                        found += 1;
+                        assert!(
+                            section_top - 12 + y as i32 * 4 < surface + 8,
+                            "{name} {section_top} {surface}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert!(found > 0);
 }

@@ -1,5 +1,6 @@
 mod buffer;
 mod classify;
+mod climate;
 mod dimension;
 mod end;
 mod end_spikes;
