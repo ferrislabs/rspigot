@@ -9,11 +9,14 @@ use rspigot_domain::random::LegacyRandom;
 use rspigot_domain::text::Component;
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Rotation, Vec3};
 
+use crate::brewing::BrewingStep;
 use crate::combat::{Strike, Victim};
 use crate::commands::{CommandSender, Target};
+use crate::enchanting::{EnchantStep, PrepareEnchantStep};
 use crate::events::{Direction, Hand, InputState, PreLoginVerdict};
 use crate::explosion::BlockInteraction;
 use crate::health::DamageSource;
+use crate::mending::MendStep;
 use crate::plugins::EventKind;
 use crate::plugins::broadcast::Recipient;
 use crate::plugins::clicks::{CreativePacket, CreativeStep, DragStep, WindowClick, WindowPacket};
@@ -1541,6 +1544,7 @@ pub(crate) enum Continuation {
     TakeBook(Box<BookStep>),
     ExpCooldown(CooldownStep),
     ExpChange(OrbStep),
+    Mend(Box<MendStep>),
     PickupArrow(ArrowStep),
     Shear(Box<ShearStep>),
     Resurrect(Box<ResurrectStep>),
@@ -1697,8 +1701,11 @@ pub(crate) enum Continuation {
     Click(EventKind, Box<WindowClick>),
     Drag(Box<DragStep>),
     Furnace(EventKind, Box<FurnaceStep>),
+    Brewing(EventKind, Box<BrewingStep>),
     Extract(ExtractStep),
     Prepare(EventKind, Box<PrepareStep>),
+    PrepareEnchant(PrepareEnchantStep),
+    Enchant(Box<EnchantStep>),
     Open(Box<OpenStep>),
     OpenPlugin(PluginOpenStep),
     Close(ClosePacket),
@@ -1756,6 +1763,7 @@ impl Continuation {
             Self::TakeBook(_) => EventKind::PlayerTakeLecternBook,
             Self::ExpCooldown(_) => EventKind::PlayerExpCooldownChange,
             Self::ExpChange(_) => EventKind::PlayerExpChange,
+            Self::Mend(_) => EventKind::PlayerItemMend,
             Self::PickupArrow(_) => EventKind::PlayerPickupArrow,
             Self::Shear(_) => EventKind::PlayerShearEntity,
             Self::Resurrect(_) => EventKind::EntityResurrect,
@@ -1891,8 +1899,11 @@ impl Continuation {
             Self::Click(kind, _) => *kind,
             Self::Drag(_) => EventKind::InventoryDrag,
             Self::Furnace(kind, _) => *kind,
+            Self::Brewing(kind, _) => *kind,
             Self::Extract(_) => EventKind::FurnaceExtract,
             Self::Prepare(kind, _) => *kind,
+            Self::PrepareEnchant(_) => EventKind::PrepareItemEnchant,
+            Self::Enchant(_) => EventKind::EnchantItem,
             Self::Open(_) | Self::OpenPlugin(_) => EventKind::InventoryOpen,
             Self::Close(_) => EventKind::InventoryClose,
             Self::Button(_) => EventKind::InventoryClick,
