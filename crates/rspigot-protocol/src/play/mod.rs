@@ -9,6 +9,7 @@ pub mod inventory;
 pub mod metadata;
 pub mod player;
 pub mod progress;
+pub mod scoreboard;
 pub mod serverbound;
 pub mod slot;
 pub mod types;
@@ -48,6 +49,9 @@ pub mod clientbound {
     pub use super::progress::{
         AdvancementData, AdvancementDisplay, AwardStats, CriterionEntry, PositionedAdvancement,
         ProgressEntry, SelectAdvancementsTab, StatEntry, UpdateAdvancements,
+    };
+    pub use super::scoreboard::{
+        ResetScore, SetDisplayObjective, SetObjective, SetPlayerTeam, SetScore,
     };
     pub use super::world::{
         BlockChangedAck, BlockDestruction, BlockEntityData, BlockEvent, BlockUpdate,
