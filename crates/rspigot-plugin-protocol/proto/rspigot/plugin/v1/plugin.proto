@@ -51,7 +51,7 @@ message PlayerOrder {
     bool set_allow_flight = 35; bool set_flying = 36; float set_fly_speed = 37; float set_walk_speed = 38; bool set_op = 39;
     Empty respawn = 40; string perform_command = 41; string chat = 42; Sound play_sound = 43; Particle spawn_particle = 44;
     string hide_player = 45; string show_player = 46; uint64 open_inventory = 47; Empty close_inventory = 48; Empty update_inventory = 49;
-    BanTerms ban = 50; Location teleport_to = 51;
+    BanTerms ban = 50; Location teleport_to = 51; uint32 set_scoreboard = 52;
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10; SetSlot set = 11; RemoveItems remove = 12; Empty clear = 13; int32 set_held_slot = 14; } }
@@ -70,6 +70,29 @@ message WorldOrder {
 }
 message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; } }
 message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; } }
+message RegisterObjective { string name = 1; string criteria = 2; string display_name = 3; }
+message ObjectiveText { string objective = 1; string text = 2; }
+message ObjectiveRender { string objective = 1; bool hearts = 2; }
+message DisplaySlotOrder { string slot = 1; optional string objective = 2; }
+message ScoreOrder { string entry = 1; string objective = 2; int32 value = 3; }
+message ResetScoreOrder { string entry = 1; optional string objective = 2; }
+message TeamOption {
+  string team = 1;
+  oneof option {
+    string display_name = 10; string prefix = 11; string suffix = 12; string color = 13; bool friendly_fire = 14;
+    bool see_friendly_invisibles = 15; string nametag_visibility = 16; string death_message_visibility = 17; string collision_rule = 18;
+  }
+}
+message TeamEntry { string team = 1; string entry = 2; bool join = 3; }
+message ScoreboardOrder {
+  uint32 board = 1;
+  oneof order {
+    RegisterObjective register_objective = 10; string unregister_objective = 11; ObjectiveText set_objective_display_name = 12;
+    ObjectiveRender set_objective_render = 13; DisplaySlotOrder set_display_slot = 14; ScoreOrder set_score = 15;
+    ResetScoreOrder reset_score = 16; string register_team = 17; string unregister_team = 18; TeamOption set_team_option = 19;
+    TeamEntry team_entry = 20; Empty discard = 21;
+  }
+}
 message CustomInventoryOrder { uint64 inventory = 1; oneof order { SetSlot set = 10; Empty clear = 11; Empty close = 12; Empty discard = 13; } }
 
 message TargetQuery { string player = 1; double max_distance = 2; }
@@ -83,13 +106,14 @@ message Question {
     string player = 10; Empty players = 11; string player_named = 12; string inventory = 13;
     TargetQuery target_block = 14; TargetQuery target_entity = 15; Empty server = 16; Empty whitelist = 17;
     Empty operators = 18; Empty bans = 19; Empty ip_bans = 20; Empty world = 21; EntityQuery entities = 22;
-    int32 entity = 23; BlockPos block = 24; Spawn spawn = 25; DropItem drop_item = 26; uint64 custom_inventory = 27;
+    int32 entity = 23; BlockPos block = 24; Spawn spawn = 25; DropItem drop_item = 26; uint64 custom_inventory = 27; uint32 scoreboard = 28; Empty new_scoreboard = 29;
   }
 }
 message FromPlugin {
   oneof body {
     Hello hello = 1; Decision decision = 2; PlayerOrder player = 3; InventoryOrder inventory = 4; ServerOrder server = 5;
     WorldOrder world = 6; BlockOrder block = 7; EntityOrder entity = 8; CustomInventoryOrder custom_inventory = 9; Question question = 10;
+    ScoreboardOrder scoreboard = 12;
   }
   optional uint64 origin = 11;
 }
@@ -111,12 +135,22 @@ message WorldState { string name = 1; optional string uuid = 2; int64 seed = 3; 
 message EntityList { repeated EntitySnapshot entities = 1; }
 message EntityState { EntitySnapshot entity = 1; optional float health = 2; Vec3 velocity = 3; bool on_ground = 4; optional string custom_name = 5; int32 fire_ticks = 6; }
 message CustomInventoryState { repeated Slot slots = 1; repeated PlayerSnapshot viewers = 2; }
+message ObjectiveState { string name = 1; string criteria = 2; string display_name = 3; bool hearts = 4; bool read_only = 5; }
+message ScoreState { string entry = 1; string objective = 2; int32 value = 3; }
+message TeamState {
+  string name = 1; string display_name = 2; string prefix = 3; string suffix = 4; optional string color = 5; bool friendly_fire = 6;
+  bool see_friendly_invisibles = 7; string nametag_visibility = 8; string death_message_visibility = 9; string collision_rule = 10;
+  repeated string entries = 11;
+}
+message SlotState { string slot = 1; string objective = 2; }
+message ScoreboardState { repeated ObjectiveState objectives = 1; repeated ScoreState scores = 2; repeated TeamState teams = 3; repeated SlotState slots = 4; }
 message Answer {
   uint64 request = 1;
   oneof body {
     PlayerState player = 2; PlayerList players = 3; NotFound not_found = 4; Refused refused = 5; InventoryState inventory = 6;
     Target target = 7; ServerState server = 8; ListedPlayers listed = 9; BanList bans = 10; WorldState world = 11; BlockState block = 12;
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
+    ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18;
   }
 }
 message Warning { string message = 1; }

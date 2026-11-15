@@ -233,6 +233,27 @@ impl Scoreboard {
         out
     }
 
+    pub fn leave_messages(&self) -> Messages {
+        let mut out: Messages = self
+            .teams
+            .keys()
+            .map(|name| ScoreboardMessage::Team {
+                name: name.clone(),
+                op: TeamOp::Remove,
+            })
+            .collect();
+        let mut done: Vec<&str> = Vec::new();
+        for slot in DisplaySlot::all() {
+            if let Some(name) = self.display[slot.index()].as_deref()
+                && !done.contains(&name)
+            {
+                out.push(ScoreboardMessage::ObjectiveRemove(name.to_owned()));
+                done.push(name);
+            }
+        }
+        out
+    }
+
     pub fn score(&self, holder: &str, objective: &str) -> Option<&Score> {
         self.scores.get(holder)?.get(objective)
     }
@@ -723,6 +744,29 @@ mod tests {
         assert_eq!(removed.len(), 1);
         assert!(board.team_of("a").is_none());
         assert!(board.remove_team("red").is_empty());
+    }
+
+    #[test]
+    fn leaving_clients_lose_every_team_and_displayed_objective_once() {
+        let mut board = board();
+        board
+            .add_team(Team::new("red", Component::text("red")))
+            .unwrap();
+        board
+            .set_display(DisplaySlot::Sidebar, Some("kills"))
+            .unwrap();
+        board.set_display(DisplaySlot::List, Some("kills")).unwrap();
+        let messages = board.leave_messages();
+        assert_eq!(
+            messages,
+            vec![
+                ScoreboardMessage::Team {
+                    name: "red".to_owned(),
+                    op: TeamOp::Remove
+                },
+                ScoreboardMessage::ObjectiveRemove("kills".to_owned()),
+            ]
+        );
     }
 
     #[test]

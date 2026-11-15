@@ -64,6 +64,7 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
         Wire::HidePlayer(target) => PlayerOrder::HidePlayer(id(target)?),
         Wire::ShowPlayer(target) => PlayerOrder::ShowPlayer(id(target)?),
         Wire::OpenInventory(inventory) => PlayerOrder::OpenInventory(inventory),
+        Wire::SetScoreboard(board) => PlayerOrder::SetScoreboard(board),
     };
     Ok(Order::Player { player, order })
 }

@@ -6,6 +6,7 @@ mod entity;
 mod events;
 mod inventory;
 mod player;
+mod scoreboard;
 mod server;
 mod shared;
 mod world;
@@ -104,6 +105,7 @@ pub(crate) fn from_plugin(
         from_plugin::Body::Block(order) => ordered(block::order(order)?),
         from_plugin::Body::Entity(order) => ordered(entity::order(order)?),
         from_plugin::Body::CustomInventory(order) => ordered(custom_inventory::order(order)?),
+        from_plugin::Body::Scoreboard(order) => ordered(scoreboard::order(order)?),
         from_plugin::Body::Question(asked) => question(asked)?,
     })
 }
@@ -128,6 +130,8 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         question::Question::Spawn(spawn) => entity::spawn(spawn)?,
         question::Question::DropItem(drop) => entity::drop_item(drop)?,
         question::Question::CustomInventory(id) => Question::CustomInventory(id),
+        question::Question::Scoreboard(board) => Question::Scoreboard(board),
+        question::Question::NewScoreboard(_) => Question::NewScoreboard,
     };
     Ok(FromPlugin::Question {
         request: asked.request,
@@ -191,6 +195,8 @@ fn wire_answer(answer: Answer) -> answer::Body {
         Answer::CustomInventory(state) => {
             answer::Body::CustomInventory(custom_inventory::wire_state(state))
         }
+        Answer::Scoreboard(view) => answer::Body::Scoreboard(scoreboard::wire_state(view)),
+        Answer::ScoreboardCreated(board) => answer::Body::ScoreboardCreated(board),
         Answer::Refused(reason) => answer::Body::Refused(v1::Refused { reason }),
         Answer::NotFound => answer::Body::NotFound(v1::NotFound {}),
     }

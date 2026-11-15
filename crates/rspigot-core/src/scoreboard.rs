@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use rspigot_domain::EntityId;
@@ -28,10 +29,49 @@ pub(crate) struct RecordedVitals {
     level: Option<i32>,
 }
 
+pub(crate) const MAIN_BOARD: u32 = 0;
+
 #[derive(Default)]
 pub(crate) struct ScoreboardState {
     pub(crate) board: Scoreboard,
+    pub(crate) custom: BTreeMap<u32, Scoreboard>,
+    created: u32,
+    assigned: FxHashMap<PlayerId, u32>,
     recorded: FxHashMap<PlayerId, RecordedVitals>,
+}
+
+impl ScoreboardState {
+    pub(crate) fn board_by_id(&self, id: u32) -> Option<&Scoreboard> {
+        if id == MAIN_BOARD {
+            Some(&self.board)
+        } else {
+            self.custom.get(&id)
+        }
+    }
+
+    pub(crate) fn board_by_id_mut(&mut self, id: u32) -> Option<&mut Scoreboard> {
+        if id == MAIN_BOARD {
+            Some(&mut self.board)
+        } else {
+            self.custom.get_mut(&id)
+        }
+    }
+
+    pub(crate) fn board_ids(&self) -> Vec<u32> {
+        std::iter::once(MAIN_BOARD)
+            .chain(self.custom.keys().copied())
+            .collect()
+    }
+
+    pub(crate) fn create_board(&mut self) -> u32 {
+        self.created += 1;
+        self.custom.insert(self.created, Scoreboard::new());
+        self.created
+    }
+
+    pub(crate) fn board_of(&self, player: PlayerId) -> u32 {
+        self.assigned.get(&player).copied().unwrap_or(MAIN_BOARD)
+    }
 }
 
 pub(crate) fn is_stat_criteria(kind: &str, key: &str) -> bool {
@@ -72,9 +112,79 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn send_scoreboard_messages(&mut self, messages: Vec<ScoreboardMessage>) {
-        for message in messages {
-            self.push(Audience::All, ClientEvent::Scoreboard(message));
+        self.send_board_messages(MAIN_BOARD, messages);
+    }
+
+    pub(crate) fn send_board_messages(&mut self, board: u32, messages: Vec<ScoreboardMessage>) {
+        if messages.is_empty() {
+            return;
         }
+        let viewers: Vec<PlayerId> = self
+            .players
+            .keys()
+            .copied()
+            .filter(|player| self.scoreboard.board_of(*player) == board)
+            .collect();
+        for viewer in viewers {
+            for message in &messages {
+                self.push(
+                    Audience::One(viewer),
+                    ClientEvent::Scoreboard(message.clone()),
+                );
+            }
+        }
+    }
+
+    pub(crate) fn change_board<R>(
+        &mut self,
+        board: u32,
+        change: impl FnOnce(&mut Scoreboard) -> (R, Vec<ScoreboardMessage>),
+    ) -> Option<R> {
+        let (result, messages) = change(self.scoreboard.board_by_id_mut(board)?);
+        self.send_board_messages(board, messages);
+        Some(result)
+    }
+
+    pub(crate) fn assign_scoreboard(&mut self, player: PlayerId, board: u32) {
+        let current = self.scoreboard.board_of(player);
+        if current == board || self.scoreboard.board_by_id(board).is_none() {
+            return;
+        }
+        let leaving = self
+            .scoreboard
+            .board_by_id(current)
+            .map(Scoreboard::leave_messages)
+            .unwrap_or_default();
+        let joining = self
+            .scoreboard
+            .board_by_id(board)
+            .map(Scoreboard::join_messages)
+            .unwrap_or_default();
+        if board == MAIN_BOARD {
+            self.scoreboard.assigned.remove(&player);
+        } else {
+            self.scoreboard.assigned.insert(player, board);
+        }
+        for message in leaving.into_iter().chain(joining) {
+            self.push(Audience::One(player), ClientEvent::Scoreboard(message));
+        }
+    }
+
+    pub(crate) fn discard_board(&mut self, board: u32) {
+        if board == MAIN_BOARD || !self.scoreboard.custom.contains_key(&board) {
+            return;
+        }
+        let viewers: Vec<PlayerId> = self
+            .scoreboard
+            .assigned
+            .iter()
+            .filter(|(_, assigned)| **assigned == board)
+            .map(|(player, _)| *player)
+            .collect();
+        for viewer in viewers {
+            self.assign_scoreboard(viewer, MAIN_BOARD);
+        }
+        self.scoreboard.custom.remove(&board);
     }
 
     pub(crate) fn scoreboard_join_events(&self) -> Vec<ClientEvent> {
@@ -98,16 +208,16 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn holder_display_name(&self, holder: &str) -> Option<Component> {
+        self.holder_display_in(&self.scoreboard.board, holder)
+    }
+
+    fn holder_display_in(&self, board: &Scoreboard, holder: &str) -> Option<Component> {
         let player = self.players.values().find(|p| p.profile.name == holder)?;
         let name = Component::text(player.profile.name.clone());
-        Some(match self.scoreboard.board.team_of(holder) {
+        Some(match board.team_of(holder) {
             Some(team) => team.format_name(name),
             None => name,
         })
-    }
-
-    pub(crate) fn team_color_of(&self, holder: &str) -> Option<rspigot_domain::text::NamedColor> {
-        self.scoreboard.board.team_of(holder)?.color
     }
 
     pub(crate) fn update_criteria(
@@ -116,24 +226,25 @@ impl<L: ClientLink> Server<L> {
         criteria: &Criteria,
         change: impl Fn(i32) -> i32,
     ) {
-        let objectives = self.scoreboard.board.objectives_for(criteria);
-        if objectives.is_empty() {
-            return;
-        }
-        let display = self.holder_display_name(holder);
-        for objective in objectives {
-            let current = self
-                .scoreboard
-                .board
-                .score(holder, &objective)
-                .map_or(0, |score| score.value);
-            if let Ok(messages) = self.scoreboard.board.set_score(
-                holder,
-                &objective,
-                change(current),
-                display.clone(),
-            ) {
-                self.send_scoreboard_messages(messages);
+        for id in self.scoreboard.board_ids() {
+            let Some(board) = self.scoreboard.board_by_id(id) else {
+                continue;
+            };
+            let objectives = board.objectives_for(criteria);
+            if objectives.is_empty() {
+                continue;
+            }
+            let display = self.holder_display_in(board, holder);
+            for objective in objectives {
+                let Some(board) = self.scoreboard.board_by_id_mut(id) else {
+                    continue;
+                };
+                let current = board.score(holder, &objective).map_or(0, |s| s.value);
+                if let Ok(messages) =
+                    board.set_score(holder, &objective, change(current), display.clone())
+                {
+                    self.send_board_messages(id, messages);
+                }
             }
         }
     }
@@ -183,11 +294,37 @@ impl<L: ClientLink> Server<L> {
         if victim_is_player {
             self.increment_criteria(&holder, &Criteria::PlayerKillCount);
         }
-        if let Some(color) = self.team_color_of(victim) {
-            self.increment_criteria(&holder, &Criteria::TeamKill(color));
+        for id in self.scoreboard.board_ids() {
+            let Some(board) = self.scoreboard.board_by_id(id) else {
+                continue;
+            };
+            let victim_color = board.team_of(victim).and_then(|team| team.color);
+            let killer_color = board.team_of(&holder).and_then(|team| team.color);
+            if let Some(color) = victim_color {
+                self.increment_criteria_on(id, &holder, &Criteria::TeamKill(color));
+            }
+            if let Some(color) = killer_color {
+                self.increment_criteria_on(id, victim, &Criteria::KilledByTeam(color));
+            }
         }
-        if let Some(color) = self.team_color_of(&holder) {
-            self.increment_criteria(victim, &Criteria::KilledByTeam(color));
+    }
+
+    fn increment_criteria_on(&mut self, id: u32, holder: &str, criteria: &Criteria) {
+        let Some(board) = self.scoreboard.board_by_id(id) else {
+            return;
+        };
+        let objectives = board.objectives_for(criteria);
+        let display = self.holder_display_in(board, holder);
+        for objective in objectives {
+            let Some(board) = self.scoreboard.board_by_id_mut(id) else {
+                continue;
+            };
+            let current = board.score(holder, &objective).map_or(0, |s| s.value);
+            if let Ok(messages) =
+                board.set_score(holder, &objective, current.wrapping_add(1), display.clone())
+            {
+                self.send_board_messages(id, messages);
+            }
         }
     }
 
@@ -285,6 +422,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn forget_scoreboard_player(&mut self, id: PlayerId) {
         self.scoreboard.recorded.remove(&id);
+        self.scoreboard.assigned.remove(&id);
     }
 }
 

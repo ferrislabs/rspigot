@@ -75,6 +75,10 @@ pub enum Order {
         inventory: u64,
         order: CustomInventoryOrder,
     },
+    Scoreboard {
+        board: u32,
+        order: crate::plugins::ScoreboardOrder,
+    },
 }
 
 impl Order {
@@ -87,6 +91,7 @@ impl Order {
             Self::Block { order, .. } => order.name(),
             Self::Entity { order, .. } => order.name(),
             Self::CustomInventory { order, .. } => order.name(),
+            Self::Scoreboard { order, .. } => order.name(),
         }
     }
 }
@@ -328,6 +333,7 @@ pub enum PlayerOrder {
     HidePlayer(PlayerId),
     ShowPlayer(PlayerId),
     OpenInventory(u64),
+    SetScoreboard(u32),
     CloseInventory,
     UpdateInventory,
     Ban {
@@ -378,6 +384,7 @@ impl PlayerOrder {
             Self::HidePlayer(_) => "player.hide_player",
             Self::ShowPlayer(_) => "player.show_player",
             Self::OpenInventory(_) => "player.open_inventory",
+            Self::SetScoreboard(_) => "player.set_scoreboard",
             Self::CloseInventory => "player.close_inventory",
             Self::UpdateInventory => "player.update_inventory",
             Self::Ban { .. } => "player.ban",
