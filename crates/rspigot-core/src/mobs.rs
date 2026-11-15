@@ -2200,6 +2200,7 @@ impl<L: ClientLink> Server<L> {
                     player: player_facts.as_ref(),
                     luck: 0.0,
                     explosion_radius: None,
+                    biome: None,
                 };
                 drops.extend(loot::table_drops(table, &context, &mut self.rng));
             }

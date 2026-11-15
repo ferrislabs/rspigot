@@ -319,7 +319,9 @@ impl<L: ClientLink> Server<L> {
                     || self.use_liquid_bucket(step.player, step.hand, step.rotation)
                     || self.use_boat(step.player, step.hand, step.rotation)
                     || self.use_steering_item(step.player, step.hand)
-                    || self.use_throwable(step.player, step.hand))
+                    || self.use_throwable(step.player, step.hand)
+                    || self.use_fishing_rod(step.player, step.hand, step.rotation)
+                    || self.use_firework(step.player, step.hand))
             {
             } else if item_ok {
                 self.start_using_item(step.player, step.hand);
@@ -646,6 +648,10 @@ impl<L: ClientLink> Server<L> {
         let Some(slot) = self.hand_slot_of(id, hand) else {
             return;
         };
+        self.wear_slot(id, hand, slot, amount);
+    }
+
+    pub(crate) fn wear_slot(&mut self, id: PlayerId, hand: Hand, slot: usize, amount: i32) {
         let request = WearRequest {
             player: id,
             hand,
@@ -756,9 +762,15 @@ impl<L: ClientLink> Server<L> {
                 .set(step.slot, if broken { None } else { Some(stack) });
         }
         if broken {
-            let equipment = match step.hand {
-                Hand::Main => EquipmentSlot::MainHand,
-                Hand::Off => EquipmentSlot::OffHand,
+            let equipment = match step.slot {
+                5 => EquipmentSlot::Head,
+                6 => EquipmentSlot::Chest,
+                7 => EquipmentSlot::Legs,
+                8 => EquipmentSlot::Feet,
+                _ => match step.hand {
+                    Hand::Main => EquipmentSlot::MainHand,
+                    Hand::Off => EquipmentSlot::OffHand,
+                },
             };
             let status = ClientEvent::EntityStatus {
                 entity,

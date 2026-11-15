@@ -440,6 +440,7 @@ EXTRA_TABLES = [
     ("minecraft:gameplay/hero_of_the_village/toolsmith_gift", "minecraft:gift"),
     ("minecraft:gameplay/hero_of_the_village/unemployed_gift", "minecraft:gift"),
     ("minecraft:gameplay/hero_of_the_village/weaponsmith_gift", "minecraft:gift"),
+    ("minecraft:gameplay/fishing", "minecraft:fishing"),
     ("minecraft:shearing/sheep", "minecraft:shearing"),
     ("minecraft:shearing/snow_golem", "minecraft:shearing"),
     ("minecraft:till/rooted_dirt", "minecraft:block_interact"),
@@ -834,11 +835,22 @@ class LootBuilder:
                     ("captain", self.optional_bool(value.get("is_captain"))),
                 ],
             )
+        if key == "minecraft:type_specific/fishing_hook":
+            expect_keys(value, {"in_open_water"}, self.where)
+            return rs_struct(
+                "EntitySubPredicate::FishingHook",
+                [("in_open_water", self.optional_bool(value.get("in_open_water")))],
+            )
         fail("unsupported entity sub predicate %s in %s" % (key, self.where))
 
     def entity_predicate(self, value):
         assert isinstance(value, dict), (self.where, value)
-        sub_keys = {"minecraft:type_specific/sheep", "minecraft:type_specific/cube_mob", "minecraft:type_specific/raider"}
+        sub_keys = {
+            "minecraft:type_specific/sheep",
+            "minecraft:type_specific/cube_mob",
+            "minecraft:type_specific/raider",
+            "minecraft:type_specific/fishing_hook",
+        }
         expect_keys(
             value,
             {"minecraft:entity_type", "minecraft:flags", "minecraft:equipment", "minecraft:vehicle", "minecraft:components"}
@@ -979,15 +991,22 @@ class LootBuilder:
         if kind == "minecraft:location_check":
             expect_keys(value, {"type", "offsetX", "offsetY", "offsetZ", "predicate"}, self.where)
             predicate = value.get("predicate", {})
-            expect_keys(predicate, {"block"}, self.where)
+            expect_keys(predicate, {"block", "biomes"}, self.where)
             block = predicate.get("block")
-            self.note_ignored("location_check")
+            biomes = predicate.get("biomes")
+            if block is not None:
+                self.note_ignored("location_check")
+            if isinstance(biomes, str):
+                biomes = [biomes]
+            if biomes is not None and any(b.startswith("#") for b in biomes):
+                fail("biome tag in location_check in %s" % self.where)
             offset = rs_array([rs_int(value.get(axis, 0)) for axis in ("offsetX", "offsetY", "offsetZ")])
             return rs_struct(
                 "Condition::LocationCheck",
                 [
                     ("offset", offset),
                     ("block", rs_option(None if block is None else self.block_predicate(block))),
+                    ("biomes", rs_slice([rs_str(normalize_id(b)) for b in (biomes or [])])),
                 ],
             )
         if kind == "minecraft:entity_properties":
@@ -1148,6 +1167,18 @@ class LootBuilder:
         elif kind == "minecraft:set_ominous_bottle_amplifier":
             expect_keys(value, {"type", "condition", "amplifier"}, self.where)
             body = rs_call("FunctionKind::SetOminousBottleAmplifier", [self.int_provider(value["amplifier"])])
+        elif kind == "minecraft:set_damage":
+            expect_keys(value, {"type", "condition", "damage"}, self.where)
+            body = rs_call("FunctionKind::SetDamage", [self.float_provider(value["damage"])])
+        elif kind == "minecraft:enchant_with_levels":
+            expect_keys(value, {"type", "condition", "options", "levels"}, self.where)
+            options = value.get("options")
+            if not isinstance(options, str) or not options.startswith("#"):
+                fail("unsupported enchant_with_levels options in %s" % self.where)
+            body = rs_struct(
+                "FunctionKind::EnchantWithLevels",
+                [("options", rs_str(normalize_id(options[1:]))), ("levels", self.int_provider(value["levels"]))],
+            )
         elif kind in COMPONENT_FUNCTIONS:
             self.note_ignored(kind)
             body = rs_call("FunctionKind::Components", [rs_str(kind)])

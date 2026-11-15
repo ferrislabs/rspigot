@@ -15,6 +15,7 @@ use super::boat;
 use super::bullet::{self, BulletState};
 use super::falling::FallingState;
 use super::fangs::{self, FangsState};
+use super::firework;
 use super::hanging;
 use super::hurting::{self, HurtingState};
 use super::item::{self, ItemState};
@@ -150,6 +151,7 @@ const HURTING_KEYS: [&str; 7] = [
     "ExplosionPower",
     "dangerous",
 ];
+const FIREWORK_KEYS: [&str; 5] = ["Life", "LifeTime", "FireworksItem", "ShotAtAngle", "Owner"];
 const BULLET_KEYS: [&str; 3] = ["Owner", "LeftOwner", "HasBeenShot"];
 const ITEM_KEYS: [&str; 6] = ["Health", "Age", "PickupDelay", "Thrower", "Owner", "Item"];
 const ORB_KEYS: [&str; 4] = ["Health", "Age", "Value", "Count"];
@@ -202,6 +204,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::ArmorStand
             | EntityKind::AreaEffectCloud
             | EntityKind::LightningBolt
+            | EntityKind::FireworkRocket
     ) || hurting::is_hurting_projectile(kind)
         || kind.extends("Mob")
         || kind.extends("AbstractBoat")
@@ -900,6 +903,28 @@ fn write_thrown(base: &EntityBase, state: &ThrownState, out: &mut Compound) {
     out.insert("Item", item_stack_to_nbt(&stack));
 }
 
+fn read_firework(nbt: &Compound, base: &mut EntityBase, state: &mut firework::FireworkState) {
+    state.owner = nbt.get("Owner").and_then(read_uuid);
+    state.life = nbt.get_i32("Life").unwrap_or(0);
+    state.lifetime = nbt.get_i32("LifeTime").unwrap_or(0);
+    let stack = nbt
+        .get_compound("FireworksItem")
+        .and_then(item_stack_from_nbt)
+        .unwrap_or_else(firework::default_item);
+    firework::set_item(base, &stack);
+    firework::set_shot_at_angle(base, nbt.get_bool("ShotAtAngle").unwrap_or(false));
+}
+
+fn write_firework(base: &EntityBase, state: &firework::FireworkState, out: &mut Compound) {
+    if let Some(owner) = state.owner {
+        out.insert("Owner", uuid_tag(owner));
+    }
+    out.insert("Life", state.life);
+    out.insert("LifeTime", state.lifetime);
+    out.insert("FireworksItem", item_stack_to_nbt(&firework::item(base)));
+    out.insert("ShotAtAngle", bool_tag(firework::shot_at_angle(base)));
+}
+
 fn read_bullet(nbt: &Compound, state: &mut BulletState) {
     state.owner = nbt.get("Owner").and_then(read_uuid);
     state.left_owner = nbt.get_bool("LeftOwner").unwrap_or(false);
@@ -1156,6 +1181,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Bullet(Box::new(BulletState::new(&mut base, seed)))
         }
+        EntityKind::FireworkRocket => {
+            let seed = fallback_uuid.as_u64_pair().0 as i64;
+            EntityState::Firework(Box::new(firework::FireworkState::blank(&mut base, seed)))
+        }
         EntityKind::EvokerFangs => EntityState::Fangs(FangsState::default()),
         EntityKind::EndCrystal => EntityState::Crystal(crystal::define(&mut base)),
         EntityKind::Tnt => EntityState::Tnt(tnt::define(&mut base)),
@@ -1236,6 +1265,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             read_hurting(nbt, &mut base, hurting_state);
             &[&ENTITY_KEYS, &HURTING_KEYS]
         }
+        EntityState::Firework(firework_state) => {
+            read_firework(nbt, &mut base, firework_state);
+            &[&ENTITY_KEYS, &FIREWORK_KEYS]
+        }
         EntityState::Bullet(bullet_state) => {
             read_bullet(nbt, bullet_state);
             &[&ENTITY_KEYS, &BULLET_KEYS, bullet::KEYS]
@@ -1273,7 +1306,7 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
             minecart::read(nbt, cart_state);
             &[&ENTITY_KEYS, minecart::KEYS]
         }
-        EntityState::Lightning(_) | EntityState::Inert(_) => &[],
+        EntityState::Lightning(_) | EntityState::Hook(_) | EntityState::Inert(_) => &[],
     };
     let extra = extra_keys(nbt, known);
     Ok(Entity { base, state, extra })
@@ -1691,6 +1724,9 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         EntityState::Hurting(hurting_state) => {
             write_hurting(&entity.base, hurting_state, &mut out);
         }
+        EntityState::Firework(firework_state) => {
+            write_firework(&entity.base, firework_state, &mut out);
+        }
         EntityState::Bullet(bullet_state) => write_bullet(bullet_state, &mut out),
         EntityState::Fangs(fangs_state) => {
             out.insert("Warmup", fangs_state.warmup);
@@ -1709,7 +1745,7 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         }
         EntityState::Boat(boat_state) => boat::write(boat_state, &mut out),
         EntityState::Minecart(cart_state) => minecart::write(cart_state, &mut out),
-        EntityState::Lightning(_) | EntityState::Inert(_) => {}
+        EntityState::Lightning(_) | EntityState::Hook(_) | EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {
         if !out.contains_key(key) {

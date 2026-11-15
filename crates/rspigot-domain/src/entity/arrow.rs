@@ -25,6 +25,21 @@ pub const TRIDENT_GROUND_SOUND: &str = "minecraft:item.trident.hit_ground";
 pub const TRIDENT_DEFLECT: f64 = -0.5;
 pub const TRIDENT_AFTER_HIT: (f64, f64, f64) = (0.02, 0.2, 0.02);
 pub const TRIDENT_GROUND_TICKS: i32 = 4;
+pub const TRIDENT_THROW_POWER: f32 = 2.5;
+pub const TRIDENT_THROW_UNCERTAINTY: f32 = 1.0;
+pub const TRIDENT_MIN_CHARGE: u64 = 10;
+pub const TRIDENT_RETURN_LIFT: f64 = 0.015;
+pub const TRIDENT_RETURN_PULL: f64 = 0.05;
+pub const TRIDENT_RETURN_DRAG: f64 = 0.95;
+pub const TRIDENT_RETURN_SOUND: &str = "minecraft:item.trident.return";
+pub const TRIDENT_THROW_SOUND: &str = "minecraft:item.trident.throw";
+pub const RIPTIDE_SOUNDS: [&str; 3] = [
+    "minecraft:item.trident.riptide_1",
+    "minecraft:item.trident.riptide_2",
+    "minecraft:item.trident.riptide_3",
+];
+const RIPTIDE_BASE: f32 = 1.5;
+const RIPTIDE_PER_LEVEL: f32 = 0.75;
 pub const FLAG_CRIT: u8 = 1;
 pub const FLAG_NO_PHYSICS: u8 = 2;
 pub const BASE_DAMAGE: f64 = 2.0;
@@ -87,6 +102,7 @@ pub struct ArrowState {
     pub weapon: Option<ItemStack>,
     pub pierced: Vec<crate::EntityId>,
     pub dealt_damage: bool,
+    pub return_ticks: i32,
     pub random: LegacyRandom,
 }
 
@@ -139,6 +155,7 @@ impl ArrowState {
             weapon: None,
             pierced: Vec::new(),
             dealt_damage: false,
+            return_ticks: 0,
             random: LegacyRandom::new(seed),
         }
     }
@@ -149,6 +166,43 @@ impl ArrowState {
             self.pickup = Pickup::Allowed;
         }
     }
+}
+
+pub fn loyalty(base: &EntityBase) -> i32 {
+    match base.data.get(DATA_LOYALTY) {
+        Some(SyncedValue::Byte(level)) => i32::from(*level),
+        _ => 0,
+    }
+}
+
+pub fn set_loyalty(base: &mut EntityBase, level: i32) {
+    let level = level.clamp(0, 127) as i8;
+    base.data.set(DATA_LOYALTY, SyncedValue::Byte(level));
+}
+
+pub fn set_foil(base: &mut EntityBase, foil: bool) {
+    base.data.set(DATA_FOIL, SyncedValue::Boolean(foil));
+}
+
+pub fn riptide_strength(level: i32) -> f32 {
+    if level <= 0 {
+        0.0
+    } else {
+        RIPTIDE_BASE + RIPTIDE_PER_LEVEL * (level - 1) as f32
+    }
+}
+
+pub fn riptide_push(yaw: f32, pitch: f32, strength: f32) -> Vec3 {
+    let (yaw, pitch) = (
+        f64::from(yaw * DEGREES_TO_RADIANS),
+        f64::from(pitch * DEGREES_TO_RADIANS),
+    );
+    let direction = Vec3::new(
+        f64::from(-mth::sin(yaw) * mth::cos(pitch)),
+        f64::from(-mth::sin(pitch)),
+        f64::from(mth::cos(yaw) * mth::cos(pitch)),
+    );
+    direction.scale(f64::from(strength) / direction.length())
 }
 
 pub fn in_ground(base: &EntityBase) -> bool {
@@ -390,6 +444,27 @@ pub fn search_box(base: &EntityBase) -> Aabb {
 
 pub fn hit_margin(tick_count: i32) -> f32 {
     0.0f32.max(0.3f32.min((tick_count - 2) as f32 / 20.0))
+}
+
+#[cfg(test)]
+mod trident_tests {
+    use super::*;
+
+    #[test]
+    fn riptide_strength_grows_by_three_quarters_per_level() {
+        assert_eq!(riptide_strength(0), 0.0);
+        assert_eq!(riptide_strength(1), 1.5);
+        assert_eq!(riptide_strength(3), 3.0);
+    }
+
+    #[test]
+    fn the_riptide_push_follows_the_look_direction_at_the_strength() {
+        let push = riptide_push(0.0, 0.0, 3.0);
+        assert!((push.z - 3.0).abs() < 1e-6);
+        assert!(push.x.abs() < 1e-6);
+        let up = riptide_push(0.0, -90.0, 1.5);
+        assert!((up.y - 1.5).abs() < 1e-4);
+    }
 }
 
 #[cfg(test)]

@@ -118,7 +118,7 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    fn in_water(&self, position: Vec3) -> bool {
+    pub(crate) fn in_water(&self, position: Vec3) -> bool {
         self.world
             .chunks
             .block(position.block())
