@@ -172,3 +172,150 @@ fn a_lightning_rod_powers_the_block_it_is_planted_on() {
     assert_eq!(prop(&mut s, rod, "powered"), "true");
     assert_eq!(prop(&mut s, lamp, "lit"), "true");
 }
+
+fn trip_line(s: &mut Scene) {
+    put(s, BlockPos::new(1, 64, 5), "minecraft:stone", &[]);
+    put(s, BlockPos::new(6, 64, 5), "minecraft:stone", &[]);
+    put(
+        s,
+        BlockPos::new(2, 64, 5),
+        "minecraft:tripwire_hook",
+        &[("facing", "east")],
+    );
+    put(s, BlockPos::new(3, 64, 5), "minecraft:tripwire", &[]);
+    put(s, BlockPos::new(4, 64, 5), "minecraft:tripwire", &[]);
+    put(
+        s,
+        BlockPos::new(5, 64, 5),
+        "minecraft:tripwire_hook",
+        &[("facing", "west")],
+    );
+    s.tick(2);
+}
+
+#[test]
+fn two_hooks_with_a_wire_between_them_attach_and_the_wires_connect() {
+    let mut s = scene(&["Alice"]);
+    trip_line(&mut s);
+    for hook in [BlockPos::new(2, 64, 5), BlockPos::new(5, 64, 5)] {
+        assert_eq!(prop(&mut s, hook, "attached"), "true");
+        assert_eq!(prop(&mut s, hook, "powered"), "false");
+    }
+    for wire in [BlockPos::new(3, 64, 5), BlockPos::new(4, 64, 5)] {
+        assert_eq!(prop(&mut s, wire, "attached"), "true");
+    }
+    assert_eq!(prop(&mut s, BlockPos::new(3, 64, 5), "east"), "true");
+}
+
+#[test]
+fn a_lone_hook_stays_detached() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, BlockPos::new(1, 64, 5), "minecraft:stone", &[]);
+    put(
+        &mut s,
+        BlockPos::new(2, 64, 5),
+        "minecraft:tripwire_hook",
+        &[("facing", "east")],
+    );
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "attached"), "false");
+}
+
+#[test]
+fn something_walking_into_the_wire_powers_both_hooks_for_a_while() {
+    let mut s = scene(&["Alice"]);
+    trip_line(&mut s);
+    let lamp = BlockPos::new(2, 64, 6);
+    put(&mut s, lamp, "minecraft:redstone_lamp", &[]);
+    let Answer::Spawned(cart) = s.ask(Question::Spawn {
+        kind: "minecraft:minecart".to_owned(),
+        position: Vec3::new(3.5, 64.1, 5.5),
+    }) else {
+        panic!("a spawned minecart");
+    };
+    s.tick(3);
+    assert_eq!(prop(&mut s, BlockPos::new(3, 64, 5), "powered"), "true");
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "powered"), "true");
+    assert_eq!(prop(&mut s, BlockPos::new(5, 64, 5), "powered"), "true");
+    assert_eq!(prop(&mut s, lamp, "lit"), "true");
+    s.act(Order::Entity {
+        entity: cart.id,
+        order: EntityOrder::Remove,
+    });
+    s.tick(30);
+    assert_eq!(prop(&mut s, BlockPos::new(3, 64, 5), "powered"), "false");
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "powered"), "false");
+    assert_eq!(prop(&mut s, lamp, "lit"), "false");
+}
+
+#[test]
+fn a_disarmed_wire_does_not_power_the_hooks() {
+    let mut s = scene(&["Alice"]);
+    trip_line(&mut s);
+    put(
+        &mut s,
+        BlockPos::new(3, 64, 5),
+        "minecraft:tripwire",
+        &[
+            ("disarmed", "true"),
+            ("attached", "true"),
+            ("east", "true"),
+            ("west", "true"),
+        ],
+    );
+    let Answer::Spawned(_) = s.ask(Question::Spawn {
+        kind: "minecraft:minecart".to_owned(),
+        position: Vec3::new(3.5, 64.1, 5.5),
+    }) else {
+        panic!("a spawned minecart");
+    };
+    s.tick(3);
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "powered"), "false");
+}
+
+#[test]
+fn breaking_a_wire_trips_the_hooks_once_then_detaches_them() {
+    let mut s = scene(&["Alice"]);
+    trip_line(&mut s);
+    put(&mut s, BlockPos::new(4, 64, 5), "minecraft:air", &[]);
+    s.tick(2);
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "powered"), "true");
+    s.tick(15);
+    assert_eq!(prop(&mut s, BlockPos::new(2, 64, 5), "powered"), "false");
+    for hook in [BlockPos::new(2, 64, 5), BlockPos::new(5, 64, 5)] {
+        assert_eq!(prop(&mut s, hook, "attached"), "false");
+    }
+}
+
+#[test]
+fn the_new_sources_report_a_redstone_event_and_a_cancel_keeps_them_off() {
+    use rspigot_core::plugins::events::BlockRedstonePatch;
+    use rspigot_core::plugins::{EventKind, EventPatch, EventPayload};
+    let mut s = scene_with(&["Alice"], vec![deciding(1, EventKind::BlockRedstone)]);
+    let rod = BlockPos::new(6, 64, 6);
+    put(&mut s, rod, "minecraft:lightning_rod", &[("facing", "up")]);
+    s.server.handle(rspigot_core::events::Inbound::Console(
+        "summon minecraft:lightning_bolt 6.5 65 6.5".to_owned(),
+    ));
+    s.server.deliver();
+    s.tick(1);
+    let asked = asked_for(&s.plugin, EventKind::BlockRedstone);
+    let first = asked
+        .iter()
+        .find(|fired| matches!(&fired.payload, EventPayload::BlockRedstone(event) if event.block == rod))
+        .expect("the rod asks");
+    assert!(
+        matches!(&first.payload, EventPayload::BlockRedstone(event) if event.old_current == 0 && event.new_current == 15)
+    );
+    let id = first.id;
+    rule_on(
+        &mut s.server,
+        1,
+        id,
+        false,
+        Some(EventPatch::BlockRedstone(BlockRedstonePatch {
+            new_current: Some(0),
+        })),
+    );
+    s.tick(2);
+    assert_eq!(prop(&mut s, rod, "powered"), "false");
+}

@@ -33,6 +33,7 @@ pub(crate) enum RedstoneChange {
     Detector,
     Daylight,
     LightningRod,
+    Hook(Box<super::HookRun>),
 }
 
 #[derive(Debug, Clone)]
@@ -85,6 +86,7 @@ impl<L: ClientLink> Server<L> {
             RedstoneChange::Detector => self.finish_detector(pos, new),
             RedstoneChange::Daylight => self.finish_daylight(pos, new),
             RedstoneChange::LightningRod => self.finish_lightning_rod(pos, new),
+            RedstoneChange::Hook(run) => self.finish_hook(pos, new, *run),
         }
     }
 }

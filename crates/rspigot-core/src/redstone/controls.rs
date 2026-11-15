@@ -309,7 +309,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn count_touching(&self, bounds: &Aabb, living_only: bool) -> i32 {
+    pub(super) fn count_touching(&self, bounds: &Aabb, living_only: bool) -> i32 {
         let players = self
             .players
             .values()
@@ -439,11 +439,9 @@ impl<L: ClientLink> Server<L> {
                 for y in low.y..=high.y {
                     for z in low.z..=high.z {
                         let pos = BlockPos::new(x, y, z);
-                        if self
-                            .block_or_air(pos)
-                            .kind()
-                            .is_some_and(|kind| is_plate(kind) || is_button(kind))
-                        {
+                        if self.block_or_air(pos).kind().is_some_and(|kind| {
+                            is_plate(kind) || is_button(kind) || kind == BlockKind::Tripwire
+                        }) {
                             touched.insert(pos);
                         }
                     }
@@ -459,6 +457,8 @@ impl<L: ClientLink> Server<L> {
                 self.check_plate(pos, state, 0);
             } else if is_button(kind) && hit_by_arrows(kind) && !flag(state, "powered") {
                 self.check_button(pos, state);
+            } else if kind == BlockKind::Tripwire {
+                self.tripwire_stepped_on(pos, state);
             }
         }
     }
