@@ -479,6 +479,11 @@ pub(crate) enum Pred {
     Solid(Pos),
     Replaceable(Pos),
     InsideWorld(Pos),
+    Volume {
+        inner: Box<Pred>,
+        min: Pos,
+        max: Pos,
+    },
 }
 
 fn offset(value: &Value) -> Pos {
@@ -548,6 +553,23 @@ impl Pred {
             "solid" => Self::Solid(offset(value)),
             "replaceable" => Self::Replaceable(offset(value)),
             "inside_world_bounds" => Self::InsideWorld(offset(value)),
+            "volume_match" => {
+                let corner = |key: &str| {
+                    value
+                        .get(key)
+                        .and_then(Value::as_array)
+                        .map_or((0, 0, 0), |items| {
+                            let at =
+                                |i: usize| items.get(i).and_then(Value::as_i64).unwrap_or(0) as i32;
+                            (at(0), at(1), at(2))
+                        })
+                };
+                Self::Volume {
+                    inner: Box::new(Self::compile(value.get("match").unwrap_or(&Value::Null))),
+                    min: corner("min"),
+                    max: corner("max"),
+                }
+            }
             _ => Self::True,
         }
     }
@@ -582,6 +604,12 @@ impl Pred {
                 is_replaceable(region.get(pos.0 + off.0, pos.1 + off.1, pos.2 + off.2))
             }
             Self::InsideWorld(off) => region.height().contains(pos.1 + off.1),
+            Self::Volume { inner, min, max } => (min.0..=max.0).all(|dx| {
+                (min.2..=max.2).all(|dz| {
+                    (min.1..=max.1)
+                        .all(|dy| inner.test(region, (pos.0 + dx, pos.1 + dy, pos.2 + dz)))
+                })
+            }),
         }
     }
 }
@@ -917,5 +945,27 @@ mod tests {
         let found = names("flower_plain", 3);
         assert!(found.iter().all(|name| allowed.contains(&name.as_str())));
         assert!(found.iter().filter(|name| *name == "dandelion").count() > 12);
+    }
+
+    fn well_predicate() -> Pred {
+        let data = crate::datapack::worldgen();
+        let predicate = data
+            .pointer("/placed/minecraft:desert_well/placement/4/predicate")
+            .cloned()
+            .unwrap_or(Value::Null);
+        Pred::compile(&predicate)
+    }
+
+    #[test]
+    fn desert_wells_need_solid_ground_in_the_volume_below() {
+        let bench = Bench::new();
+        let mut region = crate::overworld::features::probe::world(&bench, "68:stone,69:sand");
+        assert!(well_predicate().test(&mut region, (8, 69, 8)));
+        for x in 7..=9 {
+            for z in 7..=9 {
+                region.set(x, 67, z, rspigot_domain::BlockStateId::AIR);
+            }
+        }
+        assert!(!well_predicate().test(&mut region, (8, 69, 8)));
     }
 }

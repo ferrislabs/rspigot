@@ -292,6 +292,11 @@ mod tests {
             self.compiler_data.1.keys().cloned().collect()
         }
 
+        pub(super) fn feature_of(&self, name: &str) -> Arc<bodies::Feature> {
+            let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
+            compiler.configured_ref(&Value::String(name.to_owned()))
+        }
+
         pub(super) fn reach_of(&self, name: &str) -> i32 {
             let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
             compiler

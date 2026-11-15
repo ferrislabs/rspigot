@@ -39,3 +39,70 @@ fn reach_covers_every_write_of_every_configured_feature() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+#[test]
+fn every_overworld_biome_feature_is_supported() {
+    use super::bodies::Feature;
+    use serde_json::Value;
+
+    let data = crate::datapack::worldgen();
+    let biomes = rspigot_data::multi_noise::overworld_biomes();
+    let configured = data.get("configured").and_then(Value::as_object);
+    let placed = data.get("placed").and_then(Value::as_object);
+    let mut missing = std::collections::BTreeSet::new();
+    let mut stack: Vec<String> = Vec::new();
+    for name in biomes {
+        let Some(steps) = data
+            .get("biomes")
+            .and_then(|all| all.get(name))
+            .and_then(|biome| biome.get("features"))
+            .and_then(Value::as_array)
+        else {
+            continue;
+        };
+        for step in steps {
+            for feature in step
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+            {
+                stack.push(feature.to_owned());
+            }
+        }
+    }
+    let bench = Bench::new();
+    let mut seen = std::collections::BTreeSet::new();
+    while let Some(name) = stack.pop() {
+        if !seen.insert(name.clone()) {
+            continue;
+        }
+        let target = placed
+            .and_then(|all| all.get(&name))
+            .and_then(|entry| entry.get("feature"))
+            .and_then(Value::as_str)
+            .map_or(name.clone(), str::to_owned);
+        let Some(definition) = configured.and_then(|all| all.get(&target)) else {
+            continue;
+        };
+        if matches!(*bench.feature_of(&target), Feature::Unsupported) {
+            missing.insert(target.clone());
+        }
+        let mut found = Vec::new();
+        strings(definition, &mut found);
+        stack.extend(found);
+    }
+    assert_eq!(
+        missing.into_iter().collect::<Vec<_>>(),
+        Vec::<String>::new()
+    );
+}
+
+fn strings(value: &serde_json::Value, out: &mut Vec<String>) {
+    match value {
+        serde_json::Value::String(text) => out.push(text.clone()),
+        serde_json::Value::Array(items) => items.iter().for_each(|item| strings(item, out)),
+        serde_json::Value::Object(map) => map.values().for_each(|item| strings(item, out)),
+        _ => {}
+    }
+}
