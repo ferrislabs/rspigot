@@ -210,6 +210,7 @@ pub enum PlayerInput {
     Latency(i32),
     ChangeDifficulty(Difficulty),
     LockDifficulty(bool),
+    TeleportToEntity(uuid::Uuid),
     BlockTagQuery {
         transaction: i32,
         pos: BlockPos,

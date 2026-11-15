@@ -113,6 +113,7 @@ mod sleeping;
 mod sound;
 mod spawner;
 mod spawning;
+mod spectating;
 mod sponge;
 pub mod stats;
 pub mod status;

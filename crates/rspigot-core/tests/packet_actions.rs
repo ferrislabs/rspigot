@@ -254,3 +254,93 @@ fn a_block_query_answers_with_the_block_entity_data_or_nothing() {
     assert_eq!(tag_queries(&alice), [(3, Some(data)), (4, None)]);
     assert!(tag_queries(&bob).is_empty());
 }
+
+mod spectating {
+    use super::*;
+    use rspigot_core::plugins::events::{PlayerTeleport, PlayerTeleportCause};
+    use rspigot_core::plugins::{EventKind, EventPayload};
+    use rspigot_domain::Vec3;
+    use rspigot_domain::player::PlayerId;
+
+    fn cow_uuid(s: &Scene) -> uuid::Uuid {
+        s.server
+            .entities_of(rspigot_entities::EntityKind::Cow)
+            .last()
+            .map(|cow| cow.uuid)
+            .expect("the cow")
+    }
+
+    fn setup(mode: &str) -> Scene {
+        let mut s = scene_with(
+            &["Alice", "Bob"],
+            vec![deciding(1, EventKind::PlayerTeleport)],
+        );
+        console(&mut s.server, "summon minecraft:cow 10.5 64 3.5 {NoAI:1b}");
+        console(&mut s.server, &format!("gamemode {mode} Alice"));
+        s.players[0].link.take();
+        s
+    }
+
+    fn teleport_to(s: &mut Scene, target: uuid::Uuid) {
+        let alice = s.players[0].clone();
+        send_input(&mut s.server, &alice, PlayerInput::TeleportToEntity(target));
+    }
+
+    #[test]
+    fn a_spectator_goes_to_the_entity_with_the_spectate_cause() {
+        let mut s = setup("spectator");
+        let cow = cow_uuid(&s);
+        teleport_to(&mut s, cow);
+        let asked = last_asked(&s.plugin, EventKind::PlayerTeleport);
+        let EventPayload::PlayerTeleport(PlayerTeleport { cause, to, .. }) = &asked.payload else {
+            panic!("expected a teleport");
+        };
+        assert_eq!(*cause, PlayerTeleportCause::Spectate);
+        assert_eq!(
+            to.as_ref().map(|to| to.position),
+            Some(Vec3::new(10.5, 64.0, 3.5))
+        );
+        rule_on(&mut s.server, 1, asked.id, false, None);
+        assert_eq!(
+            s.server.player_location(s.players[0].id),
+            Some(Vec3::new(10.5, 64.0, 3.5))
+        );
+    }
+
+    #[test]
+    fn a_spectator_can_go_to_another_player() {
+        let mut s = setup("spectator");
+        let bob = s.players[1].id;
+        let target = bob_uuid(bob);
+        teleport_to(&mut s, target);
+        let asked = last_asked(&s.plugin, EventKind::PlayerTeleport);
+        rule_on(&mut s.server, 1, asked.id, false, None);
+        assert_eq!(
+            s.server.player_location(s.players[0].id),
+            s.server.player_location(bob)
+        );
+    }
+
+    fn bob_uuid(id: PlayerId) -> uuid::Uuid {
+        id.0
+    }
+
+    #[test]
+    fn a_player_who_is_not_a_spectator_stays_where_they_are() {
+        let mut s = setup("survival");
+        let cow = cow_uuid(&s);
+        teleport_to(&mut s, cow);
+        assert!(asked_for(&s.plugin, EventKind::PlayerTeleport).is_empty());
+        assert_ne!(
+            s.server.player_location(s.players[0].id),
+            Some(Vec3::new(10.5, 64.0, 3.5))
+        );
+    }
+
+    #[test]
+    fn an_unknown_target_changes_nothing() {
+        let mut s = setup("spectator");
+        teleport_to(&mut s, uuid::Uuid::from_u128(42));
+        assert!(asked_for(&s.plugin, EventKind::PlayerTeleport).is_empty());
+    }
+}

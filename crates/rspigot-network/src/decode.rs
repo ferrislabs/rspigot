@@ -377,6 +377,7 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             transaction: p.transaction_id,
             entity: EntityId(p.entity_id),
         }),
+        ServerboundPlay::TeleportToEntity(p) => input(PlayerInput::TeleportToEntity(p.target)),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -639,6 +640,14 @@ mod tests {
                 transaction: 5,
                 entity: EntityId(9),
             }
+        );
+    }
+
+    #[test]
+    fn teleporting_to_an_entity_carries_its_uuid() {
+        assert_eq!(
+            decoded(sb::TELEPORT_TO_ENTITY, &9u128.to_be_bytes()),
+            PlayerInput::TeleportToEntity(uuid::Uuid::from_u128(9))
         );
     }
 
