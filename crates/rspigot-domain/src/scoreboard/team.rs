@@ -124,7 +124,9 @@ impl Team {
     }
 
     pub fn formatted_display_name(&self) -> Component {
-        let mut name = Component::text("").append(self.display_name.clone());
+        let mut name = Component::text("[")
+            .append(self.display_name.clone())
+            .append(Component::text("]"));
         if let Some(color) = self.color {
             name = name.color(color);
         }

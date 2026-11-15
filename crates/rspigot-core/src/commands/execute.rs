@@ -9,6 +9,7 @@ use super::dispatch::{
     CommandContext, CommandOutcome, CommandSender, Target, execute, next_argument, parse_vec3,
     unknown_dimension,
 };
+use super::scoreboard_commands::{resolve_holders, resolve_single_holder};
 use super::selector;
 use super::source::{Anchor, DataTarget, Relation, Source, heightmap};
 
@@ -30,6 +31,21 @@ enum Cond {
     Predicate(Identifier),
     Function(Identifier),
     Data(DataSpec, NbtPath),
+    Score {
+        target: String,
+        objective: String,
+        test: ScoreTest,
+    },
+}
+
+#[derive(Debug, Clone)]
+enum ScoreTest {
+    Compare {
+        operator: String,
+        source: String,
+        source_objective: String,
+    },
+    Matches(selector::IntRange),
 }
 
 #[derive(Debug, Clone)]
@@ -51,6 +67,7 @@ enum Numeric {
 
 #[derive(Debug, Clone)]
 enum Sink {
+    Score(String, String),
     BossBar(Identifier, bool),
     Data(DataSpec, NbtPath, Numeric, f64),
 }
@@ -146,8 +163,11 @@ fn parse_path(token: &str) -> Result<NbtPath, Problem> {
     NbtPath::parse(token).map_err(|e| message(e.key, &[]))
 }
 
-fn objective_missing(token: &str) -> Problem {
-    message("arguments.objective.notFound", &[token])
+fn objective_missing(token: &str) -> Component {
+    Component::translatable(
+        "arguments.objective.notFound",
+        vec![Component::text(token.to_owned())],
+    )
 }
 
 fn parse_condition(rest: &str) -> Result<(Cond, &str), Problem> {
@@ -194,9 +214,36 @@ fn parse_condition(rest: &str) -> Result<(Cond, &str), Problem> {
             Ok((Cond::Dimension(identifier(token)?), rest))
         }
         "score" => {
-            let (_, rest) = take(rest).ok_or(Problem::Unknown)?;
-            let (objective, _) = take(rest).ok_or(Problem::Unknown)?;
-            Err(objective_missing(objective))
+            let (target, rest) = take(rest).ok_or(Problem::Unknown)?;
+            let (objective, rest) = take(rest).ok_or(Problem::Unknown)?;
+            let (kind, rest) = take(rest).ok_or(Problem::Unknown)?;
+            let (test, rest) = match kind {
+                "matches" => {
+                    let (range, rest) = take(rest).ok_or(Problem::Unknown)?;
+                    (ScoreTest::Matches(selector::parse_int_range(range)?), rest)
+                }
+                "=" | "<" | "<=" | ">" | ">=" => {
+                    let (source, rest) = take(rest).ok_or(Problem::Unknown)?;
+                    let (source_objective, rest) = take(rest).ok_or(Problem::Unknown)?;
+                    (
+                        ScoreTest::Compare {
+                            operator: kind.to_owned(),
+                            source: source.to_owned(),
+                            source_objective: source_objective.to_owned(),
+                        },
+                        rest,
+                    )
+                }
+                _ => return Err(Problem::Unknown),
+            };
+            Ok((
+                Cond::Score {
+                    target: target.to_owned(),
+                    objective: objective.to_owned(),
+                    test,
+                },
+                rest,
+            ))
         }
         "blocks" => {
             let (start, rest) = triple(rest)?;
@@ -243,9 +290,9 @@ fn parse_store(rest: &str) -> Result<(Sink, &str), Problem> {
     let (kind, rest) = take(rest).ok_or(Problem::Unknown)?;
     match kind {
         "score" => {
-            let (_, rest) = take(rest).ok_or(Problem::Unknown)?;
-            let (objective, _) = take(rest).ok_or(Problem::Unknown)?;
-            Err(objective_missing(objective))
+            let (targets, rest) = take(rest).ok_or(Problem::Unknown)?;
+            let (objective, rest) = take(rest).ok_or(Problem::Unknown)?;
+            Ok((Sink::Score(targets.to_owned(), objective.to_owned()), rest))
         }
         "bossbar" => {
             let (id, rest) = take(rest).ok_or(Problem::Unknown)?;
@@ -694,6 +741,54 @@ fn test<C: CommandContext>(
             let data = Tag::Compound(ctx.read_data(&target)?);
             Ok(path.count(&data) as i32)
         }
+        Cond::Score {
+            target,
+            objective,
+            test,
+        } => test_score(ctx, sender, target, objective, test),
+    }
+}
+
+fn test_score<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    target: &str,
+    objective: &str,
+    test: &ScoreTest,
+) -> Result<i32, Component> {
+    if ctx.scoreboard().objective(objective).is_none() {
+        return Err(objective_missing(objective));
+    }
+    let holder = resolve_single_holder(ctx, sender, target)?;
+    let value = ctx.scoreboard().score(&holder, objective).map(|s| s.value);
+    match test {
+        ScoreTest::Matches((min, max)) => Ok(i32::from(value.is_some_and(|value| {
+            min.is_none_or(|min| value >= min) && max.is_none_or(|max| value <= max)
+        }))),
+        ScoreTest::Compare {
+            operator,
+            source,
+            source_objective,
+        } => {
+            if ctx.scoreboard().objective(source_objective).is_none() {
+                return Err(objective_missing(source_objective));
+            }
+            let source = resolve_single_holder(ctx, sender, source)?;
+            let other = ctx
+                .scoreboard()
+                .score(&source, source_objective)
+                .map(|s| s.value);
+            let (Some(a), Some(b)) = (value, other) else {
+                return Ok(0);
+            };
+            Ok(i32::from(match operator.as_str() {
+                "=" => a == b,
+                "<" => a < b,
+                "<=" => a <= b,
+                ">" => a > b,
+                _ => a >= b,
+            }))
+        }
     }
 }
 
@@ -716,6 +811,32 @@ fn store_value<C: CommandContext>(
     value: i32,
 ) -> Result<(), Component> {
     match sink {
+        Sink::Score(targets, objective) => {
+            let Some(found) = ctx.scoreboard().objective(objective) else {
+                return Err(objective_missing(objective));
+            };
+            if found.criteria.read_only() {
+                return Err(Component::translatable(
+                    "arguments.objective.readonly",
+                    vec![Component::text(objective.clone())],
+                ));
+            }
+            let holders = resolve_holders(ctx, sender, targets)?;
+            let displays: Vec<Option<Component>> = holders
+                .iter()
+                .map(|holder| ctx.holder_display_name(holder))
+                .collect();
+            ctx.change_scoreboard(|board| {
+                let mut messages = Vec::new();
+                for (holder, display) in holders.iter().zip(displays) {
+                    if let Ok(sent) = board.set_score(holder, objective, value, display) {
+                        messages.extend(sent);
+                    }
+                }
+                ((), messages)
+            });
+            Ok(())
+        }
         Sink::BossBar(id, maximum) => {
             if ctx.set_boss_bar_value(id, *maximum, value) {
                 Ok(())
@@ -1096,6 +1217,45 @@ fn swaps(command: Option<&str>) -> bool {
     !matches!(head, "tp" | "teleport")
 }
 
+fn check_objectives<C: CommandContext>(ctx: &C, chain: &Chain) -> Result<(), Component> {
+    let known = |name: &str| ctx.scoreboard().objective(name).is_some();
+    for step in &chain.steps {
+        match step {
+            Step::If(
+                _,
+                Cond::Score {
+                    objective, test, ..
+                },
+            ) => {
+                if !known(objective) {
+                    return Err(objective_missing(objective));
+                }
+                if let ScoreTest::Compare {
+                    source_objective, ..
+                } = test
+                    && !known(source_objective)
+                {
+                    return Err(objective_missing(source_objective));
+                }
+            }
+            Step::Store(_, Sink::Score(_, objective)) => {
+                match ctx.scoreboard().objective(objective) {
+                    None => return Err(objective_missing(objective)),
+                    Some(found) if found.criteria.read_only() => {
+                        return Err(Component::translatable(
+                            "arguments.objective.readonly",
+                            vec![Component::text(objective.clone())],
+                        ));
+                    }
+                    Some(_) => {}
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn run<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -1127,6 +1287,10 @@ pub(super) fn run<C: CommandContext>(
             return CommandOutcome::Failure;
         }
     };
+    if let Err(error) = check_objectives(ctx, &chain) {
+        ctx.reply(sender, error.color(NamedColor::Red));
+        return CommandOutcome::Failure;
+    }
     let plan = Plan {
         swap: swaps(chain.command.as_deref()),
         chain: &chain,

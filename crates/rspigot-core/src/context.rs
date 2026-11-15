@@ -365,6 +365,29 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.relations_of(target, relation)
     }
 
+    fn scoreboard(&self) -> &rspigot_domain::scoreboard::Scoreboard {
+        &self.scoreboard.board
+    }
+
+    fn change_scoreboard<R>(
+        &mut self,
+        change: impl FnOnce(
+            &mut rspigot_domain::scoreboard::Scoreboard,
+        ) -> (R, Vec<rspigot_domain::scoreboard::ScoreboardMessage>),
+    ) -> R {
+        let (result, messages) = change(&mut self.scoreboard.board);
+        self.send_scoreboard_messages(messages);
+        result
+    }
+
+    fn score_holder_name(&self, target: Target) -> Option<String> {
+        self.score_holder_of(target)
+    }
+
+    fn holder_display_name(&self, holder: &str) -> Option<Component> {
+        Server::holder_display_name(self, holder)
+    }
+
     fn record_result(&mut self, value: i32) {
         self.command_result = Some(value);
     }
@@ -1167,15 +1190,36 @@ impl<L: ClientLink> Server<L> {
         {
             return false;
         }
-        if !selector
-            .teams
-            .iter()
-            .all(|(negated, team)| team.is_empty() != *negated)
-        {
-            return false;
+        let holder = self.score_holder_of(candidate.target);
+        if !selector.teams.is_empty() {
+            let team_name = holder
+                .as_deref()
+                .and_then(|holder| self.scoreboard.board.team_of(holder))
+                .map_or("", |team| team.name.as_str());
+            if !selector
+                .teams
+                .iter()
+                .all(|(negated, team)| (team_name == team) != *negated)
+            {
+                return false;
+            }
         }
         if !selector.scores.is_empty() {
-            return false;
+            let Some(holder) = holder.as_deref() else {
+                return false;
+            };
+            let in_range = |(name, (min, max)): &(String, (Option<i32>, Option<i32>))| {
+                self.scoreboard
+                    .board
+                    .score(holder, name)
+                    .is_some_and(|score| {
+                        min.is_none_or(|min| score.value >= min)
+                            && max.is_none_or(|max| score.value <= max)
+                    })
+            };
+            if !selector.scores.iter().all(in_range) {
+                return false;
+            }
         }
         if !selector.predicates.iter().all(|(negated, _)| *negated) {
             return false;

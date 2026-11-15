@@ -74,6 +74,14 @@ fn convert(value: &Value, depth: usize) -> Result<Component, Component> {
     }
 }
 
+pub fn parse_style(input: &str) -> Result<rspigot_domain::text::Style, Component> {
+    let value: Value = serde_json::from_str(input.trim()).map_err(|e| invalid(&e.to_string()))?;
+    let Value::Object(object) = value else {
+        return Err(invalid("a style is an object"));
+    };
+    Ok(style(Component::text(""), &object).style)
+}
+
 pub fn parse(input: &str) -> Result<Component, Component> {
     let value: Value = serde_json::from_str(input.trim()).map_err(|e| invalid(&e.to_string()))?;
     convert(&value, 0)
@@ -95,6 +103,10 @@ mod tests {
         let translated = parse(r#"{"translate":"k","with":["1","2"]}"#).unwrap();
         assert_eq!(translated.plain_text(), "k 1 2");
         assert!(parse("{nope").is_err());
+        let style = parse_style(r#"{"color":"gold","bold":true}"#).unwrap();
+        assert_eq!(style.bold, Some(true));
+        assert!(style.color.is_some());
+        assert!(parse_style("[1]").is_err());
         assert!(parse(r#"{"color":"red"}"#).is_err());
     }
 }
