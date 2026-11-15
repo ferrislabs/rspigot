@@ -251,3 +251,93 @@ fn a_player_toggling_a_door_is_heard_by_the_others_but_not_by_themselves() {
         vec!["minecraft:block.wooden_door.open"]
     );
 }
+
+fn walled_hard(handlers: Vec<rspigot_core::plugins::HandlerSpec>) -> Scene {
+    let config = GameConfig {
+        view_distance: 3,
+        chunk_workers: 2,
+        spawn_protection: 0,
+        difficulty: rspigot_domain::world::Difficulty::Hard,
+        ..GameConfig::default()
+    };
+    let data = LevelData {
+        spawn_mobs: false,
+        day_time: 13_000,
+        daylight_cycle: false,
+        ..LevelData::default()
+    };
+    let mut server = Server::new(
+        config,
+        data,
+        Arc::new(NoStore),
+        Arc::new(Walled),
+        StatusBoard::new(20),
+    )
+    .with_rng_seed(5);
+    server.wait_for_spawn(Duration::from_secs(10));
+    let mut s = scene_on(server, &["Alice", "Bob"], handlers);
+    stream_chunk_of(&mut s, BlockPos::new(1, 64, 1));
+    s
+}
+
+fn zombie_at_the_door(s: &mut Scene) {
+    let alice = s.players[0].clone();
+    console(s, "gamemode survival Alice");
+    console(s, "tp Bob 12.5 64 9.5");
+    console(s, "tp Alice 8.5 64 8.5");
+    let zombie = summon(
+        s,
+        Kind::Zombie,
+        "9.5 64 8.5",
+        "{CanBreakDoors:1b,PersistenceRequired:1b}",
+    );
+    send_input(&mut s.server, &alice, PlayerInput::Attack(zombie));
+    console(s, "tp Alice 12.5 64 8.5");
+}
+
+#[test]
+fn a_zombie_breaking_a_door_asks_entity_break_door_and_a_cancel_keeps_the_door() {
+    let mut s = walled_hard(vec![deciding(1, EventKind::EntityBreakDoor)]);
+    zombie_at_the_door(&mut s);
+    let mut asked = None;
+    for _ in 0..400 {
+        s.tick(1);
+        if let Some(found) = asked_for(&s.plugin, EventKind::EntityBreakDoor).pop() {
+            asked = Some(found);
+            break;
+        }
+    }
+    let asked = asked.expect("the zombie asks to break the door");
+    let EventPayload::EntityBreakDoor(breaking) = &asked.payload else {
+        panic!("an entity break door");
+    };
+    let door_block = breaking.block;
+    assert!([LOWER, LOWER.offset(0, 1, 0)].contains(&door_block));
+    assert_eq!(breaking.entity_type, "minecraft:zombie");
+    assert_eq!(breaking.to, "minecraft:air");
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    assert!(matches!(
+        s.ask(Question::Block(door_block)),
+        Answer::Block(state) if state.kind.contains("door")
+    ));
+}
+
+#[test]
+fn a_zombie_breaking_a_door_removes_it_when_no_handler_objects() {
+    let mut s = walled_hard(vec![observe(1, EventKind::EntityBreakDoor)]);
+    zombie_at_the_door(&mut s);
+    for _ in 0..400 {
+        s.tick(1);
+        if !settled_for(&s.plugin, EventKind::EntityBreakDoor).is_empty() {
+            break;
+        }
+    }
+    let events = settled_for(&s.plugin, EventKind::EntityBreakDoor);
+    let EventPayload::EntityBreakDoor(breaking) = &events[0].payload else {
+        panic!("an entity break door");
+    };
+    assert!(matches!(
+        s.ask(Question::Block(breaking.block)),
+        Answer::Block(state) if state.kind == "minecraft:air"
+    ));
+}

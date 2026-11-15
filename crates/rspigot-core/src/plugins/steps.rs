@@ -1704,6 +1704,10 @@ pub(crate) enum Continuation {
         bee: EntityId,
         pos: BlockPos,
     },
+    BreakDoor {
+        mob: EntityId,
+        pos: BlockPos,
+    },
     BatSleep {
         bat: EntityId,
         awake: bool,
@@ -1927,6 +1931,7 @@ impl Continuation {
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
             Self::RaidTrigger { .. } => EventKind::RaidTrigger,
             Self::EnterHive { .. } => EventKind::EntityEnterBlock,
+            Self::BreakDoor { .. } => EventKind::EntityBreakDoor,
             Self::BatSleep { .. } => EventKind::BatToggleSleep,
             Self::TargetBlock { .. } => EventKind::EntityTargetBlock,
             Self::EntityExplode(_) => EventKind::EntityExplode,
@@ -2067,6 +2072,7 @@ impl Continuation {
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
             Self::EnterHive { bee: mob, .. }
+            | Self::BreakDoor { mob, .. }
             | Self::BatSleep { bat: mob, .. }
             | Self::EggBreak { mob, .. }
             | Self::DoorOpen { mob, .. }
