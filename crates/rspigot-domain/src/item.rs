@@ -15,13 +15,29 @@ pub const ENCHANTMENTS: &str = "minecraft:enchantments";
 pub const MAX_LORE_LINES: usize = 256;
 const ENCHANTMENT_LEVELS: &str = "levels";
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct CustomModelData {
     pub floats: Vec<f32>,
     pub flags: Vec<bool>,
     pub strings: Vec<String>,
     pub colors: Vec<i32>,
 }
+
+impl PartialEq for CustomModelData {
+    fn eq(&self, other: &Self) -> bool {
+        self.floats.len() == other.floats.len()
+            && self
+                .floats
+                .iter()
+                .zip(&other.floats)
+                .all(|(a, b)| a.to_bits() == b.to_bits())
+            && self.flags == other.flags
+            && self.strings == other.strings
+            && self.colors == other.colors
+    }
+}
+
+impl Eq for CustomModelData {}
 
 impl CustomModelData {
     pub fn is_empty(&self) -> bool {

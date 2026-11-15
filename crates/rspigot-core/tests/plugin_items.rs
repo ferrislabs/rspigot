@@ -168,6 +168,46 @@ fn named_lore_enchanted_items_reach_the_client() {
 }
 
 #[test]
+fn custom_model_data_reaches_the_client_and_reads_back_typed() {
+    let mut s = scene(&["Alice"]);
+    let alice = s.players[0].clone();
+    let data = rspigot_domain::item::CustomModelData {
+        floats: vec![1.5],
+        flags: vec![true],
+        strings: vec!["skin".into()],
+        colors: vec![0xFF0000],
+    };
+    let stick = ItemSpec {
+        custom_model_data: Some(data.clone()),
+        ..ItemSpec::of("minecraft:stick", 1)
+    };
+    s.act(inv(
+        &alice,
+        InventoryOrder::Set {
+            slot: 0,
+            item: Some(stick),
+        },
+    ));
+    let sent = alice
+        .link
+        .take()
+        .into_iter()
+        .find_map(|event| match event {
+            ClientEvent::InventorySlot {
+                slot: 36,
+                stack: Some(stack),
+                ..
+            } => Some(stack),
+            _ => None,
+        })
+        .expect("Alice receives the stick");
+    assert!(sent.components.contains_key("minecraft:custom_model_data"));
+    let read = item(&inventory(&mut s, &alice), 0);
+    assert_eq!(read.custom_model_data, Some(data));
+    assert!(read.components.is_empty());
+}
+
+#[test]
 fn a_damaged_sword_keeps_its_damage_when_moved() {
     let mut s = scene(&["Alice"]);
     let alice = s.players[0].clone();
