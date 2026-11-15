@@ -45,6 +45,7 @@ pub mod potion;
 pub mod raid;
 pub mod random;
 pub mod recipes;
+pub mod scoreboard;
 pub mod smithing;
 pub mod spawn;
 pub mod spawner;
