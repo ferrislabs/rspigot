@@ -1,6 +1,5 @@
 use rspigot_domain::{BlockStateId, ChunkPos};
 
-use super::surface::Ground;
 use crate::buffer::ChunkBuffer;
 use crate::resources::{Biome, BlockKind, Palette, Tree};
 use crate::rng::{Rng, hash2, mix, unit};
@@ -8,6 +7,13 @@ use crate::rng::{Rng, hash2, mix, unit};
 const TREE_ATTEMPTS: usize = 14;
 const SALT_TREES: u64 = 0x7433_E5A1;
 const SALT_PLANTS: u64 = 0x91A7_0CC3;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Ground {
+    Grass,
+    Sand,
+    Bare,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ColumnInfo {
@@ -50,8 +56,8 @@ pub(crate) fn trees(
         let Some((chance, tree)) = tree_rule(info.biome, pick) else {
             continue;
         };
-        let rooted = matches!(info.ground, Ground::Grass | Ground::SnowyGrass)
-            && !buffer.get(x, info.height, z).is_air();
+        let rooted =
+            matches!(info.ground, Ground::Grass) && !buffer.get(x, info.height, z).is_air();
         let crowded = placed[..count]
             .iter()
             .any(|(px, pz)| px.abs_diff(x) < 3 && pz.abs_diff(z) < 3);
@@ -263,7 +269,7 @@ mod tests {
             &palette,
             1,
             ChunkPos::new(0, 0),
-            &flat_columns(Biome::SnowyPlains, Ground::SnowyGrass, true),
+            &flat_columns(Biome::SnowyPlains, Ground::Grass, true),
         );
         assert_eq!(count(&buffer, palette[BlockKind::SnowLayer]), 256);
     }
@@ -333,7 +339,7 @@ mod tests {
             &palette,
             1,
             ChunkPos::new(0, 0),
-            &flat_columns(Biome::SnowyPlains, Ground::SnowyGrass, true),
+            &flat_columns(Biome::SnowyPlains, Ground::Grass, true),
         );
         assert_eq!(count(&buffer, palette[BlockKind::SnowLayer]), 0);
     }

@@ -1,7 +1,8 @@
 mod biomes;
 mod caves;
 mod decor;
-mod surface;
+mod freeze;
+mod surface_rules;
 mod terrain;
 mod trees;
 
@@ -13,15 +14,16 @@ use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Vec3};
 
 use crate::buffer::ChunkBuffer;
 use crate::climate::{BiomeSource, ClimateScratch};
-use crate::perlin::Fractal;
 use crate::resources::{Biome, BlockKind, Palette, Resources, biome_id};
-use crate::rng::{Rng, hash2, hash3, mix, unit};
+use crate::rng::{Rng, hash3, unit};
 use crate::veins::{Hosts, Vein, place};
 use rspigot_data::multi_noise::{ClimateVariant, overworld_biomes};
 
 use biomes::{is_mountain, surface_biome};
 use caves::Caves;
-use decor::ColumnInfo;
+use decor::{ColumnInfo, Ground};
+use freeze::{FreezeContext, freeze_top_layer};
+use surface_rules::{Bounds, ColumnInput, SurfaceSystem};
 use terrain::Terrain;
 pub(crate) use terrain::smooth;
 
@@ -29,7 +31,6 @@ const SALT_ORE: u64 = 0x0DE5_1A3F;
 const SALT_EMERALD: u64 = 0x3E3A_1D55;
 const SALT_BEDROCK: u64 = 0xBED0_0C41;
 const SALT_DEEPSLATE: u64 = 0xDEE9_51A7;
-const SALT_DEPTH: u64 = 0x5EAF_100D;
 const SPAWN_STEP: i32 = 8;
 const SPAWN_RINGS: i32 = 200;
 const EMERALD_ATTEMPTS: u32 = 4;
@@ -41,7 +42,7 @@ pub(crate) struct Overworld {
     source: Arc<BiomeSource>,
     placed: Arc<[PlacedBiome]>,
     caves: Caves,
-    patch: Fractal,
+    surface: Arc<SurfaceSystem>,
     veins: Vec<Vein>,
 }
 
@@ -212,7 +213,7 @@ impl Overworld {
                 })
                 .collect(),
             caves: Caves::new(seed),
-            patch: Fractal::new(mix(seed ^ 0xA11C_E5ED), 1),
+            surface: Arc::new(SurfaceSystem::new(seed as i64, palette)),
             veins: overworld_veins(palette),
         }
     }
@@ -222,10 +223,10 @@ impl Overworld {
         scratch: &mut ClimateScratch,
         dimension: &Dimension,
         pos: ChunkPos,
-    ) -> Vec<BiomeId> {
+    ) -> Vec<u8> {
         let layers = dimension.height.section_count() * 4;
         let base = dimension.height.min_y.div_euclid(4);
-        let mut layered = vec![BiomeId(0); layers * 16];
+        let mut layered = vec![0u8; layers * 16];
         for cz in 0..4usize {
             for cx in 0..4usize {
                 for layer in 0..layers {
@@ -236,7 +237,7 @@ impl Overworld {
                         pos.z * 4 + cz as i32,
                     );
                     let slot = (layer >> 2) * 64 + ((layer & 3) << 4) + (cz << 2) + cx;
-                    layered[slot] = self.placed[usize::from(index)].id;
+                    layered[slot] = index;
                 }
             }
         }
@@ -317,59 +318,19 @@ impl Overworld {
             }
         }
 
-        let mut columns = [ColumnInfo {
-            height: min_y,
-            ground: surface::Ground::Bare,
-            snow_cover: false,
-            biome: Biome::Plains,
-        }; 256];
-        let mut limits = [0i32; 256];
         let water = palette[BlockKind::Water];
+        let mut limits = [0i32; 256];
         for i in 0..256usize {
             let (x, z) = (i & 15, i >> 4);
             let (wx, wz) = (x0 + x as i32, z0 + z as i32);
             let top = tops[i];
-            let biome = cell_biomes[((z >> 2) << 2) | (x >> 2)];
-            let patch = if top < sea_level {
-                self.patch.at2(f64::from(wx) * 0.04, f64::from(wz) * 0.04) * 1.6
-            } else {
-                0.0
-            };
-            let roll = hash2(self.seed ^ SALT_DEPTH, wx, wz);
-            let layers = surface::layers(palette, biome, top, sea_level, patch, roll);
             for y in (uniform_top + 1)..=top {
-                let depth = top - y;
-                let state = if depth == 0 {
-                    layers.top
-                } else if depth <= layers.filler_depth {
-                    layers.filler
-                } else if let (Some(base), true) = (
-                    layers.base,
-                    depth <= layers.filler_depth + layers.base_depth,
-                ) {
-                    base
-                } else {
-                    rock(palette, self.seed, wx, y, wz)
-                };
-                buffer.set(x, y, z, state);
+                buffer.set(x, y, z, rock(palette, self.seed, wx, y, wz));
             }
             for y in (top + 1)..sea_level {
                 buffer.set(x, y, z, water);
             }
-            if matches!(
-                biome,
-                Biome::FrozenOcean | Biome::DeepFrozenOcean | Biome::FrozenRiver
-            ) && top < sea_level - 1
-            {
-                buffer.set(x, sea_level - 1, z, palette[BlockKind::Ice]);
-            }
             limits[i] = self.caves.limit(wx, wz, top, sea_level);
-            columns[i] = ColumnInfo {
-                height: top,
-                ground: layers.ground,
-                snow_cover: layers.snow_cover,
-                biome,
-            };
         }
 
         self.caves.carve(
@@ -380,6 +341,55 @@ impl Overworld {
             BlockStateId::AIR,
             palette[BlockKind::Lava],
         );
+        let bounds = Bounds {
+            min_y,
+            max_y: height.max_y(),
+            sea_level,
+        };
+        let biome_index = |x: usize, y: i32, z: usize| {
+            let layer = ((y.clamp(min_y, height.max_y()) - min_y) >> 2) as usize;
+            layered[(layer >> 2) * 64 + ((layer & 3) << 4) + ((z >> 2) << 2) + (x >> 2)]
+        };
+        let surface_height = |i: usize| tops[i].max(sea_level - 1) + 1;
+        let mut columns = [ColumnInfo {
+            height: min_y,
+            ground: Ground::Bare,
+            snow_cover: false,
+            biome: Biome::Plains,
+        }; 256];
+        for i in 0..256usize {
+            let (x, z) = (i & 15, i >> 4);
+            let gradient = (
+                surface_height((z << 4) | (x + 1).min(15))
+                    - surface_height((z << 4) | x.saturating_sub(1)),
+                surface_height(((z + 1).min(15) << 4) | x)
+                    - surface_height((z.saturating_sub(1) << 4) | x),
+            );
+            self.surface.column(ColumnInput {
+                bounds,
+                buffer: &mut buffer,
+                x,
+                z,
+                world_x: x0 + x as i32,
+                world_z: z0 + z as i32,
+                top: tops[i],
+                gradient,
+                biome_at: |y| biome_index(x, y, z),
+            });
+            let ground = buffer.get(x, tops[i], z);
+            columns[i] = ColumnInfo {
+                height: tops[i],
+                ground: if ground == palette[BlockKind::GrassBlock] {
+                    Ground::Grass
+                } else if ground == palette[BlockKind::Sand] {
+                    Ground::Sand
+                } else {
+                    Ground::Bare
+                },
+                snow_cover: false,
+                biome: cell_biomes[((z >> 2) << 2) | (x >> 2)],
+            };
+        }
         place(
             &mut buffer,
             pos,
@@ -394,8 +404,25 @@ impl Overworld {
         self.emeralds(&mut buffer, palette, pos, &cell_biomes);
         decor::trees(&mut buffer, palette, self.seed, pos, &columns, sea_level);
         decor::ground_cover(&mut buffer, palette, self.seed, pos, &columns);
+        let scan_from = tops.iter().copied().max().unwrap_or(min_y).max(sea_level) + 40;
+        freeze_top_layer(
+            &mut buffer,
+            &FreezeContext {
+                system: &self.surface,
+                classifier: &resources.classifier,
+                palette,
+                sea_level,
+                scan_from,
+            },
+            pos,
+            biome_index,
+        );
         self.bedrock(&mut buffer, palette, pos);
-        buffer.finish_layered(pos, &layered, &resources.classifier)
+        let stored: Vec<BiomeId> = layered
+            .iter()
+            .map(|index| self.placed[usize::from(*index)].id)
+            .collect();
+        buffer.finish_layered(pos, &stored, &resources.classifier)
     }
 
     fn emeralds(
