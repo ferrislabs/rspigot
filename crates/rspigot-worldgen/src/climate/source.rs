@@ -1,4 +1,4 @@
-use rspigot_data::multi_noise::{overworld_biomes, overworld_graph, overworld_points};
+use rspigot_data::multi_noise::{ClimateVariant, overworld_graph, overworld_points};
 
 use super::density::{ClimateFunctions, Scratch};
 use super::rtree::Index;
@@ -16,9 +16,9 @@ fn quantize(value: f32) -> i64 {
 }
 
 impl BiomeSource {
-    pub(crate) fn new(seed: i64) -> Self {
+    pub(crate) fn new(seed: i64, variant: ClimateVariant) -> Self {
         Self {
-            functions: ClimateFunctions::new(overworld_graph(), seed),
+            functions: ClimateFunctions::new(overworld_graph(variant), seed),
             index: Index::new(overworld_points()),
         }
     }
@@ -39,6 +39,18 @@ impl BiomeSource {
             .map(quantize)
     }
 
+    pub(crate) fn biome_index(
+        &self,
+        scratch: &mut ClimateScratch,
+        qx: i32,
+        qy: i32,
+        qz: i32,
+    ) -> u8 {
+        let target = self.target(scratch, qx, qy, qz);
+        self.index.find(&target)
+    }
+
+    #[cfg(test)]
     pub(crate) fn biome(
         &self,
         scratch: &mut ClimateScratch,
@@ -46,8 +58,12 @@ impl BiomeSource {
         qy: i32,
         qz: i32,
     ) -> &'static str {
-        let target = self.target(scratch, qx, qy, qz);
-        overworld_biomes()[usize::from(self.index.find(&target))]
+        rspigot_data::multi_noise::overworld_biomes()
+            [usize::from(self.biome_index(scratch, qx, qy, qz))]
+    }
+
+    pub(crate) fn surface_estimate(&self, scratch: &mut ClimateScratch, x: i32, z: i32) -> f32 {
+        self.functions.sample(scratch, x, 0, z)[4] * 128.0
     }
 }
 
@@ -57,7 +73,7 @@ mod tests {
 
     #[test]
     fn tree_search_agrees_with_brute_force() {
-        let source = BiomeSource::new(11);
+        let source = BiomeSource::new(11, ClimateVariant::Normal);
         let mut scratch = source.scratch();
         for i in -40..40 {
             let target = source.target(&mut scratch, i * 37, (i % 9) * 5 - 8, i * -53);
@@ -74,7 +90,9 @@ mod tests {
 mod reference {
     use super::*;
 
-    const VANILLA: [(i64, i32, i32, i32, [i64; 6], &str); 51] = [
+    type Reference = (i64, i32, i32, i32, [i64; 6], &'static str);
+
+    const VANILLA: [Reference; 51] = [
         (
             1,
             -300,
@@ -490,7 +508,7 @@ mod reference {
         let mut sources: Vec<(i64, BiomeSource)> = Vec::new();
         for (seed, qx, qy, qz, expected, biome) in VANILLA {
             if !sources.iter().any(|(s, _)| *s == seed) {
-                sources.push((seed, BiomeSource::new(seed)));
+                sources.push((seed, BiomeSource::new(seed, ClimateVariant::Normal)));
             }
             let source = &sources.iter().find(|(s, _)| *s == seed).unwrap().1;
             let mut scratch = source.scratch();

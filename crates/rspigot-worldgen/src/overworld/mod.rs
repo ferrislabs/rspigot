@@ -6,20 +6,24 @@ mod terrain;
 mod trees;
 
 use rspigot_domain::chunk::{ChunkColumn, HeightmapKind};
+use std::sync::Arc;
+
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Vec3};
 
 use crate::buffer::ChunkBuffer;
+use crate::climate::BiomeSource;
 use crate::perlin::Fractal;
-use crate::resources::{Biome, BlockKind, Palette, Resources};
+use crate::resources::{Biome, BlockKind, Palette, Resources, biome_id};
 use crate::rng::{Rng, hash2, hash3, mix, unit};
 use crate::veins::{Hosts, Vein, place};
+use rspigot_data::multi_noise::{ClimateVariant, overworld_biomes};
 
-use biomes::{classify, is_mountain};
+use biomes::{is_mountain, surface_biome};
 use caves::Caves;
 use decor::ColumnInfo;
-use terrain::{ColumnShape, Terrain};
-pub(crate) use terrain::{NoiseScales, smooth};
+use terrain::Terrain;
+pub(crate) use terrain::smooth;
 
 const SALT_ORE: u64 = 0x0DE5_1A3F;
 const SALT_EMERALD: u64 = 0x3E3A_1D55;
@@ -34,9 +38,17 @@ const EMERALD_ATTEMPTS: u32 = 4;
 pub(crate) struct Overworld {
     seed: u64,
     terrain: Terrain,
+    source: Arc<BiomeSource>,
+    placed: Arc<[PlacedBiome]>,
     caves: Caves,
     patch: Fractal,
     veins: Vec<Vein>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct PlacedBiome {
+    id: BiomeId,
+    surface: Biome,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -187,23 +199,39 @@ fn rock(palette: &Palette, seed: u64, x: i32, y: i32, z: i32) -> BlockStateId {
 }
 
 impl Overworld {
-    pub(crate) fn new(seed: u64, scales: NoiseScales, palette: &Palette) -> Self {
+    pub(crate) fn new(seed: u64, variant: ClimateVariant, palette: &Palette) -> Self {
         Self {
             seed,
-            terrain: Terrain::new(seed, scales),
+            terrain: Terrain::new(seed),
+            source: Arc::new(BiomeSource::new(seed as i64, variant)),
+            placed: overworld_biomes()
+                .iter()
+                .map(|name| PlacedBiome {
+                    id: biome_id(name),
+                    surface: surface_biome(name),
+                })
+                .collect(),
             caves: Caves::new(seed),
             patch: Fractal::new(mix(seed ^ 0xA11C_E5ED), 1),
             veins: overworld_veins(palette),
         }
     }
 
-    fn column_shape(&self, dimension: &Dimension, x: i32, z: i32) -> ColumnShape {
-        let height = dimension.height;
-        let mut column = self
+    fn clamp_height(dimension: &Dimension, height: f64) -> i32 {
+        let bounds = dimension.height;
+        (height.floor() as i32)
+            .min(bounds.max_y() - 24)
+            .max(bounds.min_y + 8)
+    }
+
+    fn column_height(&self, dimension: &Dimension, x: i32, z: i32) -> i32 {
+        let mut scratch = self.source.scratch();
+        let corners = self
             .terrain
-            .shape(x, z, f64::from(dimension.sea_level - 63));
-        column.height = column.height.min(height.max_y() - 24).max(height.min_y + 8);
-        column
+            .heights(&self.source, &mut scratch, x & !15, z & !15);
+        let base = corners.at((x & 15) as usize, (z & 15) as usize);
+        let shifted = base + self.terrain.detail(x, z) + f64::from(dimension.sea_level - 63);
+        Self::clamp_height(dimension, shifted)
     }
 
     pub(crate) fn generate(
@@ -219,19 +247,31 @@ impl Overworld {
         let x0 = pos.x * 16;
         let z0 = pos.z * 16;
 
-        let shapes: [ColumnShape; 256] = std::array::from_fn(|i| {
-            self.column_shape(dimension, x0 + (i & 15) as i32, z0 + (i >> 4) as i32)
+        let mut scratch = self.source.scratch();
+        let corners = self.terrain.heights(&self.source, &mut scratch, x0, z0);
+        let tops: [i32; 256] = std::array::from_fn(|i| {
+            let (x, z) = ((i & 15) as i32, (i >> 4) as i32);
+            let base = corners.at(x as usize, z as usize);
+            let shifted = base + self.terrain.detail(x0 + x, z0 + z) + f64::from(sea_level - 63);
+            Self::clamp_height(dimension, shifted)
         });
-        let cell_biomes: [Biome; 16] = std::array::from_fn(|c| {
+        let cell_indices: [u8; 16] = std::array::from_fn(|c| {
             let (cx, cz) = ((c & 3) as i32, (c >> 2) as i32);
             let center = ((cz * 4 + 2) * 16 + cx * 4 + 2) as usize;
-            let climate = self.terrain.climate(x0 + cx * 4 + 2, z0 + cz * 4 + 2);
-            classify(&shapes[center], &climate, sea_level)
+            self.source.biome_index(
+                &mut scratch,
+                pos.x * 4 + cx,
+                (tops[center] + terrain::SURFACE_SHIFT) >> 2,
+                pos.z * 4 + cz,
+            )
         });
-        let cell_ids: [BiomeId; 16] = std::array::from_fn(|c| resources.biomes[cell_biomes[c]]);
+        let cell_biomes: [Biome; 16] =
+            std::array::from_fn(|c| self.placed[usize::from(cell_indices[c])].surface);
+        let cell_ids: [BiomeId; 16] =
+            std::array::from_fn(|c| self.placed[usize::from(cell_indices[c])].id);
 
         let mut buffer = ChunkBuffer::new(height);
-        let lowest = shapes.iter().map(|s| s.height).min().unwrap_or(min_y);
+        let lowest = tops.iter().copied().min().unwrap_or(min_y);
         let uniform_top = (lowest - 10).max(min_y - 1);
         for y in min_y..=uniform_top {
             if y < 0 {
@@ -263,7 +303,7 @@ impl Overworld {
         for i in 0..256usize {
             let (x, z) = (i & 15, i >> 4);
             let (wx, wz) = (x0 + x as i32, z0 + z as i32);
-            let top = shapes[i].height;
+            let top = tops[i];
             let biome = cell_biomes[((z >> 2) << 2) | (x >> 2)];
             let patch = if top < sea_level {
                 self.patch.at2(f64::from(wx) * 0.04, f64::from(wz) * 0.04) * 1.6
@@ -384,12 +424,9 @@ impl Overworld {
         for ring in 0..=SPAWN_RINGS {
             for (dx, dz) in ring_offsets(ring) {
                 let (x, z) = (dx * SPAWN_STEP, dz * SPAWN_STEP);
-                let column = self.column_shape(dimension, x, z);
-                let dry = column.height >= sea_level && column.height <= sea_level + 35;
-                if dry
-                    && column.river < 0.3
-                    && let Some(spawn) = self.standing_spot(resources, dimension, x, z)
-                {
+                let top = self.column_height(dimension, x, z);
+                let dry = top >= sea_level && top <= sea_level + 35;
+                if dry && let Some(spawn) = self.standing_spot(resources, dimension, x, z) {
                     return spawn;
                 }
             }

@@ -242,17 +242,12 @@ def load_points(path, datapack):
     return names, points
 
 
-def render(graph, names, points):
-    lines = [
-        "use crate::multi_noise::{BiomePoint, DensityNode, NoiseParameters, SplinePoint, SplineSpec, SplineValue};",
-        "",
-        "pub(crate) static BIOMES: [&str; %d] = [" % len(names),
-    ]
-    for name in names:
-        lines.append('    "%s",' % name)
-    lines.append("];")
-    lines.append("")
-    lines.append("pub(crate) static NOISES: [NoiseParameters; %d] = [" % len(graph.noises))
+VARIANTS = [("NORMAL", "overworld"), ("LARGE", "large_biomes"), ("AMPLIFIED", "amplified")]
+
+
+def render_graph(prefix, graph):
+    lines = []
+    lines.append("pub(crate) static %s_NOISES: [NoiseParameters; %d] = [" % (prefix, len(graph.noises)))
     for name, base_octave, count, amplitude, modifiers in graph.noises:
         lines.append("    NoiseParameters {")
         lines.append('        id: "%s",' % name)
@@ -263,23 +258,40 @@ def render(graph, names, points):
         lines.append("    },")
     lines.append("];")
     lines.append("")
-    lines.append("pub(crate) static NODES: [DensityNode; %d] = [" % len(graph.nodes))
+    lines.append("pub(crate) static %s_NODES: [DensityNode; %d] = [" % (prefix, len(graph.nodes)))
     for node in graph.nodes:
         lines.append("    %s," % render_node(node))
     lines.append("];")
     lines.append("")
-    lines.append("pub(crate) static SPLINES: [SplineSpec; %d] = [" % len(graph.splines))
+    lines.append("pub(crate) static %s_SPLINES: [SplineSpec; %d] = [" % (prefix, len(graph.splines)))
     for coordinate, start, length in graph.splines:
         lines.append("    SplineSpec { coordinate: %d, start: %d, length: %d }," % (coordinate, start, length))
     lines.append("];")
     lines.append("")
-    lines.append("pub(crate) static SPLINE_POINTS: [SplinePoint; %d] = [" % len(graph.points))
+    lines.append("pub(crate) static %s_SPLINE_POINTS: [SplinePoint; %d] = [" % (prefix, len(graph.points)))
     for point in graph.points:
         lines.append("    %s," % render_point(point))
     lines.append("];")
     lines.append("")
-    lines.append("pub(crate) static ROUTER: [u16; 6] = [%s];" % ", ".join(str(graph.router[k]) for k in ROUTER_KEYS))
+    lines.append(
+        "pub(crate) static %s_ROUTER: [u16; 6] = [%s];" % (prefix, ", ".join(str(graph.router[k]) for k in ROUTER_KEYS))
+    )
     lines.append("")
+    return lines
+
+
+def render(graphs, names, points):
+    lines = [
+        "use crate::multi_noise::{BiomePoint, DensityNode, NoiseParameters, SplinePoint, SplineSpec, SplineValue};",
+        "",
+        "pub(crate) static BIOMES: [&str; %d] = [" % len(names),
+    ]
+    for name in names:
+        lines.append('    "%s",' % name)
+    lines.append("];")
+    lines.append("")
+    for prefix, graph in graphs:
+        lines.extend(render_graph(prefix, graph))
     lines.append("pub(crate) static POINTS: [BiomePoint; %d] = [" % len(points))
     for low, high, offset, biome in points:
         lines.append(
@@ -298,12 +310,15 @@ def main():
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
 
-    settings = load_json(os.path.join(args.datapack, "worldgen", "noise_settings", "overworld.json"))
-    router = settings["noise_router"]
-    graph = Graph(args.datapack)
-    graph.router = {key: graph.build(router[key]) for key in ROUTER_KEYS}
+    graphs = []
+    for prefix, settings_name in VARIANTS:
+        settings = load_json(os.path.join(args.datapack, "worldgen", "noise_settings", settings_name + ".json"))
+        router = settings["noise_router"]
+        graph = Graph(args.datapack)
+        graph.router = {key: graph.build(router[key]) for key in ROUTER_KEYS}
+        graphs.append((prefix, graph))
     names, points = load_points(args.points, args.datapack)
-    text = render(graph, names, points)
+    text = render(graphs, names, points)
     assert "//" not in text
     if args.check:
         if not os.path.exists(args.out) or open(args.out, encoding="utf-8").read() != text:

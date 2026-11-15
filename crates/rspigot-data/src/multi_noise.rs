@@ -92,13 +92,36 @@ pub struct DensityGraph {
     pub router: [u16; 6],
 }
 
-pub fn overworld_graph() -> DensityGraph {
-    DensityGraph {
-        noises: &table::NOISES,
-        nodes: &table::NODES,
-        splines: &table::SPLINES,
-        spline_points: &table::SPLINE_POINTS,
-        router: table::ROUTER,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClimateVariant {
+    Normal,
+    LargeBiomes,
+    Amplified,
+}
+
+pub fn overworld_graph(variant: ClimateVariant) -> DensityGraph {
+    match variant {
+        ClimateVariant::Normal => DensityGraph {
+            noises: &table::NORMAL_NOISES,
+            nodes: &table::NORMAL_NODES,
+            splines: &table::NORMAL_SPLINES,
+            spline_points: &table::NORMAL_SPLINE_POINTS,
+            router: table::NORMAL_ROUTER,
+        },
+        ClimateVariant::LargeBiomes => DensityGraph {
+            noises: &table::LARGE_NOISES,
+            nodes: &table::LARGE_NODES,
+            splines: &table::LARGE_SPLINES,
+            spline_points: &table::LARGE_SPLINE_POINTS,
+            router: table::LARGE_ROUTER,
+        },
+        ClimateVariant::Amplified => DensityGraph {
+            noises: &table::AMPLIFIED_NOISES,
+            nodes: &table::AMPLIFIED_NODES,
+            splines: &table::AMPLIFIED_SPLINES,
+            spline_points: &table::AMPLIFIED_SPLINE_POINTS,
+            router: table::AMPLIFIED_ROUTER,
+        },
     }
 }
 
@@ -124,9 +147,15 @@ mod tests {
 
     #[test]
     fn router_points_at_existing_nodes() {
-        let graph = overworld_graph();
-        for node in graph.router {
-            assert!(usize::from(node) < graph.nodes.len());
+        for variant in [
+            ClimateVariant::Normal,
+            ClimateVariant::LargeBiomes,
+            ClimateVariant::Amplified,
+        ] {
+            let graph = overworld_graph(variant);
+            for node in graph.router {
+                assert!(usize::from(node) < graph.nodes.len());
+            }
         }
         assert!(overworld_points().len() > 7000);
     }

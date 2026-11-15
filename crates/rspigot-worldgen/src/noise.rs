@@ -7,8 +7,9 @@ use rspigot_nbt::Compound;
 use crate::dimension::DimensionKind;
 use crate::end::End;
 use crate::nether::Nether;
-use crate::overworld::{NoiseScales, Overworld};
+use crate::overworld::Overworld;
 use crate::resources::Resources;
+use rspigot_data::multi_noise::ClimateVariant;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NoiseOptions {
@@ -52,13 +53,16 @@ impl NoiseGenerator {
     pub fn with_options(seed: i64, options: NoiseOptions) -> Self {
         let seed = seed as u64;
         let resources = Resources::resolve();
-        let scales = NoiseScales {
-            biome: options.biome_scale.max(0.25),
-            amplitude: options.amplitude.max(0.1),
+        let variant = if options.biome_scale > 1.0 {
+            ClimateVariant::LargeBiomes
+        } else if options.amplitude > 1.0 {
+            ClimateVariant::Amplified
+        } else {
+            ClimateVariant::Normal
         };
         Self {
             state: Box::new(NoiseState {
-                overworld: Overworld::new(seed, scales, &resources.blocks),
+                overworld: Overworld::new(seed, variant, &resources.blocks),
                 nether: Nether::new(seed, &resources.blocks),
                 end: End::new(seed),
                 resources,

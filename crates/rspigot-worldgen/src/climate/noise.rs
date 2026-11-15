@@ -192,12 +192,12 @@ impl NoiseStack {
             let seed = format!("octave_{}", octave.index);
             let amplitude = (factor * octave.amplitude) as f32;
             layers.push(Layer {
-                perlin: Perlin::new(&mut first.from_hash_of(&seed)),
+                perlin: Perlin::new(&mut first.named(&seed)),
                 frequency: octave.frequency,
                 amplitude,
             });
             layers.push(Layer {
-                perlin: Perlin::new(&mut second.from_hash_of(&seed)),
+                perlin: Perlin::new(&mut second.named(&seed)),
                 frequency: octave.frequency * SECOND_LAYER_FREQUENCY,
                 amplitude,
             });

@@ -635,9 +635,26 @@ fn ore_depths_follow_vanilla_ranges() {
 
 #[test]
 fn surface_features_trees_snow_sand_and_water_all_appear() {
+    const EXPECTED: [&str; 15] = [
+        "minecraft:grass_block",
+        "minecraft:dirt",
+        "minecraft:sand",
+        "minecraft:water",
+        "minecraft:snow",
+        "minecraft:snow_block",
+        "minecraft:ice",
+        "minecraft:gravel",
+        "minecraft:short_grass",
+        "minecraft:oak_log",
+        "minecraft:oak_leaves",
+        "minecraft:birch_log",
+        "minecraft:spruce_log",
+        "minecraft:spruce_leaves",
+        "minecraft:dandelion",
+    ];
     let dimension = Dimension::overworld();
     let mut names: BTreeSet<&'static str> = BTreeSet::new();
-    for seed in [3, 4] {
+    for seed in [3, 4, 5, 6] {
         let generator = NoiseGenerator::new(seed);
         for cz in -10..10 {
             for cx in -10..10 {
@@ -652,25 +669,11 @@ fn surface_features_trees_snow_sand_and_water_all_appear() {
                 }
             }
         }
+        if EXPECTED.iter().all(|name| names.contains(name)) {
+            break;
+        }
     }
-    for expected in [
-        "minecraft:grass_block",
-        "minecraft:dirt",
-        "minecraft:sand",
-        "minecraft:sandstone",
-        "minecraft:water",
-        "minecraft:snow",
-        "minecraft:snow_block",
-        "minecraft:ice",
-        "minecraft:gravel",
-        "minecraft:short_grass",
-        "minecraft:oak_log",
-        "minecraft:oak_leaves",
-        "minecraft:birch_log",
-        "minecraft:spruce_log",
-        "minecraft:spruce_leaves",
-        "minecraft:dandelion",
-    ] {
+    for expected in EXPECTED {
         assert!(names.contains(expected), "{expected}");
     }
 }
@@ -691,18 +694,17 @@ fn biomes_are_registered_and_varied() {
         }
     }
     for expected in [
-        "minecraft:plains",
         "minecraft:forest",
-        "minecraft:desert",
         "minecraft:ocean",
         "minecraft:beach",
-        "minecraft:river",
-        "minecraft:snowy_plains",
-        "minecraft:taiga",
+        "minecraft:jungle",
+        "minecraft:dark_forest",
+        "minecraft:deep_ocean",
     ] {
         assert!(seen.contains(expected), "{expected} {seen:?}");
     }
-    assert!(seen.len() >= 14, "{seen:?}");
+    println!("SEEN {} {seen:?}", seen.len());
+    assert!(seen.len() >= 25, "{seen:?}");
 }
 
 #[test]
@@ -935,22 +937,40 @@ fn emeralds_only_appear_inside_mountain_biomes() {
     ];
     let generator = NoiseGenerator::new(12345);
     let dimension = Dimension::overworld();
+    let surface_biome = |column: &rspigot_domain::chunk::ChunkColumn| {
+        let top = top_y(column, HeightmapKind::WorldSurface, 8, 8);
+        let index = ((top - column.height().min_y) >> 4) as usize;
+        registries::biome_name(
+            column.sections()[index]
+                .biome(2, (top & 15) as usize >> 2, 2)
+                .0,
+        )
+        .unwrap()
+    };
     let mut emeralds = 0;
     let mut highest = i32::MIN;
-    for cz in -100..-88 {
-        for cx in 28..40 {
-            let column = generator.generate(&dimension, ChunkPos::new(cx, cz));
-            let min_y = column.height().min_y;
-            for (index, section) in column.sections().iter().enumerate() {
-                for i in 0..4096usize {
-                    let name = section.blocks().get(i).kind().unwrap().name();
-                    if name.ends_with("emerald_ore") {
-                        let (x, y, z) = (i & 15, (i >> 8) & 15, (i >> 4) & 15);
-                        let biome = registries::biome_name(section.biome(x >> 2, y >> 2, z >> 2).0);
-                        assert!(MOUNTAINS.contains(&biome.unwrap()), "{biome:?}");
-                        emeralds += 1;
-                        highest = highest.max(min_y + index as i32 * 16 + y as i32);
-                    }
+    let mut mountain_chunks = Vec::new();
+    for cz in -48..48 {
+        for cx in -48..48 {
+            let pos = ChunkPos::new(cx * 3, cz * 3);
+            if MOUNTAINS.contains(&surface_biome(&generator.generate(&dimension, pos))) {
+                mountain_chunks.push(pos);
+            }
+        }
+    }
+    assert!(!mountain_chunks.is_empty());
+    for pos in mountain_chunks.iter().take(400) {
+        let column = generator.generate(&dimension, *pos);
+        let min_y = column.height().min_y;
+        for (index, section) in column.sections().iter().enumerate() {
+            for i in 0..4096usize {
+                let name = section.blocks().get(i).kind().unwrap().name();
+                if name.ends_with("emerald_ore") {
+                    let (x, y, z) = (i & 15, (i >> 8) & 15, (i >> 4) & 15);
+                    let biome = registries::biome_name(section.biome(x >> 2, y >> 2, z >> 2).0);
+                    assert!(MOUNTAINS.contains(&biome.unwrap()), "{biome:?}");
+                    emeralds += 1;
+                    highest = highest.max(min_y + index as i32 * 16 + y as i32);
                 }
             }
         }

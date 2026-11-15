@@ -45,14 +45,11 @@ impl ClimateFunctions {
         let noises = graph
             .noises
             .iter()
-            .map(|parameters| {
-                NoiseStack::create(parameters, &mut random.from_hash_of(parameters.id))
-            })
+            .map(|parameters| NoiseStack::create(parameters, &mut random.named(parameters.id)))
             .collect();
-        let mut uses_y = vec![false; graph.nodes.len()];
-        for index in 0..graph.nodes.len() {
-            uses_y[index] = Self::depends_on_y(&graph, index as u16);
-        }
+        let uses_y = (0..graph.nodes.len())
+            .map(|index| Self::depends_on_y(&graph, index as u16))
+            .collect();
         Self {
             graph,
             noises,
@@ -220,7 +217,7 @@ impl ClimateFunctions {
             &self.graph.spline_points[spec.start as usize..(spec.start + spec.length) as usize];
         let input = self.eval(scratch, spec.coordinate, x, y, z);
         let last = points.len() - 1;
-        let start = points.partition_point(|p| !(input < p.location));
+        let start = points.partition_point(|p| p.location <= input);
         let start = start as i32 - 1;
         let extend = |value: f32, index: usize| {
             let derivative = points[index].derivative;

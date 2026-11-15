@@ -1,6 +1,5 @@
 mod buffer;
 mod classify;
-#[allow(dead_code)]
 mod climate;
 mod dimension;
 mod end;

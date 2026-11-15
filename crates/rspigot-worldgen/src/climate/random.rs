@@ -97,7 +97,7 @@ pub(crate) struct Positional {
 }
 
 impl Positional {
-    pub(crate) fn from_hash_of(&self, name: &str) -> Xoroshiro {
+    pub(crate) fn named(&self, name: &str) -> Xoroshiro {
         let seed = Seed128::of_hash(name);
         Xoroshiro::from_parts(seed.lo ^ self.lo, seed.hi ^ self.hi)
     }
