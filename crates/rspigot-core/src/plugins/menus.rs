@@ -158,6 +158,7 @@ impl<L: ClientLink> Server<L> {
         let effects = if act {
             let clicker = Clicker {
                 infinite_materials: player.game_mode == GameMode::Creative,
+                experience_level: player.vitals.experience.level,
             };
             open.menu.click(
                 &mut held.items,

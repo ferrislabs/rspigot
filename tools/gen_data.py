@@ -1779,6 +1779,59 @@ def emit_compostables(providers, entries):
     return "\n".join(out) + "\n"
 
 
+def tag_reference(value, where):
+    if not isinstance(value, str) or not value.startswith("#"):
+        fail("expected a tag reference in %s, got %r" % (where, value))
+    return value
+
+
+def build_enchantments(datapack, synced):
+    names = {registry_id: entries for _, registry_id, entries in synced}["minecraft:enchantment"]
+    out = []
+    for name in names:
+        where = "enchantment " + name
+        value = load_json(os.path.join(datapack, "enchantment", name.split(":", 1)[1] + ".json"))
+        exclusive = value.get("exclusive_set")
+        primary = value.get("primary_items")
+        out.append(
+            {
+                "name": name,
+                "max_level": value["max_level"],
+                "min_cost": (value["min_cost"]["base"], value["min_cost"]["per_level_above_first"]),
+                "max_cost": (value["max_cost"]["base"], value["max_cost"]["per_level_above_first"]),
+                "anvil_cost": value["anvil_cost"],
+                "weight": value["weight"],
+                "exclusive_set": tag_reference(exclusive, where) if exclusive is not None else None,
+                "supported_items": tag_reference(value["supported_items"], where),
+                "primary_items": tag_reference(primary, where) if primary is not None else None,
+            }
+        )
+    return out
+
+
+def emit_enchantments(enchantments):
+    def option(value):
+        return "None" if value is None else 'Some("%s")' % value
+
+    out = ["use crate::enchantments::{Cost, EnchantmentDef};", ""]
+    out.append("pub(crate) static ENCHANTMENTS: [EnchantmentDef; %d] = [" % len(enchantments))
+    for entry in enchantments:
+        out.append("    EnchantmentDef {")
+        out.append('        name: "%s",' % entry["name"])
+        out.append("        max_level: %d," % entry["max_level"])
+        for key in ("min_cost", "max_cost"):
+            base, step = entry[key]
+            out.append("        %s: Cost { base: %d, per_level_above_first: %d }," % (key, base, step))
+        out.append("        anvil_cost: %d," % entry["anvil_cost"])
+        out.append("        weight: %d," % entry["weight"])
+        out.append("        exclusive_set: %s," % option(entry["exclusive_set"]))
+        out.append('        supported_items: "%s",' % entry["supported_items"])
+        out.append("        primary_items: %s," % option(entry["primary_items"]))
+        out.append("    },")
+    out.append("];")
+    return "\n".join(out) + "\n"
+
+
 def build_climate(datapack, synced):
     names = {registry_id: entries for _, registry_id, entries in synced}["minecraft:worldgen/biome"]
     climate = []
@@ -2441,6 +2494,7 @@ def emit_mod():
             "pub mod block_transformers;",
             "pub mod climate;",
             "pub mod compostable;",
+            "pub mod enchantments;",
             "pub mod loot;",
             "pub mod spawns;",
             "pub mod static_registries;",
@@ -2497,6 +2551,7 @@ def main():
     compost_providers, compostables = build_compostables(args.reports, args.datapack, static_registries)
     trading = build_trading(args.datapack, args.reports, static_registries, synced, tag_table)
     sulfur_cube = build_sulfur_cube_archetypes(args.datapack, tag_table)
+    enchantment_defs = build_enchantments(args.datapack, synced)
 
     files = {
         "mod.rs": emit_mod(),
@@ -2509,6 +2564,7 @@ def main():
         "climate.rs": emit_climate(climate),
         "block_transformers.rs": emit_transformers(transformers),
         "compostable.rs": emit_compostables(compost_providers, compostables),
+        "enchantments.rs": emit_enchantments(enchantment_defs),
         "trading.rs": emit_trading(*trading),
         "sulfur_cube.rs": emit_sulfur_cube_archetypes(sulfur_cube),
     }

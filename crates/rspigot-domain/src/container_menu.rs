@@ -1,10 +1,12 @@
 use rspigot_items::{CookingKind, EquipmentSlot, ItemId, ItemKind};
 
+use crate::anvil;
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
 use crate::entity::reward::max_damage;
 use crate::entity::trading::{MerchantOffer, MerchantOffers};
 use crate::furnace;
+use crate::grindstone;
 use crate::item::{
     HOTBAR_START, Inventory, ItemStack, Slot, count, max_stack, menu_slot, same_item,
     same_item_same_components, split, stacks_match, with_count,
@@ -452,7 +454,16 @@ pub struct ContainerMenu {
     remote_carried: RemoteSlot,
     cutter: Cutter,
     trade: Trade,
+    anvil: AnvilState,
     held: Option<Hold>,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+struct AnvilState {
+    name: Option<String>,
+    cost: i32,
+    repair_items: u32,
+    only_renaming: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -477,6 +488,8 @@ struct Session<'a> {
     carried: &'a mut Slot,
     cutter: &'a mut Cutter,
     trade: &'a mut Trade,
+    anvil: &'a mut AnvilState,
+    levels: i32,
     infinite: bool,
     effects: Vec<MenuEffect>,
 }
@@ -595,6 +608,12 @@ struct Look<'a> {
     player: &'a Inventory,
     carried: &'a Slot,
     instabuild: bool,
+    anvil_cost: i32,
+    levels: i32,
+}
+
+fn anvil_unaffordable(kind: MenuKind, slot: usize, cost: i32, levels: i32, infinite: bool) -> bool {
+    kind == MenuKind::Anvil && slot == anvil::RESULT && !infinite && (cost < 0 || cost > levels)
 }
 
 impl ClickView for Look<'_> {
@@ -616,8 +635,14 @@ impl ClickView for Look<'_> {
         self.carried
     }
 
-    fn may_pickup(&self, _: usize) -> bool {
-        true
+    fn may_pickup(&self, slot: usize) -> bool {
+        !anvil_unaffordable(
+            self.kind,
+            slot,
+            self.anvil_cost,
+            self.levels,
+            self.instabuild,
+        )
     }
 
     fn may_place(&self, slot: usize, stack: &ItemStack) -> bool {
@@ -679,6 +704,8 @@ impl Session<'_> {
             player: self.player,
             carried: self.carried,
             instabuild: self.infinite,
+            anvil_cost: self.anvil.cost,
+            levels: self.levels,
         }
     }
 
@@ -710,6 +737,12 @@ impl Session<'_> {
                 }
                 if self.kind == MenuKind::Smithing {
                     self.refresh_smithing(index != smithing::RESULT);
+                }
+                if self.kind == MenuKind::Anvil && index != anvil::RESULT {
+                    self.refresh_anvil();
+                }
+                if self.kind == MenuKind::Grindstone && index != grindstone::RESULT {
+                    self.refresh_grindstone();
                 }
                 if self.kind == MenuKind::Merchant && index < MERCHANT_RESULT {
                     self.update_sell_item();
@@ -748,6 +781,9 @@ impl Session<'_> {
     }
 
     fn try_remove(&mut self, slot: usize, amount: u32, decrement: u32) -> Slot {
+        if !self.may_pickup(slot) {
+            return None;
+        }
         let current = self.item(slot);
         if !self.may_place(slot, &current) && decrement < count(&current) {
             return None;
@@ -855,6 +891,42 @@ impl Session<'_> {
         }
     }
 
+    fn refresh_anvil(&mut self) {
+        let outcome = anvil::compute(
+            &self.container[anvil::INPUT],
+            &self.container[anvil::ADDITION],
+            self.anvil.name.as_deref(),
+            self.infinite,
+        );
+        self.container[anvil::RESULT] = outcome.result;
+        self.anvil.cost = outcome.cost;
+        self.anvil.repair_items = outcome.repair_items;
+        self.anvil.only_renaming = outcome.only_renaming;
+    }
+
+    fn refresh_grindstone(&mut self) {
+        self.container[grindstone::RESULT] = grindstone::compute(
+            &self.container[grindstone::FIRST],
+            &self.container[grindstone::SECOND],
+        );
+    }
+
+    fn take_grindstone(&mut self) {
+        let experience = grindstone::experience(
+            &self.container[grindstone::FIRST],
+            &self.container[grindstone::SECOND],
+        );
+        self.container[grindstone::FIRST] = None;
+        self.container[grindstone::SECOND] = None;
+        self.refresh_grindstone();
+        self.effects
+            .push(MenuEffect::GrindstoneTaken { experience });
+    }
+
+    fn may_pickup(&self, slot: usize) -> bool {
+        !anvil_unaffordable(self.kind, slot, self.anvil.cost, self.levels, self.infinite)
+    }
+
     fn refresh_smithing(&mut self, inputs_changed: bool) {
         if inputs_changed {
             let result = smithing::result(
@@ -868,6 +940,33 @@ impl Session<'_> {
             .iter()
             .all(Option::is_some)
             && self.container[smithing::RESULT].is_none();
+    }
+
+    fn take_anvil(&mut self) {
+        let levels = if self.infinite {
+            0
+        } else {
+            self.anvil.cost.max(0)
+        };
+        let used = self.anvil.repair_items;
+        if used < 1 {
+            if !self.anvil.only_renaming {
+                self.container[anvil::ADDITION] = None;
+            }
+        } else {
+            self.container[anvil::ADDITION] = match self.container[anvil::ADDITION].take() {
+                Some(addition) if u32::from(addition.count.get()) > used => {
+                    with_count(&addition, u32::from(addition.count.get()) - used)
+                }
+                _ => None,
+            };
+        }
+        self.container[anvil::INPUT] = None;
+        self.refresh_anvil();
+        self.effects.push(MenuEffect::AnvilTaken {
+            levels,
+            wear: !self.infinite,
+        });
     }
 
     fn took(&mut self, slot: usize, taken: &Slot, amount: u32) {
@@ -885,6 +984,14 @@ impl Session<'_> {
             if self.effects.last() != Some(&MenuEffect::SmithingTaken) {
                 self.effects.push(MenuEffect::SmithingTaken);
             }
+            return;
+        }
+        if self.kind == MenuKind::Anvil && slot == anvil::RESULT && taken.is_some() {
+            self.take_anvil();
+            return;
+        }
+        if self.kind == MenuKind::Grindstone && slot == grindstone::RESULT && taken.is_some() {
+            self.take_grindstone();
             return;
         }
         if self.kind == MenuKind::Stonecutter && slot == CUTTER_RESULT && taken.is_some() {
@@ -1125,6 +1232,9 @@ impl Session<'_> {
     }
 
     fn quick_move_stack(&mut self, slot: usize) -> Slot {
+        if !self.may_pickup(slot) {
+            return None;
+        }
         let copy = self.item(slot)?;
         let mut stack = Some(copy.clone());
         let mut moved = false;
@@ -1151,6 +1261,8 @@ impl Session<'_> {
             self.drop_stack(stack, false, true);
         } else if (self.kind.is_furnace() && slot == furnace::RESULT_SLOT)
             || (self.kind == MenuKind::Smithing && slot == smithing::RESULT)
+            || (self.kind == MenuKind::Anvil && slot == anvil::RESULT)
+            || (self.kind == MenuKind::Grindstone && slot == grindstone::RESULT)
         {
             self.took(slot, &Some(copy.clone()), moved_count);
         }
@@ -1213,6 +1325,7 @@ impl Session<'_> {
         let in_slot = self.item(target);
         match (&held, &in_slot) {
             (None, None) => {}
+            (None, Some(_)) if !self.may_pickup(target) => {}
             (None, Some(_)) => {
                 self.player.set(own, in_slot.clone());
                 self.put(target, None);
@@ -1343,6 +1456,7 @@ impl ContainerMenu {
             remote_carried: RemoteSlot::Known(None),
             cutter: Cutter::default(),
             trade: Trade::default(),
+            anvil: AnvilState::default(),
             held: None,
         }
     }
@@ -1372,6 +1486,8 @@ impl ContainerMenu {
             carried: &mut self.carried,
             cutter: &mut self.cutter,
             trade: &mut self.trade,
+            anvil: &mut self.anvil,
+            levels: clicker.experience_level,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
         };
@@ -1399,6 +1515,8 @@ impl ContainerMenu {
             player,
             carried: &self.carried,
             instabuild: clicker.infinite_materials,
+            anvil_cost: self.anvil.cost,
+            levels: clicker.experience_level,
         };
         click::classify(&look, slot, button, input)
     }
@@ -1419,6 +1537,8 @@ impl ContainerMenu {
             player,
             carried: &self.carried,
             instabuild: false,
+            anvil_cost: self.anvil.cost,
+            levels: 0,
         };
         Some(click::plan_drag(
             &look,
@@ -1453,6 +1573,8 @@ impl ContainerMenu {
             carried: &mut self.carried,
             cutter: &mut self.cutter,
             trade: &mut self.trade,
+            anvil: &mut self.anvil,
+            levels: 0,
             infinite: false,
             effects: Vec::new(),
         };
@@ -1481,6 +1603,8 @@ impl ContainerMenu {
             carried: &mut self.carried,
             cutter: &mut self.cutter,
             trade: &mut self.trade,
+            anvil: &mut self.anvil,
+            levels: 0,
             infinite: false,
             effects: Vec::new(),
         };
@@ -1503,6 +1627,8 @@ impl ContainerMenu {
             carried: &mut self.carried,
             cutter: &mut self.cutter,
             trade: &mut self.trade,
+            anvil: &mut self.anvil,
+            levels: clicker.experience_level,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
         };
@@ -1567,6 +1693,8 @@ impl ContainerMenu {
             carried: &mut self.carried,
             cutter: &mut self.cutter,
             trade: &mut self.trade,
+            anvil: &mut self.anvil,
+            levels: 0,
             infinite: false,
             effects: Vec::new(),
         };
@@ -1589,6 +1717,8 @@ impl ContainerMenu {
             carried: &mut self.carried,
             cutter: &mut self.cutter,
             trade: &mut self.trade,
+            anvil: &mut self.anvil,
+            levels: 0,
             infinite: false,
             effects: Vec::new(),
         };
@@ -1601,8 +1731,43 @@ impl ContainerMenu {
         match self.kind {
             MenuKind::Stonecutter => vec![i16::try_from(self.cutter.selected).unwrap_or(-1)],
             MenuKind::Smithing => vec![i16::from(self.cutter.error)],
+            MenuKind::Anvil => vec![i16::try_from(self.anvil.cost).unwrap_or(i16::MAX)],
             _ => Vec::new(),
         }
+    }
+
+    pub fn rename(
+        &mut self,
+        container: &mut Vec<Slot>,
+        player: &mut Inventory,
+        name: &str,
+        clicker: Clicker,
+    ) -> bool {
+        if self.kind != MenuKind::Anvil {
+            return false;
+        }
+        let Some(name) = anvil::valid_name(name) else {
+            return false;
+        };
+        if self.anvil.name.as_deref() == Some(name) {
+            return false;
+        }
+        container.resize(self.kind.container_size(), None);
+        self.anvil.name = Some(name.to_owned());
+        let mut session = Session {
+            kind: self.kind,
+            container,
+            player,
+            carried: &mut self.carried,
+            cutter: &mut self.cutter,
+            trade: &mut self.trade,
+            anvil: &mut self.anvil,
+            levels: clicker.experience_level,
+            infinite: clicker.infinite_materials,
+            effects: Vec::new(),
+        };
+        session.refresh_anvil();
+        true
     }
 
     pub fn press(&mut self, container: &mut Vec<Slot>, button: i32) -> bool {
@@ -4366,5 +4531,251 @@ mod tests {
         container[0] = Some(stack("minecraft:emerald", 2));
         let effects = menu.set_offers(&mut container, &mut player, menu.merchant_offers().clone());
         assert_eq!(effects, vec![MenuEffect::TradeUpdated { valid: true }]);
+    }
+
+    fn anvil() -> (ContainerMenu, Vec<Slot>, Inventory) {
+        workstation(MenuKind::Anvil)
+    }
+
+    fn anvil_set(
+        menu: &mut ContainerMenu,
+        container: &mut Vec<Slot>,
+        player: &mut Inventory,
+        slot: usize,
+        item: ItemStack,
+    ) {
+        menu.set_slot(container, player, slot, Some(item));
+    }
+
+    fn pick_result(
+        menu: &mut ContainerMenu,
+        container: &mut Vec<Slot>,
+        player: &mut Inventory,
+        clicker: Clicker,
+    ) -> Vec<MenuEffect> {
+        menu.click(container, player, 2, 0, ClickInput::Pickup, clicker)
+    }
+
+    fn named(item: &str, name: &str) -> ItemStack {
+        let mut named = stack(item, 1);
+        named.set_custom_name(Some(&crate::text::Component::text(name)));
+        named
+    }
+
+    #[test]
+    fn the_anvil_computes_its_result_and_publishes_the_cost() {
+        let (mut menu, mut container, mut player) = anvil();
+        assert_eq!(menu.data(), vec![0]);
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:diamond_sword", 1),
+        );
+        assert_eq!(container[2], None);
+        assert!(menu.rename(&mut container, &mut player, "Blade", Clicker::default()));
+        assert_eq!(
+            container[2].as_ref().and_then(|r| r.custom_name()),
+            Some(crate::text::Component::text("Blade"))
+        );
+        assert_eq!(menu.data(), vec![1]);
+        assert!(!menu.rename(&mut container, &mut player, "Blade", Clicker::default()));
+        assert!(!menu.rename(
+            &mut container,
+            &mut player,
+            &"x".repeat(51),
+            Clicker::default()
+        ));
+    }
+
+    #[test]
+    fn the_anvil_result_cannot_be_taken_without_the_levels() {
+        let (mut menu, mut container, mut player) = anvil();
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:diamond_sword", 1),
+        );
+        menu.rename(&mut container, &mut player, "Blade", Clicker::default());
+        let effects = pick_result(&mut menu, &mut container, &mut player, Clicker::default());
+        assert!(effects.is_empty());
+        assert_eq!(menu.carried(), &None);
+        assert!(container[2].is_some());
+        assert!(container[0].is_some());
+    }
+
+    #[test]
+    fn taking_the_anvil_result_spends_the_levels_and_consumes_the_inputs() {
+        let (mut menu, mut container, mut player) = anvil();
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:diamond_sword", 1),
+        );
+        menu.rename(&mut container, &mut player, "Blade", Clicker::default());
+        let clicker = Clicker {
+            infinite_materials: false,
+            experience_level: 5,
+        };
+        let effects = pick_result(&mut menu, &mut container, &mut player, clicker);
+        assert_eq!(
+            effects,
+            vec![MenuEffect::AnvilTaken {
+                levels: 1,
+                wear: true
+            }]
+        );
+        assert_eq!(
+            menu.carried().as_ref().and_then(|r| r.custom_name()),
+            Some(crate::text::Component::text("Blade"))
+        );
+        assert_eq!(container[0], None);
+        assert_eq!(container[2], None);
+        assert_eq!(menu.data(), vec![-1]);
+    }
+
+    #[test]
+    fn a_rename_keeps_the_material_but_a_repair_uses_only_what_it_needs() {
+        let (mut menu, mut container, mut player) = anvil();
+        let mut sword = stack("minecraft:diamond_sword", 1);
+        crate::entity::reward::set_damage_value(&mut sword, 100);
+        anvil_set(&mut menu, &mut container, &mut player, 0, sword);
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            1,
+            stack("minecraft:diamond", 5),
+        );
+        let clicker = Clicker {
+            infinite_materials: false,
+            experience_level: 30,
+        };
+        let effects = pick_result(&mut menu, &mut container, &mut player, clicker);
+        assert_eq!(
+            effects,
+            vec![MenuEffect::AnvilTaken {
+                levels: 1,
+                wear: true
+            }]
+        );
+        assert_eq!(container[1], Some(stack("minecraft:diamond", 4)));
+        assert_eq!(container[0], None);
+    }
+
+    #[test]
+    fn a_renamed_item_keeps_the_addition_when_only_renaming() {
+        let (mut menu, mut container, mut player) = anvil();
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            named("minecraft:diamond_sword", "Old"),
+        );
+        let clicker = Clicker {
+            infinite_materials: true,
+            experience_level: 0,
+        };
+        menu.rename(&mut container, &mut player, "New", clicker);
+        let effects = pick_result(&mut menu, &mut container, &mut player, clicker);
+        assert_eq!(
+            effects,
+            vec![MenuEffect::AnvilTaken {
+                levels: 0,
+                wear: false
+            }]
+        );
+    }
+
+    #[test]
+    fn shift_clicking_the_anvil_result_needs_the_levels_too() {
+        let (mut menu, mut container, mut player) = anvil();
+        anvil_set(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            stack("minecraft:diamond_sword", 1),
+        );
+        menu.rename(&mut container, &mut player, "Blade", Clicker::default());
+        let (moved, effects) =
+            menu.quick_move_once(&mut container, &mut player, 2, Clicker::default());
+        assert_eq!(moved, None);
+        assert!(effects.is_empty());
+        let rich = Clicker {
+            infinite_materials: false,
+            experience_level: 3,
+        };
+        let (moved, effects) = menu.quick_move_once(&mut container, &mut player, 2, rich);
+        assert!(moved.is_some());
+        assert_eq!(
+            effects,
+            vec![MenuEffect::AnvilTaken {
+                levels: 1,
+                wear: true
+            }]
+        );
+        assert_eq!(container[0], None);
+    }
+
+    fn sharp_sword() -> ItemStack {
+        let mut sword = stack("minecraft:diamond_sword", 1);
+        sword.set_enchantments(&[
+            ("minecraft:sharpness".to_owned(), 3),
+            ("minecraft:vanishing_curse".to_owned(), 1),
+        ]);
+        sword
+    }
+
+    #[test]
+    fn the_grindstone_strips_an_enchanted_item_and_pays_experience_when_taken() {
+        let (mut menu, mut container, mut player) = workstation(MenuKind::Grindstone);
+        menu.set_slot(&mut container, &mut player, 0, Some(sharp_sword()));
+        let result = container[2].clone().expect("a result");
+        assert_eq!(
+            result.enchantments(),
+            vec![("minecraft:vanishing_curse".to_owned(), 1)]
+        );
+        let effects = click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            2,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(
+            effects,
+            vec![MenuEffect::GrindstoneTaken { experience: 23 }]
+        );
+        assert_eq!(menu.carried(), &Some(result));
+        assert_eq!(container, vec![None, None, None]);
+    }
+
+    #[test]
+    fn the_grindstone_gives_nothing_for_a_plain_item_and_shift_click_takes_the_result() {
+        let (mut menu, mut container, mut player) = workstation(MenuKind::Grindstone);
+        menu.set_slot(
+            &mut container,
+            &mut player,
+            0,
+            Some(stack("minecraft:diamond_sword", 1)),
+        );
+        assert_eq!(container[2], None);
+        menu.set_slot(&mut container, &mut player, 0, Some(sharp_sword()));
+        let (moved, effects) =
+            menu.quick_move_once(&mut container, &mut player, 2, Clicker::default());
+        assert!(moved.is_some());
+        assert_eq!(
+            effects,
+            vec![MenuEffect::GrindstoneTaken { experience: 23 }]
+        );
+        assert_eq!(container[0], None);
     }
 }

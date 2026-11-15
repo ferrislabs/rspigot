@@ -1,4 +1,5 @@
 pub mod admin;
+mod anvil;
 mod armor_stand;
 mod beacon;
 mod beehive;

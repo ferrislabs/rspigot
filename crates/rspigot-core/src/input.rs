@@ -146,6 +146,7 @@ impl<L: ClientLink> Server<L> {
                 self.handle_set_beacon(id, primary, secondary);
             }
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
+            PlayerInput::RenameItem(name) => self.rename_item(id, &name),
             PlayerInput::RecipeBookSettings {
                 kind,
                 open,
@@ -936,6 +937,7 @@ const fn acts(input: &PlayerInput) -> bool {
             | PlayerInput::ContainerButtonClick { .. }
             | PlayerInput::SetBeacon { .. }
             | PlayerInput::SelectTrade(_)
+            | PlayerInput::RenameItem(_)
     )
 }
 

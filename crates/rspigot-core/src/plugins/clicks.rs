@@ -1,6 +1,8 @@
+use rspigot_domain::anvil;
 use rspigot_domain::click::{Classified, ClickAction, ClickType, Drag};
 use rspigot_domain::container_menu::MenuKind;
 use rspigot_domain::crafting;
+use rspigot_domain::grindstone;
 use rspigot_domain::item::{Slot, stacks_match};
 use rspigot_domain::menu::{ClickInput, Clicker, InventoryMenu, OUTSIDE, RESULT_SLOT};
 use rspigot_domain::player::{GameMode, PlayerId};
@@ -249,6 +251,7 @@ impl<L: ClientLink> Server<L> {
         let player = self.players.get(&id)?;
         let clicker = Clicker {
             infinite_materials: player.game_mode == GameMode::Creative,
+            experience_level: player.vitals.experience.level,
         };
         Some(match window {
             Window::Inventory => player.menu.classify(
@@ -873,6 +876,8 @@ impl<L: ClientLink> Server<L> {
                 let range = match open.menu.kind() {
                     MenuKind::Crafting => CRAFT_GRID,
                     MenuKind::Smithing => 0..=smithing::INPUTS - 1,
+                    MenuKind::Anvil => anvil::INPUT..=anvil::ADDITION,
+                    MenuKind::Grindstone => grindstone::FIRST..=grindstone::SECOND,
                     _ => return None,
                 };
                 self.open_items(open).get(range).map(<[Slot]>::to_vec)
@@ -890,6 +895,8 @@ impl<L: ClientLink> Server<L> {
                 let slot = match open.menu.kind() {
                     MenuKind::Crafting => 0,
                     MenuKind::Smithing => smithing::RESULT,
+                    MenuKind::Anvil => anvil::RESULT,
+                    MenuKind::Grindstone => grindstone::RESULT,
                     _ => return None,
                 };
                 self.open_items(open).get(slot).cloned().flatten()
