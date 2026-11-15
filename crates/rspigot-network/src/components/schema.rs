@@ -1028,6 +1028,7 @@ pub(super) fn node(name: &str) -> Option<Node> {
         "minecraft:cat/sound_variant" => Node::Reg(Reg::Synced("minecraft:cat_sound_variant")),
         "minecraft:attribute_modifiers" => Node::List(&ATTRIBUTE_ENTRY, 1 << 20),
         "minecraft:equippable" => EQUIPPABLE,
+        "minecraft:block_transformer" => Node::Reg(Reg::Synced("minecraft:block_transformer")),
         "minecraft:attack_range" => ATTACK_RANGE,
         "minecraft:death_protection" => DEATH_PROTECTION,
         "minecraft:blocks_attacks" => BLOCKS_ATTACKS,

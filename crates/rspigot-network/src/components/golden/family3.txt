@@ -86,3 +86,5 @@ minecraft:writable_book_content | {} | 00
 minecraft:written_book_content | {title:"T",author:"A",pages:["p1","p2"]} | 0154000141000208000270310008000270320000
 minecraft:written_book_content | {title:{raw:"T",filtered:"F"},author:"A",generation:2,pages:[{raw:"p1",filtered:"f1"}],resolved:1b} | 015401014601410201080002703101080002663101
 minecraft:zombie_nautilus/variant | "minecraft:temperate" | 00
+minecraft:block_transformer | "minecraft:axe" | 00
+minecraft:block_transformer | "minecraft:shovel" | 02

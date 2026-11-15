@@ -8,6 +8,8 @@ use crate::text::Component;
 
 pub const CUSTOM_NAME: &str = "minecraft:custom_name";
 pub const LORE: &str = "minecraft:lore";
+pub const MAX_STACK_SIZE: &str = "minecraft:max_stack_size";
+const MAX_STACK_COMPONENT: u32 = 99;
 pub const ENCHANTMENTS: &str = "minecraft:enchantments";
 pub const MAX_LORE_LINES: usize = 256;
 const ENCHANTMENT_LEVELS: &str = "levels";
@@ -96,7 +98,12 @@ pub fn count(slot: &Slot) -> u32 {
 }
 
 pub fn max_stack(stack: &ItemStack) -> u32 {
-    u32::from(stack.item.max_stack_size())
+    stack
+        .components
+        .get_i32(MAX_STACK_SIZE)
+        .and_then(|size| u32::try_from(size).ok())
+        .filter(|size| (1..=MAX_STACK_COMPONENT).contains(size))
+        .unwrap_or_else(|| u32::from(stack.item.max_stack_size()))
 }
 
 pub fn with_count(stack: &ItemStack, count: u32) -> Slot {
@@ -419,6 +426,20 @@ mod tests {
 
     fn stone(count: u8) -> ItemStack {
         ItemStack::new(ItemId(1), NonZeroU8::new(count).unwrap())
+    }
+
+    #[test]
+    fn a_max_stack_size_component_replaces_the_item_default_within_vanilla_bounds() {
+        let mut stack = stone(1);
+        assert_eq!(max_stack(&stack), 64);
+        stack.components.insert(MAX_STACK_SIZE, 16);
+        assert_eq!(max_stack(&stack), 16);
+        stack.components.insert(MAX_STACK_SIZE, 99);
+        assert_eq!(max_stack(&stack), 99);
+        stack.components.insert(MAX_STACK_SIZE, 0);
+        assert_eq!(max_stack(&stack), 64);
+        stack.components.insert(MAX_STACK_SIZE, 100);
+        assert_eq!(max_stack(&stack), 64);
     }
 
     #[test]
