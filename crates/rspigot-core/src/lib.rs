@@ -104,6 +104,7 @@ mod sleeping;
 mod sound;
 mod spawning;
 mod sponge;
+pub mod stats;
 pub mod status;
 mod steering;
 pub mod streaming;

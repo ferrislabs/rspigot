@@ -147,6 +147,7 @@ pub enum PlayerInput {
         flying: bool,
     },
     Respawn,
+    RequestStats,
     ClientTickEnd,
     Attack(EntityId),
     Interact {
@@ -420,6 +421,7 @@ pub enum ClientEvent {
     Abilities(Abilities),
     HeldSlot(u8),
     RecipeSync,
+    Stats(Vec<(i32, i32, i32)>),
     SpawnPosition {
         dimension: Identifier,
         pos: BlockPos,

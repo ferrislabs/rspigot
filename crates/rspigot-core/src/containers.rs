@@ -903,10 +903,12 @@ impl<L: ClientLink> Server<L> {
         let mut updated = Vec::new();
         let mut anvil = Vec::new();
         let mut ground = Vec::new();
+        let mut crafted = Vec::new();
         for effect in effects {
             match effect {
                 MenuEffect::Drop { .. } => drops.push(effect),
                 MenuEffect::FurnaceOutputTaken { item, amount } => taken.push((item, amount)),
+                MenuEffect::Crafted { item, amount } => crafted.push((item, amount)),
                 MenuEffect::Traded { offer } => traded.push(offer),
                 MenuEffect::TradeUpdated { valid } => updated.push(valid),
                 MenuEffect::AnvilTaken { levels, wear } => anvil.push((levels, wear)),
@@ -915,7 +917,11 @@ impl<L: ClientLink> Server<L> {
             }
         }
         for (item, amount) in taken {
+            self.count_crafted(id, item, amount);
             self.pay_furnace_experience(id, backing.pos, item, amount);
+        }
+        for (item, amount) in crafted {
+            self.count_crafted(id, item, amount);
         }
         self.apply_menu_effects(id, drops);
         for offer in traded {

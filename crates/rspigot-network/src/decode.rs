@@ -188,6 +188,7 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
         }),
         ServerboundPlay::ClientCommand(p) => match p.action {
             ClientCommandAction::PerformRespawn => input(PlayerInput::Respawn),
+            ClientCommandAction::RequestStats => input(PlayerInput::RequestStats),
             _ => Decoded::Ignored,
         },
         ServerboundPlay::ClientInformation(info) => {
@@ -444,6 +445,11 @@ mod tests {
                 patched: true,
             }))
         );
+    }
+
+    #[test]
+    fn a_client_command_asks_for_the_stats() {
+        assert_eq!(decoded(sb::CLIENT_COMMAND, &[1]), PlayerInput::RequestStats);
     }
 
     #[test]

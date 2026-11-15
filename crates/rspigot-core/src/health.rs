@@ -30,6 +30,7 @@ use crate::plugins::{
 };
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use crate::stats;
 use crate::travel::Destination;
 
 pub const HEAD_SLOT: usize = 5;
@@ -517,6 +518,14 @@ impl<L: ClientLink> Server<L> {
             if let Some(player) = self.players.get_mut(&id) {
                 commit_hurt(player, source, dealt, &attributes, now);
             }
+            let tenths = (dealt * 10.0).round() as i32;
+            self.award_custom(id, stats::custom::DAMAGE_TAKEN, tenths);
+            if let Some(attacker) = source.attacker()
+                && source.direct.as_ref().map(|direct| direct.entity)
+                    == source.causing.as_ref().map(|cause| cause.entity)
+            {
+                self.award_custom(attacker, stats::custom::DAMAGE_DEALT, tenths);
+            }
         }
         let Some(player) = self.players.get_mut(&id) else {
             return false;
@@ -623,6 +632,7 @@ impl<L: ClientLink> Server<L> {
         }
         player.vitals.dying = true;
         let victim = Component::text(player.profile.name.clone());
+        let killer = player.vitals.kill_credit.as_ref().map(|c| c.player);
         let credit = player.vitals.kill_credit.as_ref().map(|c| &c.name);
         let message = player.vitals.combat.death_message(&victim, credit);
         let keep = keep_rule || player.game_mode == GameMode::Spectator;
@@ -637,6 +647,7 @@ impl<L: ClientLink> Server<L> {
         let text = crate::console::console_text(&message);
         let forgotten = self.decisions.forget(id);
         self.notify_undone(forgotten, Phase::Settled);
+        self.count_player_death(id, killer, source);
         let payload = {
             let text = text.clone();
             move |server: &Self| {

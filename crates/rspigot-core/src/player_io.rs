@@ -5,7 +5,7 @@ use crossbeam_channel::{Receiver, Sender, bounded, unbounded};
 use rspigot_domain::player::PlayerId;
 use rspigot_nbt::Compound;
 
-use crate::ports::{PlayerStore, StoreError};
+use crate::ports::{PlayerStore, ProgressFile, StoreError};
 
 enum Job {
     Load {
@@ -15,6 +15,16 @@ enum Job {
     Save {
         player: PlayerId,
         data: Compound,
+    },
+    LoadProgress {
+        player: PlayerId,
+        file: ProgressFile,
+        reply: Sender<Result<Option<String>, StoreError>>,
+    },
+    SaveProgress {
+        player: PlayerId,
+        file: ProgressFile,
+        json: String,
     },
 }
 
@@ -48,6 +58,33 @@ impl PlayerIo {
         }
     }
 
+    pub fn load_progress(
+        &self,
+        player: PlayerId,
+        file: ProgressFile,
+    ) -> Result<Option<String>, StoreError> {
+        let (reply, answer) = bounded(1);
+        let closed = || std::io::Error::from(std::io::ErrorKind::BrokenPipe);
+        self.jobs
+            .send(Job::LoadProgress {
+                player,
+                file,
+                reply,
+            })
+            .map_err(|_| closed())?;
+        answer.recv().map_err(|_| closed())?
+    }
+
+    pub fn save_progress(&self, player: PlayerId, file: ProgressFile, json: String) {
+        if self
+            .jobs
+            .send(Job::SaveProgress { player, file, json })
+            .is_err()
+        {
+            tracing::warn!("Player data writer is gone, {player} progress was not saved");
+        }
+    }
+
     pub fn shutdown(self) {
         drop(self.jobs);
         if let Some(handle) = self.handle {
@@ -65,6 +102,18 @@ fn run<S: PlayerStore>(store: &S, inbox: &Receiver<Job>) {
             Job::Save { player, data } => {
                 if let Err(error) = store.save_player(player, &data) {
                     tracing::warn!("Failed to save player data for {player}: {error}");
+                }
+            }
+            Job::LoadProgress {
+                player,
+                file,
+                reply,
+            } => {
+                let _ = reply.send(store.load_progress(player, file));
+            }
+            Job::SaveProgress { player, file, json } => {
+                if let Err(error) = store.save_progress(player, file, &json) {
+                    tracing::warn!("Failed to save {file:?} for {player}: {error}");
                 }
             }
         }

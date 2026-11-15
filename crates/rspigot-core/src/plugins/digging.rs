@@ -27,6 +27,7 @@ use crate::plugins::{
 };
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use crate::stats::StatKind;
 use rspigot_domain::game_event::GameEvent;
 
 const MINING_EXHAUSTION: f32 = 0.005;
@@ -411,6 +412,9 @@ impl<L: ClientLink> Server<L> {
         let survival = step.game_mode == GameMode::Survival;
         if survival {
             self.wear_tool_for_mining(id, hardness_of(step.state));
+            if let Some(kind) = step.state.kind() {
+                self.award(id, StatKind::Mined, kind.name(), 1);
+            }
         }
         if !drop_items {
             self.pay_block_exp(pos, exp);

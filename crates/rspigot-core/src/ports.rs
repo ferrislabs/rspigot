@@ -61,9 +61,32 @@ pub trait EntityStore: Send + Sync + 'static {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ProgressFile {
+    Stats,
+    Advancements,
+}
+
 pub trait PlayerStore: Send + Sync + 'static {
     fn load_player(&self, player: PlayerId) -> Result<Option<Compound>, StoreError>;
     fn save_player(&self, player: PlayerId, data: &Compound) -> Result<(), StoreError>;
+
+    fn load_progress(
+        &self,
+        _player: PlayerId,
+        _file: ProgressFile,
+    ) -> Result<Option<String>, StoreError> {
+        Ok(None)
+    }
+
+    fn save_progress(
+        &self,
+        _player: PlayerId,
+        _file: ProgressFile,
+        _json: &str,
+    ) -> Result<(), StoreError> {
+        Ok(())
+    }
 }
 
 pub trait ChunkGenerator: Send + Sync + 'static {

@@ -586,6 +586,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_book_setting(step);
                 Vec::new()
             }
+            Continuation::Stat(step) => {
+                self.finish_stat(step, cancelled);
+                Vec::new()
+            }
             Continuation::EditBook(step) => {
                 self.finish_edit_book(*step, cancelled, patch_of!(patch, PlayerEditBook));
                 Vec::new()

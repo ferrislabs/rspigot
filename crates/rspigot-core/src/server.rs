@@ -703,6 +703,7 @@ impl<L: ClientLink> Server<L> {
             portal_cooldown: 0,
             seen_credits: false,
             recipe_book: Default::default(),
+            stats: Default::default(),
             won_game: false,
             moved_this_tick: false,
             using_item: None,
@@ -727,6 +728,7 @@ impl<L: ClientLink> Server<L> {
                 player.dim = save.dimension.clone();
             }
         }
+        player.stats = self.load_stats(player.id);
         tracing::info!(
             "{}[/{}] logged in with entity id {} at ([{}]{:.1}, {:.1}, {:.1})",
             player.name(),
@@ -848,6 +850,7 @@ impl<L: ClientLink> Server<L> {
         if !self.players.contains_key(&id) {
             return;
         }
+        self.award_custom(id, crate::stats::custom::LEAVE_GAME, 1);
         self.settle_lane(Lane::Player(id), false);
         if !self.players.contains_key(&id) {
             return;
@@ -972,6 +975,7 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_health();
+        self.tick_stat_clocks();
         self.tick_sleeping();
         self.tick_eating();
         self.tick_delayed_destroys();

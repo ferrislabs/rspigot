@@ -1065,6 +1065,19 @@ impl Encoder {
             ),
             ClientEvent::Abilities(a) => Self::queue(writer, &abilities(a)),
             ClientEvent::RecipeSync => Self::queue(writer, &update_recipes()),
+            ClientEvent::Stats(entries) => Self::queue(
+                writer,
+                &cb::AwardStats {
+                    stats: entries
+                        .iter()
+                        .map(|(stat_type, value, amount)| cb::StatEntry {
+                            stat_type: *stat_type,
+                            value: *value,
+                            amount: *amount,
+                        })
+                        .collect(),
+                },
+            ),
             ClientEvent::HeldSlot(slot) => Self::queue(
                 writer,
                 &cb::SetHeldSlot {
@@ -2801,6 +2814,14 @@ mod tests {
         assert_eq!(event.len(), 1);
         assert_eq!(event[0].0, id::UPDATE_RECIPES);
         assert_eq!(event[0].1[0], 9);
+    }
+
+    #[test]
+    fn stats_are_one_award_stats_packet() {
+        let event = encode(ClientEvent::Stats(vec![(8, 23, 1)]));
+        assert_eq!(event.len(), 1);
+        assert_eq!(event[0].0, id::AWARD_STATS);
+        assert_eq!(event[0].1, vec![1, 8, 23, 1]);
     }
 
     #[test]

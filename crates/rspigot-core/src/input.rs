@@ -145,6 +145,7 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::SetBeacon { primary, secondary } => {
                 self.handle_set_beacon(id, primary, secondary);
             }
+            PlayerInput::RequestStats => self.send_stats(id),
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
             PlayerInput::RenameItem(name) => self.rename_item(id, &name),
             PlayerInput::RecipeBookSettings {
@@ -288,6 +289,7 @@ impl<L: ClientLink> Server<L> {
         let yaw = player.rotation.yaw;
         self.check_fall(id, to.y - from.y, on_ground);
         if position.is_some() {
+            self.count_movement(id, from, to);
             self.player_step(id, from, to, on_ground);
         }
         if position.is_some() || rotation.is_some() {

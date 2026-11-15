@@ -247,6 +247,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.play_sound(None, position, BURP_SOUND, SoundSource::Players, 0.5, 1.0);
         self.game_event(GameEvent::Eat, position, GameEventContext::of(Some(entity)));
+        self.count_used(id, &stack);
         self.send_inventory(id);
     }
 }

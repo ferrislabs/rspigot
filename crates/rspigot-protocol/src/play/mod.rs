@@ -8,6 +8,7 @@ pub mod entity;
 pub mod inventory;
 pub mod metadata;
 pub mod player;
+pub mod progress;
 pub mod serverbound;
 pub mod slot;
 pub mod types;
@@ -43,6 +44,7 @@ pub mod clientbound {
         SetDefaultSpawnPosition, SetExperience, SetHealth, SetHeldSlot, StartConfiguration,
         TabList, TickingState, TickingStep,
     };
+    pub use super::progress::{AwardStats, StatEntry};
     pub use super::world::{
         BlockChangedAck, BlockDestruction, BlockEntityData, BlockEvent, BlockUpdate,
         ChunkBatchFinished, ChunkBatchStart, Explode, ExplosionParticle, GameEvent, GameRuleValues,
@@ -143,6 +145,7 @@ mod tests {
             (<HurtAnimation as Packet>::ID, 43),
             (<PlayerCombatKill as Packet>::ID, 69),
             (<BossEvent as Packet>::ID, 9),
+            (<AwardStats as Packet>::ID, 3),
         ];
         for (actual, expected) in table {
             assert_eq!(actual, expected);
