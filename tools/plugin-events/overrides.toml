@@ -113,8 +113,8 @@ EntitiesLoad = "after the entities of a loaded chunk are added, also when there 
 EntitiesUnload = "before the entities of an unloading chunk are saved and removed, never for an autosave"
 TNTPrime = "a TNT block about to become a primed TNT: a redstone signal (REDSTONE, with the block that changed as priming block), a player lighting it with flint and steel or a fire charge (PLAYER, with the player), a fire burning it (FIRE, with the fire), another explosion destroying it (EXPLOSION, with the exploding entity), and a dispenser holding flint and steel (DISPENSER, with the dispenser); a cancel keeps the TNT block, and the item of the player unused; a burning arrow (PROJECTILE) and a player breaking an unstable block (BLOCK_BREAK) are not produced yet"
 TimeSkip = "COMMAND for /time add and CUSTOM for the plugin time order; with a deciding handler the time moves once the event settles, by the settled amount, and a cancel keeps it, a documented deviation from Spigot 26.3 which moves it before firing; /time set fires nothing"
-WorldInit = "when the server starts its world, before the spawn chunks; the plugin port is already open, so it reaches the plugins connected by then"
-WorldLoad = "once the spawn chunks are ready, for the plugins connected by then"
+WorldInit = "when the server starts its world, before the spawn chunks; the plugin port is already open, so it reaches the plugins connected by then; also for each other dimension (nether, end) when it is first created, with the world field set to that dimension"
+WorldLoad = "once the spawn chunks are ready, for the plugins connected by then; for a dimension created later (nether, end) right after its world init, while its spawn chunks are still loading, with the world field set to that dimension"
 WorldSave = "before /save-all, the plugin save orders and the autosave write, and at shutdown before the final save while plugins are still connected"
 SpawnChange = "from /setworldspawn and the plugin spawn order, after the change and only when the spawn moves"
 WeatherChange = "from /weather and the plugin weather order when the rain flag changes, before ThunderChange; a cancel keeps the sky and sends nothing, as there is no natural weather cycle or timer"
@@ -262,6 +262,9 @@ PlayerFish = "a player casting a fishing rod (FISHING, with the hand, asked befo
 PlayerRiptide = "observer only, a player releasing a trident with Riptide after 10 ticks of use in water or rain, not riding, with the trident and the push velocity (1.5 plus 0.75 per level above the first, along the look direction), before the player is pushed; the trident loses 1 durability, a 20 tick spin attack hurts the first living entity touched for 8 and sends the player back at a fifth of its speed, and the ground lift of the launch is left to the client"
 EntityToggleGlide = "a player starting to glide (gliding true: START_FALL_FLYING sent in the air, not in water, with an elytra in the chest slot that is not about to break, no Levitation and not riding), asked before the flag is set, and a gliding player who can no longer glide (landing, a broken elytra, Levitation, riding), asked once per tick while it waits; a cancel keeps the flag as it was and resends it; the elytra loses 1 durability every 20 ticks; players only, a mob never glides yet, and the wall impact damage of a glide is not applied"
 FireworkExplode = "a firework rocket at the end of its flight (life above lifetime, 10 ticks per flight level plus a roll of 0 to 5 and 0 to 6), hitting a mob, a player or another entity it can hit, or hitting a block while it holds at least one explosion, asked before it bursts, asked again each tick while it keeps flying after a cancel; a rocket used on a block rises from the clicked point, one used by a gliding player is attached to the player and spent when launched; allowed, the burst hurts living entities within 5 blocks in line of sight for 5 plus 2 per explosion scaled by the distance, the attached player for the full amount, and removes the rocket (cause EXPLODE); the thrust on the elytra is left to the client, and dispensers do not launch rockets yet"
+SpawnerSpawn = "a spawner block with a player alive and not spectating within its required range, once its delay ran out, for each mob it is about to place (up to its spawn count in a round), after the spawn spot, the collision, the spawn rules, the crowd limit and the mob checks passed and before the creature spawn; a cancel discards that mob, keeps the delay as it is and lets the round try the next one; the spawner field carries the block, the mob type it spawns and its delay"
+LootGenerate = "a player opening a chest-like block (chest, trapped chest, barrel, shulker box, hopper, dispenser) or a chest or hopper minecart whose loot table is still pending, asked once the table is rolled and before the container is filled, with the holder, the opener as entity and looted entity, the rolled items, the loot table key and plugin false; the table is spent before the event, so a cancel leaves the container empty for good; a patch of loot replaces the items put in random free slots; only tables the server knows are rolled (blocks, entities and gameplay, not the structure chests) and a double chest unpacks each half in turn"
+EntityBreakDoor = "a zombie (or other mob with the break-doors goal: drowned, husk, vindicator) that has stood at a closed door long enough to break it, asked before the door block is removed, with the door block, air as the new state and the mob; the handlers of EntityChangeBlock hear it too; a cancel keeps the door"
 
 [states]
 ready = []
@@ -271,17 +274,14 @@ AsyncStructureGenerate = "the Nether and End dimensions and structures (#23)"
 AsyncStructureSpawn = "the Nether and End dimensions and structures (#23)"
 BlockBrush = "its mechanic"
 BlockDispenseLoot = "the vault and the trial chambers (keys, ominous vaults, loot rolls and the dispense state machine), the only source of this event"
-EntityBreakDoor = "the mobs or objects involved"
 EntityPortalExit = "a Spigot that fires it, which 26.3 never does"
-LootGenerate = "chest loot"
 MapInitialize = "maps"
 PlayerLinksSend = "server links, which the server does not have (no configuration, no ServerLinks packet sent), and a Spigot that fires it during the configuration phase, before the player exists in the core"
 RemoteServerCommand = "RCON (#28)"
 SculkBloom = "the sculk catalyst and its spreader (cursors, charge decay, sculk growth), and the entity die game event, which living mobs do not fire yet"
-SpawnerSpawn = "the mobs or objects involved"
-TrialSpawnerSpawn = "the mobs or objects involved"
+TrialSpawnerSpawn = "the trial spawner block: no block entity, no state machine (inactive, waiting for players, active, ejecting rewards, cooldown), no per-player scaling of the mobs and no ominous variant"
 VaultDisplayItem = "the vault block, which does not exist yet: no block entity, no key check, no loot table roll and no display item rotation"
-WorldUnload = "several worlds, since the overworld never unloads"
+WorldUnload = "dimension worlds, which stay loaded for the whole run once created: the server has no unload path for them and the overworld never unloads"
 
 [events.PlayerMove]
 unread = { setFrom = "Spigot never reads it back: a cancel always sends the player to where the move started" }

@@ -23,6 +23,7 @@ pub struct Seed {
     pub kind: BlockKind,
     pub properties: Vec<(&'static str, &'static str)>,
     pub items: Vec<Option<(&'static str, u8)>>,
+    pub data: Compound,
 }
 
 impl Seed {
@@ -32,6 +33,19 @@ impl Seed {
             kind,
             properties: Vec::new(),
             items: Vec::new(),
+            data: Compound::new(),
+        }
+    }
+
+    pub fn carrying(mut self, key: &'static str, value: impl Into<Tag>) -> Self {
+        self.data.insert(key, value);
+        self
+    }
+
+    fn block_entity_name(&self) -> &str {
+        match self.kind {
+            BlockKind::Spawner => "mob_spawner",
+            kind => kind.name().trim_start_matches("minecraft:"),
         }
     }
 
@@ -86,10 +100,14 @@ impl ChunkGenerator for Seeded {
                     )
                 })
                 .collect();
+            let mut data = Compound::new().with("Items", Tag::List(list));
+            for (key, value) in seed.data.iter() {
+                data.insert(key, value.clone());
+            }
             chunk.set_block_entity(BlockEntity {
                 pos: seed.pos,
-                kind: Identifier::minecraft(seed.kind.name().trim_start_matches("minecraft:")),
-                data: Compound::new().with("Items", Tag::List(list)),
+                kind: Identifier::minecraft(seed.block_entity_name()),
+                data,
             });
         }
         chunk

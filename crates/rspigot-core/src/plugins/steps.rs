@@ -950,6 +950,20 @@ pub(crate) enum Spawned {
     Carries(Box<Carried>),
     Pattern(Vec<(BlockPos, BlockStateId)>),
     Hive(Box<HiveRelease>),
+    Spawner(SpawnerRound),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct SpawnerRound {
+    pub(crate) pos: BlockPos,
+    pub(crate) left: i32,
+    pub(crate) spawned: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct SpawnerStep {
+    pub(crate) round: SpawnerRound,
+    pub(crate) entity: Entity,
 }
 
 #[derive(Debug)]
@@ -1690,6 +1704,10 @@ pub(crate) enum Continuation {
         bee: EntityId,
         pos: BlockPos,
     },
+    BreakDoor {
+        mob: EntityId,
+        pos: BlockPos,
+    },
     BatSleep {
         bat: EntityId,
         awake: bool,
@@ -1717,6 +1735,8 @@ pub(crate) enum Continuation {
     DragonWalls(Box<DragonWallStep>),
     PlaceCrystal(Box<CrystalPlaceStep>),
     PlaceHanging(Box<HangingPlaceStep>),
+    SpawnerSpawn(Box<SpawnerStep>),
+    LootGenerate(Box<crate::container_loot::LootStep>),
     PlaceStand(Box<StandPlaceStep>),
     PlaceVehicle(Box<VehiclePlaceStep>),
     HurtVehicle(Box<VehicleHurtStep>),
@@ -1911,6 +1931,7 @@ impl Continuation {
             Self::EggBreak { .. } | Self::DoorOpen { .. } => EventKind::EntityInteract,
             Self::RaidTrigger { .. } => EventKind::RaidTrigger,
             Self::EnterHive { .. } => EventKind::EntityEnterBlock,
+            Self::BreakDoor { .. } => EventKind::EntityBreakDoor,
             Self::BatSleep { .. } => EventKind::BatToggleSleep,
             Self::TargetBlock { .. } => EventKind::EntityTargetBlock,
             Self::EntityExplode(_) => EventKind::EntityExplode,
@@ -1923,6 +1944,8 @@ impl Continuation {
             Self::DragonWalls(_) => EventKind::EntityExplode,
             Self::PlaceCrystal(_) => EventKind::EntityPlace,
             Self::PlaceHanging(_) => EventKind::HangingPlace,
+            Self::SpawnerSpawn(_) => EventKind::SpawnerSpawn,
+            Self::LootGenerate(_) => EventKind::LootGenerate,
             Self::PlaceStand(_) | Self::PlaceVehicle(_) => EventKind::EntityPlace,
             Self::HurtVehicle(_) => EventKind::VehicleDamage,
             Self::DestroyVehicle(_) => EventKind::VehicleDestroy,
@@ -2049,6 +2072,7 @@ impl Continuation {
             Self::Form(step) => step.entity == id,
             Self::Ignite(step) => step.projectile == id,
             Self::EnterHive { bee: mob, .. }
+            | Self::BreakDoor { mob, .. }
             | Self::BatSleep { bat: mob, .. }
             | Self::EggBreak { mob, .. }
             | Self::DoorOpen { mob, .. }
@@ -2066,6 +2090,7 @@ impl Continuation {
             Self::DragonWalls(step) => step.dragon == id,
             Self::PlaceCrystal(step) => step.entity.base.id == id,
             Self::PlaceHanging(step) => step.entity.base.id == id,
+            Self::SpawnerSpawn(step) => step.entity.base.id == id,
             Self::PlaceStand(step) => step.entity.base.id == id,
             Self::PlaceVehicle(step) => step.entity.base.id == id,
             Self::HurtVehicle(step) => step.vehicle == id,

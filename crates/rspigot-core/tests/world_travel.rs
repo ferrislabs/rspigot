@@ -263,3 +263,36 @@ fn an_allowed_end_platform_is_built_when_the_decision_settles() {
     let obsidian = rspigot_blocks::BlockKind::Obsidian.default_state();
     assert_eq!(platform_block(&mut s), Some(obsidian));
 }
+
+#[test]
+fn loading_a_dimension_fires_world_init_then_world_load_for_that_world() {
+    let mut s = scene_with(
+        &["Alice"],
+        vec![
+            observe(1, EventKind::WorldInit),
+            observe(2, EventKind::WorldLoad),
+        ],
+    );
+    s.server.load_dimension(
+        nether(),
+        Dimension::nether(),
+        Arc::new(Floor),
+        Arc::new(NoStore),
+    );
+    s.server.deliver();
+    let kinds: Vec<EventKind> = fired(&s.plugin)
+        .into_iter()
+        .map(|event| event.payload.kind())
+        .collect();
+    assert_eq!(kinds, [EventKind::WorldInit, EventKind::WorldLoad]);
+    let EventPayload::WorldInit(init) = &settled_for(&s.plugin, EventKind::WorldInit)[0].payload
+    else {
+        panic!("expected a world init");
+    };
+    assert_eq!(init.world, "minecraft:the_nether");
+    let EventPayload::WorldLoad(load) = &settled_for(&s.plugin, EventKind::WorldLoad)[0].payload
+    else {
+        panic!("expected a world load");
+    };
+    assert_eq!(load.world, "minecraft:the_nether");
+}

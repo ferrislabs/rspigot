@@ -1012,6 +1012,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_game_events();
         self.tick_campfires();
         self.tick_beehives();
+        self.tick_spawners();
         self.tick_inventories();
         if primary {
             self.players.extend(away.drain(..));

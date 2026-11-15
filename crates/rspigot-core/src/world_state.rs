@@ -104,6 +104,8 @@ impl<L: ClientLink> Server<L> {
             if server.entities.fight.is_none() && server.world.dimension.has_dragon_fight() {
                 server.ensure_dragon_fight(rspigot_domain::BlockPos::new(0, 0, 0), true);
             }
+            server.announce_world_init();
+            server.announce_world_load();
         });
     }
 

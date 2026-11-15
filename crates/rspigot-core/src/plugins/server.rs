@@ -1135,6 +1135,12 @@ impl<L: ClientLink> Server<L> {
                 self.finish_enter_hive(bee, pos, cancelled);
                 Vec::new()
             }
+            Continuation::BreakDoor { mob, pos } => {
+                if !cancelled {
+                    self.finish_break_door(mob, pos);
+                }
+                Vec::new()
+            }
             Continuation::BatSleep { bat, awake } => {
                 if !cancelled {
                     self.finish_bat_sleep(bat, awake);
@@ -1226,6 +1232,14 @@ impl<L: ClientLink> Server<L> {
             }
             Continuation::PlaceHanging(step) => {
                 self.finish_hanging_place(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::LootGenerate(step) => {
+                self.finish_loot_generate(*step, cancelled, patch_of!(patch, LootGenerate));
+                Vec::new()
+            }
+            Continuation::SpawnerSpawn(step) => {
+                self.finish_spawner_spawn(*step, cancelled);
                 Vec::new()
             }
             Continuation::PlaceStand(step) => {

@@ -2522,11 +2522,14 @@ def emit_sulfur_cube_archetypes(archetypes):
 def emit_mod():
     return "\n".join(
         [
+            "pub mod advancements;",
             "pub mod block_transformers;",
+            "pub mod brewing;",
             "pub mod climate;",
             "pub mod compostable;",
             "pub mod enchantments;",
             "pub mod loot;",
+            "pub mod recipe_book;",
             "pub mod spawns;",
             "pub mod static_registries;",
             "pub mod sulfur_cube;",
