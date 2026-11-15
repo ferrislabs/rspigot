@@ -73,6 +73,23 @@ impl Tag {
         }
     }
 
+    pub fn contains(&self, actual: &Tag) -> bool {
+        match (self, actual) {
+            (Self::Compound(expected), Self::Compound(actual)) => expected
+                .iter()
+                .all(|(key, want)| actual.get(key).is_some_and(|have| want.contains(have))),
+            (Self::List(expected), Self::List(actual)) => {
+                if expected.is_empty() {
+                    return actual.is_empty();
+                }
+                expected
+                    .iter()
+                    .all(|want| actual.iter().any(|have| want.contains(have)))
+            }
+            (expected, actual) => expected == actual,
+        }
+    }
+
     pub fn as_i64(&self) -> Option<i64> {
         match self {
             Self::Byte(v) => Some(i64::from(*v)),
@@ -182,5 +199,27 @@ impl From<Vec<i64>> for Tag {
 impl From<Vec<i32>> for Tag {
     fn from(v: Vec<i32>) -> Self {
         Self::IntArray(v)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parsed(text: &str) -> Tag {
+        Tag::Compound(crate::parse_compound(text).expect("valid snbt").0)
+    }
+
+    #[test]
+    fn contains_is_a_partial_structural_match() {
+        let actual = parsed("{A:1b,B:{C:2,D:3},L:[{x:1},{x:2}],E:[]}");
+        assert!(parsed("{A:1b}").contains(&actual));
+        assert!(parsed("{B:{D:3}}").contains(&actual));
+        assert!(parsed("{L:[{x:2}]}").contains(&actual));
+        assert!(!parsed("{L:[{x:3}]}").contains(&actual));
+        assert!(!parsed("{A:1}").contains(&actual));
+        assert!(!parsed("{Z:1b}").contains(&actual));
+        assert!(parsed("{E:[]}").contains(&actual));
+        assert!(!parsed("{L:[]}").contains(&actual));
     }
 }

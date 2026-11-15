@@ -8,3 +8,6 @@ pub use tree::{ArgumentParser, CommandNode, CommandNodeKind, CommandTree, build_
 
 #[cfg(test)]
 mod execute_tests;
+
+#[cfg(test)]
+mod selector_tests;

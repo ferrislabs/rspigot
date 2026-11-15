@@ -568,6 +568,23 @@ impl<L: ClientLink> CommandContext for Server<L> {
 pub(crate) const SUMMON_FAILED: &str = "commands.summon.failed";
 pub(crate) const SUMMON_DUPLICATE_UUID: &str = "commands.summon.failed.uuid";
 
+fn advancement_matches(
+    progress: &crate::advancements::PlayerAdvancements,
+    id: &str,
+    want: &selector::AdvancementWant,
+) -> bool {
+    let Some((index, found)) = rspigot_data::advancements::find(id) else {
+        return false;
+    };
+    match want {
+        selector::AdvancementWant::Done(done) => progress.is_done(index) == *done,
+        selector::AdvancementWant::Criteria(criteria) => criteria.iter().all(|(name, flag)| {
+            found.criteria.iter().any(|known| known.name == name)
+                && progress.has(index, name) == *flag
+        }),
+    }
+}
+
 struct Candidate<'a> {
     target: Target,
     kind: Kind,
@@ -835,6 +852,93 @@ impl<L: ClientLink> Server<L> {
         out
     }
 
+    fn state_matches(&self, selector: &Selector, candidate: &Candidate<'_>) -> bool {
+        let player = match candidate.target {
+            Target::Player(id) => self.players.get(&id),
+            Target::Entity(_) => None,
+        };
+        if let Some((min, max)) = selector.level {
+            let Some(player) = player else {
+                return false;
+            };
+            let level = player.vitals.experience.level;
+            if min.is_some_and(|m| level < m) || max.is_some_and(|m| level > m) {
+                return false;
+            }
+        }
+        if !selector.game_modes.is_empty() {
+            let Some(player) = player else {
+                return false;
+            };
+            if !selector
+                .game_modes
+                .iter()
+                .all(|(negated, mode)| (player.game_mode == *mode) != *negated)
+            {
+                return false;
+            }
+        }
+        let (pitch, yaw) = match (candidate.target, player) {
+            (_, Some(player)) => (player.rotation.pitch, player.rotation.yaw),
+            (Target::Entity(id), None) => self
+                .entities
+                .store
+                .get(id)
+                .map_or((0.0, 0.0), |e| (e.base.pitch, e.base.yaw)),
+            (Target::Player(_), None) => (0.0, 0.0),
+        };
+        if selector
+            .x_rotation
+            .is_some_and(|range| !selector::wrapped_range_matches(range, f64::from(pitch)))
+            || selector
+                .y_rotation
+                .is_some_and(|range| !selector::wrapped_range_matches(range, f64::from(yaw)))
+        {
+            return false;
+        }
+        if !selector
+            .teams
+            .iter()
+            .all(|(negated, team)| team.is_empty() != *negated)
+        {
+            return false;
+        }
+        if !selector.scores.is_empty() {
+            return false;
+        }
+        if !selector.predicates.iter().all(|(negated, _)| *negated) {
+            return false;
+        }
+        if !selector.advancements.is_empty() {
+            let Some(player) = player else {
+                return false;
+            };
+            if !selector
+                .advancements
+                .iter()
+                .all(|(id, want)| advancement_matches(&player.advancements, id, want))
+            {
+                return false;
+            }
+        }
+        selector.nbt.iter().all(|(negated, expected)| {
+            let actual = match (candidate.target, player) {
+                (_, Some(player)) => Some(crate::player_data::PlayerSave::capture(player).to_nbt()),
+                (Target::Entity(id), None) => self
+                    .entities
+                    .store
+                    .get(id)
+                    .and_then(|entity| self.entity_nbt(entity, None)),
+                (Target::Player(_), None) => None,
+            };
+            actual.is_some_and(|actual| {
+                rspigot_nbt::Tag::Compound(expected.clone())
+                    .contains(&rspigot_nbt::Tag::Compound(actual))
+                    != *negated
+            })
+        })
+    }
+
     fn evaluate_selector(&self, sender: CommandSender, selector: &Selector) -> Vec<Target> {
         let base = self.sender_origin(sender);
         let origin = Vec3::new(
@@ -872,14 +976,15 @@ impl<L: ClientLink> Server<L> {
             {
                 return false;
             }
-            selector.tags.iter().all(|(negated, tag)| {
+            let tags_match = selector.tags.iter().all(|(negated, tag)| {
                 let has = if tag.is_empty() {
                     candidate.tags.is_empty()
                 } else {
                     candidate.tags.iter().any(|t| t == tag)
                 };
                 has != *negated
-            })
+            });
+            tags_match && self.state_matches(selector, candidate)
         };
         let mut found: Vec<Candidate<'_>> = match &selector.base {
             SelectorBase::Name(name) => self
