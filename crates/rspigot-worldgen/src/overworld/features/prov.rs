@@ -57,7 +57,7 @@ pub(crate) enum Int {
 }
 
 fn between(rng: &mut Xoroshiro, min: i32, max: i32) -> i32 {
-    if min >= max {
+    if min > max {
         min
     } else {
         min + rng.below(max - min + 1)
