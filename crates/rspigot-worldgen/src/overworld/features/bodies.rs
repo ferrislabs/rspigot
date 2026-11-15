@@ -139,6 +139,9 @@ pub(crate) enum Feature {
     Vines,
     Mushroom(Box<super::mushrooms::Mushroom>),
     Fallen(Box<super::fallen::Fallen>),
+    Spike(Box<super::ice::Spike>),
+    Iceberg(super::ice::Iceberg),
+    BlueIce(super::ice::BlueIce),
     RandomSelector {
         entries: Vec<(f32, Arc<Placed>)>,
         default: Arc<Placed>,
@@ -314,6 +317,9 @@ impl<'a> Compiler<'a> {
             }),
             "bamboo" => Feature::Bamboo(number(value, "probability", 0.0) as f32),
             "vines" => Feature::Vines,
+            "spike" => Feature::Spike(Box::new(super::ice::Spike::compile(value))),
+            "iceberg" => Feature::Iceberg(super::ice::Iceberg::compile(value)),
+            "blue_ice" => Feature::BlueIce(super::ice::BlueIce),
             "fallen_tree" => Feature::Fallen(Box::new(super::fallen::Fallen::compile(value, self))),
             "huge_red_mushroom" => {
                 Feature::Mushroom(Box::new(super::mushrooms::Mushroom::compile(value, true)))
@@ -397,6 +403,9 @@ impl Feature {
             Self::Vines => 1,
             Self::Mushroom(mushroom) => mushroom.reach(),
             Self::Fallen(fallen) => fallen.reach(),
+            Self::Spike(spike) => spike.reach(),
+            Self::Iceberg(iceberg) => iceberg.reach(),
+            Self::BlueIce(ice) => ice.reach(),
             Self::Disk(_) => 8,
             Self::RandomSelector { entries, default } => entries
                 .iter()
@@ -428,6 +437,9 @@ impl Feature {
             Self::Vines => place_vines(run, pos),
             Self::Mushroom(mushroom) => mushroom.place(run, pos),
             Self::Fallen(fallen) => fallen.place(run, pos),
+            Self::Spike(spike) => spike.place(run, pos),
+            Self::Iceberg(iceberg) => iceberg.place(run, pos),
+            Self::BlueIce(ice) => ice.place(run, pos),
             Self::RandomSelector { entries, default } => {
                 for (chance, placed) in entries {
                     if run.rng.next_float() < *chance {

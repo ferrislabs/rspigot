@@ -84,14 +84,14 @@ fn cells(region: &mut Region, (y0, y1): (i32, i32)) -> Vec<BlockStateId> {
     states
 }
 
-pub(super) fn fingerprint(
+pub(super) fn lines(
     bench: &Bench,
     spec: &str,
     feature: &str,
     origin: (i32, i32, i32),
     seed: i64,
     band: (i32, i32),
-) -> (usize, u64) {
+) -> Vec<String> {
     let mut region = world(bench, spec);
     let before = cells(&mut region, band);
     bench.place(&mut region, feature, origin, seed);
@@ -109,6 +109,18 @@ pub(super) fn fingerprint(
         }
     }
     lines.sort();
+    lines
+}
+
+pub(super) fn fingerprint(
+    bench: &Bench,
+    spec: &str,
+    feature: &str,
+    origin: (i32, i32, i32),
+    seed: i64,
+    band: (i32, i32),
+) -> (usize, u64) {
+    let lines = lines(bench, spec, feature, origin, seed, band);
     let mut hash = 0xcbf2_9ce4_8422_2325_u64;
     for line in &lines {
         for byte in line.bytes().chain(std::iter::once(b'\n')) {

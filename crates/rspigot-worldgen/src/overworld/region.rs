@@ -201,6 +201,10 @@ impl<'a> Region<'a> {
         self.dimension.height
     }
 
+    pub(crate) fn sea_level(&self) -> i32 {
+        self.dimension.sea_level
+    }
+
     pub(crate) fn center(&self) -> ChunkPos {
         self.center
     }
