@@ -5,7 +5,10 @@ use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
 use super::place::{Modifier, Placed, Run};
-use super::prov::{BlockSet, Int, Pos, Pred, State, flag, integer, number, short, survives, text};
+use super::prov::{
+    BlockSet, Int, Pos, Pred, State, flag, integer, is_fluid, is_solid, number, short, survives,
+    text,
+};
 use crate::datapack::block_state;
 use crate::overworld::region::Heightmap;
 
@@ -105,6 +108,21 @@ pub(crate) struct Spring {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct Lake {
+    fluid: State,
+    barrier: State,
+    can_place: Pred,
+    replace_fluid: Pred,
+    replace_barrier: Pred,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Blob {
+    state: BlockStateId,
+    can_place_on: Pred,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) enum Feature {
     NoOp,
     Simple {
@@ -115,6 +133,10 @@ pub(crate) enum Feature {
     Disk(Disk),
     Spring(Spring),
     Tree(Box<super::tree::Tree>),
+    Lake(Box<Lake>),
+    Blob(Blob),
+    Bamboo(f32),
+    Vines,
     RandomSelector {
         entries: Vec<(f32, Arc<Placed>)>,
         default: Arc<Placed>,
@@ -266,6 +288,30 @@ impl<'a> Compiler<'a> {
                 Some(tree) => Feature::Tree(Box::new(tree)),
                 None => Feature::Unsupported,
             },
+            "lake" => Feature::Lake(Box::new(Lake {
+                fluid: State::compile(value.get("fluid").unwrap_or(&Value::Null)),
+                barrier: State::compile(value.get("barrier").unwrap_or(&Value::Null)),
+                can_place: Pred::compile(value.get("can_place_feature").unwrap_or(&Value::Null)),
+                replace_fluid: Pred::compile(
+                    value
+                        .get("can_replace_with_air_or_fluid")
+                        .unwrap_or(&Value::Null),
+                ),
+                replace_barrier: Pred::compile(
+                    value
+                        .get("can_replace_with_barrier")
+                        .unwrap_or(&Value::Null),
+                ),
+            })),
+            "block_blob" => Feature::Blob(Blob {
+                state: value
+                    .get("state")
+                    .and_then(block_state)
+                    .unwrap_or(BlockStateId::AIR),
+                can_place_on: Pred::compile(value.get("can_place_on").unwrap_or(&Value::Null)),
+            }),
+            "bamboo" => Feature::Bamboo(number(value, "probability", 0.0) as f32),
+            "vines" => Feature::Vines,
             "random_selector" => {
                 let entries = value
                     .get("features")
@@ -336,6 +382,10 @@ impl Feature {
             Self::NoOp | Self::Simple { .. } | Self::Column(_) | Self::Spring(_) => 1,
             Self::Ore(_) => 9,
             Self::Tree(_) => 12,
+            Self::Lake(_) => 16,
+            Self::Blob(_) => 6,
+            Self::Bamboo(_) => 5,
+            Self::Vines => 1,
             Self::Disk(_) => 8,
             Self::RandomSelector { entries, default } => entries
                 .iter()
@@ -361,6 +411,10 @@ impl Feature {
             Self::Disk(disk) => place_disk(disk, run, pos),
             Self::Spring(spring) => place_spring(spring, run, pos),
             Self::Tree(tree) => tree.place(run, pos),
+            Self::Lake(lake) => place_lake(lake, run, pos),
+            Self::Blob(blob) => place_blob(blob, run, pos),
+            Self::Bamboo(probability) => place_bamboo(*probability, run, pos),
+            Self::Vines => place_vines(run, pos),
             Self::RandomSelector { entries, default } => {
                 for (chance, placed) in entries {
                     if run.rng.next_float() < *chance {
@@ -685,6 +739,222 @@ fn place_spring(spring: &Spring, run: &mut Run, (x, y, z): Pos) -> bool {
     if rocks == spring.rocks && holes == spring.holes {
         run.region.set(x, y, z, spring.state);
         return true;
+    }
+    false
+}
+
+fn lake_cell(x: i32, z: i32, y: i32) -> usize {
+    ((x * 16 + z) * 8 + y) as usize
+}
+
+fn place_lake(lake: &Lake, run: &mut Run, origin: Pos) -> bool {
+    if origin.1 <= run.region.height().min_y + 4 {
+        return false;
+    }
+    let (ox, oy, oz) = (origin.0 - 8, origin.1 - 4, origin.2 - 8);
+    let mut grid = [false; 2048];
+    let blobs = run.rng.below(4) + 4;
+    for _ in 0..blobs {
+        let sx = run.rng.next_double() * 6.0 + 3.0;
+        let sy = run.rng.next_double() * 4.0 + 2.0;
+        let sz = run.rng.next_double() * 6.0 + 3.0;
+        let cx = run.rng.next_double() * (16.0 - sx - 2.0) + 1.0 + sx / 2.0;
+        let cy = run.rng.next_double() * (8.0 - sy - 4.0) + 2.0 + sy / 2.0;
+        let cz = run.rng.next_double() * (16.0 - sz - 2.0) + 1.0 + sz / 2.0;
+        for x in 1..15 {
+            for z in 1..15 {
+                for y in 1..7 {
+                    let dx = (f64::from(x) - cx) / (sx / 2.0);
+                    let dy = (f64::from(y) - cy) / (sy / 2.0);
+                    let dz = (f64::from(z) - cz) / (sz / 2.0);
+                    if dx * dx + dy * dy + dz * dz < 1.0 {
+                        grid[lake_cell(x, z, y)] = true;
+                    }
+                }
+            }
+        }
+    }
+    let fluid = lake.fluid.resolve(run.region, run.rng, origin);
+    let adjacent = |grid: &[bool; 2048], x: i32, z: i32, y: i32| {
+        !grid[lake_cell(x, z, y)]
+            && ((x < 15 && grid[lake_cell(x + 1, z, y)])
+                || (x > 0 && grid[lake_cell(x - 1, z, y)])
+                || (z < 15 && grid[lake_cell(x, z + 1, y)])
+                || (z > 0 && grid[lake_cell(x, z - 1, y)])
+                || (y < 7 && grid[lake_cell(x, z, y + 1)])
+                || (y > 0 && grid[lake_cell(x, z, y - 1)]))
+    };
+    for x in 0..16 {
+        for z in 0..16 {
+            for y in 0..8 {
+                if !adjacent(&grid, x, z, y) {
+                    continue;
+                }
+                let at = (ox + x, oy + y, oz + z);
+                let state = run.region.get(at.0, at.1, at.2);
+                if y >= 4 && is_fluid(state) {
+                    return false;
+                }
+                if y < 4 && !is_solid(state) && Some(state) != fluid {
+                    return false;
+                }
+                if !lake.can_place.test(run.region, at) {
+                    return false;
+                }
+            }
+        }
+    }
+    for x in 0..16 {
+        for z in 0..16 {
+            for y in 0..8 {
+                if !grid[lake_cell(x, z, y)] {
+                    continue;
+                }
+                let at = (ox + x, oy + y, oz + z);
+                if lake.replace_fluid.test(run.region, at) {
+                    let above = y >= 4;
+                    let state = if above {
+                        Some(BlockStateId::AIR)
+                    } else {
+                        fluid
+                    };
+                    if let Some(state) = state {
+                        run.region.set(at.0, at.1, at.2, state);
+                    }
+                }
+            }
+        }
+    }
+    let barrier = lake.barrier.resolve(run.region, run.rng, origin);
+    if let Some(barrier) = barrier.filter(|state| !state.is_air()) {
+        for x in 0..16 {
+            for z in 0..16 {
+                for y in 0..8 {
+                    if !adjacent(&grid, x, z, y) {
+                        continue;
+                    }
+                    if y < 4 || run.rng.below(2) != 0 {
+                        let at = (ox + x, oy + y, oz + z);
+                        if lake.replace_barrier.test(run.region, at) {
+                            run.region.set(at.0, at.1, at.2, barrier);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    true
+}
+
+fn place_blob(blob: &Blob, run: &mut Run, origin: Pos) -> bool {
+    let min_y = run.region.height().min_y;
+    let (mut x, mut y, mut z) = origin;
+    while y > min_y + 3 {
+        if !run.region.get(x, y - 1, z).is_air()
+            && blob.can_place_on.test(run.region, (x, y - 1, z))
+        {
+            break;
+        }
+        y -= 1;
+    }
+    if y <= min_y + 3 {
+        return false;
+    }
+    for _ in 0..3 {
+        let a = run.rng.below(2);
+        let b = run.rng.below(2);
+        let c = run.rng.below(2);
+        let reach = (a + b + c) as f32 * 0.333 + 0.5;
+        for px in (x - a)..=(x + a) {
+            for py in (y - b)..=(y + b) {
+                for pz in (z - c)..=(z + c) {
+                    let (dx, dy, dz) = (px - x, py - y, pz - z);
+                    if (dx * dx + dy * dy + dz * dz) as f32 <= reach * reach {
+                        run.region.set(px, py, pz, blob.state);
+                    }
+                }
+            }
+        }
+        x += -1 + run.rng.below(2);
+        y -= run.rng.below(2);
+        z += -1 + run.rng.below(2);
+    }
+    true
+}
+
+fn place_bamboo(probability: f32, run: &mut Run, (x, y, z): Pos) -> bool {
+    use crate::datapack::state_named;
+    let bamboo = |leaves: &'static str, stage: &'static str| {
+        state_named(
+            "minecraft:bamboo",
+            &[("age", "1"), ("leaves", leaves), ("stage", stage)],
+        )
+        .unwrap_or(BlockStateId::AIR)
+    };
+    if !run.region.get(x, y, z).is_air() {
+        return false;
+    }
+    let sapling = state_named("minecraft:bamboo", &[]).unwrap_or(BlockStateId::AIR);
+    if !survives(run.region, sapling, (x, y, z)) {
+        return true;
+    }
+    let length = run.rng.below(12) + 5;
+    if run.rng.next_float() < probability {
+        let radius = run.rng.below(4) + 1;
+        let soil = BlockSet::tag("minecraft:dirt");
+        let podzol = state_named("minecraft:podzol", &[]).unwrap_or(BlockStateId::AIR);
+        for px in (x - radius)..=(x + radius) {
+            for pz in (z - radius)..=(z + radius) {
+                let (dx, dz) = (px - x, pz - z);
+                if dx * dx + dz * dz <= radius * radius {
+                    let top = run.region.height_at(Heightmap::WorldSurface, px, pz) - 1;
+                    if soil.contains(run.region.get(px, top, pz)) {
+                        run.region.set(px, top, pz, podzol);
+                    }
+                }
+            }
+        }
+    }
+    let mut top = y;
+    let mut step = 0;
+    while step < length && run.region.get(x, top, z).is_air() {
+        run.region.set(x, top, z, bamboo("none", "0"));
+        top += 1;
+        step += 1;
+    }
+    if top - y >= 3 {
+        run.region.set(x, top, z, bamboo("large", "1"));
+        run.region.set(x, top - 1, z, bamboo("large", "0"));
+        run.region.set(x, top - 2, z, bamboo("small", "0"));
+    }
+    true
+}
+
+fn place_vines(run: &mut Run, (x, y, z): Pos) -> bool {
+    use rspigot_blocks::{Face, Support};
+    type Side = (&'static str, Face, (i32, i32, i32), Face);
+    const SIDES: [Side; 5] = [
+        ("up", Face::Up, (0, 1, 0), Face::Down),
+        ("north", Face::North, (0, 0, -1), Face::South),
+        ("south", Face::South, (0, 0, 1), Face::North),
+        ("west", Face::West, (-1, 0, 0), Face::East),
+        ("east", Face::East, (1, 0, 0), Face::West),
+    ];
+    let max_y = run.region.height().max_y();
+    for py in y..max_y {
+        if !run.region.get(x, py, z).is_air() {
+            continue;
+        }
+        for (property, _, (dx, dy, dz), opposite) in SIDES {
+            let neighbour = run.region.get(x + dx, py + dy, z + dz);
+            if neighbour.is_face_sturdy(opposite, Support::Full)
+                && let Some(vine) =
+                    crate::datapack::state_named("minecraft:vine", &[(property, "true")])
+            {
+                run.region.set(x, py, z, vine);
+                return true;
+            }
+        }
     }
     false
 }

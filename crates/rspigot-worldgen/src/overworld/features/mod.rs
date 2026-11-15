@@ -444,6 +444,76 @@ mod tests {
     }
 
     #[test]
+    fn lava_lakes_carve_a_basin_with_a_stone_rim() {
+        let bench = Bench::new();
+        let mut region = bench.floor(BlockKind::Stone, 90);
+        assert!(bench.place(&mut region, "lake_lava", (8, 62, 8), 4));
+        let lava = bench.count(
+            &mut region,
+            16,
+            50,
+            70,
+            bench.resources.blocks[BlockKind::Lava],
+        );
+        let air = bench.count(&mut region, 16, 50, 70, BlockStateId::AIR);
+        assert!(lava > 10, "{lava}");
+        assert!(air > 10, "{air}");
+    }
+
+    #[test]
+    fn forest_rocks_rest_on_the_ground() {
+        let bench = Bench::new();
+        let mut region = bench.floor(BlockKind::GrassBlock, 69);
+        assert!(bench.place(&mut region, "forest_rock", (8, 75, 8), 6));
+        let rock = bench.count(
+            &mut region,
+            16,
+            60,
+            80,
+            named("minecraft:mossy_cobblestone"),
+        );
+        assert!(rock >= 3, "{rock}");
+        assert_eq!(
+            bench.count(
+                &mut region,
+                16,
+                60,
+                69,
+                named("minecraft:mossy_cobblestone")
+            ),
+            0
+        );
+    }
+
+    #[test]
+    fn bamboo_stalks_grow_with_a_leafy_top() {
+        let bench = Bench::new();
+        let mut region = bench.floor(BlockKind::GrassBlock, 69);
+        assert!(bench.place(&mut region, "bamboo_no_podzol", (8, 70, 8), 3));
+        let top = (70..90)
+            .rev()
+            .find(|y| !region.get(8, *y, 8).is_air())
+            .unwrap_or(0);
+        assert!(top >= 75, "{top}");
+        assert_eq!(region.get(8, top, 8).property("leaves"), Some("large"));
+    }
+
+    #[test]
+    fn vines_cling_to_walls() {
+        let bench = Bench::new();
+        let stone = bench.resources.blocks[BlockKind::Stone];
+        let mut region = bench.floor(BlockKind::GrassBlock, 69);
+        for y in 70..90 {
+            region.set(9, y, 8, stone);
+        }
+        assert!(bench.place(&mut region, "vines", (8, 70, 8), 1));
+        let vine = (70..90).map(|y| region.get(8, y, 8)).find(|state| {
+            state.kind().map(rspigot_blocks::BlockKind::name) == Some("minecraft:vine")
+        });
+        assert_eq!(vine.and_then(|state| state.property("east")), Some("true"));
+    }
+
+    #[test]
     fn world_generation_is_deterministic_per_seed() {
         let bench = Bench::new();
         let run = |seed: i64| {
