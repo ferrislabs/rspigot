@@ -165,6 +165,13 @@ impl<L: ClientLink> Server<L> {
         let Some(kind) = state.kind() else {
             return false;
         };
+        if kind == BlockKind::MovingPiston {
+            if self.falls.redstone.moving.contains_key(&pos) {
+                return false;
+            }
+            self.set_block(pos, BlockStateId::AIR);
+            return true;
+        }
         let powered = flag(state, "powered");
         if kind == BlockKind::Lever {
             let (old, new) = if powered {

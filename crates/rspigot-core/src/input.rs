@@ -437,10 +437,12 @@ impl<L: ClientLink> Server<L> {
                 self.mob_paths_block_changed(pos, old, state);
                 self.on_place(pos);
                 self.ask_physics(pos, state);
-                self.push(
-                    Audience::ChunkViewers(pos.chunk()),
-                    ClientEvent::BlockUpdate { pos, state },
-                );
+                if !self.falls.redstone.unsent {
+                    self.push(
+                        Audience::ChunkViewers(pos.chunk()),
+                        ClientEvent::BlockUpdate { pos, state },
+                    );
+                }
                 self.fix_chest_pairs(pos, old, state);
                 self.ensure_container_entity(pos, state);
                 self.ensure_sculk_entity(pos, state);

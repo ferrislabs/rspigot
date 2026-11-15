@@ -1,4 +1,4 @@
-pub(super) const DESTROYED: &[&str] = &[
+pub(crate) const DESTROYED: &[&str] = &[
     "minecraft:acacia_button",
     "minecraft:acacia_door",
     "minecraft:acacia_leaves",
@@ -368,7 +368,7 @@ pub(super) const DESTROYED: &[&str] = &[
     "minecraft:zombie_wall_head",
 ];
 
-pub(super) const IMMOVABLE: &[&str] = &[
+pub(crate) const IMMOVABLE: &[&str] = &[
     "minecraft:anvil",
     "minecraft:barrier",
     "minecraft:bedrock",
@@ -398,7 +398,7 @@ pub(super) const IMMOVABLE: &[&str] = &[
     "minecraft:test_instance_block",
 ];
 
-pub(super) const PUSH_ONLY: &[&str] = &[
+pub(crate) const PUSH_ONLY: &[&str] = &[
     "minecraft:black_glazed_terracotta",
     "minecraft:blue_glazed_terracotta",
     "minecraft:brown_glazed_terracotta",
@@ -417,7 +417,7 @@ pub(super) const PUSH_ONLY: &[&str] = &[
     "minecraft:yellow_glazed_terracotta",
 ];
 
-pub(super) const BLOCK_ENTITIES: &[&str] = &[
+pub(crate) const BLOCK_ENTITIES: &[&str] = &[
     "minecraft:acacia_hanging_sign",
     "minecraft:acacia_shelf",
     "minecraft:acacia_sign",
