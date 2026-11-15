@@ -173,6 +173,10 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::CustomClick { id: click, data } => {
                 self.hear_custom_click(id, click, data);
             }
+            PlayerInput::ChangeDifficulty(difficulty) => {
+                self.handle_change_difficulty(id, difficulty)
+            }
+            PlayerInput::LockDifficulty(locked) => self.handle_lock_difficulty(id, locked),
             PlayerInput::Latency(millis) => {
                 if let Some(player) = self.players.get_mut(&id) {
                     player.latency = player.latency.wrapping_mul(3).wrapping_add(millis) / 4;

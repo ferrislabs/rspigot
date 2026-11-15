@@ -8,6 +8,7 @@ use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_core::recipe_book::BookKind;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::GameMode;
+use rspigot_domain::world::Difficulty;
 use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
 use rspigot_nbt::{Compound, Tag};
 use rspigot_protocol::codec::Position;
@@ -19,7 +20,8 @@ use rspigot_protocol::play::serverbound::{
 };
 use rspigot_protocol::play::slot::{HashedStack, ItemStack as WireStack};
 use rspigot_protocol::play::types::{
-    Direction as WireDirection, GameMode as WireGameMode, Hand as WireHand,
+    Difficulty as WireDifficulty, Direction as WireDirection, GameMode as WireGameMode,
+    Hand as WireHand,
 };
 
 use crate::connection::client_settings;
@@ -127,6 +129,15 @@ fn click_input(input: ContainerInput) -> ClickInput {
         ContainerInput::Throw => ClickInput::Throw,
         ContainerInput::QuickCraft => ClickInput::QuickCraft,
         ContainerInput::PickupAll => ClickInput::PickupAll,
+    }
+}
+
+fn difficulty(value: WireDifficulty) -> Difficulty {
+    match value {
+        WireDifficulty::Peaceful => Difficulty::Peaceful,
+        WireDifficulty::Easy => Difficulty::Easy,
+        WireDifficulty::Normal => Difficulty::Normal,
+        WireDifficulty::Hard => Difficulty::Hard,
     }
 }
 
@@ -354,6 +365,10 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             id: p.id.to_string(),
             data: p.payload.as_ref().map(|tag| tag_json(tag).to_string()),
         }),
+        ServerboundPlay::ChangeDifficulty(p) => {
+            input(PlayerInput::ChangeDifficulty(difficulty(p.difficulty)))
+        }
+        ServerboundPlay::LockDifficulty(p) => input(PlayerInput::LockDifficulty(p.locked)),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -584,6 +599,18 @@ mod tests {
                 id: "shop:buy".to_owned(),
                 data: None,
             }
+        );
+    }
+
+    #[test]
+    fn difficulty_packets_become_a_change_and_a_lock() {
+        assert_eq!(
+            decoded(sb::CHANGE_DIFFICULTY, &[3]),
+            PlayerInput::ChangeDifficulty(Difficulty::Hard)
+        );
+        assert_eq!(
+            decoded(sb::LOCK_DIFFICULTY, &[1]),
+            PlayerInput::LockDifficulty(true)
         );
     }
 

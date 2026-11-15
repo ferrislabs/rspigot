@@ -29,6 +29,7 @@ mod cooking;
 mod copper_statue;
 mod crops;
 mod crossbow;
+mod difficulty;
 #[cfg(test)]
 mod dimension_audience;
 mod doors;

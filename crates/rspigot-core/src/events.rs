@@ -208,6 +208,8 @@ pub enum PlayerInput {
         data: Option<String>,
     },
     Latency(i32),
+    ChangeDifficulty(Difficulty),
+    LockDifficulty(bool),
 }
 
 #[derive(Debug, Clone, PartialEq)]

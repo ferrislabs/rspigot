@@ -945,7 +945,7 @@ impl<L: ClientLink> Server<L> {
         });
         link.send(ClientEvent::Difficulty {
             difficulty,
-            locked: false,
+            locked: self.difficulty_locked,
         });
         let experience = player.vitals.experience;
         link.send(ClientEvent::Experience {
