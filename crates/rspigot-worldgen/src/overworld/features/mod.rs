@@ -1,6 +1,7 @@
 mod bodies;
 mod cave;
 mod coral;
+mod dungeon;
 mod fallen;
 mod floats;
 mod geode;
