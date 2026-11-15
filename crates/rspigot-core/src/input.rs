@@ -88,6 +88,7 @@ impl<L: ClientLink> Server<L> {
                 MovementAction::StartRidingJump(power) => self.start_riding_jump(id, power),
                 MovementAction::OpenVehicleInventory => self.open_vehicle_inventory(id),
                 MovementAction::LeaveBed => self.stop_sleep_in_bed(id, false, true),
+                MovementAction::StartFallFlying => self.start_fall_flying(id),
                 _ => {}
             },
             PlayerInput::Input(state) => self.press(id, state),
@@ -601,6 +602,10 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if self.use_hanging_item(id, slot, pos, face) {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+            return;
+        }
+        if self.use_firework_on(id, hand, pos, face, cursor) {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;
         }

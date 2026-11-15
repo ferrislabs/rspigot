@@ -966,6 +966,12 @@ pub(crate) struct Carried {
     pub(crate) reason: CreatureSpawnReason,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct GlideStep {
+    pub(crate) player: PlayerId,
+    pub(crate) gliding: bool,
+}
+
 #[derive(Debug)]
 pub(crate) struct CastStep {
     pub(crate) player: PlayerId,
@@ -1595,6 +1601,8 @@ pub(crate) enum Continuation {
     Cast(Box<CastStep>),
     Reel(Box<ReelStep>),
     Bite(EntityId),
+    Glide(GlideStep),
+    Burst(EntityId),
     Linger(Box<LingerStep>),
     Merge(MergeStep),
     Leash(Box<LeashStep>),
@@ -1819,6 +1827,8 @@ impl Continuation {
             Self::Hatch(_) => EventKind::PlayerEggThrow,
             Self::Bottle(_) => EventKind::ExpBottle,
             Self::Cast(_) | Self::Reel(_) | Self::Bite(_) => EventKind::PlayerFish,
+            Self::Glide(_) => EventKind::EntityToggleGlide,
+            Self::Burst(_) => EventKind::FireworkExplode,
             Self::Linger(_) => EventKind::LingeringPotionSplash,
             Self::Merge(_) => EventKind::ItemMerge,
             Self::Leash(_) => EventKind::PlayerLeashEntity,
@@ -2046,6 +2056,7 @@ impl Continuation {
             Self::EntityExplode(step) => step.discard == Some(id),
             Self::Splash(step) => step.potion == id,
             Self::Bite(hook) => *hook == id,
+            Self::Burst(rocket) => *rocket == id,
             Self::Reel(step) => step.hook == id,
             Self::Prime(step) => step.source == id,
             Self::DragonPhase(step) => step.dragon == id,
@@ -2163,6 +2174,8 @@ impl Continuation {
                 },
             ) => one == other && one_swimming == other_swimming,
             (Self::Air(one), Self::Air(other)) => one.entity == other.entity,
+            (Self::Glide(one), Self::Glide(other)) => one == other,
+            (Self::Burst(one), Self::Burst(other)) => one == other,
             (Self::Flow(one), Self::Flow(other)) => one.is_same(other),
             (Self::FluidLevel(one), Self::FluidLevel(other)) => one.is_same(other),
             (Self::Career(one), Self::Career(other)) => {
@@ -2234,6 +2247,8 @@ impl Continuation {
             Self::Cauldron(step) => step.by.is_none(),
             Self::Aim(step) => step.deferred,
             Self::Breed(_)
+            | Self::Glide(_)
+            | Self::Burst(_)
             | Self::Air(_)
             | Self::Swim { .. }
             | Self::Career(_)

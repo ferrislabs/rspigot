@@ -46,6 +46,10 @@ impl<L: ClientLink> Server<L> {
         current.extend(self.players.values().map(|player| {
             let stance = if player.sleeping.is_some() {
                 Stance::Sleeping
+            } else if player.fall_flying {
+                Stance::FallFlying
+            } else if player.spin.is_some() {
+                Stance::SpinAttack
             } else if player.sneaking && !player.flying {
                 Stance::Crouching
             } else {

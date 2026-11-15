@@ -114,6 +114,9 @@ impl<L: ClientLink> Server<L> {
         } else if dy < 0.0 {
             vitals.fall_distance -= f64::from(dy as f32);
         }
+        if player.fall_flying && dy > -0.5 && vitals.fall_distance > 1.0 {
+            vitals.fall_distance = 1.0;
+        }
         if on_ground {
             let distance = vitals.fall_distance;
             let sneaking = player.sneaking;

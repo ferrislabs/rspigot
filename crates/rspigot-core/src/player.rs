@@ -58,6 +58,8 @@ pub struct Player<L> {
     pub moved_this_tick: bool,
     pub using_item: Option<UsingItem>,
     pub(crate) spin: Option<crate::trident::SpinAttack>,
+    pub(crate) fall_flying: bool,
+    pub(crate) fall_fly_ticks: i32,
     pub(crate) fishing: Option<rspigot_domain::EntityId>,
     pub(crate) open_menu: Option<OpenMenu>,
     pub(crate) plugin_menu: Option<PluginMenu>,
@@ -120,6 +122,9 @@ impl<L> Player<L> {
         }
         if self.effects.has("minecraft:glowing") {
             flags |= 0x40;
+        }
+        if self.fall_flying {
+            flags |= 0x80u8 as i8;
         }
         flags
     }

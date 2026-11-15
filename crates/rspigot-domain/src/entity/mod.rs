@@ -11,6 +11,7 @@ mod data;
 pub mod falling;
 pub mod fangs;
 pub mod fire;
+pub mod firework;
 pub mod fluid;
 pub mod gossip;
 pub mod hanging;
@@ -76,6 +77,7 @@ pub enum EntityState {
     Lightning(lightning::LightningState),
     Hanging(hanging::HangingState),
     Hook(Box<hook::HookState>),
+    Firework(Box<firework::FireworkState>),
     Stand(Box<armor_stand::StandState>),
     Boat(Box<boat::BoatState>),
     Minecart(Box<minecart::MinecartState>),

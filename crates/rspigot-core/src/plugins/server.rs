@@ -769,6 +769,14 @@ impl<L: ClientLink> Server<L> {
                 self.finish_reel(*step, cancelled, patch_of!(patch, PlayerFish));
                 Vec::new()
             }
+            Continuation::Glide(step) => {
+                self.finish_glide(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Burst(rocket) => {
+                self.finish_burst(rocket, cancelled);
+                Vec::new()
+            }
             Continuation::Bite(hook) => {
                 self.finish_bite(hook, cancelled);
                 Vec::new()

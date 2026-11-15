@@ -182,7 +182,10 @@ impl<L: ClientLink> Server<L> {
         let hurting = matches!(entity.state, EntityState::Hurting(_));
         let bullet = matches!(entity.state, EntityState::Bullet(_));
         let hook = matches!(entity.state, EntityState::Hook(_));
-        if hook {
+        let rocket = matches!(entity.state, EntityState::Firework(_));
+        if rocket {
+            self.rocket_hit_entity(arrow);
+        } else if hook {
             self.hook_hit_entity(arrow, target);
         } else if bullet {
             self.bullet_hit_entity(arrow, target);

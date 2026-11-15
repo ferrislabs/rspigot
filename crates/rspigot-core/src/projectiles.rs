@@ -296,6 +296,7 @@ impl<L: ClientLink> Server<L> {
             EntityState::Hurting(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             EntityState::Bullet(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             EntityState::Hook(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
+            EntityState::Firework(state) => self.owner_entity(state.owner).map_or(0, |id| id.0),
             _ => entity.add_entity_data(),
         }
     }
