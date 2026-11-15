@@ -261,8 +261,8 @@ These setters write sets, where an element added twice is there once: `AsyncPlay
 | `VillagerReplenishTradeEvent` | `VillagerReplenishTrade` | yes | `set_recipe` | - | fired: each offer of a villager when its uses are reset by a restock; a cancel puts the old uses back |
 | `VillagerReputationChangeEvent` | `VillagerReputationChange` | yes | `set_new_value` | - | fired: a villager's gossip about a player changing by a trade, a hurt, a kill or a cure, one ask per gossip type with the old, new and maximum value and the reason; a patched new_value is stored clamped to the maximum and a cancel keeps the old value |
 | `WeatherChangeEvent` | `WeatherChange` | yes | - | - | fired: from /weather and the plugin weather order when the rain flag changes, before ThunderChange; a cancel keeps the sky and sends nothing, as there is no natural weather cycle or timer |
-| `WorldInitEvent` | `WorldInit` | no | - | - | fired: when the server starts its world, before the spawn chunks; the plugin port is already open, so it reaches the plugins connected by then |
-| `WorldLoadEvent` | `WorldLoad` | no | - | - | fired: once the spawn chunks are ready, for the plugins connected by then |
+| `WorldInitEvent` | `WorldInit` | no | - | - | fired: when the server starts its world, before the spawn chunks; the plugin port is already open, so it reaches the plugins connected by then; also for each other dimension (nether, end) when it is first created, with the world field set to that dimension |
+| `WorldLoadEvent` | `WorldLoad` | no | - | - | fired: once the spawn chunks are ready, for the plugins connected by then; for a dimension created later (nether, end) right after its world init, while its spawn chunks are still loading, with the world field set to that dimension |
 | `WorldSaveEvent` | `WorldSave` | no | - | - | fired: before /save-all, the plugin save orders and the autosave write, and at shutdown before the final save while plugins are still connected |
 | `WorldUnloadEvent` | `WorldUnload` | yes | - | - | not fired yet: needs several worlds, since the overworld never unloads |
 
