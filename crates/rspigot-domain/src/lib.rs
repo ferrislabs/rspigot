@@ -4,6 +4,7 @@ pub mod bed;
 pub mod beehive;
 pub mod biome;
 pub mod boss_event;
+pub mod brewing;
 pub mod campfire;
 pub mod chunk;
 pub mod click;

@@ -4,6 +4,7 @@ use rspigot_domain::effect::EffectInstance;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::{EntityId, Rotation, Vec3};
 
+use crate::brewing::BrewingAnswer;
 use crate::commands::CommandContext;
 use crate::events::ClientEvent;
 use crate::player::Player;
@@ -1337,6 +1338,17 @@ impl<L: ClientLink> Server<L> {
                     _ => FurnaceAnswer::Smelt(patch_of!(patch, FurnaceSmelt)),
                 };
                 self.finish_furnace(*step, cancelled, answer);
+                Vec::new()
+            }
+            Continuation::Brewing(kind, step) => {
+                let answer = match kind {
+                    EventKind::BrewingStandFuel => {
+                        BrewingAnswer::Fuel(patch_of!(patch, BrewingStandFuel))
+                    }
+                    EventKind::BrewingStart => BrewingAnswer::Start(patch_of!(patch, BrewingStart)),
+                    _ => BrewingAnswer::Brew,
+                };
+                self.finish_brewing(*step, cancelled, answer);
                 Vec::new()
             }
             Continuation::Extract(step) => {

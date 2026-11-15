@@ -9,6 +9,7 @@ use rspigot_domain::random::LegacyRandom;
 use rspigot_domain::text::Component;
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, Rotation, Vec3};
 
+use crate::brewing::BrewingStep;
 use crate::combat::{Strike, Victim};
 use crate::commands::{CommandSender, Target};
 use crate::enchanting::{EnchantStep, PrepareEnchantStep};
@@ -1698,6 +1699,7 @@ pub(crate) enum Continuation {
     Click(EventKind, Box<WindowClick>),
     Drag(Box<DragStep>),
     Furnace(EventKind, Box<FurnaceStep>),
+    Brewing(EventKind, Box<BrewingStep>),
     Extract(ExtractStep),
     Prepare(EventKind, Box<PrepareStep>),
     PrepareEnchant(PrepareEnchantStep),
@@ -1894,6 +1896,7 @@ impl Continuation {
             Self::Click(kind, _) => *kind,
             Self::Drag(_) => EventKind::InventoryDrag,
             Self::Furnace(kind, _) => *kind,
+            Self::Brewing(kind, _) => *kind,
             Self::Extract(_) => EventKind::FurnaceExtract,
             Self::Prepare(kind, _) => *kind,
             Self::PrepareEnchant(_) => EventKind::PrepareItemEnchant,

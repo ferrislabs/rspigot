@@ -50,6 +50,7 @@ pub(crate) enum TopType {
     Smoker,
     Anvil,
     Enchanting,
+    Brewing,
     Smithing,
     Grindstone,
     Stonecutter,
@@ -76,6 +77,7 @@ impl TopType {
             MenuKind::Smoker => Self::Smoker,
             MenuKind::Anvil => Self::Anvil,
             MenuKind::Enchantment => Self::Enchanting,
+            MenuKind::BrewingStand => Self::Brewing,
             MenuKind::Smithing => Self::Smithing,
             MenuKind::Grindstone => Self::Grindstone,
             MenuKind::Stonecutter => Self::Stonecutter,
@@ -104,6 +106,7 @@ impl TopType {
             Self::Smoker => "SMOKER",
             Self::Anvil => "ANVIL",
             Self::Enchanting => "ENCHANTING",
+            Self::Brewing => "BREWING",
             Self::Smithing => "SMITHING",
             Self::Grindstone => "GRINDSTONE",
             Self::Stonecutter => "STONECUTTER",
@@ -117,6 +120,12 @@ impl TopType {
 
     fn top_slot(self, raw: i32) -> InventoryTypeSlotType {
         let result_at = match self {
+            Self::Brewing => {
+                return match raw {
+                    4 => InventoryTypeSlotType::Fuel,
+                    _ => InventoryTypeSlotType::Crafting,
+                };
+            }
             Self::Furnace | Self::BlastFurnace | Self::Smoker => {
                 return match raw {
                     2 => InventoryTypeSlotType::Result,

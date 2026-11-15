@@ -991,6 +991,7 @@ impl<L: ClientLink> Server<L> {
         self.collect_arrows();
         self.collect_orbs();
         self.tick_furnaces();
+        self.tick_brewing_stands();
         self.tick_game_events();
         self.tick_campfires();
         self.tick_beehives();

@@ -9,6 +9,7 @@ mod books;
 mod boss_bars;
 mod bow;
 mod brain_mobs;
+mod brewing;
 mod bucket;
 mod bullet;
 mod campfire;

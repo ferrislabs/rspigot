@@ -1,3 +1,4 @@
+pub mod brewing;
 pub mod climate;
 pub mod compostable;
 pub mod enchantments;

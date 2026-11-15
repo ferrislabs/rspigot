@@ -206,6 +206,11 @@ fn opening_of(state: BlockStateId) -> Option<Opening> {
         BlockKind::CraftingTable => station(MenuKind::Crafting, None, "container.crafting"),
         BlockKind::Grindstone => station(MenuKind::Grindstone, None, "container.grindstone_title"),
         BlockKind::EnchantingTable => station(MenuKind::Enchantment, None, "container.enchant"),
+        BlockKind::BrewingStand => station(
+            MenuKind::BrewingStand,
+            Some("brewing_stand"),
+            "container.brewing",
+        ),
         BlockKind::Stonecutter => station(MenuKind::Stonecutter, None, "container.stonecutter"),
         BlockKind::CartographyTable => station(
             MenuKind::CartographyTable,
@@ -552,6 +557,7 @@ impl<L: ClientLink> Server<L> {
         let opening = opening_of(state).filter(|opening| {
             opening.entity.is_some()
                 && !opening.kind.is_furnace()
+                && opening.kind != MenuKind::BrewingStand
                 && opening.kind != MenuKind::Lectern
         })?;
         let mut size = opening.kind.container_size();
@@ -675,6 +681,7 @@ impl<L: ClientLink> Server<L> {
             MenuKind::Lectern => vec![i16::try_from(self.lectern_page(pos)).unwrap_or(0)],
             MenuKind::Beacon => self.beacon_menu_data(pos),
             kind if kind.is_furnace() => self.furnace_data(pos),
+            MenuKind::BrewingStand => self.brewing_data(pos),
             MenuKind::Enchantment => {
                 open.menu.set_bookshelves(self.bookshelf_count(pos));
                 let seed = self.enchantment_seed_of(id);
@@ -1128,21 +1135,26 @@ impl<L: ClientLink> Server<L> {
                                 | MenuKind::Smithing
                                 | MenuKind::Anvil
                                 | MenuKind::Enchantment
+                                | MenuKind::BrewingStand
                         )
                 })
             })
             .map(|(id, _)| *id)
             .collect();
         for id in viewers {
-            let Some((pos, furnace)) = self
+            let Some((pos, kind)) = self
                 .players
                 .get(&id)
                 .and_then(|player| player.open_menu.as_ref())
-                .map(|open| (open.backing.pos, open.menu.kind().is_furnace()))
+                .map(|open| (open.backing.pos, open.menu.kind()))
             else {
                 continue;
             };
-            let furnace_data = furnace.then(|| self.furnace_data(pos));
+            let furnace_data = match kind {
+                kind if kind.is_furnace() => Some(self.furnace_data(pos)),
+                MenuKind::BrewingStand => Some(self.brewing_data(pos)),
+                _ => None,
+            };
             let Some(player) = self.players.get_mut(&id) else {
                 continue;
             };

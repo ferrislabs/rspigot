@@ -1,6 +1,7 @@
 use rspigot_items::{CookingKind, EquipmentSlot, ItemId, ItemKind};
 
 use crate::anvil;
+use crate::brewing;
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
 use crate::enchanting;
@@ -48,6 +49,7 @@ pub enum MenuKind {
     Smoker,
     Anvil,
     Enchantment,
+    BrewingStand,
     Smithing,
     Grindstone,
     Stonecutter,
@@ -82,6 +84,7 @@ impl MenuKind {
             Self::Smoker => 22,
             Self::Anvil => 8,
             Self::Enchantment => 13,
+            Self::BrewingStand => 11,
             Self::Smithing => 21,
             Self::Grindstone => 15,
             Self::Stonecutter => 24,
@@ -105,6 +108,7 @@ impl MenuKind {
             Self::Grindstone | Self::CartographyTable => 3,
             Self::Anvil => 3,
             Self::Enchantment => 2,
+            Self::BrewingStand => brewing::SLOTS,
             Self::Smithing | Self::Loom => 4,
             Self::Stonecutter => 2,
             Self::Lectern | Self::Beacon => 1,
@@ -119,6 +123,7 @@ impl MenuKind {
             Self::Anvil | Self::Smithing | Self::Stonecutter | Self::Loom | Self::Lectern => 1,
             Self::Beacon => 3,
             Self::Enchantment => enchanting::DATA,
+            Self::BrewingStand => 4,
             _ => 0,
         }
     }
@@ -210,6 +215,26 @@ impl MenuKind {
                 }
                 _ => vec![(MERCHANT_PLAYER_START, MERCHANT_MAIN_END, false)],
             },
+            Self::BrewingStand => {
+                let main = brewing::SLOTS;
+                let hotbar = main + MAIN_SLOTS;
+                match slot {
+                    0..=4 => vec![(main, total, true)],
+                    _ if brewing::is_fuel(stack) => {
+                        let mut plan = vec![(brewing::FUEL, brewing::SLOTS, false)];
+                        if brewing::is_reagent(stack) {
+                            plan.push((brewing::INGREDIENT, brewing::FUEL, false));
+                        }
+                        plan
+                    }
+                    _ if brewing::is_reagent(stack) => {
+                        vec![(brewing::INGREDIENT, brewing::FUEL, false)]
+                    }
+                    _ if brewing::is_container(stack) => vec![(0, brewing::BOTTLES, false)],
+                    _ if slot < hotbar => vec![(hotbar, total, false)],
+                    _ => vec![(main, hotbar, false)],
+                }
+            }
             Self::Enchantment => match slot {
                 0 | 1 => vec![(2, total, true)],
                 _ if enchanting::is_lapis(stack) => vec![(1, 2, false)],
@@ -348,6 +373,11 @@ impl MenuKind {
             },
             Self::Beacon if slot == 0 => in_item_tag(stack, "minecraft:beacon_payment_items"),
             Self::Enchantment if slot == enchanting::LAPIS => enchanting::is_lapis(stack),
+            Self::BrewingStand => match slot {
+                0..=2 => brewing::is_container(stack),
+                brewing::INGREDIENT => brewing::is_reagent(stack),
+                _ => brewing::is_fuel(stack),
+            },
             Self::Grindstone if slot < 2 => is_damageable(stack) || has_enchantments(stack),
             Self::CartographyTable if slot == 0 => is_map(stack),
             Self::CartographyTable if slot == 1 => is_map_material(stack),
@@ -628,6 +658,9 @@ fn stack_limit(kind: MenuKind, slot: usize, stack: &ItemStack) -> u32 {
     if matches!(kind, MenuKind::Beacon | MenuKind::Enchantment) && slot == 0 {
         return 1;
     }
+    if kind == MenuKind::BrewingStand && slot < brewing::BOTTLES {
+        return 1;
+    }
     if matches!(kind, MenuKind::Mount { .. }) && slot < MOUNT_EXTRA_SLOTS {
         return 1;
     }
@@ -695,6 +728,7 @@ impl ClickView for Look<'_> {
     fn container_limit(&self, slot: usize) -> u32 {
         if (matches!(self.kind, MenuKind::Beacon | MenuKind::Enchantment) && slot == 0)
             || (matches!(self.kind, MenuKind::Mount { .. }) && slot < MOUNT_EXTRA_SLOTS)
+            || (self.kind == MenuKind::BrewingStand && slot < brewing::BOTTLES)
         {
             1
         } else {
@@ -5098,5 +5132,32 @@ mod tests {
         menu.close_transient(&mut container, &mut player);
         assert!(container.iter().all(Option::is_none));
         assert!(player.slots().iter().flatten().count() >= 2);
+    }
+
+    #[test]
+    fn the_brewing_menu_has_five_slots_four_data_slots_and_its_slot_rules() {
+        let kind = MenuKind::BrewingStand;
+        assert_eq!(kind.container_size(), 5);
+        assert_eq!(kind.data_count(), 4);
+        let index =
+            rspigot_data::registries::static_index("minecraft:menu", "minecraft:brewing_stand")
+                .unwrap();
+        assert_eq!(kind.protocol_id(), index as i32);
+        let water = crate::potion::stack(rspigot_items::ItemKind::Potion, "minecraft:water");
+        assert!(kind.accepts(0, &water));
+        assert!(!kind.accepts(3, &water));
+        assert!(kind.accepts(3, &stack("minecraft:nether_wart", 1)));
+        assert!(kind.accepts(4, &stack("minecraft:blaze_powder", 1)));
+        assert!(!kind.accepts(4, &stack("minecraft:coal", 1)));
+        assert_eq!(stack_limit(kind, 1, &water), 1);
+    }
+
+    #[test]
+    fn shift_clicking_powder_fills_the_fuel_slot_first() {
+        let kind = MenuKind::BrewingStand;
+        let powder = stack("minecraft:blaze_powder", 4);
+        let plan = kind.quick_move_plan(20, &powder, &vec![None; 5]);
+        assert_eq!(plan[0], (4, 5, false));
+        assert_eq!(plan[1], (3, 4, false));
     }
 }
