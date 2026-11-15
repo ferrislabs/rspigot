@@ -5,7 +5,7 @@ use rspigot_blocks::BlockKind;
 use rspigot_core::events::{ClientEvent, DigAction, Direction, Hand, Inbound, PlayerInput};
 use rspigot_core::plugins::events::Face;
 use rspigot_core::plugins::{Answer, BlockOrder, EventKind, EventPayload, Order, Question};
-use rspigot_domain::{BlockPos, Vec3};
+use rspigot_domain::{BlockPos, EntityId, Vec3};
 
 const PISTON: BlockPos = BlockPos::new(3, 64, 3);
 const POWER: BlockPos = BlockPos::new(3, 64, 2);
@@ -442,4 +442,120 @@ fn using_a_moving_block_that_nothing_animates_removes_it() {
     );
     s.tick(1);
     assert_eq!(kind_at(&mut s, at(4)), "minecraft:air");
+}
+
+fn spawn(s: &mut Scene, kind: &str, position: Vec3) -> EntityId {
+    match s.ask(Question::Spawn {
+        kind: kind.into(),
+        position,
+    }) {
+        Answer::Spawned(view) => view.id,
+        other => panic!("expected the spawned {kind}, got {other:?}"),
+    }
+}
+
+fn details(s: &mut Scene, id: EntityId) -> (Vec3, Vec3) {
+    match s.ask(Question::Entity(id)) {
+        Answer::Entity(details) => (details.entity.position, details.velocity),
+        other => panic!("expected the entity, got {other:?}"),
+    }
+}
+
+#[test]
+fn an_entity_in_the_way_is_pushed_out_by_the_extending_head() {
+    let mut s = scene(&["Alice"]);
+    let cart = spawn(&mut s, "minecraft:minecart", Vec3::new(4.5, 64.0, 3.5));
+    piston(&mut s, "minecraft:piston");
+    power_on(&mut s);
+    s.tick(5);
+    let (position, _) = details(&mut s, cart);
+    assert!(position.x > 5.4, "{position:?}");
+}
+
+#[test]
+fn an_entity_beside_the_path_is_not_moved() {
+    let mut s = scene(&["Alice"]);
+    let cart = spawn(&mut s, "minecraft:minecart", Vec3::new(4.5, 64.0, 7.5));
+    piston(&mut s, "minecraft:piston");
+    power_on(&mut s);
+    s.tick(5);
+    let (position, _) = details(&mut s, cart);
+    assert!((position.x - 4.5).abs() < 0.01, "{position:?}");
+}
+
+#[test]
+fn an_entity_that_ignores_pistons_stays_where_it_is() {
+    let mut s = scene(&["Alice"]);
+    let marker = spawn(
+        &mut s,
+        "minecraft:area_effect_cloud",
+        Vec3::new(4.5, 64.0, 3.5),
+    );
+    piston(&mut s, "minecraft:piston");
+    power_on(&mut s);
+    s.tick(5);
+    let (position, _) = details(&mut s, marker);
+    assert!((position.x - 4.5).abs() < 0.01, "{position:?}");
+}
+
+fn raised(x: i32) -> BlockPos {
+    BlockPos::new(x, 70, 3)
+}
+
+fn raised_piston(s: &mut Scene) {
+    put(
+        s,
+        raised(3),
+        "minecraft:piston",
+        &[("facing", "east"), ("extended", "false")],
+    );
+    put(s, BlockPos::new(3, 70, 2), "minecraft:redstone_block", &[]);
+}
+
+#[test]
+fn slime_launches_the_entity_it_pushes_along_the_axis() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, raised(4), "minecraft:slime_block", &[]);
+    let cart = spawn(&mut s, "minecraft:minecart", Vec3::new(5.5, 70.0, 3.5));
+    raised_piston(&mut s);
+    s.tick(2);
+    let (_, velocity) = details(&mut s, cart);
+    assert!(velocity.x > 0.3, "{velocity:?}");
+}
+
+#[test]
+fn honey_carries_the_entity_standing_on_it() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, raised(4), "minecraft:honey_block", &[]);
+    let cart = spawn(&mut s, "minecraft:minecart", Vec3::new(4.5, 71.0, 3.5));
+    s.tick(2);
+    raised_piston(&mut s);
+    s.tick(5);
+    let (position, _) = details(&mut s, cart);
+    assert!(position.x > 5.3, "{position:?}");
+}
+
+#[test]
+fn a_plain_block_does_not_carry_the_entity_standing_on_it() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, raised(4), "minecraft:stone", &[]);
+    let cart = spawn(&mut s, "minecraft:minecart", Vec3::new(4.5, 71.0, 3.5));
+    s.tick(2);
+    raised_piston(&mut s);
+    s.tick(5);
+    let (position, _) = details(&mut s, cart);
+    assert!(position.x < 5.2, "{position:?}");
+}
+
+#[test]
+fn an_entity_is_pushed_no_further_than_a_wall_allows() {
+    let mut s = scene(&["Alice"]);
+    put(&mut s, at(6), "minecraft:stone", &[]);
+    let cart = spawn(&mut s, "minecraft:minecart", Vec3::new(5.4, 64.0, 3.5));
+    put(&mut s, at(4), "minecraft:stone", &[]);
+    piston(&mut s, "minecraft:piston");
+    power_on(&mut s);
+    s.tick(5);
+    let (position, _) = details(&mut s, cart);
+    assert!(position.x < 5.52, "{position:?}");
 }

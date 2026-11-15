@@ -1,8 +1,8 @@
 use rspigot_blocks::{BlockKind, Face};
-use rspigot_domain::entity::Aabb;
 use rspigot_domain::game_event::GameEvent;
+use rspigot_domain::piston::motion::STEP_PER_TICK;
 use rspigot_domain::piston::{Limits, Reaction, Resolver, is_pushable, reaction_of};
-use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId};
 use rspigot_entities::SoundSource;
 use rustc_hash::FxHashMap;
 
@@ -18,8 +18,6 @@ use crate::signal::flag;
 const EXTEND_SOUND: &str = "minecraft:block.piston.extend";
 const CONTRACT_SOUND: &str = "minecraft:block.piston.contract";
 const SOUND_VOLUME: f32 = 0.5;
-const MOVE_TICKS: u64 = 2;
-const STEP_DISTANCE: f64 = 0.5;
 const EVENT_LIMIT: usize = 4096;
 const BLOCK_EVENT_RANGE: f64 = 64.0;
 
@@ -38,6 +36,7 @@ pub(crate) struct Moving {
     pub(crate) extending: bool,
     pub(crate) source: bool,
     pub(crate) created: u64,
+    pub(crate) progress: f32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -67,16 +66,6 @@ impl PistonStep {
 
 fn is_piston_kind(kind: BlockKind) -> bool {
     matches!(kind, BlockKind::Piston | BlockKind::StickyPiston)
-}
-
-fn offset_by(pos: BlockPos, face: Face, count: i32) -> BlockPos {
-    let (dx, dy, dz) = face.offset();
-    pos.offset(dx * count, dy * count, dz * count)
-}
-
-fn vector_of(face: Face) -> Vec3 {
-    let (dx, dy, dz) = face.offset();
-    Vec3::new(f64::from(dx), f64::from(dy), f64::from(dz))
 }
 
 fn piston_type(sticky: bool) -> &'static str {
@@ -361,6 +350,7 @@ impl<L: ClientLink> Server<L> {
                 extending: false,
                 source: true,
                 created,
+                progress: 0.0,
             },
         );
         self.schedule(pos, BlockKind::MovingPiston, 1);
@@ -501,6 +491,7 @@ impl<L: ClientLink> Server<L> {
                     extending,
                     source: false,
                     created,
+                    progress: 0.0,
                 },
             );
             arrivals.push(target);
@@ -522,6 +513,7 @@ impl<L: ClientLink> Server<L> {
                     extending: true,
                     source: true,
                     created,
+                    progress: 0.0,
                 },
             );
             arrivals.push(front);
@@ -541,28 +533,26 @@ impl<L: ClientLink> Server<L> {
             self.update_neighbors_at(step(pos, direction));
         }
         for at in arrivals {
-            self.schedule(at, BlockKind::MovingPiston, 1);
+            self.moving_tick(at);
         }
     }
 
     pub(crate) fn moving_tick(&mut self, pos: BlockPos) {
-        let now = self.current_tick();
         let Some(moving) = self.falls.redstone.moving.get(&pos).cloned() else {
             return;
         };
-        let elapsed = now.saturating_sub(moving.created).min(MOVE_TICKS);
-        let direction = if moving.extending {
-            moving.direction
-        } else {
-            moving.direction.opposite()
-        };
-        let before = (elapsed.saturating_sub(1)) as f64 * STEP_DISTANCE;
-        self.push_entities(pos, direction, before);
-        if elapsed >= MOVE_TICKS {
+        if moving.progress >= 1.0 {
             self.finish_moving(pos, false);
-        } else {
-            self.schedule(pos, BlockKind::MovingPiston, 1);
+            self.forget_old_pushes();
+            return;
         }
+        let new_progress = moving.progress + STEP_PER_TICK;
+        self.move_collided_entities(pos, &moving, new_progress);
+        self.move_stuck_entities(pos, &moving, new_progress);
+        if let Some(stored) = self.falls.redstone.moving.get_mut(&pos) {
+            stored.progress = new_progress.min(1.0);
+        }
+        self.schedule(pos, BlockKind::MovingPiston, 1);
     }
 
     pub(crate) fn finish_moving(&mut self, pos: BlockPos, forced: bool) {
@@ -584,40 +574,6 @@ impl<L: ClientLink> Server<L> {
         };
         self.set_block(pos, state);
         self.neighbor_changed(pos, pos);
-    }
-
-    fn push_entities(&mut self, pos: BlockPos, direction: Face, progress: f64) {
-        let delta = vector_of(direction).scale(STEP_DISTANCE);
-        let start = offset_by(pos, direction.opposite(), 1);
-        let base = Aabb::block(start).move_by(vector_of(direction).scale(progress));
-        let region = base.expand_towards(delta);
-        let ids: Vec<EntityId> = self
-            .entities
-            .store
-            .iter()
-            .filter(|entity| {
-                entity.base.removal.is_none() && entity.base.bounding_box().intersects(&region)
-            })
-            .map(|entity| entity.base.id)
-            .collect();
-        for id in ids {
-            if let Some(entity) = self.entities.store.get_mut(id) {
-                entity.base.position = entity.base.position + delta;
-                entity.base.needs_sync = true;
-            }
-            self.entities.store.reindex(id);
-        }
-        let players: Vec<(rspigot_domain::player::PlayerId, Vec3)> = self
-            .players
-            .iter()
-            .filter(|(_, player)| {
-                Aabb::of_size(player.position, 0.6, player.height() as f32).intersects(&region)
-            })
-            .map(|(id, player)| (*id, player.position + delta))
-            .collect();
-        for (id, position) in players {
-            self.teleport_player(id, position);
-        }
     }
 
     fn fitting_base(
