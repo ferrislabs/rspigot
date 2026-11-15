@@ -16,6 +16,7 @@ use crate::enchanting::{EnchantStep, PrepareEnchantStep};
 use crate::events::{Direction, Hand, InputState, PreLoginVerdict};
 use crate::explosion::BlockInteraction;
 use crate::health::DamageSource;
+use crate::mending::MendStep;
 use crate::plugins::EventKind;
 use crate::plugins::broadcast::Recipient;
 use crate::plugins::clicks::{CreativePacket, CreativeStep, DragStep, WindowClick, WindowPacket};
@@ -1543,6 +1544,7 @@ pub(crate) enum Continuation {
     TakeBook(Box<BookStep>),
     ExpCooldown(CooldownStep),
     ExpChange(OrbStep),
+    Mend(Box<MendStep>),
     PickupArrow(ArrowStep),
     Shear(Box<ShearStep>),
     Resurrect(Box<ResurrectStep>),
@@ -1761,6 +1763,7 @@ impl Continuation {
             Self::TakeBook(_) => EventKind::PlayerTakeLecternBook,
             Self::ExpCooldown(_) => EventKind::PlayerExpCooldownChange,
             Self::ExpChange(_) => EventKind::PlayerExpChange,
+            Self::Mend(_) => EventKind::PlayerItemMend,
             Self::PickupArrow(_) => EventKind::PlayerPickupArrow,
             Self::Shear(_) => EventKind::PlayerShearEntity,
             Self::Resurrect(_) => EventKind::EntityResurrect,

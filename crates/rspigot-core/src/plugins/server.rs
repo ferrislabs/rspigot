@@ -1340,6 +1340,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_furnace(*step, cancelled, answer);
                 Vec::new()
             }
+            Continuation::Mend(step) => {
+                self.apply_mend(*step, cancelled, patch_of!(patch, PlayerItemMend));
+                Vec::new()
+            }
             Continuation::Brewing(kind, step) => {
                 let answer = match kind {
                     EventKind::BrewingStandFuel => {

@@ -71,6 +71,7 @@ pub mod lighting;
 mod lightning;
 mod liquid_bucket;
 pub mod loot;
+mod mending;
 mod menu;
 mod minecarts;
 mod mob_actions;

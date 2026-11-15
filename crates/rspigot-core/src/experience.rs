@@ -319,7 +319,9 @@ impl<L: ClientLink> Server<L> {
                 let collecting = decisions.in_flight(Lane::Player(p.id), |then| {
                     matches!(
                         then,
-                        Continuation::ExpCooldown(_) | Continuation::ExpChange(_)
+                        Continuation::ExpCooldown(_)
+                            | Continuation::ExpChange(_)
+                            | Continuation::Mend(_)
                     )
                 });
                 (p.game_mode != GameMode::Spectator
@@ -380,15 +382,23 @@ impl<L: ClientLink> Server<L> {
                 },
             ))
         });
-        let step = OrbStep {
+        self.mend_with_orb(OrbStep {
             player,
             collector,
             orb: id,
             amount: value,
-        };
+        });
+    }
+
+    pub(crate) fn ask_orb_experience(&mut self, step: OrbStep) {
+        let (player, amount) = (step.player, step.amount);
+        if amount <= 0 {
+            self.finish_exp_change(step, PlayerExpChangePatch::default());
+            return;
+        }
         self.fire(player, Continuation::ExpChange(step), move |server| {
             Some(EventPayload::PlayerExpChange(PlayerExpChange {
-                amount: value,
+                amount,
                 player: server.snapshot_of(player)?,
             }))
         });
