@@ -178,7 +178,7 @@ fn custom_model_data_reaches_the_client_and_reads_back_typed() {
         colors: vec![0xFF0000],
     };
     let stick = ItemSpec {
-        custom_model_data: Some(data.clone()),
+        custom_model_data: Some(Box::new(data.clone())),
         ..ItemSpec::of("minecraft:stick", 1)
     };
     s.act(inv(
@@ -203,7 +203,7 @@ fn custom_model_data_reaches_the_client_and_reads_back_typed() {
         .expect("Alice receives the stick");
     assert!(sent.components.contains_key("minecraft:custom_model_data"));
     let read = item(&inventory(&mut s, &alice), 0);
-    assert_eq!(read.custom_model_data, Some(data));
+    assert_eq!(read.custom_model_data.as_deref(), Some(&data));
     assert!(read.components.is_empty());
 }
 

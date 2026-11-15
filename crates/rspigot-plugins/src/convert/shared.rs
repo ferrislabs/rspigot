@@ -145,11 +145,13 @@ pub(super) fn item(item: v1::Item) -> ItemSpec {
             .into_iter()
             .map(|enchant| (enchant.key, enchant.level))
             .collect(),
-        custom_model_data: item.custom_model_data.map(|data| CustomModelData {
-            floats: data.floats,
-            flags: data.flags,
-            strings: data.strings,
-            colors: data.colors,
+        custom_model_data: item.custom_model_data.map(|data| {
+            Box::new(CustomModelData {
+                floats: data.floats,
+                flags: data.flags,
+                strings: data.strings,
+                colors: data.colors,
+            })
         }),
         components: item.components,
     }

@@ -102,12 +102,12 @@ mod tests {
             ..wire_sword()
         };
         let spec = ItemSpec {
-            custom_model_data: Some(rspigot_domain::item::CustomModelData {
+            custom_model_data: Some(Box::new(rspigot_domain::item::CustomModelData {
                 floats: vec![1.5],
                 flags: vec![true],
                 strings: vec!["skin".into()],
                 colors: vec![255],
-            }),
+            })),
             ..sword()
         };
         assert_eq!(

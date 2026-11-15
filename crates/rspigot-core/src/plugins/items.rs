@@ -21,7 +21,7 @@ pub struct ItemSpec {
     pub name: Option<String>,
     pub lore: Vec<String>,
     pub enchantments: Vec<(String, i32)>,
-    pub custom_model_data: Option<CustomModelData>,
+    pub custom_model_data: Option<Box<CustomModelData>>,
     pub components: Vec<u8>,
 }
 
@@ -67,7 +67,7 @@ pub(crate) fn stack_of(spec: &ItemSpec) -> Result<Option<ItemStack>, String> {
     let lore: Vec<Component> = spec.lore.iter().map(|line| text(line)).collect();
     stack.set_lore(&lore);
     stack.set_enchantments(&enchantments);
-    stack.set_custom_model_data(spec.custom_model_data.as_ref());
+    stack.set_custom_model_data(spec.custom_model_data.as_deref());
     Ok(Some(stack))
 }
 
@@ -94,7 +94,7 @@ pub(crate) fn spec_of(stack: &ItemStack) -> ItemSpec {
             .into_iter()
             .map(|(key, level)| (key, i32::from(level)))
             .collect(),
-        custom_model_data: stack.custom_model_data(),
+        custom_model_data: stack.custom_model_data().map(Box::new),
         components,
     }
 }
