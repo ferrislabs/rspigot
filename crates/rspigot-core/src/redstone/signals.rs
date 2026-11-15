@@ -100,6 +100,13 @@ impl<L: ClientLink> Server<L> {
                     0
                 }
             }
+            _ if super::lightning_rod::is_lightning_rod(kind) => {
+                if flag(state, "powered") && facing(state) == Some(direction) {
+                    MAX_POWER
+                } else {
+                    0
+                }
+            }
             _ if is_button(kind) => {
                 if flag(state, "powered") && connected_direction(state) == direction {
                     MAX_POWER

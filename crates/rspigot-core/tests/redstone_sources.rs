@@ -133,3 +133,42 @@ fn using_a_daylight_detector_inverts_it() {
     assert_eq!(prop(&mut s, at, "inverted"), "true");
     assert_eq!(prop(&mut s, at, "power"), "11");
 }
+
+#[test]
+fn a_lightning_rod_powers_its_neighbours_for_eight_ticks_after_a_strike() {
+    let mut s = scene(&["Alice"]);
+    let rod = BlockPos::new(6, 64, 6);
+    let lamp = BlockPos::new(7, 64, 6);
+    put(&mut s, rod, "minecraft:lightning_rod", &[("facing", "up")]);
+    put(&mut s, lamp, "minecraft:redstone_lamp", &[]);
+    assert_eq!(prop(&mut s, rod, "powered"), "false");
+    s.server.handle(rspigot_core::events::Inbound::Console(
+        "summon minecraft:lightning_bolt 6.5 65 6.5".to_owned(),
+    ));
+    s.server.deliver();
+    s.tick(2);
+    assert_eq!(prop(&mut s, rod, "powered"), "true");
+    assert_eq!(prop(&mut s, lamp, "lit"), "true");
+    s.tick(12);
+    assert_eq!(prop(&mut s, rod, "powered"), "false");
+    s.tick(8);
+    assert_eq!(prop(&mut s, lamp, "lit"), "false");
+}
+
+#[test]
+fn a_lightning_rod_powers_the_block_it_is_planted_on() {
+    let mut s = scene(&["Alice"]);
+    let rod = BlockPos::new(6, 64, 6);
+    let base = BlockPos::new(6, 63, 6);
+    let lamp = BlockPos::new(6, 63, 7);
+    put(&mut s, base, "minecraft:stone", &[]);
+    put(&mut s, lamp, "minecraft:redstone_lamp", &[]);
+    put(&mut s, rod, "minecraft:lightning_rod", &[("facing", "up")]);
+    s.server.handle(rspigot_core::events::Inbound::Console(
+        "summon minecraft:lightning_bolt 6.5 65 6.5".to_owned(),
+    ));
+    s.server.deliver();
+    s.tick(2);
+    assert_eq!(prop(&mut s, rod, "powered"), "true");
+    assert_eq!(prop(&mut s, lamp, "lit"), "true");
+}

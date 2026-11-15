@@ -8,6 +8,7 @@ mod dispenser;
 mod event;
 mod hopper;
 mod lamp;
+mod lightning_rod;
 mod note;
 mod observer;
 mod openers;
@@ -222,6 +223,9 @@ impl<L: ClientLink> Server<L> {
                 _ => {}
             }
         }
+        if new.kind().is_some_and(lightning_rod::is_lightning_rod) && old.kind() != new.kind() {
+            self.lightning_rod_placed(pos, new);
+        }
         if new.kind() == Some(BlockKind::Target) && old.kind() != new.kind() {
             self.target_placed(pos, new);
         }
@@ -264,6 +268,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::DetectorRail => self.detector_tick(pos, state),
             BlockKind::Lectern => self.lectern_tick(pos),
             BlockKind::Target => self.target_tick(pos, state),
+            kind if lightning_rod::is_lightning_rod(kind) => self.lightning_rod_tick(pos, state),
             BlockKind::Crafter => self.crafter_tick(pos, state),
             BlockKind::MovingPiston => self.moving_tick(pos),
             _ if is_button(kind) => self.button_tick(pos, state),

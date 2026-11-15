@@ -32,6 +32,7 @@ pub(crate) enum RedstoneChange {
     Opener,
     Detector,
     Daylight,
+    LightningRod,
 }
 
 #[derive(Debug, Clone)]
@@ -83,6 +84,7 @@ impl<L: ClientLink> Server<L> {
             RedstoneChange::Opener => self.finish_opener(pos, new),
             RedstoneChange::Detector => self.finish_detector(pos, new),
             RedstoneChange::Daylight => self.finish_daylight(pos, new),
+            RedstoneChange::LightningRod => self.finish_lightning_rod(pos, new),
         }
     }
 }
