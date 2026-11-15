@@ -148,6 +148,12 @@ pub enum PlayerInput {
     },
     Respawn,
     RequestStats,
+    PlaceRecipe {
+        window: i32,
+        display_id: i32,
+        max: bool,
+    },
+    RecipeSeen(i32),
     ClientTickEnd,
     Attack(EntityId),
     Interact {
@@ -407,6 +413,46 @@ pub struct Abilities {
     pub walk_speed: f32,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BookStack {
+    pub item: rspigot_items::ItemId,
+    pub count: u8,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BookDisplay {
+    Shapeless {
+        ingredients: Vec<rspigot_items::ItemSet>,
+        result: BookStack,
+        station: rspigot_items::ItemId,
+    },
+    Shaped {
+        width: u8,
+        height: u8,
+        cells: Vec<Option<rspigot_items::ItemSet>>,
+        result: BookStack,
+        station: rspigot_items::ItemId,
+    },
+    Furnace {
+        ingredient: rspigot_items::ItemSet,
+        result: BookStack,
+        station: rspigot_items::ItemId,
+        duration: u16,
+        experience: f32,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BookEntry {
+    pub display_id: i32,
+    pub display: BookDisplay,
+    pub group: i32,
+    pub category: i32,
+    pub requirements: Vec<rspigot_items::ItemSet>,
+    pub notify: bool,
+    pub highlight: bool,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ClientEvent {
     Join(Box<JoinInfo>),
@@ -421,6 +467,16 @@ pub enum ClientEvent {
     Abilities(Abilities),
     HeldSlot(u8),
     RecipeSync,
+    RecipeBookSettings(crate::recipe_book::RecipeBookSettings),
+    RecipeBookAdd {
+        entries: Vec<BookEntry>,
+        replace: bool,
+    },
+    RecipeBookRemove(Vec<i32>),
+    GhostRecipe {
+        window: i32,
+        display: BookDisplay,
+    },
     Stats(Vec<(i32, i32, i32)>),
     SpawnPosition {
         dimension: Identifier,

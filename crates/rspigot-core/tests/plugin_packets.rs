@@ -519,8 +519,11 @@ mod recipe_book {
         );
         assert_eq!(player.id, s.players[0].id);
         let save = saved(&mut s, &saves);
-        assert_eq!(save.recipe_book.get(Kind::Smoker), (true, false));
-        assert_eq!(save.recipe_book.get(Kind::Crafting), (false, false));
+        assert_eq!(save.recipe_book.settings.get(Kind::Smoker), (true, false));
+        assert_eq!(
+            save.recipe_book.settings.get(Kind::Crafting),
+            (false, false)
+        );
     }
 
     #[test]
@@ -528,6 +531,6 @@ mod recipe_book {
         let (mut s, saves) = saving_scene(&["Alice"], Vec::new());
         change(&mut s, Kind::Furnace, false, true);
         let save = saved(&mut s, &saves);
-        assert_eq!(save.recipe_book.get(Kind::Furnace), (false, true));
+        assert_eq!(save.recipe_book.settings.get(Kind::Furnace), (false, true));
     }
 }

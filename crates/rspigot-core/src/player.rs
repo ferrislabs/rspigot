@@ -51,7 +51,7 @@ pub struct Player<L> {
     pub known_movement: Vec3,
     pub portal_cooldown: i32,
     pub seen_credits: bool,
-    pub recipe_book: crate::recipe_book::RecipeBookSettings,
+    pub recipe_book: crate::recipe_book::RecipeBook,
     pub stats: crate::stats::PlayerStats,
     pub won_game: bool,
     pub moved_this_tick: bool,

@@ -1581,6 +1581,7 @@ dependencies = [
  "rspigot-core",
  "rspigot-data",
  "rspigot-domain",
+ "rspigot-items",
  "rspigot-nbt",
  "rspigot-protocol",
  "rustc-hash",

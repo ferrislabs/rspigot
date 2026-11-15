@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use crate::book;
 use bytes::Bytes;
 use rspigot_core::commands::{
     ArgumentParser as CoreParser, CommandNodeKind as CoreNodeKind, CommandTree,
@@ -1065,6 +1066,25 @@ impl Encoder {
             ),
             ClientEvent::Abilities(a) => Self::queue(writer, &abilities(a)),
             ClientEvent::RecipeSync => Self::queue(writer, &update_recipes()),
+            ClientEvent::RecipeBookSettings(settings) => {
+                Self::queue(writer, &book::book_settings(settings))
+            }
+            ClientEvent::RecipeBookAdd { entries, replace } => {
+                Self::queue(writer, &book::book_add(entries, *replace))
+            }
+            ClientEvent::RecipeBookRemove(recipes) => Self::queue(
+                writer,
+                &cb::RecipeBookRemove {
+                    recipes: recipes.clone(),
+                },
+            ),
+            ClientEvent::GhostRecipe { window, display } => Self::queue(
+                writer,
+                &cb::PlaceGhostRecipe {
+                    container_id: *window,
+                    display: book::recipe_display(display),
+                },
+            ),
             ClientEvent::Stats(entries) => Self::queue(
                 writer,
                 &cb::AwardStats {
@@ -2814,6 +2834,40 @@ mod tests {
         assert_eq!(event.len(), 1);
         assert_eq!(event[0].0, id::UPDATE_RECIPES);
         assert_eq!(event[0].1[0], 9);
+    }
+
+    #[test]
+    fn recipe_book_events_become_their_packets() {
+        let removed = encode(ClientEvent::RecipeBookRemove(vec![5, 6]));
+        assert_eq!(removed[0].0, id::RECIPE_BOOK_REMOVE);
+        assert_eq!(removed[0].1, vec![2, 5, 6]);
+        let entry = rspigot_core::events::BookEntry {
+            display_id: 7,
+            display: rspigot_core::events::BookDisplay::Shapeless {
+                ingredients: vec![rspigot_items::ItemSet::Direct(&[rspigot_items::ItemId(3)])],
+                result: rspigot_core::events::BookStack {
+                    item: rspigot_items::ItemId(4),
+                    count: 2,
+                },
+                station: rspigot_items::ItemId(9),
+            },
+            group: 0,
+            category: 3,
+            requirements: vec![rspigot_items::ItemSet::Direct(&[rspigot_items::ItemId(3)])],
+            notify: true,
+            highlight: false,
+        };
+        let added = encode(ClientEvent::RecipeBookAdd {
+            entries: vec![entry],
+            replace: true,
+        });
+        assert_eq!(added[0].0, id::RECIPE_BOOK_ADD);
+        assert_eq!(&added[0].1[..4], &[1, 7, 0, 1]);
+        assert_eq!(added[0].1.last(), Some(&1));
+        let settings = encode(ClientEvent::RecipeBookSettings(
+            rspigot_core::recipe_book::RecipeBookSettings::default(),
+        ));
+        assert_eq!(settings[0].0, id::RECIPE_BOOK_SETTINGS);
     }
 
     #[test]

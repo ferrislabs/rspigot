@@ -160,7 +160,8 @@ pub enum SlotDisplay {
     AnyFuel,
     Item(i32),
     ItemStack(ItemStackTemplate),
-    Tag(HolderSet),
+    Tag(String),
+    Composite(Vec<SlotDisplay>),
 }
 
 impl Encode for SlotDisplay {
@@ -176,9 +177,16 @@ impl Encode for SlotDisplay {
                 write_var(slot_display::ITEM_STACK, out);
                 template.encode(out);
             }
-            Self::Tag(set) => {
+            Self::Tag(tag) => {
                 write_var(slot_display::TAG, out);
-                set.encode(out);
+                tag.encode(out);
+            }
+            Self::Composite(parts) => {
+                write_var(slot_display::COMPOSITE, out);
+                encode_len(parts.len(), out);
+                for part in parts {
+                    part.encode(out);
+                }
             }
         }
     }
@@ -191,7 +199,15 @@ impl Decode for SlotDisplay {
             slot_display::ANY_FUEL => Self::AnyFuel,
             slot_display::ITEM => Self::Item(read_var(input)?),
             slot_display::ITEM_STACK => Self::ItemStack(ItemStackTemplate::decode(input)?),
-            slot_display::TAG => Self::Tag(HolderSet::decode(input)?),
+            slot_display::TAG => Self::Tag(String::decode(input)?),
+            slot_display::COMPOSITE => {
+                let len = decode_len(input, MAX_LIST_LEN)?;
+                let mut parts = Vec::with_capacity(len.min(input.len()));
+                for _ in 0..len {
+                    parts.push(Self::decode(input)?);
+                }
+                Self::Composite(parts)
+            }
             other => {
                 return Err(DecodeError::InvalidValue {
                     field: "slot display type",
@@ -226,6 +242,173 @@ wire_struct! {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum RecipeDisplay {
+    Shapeless {
+        ingredients: Vec<SlotDisplay>,
+        result: SlotDisplay,
+        station: SlotDisplay,
+    },
+    Shaped {
+        width: i32,
+        height: i32,
+        ingredients: Vec<SlotDisplay>,
+        result: SlotDisplay,
+        station: SlotDisplay,
+    },
+    Furnace {
+        ingredient: SlotDisplay,
+        fuel: SlotDisplay,
+        result: SlotDisplay,
+        station: SlotDisplay,
+        duration: i32,
+        experience: f32,
+    },
+}
+
+fn encode_displays(displays: &[SlotDisplay], out: &mut Vec<u8>) {
+    encode_len(displays.len(), out);
+    for display in displays {
+        display.encode(out);
+    }
+}
+
+fn decode_displays(input: &mut &[u8]) -> Result<Vec<SlotDisplay>, DecodeError> {
+    let len = decode_len(input, MAX_LIST_LEN)?;
+    let mut displays = Vec::with_capacity(len.min(input.len()));
+    for _ in 0..len {
+        displays.push(SlotDisplay::decode(input)?);
+    }
+    Ok(displays)
+}
+
+impl Encode for RecipeDisplay {
+    fn encode(&self, out: &mut Vec<u8>) {
+        match self {
+            Self::Shapeless {
+                ingredients,
+                result,
+                station,
+            } => {
+                write_var(0, out);
+                encode_displays(ingredients, out);
+                result.encode(out);
+                station.encode(out);
+            }
+            Self::Shaped {
+                width,
+                height,
+                ingredients,
+                result,
+                station,
+            } => {
+                write_var(1, out);
+                write_var(*width, out);
+                write_var(*height, out);
+                encode_displays(ingredients, out);
+                result.encode(out);
+                station.encode(out);
+            }
+            Self::Furnace {
+                ingredient,
+                fuel,
+                result,
+                station,
+                duration,
+                experience,
+            } => {
+                write_var(2, out);
+                ingredient.encode(out);
+                fuel.encode(out);
+                result.encode(out);
+                station.encode(out);
+                write_var(*duration, out);
+                experience.encode(out);
+            }
+        }
+    }
+}
+
+impl Decode for RecipeDisplay {
+    fn decode(input: &mut &[u8]) -> Result<Self, DecodeError> {
+        Ok(match read_var(input)? {
+            0 => Self::Shapeless {
+                ingredients: decode_displays(input)?,
+                result: SlotDisplay::decode(input)?,
+                station: SlotDisplay::decode(input)?,
+            },
+            1 => Self::Shaped {
+                width: read_var(input)?,
+                height: read_var(input)?,
+                ingredients: decode_displays(input)?,
+                result: SlotDisplay::decode(input)?,
+                station: SlotDisplay::decode(input)?,
+            },
+            2 => Self::Furnace {
+                ingredient: SlotDisplay::decode(input)?,
+                fuel: SlotDisplay::decode(input)?,
+                result: SlotDisplay::decode(input)?,
+                station: SlotDisplay::decode(input)?,
+                duration: read_var(input)?,
+                experience: f32::decode(input)?,
+            },
+            other => {
+                return Err(DecodeError::InvalidValue {
+                    field: "recipe display type",
+                    value: i64::from(other),
+                });
+            }
+        })
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct RecipeDisplayEntry {
+        pub display_id: i32 as Var,
+        pub display: RecipeDisplay,
+        pub group: i32 as Var,
+        pub category: i32 as Var,
+        pub requirements: Option<Vec<HolderSet>> as Opt<List<Plain, UNBOUNDED>>,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct RecipeBookEntry {
+        pub entry: RecipeDisplayEntry,
+        pub flags: u8,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct RecipeBookAdd = id::RECIPE_BOOK_ADD {
+        pub entries: Vec<RecipeBookEntry> as List<Plain, UNBOUNDED>,
+        pub replace: bool,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct RecipeBookRemove = id::RECIPE_BOOK_REMOVE {
+        pub recipes: Vec<i32> as List<Var, UNBOUNDED>,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct PlaceGhostRecipe = id::PLACE_GHOST_RECIPE {
+        pub container_id: i32 as Var,
+        pub display: RecipeDisplay,
+    }
+}
+
+pub mod recipe_book_flags {
+    pub const NOTIFICATION: u8 = 1;
+    pub const HIGHLIGHT: u8 = 2;
+}
+
 wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
     pub struct RecipeBookTypeSettings {
@@ -252,6 +435,51 @@ mod tests {
     use crate::codec::decode_exact;
     use crate::play::slot::DataComponentPatch;
     use crate::play::wire::testing::roundtrip;
+
+    #[test]
+    fn a_composite_display_lists_its_parts_and_a_tag_is_a_bare_key() {
+        let display = SlotDisplay::Composite(vec![SlotDisplay::Item(3), SlotDisplay::Empty]);
+        assert_eq!(roundtrip(&display), vec![10, 2, 4, 3, 0]);
+        let tag = roundtrip(&SlotDisplay::Tag("a:b".into()));
+        assert_eq!(tag, vec![6, 3, b'a', b':', b'b']);
+    }
+
+    #[test]
+    fn a_shaped_display_carries_its_size_cells_result_and_station() {
+        let display = RecipeDisplay::Shaped {
+            width: 2,
+            height: 1,
+            ingredients: vec![SlotDisplay::Item(1), SlotDisplay::Empty],
+            result: SlotDisplay::Item(2),
+            station: SlotDisplay::Item(3),
+        };
+        assert_eq!(roundtrip(&display), vec![1, 2, 1, 2, 4, 1, 0, 4, 2, 4, 3]);
+    }
+
+    #[test]
+    fn a_book_entry_without_requirements_ends_on_a_false_flag_and_the_notification_byte() {
+        let packet = RecipeBookAdd {
+            entries: vec![RecipeBookEntry {
+                entry: RecipeDisplayEntry {
+                    display_id: 5,
+                    display: RecipeDisplay::Shapeless {
+                        ingredients: vec![SlotDisplay::Item(1)],
+                        result: SlotDisplay::Item(2),
+                        station: SlotDisplay::Item(3),
+                    },
+                    group: 0,
+                    category: 3,
+                    requirements: None,
+                },
+                flags: recipe_book_flags::NOTIFICATION | recipe_book_flags::HIGHLIGHT,
+            }],
+            replace: false,
+        };
+        assert_eq!(
+            roundtrip(&packet),
+            vec![1, 5, 0, 1, 4, 1, 4, 2, 4, 3, 0, 3, 0, 3, 0]
+        );
+    }
 
     #[test]
     fn container_content_layout() {
@@ -393,11 +621,11 @@ mod tests {
             SlotDisplay::Empty,
             SlotDisplay::AnyFuel,
             SlotDisplay::Item(5),
-            SlotDisplay::Tag(HolderSet::Tag("minecraft:planks".into())),
+            SlotDisplay::Tag("minecraft:planks".into()),
         ] {
             roundtrip(&display);
         }
-        assert!(decode_exact::<SlotDisplay>(&[10, 0]).is_err());
+        assert!(decode_exact::<SlotDisplay>(&[9, 0]).is_err());
     }
 
     #[test]

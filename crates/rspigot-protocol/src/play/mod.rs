@@ -34,8 +34,9 @@ pub mod clientbound {
     };
     pub use super::inventory::{
         ContainerClose, ContainerSetContent, ContainerSetData, ContainerSetSlot, MerchantOffers,
-        MountScreenOpen, OpenScreen, RecipeBookSettings, SetCursorItem, SetPlayerInventory,
-        TradeCost, TradeOffer, UpdateRecipes,
+        MountScreenOpen, OpenScreen, PlaceGhostRecipe, RecipeBookAdd, RecipeBookEntry,
+        RecipeBookRemove, RecipeBookSettings, RecipeDisplay, RecipeDisplayEntry, SetCursorItem,
+        SetPlayerInventory, TradeCost, TradeOffer, UpdateRecipes,
     };
     pub use super::metadata::SetEntityData;
     pub use super::player::{
@@ -146,6 +147,9 @@ mod tests {
             (<PlayerCombatKill as Packet>::ID, 69),
             (<BossEvent as Packet>::ID, 9),
             (<AwardStats as Packet>::ID, 3),
+            (<RecipeBookAdd as Packet>::ID, 75),
+            (<RecipeBookRemove as Packet>::ID, 76),
+            (<PlaceGhostRecipe as Packet>::ID, 64),
         ];
         for (actual, expected) in table {
             assert_eq!(actual, expected);

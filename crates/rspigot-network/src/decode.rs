@@ -314,6 +314,12 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
         ServerboundPlay::RenameItem(p) => input(PlayerInput::RenameItem(p.name)),
+        ServerboundPlay::PlaceRecipe(p) => input(PlayerInput::PlaceRecipe {
+            window: p.container_id,
+            display_id: p.recipe,
+            max: p.use_max_items,
+        }),
+        ServerboundPlay::RecipeBookSeen(p) => input(PlayerInput::RecipeSeen(p.recipe)),
         ServerboundPlay::RecipeBookSettings(p) => input(PlayerInput::RecipeBookSettings {
             kind: match p.book {
                 RecipeBookType::Crafting => BookKind::Crafting,
@@ -444,6 +450,22 @@ mod tests {
                 count: 5,
                 patched: true,
             }))
+        );
+    }
+
+    #[test]
+    fn placing_a_recipe_carries_the_window_the_display_id_and_the_maximum() {
+        assert_eq!(
+            decoded(sb::PLACE_RECIPE, &[1, 5, 1]),
+            PlayerInput::PlaceRecipe {
+                window: 1,
+                display_id: 5,
+                max: true,
+            }
+        );
+        assert_eq!(
+            decoded(sb::RECIPE_BOOK_SEEN_RECIPE, &[5]),
+            PlayerInput::RecipeSeen(5)
         );
     }
 
