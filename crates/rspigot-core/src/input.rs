@@ -1,10 +1,10 @@
 use std::num::NonZeroU8;
 
 use rspigot_domain::bed;
-use rspigot_domain::item::{HOTBAR_START, ItemStack};
+use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::text::Component;
-use rspigot_domain::{BlockPos, BlockStateId, ItemId, Rotation, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, Rotation, Vec3};
 
 use rspigot_blocks::{BlockKind, Face, PlaceContext, StateFlags, UseContext};
 
@@ -111,6 +111,7 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             PlayerInput::PickBlock { pos, .. } => self.handle_pick_block(id, pos),
+            PlayerInput::PickEntity { entity, .. } => self.handle_pick_entity(id, entity),
             PlayerInput::CommandSuggestion { id: request, text } => {
                 self.handle_suggestion(id, request, &text)
             }
@@ -825,27 +826,6 @@ impl<L: ClientLink> Server<L> {
         self.broadcast_held_item(id);
     }
 
-    fn handle_pick_block(&mut self, id: PlayerId, pos: BlockPos) {
-        let Some(state) = self.world.chunks.block(pos) else {
-            return;
-        };
-        let Some(item) = state.kind().and_then(BlockKind::item) else {
-            return;
-        };
-        let Some(player) = self.players.get_mut(&id) else {
-            return;
-        };
-        if player.game_mode != GameMode::Creative {
-            return;
-        }
-        let slot = HOTBAR_START + usize::from(player.inventory.selected_hotbar);
-        player
-            .inventory
-            .set(slot, Some(ItemStack::new(ItemId(item), NonZeroU8::MIN)));
-        self.sync_inventory(id);
-        self.broadcast_held_item(id);
-    }
-
     fn dimension_names(&self) -> Vec<String> {
         let mut names: Vec<String> = self.dormant.keys().map(ToString::to_string).collect();
         names.push(self.world.dimension.key.to_string());
@@ -983,6 +963,7 @@ const fn acts(input: &PlayerInput) -> bool {
             | PlayerInput::UseItem { .. }
             | PlayerInput::CreativeSlot { .. }
             | PlayerInput::PickBlock { .. }
+            | PlayerInput::PickEntity { .. }
             | PlayerInput::Attack(_)
             | PlayerInput::Interact { .. }
             | PlayerInput::ContainerClick(_)

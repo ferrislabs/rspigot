@@ -167,6 +167,10 @@ pub enum PlayerInput {
         pos: BlockPos,
         include_data: bool,
     },
+    PickEntity {
+        entity: EntityId,
+        include_data: bool,
+    },
     ChangeGameMode(GameMode),
     CommandSuggestion {
         id: i32,

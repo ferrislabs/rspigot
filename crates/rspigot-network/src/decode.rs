@@ -399,6 +399,10 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
                 Err(_) => Decoded::Ignored,
             }
         }
+        ServerboundPlay::PickItemFromEntity(p) => input(PlayerInput::PickEntity {
+            entity: EntityId(p.entity_id),
+            include_data: p.include_data,
+        }),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -719,6 +723,27 @@ mod tests {
             decode(ServerboundPlay::decode(sb::CUSTOM_PAYLOAD, &other).unwrap()),
             Decoded::Ignored
         ));
+    }
+
+    #[test]
+    fn picking_from_a_block_or_an_entity_keeps_the_target_and_the_data_flag() {
+        let mut body = Vec::new();
+        Position { x: 1, y: 64, z: 2 }.encode(&mut body);
+        body.push(1);
+        assert_eq!(
+            decoded(sb::PICK_ITEM_FROM_BLOCK, &body),
+            PlayerInput::PickBlock {
+                pos: BlockPos::new(1, 64, 2),
+                include_data: true,
+            }
+        );
+        assert_eq!(
+            decoded(sb::PICK_ITEM_FROM_ENTITY, &[9, 0]),
+            PlayerInput::PickEntity {
+                entity: EntityId(9),
+                include_data: false,
+            }
+        );
     }
 
     #[test]

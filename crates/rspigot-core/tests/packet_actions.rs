@@ -508,3 +508,210 @@ mod chat_sessions {
         assert_eq!(server.client_brand_of(alice.id).as_deref(), Some("fabric"));
     }
 }
+
+mod picking {
+    use super::*;
+    use rspigot_core::plugins::{Answer, BlockOrder, Order, Question};
+    use rspigot_domain::item::{HOTBAR_START, ItemStack};
+    use rspigot_domain::{BlockPos, EntityId};
+    use rspigot_items::ItemKind;
+    use std::num::NonZeroU8;
+
+    const PLANKS: BlockPos = BlockPos::new(1, 64, 0);
+    const FAR: BlockPos = BlockPos::new(1, 64, 12);
+
+    fn setup(mode: &str) -> Scene {
+        let mut s = scene_with(&["Alice"], Vec::new());
+        stream_chunk_of(&mut s, PLANKS);
+        for pos in [PLANKS, FAR] {
+            s.act(Order::Block {
+                pos,
+                order: BlockOrder::Set("minecraft:oak_planks".to_owned()),
+            });
+        }
+        console(&mut s.server, &format!("gamemode {mode} Alice"));
+        s.players[0].link.take();
+        s
+    }
+
+    fn state(s: &mut Scene) -> (Vec<Option<String>>, u8) {
+        let Answer::Inventory(state) = s.ask(Question::Inventory(s.players[0].id)) else {
+            panic!("expected the inventory");
+        };
+        (
+            state
+                .slots
+                .iter()
+                .take(36)
+                .map(|slot| slot.as_ref().map(|item| item.key.clone()))
+                .collect(),
+            state.held_slot,
+        )
+    }
+
+    fn pick(s: &mut Scene, pos: BlockPos) {
+        let alice = s.players[0].clone();
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::PickBlock {
+                pos,
+                include_data: false,
+            },
+        );
+    }
+
+    fn pick_entity(s: &mut Scene, entity: EntityId) {
+        let alice = s.players[0].clone();
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::PickEntity {
+                entity,
+                include_data: false,
+            },
+        );
+    }
+
+    fn held_slots(s: &Scene) -> Vec<u8> {
+        s.players[0]
+            .link
+            .take()
+            .into_iter()
+            .filter_map(|event| match event {
+                ClientEvent::HeldSlot(slot) => Some(slot),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_creative_player_gets_the_block_in_a_suitable_hotbar_slot() {
+        let mut s = setup("creative");
+        pick(&mut s, PLANKS);
+        let (slots, held) = state(&mut s);
+        assert_eq!(held, 0);
+        assert_eq!(slots[0].as_deref(), Some("minecraft:oak_planks"));
+        assert_eq!(held_slots(&s), [0]);
+    }
+
+    #[test]
+    fn a_block_already_in_the_hotbar_is_selected_instead_of_added() {
+        let mut s = setup("creative");
+        pick(&mut s, PLANKS);
+        let alice = s.players[0].clone();
+        send_input(&mut s.server, &alice, PlayerInput::HeldSlot(5));
+        s.players[0].link.take();
+        pick(&mut s, PLANKS);
+        let (slots, held) = state(&mut s);
+        assert_eq!(held, 0);
+        assert_eq!(slots.iter().flatten().count(), 1);
+        assert_eq!(held_slots(&s), [0]);
+    }
+
+    fn planks() -> ItemStack {
+        ItemStack::new(ItemKind::OakPlanks.id(), NonZeroU8::new(3).unwrap())
+    }
+
+    fn put_planks(s: &mut Scene, window_slot: i16) {
+        let alice = s.players[0].clone();
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::CreativeSlot {
+                slot: window_slot,
+                stack: Some(planks()),
+            },
+        );
+        console(&mut s.server, "gamemode survival Alice");
+        s.players[0].link.take();
+    }
+
+    #[test]
+    fn a_survival_player_without_the_item_gets_nothing() {
+        let mut s = setup("survival");
+        pick(&mut s, PLANKS);
+        let (slots, _) = state(&mut s);
+        assert!(slots.iter().all(Option::is_none));
+    }
+
+    #[test]
+    fn a_survival_player_selects_the_matching_hotbar_slot() {
+        let mut s = setup("creative");
+        put_planks(&mut s, (HOTBAR_START + 6) as i16);
+        pick(&mut s, PLANKS);
+        let (slots, held) = state(&mut s);
+        assert_eq!(held, 6);
+        assert_eq!(slots[6].as_deref(), Some("minecraft:oak_planks"));
+        assert_eq!(held_slots(&s), [6]);
+    }
+
+    #[test]
+    fn a_survival_player_swaps_a_storage_stack_into_the_hotbar() {
+        let mut s = setup("creative");
+        put_planks(&mut s, 20);
+        pick(&mut s, PLANKS);
+        let (slots, held) = state(&mut s);
+        assert_eq!(held, 0);
+        assert_eq!(slots[0].as_deref(), Some("minecraft:oak_planks"));
+        assert_eq!(slots[20], None);
+    }
+
+    #[test]
+    fn a_block_out_of_reach_is_not_picked() {
+        let mut s = setup("creative");
+        pick(&mut s, FAR);
+        let (slots, _) = state(&mut s);
+        assert!(slots.iter().all(Option::is_none));
+        assert!(held_slots(&s).is_empty());
+    }
+
+    #[test]
+    fn an_entity_gives_its_spawn_egg_or_its_own_item() {
+        let mut s = setup("creative");
+        console(&mut s.server, "summon minecraft:cow 1.5 64 0.5 {NoAI:1b}");
+        console(&mut s.server, "summon minecraft:minecart 0.5 64 1.5");
+        console(&mut s.server, "summon minecraft:armor_stand 0.5 64 -1.5");
+        let find = |s: &Scene, kind| {
+            s.server
+                .entities_of(kind)
+                .last()
+                .map(|entity| entity.id)
+                .expect("the entity")
+        };
+        let cow = find(&s, rspigot_entities::EntityKind::Cow);
+        let cart = find(&s, rspigot_entities::EntityKind::Minecart);
+        let stand = find(&s, rspigot_entities::EntityKind::ArmorStand);
+        for entity in [cow, cart, stand] {
+            pick_entity(&mut s, entity);
+        }
+        let (slots, _) = state(&mut s);
+        let mut keys: Vec<String> = slots.into_iter().flatten().collect();
+        keys.sort();
+        assert_eq!(
+            keys,
+            [
+                "minecraft:armor_stand",
+                "minecraft:cow_spawn_egg",
+                "minecraft:minecart"
+            ]
+        );
+    }
+
+    #[test]
+    fn an_entity_out_of_reach_or_without_an_item_gives_nothing() {
+        let mut s = setup("creative");
+        console(&mut s.server, "summon minecraft:cow 1.5 64 20.5 {NoAI:1b}");
+        console(&mut s.server, "summon minecraft:item 1.5 64 0.5");
+        let far = s
+            .server
+            .entities_of(rspigot_entities::EntityKind::Cow)
+            .last()
+            .map(|entity| entity.id)
+            .expect("the cow");
+        pick_entity(&mut s, far);
+        pick_entity(&mut s, rspigot_domain::EntityId(987_654));
+        let (slots, _) = state(&mut s);
+        assert!(slots.iter().all(Option::is_none));
+    }
+}

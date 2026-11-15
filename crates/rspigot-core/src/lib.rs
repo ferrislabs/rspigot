@@ -92,6 +92,7 @@ mod nether_portal;
 mod patrol;
 mod persistence;
 mod phantom_spawner;
+mod pick_item;
 pub mod player;
 pub mod player_data;
 mod player_io;
