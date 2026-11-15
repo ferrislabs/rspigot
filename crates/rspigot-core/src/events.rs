@@ -175,6 +175,7 @@ pub enum PlayerInput {
         secondary: Option<i32>,
     },
     SelectTrade(i32),
+    RenameItem(String),
     RecipeBookSettings {
         kind: crate::recipe_book::BookKind,
         open: bool,

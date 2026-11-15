@@ -72,6 +72,7 @@ impl<L: ClientLink> Server<L> {
         let before = Self::equipment_of(player);
         let clicker = Clicker {
             infinite_materials: player.game_mode == GameMode::Creative,
+            experience_level: player.vitals.experience.level,
         };
         let (moved, effects) = match act {
             Some(Move::Click) => (
@@ -165,6 +166,8 @@ impl<L: ClientLink> Server<L> {
                 MenuEffect::FurnaceOutputTaken { .. }
                 | MenuEffect::StonecutterTaken
                 | MenuEffect::SmithingTaken
+                | MenuEffect::AnvilTaken { .. }
+                | MenuEffect::GrindstoneTaken { .. }
                 | MenuEffect::Traded { .. }
                 | MenuEffect::TradeUpdated { .. } => {}
                 MenuEffect::FullResync => self.send_inventory(id),

@@ -1,5 +1,6 @@
 pub mod climate;
 pub mod compostable;
+pub mod enchantments;
 pub mod entities;
 #[rustfmt::skip]
 mod generated;
