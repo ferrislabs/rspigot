@@ -89,6 +89,7 @@ mod projectiles;
 mod raids;
 mod random_ticks;
 pub mod recipe_book;
+mod redstone;
 mod respawning;
 mod riding;
 mod sculk;

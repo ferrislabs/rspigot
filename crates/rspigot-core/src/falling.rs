@@ -25,6 +25,7 @@ use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause};
 use crate::plugins::steps::{Grief, Landing, Nature};
 use crate::plugins::{Continuation, EntityView, view_of_entity};
 use crate::ports::ClientLink;
+use crate::redstone::TickPriority;
 use crate::server::Server;
 
 const FALLING_DELAY: u64 = 2;
@@ -41,8 +42,11 @@ const MAX_FALL_DAMAGE: i32 = 40;
 
 #[derive(Debug, Default)]
 pub struct ScheduledFalls {
-    due: BTreeMap<u64, Vec<(BlockPos, BlockKind)>>,
+    due: BTreeMap<(u64, i8, u64), (BlockPos, BlockKind)>,
     pending: FxHashSet<(BlockPos, BlockKind)>,
+    running: FxHashSet<(BlockPos, BlockKind)>,
+    sequence: u64,
+    pub(crate) redstone: crate::redstone::Runtime,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -160,6 +164,7 @@ impl<L: ClientLink> Server<L> {
         let Some(kind) = state.kind() else {
             return Some(state);
         };
+        let state = self.redstone_placement(pos, state);
         let replaced = self.block_or_air(pos);
         if kind == BlockKind::DriedGhast {
             return Some(waterlogged(state, water_source(replaced)));
@@ -191,10 +196,32 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn schedule(&mut self, pos: BlockPos, kind: BlockKind, delay: u64) {
+        self.schedule_with(pos, kind, delay, TickPriority::Normal);
+    }
+
+    pub(crate) fn schedule_with(
+        &mut self,
+        pos: BlockPos,
+        kind: BlockKind,
+        delay: u64,
+        priority: TickPriority,
+    ) {
         if self.falls.pending.insert((pos, kind)) {
             let due = self.current_tick() + delay;
-            self.falls.due.entry(due).or_default().push((pos, kind));
+            let order = self.falls.sequence;
+            self.falls.sequence += 1;
+            self.falls
+                .due
+                .insert((due, priority as i8, order), (pos, kind));
         }
+    }
+
+    pub(crate) fn has_scheduled(&self, pos: BlockPos, kind: BlockKind) -> bool {
+        self.falls.pending.contains(&(pos, kind))
+    }
+
+    pub(crate) fn will_tick_this_tick(&self, pos: BlockPos, kind: BlockKind) -> bool {
+        self.falls.running.contains(&(pos, kind))
     }
 
     pub(crate) fn on_place(&mut self, pos: BlockPos) {
@@ -247,6 +274,7 @@ impl<L: ClientLink> Server<L> {
         let Some(kind) = state.kind() else {
             return;
         };
+        self.redstone_shape(pos, state, direction);
         if kind == BlockKind::Frogspawn {
             self.frogspawn_neighbour_changed(pos);
             return;
@@ -358,11 +386,13 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn tick_falling_blocks(&mut self) {
         let now = self.current_tick();
         let due: Vec<(BlockPos, BlockKind)> = {
-            let later = self.falls.due.split_off(&(now + 1));
+            let later = self.falls.due.split_off(&(now + 1, i8::MIN, 0));
             let ready = std::mem::replace(&mut self.falls.due, later);
-            ready.into_values().flatten().collect()
+            ready.into_values().collect()
         };
+        self.falls.running.extend(due.iter().copied());
         for (pos, kind) in due {
+            self.falls.running.remove(&(pos, kind));
             self.falls.pending.remove(&(pos, kind));
             let state = self.block_or_air(pos);
             if state.kind() == Some(kind) {
@@ -372,6 +402,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn block_tick(&mut self, pos: BlockPos, state: BlockStateId, kind: BlockKind) {
+        if self.redstone_tick(pos, state, kind) {
+            return;
+        }
         if kind == BlockKind::Composter {
             self.composter_ready(pos, state);
             return;
@@ -453,7 +486,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn destroy_block(&mut self, pos: BlockPos, state: BlockStateId) {
+    pub(crate) fn destroy_block(&mut self, pos: BlockPos, state: BlockStateId) {
         let context = LootContext::block(state, None, None);
         for stack in loot::block_drops(&context, &mut self.rng) {
             self.spawn_item(pos, stack);
