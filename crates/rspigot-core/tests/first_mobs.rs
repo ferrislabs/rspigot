@@ -676,6 +676,33 @@ fn a_spawn_egg_used_on_a_block_spawns_the_mob_above_it() {
 }
 
 #[test]
+fn the_brute_and_elder_guardian_spawn_eggs_hatch_outside_their_structures() {
+    for (egg, kind) in [
+        ("minecraft:piglin_brute_spawn_egg", Kind::PiglinBrute),
+        ("minecraft:elder_guardian_spawn_egg", Kind::ElderGuardian),
+    ] {
+        let mut server = server();
+        let mut alice = join(&mut server, "Alice");
+        give(&mut server, &mut alice, egg, 1);
+        alice.drain();
+        input(
+            &mut server,
+            alice.id,
+            PlayerInput::UseItemOn {
+                hand: Hand::Main,
+                pos: BlockPos::new(0, 63, 2),
+                face: Direction::Up,
+                cursor: Vec3::new(0.5, 1.0, 0.5),
+                inside_block: false,
+                sequence: 1,
+            },
+        );
+        pump(&mut server, &mut alice, 2);
+        assert_eq!(server.entities_of(kind).len(), 1, "{kind:?}");
+    }
+}
+
+#[test]
 fn a_name_tag_names_the_mob_and_makes_it_persistent() {
     let mut server = server();
     let mut alice = join(&mut server, "Alice");

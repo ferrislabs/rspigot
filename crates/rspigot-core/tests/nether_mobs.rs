@@ -481,3 +481,17 @@ fn a_cancelled_pickup_leaves_the_gold_where_it_lies() {
         .and_then(|equipment| equipment.get("offhand").cloned());
     assert!(off.is_none(), "{off:?}");
 }
+
+#[test]
+fn a_giant_has_no_goal_so_it_stands_where_it_fell_and_never_hunts() {
+    let mut s = creative(ready(scene(&["Alice"])));
+    let giant = summon(&mut s, Kind::Giant, "5.5 64 5.5", "{}");
+    s.tick(100);
+    let at = s.server.entities_of(Kind::Giant)[0].position;
+    assert_eq!((at.x, at.z), (5.5, 5.5));
+    s.tick(100);
+    let later = s.server.entities_of(Kind::Giant)[0].position;
+    assert_eq!((later.x, later.z), (5.5, 5.5));
+    assert_eq!(s.server.entities_of(Kind::Giant)[0].id, giant);
+    assert!(!rspigot_ai::MobAi::new(Kind::Giant, 0, rspigot_ai::GoalSettings::default()).has_ai());
+}
