@@ -177,6 +177,7 @@ impl<L: ClientLink> Server<L> {
                 self.handle_change_difficulty(id, difficulty)
             }
             PlayerInput::LockDifficulty(locked) => self.handle_lock_difficulty(id, locked),
+            PlayerInput::SetGameRules(entries) => self.handle_set_game_rules(id, entries),
             PlayerInput::TeleportToEntity(target) => self.handle_teleport_to_entity(id, target),
             PlayerInput::BlockTagQuery { transaction, pos } => {
                 self.handle_block_tag_query(id, transaction, pos);

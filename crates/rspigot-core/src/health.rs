@@ -1325,6 +1325,10 @@ impl<L: ClientLink> Server<L> {
         self.players.get(&id).map(|p| p.vitals.absorption)
     }
 
+    pub fn game_rules(&self) -> crate::config::GameRules {
+        self.config.rules
+    }
+
     pub fn player_location(&self, id: PlayerId) -> Option<Vec3> {
         self.players.get(&id).map(|p| p.position)
     }

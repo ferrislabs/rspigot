@@ -344,3 +344,80 @@ mod spectating {
         assert!(asked_for(&s.plugin, EventKind::PlayerTeleport).is_empty());
     }
 }
+
+mod game_rules {
+    use super::*;
+    use rspigot_core::plugins::{Answer, GameRule, Question};
+
+    fn set(s: &mut Scene, who: usize, entries: &[(&str, &str)]) {
+        let player = s.players[who].clone();
+        let entries = entries
+            .iter()
+            .map(|(key, value)| ((*key).to_owned(), (*value).to_owned()))
+            .collect();
+        send_input(&mut s.server, &player, PlayerInput::SetGameRules(entries));
+    }
+
+    fn flags(s: &mut Scene) -> Vec<(GameRule, bool)> {
+        let Answer::World(state) = s.ask(Question::World) else {
+            panic!("expected the world");
+        };
+        state.rules
+    }
+
+    fn scene() -> Scene {
+        scene_on(
+            configured(operators(&["Alice"])),
+            &["Alice", "Bob"],
+            Vec::new(),
+        )
+    }
+
+    #[test]
+    fn an_operator_sets_a_flag_rule_by_its_key() {
+        let mut s = scene();
+        assert!(flags(&mut s).contains(&(GameRule::KeepInventory, false)));
+        set(&mut s, 0, &[("minecraft:keep_inventory", "true")]);
+        assert!(flags(&mut s).contains(&(GameRule::KeepInventory, true)));
+    }
+
+    #[test]
+    fn plain_and_number_rules_are_stored_when_in_range() {
+        let mut s = scene();
+        set(
+            &mut s,
+            0,
+            &[
+                ("minecraft:tnt_explodes", "false"),
+                ("minecraft:random_tick_speed", "7"),
+                ("minecraft:max_snow_accumulation_height", "8"),
+                ("minecraft:fire_spread_radius_around_player", "-1"),
+            ],
+        );
+        let rules = s.server.game_rules();
+        assert!(!rules.tnt_explodes);
+        assert_eq!(rules.random_tick_speed, 7);
+        assert_eq!(rules.max_snow_accumulation_height, 8);
+        assert_eq!(rules.fire_spread_radius, -1);
+    }
+
+    #[test]
+    fn invalid_values_unknown_keys_and_non_operators_change_nothing() {
+        let mut s = scene();
+        let before = s.server.game_rules();
+        set(
+            &mut s,
+            0,
+            &[
+                ("minecraft:keep_inventory", "yes"),
+                ("minecraft:random_tick_speed", "-1"),
+                ("minecraft:max_snow_accumulation_height", "9"),
+                ("minecraft:no_such_rule", "true"),
+                ("keep_inventory", "true"),
+            ],
+        );
+        set(&mut s, 1, &[("minecraft:random_tick_speed", "50")]);
+        assert_eq!(s.server.game_rules(), before);
+        assert!(flags(&mut s).contains(&(GameRule::KeepInventory, false)));
+    }
+}

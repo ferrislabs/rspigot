@@ -211,6 +211,7 @@ pub enum PlayerInput {
     ChangeDifficulty(Difficulty),
     LockDifficulty(bool),
     TeleportToEntity(uuid::Uuid),
+    SetGameRules(Vec<(String, String)>),
     BlockTagQuery {
         transaction: i32,
         pos: BlockPos,

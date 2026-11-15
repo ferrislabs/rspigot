@@ -59,6 +59,7 @@ mod fireworks;
 mod fishing;
 mod fluids;
 mod game_events;
+mod game_rule_packet;
 mod gliding;
 mod ground;
 mod hanging;

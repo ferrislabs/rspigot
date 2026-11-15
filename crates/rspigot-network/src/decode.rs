@@ -378,6 +378,12 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             entity: EntityId(p.entity_id),
         }),
         ServerboundPlay::TeleportToEntity(p) => input(PlayerInput::TeleportToEntity(p.target)),
+        ServerboundPlay::SetGameRule(p) => input(PlayerInput::SetGameRules(
+            p.entries
+                .into_iter()
+                .map(|entry| (entry.rule.as_str().to_owned(), entry.value))
+                .collect(),
+        )),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -648,6 +654,21 @@ mod tests {
         assert_eq!(
             decoded(sb::TELEPORT_TO_ENTITY, &9u128.to_be_bytes()),
             PlayerInput::TeleportToEntity(uuid::Uuid::from_u128(9))
+        );
+    }
+
+    #[test]
+    fn game_rule_entries_keep_their_key_and_text_value() {
+        let mut body = vec![1];
+        for text in ["minecraft:keep_inventory", "true"] {
+            text.to_owned().encode(&mut body);
+        }
+        assert_eq!(
+            decoded(sb::SET_GAME_RULE, &body),
+            PlayerInput::SetGameRules(vec![(
+                "minecraft:keep_inventory".to_owned(),
+                "true".to_owned()
+            )])
         );
     }
 
