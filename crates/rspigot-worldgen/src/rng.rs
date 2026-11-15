@@ -16,11 +16,6 @@ pub(crate) fn hash3(seed: u64, x: i32, y: i32, z: i32) -> u64 {
     mix(h ^ u64::from(z as u32).rotate_left(42))
 }
 
-pub(crate) fn hash2(seed: u64, x: i32, z: i32) -> u64 {
-    let h = mix(seed ^ u64::from(x as u32));
-    mix(h ^ u64::from(z as u32).rotate_left(32))
-}
-
 pub(crate) fn unit(hash: u64) -> f64 {
     (hash >> 11) as f64 * (1.0 / 9_007_199_254_740_992.0)
 }
@@ -52,6 +47,7 @@ impl Rng {
         (((self.next_u64() >> 32) * u64::from(bound)) >> 32) as u32
     }
 
+    #[cfg(test)]
     pub(crate) fn range(&mut self, low: i32, high: i32) -> i32 {
         low + self.below((high - low + 1).max(1) as u32) as i32
     }
@@ -122,6 +118,5 @@ mod tests {
         assert_ne!(base, hash3(1, 3, 3, 4));
         assert_ne!(base, hash3(1, 2, 4, 4));
         assert_ne!(base, hash3(1, 2, 3, 5));
-        assert_ne!(hash2(1, 2, 3), hash2(1, 3, 2));
     }
 }

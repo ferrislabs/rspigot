@@ -407,6 +407,10 @@ impl SurfaceSystem {
             .warm_enough_to_rain(self.climates[usize::from(biome)], x, y, z, sea_level)
     }
 
+    pub(crate) fn info_noise(&self, x: f64, z: f64) -> f64 {
+        self.temperature.info(x, z)
+    }
+
     pub(crate) fn surface_depth(&self, x: i32, z: i32) -> i32 {
         let noise = f64::from(self.surface_noise.get(f64::from(x), 0.0, f64::from(z)));
         let jitter = self.random.at(x, 0, z).next_double();

@@ -174,7 +174,8 @@ def build(pack):
             "has_precipitation": data.get("has_precipitation", True),
             "features": data["features"],
         }
-    placed, configured = reachable_features(pack, biomes)
+    placed = {name: pack.load("placed_feature", name) for name in pack.names("placed_feature")}
+    configured = {name: pack.load("feature", name) for name in pack.names("feature")}
     collect_feature_noises(placed, noises)
     collect_feature_noises(configured, noises)
     noise_table = {name: noise_entry(pack, name) for name in sorted(noises)}
@@ -184,6 +185,7 @@ def build(pack):
         "placed": placed,
         "configured": configured,
         "noises": noise_table,
+        "providers": {name: pack.load("block_state_provider", name) for name in pack.names("block_state_provider")},
     }
 
 

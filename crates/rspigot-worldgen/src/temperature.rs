@@ -24,6 +24,10 @@ impl TemperatureNoise {
         }
     }
 
+    pub(crate) fn info(&self, x: f64, z: f64) -> f64 {
+        f64::from(self.info.value(x, z, false) as f32)
+    }
+
     fn modified(&self, climate: BiomeClimate, x: i32, z: i32) -> f32 {
         if !climate.frozen {
             return climate.temperature;

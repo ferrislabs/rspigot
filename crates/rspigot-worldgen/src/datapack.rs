@@ -27,13 +27,21 @@ pub(crate) fn block_state(value: &Value) -> Option<BlockStateId> {
                 .get("properties")
                 .or_else(|| map.get("Properties"))
                 .and_then(Value::as_object);
-            let pairs: Vec<(&str, &str)> = properties
+            let mut pairs: Vec<(&str, &str)> = properties
                 .map(|map| {
                     map.iter()
                         .filter_map(|(key, value)| Some((key.as_str(), value.as_str()?)))
                         .collect()
                 })
                 .unwrap_or_default();
+            if matches!(name, "minecraft:water" | "minecraft:lava")
+                && let Some(index) = pairs.iter().position(|(key, _)| *key == "falling")
+            {
+                let (_, falling) = pairs.remove(index);
+                if falling == "true" {
+                    pairs.push(("level", "8"));
+                }
+            }
             state_named(name, &pairs)
         }
         _ => None,

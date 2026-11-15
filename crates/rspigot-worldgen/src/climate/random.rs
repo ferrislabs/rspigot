@@ -37,6 +37,7 @@ impl Seed128 {
 pub(crate) struct Xoroshiro {
     lo: u64,
     hi: u64,
+    spare: Option<f64>,
 }
 
 impl Xoroshiro {
@@ -45,9 +46,14 @@ impl Xoroshiro {
             Self {
                 lo: GOLDEN,
                 hi: SILVER,
+                spare: None,
             }
         } else {
-            Self { lo, hi }
+            Self {
+                lo,
+                hi,
+                spare: None,
+            }
         }
     }
 
@@ -63,6 +69,33 @@ impl Xoroshiro {
         self.lo = lo.rotate_left(49) ^ hi ^ (hi << 21);
         self.hi = hi.rotate_left(28);
         result
+    }
+
+    pub(crate) fn reseed(&mut self, seed: i64) {
+        *self = Self::from_seed(seed);
+    }
+
+    pub(crate) fn below(&mut self, bound: i32) -> i32 {
+        if bound <= 0 {
+            return 0;
+        }
+        self.next_int(bound as u32) as i32
+    }
+
+    pub(crate) fn next_gaussian(&mut self) -> f64 {
+        if let Some(value) = self.spare.take() {
+            return value;
+        }
+        loop {
+            let a = 2.0 * self.next_double() - 1.0;
+            let b = 2.0 * self.next_double() - 1.0;
+            let s = a * a + b * b;
+            if s < 1.0 && s != 0.0 {
+                let factor = (-2.0 * s.ln() / s).sqrt();
+                self.spare = Some(b * factor);
+                return a * factor;
+            }
+        }
     }
 
     pub(crate) fn next_int(&mut self, bound: u32) -> u32 {
