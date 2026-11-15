@@ -448,6 +448,7 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_portal_entity(pos, state);
                 self.ensure_gateway_entity(pos, state);
                 self.ensure_beehive_entity(pos, state);
+                self.ensure_spawner_entity(pos, state);
                 if state.kind() == Some(BlockKind::Fire) {
                     self.hive_fire_placed(pos);
                 }
@@ -619,7 +620,8 @@ impl<L: ClientLink> Server<L> {
         }
         if let Some(held) = &stack
             && !matches!(game_mode, GameMode::Adventure | GameMode::Spectator)
-            && self.spawn_from_egg_on_block(id, slot, held, pos, face, clicked)
+            && (self.use_egg_on_spawner(id, slot, held, pos)
+                || self.spawn_from_egg_on_block(id, slot, held, pos, face, clicked))
         {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;

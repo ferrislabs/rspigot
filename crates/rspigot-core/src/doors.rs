@@ -4,10 +4,14 @@ use rspigot_domain::player::PlayerId;
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
 use rspigot_entities::SoundSource;
 
-use crate::plugins::events::EntityInteract;
-use crate::plugins::{Continuation, EventPayload};
+use rspigot_ai::ZOMBIE_BREAK_DOOR_EVENT;
+
+use crate::plugins::events::{EntityBreakDoor, EntityInteract};
+use crate::plugins::{Continuation, EventPayload, data_of, material_of};
 use crate::ports::ClientLink;
 use crate::server::Server;
+
+const BLOCK_BREAK_EVENT: i32 = 2001;
 
 const DOOR_VOLUME: f32 = 1.0;
 const DOOR_PITCH_BASE: f32 = 0.9;
@@ -103,6 +107,32 @@ impl<L: ClientLink> Server<L> {
                 entity: mob,
             }))
         });
+    }
+
+    pub(crate) fn mob_breaks_door(&mut self, id: EntityId, pos: BlockPos) {
+        let Some(mob) = self.entity_view(id) else {
+            return;
+        };
+        let lane = self.lane_for(None, id);
+        self.fire(lane, Continuation::BreakDoor { mob: id, pos }, move |_| {
+            Some(EventPayload::EntityBreakDoor(EntityBreakDoor {
+                block: pos,
+                block_data: data_of(BlockStateId::AIR),
+                entity_type: mob.kind.clone(),
+                entity: mob,
+                to: material_of(BlockStateId::AIR).to_owned(),
+            }))
+        });
+    }
+
+    pub(crate) fn finish_break_door(&mut self, mob: EntityId, pos: BlockPos) {
+        if self.entities.store.get(mob).is_none() {
+            return;
+        }
+        let state = self.world.chunks.block(pos).unwrap_or(BlockStateId::AIR);
+        self.set_block(pos, BlockStateId::AIR);
+        self.level_event(ZOMBIE_BREAK_DOOR_EVENT, pos, 0);
+        self.level_event(BLOCK_BREAK_EVENT, pos, i32::from(state.0));
     }
 
     pub(crate) fn finish_door_open(&mut self, mob: EntityId, pos: BlockPos) {

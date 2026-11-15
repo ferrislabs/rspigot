@@ -168,12 +168,7 @@ impl<L: ClientLink> Server<L> {
                 open,
                 interact,
             } => self.mob_door_action(id, pos, open, interact),
-            MobAction::BreakDoor(pos) => {
-                self.set_block(pos, BlockStateId::AIR);
-                self.level_event(rspigot_ai::ZOMBIE_BREAK_DOOR_EVENT, pos, 0);
-                let state = self.world.chunks.block(pos).unwrap_or(BlockStateId::AIR);
-                self.level_event(BLOCK_BREAK_EVENT, pos, i32::from(state.0));
-            }
+            MobAction::BreakDoor(pos) => self.mob_breaks_door(id, pos),
         }
     }
 

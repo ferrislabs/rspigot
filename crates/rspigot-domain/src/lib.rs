@@ -44,6 +44,7 @@ pub mod random;
 pub mod recipes;
 pub mod smithing;
 pub mod spawn;
+pub mod spawner;
 pub mod stonecutting;
 pub mod text;
 pub mod warden;

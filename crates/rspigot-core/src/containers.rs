@@ -134,9 +134,9 @@ pub(crate) fn sync_menu_view<L: ClientLink>(
     }
 }
 
-struct Opening {
-    kind: MenuKind,
-    entity: Option<&'static str>,
+pub(crate) struct Opening {
+    pub(crate) kind: MenuKind,
+    pub(crate) entity: Option<&'static str>,
     ender: bool,
     title: &'static str,
     block: BlockKind,
@@ -147,7 +147,7 @@ pub(crate) fn opens_menu(state: BlockStateId) -> bool {
     opening_of(state).is_some()
 }
 
-fn opening_of(state: BlockStateId) -> Option<Opening> {
+pub(crate) fn opening_of(state: BlockStateId) -> Option<Opening> {
     let block = state.kind()?;
     let storage = |kind, entity: &'static str, title, lid| {
         Some(Opening {
@@ -431,7 +431,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn half_items(&self, pos: BlockPos, size: usize) -> Vec<Slot> {
+    pub(crate) fn half_items(&self, pos: BlockPos, size: usize) -> Vec<Slot> {
         self.world
             .chunks
             .get(pos.chunk())
@@ -490,7 +490,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn store_half(&mut self, pos: BlockPos, entity: &'static str, items: &[Slot]) {
+    pub(crate) fn store_half(&mut self, pos: BlockPos, entity: &'static str, items: &[Slot]) {
         let Some(chunk) = self.world.chunks.chunk_mut(pos.chunk()) else {
             return;
         };
@@ -525,6 +525,9 @@ impl<L: ClientLink> Server<L> {
         pos: BlockPos,
         state: BlockStateId,
     ) -> bool {
+        if self.unpack_block_loot(id, pos, state) {
+            return true;
+        }
         let Some(opening) = self.opening_at(pos, state) else {
             return false;
         };
