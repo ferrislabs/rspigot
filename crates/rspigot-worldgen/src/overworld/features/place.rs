@@ -3,7 +3,7 @@ use std::sync::Arc;
 use serde_json::Value;
 
 use super::bodies::Feature;
-use super::prov::{Height, Int, Pos, Pred, integer, number, short, text};
+use super::prov::{Height, Int, Pos, Pred, flag, integer, number, short, text};
 use crate::climate::Xoroshiro;
 use crate::overworld::region::{Heightmap, Region};
 use crate::overworld::surface_rules::SurfaceSystem;
@@ -44,6 +44,12 @@ pub(crate) enum Modifier {
     },
     RandomlySelected(Vec<Modifier>),
     Fixed(Vec<Pos>),
+    Cuboid {
+        xz: Int,
+        y: Int,
+        edges: bool,
+        interior: bool,
+    },
     Unsupported,
 }
 
@@ -106,6 +112,12 @@ impl Modifier {
                     .map(|items| items.iter().map(Self::compile).collect())
                     .unwrap_or_default(),
             ),
+            "cuboid" => Self::Cuboid {
+                xz: provider("xz_size"),
+                y: provider("y_size"),
+                edges: flag(value, "include_edges", true),
+                interior: flag(value, "include_interior", true),
+            },
             "fixed_placement" => Self::Fixed(
                 value
                     .get("positions")
@@ -130,12 +142,13 @@ impl Modifier {
     fn max_offset(&self) -> i32 {
         match self {
             Self::Offset(x, _, z) => max_abs(x).max(max_abs(z)),
+            Self::Cuboid { xz, .. } => max_abs(xz),
             _ => 0,
         }
     }
 }
 
-fn max_abs(provider: &Int) -> i32 {
+pub(super) fn max_abs(provider: &Int) -> i32 {
     match provider {
         Int::Constant(n) => n.abs(),
         Int::Uniform(a, b) | Int::BiasedToBottom(a, b) | Int::VeryBiasedToBottom(a, b) => {
@@ -171,6 +184,7 @@ pub(crate) struct Run<'a, 'r> {
     pub(crate) rng: &'a mut Xoroshiro,
     pub(crate) surface: &'a SurfaceSystem,
     pub(crate) feature_id: usize,
+    pub(crate) seed: i64,
     pub(crate) biome_has: &'a [Vec<bool>],
     pub(crate) universal: &'a [bool],
     pub(crate) interest: Option<(i32, i32, i32, i32)>,
@@ -368,6 +382,32 @@ fn apply(modifier: &Modifier, run: &mut Run, pos: Pos, margin: i32, emit: &mut d
             apply(&options[pick], run, pos, margin, emit);
         }
         Modifier::Fixed(positions) => positions.iter().for_each(|p| emit(*p)),
+        Modifier::Cuboid {
+            xz,
+            y: ys,
+            edges,
+            interior,
+        } => {
+            let height = ys.sample(run.rng);
+            let width = xz.sample(run.rng);
+            let depth = xz.sample(run.rng);
+            for dx in 0..=width {
+                for dy in 0..=height {
+                    for dz in 0..=depth {
+                        let (end_x, end_y, end_z) = (
+                            dx == 0 || dx == width,
+                            dy == 0 || dy == height,
+                            dz == 0 || dz == depth,
+                        );
+                        let ends = [end_x, end_y, end_z].iter().filter(|end| **end).count();
+                        let kept = (*edges || ends < 2) && (*interior || ends > 0);
+                        if kept {
+                            emit((x + dx, y + dy, z + dz));
+                        }
+                    }
+                }
+            }
+        }
         Modifier::Unsupported => {}
     }
 }
@@ -390,4 +430,56 @@ fn ground_layer(run: &mut Run, x: i32, top: i32, z: i32, layer: i32) -> Option<i
         y -= 1;
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::overworld::features::tests::Bench;
+    use crate::resources::BlockKind;
+
+    fn cells(edges: bool, interior: bool) -> Vec<Pos> {
+        let bench = Bench::new();
+        let mut region = bench.floor(BlockKind::Stone, 64);
+        let surface = SurfaceSystem::new(1, &bench.resources.blocks);
+        let mut rng = Xoroshiro::from_seed(1);
+        let mut run = Run {
+            region: &mut region,
+            rng: &mut rng,
+            surface: &surface,
+            feature_id: 0,
+            seed: 1,
+            biome_has: &[],
+            universal: &[],
+            interest: None,
+        };
+        let value = serde_json::json!({
+            "type": "minecraft:cuboid",
+            "xz_size": 2,
+            "y_size": 2,
+            "include_edges": edges,
+            "include_interior": interior,
+        });
+        let modifier = Modifier::compile(&value);
+        let mut found = Vec::new();
+        apply(&modifier, &mut run, (10, 70, 20), 0, &mut |pos| {
+            found.push(pos)
+        });
+        found
+    }
+
+    #[test]
+    fn cuboid_spans_from_the_origin_corner() {
+        let all = cells(true, true);
+        assert_eq!(all.len(), 27);
+        assert_eq!(all.first(), Some(&(10, 70, 20)));
+        assert_eq!(all.last(), Some(&(12, 72, 22)));
+    }
+
+    #[test]
+    fn cuboid_flags_pick_faces_edges_and_interior() {
+        assert_eq!(cells(false, false).len(), 6);
+        assert_eq!(cells(true, false).len(), 26);
+        assert_eq!(cells(false, true).len(), 7);
+    }
 }

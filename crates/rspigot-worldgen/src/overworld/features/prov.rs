@@ -1,11 +1,13 @@
+use std::sync::Arc;
+
 use rspigot_blocks::{BlockKind as Kind, Face, Support};
 use rspigot_data::tags::tag;
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
 use super::super::region::Region;
-use crate::climate::Xoroshiro;
-use crate::datapack::block_state;
+use crate::climate::{NoiseStack, Xoroshiro};
+use crate::datapack::{block_state, inline_noise_parameters};
 
 pub(crate) type Pos = (i32, i32, i32);
 
@@ -55,7 +57,7 @@ pub(crate) enum Int {
 }
 
 fn between(rng: &mut Xoroshiro, min: i32, max: i32) -> i32 {
-    if min >= max {
+    if min > max {
         min
     } else {
         min + rng.below(max - min + 1)
@@ -108,6 +110,23 @@ impl Int {
                 plateau: integer(value, "plateau", 0),
             },
             _ => Self::Constant(0),
+        }
+    }
+
+    pub(crate) fn max_inclusive(&self) -> i32 {
+        match self {
+            Self::Constant(n) => *n,
+            Self::Uniform(_, max)
+            | Self::BiasedToBottom(_, max)
+            | Self::VeryBiasedToBottom(_, max)
+            | Self::Clamped(_, _, max)
+            | Self::ClampedNormal { max, .. }
+            | Self::Trapezoid { max, .. } => *max,
+            Self::Weighted(entries) => entries
+                .iter()
+                .map(|(provider, _)| provider.max_inclusive())
+                .max()
+                .unwrap_or(0),
         }
     }
 
@@ -355,6 +374,8 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
         lily: BlockSet,
         cannot_hold_snow: BlockSet,
         snow_override: BlockSet,
+        coral_plants: BlockSet,
+        wall_corals: BlockSet,
     }
     static SETS: OnceLock<Sets> = OnceLock::new();
     let sets = SETS.get_or_init(|| Sets {
@@ -369,6 +390,8 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
         lily: BlockSet::tag("minecraft:supports_lily_pad"),
         cannot_hold_snow: BlockSet::tag("minecraft:cannot_support_snow_layer"),
         snow_override: BlockSet::tag("minecraft:support_override_snow_layer"),
+        coral_plants: BlockSet::tag("minecraft:coral_plants"),
+        wall_corals: BlockSet::tag("minecraft:wall_corals"),
     });
     let Some(kind) = state.kind() else {
         return true;
@@ -378,6 +401,28 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
     let name = kind.name();
     if sets.saplings.contains(state) || sets.flowers.contains(state) {
         return sets.vegetation.contains(below);
+    }
+    if sets.coral_plants.contains(state) || name.ends_with("_coral_fan") {
+        return below.is_face_sturdy(Face::Up, Support::Full);
+    }
+    if sets.wall_corals.contains(state) {
+        let facing = state.property("facing").unwrap_or("north");
+        let (dx, dz) = match facing {
+            "north" => (0, 1),
+            "south" => (0, -1),
+            "west" => (1, 0),
+            _ => (-1, 0),
+        };
+        return region
+            .get(x + dx, y, z + dz)
+            .is_face_sturdy(face(facing), Support::Full);
+    }
+    if name == "minecraft:sea_pickle" {
+        return below.is_face_sturdy(Face::Up, Support::Full)
+            || below
+                .collision_shape()
+                .iter()
+                .any(|shape| shape.max_y >= 1.0);
     }
     match name {
         "minecraft:short_grass"
@@ -434,6 +479,11 @@ pub(crate) enum Pred {
     Solid(Pos),
     Replaceable(Pos),
     InsideWorld(Pos),
+    Volume {
+        inner: Box<Pred>,
+        min: Pos,
+        max: Pos,
+    },
 }
 
 fn offset(value: &Value) -> Pos {
@@ -503,6 +553,23 @@ impl Pred {
             "solid" => Self::Solid(offset(value)),
             "replaceable" => Self::Replaceable(offset(value)),
             "inside_world_bounds" => Self::InsideWorld(offset(value)),
+            "volume_match" => {
+                let corner = |key: &str| {
+                    value
+                        .get(key)
+                        .and_then(Value::as_array)
+                        .map_or((0, 0, 0), |items| {
+                            let at =
+                                |i: usize| items.get(i).and_then(Value::as_i64).unwrap_or(0) as i32;
+                            (at(0), at(1), at(2))
+                        })
+                };
+                Self::Volume {
+                    inner: Box::new(Self::compile(value.get("match").unwrap_or(&Value::Null))),
+                    min: corner("min"),
+                    max: corner("max"),
+                }
+            }
             _ => Self::True,
         }
     }
@@ -537,9 +604,17 @@ impl Pred {
                 is_replaceable(region.get(pos.0 + off.0, pos.1 + off.1, pos.2 + off.2))
             }
             Self::InsideWorld(off) => region.height().contains(pos.1 + off.1),
+            Self::Volume { inner, min, max } => (min.0..=max.0).all(|dx| {
+                (min.2..=max.2).all(|dz| {
+                    (min.1..=max.1)
+                        .all(|dy| inner.test(region, (pos.0 + dx, pos.1 + dy, pos.2 + dz)))
+                })
+            }),
         }
     }
 }
+
+const DIRECTIONS: [&str; 6] = ["down", "up", "north", "south", "west", "east"];
 
 #[derive(Debug, Clone)]
 pub(crate) enum State {
@@ -555,11 +630,58 @@ pub(crate) enum State {
         values: Int,
     },
     Pick(Vec<BlockStateId>),
+    Rotated {
+        source: Box<State>,
+        direction: Option<&'static str>,
+    },
+    Noise(NoiseBlocks),
+    DualNoise {
+        slow: Arc<NoiseStack>,
+        slow_scale: f32,
+        min: i32,
+        max: i32,
+        fast: NoiseBlocks,
+    },
     Threshold {
-        default: BlockStateId,
+        noise: NoiseBlocks,
+        threshold: f32,
         chance: f32,
+        default: BlockStateId,
+        low: Vec<BlockStateId>,
         high: Vec<BlockStateId>,
     },
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct NoiseBlocks {
+    noise: Arc<NoiseStack>,
+    scale: f64,
+    states: Vec<BlockStateId>,
+}
+
+impl NoiseBlocks {
+    fn compile(value: &Value, states: Vec<BlockStateId>) -> Self {
+        let parameters = inline_noise_parameters(value.get("noise").unwrap_or(&Value::Null));
+        let seed = value.get("seed").and_then(Value::as_i64).unwrap_or(0);
+        Self {
+            noise: Arc::new(NoiseStack::create_legacy(&parameters, seed)),
+            scale: f64::from(number(value, "scale", 1.0) as f32),
+            states,
+        }
+    }
+
+    fn value(&self, (x, y, z): Pos) -> f32 {
+        self.noise.get(
+            f64::from(x) * self.scale,
+            f64::from(y) * self.scale,
+            f64::from(z) * self.scale,
+        )
+    }
+}
+
+fn pick_by_noise(states: &[BlockStateId], noise: f32) -> Option<BlockStateId> {
+    let unit = ((noise + 1.0) / 2.0).clamp(0.0, 0.9999_f32);
+    states.get((unit * states.len() as f32) as usize).copied()
 }
 
 impl State {
@@ -579,13 +701,34 @@ impl State {
                 .unwrap_or_default()
         };
         match short(value) {
-            "noise" | "dual_noise" => Self::Pick(states("states")),
+            "noise" => Self::Noise(NoiseBlocks::compile(value, states("states"))),
+            "dual_noise" => {
+                let range = value.get("variety").and_then(Value::as_array);
+                let bound = |index: usize| {
+                    range
+                        .and_then(|items| items.get(index))
+                        .and_then(Value::as_i64)
+                        .unwrap_or(1) as i32
+                };
+                let slow = inline_noise_parameters(value.get("slow_noise").unwrap_or(&Value::Null));
+                let seed = value.get("seed").and_then(Value::as_i64).unwrap_or(0);
+                Self::DualNoise {
+                    slow: Arc::new(NoiseStack::create_legacy(&slow, seed)),
+                    slow_scale: number(value, "slow_scale", 1.0) as f32,
+                    min: bound(0),
+                    max: bound(1),
+                    fast: NoiseBlocks::compile(value, states("states")),
+                }
+            }
             "noise_threshold" => Self::Threshold {
+                noise: NoiseBlocks::compile(value, Vec::new()),
+                threshold: number(value, "threshold", 0.0) as f32,
+                chance: number(value, "high_chance", 0.0) as f32,
                 default: value
                     .get("default_state")
                     .and_then(block_state)
                     .unwrap_or(BlockStateId::AIR),
-                chance: number(value, "high_chance", 0.0) as f32,
+                low: states("low_states"),
                 high: states("high_states"),
             },
             "random_block" => {
@@ -598,6 +741,13 @@ impl State {
                         .collect(),
                 )
             }
+            "rotated" => Self::Rotated {
+                source: Box::new(Self::compile(value.get("state").unwrap_or(&Value::Null))),
+                direction: DIRECTIONS
+                    .iter()
+                    .find(|name| Some(**name) == value.get("direction").and_then(Value::as_str))
+                    .copied(),
+            },
             "weighted" => Self::Weighted(
                 value
                     .get("entries")
@@ -657,16 +807,61 @@ impl State {
                     Some(options[rng.below(options.len() as i32) as usize])
                 }
             }
+            Self::Rotated { source, direction } => {
+                let name = match direction {
+                    Some(name) => name,
+                    None => DIRECTIONS[rng.below(6) as usize],
+                };
+                let state = source.resolve(region, rng, pos)?;
+                let axis = match name {
+                    "up" | "down" => "y",
+                    "north" | "south" => "z",
+                    _ => "x",
+                };
+                let state = state.with_property("axis", axis).unwrap_or(state);
+                Some(state.with_property("facing", name).unwrap_or(state))
+            }
+            Self::Noise(blocks) => pick_by_noise(&blocks.states, blocks.value(pos)),
+            Self::DualNoise {
+                slow,
+                slow_scale,
+                min,
+                max,
+                fast,
+            } => {
+                let slow_at = |(x, y, z): Pos| {
+                    slow.get(
+                        f64::from(x as f32 * slow_scale),
+                        f64::from(y as f32 * slow_scale),
+                        f64::from(z as f32 * slow_scale),
+                    )
+                };
+                let unit = ((f64::from(slow_at(pos)) + 1.0) / 2.0).clamp(0.0, 1.0);
+                let low = f64::from(*min);
+                let count = (low + unit * (f64::from(*max + 1) - low)) as i32;
+                let chosen: Vec<BlockStateId> = (0..count)
+                    .filter_map(|i| {
+                        let at = (pos.0 + i * 0xd511, pos.1, pos.2 + i * 0x85ba);
+                        pick_by_noise(&fast.states, slow_at(at))
+                    })
+                    .collect();
+                pick_by_noise(&chosen, fast.value(pos))
+            }
             Self::Threshold {
-                default,
+                noise,
+                threshold,
                 chance,
+                default,
+                low,
                 high,
             } => {
-                if !high.is_empty() && rng.next_float() < *chance {
-                    Some(high[rng.below(high.len() as i32) as usize])
-                } else {
-                    Some(*default)
+                if noise.value(pos) < *threshold {
+                    return low.get(rng.below(low.len() as i32) as usize).copied();
                 }
+                if rng.next_float() < *chance {
+                    return high.get(rng.below(high.len() as i32) as usize).copied();
+                }
+                Some(*default)
             }
             Self::Weighted(entries) => {
                 let total: i32 = entries.iter().map(|(_, weight)| weight).sum();
@@ -700,5 +895,77 @@ impl State {
                 state.with_property(property, &value).or(Some(state))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::overworld::features::tests::Bench;
+
+    fn names(provider: &str, rng_seed: i64) -> Vec<String> {
+        let bench = Bench::new();
+        let mut region = bench.floor(crate::resources::BlockKind::Stone, 64);
+        let state = State::compile(&Value::String(format!("minecraft:{provider}")));
+        let mut rng = Xoroshiro::from_seed(rng_seed);
+        (0..24)
+            .map(|i| {
+                let pos = (i * 37 - 400, 64 + i % 3, i * -53 + 100);
+                state
+                    .resolve(&mut region, &mut rng, pos)
+                    .and_then(|s| s.kind())
+                    .map_or("none".to_owned(), |kind| {
+                        kind.name().replace("minecraft:", "")
+                    })
+            })
+            .collect()
+    }
+
+    #[test]
+    fn flower_forest_noise_matches_vanilla() {
+        let expected = "red_tulip azure_bluet orange_tulip azure_bluet white_tulip white_tulip orange_tulip red_tulip white_tulip white_tulip white_tulip orange_tulip oxeye_daisy orange_tulip red_tulip red_tulip azure_bluet azure_bluet white_tulip white_tulip orange_tulip white_tulip red_tulip white_tulip";
+        assert_eq!(names("flower_flower_forest", 1).join(" "), expected);
+    }
+
+    #[test]
+    fn meadow_dual_noise_matches_vanilla() {
+        let expected = "cornflower cornflower cornflower cornflower cornflower cornflower oxeye_daisy cornflower dandelion cornflower azure_bluet oxeye_daisy oxeye_daisy oxeye_daisy poppy oxeye_daisy cornflower cornflower cornflower cornflower cornflower cornflower cornflower dandelion";
+        assert_eq!(names("flower_meadow", 1).join(" "), expected);
+    }
+
+    #[test]
+    fn plains_flowers_are_dandelions_or_the_high_set() {
+        let allowed = [
+            "dandelion",
+            "poppy",
+            "azure_bluet",
+            "oxeye_daisy",
+            "cornflower",
+        ];
+        let found = names("flower_plain", 3);
+        assert!(found.iter().all(|name| allowed.contains(&name.as_str())));
+        assert!(found.iter().filter(|name| *name == "dandelion").count() > 12);
+    }
+
+    fn well_predicate() -> Pred {
+        let data = crate::datapack::worldgen();
+        let predicate = data
+            .pointer("/placed/minecraft:desert_well/placement/4/predicate")
+            .cloned()
+            .unwrap_or(Value::Null);
+        Pred::compile(&predicate)
+    }
+
+    #[test]
+    fn desert_wells_need_solid_ground_in_the_volume_below() {
+        let bench = Bench::new();
+        let mut region = crate::overworld::features::probe::world(&bench, "68:stone,69:sand");
+        assert!(well_predicate().test(&mut region, (8, 69, 8)));
+        for x in 7..=9 {
+            for z in 7..=9 {
+                region.set(x, 67, z, rspigot_domain::BlockStateId::AIR);
+            }
+        }
+        assert!(!well_predicate().test(&mut region, (8, 69, 8)));
     }
 }

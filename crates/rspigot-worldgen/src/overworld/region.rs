@@ -7,7 +7,7 @@ use rspigot_domain::{BlockStateId, ChunkPos};
 use super::Overworld;
 use crate::buffer::ChunkBuffer;
 use crate::classify::{MOTION_BLOCKING, MOTION_BLOCKING_NO_LEAVES, OCEAN_FLOOR, WORLD_SURFACE};
-use crate::climate::{BiomeSource, ClimateScratch};
+use crate::climate::{BiomeSource, ClimateScratch, Xoroshiro};
 use crate::resources::Resources;
 
 const UNKNOWN: u8 = u8::MAX;
@@ -145,6 +145,9 @@ pub(crate) struct Region<'a> {
     slots: [Option<Box<Slot>>; 9],
     scratch: Option<ClimateScratch>,
     fixed_biome: u8,
+    random: Xoroshiro,
+    #[cfg(test)]
+    pub(crate) changed: Vec<(i32, i32)>,
 }
 
 fn slot_index(dx: i32, dz: i32) -> usize {
@@ -166,6 +169,9 @@ impl<'a> Region<'a> {
             slots: std::array::from_fn(|_| None),
             scratch: Some(overworld.source.scratch()),
             fixed_biome: 0,
+            #[cfg(test)]
+            changed: Vec::new(),
+            random: Xoroshiro::from_seed(0),
         }
     }
 
@@ -185,6 +191,8 @@ impl<'a> Region<'a> {
             slots: std::array::from_fn(|_| None),
             scratch: None,
             fixed_biome: biome,
+            changed: Vec::new(),
+            random: Xoroshiro::from_seed(0),
         };
         for dz in -1..=1 {
             for dx in -1..=1 {
@@ -197,8 +205,20 @@ impl<'a> Region<'a> {
         region
     }
 
+    pub(crate) fn random(&mut self) -> &mut Xoroshiro {
+        &mut self.random
+    }
+
+    pub(crate) fn set_random(&mut self, random: Xoroshiro) {
+        self.random = random;
+    }
+
     pub(crate) fn height(&self) -> WorldHeight {
         self.dimension.height
+    }
+
+    pub(crate) fn sea_level(&self) -> i32 {
+        self.dimension.sea_level
     }
 
     pub(crate) fn center(&self) -> ChunkPos {
@@ -269,6 +289,10 @@ impl<'a> Region<'a> {
         let Some(slot) = self.slots[index].as_mut() else {
             return false;
         };
+        #[cfg(test)]
+        if slot.buffer.get(lx, y, lz) != state {
+            self.changed.push((x, z));
+        }
         slot.buffer.set(lx, y, lz, state);
         let top = &mut slot.tops[(lz << 4) | lx];
         if state.is_air() {

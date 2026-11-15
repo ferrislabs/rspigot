@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::OnceLock;
 
 use rspigot_domain::BlockStateId;
@@ -6,8 +5,14 @@ use serde_json::Value;
 
 use super::place::Run;
 use super::prov::{BlockSet, Int, Pos, State, flag, integer, short};
+use super::treedeco::{self, Decorator};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+mod crowns;
+mod leaves;
+mod roots;
+mod trunks;
+
+#[derive(Debug, Clone)]
 enum Trunk {
     Straight,
     Forking,
@@ -15,6 +20,10 @@ enum Trunk {
     MegaJungle,
     DarkOak,
     Fancy,
+    Cherry(trunks::Cherry),
+    Bending(trunks::Bending),
+    Upwards(trunks::Upwards),
+    Poplar(trunks::Poplar),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,6 +37,9 @@ enum Crown {
     MegaPine,
     Fancy,
     DarkOak,
+    Cherry,
+    RandomSpread,
+    Poplar,
 }
 
 #[derive(Debug, Clone)]
@@ -105,9 +117,12 @@ pub(crate) struct Tree {
     leaves: State,
     below: State,
     ignore_vines: bool,
+    decorators: Vec<Decorator>,
+    crown_config: crowns::Config,
+    root: Option<roots::Root>,
 }
 
-pub(crate) fn compile(value: &Value) -> Option<Tree> {
+pub(crate) fn compile(value: &Value, compiler: &mut super::bodies::Compiler) -> Option<Tree> {
     let trunk_value = value.get("trunk_placer")?;
     let trunk = match short(trunk_value) {
         "straight_trunk_placer" => Trunk::Straight,
@@ -116,11 +131,16 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         "mega_jungle_trunk_placer" => Trunk::MegaJungle,
         "dark_oak_trunk_placer" => Trunk::DarkOak,
         "fancy_trunk_placer" => Trunk::Fancy,
+        "cherry_trunk_placer" => Trunk::Cherry(trunks::Cherry::compile(trunk_value)),
+        "bending_trunk_placer" => Trunk::Bending(trunks::Bending::compile(trunk_value)),
+        "upwards_branching_trunk_placer" => Trunk::Upwards(trunks::Upwards::compile(trunk_value)),
+        "poplar_trunk_placer" => Trunk::Poplar(trunks::Poplar::compile(trunk_value)),
         _ => return None,
     };
-    if value.get("root_placer").is_some() {
-        return None;
-    }
+    let root = match value.get("root_placer") {
+        Some(placer) => Some(roots::Root::compile(placer)?),
+        None => None,
+    };
     let crown_value = value.get("foliage_placer")?;
     let crown = match short(crown_value) {
         "blob_foliage_placer" => Crown::Blob,
@@ -132,6 +152,9 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         "mega_pine_foliage_placer" => Crown::MegaPine,
         "fancy_foliage_placer" => Crown::Fancy,
         "dark_oak_foliage_placer" => Crown::DarkOak,
+        "cherry_foliage_placer" => Crown::Cherry,
+        "random_spread_foliage_placer" => Crown::RandomSpread,
+        "poplar_foliage_placer" => Crown::Poplar,
         _ => return None,
     };
     let provider = |key: &str| Int::compile(crown_value.get(key).unwrap_or(&Value::Null));
@@ -165,10 +188,10 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         crown,
         radius: provider("radius"),
         offset: provider("offset"),
-        height: if crown == Crown::MegaPine {
-            provider("crown_height")
-        } else {
-            provider("height")
+        height: match crown {
+            Crown::MegaPine => provider("crown_height"),
+            Crown::RandomSpread => provider("foliage_height"),
+            _ => provider("height"),
         },
         trunk_height: provider("trunk_height"),
         size,
@@ -176,10 +199,13 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         leaves: State::compile(value.get("foliage_provider")?),
         below: State::compile(value.get("below_trunk_provider").unwrap_or(&Value::Null)),
         ignore_vines: flag(value, "ignore_vines", false),
+        decorators: treedeco::compile_all(value, compiler),
+        crown_config: crowns::Config::compile(crown_value),
+        root,
     })
 }
 
-fn replaceable_by_trees(state: BlockStateId) -> bool {
+pub(super) fn replaceable_by_trees(state: BlockStateId) -> bool {
     static SET: OnceLock<BlockSet> = OnceLock::new();
     state.is_air()
         || SET
@@ -198,6 +224,8 @@ struct Site<'a, 'b, 'r> {
     tree: &'a Tree,
     run: &'a mut Run<'b, 'r>,
     logs: Vec<Pos>,
+    leaves: Vec<Pos>,
+    roots: Vec<Pos>,
 }
 
 const HORIZONTAL: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
@@ -207,8 +235,27 @@ impl Site<'_, '_, '_> {
         replaceable_by_trees(self.run.region.get(pos.0, pos.1, pos.2))
     }
 
+    fn trunk_valid(&mut self, pos: Pos) -> bool {
+        let state = self.run.region.get(pos.0, pos.1, pos.2);
+        replaceable_by_trees(state)
+            || match &self.tree.trunk {
+                Trunk::Upwards(upwards) => upwards.grows_through(state),
+                _ => false,
+            }
+    }
+
+    fn is_free(&mut self, pos: Pos) -> bool {
+        static LOGS: OnceLock<BlockSet> = OnceLock::new();
+        if self.trunk_valid(pos) {
+            return true;
+        }
+        let state = self.run.region.get(pos.0, pos.1, pos.2);
+        LOGS.get_or_init(|| BlockSet::tag("minecraft:logs"))
+            .contains(state)
+    }
+
     fn put_log(&mut self, pos: Pos, axis: Option<&str>) -> bool {
-        if !self.valid(pos) {
+        if !self.trunk_valid(pos) {
             return false;
         }
         let Some(mut state) = self.tree.log.resolve(self.run.region, self.run.rng, pos) else {
@@ -227,7 +274,7 @@ impl Site<'_, '_, '_> {
     }
 
     fn log_if_free(&mut self, pos: Pos) {
-        if self.valid(pos) {
+        if self.is_free(pos) {
             self.log(pos);
         }
     }
@@ -235,6 +282,7 @@ impl Site<'_, '_, '_> {
     fn dirt(&mut self, pos: Pos) {
         if let Some(state) = self.tree.below.resolve(self.run.region, self.run.rng, pos) {
             self.run.region.set(pos.0, pos.1, pos.2, state);
+            self.logs.push(pos);
         }
     }
 
@@ -244,12 +292,13 @@ impl Site<'_, '_, '_> {
         }
     }
 
-    fn leaf(&mut self, pos: Pos) {
-        if !self.valid(pos) {
-            return;
+    fn leaf(&mut self, pos: Pos) -> bool {
+        let present = self.run.region.get(pos.0, pos.1, pos.2);
+        if present.property("persistent") == Some("true") || !replaceable_by_trees(present) {
+            return false;
         }
         let Some(mut state) = self.tree.leaves.resolve(self.run.region, self.run.rng, pos) else {
-            return;
+            return false;
         };
         if state.property("waterlogged").is_some() {
             let wet = super::prov::is_water(self.run.region.get(pos.0, pos.1, pos.2));
@@ -258,6 +307,8 @@ impl Site<'_, '_, '_> {
                 .unwrap_or(state);
         }
         self.run.region.set(pos.0, pos.1, pos.2, state);
+        self.leaves.push(pos);
+        true
     }
 
     fn skip(&mut self, dx: i32, y: i32, dz: i32, range: i32, double: bool) -> bool {
@@ -296,6 +347,8 @@ impl Site<'_, '_, '_> {
                 let (a, b) = (sx as f32 + 0.5, sz as f32 + 0.5);
                 a * a + b * b > (range * range) as f32
             }
+            Crown::Cherry => self.cherry_skip(sx, y, sz, range),
+            Crown::RandomSpread | Crown::Poplar => false,
             Crown::DarkOak => {
                 if y == -1 && !double {
                     sx == range && sz == range
@@ -406,6 +459,9 @@ impl Site<'_, '_, '_> {
                     j += 1;
                 }
             }
+            Crown::Cherry => self.cherry_crown(attachment, foliage_height, radius, offset),
+            Crown::RandomSpread => self.random_spread(pos, foliage_height, radius),
+            Crown::Poplar => self.poplar_crown(attachment, foliage_height, radius, offset),
             Crown::DarkOak => {
                 let at = (pos.0, pos.1 + offset, pos.2);
                 if double {
@@ -430,7 +486,10 @@ impl Site<'_, '_, '_> {
             | Crown::Fancy
             | Crown::Pine
             | Crown::Jungle
-            | Crown::MegaPine => self.tree.height.sample(self.run.rng),
+            | Crown::MegaPine
+            | Crown::Cherry
+            | Crown::RandomSpread
+            | Crown::Poplar => self.tree.height.sample(self.run.rng),
             Crown::Spruce => (tree_height - self.tree.trunk_height.sample(self.run.rng)).max(4),
             Crown::Acacia => 0,
             Crown::DarkOak => 4,
@@ -442,7 +501,8 @@ impl Site<'_, '_, '_> {
     }
 
     fn trunk(&mut self, height: i32, origin: Pos) -> Vec<Attachment> {
-        match self.tree.trunk {
+        let tree = self.tree;
+        match &tree.trunk {
             Trunk::Straight => {
                 self.dirt((origin.0, origin.1 - 1, origin.2));
                 for i in 0..height {
@@ -459,6 +519,10 @@ impl Site<'_, '_, '_> {
             Trunk::MegaJungle => self.mega_jungle(height, origin),
             Trunk::DarkOak => self.dark_oak(height, origin),
             Trunk::Fancy => self.fancy(height, origin),
+            Trunk::Cherry(cherry) => self.cherry(cherry, height, origin),
+            Trunk::Bending(bending) => self.bending(bending, height, origin),
+            Trunk::Upwards(upwards) => self.upwards(upwards, height, origin),
+            Trunk::Poplar(poplar) => self.poplar(poplar, height, origin),
         }
     }
 
@@ -573,8 +637,12 @@ impl Site<'_, '_, '_> {
             }
             let y = y0 + i;
             let air = {
+                static LEAVES: OnceLock<BlockSet> = OnceLock::new();
                 let state = self.run.region.get(x, y, z);
-                replaceable_by_trees(state)
+                state.is_air()
+                    || LEAVES
+                        .get_or_init(|| BlockSet::tag("minecraft:leaves"))
+                        .contains(state)
             };
             if air {
                 for (dx, dz) in [(0, 0), (1, 0), (0, 1), (1, 1)] {
@@ -596,7 +664,7 @@ impl Site<'_, '_, '_> {
                         self.log((x0 + dx, top - k - 1, z0 + dz));
                     }
                     result.push(Attachment {
-                        pos: (x + dx, top, z + dz),
+                        pos: (x0 + dx, top, z0 + dz),
                         radius_offset: 0,
                         double: false,
                     });
@@ -703,7 +771,7 @@ impl Site<'_, '_, '_> {
             for dx in -size..=size {
                 for dz in -size..=size {
                     let at = (origin.0 + dx, origin.1 + i, origin.2 + dz);
-                    let blocked = !self.valid(at)
+                    let blocked = !self.is_free(at)
                         || (!self.tree.ignore_vines
                             && self.run.region.get(at.0, at.1, at.2).kind()
                                 == Some(rspigot_blocks::BlockKind::Vine));
@@ -738,81 +806,57 @@ impl Tree {
             tree: self,
             run,
             logs: Vec::new(),
+            leaves: Vec::new(),
+            roots: Vec::new(),
         };
         let height = self.base_height
             + site.run.rng.below(self.rand_a + 1)
             + site.run.rng.below(self.rand_b + 1);
         let foliage_height = site.foliage_height(height);
-        let diff = height - foliage_height;
-        let radius = self.radius.sample(site.run.rng);
+        let mut radius = self.radius.sample(site.run.rng);
+        if self.crown == Crown::Pine {
+            radius += site.run.rng.below((height - foliage_height + 1).max(1));
+        }
+        let trunk_origin = match &self.root {
+            Some(root) => (origin.0, origin.1 + root.offset(site.run.rng), origin.2),
+            None => origin,
+        };
         let region_height = site.run.region.height();
-        if origin.1 < region_height.min_y + 1 || origin.1 + height + 1 > region_height.max_y() + 1 {
+        let lowest = origin.1.min(trunk_origin.1);
+        let highest = origin.1.max(trunk_origin.1) + height + 1;
+        if lowest < region_height.min_y + 1 || highest > region_height.max_y() + 1 {
             return false;
         }
-        let free = site.free_height(height, origin);
+        let free = site.free_height(height, trunk_origin);
         if free < height && self.size.clipped().is_none_or(|clipped| free < clipped) {
             return false;
         }
-        let _ = diff;
-        let attachments = site.trunk(free, origin);
+        if self.root.is_some() && !site.place_roots(origin, trunk_origin) {
+            return false;
+        }
+        let attachments = site.trunk(free, trunk_origin);
         for attachment in attachments {
             site.foliage(attachment, foliage_height, radius);
         }
         let logs = std::mem::take(&mut site.logs);
-        update_leaves(site.run, &logs);
-        !logs.is_empty()
+        let leaves = std::mem::take(&mut site.leaves);
+        let roots = std::mem::take(&mut site.roots);
+        if logs.is_empty() && leaves.is_empty() {
+            return false;
+        }
+        let mut decorated = Vec::new();
+        if !self.decorators.is_empty() {
+            let mut context = treedeco::Context::new(site.run, &logs, &leaves, &roots);
+            treedeco::run(&self.decorators, &mut context);
+            decorated = std::mem::take(&mut context.placed);
+        }
+        let filled: Vec<Pos> = decorated.iter().chain(&roots).copied().collect();
+        if let Some(bounds) = leaves::Bounds::of(&[&roots, &logs, &leaves, &decorated]) {
+            leaves::update(site.run, &bounds, &logs, &filled);
+        }
+        true
     }
 }
 
-fn update_leaves(run: &mut Run, logs: &[Pos]) {
-    const SIDES: [(i32, i32, i32); 6] = [
-        (1, 0, 0),
-        (-1, 0, 0),
-        (0, 1, 0),
-        (0, -1, 0),
-        (0, 0, 1),
-        (0, 0, -1),
-    ];
-    let log_set: HashSet<Pos> = logs.iter().copied().collect();
-    let mut layers: Vec<HashSet<Pos>> = vec![HashSet::new(); 7];
-    for pos in logs {
-        for (dx, dy, dz) in SIDES {
-            let next = (pos.0 + dx, pos.1 + dy, pos.2 + dz);
-            if log_set.contains(&next) {
-                continue;
-            }
-            let state = run.region.get(next.0, next.1, next.2);
-            if state.property("distance").is_some() {
-                layers[0].insert(next);
-                if let Some(updated) = state.with_property("distance", "1") {
-                    run.region.set(next.0, next.1, next.2, updated);
-                }
-            }
-        }
-    }
-    for level in 1..7usize {
-        let current: Vec<Pos> = layers[level - 1].iter().copied().collect();
-        for pos in current {
-            for (dx, dy, dz) in SIDES {
-                let next = (pos.0 + dx, pos.1 + dy, pos.2 + dz);
-                if layers[level - 1].contains(&next) || layers[level].contains(&next) {
-                    continue;
-                }
-                let state = run.region.get(next.0, next.1, next.2);
-                let Some(distance) = state
-                    .property("distance")
-                    .and_then(|d| d.parse::<usize>().ok())
-                else {
-                    continue;
-                };
-                if distance > level + 1 {
-                    if let Some(updated) = state.with_property("distance", &(level + 1).to_string())
-                    {
-                        run.region.set(next.0, next.1, next.2, updated);
-                    }
-                    layers[level].insert(next);
-                }
-            }
-        }
-    }
-}
+#[cfg(test)]
+mod tests;

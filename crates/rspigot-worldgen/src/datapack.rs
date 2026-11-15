@@ -64,3 +64,27 @@ pub(crate) fn noise_parameters(name: &str) -> Option<NoiseParameters> {
         amplitude_modifiers: Box::leak(modifiers.into_boxed_slice()),
     })
 }
+
+pub(crate) fn inline_noise_parameters(value: &Value) -> NoiseParameters {
+    let modifiers: Vec<f64> = value
+        .get("amplitude_modifiers")
+        .and_then(Value::as_array)
+        .map(|items| items.iter().filter_map(Value::as_f64).collect())
+        .unwrap_or_default();
+    NoiseParameters {
+        id: "inline",
+        base_octave: value
+            .get("base_octave")
+            .and_then(Value::as_i64)
+            .unwrap_or(0) as i32,
+        octave_count: value
+            .get("octave_count")
+            .and_then(Value::as_u64)
+            .unwrap_or(1) as u32,
+        base_amplitude: value
+            .get("base_amplitude")
+            .and_then(Value::as_f64)
+            .unwrap_or(1.0),
+        amplitude_modifiers: Box::leak(modifiers.into_boxed_slice()),
+    }
+}

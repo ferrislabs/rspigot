@@ -1,7 +1,33 @@
 mod bodies;
+mod cave;
+mod coral;
+mod dungeon;
+mod fallen;
+mod floats;
+mod fossil;
+mod geode;
+mod ice;
+mod javaset;
+mod large;
+mod magma;
+#[cfg(test)]
+mod margins;
+mod mossy;
+mod multiface;
+mod mushrooms;
 mod place;
+#[cfg(test)]
+mod probe;
 mod prov;
+mod root;
+mod sculk;
+mod speleothem;
+mod spread;
+mod structure;
+mod templated;
 mod tree;
+mod treedeco;
+mod vegetation;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -160,6 +186,13 @@ impl Features {
     pub(crate) fn decorate(&self, region: &mut Region, seed: i64, surface: &SurfaceSystem) {
         let center = region.center();
         let min_y = region.height().min_y;
+        region.set_random(
+            Xoroshiro::from_seed(seed)
+                .fork_positional()
+                .named("minecraft:worldgen_region_random")
+                .fork_positional()
+                .at(center.x * 16, 0, center.z * 16),
+        );
         let mut rng = Xoroshiro::from_seed(0);
         for dz in -1..=1 {
             for dx in -1..=1 {
@@ -191,6 +224,7 @@ impl Features {
                             rng: &mut rng,
                             surface,
                             feature_id: id,
+                            seed,
                             biome_has: &self.biome_has,
                             universal: &self.universal,
                             interest,
@@ -254,6 +288,22 @@ mod tests {
             )
         }
 
+        pub(super) fn configured_names(&self) -> Vec<String> {
+            self.compiler_data.1.keys().cloned().collect()
+        }
+
+        pub(super) fn feature_of(&self, name: &str) -> Arc<bodies::Feature> {
+            let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
+            compiler.configured_ref(&Value::String(name.to_owned()))
+        }
+
+        pub(super) fn reach_of(&self, name: &str) -> i32 {
+            let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
+            compiler
+                .configured_ref(&Value::String(name.to_owned()))
+                .reach()
+        }
+
         pub(super) fn place(
             &self,
             region: &mut Region,
@@ -263,17 +313,83 @@ mod tests {
         ) -> bool {
             let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
             let feature = compiler.configured_ref(&Value::String(format!("minecraft:{name}")));
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
             let mut rng = Xoroshiro::from_seed(seed);
             let mut run = Run {
                 region,
                 rng: &mut rng,
                 surface: &self.surface,
                 feature_id: 0,
+                seed,
                 biome_has: &[],
                 universal: &[],
                 interest: None,
             };
             feature.place(&mut run, pos)
+        }
+
+        pub(super) fn place_config(
+            &self,
+            region: &mut Region,
+            config: &Value,
+            pos: (i32, i32, i32),
+            seed: i64,
+        ) -> bool {
+            let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
+            let feature = compiler.configured_ref(config);
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
+            let mut rng = Xoroshiro::from_seed(seed);
+            let mut run = Run {
+                region,
+                rng: &mut rng,
+                surface: &self.surface,
+                feature_id: 0,
+                seed,
+                biome_has: &[],
+                universal: &[],
+                interest: None,
+            };
+            feature.place(&mut run, pos)
+        }
+
+        pub(super) fn configured(&self, name: &str) -> Value {
+            self.compiler_data
+                .1
+                .get(&format!("minecraft:{name}"))
+                .cloned()
+                .unwrap_or(Value::Null)
+        }
+
+        pub(super) fn scatter(
+            &self,
+            region: &mut Region,
+            name: &str,
+            [x0, y0, z0, x1, y1, z1]: [i32; 6],
+            count: usize,
+            seed: i64,
+        ) -> bool {
+            let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
+            let feature = compiler.configured_ref(&Value::String(format!("minecraft:{name}")));
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
+            let mut rng = Xoroshiro::from_seed(seed);
+            let mut any = false;
+            for _ in 0..count {
+                let x = x0 + rng.below(x1 - x0 + 1);
+                let y = y0 + rng.below(y1 - y0 + 1);
+                let z = z0 + rng.below(z1 - z0 + 1);
+                let mut run = Run {
+                    region,
+                    rng: &mut rng,
+                    surface: &self.surface,
+                    feature_id: 0,
+                    seed,
+                    biome_has: &[],
+                    universal: &[],
+                    interest: None,
+                };
+                any |= feature.place(&mut run, (x, y, z));
+            }
+            any
         }
 
         pub(super) fn place_placed(
@@ -285,12 +401,14 @@ mod tests {
         ) -> bool {
             let mut compiler = Compiler::new(&self.compiler_data.0, &self.compiler_data.1);
             let placed = compiler.placed_ref(&Value::String(format!("minecraft:{name}")));
+            region.set_random(Xoroshiro::from_seed(seed.wrapping_add(1000)));
             let mut rng = Xoroshiro::from_seed(seed);
             let mut run = Run {
                 region,
                 rng: &mut rng,
                 surface: &self.surface,
                 feature_id: 0,
+                seed,
                 biome_has: &[],
                 universal: &[true],
                 interest: None,

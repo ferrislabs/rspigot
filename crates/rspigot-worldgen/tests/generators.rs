@@ -414,8 +414,13 @@ fn assert_standing_spot(generator: &NoiseGenerator, dimension: &Dimension, conte
     assert!(!floor.ends_with("_log"), "{context} {floor}");
     for dy in 0..2 {
         let name = at(dy);
-        let passable =
-            name == "minecraft:air" || name == "minecraft:snow" || NON_BLOCKING.contains(&name);
+        let unobstructed = column
+            .block(feet.offset(0, dy, 0))
+            .is_some_and(|state| state.collision_shape().is_empty());
+        let passable = name == "minecraft:air"
+            || name == "minecraft:snow"
+            || NON_BLOCKING.contains(&name)
+            || unobstructed;
         assert!(passable, "{context}: {name}");
     }
 }
