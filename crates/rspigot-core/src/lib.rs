@@ -108,6 +108,7 @@ mod sign;
 mod signal;
 mod sleeping;
 mod sound;
+mod spawner;
 mod spawning;
 mod sponge;
 pub mod stats;

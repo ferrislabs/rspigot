@@ -262,6 +262,7 @@ PlayerFish = "a player casting a fishing rod (FISHING, with the hand, asked befo
 PlayerRiptide = "observer only, a player releasing a trident with Riptide after 10 ticks of use in water or rain, not riding, with the trident and the push velocity (1.5 plus 0.75 per level above the first, along the look direction), before the player is pushed; the trident loses 1 durability, a 20 tick spin attack hurts the first living entity touched for 8 and sends the player back at a fifth of its speed, and the ground lift of the launch is left to the client"
 EntityToggleGlide = "a player starting to glide (gliding true: START_FALL_FLYING sent in the air, not in water, with an elytra in the chest slot that is not about to break, no Levitation and not riding), asked before the flag is set, and a gliding player who can no longer glide (landing, a broken elytra, Levitation, riding), asked once per tick while it waits; a cancel keeps the flag as it was and resends it; the elytra loses 1 durability every 20 ticks; players only, a mob never glides yet, and the wall impact damage of a glide is not applied"
 FireworkExplode = "a firework rocket at the end of its flight (life above lifetime, 10 ticks per flight level plus a roll of 0 to 5 and 0 to 6), hitting a mob, a player or another entity it can hit, or hitting a block while it holds at least one explosion, asked before it bursts, asked again each tick while it keeps flying after a cancel; a rocket used on a block rises from the clicked point, one used by a gliding player is attached to the player and spent when launched; allowed, the burst hurts living entities within 5 blocks in line of sight for 5 plus 2 per explosion scaled by the distance, the attached player for the full amount, and removes the rocket (cause EXPLODE); the thrust on the elytra is left to the client, and dispensers do not launch rockets yet"
+SpawnerSpawn = "a spawner block with a player alive and not spectating within its required range, once its delay ran out, for each mob it is about to place (up to its spawn count in a round), after the spawn spot, the collision, the spawn rules, the crowd limit and the mob checks passed and before the creature spawn; a cancel discards that mob, keeps the delay as it is and lets the round try the next one; the spawner field carries the block, the mob type it spawns and its delay"
 
 [states]
 ready = []
@@ -278,7 +279,6 @@ MapInitialize = "maps"
 PlayerLinksSend = "server links, which the server does not have (no configuration, no ServerLinks packet sent), and a Spigot that fires it during the configuration phase, before the player exists in the core"
 RemoteServerCommand = "RCON (#28)"
 SculkBloom = "the sculk catalyst and its spreader (cursors, charge decay, sculk growth), and the entity die game event, which living mobs do not fire yet"
-SpawnerSpawn = "the mobs or objects involved"
 TrialSpawnerSpawn = "the mobs or objects involved"
 VaultDisplayItem = "the vault block, which does not exist yet: no block entity, no key check, no loot table roll and no display item rotation"
 WorldUnload = "several worlds, since the overworld never unloads"
