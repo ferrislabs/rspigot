@@ -91,12 +91,6 @@ macro_rules! biome_table {
         impl Biome {
             pub(crate) const COUNT: usize = [$(Self::$variant),*].len();
 
-            pub(crate) fn from_name(name: &str) -> Option<Self> {
-                match name {
-                    $($name => Some(Self::$variant),)*
-                    _ => None,
-                }
-            }
         }
 
         const BIOME_NAMES: [&str; Biome::COUNT] = [$($name),*];
@@ -138,31 +132,9 @@ biome_table! {
     SmallEndIslands = "minecraft:small_end_islands";
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Tree {
-    Oak,
-    Birch,
-    Spruce,
-}
-
-impl Tree {
-    const ALL: [Self; 3] = [Self::Oak, Self::Birch, Self::Spruce];
-
-    const fn leaf_name(self) -> &'static str {
-        match self {
-            Self::Oak => "minecraft:oak_leaves",
-            Self::Birch => "minecraft:birch_leaves",
-            Self::Spruce => "minecraft:spruce_leaves",
-        }
-    }
-}
-
-const DISTANCES: [&str; 7] = ["1", "2", "3", "4", "5", "6", "7"];
-
 #[derive(Debug, Clone)]
 pub(crate) struct Palette {
     ids: [BlockStateId; BlockKind::COUNT],
-    leaves: [[BlockStateId; 7]; 3],
 }
 
 impl Palette {
@@ -172,42 +144,14 @@ impl Palette {
                 let (name, properties) = BLOCK_SPECS[i];
                 state(name, properties)
             }),
-            leaves: std::array::from_fn(|tree| {
-                std::array::from_fn(|distance| {
-                    state(
-                        Tree::ALL[tree].leaf_name(),
-                        &[("distance", DISTANCES[distance]), ("persistent", "false")],
-                    )
-                })
-            }),
-        }
-    }
-
-    pub(crate) fn leaves(&self, tree: Tree, distance: i32) -> BlockStateId {
-        self.leaves[tree as usize][(distance.clamp(1, 7) - 1) as usize]
-    }
-
-    pub(crate) fn log(&self, tree: Tree) -> BlockStateId {
-        match tree {
-            Tree::Oak => self[BlockKind::OakLog],
-            Tree::Birch => self[BlockKind::BirchLog],
-            Tree::Spruce => self[BlockKind::SpruceLog],
         }
     }
 
     #[cfg(test)]
     pub(crate) fn unresolved(&self) -> Vec<usize> {
-        let mut missing: Vec<usize> = (1..BlockKind::COUNT)
+        (1..BlockKind::COUNT)
             .filter(|i| self.ids[*i].is_air())
-            .collect();
-        missing.extend(
-            self.leaves
-                .iter()
-                .flatten()
-                .filter(|s| s.is_air())
-                .map(|_| usize::MAX),
-        );
-        missing
+            .collect()
     }
 }
 
@@ -303,9 +247,6 @@ mod tests {
             palette[BlockKind::TallGrassLower],
             palette[BlockKind::TallGrassUpper]
         );
-        assert_ne!(palette.leaves(Tree::Oak, 1), palette.leaves(Tree::Oak, 2));
-        assert_ne!(palette.leaves(Tree::Oak, 1), palette.leaves(Tree::Birch, 1));
-        assert_eq!(palette.leaves(Tree::Oak, 99), palette.leaves(Tree::Oak, 7));
     }
 
     #[test]
@@ -320,21 +261,6 @@ mod tests {
         assert_eq!(
             palette[BlockKind::SnowyGrassBlock].property("snowy"),
             Some("true")
-        );
-        assert_eq!(
-            palette.leaves(Tree::Spruce, 4).property("distance"),
-            Some("4")
-        );
-        assert_eq!(
-            palette.leaves(Tree::Spruce, 4).property("persistent"),
-            Some("false")
-        );
-        assert_eq!(
-            palette
-                .log(Tree::Birch)
-                .kind()
-                .map(rspigot_blocks::BlockKind::name),
-            Some("minecraft:birch_log")
         );
     }
 }
