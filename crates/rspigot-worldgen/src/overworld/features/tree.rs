@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use super::place::Run;
 use super::prov::{BlockSet, Int, Pos, State, flag, integer, short};
+use super::treedeco::{self, Decorator};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Trunk {
@@ -105,6 +106,7 @@ pub(crate) struct Tree {
     leaves: State,
     below: State,
     ignore_vines: bool,
+    decorators: Vec<Decorator>,
 }
 
 pub(crate) fn compile(value: &Value) -> Option<Tree> {
@@ -176,6 +178,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         leaves: State::compile(value.get("foliage_provider")?),
         below: State::compile(value.get("below_trunk_provider").unwrap_or(&Value::Null)),
         ignore_vines: flag(value, "ignore_vines", false),
+        decorators: treedeco::compile_all(value),
     })
 }
 
@@ -198,6 +201,7 @@ struct Site<'a, 'b, 'r> {
     tree: &'a Tree,
     run: &'a mut Run<'b, 'r>,
     logs: Vec<Pos>,
+    leaves: Vec<Pos>,
 }
 
 const HORIZONTAL: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
@@ -258,6 +262,7 @@ impl Site<'_, '_, '_> {
                 .unwrap_or(state);
         }
         self.run.region.set(pos.0, pos.1, pos.2, state);
+        self.leaves.push(pos);
     }
 
     fn skip(&mut self, dx: i32, y: i32, dz: i32, range: i32, double: bool) -> bool {
@@ -738,12 +743,12 @@ impl Tree {
             tree: self,
             run,
             logs: Vec::new(),
+            leaves: Vec::new(),
         };
         let height = self.base_height
             + site.run.rng.below(self.rand_a + 1)
             + site.run.rng.below(self.rand_b + 1);
         let foliage_height = site.foliage_height(height);
-        let diff = height - foliage_height;
         let radius = self.radius.sample(site.run.rng);
         let region_height = site.run.region.height();
         if origin.1 < region_height.min_y + 1 || origin.1 + height + 1 > region_height.max_y() + 1 {
@@ -753,14 +758,21 @@ impl Tree {
         if free < height && self.size.clipped().is_none_or(|clipped| free < clipped) {
             return false;
         }
-        let _ = diff;
         let attachments = site.trunk(free, origin);
         for attachment in attachments {
             site.foliage(attachment, foliage_height, radius);
         }
         let logs = std::mem::take(&mut site.logs);
+        let leaves = std::mem::take(&mut site.leaves);
+        if logs.is_empty() && leaves.is_empty() {
+            return false;
+        }
+        if !self.decorators.is_empty() {
+            let mut context = treedeco::Context::new(site.run, &logs, &leaves, &[]);
+            treedeco::run(&self.decorators, &mut context);
+        }
         update_leaves(site.run, &logs);
-        !logs.is_empty()
+        true
     }
 }
 

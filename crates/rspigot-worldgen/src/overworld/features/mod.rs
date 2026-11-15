@@ -2,6 +2,7 @@ mod bodies;
 mod place;
 mod prov;
 mod tree;
+mod treedeco;
 
 use std::collections::HashMap;
 use std::sync::Arc;
