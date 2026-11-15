@@ -23,6 +23,7 @@ enum Trunk {
     Cherry(trunks::Cherry),
     Bending(trunks::Bending),
     Upwards(trunks::Upwards),
+    Poplar(trunks::Poplar),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,6 +39,7 @@ enum Crown {
     DarkOak,
     Cherry,
     RandomSpread,
+    Poplar,
 }
 
 #[derive(Debug, Clone)]
@@ -132,6 +134,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         "cherry_trunk_placer" => Trunk::Cherry(trunks::Cherry::compile(trunk_value)),
         "bending_trunk_placer" => Trunk::Bending(trunks::Bending::compile(trunk_value)),
         "upwards_branching_trunk_placer" => Trunk::Upwards(trunks::Upwards::compile(trunk_value)),
+        "poplar_trunk_placer" => Trunk::Poplar(trunks::Poplar::compile(trunk_value)),
         _ => return None,
     };
     let root = match value.get("root_placer") {
@@ -151,6 +154,7 @@ pub(crate) fn compile(value: &Value) -> Option<Tree> {
         "dark_oak_foliage_placer" => Crown::DarkOak,
         "cherry_foliage_placer" => Crown::Cherry,
         "random_spread_foliage_placer" => Crown::RandomSpread,
+        "poplar_foliage_placer" => Crown::Poplar,
         _ => return None,
     };
     let provider = |key: &str| Int::compile(crown_value.get(key).unwrap_or(&Value::Null));
@@ -344,7 +348,7 @@ impl Site<'_, '_, '_> {
                 a * a + b * b > (range * range) as f32
             }
             Crown::Cherry => self.cherry_skip(sx, y, sz, range),
-            Crown::RandomSpread => false,
+            Crown::RandomSpread | Crown::Poplar => false,
             Crown::DarkOak => {
                 if y == -1 && !double {
                     sx == range && sz == range
@@ -457,6 +461,7 @@ impl Site<'_, '_, '_> {
             }
             Crown::Cherry => self.cherry_crown(attachment, foliage_height, radius, offset),
             Crown::RandomSpread => self.random_spread(pos, foliage_height, radius),
+            Crown::Poplar => self.poplar_crown(attachment, foliage_height, radius, offset),
             Crown::DarkOak => {
                 let at = (pos.0, pos.1 + offset, pos.2);
                 if double {
@@ -483,7 +488,8 @@ impl Site<'_, '_, '_> {
             | Crown::Jungle
             | Crown::MegaPine
             | Crown::Cherry
-            | Crown::RandomSpread => self.tree.height.sample(self.run.rng),
+            | Crown::RandomSpread
+            | Crown::Poplar => self.tree.height.sample(self.run.rng),
             Crown::Spruce => (tree_height - self.tree.trunk_height.sample(self.run.rng)).max(4),
             Crown::Acacia => 0,
             Crown::DarkOak => 4,
@@ -516,6 +522,7 @@ impl Site<'_, '_, '_> {
             Trunk::Cherry(cherry) => self.cherry(cherry, height, origin),
             Trunk::Bending(bending) => self.bending(bending, height, origin),
             Trunk::Upwards(upwards) => self.upwards(upwards, height, origin),
+            Trunk::Poplar(poplar) => self.poplar(poplar, height, origin),
         }
     }
 

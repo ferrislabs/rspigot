@@ -95,6 +95,25 @@ impl Upwards {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(super) struct Poplar {
+    above: Int,
+    amount: Int,
+}
+
+impl Poplar {
+    pub(super) fn compile(value: &Value) -> Self {
+        Self {
+            above: Int::compile(
+                value
+                    .get("trunk_height_above_branches")
+                    .unwrap_or(&Value::Null),
+            ),
+            amount: Int::compile(value.get("branch_amount").unwrap_or(&Value::Null)),
+        }
+    }
+}
+
 impl Site<'_, '_, '_> {
     fn uniform(&mut self, (min, max): (i32, i32)) -> i32 {
         self.run.rng.between(min, max)
@@ -271,5 +290,38 @@ impl Site<'_, '_, '_> {
             result.push(attachment((x, last, z)));
             result.push(attachment((x, last - 2, z)));
         }
+    }
+
+    fn shuffled_sides(&mut self) -> Vec<(i32, i32)> {
+        let mut faces: [Option<(i32, i32)>; 6] = [
+            None,
+            None,
+            Some((0, -1)),
+            Some((0, 1)),
+            Some((-1, 0)),
+            Some((1, 0)),
+        ];
+        for index in (2..=faces.len()).rev() {
+            let other = self.run.rng.below(index as i32) as usize;
+            faces.swap(index - 1, other);
+        }
+        faces.into_iter().flatten().collect()
+    }
+
+    pub(super) fn poplar(&mut self, config: &Poplar, height: i32, origin: Pos) -> Vec<Attachment> {
+        self.dirt((origin.0, origin.1 - 1, origin.2));
+        let top = height - config.above.sample(self.run.rng);
+        for i in 0..height {
+            self.log((origin.0, origin.1 + i, origin.2));
+            let sides = self.shuffled_sides();
+            if top - 1 == i {
+                let amount = config.amount.sample(self.run.rng);
+                for side in sides.iter().take(amount.max(0) as usize) {
+                    let at = (origin.0 + side.0, origin.1 + i, origin.2 + side.1);
+                    self.put_log(at, Some(axis_of(*side)));
+                }
+            }
+        }
+        vec![attachment((origin.0, origin.1 + top, origin.2))]
     }
 }

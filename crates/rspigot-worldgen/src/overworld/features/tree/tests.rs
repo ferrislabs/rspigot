@@ -41,7 +41,7 @@ struct Shape {
     rise: (i32, i32),
 }
 
-const SHAPES: [Shape; 5] = [
+const SHAPES: [Shape; 11] = [
     Shape {
         feature: "cherry",
         log: "minecraft:cherry_log",
@@ -71,6 +71,42 @@ const SHAPES: [Shape; 5] = [
         log: "minecraft:mangrove_log",
         leaves: "minecraft:mangrove_leaves",
         rise: (4, 28),
+    },
+    Shape {
+        feature: "orange_poplar",
+        log: "minecraft:poplar_log",
+        leaves: "minecraft:orange_poplar_leaves",
+        rise: (6, 10),
+    },
+    Shape {
+        feature: "red_poplar",
+        log: "minecraft:poplar_log",
+        leaves: "minecraft:red_poplar_leaves",
+        rise: (6, 10),
+    },
+    Shape {
+        feature: "yellow_poplar",
+        log: "minecraft:poplar_log",
+        leaves: "minecraft:yellow_poplar_leaves",
+        rise: (6, 10),
+    },
+    Shape {
+        feature: "orange_poplar_leaf_litter",
+        log: "minecraft:poplar_log",
+        leaves: "minecraft:orange_poplar_leaves",
+        rise: (6, 10),
+    },
+    Shape {
+        feature: "red_poplar_leaf_litter",
+        log: "minecraft:poplar_log",
+        leaves: "minecraft:red_poplar_leaves",
+        rise: (6, 10),
+    },
+    Shape {
+        feature: "yellow_poplar_leaf_litter",
+        log: "minecraft:poplar_log",
+        leaves: "minecraft:yellow_poplar_leaves",
+        rise: (6, 10),
     },
 ];
 
@@ -303,7 +339,7 @@ fn fingerprint(bench: &Bench, feature: &str, seed: i64) -> (usize, u64) {
     (lines.len(), hash)
 }
 
-const REFERENCE: [(&str, i64, usize, u64); 68] = [
+const REFERENCE: [(&str, i64, usize, u64); 89] = [
     ("acacia", 1, 92, 0xc2385bb24eb84a74),
     ("acacia", 2, 94, 0x1f983ae25b632b84),
     ("birch", 1, 60, 0xce6936f52009cf57),
@@ -372,6 +408,27 @@ const REFERENCE: [(&str, i64, usize, u64); 68] = [
     ("tall_mangrove", 2, 290, 0xf0ce290f1c0057cb),
     ("tall_mangrove", 3, 0, 0xcbf29ce484222325),
     ("tall_mangrove", 4, 513, 0x6193c4211a08ba8e),
+    ("orange_poplar", 2, 234, 0xdedb29b066d2329b),
+    ("orange_poplar", 3, 232, 0x6b07f82ef702d5fc),
+    ("orange_poplar", 6, 297, 0x734da067ee9016b7),
+    ("red_poplar", 2, 234, 0x1dffbaf2bc4922a4),
+    ("red_poplar", 3, 232, 0xbd0a30bbd8112131),
+    ("red_poplar", 6, 297, 0x3470046e3c8c3f42),
+    ("yellow_poplar", 2, 234, 0x6593d9cc688ebef5),
+    ("yellow_poplar", 3, 232, 0x2652e0a2b06dc69e),
+    ("yellow_poplar", 6, 297, 0xddb3b18110e7e4ad),
+    ("orange_poplar_leaf_litter", 1, 248, 0x42b38f52c9d7497a),
+    ("orange_poplar_leaf_litter", 2, 262, 0xb81c3da6136e9ed1),
+    ("orange_poplar_leaf_litter", 3, 256, 0x8ce88852224ea9ac),
+    ("orange_poplar_leaf_litter", 4, 177, 0x3be69dcb618aadb8),
+    ("red_poplar_leaf_litter", 1, 248, 0xea06bf345831fa13),
+    ("red_poplar_leaf_litter", 2, 262, 0x9dd74c113cbd5dbc),
+    ("red_poplar_leaf_litter", 3, 256, 0x97602106c70a390d),
+    ("red_poplar_leaf_litter", 4, 177, 0x32d59fa2ee6c0ff7),
+    ("yellow_poplar_leaf_litter", 1, 248, 0xec75ce2c39ae6628),
+    ("yellow_poplar_leaf_litter", 2, 262, 0xdca0d938321e6293),
+    ("yellow_poplar_leaf_litter", 3, 256, 0x97c1b73166af305e),
+    ("yellow_poplar_leaf_litter", 4, 177, 0x5efcf93663a40c6a),
 ];
 
 #[test]
