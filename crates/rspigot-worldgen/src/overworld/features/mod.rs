@@ -1,10 +1,15 @@
 mod bodies;
 mod cave;
+mod cells;
+mod chorus;
 mod coral;
+mod delta;
 mod dungeon;
+mod end_island;
 mod fallen;
 mod floats;
 mod fossil;
+mod fungus;
 mod geode;
 mod ice;
 mod javaset;
@@ -15,10 +20,13 @@ mod margins;
 mod mossy;
 mod multiface;
 mod mushrooms;
+#[cfg(test)]
+mod nether_plants;
 mod place;
 #[cfg(test)]
 mod probe;
 mod prov;
+mod replace_blobs;
 mod root;
 mod sculk;
 mod speleothem;
@@ -32,7 +40,6 @@ mod vegetation;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use rspigot_data::multi_noise::overworld_biomes;
 use serde_json::{Map, Value};
 
 use self::bodies::Compiler;
@@ -100,7 +107,7 @@ fn ordered(lists: &[Vec<String>]) -> Vec<String> {
 }
 
 impl Features {
-    pub(crate) fn compile() -> Self {
+    pub(crate) fn compile(names: &[&'static str]) -> Self {
         let data = worldgen();
         let empty = Map::new();
         let placed = data
@@ -115,7 +122,6 @@ impl Features {
             .get("biomes")
             .and_then(Value::as_object)
             .unwrap_or(&empty);
-        let names = overworld_biomes();
         let lists: Vec<Vec<Vec<String>>> = names
             .iter()
             .map(|name| {

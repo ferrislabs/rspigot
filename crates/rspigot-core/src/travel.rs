@@ -6,6 +6,7 @@ use rspigot_nbt::Tag;
 
 use crate::end_platform;
 use crate::events::{ClientEvent, GameEvent};
+use crate::nether_portal::NetherExit;
 use crate::plugins::events::{
     EntityPortal, EntityPortalPatch, PlayerChangedWorld, PlayerPortal, PlayerPortalPatch,
     PlayerTeleportCause, PortalCreate, PortalCreateReason,
@@ -36,6 +37,19 @@ fn end_key() -> DimensionKey {
 }
 
 impl Destination {
+    pub(crate) fn new(dimension: DimensionKey, position: Vec3, rotation: Option<Rotation>) -> Self {
+        Self {
+            dimension,
+            position,
+            rotation,
+            platform: false,
+        }
+    }
+
+    pub(crate) fn here(dimension: DimensionKey, position: Vec3) -> Self {
+        Self::new(dimension, position, None)
+    }
+
     pub(crate) fn end_spawn() -> Self {
         let spawn = end_platform::END_SPAWN_POINT;
         Self {
@@ -65,6 +79,10 @@ impl<L: ClientLink> Server<L> {
     pub fn with_dimension_provider(mut self, provider: DimensionProvider<L>) -> Self {
         self.dimension_provider = Some(provider);
         self
+    }
+
+    pub fn block_at(&self, pos: BlockPos) -> Option<BlockStateId> {
+        self.world.chunks.block(pos)
     }
 
     pub fn player_dimension(&self, player: PlayerId) -> Option<Identifier> {
@@ -159,12 +177,27 @@ impl<L: ClientLink> Server<L> {
         destination: Destination,
         cause: PlayerTeleportCause,
     ) {
+        self.ask_portal_with(id, destination, cause, None);
+    }
+
+    pub(crate) fn ask_portal_with(
+        &mut self,
+        id: PlayerId,
+        destination: Destination,
+        cause: PlayerTeleportCause,
+        nether: Option<NetherExit>,
+    ) {
         if !self.players.contains_key(&id) {
             return;
         }
+        let (can_create, creation_radius, search_radius) = nether.as_ref().map_or(
+            (false, PORTAL_CREATION_RADIUS, PORTAL_SEARCH_RADIUS),
+            |exit| (exit.can_create, exit.creation_radius, exit.search_radius),
+        );
         let step = PortalStep {
             player: id,
             destination: destination.clone(),
+            nether,
         };
         self.fire(id, Continuation::Portal(step), move |server| {
             let player = server.snapshot_of(id)?;
@@ -180,12 +213,12 @@ impl<L: ClientLink> Server<L> {
                 rotation: destination.rotation.unwrap_or(player.rotation),
             };
             Some(EventPayload::PlayerPortal(PlayerPortal {
-                can_create_portal: false,
+                can_create_portal: can_create,
                 cause,
-                creation_radius: PORTAL_CREATION_RADIUS,
+                creation_radius,
                 from,
                 player,
-                search_radius: PORTAL_SEARCH_RADIUS,
+                search_radius,
                 to: Some(to),
             }))
         });
@@ -205,7 +238,17 @@ impl<L: ClientLink> Server<L> {
             None => step.destination,
         };
         let dropped = self.decisions.forget(step.player);
-        self.change_dimension_now(step.player, destination);
+        match step.nether {
+            Some(mut exit) => {
+                exit.can_create = patch.can_create_portal.unwrap_or(exit.can_create);
+                exit.creation_radius = patch.creation_radius.unwrap_or(exit.creation_radius);
+                exit.search_radius = patch.search_radius.unwrap_or(exit.search_radius);
+                self.travel_through_nether(step.player, destination, &exit);
+            }
+            None => {
+                self.change_dimension_now(step.player, destination);
+            }
+        }
         dropped
     }
 
@@ -234,12 +277,35 @@ impl<L: ClientLink> Server<L> {
             let step = PlatformStep {
                 traveler: PlatformTraveler::Player(id, source),
                 destination,
+                placed: Vec::new(),
+                reason: PortalCreateReason::EndPlatform,
             };
             self.ask_platform(step, changes);
             return true;
         }
-        self.complete_player_travel(id, &source, destination, true);
+        self.complete_player_travel(id, &source, destination, true, &[]);
         true
+    }
+
+    pub(crate) fn travel_player_with(
+        &mut self,
+        id: PlayerId,
+        source: DimensionKey,
+        destination: Destination,
+        placed: Vec<(BlockPos, BlockStateId)>,
+    ) {
+        if !placed.is_empty() && self.listened(EventKind::PortalCreate) {
+            let listing = placed.clone();
+            let step = PlatformStep {
+                traveler: PlatformTraveler::Player(id, source),
+                destination,
+                placed,
+                reason: PortalCreateReason::NetherPair,
+            };
+            self.ask_platform(step, listing);
+            return;
+        }
+        self.complete_player_travel(id, &source, destination, true, &placed);
     }
 
     fn complete_player_travel(
@@ -248,24 +314,40 @@ impl<L: ClientLink> Server<L> {
         source: &DimensionKey,
         destination: Destination,
         build: bool,
+        placed: &[(BlockPos, BlockStateId)],
     ) {
         self.in_dimension(source, |server| server.leave_dimension(id));
         let target = destination.dimension.clone();
         if build && destination.platform {
             self.in_dimension(&target, |server| server.make_end_platform());
         }
+        if build && !placed.is_empty() {
+            self.in_dimension(&target, |server| server.apply_portal_blocks(placed));
+        }
         self.in_dimension(&target, |server| server.enter_dimension(id, destination));
     }
 
-    fn ask_platform(&mut self, step: PlatformStep, changes: Vec<(BlockPos, BlockStateId)>) {
+    pub(crate) fn ask_platform(
+        &mut self,
+        step: PlatformStep,
+        changes: Vec<(BlockPos, BlockStateId)>,
+    ) {
         let (lane, traveller) = match &step.traveler {
             PlatformTraveler::Player(id, _) => (
                 Lane::Player(*id),
                 self.players.get(id).map(|player| player.entity_id),
             ),
             PlatformTraveler::Entity(id) => (self.lane_for(None, *id), Some(*id)),
+            PlatformTraveler::Ignition(_) => (
+                Lane::Block(changes.first().map_or(BlockPos::default(), |(pos, _)| *pos)),
+                None,
+            ),
         };
-        let world = step.destination.dimension.to_string();
+        let reason = step.reason;
+        let world = match &step.traveler {
+            PlatformTraveler::Ignition(key) => key.to_string(),
+            _ => step.destination.dimension.to_string(),
+        };
         self.fire(
             lane,
             Continuation::Platform(Box::new(step)),
@@ -276,7 +358,7 @@ impl<L: ClientLink> Server<L> {
                         .map(|(pos, state)| snapshot_of(*pos, *state))
                         .collect(),
                     entity: traveller.and_then(|id| server.subject_view(id)),
-                    reason: PortalCreateReason::EndPlatform,
+                    reason,
                     world,
                 }))
             },
@@ -291,7 +373,12 @@ impl<L: ClientLink> Server<L> {
         let PlatformStep {
             traveler,
             destination,
+            placed,
+            reason,
         } = step;
+        if cancelled && reason == PortalCreateReason::NetherPair {
+            return Vec::new();
+        }
         match traveler {
             PlatformTraveler::Player(id, source) => {
                 let here = self
@@ -302,11 +389,17 @@ impl<L: ClientLink> Server<L> {
                     return Vec::new();
                 }
                 let dropped = self.decisions.forget(id);
-                self.complete_player_travel(id, &source, destination, !cancelled);
+                self.complete_player_travel(id, &source, destination, !cancelled, &placed);
                 dropped
             }
             PlatformTraveler::Entity(id) => {
-                self.travel_entity(id, destination, !cancelled);
+                self.travel_entity(id, destination, !cancelled, &placed);
+                Vec::new()
+            }
+            PlatformTraveler::Ignition(key) => {
+                if !cancelled {
+                    self.in_dimension(&key, |server| server.apply_portal_blocks(&placed));
+                }
                 Vec::new()
             }
         }
@@ -470,13 +563,27 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn ask_entity_portal(&mut self, id: EntityId, destination: Destination) {
+        self.ask_entity_portal_with(id, destination, None);
+    }
+
+    pub(crate) fn ask_entity_portal_with(
+        &mut self,
+        id: EntityId,
+        destination: Destination,
+        nether: Option<NetherExit>,
+    ) {
         if !self.may_travel(id) {
             return;
         }
         let lane = self.lane_for(None, id);
+        let (can_create, creation_radius, search_radius) = nether.as_ref().map_or(
+            (false, PORTAL_CREATION_RADIUS, PORTAL_SEARCH_RADIUS),
+            |exit| (exit.can_create, exit.creation_radius, exit.search_radius),
+        );
         let step = EntityPortalStep {
             entity: id,
             destination: destination.clone(),
+            nether,
         };
         self.fire(lane, Continuation::EntityPortal(step), move |server| {
             let view = server.entity_view(id)?;
@@ -489,12 +596,12 @@ impl<L: ClientLink> Server<L> {
                 rotation: destination.rotation.unwrap_or(rotation),
             };
             Some(EventPayload::EntityPortal(EntityPortal {
-                can_create_portal: false,
-                creation_radius: PORTAL_CREATION_RADIUS,
+                can_create_portal: can_create,
+                creation_radius,
                 entity_type: view.kind.clone(),
                 entity: view,
                 from,
-                search_radius: PORTAL_SEARCH_RADIUS,
+                search_radius,
                 to: Some(to),
             }))
         });
@@ -514,7 +621,17 @@ impl<L: ClientLink> Server<L> {
             Some(None) => return,
             Some(Some(to)) => Destination::from_location(to, &step.destination.dimension),
         };
-        self.change_entity_dimension_now(step.entity, destination);
+        match step.nether {
+            Some(mut exit) => {
+                exit.can_create = patch.can_create_portal.unwrap_or(exit.can_create);
+                exit.creation_radius = patch.creation_radius.unwrap_or(exit.creation_radius);
+                exit.search_radius = patch.search_radius.unwrap_or(exit.search_radius);
+                self.entity_through_nether(step.entity, destination, &exit);
+            }
+            None => {
+                self.change_entity_dimension_now(step.entity, destination);
+            }
+        }
     }
 
     pub(crate) fn change_entity_dimension_now(
@@ -535,18 +652,21 @@ impl<L: ClientLink> Server<L> {
             let step = PlatformStep {
                 traveler: PlatformTraveler::Entity(id),
                 destination,
+                placed: Vec::new(),
+                reason: PortalCreateReason::EndPlatform,
             };
             self.ask_platform(step, changes);
             return None;
         }
-        self.travel_entity(id, destination, true)
+        self.travel_entity(id, destination, true, &[])
     }
 
-    fn travel_entity(
+    pub(crate) fn travel_entity(
         &mut self,
         id: EntityId,
         destination: Destination,
         build: bool,
+        placed: &[(BlockPos, BlockStateId)],
     ) -> Option<EntityId> {
         if !self.may_travel(id) || destination.dimension == self.world.dimension.key {
             return None;
@@ -582,6 +702,9 @@ impl<L: ClientLink> Server<L> {
         let target = destination.dimension;
         if build && destination.platform {
             self.in_dimension(&target, |server| server.make_end_platform());
+        }
+        if build && !placed.is_empty() {
+            self.in_dimension(&target, |server| server.apply_portal_blocks(placed));
         }
         self.in_dimension(&target, |server| server.arrive_entity(&nbt))
     }

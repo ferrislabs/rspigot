@@ -64,7 +64,7 @@ impl NoiseGenerator {
             state: Box::new(NoiseState {
                 overworld: Overworld::new(seed, variant, &resources.blocks),
                 nether: Nether::new(seed, &resources.blocks),
-                end: End::new(seed),
+                end: End::new(seed, &resources.blocks),
                 resources,
             }),
         }
@@ -101,7 +101,7 @@ impl ChunkGenerator for NoiseGenerator {
                 .state
                 .nether
                 .spawn_point(&self.state.resources, dimension),
-            DimensionKind::End => self.state.end.spawn_point(dimension),
+            DimensionKind::End => self.state.end.spawn_point(&self.state.resources, dimension),
         }
     }
 

@@ -42,11 +42,43 @@ fn reach_covers_every_write_of_every_configured_feature() {
 
 #[test]
 fn every_overworld_biome_feature_is_supported() {
+    assert_eq!(
+        unsupported(rspigot_data::multi_noise::overworld_biomes()),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn every_nether_biome_feature_is_supported() {
+    assert_eq!(
+        unsupported(&crate::nether::NETHER_BIOMES),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn every_end_biome_feature_is_supported_but_the_ones_the_end_places_itself() {
+    let handled = [
+        "minecraft:end_spike",
+        "minecraft:end_platform",
+        "minecraft:end_gateway",
+        "minecraft:end_gateway_return",
+        "minecraft:end_gateway_delayed",
+        "minecraft:end_podium_active",
+        "minecraft:end_podium_inactive",
+    ];
+    let missing: Vec<String> = unsupported(&crate::end::END_BIOMES)
+        .into_iter()
+        .filter(|name| !handled.contains(&name.as_str()))
+        .collect();
+    assert_eq!(missing, Vec::<String>::new());
+}
+
+fn unsupported(biomes: &[&str]) -> Vec<String> {
     use super::bodies::Feature;
     use serde_json::Value;
 
     let data = crate::datapack::worldgen();
-    let biomes = rspigot_data::multi_noise::overworld_biomes();
     let configured = data.get("configured").and_then(Value::as_object);
     let placed = data.get("placed").and_then(Value::as_object);
     let mut missing = std::collections::BTreeSet::new();
@@ -92,10 +124,7 @@ fn every_overworld_biome_feature_is_supported() {
         strings(definition, &mut found);
         stack.extend(found);
     }
-    assert_eq!(
-        missing.into_iter().collect::<Vec<_>>(),
-        Vec::<String>::new()
-    );
+    missing.into_iter().collect()
 }
 
 fn strings(value: &serde_json::Value, out: &mut Vec<String>) {

@@ -85,6 +85,7 @@ mod mob_life;
 pub mod mobs;
 mod mount_menu;
 mod nature;
+mod nether_portal;
 mod patrol;
 mod persistence;
 mod phantom_spawner;

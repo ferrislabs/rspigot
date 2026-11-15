@@ -376,6 +376,12 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
         snow_override: BlockSet,
         coral_plants: BlockSet,
         wall_corals: BlockSet,
+        crimson_roots: BlockSet,
+        warped_roots: BlockSet,
+        nether_sprouts: BlockSet,
+        crimson_fungus: BlockSet,
+        warped_fungus: BlockSet,
+        soul_fire: BlockSet,
     }
     static SETS: OnceLock<Sets> = OnceLock::new();
     let sets = SETS.get_or_init(|| Sets {
@@ -392,6 +398,12 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
         snow_override: BlockSet::tag("minecraft:support_override_snow_layer"),
         coral_plants: BlockSet::tag("minecraft:coral_plants"),
         wall_corals: BlockSet::tag("minecraft:wall_corals"),
+        crimson_roots: BlockSet::tag("minecraft:supports_crimson_roots"),
+        warped_roots: BlockSet::tag("minecraft:supports_warped_roots"),
+        nether_sprouts: BlockSet::tag("minecraft:supports_nether_sprouts"),
+        crimson_fungus: BlockSet::tag("minecraft:supports_crimson_fungus"),
+        warped_fungus: BlockSet::tag("minecraft:supports_warped_fungus"),
+        soul_fire: BlockSet::tag("minecraft:soul_fire_base_blocks"),
     });
     let Some(kind) = state.kind() else {
         return true;
@@ -432,6 +444,13 @@ pub(crate) fn survives(region: &mut Region, state: BlockStateId, pos: Pos) -> bo
         | "minecraft:bush"
         | "minecraft:sweet_berry_bush"
         | "minecraft:firefly_bush" => sets.vegetation.contains(below),
+        "minecraft:crimson_roots" => sets.crimson_roots.contains(below),
+        "minecraft:warped_roots" => sets.warped_roots.contains(below),
+        "minecraft:nether_sprouts" => sets.nether_sprouts.contains(below),
+        "minecraft:crimson_fungus" => sets.crimson_fungus.contains(below),
+        "minecraft:warped_fungus" => sets.warped_fungus.contains(below),
+        "minecraft:soul_fire" => sets.soul_fire.contains(below),
+        "minecraft:fire" => below.is_face_sturdy(Face::Up, Support::Full),
         "minecraft:dead_bush" | "minecraft:short_dry_grass" | "minecraft:tall_dry_grass" => {
             sets.dry.contains(below)
         }

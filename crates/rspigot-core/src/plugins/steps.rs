@@ -84,12 +84,14 @@ pub(crate) struct TeleportStep {
 pub(crate) struct PortalStep {
     pub(crate) player: PlayerId,
     pub(crate) destination: crate::travel::Destination,
+    pub(crate) nether: Option<crate::nether_portal::NetherExit>,
 }
 
 #[derive(Debug)]
 pub(crate) struct EntityPortalStep {
     pub(crate) entity: EntityId,
     pub(crate) destination: crate::travel::Destination,
+    pub(crate) nether: Option<crate::nether_portal::NetherExit>,
 }
 
 #[derive(Debug)]
@@ -616,12 +618,15 @@ pub(crate) struct ArrowCountStep {
 pub(crate) enum PlatformTraveler {
     Player(PlayerId, crate::world_state::DimensionKey),
     Entity(EntityId),
+    Ignition(crate::world_state::DimensionKey),
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct PlatformStep {
     pub(crate) traveler: PlatformTraveler,
     pub(crate) destination: crate::travel::Destination,
+    pub(crate) placed: Vec<(BlockPos, BlockStateId)>,
+    pub(crate) reason: crate::plugins::events::PortalCreateReason,
 }
 
 #[derive(Debug, Clone, Copy)]
