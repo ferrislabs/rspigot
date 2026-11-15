@@ -700,6 +700,8 @@ impl<L: ClientLink> Server<L> {
             fly_speed: 0.05,
             walk_speed: 0.1,
             latency: 0,
+            chat_session: None,
+            client_brand: None,
             tracked: FxHashSet::default(),
             loaded: false,
             operator,

@@ -177,6 +177,12 @@ impl<L: ClientLink> Server<L> {
                 self.handle_change_difficulty(id, difficulty)
             }
             PlayerInput::LockDifficulty(locked) => self.handle_lock_difficulty(id, locked),
+            PlayerInput::ChatSession(key) => self.handle_chat_session(id, key),
+            PlayerInput::ClientBrand(brand) => {
+                if let Some(player) = self.players.get_mut(&id) {
+                    player.client_brand = Some(brand);
+                }
+            }
             PlayerInput::SetGameRules(entries) => self.handle_set_game_rules(id, entries),
             PlayerInput::TeleportToEntity(target) => self.handle_teleport_to_entity(id, target),
             PlayerInput::BlockTagQuery { transaction, pos } => {

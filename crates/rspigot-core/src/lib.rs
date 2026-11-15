@@ -15,6 +15,7 @@ mod bucket;
 mod bullet;
 mod campfire;
 mod cauldron;
+mod chat_session;
 mod chests;
 pub mod chunks;
 mod combat;

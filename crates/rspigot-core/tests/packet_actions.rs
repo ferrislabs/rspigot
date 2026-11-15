@@ -421,3 +421,90 @@ mod game_rules {
         assert!(flags(&mut s).contains(&(GameRule::KeepInventory, false)));
     }
 }
+
+mod chat_sessions {
+    use super::*;
+    use rspigot_core::events::ChatSessionKey;
+
+    fn key(session: u128, expires_at_ms: i64, byte: u8) -> ChatSessionKey {
+        ChatSessionKey {
+            session: uuid::Uuid::from_u128(session),
+            expires_at_ms,
+            public_key: vec![byte; 4],
+            key_signature: vec![byte; 2],
+        }
+    }
+
+    #[test]
+    fn the_session_key_is_kept_for_the_player() {
+        let mut server = configured(|_| {});
+        let alice = arrive(&mut server, "Alice");
+        assert_eq!(server.chat_session_of(alice.id), None);
+        send_input(
+            &mut server,
+            &alice,
+            PlayerInput::ChatSession(key(1, 2_000, 7)),
+        );
+        assert_eq!(server.chat_session_of(alice.id), Some(key(1, 2_000, 7)));
+    }
+
+    #[test]
+    fn a_later_key_replaces_the_session_and_an_identical_key_changes_nothing() {
+        let mut server = configured(|_| {});
+        let alice = arrive(&mut server, "Alice");
+        send_input(
+            &mut server,
+            &alice,
+            PlayerInput::ChatSession(key(1, 2_000, 7)),
+        );
+        send_input(
+            &mut server,
+            &alice,
+            PlayerInput::ChatSession(key(2, 2_000, 7)),
+        );
+        assert_eq!(server.chat_session_of(alice.id), Some(key(1, 2_000, 7)));
+        send_input(
+            &mut server,
+            &alice,
+            PlayerInput::ChatSession(key(3, 3_000, 8)),
+        );
+        assert_eq!(server.chat_session_of(alice.id), Some(key(3, 3_000, 8)));
+        assert!(alice.link.disconnected_with().is_none());
+    }
+
+    #[test]
+    fn a_key_that_expires_before_the_known_one_disconnects_the_player() {
+        let mut server = configured(|_| {});
+        let alice = arrive(&mut server, "Alice");
+        send_input(
+            &mut server,
+            &alice,
+            PlayerInput::ChatSession(key(1, 2_000, 7)),
+        );
+        send_input(
+            &mut server,
+            &alice,
+            PlayerInput::ChatSession(key(2, 1_000, 8)),
+        );
+        let reason = alice.link.disconnected_with().expect("a disconnect");
+        assert_eq!(
+            reason,
+            rspigot_domain::text::Component::translatable(
+                "multiplayer.disconnect.expired_public_key",
+                Vec::new()
+            )
+        );
+    }
+
+    #[test]
+    fn the_brand_the_client_announces_is_kept() {
+        let mut server = configured(|_| {});
+        let alice = arrive(&mut server, "Alice");
+        send_input(
+            &mut server,
+            &alice,
+            PlayerInput::ClientBrand("fabric".to_owned()),
+        );
+        assert_eq!(server.client_brand_of(alice.id).as_deref(), Some("fabric"));
+    }
+}

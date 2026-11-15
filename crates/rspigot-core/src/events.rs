@@ -212,6 +212,8 @@ pub enum PlayerInput {
     LockDifficulty(bool),
     TeleportToEntity(uuid::Uuid),
     SetGameRules(Vec<(String, String)>),
+    ChatSession(ChatSessionKey),
+    ClientBrand(String),
     BlockTagQuery {
         transaction: i32,
         pos: BlockPos,
@@ -220,6 +222,14 @@ pub enum PlayerInput {
         transaction: i32,
         entity: EntityId,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChatSessionKey {
+    pub session: uuid::Uuid,
+    pub expires_at_ms: i64,
+    pub public_key: Vec<u8>,
+    pub key_signature: Vec<u8>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

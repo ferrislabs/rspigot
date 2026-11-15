@@ -1329,6 +1329,14 @@ impl<L: ClientLink> Server<L> {
         self.config.rules
     }
 
+    pub fn chat_session_of(&self, id: PlayerId) -> Option<crate::events::ChatSessionKey> {
+        self.players.get(&id)?.chat_session.clone()
+    }
+
+    pub fn client_brand_of(&self, id: PlayerId) -> Option<String> {
+        self.players.get(&id)?.client_brand.clone()
+    }
+
     pub fn player_location(&self, id: PlayerId) -> Option<Vec3> {
         self.players.get(&id).map(|p| p.position)
     }
