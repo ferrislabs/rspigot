@@ -55,7 +55,7 @@ impl Rig {
             .take()
             .into_iter()
             .filter_map(|event| match event {
-                ClientEvent::Scoreboard(message) => Some(message),
+                ClientEvent::Scoreboard(message) => Some(*message),
                 _ => None,
             })
             .collect()

@@ -225,7 +225,7 @@ mod tests {
             }],
             slots: vec![("sidebar".to_owned(), "a".to_owned())],
         });
-        assert_eq!(state.objectives[0].hearts, true);
+        assert!(state.objectives[0].hearts);
         assert_eq!(state.scores[0].value, 4);
         assert_eq!(state.teams[0].color.as_deref(), Some("red"));
         assert_eq!(state.teams[0].entries, ["x"]);

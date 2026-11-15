@@ -1221,7 +1221,7 @@ impl Encoder {
                     operation: boss_operation(update),
                 },
             ),
-            ClientEvent::Scoreboard(message) => Self::scoreboard(writer, message),
+            ClientEvent::Scoreboard(message) => Self::scoreboard(writer, message.as_ref()),
             ClientEvent::TitleText(message) => Self::queue(
                 writer,
                 &cb::SetTitleText {
@@ -3168,10 +3168,14 @@ mod tests {
         assert_eq!(encode(style), vec![(id::BOSS_EVENT, expected)]);
     }
 
+    fn scoreboard_event(message: ScoreboardMessage) -> ClientEvent {
+        ClientEvent::Scoreboard(Box::new(message))
+    }
+
     #[test]
     fn scoreboard_messages_encode_to_their_packets() {
         use rspigot_domain::scoreboard::{DisplaySlot, RenderType};
-        let add = ClientEvent::Scoreboard(ScoreboardMessage::ObjectiveAdd(ObjectiveView {
+        let add = scoreboard_event(ScoreboardMessage::ObjectiveAdd(ObjectiveView {
             name: "a".to_owned(),
             display_name: Component::text("A"),
             render_type: RenderType::Hearts,
@@ -3182,7 +3186,7 @@ mod tests {
         assert_eq!(packets[0].0, id::SET_OBJECTIVE);
         assert_eq!(&packets[0].1[..3], &[1, b'a', 0]);
         assert_eq!(packets[0].1.last(), Some(&0));
-        let display = ClientEvent::Scoreboard(ScoreboardMessage::DisplayObjective {
+        let display = scoreboard_event(ScoreboardMessage::DisplayObjective {
             slot: DisplaySlot::BelowName,
             objective: None,
         });
@@ -3190,12 +3194,12 @@ mod tests {
             encode(display),
             vec![(id::SET_DISPLAY_OBJECTIVE, vec![2, 0])]
         );
-        let reset = ClientEvent::Scoreboard(ScoreboardMessage::ResetScore {
+        let reset = scoreboard_event(ScoreboardMessage::ResetScore {
             holder: "x".to_owned(),
             objective: None,
         });
         assert_eq!(encode(reset), vec![(id::RESET_SCORE, vec![1, b'x', 0])]);
-        let join = ClientEvent::Scoreboard(ScoreboardMessage::Team {
+        let join = scoreboard_event(ScoreboardMessage::Team {
             name: "t".to_owned(),
             op: TeamOp::Join(vec!["a".to_owned()]),
         });

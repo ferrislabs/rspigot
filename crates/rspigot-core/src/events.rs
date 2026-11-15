@@ -577,7 +577,7 @@ pub enum ClientEvent {
         id: uuid::Uuid,
         update: rspigot_domain::boss_event::BossUpdate,
     },
-    Scoreboard(rspigot_domain::scoreboard::ScoreboardMessage),
+    Scoreboard(Box<rspigot_domain::scoreboard::ScoreboardMessage>),
     PlayerChat {
         sender: PlayerId,
         sender_name: Component,

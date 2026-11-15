@@ -129,7 +129,7 @@ impl<L: ClientLink> Server<L> {
             for message in &messages {
                 self.push(
                     Audience::One(viewer),
-                    ClientEvent::Scoreboard(message.clone()),
+                    ClientEvent::Scoreboard(Box::new(message.clone())),
                 );
             }
         }
@@ -166,7 +166,10 @@ impl<L: ClientLink> Server<L> {
             self.scoreboard.assigned.insert(player, board);
         }
         for message in leaving.into_iter().chain(joining) {
-            self.push(Audience::One(player), ClientEvent::Scoreboard(message));
+            self.push(
+                Audience::One(player),
+                ClientEvent::Scoreboard(Box::new(message)),
+            );
         }
     }
 
@@ -192,7 +195,7 @@ impl<L: ClientLink> Server<L> {
             .board
             .join_messages()
             .into_iter()
-            .map(ClientEvent::Scoreboard)
+            .map(|message| ClientEvent::Scoreboard(Box::new(message)))
             .collect()
     }
 
@@ -443,7 +446,7 @@ mod tests {
         link.take()
             .into_iter()
             .filter_map(|event| match event {
-                ClientEvent::Scoreboard(message) => Some(message),
+                ClientEvent::Scoreboard(message) => Some(*message),
                 _ => None,
             })
             .collect()

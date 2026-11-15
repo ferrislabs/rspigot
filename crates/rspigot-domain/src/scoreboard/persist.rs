@@ -89,14 +89,13 @@ pub(super) fn component_from_tag(tag: &Tag) -> Option<Component> {
         Tag::Compound(compound) => {
             let mut component = if let Some(text) = compound.get_str("text") {
                 Component::text(text)
-            } else if let Some(key) = compound.get_str("translate") {
+            } else {
+                let key = compound.get_str("translate")?;
                 let args = compound
                     .get_list("with")
                     .map(|items| items.iter().filter_map(component_from_tag).collect())
                     .unwrap_or_default();
                 Component::translatable(key, args)
-            } else {
-                return None;
             };
             component.style = style_from(compound);
             if let Some(extra) = compound.get_list("extra") {
