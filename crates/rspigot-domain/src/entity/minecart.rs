@@ -46,6 +46,7 @@ pub struct MinecartState {
     pub flipped: bool,
     pub on_rails: bool,
     pub first_tick: bool,
+    pub enabled: bool,
     pub cargo: Option<Cargo>,
 }
 
@@ -124,6 +125,7 @@ pub fn define(base: &mut EntityBase) -> MinecartState {
         flipped: false,
         on_rails: false,
         first_tick: false,
+        enabled: true,
         cargo,
     }
 }

@@ -203,6 +203,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn tick_rails(&mut self) {
         let mut detectors: FxHashSet<BlockPos> = FxHashSet::default();
         let mut activated: Vec<EntityId> = Vec::new();
+        let mut gated: Vec<(EntityId, bool)> = Vec::new();
         for entity in self.entities.store.iter() {
             if entity.base.removal.is_some() || !matches!(entity.state, EntityState::Minecart(_)) {
                 continue;
@@ -218,6 +219,11 @@ impl<L: ClientLink> Server<L> {
                         match state.kind() {
                             Some(BlockKind::DetectorRail) if !flag(state, "powered") => {
                                 detectors.insert(at);
+                            }
+                            Some(BlockKind::ActivatorRail)
+                                if entity.base.kind == EntityKind::HopperMinecart =>
+                            {
+                                gated.push((entity.base.id, !flag(state, "powered")));
                             }
                             Some(BlockKind::ActivatorRail)
                                 if flag(state, "powered")
@@ -236,6 +242,16 @@ impl<L: ClientLink> Server<L> {
         }
         for cart in activated {
             self.eject_passengers(cart);
+        }
+        for (cart, enabled) in gated {
+            if let Some(EntityState::Minecart(state)) = self
+                .entities
+                .store
+                .get_mut(cart)
+                .map(|entity| &mut entity.state)
+            {
+                state.enabled = enabled;
+            }
         }
     }
 }

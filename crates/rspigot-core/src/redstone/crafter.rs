@@ -143,7 +143,7 @@ impl<L: ClientLink> Server<L> {
 
     fn crafter_output(&mut self, pos: BlockPos, front: Face, stack: ItemStack) {
         let target = step(pos, front);
-        if let Some(destination) = self.holder_at(target) {
+        if let Some(destination) = self.container_at(target) {
             let mut into = self.holder_items(&destination);
             let toward = front.opposite();
             let slots = destination.slots_toward(toward);

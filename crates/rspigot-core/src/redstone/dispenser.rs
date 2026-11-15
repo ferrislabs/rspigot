@@ -18,7 +18,7 @@ use crate::plugins::events::{
 };
 use crate::plugins::steps::Birth;
 use crate::plugins::{
-    Continuation, EventKind, EventPayload, InventoryOwner, InventoryRef, Lane, spec_of, stack_of,
+    Continuation, EventKind, EventPayload, InventoryRef, Lane, spec_of, stack_of,
 };
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -200,7 +200,7 @@ impl<L: ClientLink> Server<L> {
         };
         let front = step(pos, direction);
         let dropper = state.kind() == Some(BlockKind::Dropper);
-        if dropper && let Some(destination) = self.holder_at(front) {
+        if dropper && let Some(destination) = self.container_at(front) {
             let transfer = Transfer {
                 source: me,
                 destination,
@@ -380,7 +380,7 @@ impl<L: ClientLink> Server<L> {
 
     fn dispense_ref(holder: &Holder) -> InventoryRef {
         InventoryRef {
-            owner: InventoryOwner::Block(holder.pos),
+            owner: holder.owner(),
             size: i32::try_from(holder.size).unwrap_or(i32::MAX),
             kind: holder.kind_name().to_owned(),
             id: 0,

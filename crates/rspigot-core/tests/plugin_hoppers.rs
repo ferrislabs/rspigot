@@ -384,3 +384,137 @@ fn a_hopper_under_a_brewing_stand_takes_the_bottles_and_leaves_the_ingredient() 
         [None, None, None, Some(("minecraft:nether_wart", 3)), None]
     );
 }
+
+fn console(s: &mut Scene, line: &str) {
+    s.server
+        .handle(rspigot_core::events::Inbound::Console(line.to_owned()));
+    s.server.deliver();
+}
+
+fn chest_cart(s: &mut Scene, at: BlockPos, items: &str) -> rspigot_domain::EntityId {
+    console(
+        s,
+        &format!(
+            "summon chest_minecart {} {} {} {{Items:[{items}]}}",
+            f64::from(at.x) + 0.5,
+            f64::from(at.y) + 0.0625,
+            f64::from(at.z) + 0.5
+        ),
+    );
+    s.server
+        .entities_of(rspigot_entities::EntityKind::ChestMinecart)
+        .pop()
+        .unwrap()
+        .id
+}
+
+fn counts(items: Vec<rspigot_domain::item::Slot>) -> Vec<u8> {
+    items
+        .into_iter()
+        .flatten()
+        .map(|stack| stack.count.get())
+        .collect()
+}
+
+#[test]
+fn a_hopper_pushes_into_a_chest_minecart_in_front_of_it() {
+    let mut s = world(
+        vec![
+            Seed::block(HOPPER, BlockKind::Hopper)
+                .with("facing", "down")
+                .holding("minecraft:stone", 2),
+        ],
+        Vec::new(),
+    );
+    let id = chest_cart(&mut s, HOPPER.offset(0, -1, 0), "");
+    s.tick(1);
+    assert_eq!(counts(s.server.cargo_of(id)), [1]);
+}
+
+#[test]
+fn a_hopper_pulls_from_a_chest_minecart_above_it() {
+    let mut s = world(
+        vec![Seed::block(HOPPER, BlockKind::Hopper).with("facing", "east")],
+        Vec::new(),
+    );
+    let id = chest_cart(
+        &mut s,
+        HOPPER.offset(0, 1, 0),
+        "{Slot:0b,id:\"minecraft:dirt\",count:4}",
+    );
+    s.tick(1);
+    assert_eq!(counts(s.server.cargo_of(id)), [3]);
+}
+
+#[test]
+fn a_dropper_pushes_into_a_chest_minecart_it_faces() {
+    let mut s = world(
+        vec![
+            Seed::block(HOPPER, BlockKind::Dropper)
+                .with("facing", "east")
+                .holding("minecraft:stone", 2),
+        ],
+        Vec::new(),
+    );
+    let id = chest_cart(&mut s, HOPPER.offset(1, 0, 0), "");
+    put(&mut s, HOPPER.offset(0, 1, 0), "minecraft:redstone_block");
+    s.tick(6);
+    assert_eq!(counts(s.server.cargo_of(id)), [1]);
+}
+
+fn hopper_cart(s: &mut Scene, at: BlockPos) -> rspigot_domain::EntityId {
+    console(
+        s,
+        &format!(
+            "summon hopper_minecart {} {} {}",
+            f64::from(at.x) + 0.5,
+            f64::from(at.y) + 0.0625,
+            f64::from(at.z) + 0.5
+        ),
+    );
+    s.server
+        .entities_of(rspigot_entities::EntityKind::HopperMinecart)
+        .pop()
+        .unwrap()
+        .id
+}
+
+#[test]
+fn a_hopper_minecart_pulls_an_item_each_tick_from_the_container_above_it() {
+    let mut s = world(
+        vec![Seed::block(STAND.offset(0, 1, 0), BlockKind::Chest).holding("minecraft:dirt", 5)],
+        Vec::new(),
+    );
+    let id = hopper_cart(&mut s, STAND);
+    s.tick(1);
+    assert_eq!(counts(s.server.cargo_of(id)), [1]);
+    s.tick(2);
+    assert_eq!(counts(s.server.cargo_of(id)), [3]);
+}
+
+#[test]
+fn a_hopper_minecart_sucks_in_an_item_lying_in_its_cart() {
+    let mut s = world(Vec::new(), Vec::new());
+    let id = hopper_cart(&mut s, STAND);
+    console(
+        &mut s,
+        "summon item 3.5 64.9 3.5 {Item:{id:\"minecraft:diamond\",count:3}}",
+    );
+    s.tick(2);
+    assert_eq!(counts(s.server.cargo_of(id)), [3]);
+    assert!(s.server.ground_items().is_empty());
+}
+
+#[test]
+fn a_hopper_minecart_on_a_powered_activator_rail_stops_pulling() {
+    let mut s = world(
+        vec![
+            Seed::block(STAND.offset(0, 1, 0), BlockKind::Chest).holding("minecraft:dirt", 5),
+            Seed::block(STAND, BlockKind::ActivatorRail).with("powered", "true"),
+        ],
+        Vec::new(),
+    );
+    let id = hopper_cart(&mut s, STAND);
+    s.tick(3);
+    assert!(counts(s.server.cargo_of(id)).is_empty());
+}

@@ -1,10 +1,13 @@
 use std::num::NonZeroU8;
 
+use crate::plugins::InventoryOwner;
+use rand::Rng;
 use rspigot_blocks::{BlockKind, Face};
-use rspigot_domain::BlockPos;
 use rspigot_domain::BlockStateId;
 use rspigot_domain::brewing;
+use rspigot_domain::entity::Aabb;
 use rspigot_domain::item::{ItemStack, Slot, same_item_same_components};
+use rspigot_domain::{BlockPos, EntityId};
 use rspigot_items::ItemKind;
 
 use crate::containers::Backing;
@@ -20,27 +23,44 @@ const BREWING_FUEL: usize = rspigot_domain::brewing::FUEL;
 const CONTAINER_LIMIT: u32 = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Cart {
+    pub(crate) id: EntityId,
+    pub(crate) hopper: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct Holder {
     pub(crate) pos: BlockPos,
     pub(crate) block: BlockKind,
     pub(crate) size: usize,
     backing: Option<Backing>,
+    pub(crate) cart: Option<Cart>,
 }
 
 impl Holder {
     pub(crate) fn is_furnace(&self) -> bool {
-        cooking_of(self.block).is_some()
+        self.cart.is_none() && cooking_of(self.block).is_some()
     }
 
     pub(crate) fn is_hopper(&self) -> bool {
-        self.block == BlockKind::Hopper
+        self.cart.is_none() && self.block == BlockKind::Hopper
+    }
+
+    pub(crate) fn owner(&self) -> InventoryOwner {
+        match self.cart {
+            Some(cart) => InventoryOwner::Entity(cart.id),
+            None => InventoryOwner::Block(self.pos),
+        }
     }
 
     pub(crate) fn is_brewing_stand(&self) -> bool {
-        self.block == BlockKind::BrewingStand
+        self.cart.is_none() && self.block == BlockKind::BrewingStand
     }
 
     pub(crate) fn kind_name(&self) -> &'static str {
+        if let Some(cart) = self.cart {
+            return if cart.hopper { "HOPPER" } else { "CHEST" };
+        }
         match self.block {
             BlockKind::BrewingStand => "BREWING",
             BlockKind::Hopper => "HOPPER",
@@ -102,7 +122,7 @@ impl Holder {
                 _ => direction != Face::Down,
             };
         }
-        if self.block.name().ends_with("shulker_box") {
+        if self.cart.is_none() && self.block.name().ends_with("shulker_box") {
             return !stack
                 .item
                 .kind()
@@ -204,6 +224,7 @@ impl<L: ClientLink> Server<L> {
                 block,
                 size: 3,
                 backing: None,
+                cart: None,
             });
         }
         let (backing, size) = self.storage_backing(pos)?;
@@ -212,10 +233,62 @@ impl<L: ClientLink> Server<L> {
             block,
             size,
             backing: Some(backing),
+            cart: None,
         })
     }
 
+    pub(crate) fn cart_holder(&self, id: EntityId) -> Option<Holder> {
+        let entity = self.entities.store.get(id)?;
+        let cargo = crate::vehicles::cargo_of(entity)?;
+        Some(Holder {
+            pos: BlockPos::new(
+                entity.base.position.x.floor() as i32,
+                entity.base.position.y.floor() as i32,
+                entity.base.position.z.floor() as i32,
+            ),
+            block: BlockKind::Air,
+            size: cargo.items.len(),
+            backing: None,
+            cart: Some(Cart {
+                id,
+                hopper: entity.base.kind == rspigot_entities::EntityKind::HopperMinecart,
+            }),
+        })
+    }
+
+    pub(crate) fn container_at(&mut self, pos: BlockPos) -> Option<Holder> {
+        if let Some(holder) = self.holder_at(pos) {
+            return Some(holder);
+        }
+        let area = Aabb::block(pos);
+        let mut carts: Vec<EntityId> = self
+            .entities
+            .store
+            .iter()
+            .filter(|entity| {
+                entity.base.removal.is_none()
+                    && crate::vehicles::cargo_of(entity).is_some()
+                    && entity.base.bounding_box().intersects(&area)
+            })
+            .map(|entity| entity.base.id)
+            .collect();
+        if carts.is_empty() {
+            return None;
+        }
+        carts.sort_by_key(|id| id.0);
+        let pick = self.rng.random_range(0..carts.len());
+        self.cart_holder(carts[pick])
+    }
+
     pub(crate) fn holder_items(&self, holder: &Holder) -> Vec<Slot> {
+        if let Some(cart) = holder.cart {
+            return self
+                .entities
+                .store
+                .get(cart.id)
+                .and_then(crate::vehicles::cargo_of)
+                .map_or_else(|| vec![None; holder.size], |cargo| cargo.items.clone());
+        }
         match holder.backing {
             Some(backing) => self.container_items(backing, holder.size),
             None => self
@@ -225,6 +298,21 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn store_holder(&mut self, holder: &Holder, items: &[Slot]) {
+        if let Some(cart) = holder.cart {
+            if let Some(cargo) = self
+                .entities
+                .store
+                .get_mut(cart.id)
+                .and_then(crate::vehicles::cargo_mut)
+            {
+                for (slot, stack) in items.iter().enumerate() {
+                    if let Some(cell) = cargo.items.get_mut(slot) {
+                        cell.clone_from(stack);
+                    }
+                }
+            }
+            return;
+        }
         match holder.backing {
             Some(backing) => self.store_container(backing, items),
             None => {

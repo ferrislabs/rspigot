@@ -22,6 +22,7 @@ const BUSY_LIMIT: u64 = 100;
 const HOPPER_SLOTS: usize = 5;
 const SUCK_LOW: f64 = 0.6875;
 const SUCK_HIGH: f64 = 2.0;
+const CART_REACH: f64 = 0.25;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Clock {
@@ -65,6 +66,7 @@ pub(crate) struct HopperStep {
     pub(crate) found: Option<Holder>,
     pub(crate) changed: bool,
     pub(crate) stage: Stage,
+    pub(crate) cart: Option<EntityId>,
 }
 
 impl HopperStep {
@@ -85,11 +87,124 @@ fn suck_area(pos: BlockPos) -> Aabb {
 impl<L: ClientLink> Server<L> {
     fn inventory_ref(holder: &Holder) -> InventoryRef {
         InventoryRef {
-            owner: InventoryOwner::Block(holder.pos),
+            owner: holder.owner(),
             size: i32::try_from(holder.size).unwrap_or(i32::MAX),
             kind: holder.kind_name().to_owned(),
             id: 0,
         }
+    }
+
+    fn hopper_holder(&self, hopper: BlockPos, cart: Option<EntityId>) -> Option<Holder> {
+        match cart {
+            Some(id) => self.cart_holder(id),
+            None => self.holder_at(hopper),
+        }
+    }
+
+    fn suck_areas(&self, hopper: BlockPos, cart: Option<EntityId>) -> Vec<Aabb> {
+        let Some(entity) = cart.and_then(|id| self.entities.store.get(id)) else {
+            return vec![suck_area(hopper)];
+        };
+        let at = entity.base.position;
+        let level_y = at.y + 0.5;
+        let column = Aabb::new(
+            at.x - 0.5,
+            level_y - 0.5 + SUCK_LOW,
+            at.z - 0.5,
+            at.x + 0.5,
+            level_y - 0.5 + SUCK_HIGH,
+            at.z + 0.5,
+        );
+        let body = entity.base.bounding_box();
+        vec![
+            column,
+            Aabb::new(
+                body.min_x - CART_REACH,
+                body.min_y,
+                body.min_z - CART_REACH,
+                body.max_x + CART_REACH,
+                body.max_y,
+                body.max_z + CART_REACH,
+            ),
+        ]
+    }
+
+    fn items_in(&self, areas: &[Aabb]) -> Vec<(EntityId, ItemStack)> {
+        let mut found: Vec<(EntityId, ItemStack)> = Vec::new();
+        for area in areas {
+            let mut group: Vec<(EntityId, ItemStack)> = self
+                .entities
+                .store
+                .iter()
+                .filter(|entity| {
+                    matches!(entity.state, EntityState::Item(_))
+                        && entity.base.removal.is_none()
+                        && entity.base.bounding_box().intersects(area)
+                })
+                .filter_map(|entity| {
+                    item::stack(&entity.base).map(|stack| (entity.base.id, stack.clone()))
+                })
+                .collect();
+            group.sort_by_key(|(id, _)| id.0);
+            for entry in group {
+                if found.iter().all(|(id, _)| *id != entry.0) {
+                    found.push(entry);
+                }
+            }
+        }
+        found
+    }
+
+    pub(crate) fn tick_hopper_carts(&mut self) {
+        let ids: Vec<EntityId> = self
+            .entities
+            .store
+            .iter()
+            .filter(|entity| {
+                entity.base.kind == rspigot_entities::EntityKind::HopperMinecart
+                    && entity.base.removal.is_none()
+                    && matches!(&entity.state, EntityState::Minecart(state) if state.enabled)
+            })
+            .map(|entity| entity.base.id)
+            .collect();
+        for id in ids {
+            self.hopper_cart_tick(id);
+        }
+    }
+
+    fn hopper_cart_tick(&mut self, id: EntityId) {
+        let Some(me) = self.cart_holder(id) else {
+            return;
+        };
+        let lane = Lane::Block(me.pos);
+        if self.decisions.in_flight(
+            lane,
+            |then| matches!(then, Continuation::Hopper(step) if step.cart == Some(id)),
+        ) {
+            return;
+        }
+        if is_full(&self.holder_items(&me), &me.slots_toward(Face::Down)) {
+            return;
+        }
+        let Some(position) = self
+            .entities
+            .store
+            .get(id)
+            .map(|entity| entity.base.position)
+        else {
+            return;
+        };
+        let at = rspigot_domain::Vec3::new(position.x, position.y + 1.5, position.z).block();
+        let found = self.container_at(at);
+        self.ask_hopper(HopperStep {
+            hopper: me.pos,
+            phase: Phase::Suck,
+            at,
+            found,
+            changed: false,
+            stage: Stage::Search,
+            cart: Some(id),
+        });
     }
 
     pub(crate) fn hopper_neighbor_changed(&mut self, pos: BlockPos, state: BlockStateId) {
@@ -178,7 +293,7 @@ impl<L: ClientLink> Server<L> {
             return self.hopper_start_suck(pos, false);
         }
         let at = step(pos, direction);
-        let found = self.holder_at(at);
+        let found = self.container_at(at);
         self.ask_hopper(HopperStep {
             hopper: pos,
             phase: Phase::Eject,
@@ -186,6 +301,7 @@ impl<L: ClientLink> Server<L> {
             found,
             changed: false,
             stage: Stage::Search,
+            cart: None,
         });
     }
 
@@ -197,7 +313,7 @@ impl<L: ClientLink> Server<L> {
             return self.hopper_finished(pos, changed);
         }
         let at = step(pos, Face::Up);
-        let found = self.holder_at(at);
+        let found = self.container_at(at);
         self.ask_hopper(HopperStep {
             hopper: pos,
             phase: Phase::Suck,
@@ -205,12 +321,14 @@ impl<L: ClientLink> Server<L> {
             found,
             changed,
             stage: Stage::Search,
+            cart: None,
         });
     }
 
     pub(crate) fn ask_hopper(&mut self, hopper_step: HopperStep) {
         let lane = Lane::Block(hopper_step.hopper);
         let hopper = hopper_step.hopper;
+        let cart = hopper_step.cart;
         let at = hopper_step.at;
         let phase = hopper_step.phase;
         let found = hopper_step.found;
@@ -229,7 +347,7 @@ impl<L: ClientLink> Server<L> {
                     search_block: at,
                 })),
                 Stage::Move(transfer) => {
-                    let me = server.holder_at(hopper)?;
+                    let me = server.hopper_holder(hopper, cart)?;
                     Some(EventPayload::InventoryMoveItem(InventoryMoveItem {
                         destination: Self::inventory_ref(&transfer.destination),
                         initiator: Self::inventory_ref(&me),
@@ -238,7 +356,7 @@ impl<L: ClientLink> Server<L> {
                     }))
                 }
                 Stage::Pickup(pickup) => {
-                    let me = server.holder_at(hopper)?;
+                    let me = server.hopper_holder(hopper, cart)?;
                     Some(EventPayload::InventoryPickupItem(InventoryPickupItem {
                         inventory: Self::inventory_ref(&me),
                         item: server.entity_view(pickup.item)?,
@@ -256,6 +374,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(replaced) = patch.inventory {
             hopper_step.found = replaced.and_then(|reference| match reference.owner {
                 InventoryOwner::Block(pos) => self.holder_at(pos),
+                InventoryOwner::Entity(id) => self.cart_holder(id),
                 _ => None,
             });
         }
@@ -310,7 +429,7 @@ impl<L: ClientLink> Server<L> {
 
     fn hopper_pull(&mut self, search: HopperStep) {
         let hopper = search.hopper;
-        let Some(me) = self.holder_at(hopper) else {
+        let Some(me) = self.hopper_holder(hopper, search.cart) else {
             return self.hopper_finished(hopper, search.changed);
         };
         let own = self.holder_items(&me);
@@ -342,20 +461,7 @@ impl<L: ClientLink> Server<L> {
             }
             return self.hopper_finished(hopper, search.changed);
         }
-        let area = suck_area(hopper);
-        let mut candidates: Vec<(EntityId, ItemStack)> = self
-            .entities
-            .store
-            .iter()
-            .filter(|entity| {
-                matches!(entity.state, EntityState::Item(_))
-                    && entity.base.removal.is_none()
-                    && entity.base.bounding_box().intersects(&area)
-            })
-            .filter_map(|entity| {
-                item::stack(&entity.base).map(|stack| (entity.base.id, stack.clone()))
-            })
-            .collect();
+        let mut candidates = self.items_in(&self.suck_areas(hopper, search.cart));
         candidates.sort_by_key(|(id, _)| id.0);
         for (id, stack) in candidates {
             let mut trial = own.clone();
@@ -383,6 +489,7 @@ impl<L: ClientLink> Server<L> {
             hopper,
             phase,
             changed,
+            cart,
             ..
         } = hopper_step;
         let proceed = |server: &mut Self, changed: bool| match phase {
@@ -413,7 +520,7 @@ impl<L: ClientLink> Server<L> {
                     && present.components == stack.components
                     && present.count >= stack.count
             });
-        if !still_there || self.holder_at(hopper).is_none() {
+        if !still_there || self.hopper_holder(hopper, cart).is_none() {
             return proceed(self, changed);
         }
         let direction = match phase {
@@ -466,9 +573,12 @@ impl<L: ClientLink> Server<L> {
         cancelled: bool,
     ) {
         let HopperStep {
-            hopper, changed, ..
+            hopper,
+            changed,
+            cart,
+            ..
         } = hopper_step;
-        let Some(me) = self.holder_at(hopper) else {
+        let Some(me) = self.hopper_holder(hopper, cart) else {
             return self.hopper_finished(hopper, changed);
         };
         let current = self.item_stack_of(pickup.item);
