@@ -189,8 +189,8 @@ mod tests {
     fn nether_biomes_spawn_their_vanilla_mobs() {
         let c = SpawnCount::Constant;
         let u = |min, max| SpawnCount::Uniform { min, max };
-        let strider = Some((60, u(1, 2)));
-        let rows: [(&str, &str, bool, Option<(i32, SpawnCount)>); 19] = [
+        let strider: Option<(i32, SpawnCount)> = Some((60, u(1, 2)));
+        let rows = [
             ("nether_wastes", "ghast", true, Some((50, c(4)))),
             ("nether_wastes", "zombified_piglin", true, Some((100, c(4)))),
             ("nether_wastes", "magma_cube", true, Some((2, c(4)))),
