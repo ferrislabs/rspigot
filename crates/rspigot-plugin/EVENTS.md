@@ -245,7 +245,7 @@ These setters write sets, where an element added twice is there once: `AsyncPlay
 | `ThunderChangeEvent` | `ThunderChange` | yes | - | - | fired: from /weather and the plugin weather order when the thunder flag changes, after WeatherChange settled, each cancellable on its own |
 | `TimeSkipEvent` | `TimeSkip` | yes | `set_skip_amount` | - | fired: COMMAND for /time add and CUSTOM for the plugin time order; with a deciding handler the time moves once the event settles, by the settled amount, and a cancel keeps it, a documented deviation from Spigot 26.3 which moves it before firing; /time set fires nothing |
 | `TradeSelectEvent` | `TradeSelect` | yes | `set_result` | - | fired: a player picking an offer in a villager or wandering trader menu, asked before the selection applies; a cancel resyncs the open menu |
-| `TrialSpawnerSpawnEvent` | `TrialSpawnerSpawn` | yes | - | - | not fired yet: needs the mobs or objects involved |
+| `TrialSpawnerSpawnEvent` | `TrialSpawnerSpawn` | yes | - | - | not fired yet: needs the trial spawner block: no block entity, no state machine (inactive, waiting for players, active, ejecting rewards, cooldown), no per-player scaling of the mobs and no ominous variant |
 | `VaultDisplayItemEvent` | `VaultDisplayItem` | yes | `set_display_item` | - | not fired yet: needs the vault block, which does not exist yet: no block entity, no key check, no loot table roll and no display item rotation |
 | `VehicleBlockCollisionEvent` | `VehicleBlockCollision` | no | - | - | fired: observer only, a boat or minecart the server moves (never a vehicle driven by a player's own client) whose move was blocked horizontally by a block that is not air, with the block on the side it was pushing towards; a collision stopped by nothing solid fires nothing |
 | `VehicleCreateEvent` | `VehicleCreate` | yes | - | - | fired: a boat or a minecart added to the world: a boat or minecart item placed by a player or a vehicle summoned; asked before it is added, with the vehicle, and it replaces EntitySpawn for these entities; a cancel adds nothing and keeps the placed item; a vehicle loaded back from a chunk fires nothing |
@@ -264,7 +264,7 @@ These setters write sets, where an element added twice is there once: `AsyncPlay
 | `WorldInitEvent` | `WorldInit` | no | - | - | fired: when the server starts its world, before the spawn chunks; the plugin port is already open, so it reaches the plugins connected by then; also for each other dimension (nether, end) when it is first created, with the world field set to that dimension |
 | `WorldLoadEvent` | `WorldLoad` | no | - | - | fired: once the spawn chunks are ready, for the plugins connected by then; for a dimension created later (nether, end) right after its world init, while its spawn chunks are still loading, with the world field set to that dimension |
 | `WorldSaveEvent` | `WorldSave` | no | - | - | fired: before /save-all, the plugin save orders and the autosave write, and at shutdown before the final save while plugins are still connected |
-| `WorldUnloadEvent` | `WorldUnload` | yes | - | - | not fired yet: needs several worlds, since the overworld never unloads |
+| `WorldUnloadEvent` | `WorldUnload` | yes | - | - | not fired yet: needs dimension worlds, which stay loaded for the whole run once created: the server has no unload path for them and the overworld never unloads |
 
 ## Left out
 
