@@ -378,7 +378,7 @@ pub enum Animation {
 
 pub use rspigot_domain::entity::Pose;
 pub use rspigot_domain::entity::tracker::{DeltaStep, MoveDelta, Movement, PositionPath};
-pub use rspigot_domain::menu::{ClickInput, HashedItem, HashedSlot};
+pub use rspigot_domain::menu::{ClickInput, ComponentHasher, HashedItem, HashedSlot};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MetadataValue {

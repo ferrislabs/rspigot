@@ -1,8 +1,8 @@
 use std::num::NonZeroU8;
 
 use rspigot_core::events::{
-    ChatSessionKey, ClickInput, ContainerClick, DigAction, Direction, Hand, HashedItem, HashedSlot,
-    InputState, MovementAction, PlayerInput,
+    ChatSessionKey, ClickInput, ComponentHasher, ContainerClick, DigAction, Direction, Hand,
+    HashedItem, HashedSlot, InputState, MovementAction, PlayerInput,
 };
 use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_core::recipe_book::BookKind;
@@ -115,11 +115,36 @@ pub fn item_stack(stack: &WireStack) -> Option<ItemStack> {
     })
 }
 
+const UNKNOWN_COMPONENT: &str = "minecraft:unknown";
+
 fn hashed(stack: &HashedStack) -> HashedSlot {
-    HashedSlot(stack.0.as_ref().map(|item| HashedItem {
-        item: item.item,
-        count: item.count,
-        patched: !item.added.is_empty() || !item.removed.is_empty(),
+    HashedSlot(stack.0.as_ref().map(|item| {
+        HashedItem {
+            item: item.item,
+            count: item.count,
+            added: item
+                .added
+                .iter()
+                .map(|component| {
+                    (
+                        crate::components::component_name(component.type_id)
+                            .unwrap_or(UNKNOWN_COMPONENT)
+                            .to_owned(),
+                        component.hash,
+                    )
+                })
+                .collect(),
+            removed: item
+                .removed
+                .iter()
+                .map(|type_id| {
+                    crate::components::component_name(*type_id)
+                        .unwrap_or(UNKNOWN_COMPONENT)
+                        .to_owned()
+                })
+                .collect(),
+            hasher: ComponentHasher(crate::components::component_hash),
+        }
     }))
 }
 
@@ -485,12 +510,33 @@ mod tests {
                     HashedSlot(Some(HashedItem {
                         item: 1,
                         count: 4,
-                        patched: false,
+                        added: Vec::new(),
+                        removed: Vec::new(),
+                        hasher: ComponentHasher(crate::components::component_hash),
                     }))
                 )],
                 carried: HashedSlot::EMPTY,
             })
         );
+    }
+
+    #[test]
+    fn a_vanilla_component_hash_matches_the_stack_the_server_holds() {
+        let custom_name = crate::components::component_type("minecraft:custom_name").unwrap();
+        let mut body = vec![0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1];
+        body.push(u8::try_from(custom_name).unwrap());
+        body.extend(815_466_656_i32.to_be_bytes());
+        body.push(0);
+        let PlayerInput::ContainerClick(click) = decoded(sb::CONTAINER_CLICK, &body) else {
+            panic!("not a click");
+        };
+        let mut held = ItemStack::new(ItemId(1), NonZeroU8::new(1).unwrap());
+        held.components
+            .insert("minecraft:custom_name", Tag::String("Hello".to_owned()));
+        assert!(click.carried.matches(&Some(held.clone())));
+        held.components
+            .insert("minecraft:custom_name", Tag::String("Other".to_owned()));
+        assert!(!click.carried.matches(&Some(held)));
     }
 
     #[test]
@@ -507,7 +553,7 @@ mod tests {
     }
 
     #[test]
-    fn container_click_with_component_hashes_is_marked_patched() {
+    fn container_click_with_component_hashes_keeps_each_hash_by_component_name() {
         let body = [0, 1, 0, 36, 0, 0, 0, 1, 1, 5, 1, 7, 0, 0, 0, 9, 0];
         let PlayerInput::ContainerClick(click) = decoded(sb::CONTAINER_CLICK, &body) else {
             panic!("not a click");
@@ -519,7 +565,9 @@ mod tests {
             HashedSlot(Some(HashedItem {
                 item: 1,
                 count: 5,
-                patched: true,
+                added: vec![("minecraft:minimum_attack_charge".to_owned(), 9)],
+                removed: Vec::new(),
+                hasher: ComponentHasher(crate::components::component_hash),
             }))
         );
     }
