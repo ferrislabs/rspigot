@@ -129,6 +129,21 @@ mod jigsaw {
             Element::Feature { feature, .. } => {
                 format!("Feature[{feature}]")
             }
+            Element::List { elements, .. } => {
+                let parts: Vec<String> = elements
+                    .iter()
+                    .map(|inner| match inner {
+                        Element::Single {
+                            template, legacy, ..
+                        } => format!(
+                            "{}Single[Left[{template}]]",
+                            if *legacy { "Legacy" } else { "" }
+                        ),
+                        _ => "?".to_owned(),
+                    })
+                    .collect();
+                format!("List[{}]", parts.join(", "))
+            }
             _ => "?".to_owned(),
         };
         let _ = Projection::Rigid;
@@ -203,6 +218,16 @@ mod jigsaw {
             "village_plains",
             (-47, -48),
             include_str!("fixtures/jigsaw_village_plains_-4172144997902289642_-47_-48.txt"),
+        );
+    }
+
+    #[test]
+    fn pillager_outpost_matches_vanilla_for_seed_one() {
+        check(
+            1,
+            "pillager_outpost",
+            (40, 51),
+            include_str!("fixtures/jigsaw_pillager_outpost_1_40_51.txt"),
         );
     }
 
