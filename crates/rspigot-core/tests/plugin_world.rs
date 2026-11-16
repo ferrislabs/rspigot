@@ -161,7 +161,9 @@ fn whitelist_and_operators_are_listed() {
         names(&mut s, Question::Whitelist),
         [ListEntry {
             name: "Carol".into(),
-            uuid: None
+            uuid: None,
+            level: None,
+            bypasses_player_limit: false,
         }]
     );
     let profile = GameProfile {
@@ -171,7 +173,7 @@ fn whitelist_and_operators_are_listed() {
     };
     assert_eq!(
         names(&mut s, Question::Operators),
-        [ListEntry::of(&profile)]
+        [ListEntry::of(&profile).operator(4)]
     );
     assert!(
         alice

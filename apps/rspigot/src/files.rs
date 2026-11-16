@@ -4,7 +4,8 @@ use std::time::SystemTime;
 
 use crossbeam_channel::Receiver;
 use rspigot_core::admin::{
-    AdminLists, Ban, BanEntry, IpBanEntry, ListEntry, format_ban_date, parse_ban_date,
+    AdminLists, Ban, BanEntry, IpBanEntry, ListEntry, MAX_PERMISSION_LEVEL, format_ban_date,
+    parse_ban_date,
 };
 use uuid::Uuid;
 
@@ -36,9 +37,19 @@ fn list_entry(entry: &Value) -> Option<ListEntry> {
         .get("uuid")
         .and_then(Value::as_str)
         .and_then(|u| Uuid::parse_str(u).ok());
+    let level = entry
+        .get("level")
+        .and_then(Value::as_u64)
+        .map(|level| level.min(u64::from(MAX_PERMISSION_LEVEL)) as u8);
+    let bypasses_player_limit = entry
+        .get("bypassesPlayerLimit")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
     Some(ListEntry {
         name: name.to_owned(),
         uuid,
+        level,
+        bypasses_player_limit,
     })
 }
 
@@ -118,8 +129,14 @@ fn write_list(path: &Path, entries: &[ListEntry], operator: bool) -> std::io::Re
         .map(|e| {
             let mut object = list_object(e);
             if operator {
-                object.insert("level".to_owned(), Value::from(4));
-                object.insert("bypassesPlayerLimit".to_owned(), Value::Bool(false));
+                object.insert(
+                    "level".to_owned(),
+                    Value::from(e.level.unwrap_or(MAX_PERMISSION_LEVEL)),
+                );
+                object.insert(
+                    "bypassesPlayerLimit".to_owned(),
+                    Value::Bool(e.bypasses_player_limit),
+                );
             }
             Value::Object(object)
         })
@@ -253,6 +270,8 @@ mod tests {
                 target: ListEntry {
                     name: "Steve".into(),
                     uuid: Some(Uuid::parse_str(STEVE).expect("a uuid")),
+                    level: None,
+                    bypasses_player_limit: false,
                 },
                 created: noon(),
                 source: "Server".into(),
@@ -370,6 +389,29 @@ mod tests {
             }])
         );
         assert_eq!(read_admin_lists(&root, false, noon()).bans, [ban]);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn operator_levels_and_the_player_limit_flag_survive_a_round_trip() {
+        let root = directory("ops");
+        std::fs::write(
+            root.join("ops.json"),
+            r#"[{"name":"Mod","level":2,"bypassesPlayerLimit":true},{"name":"Owner"}]"#,
+        )
+        .expect("the file is written");
+        let lists = read_admin_lists(&root, false, noon());
+        assert_eq!(lists.operators[0].level, Some(2));
+        assert!(lists.operators[0].bypasses_player_limit);
+        assert_eq!(lists.operators[1].level, None);
+        write_admin_lists(&root, &lists).expect("the lists are written");
+        assert_eq!(
+            parsed(&root.join("ops.json")),
+            json!([
+                {"name": "Mod", "level": 2, "bypassesPlayerLimit": true},
+                {"name": "Owner", "level": 4, "bypassesPlayerLimit": false}
+            ])
+        );
         let _ = std::fs::remove_dir_all(&root);
     }
 

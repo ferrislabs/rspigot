@@ -52,31 +52,79 @@ fn flag(value: &str) -> Option<bool> {
     }
 }
 
+pub(crate) const RULE_NAMES: [&str; 21] = [
+    "advance_time",
+    "natural_health_regeneration",
+    "keep_inventory",
+    "show_death_messages",
+    "immediate_respawn",
+    "fall_damage",
+    "mob_drops",
+    "mob_griefing",
+    "mob_explosion_drop_decay",
+    "block_drops",
+    "universal_anger",
+    "tnt_explodes",
+    "forgive_dead_players",
+    "spawn_patrols",
+    "spawn_phantoms",
+    "spawn_wandering_traders",
+    "raids",
+    "players_sleeping_percentage",
+    "random_tick_speed",
+    "fire_spread_radius_around_player",
+    "max_snow_accumulation_height",
+];
+
 impl<L: ClientLink> Server<L> {
+    pub(crate) fn game_rule_text(&self, name: &str) -> Option<String> {
+        let key = format!("minecraft:{name}");
+        let mut rules = self.config.rules;
+        let mut daylight = self.world.level.daylight_cycle;
+        Some(match rule_of(&key)? {
+            Rule::Flag(rule) => {
+                crate::plugins::world::rule_flag(&mut rules, &mut daylight, rule).to_string()
+            }
+            Rule::Plain(slot) => slot(&mut rules).to_string(),
+            Rule::Number(slot, _, _) => slot(&mut rules).to_string(),
+        })
+    }
+
+    pub(crate) fn apply_game_rule(&mut self, name: &str, value: &str) -> Result<(), &'static str> {
+        let key = format!("minecraft:{name}");
+        match rule_of(&key).ok_or("argument.rule.invalid")? {
+            Rule::Flag(rule) => {
+                let value = flag(value).ok_or("parsing.bool.invalid")?;
+                self.set_game_rule(rule, value);
+            }
+            Rule::Plain(slot) => {
+                *slot(&mut self.config.rules) = flag(value).ok_or("parsing.bool.invalid")?;
+            }
+            Rule::Number(slot, min, max) => {
+                let value = value.parse::<i32>().map_err(|_| "parsing.int.invalid")?;
+                if value < min {
+                    return Err("argument.integer.low");
+                }
+                if value > max {
+                    return Err("argument.integer.big");
+                }
+                *slot(&mut self.config.rules) = value;
+            }
+        }
+        Ok(())
+    }
+
     pub(crate) fn handle_set_game_rules(&mut self, id: PlayerId, entries: Vec<(String, String)>) {
-        if !self.players.get(&id).is_some_and(|player| player.operator) {
+        if !self
+            .players
+            .get(&id)
+            .is_some_and(|player| player.permission_level() >= 2)
+        {
             return;
         }
         for (key, value) in entries {
-            match rule_of(&key) {
-                Some(Rule::Flag(rule)) => {
-                    if let Some(value) = flag(&value) {
-                        self.set_game_rule(rule, value);
-                    }
-                }
-                Some(Rule::Plain(slot)) => {
-                    if let Some(value) = flag(&value) {
-                        *slot(&mut self.config.rules) = value;
-                    }
-                }
-                Some(Rule::Number(slot, min, max)) => {
-                    if let Ok(value) = value.parse::<i32>()
-                        && (min..=max).contains(&value)
-                    {
-                        *slot(&mut self.config.rules) = value;
-                    }
-                }
-                None => {}
+            if let Some(name) = key.strip_prefix("minecraft:") {
+                let _ = self.apply_game_rule(name, &value);
             }
         }
     }

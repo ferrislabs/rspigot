@@ -499,6 +499,33 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
+    pub(crate) fn give_experience_levels(&mut self, id: PlayerId, levels: i32) {
+        if let Some(player) = self.players.get_mut(&id) {
+            let tick_count = player.vitals.tick_count as i32;
+            player.vitals.experience.give_levels(levels, tick_count);
+        }
+    }
+
+    pub(crate) fn set_experience_points(&mut self, id: PlayerId, amount: i32) -> bool {
+        let Some(player) = self.players.get_mut(&id) else {
+            return false;
+        };
+        let experience = &mut player.vitals.experience;
+        if amount >= experience.needed() {
+            return false;
+        }
+        experience.progress = amount as f32 / experience.needed() as f32;
+        experience.last_sent = -1;
+        true
+    }
+
+    pub(crate) fn experience_levels_and_points(&self, id: PlayerId) -> Option<(i32, i32)> {
+        self.players.get(&id).map(|p| {
+            let xp = p.vitals.experience;
+            (xp.level, (xp.progress * xp.needed() as f32) as i32)
+        })
+    }
+
     pub fn give_experience(&mut self, id: PlayerId, amount: i32) {
         if let Some(player) = self.players.get_mut(&id) {
             let tick_count = player.vitals.tick_count as i32;

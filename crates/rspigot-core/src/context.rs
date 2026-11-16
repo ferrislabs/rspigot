@@ -15,10 +15,11 @@ use rspigot_domain::{BlockPos, EntityId, Identifier, ItemId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Compound;
 
-use crate::admin::{AdminLists, Ban, BanEntry, IpBanEntry, ListEntry};
+use crate::admin::{AdminLists, Ban, BanEntry, IpBanEntry, ListEntry, MAX_PERMISSION_LEVEL};
 use crate::chunks::{ChunkJob, Priority};
 use crate::commands::selector::{self, Selector, SelectorBase, Sort, TypeMatch};
-use crate::commands::{CommandContext, CommandSender, Target, Weather};
+use crate::commands::source::{Anchor, DataTarget, Relation, Source};
+use crate::commands::{CommandContext, CommandSender, Target, TitleAction, Weather};
 use crate::events::ClientEvent;
 use crate::mobs::ServerRandom;
 use crate::plugins::events::{CreatureSpawnReason, PlayerTeleportCause, TimeSkipReason};
@@ -28,6 +29,7 @@ use crate::plugins::{Birth, Holder, Potion, ShulkerHop, Spawned, name_of_entity}
 use crate::plugins::{Continuation, EventPayload};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use rspigot_domain::chunk::HeightmapKind;
 
 impl<L: ClientLink> CommandContext for Server<L> {
     fn reply(&mut self, sender: CommandSender, message: Component) {
@@ -42,10 +44,13 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.push(Audience::All, ClientEvent::system(message));
     }
 
-    fn is_operator(&self, sender: CommandSender) -> bool {
+    fn permission_level(&self, sender: CommandSender) -> u8 {
         match sender {
-            CommandSender::Console => true,
-            CommandSender::Player(id) => self.players.get(&id).is_some_and(|p| p.operator),
+            CommandSender::Console => MAX_PERMISSION_LEVEL,
+            CommandSender::Player(id) => self
+                .players
+                .get(&id)
+                .map_or(0, |player| player.permission_level()),
         }
     }
 
@@ -112,6 +117,268 @@ impl<L: ClientLink> CommandContext for Server<L> {
             PlayerTeleportCause::Command,
             None,
         );
+    }
+
+    fn place_block(
+        &mut self,
+        pos: BlockPos,
+        state: rspigot_blocks::StateId,
+        nbt: Option<&Compound>,
+    ) -> bool {
+        let changed = self.set_block(pos, state);
+        let Some(nbt) = nbt else {
+            return changed;
+        };
+        let Some(mut data) = self.block_entity_nbt(pos) else {
+            return changed;
+        };
+        for (key, value) in nbt
+            .iter()
+            .filter(|(key, _)| !matches!(*key, "x" | "y" | "z"))
+        {
+            data.insert(key, value.clone());
+        }
+        let _ = self.set_command_data(&DataTarget::Block(pos), data);
+        true
+    }
+
+    fn destroy_block(&mut self, pos: BlockPos) -> bool {
+        self.break_block_naturally(pos)
+    }
+
+    fn in_world_height(&self, y: i32) -> bool {
+        self.world.dimension.height.contains(y)
+    }
+
+    fn default_game_mode(&self) -> GameMode {
+        self.config.default_game_mode
+    }
+
+    fn set_default_game_mode(&mut self, mode: GameMode) {
+        self.config.default_game_mode = mode;
+    }
+
+    fn game_rule_text(&self, name: &str) -> Option<String> {
+        Server::game_rule_text(self, name)
+    }
+
+    fn set_game_rule_text(&mut self, name: &str, value: &str) -> Result<(), &'static str> {
+        self.apply_game_rule(name, value)
+    }
+
+    fn experience_state(&self, player: PlayerId) -> Option<(i32, i32)> {
+        self.experience_levels_and_points(player)
+    }
+
+    fn add_experience(&mut self, player: PlayerId, amount: i32, levels: bool) {
+        if levels {
+            self.give_experience_levels(player, amount);
+        } else {
+            self.give_experience(player, amount);
+        }
+    }
+
+    fn set_experience(&mut self, player: PlayerId, amount: i32, levels: bool) -> bool {
+        if levels {
+            let current = self
+                .experience_levels_and_points(player)
+                .map_or(0, |(level, _)| level);
+            self.give_experience_levels(player, amount - current);
+            true
+        } else {
+            self.set_experience_points(player, amount)
+        }
+    }
+
+    fn tags_of(&self, target: Target) -> Vec<String> {
+        match target {
+            Target::Player(id) => self.players.get(&id).map(|p| p.tags.clone()),
+            Target::Entity(id) => self.entities.store.get(id).map(|e| e.base.tags.clone()),
+        }
+        .unwrap_or_default()
+    }
+
+    fn add_tag(&mut self, target: Target, tag: &str) -> bool {
+        let tags = match target {
+            Target::Player(id) => self.players.get_mut(&id).map(|p| &mut p.tags),
+            Target::Entity(id) => self.entities.store.get_mut(id).map(|e| &mut e.base.tags),
+        };
+        match tags {
+            Some(tags) if tags.len() < 1024 && !tags.iter().any(|t| t == tag) => {
+                tags.push(tag.to_owned());
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn remove_tag(&mut self, target: Target, tag: &str) -> bool {
+        let tags = match target {
+            Target::Player(id) => self.players.get_mut(&id).map(|p| &mut p.tags),
+            Target::Entity(id) => self.entities.store.get_mut(id).map(|e| &mut e.base.tags),
+        };
+        tags.is_some_and(|tags| {
+            let before = tags.len();
+            tags.retain(|t| t != tag);
+            tags.len() != before
+        })
+    }
+
+    fn set_saving(&mut self, enabled: bool) -> bool {
+        let changed = self.saving_enabled != enabled;
+        self.saving_enabled = enabled;
+        changed
+    }
+
+    fn random_between(&mut self, min: i32, max: i32) -> i32 {
+        rand::Rng::random_range(&mut self.rng, min..=max)
+    }
+
+    fn set_spawn_point(
+        &mut self,
+        player: PlayerId,
+        dimension: Identifier,
+        pos: BlockPos,
+        angle: f32,
+    ) {
+        if let Some(p) = self.players.get_mut(&player) {
+            p.respawn = Some(rspigot_domain::bed::RespawnConfig {
+                dimension,
+                pos,
+                yaw: angle,
+                pitch: 0.0,
+                forced: true,
+            });
+        }
+    }
+
+    fn tell_player(&mut self, player: PlayerId, message: Component, overlay: bool) {
+        self.push(
+            Audience::One(player),
+            ClientEvent::SystemChat { message, overlay },
+        );
+    }
+
+    fn title_player(&mut self, player: PlayerId, action: TitleAction) {
+        let event = match action {
+            TitleAction::Title(text) => ClientEvent::TitleText(text),
+            TitleAction::Subtitle(text) => ClientEvent::SubtitleText(text),
+            TitleAction::Times {
+                fade_in,
+                stay,
+                fade_out,
+            } => ClientEvent::TitleTimes {
+                fade_in,
+                stay,
+                fade_out,
+            },
+            TitleAction::Clear => ClientEvent::ClearTitles { reset: false },
+            TitleAction::Reset => ClientEvent::ClearTitles { reset: true },
+        };
+        self.push(Audience::One(player), event);
+    }
+
+    fn local_origin(&self, sender: CommandSender) -> Vec3 {
+        let origin = self.sender_origin(sender);
+        match &self.command_source {
+            Some(source) if source.anchor == Anchor::Eyes => match source.executor {
+                Some(executor) => Vec3::new(
+                    origin.x,
+                    origin.y + self.target_eye_height(executor),
+                    origin.z,
+                ),
+                None => origin,
+            },
+            _ => origin,
+        }
+    }
+
+    fn run_with_source(&mut self, source: &Source, run: impl FnOnce(&mut Self)) {
+        let previous = self.command_source.replace(source.clone());
+        run(self);
+        self.command_source = previous;
+    }
+
+    fn current_dimension(&self) -> Option<Identifier> {
+        Some(
+            self.command_dimension
+                .clone()
+                .unwrap_or_else(|| self.world.dimension.key.clone()),
+        )
+    }
+
+    fn block_state_at(&self, pos: BlockPos) -> Option<rspigot_blocks::StateId> {
+        self.world.chunks.block(pos)
+    }
+
+    fn block_entity_data(&self, pos: BlockPos) -> Option<Compound> {
+        self.block_entity_nbt(pos)
+    }
+
+    fn is_position_loaded(&self, pos: BlockPos) -> bool {
+        self.world.chunks.is_loaded(pos.chunk())
+    }
+
+    fn biome_name_at(&self, pos: BlockPos) -> Option<String> {
+        rspigot_data::registries::biome_name(self.biome_at(pos).0).map(str::to_owned)
+    }
+
+    fn surface_height(&self, kind: HeightmapKind, x: i32, z: i32) -> Option<i32> {
+        let column = self.world.chunks.get(BlockPos::new(x, 0, z).chunk())?;
+        let value = column
+            .heightmaps
+            .get(kind)?
+            .get((x & 15) as usize, (z & 15) as usize);
+        Some(column.height().min_y + i32::from(value))
+    }
+
+    fn target_rotation(&self, target: Target) -> Option<Rotation> {
+        match target {
+            Target::Player(id) => self.players.get(&id).map(|p| p.rotation),
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)
+                .map(|e| Rotation::new(e.base.yaw, e.base.pitch)),
+        }
+    }
+
+    fn target_eye_height(&self, target: Target) -> f64 {
+        match target {
+            Target::Player(id) => self.players.get(&id).map_or(0.0, |p| p.eye_height()),
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)
+                .map_or(0.0, |e| f64::from(e.base.eye_height())),
+        }
+    }
+
+    fn target_dimension(&self, target: Target) -> Option<Identifier> {
+        match target {
+            Target::Player(id) => self.players.get(&id).map(|p| p.dim.clone()),
+            Target::Entity(_) => self.current_dimension(),
+        }
+    }
+
+    fn related_targets(&self, target: Target, relation: Relation) -> Vec<Target> {
+        self.relations_of(target, relation)
+    }
+
+    fn record_result(&mut self, value: i32) {
+        self.command_result = Some(value);
+    }
+
+    fn take_result(&mut self) -> Option<i32> {
+        self.command_result.take()
+    }
+
+    fn read_data(&self, target: &DataTarget) -> Result<Compound, Component> {
+        self.command_data(target)
+    }
+
+    fn write_data(&mut self, target: &DataTarget, data: Compound) -> Result<(), Component> {
+        self.set_command_data(target, data)
     }
 
     fn run_in_dimension(
@@ -182,9 +449,11 @@ impl<L: ClientLink> CommandContext for Server<L> {
 
     fn set_operator(&mut self, name: &str, operator: bool) -> bool {
         let online = self.find_player(name);
+        let level = self.config.op_permission_level;
         let entry = online
             .and_then(|id| self.players.get(&id))
-            .map_or_else(|| ListEntry::named(name), |p| ListEntry::of(&p.profile));
+            .map_or_else(|| ListEntry::named(name), |p| ListEntry::of(&p.profile))
+            .operator(level);
         let changed = if operator {
             AdminLists::add(&mut self.admin.operators, entry)
         } else {
@@ -196,9 +465,10 @@ impl<L: ClientLink> CommandContext for Server<L> {
         if let Some(id) = online {
             if let Some(p) = self.players.get_mut(&id) {
                 p.operator = operator;
+                p.op_level = level;
                 p.link.send(ClientEvent::OperatorLevel {
                     entity: p.entity_id,
-                    level: if operator { 4 } else { 0 },
+                    level: p.permission_level(),
                 });
             }
             self.send_commands(id);
@@ -468,6 +738,9 @@ impl<L: ClientLink> CommandContext for Server<L> {
     }
 
     fn sender_rotation(&self, sender: CommandSender) -> Rotation {
+        if let Some(source) = &self.command_source {
+            return source.rotation;
+        }
         match sender {
             CommandSender::Player(id) => self
                 .players
@@ -478,6 +751,9 @@ impl<L: ClientLink> CommandContext for Server<L> {
     }
 
     fn sender_origin(&self, sender: CommandSender) -> Vec3 {
+        if let Some(source) = &self.command_source {
+            return source.position;
+        }
         match sender {
             CommandSender::Player(id) => self.players.get(&id).map_or(Vec3::ZERO, |p| p.position),
             CommandSender::Console => {
@@ -542,7 +818,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
         kind: Kind,
         position: Vec3,
         nbt: Option<Compound>,
-    ) -> Result<(), Component> {
+    ) -> Result<Option<EntityId>, Component> {
         let failed = |key: &str| Component::translatable(key, Vec::new());
         let (entity, random) = self
             .summon_entity(kind, position, nbt, SpawnReason::Command)
@@ -554,13 +830,31 @@ impl<L: ClientLink> CommandContext for Server<L> {
         if let CommandSender::Player(player) = sender {
             birth = birth.by(player);
         }
+        let id = entity.base.id;
         self.spawn_entity(entity, birth);
-        Ok(())
+        Ok(Some(id))
     }
 }
 
 pub(crate) const SUMMON_FAILED: &str = "commands.summon.failed";
 pub(crate) const SUMMON_DUPLICATE_UUID: &str = "commands.summon.failed.uuid";
+
+fn advancement_matches(
+    progress: &crate::advancements::PlayerAdvancements,
+    id: &str,
+    want: &selector::AdvancementWant,
+) -> bool {
+    let Some((index, found)) = rspigot_data::advancements::find(id) else {
+        return false;
+    };
+    match want {
+        selector::AdvancementWant::Done(done) => progress.is_done(index) == *done,
+        selector::AdvancementWant::Criteria(criteria) => criteria.iter().all(|(name, flag)| {
+            found.criteria.iter().any(|known| known.name == name)
+                && progress.has(index, name) == *flag
+        }),
+    }
+}
 
 struct Candidate<'a> {
     target: Target,
@@ -805,7 +1099,7 @@ impl<L: ClientLink> Server<L> {
                 position: p.position,
                 bounds: Aabb::of_size(p.position, 0.6, p.height() as f32),
                 name: p.profile.name.clone(),
-                tags: &[],
+                tags: &p.tags,
                 alive: !p.vitals.is_dead(),
             })
             .collect();
@@ -827,6 +1121,93 @@ impl<L: ClientLink> Server<L> {
             }));
         }
         out
+    }
+
+    fn state_matches(&self, selector: &Selector, candidate: &Candidate<'_>) -> bool {
+        let player = match candidate.target {
+            Target::Player(id) => self.players.get(&id),
+            Target::Entity(_) => None,
+        };
+        if let Some((min, max)) = selector.level {
+            let Some(player) = player else {
+                return false;
+            };
+            let level = player.vitals.experience.level;
+            if min.is_some_and(|m| level < m) || max.is_some_and(|m| level > m) {
+                return false;
+            }
+        }
+        if !selector.game_modes.is_empty() {
+            let Some(player) = player else {
+                return false;
+            };
+            if !selector
+                .game_modes
+                .iter()
+                .all(|(negated, mode)| (player.game_mode == *mode) != *negated)
+            {
+                return false;
+            }
+        }
+        let (pitch, yaw) = match (candidate.target, player) {
+            (_, Some(player)) => (player.rotation.pitch, player.rotation.yaw),
+            (Target::Entity(id), None) => self
+                .entities
+                .store
+                .get(id)
+                .map_or((0.0, 0.0), |e| (e.base.pitch, e.base.yaw)),
+            (Target::Player(_), None) => (0.0, 0.0),
+        };
+        if selector
+            .x_rotation
+            .is_some_and(|range| !selector::wrapped_range_matches(range, f64::from(pitch)))
+            || selector
+                .y_rotation
+                .is_some_and(|range| !selector::wrapped_range_matches(range, f64::from(yaw)))
+        {
+            return false;
+        }
+        if !selector
+            .teams
+            .iter()
+            .all(|(negated, team)| team.is_empty() != *negated)
+        {
+            return false;
+        }
+        if !selector.scores.is_empty() {
+            return false;
+        }
+        if !selector.predicates.iter().all(|(negated, _)| *negated) {
+            return false;
+        }
+        if !selector.advancements.is_empty() {
+            let Some(player) = player else {
+                return false;
+            };
+            if !selector
+                .advancements
+                .iter()
+                .all(|(id, want)| advancement_matches(&player.advancements, id, want))
+            {
+                return false;
+            }
+        }
+        selector.nbt.iter().all(|(negated, expected)| {
+            let actual = match (candidate.target, player) {
+                (_, Some(player)) => Some(crate::player_data::PlayerSave::capture(player).to_nbt()),
+                (Target::Entity(id), None) => self
+                    .entities
+                    .store
+                    .get(id)
+                    .and_then(|entity| self.entity_nbt(entity, None)),
+                (Target::Player(_), None) => None,
+            };
+            actual.is_some_and(|actual| {
+                rspigot_nbt::Tag::Compound(expected.clone())
+                    .contains(&rspigot_nbt::Tag::Compound(actual))
+                    != *negated
+            })
+        })
     }
 
     fn evaluate_selector(&self, sender: CommandSender, selector: &Selector) -> Vec<Target> {
@@ -866,14 +1247,15 @@ impl<L: ClientLink> Server<L> {
             {
                 return false;
             }
-            selector.tags.iter().all(|(negated, tag)| {
+            let tags_match = selector.tags.iter().all(|(negated, tag)| {
                 let has = if tag.is_empty() {
                     candidate.tags.is_empty()
                 } else {
                     candidate.tags.iter().any(|t| t == tag)
                 };
                 has != *negated
-            })
+            });
+            tags_match && self.state_matches(selector, candidate)
         };
         let mut found: Vec<Candidate<'_>> = match &selector.base {
             SelectorBase::Name(name) => self
@@ -893,14 +1275,21 @@ impl<L: ClientLink> Server<L> {
                         .is_some_and(|e| e.base.uuid == *uuid),
                 })
                 .collect(),
-            SelectorBase::Sender => match sender {
-                CommandSender::Player(id) => self
-                    .candidates(false)
-                    .into_iter()
-                    .filter(|c| c.target == Target::Player(id) && matches(c))
-                    .collect(),
-                CommandSender::Console => Vec::new(),
-            },
+            SelectorBase::Sender => {
+                let executor = match (&self.command_source, sender) {
+                    (Some(source), _) => source.executor,
+                    (None, CommandSender::Player(id)) => Some(Target::Player(id)),
+                    (None, CommandSender::Console) => None,
+                };
+                match executor {
+                    Some(executor) => self
+                        .candidates(true)
+                        .into_iter()
+                        .filter(|c| c.target == executor && matches(c))
+                        .collect(),
+                    None => Vec::new(),
+                }
+            }
             SelectorBase::Search => self
                 .candidates(selector.includes_entities)
                 .into_iter()

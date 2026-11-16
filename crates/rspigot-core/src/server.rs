@@ -10,7 +10,7 @@ use rspigot_domain::world::{Difficulty, Dimension};
 use rspigot_domain::{ChunkPos, EntityId, Identifier, Rotation, Vec3};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::admin::{AdminLists, Ban, format_ban_date};
+use crate::admin::{AdminLists, Ban, MAX_PERMISSION_LEVEL, format_ban_date};
 use crate::chunks::{ChunkJob, ChunkManager, ChunkWorkers, MobGeneration, Priority};
 use crate::commands::{CommandTree, build_tree};
 use crate::config::{GameConfig, LevelData, hashed_seed};
@@ -123,6 +123,10 @@ pub struct Server<L> {
     pub(crate) dormant: FxHashMap<crate::world_state::DimensionKey, crate::world_state::WorldState>,
     pub(crate) dimension_provider: Option<crate::travel::DimensionProvider<L>>,
     pub(crate) command_dimension: Option<crate::world_state::DimensionKey>,
+    pub(crate) saving_enabled: bool,
+    pub(crate) command_source: Option<crate::commands::source::Source>,
+    pub(crate) command_result: Option<i32>,
+    pub(crate) command_storage: FxHashMap<Identifier, rspigot_nbt::Compound>,
     pub(crate) portal_queue: Vec<(
         crate::world_state::DimensionKey,
         crate::end_portal::Traveler,
@@ -137,8 +141,7 @@ pub struct Server<L> {
     clock: fn() -> SystemTime,
     next_entity_id: i32,
     pub(crate) status: StatusBoard,
-    operator_tree: Arc<CommandTree>,
-    player_tree: Arc<CommandTree>,
+    command_trees: [Arc<CommandTree>; 5],
     tick: u64,
     tps: TpsMeter,
 }
@@ -201,6 +204,10 @@ impl<L: ClientLink> Server<L> {
             dormant: FxHashMap::default(),
             dimension_provider: None,
             command_dimension: None,
+            saving_enabled: true,
+            command_source: None,
+            command_result: None,
+            command_storage: FxHashMap::default(),
             portal_queue: Vec::new(),
             nether_queue: Vec::new(),
             nether_time: FxHashMap::default(),
@@ -212,8 +219,7 @@ impl<L: ClientLink> Server<L> {
             clock: SystemTime::now,
             next_entity_id: 1,
             status,
-            operator_tree: Arc::new(build_tree(true)),
-            player_tree: Arc::new(build_tree(false)),
+            command_trees: std::array::from_fn(|level| Arc::new(build_tree(level as u8))),
             tick: 0,
             tps: TpsMeter::new(),
             config,
@@ -559,12 +565,8 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    pub(crate) fn command_tree(&self, operator: bool) -> Arc<CommandTree> {
-        if operator {
-            Arc::clone(&self.operator_tree)
-        } else {
-            Arc::clone(&self.player_tree)
-        }
+    pub(crate) fn command_tree(&self, level: u8) -> Arc<CommandTree> {
+        Arc::clone(&self.command_trees[usize::from(level.min(MAX_PERMISSION_LEVEL))])
     }
 
     pub(crate) fn next_inventory_id(&mut self) -> u64 {
@@ -643,8 +645,8 @@ impl<L: ClientLink> Server<L> {
                 reason: ban_reason("multiplayer.disconnect.banned_ip", ban),
             });
         }
-        let operator = self.admin.is_operator(profile);
-        if self.players.len() as u32 >= self.config.max_players && !operator {
+        let bypass = self.admin.bypasses_player_limit(profile);
+        if self.players.len() as u32 >= self.config.max_players && !bypass {
             return Some(Refusal {
                 result: PlayerLoginResult::KickFull,
                 reason: Component::translatable("multiplayer.disconnect.server_full", Vec::new()),
@@ -663,6 +665,11 @@ impl<L: ClientLink> Server<L> {
             ..
         } = arrival;
         let operator = self.admin.is_operator(&profile);
+        let op_level = self
+            .admin
+            .operator_entry(&profile)
+            .and_then(|entry| entry.level)
+            .unwrap_or(self.config.op_permission_level);
         let saved = self.load_saved_player(&profile);
         let entity_id = self.allocate_entity_id();
         let inventory_ids = [self.next_inventory_id(), self.next_inventory_id()];
@@ -705,6 +712,8 @@ impl<L: ClientLink> Server<L> {
             tracked: FxHashSet::default(),
             loaded: false,
             operator,
+            op_level,
+            tags: Vec::new(),
             effects: Default::default(),
             vitals: Default::default(),
             known_movement: Vec3::ZERO,
@@ -816,7 +825,7 @@ impl<L: ClientLink> Server<L> {
         }
         link.send(ClientEvent::OperatorLevel {
             entity: player.entity_id,
-            level: if player.operator { 4 } else { 0 },
+            level: player.permission_level(),
         });
         link.send(ClientEvent::SpawnPosition {
             dimension: self.world.dimension.key.clone(),

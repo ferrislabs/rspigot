@@ -3,6 +3,8 @@ use rspigot_domain::text::Component;
 fn english(key: &str) -> Option<&'static str> {
     Some(match key {
         "commands.seed.success" => "Seed: %s",
+        "command.unknown.command" => "Unknown or incomplete command, see below for error",
+        "command.context.here" => "<--[HERE]",
         "multiplayer.player.joined" => "%s joined the game",
         "multiplayer.player.left" => "%s left the game",
         "argument.entity.notfound.player" => "No player was found",

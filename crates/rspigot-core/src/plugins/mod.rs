@@ -45,7 +45,7 @@ pub(crate) mod views;
 mod visibility;
 mod vitals;
 pub(crate) mod windows;
-mod world;
+pub(crate) mod world;
 
 use std::net::IpAddr;
 

@@ -158,6 +158,8 @@ fn ban_writes_an_entry_kicks_and_refuses_the_next_login() {
             target: ListEntry {
                 name: "Steve".into(),
                 uuid: Some(steve.id.0),
+                level: None,
+                bypasses_player_limit: false,
             },
             created: clock(),
             source: "Alice".into(),
@@ -311,7 +313,8 @@ fn ban_commands_reply_like_vanilla() {
     assert_eq!(
         command(&mut s, &bob, "/ban Alice"),
         [
-            "I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error."
+            "Unknown or incomplete command, see below for error",
+            "ban Alice<--[HERE]"
         ]
     );
     assert!(alice.link.disconnected_with().is_none());
@@ -336,6 +339,8 @@ fn plugin_bans_and_their_lists() {
             target: ListEntry {
                 name: "Steve".into(),
                 uuid: Some(steve.id.0),
+                level: None,
+                bypasses_player_limit: false,
             },
             created: clock(),
             source: "tester".into(),

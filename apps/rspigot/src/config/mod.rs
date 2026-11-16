@@ -65,6 +65,8 @@ impl ServerFiles {
             allow_nether: p.string("allow-nether") != "false"
                 && self.bukkit.string("settings.allow-nether", "true") != "false",
             spawn_protection: p.int("spawn-protection", 16).max(0) as u32,
+            op_permission_level: p.int("op-permission-level", 4).clamp(0, 4) as u8,
+            function_permission_level: p.int("function-permission-level", 2).clamp(1, 4) as u8,
             player_tracking_range: self.spigot.float(
                 "world-settings.default.entity-tracking-range.players",
                 128.0,

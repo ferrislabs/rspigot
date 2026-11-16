@@ -10,7 +10,9 @@ use rspigot_items::ItemKind;
 use rspigot_nbt::Compound;
 
 use super::selector::split_argument;
+use super::source::{Anchor, DataTarget, Relation, Source};
 use crate::admin::{Ban, BanEntry, IpBanEntry, ListEntry, ban_reason};
+use rspigot_domain::chunk::HeightmapKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Target {
@@ -22,6 +24,19 @@ pub enum Target {
 pub enum CommandSender {
     Console,
     Player(PlayerId),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TitleAction {
+    Title(Component),
+    Subtitle(Component),
+    Times {
+        fade_in: i32,
+        stay: i32,
+        fade_out: i32,
+    },
+    Clear,
+    Reset,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,7 +57,7 @@ pub enum CommandOutcome {
 pub trait CommandContext {
     fn reply(&mut self, sender: CommandSender, message: Component);
     fn broadcast(&mut self, message: Component);
-    fn is_operator(&self, sender: CommandSender) -> bool;
+    fn permission_level(&self, sender: CommandSender) -> u8;
     fn sender_name(&self, sender: CommandSender) -> String;
     fn find_player(&self, name: &str) -> Option<PlayerId>;
     fn player_name(&self, player: PlayerId) -> Option<String>;
@@ -113,6 +128,8 @@ pub trait CommandContext {
         self.player_name(player).map(|name| ListEntry {
             name,
             uuid: Some(player.0),
+            level: None,
+            bypasses_player_limit: false,
         })
     }
 
@@ -194,42 +211,177 @@ pub trait CommandContext {
         _entity: rspigot_entities::EntityKind,
         _position: Vec3,
         _nbt: Option<Compound>,
-    ) -> Result<(), Component> {
+    ) -> Result<Option<EntityId>, Component> {
         Err(Component::translatable(
             "commands.summon.failed",
             Vec::new(),
         ))
     }
-}
 
-const ADMIN_COMMANDS: [&str; 26] = [
-    "execute",
-    "summon",
-    "effect",
-    "kill",
-    "whitelist",
-    "say",
-    "gamemode",
-    "tp",
-    "teleport",
-    "time",
-    "give",
-    "clear",
-    "kick",
-    "op",
-    "deop",
-    "difficulty",
-    "weather",
-    "setworldspawn",
-    "save-all",
-    "stop",
-    "defaultgamemode",
-    "ban",
-    "ban-ip",
-    "pardon",
-    "pardon-ip",
-    "banlist",
-];
+    fn place_block(
+        &mut self,
+        _pos: BlockPos,
+        _state: rspigot_blocks::StateId,
+        _nbt: Option<&Compound>,
+    ) -> bool {
+        false
+    }
+
+    fn destroy_block(&mut self, _pos: BlockPos) -> bool {
+        false
+    }
+
+    fn in_world_height(&self, _y: i32) -> bool {
+        true
+    }
+
+    fn default_game_mode(&self) -> GameMode {
+        GameMode::Survival
+    }
+
+    fn set_default_game_mode(&mut self, _mode: GameMode) {}
+
+    fn game_rule_text(&self, _name: &str) -> Option<String> {
+        None
+    }
+
+    fn set_game_rule_text(&mut self, _name: &str, _value: &str) -> Result<(), &'static str> {
+        Err("argument.rule.invalid")
+    }
+
+    fn experience_state(&self, _player: PlayerId) -> Option<(i32, i32)> {
+        None
+    }
+
+    fn add_experience(&mut self, _player: PlayerId, _amount: i32, _levels: bool) {}
+
+    fn set_experience(&mut self, _player: PlayerId, _amount: i32, _levels: bool) -> bool {
+        false
+    }
+
+    fn tags_of(&self, _target: Target) -> Vec<String> {
+        Vec::new()
+    }
+
+    fn add_tag(&mut self, _target: Target, _tag: &str) -> bool {
+        false
+    }
+
+    fn remove_tag(&mut self, _target: Target, _tag: &str) -> bool {
+        false
+    }
+
+    fn set_saving(&mut self, _enabled: bool) -> bool {
+        false
+    }
+
+    fn random_between(&mut self, min: i32, _max: i32) -> i32 {
+        min
+    }
+
+    fn set_spawn_point(
+        &mut self,
+        _player: PlayerId,
+        _dimension: Identifier,
+        _pos: BlockPos,
+        _angle: f32,
+    ) {
+    }
+
+    fn tell_player(&mut self, _player: PlayerId, _message: Component, _overlay: bool) {}
+
+    fn title_player(&mut self, _player: PlayerId, _action: TitleAction) {}
+
+    fn local_origin(&self, sender: CommandSender) -> Vec3 {
+        self.sender_origin(sender)
+    }
+
+    fn command_source(&self, sender: CommandSender) -> Source {
+        Source {
+            executor: match sender {
+                CommandSender::Player(id) => Some(Target::Player(id)),
+                CommandSender::Console => None,
+            },
+            position: self.sender_origin(sender),
+            rotation: self.sender_rotation(sender),
+            anchor: Anchor::Feet,
+            dimension: None,
+        }
+    }
+
+    fn run_with_source(&mut self, _source: &Source, run: impl FnOnce(&mut Self)) {
+        run(self);
+    }
+
+    fn current_dimension(&self) -> Option<Identifier> {
+        None
+    }
+
+    fn block_state_at(&self, _pos: BlockPos) -> Option<rspigot_blocks::StateId> {
+        None
+    }
+
+    fn block_entity_data(&self, _pos: BlockPos) -> Option<Compound> {
+        None
+    }
+
+    fn is_position_loaded(&self, _pos: BlockPos) -> bool {
+        false
+    }
+
+    fn biome_name_at(&self, _pos: BlockPos) -> Option<String> {
+        None
+    }
+
+    fn surface_height(&self, _kind: HeightmapKind, _x: i32, _z: i32) -> Option<i32> {
+        None
+    }
+
+    fn target_rotation(&self, _target: Target) -> Option<Rotation> {
+        None
+    }
+
+    fn target_eye_height(&self, _target: Target) -> f64 {
+        0.0
+    }
+
+    fn target_dimension(&self, _target: Target) -> Option<Identifier> {
+        None
+    }
+
+    fn related_targets(&self, _target: Target, _relation: Relation) -> Vec<Target> {
+        Vec::new()
+    }
+
+    fn record_result(&mut self, _value: i32) {}
+
+    fn take_result(&mut self) -> Option<i32> {
+        None
+    }
+
+    fn read_data(&self, _target: &DataTarget) -> Result<Compound, Component> {
+        Err(Component::translatable(
+            "commands.data.entity.invalid",
+            Vec::new(),
+        ))
+    }
+
+    fn write_data(&mut self, _target: &DataTarget, _data: Compound) -> Result<(), Component> {
+        Err(Component::translatable(
+            "commands.data.entity.invalid",
+            Vec::new(),
+        ))
+    }
+
+    fn set_boss_bar_value(&mut self, id: &Identifier, _maximum: bool, _value: i32) -> bool {
+        let _ = id;
+        false
+    }
+
+    fn function_exists(&self, _id: &Identifier) -> bool {
+        false
+    }
+}
 
 pub fn execute<C: CommandContext>(
     ctx: &mut C,
@@ -248,13 +400,8 @@ pub fn execute<C: CommandContext>(
         .unwrap_or(&label)
         .to_owned();
     let args: Vec<&str> = parts.collect();
-    if ADMIN_COMMANDS.contains(&label.as_str()) && !ctx.is_operator(sender) {
-        ctx.reply(
-            sender,
-            Component::text("I'm sorry, but you do not have permission to perform this command. Please contact the server administrators if you believe that this is in error.")
-                .color(NamedColor::Red),
-        );
-        return CommandOutcome::Denied;
+    if !super::permission::may_use(&label, ctx.permission_level(sender)) {
+        return refuse(ctx, sender, line);
     }
     let rest = line
         .split_once(char::is_whitespace)
@@ -315,7 +462,7 @@ pub fn execute<C: CommandContext>(
         "msg" | "tell" | "w" => private_message(ctx, sender, &args),
         "gamemode" => gamemode(ctx, sender, &args),
         "tp" | "teleport" => teleport(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
-        "execute" => execute_in(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
+        "execute" => super::execute::run(ctx, sender, rest),
         "summon" => summon(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "time" => time(ctx, sender, &args),
         "give" => give(ctx, sender, &args),
@@ -331,6 +478,13 @@ pub fn execute<C: CommandContext>(
         "effect" => effect(ctx, sender, rest),
         "kill" => kill(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "difficulty" => difficulty(ctx, sender, &args),
+        "defaultgamemode" | "gamerule" | "experience" | "xp" | "tag" | "save-on" | "save-off"
+        | "random" | "spawnpoint" => super::server_commands::run(ctx, sender, &label, rest),
+        "tellraw" | "title" => super::text_commands::run(ctx, sender, &label, rest),
+        "data" => super::data::run(ctx, sender, rest),
+        "setblock" => super::blocks::setblock(ctx, sender, rest),
+        "fill" => super::blocks::fill(ctx, sender, rest),
+        "clone" => super::blocks::clone(ctx, sender, rest),
         "weather" => weather(ctx, sender, &args),
         "setworldspawn" => set_world_spawn(ctx, sender, &args),
         "save-all" => {
@@ -357,7 +511,34 @@ pub fn execute<C: CommandContext>(
     outcome
 }
 
-fn usage<C: CommandContext>(ctx: &mut C, sender: CommandSender, text: &str) -> CommandOutcome {
+fn refuse<C: CommandContext>(ctx: &mut C, sender: CommandSender, line: &str) -> CommandOutcome {
+    ctx.reply(
+        sender,
+        Component::translatable("command.unknown.command", Vec::new()).color(NamedColor::Red),
+    );
+    ctx.reply(
+        sender,
+        Component::text("")
+            .color(NamedColor::Gray)
+            .append(
+                Component::text(line)
+                    .color(NamedColor::Red)
+                    .underlined(true),
+            )
+            .append(
+                Component::translatable("command.context.here", Vec::new())
+                    .color(NamedColor::Red)
+                    .italic(true),
+            ),
+    );
+    CommandOutcome::Denied
+}
+
+pub(super) fn usage<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    text: &str,
+) -> CommandOutcome {
     ctx.reply(
         sender,
         Component::text(format!("Usage: {text}")).color(NamedColor::Red),
@@ -380,13 +561,14 @@ fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome
         "/list",
         "/me <action>",
         "/msg <player> <message>",
-        "/seed",
         "/tps",
         "/version",
         "/plugins",
     ];
-    if ctx.is_operator(sender) {
+    let level = ctx.permission_level(sender);
+    if level >= super::permission::LEVEL_GAMEMASTERS {
         lines.extend([
+            "/seed",
             "/say <message>",
             "/gamemode <mode> [player]",
             "/tp <x> <y> <z> | <player> [target]",
@@ -395,15 +577,16 @@ fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome
             "/clear [player]",
             "/kill [targets]",
             "/summon <entity> [pos] [nbt]",
-            "/kick <player> [reason]",
-            "/op <player>",
-            "/deop <player>",
             "/difficulty [level]",
             "/weather <clear|rain|thunder>",
             "/setworldspawn [x y z]",
-            "/save-all",
-            "/stop",
         ]);
+    }
+    if level >= super::permission::LEVEL_ADMINS {
+        lines.extend(["/kick <player> [reason]", "/op <player>", "/deop <player>"]);
+    }
+    if level >= super::permission::LEVEL_OWNERS {
+        lines.extend(["/save-all", "/stop"]);
     }
     ctx.reply(
         sender,
@@ -575,6 +758,7 @@ pub(crate) fn parse_vec3<C: CommandContext>(
                 })?;
             }
         }
+        let origin = ctx.local_origin(sender);
         let rotation = ctx.sender_rotation(sender);
         let radians = 0.017_453_292f32;
         let f = mth_cos((rotation.yaw + 90.0) * radians);
@@ -607,12 +791,12 @@ pub(crate) fn parse_vec3<C: CommandContext>(
     ))
 }
 
-fn next_argument(input: &str) -> Option<(&str, &str)> {
+pub(super) fn next_argument(input: &str) -> Option<(&str, &str)> {
     let (token, rest) = split_argument(input);
     (!token.is_empty()).then_some((token, rest))
 }
 
-fn looks_like_coordinate(token: &str) -> bool {
+pub(super) fn looks_like_coordinate(token: &str) -> bool {
     token.starts_with('~') || token.starts_with('^') || token.parse::<f64>().is_ok()
 }
 
@@ -667,10 +851,8 @@ fn teleport<C: CommandContext>(
     let Some((first, after_first)) = next_argument(rest) else {
         return Err(usage(ctx, sender, usage_text));
     };
-    let self_target = || match sender {
-        CommandSender::Player(id) => Some(Target::Player(id)),
-        CommandSender::Console => None,
-    };
+    let executor = ctx.command_source(sender).executor;
+    let self_target = || executor;
     let (targets, destination, destination_name) = if looks_like_coordinate(first) {
         let position = match take_vec3(ctx, sender, rest) {
             Ok(Some((position, _))) => position,
@@ -729,6 +911,7 @@ fn teleport<C: CommandContext>(
     for target in &targets {
         ctx.teleport_target(*target, destination);
     }
+    ctx.record_result(targets.len() as i32);
     let message = match (targets.as_slice(), destination_name) {
         ([single], None) => Component::translatable(
             "commands.teleport.success.location.single",
@@ -761,55 +944,7 @@ fn teleport<C: CommandContext>(
     Ok(CommandOutcome::Success)
 }
 
-fn execute_in<C: CommandContext>(
-    ctx: &mut C,
-    sender: CommandSender,
-    rest: &str,
-) -> Result<CommandOutcome, CommandOutcome> {
-    let usage_text = "/execute in <dimension> run <command>";
-    let mut dimension = None;
-    let mut cursor = rest;
-    let command = loop {
-        let Some((word, after)) = next_argument(cursor) else {
-            return Err(usage(ctx, sender, usage_text));
-        };
-        match word {
-            "in" => {
-                let Some((name, after)) = next_argument(after) else {
-                    return Err(usage(ctx, sender, usage_text));
-                };
-                dimension = Some(name);
-                cursor = after;
-            }
-            "run" => break after.trim(),
-            _ => return Err(usage(ctx, sender, usage_text)),
-        }
-    };
-    let (Some(name), false) = (dimension, command.is_empty()) else {
-        return Err(usage(ctx, sender, usage_text));
-    };
-    let Ok(key) = Identifier::parse(name) else {
-        return Err(unknown_dimension(ctx, sender, name));
-    };
-    let head = command
-        .trim_start_matches('/')
-        .split_whitespace()
-        .next()
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    let head = head.strip_prefix("minecraft:").unwrap_or(&head);
-    let swap = !matches!(head, "tp" | "teleport");
-    let mut outcome = CommandOutcome::Success;
-    let found = ctx.run_in_dimension(&key, swap, |ctx| {
-        outcome = execute(ctx, sender, command);
-    });
-    if !found {
-        return Err(unknown_dimension(ctx, sender, name));
-    }
-    Ok(outcome)
-}
-
-fn unknown_dimension<C: CommandContext>(
+pub(super) fn unknown_dimension<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     name: &str,
@@ -877,7 +1012,7 @@ fn summon<C: CommandContext>(
         }
     };
     match ctx.summon(sender, kind, position, nbt) {
-        Ok(()) => Ok(CommandOutcome::Success),
+        Ok(_) => Ok(CommandOutcome::Success),
         Err(message) => {
             ctx.reply(sender, message.color(NamedColor::Red));
             Err(CommandOutcome::Failure)
@@ -910,6 +1045,7 @@ fn time<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) ->
                 return usage(ctx, sender, "/time set <day|noon|night|midnight|ticks>");
             };
             ctx.set_day_time(ticks);
+            ctx.record_result((ticks.rem_euclid(24_000)) as i32);
             ctx.reply(
                 sender,
                 Component::translatable(
@@ -925,6 +1061,7 @@ fn time<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) ->
             };
             let now = ctx.day_time() + ticks;
             ctx.skip_day_time(now);
+            ctx.record_result(now.rem_euclid(24_000) as i32);
             ctx.reply(
                 sender,
                 Component::translatable(
@@ -941,6 +1078,7 @@ fn time<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str]) ->
                 "day" => ctx.day_time().div_euclid(24000),
                 _ => return usage(ctx, sender, "/time query <daytime|gametime|day>"),
             };
+            ctx.record_result((value % i64::from(i32::MAX)) as i32);
             ctx.reply(
                 sender,
                 Component::translatable(
@@ -1079,7 +1217,7 @@ const INSTANT_EFFECTS: [&str; 3] = [
     "minecraft:saturation",
 ];
 
-fn fail<C: CommandContext>(
+pub(super) fn fail<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     key: &str,
@@ -1335,6 +1473,7 @@ fn kill<C: CommandContext>(
     for target in &targets {
         ctx.kill_target(*target);
     }
+    ctx.record_result(targets.len() as i32);
     let message = match names.as_slice() {
         [single] => Component::translatable("commands.kill.success.single", vec![single.clone()]),
         many => Component::translatable(
@@ -1708,6 +1847,7 @@ mod tests {
         replies: Vec<(CommandSender, String)>,
         broadcasts: Vec<String>,
         operator: bool,
+        level: Option<u8>,
         modes: Vec<(PlayerId, GameMode)>,
         teleports: Vec<(PlayerId, Vec3)>,
         day_time: i64,
@@ -1730,8 +1870,8 @@ mod tests {
         fn broadcast(&mut self, message: Component) {
             self.broadcasts.push(message.plain_text());
         }
-        fn is_operator(&self, _: CommandSender) -> bool {
-            self.operator
+        fn permission_level(&self, _: CommandSender) -> u8 {
+            self.level.unwrap_or(if self.operator { 4 } else { 0 })
         }
         fn sender_name(&self, sender: CommandSender) -> String {
             match sender {
@@ -2171,6 +2311,68 @@ mod tests {
             CommandOutcome::Denied
         );
         assert!(ctx.killed.is_empty());
+    }
+
+    #[test]
+    fn a_gamemaster_runs_gameplay_commands_but_not_admin_ones() {
+        let mut ctx = FakeContext {
+            level: Some(2),
+            ..FakeContext::default()
+        };
+        let player = CommandSender::Player(alice());
+        assert_eq!(
+            execute(&mut ctx, player, "/say hi"),
+            CommandOutcome::Success
+        );
+        assert_eq!(
+            execute(&mut ctx, player, "/op Alice"),
+            CommandOutcome::Denied
+        );
+        assert_eq!(
+            execute(&mut ctx, player, "/ban Alice"),
+            CommandOutcome::Denied
+        );
+        assert_eq!(execute(&mut ctx, player, "/stop"), CommandOutcome::Denied);
+        assert!(!ctx.stopped);
+    }
+
+    #[test]
+    fn an_admin_cannot_stop_the_server_and_the_console_can() {
+        let mut ctx = FakeContext {
+            level: Some(3),
+            ..FakeContext::default()
+        };
+        let player = CommandSender::Player(alice());
+        assert_eq!(execute(&mut ctx, player, "/stop"), CommandOutcome::Denied);
+        assert_eq!(
+            execute(&mut ctx, player, "/save-all"),
+            CommandOutcome::Denied
+        );
+        assert_ne!(
+            execute(&mut ctx, player, "/kick Alice"),
+            CommandOutcome::Denied
+        );
+        ctx.level = Some(4);
+        execute(&mut ctx, CommandSender::Console, "stop");
+        assert!(ctx.stopped);
+    }
+
+    #[test]
+    fn a_refusal_looks_like_vanilla() {
+        let mut ctx = FakeContext::default();
+        execute(
+            &mut ctx,
+            CommandSender::Player(alice()),
+            "/gamemode creative",
+        );
+        let texts: Vec<&str> = ctx.replies.iter().map(|r| r.1.as_str()).collect();
+        assert_eq!(
+            texts,
+            [
+                "command.unknown.command",
+                "gamemode creativecommand.context.here"
+            ]
+        );
     }
 
     #[test]

@@ -11,6 +11,8 @@ use uuid::Uuid;
 pub struct ListEntry {
     pub name: String,
     pub uuid: Option<Uuid>,
+    pub level: Option<u8>,
+    pub bypasses_player_limit: bool,
 }
 
 impl ListEntry {
@@ -18,6 +20,8 @@ impl ListEntry {
         Self {
             name: name.to_owned(),
             uuid: None,
+            level: None,
+            bypasses_player_limit: false,
         }
     }
 
@@ -25,6 +29,8 @@ impl ListEntry {
         Self {
             name: profile.name.clone(),
             uuid: Some(profile.id.0),
+            level: None,
+            bypasses_player_limit: false,
         }
     }
 
@@ -35,7 +41,14 @@ impl ListEntry {
     pub fn matches_name(&self, name: &str) -> bool {
         self.name.eq_ignore_ascii_case(name)
     }
+
+    pub fn operator(mut self, level: u8) -> Self {
+        self.level = Some(level.min(MAX_PERMISSION_LEVEL));
+        self
+    }
 }
+
+pub const MAX_PERMISSION_LEVEL: u8 = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ban<T> {
@@ -125,6 +138,21 @@ pub struct AdminLists {
 impl AdminLists {
     pub fn is_operator(&self, profile: &GameProfile) -> bool {
         self.operators.iter().any(|e| e.matches_profile(profile))
+    }
+
+    pub fn operator_entry(&self, profile: &GameProfile) -> Option<&ListEntry> {
+        self.operators.iter().find(|e| e.matches_profile(profile))
+    }
+
+    pub fn permission_level(&self, profile: &GameProfile, default: u8) -> u8 {
+        self.operator_entry(profile)
+            .map_or(0, |entry| entry.level.unwrap_or(default))
+            .min(MAX_PERMISSION_LEVEL)
+    }
+
+    pub fn bypasses_player_limit(&self, profile: &GameProfile) -> bool {
+        self.operator_entry(profile)
+            .is_some_and(|entry| entry.bypasses_player_limit)
     }
 
     pub fn may_join(&self, profile: &GameProfile) -> bool {

@@ -46,6 +46,8 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn is_operator_player(&self, id: PlayerId) -> bool {
-        self.players.get(&id).is_some_and(|player| player.operator)
+        self.players
+            .get(&id)
+            .is_some_and(|player| player.permission_level() >= 2)
     }
 }
