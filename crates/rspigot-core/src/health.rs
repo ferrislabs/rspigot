@@ -328,6 +328,7 @@ fn absorb_hurt<L>(
     source: &DamageSource,
     amount: f32,
     attributes: &Attributes,
+    protection: f32,
 ) -> f32 {
     let kind = source.kind;
     let mut amount = amount;
@@ -346,6 +347,8 @@ fn absorb_hurt<L>(
         }
         if amount <= 0.0 {
             amount = 0.0;
+        } else if protection > 0.0 {
+            amount = crate::enchant_effects::after_magic_absorb(amount, protection);
         }
     }
     let vitals = &mut player.vitals;
@@ -461,6 +464,11 @@ impl<L: ClientLink> Server<L> {
             }
             if amount <= 0.0 {
                 amount = 0.0;
+            } else {
+                let protection = self.player_protection(id, &DamageSource::new(kind));
+                if protection > 0.0 {
+                    amount = crate::enchant_effects::after_magic_absorb(amount, protection);
+                }
             }
         }
         damage::absorb(amount, player.vitals.absorption).damage
@@ -485,6 +493,7 @@ impl<L: ClientLink> Server<L> {
         if wakes {
             self.stop_sleep_in_bed(id, true, true);
         }
+        let protection = self.player_protection(id, source);
         let Some(player) = self.players.get_mut(&id) else {
             return false;
         };
@@ -510,13 +519,13 @@ impl<L: ClientLink> Server<L> {
                 return false;
             }
             let extra = amount - player.vitals.last_hurt;
-            let dealt = absorb_hurt(player, source, extra, &attributes);
+            let dealt = absorb_hurt(player, source, extra, &attributes, protection);
             player.vitals.last_hurt = amount;
             (false, dealt)
         } else {
             player.vitals.last_hurt = amount;
             player.vitals.damage_cooldown = DAMAGE_COOLDOWN;
-            let dealt = absorb_hurt(player, source, amount, &attributes);
+            let dealt = absorb_hurt(player, source, amount, &attributes, protection);
             player.vitals.hurt_time = HURT_DURATION;
             (true, dealt)
         };

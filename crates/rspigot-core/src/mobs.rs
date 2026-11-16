@@ -1837,7 +1837,7 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
-    fn entity_loot_facts(&self, id: EntityId) -> Option<LootEntity> {
+    pub(crate) fn entity_loot_facts(&self, id: EntityId) -> Option<LootEntity> {
         if let Some(player) = self.players.values().find(|p| p.entity_id == id) {
             let mut facts = LootEntity::of(Kind::Player);
             facts.mainhand = player.inventory.held().cloned();
@@ -2142,7 +2142,7 @@ impl<L: ClientLink> Server<L> {
         ))
     }
 
-    fn damage_facts(&self, source: &DamageSource) -> LootDamage {
+    pub(crate) fn damage_facts(&self, source: &DamageSource) -> LootDamage {
         LootDamage {
             kind: source.kind,
             source: source
