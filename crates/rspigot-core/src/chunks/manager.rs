@@ -83,6 +83,7 @@ pub struct ChunkManager {
     relight: FxHashSet<ChunkPos>,
     mob_generation: Option<super::MobGeneration>,
     poi: PoiManager,
+    forced: std::collections::BTreeSet<ChunkPos>,
 }
 
 impl ChunkManager {
@@ -99,6 +100,7 @@ impl ChunkManager {
             relight: FxHashSet::default(),
             mob_generation: None,
             poi,
+            forced: std::collections::BTreeSet::new(),
         }
     }
 
@@ -159,6 +161,30 @@ impl ChunkManager {
             );
             pending.priority = priority;
         }
+    }
+
+    pub fn set_forced(&mut self, pos: ChunkPos, forced: bool, workers: &ChunkWorkers) -> bool {
+        if forced == self.forced.contains(&pos) {
+            return false;
+        }
+        if forced {
+            self.forced.insert(pos);
+            self.add_ticket(pos, Priority::URGENT, workers);
+        } else {
+            self.forced.remove(&pos);
+            self.remove_ticket(pos);
+        }
+        true
+    }
+
+    pub fn is_forced(&self, pos: ChunkPos) -> bool {
+        self.forced.contains(&pos)
+    }
+
+    pub fn forced_chunks(&self) -> Vec<ChunkPos> {
+        let mut found: Vec<ChunkPos> = self.forced.iter().copied().collect();
+        found.sort_by_key(|pos| (i64::from(pos.z) << 32) | i64::from(pos.x as u32));
+        found
     }
 
     pub fn remove_ticket(&mut self, pos: ChunkPos) {
@@ -591,6 +617,39 @@ mod tests {
             store.saved.lock().map(|s| s.clone()).unwrap_or_default(),
             vec![pos]
         );
+        workers.shutdown();
+    }
+
+    #[test]
+    fn a_forced_chunk_keeps_its_ticket_until_it_is_released() {
+        let (mut manager, workers, _store) = setup();
+        let pos = ChunkPos::new(-3, 4);
+        assert!(manager.set_forced(pos, true, &workers));
+        assert!(!manager.set_forced(pos, true, &workers));
+        assert!(manager.is_forced(pos));
+        assert_eq!(drain(&mut manager, &workers, 1), vec![pos]);
+        for _ in 0..20 {
+            assert!(manager.tick().is_empty());
+        }
+        assert!(manager.is_loaded(pos));
+        assert!(manager.set_forced(pos, false, &workers));
+        assert!(!manager.set_forced(pos, false, &workers));
+        assert!(!manager.is_forced(pos));
+        workers.shutdown();
+    }
+
+    #[test]
+    fn forced_chunks_list_in_the_vanilla_long_order() {
+        let (mut manager, workers, _store) = setup();
+        for (x, z) in [(5, 1), (-1, 1), (0, 0), (2, -1)] {
+            manager.set_forced(ChunkPos::new(x, z), true, &workers);
+        }
+        let listed: Vec<(i32, i32)> = manager
+            .forced_chunks()
+            .into_iter()
+            .map(|pos| (pos.x, pos.z))
+            .collect();
+        assert_eq!(listed, [(2, -1), (0, 0), (5, 1), (-1, 1)]);
         workers.shutdown();
     }
 

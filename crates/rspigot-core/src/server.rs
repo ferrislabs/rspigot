@@ -235,6 +235,7 @@ impl<L: ClientLink> Server<L> {
         server.load_raids();
         server.load_scoreboard();
         server.load_custom_boss_bars();
+        server.load_forced_chunks();
         server.load_dragon_fight();
         let center = spawn.chunk();
         let radius = server.config.spawn_chunk_radius;
@@ -1328,6 +1329,7 @@ impl<L: ClientLink> Server<L> {
         self.save_raids();
         self.save_scoreboard();
         self.save_custom_boss_bars();
+        self.save_forced_chunks();
         self.save_dragon_fight();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);

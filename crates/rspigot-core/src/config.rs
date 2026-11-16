@@ -226,6 +226,7 @@ pub struct LevelData {
     pub scoreboard: Option<rspigot_nbt::Compound>,
     pub dragon_fight: Option<rspigot_nbt::Compound>,
     pub custom_boss_events: Option<rspigot_nbt::Compound>,
+    pub forced_chunks: Option<rspigot_nbt::Compound>,
 }
 
 impl Default for LevelData {
@@ -247,6 +248,7 @@ impl Default for LevelData {
             scoreboard: None,
             dragon_fight: None,
             custom_boss_events: None,
+            forced_chunks: None,
         }
     }
 }

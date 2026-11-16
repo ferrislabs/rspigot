@@ -17,6 +17,7 @@ mod team_commands;
 mod text_commands;
 mod tick_commands;
 mod tree;
+mod world_commands;
 
 pub use dispatch::{
     CommandContext, CommandOutcome, CommandSender, Target, TitleAction, Weather, execute,
@@ -59,3 +60,6 @@ mod movement_command_tests;
 
 #[cfg(test)]
 mod tick_command_tests;
+
+#[cfg(test)]
+mod world_command_tests;

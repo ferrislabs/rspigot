@@ -529,6 +529,27 @@ impl<L: ClientLink> CommandContext for Server<L> {
         result
     }
 
+    fn set_chunk_forced(&mut self, x: i32, z: i32, forced: bool) -> bool {
+        self.world
+            .chunks
+            .set_forced(rspigot_domain::ChunkPos::new(x, z), forced, &self.workers)
+    }
+
+    fn forced_chunks(&self) -> Vec<(i32, i32)> {
+        self.world
+            .chunks
+            .forced_chunks()
+            .into_iter()
+            .map(|pos| (pos.x, pos.z))
+            .collect()
+    }
+
+    fn is_chunk_forced(&self, x: i32, z: i32) -> bool {
+        self.world
+            .chunks
+            .is_forced(rspigot_domain::ChunkPos::new(x, z))
+    }
+
     fn vehicle_of(&self, target: Target) -> Option<Target> {
         let rider = self.entity_id_of(target)?;
         let vehicle = self.entities.rides.vehicle_of(rider)?;

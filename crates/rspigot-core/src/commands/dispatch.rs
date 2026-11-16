@@ -446,6 +446,18 @@ pub trait CommandContext {
         false
     }
 
+    fn set_chunk_forced(&mut self, _x: i32, _z: i32, _forced: bool) -> bool {
+        false
+    }
+
+    fn forced_chunks(&self) -> Vec<(i32, i32)> {
+        Vec::new()
+    }
+
+    fn is_chunk_forced(&self, _x: i32, _z: i32) -> bool {
+        false
+    }
+
     fn vehicle_of(&self, _target: Target) -> Option<Target> {
         None
     }
@@ -661,6 +673,7 @@ pub fn execute<C: CommandContext>(
             super::movement_commands::run(ctx, sender, &label, rest)
         }
         "tick" => super::tick_commands::run(ctx, sender, rest),
+        "forceload" => super::world_commands::run(ctx, sender, &label, rest),
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),

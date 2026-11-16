@@ -60,6 +60,7 @@ mod fire_spread;
 mod fireworks;
 mod fishing;
 mod fluids;
+mod forceload;
 mod game_events;
 mod game_rule_packet;
 mod gliding;

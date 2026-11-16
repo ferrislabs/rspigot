@@ -220,6 +220,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     level.scoreboard = optional_saved_data(world_root, "scoreboard");
     level.dragon_fight = optional_saved_data(world_root, "ender_dragon_fight");
     level.custom_boss_events = optional_saved_data(world_root, "custom_boss_events");
+    level.forced_chunks = optional_saved_data(world_root, "chunks");
     Ok(Some(level))
 }
 
@@ -337,6 +338,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         update_saved_data(world_root, "custom_boss_events", |data| {
             let changed = data != events;
             data.clone_from(events);
+            changed
+        })?;
+    }
+    if let Some(forced) = &level.forced_chunks {
+        update_saved_data(world_root, "chunks", |data| {
+            let changed = data != forced;
+            data.clone_from(forced);
             changed
         })?;
     }
@@ -503,6 +511,7 @@ mod tests {
             scoreboard: None,
             dragon_fight: None,
             custom_boss_events: None,
+            forced_chunks: None,
         }
     }
 
@@ -614,6 +623,21 @@ mod tests {
         write_level_data(&root, &level).unwrap();
         let file = read_file(&root, "data/minecraft/custom_boss_events.dat");
         assert_eq!(file.get_compound("data"), Some(&events));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
+    }
+
+    #[test]
+    fn forced_chunks_are_saved_in_the_chunks_data_file_and_read_back() {
+        let dir = TempDir::new("level-forced-chunks");
+        let root = dir.path().join("world");
+        let forced = Compound::new().with("Forced", Tag::LongArray(vec![4_294_967_297]));
+        let level = LevelData {
+            forced_chunks: Some(forced.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/chunks.dat");
+        assert_eq!(file.get_compound("data"), Some(&forced));
         assert_eq!(read_level_data(&root).unwrap(), Some(level));
     }
 

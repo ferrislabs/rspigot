@@ -57,6 +57,7 @@ impl<L: ClientLink> Server<L> {
         level.spawn = Some(spawn.block());
         level.raids = stored_data(&*store, &key, RAIDS_DATA);
         level.dragon_fight = stored_data(&*store, &key, DRAGON_FIGHT_DATA);
+        level.forced_chunks = stored_data(&*store, &key, crate::forceload::FORCED_DATA);
         level.raining = false;
         level.thundering = false;
         if dimension.has_fixed_time {
@@ -100,6 +101,7 @@ impl<L: ClientLink> Server<L> {
         self.dormant.insert(key.clone(), state);
         self.in_dimension(&key, |server| {
             server.load_raids();
+            server.load_forced_chunks();
             server.load_dragon_fight();
             if server.entities.fight.is_none() && server.world.dimension.has_dragon_fight() {
                 server.ensure_dragon_fight(rspigot_domain::BlockPos::new(0, 0, 0), true);
@@ -113,8 +115,10 @@ impl<L: ClientLink> Server<L> {
         if self.world.dimension.key == Identifier::minecraft("overworld") {
             self.save_scoreboard_data();
             self.save_custom_boss_bars_data();
+            self.save_forced_chunks_data();
             return;
         }
+        self.save_forced_chunks_data();
         self.save_raids();
         self.save_dragon_fight();
         let saved = [
