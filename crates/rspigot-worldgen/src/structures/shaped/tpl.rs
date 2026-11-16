@@ -2,7 +2,7 @@ use rspigot_blocks::BlockKind as Kind;
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
-use crate::climate::Xoroshiro;
+use crate::legacy::JavaRandom;
 use crate::overworld::features::place::Run;
 use crate::overworld::features::structure::{Rotation, commit_with};
 use crate::structures::bbox::{Bbox, Pos};
@@ -180,8 +180,7 @@ impl Tpl {
         let index = if count == 1 {
             0
         } else {
-            let mut random = Xoroshiro::from_seed(position_seed(self.pos));
-            random.below(count as i32) as usize
+            JavaRandom::new(position_seed(self.pos)).next_int(count as i32) as usize
         };
         self.blueprint.palette(index)
     }
@@ -209,7 +208,7 @@ impl Tpl {
     }
 
     pub(crate) fn place(&self, run: &mut Run, area: &Bbox, steps: &[Step]) -> Vec<Marker> {
-        self.place_with(run, area, steps, true)
+        self.place_with(run, area, steps, true, None)
     }
 
     pub(crate) fn place_with(
@@ -218,9 +217,9 @@ impl Tpl {
         area: &Bbox,
         steps: &[Step],
         waterlogging: bool,
+        archaeology: Option<&Archaeology>,
     ) -> Vec<Marker> {
-        let mut placed: Vec<(Pos, BlockStateId)> = Vec::new();
-        let mut loot: Vec<(Pos, Value)> = Vec::new();
+        let mut entries: Vec<Entry> = Vec::new();
         for block in self.palette() {
             let mut subject = Subject {
                 local: block.pos,
@@ -231,18 +230,32 @@ impl Tpl {
             if !steps.iter().all(|step| step.process(run, &mut subject)) {
                 continue;
             }
-            if !area.contains(subject.at) {
+            entries.push(Entry {
+                at: subject.at,
+                state: subject.state,
+                nbt: subject.nbt.cloned(),
+            });
+        }
+        if let Some(archaeology) = archaeology {
+            self.dust(run, &mut entries, archaeology);
+        }
+        let mut placed: Vec<(Pos, BlockStateId)> = Vec::new();
+        let mut loot: Vec<(Pos, BlockStateId, Value)> = Vec::new();
+        for entry in entries {
+            if !area.contains(entry.at) {
                 continue;
             }
-            placed.push((subject.at, mirrored(subject.state, self.mirror)));
-            if let Some(nbt) = subject.nbt {
-                loot.push((subject.at, nbt.clone()));
+            let state = mirrored(entry.state, self.mirror);
+            placed.push((entry.at, state));
+            if let Some(nbt) = entry.nbt {
+                loot.push((entry.at, state, nbt));
             }
         }
         commit_with(run, placed, self.rotation, true, waterlogging);
-        for (at, mut nbt) in loot {
+        for (at, state, mut nbt) in loot {
             if let Value::Object(map) = &mut nbt
                 && map.contains_key("LootTable")
+                && container(state)
             {
                 let seed = run.rng.next_long() as i64;
                 map.insert(
@@ -254,6 +267,62 @@ impl Tpl {
         }
         self.markers(area)
     }
+
+    fn dust(&self, run: &mut Run, entries: &mut [Entry], archaeology: &Archaeology) {
+        let count = entries.len();
+        let limit = archaeology.limit.min(count as i32);
+        if limit < 1 {
+            return;
+        }
+        let mut base = JavaRandom::new(run.seed);
+        let factory = base.next_long();
+        let mut random = JavaRandom::new(position_seed(self.pos) ^ factory);
+        let mut order: Vec<usize> = (0..count).collect();
+        for i in (2..=count).rev() {
+            let j = random.next_int(i as i32) as usize;
+            order.swap(i - 1, j);
+        }
+        let mut changed = 0;
+        for index in order {
+            if changed >= limit {
+                break;
+            }
+            let entry = &mut entries[index];
+            if entry.state.kind() != Some(archaeology.input) {
+                continue;
+            }
+            let mut random = JavaRandom::new(position_seed(entry.at));
+            entry.state = archaeology.output.default_state();
+            entry.nbt = Some(serde_json::json!({
+                "id": "minecraft:brushable_block",
+                "LootTable": archaeology.table,
+                "LootTableSeed": { "$l": random.next_long() },
+            }));
+            changed += 1;
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Entry {
+    at: Pos,
+    state: BlockStateId,
+    nbt: Option<Value>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Archaeology {
+    pub(crate) input: Kind,
+    pub(crate) output: Kind,
+    pub(crate) table: &'static str,
+    pub(crate) limit: i32,
+}
+
+fn container(state: BlockStateId) -> bool {
+    matches!(
+        state.kind(),
+        Some(Kind::Chest | Kind::TrappedChest | Kind::Barrel)
+    )
 }
 
 pub(crate) fn set_loot(run: &mut Run, at: Pos, table: &str) {

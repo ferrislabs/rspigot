@@ -286,3 +286,90 @@ fn shipwreck_templates_keep_every_wood_palette() {
             .any(|(a, b)| a.state != b.state)
     );
 }
+
+#[test]
+fn cold_ocean_ruin_starts_match_vanilla() {
+    check(
+        "ocean_ruin_cold",
+        include_str!("fixtures/shaped_ocean_ruin_cold_1.txt"),
+    );
+}
+
+#[test]
+fn warm_ocean_ruin_starts_match_vanilla() {
+    check(
+        "ocean_ruin_warm",
+        include_str!("fixtures/shaped_ocean_ruin_warm_1.txt"),
+    );
+}
+
+fn first_placed(
+    overworld: &Overworld,
+    set_name: &str,
+    structure: &str,
+    range: std::ops::RangeInclusive<i32>,
+) -> (i32, i32) {
+    use super::sets::{Chunks, StructureSets};
+    let library = Library::embedded();
+    let dimension = Dimension::overworld();
+    let probe = overworld.biome_probe();
+    let ground = overworld.ground(&dimension);
+    let sets = StructureSets::load(library);
+    let world = Chunks {
+        sets: &sets,
+        seed: 1,
+        biomes: &probe,
+    };
+    let set = sets.all().iter().find(|set| set.name == set_name).unwrap();
+    let structures = Structures::load(library);
+    let def = structures.get(structure).unwrap();
+    let Kind::Shaped(other) = &def.kind else {
+        panic!("not a shaped structure");
+    };
+    let valid = valid_biomes(def, &probe);
+    for x in range.clone() {
+        for z in range.clone() {
+            if world.is_structure_chunk(set, x, z)
+                && other
+                    .generate(library, &ground, &valid, &probe, 1, (x, z))
+                    .is_some()
+            {
+                return (x, z);
+            }
+        }
+    }
+    panic!("no {structure} start");
+}
+
+#[test]
+fn ocean_ruins_are_built_into_the_generated_chunks() {
+    use rspigot_blocks::BlockKind;
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        1,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    for structure in ["ocean_ruin_cold", "ocean_ruin_warm"] {
+        let (cx, cz) = first_placed(&overworld, "ocean_ruins", structure, -80..=80);
+        let mut stone = 0;
+        for dx in -1..=1 {
+            for dz in -1..=1 {
+                stone += count_blocks(&overworld, &resources, (cx + dx, cz + dz), |kind| {
+                    matches!(
+                        kind,
+                        BlockKind::StoneBricks
+                            | BlockKind::MossyStoneBricks
+                            | BlockKind::CrackedStoneBricks
+                            | BlockKind::CutSandstone
+                            | BlockKind::ChiseledSandstone
+                            | BlockKind::DarkPrismarine
+                            | BlockKind::PrismarineBricks
+                    )
+                });
+            }
+        }
+        assert!(stone >= 5, "{structure} at {cx},{cz}: {stone}");
+    }
+}

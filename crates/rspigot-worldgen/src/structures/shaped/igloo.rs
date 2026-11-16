@@ -96,7 +96,7 @@ impl Piece {
         let tpl = self
             .tpl
             .at((self.tpl.pos.0, self.tpl.pos.1 + height - 91, self.tpl.pos.2));
-        let markers = tpl.place_with(run, write, &[Step::IgnoreStructureBlock], false);
+        let markers = tpl.place_with(run, write, &[Step::IgnoreStructureBlock], false, None);
         for marker in markers.iter().filter(|marker| marker.meta == "chest") {
             let at = marker.at;
             run.region.set(at.0, at.1, at.2, BlockStateId::AIR);

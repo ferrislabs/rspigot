@@ -2,6 +2,7 @@ pub(crate) mod fossil;
 pub(crate) mod frame;
 pub(crate) mod igloo;
 pub(crate) mod mineshaft;
+pub(crate) mod ocean_ruin;
 pub(crate) mod portal;
 pub(crate) mod shipwreck;
 pub(crate) mod start;
@@ -27,6 +28,7 @@ pub(crate) enum Shaped {
     Fossil(fossil::Piece),
     Igloo(igloo::Piece),
     Wreck(shipwreck::Piece),
+    Ruin(ocean_ruin::Piece),
 }
 
 impl Shaped {
@@ -39,6 +41,7 @@ impl Shaped {
             Self::Fossil(piece) => &piece.bbox,
             Self::Igloo(piece) => &piece.bbox,
             Self::Wreck(piece) => &piece.bbox,
+            Self::Ruin(piece) => &piece.bbox,
         }
     }
 
@@ -51,6 +54,7 @@ impl Shaped {
             Self::Fossil(piece) => piece.place(run, write),
             Self::Igloo(piece) => piece.place(run, write),
             Self::Wreck(piece) => piece.place(run, write),
+            Self::Ruin(piece) => piece.place(run, write),
         }
     }
 
@@ -64,6 +68,7 @@ impl Shaped {
             Self::Fossil(_) => "NetherFossilPiece".to_owned(),
             Self::Igloo(_) => "IglooPiece".to_owned(),
             Self::Wreck(_) => "ShipwreckPiece".to_owned(),
+            Self::Ruin(_) => "OceanRuinPiece".to_owned(),
         }
     }
 
@@ -75,7 +80,7 @@ impl Shaped {
             Self::Stronghold(piece) => Some(piece.facing),
             Self::Portal(_) => Some(Dir::North),
             Self::Treasure(_) => None,
-            Self::Fossil(_) | Self::Igloo(_) | Self::Wreck(_) => Some(Dir::North),
+            Self::Fossil(_) | Self::Igloo(_) | Self::Wreck(_) | Self::Ruin(_) => Some(Dir::North),
         };
         match facing {
             None => "null",
@@ -93,6 +98,7 @@ impl Shaped {
             Self::Fossil(piece) => Some(piece.tpl.line()),
             Self::Igloo(piece) => Some(piece.tpl.line()),
             Self::Wreck(piece) => Some(piece.tpl.line()),
+            Self::Ruin(piece) => Some(piece.tpl.line()),
             _ => None,
         }
     }
@@ -114,6 +120,22 @@ impl Shaped {
                 tags(piece.extra()),
             ),
             Self::Treasure(piece) => (piece.id(), piece.bbox, None, 0, Vec::new()),
+            Self::Ruin(piece) => (
+                piece.id(),
+                piece.bbox,
+                Some(super::blueprint::Dir::North),
+                0,
+                vec![
+                    ("Template", Tag::from(piece.tpl.name)),
+                    ("Rot", Tag::from(piece.tpl.rotation_name())),
+                    ("Integrity", Tag::from(piece.integrity)),
+                    (
+                        "BiomeType",
+                        Tag::from(if piece.warm { "warm" } else { "cold" }),
+                    ),
+                    ("IsLarge", Tag::from(piece.large)),
+                ],
+            ),
             Self::Wreck(piece) => (
                 piece.id(),
                 piece.bbox,
@@ -203,6 +225,7 @@ pub(crate) enum Other {
     NetherFossil(fossil::Height),
     Igloo,
     Shipwreck { beached: bool },
+    OceanRuin(ocean_ruin::Params),
 }
 
 impl Other {
@@ -210,6 +233,19 @@ impl Other {
         Some(match kind {
             "buried_treasure" => Self::BuriedTreasure,
             "igloo" => Self::Igloo,
+            "ocean_ruin" => {
+                let number = |key: &str| {
+                    value
+                        .get(key)
+                        .and_then(Value::as_f64)
+                        .map_or(0.0, |n| n as f32)
+                };
+                Self::OceanRuin(ocean_ruin::Params {
+                    warm: value.get("biome_temp").and_then(Value::as_str) == Some("warm"),
+                    large: number("large_probability"),
+                    cluster: number("cluster_probability"),
+                })
+            }
             "shipwreck" => Self::Shipwreck {
                 beached: value
                     .get("is_beached")
@@ -242,6 +278,10 @@ impl Other {
             Self::Shipwreck { beached } => {
                 shipwreck::generate(beached, library, ground, valid, probe, seed, chunk)
                     .map(|piece| vec![Shaped::Wreck(piece)])
+            }
+            Self::OceanRuin(params) => {
+                ocean_ruin::generate(params, library, ground, valid, probe, seed, chunk)
+                    .map(|pieces| pieces.into_iter().map(Shaped::Ruin).collect())
             }
             Self::Igloo => igloo::generate(library, ground, valid, probe, seed, chunk)
                 .map(|pieces| pieces.into_iter().map(Shaped::Igloo).collect()),

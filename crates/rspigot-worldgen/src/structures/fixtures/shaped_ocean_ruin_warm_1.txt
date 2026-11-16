@@ -1,0 +1,382 @@
+START ocean_ruin_warm -60 21 valid=true
+PIECE 0 OceanRuinPiece -975 90 336 -960 105 351 north
+TPL 0 minecraft:underwater_ruin/big_warm_7 -960 90 336 CLOCKWISE_90
+PIECE 1 OceanRuinPiece -988 90 351 -982 96 356 north
+TPL 1 minecraft:underwater_ruin/warm_8 -988 90 356 COUNTERCLOCKWISE_90
+PIECE 2 OceanRuinPiece -986 90 326 -981 96 332 north
+TPL 2 minecraft:underwater_ruin/warm_3 -986 90 326 NONE
+PIECE 3 OceanRuinPiece -985 90 335 -979 96 340 north
+TPL 3 minecraft:underwater_ruin/warm_7 -985 90 340 COUNTERCLOCKWISE_90
+PIECE 4 OceanRuinPiece -958 90 353 -953 96 359 north
+TPL 4 minecraft:underwater_ruin/warm_5 -953 90 359 CLOCKWISE_180
+PIECE 5 OceanRuinPiece -972 90 325 -967 96 331 north
+TPL 5 minecraft:underwater_ruin/warm_8 -972 90 325 NONE
+PIECE 6 OceanRuinPiece -957 90 326 -952 96 332 north
+TPL 6 minecraft:underwater_ruin/warm_3 -957 90 326 NONE
+PIECE 7 OceanRuinPiece -970 90 356 -965 96 362 north
+TPL 7 minecraft:underwater_ruin/warm_6 -970 90 356 NONE
+PIECE 8 OceanRuinPiece -952 90 336 -946 96 341 north
+TPL 8 minecraft:underwater_ruin/warm_8 -952 90 341 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -60 27 valid=true
+PIECE 0 OceanRuinPiece -965 90 426 -960 96 432 north
+TPL 0 minecraft:underwater_ruin/warm_7 -960 90 432 CLOCKWISE_180
+START ocean_ruin_warm -60 33 valid=true
+PIECE 0 OceanRuinPiece -960 90 528 -955 96 534 north
+TPL 0 minecraft:underwater_ruin/warm_4 -960 90 528 NONE
+START ocean_ruin_warm -60 39 valid=true
+PIECE 0 OceanRuinPiece -965 90 618 -960 96 624 north
+TPL 0 minecraft:underwater_ruin/warm_7 -960 90 624 CLOCKWISE_180
+START ocean_ruin_warm -60 48 valid=true
+PIECE 0 OceanRuinPiece -960 90 763 -954 96 768 north
+TPL 0 minecraft:underwater_ruin/warm_6 -960 90 768 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -60 54 valid=true
+PIECE 0 OceanRuinPiece -965 90 858 -960 96 864 north
+TPL 0 minecraft:underwater_ruin/warm_6 -960 90 864 CLOCKWISE_180
+START ocean_ruin_warm -60 60 valid=true
+PIECE 0 OceanRuinPiece -975 90 945 -960 105 960 north
+TPL 0 minecraft:underwater_ruin/big_warm_7 -960 90 960 CLOCKWISE_180
+PIECE 1 OceanRuinPiece -973 90 933 -968 96 939 north
+TPL 1 minecraft:underwater_ruin/warm_4 -973 90 933 NONE
+PIECE 2 OceanRuinPiece -995 90 959 -990 96 965 north
+TPL 2 minecraft:underwater_ruin/warm_1 -990 90 965 CLOCKWISE_180
+PIECE 3 OceanRuinPiece -972 90 962 -967 96 968 north
+TPL 3 minecraft:underwater_ruin/warm_3 -972 90 962 NONE
+PIECE 4 OceanRuinPiece -955 90 945 -949 96 950 north
+TPL 4 minecraft:underwater_ruin/warm_1 -955 90 950 COUNTERCLOCKWISE_90
+PIECE 5 OceanRuinPiece -983 90 930 -977 96 935 north
+TPL 5 minecraft:underwater_ruin/warm_4 -983 90 935 COUNTERCLOCKWISE_90
+PIECE 6 OceanRuinPiece -963 90 936 -957 96 941 north
+TPL 6 minecraft:underwater_ruin/warm_2 -957 90 936 CLOCKWISE_90
+PIECE 7 OceanRuinPiece -952 90 969 -947 96 975 north
+TPL 7 minecraft:underwater_ruin/warm_4 -952 90 969 NONE
+START ocean_ruin_warm -57 27 valid=true
+PIECE 0 OceanRuinPiece -912 90 417 -897 105 432 north
+TPL 0 minecraft:underwater_ruin/big_warm_7 -912 90 432 COUNTERCLOCKWISE_90
+PIECE 1 OceanRuinPiece -890 90 437 -885 96 443 north
+TPL 1 minecraft:underwater_ruin/warm_4 -890 90 437 NONE
+PIECE 2 OceanRuinPiece -895 90 419 -889 96 424 north
+TPL 2 minecraft:underwater_ruin/warm_1 -895 90 424 COUNTERCLOCKWISE_90
+PIECE 3 OceanRuinPiece -908 90 402 -902 96 407 north
+TPL 3 minecraft:underwater_ruin/warm_1 -908 90 407 COUNTERCLOCKWISE_90
+PIECE 4 OceanRuinPiece -921 90 418 -916 96 424 north
+TPL 4 minecraft:underwater_ruin/warm_7 -921 90 418 NONE
+PIECE 5 OceanRuinPiece -908 90 435 -902 96 440 north
+TPL 5 minecraft:underwater_ruin/warm_6 -908 90 440 COUNTERCLOCKWISE_90
+PIECE 6 OceanRuinPiece -924 90 429 -918 96 434 north
+TPL 6 minecraft:underwater_ruin/warm_6 -924 90 434 COUNTERCLOCKWISE_90
+PIECE 7 OceanRuinPiece -895 90 406 -889 96 411 north
+TPL 7 minecraft:underwater_ruin/warm_5 -889 90 406 CLOCKWISE_90
+PIECE 8 OceanRuinPiece -927 90 401 -922 96 407 north
+TPL 8 minecraft:underwater_ruin/warm_6 -922 90 407 CLOCKWISE_180
+START ocean_ruin_warm -57 36 valid=true
+PIECE 0 OceanRuinPiece -917 90 570 -912 96 576 north
+TPL 0 minecraft:underwater_ruin/warm_5 -912 90 576 CLOCKWISE_180
+START ocean_ruin_warm -57 42 valid=true
+PIECE 0 OceanRuinPiece -917 90 666 -912 96 672 north
+TPL 0 minecraft:underwater_ruin/warm_8 -912 90 672 CLOCKWISE_180
+START ocean_ruin_warm -57 48 valid=true
+PIECE 0 OceanRuinPiece -912 90 768 -907 96 774 north
+TPL 0 minecraft:underwater_ruin/warm_7 -912 90 768 NONE
+START ocean_ruin_warm -57 57 valid=true
+PIECE 0 OceanRuinPiece -912 90 912 -897 105 927 north
+TPL 0 minecraft:underwater_ruin/big_warm_7 -912 90 912 NONE
+PIECE 1 OceanRuinPiece -921 90 916 -916 96 922 north
+TPL 1 minecraft:underwater_ruin/warm_5 -921 90 916 NONE
+PIECE 2 OceanRuinPiece -890 90 927 -884 96 932 north
+TPL 2 minecraft:underwater_ruin/warm_8 -890 90 932 COUNTERCLOCKWISE_90
+PIECE 3 OceanRuinPiece -925 90 927 -919 96 932 north
+TPL 3 minecraft:underwater_ruin/warm_2 -925 90 932 COUNTERCLOCKWISE_90
+PIECE 4 OceanRuinPiece -932 90 897 -927 96 903 north
+TPL 4 minecraft:underwater_ruin/warm_6 -927 90 903 CLOCKWISE_180
+PIECE 5 OceanRuinPiece -892 90 895 -886 96 900 north
+TPL 5 minecraft:underwater_ruin/warm_1 -892 90 900 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -54 27 valid=true
+PIECE 0 OceanRuinPiece -870 90 432 -864 96 437 north
+TPL 0 minecraft:underwater_ruin/warm_1 -864 90 432 CLOCKWISE_90
+START ocean_ruin_warm -54 33 valid=true
+PIECE 0 OceanRuinPiece -869 90 522 -864 96 528 north
+TPL 0 minecraft:underwater_ruin/warm_5 -864 90 528 CLOCKWISE_180
+START ocean_ruin_warm -54 39 valid=true
+PIECE 0 OceanRuinPiece -870 90 624 -864 96 629 north
+TPL 0 minecraft:underwater_ruin/warm_6 -864 90 624 CLOCKWISE_90
+START ocean_ruin_warm -54 48 valid=true
+PIECE 0 OceanRuinPiece -870 90 768 -864 96 773 north
+TPL 0 minecraft:underwater_ruin/warm_2 -864 90 768 CLOCKWISE_90
+START ocean_ruin_warm -54 54 valid=true
+PIECE 0 OceanRuinPiece -870 90 864 -864 96 869 north
+TPL 0 minecraft:underwater_ruin/warm_5 -864 90 864 CLOCKWISE_90
+START ocean_ruin_warm -54 60 valid=true
+PIECE 0 OceanRuinPiece -879 90 945 -864 105 960 north
+TPL 0 minecraft:underwater_ruin/big_warm_4 -864 90 960 CLOCKWISE_180
+PIECE 1 OceanRuinPiece -895 90 963 -889 96 968 north
+TPL 1 minecraft:underwater_ruin/warm_3 -889 90 963 CLOCKWISE_90
+PIECE 2 OceanRuinPiece -861 90 929 -855 96 934 north
+TPL 2 minecraft:underwater_ruin/warm_8 -861 90 934 COUNTERCLOCKWISE_90
+PIECE 3 OceanRuinPiece -887 90 952 -882 96 958 north
+TPL 3 minecraft:underwater_ruin/warm_3 -887 90 952 NONE
+PIECE 4 OceanRuinPiece -899 90 930 -894 96 936 north
+TPL 4 minecraft:underwater_ruin/warm_5 -894 90 936 CLOCKWISE_180
+START ocean_ruin_warm -51 33 valid=true
+PIECE 0 OceanRuinPiece -816 90 528 -801 105 543 north
+TPL 0 minecraft:underwater_ruin/big_warm_4 -816 90 528 NONE
+PIECE 1 OceanRuinPiece -800 90 511 -795 96 517 north
+TPL 1 minecraft:underwater_ruin/warm_5 -795 90 517 CLOCKWISE_180
+PIECE 2 OceanRuinPiece -814 90 518 -809 96 524 north
+TPL 2 minecraft:underwater_ruin/warm_5 -814 90 518 NONE
+PIECE 3 OceanRuinPiece -794 90 525 -788 96 530 north
+TPL 3 minecraft:underwater_ruin/warm_5 -794 90 530 COUNTERCLOCKWISE_90
+PIECE 4 OceanRuinPiece -801 90 545 -796 96 551 north
+TPL 4 minecraft:underwater_ruin/warm_8 -796 90 551 CLOCKWISE_180
+PIECE 5 OceanRuinPiece -831 90 524 -826 96 530 north
+TPL 5 minecraft:underwater_ruin/warm_8 -826 90 530 CLOCKWISE_180
+PIECE 6 OceanRuinPiece -836 90 520 -830 96 525 north
+TPL 6 minecraft:underwater_ruin/warm_2 -830 90 520 CLOCKWISE_90
+PIECE 7 OceanRuinPiece -831 90 545 -826 96 551 north
+TPL 7 minecraft:underwater_ruin/warm_3 -826 90 551 CLOCKWISE_180
+START ocean_ruin_warm -51 39 valid=true
+PIECE 0 OceanRuinPiece -831 90 609 -816 105 624 north
+TPL 0 minecraft:underwater_ruin/big_warm_7 -816 90 624 CLOCKWISE_180
+PIECE 1 OceanRuinPiece -811 90 592 -805 96 597 north
+TPL 1 minecraft:underwater_ruin/warm_8 -811 90 597 COUNTERCLOCKWISE_90
+PIECE 2 OceanRuinPiece -824 90 626 -818 96 631 north
+TPL 2 minecraft:underwater_ruin/warm_7 -824 90 631 COUNTERCLOCKWISE_90
+PIECE 3 OceanRuinPiece -841 90 598 -836 96 604 north
+TPL 3 minecraft:underwater_ruin/warm_6 -841 90 598 NONE
+START ocean_ruin_warm -51 45 valid=true
+PIECE 0 OceanRuinPiece -816 90 715 -810 96 720 north
+TPL 0 minecraft:underwater_ruin/warm_7 -816 90 720 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -51 51 valid=true
+PIECE 0 OceanRuinPiece -816 90 816 -801 105 831 north
+TPL 0 minecraft:underwater_ruin/big_warm_7 -816 90 816 NONE
+PIECE 1 OceanRuinPiece -831 90 799 -825 96 804 north
+TPL 1 minecraft:underwater_ruin/warm_5 -831 90 804 COUNTERCLOCKWISE_90
+PIECE 2 OceanRuinPiece -830 90 833 -825 96 839 north
+TPL 2 minecraft:underwater_ruin/warm_4 -830 90 833 NONE
+PIECE 3 OceanRuinPiece -814 90 833 -809 96 839 north
+TPL 3 minecraft:underwater_ruin/warm_3 -814 90 833 NONE
+PIECE 4 OceanRuinPiece -829 90 817 -824 96 823 north
+TPL 4 minecraft:underwater_ruin/warm_2 -829 90 817 NONE
+PIECE 5 OceanRuinPiece -795 90 814 -789 96 819 north
+TPL 5 minecraft:underwater_ruin/warm_6 -795 90 819 COUNTERCLOCKWISE_90
+PIECE 6 OceanRuinPiece -815 90 799 -809 96 804 north
+TPL 6 minecraft:underwater_ruin/warm_1 -815 90 804 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -51 60 valid=true
+PIECE 0 OceanRuinPiece -816 90 955 -810 96 960 north
+TPL 0 minecraft:underwater_ruin/warm_5 -816 90 960 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -48 33 valid=true
+PIECE 0 OceanRuinPiece -783 90 513 -768 105 528 north
+TPL 0 minecraft:underwater_ruin/big_warm_6 -768 90 528 CLOCKWISE_180
+PIECE 1 OceanRuinPiece -766 90 530 -760 96 535 north
+TPL 1 minecraft:underwater_ruin/warm_4 -766 90 535 COUNTERCLOCKWISE_90
+PIECE 2 OceanRuinPiece -764 90 511 -758 96 516 north
+TPL 2 minecraft:underwater_ruin/warm_6 -764 90 516 COUNTERCLOCKWISE_90
+PIECE 3 OceanRuinPiece -770 90 495 -765 96 501 north
+TPL 3 minecraft:underwater_ruin/warm_2 -765 90 501 CLOCKWISE_180
+PIECE 4 OceanRuinPiece -778 90 502 -773 96 508 north
+TPL 4 minecraft:underwater_ruin/warm_3 -778 90 502 NONE
+PIECE 5 OceanRuinPiece -802 90 531 -796 96 536 north
+TPL 5 minecraft:underwater_ruin/warm_4 -796 90 531 CLOCKWISE_90
+START ocean_ruin_warm -48 39 valid=true
+PIECE 0 OceanRuinPiece -774 90 624 -768 96 629 north
+TPL 0 minecraft:underwater_ruin/warm_8 -768 90 624 CLOCKWISE_90
+START ocean_ruin_warm -48 48 valid=true
+PIECE 0 OceanRuinPiece -768 90 768 -763 96 774 north
+TPL 0 minecraft:underwater_ruin/warm_7 -768 90 768 NONE
+START ocean_ruin_warm -48 54 valid=true
+PIECE 0 OceanRuinPiece -768 90 864 -763 96 870 north
+TPL 0 minecraft:underwater_ruin/warm_3 -768 90 864 NONE
+START ocean_ruin_warm -48 60 valid=true
+PIECE 0 OceanRuinPiece -768 90 960 -753 105 975 north
+TPL 0 minecraft:underwater_ruin/big_warm_4 -768 90 960 NONE
+PIECE 1 OceanRuinPiece -750 90 977 -745 96 983 north
+TPL 1 minecraft:underwater_ruin/warm_1 -745 90 983 CLOCKWISE_180
+PIECE 2 OceanRuinPiece -769 90 948 -763 96 953 north
+TPL 2 minecraft:underwater_ruin/warm_8 -763 90 948 CLOCKWISE_90
+PIECE 3 OceanRuinPiece -753 90 949 -747 96 954 north
+TPL 3 minecraft:underwater_ruin/warm_6 -747 90 949 CLOCKWISE_90
+PIECE 4 OceanRuinPiece -767 90 977 -762 96 983 north
+TPL 4 minecraft:underwater_ruin/warm_4 -767 90 977 NONE
+PIECE 5 OceanRuinPiece -782 90 976 -777 96 982 north
+TPL 5 minecraft:underwater_ruin/warm_4 -777 90 982 CLOCKWISE_180
+PIECE 6 OceanRuinPiece -776 90 946 -770 96 951 north
+TPL 6 minecraft:underwater_ruin/warm_6 -776 90 951 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -45 33 valid=true
+PIECE 0 OceanRuinPiece -725 90 522 -720 96 528 north
+TPL 0 minecraft:underwater_ruin/warm_8 -720 90 528 CLOCKWISE_180
+START ocean_ruin_warm -45 42 valid=true
+PIECE 0 OceanRuinPiece -720 90 672 -715 96 678 north
+TPL 0 minecraft:underwater_ruin/warm_5 -720 90 672 NONE
+START ocean_ruin_warm -45 48 valid=true
+PIECE 0 OceanRuinPiece -720 90 753 -705 105 768 north
+TPL 0 minecraft:underwater_ruin/big_warm_5 -720 90 768 COUNTERCLOCKWISE_90
+PIECE 1 OceanRuinPiece -718 90 775 -713 96 781 north
+TPL 1 minecraft:underwater_ruin/warm_3 -718 90 775 NONE
+PIECE 2 OceanRuinPiece -741 90 745 -735 96 750 north
+TPL 2 minecraft:underwater_ruin/warm_1 -735 90 745 CLOCKWISE_90
+PIECE 3 OceanRuinPiece -706 90 775 -700 96 780 north
+TPL 3 minecraft:underwater_ruin/warm_4 -700 90 775 CLOCKWISE_90
+PIECE 4 OceanRuinPiece -703 90 737 -697 96 742 north
+TPL 4 minecraft:underwater_ruin/warm_5 -703 90 742 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -45 54 valid=true
+PIECE 0 OceanRuinPiece -720 90 864 -715 96 870 north
+TPL 0 minecraft:underwater_ruin/warm_7 -720 90 864 NONE
+START ocean_ruin_warm -42 33 valid=true
+PIECE 0 OceanRuinPiece -677 90 522 -672 96 528 north
+TPL 0 minecraft:underwater_ruin/warm_5 -672 90 528 CLOCKWISE_180
+START ocean_ruin_warm -42 39 valid=true
+PIECE 0 OceanRuinPiece -672 90 624 -657 105 639 north
+TPL 0 minecraft:underwater_ruin/big_warm_6 -672 90 624 NONE
+PIECE 1 OceanRuinPiece -687 90 628 -681 96 633 north
+TPL 1 minecraft:underwater_ruin/warm_3 -681 90 628 CLOCKWISE_90
+PIECE 2 OceanRuinPiece -687 90 609 -682 96 615 north
+TPL 2 minecraft:underwater_ruin/warm_7 -682 90 615 CLOCKWISE_180
+PIECE 3 OceanRuinPiece -655 90 616 -650 96 622 north
+TPL 3 minecraft:underwater_ruin/warm_4 -655 90 616 NONE
+PIECE 4 OceanRuinPiece -650 90 641 -644 96 646 north
+TPL 4 minecraft:underwater_ruin/warm_6 -650 90 646 COUNTERCLOCKWISE_90
+PIECE 5 OceanRuinPiece -654 90 628 -649 96 634 north
+TPL 5 minecraft:underwater_ruin/warm_7 -654 90 628 NONE
+START ocean_ruin_warm -42 45 valid=true
+PIECE 0 OceanRuinPiece -672 90 715 -666 96 720 north
+TPL 0 minecraft:underwater_ruin/warm_3 -672 90 720 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -42 51 valid=true
+PIECE 0 OceanRuinPiece -678 90 816 -672 96 821 north
+TPL 0 minecraft:underwater_ruin/warm_8 -672 90 816 CLOCKWISE_90
+START ocean_ruin_warm -39 36 valid=true
+PIECE 0 OceanRuinPiece -624 90 571 -618 96 576 north
+TPL 0 minecraft:underwater_ruin/warm_8 -624 90 576 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -39 42 valid=true
+PIECE 0 OceanRuinPiece -624 90 672 -609 105 687 north
+TPL 0 minecraft:underwater_ruin/big_warm_6 -624 90 672 NONE
+PIECE 1 OceanRuinPiece -640 90 667 -635 96 673 north
+TPL 1 minecraft:underwater_ruin/warm_5 -635 90 673 CLOCKWISE_180
+PIECE 2 OceanRuinPiece -632 90 656 -626 96 661 north
+TPL 2 minecraft:underwater_ruin/warm_7 -632 90 661 COUNTERCLOCKWISE_90
+PIECE 3 OceanRuinPiece -609 90 663 -603 96 668 north
+TPL 3 minecraft:underwater_ruin/warm_7 -603 90 663 CLOCKWISE_90
+START ocean_ruin_warm -39 48 valid=true
+PIECE 0 OceanRuinPiece -624 90 763 -618 96 768 north
+TPL 0 minecraft:underwater_ruin/warm_3 -624 90 768 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -39 57 valid=true
+PIECE 0 OceanRuinPiece -624 90 912 -619 96 918 north
+TPL 0 minecraft:underwater_ruin/warm_8 -624 90 912 NONE
+START ocean_ruin_warm -36 39 valid=true
+PIECE 0 OceanRuinPiece -576 90 619 -570 96 624 north
+TPL 0 minecraft:underwater_ruin/warm_4 -576 90 624 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -36 45 valid=true
+PIECE 0 OceanRuinPiece -576 90 705 -561 105 720 north
+TPL 0 minecraft:underwater_ruin/big_warm_4 -576 90 720 COUNTERCLOCKWISE_90
+PIECE 1 OceanRuinPiece -560 90 718 -555 96 724 north
+TPL 1 minecraft:underwater_ruin/warm_2 -555 90 724 CLOCKWISE_180
+PIECE 2 OceanRuinPiece -553 90 693 -548 96 699 north
+TPL 2 minecraft:underwater_ruin/warm_7 -553 90 693 NONE
+PIECE 3 OceanRuinPiece -570 90 724 -565 96 730 north
+TPL 3 minecraft:underwater_ruin/warm_1 -570 90 724 NONE
+PIECE 4 OceanRuinPiece -590 90 687 -585 96 693 north
+TPL 4 minecraft:underwater_ruin/warm_3 -585 90 693 CLOCKWISE_180
+START ocean_ruin_warm -36 51 valid=true
+PIECE 0 OceanRuinPiece -582 90 816 -576 96 821 north
+TPL 0 minecraft:underwater_ruin/warm_4 -576 90 816 CLOCKWISE_90
+START ocean_ruin_warm -33 45 valid=true
+PIECE 0 OceanRuinPiece -528 90 715 -522 96 720 north
+TPL 0 minecraft:underwater_ruin/warm_7 -528 90 720 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -30 42 valid=true
+PIECE 0 OceanRuinPiece -486 90 672 -480 96 677 north
+TPL 0 minecraft:underwater_ruin/warm_5 -480 90 672 CLOCKWISE_90
+START ocean_ruin_warm -27 39 valid=true
+PIECE 0 OceanRuinPiece -432 90 619 -426 96 624 north
+TPL 0 minecraft:underwater_ruin/warm_7 -432 90 624 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -27 48 valid=true
+PIECE 0 OceanRuinPiece -432 90 763 -426 96 768 north
+TPL 0 minecraft:underwater_ruin/warm_6 -432 90 768 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -24 42 valid=true
+PIECE 0 OceanRuinPiece -384 90 667 -378 96 672 north
+TPL 0 minecraft:underwater_ruin/warm_6 -384 90 672 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -24 48 valid=true
+PIECE 0 OceanRuinPiece -390 90 768 -384 96 773 north
+TPL 0 minecraft:underwater_ruin/warm_4 -384 90 768 CLOCKWISE_90
+START ocean_ruin_warm -21 42 valid=true
+PIECE 0 OceanRuinPiece -351 90 657 -336 105 672 north
+TPL 0 minecraft:underwater_ruin/big_warm_4 -336 90 672 CLOCKWISE_180
+PIECE 1 OceanRuinPiece -362 90 655 -356 96 660 north
+TPL 1 minecraft:underwater_ruin/warm_7 -362 90 660 COUNTERCLOCKWISE_90
+PIECE 2 OceanRuinPiece -367 90 676 -361 96 681 north
+TPL 2 minecraft:underwater_ruin/warm_7 -361 90 676 CLOCKWISE_90
+PIECE 3 OceanRuinPiece -334 90 661 -329 96 667 north
+TPL 3 minecraft:underwater_ruin/warm_8 -334 90 661 NONE
+PIECE 4 OceanRuinPiece -332 90 645 -327 96 651 north
+TPL 4 minecraft:underwater_ruin/warm_5 -332 90 645 NONE
+PIECE 5 OceanRuinPiece -352 90 640 -347 96 646 north
+TPL 5 minecraft:underwater_ruin/warm_3 -347 90 646 CLOCKWISE_180
+PIECE 6 OceanRuinPiece -331 90 681 -326 96 687 north
+TPL 6 minecraft:underwater_ruin/warm_8 -331 90 681 NONE
+PIECE 7 OceanRuinPiece -361 90 649 -356 96 655 north
+TPL 7 minecraft:underwater_ruin/warm_8 -361 90 649 NONE
+PIECE 8 OceanRuinPiece -345 90 677 -340 96 683 north
+TPL 8 minecraft:underwater_ruin/warm_1 -345 90 677 NONE
+START ocean_ruin_warm -21 51 valid=true
+PIECE 0 OceanRuinPiece -336 90 811 -330 96 816 north
+TPL 0 minecraft:underwater_ruin/warm_1 -336 90 816 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -18 42 valid=true
+PIECE 0 OceanRuinPiece -303 90 672 -288 105 687 north
+TPL 0 minecraft:underwater_ruin/big_warm_6 -288 90 672 CLOCKWISE_90
+PIECE 1 OceanRuinPiece -301 90 688 -296 96 694 north
+TPL 1 minecraft:underwater_ruin/warm_1 -296 90 694 CLOCKWISE_180
+PIECE 2 OceanRuinPiece -321 90 691 -315 96 696 north
+TPL 2 minecraft:underwater_ruin/warm_7 -315 90 691 CLOCKWISE_90
+PIECE 3 OceanRuinPiece -286 90 661 -281 96 667 north
+TPL 3 minecraft:underwater_ruin/warm_2 -286 90 661 NONE
+PIECE 4 OceanRuinPiece -280 90 687 -274 96 692 north
+TPL 4 minecraft:underwater_ruin/warm_6 -280 90 692 COUNTERCLOCKWISE_90
+PIECE 5 OceanRuinPiece -320 90 674 -314 96 679 north
+TPL 5 minecraft:underwater_ruin/warm_7 -314 90 674 CLOCKWISE_90
+PIECE 6 OceanRuinPiece -319 90 657 -314 96 663 north
+TPL 6 minecraft:underwater_ruin/warm_1 -314 90 663 CLOCKWISE_180
+START ocean_ruin_warm -18 48 valid=true
+PIECE 0 OceanRuinPiece -288 90 768 -273 105 783 north
+TPL 0 minecraft:underwater_ruin/big_warm_5 -288 90 768 NONE
+PIECE 1 OceanRuinPiece -288 90 757 -282 96 762 north
+TPL 1 minecraft:underwater_ruin/warm_3 -282 90 757 CLOCKWISE_90
+PIECE 2 OceanRuinPiece -287 90 785 -282 96 791 north
+TPL 2 minecraft:underwater_ruin/warm_6 -287 90 785 NONE
+PIECE 3 OceanRuinPiece -299 90 753 -293 96 758 north
+TPL 3 minecraft:underwater_ruin/warm_3 -299 90 758 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -15 42 valid=true
+PIECE 0 OceanRuinPiece -240 90 672 -235 96 678 north
+TPL 0 minecraft:underwater_ruin/warm_1 -240 90 672 NONE
+START ocean_ruin_warm -15 48 valid=true
+PIECE 0 OceanRuinPiece -240 90 768 -235 96 774 north
+TPL 0 minecraft:underwater_ruin/warm_6 -240 90 768 NONE
+START ocean_ruin_warm -12 39 valid=true
+PIECE 0 OceanRuinPiece -192 90 609 -177 105 624 north
+TPL 0 minecraft:underwater_ruin/big_warm_4 -192 90 624 COUNTERCLOCKWISE_90
+START ocean_ruin_warm -12 45 valid=true
+PIECE 0 OceanRuinPiece -207 90 720 -192 105 735 north
+TPL 0 minecraft:underwater_ruin/big_warm_7 -192 90 720 CLOCKWISE_90
+PIECE 1 OceanRuinPiece -201 90 703 -195 96 708 north
+TPL 1 minecraft:underwater_ruin/warm_5 -201 90 708 COUNTERCLOCKWISE_90
+PIECE 2 OceanRuinPiece -184 90 709 -179 96 715 north
+TPL 2 minecraft:underwater_ruin/warm_2 -184 90 709 NONE
+PIECE 3 OceanRuinPiece -203 90 738 -197 96 743 north
+TPL 3 minecraft:underwater_ruin/warm_8 -203 90 743 COUNTERCLOCKWISE_90
+PIECE 4 OceanRuinPiece -191 90 726 -185 96 731 north
+TPL 4 minecraft:underwater_ruin/warm_8 -185 90 726 CLOCKWISE_90
+PIECE 5 OceanRuinPiece -218 90 740 -213 96 746 north
+TPL 5 minecraft:underwater_ruin/warm_3 -218 90 740 NONE
+PIECE 6 OceanRuinPiece -189 90 744 -184 96 750 north
+TPL 6 minecraft:underwater_ruin/warm_4 -189 90 744 NONE
+START ocean_ruin_warm -9 42 valid=true
+PIECE 0 OceanRuinPiece -150 90 672 -144 96 677 north
+TPL 0 minecraft:underwater_ruin/warm_8 -144 90 672 CLOCKWISE_90
+START ocean_ruin_warm -6 39 valid=true
+PIECE 0 OceanRuinPiece -102 90 624 -96 96 629 north
+TPL 0 minecraft:underwater_ruin/warm_8 -96 90 624 CLOCKWISE_90
+START ocean_ruin_warm -6 45 valid=true
+PIECE 0 OceanRuinPiece -102 90 720 -96 96 725 north
+TPL 0 minecraft:underwater_ruin/warm_5 -96 90 720 CLOCKWISE_90
+START ocean_ruin_warm -60 -60 valid=false
+START ocean_ruin_warm -36 -3 valid=false
+START ocean_ruin_warm -15 -3 valid=false
+START ocean_ruin_warm 6 -39 valid=false
+START ocean_ruin_warm 24 -6 valid=false
+START ocean_ruin_warm 42 27 valid=false
