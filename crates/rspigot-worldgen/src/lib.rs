@@ -6,16 +6,14 @@ mod dimension;
 mod end;
 mod end_spikes;
 mod flat;
-mod grid;
 mod legacy;
 mod nether;
 mod noise;
 mod overworld;
-mod perlin;
 mod resources;
-mod rng;
 mod simplex;
 mod temperature;
+mod terrain;
 mod void;
 
 use rspigot_core::ports::ChunkGenerator;

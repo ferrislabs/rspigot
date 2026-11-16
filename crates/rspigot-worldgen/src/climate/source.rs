@@ -61,10 +61,6 @@ impl BiomeSource {
         rspigot_data::multi_noise::overworld_biomes()
             [usize::from(self.biome_index(scratch, qx, qy, qz))]
     }
-
-    pub(crate) fn surface_estimate(&self, scratch: &mut ClimateScratch, x: i32, z: i32) -> f32 {
-        self.functions.sample(scratch, x, 0, z)[4] * 128.0
-    }
 }
 
 #[cfg(test)]

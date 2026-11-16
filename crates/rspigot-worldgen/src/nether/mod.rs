@@ -114,6 +114,8 @@ impl Nether {
                 world_z: z0 + z as i32,
                 top: bounds.max_y,
                 gradient: (0, 0),
+                preliminary: None,
+                vein: None,
                 biome_at: |_| index,
             });
         }
