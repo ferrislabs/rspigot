@@ -1,3 +1,4 @@
+mod bundled_pack;
 mod config;
 mod console;
 mod crash;
@@ -148,7 +149,11 @@ fn main() -> anyhow::Result<()> {
         AnvilStore::open_with(&world_root, DimensionLayout::Spigot, options)
             .context("opening world")?,
     );
-    for issue in rspigot_worldgen::install_datapacks(&world_root.join("datapacks")) {
+    let datapacks = world_root.join("datapacks");
+    if let Err(error) = bundled_pack::install(&datapacks) {
+        tracing::warn!("Could not install the bundled datapack: {error}");
+    }
+    for issue in rspigot_worldgen::install_datapacks(&datapacks) {
         tracing::warn!("Datapack problem in {issue}");
     }
     let generator = Arc::new(WorldGenerator::from_level_type(

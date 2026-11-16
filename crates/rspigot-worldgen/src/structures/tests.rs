@@ -497,3 +497,61 @@ mod custom {
         assert_eq!(planks, 32 + 25);
     }
 }
+
+mod nether {
+    use super::with_extras;
+    use crate::nether::Nether;
+    use crate::resources::Resources;
+    use rspigot_blocks::BlockKind;
+    use rspigot_domain::world::Dimension;
+    use rspigot_domain::{BlockPos, ChunkPos};
+
+    #[test]
+    fn a_bastion_remnant_is_built_into_the_nether() {
+        let resources = Resources::resolve();
+        let nether = Nether::with_library(1, &resources.blocks, with_extras());
+        let dimension = Dimension::nether();
+        let mut origin = None;
+        'scan: for cx in -60..60 {
+            for cz in -60..60 {
+                if nether
+                    .starts_near(&dimension, ChunkPos::new(cx, cz))
+                    .iter()
+                    .any(|start| start.name == "bastion_remnant" && start.chunk == (cx, cz))
+                {
+                    origin = Some((cx, cz));
+                    break 'scan;
+                }
+            }
+        }
+        let (ox, oz) = origin.expect("a bastion start");
+        let mut bricks = 0;
+        let mut recorded = false;
+        for cx in ox - 2..=ox + 2 {
+            for cz in oz - 2..=oz + 2 {
+                let column = nether.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                for y in 0..128 {
+                    for z in 0..16 {
+                        for x in 0..16 {
+                            let pos = BlockPos::new(cx * 16 + x, y, cz * 16 + z);
+                            if column.block(pos).and_then(|state| state.kind())
+                                == Some(BlockKind::PolishedBlackstoneBricks)
+                            {
+                                bricks += 1;
+                            }
+                        }
+                    }
+                }
+                if (cx, cz) == (ox, oz) {
+                    recorded = column
+                        .extra
+                        .get_compound("structures")
+                        .and_then(|tag| tag.get_compound("starts"))
+                        .is_some_and(|starts| starts.contains_key("minecraft:bastion_remnant"));
+                }
+            }
+        }
+        assert!(bricks > 200, "bricks {bricks}");
+        assert!(recorded);
+    }
+}

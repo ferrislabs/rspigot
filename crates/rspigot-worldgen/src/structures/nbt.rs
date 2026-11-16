@@ -331,3 +331,28 @@ pub(crate) fn chunk_entities(starts: &[std::sync::Arc<Start>], chunk: (i32, i32)
     }
     out
 }
+
+pub(crate) fn attach(
+    column: &mut rspigot_domain::chunk::ChunkColumn,
+    block_entities: &[((i32, i32, i32), Value)],
+    starts: &[std::sync::Arc<Start>],
+    pos: rspigot_domain::ChunkPos,
+) {
+    for (at, nbt) in block_entities {
+        if rspigot_domain::BlockPos::new(at.0, at.1, at.2).chunk() == pos
+            && let Some(entity) = block_entity(*at, nbt)
+        {
+            column.set_block_entity(entity);
+        }
+    }
+    let own: Vec<_> = starts
+        .iter()
+        .filter(|start| start.chunk == (pos.x, pos.z))
+        .cloned()
+        .collect();
+    if !starts.is_empty() {
+        column
+            .extra
+            .insert("structures", structures_tag(&own, starts));
+    }
+}

@@ -16,6 +16,7 @@ use crate::overworld::{
     Bounds, ChunkBiomes, ColumnInput, Features, Region, SurfaceSystem, TerrainCache, TerrainChunk,
 };
 use crate::resources::{BlockKind, Palette, Resources};
+use crate::structures::{BiomeProbe, Engine, Ground, Heightmap, Library, Start};
 
 const CEILING: i32 = 127;
 const NOISE_HEIGHT: i32 = 128;
@@ -30,18 +31,87 @@ pub(crate) struct Nether {
     surface: Arc<SurfaceSystem>,
     features: Arc<Features>,
     cache: Arc<Mutex<TerrainCache>>,
+    structures: Arc<Engine>,
+}
+
+pub(crate) struct NetherProbe<'a> {
+    biomes: &'a biomes::NetherBiomes,
+}
+
+impl BiomeProbe for NetherProbe<'_> {
+    fn at(&self, qx: i32, _qy: i32, qz: i32) -> u8 {
+        self.biomes.index(qx, qz) as u8
+    }
+
+    fn id(&self, name: &str) -> Option<u8> {
+        NETHER_BIOMES
+            .iter()
+            .position(|candidate| candidate.strip_prefix("minecraft:") == Some(name))
+            .map(|index| index as u8)
+    }
+}
+
+pub(crate) struct NetherGround {
+    min_y: i32,
+    max_y: i32,
+    sea_level: i32,
+}
+
+impl Ground for NetherGround {
+    fn first_free_height(&self, _x: i32, _z: i32, _heightmap: Heightmap) -> i32 {
+        self.sea_level
+    }
+
+    fn min_y(&self) -> i32 {
+        self.min_y
+    }
+
+    fn max_y(&self) -> i32 {
+        self.max_y
+    }
 }
 
 impl Nether {
     pub(crate) fn new(seed: u64, palette: &Palette) -> Self {
+        Self::with_library(seed, palette, Library::current())
+    }
+
+    pub(crate) fn with_library(seed: u64, palette: &Palette, library: &'static Library) -> Self {
+        let biomes = biomes::NetherBiomes::new(seed as i64);
+        let structures = Arc::new(Engine::new(
+            seed as i64,
+            &NetherProbe { biomes: &biomes },
+            library,
+        ));
         Self {
+            structures,
             seed,
             density: density::NetherDensity::new(seed as i64),
-            biomes: biomes::NetherBiomes::new(seed as i64),
+            biomes,
             surface: Arc::new(SurfaceSystem::nether(seed as i64, palette)),
             features: Arc::new(Features::compile(&NETHER_BIOMES)),
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
         }
+    }
+
+    pub(crate) fn starts_near(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Arc<Start>> {
+        let ground = NetherGround {
+            min_y: dimension.height.min_y,
+            max_y: dimension.height.max_y(),
+            sea_level: dimension.sea_level,
+        };
+        let probe = NetherProbe {
+            biomes: &self.biomes,
+        };
+        self.structures.starts_near(&ground, &probe, (pos.x, pos.z))
+    }
+
+    pub(crate) fn structure_entities(
+        &self,
+        dimension: &Dimension,
+        pos: ChunkPos,
+    ) -> Vec<rspigot_nbt::Compound> {
+        crate::structures::chunk_entities(&self.starts_near(dimension, pos), (pos.x, pos.z))
     }
 
     pub(crate) fn biome_index(&self, qx: i32, qz: i32) -> u8 {
@@ -129,15 +199,23 @@ impl Nether {
         pos: ChunkPos,
     ) -> ChunkColumn {
         let mut region = Region::for_nether(self, resources, dimension, pos);
-        self.features
-            .decorate(&mut region, self.seed as i64, &self.surface, None);
+        let starts = self.starts_near(dimension, pos);
+        self.features.decorate(
+            &mut region,
+            self.seed as i64,
+            &self.surface,
+            Some((&self.structures, &starts)),
+        );
+        let block_entities = std::mem::take(&mut region.block_entities);
         let (buffer, indices) = region.finish();
         let ids: Vec<BiomeId> = self.biomes.ids().to_vec();
         let stored: Vec<BiomeId> = indices
             .iter()
             .map(|index| ids[usize::from(*index)])
             .collect();
-        buffer.finish_layered(pos, &stored, &resources.classifier)
+        let mut column = buffer.finish_layered(pos, &stored, &resources.classifier);
+        crate::structures::attach(&mut column, &block_entities, &starts, pos);
+        column
     }
 
     pub(crate) fn spawn_point(&self, resources: &Resources, dimension: &Dimension) -> Vec3 {
