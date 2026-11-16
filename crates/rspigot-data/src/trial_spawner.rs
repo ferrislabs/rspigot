@@ -49,7 +49,10 @@ mod tests {
         assert_eq!(config.simultaneous_mobs_added_per_player, Some(0.5));
         assert_eq!(config.ticks_between_spawn, Some(20));
         assert_eq!(config.spawn_potentials.len(), 1);
-        assert_eq!(config.spawn_potentials[0].entity, r#"{id:"minecraft:breeze"}"#);
+        assert_eq!(
+            config.spawn_potentials[0].entity,
+            r#"{id:"minecraft:breeze"}"#
+        );
         assert_eq!(
             config.loot_tables_to_eject,
             Some(
@@ -73,8 +76,18 @@ mod tests {
     #[test]
     fn the_slime_config_keeps_the_size_of_each_entry() {
         let config = config("trial_chamber/small_melee/slime/normal").expect("config");
-        let sizes: Vec<&str> = config.spawn_potentials.iter().map(|entry| entry.entity).collect();
-        assert_eq!(sizes, [r#"{Size:1,id:"minecraft:slime"}"#, r#"{Size:2,id:"minecraft:slime"}"#]);
+        let sizes: Vec<&str> = config
+            .spawn_potentials
+            .iter()
+            .map(|entry| entry.entity)
+            .collect();
+        assert_eq!(
+            sizes,
+            [
+                r#"{Size:1,id:"minecraft:slime"}"#,
+                r#"{Size:2,id:"minecraft:slime"}"#
+            ]
+        );
     }
 
     #[test]

@@ -55,6 +55,8 @@ pub mod spread;
 pub mod stonecutting;
 pub mod text;
 pub mod tick_rate;
+pub mod trial_spawner;
+pub mod vault;
 pub mod warden;
 pub mod world;
 pub mod world_border;

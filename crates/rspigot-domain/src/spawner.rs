@@ -45,7 +45,7 @@ impl SpawnData {
         })
     }
 
-    fn read(tag: &Compound) -> Self {
+    pub fn read(tag: &Compound) -> Self {
         let Some(entity) = tag.get_compound("entity") else {
             return Self {
                 entity: tag.clone(),
@@ -59,7 +59,7 @@ impl SpawnData {
         }
     }
 
-    fn write(&self) -> Compound {
+    pub fn write(&self) -> Compound {
         let mut tag = Compound::new().with("entity", self.entity.clone());
         if let Some(rules) = &self.rules {
             tag.insert("custom_spawn_rules", rules.clone());
