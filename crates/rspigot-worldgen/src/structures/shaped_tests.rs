@@ -204,3 +204,32 @@ fn a_nether_fossil_is_built_into_the_nether() {
     }
     assert!(bones >= 3, "bone blocks {bones}");
 }
+
+#[test]
+fn igloo_starts_match_vanilla() {
+    check("igloo", include_str!("fixtures/shaped_igloo_1.txt"));
+}
+
+#[test]
+fn an_igloo_with_a_laboratory_is_built_into_the_generated_chunks() {
+    use rspigot_blocks::BlockKind;
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        1,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    let mut chests = 0;
+    let mut ladders = 0;
+    for chunk in [(-9, -60), (-9, -59)] {
+        chests += count_blocks(&overworld, &resources, chunk, |kind| {
+            kind == BlockKind::Chest
+        });
+        ladders += count_blocks(&overworld, &resources, chunk, |kind| {
+            kind == BlockKind::Ladder
+        });
+    }
+    assert_eq!(chests, 1);
+    assert!(ladders >= 3, "ladders {ladders}");
+}

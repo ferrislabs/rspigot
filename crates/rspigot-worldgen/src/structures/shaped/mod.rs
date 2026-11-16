@@ -1,5 +1,6 @@
 pub(crate) mod fossil;
 pub(crate) mod frame;
+pub(crate) mod igloo;
 pub(crate) mod mineshaft;
 pub(crate) mod portal;
 pub(crate) mod start;
@@ -23,6 +24,7 @@ pub(crate) enum Shaped {
     Portal(portal::Piece),
     Treasure(treasure::Piece),
     Fossil(fossil::Piece),
+    Igloo(igloo::Piece),
 }
 
 impl Shaped {
@@ -33,6 +35,7 @@ impl Shaped {
             Self::Portal(piece) => &piece.bbox,
             Self::Treasure(piece) => &piece.bbox,
             Self::Fossil(piece) => &piece.bbox,
+            Self::Igloo(piece) => &piece.bbox,
         }
     }
 
@@ -43,6 +46,7 @@ impl Shaped {
             Self::Portal(piece) => piece.place(run, write),
             Self::Treasure(piece) => piece.place(run, write),
             Self::Fossil(piece) => piece.place(run, write),
+            Self::Igloo(piece) => piece.place(run, write),
         }
     }
 
@@ -54,6 +58,7 @@ impl Shaped {
             Self::Portal(_) => "RuinedPortalPiece".to_owned(),
             Self::Treasure(_) => "BuriedTreasurePiece".to_owned(),
             Self::Fossil(_) => "NetherFossilPiece".to_owned(),
+            Self::Igloo(_) => "IglooPiece".to_owned(),
         }
     }
 
@@ -65,7 +70,7 @@ impl Shaped {
             Self::Stronghold(piece) => Some(piece.facing),
             Self::Portal(_) => Some(Dir::North),
             Self::Treasure(_) => None,
-            Self::Fossil(_) => Some(Dir::North),
+            Self::Fossil(_) | Self::Igloo(_) => Some(Dir::North),
         };
         match facing {
             None => "null",
@@ -81,6 +86,7 @@ impl Shaped {
     pub(crate) fn template_line(&self) -> Option<String> {
         match self {
             Self::Fossil(piece) => Some(piece.tpl.line()),
+            Self::Igloo(piece) => Some(piece.tpl.line()),
             _ => None,
         }
     }
@@ -102,6 +108,16 @@ impl Shaped {
                 tags(piece.extra()),
             ),
             Self::Treasure(piece) => (piece.id(), piece.bbox, None, 0, Vec::new()),
+            Self::Igloo(piece) => (
+                piece.id(),
+                piece.bbox,
+                Some(super::blueprint::Dir::North),
+                0,
+                vec![
+                    ("Template", Tag::from(piece.tpl.name)),
+                    ("Rot", Tag::from(piece.tpl.rotation_name())),
+                ],
+            ),
             Self::Fossil(piece) => (
                 piece.id(),
                 piece.bbox,
@@ -169,12 +185,14 @@ fn tags<T: Into<Tag>>(items: Vec<(&'static str, T)>) -> Vec<(&'static str, Tag)>
 pub(crate) enum Other {
     BuriedTreasure,
     NetherFossil(fossil::Height),
+    Igloo,
 }
 
 impl Other {
     pub(crate) fn parse(kind: &str, value: &Value) -> Option<Self> {
         Some(match kind {
             "buried_treasure" => Self::BuriedTreasure,
+            "igloo" => Self::Igloo,
             "nether_fossil" => {
                 let height = value.get("height")?;
                 Self::NetherFossil(fossil::Height {
@@ -198,6 +216,8 @@ impl Other {
         match self {
             Self::BuriedTreasure => treasure::generate(ground, valid, probe, chunk)
                 .map(|piece| vec![Shaped::Treasure(piece)]),
+            Self::Igloo => igloo::generate(library, ground, valid, probe, seed, chunk)
+                .map(|pieces| pieces.into_iter().map(Shaped::Igloo).collect()),
             Self::NetherFossil(height) => {
                 fossil::generate(height, library, ground, valid, probe, seed, chunk)
                     .map(|piece| vec![Shaped::Fossil(piece)])

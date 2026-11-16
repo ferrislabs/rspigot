@@ -3,7 +3,7 @@ use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
 use crate::overworld::features::place::Run;
-use crate::overworld::features::structure::{Rotation, commit};
+use crate::overworld::features::structure::{Rotation, commit_with};
 use crate::structures::bbox::{Bbox, Pos};
 use crate::structures::blueprint::Blueprint;
 use crate::structures::library::Library;
@@ -102,7 +102,7 @@ pub(crate) struct Marker {
     pub(crate) meta: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct Tpl {
     pub(crate) name: &'static str,
     pub(crate) blueprint: &'static Blueprint,
@@ -129,6 +129,10 @@ impl Tpl {
             mirror,
             pivot,
         })
+    }
+
+    pub(crate) fn at(&self, pos: Pos) -> Self {
+        Self { pos, ..*self }
     }
 
     pub(crate) fn rotation_name(&self) -> &'static str {
@@ -194,6 +198,16 @@ impl Tpl {
     }
 
     pub(crate) fn place(&self, run: &mut Run, area: &Bbox, steps: &[Step]) -> Vec<Marker> {
+        self.place_with(run, area, steps, true)
+    }
+
+    pub(crate) fn place_with(
+        &self,
+        run: &mut Run,
+        area: &Bbox,
+        steps: &[Step],
+        waterlogging: bool,
+    ) -> Vec<Marker> {
         let mut placed: Vec<(Pos, BlockStateId)> = Vec::new();
         let mut loot: Vec<(Pos, Value)> = Vec::new();
         for block in &self.blueprint.blocks {
@@ -214,7 +228,7 @@ impl Tpl {
                 loot.push((subject.at, nbt.clone()));
             }
         }
-        commit(run, placed, self.rotation, true);
+        commit_with(run, placed, self.rotation, true, waterlogging);
         for (at, mut nbt) in loot {
             if let Value::Object(map) = &mut nbt
                 && map.contains_key("LootTable")
