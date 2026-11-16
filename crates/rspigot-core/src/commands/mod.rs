@@ -12,6 +12,7 @@ pub mod permission;
 mod scoreboard_commands;
 pub mod selector;
 mod server_commands;
+pub(crate) mod signable;
 mod sound_commands;
 pub mod source;
 mod team_commands;

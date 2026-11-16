@@ -6,6 +6,7 @@ pub mod biome;
 pub mod boss_event;
 pub mod brewing;
 pub mod campfire;
+pub mod chat_chain;
 pub mod chunk;
 pub mod click;
 pub mod combat;

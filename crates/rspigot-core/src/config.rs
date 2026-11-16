@@ -171,6 +171,7 @@ pub struct GameConfig {
     pub spawning: SpawningConfig,
     pub mobs: MobSettings,
     pub plugins: PluginSettings,
+    pub chat: ChatSecurity,
 }
 
 impl Default for GameConfig {
@@ -206,8 +207,15 @@ impl Default for GameConfig {
             spawning: SpawningConfig::default(),
             mobs: MobSettings::default(),
             plugins: PluginSettings::default(),
+            chat: ChatSecurity::default(),
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ChatSecurity {
+    pub enforce_secure_profile: bool,
+    pub services_keys: Vec<Vec<u8>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

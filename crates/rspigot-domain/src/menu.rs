@@ -1,4 +1,5 @@
 use rspigot_items::{EquipmentSlot, ItemId};
+use rspigot_nbt::{Compound, Tag};
 
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
@@ -26,11 +27,75 @@ pub enum ClickInput {
     PickupAll,
 }
 
+#[derive(Clone, Copy)]
+pub struct ComponentHasher(pub fn(&str, &Tag) -> Option<i32>);
+
+impl ComponentHasher {
+    pub const NONE: Self = Self(|_, _| None);
+}
+
+impl std::fmt::Debug for ComponentHasher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ComponentHasher")
+    }
+}
+
+impl PartialEq for ComponentHasher {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for ComponentHasher {}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HashedItem {
     pub item: i32,
     pub count: i32,
-    pub patched: bool,
+    pub added: Vec<(String, i32)>,
+    pub removed: Vec<String>,
+    pub hasher: ComponentHasher,
+}
+
+fn qualified(name: &str) -> std::borrow::Cow<'_, str> {
+    if name.contains(':') {
+        std::borrow::Cow::Borrowed(name)
+    } else {
+        std::borrow::Cow::Owned(format!("minecraft:{name}"))
+    }
+}
+
+impl HashedItem {
+    fn components_match(&self, components: &Compound) -> bool {
+        let mut removed: Vec<std::borrow::Cow<'_, str>> = components
+            .iter()
+            .filter_map(|(name, _)| name.strip_prefix('!').map(qualified))
+            .collect();
+        removed.sort_unstable();
+        let mut wanted: Vec<std::borrow::Cow<'_, str>> =
+            self.removed.iter().map(|name| qualified(name)).collect();
+        wanted.sort_unstable();
+        if removed != wanted {
+            return false;
+        }
+        let mut added = 0;
+        for (name, value) in components.iter() {
+            if name.starts_with('!') {
+                continue;
+            }
+            added += 1;
+            let name = qualified(name);
+            let hash = self
+                .added
+                .iter()
+                .find(|(candidate, _)| qualified(candidate) == name)
+                .map(|(_, hash)| *hash);
+            if hash.is_none() || (self.hasher.0)(&name, value) != hash {
+                return false;
+            }
+        }
+        added == self.added.len()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -43,7 +108,9 @@ impl HashedSlot {
         Self(stack.as_ref().map(|s| HashedItem {
             item: i32::from(s.item.0),
             count: i32::from(s.count.get()),
-            patched: false,
+            added: Vec::new(),
+            removed: Vec::new(),
+            hasher: ComponentHasher::NONE,
         }))
     }
 
@@ -51,9 +118,9 @@ impl HashedSlot {
         match (&self.0, stack) {
             (None, None) => true,
             (Some(hash), Some(stack)) => {
-                !hash.patched
-                    && hash.count == i32::from(stack.count.get())
+                hash.count == i32::from(stack.count.get())
                     && hash.item == i32::from(stack.item.0)
+                    && hash.components_match(&stack.components)
             }
             _ => false,
         }
@@ -1634,6 +1701,71 @@ mod tests {
         );
     }
 
+    fn named(item: ItemKind, name: &str) -> ItemStack {
+        let mut stack = stack(item, 1);
+        stack
+            .components
+            .insert("minecraft:custom_name", Tag::String(name.to_owned()));
+        stack
+    }
+
+    fn hash_of_name(name: &str, value: &Tag) -> Option<i32> {
+        match (name, value) {
+            ("minecraft:custom_name", Tag::String(text)) => Some(text.len() as i32),
+            _ => None,
+        }
+    }
+
+    fn hashed(item: ItemKind, added: Vec<(String, i32)>, removed: Vec<String>) -> HashedSlot {
+        HashedSlot(Some(HashedItem {
+            item: i32::from(item.id().0),
+            count: 1,
+            added,
+            removed,
+            hasher: ComponentHasher(hash_of_name),
+        }))
+    }
+
+    #[test]
+    fn a_component_hash_must_match_the_component_the_server_holds() {
+        let held = Some(named(ItemKind::Stone, "abc"));
+        let right = hashed(
+            ItemKind::Stone,
+            vec![("minecraft:custom_name".into(), 3)],
+            vec![],
+        );
+        let wrong = hashed(
+            ItemKind::Stone,
+            vec![("minecraft:custom_name".into(), 4)],
+            vec![],
+        );
+        let missing = hashed(ItemKind::Stone, vec![], vec![]);
+        let extra = hashed(
+            ItemKind::Stone,
+            vec![
+                ("minecraft:custom_name".into(), 3),
+                ("minecraft:lore".into(), 0),
+            ],
+            vec![],
+        );
+        assert!(right.matches(&held));
+        assert!(!wrong.matches(&held));
+        assert!(!missing.matches(&held));
+        assert!(!extra.matches(&held));
+    }
+
+    #[test]
+    fn removed_components_must_be_the_ones_the_server_removed() {
+        let mut stack = stack(ItemKind::Stone, 1);
+        stack
+            .components
+            .insert("!minecraft:rarity", Compound::new());
+        let held = Some(stack);
+        assert!(hashed(ItemKind::Stone, vec![], vec!["minecraft:rarity".into()]).matches(&held));
+        assert!(!hashed(ItemKind::Stone, vec![], vec![]).matches(&held));
+        assert!(!hashed(ItemKind::Stone, vec![], vec!["minecraft:lore".into()]).matches(&held));
+    }
+
     #[test]
     fn remote_slots_only_report_what_the_client_does_not_already_know() {
         let mut inv = inventory(&[(36, stack(ItemKind::Stone, 5))]);
@@ -1655,7 +1787,9 @@ mod tests {
         menu.receive_remote_carried(HashedSlot(Some(HashedItem {
             item: i32::from(ItemKind::Stone.id().0),
             count: 5,
-            patched: true,
+            added: vec![("minecraft:custom_name".to_owned(), 1)],
+            removed: Vec::new(),
+            hasher: ComponentHasher::NONE,
         })));
         assert_eq!(
             menu.changes(&inv),

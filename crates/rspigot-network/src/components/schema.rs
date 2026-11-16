@@ -36,11 +36,13 @@ const USE_ANIMATIONS: &[&str] = &[
 const MOB_EFFECT_INSTANCE: Node = Node::Custom(Custom {
     enc: encode_effect,
     dec: decode_effect,
+    hash: Some(super::hash::effect_hash),
 });
 
 const CONSUME_EFFECT: Node = Node::Custom(Custom {
     enc: encode_consume_effect,
     dec: decode_consume_effect,
+    hash: None,
 });
 
 const CONSUME_APPLY: Node = Node::Rec(&[
@@ -144,6 +146,7 @@ fn decode_consume_effect(input: &mut &[u8]) -> Option<Tag> {
 const ENCHANTMENTS: Node = Node::Custom(Custom {
     enc: encode_enchantments,
     dec: decode_enchantments,
+    hash: None,
 });
 
 fn encode_enchantments(tag: &Tag, out: &mut Vec<u8>) -> Option<()> {
@@ -261,6 +264,7 @@ const SWING: Node = Node::Rec(&[
 const ATTRIBUTE_DISPLAY: Node = Node::Custom(Custom {
     enc: encode_attribute_display,
     dec: decode_attribute_display,
+    hash: None,
 });
 
 const DISPLAY_TYPES: &[&str] = &["default", "hidden", "override"];
@@ -525,6 +529,7 @@ const STACK_LIST: Node = Node::List(&Node::Stack, 1 << 20);
 const CONTAINER: Node = Node::Custom(Custom {
     enc: encode_container,
     dec: decode_container,
+    hash: None,
 });
 
 const CONTAINER_SLOTS: usize = 256;
@@ -593,6 +598,7 @@ const WRITTEN_BOOK: Node = Node::Rec(&[
 const BLOCK_POS: Node = Node::Custom(Custom {
     enc: encode_block_pos,
     dec: decode_block_pos,
+    hash: None,
 });
 
 const POS_BITS: i64 = 0x3FF_FFFF;
@@ -657,6 +663,7 @@ const JUKEBOX_PLAYABLE: Node = Node::Wrap(
 const STRING_MAP: Node = Node::Custom(Custom {
     enc: encode_string_map,
     dec: decode_string_map,
+    hash: None,
 });
 
 fn encode_string_map(tag: &Tag, out: &mut Vec<u8>) -> Option<()> {
@@ -682,11 +689,13 @@ fn decode_string_map(input: &mut &[u8]) -> Option<Tag> {
 const ENTITY_DATA: Node = Node::Custom(Custom {
     enc: |tag, out| encode_typed(Reg::Static("minecraft:entity_type"), tag, out),
     dec: |input| decode_typed(Reg::Static("minecraft:entity_type"), input),
+    hash: None,
 });
 
 const BLOCK_ENTITY_DATA: Node = Node::Custom(Custom {
     enc: |tag, out| encode_typed(Reg::Static("minecraft:block_entity_type"), tag, out),
     dec: |input| decode_typed(Reg::Static("minecraft:block_entity_type"), input),
+    hash: None,
 });
 
 fn encode_typed(registry: Reg, tag: &Tag, out: &mut Vec<u8>) -> Option<()> {
@@ -744,6 +753,7 @@ const SKIN_PATCH_MODELS: Node = Node::Enum(&["wide", "slim"]);
 const PROFILE: Node = Node::Custom(Custom {
     enc: encode_profile,
     dec: decode_profile,
+    hash: None,
 });
 
 const PROPERTIES: Node = Node::List(

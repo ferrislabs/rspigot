@@ -155,8 +155,16 @@ fn main() -> anyhow::Result<()> {
     ));
     dimensions::install(Arc::clone(&store), Arc::clone(&generator));
     let status = StatusBoard::new(0);
-    let game_config = files.game_config(admin);
-    let network_config = files.network_config(files::read_favicon(&args.root))?;
+    let mut game_config = files.game_config(admin);
+    let mut network_config = files.network_config(files::read_favicon(&args.root))?;
+    if network_config.online_mode {
+        game_config.chat.services_keys =
+            rspigot_auth::fetch_profile_keys(&rspigot_auth::UreqClient::new(), None);
+    }
+    let enforce_secure_profile =
+        files.secure_profile_requested() && !game_config.chat.services_keys.is_empty();
+    game_config.chat.enforce_secure_profile = enforce_secure_profile;
+    network_config.enforce_secure_profile = enforce_secure_profile;
     let plugin_host = files.plugin_host_config(std::env::var("RSPIGOT_PLUGIN_TOKEN").ok())?;
     plugin_host.validate()?;
     let verifier = Arc::new(MojangSessionVerifier::new(

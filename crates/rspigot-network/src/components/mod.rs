@@ -1,3 +1,4 @@
+mod hash;
 mod schema;
 
 use rspigot_domain::entity::save::component_from_tag;
@@ -79,6 +80,7 @@ pub(crate) struct Field {
 pub(crate) struct Custom {
     pub(crate) enc: fn(&Tag, &mut Vec<u8>) -> Option<()>,
     pub(crate) dec: fn(&mut &[u8]) -> Option<Tag>,
+    pub(crate) hash: Option<fn(&Tag, u8) -> Option<u32>>,
 }
 
 #[derive(Clone, Copy)]
@@ -562,11 +564,13 @@ impl Node {
     }
 }
 
+pub(crate) use hash::component_hash;
+
 pub(crate) fn component_type(name: &str) -> Option<i32> {
     Reg::Static(DATA_COMPONENT_TYPE).index(name)
 }
 
-fn component_name(id: i32) -> Option<&'static str> {
+pub(crate) fn component_name(id: i32) -> Option<&'static str> {
     Reg::Static(DATA_COMPONENT_TYPE).name(id)
 }
 
