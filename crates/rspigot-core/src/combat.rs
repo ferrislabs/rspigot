@@ -9,8 +9,11 @@ use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::SoundSource;
 
 use crate::commands::Target;
+use crate::enchant_effects::{self, EquipSlot, Worn};
+use crate::enchant_hits::worn_gear;
 use crate::events::{Animation, ClientEvent, Hand};
 use crate::health::{DamageSource, attributes};
+use crate::loot::LootContext;
 use crate::plugins::events::{EntityExhaustionReason, EntityKnockbackCause};
 use crate::plugins::{AfterHurt, AttackFollow, Holder, Struck, SweepFollow};
 use crate::ports::ClientLink;
@@ -59,23 +62,33 @@ pub fn base_damage_scale(scale: f32) -> f32 {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Strike {
     pub damage: f32,
+    pub weapon_damage: f32,
     pub critical: bool,
     pub sprint_knockback: bool,
 }
 
-pub fn strike(base: f32, scale: f32, sprinting: bool, can_critical: bool) -> Option<Strike> {
+pub fn strike(
+    base: f32,
+    enchanted_bonus: f32,
+    scale: f32,
+    sprinting: bool,
+    can_critical: bool,
+) -> Option<Strike> {
     let damage = base * base_damage_scale(scale);
-    if damage <= 0.0 {
+    let bonus = enchanted_bonus * scale;
+    if damage <= 0.0 && bonus <= 0.0 {
         return None;
     }
     let full = scale > FULL_STRENGTH;
     let critical = full && can_critical && !sprinting;
+    let weapon_damage = if critical {
+        damage * CRITICAL_MULTIPLIER
+    } else {
+        damage
+    };
     Some(Strike {
-        damage: if critical {
-            damage * CRITICAL_MULTIPLIER
-        } else {
-            damage
-        },
+        damage: weapon_damage + bonus,
+        weapon_damage,
         critical,
         sprint_knockback: sprinting && full,
     })
@@ -276,10 +289,37 @@ impl<L: ClientLink> Server<L> {
         let Some(source) = self.source_of(id) else {
             return;
         };
+        let source = DamageSource::by(DamageType::PlayerAttack, source);
+        let victim_facts = self.entity_loot_facts(victim.entity);
+        let damage_facts = self.damage_facts(&source);
         let Some(attacker) = self.players.get(&id) else {
             return;
         };
         let stats = attributes(attacker);
+        let gear = worn_gear(attacker);
+        let weapon: Vec<Worn<'_>> = gear
+            .iter()
+            .filter(|worn| worn.slot == EquipSlot::Mainhand)
+            .copied()
+            .collect();
+        let enchant_context = LootContext {
+            this: victim_facts.as_ref(),
+            damage: Some(&damage_facts),
+            ..LootContext::default()
+        };
+        let base_damage = stats.get(ATTACK_DAMAGE) as f32;
+        let enchanted_bonus =
+            enchant_effects::modify_damage(&weapon, base_damage, &enchant_context, &mut self.rng)
+                - base_damage;
+        let attack_knockback = stats.get(ATTACK_KNOCKBACK) as f32;
+        let enchanted_knockback = enchant_effects::modify_knockback(
+            &weapon,
+            attack_knockback,
+            &enchant_context,
+            &mut self.rng,
+        );
+        let sweeping_bonus =
+            enchant_effects::attribute_bonus(&weapon, SWEEPING_DAMAGE_RATIO) as f32;
         let scale = attack_strength_scale(
             attacker.vitals.attack_ticker,
             stats.get(ATTACK_SPEED),
@@ -292,7 +332,8 @@ impl<L: ClientLink> Server<L> {
             && !attacker.effects.has("minecraft:blindness")
             && victim.living;
         let Some(strike) = strike(
-            stats.get(ATTACK_DAMAGE) as f32,
+            base_damage,
+            enchanted_bonus,
             scale,
             attacker.sprinting,
             can_critical,
@@ -311,8 +352,8 @@ impl<L: ClientLink> Server<L> {
             && attacker.on_ground
             && attacker.known_movement.horizontal_distance_sqr() < sweep_limit * sweep_limit
             && held.is_some_and(is_sword);
-        let sweep_ratio = stats.get(SWEEPING_DAMAGE_RATIO) as f32;
-        let knockback = stats.get(ATTACK_KNOCKBACK) as f32 / 2.0
+        let sweep_ratio = stats.get(SWEEPING_DAMAGE_RATIO) as f32 + sweeping_bonus;
+        let knockback = enchanted_knockback / 2.0
             + if strike.sprint_knockback {
                 SPRINT_KNOCKBACK
             } else {
@@ -321,7 +362,6 @@ impl<L: ClientLink> Server<L> {
         if strike.sprint_knockback {
             self.attacker_sound(id, SOUND_KNOCKBACK);
         }
-        let source = DamageSource::by(DamageType::PlayerAttack, source);
         let follow = AttackFollow {
             attacker: id,
             attacker_entity,
@@ -330,7 +370,7 @@ impl<L: ClientLink> Server<L> {
             full,
             knockback,
             yaw,
-            sweep: sweep.then_some((1.0 + sweep_ratio * strike.damage) * scale),
+            sweep: sweep.then_some((1.0 + sweep_ratio * strike.weapon_damage) * scale),
         };
         let struck = match victim.target {
             Target::Entity(entity) if self.is_deflectable(entity) => Struck::Projectile(entity),
@@ -539,24 +579,24 @@ mod tests {
     fn spamming_scales_damage_down_to_a_fifth() {
         assert_eq!(base_damage_scale(1.0), 1.0);
         assert!((base_damage_scale(0.0) - 0.2).abs() < 1e-6);
-        let weak = strike(7.0, 0.1, false, true).unwrap();
+        let weak = strike(7.0, 0.0, 0.1, false, true).unwrap();
         assert!((weak.damage - 7.0 * (0.2 + 0.01 * 0.8)).abs() < 1e-5);
         assert!(!weak.critical);
     }
 
     #[test]
     fn critical_hits_need_full_strength_and_no_sprint() {
-        let critical = strike(7.0, 1.0, false, true).unwrap();
+        let critical = strike(7.0, 0.0, 1.0, false, true).unwrap();
         assert_eq!(critical.damage, 10.5);
         assert!(critical.critical);
         assert!(!critical.sprint_knockback);
-        let sprinting = strike(7.0, 1.0, true, true).unwrap();
+        let sprinting = strike(7.0, 0.0, 1.0, true, true).unwrap();
         assert_eq!(sprinting.damage, 7.0);
         assert!(!sprinting.critical);
         assert!(sprinting.sprint_knockback);
-        let grounded = strike(1.0, 1.0, false, false).unwrap();
+        let grounded = strike(1.0, 0.0, 1.0, false, false).unwrap();
         assert_eq!(grounded.damage, 1.0);
-        assert!(strike(0.0, 1.0, false, true).is_none());
+        assert!(strike(0.0, 0.0, 1.0, false, true).is_none());
     }
 
     #[test]
@@ -584,5 +624,16 @@ mod tests {
     fn only_swords_sweep() {
         assert!(is_sword(rspigot_items::ItemKind::DiamondSword.id()));
         assert!(!is_sword(rspigot_items::ItemKind::DiamondAxe.id()));
+    }
+
+    #[test]
+    fn enchanted_damage_scales_with_the_attack_strength_and_skips_the_critical() {
+        let full = strike(7.0, 2.0, 1.0, false, true).unwrap();
+        assert_eq!(full.weapon_damage, 10.5);
+        assert_eq!(full.damage, 12.5);
+        let weak = strike(7.0, 2.0, 0.1, false, true).unwrap();
+        assert!((weak.damage - (7.0 * 0.208 + 0.2)).abs() < 1e-4);
+        let only_bonus = strike(0.0, 2.0, 1.0, false, false).unwrap();
+        assert_eq!(only_bonus.damage, 2.0);
     }
 }

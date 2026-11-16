@@ -587,6 +587,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn arrow_hit_entity(&mut self, id: EntityId, target: EntityId) {
+        let (enchanted_base, punch) = self.arrow_enchantments(id, target);
         let Some(Entity {
             base,
             state: EntityState::Arrow(state),
@@ -598,9 +599,9 @@ impl<L: ClientLink> Server<L> {
         let trident = base.kind == Kind::Trident;
         let damage = if trident {
             state.dealt_damage = true;
-            arrow::TRIDENT_DAMAGE as i32
+            enchanted_base as f32
         } else {
-            arrow::hit_damage(base, state)
+            arrow::hit_damage_with(base, state, enchanted_base) as f32
         };
         let velocity = base.velocity;
         let on_fire = fire::is_on_fire(base);
@@ -649,13 +650,15 @@ impl<L: ClientLink> Server<L> {
             owner: owner_id,
             saved_fire,
             sound_pitch,
+            punch,
+            heading: velocity,
         };
         let victim = self.struck(target);
         let then = AfterHurt::Arrow(follow);
         if ignition_waits {
-            self.strike_behind(lane, victim, source, damage as f32, then);
+            self.strike_behind(lane, victim, source, damage, then);
         } else {
-            self.strike(None, victim, &source, damage as f32, then);
+            self.strike(None, victim, &source, damage, then);
         }
     }
 
@@ -666,6 +669,8 @@ impl<L: ClientLink> Server<L> {
             owner: owner_id,
             saved_fire,
             sound_pitch,
+            punch,
+            heading,
         } = follow;
         let target_player = self.player_of_entity(target);
         if self
@@ -678,6 +683,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if hurt {
+            self.push_by_arrow(target, heading, punch);
             self.ask_arrow_count(target, 1);
             if let (Some(_), Some(owner)) = (target_player, owner_id)
                 && let Some(shooter) = self.player_of_entity(owner)

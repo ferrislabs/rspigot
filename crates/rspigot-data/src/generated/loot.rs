@@ -1,7 +1,7 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1364] = [
+pub(crate) static TABLES: [(&str, LootTable); 1422] = [
     (
         "minecraft:blocks/acacia_button",
         LootTable {
@@ -31314,6 +31314,12774 @@ pub(crate) static TABLES: [(&str, LootTable); 1364] = [
             modifier: &[],
         },
     ),
+    (
+        "minecraft:chests/abandoned_camp_common_chest",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 4, max: 6 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(4),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1009),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1382),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1216),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(237),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1151),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1382),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1064),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1186),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1005),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1270),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1412),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1404),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(949),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1551),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(2),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1008),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1128),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1033),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1075),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1073),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1074),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1449),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1030),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1188),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1255),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: Some(Condition::Inverted(&Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:bamboo_jungle"],
+                            })),
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                },
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1253),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::Inverted(&Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:cherry_grove"],
+                            })),
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                },
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1253),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::Inverted(&Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:birch_forest"],
+                            })),
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                },
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1253),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::Inverted(&Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:dappled_forest"],
+                            })),
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                },
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1253),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::Inverted(&Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:flower_forest"],
+                            })),
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                },
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1253),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::Inverted(&Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:pale_garden"],
+                            })),
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                },
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1253),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::Inverted(&Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:swamp"],
+                            })),
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                },
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1253),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::Inverted(&Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:windswept_forest"],
+                            })),
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                },
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1253),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/abandoned_camp_secret_chest",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(2),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:healing"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1271),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:leaping"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1271),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:night_vision"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1271),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:swiftness"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1271),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 4, max: 6 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1382),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1020),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 0, max: 1 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1048),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1083),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1082),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1450),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1250),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1241),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1251),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1252),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1242),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1254),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1240),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/abandoned_mineshaft",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1101),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 30,
+                                quality: 0,
+                                output: Output::Item(1413),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1047),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 9 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(824),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 9 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1014),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1526),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1259),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1258),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1439),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(3),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(947),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(945),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(946),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(948),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 16 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(395),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::LocationCheck {
+                                offset: [0, 0, 0],
+                                block: None,
+                                biomes: &["minecraft:sulfur_caves"],
+                            }),
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1463),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/ancient_city",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 5, max: 10 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1101),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1476),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1151),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(505),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.8,
+                                        max: 1.0,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantWithLevels {
+                                        options: "minecraft:on_random_loot",
+                                        levels: IntProvider::Uniform { min: 30, max: 50 },
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1054),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1412),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1409),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1460),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1461),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 30, max: 50 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1086),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomly {
+                                    enchantment: "minecraft:swift_sneak",
+                                    max_level: 3,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 10 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(503),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(849),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1550),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 15 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1016),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1368),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 15 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1526),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1082),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(1577),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(1482),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Uniform { min: 1, max: 3 },
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:strong_regeneration"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1271),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 10 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 15 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1216),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 15 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(439),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 6, max: 15 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 75,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(1584),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1593),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/ancient_city_ice_box",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 4, max: 10 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetStewEffect(&[
+                                    (
+                                        "minecraft:night_vision",
+                                        IntProvider::Uniform { min: 7, max: 10 },
+                                    ),
+                                    (
+                                        "minecraft:blindness",
+                                        IntProvider::Uniform { min: 5, max: 7 },
+                                    ),
+                                ]),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 6 },
+                                    add: false,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1492),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 10 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1383),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 10 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1380),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 6 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(597),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 6 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1132),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/bastion_bridge",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1535),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 2 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.1,
+                                        max: 0.5,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1491),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 10, max: 28 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1443),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 8, max: 12 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1540),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1536),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(128),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 9 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 9 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1040),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1089),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1088),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1090),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1091),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1043),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1062),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 5, max: 17 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1009),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1456),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 11,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1588),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 9,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1579),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/bastion_hoglin_stable",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.15,
+                                        max: 0.8,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1051),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.15,
+                                        max: 0.95,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 12,
+                                quality: 0,
+                                output: Output::Item(1052),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 8,
+                                quality: 0,
+                                output: Output::Item(1024),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 12,
+                                quality: 0,
+                                output: Output::Item(111),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(111),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 12,
+                                quality: 0,
+                                output: Output::Item(949),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 16,
+                                quality: 0,
+                                output: Output::Item(128),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 8, max: 17 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1383),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1043),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1536),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(441),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1540),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(434),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(60),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 5, max: 17 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1009),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1062),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1097),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1098),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(320),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(322),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 11,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1588),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 9,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1579),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/bastion_other",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1052),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1051),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.1,
+                                        max: 0.9,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1491),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 12,
+                                quality: 0,
+                                output: Output::Item(111),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(1024),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 10, max: 22 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1443),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 9,
+                                quality: 0,
+                                output: Output::Item(1499),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1479),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 6, max: 17 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 12,
+                                quality: 0,
+                                output: Output::Item(1383),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 9,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomly {
+                                    enchantment: "minecraft:soul_speed",
+                                    max_level: 3,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(2),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.1,
+                                        max: 0.9,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1045),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(119),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomly {
+                                        enchantment: "minecraft:soul_speed",
+                                        max_level: 3,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1091),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1043),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(128),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1491),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1040),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1089),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1088),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1090),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1091),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1536),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1540),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 10 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(473),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1275),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(654),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1456),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(394),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1062),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 5, max: 17 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1009),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1098),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 11,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1588),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 9,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1579),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/bastion_treasure",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(3),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1023),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(111),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 8,
+                                quality: 0,
+                                output: Output::Item(1024),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(111),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.8,
+                                        max: 1.0,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1050),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.8,
+                                        max: 1.0,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1452),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.8,
+                                        max: 1.0,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1085),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.8,
+                                        max: 1.0,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1084),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.8,
+                                        max: 1.0,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1086),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                        min: 0.8,
+                                        max: 1.0,
+                                    }),
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::EnchantRandomlyFrom {
+                                        options: "minecraft:on_random_loot",
+                                        only_compatible: true,
+                                    },
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1087),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1050),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1452),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1085),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1084),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1087),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1086),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1101),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 12, max: 25 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1443),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(128),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(119),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 9 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 9 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1536),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 8, max: 23 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1015),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 5, max: 15 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1540),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1275),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 11,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1588),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1579),
+                        }),
+                    }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/buried_treasure",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1490),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 5, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(853),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1399),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 0, max: 1 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1069),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1045),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1450),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(2),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1194),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1195),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 0, max: 2 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[Function {
+                        condition: None,
+                        kind: FunctionKind::SetPotion("minecraft:water_breathing"),
+                    }],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1271),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 148,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1489),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1485),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1486),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1487),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/desert_pyramid",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 25,
+                                quality: 0,
+                                output: Output::Item(1216),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 25,
+                                quality: 0,
+                                output: Output::Item(1272),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 25,
+                                quality: 0,
+                                output: Output::Item(1264),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1406),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1407),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1408),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1409),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1101),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(4),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1216),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1064),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1264),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1062),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(88),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1581),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/end_city_treasure",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 6 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 10 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1439),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(949),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1406),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1407),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1408),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1409),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1050),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1452),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1087),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1085),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1086),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1084),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1052),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1051),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1045),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1083),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1081),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1082),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1080),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1047),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Uniform { min: 20, max: 39 },
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1046),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 14,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1590),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/igloo_chest",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1007),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1038),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1264),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1066),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1100),
+                        }),
+                    }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/jungle_temple",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 6 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(340),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1216),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 16,
+                                quality: 0,
+                                output: Output::Item(1264),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1406),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1407),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1408),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1409),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Constant(30),
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1583),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/jungle_temple_dispenser",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 2 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[Function {
+                        condition: None,
+                        kind: FunctionKind::SetCount {
+                            count: IntProvider::Uniform { min: 2, max: 7 },
+                            add: false,
+                        },
+                    }],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 30,
+                        quality: 0,
+                        output: Output::Item(1009),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/nether_bridge",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1040),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1089),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1005),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1269),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(949),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 8,
+                                quality: 0,
+                                output: Output::Item(1408),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1406),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1407),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1409),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(394),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 14,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1589),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/pillager_outpost",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 0, max: 1 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1491),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(1066),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1379),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1378),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(170),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(1368),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(1062),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(1009),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(851),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 0, max: 1 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[Function {
+                        condition: None,
+                        kind: FunctionKind::SetInstrument("minecraft:regular_goat_horns"),
+                    }],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1504),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1580),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/ruined_portal",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 4, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 40,
+                                quality: 0,
+                                output: Output::Item(394),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 40,
+                                quality: 0,
+                                output: Output::Item(1096),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 9, max: 18 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 40,
+                                quality: 0,
+                                output: Output::Item(1456),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 40,
+                                quality: 0,
+                                output: Output::Item(1005),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 40,
+                                quality: 0,
+                                output: Output::Item(1369),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 24 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1040),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1043),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1044),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1041),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1042),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1091),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1089),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1088),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1090),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 12 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1279),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1408),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(873),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 12 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1383),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1187),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1514),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1101),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(128),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1535),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/shipwreck_map",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[
+                            Function { condition: None, kind: FunctionKind::ExplorationMap },
+                            Function { condition: None, kind: FunctionKind::RequireMapId },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1249),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(3),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1151),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1382),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1187),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 10 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1145),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1063),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1582),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 148,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1489),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1485),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1486),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1487),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/shipwreck_supply",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 10 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 12 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 8,
+                                quality: 0,
+                                output: Output::Item(1145),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(1379),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(333),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 6 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(1381),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(1378),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 8, max: 21 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(1066),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetStewEffect(&[
+                                    (
+                                        "minecraft:night_vision",
+                                        IntProvider::Uniform { min: 7, max: 10 },
+                                    ),
+                                    (
+                                        "minecraft:jump_boost",
+                                        IntProvider::Uniform { min: 7, max: 10 },
+                                    ),
+                                    ("minecraft:weakness", IntProvider::Uniform { min: 6, max: 8 }),
+                                    (
+                                        "minecraft:blindness",
+                                        IntProvider::Uniform { min: 5, max: 7 },
+                                    ),
+                                    ("minecraft:poison", IntProvider::Uniform { min: 10, max: 20 }),
+                                    (
+                                        "minecraft:saturation",
+                                        IntProvider::Uniform { min: 7, max: 10 },
+                                    ),
+                                ]),
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1492),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 6,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 5, max: 24 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1264),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(430),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(340),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1064),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(853),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1068),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1069),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1070),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1071),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1582),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 148,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1489),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1485),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1486),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1487),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/shipwreck_treasure",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 6 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 90,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 40,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1368),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 5 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 10 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 50,
+                                quality: 0,
+                                output: Output::Item(1456),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 10 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 10 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1014),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1582),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 148,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1489),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1485),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1486),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1487),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/simple_dungeon",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1101),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1476),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1460),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1461),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1413),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1408),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1406),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1407),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1409),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1066),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1128),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(824),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1259),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1258),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1439),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(3),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1216),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1064),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1264),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1062),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/spawn_bonus_chest",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1038),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1028),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1037),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1027),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(3),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1007),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1191),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(4),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 12 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1060),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 12 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(63),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(163),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(164),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(165),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(166),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(167),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(170),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(171),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/stronghold_corridor",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1265),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 9 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(824),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1007),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1047),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1045),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1081),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1080),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1082),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1083),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1406),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1407),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1408),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1409),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1476),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Constant(30),
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 9,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1585),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/stronghold_crossing",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 4 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 5 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1018),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1022),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 4, max: 9 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(824),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 3, max: 8 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1010),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 15,
+                            quality: 0,
+                            output: Output::Item(1067),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 15,
+                            quality: 0,
+                            output: Output::Item(1007),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1047),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Constant(30),
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1146),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/stronghold_library",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 10 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1145),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1382),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1151),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantWithLevels {
+                                    options: "minecraft:on_random_loot",
+                                    levels: IntProvider::Constant(30),
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1585),
+                        }),
+                    }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/corridor",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 3 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.4,
+                                    max: 0.9,
+                                }),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1048),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 8 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1530),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.15,
+                                    max: 0.8,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1038),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.15,
+                                    max: 0.8,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1037),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1265),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1125),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 3, max: 6 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(73),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 10 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(823),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 3, max: 6 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(395),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 8, max: 20 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(12),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/entrance",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 2, max: 3 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1654),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 5 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1060),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1028),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 8 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1530),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 5, max: 10 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1009),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/intersection",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 3 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(129),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(514),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.1,
+                                    max: 0.5,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1053),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.1,
+                                    max: 0.5,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1052),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1012),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 20,
+                            quality: 0,
+                            output: Output::Item(1218),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 8, max: 20 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 20,
+                            quality: 0,
+                            output: Output::Item(1016),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 20,
+                            quality: 0,
+                            output: Output::Item(119),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/intersection_barrel",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 3 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.4,
+                                    max: 0.9,
+                                }),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1053),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.15,
+                                    max: 0.8,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1052),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1012),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.15,
+                                    max: 0.8,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1151),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1128),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.15,
+                                    max: 0.8,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1043),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.15,
+                                    max: 0.8,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1042),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 5, max: 15 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(73),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 6, max: 10 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 10,
+                            quality: 0,
+                            output: Output::Item(1380),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/reward",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 8,
+                                quality: 0,
+                                output: Output::Table("minecraft:chests/trial_chambers/reward_rare"),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Table("minecraft:chests/trial_chambers/reward_common"),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Table("minecraft:chests/trial_chambers/reward_common"),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: Some(Condition::RandomChance(0.25)),
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Table("minecraft:chests/trial_chambers/reward_unique"),
+                        }),
+                    }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/reward_common",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 8 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1009),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 8 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:poison"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1370),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1018),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1533),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetOminousBottleAmplifier(IntProvider::Uniform {
+                                    min: 0,
+                                    max: 1,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1657),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 4, max: 12 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1370),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1012),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/reward_ominous",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 8,
+                                quality: 0,
+                                output: Output::Table("minecraft:chests/trial_chambers/reward_ominous_rare"),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Table("minecraft:chests/trial_chambers/reward_ominous_common"),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Table("minecraft:chests/trial_chambers/reward_ominous_common"),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: Some(Condition::RandomChance(0.75)),
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Table("minecraft:chests/trial_chambers/reward_ominous_unique"),
+                        }),
+                    }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/reward_ominous_common",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 4, max: 10 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 8, max: 12 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1370),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 12 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:strong_slowness"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1012),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetOminousBottleAmplifier(IntProvider::Uniform {
+                                    min: 2,
+                                    max: 4,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1657),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/reward_ominous_rare",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(514),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(119),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 5, max: 20 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1491),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1100),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 10, max: 20 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1053),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 10, max: 20 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1085),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantRandomlyAmong {
+                                options: &[
+                                    "minecraft:knockback",
+                                    "minecraft:punch",
+                                    "minecraft:smite",
+                                    "minecraft:looting",
+                                    "minecraft:multishot",
+                                ],
+                                only_compatible: true,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1146),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantRandomlyAmong {
+                                options: &["minecraft:breach", "minecraft:density"],
+                                only_compatible: true,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1146),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetEnchantments {
+                                levels: &[("minecraft:wind_burst", IntProvider::Constant(1))],
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1146),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(129),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/reward_ominous_unique",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1101),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1596),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1500),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1465),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(116),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/reward_rare",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                min: 0.5,
+                                max: 1.0,
+                            }),
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1446),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 5, max: 15 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1008),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 5, max: 20 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1491),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 0, max: 10 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1048),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 0, max: 10 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1081),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1383),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantRandomlyAmong {
+                                options: &[
+                                    "minecraft:sharpness",
+                                    "minecraft:bane_of_arthropods",
+                                    "minecraft:efficiency",
+                                    "minecraft:fortune",
+                                    "minecraft:silk_touch",
+                                    "minecraft:feather_falling",
+                                ],
+                                only_compatible: true,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1146),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantRandomlyAmong {
+                                options: &[
+                                    "minecraft:riptide",
+                                    "minecraft:loyalty",
+                                    "minecraft:channeling",
+                                    "minecraft:impaling",
+                                    "minecraft:mending",
+                                ],
+                                only_compatible: true,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1146),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 5, max: 15 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1085),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::EnchantWithLevels {
+                                options: "minecraft:on_random_loot",
+                                levels: IntProvider::Uniform { min: 5, max: 15 },
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1053),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/reward_unique",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1100),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1597),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1501),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1480),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1483),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/trial_chambers/supply",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 3, max: 5 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 4, max: 14 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1009),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 8 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:poison"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 4, max: 8 },
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:slowness"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1444),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1380),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 10 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1526),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 3, max: 6 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(67),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 5 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(333),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 5 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1215),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 5, max: 10 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(12),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 3, max: 6 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(395),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:regeneration"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1271),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(2),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:strength"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1271),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetDamage(FloatProvider::Uniform {
+                                    min: 0.15,
+                                    max: 0.8,
+                                }),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1037),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1134),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/underwater_ruin_big",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1448),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1066),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1069),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1088),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1186),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1249),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 148,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1489),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1485),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1486),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1487),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/underwater_ruin_small",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 2, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1038),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1448),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1264),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1066),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1069),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1088),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1186),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function { condition: None, kind: FunctionKind::RequireMapId },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1249),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 148,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1489),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1485),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1486),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1487),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_armorer",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 5 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1018),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1067),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1080),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_butcher",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 5 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(1097),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(1066),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(1260),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(1415),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1010),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_cartographer",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 5 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1382),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1145),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1151),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1060),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_desert_house",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1143),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1212),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(413),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1066),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(244),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_fisher",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 5 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1190),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1191),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1129),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1506),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1065),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1010),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_fletcher",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 5 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1009),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(1063),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1148),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(1096),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(1060),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_mason",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 5 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1143),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1377),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(449),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Item(1067),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1203),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(375),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_plains_house",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(298),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(302),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1379),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1007),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1063),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(77),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_savanna_house",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1268),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(238),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(603),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1065),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(81),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(949),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 2 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(395),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1128),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_shepherd",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 1, max: 5 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 8 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(250),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(265),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(257),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(262),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(258),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1255),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 6 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 6,
+                            quality: 0,
+                            output: Output::Item(1066),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_snowy_house",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(786),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(412),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1379),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1439),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1440),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(407),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1132),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_taiga_house",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1456),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(239),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(604),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1379),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1525),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1258),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1392),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(78),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1103),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(164),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_tannery",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 5 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1133),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1069),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1071),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1068),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1070),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(949),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1013),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_temple",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 3, max: 8 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(824),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 7,
+                            quality: 0,
+                            output: Output::Item(1067),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 7,
+                            quality: 0,
+                            output: Output::Item(1264),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1014),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1022),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_toolsmith",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Uniform { min: 3, max: 8 },
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1012),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 5 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1018),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1022),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 15,
+                            quality: 0,
+                            output: Output::Item(1067),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1047),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1010),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 20,
+                            quality: 0,
+                            output: Output::Item(1060),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 5,
+                            quality: 0,
+                            output: Output::Item(1046),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/village/village_weaponsmith",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 3, max: 8 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(1012),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 5 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1007),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1047),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1045),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1450),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 7,
+                                quality: 0,
+                                output: Output::Item(1449),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1081),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1080),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1082),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1083),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(394),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 3, max: 7 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(77),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 3,
+                                quality: 0,
+                                output: Output::Item(949),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1406),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1407),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1408),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1409),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1153),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:chests/woodland_mansion",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 3 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1412),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1100),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1101),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1460),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1461),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1077),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1054),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1085),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::EnchantRandomlyFrom {
+                                    options: "minecraft:on_random_loot",
+                                    only_compatible: true,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1146),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Uniform { min: 1, max: 4 },
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1018),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 5,
+                                quality: 0,
+                                output: Output::Item(1022),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1067),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 20,
+                                quality: 0,
+                                output: Output::Item(1066),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1128),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(824),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 15,
+                                quality: 0,
+                                output: Output::Item(1010),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1259),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1258),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1439),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 2, max: 4 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 50,
+                                quality: 0,
+                                output: Output::Item(486),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(3),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1216),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1064),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1264),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 8 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 10,
+                                quality: 0,
+                                output: Output::Item(1062),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Empty,
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1586),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
     ("minecraft:entities/allay", LootTable { pools: &[], modifier: &[] }),
     ("minecraft:entities/armadillo", LootTable { pools: &[], modifier: &[] }),
     ("minecraft:entities/armor_stand", LootTable { pools: &[], modifier: &[] }),
@@ -39174,17 +51942,17 @@ pub(crate) static BLOCK_TABLES: [u16; 1286] = [
 ];
 
 pub(crate) static ENTITY_TABLES: [u16; 161] = [
-    65535, 65535, 1208, 65535, 1209, 1210, 65535, 1211, 65535, 65535, 1212, 1213, 65535, 65535,
-    1214, 65535, 1215, 1216, 65535, 1217, 1218, 1219, 1220, 65535, 65535, 65535, 1221, 1222, 1223,
-    65535, 1224, 1225, 1226, 65535, 65535, 65535, 1227, 1228, 65535, 1229, 65535, 1230, 1232, 1233,
-    1231, 65535, 65535, 1234, 65535, 65535, 65535, 65535, 65535, 65535, 65535, 1235, 1236, 65535,
-    1237, 1242, 1238, 65535, 1239, 1240, 1241, 1243, 65535, 1244, 1245, 1246, 65535, 1247, 65535,
-    65535, 65535, 65535, 65535, 65535, 65535, 1248, 65535, 1249, 65535, 65535, 1250, 65535, 65535,
-    1251, 1252, 1253, 65535, 65535, 1254, 65535, 65535, 65535, 65535, 1255, 1256, 1257, 1258, 1259,
-    1260, 1261, 1262, 1264, 65535, 65535, 65535, 65535, 1265, 1266, 1267, 1268, 1269, 1286, 65535,
-    1287, 1288, 1289, 1290, 65535, 1291, 65535, 1292, 65535, 65535, 1293, 65535, 65535, 1294, 1295,
-    1296, 1297, 1298, 65535, 65535, 65535, 1299, 65535, 1300, 1301, 1302, 1303, 1304, 1305, 1306,
-    65535, 1307, 1308, 1309, 65535, 1310, 1311, 1312, 1313, 1314, 1315, 1316, 1263, 65535,
+    65535, 65535, 1266, 65535, 1267, 1268, 65535, 1269, 65535, 65535, 1270, 1271, 65535, 65535,
+    1272, 65535, 1273, 1274, 65535, 1275, 1276, 1277, 1278, 65535, 65535, 65535, 1279, 1280, 1281,
+    65535, 1282, 1283, 1284, 65535, 65535, 65535, 1285, 1286, 65535, 1287, 65535, 1288, 1290, 1291,
+    1289, 65535, 65535, 1292, 65535, 65535, 65535, 65535, 65535, 65535, 65535, 1293, 1294, 65535,
+    1295, 1300, 1296, 65535, 1297, 1298, 1299, 1301, 65535, 1302, 1303, 1304, 65535, 1305, 65535,
+    65535, 65535, 65535, 65535, 65535, 65535, 1306, 65535, 1307, 65535, 65535, 1308, 65535, 65535,
+    1309, 1310, 1311, 65535, 65535, 1312, 65535, 65535, 65535, 65535, 1313, 1314, 1315, 1316, 1317,
+    1318, 1319, 1320, 1322, 65535, 65535, 65535, 65535, 1323, 1324, 1325, 1326, 1327, 1344, 65535,
+    1345, 1346, 1347, 1348, 65535, 1349, 65535, 1350, 65535, 65535, 1351, 65535, 65535, 1352, 1353,
+    1354, 1355, 1356, 65535, 65535, 65535, 1357, 65535, 1358, 1359, 1360, 1361, 1362, 1363, 1364,
+    65535, 1365, 1366, 1367, 65535, 1368, 1369, 1370, 1371, 1372, 1373, 1374, 1321, 65535,
 ];
 
 pub(crate) static SMELTING: [(u16, u16); 163] = [

@@ -414,6 +414,7 @@ COMPOSITE_ENTRIES = {
 TABLE_TYPES = {
     "blocks": "minecraft:block",
     "entities": "minecraft:entity",
+    "chests": "minecraft:chest",
 }
 
 EXTRA_TABLES = [
@@ -919,6 +920,15 @@ class LootBuilder:
                     ("per_level_above_first", rs_f32(value["per_level_above_first"])),
                 ],
             )
+        if kind == "minecraft:fraction":
+            expect_keys(value, {"type", "numerator", "denominator"}, self.where)
+            return rs_struct(
+                "LevelBasedValue::Fraction",
+                [
+                    ("numerator", rs_ref(self.level_based_value(value["numerator"]))),
+                    ("denominator", rs_ref(self.level_based_value(value["denominator"]))),
+                ],
+            )
         fail("unsupported level based value %s in %s" % (json.dumps(value), self.where))
 
     def float_provider(self, value):
@@ -1034,7 +1044,13 @@ class LootBuilder:
             return rs_call("Condition::DamageSourceProperties", [rs_ref(predicate)])
         if kind == "minecraft:random_chance":
             expect_keys(value, {"type", "chance"}, self.where)
-            return rs_call("Condition::RandomChance", [self.float_constant(value["chance"])])
+            chance = value["chance"]
+            if isinstance(chance, dict):
+                expect_keys(chance, {"type", "amount"}, self.where)
+                if chance["type"] != "minecraft:enchantment_level":
+                    fail("unsupported random_chance %s in %s" % (json.dumps(chance), self.where))
+                return rs_call("Condition::RandomChanceByLevel", [self.level_based_value(chance["amount"])])
+            return rs_call("Condition::RandomChance", [self.float_constant(chance)])
         if kind == "minecraft:random_chance_with_enchanted_bonus":
             expect_keys(value, {"type", "enchantment", "unenchanted_chance", "enchanted_chance"}, self.where)
             enchantment = normalize_id(value["enchantment"])
@@ -1154,7 +1170,48 @@ class LootBuilder:
         elif kind == "minecraft:enchant_randomly":
             expect_keys(value, {"type", "condition", "options", "only_compatible"}, self.where)
             options = value.get("options")
-            if not isinstance(options, str) or options.startswith("#"):
+            if isinstance(options, str) and options.startswith("#"):
+                tag = normalize_id(options[1:])
+                if tag not in self.tag_table["minecraft:enchantment"]:
+                    fail("unknown enchantment tag %s in %s" % (tag, self.where))
+                return rs_struct(
+                    "Function",
+                    [
+                        ("condition", self.optional_condition(value)),
+                        (
+                            "kind",
+                            rs_struct(
+                                "FunctionKind::EnchantRandomlyFrom",
+                                [
+                                    ("options", rs_str(tag)),
+                                    ("only_compatible", rs_bool(value.get("only_compatible", True))),
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            if isinstance(options, list):
+                names = [normalize_id(name) for name in options]
+                for name in names:
+                    if name not in self.enchantments:
+                        fail("unknown enchantment %s in %s" % (name, self.where))
+                return rs_struct(
+                    "Function",
+                    [
+                        ("condition", self.optional_condition(value)),
+                        (
+                            "kind",
+                            rs_struct(
+                                "FunctionKind::EnchantRandomlyAmong",
+                                [
+                                    ("options", rs_slice([rs_str(name) for name in names])),
+                                    ("only_compatible", rs_bool(value.get("only_compatible", True))),
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            if not isinstance(options, str):
                 fail("unsupported enchant_randomly options in %s" % self.where)
             enchantment = normalize_id(options)
             if enchantment not in self.enchantments:
@@ -1179,6 +1236,51 @@ class LootBuilder:
                 "FunctionKind::EnchantWithLevels",
                 [("options", rs_str(normalize_id(options[1:]))), ("levels", self.int_provider(value["levels"]))],
             )
+        elif kind == "minecraft:set_stew_effect":
+            expect_keys(value, {"type", "condition", "effects"}, self.where)
+            entries = []
+            for effect in value["effects"]:
+                expect_keys(effect, {"type", "duration"}, self.where)
+                entries.append(
+                    rs_tuple([rs_str(normalize_id(effect["type"])), self.int_provider(effect["duration"])])
+                )
+            body = rs_call("FunctionKind::SetStewEffect", [rs_slice(entries)])
+        elif kind == "minecraft:set_instrument":
+            expect_keys(value, {"type", "condition", "options"}, self.where)
+            options = value["options"]
+            if not isinstance(options, str) or not options.startswith("#"):
+                fail("unsupported set_instrument options in %s" % self.where)
+            tag = normalize_id(options[1:])
+            if tag not in self.tag_table["minecraft:instrument"]:
+                fail("unknown instrument tag %s in %s" % (tag, self.where))
+            body = rs_call("FunctionKind::SetInstrument", [rs_str(tag)])
+        elif kind == "minecraft:set_enchantments":
+            expect_keys(value, {"type", "condition", "enchantments", "add"}, self.where)
+            entries = []
+            for name, level in value["enchantments"].items():
+                name = normalize_id(name)
+                if name not in self.enchantments:
+                    fail("unknown enchantment %s in %s" % (name, self.where))
+                entries.append(rs_tuple([rs_str(name), self.int_provider(level)]))
+            body = rs_struct(
+                "FunctionKind::SetEnchantments",
+                [("levels", rs_slice(entries)), ("add", rs_bool(value.get("add", False)))],
+            )
+        elif kind == "minecraft:exploration_map":
+            expect_keys(
+                value,
+                {"type", "condition", "decoration", "destination", "zoom", "skip_existing_chunks", "search_radius"},
+                self.where,
+            )
+            self.note_ignored(kind)
+            body = Atom("FunctionKind::ExplorationMap")
+        elif kind == "minecraft:filtered":
+            expect_keys(value, {"type", "condition", "item_filter", "on_fail"}, self.where)
+            if value["on_fail"] != {"type": "minecraft:discard"}:
+                fail("unsupported filtered on_fail in %s" % self.where)
+            if value["item_filter"] != {"predicates": {"minecraft:map_id": {}}}:
+                fail("unsupported filtered item_filter in %s" % self.where)
+            body = Atom("FunctionKind::RequireMapId")
         elif kind in COMPONENT_FUNCTIONS:
             self.note_ignored(kind)
             body = rs_call("FunctionKind::Components", [rs_str(kind)])
@@ -1389,7 +1491,7 @@ def build_loot(datapack, block_reports, static_registries, synced, tag_table):
     entity_tables = [
         table_index.get("minecraft:entities/" + name.split(":", 1)[1], 65535) for name in entity_names
     ]
-    return tables, block_tables, entity_tables, predicates, wall_mapped, ignored
+    return tables, block_tables, entity_tables, predicates, wall_mapped, ignored, builder
 
 
 def ingredient_items(value, item_ids, tag_table, where):
@@ -1838,6 +1940,207 @@ def build_enchantments(datapack, synced):
             }
         )
     return out
+
+
+VALUE_COMPONENTS = {
+    "minecraft:damage": "damage",
+    "minecraft:damage_protection": "damage_protection",
+    "minecraft:knockback": "knockback",
+    "minecraft:armor_effectiveness": "armor_effectiveness",
+    "minecraft:smash_damage_per_fallen_block": "smash_damage_per_fallen_block",
+    "minecraft:equipment_drops": "equipment_drops",
+    "minecraft:ammo_use": "ammo_use",
+    "minecraft:projectile_count": "projectile_count",
+    "minecraft:projectile_spread": "projectile_spread",
+    "minecraft:projectile_piercing": "projectile_piercing",
+}
+
+VALUE_OPERATIONS = {
+    "minecraft:add": "Add",
+    "minecraft:multiply": "Multiply",
+    "minecraft:set": "Set",
+    "minecraft:remove_binomial": "RemoveBinomial",
+}
+
+ENTITY_EFFECT_TYPES = {
+    "minecraft:ignite",
+    "minecraft:apply_mob_effect",
+    "minecraft:damage_entity",
+    "minecraft:change_item_damage",
+}
+
+ENCHANTMENT_ATTRIBUTES = {"minecraft:sweeping_damage_ratio"}
+
+EFFECT_ROLES = {"attacker": "Attacker", "victim": "Victim", "damaging_entity": "DamagingEntity"}
+
+
+VALUE_OPERATION_KEYS = {
+    "minecraft:add": "value",
+    "minecraft:multiply": "factor",
+    "minecraft:set": "value",
+    "minecraft:remove_binomial": "chance",
+}
+
+
+def value_operation(builder, effect):
+    kind = effect.get("type")
+    if kind not in VALUE_OPERATIONS:
+        fail("unsupported value effect %s in %s" % (json.dumps(effect), builder.where))
+    key = VALUE_OPERATION_KEYS[kind]
+    expect_keys(effect, {"type", key}, builder.where)
+    return rs_call("ValueOp::" + VALUE_OPERATIONS[kind], [builder.level_based_value(effect[key])])
+
+
+def value_effect(builder, entry):
+    expect_keys(entry, {"effect", "requirements", "enchanted", "affected"}, builder.where)
+    requirements = entry.get("requirements")
+    return rs_struct(
+        "ValueEffect",
+        [
+            ("op", value_operation(builder, entry["effect"])),
+            ("requirements", rs_option(None if requirements is None else builder.condition(requirements))),
+        ],
+    )
+
+
+def entity_effect_supported(effect):
+    kind = effect.get("type")
+    if kind == "minecraft:all_of":
+        return all(entity_effect_supported(child) for child in effect["effects"])
+    return kind in ENTITY_EFFECT_TYPES
+
+
+def entity_effect(builder, effect):
+    kind = effect["type"]
+    if kind == "minecraft:all_of":
+        expect_keys(effect, {"type", "effects"}, builder.where)
+        return rs_call("EntityEffect::AllOf", [rs_slice([entity_effect(builder, child) for child in effect["effects"]])])
+    if kind == "minecraft:ignite":
+        expect_keys(effect, {"type", "duration"}, builder.where)
+        return rs_call("EntityEffect::Ignite", [builder.level_based_value(effect["duration"])])
+    if kind == "minecraft:change_item_damage":
+        expect_keys(effect, {"type", "amount"}, builder.where)
+        return rs_call("EntityEffect::ChangeItemDamage", [builder.level_based_value(effect["amount"])])
+    if kind == "minecraft:damage_entity":
+        expect_keys(effect, {"type", "damage_type", "min_damage", "max_damage"}, builder.where)
+        return rs_struct(
+            "EntityEffect::DamageEntity",
+            [
+                ("damage_type", rs_str(normalize_id(effect["damage_type"]))),
+                ("min_damage", builder.level_based_value(effect["min_damage"])),
+                ("max_damage", builder.level_based_value(effect["max_damage"])),
+            ],
+        )
+    expect_keys(
+        effect,
+        {"type", "to_apply", "min_duration", "max_duration", "min_amplifier", "max_amplifier"},
+        builder.where,
+    )
+    to_apply = effect["to_apply"]
+    if not isinstance(to_apply, str):
+        fail("unsupported apply_mob_effect set in %s" % builder.where)
+    return rs_struct(
+        "EntityEffect::ApplyMobEffect",
+        [
+            ("effect", rs_str(normalize_id(to_apply))),
+            ("min_duration", builder.level_based_value(effect["min_duration"])),
+            ("max_duration", builder.level_based_value(effect["max_duration"])),
+            ("min_amplifier", builder.level_based_value(effect.get("min_amplifier", 0))),
+            ("max_amplifier", builder.level_based_value(effect.get("max_amplifier", 0))),
+        ],
+    )
+
+
+def build_enchantment_effects(datapack, synced, loot_builder):
+    names = {registry_id: entries for _, registry_id, entries in synced}["minecraft:enchantment"]
+    out = []
+    for name in names:
+        where = "enchantment effects " + name
+        value = load_json(os.path.join(datapack, "enchantment", name.split(":", 1)[1] + ".json"))
+        effects = value.get("effects", {})
+        builder = loot_builder(where)
+        fields = [("slots", rs_slice([rs_str(slot) for slot in value["slots"]]))]
+        for component, field in VALUE_COMPONENTS.items():
+            entries = effects.get(component, [])
+            fields.append((field, rs_slice([value_effect(builder, entry) for entry in entries])))
+        charge = effects.get("minecraft:crossbow_charge_time")
+        fields.append(
+            (
+                "crossbow_charge_time",
+                rs_option(None if charge is None else value_operation(builder, charge)),
+            )
+        )
+        targeted = []
+        for entry in effects.get("minecraft:post_attack", []):
+            if not entity_effect_supported(entry["effect"]):
+                builder.note_ignored("post_attack:" + entry["effect"]["type"])
+                continue
+            expect_keys(entry, {"effect", "requirements", "enchanted", "affected"}, where)
+            requirements = entry.get("requirements")
+            targeted.append(
+                rs_struct(
+                    "TargetedEffect",
+                    [
+                        ("enchanted", Atom("EffectRole::" + EFFECT_ROLES[entry["enchanted"]])),
+                        ("affected", Atom("EffectRole::" + EFFECT_ROLES[entry["affected"]])),
+                        ("effect", entity_effect(builder, entry["effect"])),
+                        ("requirements", rs_option(None if requirements is None else builder.condition(requirements))),
+                    ],
+                )
+            )
+        fields.append(("post_attack", rs_slice(targeted)))
+        spawned = []
+        for entry in effects.get("minecraft:projectile_spawned", []):
+            if not entity_effect_supported(entry["effect"]):
+                continue
+            expect_keys(entry, {"effect", "requirements"}, where)
+            requirements = entry.get("requirements")
+            spawned.append(
+                rs_struct(
+                    "ConditionalEffect",
+                    [
+                        ("effect", entity_effect(builder, entry["effect"])),
+                        ("requirements", rs_option(None if requirements is None else builder.condition(requirements))),
+                    ],
+                )
+            )
+        fields.append(("projectile_spawned", rs_slice(spawned)))
+        attributes = []
+        for entry in effects.get("minecraft:attributes", []):
+            expect_keys(entry, {"id", "attribute", "amount", "operation"}, where)
+            if entry["attribute"] not in ENCHANTMENT_ATTRIBUTES:
+                builder.note_ignored("attribute:" + entry["attribute"])
+                continue
+            attributes.append(
+                rs_struct(
+                    "AttributeEffect",
+                    [
+                        ("attribute", rs_str(normalize_id(entry["attribute"]))),
+                        ("amount", builder.level_based_value(entry["amount"])),
+                        ("operation", rs_str(entry["operation"])),
+                    ],
+                )
+            )
+        fields.append(("attributes", rs_slice(attributes)))
+        out.append(rs_struct("EnchantmentEffects", fields))
+    return out, builder.ignored
+
+
+def emit_enchantment_effects(nodes):
+    body = ["pub(crate) static EFFECTS: [EnchantmentEffects; %d] = [" % len(nodes)]
+    for node in nodes:
+        body.extend(render(node, "    ", "", ","))
+    body.append("];")
+    text = "\n".join(body) + "\n"
+    head = ["use crate::enchantments::{%s};" % ", ".join(
+        used_imports(text, ["AttributeEffect", "ConditionalEffect", "EffectRole", "EnchantmentEffects", "EntityEffect", "TargetedEffect", "ValueEffect", "ValueOp"])
+    )]
+    loot_names = used_imports(text, LOOT_TYPES)
+    if loot_names:
+        head.append("use crate::loot::{%s};" % ", ".join(loot_names))
+    if "HolderSet::" in text:
+        head.append("use crate::tags::HolderSet;")
+    return "\n".join(head) + "\n\n" + text
 
 
 def emit_enchantments(enchantments):
@@ -2527,6 +2830,7 @@ def emit_mod():
             "pub mod brewing;",
             "pub mod climate;",
             "pub mod compostable;",
+            "pub mod enchantment_effects;",
             "pub mod enchantments;",
             "pub mod loot;",
             "pub mod multi_noise;",
@@ -2571,7 +2875,7 @@ def main():
     synced, missing = build_synced(args.datapack)
     tag_table, skipped = build_tags(args.datapack, static_registries, synced)
     block_reports = load_block_properties(args.reports)
-    tables, block_tables, entity_tables, predicates, wall_mapped, ignored = build_loot(
+    tables, block_tables, entity_tables, predicates, wall_mapped, ignored, loot_builder = build_loot(
         args.datapack, block_reports, static_registries, synced, tag_table
     )
     smelting = build_smelting(args.datapack, static_registries, tag_table)
@@ -2587,6 +2891,7 @@ def main():
     trading = build_trading(args.datapack, args.reports, static_registries, synced, tag_table)
     sulfur_cube = build_sulfur_cube_archetypes(args.datapack, tag_table)
     enchantment_defs = build_enchantments(args.datapack, synced)
+    effect_nodes, _ = build_enchantment_effects(args.datapack, synced, loot_builder)
 
     files = {
         "mod.rs": emit_mod(),
@@ -2600,6 +2905,7 @@ def main():
         "block_transformers.rs": emit_transformers(transformers),
         "compostable.rs": emit_compostables(compost_providers, compostables),
         "enchantments.rs": emit_enchantments(enchantment_defs),
+        "enchantment_effects.rs": emit_enchantment_effects(effect_nodes),
         "trading.rs": emit_trading(*trading),
         "sulfur_cube.rs": emit_sulfur_cube_archetypes(sulfur_cube),
     }

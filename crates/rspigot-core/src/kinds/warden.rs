@@ -110,7 +110,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn knockback_resistance_of(&self, target: EntityId) -> f64 {
+    pub(crate) fn knockback_resistance_of(&self, target: EntityId) -> f64 {
         const RESISTANCE: &str = "minecraft:knockback_resistance";
         self.entities
             .store

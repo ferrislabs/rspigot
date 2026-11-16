@@ -13,8 +13,10 @@ use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::{EquipmentSlot, ItemKind};
 
+use crate::enchant_effects::{self, EquipSlot, Worn};
 use crate::entities::wire_slot;
 use crate::events::{ClientEvent, Hand};
+use crate::loot::LootContext;
 use crate::plugins::steps::{Draw, Shooter};
 use crate::ports::ClientLink;
 use crate::projectiles::EYE_OFFSET;
@@ -22,7 +24,6 @@ use crate::server::{Audience, Server};
 
 const INTANGIBLE_PROJECTILE: &str = "minecraft:intangible_projectile";
 const UNBREAKING: &str = "minecraft:unbreaking";
-const INFINITY: &str = "minecraft:infinity";
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ChargingSoundFlags {
@@ -215,11 +216,21 @@ impl<L: ClientLink> Server<L> {
                 .cloned()
         });
         let ammo = held.clone().unwrap_or_else(arrow::default_item);
-        let infinite = crossbow::level_of(&weapon, INFINITY) > 0;
+        let worn = [Worn {
+            stack: &weapon,
+            slot: EquipSlot::Mainhand,
+        }];
+        let infinite = enchant_effects::modify_ammo_use(
+            &worn,
+            &ammo,
+            1.0,
+            &LootContext::default(),
+            &mut self.rng,
+        ) < 1.0;
         let mut left = ammo.count.get();
         let mut loaded: Vec<ItemStack> = Vec::new();
         for index in 0..crossbow::projectile_count(&weapon) {
-            if index > 0 || (infinite && ammo.item == ItemKind::Arrow.id()) {
+            if index > 0 || infinite {
                 loaded.push(intangible(&ammo));
             } else {
                 left -= 1;

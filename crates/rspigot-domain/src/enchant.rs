@@ -1,4 +1,4 @@
-use rspigot_data::enchantments::{self, EnchantmentDef};
+use rspigot_data::enchantments::{self, EnchantmentDef, EnchantmentEffects, ValueEffect, ValueOp};
 use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
@@ -78,6 +78,47 @@ pub fn increased_repair_cost(cost: i32) -> i32 {
     i32::try_from((i64::from(cost) * 2 + 1).min(i64::from(i32::MAX))).unwrap_or(i32::MAX)
 }
 
+fn apply_fixed(op: ValueOp, level: i32, value: f32) -> f32 {
+    match op {
+        ValueOp::Add(amount) => value + amount.calculate(level),
+        ValueOp::Multiply(factor) => value * factor.calculate(level),
+        ValueOp::Set(amount) => amount.calculate(level),
+        ValueOp::RemoveBinomial(_) => value,
+    }
+}
+
+fn held_effects(stack: &ItemStack) -> impl Iterator<Item = (&'static EnchantmentEffects, i32)> {
+    levels(stack).into_iter().filter_map(|(name, level)| {
+        let effects = enchantments::effects(&name)?;
+        effects
+            .slots
+            .iter()
+            .any(|slot| matches!(*slot, "mainhand" | "hand" | "any"))
+            .then_some((effects, i32::from(level)))
+    })
+}
+
+pub fn modify_unconditional(
+    stack: &ItemStack,
+    select: fn(&'static EnchantmentEffects) -> &'static [ValueEffect],
+    base: f32,
+) -> f32 {
+    held_effects(stack).fold(base, |value, (effects, level)| {
+        select(effects)
+            .iter()
+            .filter(|effect| effect.requirements.is_none())
+            .fold(value, |value, effect| apply_fixed(effect.op, level, value))
+    })
+}
+
+pub fn modify_crossbow_charge_time(stack: &ItemStack, base: f32) -> f32 {
+    held_effects(stack).fold(base, |value, (effects, level)| {
+        effects
+            .crossbow_charge_time
+            .map_or(value, |op| apply_fixed(op, level, value))
+    })
+}
+
 pub fn damage_after_unbreaking(
     level: i32,
     armor: bool,
@@ -139,5 +180,25 @@ pub(crate) mod tests {
         assert_eq!(repair_cost(&sword), 7);
         set_repair_cost(&mut sword, 0);
         assert!(!sword.components.contains_key(REPAIR_COST));
+    }
+
+    #[test]
+    fn unconditional_effects_follow_the_datapack_values() {
+        let bow = stack("minecraft:crossbow");
+        let mut shotgun = bow.clone();
+        set_levels(&mut shotgun, &[("minecraft:multishot".into(), 1)]);
+        assert_eq!(modify_unconditional(&bow, |e| e.projectile_count, 1.0), 1.0);
+        assert_eq!(
+            modify_unconditional(&shotgun, |e| e.projectile_count, 1.0),
+            3.0
+        );
+        assert_eq!(
+            modify_unconditional(&shotgun, |e| e.projectile_spread, 0.0),
+            10.0
+        );
+        let mut quick = bow.clone();
+        set_levels(&mut quick, &[("minecraft:quick_charge".into(), 3)]);
+        assert_eq!(modify_crossbow_charge_time(&quick, 1.25), 0.5);
+        assert_eq!(modify_crossbow_charge_time(&bow, 1.25), 1.25);
     }
 }
