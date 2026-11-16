@@ -350,7 +350,9 @@ mod tests {
     #[test]
     fn secure_profiles_are_requested_only_in_online_mode_with_the_property_on() {
         let mut server_files = files("{}", "{}");
-        server_files.properties.set("enforce-secure-profile", "true");
+        server_files
+            .properties
+            .set("enforce-secure-profile", "true");
         server_files.properties.set("online-mode", "true");
         assert!(server_files.secure_profile_requested());
         server_files
