@@ -217,6 +217,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
         level.day_time = ticks;
     }
     level.raids = optional_saved_data(world_root, "raids");
+    level.scoreboard = optional_saved_data(world_root, "scoreboard");
     level.dragon_fight = optional_saved_data(world_root, "ender_dragon_fight");
     Ok(Some(level))
 }
@@ -328,6 +329,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         update_saved_data(world_root, "raids", |data| {
             let changed = data != raids;
             data.clone_from(raids);
+            changed
+        })?;
+    }
+    if let Some(scoreboard) = &level.scoreboard {
+        update_saved_data(world_root, "scoreboard", |data| {
+            let changed = data != scoreboard;
+            data.clone_from(scoreboard);
             changed
         })?;
     }
@@ -484,6 +492,7 @@ mod tests {
             spawn_monsters: false,
             uuid: None,
             raids: None,
+            scoreboard: None,
             dragon_fight: None,
         }
     }
@@ -560,6 +569,25 @@ mod tests {
         write_level_data(&root, &without).unwrap();
         let kept = read_level_data(&root).unwrap().unwrap();
         assert_eq!(kept.raids, Some(raids));
+    }
+
+    #[test]
+    fn the_scoreboard_is_saved_in_its_own_data_file_and_read_back() {
+        let dir = TempDir::new("level-scoreboard");
+        let root = dir.path().join("world");
+        let scoreboard = Compound::new()
+            .with("Objectives", Tag::List(Vec::new()))
+            .with("PlayerScores", Tag::List(Vec::new()))
+            .with("DisplaySlots", Compound::new())
+            .with("Teams", Tag::List(Vec::new()));
+        let level = LevelData {
+            scoreboard: Some(scoreboard.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/scoreboard.dat");
+        assert_eq!(file.get_compound("data"), Some(&scoreboard));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
     }
 
     #[test]

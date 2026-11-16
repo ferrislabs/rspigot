@@ -129,6 +129,9 @@ impl<L: ClientLink> Server<L> {
             Order::CustomInventory { inventory, order } => {
                 self.apply_custom_inventory_order(connection, inventory, order);
             }
+            Order::Scoreboard { board, order } => {
+                self.apply_scoreboard_order(connection, board, order);
+            }
         }
     }
 
@@ -199,6 +202,10 @@ impl<L: ClientLink> Server<L> {
             Question::CustomInventory(inventory) => self
                 .custom_inventory_state(connection, inventory)
                 .map_or(Answer::NotFound, Answer::CustomInventory),
+            Question::Scoreboard(board) => self
+                .scoreboard_view(board)
+                .map_or(Answer::NotFound, Answer::Scoreboard),
+            Question::NewScoreboard => Answer::ScoreboardCreated(self.new_plugin_scoreboard()),
         })
     }
 

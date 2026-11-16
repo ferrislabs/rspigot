@@ -167,6 +167,7 @@ pub fn build_tree(level: u8) -> CommandTree {
     b.argument(target, "message", ArgumentParser::Message, true);
     b.alias(root, "tell", msg);
     b.alias(root, "w", msg);
+    open_score_commands(&mut b, root);
     if level >= LEVEL_GAMEMASTERS {
         gamemaster_commands(&mut b, root);
     }
@@ -710,6 +711,201 @@ fn rule_commands(b: &mut TreeBuilder, root: usize) {
     );
 }
 
+fn objective() -> ArgumentParser {
+    ArgumentParser::Named("minecraft:objective")
+}
+
+fn score_holders() -> ArgumentParser {
+    ArgumentParser::ScoreHolder { multiple: true }
+}
+
+fn component_argument() -> ArgumentParser {
+    ArgumentParser::Named("minecraft:component")
+}
+
+fn open_score_commands(b: &mut TreeBuilder, root: usize) {
+    let trigger = b.literal(root, "trigger", false);
+    let name = b.argument(trigger, "objective", objective(), true);
+    for mode in ["add", "set"] {
+        let node = b.literal(name, mode, false);
+        b.argument(
+            node,
+            "value",
+            ArgumentParser::Integer {
+                min: None,
+                max: None,
+            },
+            true,
+        );
+    }
+    let teammsg = b.literal(root, "teammsg", false);
+    b.argument(teammsg, "message", ArgumentParser::Message, true);
+    b.alias(root, "tm", teammsg);
+}
+
+fn number_format_nodes(b: &mut TreeBuilder, parent: usize) {
+    b.literal(parent, "blank", true);
+    let fixed = b.literal(parent, "fixed", false);
+    b.argument(fixed, "contents", component_argument(), true);
+    let styled = b.literal(parent, "styled", false);
+    b.argument(
+        styled,
+        "style",
+        ArgumentParser::Named("minecraft:style"),
+        true,
+    );
+}
+
+fn scoreboard_commands(b: &mut TreeBuilder, root: usize) {
+    let scoreboard = b.literal(root, "scoreboard", false);
+    let objectives = b.literal(scoreboard, "objectives", false);
+    b.literal(objectives, "list", true);
+    let add = b.literal(objectives, "add", false);
+    let name = b.argument(add, "objective", ArgumentParser::Word, false);
+    let criteria = b.argument(
+        name,
+        "criteria",
+        ArgumentParser::Named("minecraft:objective_criteria"),
+        true,
+    );
+    b.argument(criteria, "displayName", component_argument(), true);
+    let remove = b.literal(objectives, "remove", false);
+    b.argument(remove, "objective", objective(), true);
+    let setdisplay = b.literal(objectives, "setdisplay", false);
+    let slot = b.argument(
+        setdisplay,
+        "slot",
+        ArgumentParser::Named("minecraft:scoreboard_slot"),
+        true,
+    );
+    b.argument(slot, "objective", objective(), true);
+    let modify = b.literal(objectives, "modify", false);
+    let target = b.argument(modify, "objective", objective(), false);
+    let displayname = b.literal(target, "displayname", false);
+    b.argument(displayname, "displayName", component_argument(), true);
+    let rendertype = b.literal(target, "rendertype", false);
+    for kind in ["hearts", "integer"] {
+        b.literal(rendertype, kind, true);
+    }
+    let auto_update = b.literal(target, "displayautoupdate", false);
+    b.argument(auto_update, "value", ArgumentParser::Bool, true);
+    let numberformat = b.literal(target, "numberformat", true);
+    number_format_nodes(b, numberformat);
+    let players = b.literal(scoreboard, "players", false);
+    let list = b.literal(players, "list", true);
+    b.argument(
+        list,
+        "target",
+        ArgumentParser::ScoreHolder { multiple: false },
+        true,
+    );
+    let get = b.literal(players, "get", false);
+    let holder = b.argument(
+        get,
+        "target",
+        ArgumentParser::ScoreHolder { multiple: false },
+        false,
+    );
+    b.argument(holder, "objective", objective(), true);
+    for action in ["set", "add", "remove"] {
+        let node = b.literal(players, action, false);
+        let targets = b.argument(node, "targets", score_holders(), false);
+        let name = b.argument(targets, "objective", objective(), false);
+        b.argument(
+            name,
+            "score",
+            ArgumentParser::Integer {
+                min: if action == "set" { None } else { Some(0) },
+                max: None,
+            },
+            true,
+        );
+    }
+    let reset = b.literal(players, "reset", false);
+    let targets = b.argument(reset, "targets", score_holders(), true);
+    b.argument(targets, "objective", objective(), true);
+    let enable = b.literal(players, "enable", false);
+    let targets = b.argument(enable, "targets", score_holders(), false);
+    b.argument(targets, "objective", objective(), true);
+    let operation = b.literal(players, "operation", false);
+    let targets = b.argument(operation, "targets", score_holders(), false);
+    let target_objective = b.argument(targets, "targetObjective", objective(), false);
+    let operator = b.argument(
+        target_objective,
+        "operation",
+        ArgumentParser::Named("minecraft:operation"),
+        false,
+    );
+    let source = b.argument(operator, "source", score_holders(), false);
+    b.argument(source, "sourceObjective", objective(), true);
+    let display = b.literal(players, "display", false);
+    let name = b.literal(display, "name", false);
+    let targets = b.argument(name, "targets", score_holders(), false);
+    let name_objective = b.argument(targets, "objective", objective(), true);
+    b.argument(name_objective, "name", component_argument(), true);
+    let format = b.literal(display, "numberformat", false);
+    let targets = b.argument(format, "targets", score_holders(), false);
+    let format_objective = b.argument(targets, "objective", objective(), true);
+    number_format_nodes(b, format_objective);
+}
+
+fn team_commands(b: &mut TreeBuilder, root: usize) {
+    let team_name = || ArgumentParser::Named("minecraft:team");
+    let team = b.literal(root, "team", false);
+    let list = b.literal(team, "list", true);
+    b.argument(list, "team", team_name(), true);
+    let add = b.literal(team, "add", false);
+    let name = b.argument(add, "team", ArgumentParser::Word, true);
+    b.argument(name, "displayName", component_argument(), true);
+    let remove = b.literal(team, "remove", false);
+    b.argument(remove, "team", team_name(), true);
+    let empty = b.literal(team, "empty", false);
+    b.argument(empty, "team", team_name(), true);
+    let join = b.literal(team, "join", false);
+    let target = b.argument(join, "team", team_name(), true);
+    b.argument(target, "members", score_holders(), true);
+    let leave = b.literal(team, "leave", false);
+    b.argument(leave, "members", score_holders(), true);
+    let modify = b.literal(team, "modify", false);
+    let target = b.argument(modify, "team", team_name(), false);
+    let display = b.literal(target, "displayName", false);
+    b.argument(display, "displayName", component_argument(), true);
+    let color = b.literal(target, "color", false);
+    b.argument(
+        color,
+        "value",
+        ArgumentParser::Named("minecraft:team_color"),
+        true,
+    );
+    for flag in ["friendlyFire", "seeFriendlyInvisibles"] {
+        let node = b.literal(target, flag, false);
+        b.argument(node, "allowed", ArgumentParser::Bool, true);
+    }
+    for (option, values) in [
+        (
+            "nametagVisibility",
+            ["always", "never", "hideForOtherTeams", "hideForOwnTeam"],
+        ),
+        (
+            "deathMessageVisibility",
+            ["always", "never", "hideForOtherTeams", "hideForOwnTeam"],
+        ),
+        (
+            "collisionRule",
+            ["always", "never", "pushOtherTeams", "pushOwnTeam"],
+        ),
+    ] {
+        let node = b.literal(target, option, false);
+        for value in values {
+            b.literal(node, value, true);
+        }
+    }
+    for option in ["prefix", "suffix"] {
+        let node = b.literal(target, option, false);
+        b.argument(node, option, component_argument(), true);
+    }
+}
+
 fn player_targets() -> ArgumentParser {
     ArgumentParser::Entity {
         single: false,
@@ -764,6 +960,8 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     data_commands(b, root);
     rule_commands(b, root);
     text_commands(b, root);
+    scoreboard_commands(b, root);
+    team_commands(b, root);
     b.literal(root, "seed", true);
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);
@@ -896,6 +1094,30 @@ fn admin_commands(b: &mut TreeBuilder, root: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn root_names(level: u8) -> Vec<String> {
+        let tree = build_tree(level);
+        tree.nodes[tree.root]
+            .children
+            .iter()
+            .filter_map(|i| match &tree.nodes[*i].kind {
+                CommandNodeKind::Literal(name) => Some(name.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn scoreboard_commands_follow_their_permission_levels() {
+        let player = root_names(0);
+        for name in ["trigger", "teammsg", "tm"] {
+            assert!(player.iter().any(|n| n == name), "{name}");
+        }
+        assert!(!player.iter().any(|n| n == "scoreboard" || n == "team"));
+        let operator = root_names(2);
+        assert!(operator.iter().any(|n| n == "scoreboard"));
+        assert!(operator.iter().any(|n| n == "team"));
+    }
 
     #[test]
     fn owner_tree_contains_gamemode_and_redirects_resolve() {

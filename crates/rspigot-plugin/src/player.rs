@@ -314,6 +314,10 @@ impl Player {
         );
     }
 
+    pub fn set_scoreboard(&self, scoreboard: &crate::Scoreboard) {
+        self.order(Order::SetScoreboard(scoreboard.id()));
+    }
+
     pub fn close_inventory(&self) {
         self.order(Order::CloseInventory(v1::Empty {}));
     }

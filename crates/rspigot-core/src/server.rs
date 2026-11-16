@@ -113,6 +113,7 @@ pub struct Server<L> {
     pub(crate) rng: StdRng,
     pub(crate) spawning: Spawning,
     pub(crate) raids: crate::raids::RaidRuntime,
+    pub(crate) scoreboard: crate::scoreboard::ScoreboardState,
     pub(crate) plugins: Registry,
     pub(crate) decisions: Decisions,
     pub(crate) broadcasts: Broadcasts,
@@ -194,6 +195,7 @@ impl<L: ClientLink> Server<L> {
             rng: StdRng::from_os_rng(),
             spawning,
             raids: crate::raids::RaidRuntime::default(),
+            scoreboard: crate::scoreboard::ScoreboardState::default(),
             plugins: Registry::default(),
             decisions: Decisions::default(),
             broadcasts: Broadcasts::default(),
@@ -225,6 +227,7 @@ impl<L: ClientLink> Server<L> {
             config,
         };
         server.load_raids();
+        server.load_scoreboard();
         server.load_dragon_fight();
         let center = spawn.chunk();
         let radius = server.config.spawn_chunk_radius;
@@ -866,6 +869,9 @@ impl<L: ClientLink> Server<L> {
             total: 0,
         });
         player.vitals.mark_sent();
+        for event in self.scoreboard_join_events() {
+            link.send(event);
+        }
     }
 
     pub(crate) fn time_event(&self) -> ClientEvent {
@@ -886,6 +892,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         self.close_open_menu(id, false);
+        self.forget_scoreboard_player(id);
         if let Some(entity) = self.players.get(&id).map(|player| player.entity_id) {
             self.unride(entity);
         }
@@ -1009,6 +1016,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_spin_attacks();
         self.tick_fall_flying();
         self.tick_stat_clocks();
+        self.tick_scoreboard_criteria();
         self.tick_advancements();
         self.tick_sleeping();
         self.tick_eating();
@@ -1233,6 +1241,7 @@ impl<L: ClientLink> Server<L> {
         self.handle_chunk_events();
         self.save_all_entities();
         self.save_raids();
+        self.save_scoreboard();
         self.save_dragon_fight();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);

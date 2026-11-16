@@ -35,6 +35,7 @@ mod potions;
 pub(crate) mod prepare;
 mod registry;
 mod resolve;
+mod scoreboard;
 mod server;
 mod session;
 mod shots;
@@ -82,6 +83,9 @@ pub use orders::{
 };
 pub use patch::{ListDiff, SetDiff, Verdict};
 pub(crate) use registry::Registry;
+pub use scoreboard::{
+    ObjectiveView, ScoreView, ScoreboardOrder, ScoreboardView, TeamOptionSpec, TeamView,
+};
 pub(crate) use session::{Arrival, Refusal};
 pub(crate) use shots::face_of as plugin_face_of;
 pub(crate) use shots::face_of;
@@ -293,6 +297,8 @@ pub enum Answer {
     Entities(Vec<EntityView>),
     Entity(EntityDetails),
     Spawned(EntityView),
+    Scoreboard(ScoreboardView),
+    ScoreboardCreated(u32),
     Target(Option<TargetHit>),
     CustomInventory(CustomInventoryState),
     Refused(String),
@@ -361,6 +367,8 @@ pub enum Question {
         item: ItemSpec,
     },
     CustomInventory(u64),
+    Scoreboard(u32),
+    NewScoreboard,
 }
 
 #[cfg(test)]

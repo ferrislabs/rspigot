@@ -5,9 +5,11 @@ mod dispatch;
 mod execute;
 mod json_text;
 pub mod permission;
+mod scoreboard_commands;
 pub mod selector;
 mod server_commands;
 pub mod source;
+mod team_commands;
 mod text_commands;
 mod tree;
 
@@ -33,3 +35,6 @@ mod data_tests;
 
 #[cfg(test)]
 mod server_command_tests;
+
+#[cfg(test)]
+mod scoreboard_command_tests;

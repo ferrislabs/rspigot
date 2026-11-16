@@ -212,7 +212,7 @@ fn store_writes_result_and_success_to_command_storage() {
 }
 
 #[test]
-fn scoreboard_and_bossbar_targets_are_reported_as_unknown() {
+fn unknown_objectives_and_bossbars_are_reported() {
     let mut rig = rig();
     rig.texts();
     assert_eq!(

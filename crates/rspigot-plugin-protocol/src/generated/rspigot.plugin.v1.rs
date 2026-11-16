@@ -9388,7 +9388,7 @@ pub struct PlayerOrder {
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -9481,6 +9481,8 @@ pub mod player_order {
         Ban(super::BanTerms),
         #[prost(message, tag = "51")]
         TeleportTo(super::Location),
+        #[prost(uint32, tag = "52")]
+        SetScoreboard(u32),
     }
 }
 #[allow(clippy::all)]
@@ -9641,6 +9643,143 @@ pub mod entity_order {
     }
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RegisterObjective {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub criteria: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub display_name: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ObjectiveText {
+    #[prost(string, tag = "1")]
+    pub objective: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub text: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ObjectiveRender {
+    #[prost(string, tag = "1")]
+    pub objective: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub hearts: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DisplaySlotOrder {
+    #[prost(string, tag = "1")]
+    pub slot: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub objective: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScoreOrder {
+    #[prost(string, tag = "1")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub objective: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub value: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResetScoreOrder {
+    #[prost(string, tag = "1")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub objective: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TeamOption {
+    #[prost(string, tag = "1")]
+    pub team: ::prost::alloc::string::String,
+    #[prost(oneof = "team_option::Option", tags = "10, 11, 12, 13, 14, 15, 16, 17, 18")]
+    pub option: ::core::option::Option<team_option::Option>,
+}
+/// Nested message and enum types in `TeamOption`.
+pub mod team_option {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Option {
+        #[prost(string, tag = "10")]
+        DisplayName(::prost::alloc::string::String),
+        #[prost(string, tag = "11")]
+        Prefix(::prost::alloc::string::String),
+        #[prost(string, tag = "12")]
+        Suffix(::prost::alloc::string::String),
+        #[prost(string, tag = "13")]
+        Color(::prost::alloc::string::String),
+        #[prost(bool, tag = "14")]
+        FriendlyFire(bool),
+        #[prost(bool, tag = "15")]
+        SeeFriendlyInvisibles(bool),
+        #[prost(string, tag = "16")]
+        NametagVisibility(::prost::alloc::string::String),
+        #[prost(string, tag = "17")]
+        DeathMessageVisibility(::prost::alloc::string::String),
+        #[prost(string, tag = "18")]
+        CollisionRule(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TeamEntry {
+    #[prost(string, tag = "1")]
+    pub team: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub join: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScoreboardOrder {
+    #[prost(uint32, tag = "1")]
+    pub board: u32,
+    #[prost(
+        oneof = "scoreboard_order::Order",
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
+    )]
+    pub order: ::core::option::Option<scoreboard_order::Order>,
+}
+/// Nested message and enum types in `ScoreboardOrder`.
+pub mod scoreboard_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Order {
+        #[prost(message, tag = "10")]
+        RegisterObjective(super::RegisterObjective),
+        #[prost(string, tag = "11")]
+        UnregisterObjective(::prost::alloc::string::String),
+        #[prost(message, tag = "12")]
+        SetObjectiveDisplayName(super::ObjectiveText),
+        #[prost(message, tag = "13")]
+        SetObjectiveRender(super::ObjectiveRender),
+        #[prost(message, tag = "14")]
+        SetDisplaySlot(super::DisplaySlotOrder),
+        #[prost(message, tag = "15")]
+        SetScore(super::ScoreOrder),
+        #[prost(message, tag = "16")]
+        ResetScore(super::ResetScoreOrder),
+        #[prost(string, tag = "17")]
+        RegisterTeam(::prost::alloc::string::String),
+        #[prost(string, tag = "18")]
+        UnregisterTeam(::prost::alloc::string::String),
+        #[prost(message, tag = "19")]
+        SetTeamOption(super::TeamOption),
+        #[prost(message, tag = "20")]
+        TeamEntry(super::TeamEntry),
+        #[prost(message, tag = "21")]
+        Discard(super::Empty),
+    }
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CustomInventoryOrder {
     #[prost(uint64, tag = "1")]
@@ -9710,7 +9849,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -9755,6 +9894,10 @@ pub mod question {
         DropItem(super::DropItem),
         #[prost(uint64, tag = "27")]
         CustomInventory(u64),
+        #[prost(uint32, tag = "28")]
+        Scoreboard(u32),
+        #[prost(message, tag = "29")]
+        NewScoreboard(super::Empty),
     }
 }
 #[allow(clippy::all)]
@@ -9762,7 +9905,7 @@ pub mod question {
 pub struct FromPlugin {
     #[prost(uint64, optional, tag = "11")]
     pub origin: ::core::option::Option<u64>,
-    #[prost(oneof = "from_plugin::Body", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
+    #[prost(oneof = "from_plugin::Body", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12")]
     pub body: ::core::option::Option<from_plugin::Body>,
 }
 /// Nested message and enum types in `FromPlugin`.
@@ -9790,6 +9933,8 @@ pub mod from_plugin {
         CustomInventory(super::CustomInventoryOrder),
         #[prost(message, tag = "10")]
         Question(super::Question),
+        #[prost(message, tag = "12")]
+        Scoreboard(super::ScoreboardOrder),
     }
 }
 #[allow(clippy::all)]
@@ -9964,13 +10109,83 @@ pub struct CustomInventoryState {
     pub viewers: ::prost::alloc::vec::Vec<PlayerSnapshot>,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ObjectiveState {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub criteria: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub hearts: bool,
+    #[prost(bool, tag = "5")]
+    pub read_only: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScoreState {
+    #[prost(string, tag = "1")]
+    pub entry: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub objective: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub value: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TeamState {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub prefix: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub suffix: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "5")]
+    pub color: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "6")]
+    pub friendly_fire: bool,
+    #[prost(bool, tag = "7")]
+    pub see_friendly_invisibles: bool,
+    #[prost(string, tag = "8")]
+    pub nametag_visibility: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub death_message_visibility: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub collision_rule: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "11")]
+    pub entries: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SlotState {
+    #[prost(string, tag = "1")]
+    pub slot: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub objective: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ScoreboardState {
+    #[prost(message, repeated, tag = "1")]
+    pub objectives: ::prost::alloc::vec::Vec<ObjectiveState>,
+    #[prost(message, repeated, tag = "2")]
+    pub scores: ::prost::alloc::vec::Vec<ScoreState>,
+    #[prost(message, repeated, tag = "3")]
+    pub teams: ::prost::alloc::vec::Vec<TeamState>,
+    #[prost(message, repeated, tag = "4")]
+    pub slots: ::prost::alloc::vec::Vec<SlotState>,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Answer {
     #[prost(uint64, tag = "1")]
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -10009,6 +10224,10 @@ pub mod answer {
         Spawned(super::EntitySnapshot),
         #[prost(message, tag = "16")]
         CustomInventory(super::CustomInventoryState),
+        #[prost(message, tag = "17")]
+        Scoreboard(super::ScoreboardState),
+        #[prost(uint32, tag = "18")]
+        ScoreboardCreated(u32),
     }
 }
 #[allow(clippy::all)]

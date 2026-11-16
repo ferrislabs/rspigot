@@ -11,6 +11,7 @@ use crate::Error;
 use crate::custom_inventory::CustomInventory;
 use crate::link::Link;
 use crate::player::Player;
+use crate::scoreboard::ScoreboardManager;
 use crate::wire::{from_millis, millis, parse_address, parse_uuid};
 use crate::world::World;
 
@@ -58,6 +59,10 @@ impl Server {
 
     pub fn world(&self) -> World {
         World::new(self.link.clone())
+    }
+
+    pub fn scoreboard_manager(&self) -> ScoreboardManager {
+        ScoreboardManager::new(self.link.clone())
     }
 
     pub fn create_inventory(&self, rows: u8, title: impl Into<String>) -> CustomInventory {

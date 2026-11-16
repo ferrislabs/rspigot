@@ -260,6 +260,7 @@ impl<L: ClientLink> Server<L> {
             PlayerOrder::OpenInventory(inventory) => {
                 self.open_plugin_menu(connection, id, inventory);
             }
+            PlayerOrder::SetScoreboard(board) => self.set_player_board(id, board)?,
             PlayerOrder::CloseInventory => {
                 self.close_open_menu(id, true);
             }
