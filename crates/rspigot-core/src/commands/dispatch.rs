@@ -435,6 +435,52 @@ pub trait CommandContext {
         Vec::new()
     }
 
+    fn is_living(&self, _target: Target) -> bool {
+        false
+    }
+
+    fn attribute_state(
+        &mut self,
+        _target: Target,
+        _attribute: &str,
+    ) -> Option<rspigot_domain::effect::AttributeState> {
+        None
+    }
+
+    fn default_attribute_base(&self, _target: Target, _attribute: &str) -> Option<f64> {
+        None
+    }
+
+    fn set_attribute_base(&mut self, _target: Target, _attribute: &str, _base: f64) {}
+
+    fn add_attribute_modifier(
+        &mut self,
+        _target: Target,
+        _attribute: &str,
+        _modifier: rspigot_domain::effect::AttributeModifier,
+    ) -> bool {
+        false
+    }
+
+    fn remove_attribute_modifier(&mut self, _target: Target, _attribute: &str, _id: &str) -> bool {
+        false
+    }
+
+    fn damage_target(
+        &mut self,
+        _target: Target,
+        _spec: super::entity_commands::DamageSpec,
+        _amount: f32,
+    ) -> bool {
+        false
+    }
+
+    fn main_hand(&self, _target: Target) -> Option<rspigot_domain::item::ItemStack> {
+        None
+    }
+
+    fn set_main_hand(&mut self, _target: Target, _stack: rspigot_domain::item::ItemStack) {}
+
     fn play_sound_to(
         &mut self,
         _player: PlayerId,
@@ -564,6 +610,9 @@ pub fn execute<C: CommandContext>(
         "tellraw" | "title" => super::text_commands::run(ctx, sender, &label, rest),
         "playsound" | "stopsound" | "particle" => {
             super::sound_commands::run(ctx, sender, &label, rest)
+        }
+        "attribute" | "damage" | "enchant" => {
+            super::entity_commands::run(ctx, sender, &label, rest)
         }
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
@@ -917,7 +966,7 @@ fn format_coordinate(value: f64) -> Component {
     Component::text(format!("{value:.6}"))
 }
 
-fn select_one<C: CommandContext>(
+pub(super) fn select_one<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     selector: &str,
@@ -1375,7 +1424,7 @@ fn parse_effect<C: CommandContext>(
     })
 }
 
-fn select<C: CommandContext>(
+pub(super) fn select<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     selector: Option<&str>,

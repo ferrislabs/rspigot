@@ -86,6 +86,51 @@ impl DamageTag {
 }
 
 impl DamageType {
+    pub const ALL: [Self; 38] = [
+        Self::Fall,
+        Self::OutOfWorld,
+        Self::FallingAnvil,
+        Self::FallingBlock,
+        Self::FallingStalactite,
+        Self::Stalagmite,
+        Self::PlayerAttack,
+        Self::MobAttack,
+        Self::MobAttackNoAggro,
+        Self::Sting,
+        Self::GenericKill,
+        Self::Generic,
+        Self::Starve,
+        Self::Drown,
+        Self::DryOut,
+        Self::Magic,
+        Self::IndirectMagic,
+        Self::Wither,
+        Self::OnFire,
+        Self::InFire,
+        Self::Lava,
+        Self::Arrow,
+        Self::Thrown,
+        Self::MobProjectile,
+        Self::Fireball,
+        Self::UnattributedFireball,
+        Self::WitherSkull,
+        Self::Explosion,
+        Self::PlayerExplosion,
+        Self::BadRespawnPoint,
+        Self::WindCharge,
+        Self::SonicBoom,
+        Self::Thorns,
+        Self::Trident,
+        Self::Spit,
+        Self::SulfurCubeHot,
+        Self::LightningBolt,
+        Self::Fireworks,
+    ];
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|kind| kind.name() == name)
+    }
+
     pub const fn name(self) -> &'static str {
         match self {
             Self::Fall => "minecraft:fall",
@@ -499,5 +544,18 @@ mod tests {
         assert!((after_armor(10.0, 20.0, 0.0) - 10.0 * (1.0 - 15.0 / 25.0)).abs() < 1e-6);
         assert!((after_armor(100.0, 20.0, 0.0) - 100.0 * (1.0 - 4.0 / 25.0)).abs() < 1e-4);
         assert!((after_armor(4.0, 2.0, 0.0) - 4.0 * (1.0 - 0.4 / 25.0)).abs() < 1e-6);
+    }
+}
+
+#[cfg(test)]
+mod name_tests {
+    use super::*;
+
+    #[test]
+    fn every_damage_type_is_found_by_its_registry_name() {
+        for kind in DamageType::ALL {
+            assert_eq!(DamageType::from_name(kind.name()), Some(kind));
+        }
+        assert_eq!(DamageType::from_name("minecraft:nothing"), None);
     }
 }

@@ -261,6 +261,244 @@ impl<L: ClientLink> CommandContext for Server<L> {
         ids
     }
 
+    fn is_living(&self, target: Target) -> bool {
+        match target {
+            Target::Player(id) => self.players.contains_key(&id),
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)
+                .is_some_and(|e| e.living().is_some()),
+        }
+    }
+
+    fn attribute_state(
+        &mut self,
+        target: Target,
+        attribute: &str,
+    ) -> Option<rspigot_domain::effect::AttributeState> {
+        match target {
+            Target::Player(id) => {
+                let player = self.players.get(&id)?;
+                let (name, default) = Kind::Player
+                    .default_attributes()
+                    .iter()
+                    .copied()
+                    .find(|(candidate, _)| *candidate == attribute)?;
+                let derived = crate::health::attributes(player).state(name);
+                let edit = player.attribute_edits.iter().find(|e| e.attribute == name);
+                Some(rspigot_domain::effect::AttributeState {
+                    attribute: name,
+                    base: edit.map_or(default, |e| e.base),
+                    modifiers: derived.modifiers,
+                })
+            }
+            Target::Entity(id) => {
+                let living = self.entities.store.get_mut(id)?.living_mut()?;
+                living.attributes.instance(attribute)?;
+                living.attributes.state(attribute, &living.effects)
+            }
+        }
+    }
+
+    fn default_attribute_base(&self, target: Target, attribute: &str) -> Option<f64> {
+        let kind = match target {
+            Target::Player(_) => Kind::Player,
+            Target::Entity(id) => self.entities.store.get(id)?.base.kind,
+        };
+        kind.default_attributes()
+            .iter()
+            .find(|(candidate, _)| *candidate == attribute)
+            .map(|(_, base)| *base)
+    }
+
+    fn set_attribute_base(&mut self, target: Target, attribute: &str, base: f64) {
+        let base = rspigot_domain::attribute::sanitize(attribute, base);
+        match target {
+            Target::Player(id) => {
+                let Some(name) = self.default_attribute_name(Kind::Player, attribute) else {
+                    return;
+                };
+                let Some(player) = self.players.get_mut(&id) else {
+                    return;
+                };
+                match player
+                    .attribute_edits
+                    .iter_mut()
+                    .find(|e| e.attribute == name)
+                {
+                    Some(edit) => edit.base = base,
+                    None => player.attribute_edits.push(
+                        rspigot_domain::entity::living::AttributeInstance {
+                            attribute: name,
+                            base,
+                            modifiers: Vec::new(),
+                        },
+                    ),
+                }
+                self.after_player_attribute_change(id, name);
+            }
+            Target::Entity(id) => {
+                if let Some(living) = self.entities.store.get_mut(id).and_then(|e| e.living_mut()) {
+                    living.attributes.set_base(attribute, base);
+                }
+                self.after_entity_attribute_change(id, attribute);
+            }
+        }
+    }
+
+    fn add_attribute_modifier(
+        &mut self,
+        target: Target,
+        attribute: &str,
+        modifier: rspigot_domain::effect::AttributeModifier,
+    ) -> bool {
+        match target {
+            Target::Player(id) => {
+                let Some(name) = self.default_attribute_name(Kind::Player, attribute) else {
+                    return false;
+                };
+                let default = self
+                    .default_attribute_base(target, attribute)
+                    .unwrap_or_default();
+                let Some(player) = self.players.get_mut(&id) else {
+                    return false;
+                };
+                let derived = crate::health::attributes(player).state(name);
+                if derived.modifiers.iter().any(|m| m.id == modifier.id) {
+                    return false;
+                }
+                match player
+                    .attribute_edits
+                    .iter_mut()
+                    .find(|e| e.attribute == name)
+                {
+                    Some(edit) => edit.modifiers.push(modifier),
+                    None => player.attribute_edits.push(
+                        rspigot_domain::entity::living::AttributeInstance {
+                            attribute: name,
+                            base: default,
+                            modifiers: vec![modifier],
+                        },
+                    ),
+                }
+                self.after_player_attribute_change(id, name);
+                true
+            }
+            Target::Entity(id) => {
+                let added = self
+                    .entities
+                    .store
+                    .get_mut(id)
+                    .and_then(|e| e.living_mut())
+                    .is_some_and(|living| living.attributes.add_modifier(attribute, modifier));
+                if added {
+                    self.after_entity_attribute_change(id, attribute);
+                }
+                added
+            }
+        }
+    }
+
+    fn remove_attribute_modifier(&mut self, target: Target, attribute: &str, id: &str) -> bool {
+        match target {
+            Target::Player(player_id) => {
+                let Some(player) = self.players.get_mut(&player_id) else {
+                    return false;
+                };
+                let Some(edit) = player
+                    .attribute_edits
+                    .iter_mut()
+                    .find(|e| e.attribute == attribute)
+                else {
+                    return false;
+                };
+                let before = edit.modifiers.len();
+                edit.modifiers.retain(|m| m.id != id);
+                let removed = edit.modifiers.len() != before;
+                if removed {
+                    let name = edit.attribute;
+                    self.after_player_attribute_change(player_id, name);
+                }
+                removed
+            }
+            Target::Entity(entity) => {
+                let removed = self
+                    .entities
+                    .store
+                    .get_mut(entity)
+                    .and_then(|e| e.living_mut())
+                    .is_some_and(|living| living.attributes.remove_modifier(attribute, id));
+                if removed {
+                    self.after_entity_attribute_change(entity, attribute);
+                }
+                removed
+            }
+        }
+    }
+
+    fn damage_target(
+        &mut self,
+        target: Target,
+        spec: crate::commands::DamageSpec,
+        amount: f32,
+    ) -> bool {
+        let mut source = crate::health::DamageSource::new(spec.kind);
+        source.position = spec.position;
+        let describe = |server: &Self, who: Target| match who {
+            Target::Player(id) => server.source_of(id),
+            Target::Entity(id) => server.source_for(id),
+        };
+        source.direct = spec.direct.and_then(|who| describe(self, who));
+        source.causing = spec.cause.and_then(|who| describe(self, who));
+        match target {
+            Target::Player(id) => self.hurt(id, &source, amount),
+            Target::Entity(id) => self.hurt_entity(id, &source, amount),
+        }
+    }
+
+    fn main_hand(&self, target: Target) -> Option<rspigot_domain::item::ItemStack> {
+        match target {
+            Target::Player(id) => self.players.get(&id)?.inventory.held().cloned(),
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)?
+                .living()?
+                .equipment(rspigot_items::EquipmentSlot::Mainhand)
+                .cloned(),
+        }
+    }
+
+    fn set_main_hand(&mut self, target: Target, stack: rspigot_domain::item::ItemStack) {
+        match target {
+            Target::Player(id) => {
+                let Some(player) = self.players.get(&id) else {
+                    return;
+                };
+                let slot = rspigot_domain::item::HOTBAR_START
+                    + usize::from(player.inventory.selected_hotbar);
+                self.set_slot_by_player(id, slot, Some(stack));
+            }
+            Target::Entity(id) => {
+                let slot = rspigot_items::EquipmentSlot::Mainhand;
+                let Some(living) = self.entities.store.get_mut(id).and_then(|e| e.living_mut())
+                else {
+                    return;
+                };
+                living.equipment[rspigot_domain::entity::living::slot_index(slot)] =
+                    Some(stack.clone());
+                self.push(
+                    Audience::Trackers(id),
+                    ClientEvent::EntityEquipment {
+                        entity: id,
+                        slots: vec![(crate::entities::wire_slot(slot), Some(stack))],
+                    },
+                );
+            }
+        }
+    }
+
     fn play_sound_to(
         &mut self,
         player: PlayerId,
@@ -1016,6 +1254,48 @@ fn selection_box(selector: &Selector, origin: Vec3) -> Option<Aabb> {
 }
 
 impl<L: ClientLink> Server<L> {
+    fn default_attribute_name(&self, kind: Kind, attribute: &str) -> Option<&'static str> {
+        kind.default_attributes()
+            .iter()
+            .find(|(candidate, _)| *candidate == attribute)
+            .map(|(name, _)| *name)
+    }
+
+    fn after_player_attribute_change(&mut self, id: PlayerId, attribute: &'static str) {
+        self.clamp_vitals(id);
+        self.sync_attributes(id, &[attribute]);
+    }
+
+    fn after_entity_attribute_change(&mut self, id: EntityId, attribute: &str) {
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return;
+        };
+        let base = &mut entity.base;
+        let Some(living) = (match &mut entity.state {
+            EntityState::Living(living) => Some(living),
+            _ => None,
+        }) else {
+            return;
+        };
+        if attribute == living::MAX_HEALTH {
+            let health = living::health(base);
+            living::set_health(base, living, health);
+        }
+        let Some(state) = living.attributes.state(attribute, &living.effects) else {
+            return;
+        };
+        living.attributes.take_dirty();
+        if rspigot_domain::entity::living::is_client_syncable(state.attribute) {
+            self.push(
+                Audience::Trackers(id),
+                ClientEvent::Attributes {
+                    entity: id,
+                    attributes: vec![state],
+                },
+            );
+        }
+    }
+
     pub(crate) fn relocate(&mut self, id: EntityId, position: Vec3, command: bool) {
         self.relocate_tracked(id, position, command, None);
     }

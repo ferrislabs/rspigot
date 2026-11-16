@@ -299,8 +299,12 @@ pub(crate) fn equipment(inventory: &Inventory) -> Vec<(ItemSlot, ItemId)> {
 }
 
 pub(crate) fn attributes<L>(player: &Player<L>) -> Attributes {
-    Attributes::of(&player.effects, &equipment(&player.inventory))
-        .with_base(MOVEMENT_SPEED, f64::from(player.walk_speed))
+    let derived = Attributes::of(&player.effects, &equipment(&player.inventory))
+        .with_base(MOVEMENT_SPEED, f64::from(player.walk_speed));
+    player
+        .attribute_edits
+        .iter()
+        .fold(derived, |attributes, edit| attributes.with_instance(edit))
 }
 
 pub(crate) fn max_health<L>(player: &Player<L>) -> f32 {

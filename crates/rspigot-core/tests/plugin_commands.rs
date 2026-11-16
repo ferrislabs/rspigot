@@ -2,7 +2,7 @@ mod common;
 
 use common::*;
 use rspigot_core::events::{ClientEvent, Inbound, PlayerInput};
-use rspigot_core::plugins::events::PlayerSpawnChangeCause;
+use rspigot_core::plugins::events::{EntityDamageCause, PlayerSpawnChangeCause};
 use rspigot_core::plugins::{EventKind, EventPayload, PlayerOrder};
 use rspigot_domain::Vec3;
 
@@ -97,4 +97,17 @@ fn an_allowed_spawnpoint_sets_the_respawn_position() {
     console(&mut s, "spawnpoint Alice 5 64 7");
     let spot = respawn(&mut s);
     assert!(spot.distance_squared(Vec3::new(5.5, 64.1, 7.5)) < 1.0e-6);
+}
+
+#[test]
+fn damage_hurts_a_player_through_the_damage_event() {
+    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::EntityDamage)]);
+    console(&mut s, "damage Alice 3");
+    let heard = settled_for(&s.plugin, EventKind::EntityDamage);
+    assert_eq!(heard.len(), 1);
+    let EventPayload::EntityDamage(event) = &heard[0].payload else {
+        panic!("expected a damage event");
+    };
+    assert_eq!(event.cause, EntityDamageCause::Custom);
+    assert_eq!(event.damage, 3.0);
 }

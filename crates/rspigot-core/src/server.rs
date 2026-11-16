@@ -720,6 +720,7 @@ impl<L: ClientLink> Server<L> {
             operator,
             op_level,
             tags: Vec::new(),
+            attribute_edits: Vec::new(),
             effects: Default::default(),
             vitals: Default::default(),
             known_movement: Vec3::ZERO,

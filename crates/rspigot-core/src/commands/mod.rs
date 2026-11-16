@@ -3,6 +3,7 @@ mod blocks;
 mod boss_commands;
 mod data;
 mod dispatch;
+mod entity_commands;
 mod execute;
 mod json_text;
 pub mod permission;
@@ -18,6 +19,7 @@ mod tree;
 pub use dispatch::{
     CommandContext, CommandOutcome, CommandSender, Target, TitleAction, Weather, execute,
 };
+pub use entity_commands::DamageSpec;
 pub use tree::{ArgumentParser, CommandNode, CommandNodeKind, CommandTree, build_tree};
 
 #[cfg(test)]
@@ -46,3 +48,6 @@ mod boss_command_tests;
 
 #[cfg(test)]
 mod sound_command_tests;
+
+#[cfg(test)]
+mod entity_command_tests;

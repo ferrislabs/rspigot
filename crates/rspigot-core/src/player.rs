@@ -50,6 +50,7 @@ pub struct Player<L> {
     pub operator: bool,
     pub op_level: u8,
     pub tags: Vec<String>,
+    pub attribute_edits: Vec<rspigot_domain::entity::living::AttributeInstance>,
     pub effects: ActiveEffects,
     pub vitals: Vitals,
     pub known_movement: Vec3,
