@@ -30,6 +30,8 @@ const CUTTER_INPUT: usize = 0;
 const CUTTER_RESULT: usize = 1;
 const CRAFTING_RESULT: usize = 0;
 const CRAFTING_GRID: std::ops::RangeInclusive<usize> = 1..=9;
+const CRAFTER_GRID: usize = 9;
+const CRAFTER_RESULT_WIRE: usize = 45;
 const MERCHANT_RESULT: usize = 2;
 const MERCHANT_PLAYER_START: usize = 3;
 const MERCHANT_MAIN_END: usize = 30;
@@ -58,6 +60,7 @@ pub enum MenuKind {
     Lectern,
     Beacon,
     Merchant,
+    Crafter,
     Mount {
         columns: u8,
         saddle: bool,
@@ -93,6 +96,7 @@ impl MenuKind {
             Self::Lectern => 17,
             Self::Beacon => 9,
             Self::Merchant => 19,
+            Self::Crafter => 7,
             Self::Mount { .. } => 0,
         }
     }
@@ -113,6 +117,7 @@ impl MenuKind {
             Self::Stonecutter => 2,
             Self::Lectern | Self::Beacon => 1,
             Self::Merchant => 3,
+            Self::Crafter => CRAFTER_GRID + 1,
             Self::Mount { columns, .. } => MOUNT_EXTRA_SLOTS + MOUNT_ROWS * usize::from(columns),
         }
     }
@@ -124,6 +129,7 @@ impl MenuKind {
             Self::Beacon => 3,
             Self::Enchantment => enchanting::DATA,
             Self::BrewingStand => 4,
+            Self::Crafter => CRAFTER_GRID + 1,
             _ => 0,
         }
     }
@@ -252,6 +258,13 @@ impl MenuKind {
                 1..=27 => vec![(28, total, false)],
                 _ => vec![(1, 28, false)],
             },
+            Self::Crafter => {
+                if slot < CRAFTER_GRID {
+                    vec![(CRAFTER_GRID, CRAFTER_RESULT_WIRE, true)]
+                } else {
+                    vec![(0, CRAFTER_GRID, false)]
+                }
+            }
             Self::Crafting => match slot {
                 0 => vec![(10, 46, true)],
                 1..=9 => vec![(10, 46, false)],
@@ -325,6 +338,13 @@ impl MenuKind {
             return slot < MERCHANT_RESULT;
         }
         matches!(self, Self::Crafting) && (1..=9).contains(&slot)
+    }
+
+    fn lead_size(self) -> usize {
+        match self {
+            Self::Crafter => CRAFTER_GRID,
+            _ => self.container_size(),
+        }
     }
 
     pub fn slot_count(self) -> usize {
@@ -502,6 +522,8 @@ pub struct ContainerMenu {
     anvil: AnvilState,
     enchant: EnchantState,
     held: Option<Hold>,
+    disabled: u16,
+    powered: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -554,6 +576,7 @@ struct Session<'a> {
     trade: &'a mut Trade,
     anvil: &'a mut AnvilState,
     enchant: &'a mut EnchantState,
+    disabled: u16,
     levels: i32,
     infinite: bool,
     effects: Vec<MenuEffect>,
@@ -642,7 +665,10 @@ fn update_merchant(container: &mut [Slot], trade: &mut Trade, effects: &mut Vec<
 }
 
 fn cell(kind: MenuKind, slot: usize) -> Option<Cell> {
-    let size = kind.container_size();
+    let size = kind.lead_size();
+    if kind == MenuKind::Crafter && slot == CRAFTER_RESULT_WIRE {
+        return Some(Cell::Container(CRAFTER_GRID));
+    }
     if slot < size {
         Some(Cell::Container(slot))
     } else if slot < size + MAIN_SLOTS {
@@ -678,6 +704,16 @@ struct Look<'a> {
     instabuild: bool,
     anvil_cost: i32,
     levels: i32,
+    disabled: u16,
+}
+
+fn crafter_refuses(kind: MenuKind, disabled: u16, slot: usize) -> bool {
+    kind == MenuKind::Crafter
+        && (slot == CRAFTER_RESULT_WIRE || (slot < CRAFTER_GRID && disabled & (1 << slot) != 0))
+}
+
+fn crafter_result_locked(kind: MenuKind, slot: usize) -> bool {
+    kind == MenuKind::Crafter && slot == CRAFTER_RESULT_WIRE
 }
 
 fn anvil_unaffordable(kind: MenuKind, slot: usize, cost: i32, levels: i32, infinite: bool) -> bool {
@@ -704,17 +740,18 @@ impl ClickView for Look<'_> {
     }
 
     fn may_pickup(&self, slot: usize) -> bool {
-        !anvil_unaffordable(
-            self.kind,
-            slot,
-            self.anvil_cost,
-            self.levels,
-            self.instabuild,
-        )
+        !crafter_result_locked(self.kind, slot)
+            && !anvil_unaffordable(
+                self.kind,
+                slot,
+                self.anvil_cost,
+                self.levels,
+                self.instabuild,
+            )
     }
 
     fn may_place(&self, slot: usize, stack: &ItemStack) -> bool {
-        self.kind.accepts(slot, stack)
+        !crafter_refuses(self.kind, self.disabled, slot) && self.kind.accepts(slot, stack)
     }
 
     fn slot_limit(&self, slot: usize) -> u32 {
@@ -745,7 +782,8 @@ impl ClickView for Look<'_> {
     }
 
     fn in_player(&self, slot: usize) -> bool {
-        slot >= self.kind.container_size()
+        slot >= self.kind.lead_size()
+            && !(self.kind == MenuKind::Crafter && slot == CRAFTER_RESULT_WIRE)
     }
 
     fn holds(&self, item: ItemId) -> bool {
@@ -775,6 +813,7 @@ impl Session<'_> {
             instabuild: self.infinite,
             anvil_cost: self.anvil.cost,
             levels: self.levels,
+            disabled: self.disabled,
         }
     }
 
@@ -843,9 +882,9 @@ impl Session<'_> {
     }
 
     fn may_place(&self, slot: usize, stack: &Slot) -> bool {
-        stack
-            .as_ref()
-            .is_none_or(|stack| self.kind.accepts(slot, stack))
+        stack.as_ref().is_none_or(|stack| {
+            !crafter_refuses(self.kind, self.disabled, slot) && self.kind.accepts(slot, stack)
+        })
     }
 
     fn slot_max_for(&self, slot: usize, stack: &ItemStack) -> u32 {
@@ -1005,7 +1044,8 @@ impl Session<'_> {
     }
 
     fn may_pickup(&self, slot: usize) -> bool {
-        !anvil_unaffordable(self.kind, slot, self.anvil.cost, self.levels, self.infinite)
+        !crafter_result_locked(self.kind, slot)
+            && !anvil_unaffordable(self.kind, slot, self.anvil.cost, self.levels, self.infinite)
     }
 
     fn refresh_smithing(&mut self, inputs_changed: bool) {
@@ -1546,11 +1586,25 @@ impl ContainerMenu {
             anvil: AnvilState::default(),
             enchant: EnchantState::default(),
             held: None,
+            disabled: 0,
+            powered: false,
         }
     }
 
     pub fn kind(&self) -> MenuKind {
         self.kind
+    }
+
+    pub fn set_disabled(&mut self, mask: u16) {
+        self.disabled = mask;
+    }
+
+    pub fn disabled(&self) -> u16 {
+        self.disabled
+    }
+
+    pub fn set_powered(&mut self, powered: bool) {
+        self.powered = powered;
     }
 
     pub fn carried(&self) -> &Slot {
@@ -1576,6 +1630,7 @@ impl ContainerMenu {
             trade: &mut self.trade,
             anvil: &mut self.anvil,
             enchant: &mut self.enchant,
+            disabled: self.disabled,
             levels: clicker.experience_level,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
@@ -1606,6 +1661,7 @@ impl ContainerMenu {
             instabuild: clicker.infinite_materials,
             anvil_cost: self.anvil.cost,
             levels: clicker.experience_level,
+            disabled: self.disabled,
         };
         click::classify(&look, slot, button, input)
     }
@@ -1628,6 +1684,7 @@ impl ContainerMenu {
             instabuild: false,
             anvil_cost: self.anvil.cost,
             levels: 0,
+            disabled: self.disabled,
         };
         Some(click::plan_drag(
             &look,
@@ -1664,6 +1721,7 @@ impl ContainerMenu {
             trade: &mut self.trade,
             anvil: &mut self.anvil,
             enchant: &mut self.enchant,
+            disabled: self.disabled,
             levels: 0,
             infinite: false,
             effects: Vec::new(),
@@ -1695,6 +1753,7 @@ impl ContainerMenu {
             trade: &mut self.trade,
             anvil: &mut self.anvil,
             enchant: &mut self.enchant,
+            disabled: self.disabled,
             levels: 0,
             infinite: false,
             effects: Vec::new(),
@@ -1720,6 +1779,7 @@ impl ContainerMenu {
             trade: &mut self.trade,
             anvil: &mut self.anvil,
             enchant: &mut self.enchant,
+            disabled: self.disabled,
             levels: clicker.experience_level,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
@@ -1787,6 +1847,7 @@ impl ContainerMenu {
             trade: &mut self.trade,
             anvil: &mut self.anvil,
             enchant: &mut self.enchant,
+            disabled: self.disabled,
             levels: 0,
             infinite: false,
             effects: Vec::new(),
@@ -1812,6 +1873,7 @@ impl ContainerMenu {
             trade: &mut self.trade,
             anvil: &mut self.anvil,
             enchant: &mut self.enchant,
+            disabled: self.disabled,
             levels: 0,
             infinite: false,
             effects: Vec::new(),
@@ -1827,6 +1889,10 @@ impl ContainerMenu {
             MenuKind::Smithing => vec![i16::from(self.cutter.error)],
             MenuKind::Anvil => vec![i16::try_from(self.anvil.cost).unwrap_or(i16::MAX)],
             MenuKind::Enchantment => self.enchant_data(),
+            MenuKind::Crafter => (0..CRAFTER_GRID)
+                .map(|slot| i16::from(self.disabled & (1 << slot) != 0))
+                .chain(std::iter::once(i16::from(self.powered)))
+                .collect(),
             _ => Vec::new(),
         }
     }
@@ -1979,6 +2045,7 @@ impl ContainerMenu {
             trade: &mut self.trade,
             anvil: &mut self.anvil,
             enchant: &mut self.enchant,
+            disabled: self.disabled,
             levels: clicker.experience_level,
             infinite: clicker.infinite_materials,
             effects: Vec::new(),
@@ -2058,8 +2125,10 @@ impl ContainerMenu {
     }
 
     fn view(&self, slot: usize, container: &[Slot], player: &Inventory) -> Slot {
-        let size = self.kind.container_size();
-        if slot < size {
+        let size = self.kind.lead_size();
+        if self.kind == MenuKind::Crafter && slot == CRAFTER_RESULT_WIRE {
+            container.get(CRAFTER_GRID).cloned().flatten()
+        } else if slot < size {
             container.get(slot).cloned().flatten()
         } else if slot < size + MAIN_SLOTS {
             player.get(MAIN_START + slot - size).cloned()
@@ -3476,6 +3545,180 @@ mod tests {
             ClickInput::Pickup,
         );
         assert_eq!(container[0], Some(stack("minecraft:saddle", 1)));
+    }
+
+    fn crafter() -> (ContainerMenu, Vec<Slot>, Inventory) {
+        workstation(MenuKind::Crafter)
+    }
+
+    #[test]
+    fn the_crafter_menu_is_nine_slots_then_the_inventory_then_the_result() {
+        let registry =
+            rspigot_data::registries::static_index("minecraft:menu", "minecraft:crafter_3x3")
+                .expect("registered");
+        assert_eq!(
+            MenuKind::Crafter.protocol_id(),
+            i32::try_from(registry).expect("small id")
+        );
+        assert_eq!(MenuKind::Crafter.slot_count(), 46);
+        assert_eq!(MenuKind::Crafter.data_count(), 10);
+        let (mut menu, mut container, mut player) = crafter();
+        player.set(MAIN_START, Some(stack("minecraft:stick", 4)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            9,
+            0,
+            ClickInput::Pickup,
+        );
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            3,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(container[3].as_ref().map(|s| s.count.get()), Some(4));
+        assert!(player.get(MAIN_START).is_none());
+    }
+
+    #[test]
+    fn the_crafter_result_slot_is_the_last_wire_slot_and_takes_nothing() {
+        let (mut menu, mut container, mut player) = crafter();
+        container[9] = Some(stack("minecraft:stick", 4));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            45,
+            0,
+            ClickInput::Pickup,
+        );
+        assert!(menu.carried().is_none());
+        assert!(container[9].is_some());
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            45,
+            0,
+            ClickInput::QuickMove,
+        );
+        assert!(container[9].is_some());
+        assert!((0..46).all(|slot| player.get(slot).is_none()));
+        assert_eq!(
+            menu.item(45, &container, &player).map(|s| s.count.get()),
+            Some(4)
+        );
+        player.set(MAIN_START, Some(stack("minecraft:stick", 1)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            9,
+            0,
+            ClickInput::Pickup,
+        );
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            45,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(container[9].as_ref().map(|s| s.count.get()), Some(4));
+    }
+
+    #[test]
+    fn a_disabled_crafter_slot_refuses_items_but_gives_back_what_it_holds() {
+        let (mut menu, mut container, mut player) = crafter();
+        menu.set_disabled(0b0000_0100);
+        player.set(MAIN_START, Some(stack("minecraft:stick", 4)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            9,
+            0,
+            ClickInput::Pickup,
+        );
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            2,
+            0,
+            ClickInput::Pickup,
+        );
+        assert!(container[2].is_none());
+        assert!(menu.carried().is_some());
+        container[2] = Some(stack("minecraft:dirt", 1));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            2,
+            0,
+            ClickInput::Pickup,
+        );
+        assert!(container[2].is_some());
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            3,
+            0,
+            ClickInput::Pickup,
+        );
+        assert!(container[3].is_some());
+    }
+
+    #[test]
+    fn shift_click_fills_the_enabled_crafter_slots_and_gives_back_to_the_inventory() {
+        let (mut menu, mut container, mut player) = crafter();
+        menu.set_disabled(0b0000_0001);
+        player.set(MAIN_START, Some(stack("minecraft:dirt", 1)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            9,
+            0,
+            ClickInput::QuickMove,
+        );
+        assert!(container[0].is_none());
+        assert!(container[1].is_some());
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            1,
+            0,
+            ClickInput::QuickMove,
+        );
+        assert!(container[1].is_none());
+        assert!((0..46).any(|slot| player.get(slot).is_some()));
+    }
+
+    #[test]
+    fn the_crafter_data_slots_are_the_nine_disabled_flags_then_the_triggered_flag() {
+        let mut menu = ContainerMenu::new(MenuKind::Crafter);
+        menu.set_disabled(0b1_0000_0010);
+        menu.set_powered(true);
+        assert_eq!(menu.data(), vec![0, 1, 0, 0, 0, 0, 0, 0, 1, 1]);
+        menu.set_powered(false);
+        assert_eq!(menu.data()[9], 0);
+    }
+
+    #[test]
+    fn closing_a_crafter_keeps_its_slots() {
+        let (mut menu, mut container, mut player) = crafter();
+        container[0] = Some(stack("minecraft:dirt", 1));
+        menu.close_transient(&mut container, &mut player);
+        assert!(container[0].is_some());
     }
 
     #[test]

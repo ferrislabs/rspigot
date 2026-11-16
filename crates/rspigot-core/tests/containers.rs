@@ -3075,3 +3075,119 @@ fn breaking_a_furnace_asks_block_exp_after_the_break_and_pays_the_settled_amount
     world.wait(40);
     assert_eq!(experience_of_everyone(&world) - before, 5);
 }
+
+const CRAFTER_HOTBAR_0: i16 = 36;
+const CRAFTER_RESULT: i16 = 45;
+
+impl World {
+    fn set_crafter_slot(&mut self, window: i32, slot: i32, enabled: bool) {
+        self.server.handle(Inbound::Input {
+            player: self.alice.id,
+            input: PlayerInput::ContainerSlotState {
+                window,
+                slot,
+                enabled,
+            },
+        });
+        self.settle();
+    }
+}
+
+#[test]
+fn the_crafter_opens_a_nine_slot_menu_with_ten_data_slots() {
+    let mut world = world();
+    world.place_storage("crafter");
+    world.open_chest();
+
+    assert_eq!(opened(&world.alice), Some((WINDOW, 7)));
+    let slots = content(&world.alice, WINDOW).expect("content");
+    assert_eq!(slots.len(), 46);
+    assert_eq!(
+        data_events(&world.alice, WINDOW),
+        (0..10).map(|id| (id, 0)).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn a_crafter_grid_shows_the_result_of_its_recipe_in_the_last_slot() {
+    let mut world = world();
+    world.place_storage("crafter");
+    world.give("oak_log");
+    world.open_chest();
+    world.click(WINDOW, CRAFTER_HOTBAR_0, 0, ClickInput::Pickup);
+    world.click(WINDOW, 4, 0, ClickInput::Pickup);
+
+    assert_eq!(
+        slot_update(&world.alice, WINDOW, CRAFTER_RESULT),
+        Some(Some((item("minecraft:oak_planks"), 4)))
+    );
+    world.click(WINDOW, CRAFTER_RESULT, 0, ClickInput::Pickup);
+    assert_eq!(
+        slot_update(&world.alice, WINDOW, CRAFTER_RESULT),
+        Some(Some((item("minecraft:oak_planks"), 4)))
+    );
+    assert!(world.alice.log.iter().all(|event| !matches!(
+        event,
+        ClientEvent::CursorItem(Some(stack)) if stack.item.0 == item("minecraft:oak_planks")
+    )));
+}
+
+#[test]
+fn the_crafter_keeps_its_items_when_the_window_closes() {
+    let mut world = world();
+    world.place_storage("crafter");
+    world.give("oak_log");
+    world.open_chest();
+    world.click(WINDOW, CRAFTER_HOTBAR_0, 0, ClickInput::Pickup);
+    world.click(WINDOW, 4, 0, ClickInput::Pickup);
+    world.close(WINDOW);
+    world.open_chest();
+
+    let slots = content(&world.alice, 2).expect("second window");
+    assert_eq!(slots[4], Some((item("minecraft:oak_log"), 1)));
+    assert_eq!(slots[45], Some((item("minecraft:oak_planks"), 4)));
+}
+
+#[test]
+fn a_disabled_crafter_slot_refuses_items_and_is_remembered() {
+    let mut world = world();
+    world.place_storage("crafter");
+    world.give("stone");
+    world.open_chest();
+    world.set_crafter_slot(WINDOW, 2, false);
+
+    assert_eq!(data_events(&world.alice, WINDOW).last(), Some(&(2, 1)));
+    world.click(WINDOW, CRAFTER_HOTBAR_0, 0, ClickInput::Pickup);
+    world.click(WINDOW, 2, 0, ClickInput::Pickup);
+    assert_eq!(slot_update(&world.alice, WINDOW, 2), None);
+    world.click(WINDOW, 3, 0, ClickInput::Pickup);
+    assert_eq!(
+        slot_update(&world.alice, WINDOW, 3),
+        Some(Some((item("minecraft:stone"), 1)))
+    );
+
+    world.close(WINDOW);
+    world.open_chest();
+    assert!(data_events(&world.alice, 2).contains(&(2, 1)));
+    world.set_crafter_slot(2, 2, true);
+    assert_eq!(data_events(&world.alice, 2).last(), Some(&(2, 0)));
+}
+
+#[test]
+fn a_slot_state_for_another_window_or_a_filled_slot_changes_nothing() {
+    let mut world = world();
+    world.place_storage("crafter");
+    world.give("stone");
+    world.open_chest();
+    world.click(WINDOW, CRAFTER_HOTBAR_0, 0, ClickInput::Pickup);
+    world.click(WINDOW, 3, 0, ClickInput::Pickup);
+    world.set_crafter_slot(WINDOW + 5, 2, false);
+    world.set_crafter_slot(WINDOW, 3, false);
+    world.set_crafter_slot(WINDOW, 12, false);
+
+    assert!(
+        data_events(&world.alice, WINDOW)
+            .iter()
+            .all(|(_, v)| *v == 0)
+    );
+}

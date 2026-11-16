@@ -891,6 +891,11 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn equip_chest(&mut self, player: PlayerId, target: EntityId, hand: Hand) {
+        self.fit_chest(target);
+        self.consume_held(player, hand, 1);
+    }
+
+    pub(crate) fn fit_chest(&mut self, target: EntityId) {
         if let Some(entity) = self.entities.store.get_mut(target) {
             equine::set_chest(&mut entity.base, true);
         }
@@ -903,7 +908,6 @@ impl<L: ClientLink> Server<L> {
             _ => "minecraft:entity.donkey.chest",
         };
         self.entity_sound(target, sound, CHEST_EQUIP_SOUND_VOLUME, pitch);
-        self.consume_held(player, hand, 1);
         self.recreate_mount_inventory(target);
     }
 

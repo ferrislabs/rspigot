@@ -18,6 +18,7 @@ const WIDTH: i32 = 3;
 const HEIGHT: i32 = 3;
 const DEPTH: i32 = 1;
 const ROWS: [&str; 3] = ["^^^", "###", "~#~"];
+const BASE_ROWS: [&str; 3] = ["   ", "###", "~#~"];
 const DIRECTIONS: [(i32, i32, i32); 6] = [
     (0, -1, 0),
     (0, 1, 0),
@@ -96,6 +97,21 @@ pub(crate) fn find_pattern(
     block_at: &impl Fn(BlockPos) -> Option<BlockStateId>,
     from: BlockPos,
 ) -> Option<PatternMatch> {
+    find_rows(block_at, from, &ROWS)
+}
+
+pub(crate) fn find_base(
+    block_at: &impl Fn(BlockPos) -> Option<BlockStateId>,
+    from: BlockPos,
+) -> Option<PatternMatch> {
+    find_rows(block_at, from, &BASE_ROWS)
+}
+
+fn find_rows(
+    block_at: &impl Fn(BlockPos) -> Option<BlockStateId>,
+    from: BlockPos,
+    rows: &[&str; 3],
+) -> Option<PatternMatch> {
     let reach = WIDTH.max(HEIGHT).max(DEPTH) - 1;
     for dz in 0..=reach {
         for dy in 0..=reach {
@@ -111,7 +127,7 @@ pub(crate) fn find_pattern(
                             forwards,
                             up,
                         };
-                        if matches_pattern(block_at, &candidate) {
+                        if matches_pattern(block_at, &candidate, rows) {
                             return Some(candidate);
                         }
                     }
@@ -125,11 +141,12 @@ pub(crate) fn find_pattern(
 fn matches_pattern(
     block_at: &impl Fn(BlockPos) -> Option<BlockStateId>,
     candidate: &PatternMatch,
+    rows: &[&str; 3],
 ) -> bool {
     for i in 0..WIDTH {
         for j in 0..HEIGHT {
             for k in 0..DEPTH {
-                let symbol = ROWS[j as usize].as_bytes()[i as usize];
+                let symbol = rows[j as usize].as_bytes()[i as usize];
                 let Some(state) = block_at(candidate.block(i, j, k)) else {
                     return false;
                 };
@@ -186,6 +203,13 @@ impl<L: ClientLink> Server<L> {
             .collect();
         let birth = Birth::of(CreatureSpawnReason::BuildWither).then(Spawned::Pattern(blocks));
         self.spawn_entity(entity, birth);
+    }
+
+    pub(crate) fn wither_base_stands(&self, pos: BlockPos) -> bool {
+        let chunks = &self.world.chunks;
+        pos.y >= self.world.dimension.height.min_y
+            && self.world.difficulty != Difficulty::Peaceful
+            && find_base(&|at| chunks.block(at), pos).is_some()
     }
 
     pub(crate) fn clear_pattern_blocks(&mut self, blocks: &[(BlockPos, BlockStateId)]) {

@@ -59,7 +59,11 @@ pub(crate) enum TopType {
     Lectern,
     Beacon,
     Merchant,
+    Crafter,
 }
+
+const CRAFTER_GRID_SLOTS: i32 = 9;
+const CRAFTER_RESULT_RAW: i32 = 45;
 
 impl TopType {
     pub(crate) fn of(open: &OpenMenu) -> Self {
@@ -86,6 +90,7 @@ impl TopType {
             MenuKind::Lectern => Self::Lectern,
             MenuKind::Beacon => Self::Beacon,
             MenuKind::Merchant => Self::Merchant,
+            MenuKind::Crafter => Self::Crafter,
             MenuKind::Mount { .. } => Self::Chest,
         }
     }
@@ -115,6 +120,7 @@ impl TopType {
             Self::Lectern => "LECTERN",
             Self::Beacon => "BEACON",
             Self::Merchant => "MERCHANT",
+            Self::Crafter => "CRAFTER",
         }
     }
 
@@ -165,6 +171,14 @@ impl Described {
         if raw < 0 {
             return InventoryTypeSlotType::Outside;
         }
+        if self.kind == TopType::Crafter {
+            return match raw {
+                CRAFTER_RESULT_RAW => InventoryTypeSlotType::Result,
+                0..CRAFTER_GRID_SLOTS => InventoryTypeSlotType::Crafting,
+                _ if raw - CRAFTER_GRID_SLOTS >= MAIN_SLOTS => InventoryTypeSlotType::Quickbar,
+                _ => InventoryTypeSlotType::Container,
+            };
+        }
         let size = self.top_size();
         if raw < size {
             return self.kind.top_slot(raw);
@@ -186,6 +200,15 @@ impl Described {
     }
 
     pub(crate) fn convert_slot(&self, raw: i32) -> i32 {
+        if self.kind == TopType::Crafter {
+            let slot = raw - CRAFTER_GRID_SLOTS;
+            return match raw {
+                CRAFTER_RESULT_RAW => CRAFTER_GRID_SLOTS,
+                0..CRAFTER_GRID_SLOTS => raw,
+                _ if slot >= MAIN_SLOTS => slot - MAIN_SLOTS,
+                _ => slot + MAIN_START,
+            };
+        }
         let size = self.top_size();
         if raw < size {
             return raw;
@@ -210,6 +233,12 @@ impl Described {
     pub(crate) fn clicked_inventory(&self, raw: i32) -> Option<InventoryRef> {
         if raw < 0 {
             None
+        } else if self.kind == TopType::Crafter {
+            if raw < CRAFTER_GRID_SLOTS || raw == CRAFTER_RESULT_RAW {
+                Some(self.top.clone())
+            } else {
+                Some(self.view.bottom.clone())
+            }
         } else if raw < self.top_size() {
             Some(self.top.clone())
         } else {

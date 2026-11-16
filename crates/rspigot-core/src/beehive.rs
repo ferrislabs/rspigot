@@ -711,7 +711,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn drop_honeycomb(&mut self, pos: BlockPos) {
+    pub(crate) fn drop_honeycomb(&mut self, pos: BlockPos) {
         let Some(table) = rspigot_data::loot::table(HARVEST_TABLE) else {
             return;
         };
