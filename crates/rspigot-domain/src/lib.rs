@@ -14,6 +14,7 @@ pub mod container_menu;
 pub mod crafting;
 pub mod crop;
 pub mod crossbow;
+pub mod custom_boss;
 pub mod damage;
 pub mod difficulty;
 pub mod dragon;

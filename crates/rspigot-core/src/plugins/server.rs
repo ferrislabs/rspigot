@@ -132,6 +132,7 @@ impl<L: ClientLink> Server<L> {
             Order::Scoreboard { board, order } => {
                 self.apply_scoreboard_order(connection, board, order);
             }
+            Order::BossBar { bar, order } => self.apply_boss_bar_order(connection, bar, order),
         }
     }
 
@@ -206,6 +207,13 @@ impl<L: ClientLink> Server<L> {
                 .scoreboard_view(board)
                 .map_or(Answer::NotFound, Answer::Scoreboard),
             Question::NewScoreboard => Answer::ScoreboardCreated(self.new_plugin_scoreboard()),
+            Question::CreateBossBar(spec) => self
+                .create_boss_bar_for_plugin(spec)
+                .map_or_else(Answer::Refused, Answer::BossBarCreated),
+            Question::BossBar(bar) => self
+                .boss_bar_state(bar)
+                .map_or(Answer::NotFound, Answer::BossBar),
+            Question::BossBars => Answer::BossBars(self.boss_bar_states()),
         })
     }
 

@@ -225,6 +225,7 @@ pub struct LevelData {
     pub raids: Option<rspigot_nbt::Compound>,
     pub scoreboard: Option<rspigot_nbt::Compound>,
     pub dragon_fight: Option<rspigot_nbt::Compound>,
+    pub custom_boss_events: Option<rspigot_nbt::Compound>,
 }
 
 impl Default for LevelData {
@@ -245,6 +246,7 @@ impl Default for LevelData {
             raids: None,
             scoreboard: None,
             dragon_fight: None,
+            custom_boss_events: None,
         }
     }
 }

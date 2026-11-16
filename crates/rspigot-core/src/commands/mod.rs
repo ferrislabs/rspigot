@@ -1,5 +1,6 @@
 mod args;
 mod blocks;
+mod boss_commands;
 mod data;
 mod dispatch;
 mod execute;
@@ -38,3 +39,6 @@ mod server_command_tests;
 
 #[cfg(test)]
 mod scoreboard_command_tests;
+
+#[cfg(test)]
+mod boss_command_tests;

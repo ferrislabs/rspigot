@@ -374,8 +374,41 @@ pub trait CommandContext {
         ))
     }
 
-    fn set_boss_bar_value(&mut self, id: &Identifier, _maximum: bool, _value: i32) -> bool {
-        let _ = id;
+    fn set_boss_bar_value(&mut self, id: &Identifier, maximum: bool, value: i32) -> bool {
+        self.change_boss_bar(id, |bar| {
+            let messages = if maximum {
+                bar.set_max(value)
+            } else {
+                bar.set_value(value)
+            };
+            ((), messages)
+        })
+        .is_some()
+    }
+
+    fn boss_bar(&self, _id: &Identifier) -> Option<rspigot_domain::custom_boss::CustomBossBar> {
+        None
+    }
+
+    fn boss_bars(&self) -> Vec<rspigot_domain::custom_boss::CustomBossBar> {
+        Vec::new()
+    }
+
+    fn create_boss_bar(&mut self, _id: Identifier, _name: Component) -> bool {
+        false
+    }
+
+    fn change_boss_bar<R>(
+        &mut self,
+        _id: &Identifier,
+        _change: impl FnOnce(
+            &mut rspigot_domain::custom_boss::CustomBossBar,
+        ) -> (R, rspigot_domain::boss_event::BossMessages),
+    ) -> Option<R> {
+        None
+    }
+
+    fn remove_boss_bar(&mut self, _id: &Identifier) -> bool {
         false
     }
 
@@ -497,6 +530,7 @@ pub fn execute<C: CommandContext>(
         "defaultgamemode" | "gamerule" | "experience" | "xp" | "tag" | "save-on" | "save-off"
         | "random" | "spawnpoint" => super::server_commands::run(ctx, sender, &label, rest),
         "tellraw" | "title" => super::text_commands::run(ctx, sender, &label, rest),
+        "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),
         "data" => super::data::run(ctx, sender, rest),

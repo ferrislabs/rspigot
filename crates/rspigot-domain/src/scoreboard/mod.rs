@@ -1,7 +1,7 @@
 mod board;
 mod criteria;
 mod message;
-mod persist;
+pub(crate) mod persist;
 mod team;
 
 use crate::text::{Component, NamedColor, Style};

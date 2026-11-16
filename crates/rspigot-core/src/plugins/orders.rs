@@ -79,6 +79,10 @@ pub enum Order {
         board: u32,
         order: crate::plugins::ScoreboardOrder,
     },
+    BossBar {
+        bar: u64,
+        order: crate::plugins::BossBarOrder,
+    },
 }
 
 impl Order {
@@ -92,6 +96,7 @@ impl Order {
             Self::Entity { order, .. } => order.name(),
             Self::CustomInventory { order, .. } => order.name(),
             Self::Scoreboard { order, .. } => order.name(),
+            Self::BossBar { order, .. } => order.name(),
         }
     }
 }

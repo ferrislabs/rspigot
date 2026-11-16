@@ -1,6 +1,7 @@
 mod aims;
 mod block;
 mod blocks;
+mod boss_bars;
 mod broadcast;
 mod burning;
 mod changes;
@@ -60,6 +61,7 @@ use crate::admin::{BanEntry, IpBanEntry, ListEntry};
 use crate::events::Direction;
 
 pub(crate) use block::{block_state_of, data_of, material_of, snapshot_of};
+pub use boss_bars::{BossBarOrder, BossBarSpec, BossBarView};
 pub(crate) use broadcast::Broadcasts;
 pub(crate) use burning::Combuster;
 pub use contract::{
@@ -299,6 +301,9 @@ pub enum Answer {
     Spawned(EntityView),
     Scoreboard(ScoreboardView),
     ScoreboardCreated(u32),
+    BossBarCreated(u64),
+    BossBar(BossBarView),
+    BossBars(Vec<BossBarView>),
     Target(Option<TargetHit>),
     CustomInventory(CustomInventoryState),
     Refused(String),
@@ -369,6 +374,9 @@ pub enum Question {
     CustomInventory(u64),
     Scoreboard(u32),
     NewScoreboard,
+    CreateBossBar(BossBarSpec),
+    BossBar(u64),
+    BossBars,
 }
 
 #[cfg(test)]

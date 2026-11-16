@@ -849,6 +849,58 @@ fn scoreboard_commands(b: &mut TreeBuilder, root: usize) {
     number_format_nodes(b, format_objective);
 }
 
+fn bossbar_commands(b: &mut TreeBuilder, root: usize) {
+    let bossbar = b.literal(root, "bossbar", false);
+    let id_of = |b: &mut TreeBuilder, parent: usize, executable: bool| {
+        b.argument(parent, "id", ArgumentParser::ResourceLocation, executable)
+    };
+    let add = b.literal(bossbar, "add", false);
+    let id = id_of(b, add, false);
+    b.argument(id, "name", component_argument(), true);
+    let remove = b.literal(bossbar, "remove", false);
+    id_of(b, remove, true);
+    b.literal(bossbar, "list", true);
+    let get = b.literal(bossbar, "get", false);
+    let id = id_of(b, get, false);
+    for field in ["value", "max", "visible", "players"] {
+        b.literal(id, field, true);
+    }
+    let set = b.literal(bossbar, "set", false);
+    let id = id_of(b, set, false);
+    let color = b.literal(id, "color", false);
+    for name in ["pink", "blue", "red", "green", "yellow", "purple", "white"] {
+        b.literal(color, name, true);
+    }
+    let style = b.literal(id, "style", false);
+    for name in [
+        "progress",
+        "notched_6",
+        "notched_10",
+        "notched_12",
+        "notched_20",
+    ] {
+        b.literal(style, name, true);
+    }
+    let name = b.literal(id, "name", false);
+    b.argument(name, "name", component_argument(), true);
+    for (field, min) in [("value", 0), ("max", 1)] {
+        let node = b.literal(id, field, false);
+        b.argument(
+            node,
+            field,
+            ArgumentParser::Integer {
+                min: Some(min),
+                max: None,
+            },
+            true,
+        );
+    }
+    let visible = b.literal(id, "visible", false);
+    b.argument(visible, "visible", ArgumentParser::Bool, true);
+    let players = b.literal(id, "players", true);
+    b.argument(players, "targets", entities(), true);
+}
+
 fn team_commands(b: &mut TreeBuilder, root: usize) {
     let team_name = || ArgumentParser::Named("minecraft:team");
     let team = b.literal(root, "team", false);
@@ -962,6 +1014,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     text_commands(b, root);
     scoreboard_commands(b, root);
     team_commands(b, root);
+    bossbar_commands(b, root);
     b.literal(root, "seed", true);
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);
@@ -1109,6 +1162,8 @@ mod tests {
 
     #[test]
     fn scoreboard_commands_follow_their_permission_levels() {
+        assert!(!root_names(0).iter().any(|n| n == "bossbar"));
+        assert!(root_names(2).iter().any(|n| n == "bossbar"));
         let player = root_names(0);
         for name in ["trigger", "teammsg", "tm"] {
             assert!(player.iter().any(|n| n == name), "{name}");

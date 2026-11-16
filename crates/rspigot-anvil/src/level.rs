@@ -219,6 +219,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     level.raids = optional_saved_data(world_root, "raids");
     level.scoreboard = optional_saved_data(world_root, "scoreboard");
     level.dragon_fight = optional_saved_data(world_root, "ender_dragon_fight");
+    level.custom_boss_events = optional_saved_data(world_root, "custom_boss_events");
     Ok(Some(level))
 }
 
@@ -329,6 +330,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         update_saved_data(world_root, "raids", |data| {
             let changed = data != raids;
             data.clone_from(raids);
+            changed
+        })?;
+    }
+    if let Some(events) = &level.custom_boss_events {
+        update_saved_data(world_root, "custom_boss_events", |data| {
+            let changed = data != events;
+            data.clone_from(events);
             changed
         })?;
     }
@@ -494,6 +502,7 @@ mod tests {
             raids: None,
             scoreboard: None,
             dragon_fight: None,
+            custom_boss_events: None,
         }
     }
 
@@ -587,6 +596,24 @@ mod tests {
         write_level_data(&root, &level).unwrap();
         let file = read_file(&root, "data/minecraft/scoreboard.dat");
         assert_eq!(file.get_compound("data"), Some(&scoreboard));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
+    }
+
+    #[test]
+    fn custom_boss_events_are_saved_in_their_own_data_file_and_read_back() {
+        let dir = TempDir::new("level-boss-events");
+        let root = dir.path().join("world");
+        let events = Compound::new().with(
+            "minecraft:raid",
+            Compound::new().with("Name", "Raid").with("Max", 10),
+        );
+        let level = LevelData {
+            custom_boss_events: Some(events.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/custom_boss_events.dat");
+        assert_eq!(file.get_compound("data"), Some(&events));
         assert_eq!(read_level_data(&root).unwrap(), Some(level));
     }
 
