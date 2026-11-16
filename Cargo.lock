@@ -1478,10 +1478,12 @@ dependencies = [
 name = "rspigot-auth"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "rspigot-core",
  "rspigot-domain",
  "serde",
  "serde_json",
+ "tracing",
  "ureq",
  "uuid",
 ]
@@ -1500,6 +1502,7 @@ dependencies = [
  "parking_lot",
  "proptest",
  "rand 0.9.5",
+ "rsa",
  "rspigot-ai",
  "rspigot-blocks",
  "rspigot-data",
@@ -1509,6 +1512,7 @@ dependencies = [
  "rspigot-nbt",
  "rustc-hash",
  "serde_json",
+ "sha1",
  "sha2",
  "thiserror",
  "tracing",
@@ -1526,6 +1530,7 @@ dependencies = [
  "md-5",
  "proptest",
  "rand 0.9.5",
+ "rsa",
  "rspigot-blocks",
  "rspigot-data",
  "rspigot-effects",
@@ -1533,6 +1538,8 @@ dependencies = [
  "rspigot-items",
  "rspigot-nbt",
  "rustc-hash",
+ "sha1",
+ "sha2",
  "thiserror",
  "uuid",
 ]

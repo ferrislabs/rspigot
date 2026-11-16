@@ -114,13 +114,13 @@ fn sign_message(
 }
 
 fn chat(player: &Player, index: i32, content: &str, timestamp_ms: i64) -> PlayerInput {
-    PlayerInput::ChatMessage(ChatMessage {
+    PlayerInput::ChatMessage(Box::new(ChatMessage {
         content: content.to_owned(),
         timestamp_ms,
         salt: 9,
         signature: Some(sign_message(player, index, content, timestamp_ms, 9)),
         last_seen: LastSeenUpdate::default(),
-    })
+    }))
 }
 
 fn heard(player: &Player) -> Vec<String> {
@@ -293,7 +293,7 @@ fn a_last_seen_update_that_claims_unknown_messages_disconnects_the_player() {
     send_input(
         &mut server,
         &alice,
-        PlayerInput::ChatMessage(ChatMessage {
+        PlayerInput::ChatMessage(Box::new(ChatMessage {
             content: "hi".to_owned(),
             timestamp_ms: 100_000,
             salt: 9,
@@ -303,7 +303,7 @@ fn a_last_seen_update_that_claims_unknown_messages_disconnects_the_player() {
                 acknowledged: 1,
                 checksum: 0,
             },
-        }),
+        })),
     );
     assert!(alice.link.disconnected_with().is_some());
 }

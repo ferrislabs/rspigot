@@ -229,13 +229,13 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             rotation: None,
             on_ground: p.flags.on_ground,
         }),
-        ServerboundPlay::Chat(p) => input(PlayerInput::ChatMessage(ChatMessage {
+        ServerboundPlay::Chat(p) => input(PlayerInput::ChatMessage(Box::new(ChatMessage {
             content: p.message,
             timestamp_ms: p.timestamp,
             salt: p.salt,
             signature: p.signature.map(|signature| MessageSignature(signature.0)),
             last_seen: last_seen(&p.last_seen),
-        })),
+        }))),
         ServerboundPlay::ChatAck(p) => input(PlayerInput::ChatAck(p.offset)),
         ServerboundPlay::ChatCommand(p) => input(PlayerInput::Command(p.command)),
         ServerboundPlay::ChatCommandSigned(p) => input(PlayerInput::SignedCommand(SignedCommand {
@@ -576,7 +576,7 @@ mod tests {
         body.extend([3, 0b0000_0101, 0b0000_0010, 0b0000_1000, 0xFE]);
         assert_eq!(
             decoded(sb::CHAT, &body),
-            PlayerInput::ChatMessage(ChatMessage {
+            PlayerInput::ChatMessage(Box::new(ChatMessage {
                 content: "hi".to_owned(),
                 timestamp_ms: 1_700_000_000_123,
                 salt: 77,
@@ -586,7 +586,7 @@ mod tests {
                     acknowledged: 0b0000_1000_0000_0010_0000_0101,
                     checksum: -2,
                 },
-            })
+            }))
         );
     }
 

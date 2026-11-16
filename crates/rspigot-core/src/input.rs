@@ -67,7 +67,7 @@ impl<L: ClientLink> Server<L> {
                     last_seen: LastSeenUpdate::default(),
                 },
             ),
-            PlayerInput::ChatMessage(message) => self.handle_chat_message(id, message),
+            PlayerInput::ChatMessage(message) => self.handle_chat_message(id, *message),
             PlayerInput::ChatAck(offset) => self.handle_chat_ack(id, offset),
             PlayerInput::Command(command) => self.handle_unsigned_command(id, &command),
             PlayerInput::SignedCommand(signed) => self.handle_signed_command(id, signed),

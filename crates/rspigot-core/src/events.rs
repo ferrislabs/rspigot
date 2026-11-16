@@ -110,7 +110,7 @@ pub enum PlayerInput {
     },
     TeleportConfirm(i32),
     Chat(String),
-    ChatMessage(ChatMessage),
+    ChatMessage(Box<ChatMessage>),
     ChatAck(i32),
     Command(String),
     SignedCommand(SignedCommand),
