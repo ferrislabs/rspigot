@@ -30,8 +30,8 @@ pub mod clientbound {
     pub use super::effect::{RemoveMobEffect, UpdateMobEffect};
     pub use super::entity::{
         AddEntity, Animate, EntityPositionSync, MoveEntityPos, MoveEntityPosRot, MoveEntityRot,
-        RemoveEntities, RotateHead, SetEntityLink, SetEntityMotion, SetEquipment, SetPassengers,
-        SwingAnimation, TakeItemEntity, TeleportEntity, UpdateAttributes,
+        RemoveEntities, RotateHead, SetCamera, SetEntityLink, SetEntityMotion, SetEquipment,
+        SetPassengers, SwingAnimation, TakeItemEntity, TeleportEntity, UpdateAttributes,
     };
     pub use super::inventory::{
         ContainerClose, ContainerSetContent, ContainerSetData, ContainerSetSlot, MerchantOffers,
@@ -44,7 +44,7 @@ pub mod clientbound {
         BundleDelimiter, ChangeDifficulty, Login, PlayerAbilities, PlayerInfoRemove,
         PlayerInfoUpdate, PlayerPosition, PlayerRotation, Respawn, ServerData,
         SetDefaultSpawnPosition, SetExperience, SetHealth, SetHeldSlot, StartConfiguration,
-        TabList, TagQuery, TickingState, TickingStep,
+        TabList, TagQuery, TickingState, TickingStep, Transfer,
     };
     pub use super::progress::{
         AdvancementData, AdvancementDisplay, AwardStats, CriterionEntry, PositionedAdvancement,
@@ -58,7 +58,7 @@ pub mod clientbound {
         ChunkBatchFinished, ChunkBatchStart, Explode, ExplosionParticle, GameEvent, GameRuleValues,
         InitializeBorder, LevelEvent, LevelParticles, OpenSignEditor, ParticleOptions,
         ParticleRandomization, SectionBlocksUpdate, SetChunkCacheCenter, SetChunkCacheRadius,
-        SetSimulationDistance, SetTime, Sound,
+        SetSimulationDistance, SetTime, Sound, StopSound,
     };
 }
 

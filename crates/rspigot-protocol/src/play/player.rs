@@ -212,6 +212,14 @@ wire_struct! {
 }
 
 wire_struct! {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct Transfer = id::TRANSFER {
+        pub host: String,
+        pub port: i32 as Var,
+    }
+}
+
+wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct TickingState = id::TICKING_STATE {
         pub tick_rate: f32,
@@ -385,6 +393,18 @@ mod tests {
     use crate::codec::{Position, decode_exact};
     use crate::play::types::Vec3;
     use crate::play::wire::testing::{encoded, roundtrip};
+
+    #[test]
+    fn a_transfer_is_a_host_and_a_var_int_port() {
+        let packet = Transfer {
+            host: "a.b".to_owned(),
+            port: 25565,
+        };
+        assert_eq!(
+            encoded(&packet),
+            vec![3, b'a', b'.', b'b', 0xdd, 0xc7, 0x01]
+        );
+    }
 
     #[test]
     fn a_tag_query_answer_carries_the_transaction_and_a_nameless_compound_or_nothing() {

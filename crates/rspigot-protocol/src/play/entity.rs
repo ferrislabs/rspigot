@@ -407,6 +407,13 @@ wire_struct! {
 
 wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct SetCamera = id::SET_CAMERA {
+        pub camera_id: i32 as Var,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct SetEntityLink = id::SET_ENTITY_LINK {
         pub source: i32,
         pub dest: i32,

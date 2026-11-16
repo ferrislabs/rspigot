@@ -59,14 +59,14 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn target_of_entity(&self, id: rspigot_domain::EntityId) -> Option<Target> {
+    pub(crate) fn target_of_entity(&self, id: rspigot_domain::EntityId) -> Option<Target> {
         if let Some(player) = self.players.values().find(|p| p.entity_id == id) {
             return Some(Target::Player(player.id));
         }
         self.entities.store.get(id).map(|_| Target::Entity(id))
     }
 
-    fn entity_id_of(&self, target: Target) -> Option<rspigot_domain::EntityId> {
+    pub(crate) fn entity_id_of(&self, target: Target) -> Option<rspigot_domain::EntityId> {
         match target {
             Target::Player(id) => self.players.get(&id).map(|p| p.entity_id),
             Target::Entity(id) => Some(id),

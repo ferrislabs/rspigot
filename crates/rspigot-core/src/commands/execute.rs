@@ -537,7 +537,7 @@ fn wrap_degrees(value: f32) -> f32 {
     }
 }
 
-fn parse_angle(raw: &str, base: f32) -> Result<f32, Component> {
+pub(super) fn parse_angle(raw: &str, base: f32) -> Result<f32, Component> {
     let (relative, number) = match raw.strip_prefix('~') {
         Some(rest) => (true, rest),
         None => (false, raw),
@@ -563,7 +563,7 @@ fn anchored_position<C: CommandContext>(ctx: &C, source: &Source) -> Vec3 {
     }
 }
 
-fn look_at(from: Vec3, to: Vec3) -> Rotation {
+pub(super) fn look_at(from: Vec3, to: Vec3) -> Rotation {
     let (dx, dy, dz) = (to.x - from.x, to.y - from.y, to.z - from.z);
     let horizontal = dx.hypot(dz);
     let pitch = wrap_degrees((-dy.atan2(horizontal).to_degrees()) as f32);

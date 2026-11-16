@@ -143,6 +143,7 @@ impl Default for PluginSettings {
 #[derive(Debug, Clone, PartialEq)]
 pub struct GameConfig {
     pub max_players: u32,
+    pub player_idle_timeout: u32,
     pub view_distance: u8,
     pub simulation_distance: u8,
     pub default_game_mode: GameMode,
@@ -176,6 +177,7 @@ impl Default for GameConfig {
     fn default() -> Self {
         Self {
             max_players: 20,
+            player_idle_timeout: 0,
             view_distance: 10,
             simulation_distance: 10,
             default_game_mode: GameMode::Survival,
@@ -226,6 +228,8 @@ pub struct LevelData {
     pub scoreboard: Option<rspigot_nbt::Compound>,
     pub dragon_fight: Option<rspigot_nbt::Compound>,
     pub custom_boss_events: Option<rspigot_nbt::Compound>,
+    pub forced_chunks: Option<rspigot_nbt::Compound>,
+    pub world_border: Option<rspigot_nbt::Compound>,
 }
 
 impl Default for LevelData {
@@ -247,6 +251,8 @@ impl Default for LevelData {
             scoreboard: None,
             dragon_fight: None,
             custom_boss_events: None,
+            forced_chunks: None,
+            world_border: None,
         }
     }
 }

@@ -345,6 +345,29 @@ impl Sound {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StopSound {
+    pub source: Option<SoundSource>,
+    pub sound: Option<String>,
+}
+
+impl Encode for StopSound {
+    fn encode(&self, out: &mut Vec<u8>) {
+        let flags = u8::from(self.source.is_some()) | (u8::from(self.sound.is_some()) << 1);
+        out.push(flags);
+        if let Some(source) = &self.source {
+            source.encode(out);
+        }
+        if let Some(sound) = &self.sound {
+            sound.encode(out);
+        }
+    }
+}
+
+impl Packet for StopSound {
+    const ID: i32 = id::STOP_SOUND;
+}
+
 wire_struct! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     pub struct LevelEvent = id::LEVEL_EVENT {
@@ -475,6 +498,25 @@ mod tests {
     use super::*;
     use crate::codec::decode_exact;
     use crate::play::wire::testing::{encoded, roundtrip};
+
+    #[test]
+    fn stop_sound_flags_tell_which_fields_follow() {
+        let none = StopSound {
+            source: None,
+            sound: None,
+        };
+        assert_eq!(encoded(&none), vec![0]);
+        let both = StopSound {
+            source: Some(SoundSource::Records),
+            sound: Some("a:b".to_owned()),
+        };
+        assert_eq!(encoded(&both), vec![3, 2, 3, b'a', b':', b'b']);
+        let named = StopSound {
+            source: None,
+            sound: Some("a".to_owned()),
+        };
+        assert_eq!(encoded(&named), vec![2, 1, b'a']);
+    }
 
     #[test]
     fn open_sign_editor_is_a_position_and_a_side() {

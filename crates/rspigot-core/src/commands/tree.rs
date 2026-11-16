@@ -1,3 +1,5 @@
+mod extra;
+
 use super::permission::{LEVEL_ADMINS, LEVEL_GAMEMASTERS, LEVEL_OWNERS};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1031,6 +1033,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     b.argument(teleport, "destination", single_entity(), true);
     b.alias(root, "tp", teleport);
     execute_tree(b, root);
+    extra::extra_commands(b, root);
     let summon = b.literal(root, "summon", false);
     let entity = b.suggesting(
         summon,
@@ -1113,6 +1116,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
 }
 
 fn admin_commands(b: &mut TreeBuilder, root: usize) {
+    extra::admin_extras(b, root);
     let kick = b.literal(root, "kick", false);
     let kicked = b.argument(kick, "targets", player_arg(), true);
     b.argument(kicked, "reason", ArgumentParser::Message, true);
@@ -1288,5 +1292,67 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn the_k4_commands_follow_their_vanilla_levels() {
+        let gamemaster = [
+            "attribute",
+            "damage",
+            "enchant",
+            "particle",
+            "playsound",
+            "stopsound",
+            "ride",
+            "rotate",
+            "spectate",
+            "swing",
+            "forceload",
+            "worldborder",
+            "spreadplayers",
+            "fillbiome",
+        ];
+        let admin = ["tick", "transfer", "setidletimeout", "debug"];
+        let moderator = root_names(1);
+        let operator = root_names(2);
+        let admins = root_names(3);
+        for name in gamemaster.iter().chain(&admin) {
+            assert!(!moderator.iter().any(|n| n == name), "{name}");
+        }
+        for name in gamemaster {
+            assert!(operator.iter().any(|n| n == name), "{name}");
+            assert!(admins.iter().any(|n| n == name), "{name}");
+        }
+        for name in admin {
+            assert!(!operator.iter().any(|n| n == name), "{name}");
+            assert!(admins.iter().any(|n| n == name), "{name}");
+        }
+    }
+
+    #[test]
+    fn the_k4_trees_have_no_dangling_children_or_redirects() {
+        let tree = build_tree(4);
+        for node in &tree.nodes {
+            assert!(node.children.iter().all(|c| *c < tree.nodes.len()));
+            if let Some(target) = node.redirect {
+                assert!(target < tree.nodes.len());
+            }
+        }
+        let literal = |parent: usize, name: &str| {
+            tree.nodes[parent]
+                .children
+                .iter()
+                .copied()
+                .find(|c| tree.nodes[*c].kind == CommandNodeKind::Literal(name.to_owned()))
+        };
+        let forceload = literal(tree.root, "forceload").expect("forceload");
+        let remove = literal(forceload, "remove").expect("remove");
+        assert!(literal(remove, "all").is_some());
+        let border = literal(tree.root, "worldborder").expect("worldborder");
+        let warning = literal(border, "warning").expect("warning");
+        assert!(literal(warning, "distance").is_some() && literal(warning, "time").is_some());
+        let tick = literal(tree.root, "tick").expect("tick");
+        let step = literal(tick, "step").expect("step");
+        assert!(tree.nodes[step].executable && literal(step, "stop").is_some());
     }
 }

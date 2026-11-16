@@ -10,7 +10,7 @@ fn text(value: impl ToString) -> Component {
     Component::text(value.to_string())
 }
 
-fn reply_err<C: CommandContext>(
+pub(super) fn reply_err<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     e: Component,
@@ -19,7 +19,7 @@ fn reply_err<C: CommandContext>(
     CommandOutcome::Failure
 }
 
-fn players<C: CommandContext>(
+pub(super) fn players<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     selector: &str,
@@ -38,7 +38,7 @@ fn players<C: CommandContext>(
     Ok(found)
 }
 
-fn entities<C: CommandContext>(
+pub(super) fn entities<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     selector: &str,

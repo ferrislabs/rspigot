@@ -7,9 +7,9 @@ use rspigot_core::commands::{
 };
 use rspigot_core::events::{
     Abilities, Animation, ClientEvent, EntityKind, EntityStatus, EquipmentSlot as CoreSlot,
-    GameEvent as CoreGameEvent, MetadataValue, MoveDelta, Movement, PlayerListEntry,
+    GameEvent as CoreGameEvent, Hand, MetadataValue, MoveDelta, Movement, PlayerListEntry,
     Pose as CorePose, PositionPath as CorePath, SoundSource as CoreSoundSource, SpawnInfo,
-    StateKind, VariantKind,
+    StateKind, SwingStyle, VariantKind,
 };
 use rspigot_data::variants::VariantFamily;
 use rspigot_domain::boss_event::{
@@ -533,6 +533,8 @@ fn named_parser(name: &str) -> WireParser {
         "minecraft:operation" => parser::OPERATION,
         "minecraft:component" => parser::COMPONENT,
         "minecraft:uuid" => parser::UUID,
+        "minecraft:particle" => parser::PARTICLE,
+        "minecraft:swing_animation" => parser::SWING_ANIMATION,
         _ => return WireParser::String(StringKind::SingleWord),
     };
     simple(id)
@@ -1376,6 +1378,74 @@ impl Encoder {
                     y_head_rot: Angle::from_degrees(*yaw),
                 },
             ),
+            ClientEvent::EntitySwing {
+                entity,
+                hand,
+                style,
+                duration,
+            } => Self::queue(
+                writer,
+                &cb::SwingAnimation {
+                    entity_id: entity.0,
+                    hand: match hand {
+                        Hand::Main => WireHand::MainHand,
+                        Hand::Off => WireHand::OffHand,
+                    },
+                    animation: SwingAnimationStyle {
+                        kind: match style {
+                            SwingStyle::None => SwingAnimationType::None,
+                            SwingStyle::Whack => SwingAnimationType::Whack,
+                            SwingStyle::Stab => SwingAnimationType::Stab,
+                        },
+                        duration: *duration,
+                    },
+                },
+            ),
+            ClientEvent::TickingState { rate, frozen } => Self::queue(
+                writer,
+                &cb::TickingState {
+                    tick_rate: *rate,
+                    is_frozen: *frozen,
+                },
+            ),
+            ClientEvent::TickingStep(steps) => {
+                Self::queue(writer, &cb::TickingStep { tick_steps: *steps })
+            }
+            ClientEvent::Border(view) => Self::queue(
+                writer,
+                &cb::InitializeBorder {
+                    center_x: view.center_x,
+                    center_z: view.center_z,
+                    old_size: view.old_size,
+                    new_size: view.new_size,
+                    lerp_time: view.lerp_time,
+                    absolute_max_size: view.absolute_max_size,
+                    warning_blocks: view.warning_blocks,
+                    warning_time: view.warning_time,
+                },
+            ),
+            ClientEvent::Transfer { host, port } => Self::queue(
+                writer,
+                &cb::Transfer {
+                    host: host.clone(),
+                    port: *port,
+                },
+            ),
+            ClientEvent::Camera(entity) => Self::queue(
+                writer,
+                &cb::SetCamera {
+                    camera_id: entity.0,
+                },
+            ),
+            ClientEvent::PlayerRotation { yaw, pitch } => Self::queue(
+                writer,
+                &cb::PlayerRotation {
+                    y_rot: *yaw,
+                    relative_y: false,
+                    x_rot: *pitch,
+                    relative_x: false,
+                },
+            ),
             ClientEvent::EntityAnimation { entity, animation } => match animation {
                 Animation::SwingMainArm | Animation::SwingOffHand => Self::queue(
                     writer,
@@ -1787,6 +1857,43 @@ impl Encoder {
                 ),
                 None => Ok(()),
             },
+            ClientEvent::NamedSound {
+                sound,
+                source,
+                position: at,
+                volume,
+                pitch,
+                seed,
+            } => {
+                let holder =
+                    match rspigot_data::registries::static_index("minecraft:sound_event", sound)
+                        .and_then(|id| i32::try_from(id).ok())
+                    {
+                        Some(id) => Holder::Reference(id),
+                        None => Holder::Direct(rspigot_protocol::play::types::SoundEvent {
+                            location: sound.clone(),
+                            fixed_range: None,
+                        }),
+                    };
+                Self::queue(
+                    writer,
+                    &cb::Sound::at(
+                        holder,
+                        sound_source(*source),
+                        (at.x, at.y, at.z),
+                        *volume,
+                        *pitch,
+                        *seed,
+                    ),
+                )
+            }
+            ClientEvent::StopSound { source, sound } => Self::queue(
+                writer,
+                &cb::StopSound {
+                    source: source.map(sound_source),
+                    sound: sound.clone(),
+                },
+            ),
             ClientEvent::Explode {
                 center,
                 radius,
@@ -2418,6 +2525,91 @@ mod tests {
             seed: 0,
         };
         assert!(encode(unknown).is_empty());
+    }
+
+    #[test]
+    fn a_named_sound_is_a_reference_when_registered_and_direct_otherwise() {
+        let make = |sound: &str| ClientEvent::NamedSound {
+            sound: sound.to_owned(),
+            source: rspigot_core::events::SoundSource::Master,
+            position: rspigot_domain::Vec3::new(1.0, 2.0, 3.0),
+            volume: 1.0,
+            pitch: 1.0,
+            seed: 0,
+        };
+        let known = encode(make("minecraft:entity.villager.no"));
+        let custom = encode(make("pack:thing"));
+        assert_eq!(known.len(), 1);
+        assert_eq!(custom.len(), 1);
+        assert_eq!(known[0].0, id::SOUND);
+        assert_eq!(custom[0].1[0], 0);
+        assert_ne!(known[0].1[0], 0);
+    }
+
+    #[test]
+    fn stop_sound_sends_the_flags_source_and_name() {
+        let packets = encode(ClientEvent::StopSound {
+            source: Some(rspigot_core::events::SoundSource::Records),
+            sound: None,
+        });
+        assert_eq!(packets, vec![(id::STOP_SOUND, vec![1, 2])]);
+    }
+
+    #[test]
+    fn ticking_state_and_step_golden_bytes() {
+        let state = encode(ClientEvent::TickingState {
+            rate: 20.0,
+            frozen: true,
+        });
+        assert_eq!(state.len(), 1);
+        assert_eq!(state[0].0, id::TICKING_STATE);
+        assert_eq!(state[0].1, vec![0x41, 0xa0, 0, 0, 1]);
+        assert_eq!(
+            encode(ClientEvent::TickingStep(3)),
+            vec![(id::TICKING_STEP, vec![3])]
+        );
+    }
+
+    #[test]
+    fn the_border_is_sent_as_an_initialize_border_packet() {
+        let packets = encode(ClientEvent::Border(
+            rspigot_domain::world_border::WorldBorder::default().view(0),
+        ));
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].0, id::INITIALIZE_BORDER);
+        assert_eq!(&packets[0].1[..8], &0.0f64.to_be_bytes());
+        assert_eq!(&packets[0].1[16..24], &59_999_968.0f64.to_be_bytes());
+    }
+
+    #[test]
+    fn a_transfer_sends_the_host_and_port() {
+        let packets = encode(ClientEvent::Transfer {
+            host: "x.y".to_owned(),
+            port: 1,
+        });
+        assert_eq!(packets, vec![(id::TRANSFER, vec![3, b'x', b'.', b'y', 1])]);
+    }
+
+    #[test]
+    fn swing_camera_and_rotation_golden_bytes() {
+        let swing = encode(ClientEvent::EntitySwing {
+            entity: EntityId(5),
+            hand: Hand::Off,
+            style: SwingStyle::Stab,
+            duration: 10,
+        });
+        assert_eq!(swing, vec![(id::SWING_ANIMATION, vec![5, 1, 2, 10])]);
+        assert_eq!(
+            encode(ClientEvent::Camera(EntityId(300))),
+            vec![(id::SET_CAMERA, vec![0xac, 0x02])]
+        );
+        let turned = encode(ClientEvent::PlayerRotation {
+            yaw: 90.0,
+            pitch: 0.0,
+        });
+        assert_eq!(turned.len(), 1);
+        assert_eq!(turned[0].0, id::PLAYER_ROTATION);
+        assert_eq!(turned[0].1[4], 0);
     }
 
     #[test]

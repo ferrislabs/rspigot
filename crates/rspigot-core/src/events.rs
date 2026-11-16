@@ -359,6 +359,13 @@ pub enum EntityKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SwingStyle {
+    None,
+    Whack,
+    Stab,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Animation {
     SwingMainArm,
     SwingOffHand,
@@ -774,6 +781,39 @@ pub enum ClientEvent {
         volume: f32,
         pitch: f32,
         seed: i64,
+    },
+    EntitySwing {
+        entity: EntityId,
+        hand: Hand,
+        style: SwingStyle,
+        duration: i32,
+    },
+    Camera(EntityId),
+    Transfer {
+        host: String,
+        port: i32,
+    },
+    Border(rspigot_domain::world_border::BorderView),
+    TickingState {
+        rate: f32,
+        frozen: bool,
+    },
+    TickingStep(i32),
+    PlayerRotation {
+        yaw: f32,
+        pitch: f32,
+    },
+    NamedSound {
+        sound: String,
+        source: SoundSource,
+        position: Vec3,
+        volume: f32,
+        pitch: f32,
+        seed: i64,
+    },
+    StopSound {
+        source: Option<SoundSource>,
+        sound: Option<String>,
     },
     Explode {
         center: Vec3,
