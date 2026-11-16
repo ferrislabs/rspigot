@@ -13,7 +13,8 @@ use rspigot_domain::entity::TrackingRanges;
 use rspigot_domain::player::GameMode;
 use rspigot_domain::spawn::state::{CategorySettings, SpawnSettings};
 use rspigot_domain::world::Difficulty;
-use rspigot_network::NetworkConfig;
+use rspigot_management::ManagementConfig;
+use rspigot_network::{NetworkConfig, ProxyForwarding, QueryConfig};
 use rspigot_plugins::PluginHostConfig;
 
 use plugins::PLUGINS_DEFAULTS;
@@ -137,13 +138,19 @@ impl ServerFiles {
 
     fn tracking_ranges(&self) -> TrackingRanges {
         let defaults = TrackingRanges::default();
+        let percentage = self
+            .properties
+            .int("entity-broadcast-range-percentage", 100)
+            .clamp(10, 1000);
         let range = |key: &str, fallback: i32| {
-            self.spigot
+            let base = self
+                .spigot
                 .int(
                     &format!("world-settings.default.{key}"),
                     i64::from(fallback),
                 )
-                .clamp(0, i64::from(i32::MAX)) as i32
+                .clamp(0, i64::from(i32::MAX));
+            (base * percentage / 100).min(i64::from(i32::MAX)) as i32
         };
         TrackingRanges {
             players: range("entity-tracking-range.players", defaults.players),
@@ -152,10 +159,13 @@ impl ServerFiles {
             misc: range("entity-tracking-range.misc", defaults.misc),
             display: range("entity-tracking-range.display", defaults.display),
             other: range("entity-tracking-range.other", defaults.other),
-            monster_activation: range(
-                "entity-activation-range.monsters",
-                defaults.monster_activation,
-            ),
+            monster_activation: self
+                .spigot
+                .int(
+                    "world-settings.default.entity-activation-range.monsters",
+                    i64::from(defaults.monster_activation),
+                )
+                .clamp(0, i64::from(i32::MAX)) as i32,
         }
     }
 
@@ -209,8 +219,69 @@ impl ServerFiles {
         plugins::host_config(&self.plugins, environment_token)
     }
 
+    pub fn management_config(&self) -> Option<ManagementConfig> {
+        let p = &self.properties;
+        if !p.bool("management-server-enabled") {
+            return None;
+        }
+        Some(ManagementConfig {
+            host: Some(p.string("management-server-host"))
+                .filter(|h| !h.is_empty())
+                .unwrap_or("localhost")
+                .to_owned(),
+            port: p.int("management-server-port", 0).clamp(0, 65535) as u16,
+            secret: p.string("management-server-secret").to_owned(),
+            tls_enabled: p.bool("management-server-tls-enabled"),
+            allowed_origins: p
+                .string("management-server-allowed-origins")
+                .split(',')
+                .map(str::trim)
+                .filter(|o| !o.is_empty())
+                .map(str::to_owned)
+                .collect(),
+        })
+    }
+
+    pub fn query_config(&self) -> Option<QueryConfig> {
+        let p = &self.properties;
+        if !p.bool("enable-query") {
+            return None;
+        }
+        let ip = p.string("server-ip");
+        let host = if ip.is_empty() { "0.0.0.0" } else { ip };
+        let port = p.int("query.port", 25565).clamp(1, 65535) as u16;
+        let bind = format!("{host}:{port}")
+            .parse()
+            .or_else(|_| format!("[{host}]:{port}").parse())
+            .ok()?;
+        Some(QueryConfig {
+            bind,
+            motd: p.string("motd").to_owned(),
+            map: p.string("level-name").to_owned(),
+            version: rspigot_data::VERSION_NAME.to_owned(),
+            server_port: p.int("server-port", 25565).clamp(1, 65535) as u16,
+            server_ip: ip.to_owned(),
+        })
+    }
+
+    fn proxy_forwarding(&self) -> anyhow::Result<ProxyForwarding> {
+        if self.spigot.string("settings.velocity.enabled", "false") == "true" {
+            let secret = self.spigot.string("settings.velocity.secret", "");
+            anyhow::ensure!(
+                !secret.is_empty(),
+                "settings.velocity.secret in spigot.yml is empty while Velocity forwarding is enabled"
+            );
+            return Ok(ProxyForwarding::Velocity(secret.into_bytes()));
+        }
+        if self.spigot.string("settings.bungeecord", "false") == "true" {
+            return Ok(ProxyForwarding::BungeeCord);
+        }
+        Ok(ProxyForwarding::Off)
+    }
+
     pub fn network_config(&self, favicon: Option<String>) -> anyhow::Result<NetworkConfig> {
         let p = &self.properties;
+        let proxy = self.proxy_forwarding()?;
         let ip = p.string("server-ip");
         let port = p.int("server-port", 25565).clamp(1, 65535) as u16;
         let host = if ip.is_empty() { "0.0.0.0" } else { ip };
@@ -227,6 +298,7 @@ impl ServerFiles {
             favicon,
             hide_online_players: p.bool("hide-online-players"),
             enable_status: p.bool("enable-status"),
+            proxy,
             enforce_secure_profile: false,
             accepts_transfers: p.bool("accepts-transfers"),
             keep_alive_timeout: Duration::from_secs(30),
@@ -298,5 +370,78 @@ mod tests {
                 .mob_spawn_range,
             44
         );
+    }
+
+    #[test]
+    fn the_broadcast_percentage_scales_tracking_ranges() {
+        let mut files = files("{}", "{}");
+        files
+            .properties
+            .set("entity-broadcast-range-percentage", "50");
+        let ranges = files.tracking_ranges();
+        assert_eq!(ranges.animals, 48);
+        assert_eq!(ranges.players, 64);
+        assert_eq!(ranges.monster_activation, 32);
+        files
+            .properties
+            .set("entity-broadcast-range-percentage", "1");
+        assert_eq!(files.tracking_ranges().animals, 9);
+    }
+
+    #[test]
+    fn the_management_server_is_off_by_default_and_reads_its_keys() {
+        let mut files = files("{}", "{}");
+        assert_eq!(files.management_config(), None);
+        files.properties.set("management-server-enabled", "true");
+        files
+            .properties
+            .set("management-server-tls-enabled", "false");
+        files
+            .properties
+            .set("management-server-allowed-origins", "http://a, http://b");
+        files.properties.set("management-server-port", "25585");
+        let config = files.management_config().expect("enabled");
+        assert_eq!(config.host, "localhost");
+        assert_eq!(config.port, 25585);
+        assert_eq!(config.allowed_origins, ["http://a", "http://b"]);
+        assert!(!config.tls_enabled);
+    }
+
+    #[test]
+    fn proxy_forwarding_is_off_until_a_key_turns_it_on() {
+        let off = files("{}", "{}");
+        assert_eq!(off.proxy_forwarding().unwrap(), ProxyForwarding::Off);
+        let bungee = files("settings:\n  bungeecord: true\n", "{}");
+        assert_eq!(
+            bungee.proxy_forwarding().unwrap(),
+            ProxyForwarding::BungeeCord
+        );
+        let velocity = files(
+            "settings:\n  bungeecord: true\n  velocity:\n    enabled: true\n    secret: abc\n",
+            "{}",
+        );
+        assert_eq!(
+            velocity.proxy_forwarding().unwrap(),
+            ProxyForwarding::Velocity(b"abc".to_vec())
+        );
+    }
+
+    #[test]
+    fn velocity_without_a_secret_is_a_configuration_error() {
+        let velocity = files("settings:\n  velocity:\n    enabled: true\n", "{}");
+        assert!(velocity.proxy_forwarding().is_err());
+    }
+
+    #[test]
+    fn the_query_listener_is_off_by_default_and_uses_its_own_port() {
+        let mut files = files("{}", "{}");
+        assert!(files.query_config().is_none());
+        files.properties.set("enable-query", "true");
+        files.properties.set("query.port", "25570");
+        files.properties.set("level-name", "lobby");
+        let config = files.query_config().expect("enabled");
+        assert_eq!(config.bind.port(), 25570);
+        assert_eq!(config.map, "lobby");
+        assert_eq!(config.server_port, 25565);
     }
 }

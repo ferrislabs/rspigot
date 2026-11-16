@@ -8,6 +8,9 @@ pub const SPIGOT_DEFAULTS: &str = r#"config-version: 12
 settings:
   debug: false
   bungeecord: false
+  velocity:
+    enabled: false
+    secret: ''
   timeout-time: 60
   restart-on-crash: true
   restart-script: ./start.sh

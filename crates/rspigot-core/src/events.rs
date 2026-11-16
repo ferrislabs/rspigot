@@ -277,6 +277,8 @@ pub enum Inbound<L> {
         session: u64,
     },
     Console(String),
+    Management(crate::management::ManagementCall),
+    Reload(Box<crate::reload::ReloadData>),
     StatusPing {
         ping: StatusPing,
         reply: Option<oneshot::Sender<StatusReply>>,

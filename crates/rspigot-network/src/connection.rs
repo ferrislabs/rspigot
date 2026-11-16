@@ -19,7 +19,8 @@ use rspigot_protocol::configuration::{
 use rspigot_protocol::frame::{Compression, FrameDecoder, FrameEncoder, FrameError};
 use rspigot_protocol::handshake::{ClientIntent, Intention, ServerboundHandshake};
 use rspigot_protocol::login::{
-    ClientboundHello, LoginCompression, LoginDisconnect, LoginFinished, ServerboundLogin,
+    ClientboundHello, CustomQuery, LoginCompression, LoginDisconnect, LoginFinished,
+    ServerboundLogin,
 };
 use rspigot_protocol::status::{PongResponse, ServerboundStatus, StatusResponse};
 use rspigot_protocol::types::{
@@ -33,6 +34,7 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use crate::NetworkConfig;
 use crate::listener::Shared;
 use crate::play;
+use crate::proxy::{self, Forwarded, ProxyForwarding};
 use crate::status::{Shown, legacy_status, status_json};
 use crate::text::to_json;
 
@@ -189,7 +191,17 @@ pub async fn handle<V: SessionVerifier>(
                 return reject(&mut session, Component::text(message)).await;
             }
             let transferred = intention.intent == ClientIntent::Transfer;
-            login(shared, session, transferred).await
+            let bungee = if shared.config.proxy == ProxyForwarding::BungeeCord {
+                match proxy::parse_bungee(&intention.host) {
+                    Ok(forwarded) => Some(forwarded),
+                    Err(_) => {
+                        return reject(&mut session, Component::text(proxy::BUNGEE_MISSING)).await;
+                    }
+                }
+            } else {
+                None
+            };
+            login(shared, session, transferred, bungee).await
         }
     }
 }
@@ -317,10 +329,21 @@ async fn login<V: SessionVerifier>(
     shared: Arc<Shared<V>>,
     mut session: Session,
     transferred: bool,
+    bungee: Option<Forwarded>,
 ) -> Result<(), ConnectionError> {
     let ServerboundLogin::Hello(hello) = next_login(&mut session).await? else {
         return Err(ConnectionError::Rejected("expected hello".to_owned()));
     };
+    let forwarded = match (&shared.config.proxy, bungee) {
+        (ProxyForwarding::Velocity(secret), _) => match velocity(&mut session, secret).await? {
+            Some(forwarded) => Some(forwarded),
+            None => return Ok(()),
+        },
+        (_, forwarded) => forwarded,
+    };
+    if let Some(forwarded) = &forwarded {
+        session.addr.set_ip(forwarded.address);
+    }
     if !valid_name(&hello.name) {
         return reject(
             &mut session,
@@ -335,7 +358,13 @@ async fn login<V: SessionVerifier>(
         )
         .await;
     }
-    let profile = if shared.config.online_mode {
+    let profile = if let Some(forwarded) = forwarded {
+        GameProfile {
+            id: PlayerId(forwarded.id),
+            name: forwarded.name.unwrap_or_else(|| hello.name.clone()),
+            properties: forwarded.properties,
+        }
+    } else if shared.config.online_mode {
         match authenticate(&shared, &mut session, &hello.name).await? {
             Some(profile) => profile,
             None => return Ok(()),
@@ -390,6 +419,44 @@ async fn login<V: SessionVerifier>(
     }
     let settings = configure(&shared, &mut session).await?;
     play::run(shared, session, profile, settings).await
+}
+
+async fn velocity(
+    session: &mut Session,
+    secret: &[u8],
+) -> Result<Option<Forwarded>, ConnectionError> {
+    const TRANSACTION: i32 = 100;
+    let query = CustomQuery {
+        transaction_id: TRANSACTION,
+        channel: identifier(proxy::VELOCITY_CHANNEL)?,
+        data: vec![proxy::MAX_FORWARDING_VERSION],
+    };
+    session
+        .writer
+        .send(ids::login::clientbound::CUSTOM_QUERY, &query)
+        .await?;
+    loop {
+        let ServerboundLogin::CustomQueryAnswer(answer) = next_login(session).await? else {
+            return Err(ConnectionError::Rejected(
+                "expected the forwarding answer".to_owned(),
+            ));
+        };
+        if answer.transaction_id != TRANSACTION {
+            continue;
+        }
+        let Some(payload) = answer.payload else {
+            reject(session, Component::text(proxy::VELOCITY_REQUIRED)).await?;
+            return Ok(None);
+        };
+        return match proxy::verify_velocity(secret, &payload) {
+            Ok(forwarded) => Ok(Some(forwarded)),
+            Err(error) => {
+                tracing::warn!("Rejected forwarding data from {}: {error}", session.addr);
+                reject(session, Component::text(proxy::VELOCITY_BAD_SIGNATURE)).await?;
+                Ok(None)
+            }
+        };
+    }
 }
 
 async fn pre_login<V>(

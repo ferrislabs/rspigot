@@ -37,6 +37,7 @@ pub enum ChunkJob {
         data: Arc<Compound>,
     },
     Flush,
+    Sync(Sender<()>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -112,6 +113,12 @@ impl ChunkWorkers {
         &self.results
     }
 
+    pub fn flush_blocking(&self, timeout: Duration) -> bool {
+        let (done, wait) = unbounded();
+        self.submit(Priority::BACKGROUND, ChunkJob::Sync(done));
+        wait.recv_timeout(timeout).is_ok()
+    }
+
     pub fn backlog(&self) -> usize {
         self.queue.len()
     }
@@ -182,6 +189,13 @@ fn execute<S: ChunkStore + EntityStore, G: ChunkGenerator>(
                 tracing::error!(%error, name, "world data save failed");
             }
             ChunkResult::DataSaved
+        }
+        ChunkJob::Sync(done) => {
+            if let Err(error) = store.flush() {
+                tracing::error!(%error, "chunk store flush failed");
+            }
+            let _ = done.send(());
+            ChunkResult::Flushed
         }
         ChunkJob::Flush => {
             if let Err(error) = store.flush() {

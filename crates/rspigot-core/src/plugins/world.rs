@@ -42,7 +42,7 @@ impl<L: ClientLink> Server<L> {
             }
             ServerOrder::Shutdown => CommandContext::stop(self),
             ServerOrder::Save => {
-                CommandContext::save_all(self);
+                CommandContext::save_all(self, false);
             }
             ServerOrder::SetWhitelistEnabled(enabled) => {
                 CommandContext::set_whitelist_enabled(self, enabled);
@@ -118,7 +118,7 @@ impl<L: ClientLink> Server<L> {
             WorldOrder::SetPvp(pvp) => self.config.pvp = pvp,
             WorldOrder::SetGameRule(rule, value) => self.set_game_rule(rule, value),
             WorldOrder::Save => {
-                CommandContext::save_all(self);
+                CommandContext::save_all(self, false);
             }
             WorldOrder::PlaySound { sound, position } => {
                 let key = resolve::sound_of(&sound)?;

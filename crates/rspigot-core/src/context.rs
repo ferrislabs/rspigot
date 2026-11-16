@@ -1,6 +1,6 @@
 use std::hash::{BuildHasher, Hasher};
 use std::net::IpAddr;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use rspigot_domain::effect::{EffectId, EffectInstance};
 use rspigot_domain::entity::spawn;
@@ -1364,14 +1364,21 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.change_spawn(pos);
     }
 
-    fn save_all(&mut self) -> usize {
+    fn save_all(&mut self, flush: bool) -> bool {
         self.world_saving();
         self.save_all_entities();
         self.save_world_data();
         self.persist_all_players();
-        let count = self.world.chunks.save_dirty(&self.workers);
+        self.world.chunks.save_dirty(&self.workers);
+        if flush {
+            return self.workers.flush_blocking(Duration::from_secs(60));
+        }
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
-        count
+        true
+    }
+
+    fn request_reload(&mut self, whitelist_only: bool) -> bool {
+        self.ask_reload(whitelist_only)
     }
 
     fn tps(&self) -> [f64; 3] {

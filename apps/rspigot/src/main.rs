@@ -1,7 +1,9 @@
 mod config;
 mod console;
+mod crash;
 mod dimensions;
 mod files;
+mod log_files;
 mod logging;
 
 use std::net::SocketAddr;
@@ -18,6 +20,7 @@ use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
 use rspigot_network::NetLink;
 use rspigot_worldgen::WorldGenerator;
+use tracing_subscriber::Layer;
 
 use crate::config::ServerFiles;
 
@@ -69,16 +72,39 @@ fn rand_seed() -> i64 {
     (nanos as i64) ^ 0x0005_DEEC_E66D
 }
 
-fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
-        )
+fn init_logging(root: &std::path::Path) {
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+    let filter =
+        || tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into());
+    let console = tracing_subscriber::fmt::layer()
         .event_format(logging::SpigotFormat)
+        .with_filter(filter());
+    let file = match log_files::LatestLog::open(root) {
+        Ok(log) => Some(
+            tracing_subscriber::fmt::layer()
+                .with_ansi(false)
+                .with_writer(log)
+                .event_format(logging::FileFormat)
+                .with_filter(filter()),
+        ),
+        Err(error) => {
+            eprintln!("could not open logs/latest.log: {error}");
+            None
+        }
+    };
+    tracing_subscriber::registry()
+        .with(console)
+        .with(file)
         .init();
-    let started = Instant::now();
+}
+
+fn main() -> anyhow::Result<()> {
     let args = arguments();
     std::fs::create_dir_all(&args.root)?;
+    init_logging(&args.root);
+    crash::install(args.root.clone());
+    let started = Instant::now();
     tracing::info!(
         "Starting minecraft server version {}",
         rspigot_data::VERSION_NAME
@@ -162,6 +188,17 @@ fn main() -> anyhow::Result<()> {
             }
         }
     });
+    let management_config = files.management_config();
+    let management_notices = management_config.as_ref().map(|config| {
+        config.validate()?;
+        let address = config.address();
+        let listener = runtime
+            .block_on(tokio::net::TcpListener::bind(&address))
+            .with_context(|| format!("binding the management port {address}"))?;
+        anyhow::Ok(listener)
+    });
+    let management_listener = management_notices.transpose()?;
+    let (notice_sender, notice_receiver) = crossbeam_channel::unbounded();
     let mut server: Server<NetLink> = Server::new(
         game_config,
         level,
@@ -173,15 +210,40 @@ fn main() -> anyhow::Result<()> {
     .with_admin_sink(admin_updates)
     .with_player_store(Arc::clone(&store))
     .with_startup_inbox(game_inbox.clone());
+    let (reload_requests, reload_inbox) = crossbeam_channel::unbounded();
+    files::spawn_reloader(args.root.clone(), reload_inbox, inbound.clone());
+    server = server.with_reload_sink(reload_requests);
+    if management_listener.is_some() {
+        server = server.with_management_sink(notice_sender);
+    }
     let spawn_chunks = server.start(Duration::from_secs(60));
     tracing::info!("Preparing spawn area: {spawn_chunks} chunks");
+    let query = files.query_config().map(|config| {
+        let status = status.clone();
+        let stopped = stopped.clone();
+        runtime.spawn(async move {
+            if let Err(error) = rspigot_network::serve_query(config, status, stopped).await {
+                tracing::error!("Unable to initialise query system: {error}");
+            }
+        })
+    });
     let network = runtime.spawn(rspigot_network::run(
         network_config,
         verifier,
         status,
         inbound.clone(),
-        stopped,
+        stopped.clone(),
     ));
+    let management = match (management_listener, management_config) {
+        (Some(listener), Some(config)) => Some(runtime.spawn(rspigot_management::serve(
+            listener,
+            config,
+            inbound.clone(),
+            rspigot_management::bridge(notice_receiver),
+            stopped.clone(),
+        ))),
+        _ => None,
+    };
     let signal_inbox = inbound.clone();
     runtime.spawn(async move {
         if tokio::signal::ctrl_c().await.is_ok() {
@@ -200,6 +262,12 @@ fn main() -> anyhow::Result<()> {
         let adapters = async {
             let _ = network.await;
             let _ = plugins.await;
+            if let Some(query) = query {
+                let _ = query.await;
+            }
+            if let Some(management) = management {
+                let _ = management.await;
+            }
         };
         let _ = tokio::time::timeout(Duration::from_secs(5), adapters).await;
     });
