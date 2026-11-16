@@ -15,6 +15,7 @@ mod link;
 mod listener;
 mod player;
 mod runtime;
+mod scoreboard;
 mod server;
 mod target;
 mod text;
@@ -41,6 +42,10 @@ pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Ve
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
 pub use rspigot_plugin_macros::{Plugin, listeners};
 pub use runtime::{run, run_with};
+pub use scoreboard::{
+    CollisionRule, Criteria, DisplaySlot, Objective, ObjectiveState, RenderType, Score, ScoreEntry,
+    Scoreboard, ScoreboardManager, ScoreboardState, Team, TeamColor, TeamState, Visibility,
+};
 pub use server::{
     BanEntry, BanList, BanListKind, Bans, ByAddress, ByName, IpBanEntry, IpBans, ListedPlayer,
     NameList, NameListKind, NamedPlayers, OperatorKind, Operators, Players, Server, ServerState,
@@ -62,4 +67,5 @@ pub mod prelude {
         Plugin, Position, Priority, Rotation, Server, ServerState, Sound, Target, Title, Vector,
         Weather, World, WorldState, listeners, run, run_with,
     };
+    pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};
 }

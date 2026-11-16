@@ -109,6 +109,7 @@ mod recipe_placing;
 mod redstone;
 mod respawning;
 mod riding;
+mod scoreboard;
 mod sculk;
 pub mod server;
 mod sign;

@@ -111,6 +111,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn save_world_data(&mut self) {
         if self.world.dimension.key == Identifier::minecraft("overworld") {
+            self.save_scoreboard_data();
             return;
         }
         self.save_raids();

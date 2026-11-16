@@ -24,6 +24,9 @@ use rspigot_domain::entity::trading::{ItemCost, MerchantOffer};
 use rspigot_domain::item::{ItemStack, Slot};
 use rspigot_domain::particle::ParticleData;
 use rspigot_domain::player::GameMode as DomainGameMode;
+use rspigot_domain::scoreboard::{
+    NumberFormat as DomainNumberFormat, ObjectiveView, ScoreboardMessage, TeamOp, TeamView,
+};
 use rspigot_domain::world::Difficulty as DomainDifficulty;
 use rspigot_domain::{BlockPos, ChunkPos, Rotation, Vec3};
 use rspigot_protocol::codec::{Angle, Position};
@@ -53,6 +56,10 @@ use rspigot_protocol::play::metadata::{
     EntityDataItem, EntityDataValue, EnumState, RegistryVariant,
 };
 use rspigot_protocol::play::player::{CommonPlayerSpawnInfo, PlayerInfoActions, PlayerInfoEntry};
+use rspigot_protocol::play::scoreboard::{
+    NumberFormat as WireNumberFormat, OBJECTIVE_ADD, OBJECTIVE_CHANGE, OBJECTIVE_REMOVE,
+    ObjectiveDetails, TEAM_ADD, TEAM_CHANGE, TEAM_JOIN, TEAM_LEAVE, TEAM_REMOVE, TeamParameters,
+};
 use rspigot_protocol::play::slot::{
     ComponentValue, DataComponentPatch, ItemStack as WireStack, ItemStackTemplate,
 };
@@ -108,6 +115,55 @@ fn wire_vec(v: Vec3) -> WireVec3 {
 
 fn text(component: &rspigot_domain::text::Component) -> Text {
     Text(to_nbt(component))
+}
+
+fn number_format_packet(format: &DomainNumberFormat) -> WireNumberFormat {
+    match format {
+        DomainNumberFormat::Blank => WireNumberFormat::Blank,
+        DomainNumberFormat::Fixed(component) => WireNumberFormat::Fixed(text(component)),
+        DomainNumberFormat::Styled(style) => {
+            let mut carrier = rspigot_domain::text::Component::text("");
+            carrier.style = style.clone();
+            WireNumberFormat::Styled(text(&carrier))
+        }
+    }
+}
+
+fn objective_packet(view: &ObjectiveView, method: u8) -> cb::SetObjective {
+    cb::SetObjective {
+        name: view.name.clone(),
+        method,
+        details: Some(ObjectiveDetails {
+            display_name: text(&view.display_name),
+            render_type: view.render_type.id(),
+            number_format: view.number_format.as_ref().map(number_format_packet),
+        }),
+    }
+}
+
+fn team_packet(name: &str, op: &TeamOp) -> cb::SetPlayerTeam {
+    let parameters = |view: &TeamView| TeamParameters {
+        display_name: text(&view.display_name),
+        prefix: text(&view.prefix),
+        suffix: text(&view.suffix),
+        nametag_visibility: view.nametag_visibility.id(),
+        collision_rule: view.collision_rule.id(),
+        color: view.color.map(|color| color as i32),
+        options: view.options,
+    };
+    let (method, parameters, players) = match op {
+        TeamOp::Add { view, members } => (TEAM_ADD, Some(parameters(view)), members.clone()),
+        TeamOp::Modify(view) => (TEAM_CHANGE, Some(parameters(view)), Vec::new()),
+        TeamOp::Remove => (TEAM_REMOVE, None, Vec::new()),
+        TeamOp::Join(players) => (TEAM_JOIN, None, players.clone()),
+        TeamOp::Leave(players) => (TEAM_LEAVE, None, players.clone()),
+    };
+    cb::SetPlayerTeam {
+        name: name.to_owned(),
+        method,
+        parameters,
+        players,
+    }
 }
 
 fn boss_color(color: DomainBossColor) -> WireBossColor {
@@ -461,6 +517,11 @@ fn named_parser(name: &str) -> WireParser {
         "minecraft:nbt_path" => parser::NBT_PATH,
         "minecraft:nbt_tag" => parser::NBT_TAG,
         "minecraft:objective" => parser::OBJECTIVE,
+        "minecraft:objective_criteria" => parser::OBJECTIVE_CRITERIA,
+        "minecraft:scoreboard_slot" => parser::SCOREBOARD_SLOT,
+        "minecraft:team" => parser::TEAM,
+        "minecraft:style" => parser::STYLE,
+        "minecraft:team_color" => parser::TEAM_COLOR,
         "minecraft:heightmap" => parser::HEIGHTMAP,
         "minecraft:function" => parser::FUNCTION,
         "minecraft:int_range" => parser::INT_RANGE,
@@ -820,6 +881,59 @@ impl Encoder {
         writer.queue(P::ID, packet)
     }
 
+    fn scoreboard<W: PacketSink>(
+        writer: &mut W,
+        message: &ScoreboardMessage,
+    ) -> Result<(), ConnectionError> {
+        match message {
+            ScoreboardMessage::ObjectiveAdd(view) => {
+                Self::queue(writer, &objective_packet(view, OBJECTIVE_ADD))
+            }
+            ScoreboardMessage::ObjectiveChange(view) => {
+                Self::queue(writer, &objective_packet(view, OBJECTIVE_CHANGE))
+            }
+            ScoreboardMessage::ObjectiveRemove(name) => Self::queue(
+                writer,
+                &cb::SetObjective {
+                    name: name.clone(),
+                    method: OBJECTIVE_REMOVE,
+                    details: None,
+                },
+            ),
+            ScoreboardMessage::DisplayObjective { slot, objective } => Self::queue(
+                writer,
+                &cb::SetDisplayObjective {
+                    slot: i32::try_from(slot.index()).unwrap_or_default(),
+                    objective: objective.clone().unwrap_or_default(),
+                },
+            ),
+            ScoreboardMessage::Score {
+                holder,
+                objective,
+                value,
+                display,
+                number_format,
+            } => Self::queue(
+                writer,
+                &cb::SetScore {
+                    owner: holder.clone(),
+                    objective: objective.clone(),
+                    value: *value,
+                    display: display.as_ref().map(text),
+                    number_format: number_format.as_ref().map(number_format_packet),
+                },
+            ),
+            ScoreboardMessage::ResetScore { holder, objective } => Self::queue(
+                writer,
+                &cb::ResetScore {
+                    owner: holder.clone(),
+                    objective: objective.clone(),
+                },
+            ),
+            ScoreboardMessage::Team { name, op } => Self::queue(writer, &team_packet(name, op)),
+        }
+    }
+
     fn chunk<W: PacketSink>(
         writer: &mut W,
         dimension: &rspigot_domain::Identifier,
@@ -1107,6 +1221,7 @@ impl Encoder {
                     operation: boss_operation(update),
                 },
             ),
+            ClientEvent::Scoreboard(message) => Self::scoreboard(writer, message.as_ref()),
             ClientEvent::TitleText(message) => Self::queue(
                 writer,
                 &cb::SetTitleText {
@@ -3051,6 +3166,47 @@ mod tests {
         let mut expected = uuid.as_bytes().to_vec();
         expected.extend_from_slice(&[4, 5, 3]);
         assert_eq!(encode(style), vec![(id::BOSS_EVENT, expected)]);
+    }
+
+    fn scoreboard_event(message: ScoreboardMessage) -> ClientEvent {
+        ClientEvent::Scoreboard(Box::new(message))
+    }
+
+    #[test]
+    fn scoreboard_messages_encode_to_their_packets() {
+        use rspigot_domain::scoreboard::{DisplaySlot, RenderType};
+        let add = scoreboard_event(ScoreboardMessage::ObjectiveAdd(ObjectiveView {
+            name: "a".to_owned(),
+            display_name: Component::text("A"),
+            render_type: RenderType::Hearts,
+            number_format: None,
+        }));
+        let packets = encode(add);
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].0, id::SET_OBJECTIVE);
+        assert_eq!(&packets[0].1[..3], &[1, b'a', 0]);
+        assert_eq!(packets[0].1.last(), Some(&0));
+        let display = scoreboard_event(ScoreboardMessage::DisplayObjective {
+            slot: DisplaySlot::BelowName,
+            objective: None,
+        });
+        assert_eq!(
+            encode(display),
+            vec![(id::SET_DISPLAY_OBJECTIVE, vec![2, 0])]
+        );
+        let reset = scoreboard_event(ScoreboardMessage::ResetScore {
+            holder: "x".to_owned(),
+            objective: None,
+        });
+        assert_eq!(encode(reset), vec![(id::RESET_SCORE, vec![1, b'x', 0])]);
+        let join = scoreboard_event(ScoreboardMessage::Team {
+            name: "t".to_owned(),
+            op: TeamOp::Join(vec!["a".to_owned()]),
+        });
+        assert_eq!(
+            encode(join),
+            vec![(id::SET_PLAYER_TEAM, vec![1, b't', 3, 1, 1, b'a'])]
+        );
     }
 
     #[test]

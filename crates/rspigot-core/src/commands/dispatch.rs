@@ -3,6 +3,7 @@ use std::time::SystemTime;
 
 use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
 use rspigot_domain::player::{GameMode, PlayerId};
+use rspigot_domain::scoreboard::{Scoreboard, ScoreboardMessage};
 use rspigot_domain::text::{Component, NamedColor};
 use rspigot_domain::world::Difficulty;
 use rspigot_domain::{BlockPos, EntityId, Identifier, ItemId, Rotation, Vec3};
@@ -378,6 +379,21 @@ pub trait CommandContext {
         false
     }
 
+    fn scoreboard(&self) -> &Scoreboard;
+
+    fn change_scoreboard<R>(
+        &mut self,
+        change: impl FnOnce(&mut Scoreboard) -> (R, Vec<ScoreboardMessage>),
+    ) -> R;
+
+    fn score_holder_name(&self, _target: Target) -> Option<String> {
+        None
+    }
+
+    fn holder_display_name(&self, _holder: &str) -> Option<Component> {
+        None
+    }
+
     fn function_exists(&self, _id: &Identifier) -> bool {
         false
     }
@@ -481,6 +497,8 @@ pub fn execute<C: CommandContext>(
         "defaultgamemode" | "gamerule" | "experience" | "xp" | "tag" | "save-on" | "save-off"
         | "random" | "spawnpoint" => super::server_commands::run(ctx, sender, &label, rest),
         "tellraw" | "title" => super::text_commands::run(ctx, sender, &label, rest),
+        "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
+        "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),
         "data" => super::data::run(ctx, sender, rest),
         "setblock" => super::blocks::setblock(ctx, sender, rest),
         "fill" => super::blocks::fill(ctx, sender, rest),
@@ -1857,6 +1875,7 @@ mod tests {
         refuse_effects: bool,
         killed: Vec<PlayerId>,
         plugins: Vec<String>,
+        board: Scoreboard,
     }
 
     fn alice() -> PlayerId {
@@ -1864,6 +1883,15 @@ mod tests {
     }
 
     impl CommandContext for FakeContext {
+        fn scoreboard(&self) -> &Scoreboard {
+            &self.board
+        }
+        fn change_scoreboard<R>(
+            &mut self,
+            change: impl FnOnce(&mut Scoreboard) -> (R, Vec<ScoreboardMessage>),
+        ) -> R {
+            change(&mut self.board).0
+        }
         fn reply(&mut self, sender: CommandSender, message: Component) {
             self.replies.push((sender, message.plain_text()));
         }

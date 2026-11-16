@@ -223,6 +223,7 @@ pub struct LevelData {
     pub spawn_monsters: bool,
     pub uuid: Option<uuid::Uuid>,
     pub raids: Option<rspigot_nbt::Compound>,
+    pub scoreboard: Option<rspigot_nbt::Compound>,
     pub dragon_fight: Option<rspigot_nbt::Compound>,
 }
 
@@ -242,6 +243,7 @@ impl Default for LevelData {
             spawn_monsters: true,
             uuid: None,
             raids: None,
+            scoreboard: None,
             dragon_fight: None,
         }
     }

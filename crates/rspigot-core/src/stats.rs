@@ -100,6 +100,10 @@ impl StatKind {
     const fn index(self) -> usize {
         self as usize
     }
+
+    pub(crate) fn knows(self, key: &str) -> bool {
+        static_index(self.value_registry(), key).is_some()
+    }
 }
 
 const CUSTOM_STATISTICS: &[(&str, Statistic)] = &[
@@ -447,6 +451,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(player) = self.players.get_mut(&id) {
             player.stats.add(kind, key, amount);
         }
+        self.stat_score_added(id, kind, key, amount);
     }
 
     pub(crate) fn count_player_death(
@@ -456,6 +461,7 @@ impl<L: ClientLink> Server<L> {
         source: &crate::health::DamageSource,
     ) {
         self.award_custom(id, custom::DEATHS, 1);
+        self.award_death_score(id);
         self.reset_stat(id, custom::TIME_SINCE_DEATH);
         self.reset_stat(id, custom::TIME_SINCE_REST);
         if let Some(cause) = &source.causing {
@@ -464,6 +470,9 @@ impl<L: ClientLink> Server<L> {
         }
         if let Some(killer) = killer.or_else(|| source.attacker()) {
             self.award_custom(killer, custom::PLAYER_KILLS, 1);
+            if let Some(victim) = self.players.get(&id).map(|p| p.profile.name.clone()) {
+                self.award_kill_score(killer, &victim, true);
+            }
             self.award(killer, StatKind::Killed, Kind::Player.name(), 1);
             self.trigger_killed_entity(killer, Kind::Player.name());
         }
@@ -474,6 +483,7 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         self.award_custom(killer, custom::MOB_KILLS, 1);
+        self.award_entity_kill_score(killer, victim);
         self.award(killer, StatKind::Killed, kind.name(), 1);
         self.trigger_killed_entity(killer, kind.name());
     }
@@ -611,6 +621,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(player) = self.players.get_mut(&id) {
             player.stats.reset(StatKind::Custom, key);
         }
+        self.stat_score_reset(id, StatKind::Custom, key);
     }
 
     pub(crate) fn send_stats(&self, id: PlayerId) {
