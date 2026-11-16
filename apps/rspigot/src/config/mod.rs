@@ -47,6 +47,10 @@ impl ServerFiles {
         value.clamp(2, 32) as u8
     }
 
+    pub fn secure_profile_requested(&self) -> bool {
+        self.properties.bool("enforce-secure-profile") && self.properties.bool("online-mode")
+    }
+
     pub fn game_config(&self, admin: AdminLists) -> GameConfig {
         let p = &self.properties;
         GameConfig {
@@ -341,6 +345,23 @@ mod tests {
             bukkit: merged(bukkit, BUKKIT_DEFAULTS),
             plugins: YamlConfig::from_str(PLUGINS_DEFAULTS).unwrap(),
         }
+    }
+
+    #[test]
+    fn secure_profiles_are_requested_only_in_online_mode_with_the_property_on() {
+        let mut server_files = files("{}", "{}");
+        server_files.properties.set("enforce-secure-profile", "true");
+        server_files.properties.set("online-mode", "true");
+        assert!(server_files.secure_profile_requested());
+        server_files
+            .properties
+            .set("enforce-secure-profile", "false");
+        assert!(!server_files.secure_profile_requested());
+        server_files
+            .properties
+            .set("enforce-secure-profile", "true");
+        server_files.properties.set("online-mode", "false");
+        assert!(!server_files.secure_profile_requested());
     }
 
     #[test]
