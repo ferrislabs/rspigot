@@ -208,3 +208,41 @@ fn thorns_hurt_the_player_who_hit_the_wearer() {
     };
     assert!(alice_health < 20.0, "{alice_health}");
 }
+
+fn swept_cow_health(enchantments: &[(&str, i32)]) -> f32 {
+    let mut s = scene_with(&["Alice"], Vec::new());
+    equip(
+        &mut s,
+        HOTBAR_FIRST,
+        enchanted("minecraft:diamond_sword", enchantments),
+    );
+    let struck = spawn(&mut s, "minecraft:cow");
+    let swept = match s.ask(Question::Spawn {
+        kind: "minecraft:cow".into(),
+        position: Vec3::new(1.5, 64.0, 1.5),
+    }) {
+        Answer::Spawned(view) => view,
+        _ => panic!("expected the second cow"),
+    };
+    s.tick(30);
+    let alice = s.players[0].clone();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::Move {
+            position: Some(Vec3::new(0.5, 64.0, 0.5)),
+            rotation: None,
+            on_ground: true,
+        },
+    );
+    send_input(&mut s.server, &alice, PlayerInput::Attack(struck.id));
+    details(&mut s, swept.id).0
+}
+
+#[test]
+fn sweeping_edge_hurts_the_neighbours_of_the_target() {
+    let plain = swept_cow_health(&[]);
+    let edged = swept_cow_health(&[("minecraft:sweeping_edge", 3)]);
+    assert!((10.0 - plain - 1.0).abs() < 0.01, "{plain}");
+    assert!(plain - edged > 3.0, "{edged} vs {plain}");
+}
