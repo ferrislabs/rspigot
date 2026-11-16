@@ -9780,6 +9780,66 @@ pub mod scoreboard_order {
     }
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BossFlagOrder {
+    #[prost(string, tag = "1")]
+    pub flag: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub enabled: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BossBarOrder {
+    #[prost(uint64, tag = "1")]
+    pub bar: u64,
+    #[prost(
+        oneof = "boss_bar_order::Order",
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+    )]
+    pub order: ::core::option::Option<boss_bar_order::Order>,
+}
+/// Nested message and enum types in `BossBarOrder`.
+pub mod boss_bar_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Order {
+        #[prost(string, tag = "10")]
+        SetTitle(::prost::alloc::string::String),
+        #[prost(string, tag = "11")]
+        SetColor(::prost::alloc::string::String),
+        #[prost(string, tag = "12")]
+        SetStyle(::prost::alloc::string::String),
+        #[prost(double, tag = "13")]
+        SetProgress(f64),
+        #[prost(message, tag = "14")]
+        SetFlag(super::BossFlagOrder),
+        #[prost(string, tag = "15")]
+        AddPlayer(::prost::alloc::string::String),
+        #[prost(string, tag = "16")]
+        RemovePlayer(::prost::alloc::string::String),
+        #[prost(message, tag = "17")]
+        RemoveAllPlayers(super::Empty),
+        #[prost(bool, tag = "18")]
+        SetVisible(bool),
+        #[prost(message, tag = "19")]
+        Remove(super::Empty),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BossBarCreate {
+    #[prost(string, tag = "1")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub color: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub style: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "4")]
+    pub flags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub key: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CustomInventoryOrder {
     #[prost(uint64, tag = "1")]
@@ -9849,7 +9909,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -9898,6 +9958,12 @@ pub mod question {
         Scoreboard(u32),
         #[prost(message, tag = "29")]
         NewScoreboard(super::Empty),
+        #[prost(message, tag = "30")]
+        CreateBossBar(super::BossBarCreate),
+        #[prost(uint64, tag = "31")]
+        BossBar(u64),
+        #[prost(message, tag = "32")]
+        BossBars(super::Empty),
     }
 }
 #[allow(clippy::all)]
@@ -9905,7 +9971,7 @@ pub mod question {
 pub struct FromPlugin {
     #[prost(uint64, optional, tag = "11")]
     pub origin: ::core::option::Option<u64>,
-    #[prost(oneof = "from_plugin::Body", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12")]
+    #[prost(oneof = "from_plugin::Body", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13")]
     pub body: ::core::option::Option<from_plugin::Body>,
 }
 /// Nested message and enum types in `FromPlugin`.
@@ -9935,6 +10001,8 @@ pub mod from_plugin {
         Question(super::Question),
         #[prost(message, tag = "12")]
         Scoreboard(super::ScoreboardOrder),
+        #[prost(message, tag = "13")]
+        BossBar(super::BossBarOrder),
     }
 }
 #[allow(clippy::all)]
@@ -10180,12 +10248,40 @@ pub struct ScoreboardState {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BossBarState {
+    #[prost(uint64, tag = "1")]
+    pub bar: u64,
+    #[prost(string, optional, tag = "2")]
+    pub key: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub color: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub style: ::prost::alloc::string::String,
+    #[prost(double, tag = "6")]
+    pub progress: f64,
+    #[prost(string, repeated, tag = "7")]
+    pub flags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "8")]
+    pub visible: bool,
+    #[prost(string, repeated, tag = "9")]
+    pub players: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BossBarList {
+    #[prost(message, repeated, tag = "1")]
+    pub bars: ::prost::alloc::vec::Vec<BossBarState>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Answer {
     #[prost(uint64, tag = "1")]
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -10228,6 +10324,12 @@ pub mod answer {
         Scoreboard(super::ScoreboardState),
         #[prost(uint32, tag = "18")]
         ScoreboardCreated(u32),
+        #[prost(uint64, tag = "19")]
+        BossBarCreated(u64),
+        #[prost(message, tag = "20")]
+        BossBar(super::BossBarState),
+        #[prost(message, tag = "21")]
+        BossBars(super::BossBarList),
     }
 }
 #[allow(clippy::all)]

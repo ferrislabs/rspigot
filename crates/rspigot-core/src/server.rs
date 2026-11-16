@@ -114,6 +114,7 @@ pub struct Server<L> {
     pub(crate) spawning: Spawning,
     pub(crate) raids: crate::raids::RaidRuntime,
     pub(crate) scoreboard: crate::scoreboard::ScoreboardState,
+    pub(crate) custom_bars: rspigot_domain::custom_boss::CustomBossBars,
     pub(crate) plugins: Registry,
     pub(crate) decisions: Decisions,
     pub(crate) broadcasts: Broadcasts,
@@ -196,6 +197,7 @@ impl<L: ClientLink> Server<L> {
             spawning,
             raids: crate::raids::RaidRuntime::default(),
             scoreboard: crate::scoreboard::ScoreboardState::default(),
+            custom_bars: rspigot_domain::custom_boss::CustomBossBars::default(),
             plugins: Registry::default(),
             decisions: Decisions::default(),
             broadcasts: Broadcasts::default(),
@@ -228,6 +230,7 @@ impl<L: ClientLink> Server<L> {
         };
         server.load_raids();
         server.load_scoreboard();
+        server.load_custom_boss_bars();
         server.load_dragon_fight();
         let center = spawn.chunk();
         let radius = server.config.spawn_chunk_radius;
@@ -872,6 +875,9 @@ impl<L: ClientLink> Server<L> {
         for event in self.scoreboard_join_events() {
             link.send(event);
         }
+        for event in self.custom_boss_join_events(player.id) {
+            link.send(event);
+        }
     }
 
     pub(crate) fn time_event(&self) -> ClientEvent {
@@ -893,6 +899,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.close_open_menu(id, false);
         self.forget_scoreboard_player(id);
+        self.forget_custom_boss_player(id);
         if let Some(entity) = self.players.get(&id).map(|player| player.entity_id) {
             self.unride(entity);
         }
@@ -1242,6 +1249,7 @@ impl<L: ClientLink> Server<L> {
         self.save_all_entities();
         self.save_raids();
         self.save_scoreboard();
+        self.save_custom_boss_bars();
         self.save_dragon_fight();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);

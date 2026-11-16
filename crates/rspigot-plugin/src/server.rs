@@ -8,6 +8,7 @@ use rspigot_plugin_protocol::v1::{self, answer, from_plugin, question};
 use uuid::Uuid;
 
 use crate::Error;
+use crate::boss_bar::BossBars;
 use crate::custom_inventory::CustomInventory;
 use crate::link::Link;
 use crate::player::Player;
@@ -59,6 +60,10 @@ impl Server {
 
     pub fn world(&self) -> World {
         World::new(self.link.clone())
+    }
+
+    pub fn boss_bars(&self) -> BossBars {
+        BossBars::new(self.link.clone())
     }
 
     pub fn scoreboard_manager(&self) -> ScoreboardManager {

@@ -11,6 +11,7 @@ mod inventory;
 mod item;
 #[rustfmt::skip]
 pub mod keys;
+mod boss_bar;
 mod link;
 mod listener;
 mod player;
@@ -23,6 +24,7 @@ mod wire;
 mod world;
 
 pub use block::{Block, BlockPos, BlockState};
+pub use boss_bar::{BarColor, BarFlag, BarStyle, BossBar, BossBarState, BossBars};
 pub use color::Color;
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, CommandSender, DamageSource, DroppedItem,
@@ -67,5 +69,6 @@ pub mod prelude {
         Plugin, Position, Priority, Rotation, Server, ServerState, Sound, Target, Title, Vector,
         Weather, World, WorldState, listeners, run, run_with,
     };
+    pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};
 }

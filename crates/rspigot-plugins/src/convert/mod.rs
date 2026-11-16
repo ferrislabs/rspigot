@@ -1,4 +1,5 @@
 mod block;
+mod boss_bar;
 mod contract;
 mod custom_inventory;
 mod decision;
@@ -106,6 +107,7 @@ pub(crate) fn from_plugin(
         from_plugin::Body::Entity(order) => ordered(entity::order(order)?),
         from_plugin::Body::CustomInventory(order) => ordered(custom_inventory::order(order)?),
         from_plugin::Body::Scoreboard(order) => ordered(scoreboard::order(order)?),
+        from_plugin::Body::BossBar(order) => ordered(boss_bar::order(order)?),
         from_plugin::Body::Question(asked) => question(asked)?,
     })
 }
@@ -132,6 +134,11 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         question::Question::CustomInventory(id) => Question::CustomInventory(id),
         question::Question::Scoreboard(board) => Question::Scoreboard(board),
         question::Question::NewScoreboard(_) => Question::NewScoreboard,
+        question::Question::CreateBossBar(create) => {
+            Question::CreateBossBar(boss_bar::spec(create))
+        }
+        question::Question::BossBar(bar) => Question::BossBar(bar),
+        question::Question::BossBars(_) => Question::BossBars,
     };
     Ok(FromPlugin::Question {
         request: asked.request,
@@ -197,6 +204,11 @@ fn wire_answer(answer: Answer) -> answer::Body {
         }
         Answer::Scoreboard(view) => answer::Body::Scoreboard(scoreboard::wire_state(view)),
         Answer::ScoreboardCreated(board) => answer::Body::ScoreboardCreated(board),
+        Answer::BossBarCreated(bar) => answer::Body::BossBarCreated(bar),
+        Answer::BossBar(view) => answer::Body::BossBar(boss_bar::wire_state(view)),
+        Answer::BossBars(views) => answer::Body::BossBars(v1::BossBarList {
+            bars: views.into_iter().map(boss_bar::wire_state).collect(),
+        }),
         Answer::Refused(reason) => answer::Body::Refused(v1::Refused { reason }),
         Answer::NotFound => answer::Body::NotFound(v1::NotFound {}),
     }

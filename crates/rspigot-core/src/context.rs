@@ -369,6 +369,35 @@ impl<L: ClientLink> CommandContext for Server<L> {
         &self.scoreboard.board
     }
 
+    fn boss_bar(&self, id: &Identifier) -> Option<rspigot_domain::custom_boss::CustomBossBar> {
+        self.boss_bar_view(id)
+    }
+
+    fn boss_bars(&self) -> Vec<rspigot_domain::custom_boss::CustomBossBar> {
+        self.boss_bar_views()
+    }
+
+    fn create_boss_bar(&mut self, id: Identifier, name: Component) -> bool {
+        self.create_custom_boss_bar(Some(id), name).is_ok()
+    }
+
+    fn change_boss_bar<R>(
+        &mut self,
+        id: &Identifier,
+        change: impl FnOnce(
+            &mut rspigot_domain::custom_boss::CustomBossBar,
+        ) -> (R, rspigot_domain::boss_event::BossMessages),
+    ) -> Option<R> {
+        let handle = self.custom_bars.handle_of(id)?;
+        self.change_custom_boss_bar(handle, change)
+    }
+
+    fn remove_boss_bar(&mut self, id: &Identifier) -> bool {
+        self.custom_bars
+            .handle_of(id)
+            .is_some_and(|handle| self.remove_custom_boss_bar(handle))
+    }
+
     fn change_scoreboard<R>(
         &mut self,
         change: impl FnOnce(
