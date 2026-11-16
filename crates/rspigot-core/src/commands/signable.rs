@@ -48,7 +48,7 @@ fn consume<'a>(parser: &ArgumentParser, input: &'a str) -> &'a str {
     let mut rest = input;
     for step in 0..tokens_for(parser) {
         if step > 0 {
-            rest = rest.trim_start_matches(' ');
+            rest = rest.strip_prefix(' ').unwrap_or(rest);
         }
         rest = match parser {
             ArgumentParser::Word | ArgumentParser::Bool => split_token(rest).1,
@@ -68,7 +68,7 @@ pub(crate) fn signable_arguments(tree: &CommandTree, command: &str) -> Vec<Signa
             Some(target) if current.children.is_empty() => &tree.nodes[target].children,
             _ => &current.children,
         };
-        let input = rest.trim_start_matches(' ');
+        let input = rest.strip_prefix(' ').unwrap_or(rest);
         if input.is_empty() {
             return found;
         }
