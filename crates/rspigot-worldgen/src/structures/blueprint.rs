@@ -108,6 +108,7 @@ pub(crate) struct Block {
 pub(crate) struct Blueprint {
     pub(crate) size: Pos,
     pub(crate) blocks: Vec<Block>,
+    alternates: Vec<Vec<Block>>,
     pub(crate) entities: Vec<Value>,
     jigsaws: Vec<Jigsaw>,
 }
@@ -191,17 +192,34 @@ fn jigsaw(pos: Pos, state: BlockStateId, nbt: &Value) -> Jigsaw {
 impl Blueprint {
     pub(crate) fn parse(value: &Value) -> Option<Self> {
         let size = triple(value.get("size")?)?;
-        let palette: Vec<BlockStateId> = value
-            .get("palettes")?
-            .as_array()?
-            .first()?
-            .as_array()?
+        let palettes = value.get("palettes")?.as_array()?;
+        let rows = value.get("blocks")?.as_array()?;
+        let mut jigsaws = Vec::new();
+        let (blocks, found) = Self::build(palettes.first()?, rows)?;
+        jigsaws.extend(found);
+        let alternates = palettes[1..]
             .iter()
-            .map(palette_state)
-            .collect();
+            .map(|palette| Self::build(palette, rows).map(|(blocks, _)| blocks))
+            .collect::<Option<Vec<_>>>()?;
+        let entities = value
+            .get("entities")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        Some(Self {
+            size,
+            blocks,
+            alternates,
+            entities,
+            jigsaws,
+        })
+    }
+
+    fn build(palette: &Value, rows: &[Value]) -> Option<(Vec<Block>, Vec<Jigsaw>)> {
+        let palette: Vec<BlockStateId> = palette.as_array()?.iter().map(palette_state).collect();
         let mut blocks = Vec::new();
         let mut jigsaws = Vec::new();
-        for row in value.get("blocks")?.as_array()? {
+        for row in rows {
             let items = row.as_array()?;
             let pos = (
                 i32::try_from(items.first()?.as_i64()?).ok()?,
@@ -229,17 +247,21 @@ impl Blueprint {
             (Some(_), _) => 2,
         };
         blocks.sort_by_key(|block| (class(block), block.pos.1, block.pos.0, block.pos.2));
-        let entities = value
-            .get("entities")
-            .and_then(Value::as_array)
-            .cloned()
-            .unwrap_or_default();
-        Some(Self {
-            size,
-            blocks,
-            entities,
-            jigsaws,
-        })
+        Some((blocks, jigsaws))
+    }
+
+    pub(crate) fn palette(&self, index: usize) -> &[Block] {
+        match index.checked_sub(1) {
+            None => &self.blocks,
+            Some(alternate) => self
+                .alternates
+                .get(alternate)
+                .map_or(&self.blocks, Vec::as_slice),
+        }
+    }
+
+    pub(crate) fn palette_count(&self) -> usize {
+        1 + self.alternates.len()
     }
 
     pub(crate) fn size(&self, rotation: Rotation) -> Pos {

@@ -233,3 +233,56 @@ fn an_igloo_with_a_laboratory_is_built_into_the_generated_chunks() {
     assert_eq!(chests, 1);
     assert!(ladders >= 3, "ladders {ladders}");
 }
+
+#[test]
+fn ocean_shipwreck_starts_match_vanilla() {
+    check("shipwreck", include_str!("fixtures/shaped_shipwreck_1.txt"));
+}
+
+#[test]
+fn beached_shipwreck_starts_match_vanilla() {
+    check(
+        "shipwreck_beached",
+        include_str!("fixtures/shaped_shipwreck_beached_1.txt"),
+    );
+}
+
+#[test]
+fn a_shipwreck_is_built_into_the_generated_chunks() {
+    use rspigot_blocks::BlockKind;
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        1,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    let mut chests = 0;
+    let mut planks = 0;
+    for chunk in [(-13, -20), (-13, -19)] {
+        chests += count_blocks(&overworld, &resources, chunk, |kind| {
+            kind == BlockKind::Chest
+        });
+        planks += count_blocks(&overworld, &resources, chunk, |kind| {
+            kind.name().ends_with("_planks")
+        });
+    }
+    assert!(chests >= 1, "chests {chests}");
+    assert!(planks >= 20, "planks {planks}");
+}
+
+#[test]
+fn shipwreck_templates_keep_every_wood_palette() {
+    let blueprint = Library::embedded()
+        .blueprint("minecraft:shipwreck/with_mast")
+        .unwrap();
+    assert_eq!(blueprint.palette_count(), 8);
+    assert_eq!(blueprint.palette(0).len(), blueprint.palette(5).len());
+    assert!(
+        blueprint
+            .palette(0)
+            .iter()
+            .zip(blueprint.palette(5))
+            .any(|(a, b)| a.state != b.state)
+    );
+}

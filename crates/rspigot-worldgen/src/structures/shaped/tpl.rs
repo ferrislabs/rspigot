@@ -2,12 +2,13 @@ use rspigot_blocks::BlockKind as Kind;
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
+use crate::climate::Xoroshiro;
 use crate::overworld::features::place::Run;
 use crate::overworld::features::structure::{Rotation, commit_with};
 use crate::structures::bbox::{Bbox, Pos};
 use crate::structures::blueprint::Blueprint;
 use crate::structures::library::Library;
-use crate::structures::processors::{Step, Subject};
+use crate::structures::processors::{Step, Subject, position_seed};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Mirror {
@@ -174,9 +175,19 @@ impl Tpl {
         (x + self.pos.0, y + self.pos.1, z + self.pos.2)
     }
 
+    fn palette(&self) -> &'static [crate::structures::blueprint::Block] {
+        let count = self.blueprint.palette_count();
+        let index = if count == 1 {
+            0
+        } else {
+            let mut random = Xoroshiro::from_seed(position_seed(self.pos));
+            random.below(count as i32) as usize
+        };
+        self.blueprint.palette(index)
+    }
+
     pub(crate) fn markers(&self, area: &Bbox) -> Vec<Marker> {
-        self.blueprint
-            .blocks
+        self.palette()
             .iter()
             .filter(|block| block.state.kind() == Some(Kind::StructureBlock))
             .filter_map(|block| {
@@ -210,7 +221,7 @@ impl Tpl {
     ) -> Vec<Marker> {
         let mut placed: Vec<(Pos, BlockStateId)> = Vec::new();
         let mut loot: Vec<(Pos, Value)> = Vec::new();
-        for block in &self.blueprint.blocks {
+        for block in self.palette() {
             let mut subject = Subject {
                 local: block.pos,
                 at: self.world(block.pos),
