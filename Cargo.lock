@@ -1701,6 +1701,7 @@ name = "rspigot-worldgen"
 version = "0.1.0"
 dependencies = [
  "criterion",
+ "flate2",
  "libm",
  "md-5",
  "rspigot-blocks",

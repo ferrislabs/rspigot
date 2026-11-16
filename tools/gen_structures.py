@@ -8,7 +8,21 @@ RE_ROOT = "/Users/baptiste.parmantier/Development/rspigot/re"
 DEFAULT_DATAPACK = RE_ROOT + "/server/data/minecraft"
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.normpath(os.path.join(HERE, "..", "crates", "rspigot-worldgen", "data"))
-TEMPLATE_GROUPS = ("minecraft:village/", "minecraft:pillager_outpost/", "minecraft:trail_ruins/")
+TEMPLATE_GROUPS = (
+    "minecraft:village/",
+    "minecraft:pillager_outpost/",
+    "minecraft:trail_ruins/",
+    "minecraft:abandoned_camp/",
+    "minecraft:ancient_city/",
+    "minecraft:bastion/",
+    "minecraft:trial_chambers/",
+)
+EMBEDDED_GROUPS = (
+    "minecraft:village/",
+    "minecraft:pillager_outpost/",
+)
+PACK_NAME = "vanilla-extras"
+PACK_MCMETA = {"pack": {"description": "Vanilla jigsaw structures that rspigot does not embed", "pack_format": 121}}
 DEFAULT_STRUCTURES = os.path.join(DATA, "structures.json")
 DEFAULT_TEMPLATES = os.path.join(DATA, "jigsaw_templates.json")
 
@@ -98,17 +112,6 @@ def strip(name):
     return name.split(":", 1)[1] if ":" in name else name
 
 
-def walk_processors(node, blocks, found):
-    if isinstance(node, dict):
-        if node.get("predicate_type") == "minecraft:tag_match":
-            found[node["tag"]] = blocks.expand(node["tag"])
-        for value in node.values():
-            walk_processors(value, blocks, found)
-    elif isinstance(node, list):
-        for value in node:
-            walk_processors(value, blocks, found)
-
-
 def element_templates(element, out, pools, processors):
     kind = element["element_type"]
     if kind in ("minecraft:single_pool_element", "minecraft:legacy_single_pool_element"):
@@ -191,7 +194,6 @@ def convert_template(module, path):
 def build(root):
     module = load_templates_module()
     biome_tags = Tags(root, "worldgen/biome")
-    block_tags = Tags(root, "block")
     sets = {}
     for name in names(os.path.join(root, "worldgen"), "structure_set"):
         data = load_json(os.path.join(root, "worldgen", "structure_set", name + ".json"))
@@ -200,9 +202,11 @@ def build(root):
             placement["preferred_biomes"] = [strip(b) for b in biome_tags.resolve(placement["preferred_biomes"])]
         sets[name] = {"placement": placement, "structures": [{"structure": strip(s["structure"]), "weight": s["weight"]} for s in data["structures"]]}
     structures = {}
+    raw_structures = {}
     starts = []
     for name in names(os.path.join(root, "worldgen"), "structure"):
         data = load_json(os.path.join(root, "worldgen", "structure", name + ".json"))
+        raw_structures[name] = json.loads(json.dumps(data))
         data["biomes"] = [strip(b) for b in biome_tags.resolve(data["biomes"])]
         if data["type"] == "minecraft:jigsaw":
             starts.append(data["start_pool"])
@@ -231,19 +235,72 @@ def build(root):
         expanded |= more_templates
         processor_names |= more_processors
     processor_lists = {}
-    tag_table = {}
     for name in sorted(processor_names):
-        data = load_json(os.path.join(root, "worldgen", "processor_list", strip(name) + ".json"))
-        walk_processors(data, block_tags, tag_table)
-        processor_lists[name] = data
-    structure_data = {
-        "sets": sets,
-        "structures": structures,
-        "pools": pools,
-        "processor_lists": processor_lists,
-        "block_tags": tag_table,
-    }
-    return structure_data, converted
+        processor_lists[name] = load_json(os.path.join(root, "worldgen", "processor_list", strip(name) + ".json"))
+    return Collected(root, sets, structures, raw_structures, pools, processor_lists, converted)
+
+
+def pool_processors(pool):
+    found = set()
+
+    def walk(element):
+        if isinstance(element.get("processors"), str):
+            found.add(element["processors"])
+        for inner in element.get("elements", []):
+            walk(inner)
+
+    for entry in pool["elements"]:
+        walk(entry["element"])
+    return found
+
+
+def embedded_pool(name):
+    return name.startswith(EMBEDDED_GROUPS)
+
+
+class Collected:
+    def __init__(self, root, sets, structures, raw_structures, pools, processor_lists, templates):
+        self.root = root
+        self.sets = sets
+        self.structures = structures
+        self.raw_structures = raw_structures
+        self.pools = pools
+        self.processor_lists = processor_lists
+        self.templates = templates
+
+    def embedded_structure(self, name):
+        data = self.structures[name]
+        return data["type"] != "minecraft:jigsaw" or embedded_pool(data["start_pool"])
+
+    def embedded(self):
+        structures = {n: d for n, d in self.structures.items() if self.embedded_structure(n)}
+        pools = {n: d for n, d in self.pools.items() if embedded_pool(n)}
+        names = set()
+        for pool in pools.values():
+            names |= pool_processors(pool)
+        lists = {n: d for n, d in self.processor_lists.items() if n in names}
+        templates = {n: d for n, d in self.templates.items() if n.startswith(EMBEDDED_GROUPS)}
+        structure_data = {"sets": self.sets, "structures": structures, "pools": pools, "processor_lists": lists}
+        return structure_data, templates
+
+    def pack_files(self):
+        files = {"pack.mcmeta": dump(PACK_MCMETA).encode()}
+        base = "data/minecraft/"
+        for name, data in self.raw_structures.items():
+            if not self.embedded_structure(name):
+                files[base + "worldgen/structure/" + name + ".json"] = dump(data).encode()
+        pools = {n: d for n, d in self.pools.items() if not embedded_pool(n)}
+        names = set()
+        for name, data in pools.items():
+            files[base + "worldgen/template_pool/" + strip(name) + ".json"] = dump(data).encode()
+            names |= pool_processors(data)
+        for name in sorted(names):
+            files[base + "worldgen/processor_list/" + strip(name) + ".json"] = dump(self.processor_lists[name]).encode()
+        for name in self.templates:
+            if not name.startswith(EMBEDDED_GROUPS):
+                with open(os.path.join(self.root, "structure", strip(name) + ".nbt"), "rb") as handle:
+                    files[base + "structure/" + strip(name) + ".nbt"] = handle.read()
+        return files
 
 
 def walk_aliases(node, out):
@@ -272,18 +329,23 @@ def main():
     parser.add_argument("--datapack", default=DEFAULT_DATAPACK)
     parser.add_argument("--structures", default=DEFAULT_STRUCTURES)
     parser.add_argument("--templates", default=DEFAULT_TEMPLATES)
+    parser.add_argument("--datapack-out")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    structure_data, templates = build(args.datapack)
-    outputs = [(args.structures, dump(structure_data)), (args.templates, dump(templates))]
-    for path, text in outputs:
+    collected = build(args.datapack)
+    structure_data, templates = collected.embedded()
+    outputs = {args.structures: dump(structure_data).encode(), args.templates: dump(templates).encode()}
+    if args.datapack_out:
+        for relative, data in collected.pack_files().items():
+            outputs[os.path.join(args.datapack_out, relative)] = data
+    for path, data in outputs.items():
         if args.check:
-            with open(path, encoding="utf-8") as handle:
-                if handle.read() != text:
-                    sys.exit("%s is stale" % path)
+            if not os.path.exists(path) or open(path, "rb").read() != data:
+                sys.exit("%s is stale" % path)
         else:
-            with open(path, "w", encoding="utf-8") as handle:
-                handle.write(text)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as handle:
+                handle.write(data)
 
 
 if __name__ == "__main__":

@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use super::data::{short, structure_data};
+use super::data::short;
 use super::jigsaw::{Heightmap, JigsawConfig};
+use super::library::Library;
 
 #[derive(Debug, Clone)]
 pub(crate) struct JigsawDef {
@@ -157,10 +158,10 @@ impl JigsawDef {
 }
 
 impl Structures {
-    pub(crate) fn load() -> Self {
+    pub(crate) fn load(library: &Library) -> Self {
         let mut defs = HashMap::new();
-        if let Some(Value::Object(map)) = structure_data().get("structures") {
-            for (name, value) in map {
+        {
+            for (name, value) in library.structures() {
                 let kind_name = short(value.get("type").and_then(Value::as_str).unwrap_or(""));
                 let kind = if kind_name == "jigsaw" {
                     Kind::Jigsaw(jigsaw(value))

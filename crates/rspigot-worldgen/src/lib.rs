@@ -25,6 +25,7 @@ use rspigot_nbt::Compound;
 
 pub use flat::{FlatGenerator, FlatLayer, FlatSettings, FlatSettingsError};
 pub use noise::{NoiseGenerator, NoiseOptions};
+pub use structures::{LoadIssue, install_datapacks};
 pub use void::VoidGenerator;
 
 #[derive(Debug, Clone)]

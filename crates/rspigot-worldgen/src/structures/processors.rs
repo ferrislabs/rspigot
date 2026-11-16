@@ -1,12 +1,9 @@
-use std::collections::HashMap;
-use std::sync::OnceLock;
-
 use rspigot_blocks::BlockKind;
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
 use super::bbox::Pos;
-use super::data::structure_data;
+use super::library::Library;
 use super::pool::Processors;
 use crate::datapack::block_state;
 use crate::legacy::JavaRandom;
@@ -247,20 +244,7 @@ pub(crate) fn parse_state(text: &str) -> Option<BlockStateId> {
     crate::datapack::state_named(name, &properties)
 }
 
-fn lists() -> &'static HashMap<String, Vec<Step>> {
-    static LISTS: OnceLock<HashMap<String, Vec<Step>>> = OnceLock::new();
-    LISTS.get_or_init(|| {
-        let mut out = HashMap::new();
-        if let Some(Value::Object(map)) = structure_data().get("processor_lists") {
-            for (name, value) in map {
-                out.insert(name.clone(), compile_list(value));
-            }
-        }
-        out
-    })
-}
-
-fn compile_list(value: &Value) -> Vec<Step> {
+pub(crate) fn compile_list(value: &Value) -> Vec<Step> {
     value
         .get("processors")
         .and_then(Value::as_array)
@@ -268,9 +252,12 @@ fn compile_list(value: &Value) -> Vec<Step> {
         .unwrap_or_default()
 }
 
-pub(crate) fn steps_for(processors: &Processors) -> Vec<Step> {
+pub(crate) fn steps_for(library: &Library, processors: &Processors) -> Vec<Step> {
     match processors {
-        Processors::Named(name) => lists().get(name).cloned().unwrap_or_default(),
+        Processors::Named(name) => library
+            .steps(name)
+            .map(<[Step]>::to_vec)
+            .unwrap_or_default(),
         Processors::Inline(value) => compile_list(value),
     }
 }

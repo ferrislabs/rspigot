@@ -68,6 +68,14 @@ pub(crate) fn block_entity(pos: (i32, i32, i32), nbt: &Value) -> Option<BlockEnt
     })
 }
 
+fn start_key(name: &str) -> String {
+    if name.contains(':') {
+        name.to_owned()
+    } else {
+        format!("minecraft:{name}")
+    }
+}
+
 fn rotation_name(rotation: Rotation) -> &'static str {
     match rotation {
         Rotation::None => "none",
@@ -175,7 +183,7 @@ fn start_tag(start: &Start) -> Compound {
         })
         .collect();
     Compound::new()
-        .with("id", format!("minecraft:{}", start.name))
+        .with("id", start_key(&start.name))
         .with("ChunkX", start.chunk.0)
         .with("ChunkZ", start.chunk.1)
         .with("references", 0)
@@ -188,11 +196,11 @@ pub(crate) fn structures_tag(
 ) -> Compound {
     let mut starts = Compound::new();
     for start in own {
-        starts.insert(format!("minecraft:{}", start.name), start_tag(start));
+        starts.insert(start_key(&start.name), start_tag(start));
     }
     let mut references: Vec<(String, Vec<i64>)> = Vec::new();
     for start in near {
-        let key = format!("minecraft:{}", start.name);
+        let key = start_key(&start.name);
         let packed = (i64::from(start.chunk.0) & 0xFFFF_FFFF)
             | ((i64::from(start.chunk.1) & 0xFFFF_FFFF) << 32);
         match references.iter_mut().find(|(name, _)| *name == key) {
