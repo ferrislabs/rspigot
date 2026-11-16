@@ -478,7 +478,7 @@ impl<L: ClientLink> Server<L> {
         });
         player.link.send(ClientEvent::OperatorLevel {
             entity,
-            level: if player.operator { 4 } else { 0 },
+            level: player.permission_level(),
         });
         let teleport = player.next_teleport_id();
         player.link.send(ClientEvent::Teleport {

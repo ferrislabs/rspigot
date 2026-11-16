@@ -106,7 +106,11 @@ impl<L: ClientLink> Server<L> {
             }
             PlayerInput::Abilities { flying } => self.toggle_flight(id, flying),
             PlayerInput::ChangeGameMode(mode) => {
-                if self.players.get(&id).is_some_and(|p| p.operator) {
+                if self
+                    .players
+                    .get(&id)
+                    .is_some_and(|p| p.permission_level() >= 2)
+                {
                     self.change_game_mode(id, mode, Vec::new());
                 }
             }
@@ -844,8 +848,8 @@ impl<L: ClientLink> Server<L> {
         let offset = (text.len() - input.len()) as i32;
         let (start, prefix, candidates): (i32, &str, Vec<String>) = match input.rsplit_once(' ') {
             None => {
-                let operator = self.players.get(&id).is_some_and(|p| p.operator);
-                let tree = self.command_tree(operator);
+                let level = self.players.get(&id).map_or(0, |p| p.permission_level());
+                let tree = self.command_tree(level);
                 let names = tree.nodes[tree.root]
                     .children
                     .iter()

@@ -955,7 +955,7 @@ impl<L: ClientLink> Server<L> {
         });
         link.send(ClientEvent::OperatorLevel {
             entity,
-            level: if player.operator { 4 } else { 0 },
+            level: player.permission_level(),
         });
         link.send(time);
         if raining {

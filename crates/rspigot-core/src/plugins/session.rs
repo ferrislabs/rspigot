@@ -441,7 +441,7 @@ impl<L: ClientLink> Server<L> {
         let offered = if self.listened(EventKind::PlayerCommandSend) {
             self.players
                 .get(&id)
-                .map(|player| root_names(&self.command_tree(player.operator)))
+                .map(|player| root_names(&self.command_tree(player.permission_level())))
                 .unwrap_or_default()
         } else {
             Vec::new()
@@ -464,7 +464,7 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get(&id) else {
             return;
         };
-        let tree = self.command_tree(player.operator);
+        let tree = self.command_tree(player.permission_level());
         let tree = if patch.commands.is_empty() {
             tree
         } else {
@@ -486,7 +486,7 @@ mod tests {
 
     #[test]
     fn a_pruned_tree_keeps_only_the_named_roots() {
-        let tree = build_tree(false);
+        let tree = build_tree(0);
         let names = root_names(&tree);
         assert!(names.contains(&"help".to_owned()));
         let kept = pruned(&tree, &["help".to_owned()]);

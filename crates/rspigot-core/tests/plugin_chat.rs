@@ -364,7 +364,7 @@ fn a_chat_and_a_command_settle_in_the_order_they_were_sent() {
     send_input(
         &mut s.server,
         &alice,
-        PlayerInput::Command("seed".to_owned()),
+        PlayerInput::Command("version".to_owned()),
     );
     let command = last_asked(&s.plugin, EventKind::PlayerCommandPreprocess);
     judge(&mut s.server, 1, command.id, 2, false, None);
@@ -374,5 +374,5 @@ fn a_chat_and_a_command_settle_in_the_order_they_were_sent() {
     let lines = chat_lines(&alice);
     assert_eq!(lines.len(), 2, "{lines:?}");
     assert_eq!(lines[0], "chat:first");
-    assert!(lines[1].starts_with("Seed"), "{lines:?}");
+    assert!(lines[1].starts_with("This server is running"), "{lines:?}");
 }

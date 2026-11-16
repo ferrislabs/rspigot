@@ -686,7 +686,7 @@ impl<L: ClientLink> Server<L> {
         for pos in events.unloaded {
             self.save_chunk_entities(pos, true);
         }
-        if events.autosaved {
+        if events.autosaved && self.saving_enabled {
             self.world_saving();
             let decisions = &self.decisions;
             self.world.chunks.save_dirty_except(&self.workers, |pos| {

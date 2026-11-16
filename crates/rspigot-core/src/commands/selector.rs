@@ -1,5 +1,7 @@
+use rspigot_domain::player::GameMode;
 use rspigot_domain::text::Component;
 use rspigot_entities::EntityKind;
+use rspigot_nbt::Compound;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,6 +26,15 @@ pub enum SelectorBase {
     Search,
 }
 
+pub type IntRange = (Option<i32>, Option<i32>);
+pub type Range = (Option<f64>, Option<f64>);
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum AdvancementWant {
+    Done(bool),
+    Criteria(Vec<(String, bool)>),
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Selector {
     pub base: SelectorBase,
@@ -41,6 +52,46 @@ pub struct Selector {
     pub dx: Option<f64>,
     pub dy: Option<f64>,
     pub dz: Option<f64>,
+    pub level: Option<IntRange>,
+    pub game_modes: Vec<(bool, GameMode)>,
+    pub x_rotation: Option<Range>,
+    pub y_rotation: Option<Range>,
+    pub teams: Vec<(bool, String)>,
+    pub scores: Vec<(String, IntRange)>,
+    pub advancements: Vec<(String, AdvancementWant)>,
+    pub predicates: Vec<(bool, String)>,
+    pub nbt: Vec<(bool, Compound)>,
+}
+
+pub fn wrap_degrees(value: f64) -> f64 {
+    let wrapped = value % 360.0;
+    let wrapped = if wrapped >= 180.0 {
+        wrapped - 360.0
+    } else {
+        wrapped
+    };
+    if wrapped < -180.0 {
+        wrapped + 360.0
+    } else {
+        wrapped
+    }
+}
+
+pub fn wrapped_range_matches(range: Range, value: f64) -> bool {
+    let value = wrap_degrees(value);
+    match range {
+        (None, None) => true,
+        (None, Some(max)) => value <= max,
+        (Some(min), None) => value >= min,
+        (Some(min), Some(max)) => {
+            let (min, max) = (wrap_degrees(min), wrap_degrees(max));
+            if min > max {
+                value >= min || value <= max
+            } else {
+                value >= min && value <= max
+            }
+        }
+    }
 }
 
 fn error(key: &str, args: Vec<Component>) -> Component {
@@ -114,7 +165,10 @@ fn parse_double(raw: &str) -> Result<f64, Component> {
         .map_err(|_| error("parsing.double.invalid", vec![Component::text(raw.trim())]))
 }
 
-fn parse_range(raw: &str) -> Result<(Option<f64>, Option<f64>), Component> {
+pub(crate) fn parse_range(
+    raw: &str,
+    ordered: bool,
+) -> Result<(Option<f64>, Option<f64>), Component> {
     let raw = raw.trim();
     let (min, max) = match raw.split_once("..") {
         Some((min, max)) => (min, max),
@@ -131,6 +185,34 @@ fn parse_range(raw: &str) -> Result<(Option<f64>, Option<f64>), Component> {
     if min.is_none() && max.is_none() {
         return Err(error("argument.range.empty", Vec::new()));
     }
+    if ordered
+        && let (Some(a), Some(b)) = (min, max)
+        && a > b
+    {
+        return Err(error("argument.range.swapped", Vec::new()));
+    }
+    Ok((min, max))
+}
+
+pub(crate) fn parse_int_range(raw: &str) -> Result<IntRange, Component> {
+    let raw = raw.trim();
+    let (min, max) = match raw.split_once("..") {
+        Some((min, max)) => (min, max),
+        None => (raw, raw),
+    };
+    let bound = |text: &str| -> Result<Option<i32>, Component> {
+        if text.is_empty() {
+            Ok(None)
+        } else {
+            text.parse::<i32>()
+                .map(Some)
+                .map_err(|_| error("parsing.int.invalid", vec![Component::text(text)]))
+        }
+    };
+    let (min, max) = (bound(min)?, bound(max)?);
+    if min.is_none() && max.is_none() {
+        return Err(error("argument.range.empty", Vec::new()));
+    }
     if let (Some(a), Some(b)) = (min, max)
         && a > b
     {
@@ -139,11 +221,76 @@ fn parse_range(raw: &str) -> Result<(Option<f64>, Option<f64>), Component> {
     Ok((min, max))
 }
 
+fn braced(value: &str) -> Result<&str, Component> {
+    value
+        .trim()
+        .strip_prefix('{')
+        .and_then(|inner| inner.strip_suffix('}'))
+        .ok_or_else(|| error("argument.entity.options.unterminated", Vec::new()))
+}
+
+fn parse_flag(raw: &str) -> Result<bool, Component> {
+    match raw.trim() {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        other => Err(error("parsing.bool.invalid", vec![Component::text(other)])),
+    }
+}
+
+fn pairs(body: &str) -> Result<Vec<(&str, &str)>, Component> {
+    if body.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    split_options(body)
+        .into_iter()
+        .map(|entry| {
+            entry
+                .split_once('=')
+                .map(|(key, value)| (key.trim(), value.trim()))
+                .ok_or_else(|| error("argument.entity.options.unterminated", Vec::new()))
+        })
+        .collect()
+}
+
+fn parse_scores(value: &str) -> Result<Vec<(String, IntRange)>, Component> {
+    pairs(braced(value)?)?
+        .into_iter()
+        .map(|(name, range)| Ok((name.to_owned(), parse_int_range(range)?)))
+        .collect()
+}
+
+fn namespaced(id: &str) -> String {
+    if id.contains(':') {
+        id.to_owned()
+    } else {
+        format!("minecraft:{id}")
+    }
+}
+
+fn parse_advancements(value: &str) -> Result<Vec<(String, AdvancementWant)>, Component> {
+    pairs(braced(value)?)?
+        .into_iter()
+        .map(|(id, want)| {
+            let want = if want.starts_with('{') {
+                let criteria = pairs(braced(want)?)?
+                    .into_iter()
+                    .map(|(name, flag)| Ok((name.to_owned(), parse_flag(flag)?)))
+                    .collect::<Result<Vec<_>, Component>>()?;
+                AdvancementWant::Criteria(criteria)
+            } else {
+                AdvancementWant::Done(parse_flag(want)?)
+            };
+            Ok((namespaced(id), want))
+        })
+        .collect()
+}
+
 fn split_options(body: &str) -> Vec<&str> {
     let mut parts = Vec::new();
     let mut quote: Option<char> = None;
     let mut start = 0;
     let mut escaped = false;
+    let mut depth = 0i32;
     for (index, c) in body.char_indices() {
         if let Some(q) = quote {
             if escaped {
@@ -157,7 +304,9 @@ fn split_options(body: &str) -> Vec<&str> {
         }
         match c {
             '"' | '\'' => quote = Some(c),
-            ',' => {
+            '{' | '[' => depth += 1,
+            '}' | ']' => depth -= 1,
+            ',' if depth <= 0 => {
                 parts.push(&body[start..index]);
                 start = index + 1;
             }
@@ -185,6 +334,15 @@ pub fn parse(input: &str) -> Result<Selector, Component> {
         dx: None,
         dy: None,
         dz: None,
+        level: None,
+        game_modes: Vec::new(),
+        x_rotation: None,
+        y_rotation: None,
+        teams: Vec::new(),
+        scores: Vec::new(),
+        advancements: Vec::new(),
+        predicates: Vec::new(),
+        nbt: Vec::new(),
     };
     let Some(rest) = input.strip_prefix('@') else {
         if let Some(uuid) = parse_uuid(input) {
@@ -304,7 +462,7 @@ pub fn parse(input: &str) -> Result<Selector, Component> {
                 if selector.distance.is_some() {
                     return Err(inapplicable());
                 }
-                let range = parse_range(value)?;
+                let range = parse_range(value, true)?;
                 if range.0.is_some_and(|v| v < 0.0) || range.1.is_some_and(|v| v < 0.0) {
                     return Err(error(
                         "argument.entity.options.distance.negative",
@@ -349,6 +507,72 @@ pub fn parse(input: &str) -> Result<Selector, Component> {
                 selector.names.push((negated, unquote(plain)));
             }
             "tag" => selector.tags.push((negated, unquote(plain))),
+            "level" => {
+                if selector.level.is_some() {
+                    return Err(inapplicable());
+                }
+                let range = parse_int_range(value)?;
+                if range.0.is_some_and(|v| v < 0) || range.1.is_some_and(|v| v < 0) {
+                    return Err(error("argument.entity.options.level.negative", Vec::new()));
+                }
+                selector.level = Some(range);
+                selector.includes_entities = false;
+            }
+            "gamemode" => {
+                if !negated && selector.game_modes.iter().any(|(n, _)| !n) {
+                    return Err(inapplicable());
+                }
+                let Some(mode) = GameMode::from_name(plain).filter(|_| !plain.is_empty()) else {
+                    return Err(error(
+                        "argument.entity.options.mode.invalid",
+                        vec![Component::text(plain)],
+                    ));
+                };
+                selector.includes_entities = false;
+                selector.game_modes.push((negated, mode));
+            }
+            "x_rotation" | "y_rotation" => {
+                let slot = if name == "x_rotation" {
+                    &mut selector.x_rotation
+                } else {
+                    &mut selector.y_rotation
+                };
+                if slot.is_some() {
+                    return Err(inapplicable());
+                }
+                *slot = Some(parse_range(value, false)?);
+            }
+            "team" => {
+                if !negated && selector.teams.iter().any(|(n, _)| !n) {
+                    return Err(inapplicable());
+                }
+                selector.teams.push((negated, plain.to_owned()));
+            }
+            "scores" => {
+                if !selector.scores.is_empty() {
+                    return Err(inapplicable());
+                }
+                selector.scores = parse_scores(value)?;
+            }
+            "advancements" => {
+                if !selector.advancements.is_empty() {
+                    return Err(inapplicable());
+                }
+                selector.advancements = parse_advancements(value)?;
+                selector.includes_entities = false;
+            }
+            "predicate" => selector.predicates.push((negated, namespaced(plain))),
+            "nbt" => {
+                if !negated && selector.nbt.iter().any(|(n, _)| !n) {
+                    return Err(inapplicable());
+                }
+                let (compound, used) =
+                    rspigot_nbt::parse_compound(plain).map_err(|e| error(e.key, Vec::new()))?;
+                if used != plain.len() {
+                    return Err(error("argument.nbt.trailing", Vec::new()));
+                }
+                selector.nbt.push((negated, compound));
+            }
             "x" => selector.x = Some(parse_double(value)?),
             "y" => selector.y = Some(parse_double(value)?),
             "z" => selector.z = Some(parse_double(value)?),
@@ -410,8 +634,51 @@ mod tests {
         assert!(parse("@e[limit=0]").is_err());
         assert!(parse("@e[distance=-1]").is_err());
         assert!(parse("@e[type=cow,type=pig]").is_err());
-        assert!(parse("@e[gamemode=survival]").is_err());
+        assert!(parse("@e[gamemode=nonsense]").is_err());
         assert!(parse("@e[type=cow").is_err());
+    }
+
+    #[test]
+    fn the_remaining_filters_parse() {
+        let s = parse(
+            "@a[level=3..,gamemode=!creative,x_rotation=-10..10,team=!red,scores={a=1..,b=..3},advancements={minecraft:story/root=true,minecraft:x={c=false}},predicate=!foo,nbt={A:1b,B:{C:2}}]",
+        )
+        .unwrap();
+        assert_eq!(s.level, Some((Some(3), None)));
+        assert_eq!(s.game_modes, vec![(true, GameMode::Creative)]);
+        assert_eq!(s.x_rotation, Some((Some(-10.0), Some(10.0))));
+        assert_eq!(s.teams, vec![(true, "red".into())]);
+        assert_eq!(
+            s.scores,
+            vec![("a".into(), (Some(1), None)), ("b".into(), (None, Some(3)))]
+        );
+        assert_eq!(
+            s.advancements,
+            vec![
+                ("minecraft:story/root".into(), AdvancementWant::Done(true)),
+                (
+                    "minecraft:x".into(),
+                    AdvancementWant::Criteria(vec![("c".into(), false)])
+                )
+            ]
+        );
+        assert_eq!(s.predicates, vec![(true, "minecraft:foo".into())]);
+        assert_eq!(s.nbt.len(), 1);
+        assert!(s.players_only());
+        assert!(parse("@a[level=-1]").is_err());
+        assert!(parse("@a[level=1,level=2]").is_err());
+        assert!(parse("@a[scores={a=x}]").is_err());
+        assert!(parse("@a[advancements={a=maybe}]").is_err());
+        assert!(parse("@a[nbt={A:}]").is_err());
+        assert!(parse("@a[gamemode=creative,gamemode=survival]").is_err());
+    }
+
+    #[test]
+    fn wrapped_ranges_cross_the_seam() {
+        assert!(wrapped_range_matches((Some(170.0), Some(-170.0)), 180.0));
+        assert!(!wrapped_range_matches((Some(170.0), Some(-170.0)), 0.0));
+        assert!(wrapped_range_matches((Some(-10.0), None), 450.0));
+        assert!(wrapped_range_matches((None, Some(20.0)), -340.0));
     }
 
     #[test]

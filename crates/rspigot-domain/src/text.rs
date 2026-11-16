@@ -233,6 +233,11 @@ impl Component {
         self
     }
 
+    pub fn underlined(mut self, value: bool) -> Self {
+        self.style.underlined = Some(value);
+        self
+    }
+
     pub fn append(mut self, child: Component) -> Self {
         self.extra.push(child);
         self
