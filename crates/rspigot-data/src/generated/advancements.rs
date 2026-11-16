@@ -19,227 +19,507 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "minecraft:badlands",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:badlands\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:bamboo_jungle",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:bamboo_jungle\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:beach",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:beach\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:birch_forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:birch_forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:cherry_grove",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:cherry_grove\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:cold_ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:cold_ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:dappled_forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:dappled_forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:dark_forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:dark_forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:deep_cold_ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:deep_cold_ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:deep_dark",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:deep_dark\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:deep_frozen_ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:deep_frozen_ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:deep_lukewarm_ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:deep_lukewarm_ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:deep_ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:deep_ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:desert",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:desert\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:dripstone_caves",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:dripstone_caves\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:eroded_badlands",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:eroded_badlands\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:flower_forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:flower_forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:frozen_ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:frozen_ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:frozen_peaks",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:frozen_peaks\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:frozen_river",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:frozen_river\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:grove",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:grove\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:ice_spikes",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:ice_spikes\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:jagged_peaks",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:jagged_peaks\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:jungle",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:jungle\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:lukewarm_ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:lukewarm_ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:lush_caves",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:lush_caves\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:mangrove_swamp",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:mangrove_swamp\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:meadow",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:meadow\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:mushroom_fields",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:mushroom_fields\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:old_growth_birch_forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:old_growth_birch_forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:old_growth_pine_taiga",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:old_growth_pine_taiga\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:old_growth_spruce_taiga",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:old_growth_spruce_taiga\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:pale_garden",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:pale_garden\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:plains",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:plains\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:river",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:river\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:savanna",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:savanna\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:savanna_plateau",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:savanna_plateau\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:snowy_beach",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:snowy_beach\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:snowy_plains",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:snowy_plains\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:snowy_slopes",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:snowy_slopes\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:snowy_taiga",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:snowy_taiga\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:sparse_jungle",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:sparse_jungle\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:stony_peaks",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:stony_peaks\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:stony_shore",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:stony_shore\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:sulfur_caves",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:sulfur_caves\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:sunflower_plains",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:sunflower_plains\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:swamp",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:swamp\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:taiga",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:taiga\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:warm_ocean",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:warm_ocean\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:windswept_forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:windswept_forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:windswept_gravelly_hills",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:windswept_gravelly_hills\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:windswept_hills",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:windswept_hills\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:windswept_savanna",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:windswept_savanna\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:wooded_badlands",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:wooded_badlands\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[
@@ -323,7 +603,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "arbalistic",
-            trigger: Trigger::Other("minecraft:killed_by_arrow"),
+            trigger: Trigger::Event {
+                name: "minecraft:killed_by_arrow",
+                conditions: Some(
+                    "{\"fired_from_weapon\":{\"items\":\"minecraft:crossbow\"},\"unique_entity_types\":5}",
+                ),
+            },
         }],
         requirements: &[&["arbalistic"]],
         rewards: Rewards {
@@ -349,7 +634,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "avoid_vibration",
-            trigger: Trigger::Other("minecraft:avoid_vibration"),
+            trigger: Trigger::Event {
+                name: "minecraft:avoid_vibration",
+                conditions: None,
+            },
         }],
         requirements: &[&["avoid_vibration"]],
         rewards: Rewards {
@@ -375,7 +663,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "blowback",
-            trigger: Trigger::Other("minecraft:player_killed_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_killed_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:breeze\"},\"type\":\"minecraft:entity_properties\"},\"killing_blow\":{\"direct_entity\":{\"minecraft:entity_type\":\"minecraft:breeze_wind_charge\"},\"tags\":[{\"expected\":true,\"id\":\"#minecraft:is_projectile\"}]}}",
+                ),
+            },
         }],
         requirements: &[&["blowback"]],
         rewards: Rewards {
@@ -401,7 +694,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "brush_armadillo",
-            trigger: Trigger::Other("minecraft:player_interacted_with_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_interacted_with_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:armadillo\"},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"minecraft:brush\"}}",
+                ),
+            },
         }],
         requirements: &[&["brush_armadillo"]],
         rewards: Rewards {
@@ -427,7 +725,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "bullseye",
-            trigger: Trigger::Other("minecraft:target_hit"),
+            trigger: Trigger::Event {
+                name: "minecraft:target_hit",
+                conditions: Some(
+                    "{\"projectile\":{\"entity\":\"this\",\"predicate\":{\"minecraft:distance\":{\"horizontal\":{\"min\":30.0}}},\"type\":\"minecraft:entity_properties\"},\"signal_strength\":15}",
+                ),
+            },
         }],
         requirements: &[&["bullseye"]],
         rewards: Rewards {
@@ -453,7 +756,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "pot_crafted_using_only_sherds",
-            trigger: Trigger::Other("minecraft:recipe_crafted"),
+            trigger: Trigger::Event {
+                name: "minecraft:recipe_crafted",
+                conditions: Some(
+                    "{\"ingredients\":[{\"items\":\"#minecraft:decorated_pot_sherds\"},{\"items\":\"#minecraft:decorated_pot_sherds\"},{\"items\":\"#minecraft:decorated_pot_sherds\"},{\"items\":\"#minecraft:decorated_pot_sherds\"}],\"recipes\":\"minecraft:decorated_pot\"}",
+                ),
+            },
         }],
         requirements: &[&["pot_crafted_using_only_sherds"]],
         rewards: Rewards {
@@ -479,7 +787,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "crafter_crafted_crafter",
-            trigger: Trigger::Other("minecraft:crafter_recipe_crafted"),
+            trigger: Trigger::Event {
+                name: "minecraft:crafter_recipe_crafted",
+                conditions: Some("{\"recipes\":\"minecraft:crafter\"}"),
+            },
         }],
         requirements: &[&["crafter_crafted_crafter"]],
         rewards: Rewards {
@@ -505,7 +816,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "fall_from_world_height",
-            trigger: Trigger::Other("minecraft:fall_from_height"),
+            trigger: Trigger::Event {
+                name: "minecraft:fall_from_height",
+                conditions: Some(
+                    "{\"distance\":{\"y\":{\"min\":379.0}},\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"position\":{\"y\":{\"max\":-59.0}}}},\"type\":\"minecraft:entity_properties\"},\"start_position\":{\"position\":{\"y\":{\"min\":319.0}}}}",
+                ),
+            },
         }],
         requirements: &[&["fall_from_world_height"]],
         rewards: Rewards {
@@ -532,15 +848,30 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "place_creaking_heart_awake",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:creaking_heart\",\"state\":{\"creaking_heart_state\":\"awake\"},\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "place_creaking_heart_dormant",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:creaking_heart\",\"state\":{\"creaking_heart_state\":\"dormant\"},\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "place_pale_oak_log",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"terms\":[{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"y\"}}},\"type\":\"minecraft:location_check\"},{\"offsetY\":-1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:creaking_heart\",\"state\":{\"axis\":\"y\"}}},\"type\":\"minecraft:location_check\"},{\"offsetY\":-2,\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"y\"}}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"},{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"y\"}}},\"type\":\"minecraft:location_check\"},{\"offsetY\":1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:creaking_heart\",\"state\":{\"axis\":\"y\"}}},\"type\":\"minecraft:location_check\"},{\"offsetY\":2,\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"y\"}}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"},{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"z\"}}},\"type\":\"minecraft:location_check\"},{\"offsetZ\":-1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:creaking_heart\",\"state\":{\"axis\":\"z\"}}},\"type\":\"minecraft:location_check\"},{\"offsetZ\":-2,\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"z\"}}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"},{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"z\"}}},\"type\":\"minecraft:location_check\"},{\"offsetZ\":1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:creaking_heart\",\"state\":{\"axis\":\"z\"}}},\"type\":\"minecraft:location_check\"},{\"offsetZ\":2,\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"z\"}}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"},{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"x\"}}},\"type\":\"minecraft:location_check\"},{\"offsetX\":-1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:creaking_heart\",\"state\":{\"axis\":\"x\"}}},\"type\":\"minecraft:location_check\"},{\"offsetX\":-2,\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"x\"}}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"},{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"x\"}}},\"type\":\"minecraft:location_check\"},{\"offsetX\":1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:creaking_heart\",\"state\":{\"axis\":\"x\"}}},\"type\":\"minecraft:location_check\"},{\"offsetX\":2,\"predicate\":{\"block\":{\"blocks\":\"#minecraft:pale_oak_logs\",\"state\":{\"axis\":\"x\"}}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"}],\"type\":\"minecraft:any_of\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[&[
@@ -571,7 +902,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "hero_of_the_village",
-            trigger: Trigger::Other("minecraft:hero_of_the_village"),
+            trigger: Trigger::Event {
+                name: "minecraft:hero_of_the_village",
+                conditions: None,
+            },
         }],
         requirements: &[&["hero_of_the_village"]],
         rewards: Rewards {
@@ -597,7 +931,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "honey_block_slide",
-            trigger: Trigger::Other("minecraft:slide_down_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:slide_down_block",
+                conditions: Some("{\"blocks\":\"minecraft:honey_block\"}"),
+            },
         }],
         requirements: &[&["honey_block_slide"]],
         rewards: Rewards {
@@ -1083,7 +1420,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "kill_mob_near_sculk_catalyst",
-            trigger: Trigger::Other("minecraft:kill_mob_near_sculk_catalyst"),
+            trigger: Trigger::Event {
+                name: "minecraft:kill_mob_near_sculk_catalyst",
+                conditions: None,
+            },
         }],
         requirements: &[&["kill_mob_near_sculk_catalyst"]],
         rewards: Rewards {
@@ -1109,7 +1449,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "lighten_up",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":[\"minecraft:exposed_copper_bulb\",\"minecraft:weathered_copper_bulb\",\"minecraft:oxidized_copper_bulb\",\"minecraft:waxed_exposed_copper_bulb\",\"minecraft:waxed_weathered_copper_bulb\",\"minecraft:waxed_oxidized_copper_bulb\"],\"state\":{\"lit\":\"true\"}}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":[\"minecraft:wooden_axe\",\"minecraft:golden_axe\",\"minecraft:stone_axe\",\"minecraft:copper_axe\",\"minecraft:iron_axe\",\"minecraft:diamond_axe\",\"minecraft:netherite_axe\"]},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["lighten_up"]],
         rewards: Rewards {
@@ -1135,7 +1480,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "lightning_rod_with_villager_no_fire",
-            trigger: Trigger::Other("minecraft:lightning_strike"),
+            trigger: Trigger::Event {
+                name: "minecraft:lightning_strike",
+                conditions: Some(
+                    "{\"bystander\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:villager\"},\"type\":\"minecraft:entity_properties\"},\"lightning\":{\"entity\":\"this\",\"predicate\":{\"minecraft:distance\":{\"absolute\":{\"max\":30.0}},\"minecraft:type_specific/lightning\":{\"blocks_set_on_fire\":0}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["lightning_rod_with_villager_no_fire"]],
         rewards: Rewards {
@@ -1161,7 +1511,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "minecraft_trials_edition",
-            trigger: Trigger::Other("minecraft:location"),
+            trigger: Trigger::Event {
+                name: "minecraft:location",
+                conditions: Some(
+                    "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"structures\":\"minecraft:trial_chambers\"}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["minecraft_trials_edition"]],
         rewards: Rewards {
@@ -1187,7 +1542,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "shot_crossbow",
-            trigger: Trigger::Other("minecraft:shot_crossbow"),
+            trigger: Trigger::Event {
+                name: "minecraft:shot_crossbow",
+                conditions: Some("{\"item\":{\"items\":\"minecraft:crossbow\"}}"),
+            },
         }],
         requirements: &[&["shot_crossbow"]],
         rewards: Rewards {
@@ -1213,7 +1571,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "overoverkill",
-            trigger: Trigger::Other("minecraft:player_hurt_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_hurt_entity",
+                conditions: Some(
+                    "{\"damage\":{\"dealt\":{\"min\":100.0},\"type\":{\"direct_entity\":{\"minecraft:entity_type\":\"minecraft:player\",\"minecraft:equipment\":{\"mainhand\":{\"items\":\"minecraft:mace\"}}},\"tags\":[{\"expected\":true,\"id\":\"#minecraft:mace_smash\"}]}}}",
+                ),
+            },
         }],
         requirements: &[&["overoverkill"]],
         rewards: Rewards {
@@ -1239,7 +1602,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "play_jukebox_in_meadows",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"biomes\":\"minecraft:meadow\",\"block\":{\"blocks\":\"minecraft:jukebox\"}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"predicates\":{\"minecraft:jukebox_playable\":{}}},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["play_jukebox_in_meadows"]],
         rewards: Rewards {
@@ -1266,11 +1634,21 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "chiseled_bookshelf",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"terms\":[{\"blocks\":\"minecraft:chiseled_bookshelf\",\"type\":\"minecraft:match_block\"},{\"terms\":[{\"offsetZ\":1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:comparator\",\"state\":{\"facing\":\"north\"}}},\"type\":\"minecraft:location_check\"},{\"offsetZ\":-1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:comparator\",\"state\":{\"facing\":\"south\"}}},\"type\":\"minecraft:location_check\"},{\"offsetX\":1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:comparator\",\"state\":{\"facing\":\"west\"}}},\"type\":\"minecraft:location_check\"},{\"offsetX\":-1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:comparator\",\"state\":{\"facing\":\"east\"}}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:any_of\"}],\"type\":\"minecraft:all_of\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "comparator",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"terms\":[{\"terms\":[{\"blocks\":\"minecraft:comparator\",\"state\":{\"facing\":\"north\"},\"type\":\"minecraft:match_block\"},{\"offsetZ\":-1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:chiseled_bookshelf\"}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"},{\"terms\":[{\"blocks\":\"minecraft:comparator\",\"state\":{\"facing\":\"south\"},\"type\":\"minecraft:match_block\"},{\"offsetZ\":1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:chiseled_bookshelf\"}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"},{\"terms\":[{\"blocks\":\"minecraft:comparator\",\"state\":{\"facing\":\"west\"},\"type\":\"minecraft:match_block\"},{\"offsetX\":-1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:chiseled_bookshelf\"}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"},{\"terms\":[{\"blocks\":\"minecraft:comparator\",\"state\":{\"facing\":\"east\"},\"type\":\"minecraft:match_block\"},{\"offsetX\":1,\"predicate\":{\"block\":{\"blocks\":\"minecraft:chiseled_bookshelf\"}},\"type\":\"minecraft:location_check\"}],\"type\":\"minecraft:all_of\"}],\"type\":\"minecraft:any_of\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[&["chiseled_bookshelf", "comparator"]],
@@ -1297,7 +1675,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "revaulting",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"minecraft:vault\",\"state\":{\"ominous\":\"true\"}}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":\"minecraft:ominous_trial_key\"},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["revaulting"]],
         rewards: Rewards {
@@ -1356,11 +1739,17 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "desert_pyramid",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some("{\"loot_tables\":\"minecraft:archaeology/desert_pyramid\"}"),
+                },
             },
             Criterion {
                 name: "desert_well",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some("{\"loot_tables\":\"minecraft:archaeology/desert_well\"}"),
+                },
             },
             Criterion {
                 name: "has_sherd",
@@ -1371,19 +1760,35 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "ocean_ruin_cold",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some("{\"loot_tables\":\"minecraft:archaeology/ocean_ruin_cold\"}"),
+                },
             },
             Criterion {
                 name: "ocean_ruin_warm",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some("{\"loot_tables\":\"minecraft:archaeology/ocean_ruin_warm\"}"),
+                },
             },
             Criterion {
                 name: "trail_ruins_common",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some(
+                        "{\"loot_tables\":\"minecraft:archaeology/trail_ruins_common\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "trail_ruins_rare",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some(
+                        "{\"loot_tables\":\"minecraft:archaeology/trail_ruins_rare\"}",
+                    ),
+                },
             },
         ],
         requirements: &[
@@ -1420,7 +1825,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "shot_arrow",
-            trigger: Trigger::Other("minecraft:player_hurt_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_hurt_entity",
+                conditions: Some(
+                    "{\"damage\":{\"type\":{\"direct_entity\":{\"minecraft:entity_type\":\"#minecraft:arrows\"},\"tags\":[{\"expected\":true,\"id\":\"#minecraft:is_projectile\"}]}}}",
+                ),
+            },
         }],
         requirements: &[&["shot_arrow"]],
         rewards: Rewards {
@@ -1472,7 +1882,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "killed_skeleton",
-            trigger: Trigger::Other("minecraft:player_killed_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_killed_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:distance\":{\"horizontal\":{\"min\":50.0}},\"minecraft:entity_type\":\"minecraft:skeleton\"},\"type\":\"minecraft:entity_properties\"},\"killing_blow\":{\"tags\":[{\"expected\":true,\"id\":\"#minecraft:is_projectile\"}]}}",
+                ),
+            },
         }],
         requirements: &[&["killed_skeleton"]],
         rewards: Rewards {
@@ -1498,7 +1913,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "spear_many_mobs",
-            trigger: Trigger::Other("minecraft:spear_mobs"),
+            trigger: Trigger::Event {
+                name: "minecraft:spear_mobs",
+                conditions: Some("{\"count\":5}"),
+            },
         }],
         requirements: &[&["spear_many_mobs"]],
         rewards: Rewards {
@@ -1524,7 +1942,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "spyglass_at_dragon",
-            trigger: Trigger::Other("minecraft:using_item"),
+            trigger: Trigger::Event {
+                name: "minecraft:using_item",
+                conditions: Some(
+                    "{\"item\":{\"items\":\"minecraft:spyglass\"},\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:type_specific/player\":{\"looking_at\":{\"minecraft:entity_type\":\"minecraft:ender_dragon\"}}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["spyglass_at_dragon"]],
         rewards: Rewards {
@@ -1550,7 +1973,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "spyglass_at_ghast",
-            trigger: Trigger::Other("minecraft:using_item"),
+            trigger: Trigger::Event {
+                name: "minecraft:using_item",
+                conditions: Some(
+                    "{\"item\":{\"items\":\"minecraft:spyglass\"},\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:type_specific/player\":{\"looking_at\":{\"minecraft:entity_type\":\"minecraft:ghast\"}}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["spyglass_at_ghast"]],
         rewards: Rewards {
@@ -1576,7 +2004,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "spyglass_at_parrot",
-            trigger: Trigger::Other("minecraft:using_item"),
+            trigger: Trigger::Event {
+                name: "minecraft:using_item",
+                conditions: Some(
+                    "{\"item\":{\"items\":\"minecraft:spyglass\"},\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:type_specific/player\":{\"looking_at\":{\"minecraft:entity_type\":\"minecraft:parrot\"}}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["spyglass_at_parrot"]],
         rewards: Rewards {
@@ -1602,7 +2035,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "summoned_golem",
-            trigger: Trigger::Other("minecraft:summoned_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:summoned_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:iron_golem\"},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["summoned_golem"]],
         rewards: Rewards {
@@ -1628,7 +2066,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "shot_trident",
-            trigger: Trigger::Other("minecraft:player_hurt_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_hurt_entity",
+                conditions: Some(
+                    "{\"damage\":{\"type\":{\"direct_entity\":{\"minecraft:entity_type\":\"minecraft:trident\"},\"tags\":[{\"expected\":true,\"id\":\"#minecraft:is_projectile\"}]}}}",
+                ),
+            },
         }],
         requirements: &[&["shot_trident"]],
         rewards: Rewards {
@@ -1654,7 +2097,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "used_totem",
-            trigger: Trigger::Other("minecraft:used_totem"),
+            trigger: Trigger::Event {
+                name: "minecraft:used_totem",
+                conditions: Some("{\"item\":{\"items\":\"minecraft:totem_of_undying\"}}"),
+            },
         }],
         requirements: &[&["used_totem"]],
         rewards: Rewards {
@@ -1680,7 +2126,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "traded",
-            trigger: Trigger::Other("minecraft:villager_trade"),
+            trigger: Trigger::Event {
+                name: "minecraft:villager_trade",
+                conditions: None,
+            },
         }],
         requirements: &[&["traded"]],
         rewards: Rewards {
@@ -1706,7 +2155,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "trade_at_world_height",
-            trigger: Trigger::Other("minecraft:villager_trade"),
+            trigger: Trigger::Event {
+                name: "minecraft:villager_trade",
+                conditions: Some(
+                    "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"position\":{\"y\":{\"min\":319.0}}}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["trade_at_world_height"]],
         rewards: Rewards {
@@ -1733,35 +2187,75 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "armor_trimmed_minecraft:rib_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:rib_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:silence_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:silence_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:snout_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:snout_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:spire_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:spire_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:tide_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:tide_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:vex_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:vex_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:ward_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:ward_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:wayfinder_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:wayfinder_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
         ],
         requirements: &[
@@ -1798,75 +2292,165 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "armor_trimmed_minecraft:bolt_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:bolt_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:coast_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:coast_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:dune_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:dune_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:eye_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:eye_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:flow_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:flow_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:host_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:host_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:raiser_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:raiser_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:rib_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:rib_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:sentry_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:sentry_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:shaper_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:shaper_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:silence_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:silence_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:snout_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:snout_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:spire_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:spire_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:tide_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:tide_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:vex_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:vex_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:ward_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:ward_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:wayfinder_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:wayfinder_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "armor_trimmed_minecraft:wild_armor_trim_smithing_template_smithing_trim",
-                trigger: Trigger::Other("minecraft:recipe_crafted"),
+                trigger: Trigger::Event {
+                    name: "minecraft:recipe_crafted",
+                    conditions: Some(
+                        "{\"recipes\":\"minecraft:wild_armor_trim_smithing_template_smithing_trim\"}",
+                    ),
+                },
             },
         ],
         requirements: &[&[
@@ -1912,7 +2496,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "two_birds",
-            trigger: Trigger::Other("minecraft:killed_by_arrow"),
+            trigger: Trigger::Event {
+                name: "minecraft:killed_by_arrow",
+                conditions: Some(
+                    "{\"fired_from_weapon\":{\"items\":\"minecraft:crossbow\"},\"victims\":[{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:phantom\"},\"type\":\"minecraft:entity_properties\"},{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:phantom\"},\"type\":\"minecraft:entity_properties\"}]}",
+                ),
+            },
         }],
         requirements: &[&["two_birds"]],
         rewards: Rewards {
@@ -1938,7 +2527,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "under_lock_and_key",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"minecraft:vault\",\"state\":{\"ominous\":\"false\"}}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":\"minecraft:trial_key\"},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["under_lock_and_key"]],
         rewards: Rewards {
@@ -1964,7 +2558,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "use_lodestone",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"minecraft:lodestone\"}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":\"minecraft:compass\"},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["use_lodestone"]],
         rewards: Rewards {
@@ -1990,7 +2589,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "struck_villager",
-            trigger: Trigger::Other("minecraft:channeled_lightning"),
+            trigger: Trigger::Event {
+                name: "minecraft:channeled_lightning",
+                conditions: Some(
+                    "{\"victims\":[{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:villager\"},\"type\":\"minecraft:entity_properties\"}]}",
+                ),
+            },
         }],
         requirements: &[&["struck_villager"]],
         rewards: Rewards {
@@ -2016,7 +2620,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "voluntary_exile",
-            trigger: Trigger::Other("minecraft:player_killed_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_killed_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"#minecraft:raiders\",\"minecraft:equipment\":{\"head\":{\"components\":{\"minecraft:banner_patterns\":[{\"color\":\"cyan\",\"pattern\":\"minecraft:rhombus\"},{\"color\":\"light_gray\",\"pattern\":\"minecraft:stripe_bottom\"},{\"color\":\"gray\",\"pattern\":\"minecraft:stripe_center\"},{\"color\":\"light_gray\",\"pattern\":\"minecraft:border\"},{\"color\":\"black\",\"pattern\":\"minecraft:stripe_middle\"},{\"color\":\"light_gray\",\"pattern\":\"minecraft:half_horizontal\"},{\"color\":\"light_gray\",\"pattern\":\"minecraft:circle\"},{\"color\":\"black\",\"pattern\":\"minecraft:border\"}],\"minecraft:item_name\":{\"translate\":\"block.minecraft.ominous_banner\"}},\"items\":\"minecraft:white_banner\"}}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["voluntary_exile"]],
         rewards: Rewards {
@@ -2042,7 +2651,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "walk_on_powder_snow_with_leather_boots",
-            trigger: Trigger::Other("minecraft:location"),
+            trigger: Trigger::Event {
+                name: "minecraft:location",
+                conditions: Some(
+                    "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"feet\":{\"items\":\"minecraft:leather_boots\"}},\"minecraft:stepping_on\":{\"block\":{\"blocks\":\"minecraft:powder_snow\"}}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["walk_on_powder_snow_with_leather_boots"]],
         rewards: Rewards {
@@ -2068,7 +2682,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "who_needs_rockets",
-            trigger: Trigger::Other("minecraft:fall_after_explosion"),
+            trigger: Trigger::Event {
+                name: "minecraft:fall_after_explosion",
+                conditions: Some(
+                    "{\"cause\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:wind_charge\"},\"type\":\"minecraft:entity_properties\"},\"distance\":{\"y\":{\"min\":7.0}}}",
+                ),
+            },
         }],
         requirements: &[&["who_needs_rockets"]],
         rewards: Rewards {
@@ -2094,7 +2713,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "kill_pillager",
-            trigger: Trigger::Other("minecraft:killed_by_arrow"),
+            trigger: Trigger::Event {
+                name: "minecraft:killed_by_arrow",
+                conditions: Some(
+                    "{\"fired_from_weapon\":{\"items\":\"minecraft:crossbow\"},\"victims\":[{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:pillager\"},\"type\":\"minecraft:entity_properties\"}]}",
+                ),
+            },
         }],
         requirements: &[&["kill_pillager"]],
         rewards: Rewards {
@@ -2207,7 +2831,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "entered_end_gateway",
-            trigger: Trigger::Other("minecraft:enter_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:enter_block",
+                conditions: Some("{\"blocks\":\"minecraft:end_gateway\"}"),
+            },
         }],
         requirements: &[&["entered_end_gateway"]],
         rewards: Rewards {
@@ -2233,7 +2860,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "in_city",
-            trigger: Trigger::Other("minecraft:location"),
+            trigger: Trigger::Event {
+                name: "minecraft:location",
+                conditions: Some(
+                    "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"structures\":\"minecraft:end_city\"}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["in_city"]],
         rewards: Rewards {
@@ -2285,7 +2917,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "levitated",
-            trigger: Trigger::Other("minecraft:levitation"),
+            trigger: Trigger::Event {
+                name: "minecraft:levitation",
+                conditions: Some("{\"distance\":{\"y\":{\"min\":50.0}}}"),
+            },
         }],
         requirements: &[&["levitated"]],
         rewards: Rewards {
@@ -2311,7 +2946,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "summoned_dragon",
-            trigger: Trigger::Other("minecraft:summoned_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:summoned_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:ender_dragon\"},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["summoned_dragon"]],
         rewards: Rewards {
@@ -2337,7 +2977,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "entered_end",
-            trigger: Trigger::Other("minecraft:changed_dimension"),
+            trigger: Trigger::Event {
+                name: "minecraft:changed_dimension",
+                conditions: Some("{\"to\":\"minecraft:the_end\"}"),
+            },
         }],
         requirements: &[&["entered_end"]],
         rewards: Rewards {
@@ -2363,7 +3006,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "allay_deliver_cake_to_note_block",
-            trigger: Trigger::Other("minecraft:allay_drop_item_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:allay_drop_item_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"minecraft:note_block\"}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":\"minecraft:cake\"},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["allay_deliver_cake_to_note_block"]],
         rewards: Rewards {
@@ -2389,7 +3037,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "allay_deliver_item_to_player",
-            trigger: Trigger::Other("minecraft:thrown_item_picked_up_by_player"),
+            trigger: Trigger::Event {
+                name: "minecraft:thrown_item_picked_up_by_player",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:allay\"},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["allay_deliver_item_to_player"]],
         rewards: Rewards {
@@ -2415,7 +3068,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "axolotl_bucket",
-            trigger: Trigger::Other("minecraft:filled_bucket"),
+            trigger: Trigger::Event {
+                name: "minecraft:filled_bucket",
+                conditions: Some("{\"item\":{\"items\":\"minecraft:axolotl_bucket\"}}"),
+            },
         }],
         requirements: &[&["axolotl_bucket"]],
         rewards: Rewards {
@@ -2667,107 +3323,237 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "minecraft:armadillo",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:armadillo\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:axolotl",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:axolotl\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:bee",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:bee\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:camel",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:camel\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:cat",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:cat\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:chicken",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:chicken\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:cow",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:cow\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:donkey",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:donkey\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:fox",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:fox\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:frog",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"parent\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:frog\"},\"type\":\"minecraft:entity_properties\"},\"partner\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:frog\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:goat",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:goat\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:hoglin",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:hoglin\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:horse",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:horse\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:llama",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:llama\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:mooshroom",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:mooshroom\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:mule",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:mule\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:nautilus",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:nautilus\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:ocelot",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:ocelot\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:panda",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:panda\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:pig",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:pig\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:rabbit",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:rabbit\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:sheep",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:sheep\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:sniffer",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"parent\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:sniffer\"},\"type\":\"minecraft:entity_properties\"},\"partner\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:sniffer\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:strider",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:strider\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:turtle",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"parent\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:turtle\"},\"type\":\"minecraft:entity_properties\"},\"partner\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:turtle\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:wolf",
-                trigger: Trigger::Other("minecraft:bred_animals"),
+                trigger: Trigger::Event {
+                    name: "minecraft:bred_animals",
+                    conditions: Some(
+                        "{\"child\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:wolf\"},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[
@@ -2821,7 +3607,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "bred",
-            trigger: Trigger::Other("minecraft:bred_animals"),
+            trigger: Trigger::Event {
+                name: "minecraft:bred_animals",
+                conditions: None,
+            },
         }],
         requirements: &[&["bred"]],
         rewards: Rewards {
@@ -2848,47 +3637,102 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "minecraft:all_black",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:all_black\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:black",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:black\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:british_shorthair",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:british_shorthair\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:calico",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:calico\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:jellie",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:jellie\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:persian",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:persian\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:ragdoll",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:ragdoll\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:red",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:red\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:siamese",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:siamese\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:tabby",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:tabby\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:white",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:cat/variant\":\"minecraft:white\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[
@@ -2927,7 +3771,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "feed_snifflet",
-            trigger: Trigger::Other("minecraft:player_interacted_with_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_interacted_with_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:sniffer\",\"minecraft:flags\":{\"is_baby\":true}},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"#minecraft:sniffer_food\"}}",
+                ),
+            },
         }],
         requirements: &[&["feed_snifflet"]],
         rewards: Rewards {
@@ -2954,19 +3803,31 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "cod",
-                trigger: Trigger::Other("minecraft:fishing_rod_hooked"),
+                trigger: Trigger::Event {
+                    name: "minecraft:fishing_rod_hooked",
+                    conditions: Some("{\"item\":{\"items\":\"minecraft:cod\"}}"),
+                },
             },
             Criterion {
                 name: "pufferfish",
-                trigger: Trigger::Other("minecraft:fishing_rod_hooked"),
+                trigger: Trigger::Event {
+                    name: "minecraft:fishing_rod_hooked",
+                    conditions: Some("{\"item\":{\"items\":\"minecraft:pufferfish\"}}"),
+                },
             },
             Criterion {
                 name: "salmon",
-                trigger: Trigger::Other("minecraft:fishing_rod_hooked"),
+                trigger: Trigger::Event {
+                    name: "minecraft:fishing_rod_hooked",
+                    conditions: Some("{\"item\":{\"items\":\"minecraft:salmon\"}}"),
+                },
             },
             Criterion {
                 name: "tropical_fish",
-                trigger: Trigger::Other("minecraft:fishing_rod_hooked"),
+                trigger: Trigger::Event {
+                    name: "minecraft:fishing_rod_hooked",
+                    conditions: Some("{\"item\":{\"items\":\"minecraft:tropical_fish\"}}"),
+                },
             },
         ],
         requirements: &[&["cod", "tropical_fish", "pufferfish", "salmon"]],
@@ -3026,7 +3887,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "kill_axolotl_target",
-            trigger: Trigger::Other("minecraft:effects_changed"),
+            trigger: Trigger::Event {
+                name: "minecraft:effects_changed",
+                conditions: Some(
+                    "{\"source\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:axolotl\"},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["kill_axolotl_target"]],
         rewards: Rewards {
@@ -3053,15 +3919,30 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "minecraft:cold",
-                trigger: Trigger::Other("minecraft:player_interacted_with_entity"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_interacted_with_entity",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:frog/variant\":\"minecraft:cold\"},\"minecraft:entity_type\":\"minecraft:frog\"},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"minecraft:lead\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:temperate",
-                trigger: Trigger::Other("minecraft:player_interacted_with_entity"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_interacted_with_entity",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:frog/variant\":\"minecraft:temperate\"},\"minecraft:entity_type\":\"minecraft:frog\"},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"minecraft:lead\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:warm",
-                trigger: Trigger::Other("minecraft:player_interacted_with_entity"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_interacted_with_entity",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:frog/variant\":\"minecraft:warm\"},\"minecraft:entity_type\":\"minecraft:frog\"},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"minecraft:lead\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[
@@ -3092,7 +3973,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "make_a_sign_glow",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"#minecraft:all_signs\"}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":\"minecraft:glow_ink_sac\"},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["make_a_sign_glow"]],
         rewards: Rewards {
@@ -3176,7 +4062,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "place_dried_ghast_in_water",
-            trigger: Trigger::Other("minecraft:placed_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:placed_block",
+                conditions: Some(
+                    "{\"location\":{\"blocks\":\"minecraft:dried_ghast\",\"state\":{\"waterlogged\":\"true\"},\"type\":\"minecraft:match_block\"}}",
+                ),
+            },
         }],
         requirements: &[&["place_dried_ghast_in_water"]],
         rewards: Rewards {
@@ -3203,11 +4094,21 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "pitcher_pod",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:pitcher_crop\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "torchflower",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:torchflower_crop\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[&["torchflower", "pitcher_pod"]],
@@ -3235,31 +4136,66 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "beetroots",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:beetroots\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "melon_stem",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:melon_stem\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "nether_wart",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:nether_wart\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "pitcher_pod",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:pitcher_crop\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "pumpkin_stem",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:pumpkin_stem\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "torchflower",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:torchflower_crop\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "wheat",
-                trigger: Trigger::Other("minecraft:placed_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:placed_block",
+                    conditions: Some(
+                        "{\"location\":{\"blocks\":\"minecraft:wheat\",\"type\":\"minecraft:match_block\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[&[
@@ -3294,7 +4230,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "remove_wolf_armor",
-            trigger: Trigger::Other("minecraft:player_sheared_equipment"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_sheared_equipment",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:wolf\"},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"minecraft:wolf_armor\"}}",
+                ),
+            },
         }],
         requirements: &[&["remove_wolf_armor"]],
         rewards: Rewards {
@@ -3320,7 +4261,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "repair_wolf_armor",
-            trigger: Trigger::Other("minecraft:player_interacted_with_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_interacted_with_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:wolf\",\"minecraft:equipment\":{\"body\":{\"components\":{\"minecraft:damage\":0},\"items\":\"minecraft:wolf_armor\"}}},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"minecraft:armadillo_scute\"}}",
+                ),
+            },
         }],
         requirements: &[&["repair_wolf_armor"]],
         rewards: Rewards {
@@ -3346,7 +4292,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "ride_a_boat_with_a_goat",
-            trigger: Trigger::Other("minecraft:started_riding"),
+            trigger: Trigger::Event {
+                name: "minecraft:started_riding",
+                conditions: Some(
+                    "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:vehicle\":{\"minecraft:entity_type\":\"#minecraft:boat\",\"minecraft:passenger\":{\"minecraft:entity_type\":\"minecraft:goat\"}}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["ride_a_boat_with_a_goat"]],
         rewards: Rewards {
@@ -3398,7 +4349,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "safely_harvest_honey",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"#minecraft:beehives\"},\"smokey\":true},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":\"minecraft:glass_bottle\"},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["safely_harvest_honey"]],
         rewards: Rewards {
@@ -3424,7 +4380,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "silk_touch_nest",
-            trigger: Trigger::Other("minecraft:bee_nest_destroyed"),
+            trigger: Trigger::Event {
+                name: "minecraft:bee_nest_destroyed",
+                conditions: Some(
+                    "{\"blocks\":\"minecraft:bee_nest\",\"item\":{\"predicates\":{\"minecraft:enchantments\":[{\"enchantments\":\"minecraft:silk_touch\",\"levels\":{\"min\":1}}]}},\"num_bees_inside\":3}",
+                ),
+            },
         }],
         requirements: &[&["silk_touch_nest"]],
         rewards: Rewards {
@@ -3451,19 +4412,31 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "cod_bucket",
-                trigger: Trigger::Other("minecraft:filled_bucket"),
+                trigger: Trigger::Event {
+                    name: "minecraft:filled_bucket",
+                    conditions: Some("{\"item\":{\"items\":\"minecraft:cod_bucket\"}}"),
+                },
             },
             Criterion {
                 name: "pufferfish_bucket",
-                trigger: Trigger::Other("minecraft:filled_bucket"),
+                trigger: Trigger::Event {
+                    name: "minecraft:filled_bucket",
+                    conditions: Some("{\"item\":{\"items\":\"minecraft:pufferfish_bucket\"}}"),
+                },
             },
             Criterion {
                 name: "salmon_bucket",
-                trigger: Trigger::Other("minecraft:filled_bucket"),
+                trigger: Trigger::Event {
+                    name: "minecraft:filled_bucket",
+                    conditions: Some("{\"item\":{\"items\":\"minecraft:salmon_bucket\"}}"),
+                },
             },
             Criterion {
                 name: "tropical_fish_bucket",
-                trigger: Trigger::Other("minecraft:filled_bucket"),
+                trigger: Trigger::Event {
+                    name: "minecraft:filled_bucket",
+                    conditions: Some("{\"item\":{\"items\":\"minecraft:tropical_fish_bucket\"}}"),
+                },
             },
         ],
         requirements: &[&[
@@ -3495,7 +4468,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "tadpole_bucket",
-            trigger: Trigger::Other("minecraft:filled_bucket"),
+            trigger: Trigger::Event {
+                name: "minecraft:filled_bucket",
+                conditions: Some("{\"item\":{\"items\":\"minecraft:tadpole_bucket\"}}"),
+            },
         }],
         requirements: &[&["tadpole_bucket"]],
         rewards: Rewards {
@@ -3521,7 +4497,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "tamed_animal",
-            trigger: Trigger::Other("minecraft:tame_animal"),
+            trigger: Trigger::Event {
+                name: "minecraft:tame_animal",
+                conditions: None,
+            },
         }],
         requirements: &[&["tamed_animal"]],
         rewards: Rewards {
@@ -3548,11 +4527,21 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "give_tnt_directly",
-                trigger: Trigger::Other("minecraft:player_interacted_with_entity"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_interacted_with_entity",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:sulfur_cube\",\"minecraft:flags\":{\"is_baby\":false}},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"#minecraft:sulfur_cube_archetype/explosive\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "pick_up_dropped_tnt",
-                trigger: Trigger::Other("minecraft:thrown_item_picked_up_by_entity"),
+                trigger: Trigger::Event {
+                    name: "minecraft:thrown_item_picked_up_by_entity",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:sulfur_cube\",\"minecraft:flags\":{\"is_baby\":false}},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"#minecraft:sulfur_cube_archetype/explosive\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[&["pick_up_dropped_tnt", "give_tnt_directly"]],
@@ -3579,7 +4568,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "wax_off",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":[\"minecraft:waxed_copper_block\",\"minecraft:waxed_exposed_copper\",\"minecraft:waxed_weathered_copper\",\"minecraft:waxed_oxidized_copper\",\"minecraft:waxed_cut_copper\",\"minecraft:waxed_exposed_cut_copper\",\"minecraft:waxed_weathered_cut_copper\",\"minecraft:waxed_oxidized_cut_copper\",\"minecraft:waxed_cut_copper_slab\",\"minecraft:waxed_exposed_cut_copper_slab\",\"minecraft:waxed_weathered_cut_copper_slab\",\"minecraft:waxed_oxidized_cut_copper_slab\",\"minecraft:waxed_cut_copper_stairs\",\"minecraft:waxed_exposed_cut_copper_stairs\",\"minecraft:waxed_weathered_cut_copper_stairs\",\"minecraft:waxed_oxidized_cut_copper_stairs\",\"minecraft:waxed_chiseled_copper\",\"minecraft:waxed_exposed_chiseled_copper\",\"minecraft:waxed_weathered_chiseled_copper\",\"minecraft:waxed_oxidized_chiseled_copper\",\"minecraft:waxed_copper_door\",\"minecraft:waxed_exposed_copper_door\",\"minecraft:waxed_weathered_copper_door\",\"minecraft:waxed_oxidized_copper_door\",\"minecraft:waxed_copper_trapdoor\",\"minecraft:waxed_exposed_copper_trapdoor\",\"minecraft:waxed_weathered_copper_trapdoor\",\"minecraft:waxed_oxidized_copper_trapdoor\",\"minecraft:waxed_copper_bars\",\"minecraft:waxed_exposed_copper_bars\",\"minecraft:waxed_weathered_copper_bars\",\"minecraft:waxed_oxidized_copper_bars\",\"minecraft:waxed_copper_grate\",\"minecraft:waxed_exposed_copper_grate\",\"minecraft:waxed_weathered_copper_grate\",\"minecraft:waxed_oxidized_copper_grate\",\"minecraft:waxed_copper_bulb\",\"minecraft:waxed_exposed_copper_bulb\",\"minecraft:waxed_weathered_copper_bulb\",\"minecraft:waxed_oxidized_copper_bulb\",\"minecraft:waxed_copper_chest\",\"minecraft:waxed_exposed_copper_chest\",\"minecraft:waxed_weathered_copper_chest\",\"minecraft:waxed_oxidized_copper_chest\",\"minecraft:waxed_copper_golem_statue\",\"minecraft:waxed_exposed_copper_golem_statue\",\"minecraft:waxed_weathered_copper_golem_statue\",\"minecraft:waxed_oxidized_copper_golem_statue\",\"minecraft:waxed_lightning_rod\",\"minecraft:waxed_exposed_lightning_rod\",\"minecraft:waxed_weathered_lightning_rod\",\"minecraft:waxed_oxidized_lightning_rod\",\"minecraft:waxed_copper_lantern\",\"minecraft:waxed_exposed_copper_lantern\",\"minecraft:waxed_weathered_copper_lantern\",\"minecraft:waxed_oxidized_copper_lantern\",\"minecraft:waxed_copper_chain\",\"minecraft:waxed_exposed_copper_chain\",\"minecraft:waxed_weathered_copper_chain\",\"minecraft:waxed_oxidized_copper_chain\"]}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":[\"minecraft:wooden_axe\",\"minecraft:golden_axe\",\"minecraft:stone_axe\",\"minecraft:copper_axe\",\"minecraft:iron_axe\",\"minecraft:diamond_axe\",\"minecraft:netherite_axe\"]},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["wax_off"]],
         rewards: Rewards {
@@ -3605,7 +4599,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "wax_on",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":[\"minecraft:copper_block\",\"minecraft:exposed_copper\",\"minecraft:weathered_copper\",\"minecraft:oxidized_copper\",\"minecraft:cut_copper\",\"minecraft:exposed_cut_copper\",\"minecraft:weathered_cut_copper\",\"minecraft:oxidized_cut_copper\",\"minecraft:cut_copper_slab\",\"minecraft:exposed_cut_copper_slab\",\"minecraft:weathered_cut_copper_slab\",\"minecraft:oxidized_cut_copper_slab\",\"minecraft:cut_copper_stairs\",\"minecraft:exposed_cut_copper_stairs\",\"minecraft:weathered_cut_copper_stairs\",\"minecraft:oxidized_cut_copper_stairs\",\"minecraft:chiseled_copper\",\"minecraft:exposed_chiseled_copper\",\"minecraft:weathered_chiseled_copper\",\"minecraft:oxidized_chiseled_copper\",\"minecraft:copper_door\",\"minecraft:exposed_copper_door\",\"minecraft:weathered_copper_door\",\"minecraft:oxidized_copper_door\",\"minecraft:copper_trapdoor\",\"minecraft:exposed_copper_trapdoor\",\"minecraft:weathered_copper_trapdoor\",\"minecraft:oxidized_copper_trapdoor\",\"minecraft:copper_bars\",\"minecraft:exposed_copper_bars\",\"minecraft:weathered_copper_bars\",\"minecraft:oxidized_copper_bars\",\"minecraft:copper_grate\",\"minecraft:exposed_copper_grate\",\"minecraft:weathered_copper_grate\",\"minecraft:oxidized_copper_grate\",\"minecraft:copper_bulb\",\"minecraft:exposed_copper_bulb\",\"minecraft:weathered_copper_bulb\",\"minecraft:oxidized_copper_bulb\",\"minecraft:copper_chest\",\"minecraft:exposed_copper_chest\",\"minecraft:weathered_copper_chest\",\"minecraft:oxidized_copper_chest\",\"minecraft:copper_golem_statue\",\"minecraft:exposed_copper_golem_statue\",\"minecraft:weathered_copper_golem_statue\",\"minecraft:oxidized_copper_golem_statue\",\"minecraft:lightning_rod\",\"minecraft:exposed_lightning_rod\",\"minecraft:weathered_lightning_rod\",\"minecraft:oxidized_lightning_rod\",\"minecraft:copper_lantern\",\"minecraft:exposed_copper_lantern\",\"minecraft:weathered_copper_lantern\",\"minecraft:oxidized_copper_lantern\",\"minecraft:copper_chain\",\"minecraft:exposed_copper_chain\",\"minecraft:weathered_copper_chain\",\"minecraft:oxidized_copper_chain\"]}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":\"minecraft:honeycomb\"},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["wax_on"]],
         rewards: Rewards {
@@ -3632,39 +4631,84 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "minecraft:ashen",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:ashen\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:black",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:black\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:chestnut",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:chestnut\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:pale",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:pale\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:rusty",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:rusty\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:snowy",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:snowy\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:spotted",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:spotted\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:striped",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:striped\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:woods",
-                trigger: Trigger::Other("minecraft:tame_animal"),
+                trigger: Trigger::Event {
+                    name: "minecraft:tame_animal",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:components\":{\"minecraft:wolf/variant\":\"minecraft:woods\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[
@@ -3701,7 +4745,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "all_effects",
-            trigger: Trigger::Other("minecraft:effects_changed"),
+            trigger: Trigger::Event {
+                name: "minecraft:effects_changed",
+                conditions: Some(
+                    "{\"effects\":{\"minecraft:absorption\":{},\"minecraft:bad_omen\":{},\"minecraft:blindness\":{},\"minecraft:breath_of_the_nautilus\":{},\"minecraft:conduit_power\":{},\"minecraft:darkness\":{},\"minecraft:dolphins_grace\":{},\"minecraft:fire_resistance\":{},\"minecraft:glowing\":{},\"minecraft:haste\":{},\"minecraft:hero_of_the_village\":{},\"minecraft:hunger\":{},\"minecraft:infested\":{},\"minecraft:invisibility\":{},\"minecraft:jump_boost\":{},\"minecraft:levitation\":{},\"minecraft:mining_fatigue\":{},\"minecraft:nausea\":{},\"minecraft:night_vision\":{},\"minecraft:oozing\":{},\"minecraft:poison\":{},\"minecraft:raid_omen\":{},\"minecraft:regeneration\":{},\"minecraft:resistance\":{},\"minecraft:slow_falling\":{},\"minecraft:slowness\":{},\"minecraft:speed\":{},\"minecraft:strength\":{},\"minecraft:trial_omen\":{},\"minecraft:water_breathing\":{},\"minecraft:weakness\":{},\"minecraft:weaving\":{},\"minecraft:wind_charged\":{},\"minecraft:wither\":{}}}",
+                ),
+            },
         }],
         requirements: &[&["all_effects"]],
         rewards: Rewards {
@@ -3727,7 +4776,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "all_effects",
-            trigger: Trigger::Other("minecraft:effects_changed"),
+            trigger: Trigger::Event {
+                name: "minecraft:effects_changed",
+                conditions: Some(
+                    "{\"effects\":{\"minecraft:fire_resistance\":{},\"minecraft:infested\":{},\"minecraft:invisibility\":{},\"minecraft:jump_boost\":{},\"minecraft:night_vision\":{},\"minecraft:oozing\":{},\"minecraft:poison\":{},\"minecraft:regeneration\":{},\"minecraft:resistance\":{},\"minecraft:slow_falling\":{},\"minecraft:slowness\":{},\"minecraft:speed\":{},\"minecraft:strength\":{},\"minecraft:water_breathing\":{},\"minecraft:weakness\":{},\"minecraft:weaving\":{},\"minecraft:wind_charged\":{}}}",
+                ),
+            },
         }],
         requirements: &[&["all_effects"]],
         rewards: Rewards {
@@ -3753,7 +4807,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "potion",
-            trigger: Trigger::Other("minecraft:brewed_potion"),
+            trigger: Trigger::Event {
+                name: "minecraft:brewed_potion",
+                conditions: None,
+            },
         }],
         requirements: &[&["potion"]],
         rewards: Rewards {
@@ -3779,7 +4836,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "charge_respawn_anchor",
-            trigger: Trigger::Other("minecraft:item_used_on_block"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_used_on_block",
+                conditions: Some(
+                    "{\"location\":{\"terms\":[{\"predicate\":{\"block\":{\"blocks\":\"minecraft:respawn_anchor\",\"state\":{\"charges\":\"4\"}}},\"type\":\"minecraft:location_check\"},{\"predicate\":{\"items\":\"minecraft:glowstone\"},\"type\":\"minecraft:match_tool\"}],\"type\":\"minecraft:all_of\"}}",
+                ),
+            },
         }],
         requirements: &[&["charge_respawn_anchor"]],
         rewards: Rewards {
@@ -3805,7 +4867,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "beacon",
-            trigger: Trigger::Other("minecraft:construct_beacon"),
+            trigger: Trigger::Event {
+                name: "minecraft:construct_beacon",
+                conditions: Some("{\"level\":{\"min\":1}}"),
+            },
         }],
         requirements: &[&["beacon"]],
         rewards: Rewards {
@@ -3831,7 +4896,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "beacon",
-            trigger: Trigger::Other("minecraft:construct_beacon"),
+            trigger: Trigger::Event {
+                name: "minecraft:construct_beacon",
+                conditions: Some("{\"level\":4}"),
+            },
         }],
         requirements: &[&["beacon"]],
         rewards: Rewards {
@@ -3858,11 +4926,21 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "distract_piglin",
-                trigger: Trigger::Other("minecraft:thrown_item_picked_up_by_entity"),
+                trigger: Trigger::Event {
+                    name: "minecraft:thrown_item_picked_up_by_entity",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:piglin\",\"minecraft:flags\":{\"is_baby\":false}},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"#minecraft:piglin_loved\"},\"player\":{\"term\":{\"terms\":[{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"head\":{\"items\":\"#minecraft:piglin_safe_armor\"}}},\"type\":\"minecraft:entity_properties\"},{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"chest\":{\"items\":\"#minecraft:piglin_safe_armor\"}}},\"type\":\"minecraft:entity_properties\"},{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"legs\":{\"items\":\"#minecraft:piglin_safe_armor\"}}},\"type\":\"minecraft:entity_properties\"},{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"feet\":{\"items\":\"#minecraft:piglin_safe_armor\"}}},\"type\":\"minecraft:entity_properties\"}],\"type\":\"minecraft:any_of\"},\"type\":\"minecraft:inverted\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "distract_piglin_directly",
-                trigger: Trigger::Other("minecraft:player_interacted_with_entity"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_interacted_with_entity",
+                    conditions: Some(
+                        "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:piglin\",\"minecraft:flags\":{\"is_baby\":false}},\"type\":\"minecraft:entity_properties\"},\"item\":{\"items\":\"minecraft:gold_ingot\"},\"player\":{\"term\":{\"terms\":[{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"head\":{\"items\":\"#minecraft:piglin_safe_armor\"}}},\"type\":\"minecraft:entity_properties\"},{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"chest\":{\"items\":\"#minecraft:piglin_safe_armor\"}}},\"type\":\"minecraft:entity_properties\"},{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"legs\":{\"items\":\"#minecraft:piglin_safe_armor\"}}},\"type\":\"minecraft:entity_properties\"},{\"entity\":\"this\",\"predicate\":{\"minecraft:equipment\":{\"feet\":{\"items\":\"#minecraft:piglin_safe_armor\"}}},\"type\":\"minecraft:entity_properties\"}],\"type\":\"minecraft:any_of\"},\"type\":\"minecraft:inverted\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[&["distract_piglin", "distract_piglin_directly"]],
@@ -3890,23 +4968,48 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "minecraft:basalt_deltas",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:basalt_deltas\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:crimson_forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:crimson_forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:nether_wastes",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:nether_wastes\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:soul_sand_valley",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:soul_sand_valley\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
             Criterion {
                 name: "minecraft:warped_forest",
-                trigger: Trigger::Other("minecraft:location"),
+                trigger: Trigger::Event {
+                    name: "minecraft:location",
+                    conditions: Some(
+                        "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"biomes\":\"minecraft:warped_forest\"}},\"type\":\"minecraft:entity_properties\"}}",
+                    ),
+                },
             },
         ],
         requirements: &[
@@ -3939,7 +5042,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "travelled",
-            trigger: Trigger::Other("minecraft:nether_travel"),
+            trigger: Trigger::Event {
+                name: "minecraft:nether_travel",
+                conditions: Some("{\"distance\":{\"horizontal\":{\"min\":7000.0}}}"),
+            },
         }],
         requirements: &[&["travelled"]],
         rewards: Rewards {
@@ -3965,7 +5071,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "bastion",
-            trigger: Trigger::Other("minecraft:location"),
+            trigger: Trigger::Event {
+                name: "minecraft:location",
+                conditions: Some(
+                    "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"structures\":\"minecraft:bastion_remnant\"}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["bastion"]],
         rewards: Rewards {
@@ -3991,7 +5102,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "fortress",
-            trigger: Trigger::Other("minecraft:location"),
+            trigger: Trigger::Event {
+                name: "minecraft:location",
+                conditions: Some(
+                    "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"structures\":\"minecraft:fortress\"}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["fortress"]],
         rewards: Rewards {
@@ -4047,19 +5163,33 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         criteria: &[
             Criterion {
                 name: "loot_bastion_bridge",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some("{\"loot_tables\":\"minecraft:chests/bastion_bridge\"}"),
+                },
             },
             Criterion {
                 name: "loot_bastion_hoglin_stable",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some(
+                        "{\"loot_tables\":\"minecraft:chests/bastion_hoglin_stable\"}",
+                    ),
+                },
             },
             Criterion {
                 name: "loot_bastion_other",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some("{\"loot_tables\":\"minecraft:chests/bastion_other\"}"),
+                },
             },
             Criterion {
                 name: "loot_bastion_treasure",
-                trigger: Trigger::Other("minecraft:player_generates_container_loot"),
+                trigger: Trigger::Event {
+                    name: "minecraft:player_generates_container_loot",
+                    conditions: Some("{\"loot_tables\":\"minecraft:chests/bastion_treasure\"}"),
+                },
             },
         ],
         requirements: &[&[
@@ -4212,7 +5342,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "killed_ghast",
-            trigger: Trigger::Other("minecraft:player_killed_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_killed_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:ghast\"},\"type\":\"minecraft:entity_properties\"},\"killing_blow\":{\"direct_entity\":{\"minecraft:entity_type\":\"minecraft:fireball\"},\"tags\":[{\"expected\":true,\"id\":\"#minecraft:is_projectile\"}]}}",
+                ),
+            },
         }],
         requirements: &[&["killed_ghast"]],
         rewards: Rewards {
@@ -4238,7 +5373,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "used_warped_fungus_on_a_stick",
-            trigger: Trigger::Other("minecraft:item_durability_changed"),
+            trigger: Trigger::Event {
+                name: "minecraft:item_durability_changed",
+                conditions: Some(
+                    "{\"item\":{\"items\":\"minecraft:warped_fungus_on_a_stick\"},\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:vehicle\":{\"minecraft:entity_type\":\"minecraft:strider\"}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["used_warped_fungus_on_a_stick"]],
         rewards: Rewards {
@@ -4264,7 +5404,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "ride_entity_distance",
-            trigger: Trigger::Other("minecraft:ride_entity_in_lava"),
+            trigger: Trigger::Event {
+                name: "minecraft:ride_entity_in_lava",
+                conditions: Some(
+                    "{\"distance\":{\"horizontal\":{\"min\":50.0}},\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"dimension\":\"minecraft:overworld\"},\"minecraft:vehicle\":{\"minecraft:entity_type\":\"minecraft:strider\"}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["ride_entity_distance"]],
         rewards: Rewards {
@@ -4290,7 +5435,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "entered_nether",
-            trigger: Trigger::Other("minecraft:changed_dimension"),
+            trigger: Trigger::Event {
+                name: "minecraft:changed_dimension",
+                conditions: Some("{\"to\":\"minecraft:the_nether\"}"),
+            },
         }],
         requirements: &[&["entered_nether"]],
         rewards: Rewards {
@@ -4316,7 +5464,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "summoned",
-            trigger: Trigger::Other("minecraft:summoned_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:summoned_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:wither\"},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["summoned"]],
         rewards: Rewards {
@@ -4342,7 +5495,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "killed_ghast",
-            trigger: Trigger::Other("minecraft:player_killed_entity"),
+            trigger: Trigger::Event {
+                name: "minecraft:player_killed_entity",
+                conditions: Some(
+                    "{\"entity\":{\"entity\":\"this\",\"predicate\":{\"minecraft:entity_type\":\"minecraft:ghast\",\"minecraft:location\":{\"dimension\":\"minecraft:overworld\"}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["killed_ghast"]],
         rewards: Rewards {
@@ -47536,7 +48694,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -47629,7 +48790,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -47650,7 +48814,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -47719,7 +48886,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -47788,7 +48958,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -47905,7 +49078,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -47950,7 +49126,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -48019,7 +49198,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -48064,7 +49246,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -48109,7 +49294,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -48202,7 +49390,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
             },
             Criterion {
                 name: "in_water",
-                trigger: Trigger::Other("minecraft:enter_block"),
+                trigger: Trigger::Event {
+                    name: "minecraft:enter_block",
+                    conditions: Some("{\"blocks\":\"minecraft:water\"}"),
+                },
             },
         ],
         requirements: &[&["has_the_recipe", "in_water"]],
@@ -48301,7 +49492,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "cured_zombie",
-            trigger: Trigger::Other("minecraft:cured_zombie_villager"),
+            trigger: Trigger::Event {
+                name: "minecraft:cured_zombie_villager",
+                conditions: None,
+            },
         }],
         requirements: &[&["cured_zombie"]],
         rewards: Rewards {
@@ -48327,7 +49521,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "deflected_projectile",
-            trigger: Trigger::Other("minecraft:entity_hurt_player"),
+            trigger: Trigger::Event {
+                name: "minecraft:entity_hurt_player",
+                conditions: Some(
+                    "{\"damage\":{\"blocked\":true,\"type\":{\"tags\":[{\"expected\":true,\"id\":\"#minecraft:is_projectile\"}]}}}",
+                ),
+            },
         }],
         requirements: &[&["deflected_projectile"]],
         rewards: Rewards {
@@ -48353,7 +49552,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "enchanted_item",
-            trigger: Trigger::Other("minecraft:enchanted_item"),
+            trigger: Trigger::Event {
+                name: "minecraft:enchanted_item",
+                conditions: None,
+            },
         }],
         requirements: &[&["enchanted_item"]],
         rewards: Rewards {
@@ -48379,7 +49581,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "entered_end",
-            trigger: Trigger::Other("minecraft:changed_dimension"),
+            trigger: Trigger::Event {
+                name: "minecraft:changed_dimension",
+                conditions: Some("{\"to\":\"minecraft:the_end\"}"),
+            },
         }],
         requirements: &[&["entered_end"]],
         rewards: Rewards {
@@ -48405,7 +49610,10 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "entered_nether",
-            trigger: Trigger::Other("minecraft:changed_dimension"),
+            trigger: Trigger::Event {
+                name: "minecraft:changed_dimension",
+                conditions: Some("{\"to\":\"minecraft:the_nether\"}"),
+            },
         }],
         requirements: &[&["entered_nether"]],
         rewards: Rewards {
@@ -48431,7 +49639,12 @@ pub(crate) static ADVANCEMENTS: [Advancement; 1866] = [
         }),
         criteria: &[Criterion {
             name: "in_stronghold",
-            trigger: Trigger::Other("minecraft:location"),
+            trigger: Trigger::Event {
+                name: "minecraft:location",
+                conditions: Some(
+                    "{\"player\":{\"entity\":\"this\",\"predicate\":{\"minecraft:location\":{\"structures\":\"minecraft:stronghold\"}},\"type\":\"minecraft:entity_properties\"}}",
+                ),
+            },
         }],
         requirements: &[&["in_stronghold"]],
         rewards: Rewards {
