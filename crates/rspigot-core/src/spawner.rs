@@ -35,7 +35,7 @@ pub(crate) fn is_spawner_block(state: BlockStateId) -> bool {
     state.kind() == Some(BlockKind::Spawner)
 }
 
-fn middle(pos: BlockPos) -> Vec3 {
+pub(crate) fn middle(pos: BlockPos) -> Vec3 {
     Vec3::new(
         f64::from(pos.x) + 0.5,
         f64::from(pos.y) + 0.5,
@@ -43,7 +43,7 @@ fn middle(pos: BlockPos) -> Vec3 {
     )
 }
 
-fn fixed_position(entity: &Compound) -> Option<Vec3> {
+pub(crate) fn fixed_position(entity: &Compound) -> Option<Vec3> {
     let [x, y, z] = entity.get_list(POSITION_KEY)? else {
         return None;
     };
@@ -376,6 +376,20 @@ impl<L: ClientLink> Server<L> {
         let Some(kind) = Kind::from_spawn_egg(egg.item.0) else {
             return false;
         };
+        if self
+            .world
+            .chunks
+            .block(pos)
+            .is_some_and(crate::trial_spawner::is_trial_spawner)
+        {
+            if !self.within_reach(id, pos) || !self.use_egg_on_trial_spawner(pos, kind) {
+                return false;
+            }
+            let player = self.players.get(&id).map(|player| player.entity_id);
+            self.block_game_event(GameEvent::BlockChange, pos, GameEventContext::of(player));
+            self.use_spawn_egg(id, slot, egg);
+            return true;
+        }
         let Some(mut spawner) = self.spawner_at(pos) else {
             return false;
         };

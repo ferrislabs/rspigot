@@ -1,7 +1,7 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1422] = [
+pub(crate) static TABLES: [(&str, LootTable); 1427] = [
     (
         "minecraft:blocks/acacia_button",
         LootTable {
@@ -51834,6 +51834,508 @@ pub(crate) static TABLES: [(&str, LootTable); 1422] = [
                         weight: 1,
                         quality: 0,
                         output: Output::Item(431),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:spawners/ominous/trial_chamber/consumables",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1261),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 2, max: 4 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1380),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 2 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1383),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:regeneration"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1271),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:strength"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1271),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:spawners/ominous/trial_chamber/key",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(1655),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:spawners/trial_chamber/consumables",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1263),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 3,
+                            quality: 0,
+                            output: Output::Item(1067),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Uniform { min: 1, max: 3 },
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1380),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:regeneration"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1271),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetPotion("minecraft:swiftness"),
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1271),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:spawners/trial_chamber/items_to_drop_when_ominous",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:wind_charged"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1445),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:oozing"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1445),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:weaving"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1445),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:infested"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1445),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:strength"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1445),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:swiftness"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1445),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:slow_falling"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1445),
+                            }),
+                        },
+                    ],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Constant(1),
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1009),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:poison"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1009),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetCount {
+                                        count: IntProvider::Constant(1),
+                                        add: false,
+                                    },
+                                },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::SetPotion("minecraft:strong_slowness"),
+                                },
+                            ],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1009),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1369),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetCount {
+                                    count: IntProvider::Uniform { min: 1, max: 3 },
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1370),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:spawners/trial_chamber/key",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(1654),
                     }),
                 }],
             }],
