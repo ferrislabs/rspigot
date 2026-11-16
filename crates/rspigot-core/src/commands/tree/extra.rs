@@ -187,8 +187,127 @@ fn movement_commands(b: &mut TreeBuilder, root: usize) {
     }
 }
 
+fn column() -> ArgumentParser {
+    ArgumentParser::Named("minecraft:column_pos")
+}
+
+fn vec2() -> ArgumentParser {
+    ArgumentParser::Named("minecraft:vec2")
+}
+
+fn int(min: Option<i32>) -> ArgumentParser {
+    ArgumentParser::Integer { min, max: None }
+}
+
+fn world_commands(b: &mut TreeBuilder, root: usize) {
+    let forceload = b.literal(root, "forceload", false);
+    for action in ["add", "remove"] {
+        let node = b.literal(forceload, action, false);
+        let from = b.argument(node, "from", column(), true);
+        b.argument(from, "to", column(), true);
+    }
+    let remove = forceload_remove(b, forceload);
+    b.literal(remove, "all", true);
+    let query = b.literal(forceload, "query", true);
+    b.argument(query, "pos", column(), true);
+
+    let border = b.literal(root, "worldborder", false);
+    let bounded = || ArgumentParser::Double {
+        min: Some(-59_999_968.0),
+        max: Some(59_999_968.0),
+    };
+    for action in ["add", "set"] {
+        let node = b.literal(border, action, false);
+        let distance = b.argument(node, "distance", bounded(), true);
+        b.argument(distance, "time", ArgumentParser::Time { min: 0 }, true);
+    }
+    let center = b.literal(border, "center", false);
+    b.argument(center, "pos", vec2(), true);
+    let damage = b.literal(border, "damage", false);
+    let amount = b.literal(damage, "amount", false);
+    b.argument(amount, "damagePerBlock", float(Some(0.0), None), true);
+    let buffer = b.literal(damage, "buffer", false);
+    b.argument(buffer, "distance", float(Some(0.0), None), true);
+    b.literal(border, "get", true);
+    let warning = b.literal(border, "warning", false);
+    let distance = b.literal(warning, "distance", false);
+    b.argument(distance, "distance", int(Some(0)), true);
+    let time = b.literal(warning, "time", false);
+    b.argument(time, "time", ArgumentParser::Time { min: 0 }, true);
+
+    let spread = b.literal(root, "spreadplayers", false);
+    let center = b.argument(spread, "center", vec2(), false);
+    let spread_distance = b.argument(center, "spreadDistance", float(Some(0.0), None), false);
+    let range = b.argument(spread_distance, "maxRange", float(Some(1.0), None), false);
+    let teams = b.argument(range, "respectTeams", ArgumentParser::Bool, false);
+    b.argument(teams, "targets", entities(), true);
+    let under = b.literal(range, "under", false);
+    let height = b.argument(under, "maxHeight", int(None), false);
+    let under_teams = b.argument(height, "respectTeams", ArgumentParser::Bool, false);
+    b.argument(under_teams, "targets", entities(), true);
+
+    let fillbiome = b.literal(root, "fillbiome", false);
+    let from = b.argument(fillbiome, "from", ArgumentParser::BlockPos, false);
+    let to = b.argument(from, "to", ArgumentParser::BlockPos, false);
+    let biome = b.argument(to, "biome", resource("minecraft:worldgen/biome"), true);
+    let replace = b.literal(biome, "replace", false);
+    b.argument(
+        replace,
+        "filter",
+        ArgumentParser::ResourceOrTag {
+            registry: "minecraft:worldgen/biome".to_owned(),
+        },
+        true,
+    );
+}
+
+fn forceload_remove(b: &mut TreeBuilder, forceload: usize) -> usize {
+    b.nodes[forceload]
+        .children
+        .iter()
+        .copied()
+        .find(|child| b.nodes[*child].kind == super::CommandNodeKind::Literal("remove".to_owned()))
+        .unwrap_or(forceload)
+}
+
 pub(super) fn extra_commands(b: &mut TreeBuilder, root: usize) {
     sound_commands(b, root);
     entity_commands(b, root);
     movement_commands(b, root);
+    world_commands(b, root);
+}
+
+pub(super) fn admin_extras(b: &mut TreeBuilder, root: usize) {
+    let tick = b.literal(root, "tick", false);
+    b.literal(tick, "query", true);
+    let rate = b.literal(tick, "rate", false);
+    b.argument(rate, "rate", float(Some(1.0), Some(10_000.0)), true);
+    b.literal(tick, "freeze", true);
+    b.literal(tick, "unfreeze", true);
+    let step = b.literal(tick, "step", true);
+    b.argument(step, "time", ArgumentParser::Time { min: 1 }, true);
+    b.literal(step, "stop", true);
+    let sprint = b.literal(tick, "sprint", false);
+    b.argument(sprint, "time", ArgumentParser::Time { min: 1 }, true);
+    b.literal(sprint, "stop", true);
+
+    let transfer = b.literal(root, "transfer", false);
+    let host = b.argument(transfer, "hostname", ArgumentParser::QuotedString, true);
+    let port = b.argument(
+        host,
+        "port",
+        ArgumentParser::Integer {
+            min: Some(1),
+            max: Some(65_535),
+        },
+        true,
+    );
+    b.argument(port, "players", player_targets(), true);
+
+    let idle = b.literal(root, "setidletimeout", false);
+    b.argument(idle, "minutes", int(Some(0)), true);
+
+    let debug = b.literal(root, "debug", false);
+    b.literal(debug, "start", true);
+    b.literal(debug, "stop", true);
 }
