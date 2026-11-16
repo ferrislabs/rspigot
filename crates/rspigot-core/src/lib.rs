@@ -7,6 +7,7 @@ mod beehive;
 mod block_tools;
 mod boats;
 mod books;
+mod border;
 mod boss_bars;
 mod bow;
 mod brain_mobs;

@@ -146,3 +146,16 @@ fn a_cancelled_mount_keeps_the_rider_off() {
     console(&mut s, "ride @e[type=cow] dismount");
     assert!(settled_for(&s.plugin, EventKind::EntityDismount).is_empty());
 }
+
+#[test]
+fn a_joining_player_receives_the_world_border() {
+    let mut s = scene(&[]);
+    let alice = arrive(&mut s.server, "Alice");
+    assert!(
+        alice
+            .link
+            .take()
+            .iter()
+            .any(|event| matches!(event, ClientEvent::Border(_)))
+    );
+}

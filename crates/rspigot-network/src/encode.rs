@@ -1411,6 +1411,19 @@ impl Encoder {
             ClientEvent::TickingStep(steps) => {
                 Self::queue(writer, &cb::TickingStep { tick_steps: *steps })
             }
+            ClientEvent::Border(view) => Self::queue(
+                writer,
+                &cb::InitializeBorder {
+                    center_x: view.center_x,
+                    center_z: view.center_z,
+                    old_size: view.old_size,
+                    new_size: view.new_size,
+                    lerp_time: view.lerp_time,
+                    absolute_max_size: view.absolute_max_size,
+                    warning_blocks: view.warning_blocks,
+                    warning_time: view.warning_time,
+                },
+            ),
             ClientEvent::Camera(entity) => Self::queue(
                 writer,
                 &cb::SetCamera {
@@ -2548,6 +2561,17 @@ mod tests {
             encode(ClientEvent::TickingStep(3)),
             vec![(id::TICKING_STEP, vec![3])]
         );
+    }
+
+    #[test]
+    fn the_border_is_sent_as_an_initialize_border_packet() {
+        let packets = encode(ClientEvent::Border(
+            rspigot_domain::world_border::WorldBorder::default().view(0),
+        ));
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].0, id::INITIALIZE_BORDER);
+        assert_eq!(&packets[0].1[..8], &0.0f64.to_be_bytes());
+        assert_eq!(&packets[0].1[16..24], &59_999_968.0f64.to_be_bytes());
     }
 
     #[test]

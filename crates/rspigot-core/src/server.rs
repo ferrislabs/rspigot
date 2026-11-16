@@ -60,6 +60,7 @@ pub struct World {
     pub spawn: Vec3,
     pub difficulty: Difficulty,
     pub sleep: rspigot_domain::bed::SleepStatus,
+    pub border: rspigot_domain::world_border::WorldBorder,
 }
 
 struct TpsMeter {
@@ -182,6 +183,7 @@ impl<L: ClientLink> Server<L> {
                 spawn,
                 difficulty: config.difficulty,
                 sleep: Default::default(),
+                border: Default::default(),
             },
             workers,
             players: FxHashMap::default(),
@@ -236,6 +238,7 @@ impl<L: ClientLink> Server<L> {
         server.load_scoreboard();
         server.load_custom_boss_bars();
         server.load_forced_chunks();
+        server.load_world_border();
         server.load_dragon_fight();
         let center = spawn.chunk();
         let radius = server.config.spawn_chunk_radius;
@@ -859,6 +862,7 @@ impl<L: ClientLink> Server<L> {
         });
         let link = &player.link;
         link.send(self.time_event());
+        link.send(self.border_event());
         if self.tick_rate.rate() != 20.0 || self.tick_rate.is_frozen() {
             link.send(ClientEvent::TickingState {
                 rate: self.tick_rate.rate(),
@@ -1042,6 +1046,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.world.chunks.relight();
         self.send_entity_changes();
+        self.tick_border();
         self.tick_health();
         self.tick_spin_attacks();
         self.tick_fall_flying();
@@ -1330,6 +1335,7 @@ impl<L: ClientLink> Server<L> {
         self.save_scoreboard();
         self.save_custom_boss_bars();
         self.save_forced_chunks();
+        self.save_world_border();
         self.save_dragon_fight();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);

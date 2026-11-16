@@ -937,6 +937,7 @@ impl<L: ClientLink> Server<L> {
         });
         self.teleport_now(id, if elsewhere { spawn } else { position });
         let time = self.time_event();
+        let border = self.border_event();
         let difficulty = self.world.difficulty;
         let raining = self.world.level.raining;
         let thundering = self.world.level.thundering;
@@ -965,6 +966,7 @@ impl<L: ClientLink> Server<L> {
             level: player.permission_level(),
         });
         link.send(time);
+        link.send(border);
         if raining {
             link.send(ClientEvent::GameEvent(GameEvent::StartRaining));
             link.send(ClientEvent::GameEvent(GameEvent::RainLevelChange(1.0)));

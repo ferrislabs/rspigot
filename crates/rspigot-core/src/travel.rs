@@ -458,6 +458,7 @@ impl<L: ClientLink> Server<L> {
             )
         });
         let time = self.time_event();
+        let border = self.border_event();
         let difficulty = self.world.difficulty;
         let raining = self.world.level.raining;
         let thundering = self.world.level.thundering;
@@ -494,6 +495,7 @@ impl<L: ClientLink> Server<L> {
             pitch: 0.0,
         });
         player.link.send(time);
+        player.link.send(border);
         if raining {
             player
                 .link

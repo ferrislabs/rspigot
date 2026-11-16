@@ -412,6 +412,15 @@ pub trait CommandContext {
         false
     }
 
+    fn world_border(&self) -> rspigot_domain::world_border::WorldBorder;
+
+    fn world_game_time(&self) -> i64;
+
+    fn change_world_border<R>(
+        &mut self,
+        change: impl FnOnce(&mut rspigot_domain::world_border::WorldBorder, i64) -> R,
+    ) -> R;
+
     fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate;
 
     fn change_tick_rate<R>(
@@ -673,7 +682,7 @@ pub fn execute<C: CommandContext>(
             super::movement_commands::run(ctx, sender, &label, rest)
         }
         "tick" => super::tick_commands::run(ctx, sender, rest),
-        "forceload" => super::world_commands::run(ctx, sender, &label, rest),
+        "forceload" | "worldborder" => super::world_commands::run(ctx, sender, &label, rest),
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),
@@ -2055,6 +2064,7 @@ mod tests {
         plugins: Vec<String>,
         board: Scoreboard,
         ticking: rspigot_domain::tick_rate::TickRate,
+        border: rspigot_domain::world_border::WorldBorder,
     }
 
     fn alice() -> PlayerId {
@@ -2062,6 +2072,18 @@ mod tests {
     }
 
     impl CommandContext for FakeContext {
+        fn world_border(&self) -> rspigot_domain::world_border::WorldBorder {
+            self.border.clone()
+        }
+        fn world_game_time(&self) -> i64 {
+            0
+        }
+        fn change_world_border<R>(
+            &mut self,
+            change: impl FnOnce(&mut rspigot_domain::world_border::WorldBorder, i64) -> R,
+        ) -> R {
+            change(&mut self.border, 0)
+        }
         fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate {
             self.ticking.clone()
         }

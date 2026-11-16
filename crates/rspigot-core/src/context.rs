@@ -499,6 +499,27 @@ impl<L: ClientLink> CommandContext for Server<L> {
         }
     }
 
+    fn world_border(&self) -> rspigot_domain::world_border::WorldBorder {
+        self.world.border.clone()
+    }
+
+    fn world_game_time(&self) -> i64 {
+        self.world.level.game_time
+    }
+
+    fn change_world_border<R>(
+        &mut self,
+        change: impl FnOnce(&mut rspigot_domain::world_border::WorldBorder, i64) -> R,
+    ) -> R {
+        let now = self.world.level.game_time;
+        let before = self.world.border.view(now);
+        let result = change(&mut self.world.border, now);
+        if self.world.border.view(now) != before {
+            self.broadcast_border();
+        }
+        result
+    }
+
     fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate {
         self.tick_rate.clone()
     }

@@ -48,6 +48,7 @@ pub enum DamageType {
     SulfurCubeHot,
     LightningBolt,
     Fireworks,
+    OutsideBorder,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -86,7 +87,7 @@ impl DamageTag {
 }
 
 impl DamageType {
-    pub const ALL: [Self; 38] = [
+    pub const ALL: [Self; 39] = [
         Self::Fall,
         Self::OutOfWorld,
         Self::FallingAnvil,
@@ -125,6 +126,7 @@ impl DamageType {
         Self::SulfurCubeHot,
         Self::LightningBolt,
         Self::Fireworks,
+        Self::OutsideBorder,
     ];
 
     pub fn from_name(name: &str) -> Option<Self> {
@@ -171,6 +173,7 @@ impl DamageType {
             Self::SulfurCubeHot => "minecraft:sulfur_cube_hot",
             Self::LightningBolt => "minecraft:lightning_bolt",
             Self::Fireworks => "minecraft:fireworks",
+            Self::OutsideBorder => "minecraft:outside_border",
         }
     }
 
@@ -213,6 +216,7 @@ impl DamageType {
             Self::SulfurCubeHot => "sulfurCubeHot",
             Self::LightningBolt => "lightningBolt",
             Self::Fireworks => "fireworks",
+            Self::OutsideBorder => "outsideBorder",
         }
     }
 
