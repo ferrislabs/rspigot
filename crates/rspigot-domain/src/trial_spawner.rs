@@ -701,8 +701,10 @@ mod tests {
     #[test]
     fn a_new_mob_waits_for_the_delay_and_for_a_free_slot() {
         let config = Config::default();
-        let mut data = Data::default();
-        data.next_mob_spawns_at = 100;
+        let mut data = Data {
+            next_mob_spawns_at: 100,
+            ..Data::default()
+        };
         assert!(!data.is_ready_to_spawn_next_mob(99, &config, 0));
         assert!(data.is_ready_to_spawn_next_mob(100, &config, 0));
         data.current_mobs = vec![Uuid::from_u128(1), Uuid::from_u128(2)];
@@ -727,8 +729,10 @@ mod tests {
     #[test]
     fn the_wave_is_over_once_every_target_mob_was_spawned() {
         let config = Config::default();
-        let mut data = Data::default();
-        data.total_mobs_spawned = 5;
+        let mut data = Data {
+            total_mobs_spawned: 5,
+            ..Data::default()
+        };
         assert!(!data.has_finished_spawning_all_mobs(&config, 0));
         data.total_mobs_spawned = 6;
         assert!(data.has_finished_spawning_all_mobs(&config, 0));

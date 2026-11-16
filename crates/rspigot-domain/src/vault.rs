@@ -410,8 +410,10 @@ mod tests {
 
     #[test]
     fn the_insert_failure_sound_is_throttled() {
-        let mut data = ServerData::default();
-        data.last_insert_fail = 100;
+        let data = ServerData {
+            last_insert_fail: 100,
+            ..ServerData::default()
+        };
         assert!(!data.can_play_insert_fail(114));
         assert!(data.can_play_insert_fail(115));
     }

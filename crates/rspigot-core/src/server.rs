@@ -117,6 +117,7 @@ pub struct Server<L> {
     pub(crate) rng: StdRng,
     pub(crate) spawning: Spawning,
     pub(crate) raids: crate::raids::RaidRuntime,
+    pub(crate) trial: crate::trial_spawner::TrialRuntime,
     pub(crate) scoreboard: crate::scoreboard::ScoreboardState,
     pub(crate) custom_bars: rspigot_domain::custom_boss::CustomBossBars,
     pub(crate) plugins: Registry,
@@ -207,6 +208,7 @@ impl<L: ClientLink> Server<L> {
             rng: StdRng::from_os_rng(),
             spawning,
             raids: crate::raids::RaidRuntime::default(),
+            trial: crate::trial_spawner::TrialRuntime::default(),
             scoreboard: crate::scoreboard::ScoreboardState::default(),
             custom_bars: rspigot_domain::custom_boss::CustomBossBars::default(),
             plugins: Registry::default(),
@@ -1093,6 +1095,8 @@ impl<L: ClientLink> Server<L> {
         self.tick_campfires();
         self.tick_beehives();
         self.tick_spawners();
+        self.tick_trial_spawners();
+        self.tick_vaults();
         self.tick_inventories();
         if primary {
             self.players.extend(away.drain(..));

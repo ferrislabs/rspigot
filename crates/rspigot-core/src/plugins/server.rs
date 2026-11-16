@@ -1263,6 +1263,26 @@ impl<L: ClientLink> Server<L> {
                 self.finish_spawner_spawn(*step, cancelled);
                 Vec::new()
             }
+            Continuation::TrialSpawn(step) => {
+                self.finish_trial_spawn(*step, cancelled);
+                Vec::new()
+            }
+            Continuation::DispenseLoot(step) => {
+                let patch = patch_of!(patch, BlockDispenseLoot);
+                let specs = patch
+                    .dispensed_loot
+                    .apply(step.stacks.iter().map(crate::plugins::spec_of).collect());
+                let stacks = specs
+                    .iter()
+                    .filter_map(|spec| crate::plugins::stack_of(spec).ok().flatten())
+                    .collect();
+                self.finish_loot_dispense(*step, cancelled, stacks);
+                Vec::new()
+            }
+            Continuation::VaultDisplay(step) => {
+                self.finish_vault_display(*step, cancelled, patch_of!(patch, VaultDisplayItem));
+                Vec::new()
+            }
             Continuation::PlaceStand(step) => {
                 self.finish_stand_place(*step, cancelled);
                 Vec::new()
