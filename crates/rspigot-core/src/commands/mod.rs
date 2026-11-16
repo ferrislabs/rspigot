@@ -24,6 +24,7 @@ pub use dispatch::{
 };
 pub use entity_commands::DamageSpec;
 pub use tree::{ArgumentParser, CommandNode, CommandNodeKind, CommandTree, build_tree};
+pub use world_commands::FillBiomeProblem;
 
 #[cfg(test)]
 mod execute_tests;

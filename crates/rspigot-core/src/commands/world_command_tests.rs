@@ -426,3 +426,87 @@ fn spreadplayers_fails_when_there_is_no_room_or_the_height_is_below_the_world() 
         CommandOutcome::Failure
     );
 }
+
+fn biome_at(rig: &Rig, x: i32, y: i32, z: i32) -> u16 {
+    let pos = rspigot_domain::BlockPos::new(x, y, z);
+    let chunk = rig.server.world.chunks.get(pos.chunk()).expect("loaded");
+    let min_y = chunk.height().min_y;
+    let section = &chunk.sections()[((y - min_y) >> 4) as usize];
+    section
+        .biome(
+            ((x & 15) >> 2) as usize,
+            (((y - min_y) & 15) >> 2) as usize,
+            ((z & 15) >> 2) as usize,
+        )
+        .0
+}
+
+#[test]
+fn fillbiome_rewrites_the_quantized_cells_and_resends_the_chunk() {
+    let mut rig = rig();
+    for _ in 0..5 {
+        rig.server.tick();
+    }
+    rig.link.take();
+    let desert = rspigot_data::registries::biome_id("minecraft:desert").expect("desert");
+    assert_ne!(biome_at(&rig, 1, 65, 1), desert);
+    assert_eq!(
+        rig.run("fillbiome 1 65 1 7 71 7 minecraft:desert"),
+        CommandOutcome::Success
+    );
+    assert_eq!(biome_at(&rig, 1, 65, 1), desert);
+    assert_eq!(biome_at(&rig, 5, 69, 5), desert);
+    let events = rig.link.take();
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, ClientEvent::Chunk { .. }))
+    );
+    let texts: Vec<String> = events
+        .iter()
+        .filter_map(|event| match event {
+            ClientEvent::SystemChat { message, .. } => Some(message.plain_text()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(texts, ["commands.fillbiome.success.count 8 0 64 0 4 68 4"]);
+}
+
+#[test]
+fn fillbiome_replace_only_touches_the_filtered_biome_and_reports_no_change() {
+    let mut rig = rig();
+    rig.run("fillbiome 0 64 0 7 71 7 minecraft:desert");
+    rig.texts();
+    assert_eq!(
+        rig.run("fillbiome 0 64 0 7 71 7 minecraft:plains replace minecraft:desert"),
+        CommandOutcome::Success
+    );
+    assert_eq!(
+        rig.run("fillbiome 0 64 0 7 71 7 minecraft:plains replace minecraft:desert"),
+        CommandOutcome::Failure
+    );
+    assert_eq!(rig.texts()[1], "commands.fillbiome.no_changes");
+    assert_eq!(
+        rig.run("fillbiome 0 64 0 7 71 7 minecraft:plains"),
+        CommandOutcome::Failure
+    );
+}
+
+#[test]
+fn fillbiome_refuses_an_oversized_volume_an_unloaded_area_and_unknown_names() {
+    let mut rig = rig();
+    assert_eq!(
+        rig.run("fillbiome 0 0 0 100 100 100 minecraft:desert"),
+        CommandOutcome::Failure
+    );
+    assert_eq!(rig.texts(), ["commands.fillbiome.toobig 32768 1030301"]);
+    assert_eq!(
+        rig.run("fillbiome 10000 64 10000 10004 64 10004 minecraft:desert"),
+        CommandOutcome::Failure
+    );
+    assert_eq!(rig.texts(), ["argument.pos.unloaded"]);
+    assert_eq!(
+        rig.run("fillbiome 0 64 0 4 64 4 minecraft:nowhere"),
+        CommandOutcome::Failure
+    );
+}

@@ -459,6 +459,16 @@ pub trait CommandContext {
         (-64, 319)
     }
 
+    fn fill_biome(
+        &mut self,
+        _min: BlockPos,
+        _max: BlockPos,
+        _biome: u16,
+        _replaceable: Option<&[u16]>,
+    ) -> Result<i32, super::FillBiomeProblem> {
+        Err(super::FillBiomeProblem::NotLoaded)
+    }
+
     fn random_seed(&mut self) -> u64 {
         0x2545_F491_4F6C_DD1D
     }
@@ -690,7 +700,7 @@ pub fn execute<C: CommandContext>(
             super::movement_commands::run(ctx, sender, &label, rest)
         }
         "tick" => super::tick_commands::run(ctx, sender, rest),
-        "forceload" | "worldborder" | "spreadplayers" => {
+        "forceload" | "worldborder" | "spreadplayers" | "fillbiome" => {
             super::world_commands::run(ctx, sender, &label, rest)
         }
         "bossbar" => super::boss_commands::run(ctx, sender, rest),

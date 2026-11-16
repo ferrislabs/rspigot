@@ -555,6 +555,72 @@ impl<L: ClientLink> CommandContext for Server<L> {
         (height.min_y, height.min_y + height.height as i32 - 1)
     }
 
+    fn fill_biome(
+        &mut self,
+        min: BlockPos,
+        max: BlockPos,
+        biome: u16,
+        replaceable: Option<&[u16]>,
+    ) -> Result<i32, crate::commands::FillBiomeProblem> {
+        use crate::commands::FillBiomeProblem;
+        let (low, high) = (min.chunk(), max.chunk());
+        let mut chunks = Vec::new();
+        for x in low.x..=high.x {
+            for z in low.z..=high.z {
+                let pos = rspigot_domain::ChunkPos::new(x, z);
+                if !self.world.chunks.is_loaded(pos) {
+                    return Err(FillBiomeProblem::NotLoaded);
+                }
+                chunks.push(pos);
+            }
+        }
+        let new = rspigot_domain::BiomeId(biome);
+        let mut changed = 0;
+        let mut touched = Vec::new();
+        for pos in chunks {
+            let Some(column) = self.world.chunks.chunk_mut(pos) else {
+                continue;
+            };
+            let base_y = column.height().min_y;
+            let mut here = 0;
+            for (index, section) in column.sections_mut().iter_mut().enumerate() {
+                for by in 0..4usize {
+                    for bz in 0..4usize {
+                        for bx in 0..4usize {
+                            let block = BlockPos::new(
+                                pos.min_block_x() + bx as i32 * 4,
+                                base_y + index as i32 * 16 + by as i32 * 4,
+                                pos.min_block_z() + bz as i32 * 4,
+                            );
+                            let inside = (min.x..=max.x).contains(&block.x)
+                                && (min.y..=max.y).contains(&block.y)
+                                && (min.z..=max.z).contains(&block.z);
+                            if !inside {
+                                continue;
+                            }
+                            let old = section.biome(bx, by, bz);
+                            if old == new || replaceable.is_some_and(|only| !only.contains(&old.0))
+                            {
+                                continue;
+                            }
+                            section.set_biome(bx, by, bz, new);
+                            here += 1;
+                        }
+                    }
+                }
+            }
+            if here > 0 {
+                changed += here;
+                touched.push(pos);
+            }
+        }
+        if changed == 0 {
+            return Err(FillBiomeProblem::NoChange);
+        }
+        self.resend_chunks(&touched);
+        Ok(changed)
+    }
+
     fn random_seed(&mut self) -> u64 {
         rand::Rng::random::<u64>(&mut self.rng)
     }
@@ -1456,6 +1522,23 @@ fn selection_box(selector: &Selector, origin: Vec3) -> Option<Aabb> {
 }
 
 impl<L: ClientLink> Server<L> {
+    fn resend_chunks(&mut self, chunks: &[rspigot_domain::ChunkPos]) {
+        let dimension = self.world.dimension.key.clone();
+        for pos in chunks {
+            let Some(chunk) = self.world.chunks.get(*pos).cloned() else {
+                continue;
+            };
+            for player in self.players.values() {
+                if player.streamer.has_sent(*pos) {
+                    player.link.send(ClientEvent::Chunk {
+                        dimension: dimension.clone(),
+                        chunk: std::sync::Arc::clone(&chunk),
+                    });
+                }
+            }
+        }
+    }
+
     fn default_attribute_name(&self, kind: Kind, attribute: &str) -> Option<&'static str> {
         kind.default_attributes()
             .iter()

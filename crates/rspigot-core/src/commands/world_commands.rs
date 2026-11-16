@@ -5,6 +5,7 @@ use rspigot_domain::spread::{self, Bounds, Point};
 use rspigot_domain::world_border::{MAX_CENTER, MAX_SIZE};
 use rspigot_domain::{BlockPos, Vec3};
 
+use super::blocks::pos_at;
 use super::dispatch::{
     CommandContext, CommandOutcome, CommandSender, Target, fail, next_argument, parse_time, select,
     usage,
@@ -781,6 +782,130 @@ fn spreadplayers<C: CommandContext>(
     CommandOutcome::Success
 }
 
+pub enum FillBiomeProblem {
+    NotLoaded,
+    NoChange,
+}
+
+fn biome_id<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    raw: &str,
+) -> Result<u16, CommandOutcome> {
+    let name = if raw.contains(':') {
+        raw.to_owned()
+    } else {
+        format!("minecraft:{raw}")
+    };
+    rspigot_data::registries::biome_id(&name).ok_or_else(|| {
+        fail(
+            ctx,
+            sender,
+            "argument.resource.not_found",
+            vec![text(&name), text("minecraft:worldgen/biome")],
+        )
+    })
+}
+
+fn fillbiome<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -> CommandOutcome {
+    let help = "/fillbiome <from> <to> <biome> [replace <filter>]";
+    let (from, rest) = match pos_at(ctx, sender, rest) {
+        Ok(found) => found,
+        Err(error) => return super::server_commands::reply_err(ctx, sender, error),
+    };
+    let (to, rest) = match pos_at(ctx, sender, rest) {
+        Ok(found) => found,
+        Err(error) => return super::server_commands::reply_err(ctx, sender, error),
+    };
+    let Some((raw_biome, rest)) = next_argument(rest) else {
+        return usage(ctx, sender, help);
+    };
+    let biome = match biome_id(ctx, sender, raw_biome) {
+        Ok(found) => found,
+        Err(outcome) => return outcome,
+    };
+    let replaceable: Option<Vec<u16>> = match next_argument(rest) {
+        None => None,
+        Some(("replace", after)) => {
+            let Some((raw, _)) = next_argument(after) else {
+                return usage(ctx, sender, help);
+            };
+            match raw.strip_prefix('#') {
+                Some(tag) => {
+                    let name = if tag.contains(':') {
+                        tag.to_owned()
+                    } else {
+                        format!("minecraft:{tag}")
+                    };
+                    let Some(members) = rspigot_data::tags::tag("minecraft:worldgen/biome", &name)
+                    else {
+                        return fail(
+                            ctx,
+                            sender,
+                            "argument.resource_tag.not_found",
+                            vec![text(&name), text("minecraft:worldgen/biome")],
+                        );
+                    };
+                    Some(
+                        members
+                            .iter()
+                            .filter_map(|id| u16::try_from(*id).ok())
+                            .collect(),
+                    )
+                }
+                None => match biome_id(ctx, sender, raw) {
+                    Ok(found) => Some(vec![found]),
+                    Err(outcome) => return outcome,
+                },
+            }
+        }
+        Some(_) => return usage(ctx, sender, help),
+    };
+    let quantize = |pos: BlockPos| BlockPos::new(pos.x & !3, pos.y & !3, pos.z & !3);
+    let (from, to) = (quantize(from), quantize(to));
+    let min = BlockPos::new(from.x.min(to.x), from.y.min(to.y), from.z.min(to.z));
+    let max = BlockPos::new(from.x.max(to.x), from.y.max(to.y), from.z.max(to.z));
+    let volume =
+        i64::from(max.x - min.x + 1) * i64::from(max.y - min.y + 1) * i64::from(max.z - min.z + 1);
+    let limit = ctx
+        .game_rule_text("max_block_modifications")
+        .and_then(|value| value.parse::<i64>().ok())
+        .unwrap_or(32_768);
+    if volume > limit {
+        return fail(
+            ctx,
+            sender,
+            "commands.fillbiome.toobig",
+            vec![text(limit), text(volume)],
+        );
+    }
+    match ctx.fill_biome(min, max, biome, replaceable.as_deref()) {
+        Ok(changed) => {
+            ctx.record_result(changed);
+            ctx.reply(
+                sender,
+                Component::translatable(
+                    "commands.fillbiome.success.count",
+                    vec![
+                        text(changed),
+                        text(min.x),
+                        text(min.y),
+                        text(min.z),
+                        text(max.x),
+                        text(max.y),
+                        text(max.z),
+                    ],
+                ),
+            );
+            CommandOutcome::Success
+        }
+        Err(FillBiomeProblem::NotLoaded) => fail(ctx, sender, "argument.pos.unloaded", Vec::new()),
+        Err(FillBiomeProblem::NoChange) => {
+            fail(ctx, sender, "commands.fillbiome.no_changes", Vec::new())
+        }
+    }
+}
+
 pub(super) fn run<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -788,6 +913,7 @@ pub(super) fn run<C: CommandContext>(
     rest: &str,
 ) -> CommandOutcome {
     match label {
+        "fillbiome" => fillbiome(ctx, sender, rest),
         "worldborder" => worldborder(ctx, sender, rest),
         "spreadplayers" => spreadplayers(ctx, sender, rest),
         _ => forceload(ctx, sender, rest),

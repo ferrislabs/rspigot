@@ -19,7 +19,7 @@ fn reply_error<C: CommandContext>(
     CommandOutcome::Failure
 }
 
-fn pos_at<'a, C: CommandContext>(
+pub(super) fn pos_at<'a, C: CommandContext>(
     ctx: &C,
     sender: CommandSender,
     input: &'a str,
