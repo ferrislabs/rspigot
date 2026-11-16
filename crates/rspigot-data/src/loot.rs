@@ -221,6 +221,22 @@ pub enum FunctionKind {
         enchantment: &'static str,
         max_level: i32,
     },
+    EnchantRandomlyFrom {
+        options: &'static str,
+        only_compatible: bool,
+    },
+    EnchantRandomlyAmong {
+        options: &'static [&'static str],
+        only_compatible: bool,
+    },
+    SetStewEffect(&'static [(&'static str, IntProvider)]),
+    SetInstrument(&'static str),
+    SetEnchantments {
+        levels: &'static [(&'static str, IntProvider)],
+        add: bool,
+    },
+    ExplorationMap,
+    RequireMapId,
     SetOminousBottleAmplifier(IntProvider),
     SetDamage(FloatProvider),
     EnchantWithLevels {

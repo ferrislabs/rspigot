@@ -89,3 +89,23 @@ fn a_chest_without_a_loot_table_fires_nothing() {
     open_block(&mut s, &alice, CHEST);
     assert!(settled_for(&s.plugin, EventKind::LootGenerate).is_empty());
 }
+
+#[test]
+fn a_structure_chest_table_fills_the_chest_on_first_open() {
+    let mut s = world(
+        vec![
+            Seed::block(CHEST, BlockKind::Chest)
+                .carrying("LootTable", "minecraft:chests/simple_dungeon")
+                .carrying("LootTableSeed", 11i64),
+        ],
+        vec![observe(1, EventKind::LootGenerate)],
+    );
+    let alice = s.players[0].clone();
+    let view = open_block(&mut s, &alice, CHEST);
+    assert!(stocked(&view) > 0);
+    let events = settled_for(&s.plugin, EventKind::LootGenerate);
+    let EventPayload::LootGenerate(generated) = &events[0].payload else {
+        panic!("expected a loot generate");
+    };
+    assert_eq!(generated.loot_table, "minecraft:chests/simple_dungeon");
+}

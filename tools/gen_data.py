@@ -414,6 +414,7 @@ COMPOSITE_ENTRIES = {
 TABLE_TYPES = {
     "blocks": "minecraft:block",
     "entities": "minecraft:entity",
+    "chests": "minecraft:chest",
 }
 
 EXTRA_TABLES = [
@@ -1154,7 +1155,48 @@ class LootBuilder:
         elif kind == "minecraft:enchant_randomly":
             expect_keys(value, {"type", "condition", "options", "only_compatible"}, self.where)
             options = value.get("options")
-            if not isinstance(options, str) or options.startswith("#"):
+            if isinstance(options, str) and options.startswith("#"):
+                tag = normalize_id(options[1:])
+                if tag not in self.tag_table["minecraft:enchantment"]:
+                    fail("unknown enchantment tag %s in %s" % (tag, self.where))
+                return rs_struct(
+                    "Function",
+                    [
+                        ("condition", self.optional_condition(value)),
+                        (
+                            "kind",
+                            rs_struct(
+                                "FunctionKind::EnchantRandomlyFrom",
+                                [
+                                    ("options", rs_str(tag)),
+                                    ("only_compatible", rs_bool(value.get("only_compatible", True))),
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            if isinstance(options, list):
+                names = [normalize_id(name) for name in options]
+                for name in names:
+                    if name not in self.enchantments:
+                        fail("unknown enchantment %s in %s" % (name, self.where))
+                return rs_struct(
+                    "Function",
+                    [
+                        ("condition", self.optional_condition(value)),
+                        (
+                            "kind",
+                            rs_struct(
+                                "FunctionKind::EnchantRandomlyAmong",
+                                [
+                                    ("options", rs_slice([rs_str(name) for name in names])),
+                                    ("only_compatible", rs_bool(value.get("only_compatible", True))),
+                                ],
+                            ),
+                        ),
+                    ],
+                )
+            if not isinstance(options, str):
                 fail("unsupported enchant_randomly options in %s" % self.where)
             enchantment = normalize_id(options)
             if enchantment not in self.enchantments:
@@ -1179,6 +1221,51 @@ class LootBuilder:
                 "FunctionKind::EnchantWithLevels",
                 [("options", rs_str(normalize_id(options[1:]))), ("levels", self.int_provider(value["levels"]))],
             )
+        elif kind == "minecraft:set_stew_effect":
+            expect_keys(value, {"type", "condition", "effects"}, self.where)
+            entries = []
+            for effect in value["effects"]:
+                expect_keys(effect, {"type", "duration"}, self.where)
+                entries.append(
+                    rs_tuple([rs_str(normalize_id(effect["type"])), self.int_provider(effect["duration"])])
+                )
+            body = rs_call("FunctionKind::SetStewEffect", [rs_slice(entries)])
+        elif kind == "minecraft:set_instrument":
+            expect_keys(value, {"type", "condition", "options"}, self.where)
+            options = value["options"]
+            if not isinstance(options, str) or not options.startswith("#"):
+                fail("unsupported set_instrument options in %s" % self.where)
+            tag = normalize_id(options[1:])
+            if tag not in self.tag_table["minecraft:instrument"]:
+                fail("unknown instrument tag %s in %s" % (tag, self.where))
+            body = rs_call("FunctionKind::SetInstrument", [rs_str(tag)])
+        elif kind == "minecraft:set_enchantments":
+            expect_keys(value, {"type", "condition", "enchantments", "add"}, self.where)
+            entries = []
+            for name, level in value["enchantments"].items():
+                name = normalize_id(name)
+                if name not in self.enchantments:
+                    fail("unknown enchantment %s in %s" % (name, self.where))
+                entries.append(rs_tuple([rs_str(name), self.int_provider(level)]))
+            body = rs_struct(
+                "FunctionKind::SetEnchantments",
+                [("levels", rs_slice(entries)), ("add", rs_bool(value.get("add", False)))],
+            )
+        elif kind == "minecraft:exploration_map":
+            expect_keys(
+                value,
+                {"type", "condition", "decoration", "destination", "zoom", "skip_existing_chunks", "search_radius"},
+                self.where,
+            )
+            self.note_ignored(kind)
+            body = Atom("FunctionKind::ExplorationMap")
+        elif kind == "minecraft:filtered":
+            expect_keys(value, {"type", "condition", "item_filter", "on_fail"}, self.where)
+            if value["on_fail"] != {"type": "minecraft:discard"}:
+                fail("unsupported filtered on_fail in %s" % self.where)
+            if value["item_filter"] != {"predicates": {"minecraft:map_id": {}}}:
+                fail("unsupported filtered item_filter in %s" % self.where)
+            body = Atom("FunctionKind::RequireMapId")
         elif kind in COMPONENT_FUNCTIONS:
             self.note_ignored(kind)
             body = rs_call("FunctionKind::Components", [rs_str(kind)])
