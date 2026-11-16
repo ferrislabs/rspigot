@@ -14,6 +14,7 @@ use crate::structures::processors::{Step, Subject, position_seed};
 pub(crate) enum Mirror {
     None,
     FrontBack,
+    LeftRight,
 }
 
 pub(crate) fn transform(
@@ -23,6 +24,7 @@ pub(crate) fn transform(
     (px, pz): (i32, i32),
 ) -> Pos {
     let x = if mirror == Mirror::FrontBack { -x } else { x };
+    let z = if mirror == Mirror::LeftRight { -z } else { z };
     match rotation {
         Rotation::Counterclockwise90 => (px - pz + z, y, px + pz - x),
         Rotation::Clockwise90 => (px + pz - z, y, pz - px + x),
@@ -57,42 +59,43 @@ pub(crate) fn center(bbox: &Bbox) -> Pos {
 }
 
 pub(crate) fn mirrored(state: BlockStateId, mirror: Mirror) -> BlockStateId {
-    if mirror == Mirror::None {
-        return state;
-    }
+    let (along, first, second) = match mirror {
+        Mirror::None => return state,
+        Mirror::FrontBack => (["east", "west"], "east", "west"),
+        Mirror::LeftRight => (["north", "south"], "north", "south"),
+    };
     let Some(kind) = state.kind() else {
         return state;
     };
-    let name = kind.name();
-    let swap = |state: BlockStateId, first: &str, second: &str| match (
-        state.property(first),
-        state.property(second),
-    ) {
+    let swap = |state: BlockStateId| match (state.property(first), state.property(second)) {
         (Some(a), Some(b)) => state
             .with_property(first, b)
             .and_then(|next| next.with_property(second, a))
             .unwrap_or(state),
         _ => state,
     };
-    if name.ends_with("_stairs") {
-        let facing = state.property("facing").unwrap_or("north");
-        if !matches!(facing, "east" | "west") {
+    let facing = state.property("facing");
+    if kind.name().ends_with("_stairs") {
+        if !facing.is_some_and(|facing| along.contains(&facing)) {
             return state;
         }
         let turned = Rotation::Clockwise180.state(state);
         let shape = match state.property("shape") {
             Some("outer_left") => "outer_right",
             Some("outer_right") => "outer_left",
+            Some("inner_left") => "inner_right",
+            Some("inner_right") => "inner_left",
             Some(other) => other,
             None => "straight",
         };
         return turned.with_property("shape", shape).unwrap_or(turned);
     }
-    if name.ends_with("_wall") || kind == Kind::IronBars || kind == Kind::IronChain {
-        return swap(state, "east", "west");
+    let sides = ["north", "east", "south", "west"];
+    if sides.iter().all(|side| state.property(side).is_some()) {
+        return swap(state);
     }
-    match state.property("facing") {
-        Some("east" | "west") => Rotation::Clockwise180.state(state),
+    match facing {
+        Some(facing) if along.contains(&facing) => Rotation::Clockwise180.state(state),
         _ => state,
     }
 }
@@ -145,6 +148,7 @@ impl Tpl {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn line(&self) -> String {
         format!(
             "{} {} {} {} {}",

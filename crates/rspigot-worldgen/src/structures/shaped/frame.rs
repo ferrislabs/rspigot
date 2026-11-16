@@ -2,8 +2,10 @@ use rspigot_blocks::{BlockKind as Kind, Face, StateFlags, Support};
 use rspigot_domain::BlockStateId;
 use serde_json::{Value, json};
 
+use super::tpl::{Mirror, mirrored};
 use crate::climate::Xoroshiro;
 use crate::overworld::features::place::Run;
+use crate::overworld::features::structure::Rotation;
 use crate::overworld::region::Heightmap;
 use crate::structures::bbox::{Bbox, Pos};
 use crate::structures::blueprint::Dir;
@@ -127,6 +129,7 @@ pub(crate) struct Frame<'a, 'b, 'r> {
     pub(crate) facing: Option<Dir>,
     pub(crate) chunk: Bbox,
     guard: Guard,
+    orient: bool,
     marks: Vec<Pos>,
 }
 
@@ -144,8 +147,27 @@ impl<'a, 'b, 'r> Frame<'a, 'b, 'r> {
             facing,
             chunk,
             guard,
+            orient: false,
             marks: Vec::new(),
         }
+    }
+
+    pub(crate) fn oriented(mut self) -> Self {
+        self.orient = true;
+        self
+    }
+
+    fn turned(&self, state: BlockStateId) -> BlockStateId {
+        if !self.orient {
+            return state;
+        }
+        let (mirror, rotation) = match self.facing {
+            Some(Dir::South) => (Mirror::LeftRight, Rotation::None),
+            Some(Dir::West) => (Mirror::LeftRight, Rotation::Clockwise90),
+            Some(Dir::East) => (Mirror::None, Rotation::Clockwise90),
+            _ => (Mirror::None, Rotation::None),
+        };
+        rotation.state(mirrored(state, mirror))
     }
 
     pub(crate) fn world_x(&self, x: i32, z: i32) -> i32 {
@@ -209,9 +231,37 @@ impl<'a, 'b, 'r> Frame<'a, 'b, 'r> {
         if !self.chunk.contains(at) || !self.replaceable(x, y, z) {
             return;
         }
+        let state = self.turned(state);
         if self.run.region.set(at.0, at.1, at.2, state) && state.kind().is_some_and(shape_checked) {
             self.marks.push(at);
         }
+    }
+
+    pub(crate) fn column_down(&mut self, state: BlockStateId, x: i32, y: i32, z: i32) {
+        let mut at = self.world_pos(x, y, z);
+        if !self.chunk.contains(at) {
+            return;
+        }
+        let floor = self.run.region.height().min_y + 1;
+        while replaceable_by_structures(self.state_at(at)) && at.1 > floor {
+            self.run.region.set(at.0, at.1, at.2, state);
+            at.1 -= 1;
+        }
+    }
+
+    pub(crate) fn dispenser(&mut self, x: i32, y: i32, z: i32, facing: Dir, table: &str) -> bool {
+        let at = self.world_pos(x, y, z);
+        if !self.chunk.contains(at) || self.state_at(at).kind() == Some(Kind::Dispenser) {
+            return false;
+        }
+        self.place(
+            with(Kind::Dispenser, &[("facing", dir_name(facing))]),
+            x,
+            y,
+            z,
+        );
+        self.add_loot_entity(at, "minecraft:dispenser", table);
+        true
     }
 
     pub(crate) fn set_raw(&mut self, at: Pos, state: BlockStateId) {

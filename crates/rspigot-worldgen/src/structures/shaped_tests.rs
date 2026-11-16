@@ -45,7 +45,7 @@ fn expected(fixture: &str) -> Vec<((i32, i32), Option<Vec<String>>)> {
     starts
 }
 
-fn run<G: Ground, P: BiomeProbe>(name: &str, fixture: &str, ground: &G, probe: &P) {
+fn run<G: Ground, P: BiomeProbe>(seed: i64, name: &str, fixture: &str, ground: &G, probe: &P) {
     let library = Library::embedded();
     let structures = Structures::load(library);
     let def = structures.get(name).unwrap();
@@ -55,7 +55,7 @@ fn run<G: Ground, P: BiomeProbe>(name: &str, fixture: &str, ground: &G, probe: &
     let valid = valid_biomes(def, probe);
     let mut checked = 0;
     for (chunk, want) in expected(fixture) {
-        let got = other.generate(library, ground, &valid, probe, 1, chunk);
+        let got = other.generate(library, ground, &valid, probe, seed, chunk);
         match want {
             None => assert!(got.is_none(), "{chunk:?} must not start"),
             Some(want) => {
@@ -77,15 +77,20 @@ fn run<G: Ground, P: BiomeProbe>(name: &str, fixture: &str, ground: &G, probe: &
 }
 
 pub(super) fn check(name: &str, fixture: &str) {
+    check_seed(1, name, fixture);
+}
+
+pub(super) fn check_seed(seed: i64, name: &str, fixture: &str) {
     let resources = Resources::resolve();
     let overworld = Overworld::with_library(
-        1,
+        seed as u64,
         ClimateVariant::Normal,
         &resources.blocks,
         Library::embedded(),
     );
     let dimension = Dimension::overworld();
     run(
+        seed,
         name,
         fixture,
         &overworld.ground(&dimension),
@@ -98,6 +103,7 @@ pub(super) fn check_nether(name: &str, fixture: &str) {
     let nether = Nether::with_library(1, &resources.blocks, Library::embedded());
     let dimension = Dimension::nether();
     run(
+        1,
         name,
         fixture,
         &nether.ground(&dimension),
@@ -305,6 +311,7 @@ fn warm_ocean_ruin_starts_match_vanilla() {
 
 fn first_placed(
     overworld: &Overworld,
+    seed: i64,
     set_name: &str,
     structure: &str,
     range: std::ops::RangeInclusive<i32>,
@@ -317,7 +324,7 @@ fn first_placed(
     let sets = StructureSets::load(library);
     let world = Chunks {
         sets: &sets,
-        seed: 1,
+        seed,
         biomes: &probe,
     };
     let set = sets.all().iter().find(|set| set.name == set_name).unwrap();
@@ -331,7 +338,7 @@ fn first_placed(
         for z in range.clone() {
             if world.is_structure_chunk(set, x, z)
                 && other
-                    .generate(library, &ground, &valid, &probe, 1, (x, z))
+                    .generate(library, &ground, &valid, &probe, seed, (x, z))
                     .is_some()
             {
                 return (x, z);
@@ -352,7 +359,7 @@ fn ocean_ruins_are_built_into_the_generated_chunks() {
         Library::embedded(),
     );
     for structure in ["ocean_ruin_cold", "ocean_ruin_warm"] {
-        let (cx, cz) = first_placed(&overworld, "ocean_ruins", structure, -80..=80);
+        let (cx, cz) = first_placed(&overworld, 1, "ocean_ruins", structure, -80..=80);
         let mut stone = 0;
         for dx in -1..=1 {
             for dz in -1..=1 {
@@ -372,4 +379,73 @@ fn ocean_ruins_are_built_into_the_generated_chunks() {
         }
         assert!(stone >= 5, "{structure} at {cx},{cz}: {stone}");
     }
+}
+
+#[test]
+fn desert_pyramid_starts_match_vanilla() {
+    check_seed(
+        3,
+        "desert_pyramid",
+        include_str!("fixtures/shaped_desert_pyramid_3.txt"),
+    );
+}
+
+#[test]
+fn jungle_temple_starts_match_vanilla() {
+    check_seed(
+        3,
+        "jungle_pyramid",
+        include_str!("fixtures/shaped_jungle_pyramid_3.txt"),
+    );
+}
+
+#[test]
+fn swamp_hut_starts_match_vanilla() {
+    check_seed(
+        5,
+        "swamp_hut",
+        include_str!("fixtures/shaped_swamp_hut_5.txt"),
+    );
+}
+
+#[test]
+fn a_desert_pyramid_is_built_into_the_generated_chunks() {
+    use rspigot_blocks::BlockKind;
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        3,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    let (cx, cz) = first_placed(
+        &overworld,
+        3,
+        "desert_pyramids",
+        "desert_pyramid",
+        -300..=300,
+    );
+    let mut tnt = 0;
+    let mut chests = 0;
+    let mut cut = 0;
+    let mut dusty = 0;
+    for dx in 0..=1 {
+        for dz in 0..=1 {
+            let chunk = (cx + dx, cz + dz);
+            tnt += count_blocks(&overworld, &resources, chunk, |kind| kind == BlockKind::Tnt);
+            chests += count_blocks(&overworld, &resources, chunk, |kind| {
+                kind == BlockKind::Chest
+            });
+            cut += count_blocks(&overworld, &resources, chunk, |kind| {
+                kind == BlockKind::CutSandstone
+            });
+            dusty += count_blocks(&overworld, &resources, chunk, |kind| {
+                kind == BlockKind::SuspiciousSand
+            });
+        }
+    }
+    assert_eq!(tnt, 9, "tnt at {cx},{cz}");
+    assert_eq!(chests, 4, "chests at {cx},{cz}");
+    assert!(cut > 100, "cut sandstone {cut}");
+    assert!((5..=8).contains(&dusty), "suspicious sand {dusty}");
 }
