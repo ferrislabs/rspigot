@@ -1,5 +1,6 @@
 pub(crate) mod frame;
 pub(crate) mod mineshaft;
+pub(crate) mod stronghold;
 
 use rspigot_nbt::{Compound, Tag};
 
@@ -9,18 +10,21 @@ use crate::overworld::features::place::Run;
 #[derive(Debug)]
 pub(crate) enum Shaped {
     Mine(mineshaft::Piece),
+    Stronghold(stronghold::Piece),
 }
 
 impl Shaped {
     pub(crate) fn bbox(&self) -> &Bbox {
         match self {
             Self::Mine(piece) => &piece.bbox,
+            Self::Stronghold(piece) => &piece.bbox,
         }
     }
 
     pub(crate) fn place(&self, run: &mut Run, write: &Bbox) {
         match self {
             Self::Mine(piece) => piece.place(run, write),
+            Self::Stronghold(piece) => piece.place(run, write),
         }
     }
 
@@ -30,6 +34,13 @@ impl Shaped {
                 piece.id(),
                 piece.bbox,
                 piece.facing,
+                piece.depth,
+                piece.extra(),
+            ),
+            Self::Stronghold(piece) => (
+                piece.id(),
+                piece.bbox,
+                Some(piece.facing),
                 piece.depth,
                 piece.extra(),
             ),

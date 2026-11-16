@@ -7,7 +7,7 @@ use super::library::Library;
 use super::placement::{BiomeProbe, large_feature_seed};
 use super::pool::{Element, Pools};
 use super::sets::{Chunks, StructureSet, StructureSets};
-use super::shaped::{Shaped, mineshaft};
+use super::shaped::{Shaped, mineshaft, stronghold};
 use super::structure::{Kind, StructureDef, Structures, generate_jigsaw, valid_biomes};
 use crate::legacy::JavaRandom;
 use crate::overworld::features::compile_placed;
@@ -69,7 +69,7 @@ fn step_index(name: &str) -> usize {
 
 fn supported(def: &StructureDef, pools: &Pools) -> bool {
     let Kind::Jigsaw(jigsaw) = &def.kind else {
-        return matches!(def.kind, Kind::Mineshaft(_));
+        return matches!(def.kind, Kind::Mineshaft(_) | Kind::Stronghold);
     };
     if jigsaw.aliased {
         return false;
@@ -176,6 +176,20 @@ impl Engine {
                     chunk,
                     pieces: Vec::new(),
                     shapes: pieces.into_iter().map(Shaped::Mine).collect(),
+                    bbox,
+                });
+            }
+            Kind::Stronghold => {
+                let pieces = stronghold::generate(ground, valid, probe, self.seed, chunk)?;
+                let mut bbox = pieces.first()?.bbox;
+                for piece in &pieces {
+                    bbox.encapsulate(&piece.bbox);
+                }
+                return Some(Start {
+                    name: def.name.clone(),
+                    chunk,
+                    pieces: Vec::new(),
+                    shapes: pieces.into_iter().map(Shaped::Stronghold).collect(),
                     bbox,
                 });
             }

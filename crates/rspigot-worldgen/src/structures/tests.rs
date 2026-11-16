@@ -679,4 +679,110 @@ mod shaped {
         assert!(cave_air > 200, "cave air {cave_air}");
         assert!(planks > 10, "planks {planks}");
     }
+
+    fn check_stronghold(seed: i64, chunk: (i32, i32), fixture: &str) {
+        use super::super::shaped::stronghold;
+        let resources = Resources::resolve();
+        let overworld = Overworld::with_library(
+            seed as u64,
+            ClimateVariant::Normal,
+            &resources.blocks,
+            with_extras(),
+        );
+        let dimension = Dimension::overworld();
+        let probe = overworld.biome_probe();
+        let ground = overworld.ground(&dimension);
+        let structures = Structures::load(with_extras());
+        let valid = valid_biomes(structures.get("stronghold").unwrap(), &probe);
+        let pieces = stronghold::generate(&ground, &valid, &probe, seed, chunk)
+            .expect("start must be valid");
+        let want: Vec<&str> = fixture
+            .lines()
+            .filter(|line| line.starts_with("PIECE"))
+            .map(|line| line.splitn(3, ' ').nth(2).unwrap())
+            .collect();
+        for (index, (piece, want)) in pieces.iter().zip(&want).enumerate() {
+            let b = piece.bbox;
+            let got = format!(
+                "{} {} {} {} {} {} {} {}",
+                piece.class(),
+                b.min.0,
+                b.min.1,
+                b.min.2,
+                b.max.0,
+                b.max.1,
+                b.max.2,
+                facing(Some(piece.facing))
+            );
+            assert_eq!(got, *want, "piece {index}");
+        }
+        assert_eq!(pieces.len(), want.len(), "piece count");
+    }
+
+    #[test]
+    fn stronghold_layout_matches_vanilla_for_the_first_ring() {
+        check_stronghold(
+            1,
+            (-9, -113),
+            include_str!("fixtures/stronghold_1_-9_-113.txt"),
+        );
+    }
+
+    #[test]
+    fn a_small_stronghold_matches_vanilla() {
+        check_stronghold(
+            1,
+            (108, 44),
+            include_str!("fixtures/stronghold_1_108_44.txt"),
+        );
+    }
+
+    #[test]
+    fn a_stronghold_with_libraries_matches_vanilla() {
+        check_stronghold(
+            1,
+            (-71, 53),
+            include_str!("fixtures/stronghold_1_-71_53.txt"),
+        );
+    }
+
+    #[test]
+    fn a_west_facing_stronghold_matches_vanilla() {
+        check_stronghold(
+            1,
+            (165, -260),
+            include_str!("fixtures/stronghold_1_165_-260.txt"),
+        );
+    }
+
+    #[test]
+    fn a_stronghold_portal_room_is_built_into_the_generated_chunks() {
+        use rspigot_blocks::BlockKind;
+        use rspigot_domain::{BlockPos, ChunkPos};
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let mut frames = 0;
+        let mut spawners = 0;
+        for cx in -7..=-6 {
+            let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, -112));
+            spawners += column
+                .block_entities
+                .iter()
+                .filter(|entity| entity.kind.as_str() == "minecraft:mob_spawner")
+                .count();
+            for y in -44..=-37 {
+                for x in 0..16 {
+                    for z in 0..16 {
+                        let at = BlockPos::new(cx * 16 + x, y, -112 * 16 + z);
+                        let kind = column.block(at).and_then(|state| state.kind());
+                        frames += usize::from(kind == Some(BlockKind::EndPortalFrame));
+                    }
+                }
+            }
+        }
+        assert_eq!(frames, 12);
+        assert_eq!(spawners, 1);
+    }
 }

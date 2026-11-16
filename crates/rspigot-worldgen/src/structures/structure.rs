@@ -43,6 +43,7 @@ impl HeightAnchor {
 pub(crate) enum Kind {
     Jigsaw(JigsawDef),
     Mineshaft(super::shaped::mineshaft::Type),
+    Stronghold,
     Other,
 }
 
@@ -173,6 +174,8 @@ impl Structures {
                             .and_then(Value::as_str)
                             .unwrap_or("normal"),
                     ))
+                } else if kind_name == "stronghold" {
+                    Kind::Stronghold
                 } else {
                     Kind::Other
                 };
