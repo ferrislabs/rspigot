@@ -89,7 +89,7 @@ impl Piece {
         match self.temple {
             Temple::Desert => self.place_desert(run, write),
             Temple::Jungle => self.place_jungle(run, write),
-            Temple::SwampHut => {}
+            Temple::SwampHut => self.place_hut(run, write),
         }
     }
 

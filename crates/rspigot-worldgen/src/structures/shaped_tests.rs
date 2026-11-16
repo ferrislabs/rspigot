@@ -488,3 +488,44 @@ fn a_jungle_temple_is_built_into_the_generated_chunks() {
     assert_eq!(dispensers, 2);
     assert_eq!(hooks, 4);
 }
+
+#[test]
+fn a_swamp_hut_is_built_into_the_generated_chunks() {
+    use rspigot_blocks::BlockKind;
+    use rspigot_domain::ChunkPos;
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        5,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    let dimension = Dimension::overworld();
+    let (cx, cz) = first_placed(&overworld, 5, "swamp_huts", "swamp_hut", -300..=300);
+    let mut tables = 0;
+    let mut cauldrons = 0;
+    let mut witches = 0;
+    let mut cats = 0;
+    for dx in 0..=1 {
+        for dz in 0..=1 {
+            let chunk = (cx + dx, cz + dz);
+            tables += count_blocks(&overworld, &resources, chunk, |kind| {
+                kind == BlockKind::CraftingTable
+            });
+            cauldrons += count_blocks(&overworld, &resources, chunk, |kind| {
+                kind == BlockKind::Cauldron
+            });
+            let spawned = overworld.structure_entities(&dimension, ChunkPos::new(chunk.0, chunk.1));
+            witches += spawned
+                .iter()
+                .filter(|entity| entity.get_str("id") == Some("minecraft:witch"))
+                .count();
+            cats += spawned
+                .iter()
+                .filter(|entity| entity.get_str("id") == Some("minecraft:cat"))
+                .count();
+        }
+    }
+    assert_eq!((tables, cauldrons), (1, 1), "hut at {cx},{cz}");
+    assert_eq!((witches, cats), (1, 1));
+}
