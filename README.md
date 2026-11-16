@@ -66,6 +66,22 @@ Like Spigot's `onEnable` and `onDisable`, the `#[listeners]` block may hold `asy
 
 `player.ban(reason, expires)`, `server.bans` and `server.ip_bans` use the same ban lists as the `/ban`, `/ban-ip`, `/pardon`, `/pardon-ip` and `/banlist` commands. The lists are kept in `banned-players.json` and `banned-ips.json`, in the vanilla format. Banning a name the server has never seen stores an entry without a UUID; it matches that name at login and gets the UUID then. A vanilla server skips such entries. A ban reason is stored as given, as vanilla stores it, and is not parsed as `§` text; `§` codes in it still render on the client.
 
+## Datapacks
+
+The server reads worldgen datapacks from `<world>/datapacks/`, in the vanilla layout: one folder per pack, each with a `pack.mcmeta`. Zipped packs are not read; extract them. Packs apply in alphabetical order, and a later pack replaces an earlier one that uses the same identifier, a vanilla one included. A file that fails to load is skipped with a warning in the log; the server keeps starting. Datapacks are read once at startup.
+
+Villages, pillager outposts and the non-jigsaw structures are built in. Abandoned camps, ancient cities, bastions, trail ruins and trial chambers live in [`datapacks/vanilla-extras`](datapacks/vanilla-extras): copy that folder into `<world>/datapacks/` to get them.
+
+To add a custom structure, put these files in a pack (`<ns>` is your namespace), with the same JSON as vanilla:
+
+- `data/<ns>/structure/<name>.nbt`: the gzip NBT template, saved from a structure block.
+- `data/<ns>/worldgen/template_pool/<name>.json`: a pool whose `location` is `<ns>:<name>`.
+- `data/<ns>/worldgen/structure/<name>.json`: a `minecraft:jigsaw` structure with a `start_pool`, `biomes` (a list or a `#tag`), `step` and `size`.
+- `data/<ns>/worldgen/structure_set/<name>.json`: the `placement` (`random_spread` or `concentric_rings`) and the structure with its weight.
+- Optional: `worldgen/processor_list` and biome tags in `tags/worldgen/biome`.
+
+[`example/datapacks/custom-hut`](example/datapacks/custom-hut) is a complete one-template example, built by `tools/gen_example_datapack.py`. Only jigsaw structures are generated from packs; other structure types in a pack are loaded but not placed. `python3 -I tools/gen_structures.py --datapack-out datapacks/vanilla-extras` rebuilds the extras pack from a decompiled vanilla datapack.
+
 ## Probe
 
 `rspigot-probe` is an offline-mode client that logs in like a 26.3 client and measures chunk delivery:
