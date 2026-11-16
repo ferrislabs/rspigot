@@ -14,4 +14,5 @@ pub mod sulfur_cube;
 pub mod synced;
 pub mod tags;
 pub mod trading;
+pub mod trial_spawner;
 pub mod variants;

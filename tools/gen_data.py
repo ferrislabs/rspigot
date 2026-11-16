@@ -420,6 +420,11 @@ TABLE_TYPES = {
 EXTRA_TABLES = [
     ("minecraft:charged_creeper/root", "minecraft:entity"),
     ("minecraft:brush/armadillo", "minecraft:entity_interact"),
+    ("minecraft:spawners/trial_chamber/consumables", "minecraft:chest"),
+    ("minecraft:spawners/trial_chamber/items_to_drop_when_ominous", "minecraft:chest"),
+    ("minecraft:spawners/trial_chamber/key", "minecraft:chest"),
+    ("minecraft:spawners/ominous/trial_chamber/consumables", "minecraft:chest"),
+    ("minecraft:spawners/ominous/trial_chamber/key", "minecraft:chest"),
     ("minecraft:gameplay/armadillo_shed", "minecraft:gift"),
     ("minecraft:gameplay/sniffer_digging", "minecraft:gift"),
     ("minecraft:gameplay/cat_morning_gift", "minecraft:gift"),
@@ -2822,6 +2827,94 @@ def emit_sulfur_cube_archetypes(archetypes):
     return "use crate::sulfur_cube::{%s};\n\n" % ", ".join(used_imports(text, names)) + text
 
 
+TRIAL_SPAWNER_KEYS = {
+    "spawn_range",
+    "total_mobs",
+    "simultaneous_mobs",
+    "total_mobs_added_per_player",
+    "simultaneous_mobs_added_per_player",
+    "ticks_between_spawn",
+    "spawn_potentials",
+    "loot_tables_to_eject",
+    "items_to_drop_when_ominous",
+}
+
+
+def snbt_of(value, where):
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, str):
+        assert re.match(r"^[a-z0-9_.:/\-]+$", value), (where, value)
+        return '"' + value + '"'
+    if isinstance(value, dict):
+        return "{" + ",".join('%s:%s' % (key, snbt_of(value[key], where)) for key in sorted(value)) + "}"
+    fail("unsupported spawn data value in %s: %s" % (where, json.dumps(value)))
+
+
+def build_trial_spawners(datapack):
+    root = os.path.join(datapack, "trial_spawner")
+    configs = []
+    for name in json_names(root):
+        value = load_json(os.path.join(root, name + ".json"))
+        where = "trial spawner " + name
+        expect_keys(value, TRIAL_SPAWNER_KEYS, where)
+        potentials = []
+        for entry in value.get("spawn_potentials", []):
+            expect_keys(entry, {"data", "weight"}, where)
+            data = entry["data"]
+            expect_keys(data, {"entity", "equipment"}, where)
+            equipment = None
+            if "equipment" in data:
+                expect_keys(data["equipment"], {"loot_table", "slot_drop_chances"}, where)
+                equipment = rs_str(normalize_id(data["equipment"]["loot_table"]))
+            potentials.append(
+                rs_struct(
+                    "WeightedSpawn",
+                    [
+                        ("entity", Atom('r#"' + snbt_of(data["entity"], where) + '"#')),
+                        ("equipment", rs_option(equipment)),
+                        ("weight", rs_int(entry["weight"])),
+                    ],
+                )
+            )
+        ejects = []
+        for entry in value.get("loot_tables_to_eject", []):
+            expect_keys(entry, {"data", "weight"}, where)
+            ejects.append(rs_tuple([rs_str(normalize_id(entry["data"])), rs_int(entry["weight"])]))
+        fields = [("name", rs_str("minecraft:" + name))]
+        for key in (
+            "spawn_range",
+            "total_mobs",
+            "simultaneous_mobs",
+            "total_mobs_added_per_player",
+            "simultaneous_mobs_added_per_player",
+            "ticks_between_spawn",
+        ):
+            integer = key in ("spawn_range", "ticks_between_spawn")
+            node = None
+            if key in value:
+                node = rs_int(value[key]) if integer else rs_f32(value[key])
+            fields.append((key, rs_option(node)))
+        fields.append(("spawn_potentials", rs_slice(potentials)))
+        fields.append(("loot_tables_to_eject", rs_option(rs_slice(ejects) if ejects else None)))
+        drop = value.get("items_to_drop_when_ominous")
+        fields.append(("items_to_drop_when_ominous", rs_option(rs_str(normalize_id(drop)) if drop else None)))
+        configs.append(rs_struct("Config", fields))
+    return configs
+
+
+def emit_trial_spawners(configs):
+    out = ["pub(crate) static CONFIGS: [Config; %d] = [" % len(configs)]
+    for node in configs:
+        out.extend(render(node, "    ", "", ","))
+    out.append("];")
+    text = "\n".join(out) + "\n"
+    names = ["Config", "WeightedSpawn"]
+    return "use crate::trial_spawner::{%s};\n\n" % ", ".join(used_imports(text, names)) + text
+
+
 def emit_mod():
     return "\n".join(
         [
@@ -2841,6 +2934,7 @@ def emit_mod():
             "pub mod synced;",
             "pub mod tags;",
             "pub mod trading;",
+            "pub mod trial_spawner;",
             "pub mod variants;",
             "",
         ]
@@ -2890,6 +2984,7 @@ def main():
     compost_providers, compostables = build_compostables(args.reports, args.datapack, static_registries)
     trading = build_trading(args.datapack, args.reports, static_registries, synced, tag_table)
     sulfur_cube = build_sulfur_cube_archetypes(args.datapack, tag_table)
+    trial_spawners = build_trial_spawners(args.datapack)
     enchantment_defs = build_enchantments(args.datapack, synced)
     effect_nodes, _ = build_enchantment_effects(args.datapack, synced, loot_builder)
 
@@ -2908,6 +3003,7 @@ def main():
         "enchantment_effects.rs": emit_enchantment_effects(effect_nodes),
         "trading.rs": emit_trading(*trading),
         "sulfur_cube.rs": emit_sulfur_cube_archetypes(sulfur_cube),
+        "trial_spawner.rs": emit_trial_spawners(trial_spawners),
     }
     write_files(args.out, files)
 
@@ -2937,6 +3033,7 @@ def main():
         print("variants %-24s %3d" % (constant, len(entries)))
     print("dye mixes %d" % len(dye_mixes))
     print("sulfur cube archetypes %d" % len(sulfur_cube))
+    print("trial spawner configs %d" % len(trial_spawners))
     print("compostable items %d" % len(compostables))
     print("enchantments %d, trades %d, trade sets %d" % (len(trading[0]), len(trading[2]), len(trading[3])))
     for construct in sorted(ignored):

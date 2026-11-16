@@ -334,6 +334,7 @@ mod tests {
     const REFERENCED_TABLES: usize = 1;
     const GAMEPLAY_TABLES: usize = 22;
     const CHEST_TABLE_FILES: usize = 58;
+    const SPAWNER_TABLES: usize = 5;
     const FISHING_TABLES: usize = 3;
     const BRUSH_TABLES: usize = 1;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
@@ -418,6 +419,7 @@ mod tests {
                 + ENTITY_TABLE_FILES
                 + REFERENCED_TABLES
                 + CHEST_TABLE_FILES
+                + SPAWNER_TABLES
                 + GAMEPLAY_TABLES
                 + FISHING_TABLES
                 + BRUSH_TABLES
@@ -450,6 +452,7 @@ mod tests {
         assert_eq!(count("minecraft:charged_creeper/"), CHARGED_CREEPER_TABLES);
         assert_eq!(count("minecraft:till/"), TILL_TABLES);
         assert!(table("minecraft:harvest/beehive").is_some());
+        assert_eq!(count("minecraft:spawners/"), SPAWNER_TABLES);
         for (name, entry) in tables() {
             assert!(ptr::eq(table(name).unwrap(), entry));
         }
