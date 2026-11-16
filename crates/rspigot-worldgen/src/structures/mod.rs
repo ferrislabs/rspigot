@@ -22,7 +22,7 @@ mod tests;
 pub(crate) use bbox::Bbox;
 pub(crate) use jigsaw::{Ground, Heightmap};
 pub(crate) use library::Library;
-pub(crate) use nbt::{block_entity, chunk_entities, structures_tag};
+pub(crate) use nbt::{attach, chunk_entities};
 pub use pack::LoadIssue;
 pub(crate) use place::place_start;
 pub(crate) use placement::BiomeProbe;

@@ -322,24 +322,7 @@ impl Overworld {
             .map(|index| self.placed[usize::from(*index)].id)
             .collect();
         let mut column = buffer.finish_layered(pos, &stored, &resources.classifier);
-        for (at, nbt) in &block_entities {
-            if BlockPos::new(at.0, at.1, at.2).chunk() == pos
-                && let Some(entity) = crate::structures::block_entity(*at, nbt)
-            {
-                column.set_block_entity(entity);
-            }
-        }
-        let own: Vec<_> = starts
-            .iter()
-            .filter(|start| start.chunk == (pos.x, pos.z))
-            .cloned()
-            .collect();
-        if !own.is_empty() || !starts.is_empty() {
-            column.extra.insert(
-                "structures",
-                crate::structures::structures_tag(&own, &starts),
-            );
-        }
+        crate::structures::attach(&mut column, &block_entities, &starts, pos);
         column
     }
 
