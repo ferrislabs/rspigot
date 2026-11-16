@@ -1,7 +1,9 @@
 mod config;
 mod console;
+mod crash;
 mod dimensions;
 mod files;
+mod log_files;
 mod logging;
 
 use std::net::SocketAddr;
@@ -18,6 +20,7 @@ use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
 use rspigot_network::NetLink;
 use rspigot_worldgen::WorldGenerator;
+use tracing_subscriber::Layer;
 
 use crate::config::ServerFiles;
 
@@ -69,16 +72,39 @@ fn rand_seed() -> i64 {
     (nanos as i64) ^ 0x0005_DEEC_E66D
 }
 
-fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
-        )
+fn init_logging(root: &std::path::Path) {
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+    let filter =
+        || tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into());
+    let console = tracing_subscriber::fmt::layer()
         .event_format(logging::SpigotFormat)
+        .with_filter(filter());
+    let file = match log_files::LatestLog::open(root) {
+        Ok(log) => Some(
+            tracing_subscriber::fmt::layer()
+                .with_ansi(false)
+                .with_writer(log)
+                .event_format(logging::FileFormat)
+                .with_filter(filter()),
+        ),
+        Err(error) => {
+            eprintln!("could not open logs/latest.log: {error}");
+            None
+        }
+    };
+    tracing_subscriber::registry()
+        .with(console)
+        .with(file)
         .init();
-    let started = Instant::now();
+}
+
+fn main() -> anyhow::Result<()> {
     let args = arguments();
     std::fs::create_dir_all(&args.root)?;
+    init_logging(&args.root);
+    crash::install(args.root.clone());
+    let started = Instant::now();
     tracing::info!(
         "Starting minecraft server version {}",
         rspigot_data::VERSION_NAME
