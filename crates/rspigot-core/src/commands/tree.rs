@@ -177,7 +177,9 @@ pub fn build_tree(level: u8) -> CommandTree {
         admin_commands(&mut b, root);
     }
     if level >= LEVEL_OWNERS {
-        for name in ["save-all", "save-on", "save-off", "stop"] {
+        let save_all = b.literal(root, "save-all", true);
+        b.literal(save_all, "flush", true);
+        for name in ["save-on", "save-off", "stop"] {
             b.literal(root, name, true);
         }
     }
