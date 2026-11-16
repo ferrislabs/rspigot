@@ -229,6 +229,11 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let name = player.profile.name.clone();
+        let who = crate::management::PlayerRef {
+            id: Some(player.profile.id.0),
+            name: Some(name.clone()),
+        };
+        self.notify_management(crate::management::ManagementNotice::PlayerJoined(who));
         let default = format!("§e{name} joined the game");
         let message = patch.join_message.unwrap_or_else(|| Some(default.clone()));
         let joined = || {
@@ -294,6 +299,9 @@ impl<L: ClientLink> Server<L> {
             .quit_message
             .unwrap_or_else(|| Some(step.default.clone()));
         let name = step.name;
+        self.notify_management(crate::management::ManagementNotice::PlayerLeft(
+            crate::management::PlayerRef::named(&name),
+        ));
         let left = || {
             Component::translatable("multiplayer.player.left", vec![Component::text(name)])
                 .color(NamedColor::Yellow)

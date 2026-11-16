@@ -82,6 +82,7 @@ pub mod lighting;
 mod lightning;
 mod liquid_bucket;
 pub mod loot;
+pub mod management;
 mod mending;
 mod menu;
 mod minecarts;
