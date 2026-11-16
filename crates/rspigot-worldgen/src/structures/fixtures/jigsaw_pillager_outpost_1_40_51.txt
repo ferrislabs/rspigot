@@ -1,0 +1,20 @@
+START pillager_outpost 40 51 valid=true
+PIECE 0 LegacySingle[Left[minecraft:pillager_outpost/base_plate]] 640 63 816 CLOCKWISE_90 625 63 816 640 92 831 1 4
+PIECE 1 List[LegacySingle[Left[minecraft:pillager_outpost/watchtower]], LegacySingle[Left[minecraft:pillager_outpost/watchtower_overgrown]]] 640 63 816 CLOCKWISE_90 626 63 816 640 85 830 1 1
+PIECE 2 LegacySingle[Left[minecraft:pillager_outpost/feature_plate]] 640 64 800 CLOCKWISE_90 609 64 800 640 69 815 1 4
+PIECE 3 LegacySingle[Left[minecraft:pillager_outpost/feature_plate]] 625 63 847 COUNTERCLOCKWISE_90 625 63 832 656 68 847 1 6
+PIECE 4 LegacySingle[Left[minecraft:pillager_outpost/feature_plate]] 609 64 816 NONE 609 64 816 624 69 847 1 7
+PIECE 5 LegacySingle[Left[minecraft:pillager_outpost/feature_cage1]] 616 64 810 CLOCKWISE_180 610 64 804 616 67 810 0 1
+PIECE 6 LegacySingle[Left[minecraft:pillager_outpost/feature_cage_with_allays]] 617 66 800 NONE 617 66 800 623 69 806 0 1
+PIECE 7 LegacySingle[Left[minecraft:pillager_outpost/feature_cage2]] 623 64 813 CLOCKWISE_180 617 64 807 623 67 813 0 1
+PIECE 8 LegacySingle[Left[minecraft:pillager_outpost/feature_tent1]] 643 63 841 COUNTERCLOCKWISE_90 643 63 836 649 66 841 0 1
+PIECE 9 LegacySingle[Left[minecraft:pillager_outpost/feature_cage1]] 636 63 840 COUNTERCLOCKWISE_90 636 63 834 642 66 840 0 1
+PIECE 10 LegacySingle[Left[minecraft:pillager_outpost/feature_cage1]] 656 64 839 CLOCKWISE_180 650 64 833 656 67 839 0 1
+PIECE 11 LegacySingle[Left[minecraft:pillager_outpost/feature_tent2]] 647 64 842 CLOCKWISE_90 641 64 842 647 67 847 0 1
+PIECE 12 LegacySingle[Left[minecraft:pillager_outpost/feature_cage_with_allays]] 656 65 840 CLOCKWISE_90 650 65 840 656 68 846 0 1
+PIECE 13 LegacySingle[Left[minecraft:pillager_outpost/feature_cage1]] 617 65 840 CLOCKWISE_180 611 65 834 617 68 840 0 1
+PIECE 14 LegacySingle[Left[minecraft:pillager_outpost/feature_targets]] 611 66 843 COUNTERCLOCKWISE_90 611 66 841 617 68 843 0 1
+PIECE 15 LegacySingle[Left[minecraft:pillager_outpost/feature_cage1]] 609 64 827 NONE 609 64 827 615 67 833 0 1
+PIECE 16 LegacySingle[Left[minecraft:pillager_outpost/feature_cage_with_allays]] 624 65 840 CLOCKWISE_90 618 65 840 624 68 846 0 1
+PIECE 17 LegacySingle[Left[minecraft:pillager_outpost/feature_tent1]] 617 64 833 COUNTERCLOCKWISE_90 617 64 828 623 67 833 0 1
+PIECE 18 LegacySingle[Left[minecraft:pillager_outpost/feature_targets]] 616 66 844 CLOCKWISE_90 610 66 844 616 68 846 0 1

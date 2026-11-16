@@ -112,12 +112,22 @@ pub(crate) fn place_in_world(
     }
     run.rng.below(1);
     let blocks = processed(template, run, origin, settings);
+    commit(run, blocks, settings.rotation, true);
+    true
+}
+
+pub(crate) fn commit(
+    run: &mut Run,
+    blocks: Vec<(Pos, BlockStateId)>,
+    rotation: Rotation,
+    settle_shapes: bool,
+) -> Vec<Pos> {
     let mut pending: Vec<Pos> = Vec::new();
     let mut sources: Vec<Pos> = Vec::new();
     let mut placed: Vec<Pos> = Vec::new();
     for (at, state) in blocks {
         let before = fluid_at(run, at);
-        let state = settings.rotation.state(state);
+        let state = rotation.state(state);
         if !run.region.set(at.0, at.1, at.2, state) {
             continue;
         }
@@ -134,8 +144,10 @@ pub(crate) fn place_in_world(
         }
     }
     spread(run, &mut pending, &sources);
-    settle(run, &placed);
-    true
+    if settle_shapes {
+        settle(run, &placed);
+    }
+    placed
 }
 
 fn spread(run: &mut Run, pending: &mut Vec<Pos>, sources: &[Pos]) {

@@ -130,7 +130,7 @@ impl Nether {
     ) -> ChunkColumn {
         let mut region = Region::for_nether(self, resources, dimension, pos);
         self.features
-            .decorate(&mut region, self.seed as i64, &self.surface);
+            .decorate(&mut region, self.seed as i64, &self.surface, None);
         let (buffer, indices) = region.finish();
         let ids: Vec<BiomeId> = self.biomes.ids().to_vec();
         let stored: Vec<BiomeId> = indices

@@ -12,6 +12,7 @@ mod noise;
 mod overworld;
 mod resources;
 mod simplex;
+mod structures;
 mod temperature;
 mod terrain;
 mod void;
