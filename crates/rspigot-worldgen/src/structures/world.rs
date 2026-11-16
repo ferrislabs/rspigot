@@ -3,8 +3,9 @@ use std::sync::{Arc, Mutex};
 
 use super::bbox::Bbox;
 use super::jigsaw::{Ground, Piece};
+use super::library::Library;
 use super::placement::{BiomeProbe, large_feature_seed};
-use super::pool::{Element, Pools, pools};
+use super::pool::{Element, Pools};
 use super::sets::{Chunks, StructureSet, StructureSets};
 use super::structure::{Kind, StructureDef, Structures, generate_jigsaw, valid_biomes};
 use crate::legacy::JavaRandom;
@@ -48,6 +49,7 @@ pub(crate) struct Engine {
     seed: i64,
     sets: StructureSets,
     defs: Structures,
+    library: &'static Library,
     pools: &'static Pools,
     valid: HashMap<String, Vec<u8>>,
     active: Vec<usize>,
@@ -99,10 +101,10 @@ fn feature_names(pools: &Pools) -> Vec<String> {
 }
 
 impl Engine {
-    pub(crate) fn new(seed: i64, probe: &impl BiomeProbe) -> Self {
-        let sets = StructureSets::load();
-        let defs = Structures::load();
-        let pools = pools();
+    pub(crate) fn new(seed: i64, probe: &impl BiomeProbe, library: &'static Library) -> Self {
+        let sets = StructureSets::load(library);
+        let defs = Structures::load(library);
+        let pools = library.pools();
         let mut valid = HashMap::new();
         let mut order: Vec<Vec<String>> = vec![Vec::new(); STEP_NAMES.len()];
         let mut names: Vec<&StructureDef> = defs.all().collect();
@@ -129,6 +131,7 @@ impl Engine {
             seed,
             sets,
             defs,
+            library,
             pools,
             valid,
             active,
@@ -136,6 +139,10 @@ impl Engine {
             order,
             cache: Mutex::new(StartCache::default()),
         }
+    }
+
+    pub(crate) fn library(&self) -> &'static Library {
+        self.library
     }
 
     pub(crate) fn feature(&self, name: &str) -> Option<&Arc<Placed>> {

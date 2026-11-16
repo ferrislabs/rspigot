@@ -1,3 +1,4 @@
+use super::library::Library;
 use super::placement::BiomeProbe;
 use super::sets::{Chunks, StructureSets};
 use crate::climate::BiomeSource;
@@ -21,6 +22,22 @@ impl BiomeProbe for Overworld<'_> {
             .position(|candidate| candidate.strip_prefix("minecraft:") == Some(name))
             .map(|index| index as u8)
     }
+}
+
+pub(super) fn with_extras() -> &'static Library {
+    static FULL: std::sync::OnceLock<&'static Library> = std::sync::OnceLock::new();
+    FULL.get_or_init(|| {
+        let pack =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../datapacks/vanilla-extras");
+        let (library, issues) = Library::build(&[pack]);
+        assert!(
+            issues
+                .iter()
+                .all(|issue| issue.reason.contains("the missing template")),
+            "{issues:?}"
+        );
+        Box::leak(Box::new(library))
+    })
 }
 
 type Expected = (Vec<(String, i32, i32)>, Vec<(i32, i32)>);
@@ -55,7 +72,7 @@ fn check(seed: i64, fixture: &str) {
         scratch: RefCell::new(source.scratch()),
         source: &source,
     };
-    let sets = StructureSets::load();
+    let sets = StructureSets::load(Library::embedded());
     let world = Chunks {
         sets: &sets,
         seed,
@@ -103,8 +120,9 @@ fn placement_matches_vanilla_for_a_negative_seed() {
 
 mod jigsaw {
     use super::super::jigsaw::Piece;
-    use super::super::pool::{Element, Pools, Projection};
+    use super::super::pool::{Element, Projection};
     use super::super::structure::{Kind, Structures, generate_jigsaw, valid_biomes};
+    use super::with_extras;
     use crate::overworld::Overworld;
     use crate::resources::Resources;
     use rspigot_data::multi_noise::ClimateVariant;
@@ -166,18 +184,23 @@ mod jigsaw {
 
     fn check(seed: i64, name: &str, chunk: (i32, i32), fixture: &str) {
         let resources = Resources::resolve();
-        let overworld = Overworld::new(seed as u64, ClimateVariant::Normal, &resources.blocks);
+        let overworld = Overworld::with_library(
+            seed as u64,
+            ClimateVariant::Normal,
+            &resources.blocks,
+            with_extras(),
+        );
         let dimension = Dimension::overworld();
         let probe = overworld.biome_probe();
         let ground = overworld.ground(&dimension);
-        let structures = Structures::load();
+        let structures = Structures::load(with_extras());
         let def = structures.get(name).unwrap();
         let Kind::Jigsaw(jigsaw) = &def.kind else {
             panic!("not a jigsaw structure");
         };
-        let pools = Pools::load();
+        let pools = with_extras().pools();
         let valid = valid_biomes(def, &probe);
-        let assembly = generate_jigsaw(jigsaw, &valid, &pools, &ground, &probe, seed, chunk)
+        let assembly = generate_jigsaw(jigsaw, &valid, pools, &ground, &probe, seed, chunk)
             .expect("start must be valid");
         let got: Vec<String> = assembly.pieces.iter().map(describe).collect();
         let want: Vec<String> = fixture
@@ -240,9 +263,40 @@ mod jigsaw {
             include_str!("fixtures/jigsaw_village_savanna_-4172144997902289642_-32_-23.txt"),
         );
     }
+
+    #[test]
+    fn forest_abandoned_camp_matches_vanilla_for_seed_one() {
+        check(
+            1,
+            "abandoned_camp_forest",
+            (-280, -72),
+            include_str!("fixtures/jigsaw_abandoned_camp_forest_1_-280_-72.txt"),
+        );
+    }
+
+    #[test]
+    fn savanna_abandoned_camp_matches_vanilla_for_seed_one() {
+        check(
+            1,
+            "abandoned_camp_savanna",
+            (-291, -125),
+            include_str!("fixtures/jigsaw_abandoned_camp_savanna_1_-291_-125.txt"),
+        );
+    }
+
+    #[test]
+    fn ancient_city_matches_vanilla_for_seed_one() {
+        check(
+            1,
+            "ancient_city",
+            (-201, -36),
+            include_str!("fixtures/jigsaw_ancient_city_1_-201_-36.txt"),
+        );
+    }
 }
 
 mod world {
+    use super::with_extras;
     use crate::overworld::Overworld;
     use crate::resources::Resources;
     use rspigot_blocks::BlockKind;
@@ -253,7 +307,8 @@ mod world {
     #[test]
     fn a_village_is_built_into_the_generated_chunks() {
         let resources = Resources::resolve();
-        let overworld = Overworld::new(1, ClimateVariant::Normal, &resources.blocks);
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
         let dimension = Dimension::overworld();
         let mut bells = 0;
         let mut planks = 0;
@@ -293,7 +348,8 @@ mod world {
     #[test]
     fn village_templates_spawn_their_villagers() {
         let resources = Resources::resolve();
-        let overworld = Overworld::new(1, ClimateVariant::Normal, &resources.blocks);
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
         let dimension = Dimension::overworld();
         let mut villagers = 0;
         for cx in 38..=42 {
@@ -306,5 +362,138 @@ mod world {
             }
         }
         assert!(villagers > 0, "villagers {villagers}");
+    }
+
+    #[test]
+    fn an_abandoned_camp_is_built_into_the_generated_chunks() {
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let mut chests = 0;
+        let mut recorded = false;
+        for cx in -281..=-278 {
+            for cz in -74..=-70 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                chests += column
+                    .block_entities
+                    .iter()
+                    .filter(|entity| entity.data.get_str("LootTable").is_some())
+                    .count();
+                if (cx, cz) == (-280, -72) {
+                    recorded = column
+                        .extra
+                        .get_compound("structures")
+                        .and_then(|tag| tag.get_compound("starts"))
+                        .is_some_and(|starts| {
+                            starts.contains_key("minecraft:abandoned_camp_forest")
+                        });
+                }
+            }
+        }
+        assert!(chests >= 1, "chests {chests}");
+        assert!(recorded);
+    }
+}
+
+mod embedded {
+    use super::super::library::Library;
+    use super::super::structure::Structures;
+    use super::with_extras;
+
+    #[test]
+    fn the_binary_only_embeds_villages_and_outposts_among_jigsaw_structures() {
+        let embedded = Structures::load(Library::embedded());
+        assert!(embedded.get("village_plains").is_some());
+        assert!(embedded.get("pillager_outpost").is_some());
+        assert!(embedded.get("mineshaft").is_some());
+        for gone in [
+            "abandoned_camp_forest",
+            "ancient_city",
+            "bastion_remnant",
+            "trial_chambers",
+            "trail_ruins",
+        ] {
+            assert!(embedded.get(gone).is_none(), "{gone}");
+        }
+    }
+
+    #[test]
+    fn the_extras_pack_brings_the_other_structures_back() {
+        let full = Structures::load(with_extras());
+        for back in [
+            "abandoned_camp_forest",
+            "ancient_city",
+            "bastion_remnant",
+            "trial_chambers",
+            "trail_ruins",
+        ] {
+            assert!(full.get(back).is_some(), "{back}");
+        }
+    }
+}
+
+mod custom {
+    use super::super::library::Library;
+    use crate::overworld::Overworld;
+    use crate::resources::Resources;
+    use rspigot_blocks::BlockKind;
+    use rspigot_data::multi_noise::ClimateVariant;
+    use rspigot_domain::world::Dimension;
+    use rspigot_domain::{BlockPos, ChunkPos};
+
+    fn library() -> &'static Library {
+        static CUSTOM: std::sync::OnceLock<&'static Library> = std::sync::OnceLock::new();
+        CUSTOM.get_or_init(|| {
+            let pack = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../example/datapacks/custom-hut");
+            let (library, issues) = Library::build(&[pack]);
+            assert!(issues.is_empty(), "{issues:?}");
+            Box::leak(Box::new(library))
+        })
+    }
+
+    #[test]
+    fn the_example_hut_is_built_from_its_template() {
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, library());
+        let dimension = Dimension::overworld();
+        let mut start = None;
+        'search: for cx in -8..8 {
+            for cz in -8..8 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                let recorded = column
+                    .extra
+                    .get_compound("structures")
+                    .and_then(|tag| tag.get_compound("starts"))
+                    .is_some_and(|starts| starts.contains_key("example:hut"));
+                if recorded {
+                    start = Some((cx, cz));
+                    break 'search;
+                }
+            }
+        }
+        let (sx, sz) = start.expect("the hut must start in the searched area");
+        let (mut gold, mut planks) = (0, 0);
+        for cx in sx - 1..=sx + 1 {
+            for cz in sz - 1..=sz + 1 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                for y in -64..200 {
+                    for z in 0..16 {
+                        for x in 0..16 {
+                            let pos = BlockPos::new(cx * 16 + x, y, cz * 16 + z);
+                            match column.block(pos).and_then(|state| state.kind()) {
+                                Some(BlockKind::GoldBlock) => gold += 1,
+                                Some(BlockKind::OakPlanks) => planks += 1,
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(gold, 25);
+        assert_eq!(planks, 32 + 25);
     }
 }

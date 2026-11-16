@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::sync::OnceLock;
-
 use rspigot_blocks::{BlockKind, StateFlags};
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
@@ -8,8 +5,6 @@ use serde_json::Value;
 use super::bbox::{Bbox, Pos};
 use crate::datapack::state_named;
 use crate::overworld::features::structure::Rotation;
-
-const SOURCE: &str = include_str!("../../data/jigsaw_templates.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Dir {
@@ -117,19 +112,6 @@ pub(crate) struct Blueprint {
     jigsaws: Vec<Jigsaw>,
 }
 
-fn library() -> &'static HashMap<String, Blueprint> {
-    static LIBRARY: OnceLock<HashMap<String, Blueprint>> = OnceLock::new();
-    LIBRARY.get_or_init(|| {
-        let Ok(Value::Object(entries)) = serde_json::from_str::<Value>(SOURCE) else {
-            return HashMap::new();
-        };
-        entries
-            .iter()
-            .filter_map(|(name, value)| Some((name.clone(), Blueprint::parse(value)?)))
-            .collect()
-    })
-}
-
 fn triple(value: &Value) -> Option<Pos> {
     let items = value.as_array()?;
     let at = |index: usize| {
@@ -207,11 +189,7 @@ fn jigsaw(pos: Pos, state: BlockStateId, nbt: &Value) -> Jigsaw {
 }
 
 impl Blueprint {
-    pub(crate) fn named(name: &str) -> Option<&'static Self> {
-        library().get(name)
-    }
-
-    fn parse(value: &Value) -> Option<Self> {
+    pub(crate) fn parse(value: &Value) -> Option<Self> {
         let size = triple(value.get("size")?)?;
         let palette: Vec<BlockStateId> = value
             .get("palettes")?

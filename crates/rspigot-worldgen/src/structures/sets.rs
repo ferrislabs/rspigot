@@ -1,6 +1,7 @@
 use serde_json::Value;
 
-use super::data::{short, structure_data};
+use super::data::short;
+use super::library::Library;
 use super::placement::{BiomeProbe, Neighbours, Placement};
 
 #[derive(Debug)]
@@ -28,10 +29,10 @@ pub(crate) struct Chunks<'a, B> {
 }
 
 impl StructureSets {
-    pub(crate) fn load() -> Self {
+    pub(crate) fn load(library: &Library) -> Self {
         let mut sets = Vec::new();
-        if let Some(Value::Object(map)) = structure_data().get("sets") {
-            for (name, value) in map {
+        {
+            for (name, value) in library.sets() {
                 let Some(placement) = value.get("placement").and_then(Placement::parse) else {
                     continue;
                 };

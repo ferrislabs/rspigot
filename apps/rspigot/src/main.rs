@@ -148,6 +148,9 @@ fn main() -> anyhow::Result<()> {
         AnvilStore::open_with(&world_root, DimensionLayout::Spigot, options)
             .context("opening world")?,
     );
+    for issue in rspigot_worldgen::install_datapacks(&world_root.join("datapacks")) {
+        tracing::warn!("Datapack problem in {issue}");
+    }
     let generator = Arc::new(WorldGenerator::from_level_type(
         files.properties.string("level-type"),
         level.seed,

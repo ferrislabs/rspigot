@@ -1,0 +1,3 @@
+START abandoned_camp_forest -280 -72 valid=true
+PIECE 0 LegacySingle[Left[minecraft:abandoned_camp/tent/forest/tent_forest_3]] -4480 82 -1152 CLOCKWISE_90 -4487 82 -1152 -4480 89 -1147 1 1
+PIECE 1 LegacySingle[Left[minecraft:abandoned_camp/camp/default/campsite_default_chest_1]] -4479 82 -1162 CLOCKWISE_90 -4488 82 -1162 -4479 84 -1153 1 1

@@ -1,0 +1,3 @@
+START abandoned_camp_savanna -291 -125 valid=true
+PIECE 0 LegacySingle[Left[minecraft:abandoned_camp/tent/savanna/tent_savanna_7]] -4656 62 -2000 CLOCKWISE_180 -4663 62 -2007 -4656 69 -2000 1 1
+PIECE 1 LegacySingle[Left[minecraft:abandoned_camp/camp/default/campsite_default_chest_7]] -4646 62 -1999 CLOCKWISE_180 -4655 62 -2008 -4646 64 -1999 1 1

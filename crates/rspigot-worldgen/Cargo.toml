@@ -12,6 +12,7 @@ rspigot-domain = { workspace = true }
 rspigot-data = { workspace = true }
 rspigot-entities = { workspace = true }
 rspigot-nbt = { workspace = true }
+flate2 = "1.1"
 libm = "0.2"
 md-5 = "0.10"
 serde = { version = "1", features = ["derive"] }
