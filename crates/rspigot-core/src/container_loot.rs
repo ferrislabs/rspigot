@@ -160,9 +160,11 @@ impl<L: ClientLink> Server<L> {
             pending.seed.cast_unsigned()
         };
         let this = LootEntity::of(Kind::Player);
+        let biome = self.loot_biome(site);
         let context = LootContext {
             this: Some(&this),
             luck: LOOT_LUCK,
+            biome: biome.as_deref(),
             ..LootContext::default()
         };
         let stacks = loot::table_drops(table, &context, &mut StdRng::seed_from_u64(seed));
@@ -174,6 +176,21 @@ impl<L: ClientLink> Server<L> {
         };
         self.offer_loot(step, pending.table);
         true
+    }
+
+    fn loot_biome(&self, site: LootSite) -> Option<String> {
+        let pos = match site {
+            LootSite::Block(pos) => pos,
+            LootSite::Cargo(id) => {
+                let at = self.entities.store.get(id)?.base.position;
+                BlockPos::new(
+                    at.x.floor() as i32,
+                    at.y.floor() as i32,
+                    at.z.floor() as i32,
+                )
+            }
+        };
+        rspigot_data::registries::biome_name(self.biome_at(pos).0).map(str::to_owned)
     }
 
     fn offer_loot(&mut self, step: LootStep, table: String) {

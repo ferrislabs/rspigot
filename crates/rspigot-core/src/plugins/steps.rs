@@ -1136,6 +1136,8 @@ pub(crate) struct ArrowFollow {
     pub(crate) owner: Option<EntityId>,
     pub(crate) saved_fire: i32,
     pub(crate) sound_pitch: f32,
+    pub(crate) punch: f32,
+    pub(crate) heading: Vec3,
 }
 
 #[derive(Debug, Clone, Copy)]

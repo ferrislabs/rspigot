@@ -313,6 +313,11 @@ impl<L: ClientLink> Server<L> {
             };
             if hurt {
                 self.emit_damage_event(victim);
+                if matches!(victim, Struck::Player(_) | Struck::Mob(_))
+                    && let Some(entity) = self.struck_entity(victim)
+                {
+                    self.run_post_attack(source, entity);
+                }
             }
             if hurt { Outcome::Hurt } else { Outcome::Missed }
         };

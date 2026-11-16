@@ -6,6 +6,7 @@ use rspigot_data::loot::{
     EntityPredicate, EntitySubPredicate, EntityTarget, Entry, EntryKind, FloatProvider, Function,
     FunctionKind, IntProvider, ItemPredicate, Leaf, LootTable, Output, Pool,
 };
+use rspigot_data::{registries, tags};
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::trade_gen;
 use rspigot_domain::item::ItemStack;
@@ -21,6 +22,10 @@ const ENTITY_REGISTRY: &str = "minecraft:entity_type";
 const POTION_CONTENTS: &str = "minecraft:potion_contents";
 const OMINOUS_BOTTLE_AMPLIFIER: &str = "minecraft:ominous_bottle_amplifier";
 const STORED_ENCHANTMENTS: &str = "minecraft:stored_enchantments";
+const SUSPICIOUS_STEW_EFFECTS: &str = "minecraft:suspicious_stew_effects";
+const INSTRUMENT: &str = "minecraft:instrument";
+const INSTRUMENT_REGISTRY: &str = "minecraft:instrument";
+const MAP_ID: &str = "minecraft:map_id";
 const MAX_OMINOUS_AMPLIFIER: i32 = 4;
 const MAX_NESTING: usize = 32;
 
@@ -73,6 +78,7 @@ pub struct LootContext<'a> {
     pub luck: f32,
     pub explosion_radius: Option<f32>,
     pub biome: Option<&'a str>,
+    pub enchantment_level: i32,
 }
 
 impl<'a> LootContext<'a> {
@@ -136,6 +142,26 @@ pub fn table_drops<R: Rng + ?Sized>(
     };
     roller.table(table, &[]);
     roller.drops
+}
+
+fn working_stack(stack: &Working) -> ItemStack {
+    let mut single = ItemStack::new(ItemId(stack.item), NonZeroU8::MIN);
+    single.components = stack.components.clone();
+    single
+}
+
+pub fn condition_holds<R: Rng + ?Sized>(
+    condition: &Condition,
+    context: &LootContext<'_>,
+    rng: &mut R,
+) -> bool {
+    Roller {
+        context,
+        rng,
+        drops: Vec::new(),
+        visiting: Vec::new(),
+    }
+    .test(condition)
 }
 
 const ENCHANTMENTS: &str = "minecraft:enchantments";
@@ -567,6 +593,91 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 levels.insert(enchantment, level);
                 stack.components.insert(key, levels);
             }
+            FunctionKind::EnchantRandomlyFrom {
+                options,
+                only_compatible,
+            } => {
+                let mut random = LegacyRandom::new(self.rng.random::<i64>());
+                let enchanted = trade_gen::enchant_randomly_from_tag(
+                    &mut random,
+                    working_stack(&stack),
+                    options,
+                    only_compatible,
+                );
+                stack.item = enchanted.item.0;
+                stack.components = enchanted.components;
+            }
+            FunctionKind::EnchantRandomlyAmong {
+                options,
+                only_compatible,
+            } => {
+                let mut random = LegacyRandom::new(self.rng.random::<i64>());
+                let enchanted = trade_gen::enchant_randomly_from_names(
+                    &mut random,
+                    working_stack(&stack),
+                    options,
+                    only_compatible,
+                );
+                stack.item = enchanted.item.0;
+                stack.components = enchanted.components;
+            }
+            FunctionKind::SetStewEffect(effects) => {
+                if stack.item == ItemKind::SuspiciousStew.id().0 && !effects.is_empty() {
+                    let (name, duration) = effects[self.rng.random_range(0..effects.len())];
+                    let seconds = self.int(duration);
+                    let ticks = trade_gen::stew_ticks(name, seconds);
+                    let entry = Compound::new().with("id", name).with("duration", ticks);
+                    stack.components.insert(
+                        SUSPICIOUS_STEW_EFFECTS,
+                        Tag::List(vec![Tag::Compound(entry)]),
+                    );
+                }
+            }
+            FunctionKind::SetInstrument(tag) => {
+                let chosen = tags::tag(INSTRUMENT_REGISTRY, tag)
+                    .filter(|ids| !ids.is_empty())
+                    .and_then(|ids| {
+                        let id = ids[self.rng.random_range(0..ids.len())];
+                        registries::synced_entries(INSTRUMENT_REGISTRY)
+                            .and_then(|names| names.get(id as usize))
+                    });
+                if let Some(name) = chosen {
+                    stack.components.insert(INSTRUMENT, *name);
+                }
+            }
+            FunctionKind::SetEnchantments { levels, add } => {
+                let key = if stack.item == ItemKind::EnchantedBook.id().0 {
+                    STORED_ENCHANTMENTS
+                } else {
+                    ENCHANTMENTS
+                };
+                let mut held = match stack.components.remove(key) {
+                    Some(Tag::Compound(held)) => held,
+                    _ => Compound::new(),
+                };
+                for (name, provider) in levels {
+                    let level = self.int(*provider);
+                    let base = if add {
+                        held.get_i32(name).unwrap_or(0)
+                    } else {
+                        0
+                    };
+                    let total = (base + level).clamp(0, 255);
+                    if total > 0 {
+                        held.insert(*name, total);
+                    } else {
+                        held.remove(name);
+                    }
+                }
+                stack.components.insert(key, held);
+            }
+            FunctionKind::ExplorationMap => {}
+            FunctionKind::RequireMapId => {
+                if !stack.components.contains_key(MAP_ID) {
+                    stack.item = ItemId::AIR.0;
+                    stack.count = 0;
+                }
+            }
             FunctionKind::SetOminousBottleAmplifier(amplifier) => {
                 let level = self.int(amplifier).clamp(0, MAX_OMINOUS_AMPLIFIER);
                 stack.components.insert(OMINOUS_BOTTLE_AMPLIFIER, level);
@@ -696,6 +807,9 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 damage_matches(predicate, self.context.damage)
             }
             Condition::RandomChance(chance) => self.rng.random::<f32>() < *chance,
+            Condition::RandomChanceByLevel(chance) => {
+                self.rng.random::<f32>() < chance.calculate(self.context.enchantment_level)
+            }
             Condition::RandomChanceWithEnchantedBonus {
                 enchantment,
                 unenchanted_chance,
@@ -1439,6 +1553,140 @@ mod tests {
             }
         }
         assert!(boots && books);
+    }
+
+    fn chest_names() -> Vec<&'static str> {
+        loot::tables()
+            .iter()
+            .map(|(name, _)| *name)
+            .filter(|name| name.starts_with("minecraft:chests/"))
+            .collect()
+    }
+
+    fn chest_loot(name: &str, seed: u64, biome: &str) -> Vec<ItemStack> {
+        let player = breaker();
+        let context = LootContext {
+            this: Some(&player),
+            biome: Some(biome),
+            ..LootContext::default()
+        };
+        let table = loot::table(name).unwrap_or_else(|| panic!("missing {name}"));
+        table_drops(table, &context, &mut StdRng::seed_from_u64(seed))
+    }
+
+    #[test]
+    fn every_structure_chest_table_is_generated() {
+        let names = chest_names();
+        assert!(names.len() >= 50, "{}", names.len());
+        for expected in [
+            "minecraft:chests/simple_dungeon",
+            "minecraft:chests/ancient_city",
+            "minecraft:chests/buried_treasure",
+            "minecraft:chests/village/village_plains_house",
+            "minecraft:chests/trial_chambers/reward_ominous_rare",
+        ] {
+            assert!(names.contains(&expected), "{expected}");
+        }
+    }
+
+    #[test]
+    fn chest_tables_fill_items_and_enchant_where_vanilla_does() {
+        let mut enchanted_books = 0;
+        let mut enchanted_gear = 0;
+        let mut empty = Vec::new();
+        for name in chest_names() {
+            let mut any = false;
+            for seed in 0..60 {
+                for stack in chest_loot(name, seed, "minecraft:plains") {
+                    any = true;
+                    if stack.item == ItemKind::EnchantedBook.id() {
+                        assert!(stack.components.contains_key(STORED_ENCHANTMENTS), "{name}");
+                        enchanted_books += 1;
+                    } else if stack.components.contains_key(ENCHANTMENTS) {
+                        enchanted_gear += 1;
+                    }
+                }
+            }
+            if !any {
+                empty.push(name);
+            }
+        }
+        assert!(empty.is_empty(), "{empty:?}");
+        assert!(enchanted_books > 0 && enchanted_gear > 0);
+    }
+
+    #[test]
+    fn treasure_maps_without_a_structure_are_discarded() {
+        for seed in 0..200 {
+            for stack in chest_loot("minecraft:chests/shipwreck_map", seed, "minecraft:ocean") {
+                assert_ne!(stack.item, ItemId(item("minecraft:buried_treasure_map")));
+            }
+        }
+    }
+
+    #[test]
+    fn goat_horns_and_stews_get_their_components() {
+        let mut horns = 0;
+        let mut stews = 0;
+        for seed in 0..400 {
+            for stack in chest_loot(
+                "minecraft:chests/pillager_outpost",
+                seed,
+                "minecraft:plains",
+            ) {
+                if stack.item == ItemId(item("minecraft:goat_horn")) {
+                    assert!(stack.components.contains_key("minecraft:instrument"));
+                    horns += 1;
+                }
+            }
+            for stack in chest_loot(
+                "minecraft:chests/shipwreck_supply",
+                seed,
+                "minecraft:plains",
+            ) {
+                if stack.item == ItemId(item("minecraft:suspicious_stew")) {
+                    assert!(
+                        stack
+                            .components
+                            .contains_key("minecraft:suspicious_stew_effects")
+                    );
+                    stews += 1;
+                }
+            }
+        }
+        assert!(horns > 0 && stews > 0);
+    }
+
+    #[test]
+    fn set_enchantments_puts_the_fixed_level_on_the_item() {
+        let mut found = 0;
+        for seed in 0..600 {
+            for stack in chest_loot(
+                "minecraft:chests/trial_chambers/reward_ominous_rare",
+                seed,
+                "minecraft:plains",
+            ) {
+                if let Some(levels) = stack.components.get_compound(ENCHANTMENTS)
+                    && levels.get_i32("minecraft:wind_burst").is_some()
+                {
+                    assert_eq!(levels.get_i32("minecraft:wind_burst"), Some(1));
+                    found += 1;
+                }
+            }
+        }
+        assert!(found > 0);
+    }
+
+    #[test]
+    fn biome_checks_gate_chest_entries() {
+        let discs = |biome: &str| {
+            (0..600)
+                .flat_map(|seed| chest_loot("minecraft:chests/abandoned_mineshaft", seed, biome))
+                .filter(|stack| stack.item == ItemId(item("minecraft:music_disc_bounce")))
+                .count()
+        };
+        assert_eq!(discs("minecraft:plains"), 0);
+        assert!(discs("minecraft:sulfur_caves") > 0);
     }
 
     #[test]

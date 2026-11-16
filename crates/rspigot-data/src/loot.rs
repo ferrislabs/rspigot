@@ -64,6 +64,7 @@ pub enum Condition {
     KilledByPlayer,
     DamageSourceProperties(&'static DamageSourcePredicate),
     RandomChance(f32),
+    RandomChanceByLevel(LevelBasedValue),
     RandomChanceWithEnchantedBonus {
         enchantment: &'static str,
         unenchanted_chance: f32,
@@ -143,6 +144,10 @@ pub enum LevelBasedValue {
         base: f32,
         per_level_above_first: f32,
     },
+    Fraction {
+        numerator: &'static LevelBasedValue,
+        denominator: &'static LevelBasedValue,
+    },
 }
 
 impl LevelBasedValue {
@@ -153,6 +158,17 @@ impl LevelBasedValue {
                 base,
                 per_level_above_first,
             } => base + per_level_above_first * (level - 1) as f32,
+            Self::Fraction {
+                numerator,
+                denominator,
+            } => {
+                let divisor = denominator.calculate(level);
+                if divisor == 0.0 {
+                    0.0
+                } else {
+                    numerator.calculate(level) / divisor
+                }
+            }
         }
     }
 }
@@ -221,6 +237,22 @@ pub enum FunctionKind {
         enchantment: &'static str,
         max_level: i32,
     },
+    EnchantRandomlyFrom {
+        options: &'static str,
+        only_compatible: bool,
+    },
+    EnchantRandomlyAmong {
+        options: &'static [&'static str],
+        only_compatible: bool,
+    },
+    SetStewEffect(&'static [(&'static str, IntProvider)]),
+    SetInstrument(&'static str),
+    SetEnchantments {
+        levels: &'static [(&'static str, IntProvider)],
+        add: bool,
+    },
+    ExplorationMap,
+    RequireMapId,
     SetOminousBottleAmplifier(IntProvider),
     SetDamage(FloatProvider),
     EnchantWithLevels {
@@ -301,6 +333,7 @@ mod tests {
     const ENTITY_TABLE_FILES: usize = 109;
     const REFERENCED_TABLES: usize = 1;
     const GAMEPLAY_TABLES: usize = 22;
+    const CHEST_TABLE_FILES: usize = 58;
     const FISHING_TABLES: usize = 3;
     const BRUSH_TABLES: usize = 1;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
@@ -384,6 +417,7 @@ mod tests {
             BLOCK_TABLE_FILES
                 + ENTITY_TABLE_FILES
                 + REFERENCED_TABLES
+                + CHEST_TABLE_FILES
                 + GAMEPLAY_TABLES
                 + FISHING_TABLES
                 + BRUSH_TABLES

@@ -243,9 +243,49 @@ fn enchant_randomly(
     only_compatible: bool,
     additional_cost: bool,
 ) -> ItemStack {
+    enchant_randomly_among(
+        random,
+        stack,
+        &option_ids(options),
+        only_compatible,
+        additional_cost,
+    )
+}
+
+pub fn enchant_randomly_from_tag(
+    random: &mut impl RandomSource,
+    stack: ItemStack,
+    options: &str,
+    only_compatible: bool,
+) -> ItemStack {
+    enchant_randomly(random, stack, options, only_compatible, false)
+}
+
+pub fn enchant_randomly_from_names(
+    random: &mut impl RandomSource,
+    stack: ItemStack,
+    names: &[&str],
+    only_compatible: bool,
+) -> ItemStack {
+    let options: Vec<usize> = names
+        .iter()
+        .filter_map(|name| registries::synced_index(ENCHANTMENT_REGISTRY, name))
+        .map(|index| index as usize)
+        .collect();
+    enchant_randomly_among(random, stack, &options, only_compatible, false)
+}
+
+fn enchant_randomly_among(
+    random: &mut impl RandomSource,
+    stack: ItemStack,
+    options: &[usize],
+    only_compatible: bool,
+    additional_cost: bool,
+) -> ItemStack {
     let check = !is_enchantable_book(&stack) && only_compatible;
-    let candidates: Vec<usize> = option_ids(options)
-        .into_iter()
+    let candidates: Vec<usize> = options
+        .iter()
+        .copied()
         .filter(|&enchantment| {
             !check || definition(enchantment).is_some_and(|definition| supports(definition, &stack))
         })
@@ -323,6 +363,15 @@ fn set_random_dyes(
     stack
 }
 
+pub fn stew_ticks(name: &str, seconds: i32) -> i32 {
+    let instant = EffectKind::from_name(name).is_some_and(EffectKind::instantaneous);
+    if instant {
+        seconds
+    } else {
+        seconds * TICKS_PER_SECOND
+    }
+}
+
 fn set_stew_effects(
     random: &mut impl RandomSource,
     mut stack: ItemStack,
@@ -332,12 +381,7 @@ fn set_stew_effects(
         return stack;
     }
     let (name, seconds) = effects[random.next_int(effects.len() as i32) as usize];
-    let instant = EffectKind::from_name(name).is_some_and(EffectKind::instantaneous);
-    let duration = if instant {
-        seconds
-    } else {
-        seconds * TICKS_PER_SECOND
-    };
+    let duration = stew_ticks(name, seconds);
     let entry = Compound::new().with("id", name).with("duration", duration);
     stack.components.insert(
         SUSPICIOUS_STEW_EFFECTS,
