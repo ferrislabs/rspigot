@@ -357,7 +357,7 @@ mod tests {
     fn a_chance_bonus_raises_the_equipment_drop_odds() {
         let zombie = geared_zombie();
         let living = zombie.living().unwrap();
-        let mut roll = || Scripted {
+        let roll = || Scripted {
             float: || 0.09,
             int: |bound: i32| bound - 1,
         };

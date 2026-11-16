@@ -4,6 +4,7 @@ use rspigot_items::ItemKind;
 use rspigot_nbt::Tag;
 
 use crate::Vec3;
+use crate::enchant;
 use crate::entity::save::{item_stack_from_nbt, item_stack_to_nbt};
 use crate::item::ItemStack;
 use crate::mth;
@@ -40,12 +41,6 @@ pub const TARGET_HEIGHT_FRACTION: f64 = 0.333_333_333_333_333_3;
 pub const ARC: f64 = 0.200_000_002_980_232_24;
 pub const FIREWORK_EYE_OFFSET: f64 = 0.150_000_005_960_464_48;
 const BASE_CHARGE_SECONDS: f32 = 1.25;
-const QUICK_CHARGE_BASE: f32 = -0.25;
-const QUICK_CHARGE_PER_LEVEL: f32 = -0.25;
-const MULTISHOT_COUNT_BASE: f32 = 2.0;
-const MULTISHOT_COUNT_PER_LEVEL: f32 = 2.0;
-const MULTISHOT_SPREAD_BASE: f32 = 10.0;
-const MULTISHOT_SPREAD_PER_LEVEL: f32 = 10.0;
 const HIGH_PITCH: f32 = 0.63;
 const LOW_PITCH: f32 = 0.43;
 const PITCH_DIVISOR_BASE: f32 = 1.8;
@@ -64,39 +59,21 @@ pub fn level_of(stack: &ItemStack, enchantment: &str) -> i32 {
         .map_or(0, |(_, level)| i32::from(*level))
 }
 
-fn linear(base: f32, per_level: f32, level: i32) -> f32 {
-    base + per_level * (level - 1) as f32
-}
-
 pub fn charge_ticks(crossbow: &ItemStack) -> i32 {
-    let level = level_of(crossbow, QUICK_CHARGE);
-    let mut seconds = BASE_CHARGE_SECONDS;
-    if level > 0 {
-        seconds += linear(QUICK_CHARGE_BASE, QUICK_CHARGE_PER_LEVEL, level);
-    }
+    let seconds = enchant::modify_crossbow_charge_time(crossbow, BASE_CHARGE_SECONDS);
     mth::floor(f64::from(seconds.max(0.0) * 20.0))
 }
 
 pub fn projectile_count(crossbow: &ItemStack) -> i32 {
-    let level = level_of(crossbow, MULTISHOT);
-    let mut count = 1.0_f32;
-    if level > 0 {
-        count += linear(MULTISHOT_COUNT_BASE, MULTISHOT_COUNT_PER_LEVEL, level);
-    }
-    (count as i32).max(0)
+    (enchant::modify_unconditional(crossbow, |e| e.projectile_count, 1.0) as i32).max(0)
 }
 
 pub fn projectile_spread(crossbow: &ItemStack) -> f32 {
-    let level = level_of(crossbow, MULTISHOT);
-    let mut spread = 0.0_f32;
-    if level > 0 {
-        spread += linear(MULTISHOT_SPREAD_BASE, MULTISHOT_SPREAD_PER_LEVEL, level);
-    }
-    spread.max(0.0)
+    enchant::modify_unconditional(crossbow, |e| e.projectile_spread, 0.0).max(0.0)
 }
 
 pub fn piercing_level(crossbow: &ItemStack) -> i32 {
-    level_of(crossbow, PIERCING).max(0)
+    (enchant::modify_unconditional(crossbow, |e| e.projectile_piercing, 0.0) as i32).max(0)
 }
 
 pub fn shot_angles(count: usize, spread: f32) -> Vec<f32> {
