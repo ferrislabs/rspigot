@@ -1666,11 +1666,11 @@ mod tests {
                 seed,
                 "minecraft:plains",
             ) {
-                if let Some(levels) = stack.components.get_compound(ENCHANTMENTS) {
-                    if levels.get_i32("minecraft:wind_burst").is_some() {
-                        assert_eq!(levels.get_i32("minecraft:wind_burst"), Some(1));
-                        found += 1;
-                    }
+                if let Some(levels) = stack.components.get_compound(ENCHANTMENTS)
+                    && levels.get_i32("minecraft:wind_burst").is_some()
+                {
+                    assert_eq!(levels.get_i32("minecraft:wind_burst"), Some(1));
+                    found += 1;
                 }
             }
         }

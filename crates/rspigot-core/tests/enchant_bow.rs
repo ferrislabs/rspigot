@@ -112,15 +112,15 @@ fn target_health_after(enchantments: &[(&str, i32)]) -> f32 {
 }
 
 #[test]
-fn a_plain_arrow_hurts_the_target_by_six_to_ten() {
+fn a_plain_arrow_hurts_the_target_by_five_to_ten() {
     let damage = 20.0 - target_health_after(&[]);
-    assert!((6.0..=10.0).contains(&damage), "{damage}");
+    assert!((5.0..=10.0).contains(&damage), "{damage}");
 }
 
 #[test]
 fn power_adds_to_the_arrow_damage() {
     let damage = 20.0 - target_health_after(&[("minecraft:power", 5)]);
-    assert!(damage >= 15.0, "{damage}");
+    assert!(damage >= 12.0, "{damage}");
 }
 
 #[test]

@@ -333,6 +333,7 @@ mod tests {
     const ENTITY_TABLE_FILES: usize = 109;
     const REFERENCED_TABLES: usize = 1;
     const GAMEPLAY_TABLES: usize = 22;
+    const CHEST_TABLE_FILES: usize = 58;
     const FISHING_TABLES: usize = 3;
     const BRUSH_TABLES: usize = 1;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
@@ -416,6 +417,7 @@ mod tests {
             BLOCK_TABLE_FILES
                 + ENTITY_TABLE_FILES
                 + REFERENCED_TABLES
+                + CHEST_TABLE_FILES
                 + GAMEPLAY_TABLES
                 + FISHING_TABLES
                 + BRUSH_TABLES
