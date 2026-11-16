@@ -426,7 +426,7 @@ impl<L: ClientLink> Server<L> {
             1.0,
             1.0,
         );
-        self.spawn_bucketed_fish(id, Kind::SulfurCube, stack, relative);
+        self.spawn_bucketed_fish(Some(id), Kind::SulfurCube, stack, relative);
         if !self.infinite_materials(id) {
             let empty = ItemStack::new(ItemKind::Bucket.id(), std::num::NonZeroU8::MIN);
             self.set_held(id, hand, Some(empty));
@@ -499,16 +499,16 @@ impl<L: ClientLink> Server<L> {
                 );
             }
         }
-        self.spawn_bucketed_fish(player, kind, &stack, block);
+        self.spawn_bucketed_fish(Some(player), kind, &stack, block);
         if !self.infinite_materials(player) {
             let empty = ItemStack::new(ItemKind::Bucket.id(), std::num::NonZeroU8::MIN);
             self.set_held(player, hand, Some(empty));
         }
     }
 
-    fn spawn_bucketed_fish(
+    pub(crate) fn spawn_bucketed_fish(
         &mut self,
-        player: PlayerId,
+        player: Option<PlayerId>,
         kind: Kind,
         stack: &ItemStack,
         block: BlockPos,
@@ -524,12 +524,12 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         apply_bucket_components(&mut entity, stack);
-        self.spawn_entity(
-            entity,
-            Birth::of(CreatureSpawnReason::Bucket)
-                .with_random(random)
-                .by(player),
-        );
+        let birth = Birth::of(CreatureSpawnReason::Bucket).with_random(random);
+        let birth = match player {
+            Some(player) => birth.by(player),
+            None => birth,
+        };
+        self.spawn_entity(entity, birth);
     }
 }
 
