@@ -24,6 +24,22 @@ impl BiomeProbe for Overworld<'_> {
     }
 }
 
+pub(super) fn with_extras() -> &'static Library {
+    static FULL: std::sync::OnceLock<&'static Library> = std::sync::OnceLock::new();
+    FULL.get_or_init(|| {
+        let pack =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../datapacks/vanilla-extras");
+        let (library, issues) = Library::build(&[pack]);
+        assert!(
+            issues
+                .iter()
+                .all(|issue| issue.reason.contains("the missing template")),
+            "{issues:?}"
+        );
+        Box::leak(Box::new(library))
+    })
+}
+
 type Expected = (Vec<(String, i32, i32)>, Vec<(i32, i32)>);
 
 fn expected(fixture: &str) -> Expected {
@@ -104,9 +120,9 @@ fn placement_matches_vanilla_for_a_negative_seed() {
 
 mod jigsaw {
     use super::super::jigsaw::Piece;
-    use super::super::library::Library;
     use super::super::pool::{Element, Projection};
     use super::super::structure::{Kind, Structures, generate_jigsaw, valid_biomes};
+    use super::with_extras;
     use crate::overworld::Overworld;
     use crate::resources::Resources;
     use rspigot_data::multi_noise::ClimateVariant;
@@ -168,16 +184,21 @@ mod jigsaw {
 
     fn check(seed: i64, name: &str, chunk: (i32, i32), fixture: &str) {
         let resources = Resources::resolve();
-        let overworld = Overworld::new(seed as u64, ClimateVariant::Normal, &resources.blocks);
+        let overworld = Overworld::with_library(
+            seed as u64,
+            ClimateVariant::Normal,
+            &resources.blocks,
+            with_extras(),
+        );
         let dimension = Dimension::overworld();
         let probe = overworld.biome_probe();
         let ground = overworld.ground(&dimension);
-        let structures = Structures::load(Library::embedded());
+        let structures = Structures::load(with_extras());
         let def = structures.get(name).unwrap();
         let Kind::Jigsaw(jigsaw) = &def.kind else {
             panic!("not a jigsaw structure");
         };
-        let pools = Library::embedded().pools();
+        let pools = with_extras().pools();
         let valid = valid_biomes(def, &probe);
         let assembly = generate_jigsaw(jigsaw, &valid, pools, &ground, &probe, seed, chunk)
             .expect("start must be valid");
@@ -275,6 +296,7 @@ mod jigsaw {
 }
 
 mod world {
+    use super::with_extras;
     use crate::overworld::Overworld;
     use crate::resources::Resources;
     use rspigot_blocks::BlockKind;
@@ -285,7 +307,8 @@ mod world {
     #[test]
     fn a_village_is_built_into_the_generated_chunks() {
         let resources = Resources::resolve();
-        let overworld = Overworld::new(1, ClimateVariant::Normal, &resources.blocks);
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
         let dimension = Dimension::overworld();
         let mut bells = 0;
         let mut planks = 0;
@@ -325,7 +348,8 @@ mod world {
     #[test]
     fn village_templates_spawn_their_villagers() {
         let resources = Resources::resolve();
-        let overworld = Overworld::new(1, ClimateVariant::Normal, &resources.blocks);
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
         let dimension = Dimension::overworld();
         let mut villagers = 0;
         for cx in 38..=42 {
@@ -343,7 +367,8 @@ mod world {
     #[test]
     fn an_abandoned_camp_is_built_into_the_generated_chunks() {
         let resources = Resources::resolve();
-        let overworld = Overworld::new(1, ClimateVariant::Normal, &resources.blocks);
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
         let dimension = Dimension::overworld();
         let mut chests = 0;
         let mut recorded = false;
@@ -368,5 +393,42 @@ mod world {
         }
         assert!(chests >= 1, "chests {chests}");
         assert!(recorded);
+    }
+}
+
+mod embedded {
+    use super::super::library::Library;
+    use super::super::structure::Structures;
+    use super::with_extras;
+
+    #[test]
+    fn the_binary_only_embeds_villages_and_outposts_among_jigsaw_structures() {
+        let embedded = Structures::load(Library::embedded());
+        assert!(embedded.get("village_plains").is_some());
+        assert!(embedded.get("pillager_outpost").is_some());
+        assert!(embedded.get("mineshaft").is_some());
+        for gone in [
+            "abandoned_camp_forest",
+            "ancient_city",
+            "bastion_remnant",
+            "trial_chambers",
+            "trail_ruins",
+        ] {
+            assert!(embedded.get(gone).is_none(), "{gone}");
+        }
+    }
+
+    #[test]
+    fn the_extras_pack_brings_the_other_structures_back() {
+        let full = Structures::load(with_extras());
+        for back in [
+            "abandoned_camp_forest",
+            "ancient_city",
+            "bastion_remnant",
+            "trial_chambers",
+            "trail_ruins",
+        ] {
+            assert!(full.get(back).is_some(), "{back}");
+        }
     }
 }
