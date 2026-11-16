@@ -956,6 +956,7 @@ pub(crate) enum Spawned {
     Pattern(Vec<(BlockPos, BlockStateId)>),
     Hive(Box<HiveRelease>),
     Spawner(SpawnerRound),
+    TrialSpawner(BlockPos),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1744,6 +1745,9 @@ pub(crate) enum Continuation {
     PlaceCrystal(Box<CrystalPlaceStep>),
     PlaceHanging(Box<HangingPlaceStep>),
     SpawnerSpawn(Box<SpawnerStep>),
+    TrialSpawn(Box<crate::trial_spawner::TrialSpawnStep>),
+    DispenseLoot(Box<crate::trial_spawner::LootDispenseStep>),
+    VaultDisplay(Box<crate::vault::VaultDisplayStep>),
     LootGenerate(Box<crate::container_loot::LootStep>),
     PlaceStand(Box<StandPlaceStep>),
     PlaceVehicle(Box<VehiclePlaceStep>),
@@ -1954,6 +1958,9 @@ impl Continuation {
             Self::PlaceCrystal(_) => EventKind::EntityPlace,
             Self::PlaceHanging(_) => EventKind::HangingPlace,
             Self::SpawnerSpawn(_) => EventKind::SpawnerSpawn,
+            Self::TrialSpawn(_) => EventKind::TrialSpawnerSpawn,
+            Self::DispenseLoot(_) => EventKind::BlockDispenseLoot,
+            Self::VaultDisplay(_) => EventKind::VaultDisplayItem,
             Self::LootGenerate(_) => EventKind::LootGenerate,
             Self::PlaceStand(_) | Self::PlaceVehicle(_) => EventKind::EntityPlace,
             Self::HurtVehicle(_) => EventKind::VehicleDamage,
@@ -2100,6 +2107,7 @@ impl Continuation {
             Self::PlaceCrystal(step) => step.entity.base.id == id,
             Self::PlaceHanging(step) => step.entity.base.id == id,
             Self::SpawnerSpawn(step) => step.entity.base.id == id,
+            Self::TrialSpawn(step) => step.entity().base.id == id,
             Self::PlaceStand(step) => step.entity.base.id == id,
             Self::PlaceVehicle(step) => step.entity.base.id == id,
             Self::HurtVehicle(step) => step.vehicle == id,

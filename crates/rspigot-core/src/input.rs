@@ -488,6 +488,8 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_beehive_entity(pos, state);
                 self.ensure_jukebox_entity(pos, state);
                 self.ensure_spawner_entity(pos, state);
+                self.ensure_trial_spawner_entity(pos, state);
+                self.ensure_vault_entity(pos, state);
                 if state.kind() == Some(BlockKind::Fire) {
                     self.hive_fire_placed(pos);
                     if old.kind() != Some(BlockKind::Fire) {
@@ -603,6 +605,10 @@ impl<L: ClientLink> Server<L> {
                 return;
             }
             if !(sneaking && holding) && self.use_tnt(id, hand, stack.as_ref(), pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
+            if !(sneaking && holding) && self.use_vault(id, hand, stack.as_ref(), pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }

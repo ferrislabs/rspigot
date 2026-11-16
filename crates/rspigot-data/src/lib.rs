@@ -15,6 +15,7 @@ pub mod sulfur_cube;
 pub mod tags;
 pub mod trading;
 pub mod transformers;
+pub mod trial_spawner;
 pub mod variants;
 
 pub const PROTOCOL_VERSION: i32 = 777;

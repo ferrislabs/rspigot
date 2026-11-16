@@ -318,6 +318,7 @@ impl<L: ClientLink> Server<L> {
                     self.clear_pattern_blocks(&blocks);
                 }
             }
+            Spawned::TrialSpawner(pos) => self.finish_trial_birth(pos, placed.map(|(id, _)| id)),
             Spawned::Spawner(round) => self.finish_spawner_birth(round, placed.map(|(id, _)| id)),
             Spawned::Hive(release) => {
                 self.finish_hive_release(*release, placed.map(|(id, _)| id));

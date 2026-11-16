@@ -119,6 +119,10 @@ impl ChunkGenerator for Seeded {
 }
 
 pub fn world(seeds: Vec<Seed>, handlers: Vec<HandlerSpec>) -> Scene {
+    world_spawning(seeds, handlers, false)
+}
+
+pub fn world_spawning(seeds: Vec<Seed>, handlers: Vec<HandlerSpec>, spawn_mobs: bool) -> Scene {
     let config = GameConfig {
         view_distance: 3,
         chunk_workers: 2,
@@ -126,7 +130,7 @@ pub fn world(seeds: Vec<Seed>, handlers: Vec<HandlerSpec>) -> Scene {
         ..GameConfig::default()
     };
     let level = LevelData {
-        spawn_mobs: false,
+        spawn_mobs,
         ..LevelData::default()
     };
     let mut server: Server<Link> = Server::new(
