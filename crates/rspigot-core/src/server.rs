@@ -126,6 +126,8 @@ pub struct Server<L> {
     pub(crate) dimension_provider: Option<crate::travel::DimensionProvider<L>>,
     pub(crate) command_dimension: Option<crate::world_state::DimensionKey>,
     pub(crate) saving_enabled: bool,
+    pub(crate) tick_rate: rspigot_domain::tick_rate::TickRate,
+    pub(crate) simulating: bool,
     pub(crate) command_source: Option<crate::commands::source::Source>,
     pub(crate) command_result: Option<i32>,
     pub(crate) command_storage: FxHashMap<Identifier, rspigot_nbt::Compound>,
@@ -208,6 +210,8 @@ impl<L: ClientLink> Server<L> {
             dormant: FxHashMap::default(),
             dimension_provider: None,
             command_dimension: None,
+            tick_rate: Default::default(),
+            simulating: true,
             saving_enabled: true,
             command_source: None,
             command_result: None,
@@ -326,24 +330,30 @@ impl<L: ClientLink> Server<L> {
         self.startup = None;
         self.handle_waiting(inbound);
         self.server_loaded();
-        let tick_length = Duration::from_millis(50);
         let results = self.workers.results().clone();
         let mut next_tick = Instant::now();
         while self.running {
             let now = Instant::now();
-            if now >= next_tick {
+            if now >= next_tick || self.tick_rate.is_sprinting() {
                 self.handle_waiting(inbound);
                 if !self.running {
                     break;
                 }
+                let started = Instant::now();
                 self.tick();
+                self.finish_tick_timing(started.elapsed());
+                if self.tick_rate.is_sprinting() {
+                    next_tick = Instant::now();
+                    continue;
+                }
+                let tick_length = Duration::from_nanos(self.tick_rate.nanos_per_tick());
                 next_tick += tick_length;
                 let behind = Instant::now().saturating_duration_since(next_tick);
                 if behind > Duration::from_secs(2) {
                     tracing::warn!(
                         "Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind",
                         behind.as_millis(),
-                        behind.as_millis() / 50
+                        behind.as_millis() / u128::from(tick_length.as_millis().max(1) as u64)
                     );
                     next_tick = Instant::now();
                 }
@@ -848,6 +858,12 @@ impl<L: ClientLink> Server<L> {
         });
         let link = &player.link;
         link.send(self.time_event());
+        if self.tick_rate.rate() != 20.0 || self.tick_rate.is_frozen() {
+            link.send(ClientEvent::TickingState {
+                rate: self.tick_rate.rate(),
+                frozen: self.tick_rate.is_frozen(),
+            });
+        }
         if self.world.level.raining {
             link.send(ClientEvent::GameEvent(GameEvent::StartRaining));
             link.send(ClientEvent::GameEvent(GameEvent::RainLevelChange(1.0)));
@@ -950,6 +966,7 @@ impl<L: ClientLink> Server<L> {
     pub fn tick(&mut self) {
         self.tick += 1;
         self.tps.record(self.tick);
+        self.simulating = self.tick_rate.runs_simulation();
         self.tick_world(true);
         let mut keys: Vec<crate::world_state::DimensionKey> = self
             .dormant
@@ -1007,6 +1024,10 @@ impl<L: ClientLink> Server<L> {
         home: &crate::world_state::DimensionKey,
         away: &mut Vec<(PlayerId, Player<L>)>,
     ) {
+        if !self.simulating {
+            self.tick_frozen_world(primary, home, away);
+            return;
+        }
         self.world.level.game_time += 1;
         if self.world.level.daylight_cycle && !self.world.dimension.has_fixed_time {
             self.world.level.day_time += 1;
@@ -1085,6 +1106,62 @@ impl<L: ClientLink> Server<L> {
         for id in disconnected {
             self.remove_player(id, true);
         }
+    }
+
+    fn tick_frozen_world(
+        &mut self,
+        primary: bool,
+        home: &crate::world_state::DimensionKey,
+        away: &mut Vec<(PlayerId, Player<L>)>,
+    ) {
+        for pos in self.world.chunks.tick() {
+            self.ask_chunk_unload(pos);
+        }
+        self.handle_chunk_events();
+        for player in self.players.values_mut().filter(|player| !player.won_game) {
+            player.streamer.tick(&self.world.chunks, &player.link);
+        }
+        self.world.chunks.relight();
+        if primary {
+            self.players.extend(away.drain(..));
+            self.tick_plugins();
+            *away = self.set_aside_players_outside(home);
+        }
+        self.update_tracking();
+        let disconnected: Vec<PlayerId> = self
+            .players
+            .values()
+            .filter(|p| !p.link.is_connected())
+            .map(|p| p.id)
+            .collect();
+        for id in disconnected {
+            self.remove_player(id, true);
+        }
+    }
+
+    pub(crate) fn finish_tick_timing(&mut self, took: Duration) {
+        let nanos = u64::try_from(took.as_nanos()).unwrap_or(u64::MAX);
+        let Some(report) = self.tick_rate.finish_tick(nanos) else {
+            return;
+        };
+        crate::commands::CommandContext::broadcast(
+            self,
+            Component::translatable(
+                "commands.tick.sprint.report",
+                vec![
+                    Component::text(format!("{:.0}", report.ticks_per_second())),
+                    Component::text(format!("{:.2}", report.millis_per_tick())),
+                ],
+            ),
+        );
+        self.push(
+            Audience::All,
+            ClientEvent::TickingState {
+                rate: self.tick_rate.rate(),
+                frozen: self.tick_rate.is_frozen(),
+            },
+        );
+        self.deliver();
     }
 
     pub(crate) fn metadata(player: &Player<L>) -> Vec<MetadataEntry> {

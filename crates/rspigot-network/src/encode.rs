@@ -1401,6 +1401,16 @@ impl Encoder {
                     },
                 },
             ),
+            ClientEvent::TickingState { rate, frozen } => Self::queue(
+                writer,
+                &cb::TickingState {
+                    tick_rate: *rate,
+                    is_frozen: *frozen,
+                },
+            ),
+            ClientEvent::TickingStep(steps) => {
+                Self::queue(writer, &cb::TickingStep { tick_steps: *steps })
+            }
             ClientEvent::Camera(entity) => Self::queue(
                 writer,
                 &cb::SetCamera {
@@ -2523,6 +2533,21 @@ mod tests {
             sound: None,
         });
         assert_eq!(packets, vec![(id::STOP_SOUND, vec![1, 2])]);
+    }
+
+    #[test]
+    fn ticking_state_and_step_golden_bytes() {
+        let state = encode(ClientEvent::TickingState {
+            rate: 20.0,
+            frozen: true,
+        });
+        assert_eq!(state.len(), 1);
+        assert_eq!(state[0].0, id::TICKING_STATE);
+        assert_eq!(state[0].1, vec![0x41, 0xa0, 0, 0, 1]);
+        assert_eq!(
+            encode(ClientEvent::TickingStep(3)),
+            vec![(id::TICKING_STEP, vec![3])]
+        );
     }
 
     #[test]

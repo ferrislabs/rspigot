@@ -789,6 +789,11 @@ pub enum ClientEvent {
         duration: i32,
     },
     Camera(EntityId),
+    TickingState {
+        rate: f32,
+        frozen: bool,
+    },
+    TickingStep(i32),
     PlayerRotation {
         yaw: f32,
         pitch: f32,

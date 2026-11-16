@@ -412,6 +412,13 @@ pub trait CommandContext {
         false
     }
 
+    fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate;
+
+    fn change_tick_rate<R>(
+        &mut self,
+        change: impl FnOnce(&mut rspigot_domain::tick_rate::TickRate) -> R,
+    ) -> R;
+
     fn scoreboard(&self) -> &Scoreboard;
 
     fn change_scoreboard<R>(
@@ -653,6 +660,7 @@ pub fn execute<C: CommandContext>(
         "ride" | "rotate" | "spectate" | "swing" => {
             super::movement_commands::run(ctx, sender, &label, rest)
         }
+        "tick" => super::tick_commands::run(ctx, sender, rest),
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),
@@ -2033,6 +2041,7 @@ mod tests {
         killed: Vec<PlayerId>,
         plugins: Vec<String>,
         board: Scoreboard,
+        ticking: rspigot_domain::tick_rate::TickRate,
     }
 
     fn alice() -> PlayerId {
@@ -2040,6 +2049,15 @@ mod tests {
     }
 
     impl CommandContext for FakeContext {
+        fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate {
+            self.ticking.clone()
+        }
+        fn change_tick_rate<R>(
+            &mut self,
+            change: impl FnOnce(&mut rspigot_domain::tick_rate::TickRate) -> R,
+        ) -> R {
+            change(&mut self.ticking)
+        }
         fn scoreboard(&self) -> &Scoreboard {
             &self.board
         }

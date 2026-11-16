@@ -15,6 +15,7 @@ mod sound_commands;
 pub mod source;
 mod team_commands;
 mod text_commands;
+mod tick_commands;
 mod tree;
 
 pub use dispatch::{
@@ -55,3 +56,6 @@ mod entity_command_tests;
 
 #[cfg(test)]
 mod movement_command_tests;
+
+#[cfg(test)]
+mod tick_command_tests;

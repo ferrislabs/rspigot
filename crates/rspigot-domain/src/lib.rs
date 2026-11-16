@@ -52,6 +52,7 @@ pub mod spawn;
 pub mod spawner;
 pub mod stonecutting;
 pub mod text;
+pub mod tick_rate;
 pub mod warden;
 pub mod world;
 

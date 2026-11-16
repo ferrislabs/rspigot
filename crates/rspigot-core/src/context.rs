@@ -499,6 +499,36 @@ impl<L: ClientLink> CommandContext for Server<L> {
         }
     }
 
+    fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate {
+        self.tick_rate.clone()
+    }
+
+    fn change_tick_rate<R>(
+        &mut self,
+        change: impl FnOnce(&mut rspigot_domain::tick_rate::TickRate) -> R,
+    ) -> R {
+        let before = (self.tick_rate.rate(), self.tick_rate.is_frozen());
+        let steps = self.tick_rate.pending_steps();
+        let result = change(&mut self.tick_rate);
+        let after = (self.tick_rate.rate(), self.tick_rate.is_frozen());
+        if before != after {
+            self.push(
+                Audience::All,
+                ClientEvent::TickingState {
+                    rate: after.0,
+                    frozen: after.1,
+                },
+            );
+        }
+        if self.tick_rate.pending_steps() != steps {
+            self.push(
+                Audience::All,
+                ClientEvent::TickingStep(self.tick_rate.pending_steps()),
+            );
+        }
+        result
+    }
+
     fn vehicle_of(&self, target: Target) -> Option<Target> {
         let rider = self.entity_id_of(target)?;
         let vehicle = self.entities.rides.vehicle_of(rider)?;
