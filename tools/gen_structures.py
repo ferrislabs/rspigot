@@ -17,12 +17,21 @@ TEMPLATE_GROUPS = (
     "minecraft:bastion/",
     "minecraft:trial_chambers/",
     "minecraft:ruined_portal/",
+    "minecraft:shipwreck/",
+    "minecraft:underwater_ruin/",
+    "minecraft:igloo/",
+    "minecraft:nether_fossils/",
 )
 EMBEDDED_GROUPS = (
     "minecraft:village/",
     "minecraft:pillager_outpost/",
     "minecraft:ruined_portal/",
+    "minecraft:shipwreck/",
+    "minecraft:underwater_ruin/",
+    "minecraft:igloo/",
+    "minecraft:nether_fossils/",
 )
+SHAPED_FOLDERS = ("ruined_portal", "shipwreck", "underwater_ruin", "igloo", "nether_fossils")
 PACK_NAME = "vanilla-extras"
 PACK_MCMETA = {"pack": {"description": "Vanilla jigsaw structures that rspigot does not embed", "pack_format": 121}}
 DEFAULT_STRUCTURES = os.path.join(DATA, "structures.json")
@@ -193,13 +202,16 @@ def convert_template(module, path):
     return {"size": tag["size"], "palettes": palettes, "blocks": blocks, "entities": entities}
 
 
-def portal_templates(root):
-    folder = os.path.join(root, "structure", "ruined_portal")
-    return {
-        "minecraft:ruined_portal/" + file[:-4]
-        for file in os.listdir(folder)
-        if file.endswith(".nbt")
-    }
+def shaped_templates(root):
+    found = set()
+    for name in SHAPED_FOLDERS:
+        folder = os.path.join(root, "structure", name)
+        found |= {
+            "minecraft:" + name + "/" + file[:-4]
+            for file in os.listdir(folder)
+            if file.endswith(".nbt")
+        }
+    return found
 
 
 def build(root):
@@ -225,7 +237,7 @@ def build(root):
                 walk_aliases(alias, starts)
         structures[name] = data
     pools, templates, processor_names = collect_pools(root, starts)
-    expanded = set(templates) | portal_templates(root)
+    expanded = set(templates) | shaped_templates(root)
     missing = set()
     while True:
         converted = {}

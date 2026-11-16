@@ -1,0 +1,56 @@
+START desert_pyramid -60 -78 valid=true
+PIECE 0 DesertPyramidPiece -960 64 -1248 -940 78 -1228 west
+START desert_pyramid -54 -96 valid=true
+PIECE 0 DesertPyramidPiece -864 64 -1536 -844 78 -1516 west
+START desert_pyramid -54 -84 valid=true
+PIECE 0 DesertPyramidPiece -864 64 -1344 -844 78 -1324 west
+START desert_pyramid -42 -96 valid=true
+PIECE 0 DesertPyramidPiece -672 64 -1536 -652 78 -1516 north
+START desert_pyramid -36 -84 valid=true
+PIECE 0 DesertPyramidPiece -576 64 -1344 -556 78 -1324 north
+START desert_pyramid 234 -96 valid=true
+PIECE 0 DesertPyramidPiece 3744 64 -1536 3764 78 -1516 north
+START desert_pyramid 240 -126 valid=true
+PIECE 0 DesertPyramidPiece 3840 64 -2016 3860 78 -1996 west
+START desert_pyramid 240 -102 valid=true
+PIECE 0 DesertPyramidPiece 3840 64 -1632 3860 78 -1612 north
+START desert_pyramid 246 -150 valid=true
+PIECE 0 DesertPyramidPiece 3936 64 -2400 3956 78 -2380 south
+START desert_pyramid 246 -120 valid=true
+PIECE 0 DesertPyramidPiece 3936 64 -1920 3956 78 -1900 west
+START desert_pyramid 246 -90 valid=true
+PIECE 0 DesertPyramidPiece 3936 64 -1440 3956 78 -1420 north
+START desert_pyramid 252 -144 valid=true
+PIECE 0 DesertPyramidPiece 4032 64 -2304 4052 78 -2284 north
+START desert_pyramid 252 -120 valid=true
+PIECE 0 DesertPyramidPiece 4032 64 -1920 4052 78 -1900 west
+START desert_pyramid 258 -168 valid=true
+PIECE 0 DesertPyramidPiece 4128 64 -2688 4148 78 -2668 west
+START desert_pyramid 258 -120 valid=true
+PIECE 0 DesertPyramidPiece 4128 64 -1920 4148 78 -1900 west
+START desert_pyramid 258 -102 valid=true
+PIECE 0 DesertPyramidPiece 4128 64 -1632 4148 78 -1612 south
+START desert_pyramid 264 -126 valid=true
+PIECE 0 DesertPyramidPiece 4224 64 -2016 4244 78 -1996 south
+START desert_pyramid 270 -156 valid=true
+PIECE 0 DesertPyramidPiece 4320 64 -2496 4340 78 -2476 west
+START desert_pyramid 276 -144 valid=true
+PIECE 0 DesertPyramidPiece 4416 64 -2304 4436 78 -2284 north
+START desert_pyramid 276 -132 valid=true
+PIECE 0 DesertPyramidPiece 4416 64 -2112 4436 78 -2092 north
+START desert_pyramid 282 -132 valid=true
+PIECE 0 DesertPyramidPiece 4512 64 -2112 4532 78 -2092 east
+START desert_pyramid 282 -120 valid=true
+PIECE 0 DesertPyramidPiece 4512 64 -1920 4532 78 -1900 north
+START desert_pyramid 288 -138 valid=true
+PIECE 0 DesertPyramidPiece 4608 64 -2208 4628 78 -2188 south
+START desert_pyramid 294 -132 valid=true
+PIECE 0 DesertPyramidPiece 4704 64 -2112 4724 78 -2092 south
+START desert_pyramid 294 -120 valid=true
+PIECE 0 DesertPyramidPiece 4704 64 -1920 4724 78 -1900 north
+START desert_pyramid -300 -300 valid=false
+START desert_pyramid -204 144 valid=false
+START desert_pyramid -102 -18 valid=false
+START desert_pyramid 0 -120 valid=false
+START desert_pyramid 102 -282 valid=false
+START desert_pyramid 198 162 valid=false

@@ -1,0 +1,81 @@
+START shipwreck -60 -21 valid=true
+PIECE 0 ShipwreckPiece -960 90 -322 -952 98 -306 north
+TPL 0 minecraft:shipwreck/sideways_backhalf_degraded -960 90 -336 CLOCKWISE_180
+START shipwreck -57 12 valid=true
+PIECE 0 ShipwreckPiece -912 90 207 -904 98 222 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf -912 90 192 CLOCKWISE_180
+START shipwreck -54 48 valid=true
+PIECE 0 ShipwreckPiece -872 90 779 -845 98 787 north
+TPL 0 minecraft:shipwreck/rightsideup_full -864 90 768 CLOCKWISE_90
+START shipwreck -48 12 valid=true
+PIECE 0 ShipwreckPiece -772 90 203 -749 98 211 north
+TPL 0 minecraft:shipwreck/sideways_fronthalf_degraded -768 90 192 CLOCKWISE_90
+START shipwreck -45 51 valid=true
+PIECE 0 ShipwreckPiece -724 90 827 -701 98 835 north
+TPL 0 minecraft:shipwreck/sideways_fronthalf_degraded -720 90 816 CLOCKWISE_90
+START shipwreck -39 15 valid=true
+PIECE 0 ShipwreckPiece -635 90 251 -608 110 259 north
+TPL 0 minecraft:shipwreck/with_mast -624 90 240 COUNTERCLOCKWISE_90
+START shipwreck -33 -3 valid=true
+PIECE 0 ShipwreckPiece -528 90 -33 -520 98 -18 north
+TPL 0 minecraft:shipwreck/upsidedown_backhalf_degraded -528 90 -48 CLOCKWISE_180
+START shipwreck -27 -33 valid=true
+PIECE 0 ShipwreckPiece -432 90 -528 -424 98 -501 north
+TPL 0 minecraft:shipwreck/rightsideup_full -432 90 -528 NONE
+START shipwreck -24 0 valid=true
+PIECE 0 ShipwreckPiece -384 90 15 -376 98 30 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf -384 90 0 CLOCKWISE_180
+START shipwreck -21 18 valid=true
+PIECE 0 ShipwreckPiece -344 90 299 -317 98 307 north
+TPL 0 minecraft:shipwreck/rightsideup_full_degraded -336 90 288 CLOCKWISE_90
+START shipwreck -18 36 valid=true
+PIECE 0 ShipwreckPiece -296 90 587 -269 98 595 north
+TPL 0 minecraft:shipwreck/sideways_full_degraded -288 90 576 CLOCKWISE_90
+START shipwreck -15 48 valid=true
+PIECE 0 ShipwreckPiece -240 90 768 -232 98 795 north
+TPL 0 minecraft:shipwreck/rightsideup_full -240 90 768 NONE
+START shipwreck -12 57 valid=true
+PIECE 0 ShipwreckPiece -192 90 915 -184 98 942 north
+TPL 0 minecraft:shipwreck/sideways_full -192 90 912 CLOCKWISE_180
+START shipwreck -6 -39 valid=true
+PIECE 0 ShipwreckPiece -96 90 -609 -88 98 -594 north
+TPL 0 minecraft:shipwreck/upsidedown_backhalf_degraded -96 90 -624 CLOCKWISE_180
+START shipwreck -3 -30 valid=true
+PIECE 0 ShipwreckPiece -48 90 -473 -40 98 -450 north
+TPL 0 minecraft:shipwreck/rightsideup_fronthalf -48 90 -480 CLOCKWISE_180
+START shipwreck 0 -15 valid=true
+PIECE 0 ShipwreckPiece -11 90 -229 16 98 -221 north
+TPL 0 minecraft:shipwreck/sideways_full_degraded 0 90 -240 COUNTERCLOCKWISE_90
+START shipwreck 3 6 valid=true
+PIECE 0 ShipwreckPiece 48 90 103 56 98 126 north
+TPL 0 minecraft:shipwreck/sideways_fronthalf 48 90 96 CLOCKWISE_180
+START shipwreck 9 -57 valid=true
+PIECE 0 ShipwreckPiece 144 90 -912 152 98 -889 north
+TPL 0 minecraft:shipwreck/rightsideup_fronthalf 144 90 -912 NONE
+START shipwreck 12 -24 valid=true
+PIECE 0 ShipwreckPiece 181 90 -373 204 98 -365 north
+TPL 0 minecraft:shipwreck/rightsideup_fronthalf_degraded 192 90 -384 COUNTERCLOCKWISE_90
+START shipwreck 18 -30 valid=true
+PIECE 0 ShipwreckPiece 292 90 -469 307 98 -461 north
+TPL 0 minecraft:shipwreck/upsidedown_backhalf 288 90 -480 CLOCKWISE_90
+START shipwreck 24 -30 valid=true
+PIECE 0 ShipwreckPiece 373 90 -469 400 98 -461 north
+TPL 0 minecraft:shipwreck/upsidedown_full 384 90 -480 COUNTERCLOCKWISE_90
+START shipwreck 30 12 valid=true
+PIECE 0 ShipwreckPiece 480 90 192 488 98 219 north
+TPL 0 minecraft:shipwreck/upsidedown_full_degraded 480 90 192 NONE
+START shipwreck 39 -36 valid=true
+PIECE 0 ShipwreckPiece 613 90 -565 636 98 -557 north
+TPL 0 minecraft:shipwreck/sideways_fronthalf 624 90 -576 COUNTERCLOCKWISE_90
+START shipwreck 48 -54 valid=true
+PIECE 0 ShipwreckPiece 768 90 -864 776 98 -841 north
+TPL 0 minecraft:shipwreck/rightsideup_fronthalf_degraded 768 90 -864 NONE
+START shipwreck 54 -18 valid=true
+PIECE 0 ShipwreckPiece 868 90 -277 883 98 -269 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf_degraded 864 90 -288 CLOCKWISE_90
+START shipwreck -60 -60 valid=false
+START shipwreck -39 -15 valid=false
+START shipwreck -9 -48 valid=false
+START shipwreck 18 33 valid=false
+START shipwreck 33 33 valid=false
+START shipwreck 48 -33 valid=false

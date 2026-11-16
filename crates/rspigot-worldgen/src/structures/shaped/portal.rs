@@ -14,6 +14,8 @@ use crate::structures::library::Library;
 use crate::structures::placement::{BiomeProbe, large_feature_seed};
 use crate::structures::processors::{Rule, Step, Subject, Test, parse_state};
 
+use super::tpl::{Mirror, bounds, center, mirrored, transform};
+
 const PORTALS: [&str; 10] = [
     "minecraft:ruined_portal/portal_1",
     "minecraft:ruined_portal/portal_2",
@@ -116,12 +118,6 @@ pub(crate) fn setups(value: &Value) -> Vec<Setup> {
         .unwrap_or_default()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Mirror {
-    None,
-    FrontBack,
-}
-
 #[derive(Debug)]
 pub(crate) struct Piece {
     pub(crate) name: &'static str,
@@ -138,35 +134,6 @@ pub(crate) struct Piece {
     vines: bool,
     blackstone: bool,
     pub(crate) bbox: Bbox,
-}
-
-fn transform((x, y, z): Pos, mirror: Mirror, rotation: Rotation, (px, pz): (i32, i32)) -> Pos {
-    let x = if mirror == Mirror::FrontBack { -x } else { x };
-    match rotation {
-        Rotation::Counterclockwise90 => (px - pz + z, y, px + pz - x),
-        Rotation::Clockwise90 => (px + pz - z, y, pz - px + x),
-        Rotation::Clockwise180 => (px * 2 - x, y, pz * 2 - z),
-        Rotation::None => (x, y, z),
-    }
-}
-
-fn bounds(size: Pos, origin: Pos, mirror: Mirror, rotation: Rotation, pivot: (i32, i32)) -> Bbox {
-    let a = transform((0, 0, 0), mirror, rotation, pivot);
-    let b = transform(
-        (size.0 - 1, size.1 - 1, size.2 - 1),
-        mirror,
-        rotation,
-        pivot,
-    );
-    Bbox::from_corners(a, b).moved(origin.0, origin.1, origin.2)
-}
-
-fn center(bbox: &Bbox) -> Pos {
-    (
-        bbox.min.0 + (bbox.max.0 - bbox.min.0 + 1) / 2,
-        bbox.min.1 + (bbox.max.1 - bbox.min.1 + 1) / 2,
-        bbox.min.2 + (bbox.max.2 - bbox.min.2 + 1) / 2,
-    )
 }
 
 fn between(random: &mut JavaRandom, low: i32, high: i32) -> i32 {
@@ -321,47 +288,6 @@ pub(crate) fn generate<G: Ground>(
         blackstone: setup.blackstone,
         bbox: bounds(blueprint.size, at, mirror, rotation, pivot),
     })
-}
-
-fn mirrored(state: BlockStateId, mirror: Mirror) -> BlockStateId {
-    if mirror == Mirror::None {
-        return state;
-    }
-    let Some(kind) = state.kind() else {
-        return state;
-    };
-    let name = kind.name();
-    let swap = |state: BlockStateId, first: &str, second: &str| match (
-        state.property(first),
-        state.property(second),
-    ) {
-        (Some(a), Some(b)) => state
-            .with_property(first, b)
-            .and_then(|next| next.with_property(second, a))
-            .unwrap_or(state),
-        _ => state,
-    };
-    if name.ends_with("_stairs") {
-        let facing = state.property("facing").unwrap_or("north");
-        if !matches!(facing, "east" | "west") {
-            return state;
-        }
-        let turned = Rotation::Clockwise180.state(state);
-        let shape = match state.property("shape") {
-            Some("outer_left") => "outer_right",
-            Some("outer_right") => "outer_left",
-            Some(other) => other,
-            None => "straight",
-        };
-        return turned.with_property("shape", shape).unwrap_or(turned);
-    }
-    if name.ends_with("_wall") || kind == Kind::IronBars || kind == Kind::IronChain {
-        return swap(state, "east", "west");
-    }
-    match state.property("facing") {
-        Some("east" | "west") => Rotation::Clockwise180.state(state),
-        _ => state,
-    }
 }
 
 fn steps(piece: &Piece) -> Vec<Step> {

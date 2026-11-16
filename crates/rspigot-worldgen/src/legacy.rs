@@ -40,6 +40,10 @@ impl JavaRandom {
         }
     }
 
+    pub(crate) fn next_i32(&mut self) -> i32 {
+        self.next(32)
+    }
+
     pub(crate) fn between(&mut self, min: i32, max: i32) -> i32 {
         min + self.next_int(max - min + 1)
     }

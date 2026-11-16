@@ -35,6 +35,9 @@ pub(crate) trait Ground {
     fn sea_level(&self) -> i32 {
         63
     }
+    fn gen_depth(&self) -> i32 {
+        self.max_y() - self.min_y() + 1
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
