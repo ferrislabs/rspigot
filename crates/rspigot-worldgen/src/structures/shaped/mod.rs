@@ -5,6 +5,7 @@ pub(crate) mod hut;
 pub(crate) mod igloo;
 pub(crate) mod jungle;
 pub(crate) mod mineshaft;
+pub(crate) mod monument;
 pub(crate) mod ocean_ruin;
 pub(crate) mod portal;
 pub(crate) mod scatter;
@@ -34,6 +35,7 @@ pub(crate) enum Shaped {
     Wreck(shipwreck::Piece),
     Ruin(ocean_ruin::Piece),
     Temple(scatter::Piece),
+    Monument(monument::Piece),
 }
 
 impl Shaped {
@@ -48,6 +50,7 @@ impl Shaped {
             Self::Wreck(piece) => &piece.bbox,
             Self::Ruin(piece) => &piece.bbox,
             Self::Temple(piece) => &piece.bbox,
+            Self::Monument(piece) => &piece.bbox,
         }
     }
 
@@ -62,6 +65,7 @@ impl Shaped {
             Self::Wreck(piece) => piece.place(run, write),
             Self::Ruin(piece) => piece.place(run, write),
             Self::Temple(piece) => piece.place(run, write),
+            Self::Monument(piece) => piece.place(run, write),
         }
     }
 
@@ -72,6 +76,7 @@ impl Shaped {
             Self::Stronghold(piece) => piece.class().to_owned(),
             Self::Portal(_) => "RuinedPortalPiece".to_owned(),
             Self::Treasure(_) => "BuriedTreasurePiece".to_owned(),
+            Self::Monument(_) => "MonumentBuilding".to_owned(),
             Self::Fossil(_) => "NetherFossilPiece".to_owned(),
             Self::Igloo(_) => "IglooPiece".to_owned(),
             Self::Wreck(_) => "ShipwreckPiece".to_owned(),
@@ -94,6 +99,7 @@ impl Shaped {
             Self::Portal(_) => Some(Dir::North),
             Self::Treasure(_) => None,
             Self::Temple(piece) => Some(piece.facing),
+            Self::Monument(piece) => Some(piece.facing),
             Self::Fossil(_) | Self::Igloo(_) | Self::Wreck(_) | Self::Ruin(_) => Some(Dir::North),
         };
         match facing {
@@ -103,6 +109,18 @@ impl Shaped {
             Some(Dir::West) => "west",
             Some(Dir::East) => "east",
             Some(_) => "?",
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn extra_lines(&self) -> Vec<String> {
+        match self {
+            Self::Monument(piece) => piece.child_lines(),
+            _ => self
+                .template_line()
+                .map(|line| format!("TPL {line}"))
+                .into_iter()
+                .collect(),
         }
     }
 
@@ -134,6 +152,7 @@ impl Shaped {
                 tags(piece.extra()),
             ),
             Self::Treasure(piece) => (piece.id(), piece.bbox, None, 0, Vec::new()),
+            Self::Monument(piece) => (piece.id(), piece.bbox, Some(piece.facing), 0, Vec::new()),
             Self::Temple(piece) => {
                 let (width, height, depth) = piece.temple.size();
                 (
@@ -256,6 +275,7 @@ pub(crate) enum Other {
     Shipwreck { beached: bool },
     OceanRuin(ocean_ruin::Params),
     Temple(scatter::Temple),
+    Monument,
 }
 
 impl Other {
@@ -263,6 +283,7 @@ impl Other {
         Some(match kind {
             "buried_treasure" => Self::BuriedTreasure,
             "igloo" => Self::Igloo,
+            "ocean_monument" => Self::Monument,
             "desert_pyramid" => Self::Temple(scatter::Temple::Desert),
             "jungle_temple" => Self::Temple(scatter::Temple::Jungle),
             "swamp_hut" => Self::Temple(scatter::Temple::SwampHut),
@@ -318,6 +339,8 @@ impl Other {
             }
             Self::Temple(temple) => scatter::generate(temple, ground, valid, probe, seed, chunk)
                 .map(|piece| vec![Shaped::Temple(piece)]),
+            Self::Monument => monument::generate(ground, valid, probe, seed, chunk)
+                .map(|piece| vec![Shaped::Monument(piece)]),
             Self::Igloo => igloo::generate(library, ground, valid, probe, seed, chunk)
                 .map(|pieces| pieces.into_iter().map(Shaped::Igloo).collect()),
             Self::NetherFossil(height) => {

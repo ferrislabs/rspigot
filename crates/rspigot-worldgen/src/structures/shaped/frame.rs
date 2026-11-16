@@ -57,6 +57,23 @@ pub(crate) fn face_of(dir: Dir) -> Face {
 
 pub(crate) const HORIZONTAL: [Dir; 4] = [Dir::North, Dir::East, Dir::South, Dir::West];
 
+pub(crate) fn world_of(bbox: &Bbox, facing: Option<Dir>, (x, y, z): Pos) -> Pos {
+    let wx = match facing {
+        Some(Dir::North | Dir::South) => bbox.min.0 + x,
+        Some(Dir::West) => bbox.max.0 - z,
+        Some(Dir::East) => bbox.min.0 + z,
+        _ => x,
+    };
+    let wy = if facing.is_some() { bbox.min.1 + y } else { y };
+    let wz = match facing {
+        Some(Dir::North) => bbox.max.2 - z,
+        Some(Dir::South) => bbox.min.2 + z,
+        Some(Dir::West | Dir::East) => bbox.min.2 + x,
+        _ => z,
+    };
+    (wx, wy, wz)
+}
+
 pub(crate) fn plain(kind: Kind) -> BlockStateId {
     kind.default_state()
 }
@@ -171,33 +188,19 @@ impl<'a, 'b, 'r> Frame<'a, 'b, 'r> {
     }
 
     pub(crate) fn world_x(&self, x: i32, z: i32) -> i32 {
-        match self.facing {
-            Some(Dir::North | Dir::South) => self.bbox.min.0 + x,
-            Some(Dir::West) => self.bbox.max.0 - z,
-            Some(Dir::East) => self.bbox.min.0 + z,
-            _ => x,
-        }
+        world_of(&self.bbox, self.facing, (x, 0, z)).0
     }
 
     pub(crate) fn world_y(&self, y: i32) -> i32 {
-        if self.facing.is_some() {
-            self.bbox.min.1 + y
-        } else {
-            y
-        }
+        world_of(&self.bbox, self.facing, (0, y, 0)).1
     }
 
     pub(crate) fn world_z(&self, x: i32, z: i32) -> i32 {
-        match self.facing {
-            Some(Dir::North) => self.bbox.max.2 - z,
-            Some(Dir::South) => self.bbox.min.2 + z,
-            Some(Dir::West | Dir::East) => self.bbox.min.2 + x,
-            _ => z,
-        }
+        world_of(&self.bbox, self.facing, (x, 0, z)).2
     }
 
     pub(crate) fn world_pos(&self, x: i32, y: i32, z: i32) -> Pos {
-        (self.world_x(x, z), self.world_y(y), self.world_z(x, z))
+        world_of(&self.bbox, self.facing, (x, y, z))
     }
 
     pub(crate) fn state_at(&mut self, at: Pos) -> BlockStateId {

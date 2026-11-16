@@ -57,17 +57,6 @@ pub(crate) fn lowest_y<G: Ground>(
         .unwrap_or(0)
 }
 
-pub(crate) fn mean_height<G: Ground>(
-    ground: &G,
-    min_x: i32,
-    size_x: i32,
-    min_z: i32,
-    size_z: i32,
-) -> i32 {
-    let heights = corner_heights(ground, min_x, size_x, min_z, size_z);
-    (heights[0] + heights[1] + heights[2] + heights[3]) / 4
-}
-
 pub(crate) fn center_top<G: Ground>(ground: &G, map: Heightmap, chunk: (i32, i32)) -> Pos {
     let (x, z) = (chunk.0 * 16 + 8, chunk.1 * 16 + 8);
     (x, occupied(ground, x, z, map), z)

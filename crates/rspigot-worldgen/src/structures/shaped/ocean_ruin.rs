@@ -161,7 +161,8 @@ fn between(random: &mut JavaRandom, low: i32, high: i32) -> i32 {
 }
 
 fn positions(random: &mut JavaRandom, origin: Pos) -> Vec<Pos> {
-    const SPEC: [((i32, i32), (i32, i32), (i32, i32)); 8] = [
+    type Draw = ((i32, i32), (i32, i32), (i32, i32));
+    const SPEC: [Draw; 8] = [
         ((1, 8), (1, 7), (-16, 16)),
         ((1, 8), (1, 7), (-16, 0)),
         ((1, 8), (4, 8), (-16, -16)),

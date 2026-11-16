@@ -34,7 +34,7 @@ fn expected(fixture: &str) -> Vec<((i32, i32), Option<Vec<String>>)> {
                 let valid = parts[4] == "valid=true";
                 starts.push((chunk, valid.then(Vec::new)));
             }
-            "PIECE" | "TPL" => {
+            "PIECE" | "TPL" | "CHILD" => {
                 if let Some((_, Some(lines))) = starts.last_mut() {
                     lines.push(parts[0..1].concat() + " " + &parts[2..].join(" "));
                 }
@@ -64,7 +64,7 @@ fn run<G: Ground, P: BiomeProbe>(seed: i64, name: &str, fixture: &str, ground: &
                     .iter()
                     .flat_map(|shape| {
                         let mut lines = vec![format!("PIECE {}", describe(shape))];
-                        lines.extend(shape.template_line().map(|line| format!("TPL {line}")));
+                        lines.extend(shape.extra_lines());
                         lines
                     })
                     .collect();
@@ -528,4 +528,56 @@ fn a_swamp_hut_is_built_into_the_generated_chunks() {
     }
     assert_eq!((tables, cauldrons), (1, 1), "hut at {cx},{cz}");
     assert_eq!((witches, cats), (1, 1));
+}
+
+#[test]
+fn ocean_monument_layouts_match_vanilla() {
+    check("monument", include_str!("fixtures/shaped_monument_1.txt"));
+}
+
+#[test]
+fn an_ocean_monument_is_built_into_the_generated_chunks() {
+    use rspigot_blocks::BlockKind;
+    use rspigot_domain::{BlockPos, ChunkPos};
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        1,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    let dimension = Dimension::overworld();
+    let (cx, cz) = first_placed(&overworld, 1, "ocean_monuments", "monument", -80..=80);
+    let mut gold = 0;
+    let mut lanterns = 0;
+    let mut bricks = 0;
+    let mut elders = 0;
+    for dx in -2..=1 {
+        for dz in -2..=1 {
+            let at = ChunkPos::new(cx + dx, cz + dz);
+            let column = overworld.generate(&resources, &dimension, at);
+            for y in 30..70 {
+                for x in 0..16 {
+                    for z in 0..16 {
+                        let pos = BlockPos::new(at.x * 16 + x, y, at.z * 16 + z);
+                        match column.block(pos).and_then(|state| state.kind()) {
+                            Some(BlockKind::GoldBlock) => gold += 1,
+                            Some(BlockKind::SeaLantern) => lanterns += 1,
+                            Some(BlockKind::PrismarineBricks) => bricks += 1,
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            elders += overworld
+                .structure_entities(&dimension, at)
+                .iter()
+                .filter(|entity| entity.get_str("id") == Some("minecraft:elder_guardian"))
+                .count();
+        }
+    }
+    assert_eq!(gold, 8, "monument at {cx},{cz}");
+    assert!(lanterns > 40, "sea lanterns {lanterns}");
+    assert!(bricks > 500, "prismarine bricks {bricks}");
+    assert_eq!(elders, 3);
 }
