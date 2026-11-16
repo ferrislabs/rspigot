@@ -1,5 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
 use rspigot_blocks::BlockKind as Kind;
 use rspigot_domain::BlockStateId;
 
@@ -56,15 +54,11 @@ pub(crate) enum Part {
         right_low: bool,
         right_high: bool,
     },
-    ChestCorridor {
-        placed: AtomicBool,
-    },
+    ChestCorridor,
     Library {
         tall: bool,
     },
-    PortalRoom {
-        placed: AtomicBool,
-    },
+    PortalRoom,
     Filler {
         steps: i32,
     },
@@ -92,9 +86,9 @@ impl Piece {
             Part::StairsDown { source: true } => "StartPiece",
             Part::StairsDown { .. } => "StairsDown",
             Part::FiveCrossing { .. } => "FiveCrossing",
-            Part::ChestCorridor { .. } => "ChestCorridor",
+            Part::ChestCorridor => "ChestCorridor",
             Part::Library { .. } => "Library",
-            Part::PortalRoom { .. } => "PortalRoom",
+            Part::PortalRoom => "PortalRoom",
             Part::Filler { .. } => "FillerCorridor",
         }
     }
@@ -110,9 +104,9 @@ impl Piece {
             Part::StairsDown { source: true } => "shstart",
             Part::StairsDown { .. } => "shsd",
             Part::FiveCrossing { .. } => "shfc",
-            Part::ChestCorridor { .. } => "shcc",
+            Part::ChestCorridor => "shcc",
             Part::Library { .. } => "shli",
-            Part::PortalRoom { .. } => "shpr",
+            Part::PortalRoom => "shpr",
             Part::Filler { .. } => "shfc2",
         }
     }
@@ -132,13 +126,7 @@ impl Piece {
             }
             Part::RoomCrossing { variant } => out.push(("Type", *variant)),
             Part::StairsDown { source } => out.push(("Source", i32::from(*source))),
-            Part::ChestCorridor { placed } => {
-                out.push(("Chest", i32::from(placed.load(Ordering::Relaxed))));
-            }
             Part::Library { tall } => out.push(("Tall", i32::from(*tall))),
-            Part::PortalRoom { placed } => {
-                out.push(("Mob", i32::from(placed.load(Ordering::Relaxed))))
-            }
             Part::Filler { steps } => out.push(("Steps", *steps)),
             _ => {}
         }
@@ -316,12 +304,7 @@ impl Builder {
                     door,
                 )
             }
-            Id::ChestCorridor => (
-                Part::ChestCorridor {
-                    placed: AtomicBool::new(false),
-                },
-                random_door(random),
-            ),
+            Id::ChestCorridor => (Part::ChestCorridor, random_door(random)),
             Id::Library => {
                 let door = random_door(random);
                 (
@@ -331,12 +314,7 @@ impl Builder {
                     door,
                 )
             }
-            Id::PortalRoom => (
-                Part::PortalRoom {
-                    placed: AtomicBool::new(false),
-                },
-                Door::Opening,
-            ),
+            Id::PortalRoom => (Part::PortalRoom, Door::Opening),
         };
         Some(Piece {
             part,
@@ -493,7 +471,7 @@ impl Builder {
                     self.right(random, &at, 1, 2);
                 }
             }
-            Part::PrisonHall | Part::ChestCorridor { .. } | Part::StraightStairsDown => {
+            Part::PrisonHall | Part::ChestCorridor | Part::StraightStairsDown => {
                 self.forward(random, &at, 1, 1);
             }
             Part::LeftTurn => {
@@ -547,7 +525,7 @@ impl Builder {
                     self.right(random, &at, b, 7);
                 }
             }
-            Part::Library { .. } | Part::PortalRoom { .. } | Part::Filler { .. } => {}
+            Part::Library { .. } | Part::PortalRoom | Part::Filler { .. } => {}
         }
     }
 }
@@ -610,7 +588,7 @@ pub(crate) fn generate<G: Ground>(
         }
         if pieces
             .iter()
-            .any(|piece| matches!(piece.part, Part::PortalRoom { .. }))
+            .any(|piece| matches!(piece.part, Part::PortalRoom))
         {
             return Some(pieces);
         }
@@ -770,7 +748,7 @@ impl Piece {
                 self.door,
                 [*left_low, *left_high, *right_low, *right_high],
             ),
-            Part::ChestCorridor { placed } => {
+            Part::ChestCorridor => {
                 solid(&mut f, (0, 0, 0), (4, 4, 6), true);
                 small_door(&mut f, self.door, 1, 1, 0);
                 small_door(&mut f, Door::Opening, 1, 1, 6);
@@ -784,16 +762,10 @@ impl Piece {
                 for z in 2..=4 {
                     f.place(half, 2, 1, z);
                 }
-                if !placed.load(Ordering::Relaxed) {
-                    let at = f.world_pos(3, 2, 3);
-                    if f.chunk.contains(at) {
-                        placed.store(true, Ordering::Relaxed);
-                        f.chest(3, 2, 3, STRONGHOLD_CORRIDOR);
-                    }
-                }
+                f.chest(3, 2, 3, STRONGHOLD_CORRIDOR);
             }
             Part::Library { tall } => library(&mut f, self.door, *tall),
-            Part::PortalRoom { placed } => portal_room(&mut f, placed),
+            Part::PortalRoom => portal_room(&mut f),
             Part::Filler { steps } => {
                 let brick = plain(Kind::StoneBricks);
                 for z in 0..*steps {
@@ -999,7 +971,7 @@ fn five_crossing(f: &mut Frame, door: Door, open: [bool; 4]) {
     f.place(torch("south"), 6, 5, 6);
 }
 
-fn portal_room(f: &mut Frame, placed: &AtomicBool) {
+fn portal_room(f: &mut Frame) {
     solid(f, (0, 0, 0), (10, 7, 15), false);
     small_door(f, Door::Grates, 4, 1, 0);
     solid(f, (1, 6, 1), (1, 6, 14), false);
@@ -1072,12 +1044,9 @@ fn portal_room(f: &mut Frame, placed: &AtomicBool) {
             }
         }
     }
-    if !placed.load(Ordering::Relaxed) {
-        let at = f.world_pos(5, 3, 6);
-        if f.chunk.contains(at) {
-            placed.store(true, Ordering::Relaxed);
-            f.spawner(at, "minecraft:silverfish");
-        }
+    let at = f.world_pos(5, 3, 6);
+    if f.chunk.contains(at) {
+        f.spawner(at, "minecraft:silverfish");
     }
 }
 

@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use rspigot_blocks::{BlockKind as Kind, Face, Support};
 use rspigot_domain::BlockStateId;
@@ -63,7 +63,7 @@ pub(crate) enum Part {
         rails: bool,
         spider: bool,
         sections: i32,
-        placed: AtomicBool,
+        placed: Mutex<Option<(i32, i32)>>,
     },
     Crossing {
         two_floored: bool,
@@ -112,7 +112,10 @@ impl Piece {
             } => {
                 out.push(("hr", i32::from(*rails)));
                 out.push(("sc", i32::from(*spider)));
-                out.push(("hps", i32::from(placed.load(Ordering::Relaxed))));
+                out.push((
+                    "hps",
+                    i32::from(placed.lock().is_ok_and(|owner| owner.is_some())),
+                ));
                 out.push(("Num", *sections));
             }
             Part::Crossing { two_floored, .. } => out.push(("tf", i32::from(*two_floored))),
@@ -212,7 +215,7 @@ fn create(
                 rails,
                 spider,
                 sections: span / 5,
-                placed: AtomicBool::new(false),
+                placed: Mutex::new(None),
             },
             bbox,
             facing: Some(dir),
@@ -940,17 +943,31 @@ fn double_support(frame: &mut Frame, wood: Wood, x: i32, y: i32, z: i32) {
     }
 }
 
+fn may_spawn(placed: &Mutex<Option<(i32, i32)>>, here: (i32, i32)) -> bool {
+    placed
+        .lock()
+        .is_ok_and(|owner| owner.is_none_or(|chunk| chunk == here))
+}
+
+fn claim(placed: &Mutex<Option<(i32, i32)>>, here: (i32, i32)) {
+    if let Ok(mut owner) = placed.lock() {
+        owner.get_or_insert(here);
+    }
+}
+
 fn corridor(
     frame: &mut Frame,
     wood: Wood,
     rails: bool,
     spider: bool,
     sections: i32,
-    placed: &AtomicBool,
+    placed: &Mutex<Option<(i32, i32)>>,
 ) {
     let air = cave_air();
     let planks = plain(wood.planks);
     let length = sections * 5 - 1;
+    let here = (frame.chunk.min.0 >> 4, frame.chunk.min.2 >> 4);
+    let mut spawned = false;
     frame.bounds((0, 0, 0), (2, 1, length), air, air, false);
     frame.maybe_bounds(0.8, (0, 2, 0), (2, 2, length), air, air, false, false);
     if spider {
@@ -985,11 +1002,12 @@ fn corridor(
         if frame.run.rng.below(100) == 0 {
             minecart(frame, 0, 0, z + 1);
         }
-        if spider && !placed.load(Ordering::Relaxed) {
+        if spider && !spawned && may_spawn(placed, here) {
             let zz = z - 1 + frame.run.rng.below(3);
             let at = frame.world_pos(1, 0, zz);
             if frame.chunk.contains(at) && frame.is_interior(1, 0, zz) {
-                placed.store(true, Ordering::Relaxed);
+                spawned = true;
+                claim(placed, here);
                 frame.spawner(at, "minecraft:cave_spider");
             }
         }
