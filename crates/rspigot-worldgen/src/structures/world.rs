@@ -71,7 +71,7 @@ fn supported(def: &StructureDef, pools: &Pools) -> bool {
     let Kind::Jigsaw(jigsaw) = &def.kind else {
         return matches!(
             def.kind,
-            Kind::Mineshaft(_) | Kind::Stronghold | Kind::RuinedPortal(_)
+            Kind::Mineshaft(_) | Kind::Stronghold | Kind::RuinedPortal(_) | Kind::Shaped(_)
         );
     };
     if jigsaw.aliased {
@@ -208,7 +208,22 @@ impl Engine {
                     bbox,
                 });
             }
-            _ => return None,
+            Kind::Shaped(other) => {
+                let shapes =
+                    other.generate(self.library, ground, valid, probe, self.seed, chunk)?;
+                let mut bbox = *shapes.first()?.bbox();
+                for shape in &shapes {
+                    bbox.encapsulate(shape.bbox());
+                }
+                return Some(Start {
+                    name: def.name.clone(),
+                    chunk,
+                    pieces: Vec::new(),
+                    shapes,
+                    bbox,
+                });
+            }
+            Kind::Other => return None,
         };
         let assembly = generate_jigsaw(jigsaw, valid, self.pools, ground, probe, self.seed, chunk)?;
         let mut pieces = assembly.pieces;

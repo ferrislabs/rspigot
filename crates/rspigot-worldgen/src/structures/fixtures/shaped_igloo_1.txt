@@ -1,0 +1,301 @@
+START igloo -80 -80 valid=true
+PIECE 0 IglooPiece -1280 90 -1280 -1274 94 -1273 north
+TPL 0 minecraft:igloo/top -1280 90 -1280 NONE
+START igloo -76 -72 valid=true
+PIECE 0 IglooPiece -1214 69 -1150 -1206 74 -1144 north
+TPL 0 minecraft:igloo/bottom -1216 69 -1154 CLOCKWISE_90
+PIECE 1 IglooPiece -1214 87 -1148 -1212 89 -1146 north
+TPL 1 minecraft:igloo/middle -1214 87 -1148 CLOCKWISE_90
+PIECE 2 IglooPiece -1214 84 -1148 -1212 86 -1146 north
+TPL 2 minecraft:igloo/middle -1214 84 -1148 CLOCKWISE_90
+PIECE 3 IglooPiece -1214 81 -1148 -1212 83 -1146 north
+TPL 3 minecraft:igloo/middle -1214 81 -1148 CLOCKWISE_90
+PIECE 4 IglooPiece -1214 78 -1148 -1212 80 -1146 north
+TPL 4 minecraft:igloo/middle -1214 78 -1148 CLOCKWISE_90
+PIECE 5 IglooPiece -1214 75 -1148 -1212 77 -1146 north
+TPL 5 minecraft:igloo/middle -1214 75 -1148 CLOCKWISE_90
+PIECE 6 IglooPiece -1215 90 -1150 -1208 94 -1144 north
+TPL 6 minecraft:igloo/top -1216 90 -1152 CLOCKWISE_90
+START igloo -72 -70 valid=true
+PIECE 0 IglooPiece -1156 75 -1118 -1148 80 -1112 north
+TPL 0 minecraft:igloo/bottom -1152 75 -1122 COUNTERCLOCKWISE_90
+PIECE 1 IglooPiece -1150 87 -1116 -1148 89 -1114 north
+TPL 1 minecraft:igloo/middle -1150 87 -1116 COUNTERCLOCKWISE_90
+PIECE 2 IglooPiece -1150 84 -1116 -1148 86 -1114 north
+TPL 2 minecraft:igloo/middle -1150 84 -1116 COUNTERCLOCKWISE_90
+PIECE 3 IglooPiece -1150 81 -1116 -1148 83 -1114 north
+TPL 3 minecraft:igloo/middle -1150 81 -1116 COUNTERCLOCKWISE_90
+PIECE 4 IglooPiece -1154 90 -1118 -1147 94 -1112 north
+TPL 4 minecraft:igloo/top -1152 90 -1120 COUNTERCLOCKWISE_90
+START igloo -68 -64 valid=true
+PIECE 0 IglooPiece -1092 66 -1022 -1084 71 -1016 north
+TPL 0 minecraft:igloo/bottom -1088 66 -1026 COUNTERCLOCKWISE_90
+PIECE 1 IglooPiece -1086 87 -1020 -1084 89 -1018 north
+TPL 1 minecraft:igloo/middle -1086 87 -1020 COUNTERCLOCKWISE_90
+PIECE 2 IglooPiece -1086 84 -1020 -1084 86 -1018 north
+TPL 2 minecraft:igloo/middle -1086 84 -1020 COUNTERCLOCKWISE_90
+PIECE 3 IglooPiece -1086 81 -1020 -1084 83 -1018 north
+TPL 3 minecraft:igloo/middle -1086 81 -1020 COUNTERCLOCKWISE_90
+PIECE 4 IglooPiece -1086 78 -1020 -1084 80 -1018 north
+TPL 4 minecraft:igloo/middle -1086 78 -1020 COUNTERCLOCKWISE_90
+PIECE 5 IglooPiece -1086 75 -1020 -1084 77 -1018 north
+TPL 5 minecraft:igloo/middle -1086 75 -1020 COUNTERCLOCKWISE_90
+PIECE 6 IglooPiece -1086 72 -1020 -1084 74 -1018 north
+TPL 6 minecraft:igloo/middle -1086 72 -1020 COUNTERCLOCKWISE_90
+PIECE 7 IglooPiece -1090 90 -1022 -1083 94 -1016 north
+TPL 7 minecraft:igloo/top -1088 90 -1024 COUNTERCLOCKWISE_90
+START igloo -64 -66 valid=true
+PIECE 0 IglooPiece -1024 57 -1052 -1018 62 -1044 north
+TPL 0 minecraft:igloo/bottom -1024 57 -1058 CLOCKWISE_180
+PIECE 1 IglooPiece -1022 87 -1052 -1020 89 -1050 north
+TPL 1 minecraft:igloo/middle -1022 87 -1052 CLOCKWISE_180
+PIECE 2 IglooPiece -1022 84 -1052 -1020 86 -1050 north
+TPL 2 minecraft:igloo/middle -1022 84 -1052 CLOCKWISE_180
+PIECE 3 IglooPiece -1022 81 -1052 -1020 83 -1050 north
+TPL 3 minecraft:igloo/middle -1022 81 -1052 CLOCKWISE_180
+PIECE 4 IglooPiece -1022 78 -1052 -1020 80 -1050 north
+TPL 4 minecraft:igloo/middle -1022 78 -1052 CLOCKWISE_180
+PIECE 5 IglooPiece -1022 75 -1052 -1020 77 -1050 north
+TPL 5 minecraft:igloo/middle -1022 75 -1052 CLOCKWISE_180
+PIECE 6 IglooPiece -1022 72 -1052 -1020 74 -1050 north
+TPL 6 minecraft:igloo/middle -1022 72 -1052 CLOCKWISE_180
+PIECE 7 IglooPiece -1022 69 -1052 -1020 71 -1050 north
+TPL 7 minecraft:igloo/middle -1022 69 -1052 CLOCKWISE_180
+PIECE 8 IglooPiece -1022 66 -1052 -1020 68 -1050 north
+TPL 8 minecraft:igloo/middle -1022 66 -1052 CLOCKWISE_180
+PIECE 9 IglooPiece -1022 63 -1052 -1020 65 -1050 north
+TPL 9 minecraft:igloo/middle -1022 63 -1052 CLOCKWISE_180
+PIECE 10 IglooPiece -1024 90 -1053 -1018 94 -1046 north
+TPL 10 minecraft:igloo/top -1024 90 -1056 CLOCKWISE_180
+START igloo -60 -64 valid=true
+PIECE 0 IglooPiece -962 90 -1022 -955 94 -1016 north
+TPL 0 minecraft:igloo/top -960 90 -1024 COUNTERCLOCKWISE_90
+START igloo -56 -64 valid=true
+PIECE 0 IglooPiece -894 57 -1022 -886 62 -1016 north
+TPL 0 minecraft:igloo/bottom -896 57 -1026 CLOCKWISE_90
+PIECE 1 IglooPiece -894 87 -1020 -892 89 -1018 north
+TPL 1 minecraft:igloo/middle -894 87 -1020 CLOCKWISE_90
+PIECE 2 IglooPiece -894 84 -1020 -892 86 -1018 north
+TPL 2 minecraft:igloo/middle -894 84 -1020 CLOCKWISE_90
+PIECE 3 IglooPiece -894 81 -1020 -892 83 -1018 north
+TPL 3 minecraft:igloo/middle -894 81 -1020 CLOCKWISE_90
+PIECE 4 IglooPiece -894 78 -1020 -892 80 -1018 north
+TPL 4 minecraft:igloo/middle -894 78 -1020 CLOCKWISE_90
+PIECE 5 IglooPiece -894 75 -1020 -892 77 -1018 north
+TPL 5 minecraft:igloo/middle -894 75 -1020 CLOCKWISE_90
+PIECE 6 IglooPiece -894 72 -1020 -892 74 -1018 north
+TPL 6 minecraft:igloo/middle -894 72 -1020 CLOCKWISE_90
+PIECE 7 IglooPiece -894 69 -1020 -892 71 -1018 north
+TPL 7 minecraft:igloo/middle -894 69 -1020 CLOCKWISE_90
+PIECE 8 IglooPiece -894 66 -1020 -892 68 -1018 north
+TPL 8 minecraft:igloo/middle -894 66 -1020 CLOCKWISE_90
+PIECE 9 IglooPiece -894 63 -1020 -892 65 -1018 north
+TPL 9 minecraft:igloo/middle -894 63 -1020 CLOCKWISE_90
+PIECE 10 IglooPiece -895 90 -1022 -888 94 -1016 north
+TPL 10 minecraft:igloo/top -896 90 -1024 CLOCKWISE_90
+START igloo -50 -80 valid=true
+PIECE 0 IglooPiece -800 90 -1277 -794 94 -1270 north
+TPL 0 minecraft:igloo/top -800 90 -1280 CLOCKWISE_180
+START igloo -48 -66 valid=true
+PIECE 0 IglooPiece -768 90 -1056 -762 94 -1049 north
+TPL 0 minecraft:igloo/top -768 90 -1056 NONE
+START igloo -44 -74 valid=true
+PIECE 0 IglooPiece -706 90 -1182 -699 94 -1176 north
+TPL 0 minecraft:igloo/top -704 90 -1184 COUNTERCLOCKWISE_90
+START igloo -42 -56 valid=true
+PIECE 0 IglooPiece -672 60 -892 -666 65 -884 north
+TPL 0 minecraft:igloo/bottom -672 60 -898 CLOCKWISE_180
+PIECE 1 IglooPiece -670 87 -892 -668 89 -890 north
+TPL 1 minecraft:igloo/middle -670 87 -892 CLOCKWISE_180
+PIECE 2 IglooPiece -670 84 -892 -668 86 -890 north
+TPL 2 minecraft:igloo/middle -670 84 -892 CLOCKWISE_180
+PIECE 3 IglooPiece -670 81 -892 -668 83 -890 north
+TPL 3 minecraft:igloo/middle -670 81 -892 CLOCKWISE_180
+PIECE 4 IglooPiece -670 78 -892 -668 80 -890 north
+TPL 4 minecraft:igloo/middle -670 78 -892 CLOCKWISE_180
+PIECE 5 IglooPiece -670 75 -892 -668 77 -890 north
+TPL 5 minecraft:igloo/middle -670 75 -892 CLOCKWISE_180
+PIECE 6 IglooPiece -670 72 -892 -668 74 -890 north
+TPL 6 minecraft:igloo/middle -670 72 -892 CLOCKWISE_180
+PIECE 7 IglooPiece -670 69 -892 -668 71 -890 north
+TPL 7 minecraft:igloo/middle -670 69 -892 CLOCKWISE_180
+PIECE 8 IglooPiece -670 66 -892 -668 68 -890 north
+TPL 8 minecraft:igloo/middle -670 66 -892 CLOCKWISE_180
+PIECE 9 IglooPiece -672 90 -893 -666 94 -886 north
+TPL 9 minecraft:igloo/top -672 90 -896 CLOCKWISE_180
+START igloo -38 -56 valid=true
+PIECE 0 IglooPiece -606 57 -894 -598 62 -888 north
+TPL 0 minecraft:igloo/bottom -608 57 -898 CLOCKWISE_90
+PIECE 1 IglooPiece -606 87 -892 -604 89 -890 north
+TPL 1 minecraft:igloo/middle -606 87 -892 CLOCKWISE_90
+PIECE 2 IglooPiece -606 84 -892 -604 86 -890 north
+TPL 2 minecraft:igloo/middle -606 84 -892 CLOCKWISE_90
+PIECE 3 IglooPiece -606 81 -892 -604 83 -890 north
+TPL 3 minecraft:igloo/middle -606 81 -892 CLOCKWISE_90
+PIECE 4 IglooPiece -606 78 -892 -604 80 -890 north
+TPL 4 minecraft:igloo/middle -606 78 -892 CLOCKWISE_90
+PIECE 5 IglooPiece -606 75 -892 -604 77 -890 north
+TPL 5 minecraft:igloo/middle -606 75 -892 CLOCKWISE_90
+PIECE 6 IglooPiece -606 72 -892 -604 74 -890 north
+TPL 6 minecraft:igloo/middle -606 72 -892 CLOCKWISE_90
+PIECE 7 IglooPiece -606 69 -892 -604 71 -890 north
+TPL 7 minecraft:igloo/middle -606 69 -892 CLOCKWISE_90
+PIECE 8 IglooPiece -606 66 -892 -604 68 -890 north
+TPL 8 minecraft:igloo/middle -606 66 -892 CLOCKWISE_90
+PIECE 9 IglooPiece -606 63 -892 -604 65 -890 north
+TPL 9 minecraft:igloo/middle -606 63 -892 CLOCKWISE_90
+PIECE 10 IglooPiece -607 90 -894 -600 94 -888 north
+TPL 10 minecraft:igloo/top -608 90 -896 CLOCKWISE_90
+START igloo -32 -60 valid=true
+PIECE 0 IglooPiece -510 66 -958 -502 71 -952 north
+TPL 0 minecraft:igloo/bottom -512 66 -962 CLOCKWISE_90
+PIECE 1 IglooPiece -510 87 -956 -508 89 -954 north
+TPL 1 minecraft:igloo/middle -510 87 -956 CLOCKWISE_90
+PIECE 2 IglooPiece -510 84 -956 -508 86 -954 north
+TPL 2 minecraft:igloo/middle -510 84 -956 CLOCKWISE_90
+PIECE 3 IglooPiece -510 81 -956 -508 83 -954 north
+TPL 3 minecraft:igloo/middle -510 81 -956 CLOCKWISE_90
+PIECE 4 IglooPiece -510 78 -956 -508 80 -954 north
+TPL 4 minecraft:igloo/middle -510 78 -956 CLOCKWISE_90
+PIECE 5 IglooPiece -510 75 -956 -508 77 -954 north
+TPL 5 minecraft:igloo/middle -510 75 -956 CLOCKWISE_90
+PIECE 6 IglooPiece -510 72 -956 -508 74 -954 north
+TPL 6 minecraft:igloo/middle -510 72 -956 CLOCKWISE_90
+PIECE 7 IglooPiece -511 90 -958 -504 94 -952 north
+TPL 7 minecraft:igloo/top -512 90 -960 CLOCKWISE_90
+START igloo -30 -48 valid=true
+PIECE 0 IglooPiece -480 60 -770 -474 65 -762 north
+TPL 0 minecraft:igloo/bottom -480 60 -770 NONE
+PIECE 1 IglooPiece -478 87 -764 -476 89 -762 north
+TPL 1 minecraft:igloo/middle -478 87 -764 NONE
+PIECE 2 IglooPiece -478 84 -764 -476 86 -762 north
+TPL 2 minecraft:igloo/middle -478 84 -764 NONE
+PIECE 3 IglooPiece -478 81 -764 -476 83 -762 north
+TPL 3 minecraft:igloo/middle -478 81 -764 NONE
+PIECE 4 IglooPiece -478 78 -764 -476 80 -762 north
+TPL 4 minecraft:igloo/middle -478 78 -764 NONE
+PIECE 5 IglooPiece -478 75 -764 -476 77 -762 north
+TPL 5 minecraft:igloo/middle -478 75 -764 NONE
+PIECE 6 IglooPiece -478 72 -764 -476 74 -762 north
+TPL 6 minecraft:igloo/middle -478 72 -764 NONE
+PIECE 7 IglooPiece -478 69 -764 -476 71 -762 north
+TPL 7 minecraft:igloo/middle -478 69 -764 NONE
+PIECE 8 IglooPiece -478 66 -764 -476 68 -762 north
+TPL 8 minecraft:igloo/middle -478 66 -764 NONE
+PIECE 9 IglooPiece -480 90 -768 -474 94 -761 north
+TPL 9 minecraft:igloo/top -480 90 -768 NONE
+START igloo -26 -72 valid=true
+PIECE 0 IglooPiece -420 69 -1150 -412 74 -1144 north
+TPL 0 minecraft:igloo/bottom -416 69 -1154 COUNTERCLOCKWISE_90
+PIECE 1 IglooPiece -414 87 -1148 -412 89 -1146 north
+TPL 1 minecraft:igloo/middle -414 87 -1148 COUNTERCLOCKWISE_90
+PIECE 2 IglooPiece -414 84 -1148 -412 86 -1146 north
+TPL 2 minecraft:igloo/middle -414 84 -1148 COUNTERCLOCKWISE_90
+PIECE 3 IglooPiece -414 81 -1148 -412 83 -1146 north
+TPL 3 minecraft:igloo/middle -414 81 -1148 COUNTERCLOCKWISE_90
+PIECE 4 IglooPiece -414 78 -1148 -412 80 -1146 north
+TPL 4 minecraft:igloo/middle -414 78 -1148 COUNTERCLOCKWISE_90
+PIECE 5 IglooPiece -414 75 -1148 -412 77 -1146 north
+TPL 5 minecraft:igloo/middle -414 75 -1148 COUNTERCLOCKWISE_90
+PIECE 6 IglooPiece -418 90 -1150 -411 94 -1144 north
+TPL 6 minecraft:igloo/top -416 90 -1152 COUNTERCLOCKWISE_90
+START igloo -24 -64 valid=true
+PIECE 0 IglooPiece -384 66 -1020 -378 71 -1012 north
+TPL 0 minecraft:igloo/bottom -384 66 -1026 CLOCKWISE_180
+PIECE 1 IglooPiece -382 87 -1020 -380 89 -1018 north
+TPL 1 minecraft:igloo/middle -382 87 -1020 CLOCKWISE_180
+PIECE 2 IglooPiece -382 84 -1020 -380 86 -1018 north
+TPL 2 minecraft:igloo/middle -382 84 -1020 CLOCKWISE_180
+PIECE 3 IglooPiece -382 81 -1020 -380 83 -1018 north
+TPL 3 minecraft:igloo/middle -382 81 -1020 CLOCKWISE_180
+PIECE 4 IglooPiece -382 78 -1020 -380 80 -1018 north
+TPL 4 minecraft:igloo/middle -382 78 -1020 CLOCKWISE_180
+PIECE 5 IglooPiece -382 75 -1020 -380 77 -1018 north
+TPL 5 minecraft:igloo/middle -382 75 -1020 CLOCKWISE_180
+PIECE 6 IglooPiece -382 72 -1020 -380 74 -1018 north
+TPL 6 minecraft:igloo/middle -382 72 -1020 CLOCKWISE_180
+PIECE 7 IglooPiece -384 90 -1021 -378 94 -1014 north
+TPL 7 minecraft:igloo/top -384 90 -1024 CLOCKWISE_180
+START igloo -22 -58 valid=true
+PIECE 0 IglooPiece -352 90 -925 -346 94 -918 north
+TPL 0 minecraft:igloo/top -352 90 -928 CLOCKWISE_180
+START igloo -20 -50 valid=true
+PIECE 0 IglooPiece -319 90 -798 -312 94 -792 north
+TPL 0 minecraft:igloo/top -320 90 -800 CLOCKWISE_90
+START igloo -16 -58 valid=true
+PIECE 0 IglooPiece -256 90 -925 -250 94 -918 north
+TPL 0 minecraft:igloo/top -256 90 -928 CLOCKWISE_180
+START igloo -12 -64 valid=true
+PIECE 0 IglooPiece -192 90 -1021 -186 94 -1014 north
+TPL 0 minecraft:igloo/top -192 90 -1024 CLOCKWISE_180
+START igloo -8 -70 valid=true
+PIECE 0 IglooPiece -132 66 -1118 -124 71 -1112 north
+TPL 0 minecraft:igloo/bottom -128 66 -1122 COUNTERCLOCKWISE_90
+PIECE 1 IglooPiece -126 87 -1116 -124 89 -1114 north
+TPL 1 minecraft:igloo/middle -126 87 -1116 COUNTERCLOCKWISE_90
+PIECE 2 IglooPiece -126 84 -1116 -124 86 -1114 north
+TPL 2 minecraft:igloo/middle -126 84 -1116 COUNTERCLOCKWISE_90
+PIECE 3 IglooPiece -126 81 -1116 -124 83 -1114 north
+TPL 3 minecraft:igloo/middle -126 81 -1116 COUNTERCLOCKWISE_90
+PIECE 4 IglooPiece -126 78 -1116 -124 80 -1114 north
+TPL 4 minecraft:igloo/middle -126 78 -1116 COUNTERCLOCKWISE_90
+PIECE 5 IglooPiece -126 75 -1116 -124 77 -1114 north
+TPL 5 minecraft:igloo/middle -126 75 -1116 COUNTERCLOCKWISE_90
+PIECE 6 IglooPiece -126 72 -1116 -124 74 -1114 north
+TPL 6 minecraft:igloo/middle -126 72 -1116 COUNTERCLOCKWISE_90
+PIECE 7 IglooPiece -130 90 -1118 -123 94 -1112 north
+TPL 7 minecraft:igloo/top -128 90 -1120 COUNTERCLOCKWISE_90
+START igloo -4 -76 valid=true
+PIECE 0 IglooPiece -66 90 -1214 -59 94 -1208 north
+TPL 0 minecraft:igloo/top -64 90 -1216 COUNTERCLOCKWISE_90
+START igloo -2 -62 valid=true
+PIECE 0 IglooPiece -30 54 -990 -22 59 -984 north
+TPL 0 minecraft:igloo/bottom -32 54 -994 CLOCKWISE_90
+PIECE 1 IglooPiece -30 87 -988 -28 89 -986 north
+TPL 1 minecraft:igloo/middle -30 87 -988 CLOCKWISE_90
+PIECE 2 IglooPiece -30 84 -988 -28 86 -986 north
+TPL 2 minecraft:igloo/middle -30 84 -988 CLOCKWISE_90
+PIECE 3 IglooPiece -30 81 -988 -28 83 -986 north
+TPL 3 minecraft:igloo/middle -30 81 -988 CLOCKWISE_90
+PIECE 4 IglooPiece -30 78 -988 -28 80 -986 north
+TPL 4 minecraft:igloo/middle -30 78 -988 CLOCKWISE_90
+PIECE 5 IglooPiece -30 75 -988 -28 77 -986 north
+TPL 5 minecraft:igloo/middle -30 75 -988 CLOCKWISE_90
+PIECE 6 IglooPiece -30 72 -988 -28 74 -986 north
+TPL 6 minecraft:igloo/middle -30 72 -988 CLOCKWISE_90
+PIECE 7 IglooPiece -30 69 -988 -28 71 -986 north
+TPL 7 minecraft:igloo/middle -30 69 -988 CLOCKWISE_90
+PIECE 8 IglooPiece -30 66 -988 -28 68 -986 north
+TPL 8 minecraft:igloo/middle -30 66 -988 CLOCKWISE_90
+PIECE 9 IglooPiece -30 63 -988 -28 65 -986 north
+TPL 9 minecraft:igloo/middle -30 63 -988 CLOCKWISE_90
+PIECE 10 IglooPiece -30 60 -988 -28 62 -986 north
+TPL 10 minecraft:igloo/middle -30 60 -988 CLOCKWISE_90
+PIECE 11 IglooPiece -31 90 -990 -24 94 -984 north
+TPL 11 minecraft:igloo/top -32 90 -992 CLOCKWISE_90
+START igloo 2 -64 valid=true
+PIECE 0 IglooPiece 30 90 -1022 37 94 -1016 north
+TPL 0 minecraft:igloo/top 32 90 -1024 COUNTERCLOCKWISE_90
+START igloo 8 -80 valid=true
+PIECE 0 IglooPiece 124 69 -1278 132 74 -1272 north
+TPL 0 minecraft:igloo/bottom 128 69 -1282 COUNTERCLOCKWISE_90
+PIECE 1 IglooPiece 130 87 -1276 132 89 -1274 north
+TPL 1 minecraft:igloo/middle 130 87 -1276 COUNTERCLOCKWISE_90
+PIECE 2 IglooPiece 130 84 -1276 132 86 -1274 north
+TPL 2 minecraft:igloo/middle 130 84 -1276 COUNTERCLOCKWISE_90
+PIECE 3 IglooPiece 130 81 -1276 132 83 -1274 north
+TPL 3 minecraft:igloo/middle 130 81 -1276 COUNTERCLOCKWISE_90
+PIECE 4 IglooPiece 130 78 -1276 132 80 -1274 north
+TPL 4 minecraft:igloo/middle 130 78 -1276 COUNTERCLOCKWISE_90
+PIECE 5 IglooPiece 130 75 -1276 132 77 -1274 north
+TPL 5 minecraft:igloo/middle 130 75 -1276 COUNTERCLOCKWISE_90
+PIECE 6 IglooPiece 126 90 -1278 133 94 -1272 north
+TPL 6 minecraft:igloo/top 128 90 -1280 COUNTERCLOCKWISE_90
+START igloo -80 -72 valid=false
+START igloo -60 14 valid=false
+START igloo -38 -26 valid=false
+START igloo -16 -20 valid=false
+START igloo 6 -62 valid=false
+START igloo 24 42 valid=false
+START igloo 44 -52 valid=false
+START igloo 62 14 valid=false

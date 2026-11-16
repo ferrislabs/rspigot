@@ -1,0 +1,56 @@
+START swamp_hut -60 -52 valid=true
+PIECE 0 SwampHutPiece -960 64 -832 -952 70 -826 east
+START swamp_hut -56 -16 valid=true
+PIECE 0 SwampHutPiece -896 64 -256 -890 70 -248 south
+START swamp_hut -52 -52 valid=true
+PIECE 0 SwampHutPiece -832 64 -832 -824 70 -826 west
+START swamp_hut -50 -50 valid=true
+PIECE 0 SwampHutPiece -800 64 -800 -794 70 -792 north
+START swamp_hut -48 -50 valid=true
+PIECE 0 SwampHutPiece -768 64 -800 -762 70 -792 south
+START swamp_hut -46 -50 valid=true
+PIECE 0 SwampHutPiece -736 64 -800 -730 70 -792 south
+START swamp_hut -38 -42 valid=true
+PIECE 0 SwampHutPiece -608 64 -672 -602 70 -664 south
+START swamp_hut -32 -56 valid=true
+PIECE 0 SwampHutPiece -512 64 -896 -506 70 -888 north
+START swamp_hut -28 -60 valid=true
+PIECE 0 SwampHutPiece -448 64 -960 -442 70 -952 south
+START swamp_hut -28 -38 valid=true
+PIECE 0 SwampHutPiece -448 64 -608 -440 70 -602 east
+START swamp_hut -26 -52 valid=true
+PIECE 0 SwampHutPiece -416 64 -832 -410 70 -824 south
+START swamp_hut -26 -32 valid=true
+PIECE 0 SwampHutPiece -416 64 -512 -410 70 -504 north
+START swamp_hut -24 -50 valid=true
+PIECE 0 SwampHutPiece -384 64 -800 -376 70 -794 west
+START swamp_hut -24 -30 valid=true
+PIECE 0 SwampHutPiece -384 64 -480 -376 70 -474 east
+START swamp_hut -22 -44 valid=true
+PIECE 0 SwampHutPiece -352 64 -704 -344 70 -698 east
+START swamp_hut -22 -24 valid=true
+PIECE 0 SwampHutPiece -352 64 -384 -344 70 -378 west
+START swamp_hut -20 -40 valid=true
+PIECE 0 SwampHutPiece -320 64 -640 -312 70 -634 east
+START swamp_hut -18 -48 valid=true
+PIECE 0 SwampHutPiece -288 64 -768 -282 70 -760 north
+START swamp_hut -16 -58 valid=true
+PIECE 0 SwampHutPiece -256 64 -928 -248 70 -922 east
+START swamp_hut -16 -38 valid=true
+PIECE 0 SwampHutPiece -256 64 -608 -250 70 -600 south
+START swamp_hut -14 -46 valid=true
+PIECE 0 SwampHutPiece -224 64 -736 -216 70 -730 east
+START swamp_hut -12 -56 valid=true
+PIECE 0 SwampHutPiece -192 64 -896 -184 70 -890 east
+START swamp_hut -12 -36 valid=true
+PIECE 0 SwampHutPiece -192 64 -576 -186 70 -568 north
+START swamp_hut -10 -46 valid=true
+PIECE 0 SwampHutPiece -160 64 -736 -152 70 -730 west
+START swamp_hut -8 -52 valid=true
+PIECE 0 SwampHutPiece -128 64 -832 -120 70 -826 east
+START swamp_hut -60 -60 valid=false
+START swamp_hut -40 -6 valid=false
+START swamp_hut -18 58 valid=false
+START swamp_hut 4 16 valid=false
+START swamp_hut 24 -50 valid=false
+START swamp_hut 42 6 valid=false

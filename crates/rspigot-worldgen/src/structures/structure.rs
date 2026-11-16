@@ -29,11 +29,11 @@ pub(crate) enum HeightAnchor {
 }
 
 impl HeightAnchor {
-    pub(crate) fn resolve(self, min_y: i32, max_y: i32) -> Option<i32> {
+    pub(crate) fn resolve(self, min_y: i32, depth: i32) -> Option<i32> {
         match self {
             Self::Absolute(y) => Some(y),
             Self::AboveBottom(offset) => Some(min_y + offset),
-            Self::BelowTop(offset) => Some(max_y + 1 - offset),
+            Self::BelowTop(offset) => Some(depth - 1 + min_y - offset),
             Self::Unsupported => None,
         }
     }
@@ -45,6 +45,7 @@ pub(crate) enum Kind {
     Mineshaft(super::shaped::mineshaft::Type),
     Stronghold,
     RuinedPortal(Vec<super::shaped::portal::Setup>),
+    Shaped(super::shaped::Other),
     Other,
 }
 
@@ -84,7 +85,7 @@ fn pair(value: Option<&Value>, first: &str, second: &str) -> (i32, i32) {
     }
 }
 
-fn anchor(value: Option<&Value>) -> HeightAnchor {
+pub(crate) fn anchor(value: Option<&Value>) -> HeightAnchor {
     let Some(value) = value else {
         return HeightAnchor::Unsupported;
     };
@@ -179,6 +180,8 @@ impl Structures {
                     Kind::Stronghold
                 } else if kind_name == "ruined_portal" {
                     Kind::RuinedPortal(super::shaped::portal::setups(value))
+                } else if let Some(other) = super::shaped::Other::parse(kind_name, value) {
+                    Kind::Shaped(other)
                 } else {
                     Kind::Other
                 };
@@ -248,7 +251,9 @@ pub(crate) fn generate_jigsaw<'a, G: super::jigsaw::Ground>(
     if def.aliased {
         return None;
     }
-    let y = def.start_height.resolve(ground.min_y(), ground.max_y())?;
+    let y = def
+        .start_height
+        .resolve(ground.min_y(), ground.gen_depth())?;
     let position = (chunk.0 * 16, y, chunk.1 * 16);
     let could_exist = |x: i32, z: i32| {
         (ground.min_y() >> 2..=ground.max_y() >> 2)

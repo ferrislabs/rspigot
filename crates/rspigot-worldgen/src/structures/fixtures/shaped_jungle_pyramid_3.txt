@@ -1,0 +1,56 @@
+START jungle_pyramid -60 12 valid=true
+PIECE 0 JungleTemplePiece -960 64 192 -949 73 206 north
+START jungle_pyramid -60 30 valid=true
+PIECE 0 JungleTemplePiece -960 64 480 -946 73 491 east
+START jungle_pyramid -58 26 valid=true
+PIECE 0 JungleTemplePiece -928 64 416 -917 73 430 south
+START jungle_pyramid -56 24 valid=true
+PIECE 0 JungleTemplePiece -896 64 384 -885 73 398 north
+START jungle_pyramid -54 24 valid=true
+PIECE 0 JungleTemplePiece -864 64 384 -850 73 395 west
+START jungle_pyramid -52 22 valid=true
+PIECE 0 JungleTemplePiece -832 64 352 -821 73 366 south
+START jungle_pyramid -50 18 valid=true
+PIECE 0 JungleTemplePiece -800 64 288 -786 73 299 east
+START jungle_pyramid -48 20 valid=true
+PIECE 0 JungleTemplePiece -768 64 320 -754 73 331 east
+START jungle_pyramid -46 20 valid=true
+PIECE 0 JungleTemplePiece -736 64 320 -725 73 334 north
+START jungle_pyramid -42 -2 valid=true
+PIECE 0 JungleTemplePiece -672 64 -32 -658 73 -21 west
+START jungle_pyramid -38 -34 valid=true
+PIECE 0 JungleTemplePiece -608 64 -544 -597 73 -530 north
+START jungle_pyramid -34 -36 valid=true
+PIECE 0 JungleTemplePiece -544 64 -576 -533 73 -562 north
+START jungle_pyramid -32 -30 valid=true
+PIECE 0 JungleTemplePiece -512 64 -480 -498 73 -469 east
+START jungle_pyramid -30 -20 valid=true
+PIECE 0 JungleTemplePiece -480 64 -320 -466 73 -309 east
+START jungle_pyramid -28 -28 valid=true
+PIECE 0 JungleTemplePiece -448 64 -448 -437 73 -434 south
+START jungle_pyramid -26 -36 valid=true
+PIECE 0 JungleTemplePiece -416 64 -576 -402 73 -565 west
+START jungle_pyramid -26 4 valid=true
+PIECE 0 JungleTemplePiece -416 64 64 -405 73 78 north
+START jungle_pyramid -24 -8 valid=true
+PIECE 0 JungleTemplePiece -384 64 -128 -370 73 -117 east
+START jungle_pyramid -22 -10 valid=true
+PIECE 0 JungleTemplePiece -352 64 -160 -341 73 -146 north
+START jungle_pyramid -20 -28 valid=true
+PIECE 0 JungleTemplePiece -320 64 -448 -306 73 -437 west
+START jungle_pyramid -18 -36 valid=true
+PIECE 0 JungleTemplePiece -288 64 -576 -277 73 -562 south
+START jungle_pyramid -16 -48 valid=true
+PIECE 0 JungleTemplePiece -256 64 -768 -245 73 -754 north
+START jungle_pyramid -16 -26 valid=true
+PIECE 0 JungleTemplePiece -256 64 -416 -242 73 -405 east
+START jungle_pyramid -14 -30 valid=true
+PIECE 0 JungleTemplePiece -224 64 -480 -213 73 -466 north
+START jungle_pyramid -12 -40 valid=true
+PIECE 0 JungleTemplePiece -192 64 -640 -178 73 -629 west
+START jungle_pyramid -60 -60 valid=false
+START jungle_pyramid -40 58 valid=false
+START jungle_pyramid -16 -10 valid=false
+START jungle_pyramid 4 -16 valid=false
+START jungle_pyramid 22 50 valid=false
+START jungle_pyramid 42 -6 valid=false

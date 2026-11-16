@@ -122,6 +122,16 @@ pub(crate) fn commit(
     rotation: Rotation,
     settle_shapes: bool,
 ) -> Vec<Pos> {
+    commit_with(run, blocks, rotation, settle_shapes, true)
+}
+
+pub(crate) fn commit_with(
+    run: &mut Run,
+    blocks: Vec<(Pos, BlockStateId)>,
+    rotation: Rotation,
+    settle_shapes: bool,
+    waterlogging: bool,
+) -> Vec<Pos> {
     let mut pending: Vec<Pos> = Vec::new();
     let mut sources: Vec<Pos> = Vec::new();
     let mut placed: Vec<Pos> = Vec::new();
@@ -134,7 +144,7 @@ pub(crate) fn commit(
         placed.push(at);
         if Fluid::of(state).is_source() {
             sources.push(at);
-        } else if holds_liquid(state) {
+        } else if waterlogging && holds_liquid(state) {
             if let Some(filled) = fill(state, before) {
                 run.region.set(at.0, at.1, at.2, filled);
             }

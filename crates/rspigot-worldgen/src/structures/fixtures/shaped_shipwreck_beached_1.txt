@@ -1,0 +1,81 @@
+START shipwreck_beached -60 -24 valid=true
+PIECE 0 ShipwreckPiece -968 90 -373 -941 98 -365 north
+TPL 0 minecraft:shipwreck/sideways_full -960 90 -384 CLOCKWISE_90
+START shipwreck_beached -51 -18 valid=true
+PIECE 0 ShipwreckPiece -824 90 -277 -797 110 -269 north
+TPL 0 minecraft:shipwreck/with_mast_degraded -816 90 -288 CLOCKWISE_90
+START shipwreck_beached -36 -12 valid=true
+PIECE 0 ShipwreckPiece -587 90 -181 -571 98 -173 north
+TPL 0 minecraft:shipwreck/sideways_backhalf -576 90 -192 COUNTERCLOCKWISE_90
+START shipwreck_beached -30 -30 valid=true
+PIECE 0 ShipwreckPiece -480 90 -480 -472 98 -453 north
+TPL 0 minecraft:shipwreck/rightsideup_full -480 90 -480 NONE
+START shipwreck_beached -27 -24 valid=true
+PIECE 0 ShipwreckPiece -432 90 -381 -424 98 -354 north
+TPL 0 minecraft:shipwreck/rightsideup_full -432 90 -384 CLOCKWISE_180
+START shipwreck_beached -27 -18 valid=true
+PIECE 0 ShipwreckPiece -443 90 -277 -428 98 -269 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf -432 90 -288 COUNTERCLOCKWISE_90
+START shipwreck_beached -18 60 valid=true
+PIECE 0 ShipwreckPiece -288 90 963 -280 98 990 north
+TPL 0 minecraft:shipwreck/rightsideup_full -288 90 960 CLOCKWISE_180
+START shipwreck_beached -6 51 valid=true
+PIECE 0 ShipwreckPiece -104 90 827 -77 110 835 north
+TPL 0 minecraft:shipwreck/with_mast_degraded -96 90 816 CLOCKWISE_90
+START shipwreck_beached 0 60 valid=true
+PIECE 0 ShipwreckPiece -11 90 971 12 98 979 north
+TPL 0 minecraft:shipwreck/rightsideup_fronthalf_degraded 0 90 960 COUNTERCLOCKWISE_90
+START shipwreck_beached 6 33 valid=true
+PIECE 0 ShipwreckPiece 92 90 539 115 98 547 north
+TPL 0 minecraft:shipwreck/sideways_fronthalf 96 90 528 CLOCKWISE_90
+START shipwreck_beached 9 15 valid=true
+PIECE 0 ShipwreckPiece 144 90 240 152 110 267 north
+TPL 0 minecraft:shipwreck/with_mast_degraded 144 90 240 NONE
+START shipwreck_beached 12 3 valid=true
+PIECE 0 ShipwreckPiece 192 90 62 200 98 78 north
+TPL 0 minecraft:shipwreck/sideways_backhalf 192 90 48 CLOCKWISE_180
+START shipwreck_beached 12 45 valid=true
+PIECE 0 ShipwreckPiece 192 90 735 200 98 750 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf 192 90 720 CLOCKWISE_180
+START shipwreck_beached 21 -3 valid=true
+PIECE 0 ShipwreckPiece 325 90 -37 340 98 -29 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf_degraded 336 90 -48 COUNTERCLOCKWISE_90
+START shipwreck_beached 24 -6 valid=true
+PIECE 0 ShipwreckPiece 384 90 -89 392 98 -66 north
+TPL 0 minecraft:shipwreck/rightsideup_fronthalf 384 90 -96 CLOCKWISE_180
+START shipwreck_beached 27 -42 valid=true
+PIECE 0 ShipwreckPiece 421 90 -661 437 98 -653 north
+TPL 0 minecraft:shipwreck/sideways_backhalf 432 90 -672 COUNTERCLOCKWISE_90
+START shipwreck_beached 27 9 valid=true
+PIECE 0 ShipwreckPiece 432 90 159 440 98 174 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf 432 90 144 CLOCKWISE_180
+START shipwreck_beached 36 -6 valid=true
+PIECE 0 ShipwreckPiece 565 90 -85 588 98 -77 north
+TPL 0 minecraft:shipwreck/sideways_fronthalf 576 90 -96 COUNTERCLOCKWISE_90
+START shipwreck_beached 36 6 valid=true
+PIECE 0 ShipwreckPiece 576 90 96 584 98 111 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf_degraded 576 90 96 NONE
+START shipwreck_beached 36 12 valid=true
+PIECE 0 ShipwreckPiece 565 90 203 588 98 211 north
+TPL 0 minecraft:shipwreck/rightsideup_fronthalf 576 90 192 COUNTERCLOCKWISE_90
+START shipwreck_beached 39 0 valid=true
+PIECE 0 ShipwreckPiece 613 90 11 628 98 19 north
+TPL 0 minecraft:shipwreck/rightsideup_backhalf_degraded 624 90 0 COUNTERCLOCKWISE_90
+START shipwreck_beached 39 9 valid=true
+PIECE 0 ShipwreckPiece 616 90 155 643 98 163 north
+TPL 0 minecraft:shipwreck/sideways_full 624 90 144 CLOCKWISE_90
+START shipwreck_beached 45 -33 valid=true
+PIECE 0 ShipwreckPiece 720 90 -521 728 98 -498 north
+TPL 0 minecraft:shipwreck/sideways_fronthalf 720 90 -528 CLOCKWISE_180
+START shipwreck_beached 54 -45 valid=true
+PIECE 0 ShipwreckPiece 864 90 -717 872 110 -690 north
+TPL 0 minecraft:shipwreck/with_mast 864 90 -720 CLOCKWISE_180
+START shipwreck_beached 57 -36 valid=true
+PIECE 0 ShipwreckPiece 912 90 -573 920 98 -546 north
+TPL 0 minecraft:shipwreck/rightsideup_full 912 90 -576 CLOCKWISE_180
+START shipwreck_beached -60 -60 valid=false
+START shipwreck_beached -42 27 valid=false
+START shipwreck_beached -21 3 valid=false
+START shipwreck_beached 0 -30 valid=false
+START shipwreck_beached 21 -45 valid=false
+START shipwreck_beached 42 -39 valid=false
