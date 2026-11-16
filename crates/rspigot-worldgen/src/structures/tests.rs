@@ -490,7 +490,7 @@ mod custom {
                             let pos = BlockPos::new(cx * 16 + x, y, cz * 16 + z);
                             match column.block(pos).and_then(|state| state.kind()) {
                                 Some(BlockKind::GoldBlock) => gold += 1,
-                                Some(BlockKind::OakPlanks) => planks += 1,
+                                Some(BlockKind::OakPlanks) if y >= 54 => planks += 1,
                                 _ => {}
                             }
                         }
