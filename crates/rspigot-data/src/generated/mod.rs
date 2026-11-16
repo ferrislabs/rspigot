@@ -3,6 +3,7 @@ pub mod block_transformers;
 pub mod brewing;
 pub mod climate;
 pub mod compostable;
+pub mod enchantment_effects;
 pub mod enchantments;
 pub mod loot;
 pub mod multi_noise;

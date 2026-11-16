@@ -64,6 +64,7 @@ pub enum Condition {
     KilledByPlayer,
     DamageSourceProperties(&'static DamageSourcePredicate),
     RandomChance(f32),
+    RandomChanceByLevel(LevelBasedValue),
     RandomChanceWithEnchantedBonus {
         enchantment: &'static str,
         unenchanted_chance: f32,
@@ -143,6 +144,10 @@ pub enum LevelBasedValue {
         base: f32,
         per_level_above_first: f32,
     },
+    Fraction {
+        numerator: &'static LevelBasedValue,
+        denominator: &'static LevelBasedValue,
+    },
 }
 
 impl LevelBasedValue {
@@ -153,6 +158,17 @@ impl LevelBasedValue {
                 base,
                 per_level_above_first,
             } => base + per_level_above_first * (level - 1) as f32,
+            Self::Fraction {
+                numerator,
+                denominator,
+            } => {
+                let divisor = denominator.calculate(level);
+                if divisor == 0.0 {
+                    0.0
+                } else {
+                    numerator.calculate(level) / divisor
+                }
+            }
         }
     }
 }

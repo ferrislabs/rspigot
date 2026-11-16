@@ -78,6 +78,7 @@ pub struct LootContext<'a> {
     pub luck: f32,
     pub explosion_radius: Option<f32>,
     pub biome: Option<&'a str>,
+    pub enchantment_level: i32,
 }
 
 impl<'a> LootContext<'a> {
@@ -147,6 +148,20 @@ fn working_stack(stack: &Working) -> ItemStack {
     let mut single = ItemStack::new(ItemId(stack.item), NonZeroU8::MIN);
     single.components = stack.components.clone();
     single
+}
+
+pub fn condition_holds<R: Rng + ?Sized>(
+    condition: &Condition,
+    context: &LootContext<'_>,
+    rng: &mut R,
+) -> bool {
+    Roller {
+        context,
+        rng,
+        drops: Vec::new(),
+        visiting: Vec::new(),
+    }
+    .test(condition)
 }
 
 const ENCHANTMENTS: &str = "minecraft:enchantments";
@@ -792,6 +807,9 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 damage_matches(predicate, self.context.damage)
             }
             Condition::RandomChance(chance) => self.rng.random::<f32>() < *chance,
+            Condition::RandomChanceByLevel(chance) => {
+                self.rng.random::<f32>() < chance.calculate(self.context.enchantment_level)
+            }
             Condition::RandomChanceWithEnchantedBonus {
                 enchantment,
                 unenchanted_chance,
