@@ -298,6 +298,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn fill_bucket_in_hand(&mut self, player: PlayerId, hand: Hand, filled: ItemStack) {
         self.consume_held(player, hand, 1);
+        self.trigger_item(player, "minecraft:filled_bucket", &filled);
         if self.held(player, hand).is_none() {
             self.set_held(player, hand, Some(filled));
         } else {

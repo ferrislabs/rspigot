@@ -10,6 +10,7 @@ use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use uuid::Uuid;
 
+use crate::advancements::AdvancementEvent;
 use crate::events::{ClientEvent, EntityStatus};
 use crate::mobs::sky_darken;
 use crate::plugins::events::EntityTame;
@@ -101,6 +102,7 @@ impl<L: ClientLink> Server<L> {
                 self.equine_buck(step.target, true);
             } else {
                 self.equine_tame_with_name(step.target, step.owner);
+                self.trigger_tamed(step.owner, step.target);
             }
             return;
         }
@@ -122,6 +124,13 @@ impl<L: ClientLink> Server<L> {
         }
         self.tame_with(step.target, owner);
         self.mob_entity_event(step.target, TAME_SUCCESS_EVENT);
+        self.trigger_tamed(step.owner, step.target);
+    }
+
+    fn trigger_tamed(&mut self, player: PlayerId, animal: EntityId) {
+        let mut event = AdvancementEvent::named("minecraft:tame_animal");
+        event.entities = self.slot_of("entity", animal).into_iter().collect();
+        self.trigger_event(player, event);
     }
 
     pub(crate) fn tame_with(&mut self, id: EntityId, owner: Uuid) {

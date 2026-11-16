@@ -18,6 +18,7 @@ use rspigot_entities::EntityKind as Kind;
 use rspigot_items::ItemKind;
 use rspigot_nbt::Compound;
 
+use crate::advancements::AdvancementEvent;
 use crate::events::{ClientEvent, EntityStatus, Hand};
 use crate::health::DamageSource;
 use crate::interact::Interaction;
@@ -301,6 +302,12 @@ impl<L: ClientLink> Server<L> {
                         .map(|candidate| candidate.entity_id)
                 });
                 if let Some(player) = player {
+                    if let Some(id) = self.player_of_entity(player) {
+                        self.trigger_event(
+                            id,
+                            AdvancementEvent::named("minecraft:cured_zombie_villager"),
+                        );
+                    }
                     self.villager_reputation_event(
                         new,
                         ReputationEvent::ZombieVillagerCured,

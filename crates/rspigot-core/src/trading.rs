@@ -13,6 +13,7 @@ use rspigot_domain::text::Component;
 use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
+use crate::advancements::AdvancementEvent;
 use crate::containers::{Backing, Lid, OpenMenu};
 use crate::events::{ClientEvent, EntityStatus};
 use crate::interact::{Interaction, box_distance_squared};
@@ -693,6 +694,7 @@ impl<L: ClientLink> Server<L> {
         };
         self.notify_trade(trader, offer);
         self.send_trading_offers(trader);
+        self.trigger_event(player, AdvancementEvent::named("minecraft:villager_trade"));
     }
 
     fn notify_trade(&mut self, id: EntityId, index: usize) {
