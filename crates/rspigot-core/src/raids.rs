@@ -26,6 +26,7 @@ use rspigot_items::EquipmentSlot;
 use rustc_hash::FxHashMap;
 use uuid::Uuid;
 
+use crate::advancements::AdvancementEvent;
 use crate::events::ClientEvent;
 use crate::mob_actions::new_mob;
 use crate::mobs::{ServerRandom, sky_darken};
@@ -322,6 +323,8 @@ impl<L: ClientLink> RaidWorld for Adapter<'_, L> {
         instance.show_icon = true;
         self.server
             .apply_effect(id, instance, Some(EntityPotionEffectCause::Unknown));
+        self.server
+            .trigger_event(id, AdvancementEvent::named("minecraft:hero_of_the_village"));
         Some(id)
     }
 }

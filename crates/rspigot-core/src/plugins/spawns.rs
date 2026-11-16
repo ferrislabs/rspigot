@@ -162,6 +162,9 @@ impl<L: ClientLink> Server<L> {
                 let cause = match spawn_reason {
                     CreatureSpawnReason::Command => LightningStrikeCause::Command,
                     CreatureSpawnReason::Custom => LightningStrikeCause::Custom,
+                    CreatureSpawnReason::Natural => LightningStrikeCause::Weather,
+                    CreatureSpawnReason::Trap => LightningStrikeCause::Trap,
+                    CreatureSpawnReason::Enchantment => LightningStrikeCause::Enchantment,
                     CreatureSpawnReason::Default => return None,
                     _ => LightningStrikeCause::Unknown,
                 };

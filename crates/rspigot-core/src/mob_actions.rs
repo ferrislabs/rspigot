@@ -10,6 +10,8 @@ use rspigot_domain::random::{LegacyRandom, RandomSource};
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 
+use crate::advancement_conditions::EntityFacts;
+use crate::advancements::AdvancementEvent;
 use crate::commands::Target;
 use crate::events::{Animation, ClientEvent, EntityStatus};
 use crate::plugins::events::{
@@ -564,6 +566,7 @@ impl<L: ClientLink> Server<L> {
         position: Vec3,
         experience: i32,
     ) {
+        let (_, breeder) = self.breeding_facts(parent, partner);
         for id in [parent, partner] {
             if let Some(Entity {
                 base,
@@ -585,6 +588,23 @@ impl<L: ClientLink> Server<L> {
         );
         if self.config.rules.mob_drops && experience > 0 {
             self.spawn_orb(position, experience);
+        }
+        let slots = [
+            self.slot_of("parent", parent),
+            self.slot_of("partner", partner),
+        ];
+        self.trigger_breeding(breeder, slots);
+    }
+
+    fn trigger_breeding<const N: usize>(
+        &mut self,
+        breeder: Option<EntityId>,
+        slots: [Option<(&'static str, EntityFacts<'static>)>; N],
+    ) {
+        if let Some(player) = breeder.and_then(|entity| self.player_of_entity(entity)) {
+            let mut event = AdvancementEvent::named("minecraft:bred_animals");
+            event.entities = slots.into_iter().flatten().collect();
+            self.trigger_event(player, event);
         }
     }
 
@@ -638,6 +658,7 @@ impl<L: ClientLink> Server<L> {
         if !in_love(self, parent) || !in_love(self, partner) {
             return;
         }
+        let (_, breeder) = self.breeding_facts(parent, partner);
         for id in [parent, partner] {
             if let Some(Entity {
                 base,
@@ -661,7 +682,13 @@ impl<L: ClientLink> Server<L> {
         if self.config.rules.mob_drops && experience > 0 {
             self.spawn_orb(position, experience);
         }
+        let slots = [
+            self.slot_of("parent", parent),
+            self.slot_of("partner", partner),
+            Some(Self::entity_slot("child", &child)),
+        ];
         self.add_entity(child, CreatureSpawnReason::Breeding);
+        self.trigger_breeding(breeder, slots);
     }
 
     pub(crate) fn finish_love(&mut self, step: LoveStep, patch: EntityEnterLoveModePatch) {

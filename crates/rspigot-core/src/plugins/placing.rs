@@ -1,6 +1,7 @@
 use rspigot_domain::player::GameMode;
 use rspigot_entities::SoundSource;
 
+use crate::advancements::AdvancementEvent;
 use crate::events::{ClientEvent, Direction};
 use crate::game_events::GameEventContext;
 use crate::plugins::block::{data_of, material_of, snapshot_of};
@@ -174,6 +175,18 @@ impl<L: ClientLink> Server<L> {
         let id = using.player;
         let actor = self.players.get(&id).map(|player| player.entity_id);
         self.count_used(id, &using.stack);
+        let mut used = AdvancementEvent::named("minecraft:item_used_on_block");
+        used.item = Some(using.stack.item.0);
+        used.at = Some(using.against);
+        self.trigger_event(id, used);
+        if step.tool.is_none()
+            && let Some(target) = step.changes.last()
+        {
+            let mut placed = AdvancementEvent::named("minecraft:placed_block");
+            placed.item = Some(using.stack.item.0);
+            placed.at = Some(target.pos);
+            self.trigger_event(id, placed);
+        }
         if let Some(target) = step.changes.last() {
             let event = if step.tool.is_some() {
                 GameEvent::BlockChange

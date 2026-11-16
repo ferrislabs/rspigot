@@ -172,6 +172,7 @@ pub struct GameConfig {
     pub mobs: MobSettings,
     pub plugins: PluginSettings,
     pub chat: ChatSecurity,
+    pub thunder_chance: i32,
 }
 
 impl Default for GameConfig {
@@ -208,6 +209,7 @@ impl Default for GameConfig {
             mobs: MobSettings::default(),
             plugins: PluginSettings::default(),
             chat: ChatSecurity::default(),
+            thunder_chance: 100_000,
         }
     }
 }

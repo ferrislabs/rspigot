@@ -4,11 +4,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
 use rspigot_data::advancements::{self, Advancement, ItemMatch, Trigger};
+use rspigot_data::registries;
+use rspigot_domain::entity::Entity;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::text::{Component, NamedColor};
+use rspigot_domain::{BlockPos, EntityId};
+use rspigot_entities::EntityKind as Kind;
 use serde_json::{Map, Value};
 
+use crate::advancement_conditions::{self as conditions, EntityFacts, Facts, Place};
 use crate::events::ClientEvent;
 use crate::plugins::events::{PlayerAdvancementCriterionGrant, PlayerAdvancementDone};
 use crate::plugins::steps::Continuation;
@@ -221,6 +226,27 @@ impl PlayerAdvancements {
     }
 }
 
+#[derive(Debug, Default)]
+pub(crate) struct AdvancementEvent {
+    pub(crate) name: &'static str,
+    pub(crate) item: Option<u16>,
+    pub(crate) entities: Vec<(&'static str, EntityFacts<'static>)>,
+    pub(crate) at: Option<BlockPos>,
+    pub(crate) recipe: Option<String>,
+    pub(crate) loot_table: Option<String>,
+    pub(crate) to: Option<String>,
+    pub(crate) amounts: Vec<(&'static str, f64)>,
+}
+
+impl AdvancementEvent {
+    pub(crate) fn named(name: &'static str) -> Self {
+        Self {
+            name,
+            ..Self::default()
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct CriterionStep {
     pub(crate) player: PlayerId,
@@ -252,6 +278,21 @@ impl<L: ClientLink> Server<L> {
             self.award_criterion(id, index, criterion.name);
         }
         true
+    }
+
+    pub fn obtained_criteria(&self, id: PlayerId, advancement: &str) -> Vec<&'static str> {
+        let Some((index, found)) = advancements::find(advancement) else {
+            return Vec::new();
+        };
+        let Some(player) = self.players.get(&id) else {
+            return Vec::new();
+        };
+        found
+            .criteria
+            .iter()
+            .filter(|criterion| player.advancements.has(index, criterion.name))
+            .map(|criterion| criterion.name)
+            .collect()
     }
 
     pub fn done_advancements(&self, id: PlayerId) -> Vec<&'static str> {
@@ -427,9 +468,9 @@ impl<L: ClientLink> Server<L> {
         ));
     }
 
-    fn trigger(&mut self, id: PlayerId, matches: impl Fn(&Trigger) -> bool) {
+    fn due(&self, id: PlayerId, matches: impl Fn(&Trigger) -> bool) -> Vec<(usize, &'static str)> {
         let Some(player) = self.players.get(&id) else {
-            return;
+            return Vec::new();
         };
         let mut granted: Vec<(usize, &'static str)> = Vec::new();
         for (index, found) in advancements::all().iter().enumerate() {
@@ -442,6 +483,86 @@ impl<L: ClientLink> Server<L> {
                 }
             }
         }
+        granted
+    }
+
+    fn trigger(&mut self, id: PlayerId, matches: impl Fn(&Trigger) -> bool) {
+        for (index, criterion) in self.due(id, matches) {
+            self.award_criterion(id, index, criterion);
+        }
+    }
+
+    pub(crate) fn trigger_item(&mut self, id: PlayerId, name: &'static str, stack: &ItemStack) {
+        let mut event = AdvancementEvent::named(name);
+        event.item = Some(stack.item.0);
+        self.trigger_event(id, event);
+    }
+
+    pub(crate) fn entity_slot(
+        slot: &'static str,
+        entity: &Entity,
+    ) -> (&'static str, EntityFacts<'static>) {
+        (
+            slot,
+            EntityFacts {
+                kind: entity.base.kind.name(),
+                baby: entity.is_baby(),
+            },
+        )
+    }
+
+    pub(crate) fn slot_of(
+        &self,
+        slot: &'static str,
+        id: EntityId,
+    ) -> Option<(&'static str, EntityFacts<'static>)> {
+        self.entities
+            .store
+            .get(id)
+            .map(|entity| Self::entity_slot(slot, entity))
+            .or_else(|| {
+                self.player_of_entity(id).map(|_| {
+                    (
+                        slot,
+                        EntityFacts {
+                            kind: Kind::Player.name(),
+                            baby: false,
+                        },
+                    )
+                })
+            })
+    }
+
+    pub(crate) fn trigger_event(&mut self, id: PlayerId, event: AdvancementEvent) {
+        let granted = {
+            let Some(player) = self.players.get(&id) else {
+                return;
+            };
+            let dimension = self.world.dimension.key.to_string();
+            let place = |pos: BlockPos, y: f64| Place {
+                dimension: &dimension,
+                biome: registries::biome_name(self.biome_at(pos).0),
+                y,
+            };
+            let here = player.position.block();
+            let anchor = event.at.unwrap_or(here);
+            let chunks = &self.world.chunks;
+            let mut facts =
+                Facts::with_blocks(|dx, dy, dz| chunks.block(anchor.offset(dx, dy, dz)));
+            facts.item = event.item;
+            facts.entities = event.entities;
+            facts.player = Some(place(here, player.position.y));
+            facts.location = Some(place(anchor, f64::from(anchor.y)));
+            facts.recipe = event.recipe.as_deref();
+            facts.loot_table = event.loot_table.as_deref();
+            facts.to = event.to.as_deref();
+            facts.amounts = event.amounts;
+            let name = event.name;
+            self.due(id, |trigger| {
+                matches!(trigger, Trigger::Event { name: known, conditions }
+                    if *known == name && conditions::matches(*conditions, &facts))
+            })
+        };
         for (index, criterion) in granted {
             self.award_criterion(id, index, criterion);
         }
@@ -507,6 +628,9 @@ impl<L: ClientLink> Server<L> {
             }
             if first || periodic {
                 self.trigger(id, |trigger| matches!(trigger, Trigger::Tick));
+            }
+            if periodic {
+                self.trigger_event(id, AdvancementEvent::named("minecraft:location"));
             }
         }
     }

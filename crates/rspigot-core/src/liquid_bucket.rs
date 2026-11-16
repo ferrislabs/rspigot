@@ -196,6 +196,9 @@ impl<L: ClientLink> Server<L> {
         hand: Hand,
         result: Option<ItemStack>,
     ) {
+        if let Some(result) = &result {
+            self.trigger_item(player, "minecraft:filled_bucket", result);
+        }
         if self.infinite_materials(player) {
             let Some(result) = result else {
                 return;

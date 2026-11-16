@@ -9,7 +9,7 @@ mod event;
 mod hopper;
 mod jukebox;
 mod lamp;
-mod lightning_rod;
+pub(crate) mod lightning_rod;
 mod note;
 mod observer;
 mod openers;

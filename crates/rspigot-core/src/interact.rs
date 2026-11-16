@@ -15,6 +15,7 @@ use rspigot_domain::{BlockPos, BlockStateId, EntityId, ItemId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::{EquipmentSlot, ItemKind};
 
+use crate::advancements::AdvancementEvent;
 use crate::events::{Animation, ClientEvent, Direction, EquipmentSlot as WireSlot, Hand};
 use crate::loot::{self, LootContext};
 use crate::mob_actions::new_mob;
@@ -334,6 +335,7 @@ impl<L: ClientLink> Server<L> {
                 self.set_held(id, hand, Some(before.clone()));
             }
             self.refresh_hands(id);
+            self.trigger_interacted(id, target, before.as_ref());
             return result;
         }
         let Some(stack) = before else {
@@ -341,12 +343,20 @@ impl<L: ClientLink> Server<L> {
         };
         let result = self.item_interact(id, target, hand, &stack);
         if result.consumes() {
+            self.trigger_interacted(id, target, Some(&stack));
             if creative {
                 self.set_held(id, hand, Some(stack));
             }
             self.refresh_hands(id);
         }
         result
+    }
+
+    fn trigger_interacted(&mut self, id: PlayerId, target: EntityId, held: Option<&ItemStack>) {
+        let mut event = AdvancementEvent::named("minecraft:player_interacted_with_entity");
+        event.item = held.map(|stack| stack.item.0);
+        event.entities = self.slot_of("entity", target).into_iter().collect();
+        self.trigger_event(id, event);
     }
 
     fn mob_interact_entry(

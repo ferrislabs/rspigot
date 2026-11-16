@@ -263,7 +263,12 @@ def trigger_of(body, items, path):
             and not target.startswith("#")
         ):
             return "Trigger::KilledEntity(Some(%s))" % quote(target)
-    return "Trigger::Other(%s)" % quote(trigger)
+    if conditions is None:
+        return "Trigger::Event { name: %s, conditions: None }" % quote(trigger)
+    return "Trigger::Event { name: %s, conditions: Some(%s) }" % (
+        quote(trigger),
+        quote(json.dumps(conditions, separators=(",", ":"), sort_keys=True)),
+    )
 
 
 def render(nodes):

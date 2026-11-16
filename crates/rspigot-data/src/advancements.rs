@@ -30,7 +30,10 @@ pub enum Trigger {
     },
     ConsumeItem(Option<ItemMatch>),
     KilledEntity(Option<&'static str>),
-    Other(&'static str),
+    Event {
+        name: &'static str,
+        conditions: Option<&'static str>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -125,6 +128,34 @@ mod tests {
         let (_, stone) = find("minecraft:story/mine_stone").expect("an advancement");
         let stone = stone.display.expect("a display");
         assert_eq!((root.x, stone.x), (0.0, 1.0));
+    }
+
+    #[test]
+    fn a_trigger_without_a_typed_form_keeps_its_name_and_raw_conditions() {
+        let (_, adventuring) =
+            find("minecraft:adventure/adventuring_time").expect("an advancement");
+        let badlands = adventuring
+            .criteria
+            .iter()
+            .find(|criterion| criterion.name == "minecraft:badlands")
+            .expect("a criterion");
+        let Trigger::Event {
+            name,
+            conditions: Some(conditions),
+        } = badlands.trigger
+        else {
+            panic!("a location trigger");
+        };
+        assert_eq!(name, "minecraft:location");
+        assert!(conditions.contains("minecraft:badlands"));
+        let (_, brew) = find("minecraft:nether/brew_potion").expect("an advancement");
+        assert!(brew.criteria.iter().any(|criterion| matches!(
+            criterion.trigger,
+            Trigger::Event {
+                name: "minecraft:brewed_potion",
+                conditions: None
+            }
+        )));
     }
 
     #[test]
