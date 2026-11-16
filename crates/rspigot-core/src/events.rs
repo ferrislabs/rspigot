@@ -110,7 +110,10 @@ pub enum PlayerInput {
     },
     TeleportConfirm(i32),
     Chat(String),
+    ChatMessage(ChatMessage),
+    ChatAck(i32),
     Command(String),
+    SignedCommand(SignedCommand),
     Dig {
         action: DigAction,
         pos: BlockPos,
@@ -226,6 +229,26 @@ pub enum PlayerInput {
         transaction: i32,
         entity: EntityId,
     },
+}
+
+pub use rspigot_domain::chat_chain::{LastSeenUpdate, MessageSignature};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ChatMessage {
+    pub content: String,
+    pub timestamp_ms: i64,
+    pub salt: i64,
+    pub signature: Option<MessageSignature>,
+    pub last_seen: LastSeenUpdate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignedCommand {
+    pub command: String,
+    pub timestamp_ms: i64,
+    pub salt: i64,
+    pub arguments: Vec<(String, MessageSignature)>,
+    pub last_seen: LastSeenUpdate,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

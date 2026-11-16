@@ -1,8 +1,9 @@
 use std::num::NonZeroU8;
 
 use rspigot_core::events::{
-    ChatSessionKey, ClickInput, ComponentHasher, ContainerClick, DigAction, Direction, Hand,
-    HashedItem, HashedSlot, InputState, MovementAction, PlayerInput,
+    ChatMessage, ChatSessionKey, ClickInput, ComponentHasher, ContainerClick, DigAction, Direction,
+    Hand, HashedItem, HashedSlot, InputState, LastSeenUpdate, MessageSignature, MovementAction,
+    PlayerInput, SignedCommand,
 };
 use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_core::recipe_book::BookKind;
@@ -148,6 +149,15 @@ fn hashed(stack: &HashedStack) -> HashedSlot {
     }))
 }
 
+fn last_seen(update: &rspigot_protocol::play::chat::LastSeenUpdate) -> LastSeenUpdate {
+    let [low, mid, high] = update.acknowledged.0;
+    LastSeenUpdate {
+        offset: update.offset,
+        acknowledged: u32::from(low) | u32::from(mid) << 8 | u32::from(high) << 16,
+        checksum: update.checksum,
+    }
+}
+
 fn click_input(input: ContainerInput) -> ClickInput {
     match input {
         ContainerInput::Pickup => ClickInput::Pickup,
@@ -219,9 +229,26 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             rotation: None,
             on_ground: p.flags.on_ground,
         }),
-        ServerboundPlay::Chat(p) => input(PlayerInput::Chat(p.message)),
+        ServerboundPlay::Chat(p) => input(PlayerInput::ChatMessage(ChatMessage {
+            content: p.message,
+            timestamp_ms: p.timestamp,
+            salt: p.salt,
+            signature: p.signature.map(|signature| MessageSignature(signature.0)),
+            last_seen: last_seen(&p.last_seen),
+        })),
+        ServerboundPlay::ChatAck(p) => input(PlayerInput::ChatAck(p.offset)),
         ServerboundPlay::ChatCommand(p) => input(PlayerInput::Command(p.command)),
-        ServerboundPlay::ChatCommandSigned(p) => input(PlayerInput::Command(p.command)),
+        ServerboundPlay::ChatCommandSigned(p) => input(PlayerInput::SignedCommand(SignedCommand {
+            command: p.command,
+            timestamp_ms: p.timestamp,
+            salt: p.salt,
+            arguments: p
+                .argument_signatures
+                .into_iter()
+                .map(|entry| (entry.name, MessageSignature(entry.signature.0)))
+                .collect(),
+            last_seen: last_seen(&p.last_seen),
+        })),
         ServerboundPlay::ChunkBatchReceived(p) => input(PlayerInput::ChunkBatchReceived {
             chunks_per_tick: p.desired_chunks_per_tick,
         }),
@@ -537,6 +564,71 @@ mod tests {
         held.components
             .insert("minecraft:custom_name", Tag::String("Other".to_owned()));
         assert!(!click.carried.matches(&Some(held)));
+    }
+
+    #[test]
+    fn a_signed_chat_keeps_its_timestamp_salt_signature_and_last_seen_update() {
+        let mut body = vec![2, b'h', b'i'];
+        body.extend(1_700_000_000_123_i64.to_be_bytes());
+        body.extend(77_i64.to_be_bytes());
+        body.push(1);
+        body.extend([9u8; 256]);
+        body.extend([3, 0b0000_0101, 0b0000_0010, 0b0000_1000, 0xFE]);
+        assert_eq!(
+            decoded(sb::CHAT, &body),
+            PlayerInput::ChatMessage(ChatMessage {
+                content: "hi".to_owned(),
+                timestamp_ms: 1_700_000_000_123,
+                salt: 77,
+                signature: Some(MessageSignature([9; 256])),
+                last_seen: LastSeenUpdate {
+                    offset: 3,
+                    acknowledged: 0b0000_1000_0000_0010_0000_0101,
+                    checksum: -2,
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn an_unsigned_chat_has_no_signature() {
+        let mut body = vec![1, b'x'];
+        body.extend(5_i64.to_be_bytes());
+        body.extend(6_i64.to_be_bytes());
+        body.push(0);
+        body.extend([0, 0, 0, 0, 0]);
+        let PlayerInput::ChatMessage(message) = decoded(sb::CHAT, &body) else {
+            panic!("not a chat");
+        };
+        assert_eq!(message.signature, None);
+        assert_eq!(message.last_seen, LastSeenUpdate::default());
+    }
+
+    #[test]
+    fn a_chat_acknowledgement_carries_its_offset() {
+        assert_eq!(decoded(sb::CHAT_ACK, &[5]), PlayerInput::ChatAck(5));
+    }
+
+    #[test]
+    fn a_signed_command_keeps_each_argument_signature() {
+        let mut body = vec![9];
+        body.extend(b"msg a hey");
+        body.extend(10_i64.to_be_bytes());
+        body.extend(11_i64.to_be_bytes());
+        body.push(1);
+        body.extend([7, b'm', b'e', b's', b's', b'a', b'g', b'e']);
+        body.extend([4u8; 256]);
+        body.extend([0, 0, 0, 0, 0]);
+        assert_eq!(
+            decoded(sb::CHAT_COMMAND_SIGNED, &body),
+            PlayerInput::SignedCommand(SignedCommand {
+                command: "msg a hey".to_owned(),
+                timestamp_ms: 10,
+                salt: 11,
+                arguments: vec![("message".to_owned(), MessageSignature([4; 256]))],
+                last_seen: LastSeenUpdate::default(),
+            })
+        );
     }
 
     #[test]
