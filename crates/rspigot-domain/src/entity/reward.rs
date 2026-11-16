@@ -124,7 +124,7 @@ pub fn equipment_drops(
     killed_by_player: bool,
     random: &mut impl RandomSource,
 ) -> Vec<EquipmentDrop> {
-    let drops = planned_equipment_drops(living, killed_by_player, random);
+    let drops = planned_equipment_drops(living, killed_by_player, 0.0, random);
     for drop in &drops {
         living.equipment[slot_index(drop.slot)] = None;
     }
@@ -134,6 +134,7 @@ pub fn equipment_drops(
 pub fn planned_equipment_drops(
     living: &LivingState,
     killed_by_player: bool,
+    chance_bonus: f32,
     random: &mut impl RandomSource,
 ) -> Vec<EquipmentDrop> {
     let Some(chances) = living.mob.as_ref().map(|mob| mob.drop_chances) else {
@@ -145,6 +146,7 @@ pub fn planned_equipment_drops(
         if chance == 0.0 {
             continue;
         }
+        let chance = chance + chance_bonus;
         let preserved = chance > PRESERVED_CHANCE;
         if living.equipment(slot).is_none() {
             continue;
@@ -349,5 +351,20 @@ mod tests {
             EntityKind::Tadpole,
             Compound::new()
         )));
+    }
+
+    #[test]
+    fn a_chance_bonus_raises_the_equipment_drop_odds() {
+        let zombie = geared_zombie();
+        let living = zombie.living().unwrap();
+        let mut roll = || Scripted {
+            float: || 0.09,
+            int: |bound: i32| bound - 1,
+        };
+        assert!(planned_equipment_drops(living, true, 0.0, &mut roll()).is_empty());
+        assert_eq!(
+            planned_equipment_drops(living, true, 0.03, &mut roll()).len(),
+            1
+        );
     }
 }

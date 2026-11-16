@@ -2208,7 +2208,7 @@ impl<L: ClientLink> Server<L> {
             if let Some(carried) = species::enderman::carried_block(&entity.base) {
                 drops.extend(crate::kinds::carried_block_drops(carried, &mut self.rng));
             }
-            slots = self.planned_equipment_drops(id, killed_by_player);
+            slots = self.planned_equipment_drops(id, killed_by_player, source);
             drops.extend(slots.iter().map(|drop| drop.dropped.clone()));
         }
         let experience = self.experience_reward(id, killed_by_player, mob_drops);
@@ -2301,12 +2301,14 @@ impl<L: ClientLink> Server<L> {
         &mut self,
         id: EntityId,
         killed_by_player: bool,
+        source: &DamageSource,
     ) -> Vec<EquipmentDrop> {
+        let bonus = self.equipment_drop_bonus(id, source);
         let rng = &mut self.rng;
         let Some(living) = self.entities.store.get(id).and_then(|e| e.living()) else {
             return Vec::new();
         };
-        reward::planned_equipment_drops(living, killed_by_player, &mut ServerRandom(rng))
+        reward::planned_equipment_drops(living, killed_by_player, bonus, &mut ServerRandom(rng))
     }
 
     fn clear_dropped_equipment(&mut self, id: EntityId, slots: &[EquipmentDrop]) {

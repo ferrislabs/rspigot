@@ -205,6 +205,26 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn equipment_drop_bonus(&mut self, victim: EntityId, source: &DamageSource) -> f32 {
+        let Some(attacker) = source.causing.as_ref().map(|cause| cause.entity) else {
+            return 0.0;
+        };
+        let Some(facts) = self.entity_loot_facts(victim) else {
+            return 0.0;
+        };
+        let damage = self.damage_facts(source);
+        let Some(player) = self.players.values().find(|p| p.entity_id == attacker) else {
+            return 0.0;
+        };
+        let gear = worn_gear(player);
+        let context = LootContext {
+            this: Some(&facts),
+            damage: Some(&damage),
+            ..LootContext::default()
+        };
+        enchant_effects::equipment_drop_bonus(&gear, 0.0, &context, &mut self.rng)
+    }
+
     pub(crate) fn arrow_enchantments(&mut self, arrow: EntityId, target: EntityId) -> (f64, f32) {
         let Some(Entity {
             base,
