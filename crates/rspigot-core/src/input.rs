@@ -13,7 +13,8 @@ use crate::chests;
 use crate::crops;
 use crate::doors::is_door_state;
 use crate::events::{
-    ClientEvent, DigAction, Direction, EquipmentSlot, Hand, MovementAction, PlayerInput,
+    ChatMessage, ClientEvent, DigAction, Direction, EquipmentSlot, Hand, LastSeenUpdate,
+    MovementAction, PlayerInput,
 };
 use crate::loot::{self, LootContext};
 use crate::plugins::events::PlayerRespawnReason;
@@ -56,8 +57,20 @@ impl<L: ClientLink> Server<L> {
                     player.pending_teleport = None;
                 }
             }
-            PlayerInput::Chat(message) => self.handle_chat(id, &message),
-            PlayerInput::Command(command) => self.run_player_command(id, &command),
+            PlayerInput::Chat(message) => self.handle_chat_message(
+                id,
+                ChatMessage {
+                    content: message,
+                    timestamp_ms: 0,
+                    salt: 0,
+                    signature: None,
+                    last_seen: LastSeenUpdate::default(),
+                },
+            ),
+            PlayerInput::ChatMessage(message) => self.handle_chat_message(id, *message),
+            PlayerInput::ChatAck(offset) => self.handle_chat_ack(id, offset),
+            PlayerInput::Command(command) => self.handle_unsigned_command(id, &command),
+            PlayerInput::SignedCommand(signed) => self.handle_signed_command(id, signed),
             PlayerInput::Dig {
                 action,
                 pos,
@@ -345,20 +358,6 @@ impl<L: ClientLink> Server<L> {
             );
         }
         self.update_player_view(id);
-    }
-
-    fn handle_chat(&mut self, id: PlayerId, message: &str) {
-        if !self.players.contains_key(&id) {
-            return;
-        }
-        if message.chars().count() > 256 || message.chars().any(|c| c == '§' || c.is_control()) {
-            self.disconnect_player(
-                id,
-                Component::translatable("multiplayer.disconnect.illegal_characters", Vec::new()),
-            );
-            return;
-        }
-        self.broadcast_chat(id, message);
     }
 
     pub(crate) fn within_reach(&self, id: PlayerId, pos: BlockPos) -> bool {

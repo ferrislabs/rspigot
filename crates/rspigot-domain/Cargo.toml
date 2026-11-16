@@ -16,6 +16,9 @@ rustc-hash = "2"
 thiserror = "2"
 uuid = "1"
 md-5 = "0.10"
+rsa = { version = "0.9.10", default-features = false, features = ["std", "u64_digit"] }
+sha1 = "0.10.6"
+sha2 = "0.10"
 
 [dev-dependencies]
 rand = "0.9"

@@ -740,6 +740,7 @@ impl<L: ClientLink> Server<L> {
             walk_speed: 0.1,
             latency: 0,
             chat_session: None,
+            chat: rspigot_domain::chat_chain::ChatState::default(),
             client_brand: None,
             tracked: FxHashSet::default(),
             loaded: false,
@@ -843,7 +844,7 @@ impl<L: ClientLink> Server<L> {
             enable_respawn_screen: !self.config.rules.immediate_respawn,
             do_limited_crafting: false,
             spawn: self.spawn_info(player),
-            enforces_secure_chat: false,
+            enforces_secure_chat: self.config.chat.enforce_secure_profile,
         };
         let link = &player.link;
         link.send(ClientEvent::Join(Box::new(info)));
