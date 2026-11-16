@@ -240,6 +240,36 @@ mod jigsaw {
             include_str!("fixtures/jigsaw_village_savanna_-4172144997902289642_-32_-23.txt"),
         );
     }
+
+    #[test]
+    fn forest_abandoned_camp_matches_vanilla_for_seed_one() {
+        check(
+            1,
+            "abandoned_camp_forest",
+            (-280, -72),
+            include_str!("fixtures/jigsaw_abandoned_camp_forest_1_-280_-72.txt"),
+        );
+    }
+
+    #[test]
+    fn savanna_abandoned_camp_matches_vanilla_for_seed_one() {
+        check(
+            1,
+            "abandoned_camp_savanna",
+            (-291, -125),
+            include_str!("fixtures/jigsaw_abandoned_camp_savanna_1_-291_-125.txt"),
+        );
+    }
+
+    #[test]
+    fn ancient_city_matches_vanilla_for_seed_one() {
+        check(
+            1,
+            "ancient_city",
+            (-201, -36),
+            include_str!("fixtures/jigsaw_ancient_city_1_-201_-36.txt"),
+        );
+    }
 }
 
 mod world {
@@ -306,5 +336,35 @@ mod world {
             }
         }
         assert!(villagers > 0, "villagers {villagers}");
+    }
+
+    #[test]
+    fn an_abandoned_camp_is_built_into_the_generated_chunks() {
+        let resources = Resources::resolve();
+        let overworld = Overworld::new(1, ClimateVariant::Normal, &resources.blocks);
+        let dimension = Dimension::overworld();
+        let mut chests = 0;
+        let mut recorded = false;
+        for cx in -281..=-278 {
+            for cz in -74..=-70 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                chests += column
+                    .block_entities
+                    .iter()
+                    .filter(|entity| entity.data.get_str("LootTable").is_some())
+                    .count();
+                if (cx, cz) == (-280, -72) {
+                    recorded = column
+                        .extra
+                        .get_compound("structures")
+                        .and_then(|tag| tag.get_compound("starts"))
+                        .is_some_and(|starts| {
+                            starts.contains_key("minecraft:abandoned_camp_forest")
+                        });
+                }
+            }
+        }
+        assert!(chests >= 1, "chests {chests}");
+        assert!(recorded);
     }
 }

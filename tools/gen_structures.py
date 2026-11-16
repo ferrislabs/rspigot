@@ -8,7 +8,15 @@ RE_ROOT = "/Users/baptiste.parmantier/Development/rspigot/re"
 DEFAULT_DATAPACK = RE_ROOT + "/server/data/minecraft"
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.normpath(os.path.join(HERE, "..", "crates", "rspigot-worldgen", "data"))
-TEMPLATE_GROUPS = ("minecraft:village/", "minecraft:pillager_outpost/", "minecraft:trail_ruins/")
+TEMPLATE_GROUPS = (
+    "minecraft:village/",
+    "minecraft:pillager_outpost/",
+    "minecraft:trail_ruins/",
+    "minecraft:abandoned_camp/",
+    "minecraft:ancient_city/",
+    "minecraft:bastion/",
+    "minecraft:trial_chambers/",
+)
 DEFAULT_STRUCTURES = os.path.join(DATA, "structures.json")
 DEFAULT_TEMPLATES = os.path.join(DATA, "jigsaw_templates.json")
 
