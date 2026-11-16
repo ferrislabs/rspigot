@@ -432,3 +432,68 @@ mod embedded {
         }
     }
 }
+
+mod custom {
+    use super::super::library::Library;
+    use crate::overworld::Overworld;
+    use crate::resources::Resources;
+    use rspigot_blocks::BlockKind;
+    use rspigot_data::multi_noise::ClimateVariant;
+    use rspigot_domain::world::Dimension;
+    use rspigot_domain::{BlockPos, ChunkPos};
+
+    fn library() -> &'static Library {
+        static CUSTOM: std::sync::OnceLock<&'static Library> = std::sync::OnceLock::new();
+        CUSTOM.get_or_init(|| {
+            let pack = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../example/datapacks/custom-hut");
+            let (library, issues) = Library::build(&[pack]);
+            assert!(issues.is_empty(), "{issues:?}");
+            Box::leak(Box::new(library))
+        })
+    }
+
+    #[test]
+    fn the_example_hut_is_built_from_its_template() {
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, library());
+        let dimension = Dimension::overworld();
+        let mut start = None;
+        'search: for cx in -8..8 {
+            for cz in -8..8 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                let recorded = column
+                    .extra
+                    .get_compound("structures")
+                    .and_then(|tag| tag.get_compound("starts"))
+                    .is_some_and(|starts| starts.contains_key("example:hut"));
+                if recorded {
+                    start = Some((cx, cz));
+                    break 'search;
+                }
+            }
+        }
+        let (sx, sz) = start.expect("the hut must start in the searched area");
+        let (mut gold, mut planks) = (0, 0);
+        for cx in sx - 1..=sx + 1 {
+            for cz in sz - 1..=sz + 1 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                for y in -64..200 {
+                    for z in 0..16 {
+                        for x in 0..16 {
+                            let pos = BlockPos::new(cx * 16 + x, y, cz * 16 + z);
+                            match column.block(pos).and_then(|state| state.kind()) {
+                                Some(BlockKind::GoldBlock) => gold += 1,
+                                Some(BlockKind::OakPlanks) => planks += 1,
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert_eq!(gold, 25);
+        assert_eq!(planks, 32 + 25);
+    }
+}
