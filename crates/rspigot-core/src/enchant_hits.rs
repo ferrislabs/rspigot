@@ -1,20 +1,24 @@
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use rspigot_data::enchantments::{EffectRole, EntityEffect};
+use rspigot_domain::Vec3;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
+use rspigot_domain::entity::{Entity, EntityState, arrow};
 use rspigot_domain::{EntityId, player::PlayerId};
 use rspigot_entities::EntityKind as Kind;
 
 use crate::enchant_effects::{self, EquipSlot, Planned, Worn};
 use crate::health::{CHEST_SLOT, DamageSource, FEET_SLOT, HEAD_SLOT, LEGS_SLOT, OFFHAND_SLOT};
-use crate::loot::LootContext;
+use crate::loot::{LootContext, LootDamage};
 use crate::player::Player;
 use crate::plugins::events::EntityPotionEffectCause;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
 const TICKS_PER_SECOND: f32 = 20.0;
+const PUNCH_SCALE: f64 = 0.6;
+const PUNCH_LIFT: f64 = 0.1;
 
 pub(crate) fn worn_gear<L>(player: &Player<L>) -> Vec<Worn<'_>> {
     let inventory = &player.inventory;
@@ -198,6 +202,73 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             EntityEffect::ChangeItemDamage(_) => {}
+        }
+    }
+
+    pub(crate) fn arrow_enchantments(&mut self, arrow: EntityId, target: EntityId) -> (f64, f32) {
+        let Some(Entity {
+            base,
+            state: EntityState::Arrow(state),
+            ..
+        }) = self.entities.store.get(arrow)
+        else {
+            return (0.0, 0.0);
+        };
+        let trident = base.kind == Kind::Trident;
+        let base_damage = if trident {
+            f64::from(arrow::TRIDENT_DAMAGE)
+        } else {
+            state.base_damage
+        };
+        let kind = if trident {
+            DamageType::Trident
+        } else {
+            DamageType::Arrow
+        };
+        let owner = state.owner;
+        let Some(weapon) = state.weapon.clone() else {
+            return (base_damage, 0.0);
+        };
+        let owner_id = self.owner_entity(owner);
+        let damage = LootDamage {
+            kind,
+            source: owner_id.and_then(|owner| self.entity_loot_facts(owner)),
+            direct: self.entity_loot_facts(arrow),
+            is_direct: false,
+        };
+        let facts = self.entity_loot_facts(target);
+        let context = LootContext {
+            this: facts.as_ref(),
+            damage: Some(&damage),
+            ..LootContext::default()
+        };
+        let worn = [Worn {
+            stack: &weapon,
+            slot: EquipSlot::Mainhand,
+        }];
+        let damage =
+            enchant_effects::modify_damage(&worn, base_damage as f32, &context, &mut self.rng);
+        let knockback = enchant_effects::modify_knockback(&worn, 0.0, &context, &mut self.rng);
+        (f64::from(damage), knockback)
+    }
+
+    pub(crate) fn push_by_arrow(&mut self, target: EntityId, heading: Vec3, punch: f32) {
+        if punch <= 0.0 {
+            return;
+        }
+        let horizontal = (heading.x * heading.x + heading.z * heading.z).sqrt();
+        if horizontal <= 0.0 {
+            return;
+        }
+        let scale = (1.0 - self.knockback_resistance_of(target)).max(0.0);
+        let strength = f64::from(punch) * PUNCH_SCALE * scale / horizontal;
+        let push = Vec3::new(heading.x * strength, PUNCH_LIFT, heading.z * strength);
+        if let Some(player) = self.players.values_mut().find(|p| p.entity_id == target) {
+            player.vitals.velocity = player.vitals.velocity + push;
+            player.vitals.sync_velocity = true;
+        } else if let Some(entity) = self.entities.store.get_mut(target) {
+            entity.base.velocity = entity.base.velocity + push;
+            entity.base.needs_sync = true;
         }
     }
 

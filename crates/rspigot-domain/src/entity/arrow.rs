@@ -389,8 +389,12 @@ pub fn flight_rotation(base: &mut EntityBase, movement: Vec3) {
 }
 
 pub fn hit_damage(base: &EntityBase, arrow: &mut ArrowState) -> i32 {
+    hit_damage_with(base, arrow, arrow.base_damage)
+}
+
+pub fn hit_damage_with(base: &EntityBase, arrow: &mut ArrowState, base_damage: f64) -> i32 {
     let speed = base.velocity.length() as f32;
-    let damage = (f64::from(speed) * arrow.base_damage)
+    let damage = (f64::from(speed) * base_damage)
         .clamp(0.0, 2.147_483_647e9)
         .ceil() as i32;
     if is_crit(base) {

@@ -1,15 +1,19 @@
 use std::num::NonZeroU8;
 
 use rand::Rng;
+use rspigot_data::enchantments::EntityEffect;
 use rspigot_domain::Vec3;
 use rspigot_domain::entity::arrow::{self, ArrowState, Launch, Pickup};
+use rspigot_domain::entity::fire;
 use rspigot_domain::entity::{Entity, EntityState};
 use rspigot_domain::item::{HOTBAR_START, ItemStack, OFFHAND_SLOT, menu_slot};
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::ItemKind;
 
+use crate::enchant_effects::{self, EquipSlot, Worn};
 use crate::events::Hand;
+use crate::loot::LootContext;
 use crate::player::Player;
 use crate::plugins::steps::{Draw, Shooter};
 use crate::ports::ClientLink;
@@ -134,13 +138,15 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if let Some(shot) = self.take_drawn_shot(id) {
+            let spent = self.ammo_spent(&shot);
             if let Some(player) = self.players.get_mut(&id)
                 && !shot.creative
+                && spent > 0
                 && let Some(slot) = shot.ammo.slot
             {
-                player.inventory.remove(slot, 1);
+                player.inventory.remove(slot, spent);
             }
-            self.fire_arrow(id, &shot);
+            self.fire_arrow(id, &shot, spent == 0);
         }
         self.send_inventory(id);
     }
@@ -177,7 +183,22 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
-    fn fire_arrow(&mut self, id: PlayerId, shot: &Shot) {
+    fn ammo_spent(&mut self, shot: &Shot) -> u32 {
+        let worn = [Worn {
+            stack: &shot.weapon,
+            slot: EquipSlot::Mainhand,
+        }];
+        enchant_effects::modify_ammo_use(
+            &worn,
+            &shot.ammo.stack,
+            1.0,
+            &LootContext::default(),
+            &mut self.rng,
+        )
+        .max(0.0) as u32
+    }
+
+    fn fire_arrow(&mut self, id: PlayerId, shot: &Shot, intangible: bool) {
         let mut base = self.new_entity_base(Kind::Arrow);
         base.position = Vec3::new(shot.eye.x, shot.eye.y - EYE_OFFSET, shot.eye.z);
         base.old_position = base.position;
@@ -189,12 +210,26 @@ impl<L: ClientLink> Server<L> {
             ..shot.ammo.stack.clone()
         };
         state.weapon = Some(shot.weapon.clone());
-        state.pickup = if shot.creative {
+        state.pickup = if shot.creative || intangible {
             Pickup::CreativeOnly
         } else {
             Pickup::Allowed
         };
         arrow::set_crit(&mut base, shot.power >= 1.0);
+        let worn = [Worn {
+            stack: &shot.weapon,
+            slot: EquipSlot::Mainhand,
+        }];
+        for plan in
+            enchant_effects::projectile_spawned(&worn, &LootContext::default(), &mut self.rng)
+        {
+            if let EntityEffect::Ignite(seconds) = plan.effect {
+                fire::ignite_for_ticks(
+                    &mut base,
+                    fire::seconds_to_ticks(seconds.calculate(plan.level)),
+                );
+            }
+        }
         arrow::shoot_from_rotation(
             &mut base,
             &mut state,
