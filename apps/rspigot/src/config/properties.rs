@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-pub const DEFAULTS: [(&str, &str); 67] = [
+pub const DEFAULTS: [(&str, &str); 70] = [
     ("accepts-transfers", "false"),
     ("allow-flight", "false"),
     ("broadcast-console-to-ops", "true"),
@@ -69,6 +69,9 @@ pub const DEFAULTS: [(&str, &str); 67] = [
     ("spawn-protection", "16"),
     ("status-heartbeat-interval", "0"),
     ("sync-chunk-writes", "true"),
+    ("text-filtering-config", ""),
+    ("text-filtering-version", "0"),
+    ("use-native-transport", "true"),
     ("view-distance", "10"),
     ("white-list", "true"),
 ];

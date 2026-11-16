@@ -137,13 +137,19 @@ impl ServerFiles {
 
     fn tracking_ranges(&self) -> TrackingRanges {
         let defaults = TrackingRanges::default();
+        let percentage = self
+            .properties
+            .int("entity-broadcast-range-percentage", 100)
+            .clamp(10, 1000);
         let range = |key: &str, fallback: i32| {
-            self.spigot
+            let base = self
+                .spigot
                 .int(
                     &format!("world-settings.default.{key}"),
                     i64::from(fallback),
                 )
-                .clamp(0, i64::from(i32::MAX)) as i32
+                .clamp(0, i64::from(i32::MAX));
+            (base * percentage / 100).min(i64::from(i32::MAX)) as i32
         };
         TrackingRanges {
             players: range("entity-tracking-range.players", defaults.players),
@@ -152,10 +158,13 @@ impl ServerFiles {
             misc: range("entity-tracking-range.misc", defaults.misc),
             display: range("entity-tracking-range.display", defaults.display),
             other: range("entity-tracking-range.other", defaults.other),
-            monster_activation: range(
-                "entity-activation-range.monsters",
-                defaults.monster_activation,
-            ),
+            monster_activation: self
+                .spigot
+                .int(
+                    "world-settings.default.entity-activation-range.monsters",
+                    i64::from(defaults.monster_activation),
+                )
+                .clamp(0, i64::from(i32::MAX)) as i32,
         }
     }
 
@@ -298,5 +307,21 @@ mod tests {
                 .mob_spawn_range,
             44
         );
+    }
+
+    #[test]
+    fn the_broadcast_percentage_scales_tracking_ranges() {
+        let mut files = files("{}", "{}");
+        files
+            .properties
+            .set("entity-broadcast-range-percentage", "50");
+        let ranges = files.tracking_ranges();
+        assert_eq!(ranges.animals, 48);
+        assert_eq!(ranges.players, 64);
+        assert_eq!(ranges.monster_activation, 32);
+        files
+            .properties
+            .set("entity-broadcast-range-percentage", "1");
+        assert_eq!(files.tracking_ranges().animals, 9);
     }
 }
