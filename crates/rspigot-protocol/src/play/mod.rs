@@ -58,7 +58,7 @@ pub mod clientbound {
         ChunkBatchFinished, ChunkBatchStart, Explode, ExplosionParticle, GameEvent, GameRuleValues,
         InitializeBorder, LevelEvent, LevelParticles, OpenSignEditor, ParticleOptions,
         ParticleRandomization, SectionBlocksUpdate, SetChunkCacheCenter, SetChunkCacheRadius,
-        SetSimulationDistance, SetTime, Sound,
+        SetSimulationDistance, SetTime, Sound, StopSound,
     };
 }
 

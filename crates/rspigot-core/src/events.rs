@@ -775,6 +775,18 @@ pub enum ClientEvent {
         pitch: f32,
         seed: i64,
     },
+    NamedSound {
+        sound: String,
+        source: SoundSource,
+        position: Vec3,
+        volume: f32,
+        pitch: f32,
+        seed: i64,
+    },
+    StopSound {
+        source: Option<SoundSource>,
+        sound: Option<String>,
+    },
     Explode {
         center: Vec3,
         radius: f32,

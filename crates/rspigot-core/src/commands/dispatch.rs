@@ -430,6 +430,38 @@ pub trait CommandContext {
     fn function_exists(&self, _id: &Identifier) -> bool {
         false
     }
+
+    fn player_ids(&self) -> Vec<PlayerId> {
+        Vec::new()
+    }
+
+    fn play_sound_to(
+        &mut self,
+        _player: PlayerId,
+        _sound: &str,
+        _source: rspigot_entities::SoundSource,
+        _position: Vec3,
+        _volume: f32,
+        _pitch: f32,
+    ) {
+    }
+
+    fn stop_sound_for(
+        &mut self,
+        _player: PlayerId,
+        _source: Option<rspigot_entities::SoundSource>,
+        _sound: Option<String>,
+    ) {
+    }
+
+    fn send_particle_to(
+        &mut self,
+        _player: PlayerId,
+        _particle: rspigot_domain::particle::Particle,
+        _force: bool,
+    ) -> bool {
+        false
+    }
 }
 
 pub fn execute<C: CommandContext>(
@@ -530,6 +562,9 @@ pub fn execute<C: CommandContext>(
         "defaultgamemode" | "gamerule" | "experience" | "xp" | "tag" | "save-on" | "save-off"
         | "random" | "spawnpoint" => super::server_commands::run(ctx, sender, &label, rest),
         "tellraw" | "title" => super::text_commands::run(ctx, sender, &label, rest),
+        "playsound" | "stopsound" | "particle" => {
+            super::sound_commands::run(ctx, sender, &label, rest)
+        }
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),

@@ -1,3 +1,5 @@
+mod extra;
+
 use super::permission::{LEVEL_ADMINS, LEVEL_GAMEMASTERS, LEVEL_OWNERS};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1031,6 +1033,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     b.argument(teleport, "destination", single_entity(), true);
     b.alias(root, "tp", teleport);
     execute_tree(b, root);
+    extra::extra_commands(b, root);
     let summon = b.literal(root, "summon", false);
     let entity = b.suggesting(
         summon,

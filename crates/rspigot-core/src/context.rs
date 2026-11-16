@@ -255,6 +255,60 @@ impl<L: ClientLink> CommandContext for Server<L> {
         );
     }
 
+    fn player_ids(&self) -> Vec<PlayerId> {
+        let mut ids: Vec<PlayerId> = self.players.keys().copied().collect();
+        ids.sort();
+        ids
+    }
+
+    fn play_sound_to(
+        &mut self,
+        player: PlayerId,
+        sound: &str,
+        source: rspigot_entities::SoundSource,
+        position: Vec3,
+        volume: f32,
+        pitch: f32,
+    ) {
+        let seed = rand::Rng::random::<i64>(&mut self.rng);
+        self.push(
+            Audience::One(player),
+            ClientEvent::NamedSound {
+                sound: sound.to_owned(),
+                source,
+                position,
+                volume,
+                pitch,
+                seed,
+            },
+        );
+    }
+
+    fn stop_sound_for(
+        &mut self,
+        player: PlayerId,
+        source: Option<rspigot_entities::SoundSource>,
+        sound: Option<String>,
+    ) {
+        self.push(
+            Audience::One(player),
+            ClientEvent::StopSound { source, sound },
+        );
+    }
+
+    fn send_particle_to(
+        &mut self,
+        player: PlayerId,
+        particle: rspigot_domain::particle::Particle,
+        _force: bool,
+    ) -> bool {
+        if !self.players.contains_key(&player) {
+            return false;
+        }
+        self.push(Audience::One(player), ClientEvent::Particle(particle));
+        true
+    }
+
     fn tell_player(&mut self, player: PlayerId, message: Component, overlay: bool) {
         self.push(
             Audience::One(player),

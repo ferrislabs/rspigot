@@ -533,6 +533,7 @@ fn named_parser(name: &str) -> WireParser {
         "minecraft:operation" => parser::OPERATION,
         "minecraft:component" => parser::COMPONENT,
         "minecraft:uuid" => parser::UUID,
+        "minecraft:particle" => parser::PARTICLE,
         _ => return WireParser::String(StringKind::SingleWord),
     };
     simple(id)
@@ -1787,6 +1788,43 @@ impl Encoder {
                 ),
                 None => Ok(()),
             },
+            ClientEvent::NamedSound {
+                sound,
+                source,
+                position: at,
+                volume,
+                pitch,
+                seed,
+            } => {
+                let holder =
+                    match rspigot_data::registries::static_index("minecraft:sound_event", sound)
+                        .and_then(|id| i32::try_from(id).ok())
+                    {
+                        Some(id) => Holder::Reference(id),
+                        None => Holder::Direct(rspigot_protocol::play::types::SoundEvent {
+                            location: sound.clone(),
+                            fixed_range: None,
+                        }),
+                    };
+                Self::queue(
+                    writer,
+                    &cb::Sound::at(
+                        holder,
+                        sound_source(*source),
+                        (at.x, at.y, at.z),
+                        *volume,
+                        *pitch,
+                        *seed,
+                    ),
+                )
+            }
+            ClientEvent::StopSound { source, sound } => Self::queue(
+                writer,
+                &cb::StopSound {
+                    source: source.map(sound_source),
+                    sound: sound.clone(),
+                },
+            ),
             ClientEvent::Explode {
                 center,
                 radius,
@@ -2418,6 +2456,34 @@ mod tests {
             seed: 0,
         };
         assert!(encode(unknown).is_empty());
+    }
+
+    #[test]
+    fn a_named_sound_is_a_reference_when_registered_and_direct_otherwise() {
+        let make = |sound: &str| ClientEvent::NamedSound {
+            sound: sound.to_owned(),
+            source: rspigot_core::events::SoundSource::Master,
+            position: rspigot_domain::Vec3::new(1.0, 2.0, 3.0),
+            volume: 1.0,
+            pitch: 1.0,
+            seed: 0,
+        };
+        let known = encode(make("minecraft:entity.villager.no"));
+        let custom = encode(make("pack:thing"));
+        assert_eq!(known.len(), 1);
+        assert_eq!(custom.len(), 1);
+        assert_eq!(known[0].0, id::SOUND);
+        assert_eq!(custom[0].1[0], 0);
+        assert_ne!(known[0].1[0], 0);
+    }
+
+    #[test]
+    fn stop_sound_sends_the_flags_source_and_name() {
+        let packets = encode(ClientEvent::StopSound {
+            source: Some(rspigot_core::events::SoundSource::Records),
+            sound: None,
+        });
+        assert_eq!(packets, vec![(id::STOP_SOUND, vec![1, 2])]);
     }
 
     #[test]
