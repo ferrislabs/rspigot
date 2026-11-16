@@ -189,30 +189,21 @@ impl Shaped {
                 piece.bbox,
                 Some(super::blueprint::Dir::North),
                 0,
-                vec![
-                    ("Template", Tag::from(piece.tpl.name)),
-                    ("Rot", Tag::from(piece.tpl.rotation_name())),
-                ],
+                template_tags(&piece.tpl),
             ),
             Self::Igloo(piece) => (
                 piece.id(),
                 piece.bbox,
                 Some(super::blueprint::Dir::North),
                 0,
-                vec![
-                    ("Template", Tag::from(piece.tpl.name)),
-                    ("Rot", Tag::from(piece.tpl.rotation_name())),
-                ],
+                template_tags(&piece.tpl),
             ),
             Self::Fossil(piece) => (
                 piece.id(),
                 piece.bbox,
                 Some(super::blueprint::Dir::North),
                 0,
-                vec![
-                    ("Template", Tag::from(piece.tpl.name)),
-                    ("Rot", Tag::from(piece.tpl.rotation_name())),
-                ],
+                template_tags(&piece.tpl),
             ),
             Self::Portal(piece) => {
                 let mut tag = Compound::new()
@@ -258,6 +249,13 @@ impl Shaped {
         }
         tag
     }
+}
+
+fn template_tags(tpl: &tpl::Tpl) -> Vec<(&'static str, Tag)> {
+    vec![
+        ("Template", Tag::from(tpl.name)),
+        ("Rot", Tag::from(tpl.rotation_name())),
+    ]
 }
 
 fn tags<T: Into<Tag>>(items: Vec<(&'static str, T)>) -> Vec<(&'static str, Tag)> {
