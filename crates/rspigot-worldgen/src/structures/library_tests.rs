@@ -148,7 +148,7 @@ fn an_invalid_file_is_reported_and_the_rest_still_loads() {
         &dir.join("data/mine/worldgen/template_pool/fine.json"),
         &single_pool("mine:missing"),
     );
-    let (library, issues) = Library::build(&[dir.clone()]);
+    let (library, issues) = Library::build(std::slice::from_ref(&dir));
     let library = Box::leak(Box::new(library));
     assert!(library.pools().get("mine:fine").is_some());
     assert!(library.pools().get("mine:broken").is_none());
