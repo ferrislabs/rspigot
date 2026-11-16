@@ -132,6 +132,7 @@ mod tag_query;
 mod tamable;
 mod throwing;
 mod thrown;
+mod thunder;
 mod tnt;
 mod totem;
 mod trader_spawner;

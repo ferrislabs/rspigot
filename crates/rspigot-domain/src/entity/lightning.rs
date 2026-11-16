@@ -5,6 +5,18 @@ pub const FIRE_SPREAD: i32 = 4;
 pub const HIT_RADIUS: f64 = 3.0;
 pub const HIT_HEIGHT: f64 = 6.0;
 pub const FLASH_GAP: i32 = 10;
+pub const TRAP_ODDS_PER_DIFFICULTY: f64 = 0.01;
+
+pub fn is_skeleton_trap(
+    spawn_mobs: bool,
+    effective_difficulty: f32,
+    roll: f64,
+    lightning_rod_below: bool,
+) -> bool {
+    spawn_mobs
+        && roll < f64::from(effective_difficulty) * TRAP_ODDS_PER_DIFFICULTY
+        && !lightning_rod_below
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LightningState {
@@ -69,6 +81,15 @@ mod tests {
         state.tick(0);
         let last = state.tick(0);
         assert!(last.discard && !last.hit);
+    }
+
+    #[test]
+    fn a_trap_needs_mobs_a_lucky_roll_and_no_rod_below() {
+        assert!(is_skeleton_trap(true, 2.0, 0.019, false));
+        assert!(!is_skeleton_trap(true, 2.0, 0.02, false));
+        assert!(!is_skeleton_trap(false, 2.0, 0.0, false));
+        assert!(!is_skeleton_trap(true, 2.0, 0.0, true));
+        assert!(!is_skeleton_trap(true, 0.0, 0.0, false));
     }
 
     #[test]
