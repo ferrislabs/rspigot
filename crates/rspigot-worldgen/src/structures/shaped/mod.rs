@@ -2,6 +2,7 @@ pub(crate) mod frame;
 pub(crate) mod mineshaft;
 pub(crate) mod portal;
 pub(crate) mod stronghold;
+pub(crate) mod tpl;
 
 use rspigot_nbt::{Compound, Tag};
 
