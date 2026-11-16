@@ -1,3 +1,4 @@
+pub(crate) mod fossil;
 pub(crate) mod frame;
 pub(crate) mod mineshaft;
 pub(crate) mod portal;
@@ -21,6 +22,7 @@ pub(crate) enum Shaped {
     Stronghold(stronghold::Piece),
     Portal(portal::Piece),
     Treasure(treasure::Piece),
+    Fossil(fossil::Piece),
 }
 
 impl Shaped {
@@ -30,6 +32,7 @@ impl Shaped {
             Self::Stronghold(piece) => &piece.bbox,
             Self::Portal(piece) => &piece.bbox,
             Self::Treasure(piece) => &piece.bbox,
+            Self::Fossil(piece) => &piece.bbox,
         }
     }
 
@@ -39,6 +42,7 @@ impl Shaped {
             Self::Stronghold(piece) => piece.place(run, write),
             Self::Portal(piece) => piece.place(run, write),
             Self::Treasure(piece) => piece.place(run, write),
+            Self::Fossil(piece) => piece.place(run, write),
         }
     }
 
@@ -49,6 +53,7 @@ impl Shaped {
             Self::Stronghold(piece) => piece.class().to_owned(),
             Self::Portal(_) => "RuinedPortalPiece".to_owned(),
             Self::Treasure(_) => "BuriedTreasurePiece".to_owned(),
+            Self::Fossil(_) => "NetherFossilPiece".to_owned(),
         }
     }
 
@@ -60,6 +65,7 @@ impl Shaped {
             Self::Stronghold(piece) => Some(piece.facing),
             Self::Portal(_) => Some(Dir::North),
             Self::Treasure(_) => None,
+            Self::Fossil(_) => Some(Dir::North),
         };
         match facing {
             None => "null",
@@ -73,7 +79,10 @@ impl Shaped {
 
     #[cfg(test)]
     pub(crate) fn template_line(&self) -> Option<String> {
-        None
+        match self {
+            Self::Fossil(piece) => Some(piece.tpl.line()),
+            _ => None,
+        }
     }
 
     pub(crate) fn tag(&self) -> Compound {
@@ -83,16 +92,26 @@ impl Shaped {
                 piece.bbox,
                 piece.facing,
                 piece.depth,
-                piece.extra(),
+                tags(piece.extra()),
             ),
             Self::Stronghold(piece) => (
                 piece.id(),
                 piece.bbox,
                 Some(piece.facing),
                 piece.depth,
-                piece.extra(),
+                tags(piece.extra()),
             ),
             Self::Treasure(piece) => (piece.id(), piece.bbox, None, 0, Vec::new()),
+            Self::Fossil(piece) => (
+                piece.id(),
+                piece.bbox,
+                Some(super::blueprint::Dir::North),
+                0,
+                vec![
+                    ("Template", Tag::from(piece.tpl.name)),
+                    ("Rot", Tag::from(piece.tpl.rotation_name())),
+                ],
+            ),
             Self::Portal(piece) => {
                 let mut tag = Compound::new()
                     .with("id", "minecraft:rupt")
@@ -139,16 +158,30 @@ impl Shaped {
     }
 }
 
+fn tags<T: Into<Tag>>(items: Vec<(&'static str, T)>) -> Vec<(&'static str, Tag)> {
+    items
+        .into_iter()
+        .map(|(key, value)| (key, value.into()))
+        .collect()
+}
+
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum Other {
     BuriedTreasure,
+    NetherFossil(fossil::Height),
 }
 
 impl Other {
     pub(crate) fn parse(kind: &str, value: &Value) -> Option<Self> {
-        let _ = value;
         Some(match kind {
             "buried_treasure" => Self::BuriedTreasure,
+            "nether_fossil" => {
+                let height = value.get("height")?;
+                Self::NetherFossil(fossil::Height {
+                    min: super::structure::anchor(height.get("min_inclusive")),
+                    max: super::structure::anchor(height.get("max_inclusive")),
+                })
+            }
             _ => return None,
         })
     }
@@ -162,10 +195,13 @@ impl Other {
         seed: i64,
         chunk: (i32, i32),
     ) -> Option<Vec<Shaped>> {
-        let _ = (library, seed);
         match self {
             Self::BuriedTreasure => treasure::generate(ground, valid, probe, chunk)
                 .map(|piece| vec![Shaped::Treasure(piece)]),
+            Self::NetherFossil(height) => {
+                fossil::generate(height, library, ground, valid, probe, seed, chunk)
+                    .map(|piece| vec![Shaped::Fossil(piece)])
+            }
         }
     }
 }

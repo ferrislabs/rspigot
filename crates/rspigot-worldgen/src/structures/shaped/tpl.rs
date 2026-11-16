@@ -131,6 +131,26 @@ impl Tpl {
         })
     }
 
+    pub(crate) fn rotation_name(&self) -> &'static str {
+        match self.rotation {
+            Rotation::None => "NONE",
+            Rotation::Clockwise90 => "CLOCKWISE_90",
+            Rotation::Clockwise180 => "CLOCKWISE_180",
+            Rotation::Counterclockwise90 => "COUNTERCLOCKWISE_90",
+        }
+    }
+
+    pub(crate) fn line(&self) -> String {
+        format!(
+            "{} {} {} {} {}",
+            self.name,
+            self.pos.0,
+            self.pos.1,
+            self.pos.2,
+            self.rotation_name()
+        )
+    }
+
     pub(crate) fn size(&self) -> Pos {
         self.blueprint.size
     }

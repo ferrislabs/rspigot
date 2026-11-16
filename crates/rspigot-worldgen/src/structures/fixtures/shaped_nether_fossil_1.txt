@@ -1,0 +1,135 @@
+START nether_fossil -60 18 valid=true
+PIECE 0 NetherFossilPiece -950 78 285 -946 78 289 north
+TPL 0 minecraft:nether_fossils/fossil_2 -946 78 289 CLOCKWISE_180
+START nether_fossil -57 30 valid=true
+PIECE 0 NetherFossilPiece -902 51 491 -898 54 494 north
+TPL 0 minecraft:nether_fossils/fossil_1 -898 51 491 CLOCKWISE_90
+START nether_fossil -54 15 valid=true
+PIECE 0 NetherFossilPiece -855 57 252 -853 61 252 north
+TPL 0 minecraft:nether_fossils/fossil_8 -853 57 252 CLOCKWISE_180
+START nether_fossil -51 -3 valid=true
+PIECE 0 NetherFossilPiece -818 67 -45 -813 71 -42 north
+TPL 0 minecraft:nether_fossils/fossil_13 -813 67 -45 CLOCKWISE_90
+START nether_fossil -51 51 valid=true
+PIECE 0 NetherFossilPiece -821 59 817 -816 65 823 north
+TPL 0 minecraft:nether_fossils/fossil_14 -816 59 817 CLOCKWISE_90
+START nether_fossil -48 33 valid=true
+PIECE 0 NetherFossilPiece -758 51 530 -757 55 530 north
+TPL 0 minecraft:nether_fossils/fossil_5 -757 51 530 CLOCKWISE_180
+START nether_fossil -45 42 valid=true
+PIECE 0 NetherFossilPiece -720 67 683 -720 73 685 north
+TPL 0 minecraft:nether_fossils/fossil_10 -720 67 683 CLOCKWISE_90
+START nether_fossil -36 -33 valid=true
+PIECE 0 NetherFossilPiece -576 54 -531 -572 54 -527 north
+TPL 0 minecraft:nether_fossils/fossil_2 -576 54 -527 COUNTERCLOCKWISE_90
+START nether_fossil -33 -33 valid=true
+PIECE 0 NetherFossilPiece -524 50 -521 -522 53 -521 north
+TPL 0 minecraft:nether_fossils/fossil_4 -524 50 -521 NONE
+START nether_fossil -30 -21 valid=true
+PIECE 0 NetherFossilPiece -468 80 -335 -462 84 -331 north
+TPL 0 minecraft:nether_fossils/fossil_6 -468 80 -335 NONE
+START nether_fossil -27 -12 valid=true
+PIECE 0 NetherFossilPiece -421 46 -190 -418 49 -186 north
+TPL 0 minecraft:nether_fossils/fossil_1 -421 46 -190 NONE
+START nether_fossil -21 -21 valid=true
+PIECE 0 NetherFossilPiece -329 77 -331 -325 81 -325 north
+TPL 0 minecraft:nether_fossils/fossil_11 -329 77 -331 NONE
+START nether_fossil -18 -15 valid=true
+PIECE 0 NetherFossilPiece -279 98 -239 -278 101 -237 north
+TPL 0 minecraft:nether_fossils/fossil_3 -278 98 -239 CLOCKWISE_90
+START nether_fossil -6 -27 valid=true
+PIECE 0 NetherFossilPiece -84 47 -418 -82 50 -418 north
+TPL 0 minecraft:nether_fossils/fossil_4 -82 47 -418 CLOCKWISE_180
+START nether_fossil -3 12 valid=true
+PIECE 0 NetherFossilPiece -35 79 204 -33 83 208 north
+TPL 0 minecraft:nether_fossils/fossil_9 -35 79 204 NONE
+START nether_fossil 0 -51 valid=true
+PIECE 0 NetherFossilPiece 2 88 -801 7 92 -798 north
+TPL 0 minecraft:nether_fossils/fossil_13 7 88 -801 CLOCKWISE_90
+START nether_fossil 3 -48 valid=true
+PIECE 0 NetherFossilPiece 49 69 -762 52 73 -757 north
+TPL 0 minecraft:nether_fossils/fossil_13 49 69 -762 NONE
+START nether_fossil 6 -48 valid=true
+PIECE 0 NetherFossilPiece 98 45 -770 98 49 -768 north
+TPL 0 minecraft:nether_fossils/fossil_8 98 45 -768 COUNTERCLOCKWISE_90
+START nether_fossil 6 6 valid=true
+PIECE 0 NetherFossilPiece 108 68 97 112 68 101 north
+TPL 0 minecraft:nether_fossils/fossil_2 108 68 101 COUNTERCLOCKWISE_90
+START nether_fossil 9 -24 valid=true
+PIECE 0 NetherFossilPiece 145 48 -386 146 51 -384 north
+TPL 0 minecraft:nether_fossils/fossil_3 145 48 -384 COUNTERCLOCKWISE_90
+START nether_fossil 12 -27 valid=true
+PIECE 0 NetherFossilPiece 200 73 -430 203 77 -425 north
+TPL 0 minecraft:nether_fossils/fossil_13 200 73 -430 NONE
+START nether_fossil 12 54 valid=true
+PIECE 0 NetherFossilPiece 198 40 874 201 43 876 north
+TPL 0 minecraft:nether_fossils/fossil_12 201 40 876 CLOCKWISE_180
+START nether_fossil 15 -24 valid=true
+PIECE 0 NetherFossilPiece 254 52 -372 256 55 -372 north
+TPL 0 minecraft:nether_fossils/fossil_4 254 52 -372 NONE
+START nether_fossil 15 51 valid=true
+PIECE 0 NetherFossilPiece 243 49 824 245 52 827 north
+TPL 0 minecraft:nether_fossils/fossil_12 245 49 824 CLOCKWISE_90
+START nether_fossil 18 -27 valid=true
+PIECE 0 NetherFossilPiece 296 51 -429 298 54 -426 north
+TPL 0 minecraft:nether_fossils/fossil_12 296 51 -426 COUNTERCLOCKWISE_90
+START nether_fossil 18 -3 valid=true
+PIECE 0 NetherFossilPiece 288 82 -38 291 85 -36 north
+TPL 0 minecraft:nether_fossils/fossil_12 291 82 -36 CLOCKWISE_180
+START nether_fossil 21 -45 valid=true
+PIECE 0 NetherFossilPiece 349 78 -705 349 82 -704 north
+TPL 0 minecraft:nether_fossils/fossil_5 349 78 -705 CLOCKWISE_90
+START nether_fossil 24 -24 valid=true
+PIECE 0 NetherFossilPiece 387 33 -374 389 36 -374 north
+TPL 0 minecraft:nether_fossils/fossil_4 387 33 -374 NONE
+START nether_fossil 27 -18 valid=true
+PIECE 0 NetherFossilPiece 428 57 -286 432 61 -280 north
+TPL 0 minecraft:nether_fossils/fossil_6 432 57 -286 CLOCKWISE_90
+START nether_fossil 30 -18 valid=true
+PIECE 0 NetherFossilPiece 480 65 -278 482 69 -274 north
+TPL 0 minecraft:nether_fossils/fossil_9 480 65 -278 NONE
+START nether_fossil 33 42 valid=true
+PIECE 0 NetherFossilPiece 542 82 674 546 82 678 north
+TPL 0 minecraft:nether_fossils/fossil_2 542 82 674 NONE
+START nether_fossil 36 48 valid=true
+PIECE 0 NetherFossilPiece 581 58 779 583 61 779 north
+TPL 0 minecraft:nether_fossils/fossil_4 581 58 779 NONE
+START nether_fossil 39 45 valid=true
+PIECE 0 NetherFossilPiece 637 46 721 639 50 725 north
+TPL 0 minecraft:nether_fossils/fossil_9 637 46 721 NONE
+START nether_fossil 42 54 valid=true
+PIECE 0 NetherFossilPiece 686 40 877 686 44 879 north
+TPL 0 minecraft:nether_fossils/fossil_8 686 40 879 COUNTERCLOCKWISE_90
+START nether_fossil 45 54 valid=true
+PIECE 0 NetherFossilPiece 734 73 864 739 79 870 north
+TPL 0 minecraft:nether_fossils/fossil_14 734 73 870 COUNTERCLOCKWISE_90
+START nether_fossil 48 54 valid=true
+PIECE 0 NetherFossilPiece 783 70 873 787 75 876 north
+TPL 0 minecraft:nether_fossils/fossil_7 783 70 876 COUNTERCLOCKWISE_90
+START nether_fossil 51 51 valid=true
+PIECE 0 NetherFossilPiece 827 79 813 831 79 817 north
+TPL 0 minecraft:nether_fossils/fossil_2 831 79 817 CLOCKWISE_180
+START nether_fossil 54 30 valid=true
+PIECE 0 NetherFossilPiece 870 65 488 874 65 492 north
+TPL 0 minecraft:nether_fossils/fossil_2 874 65 492 CLOCKWISE_180
+START nether_fossil 57 30 valid=true
+PIECE 0 NetherFossilPiece 913 34 484 915 38 488 north
+TPL 0 minecraft:nether_fossils/fossil_9 913 34 484 NONE
+START nether_fossil 60 27 valid=true
+PIECE 0 NetherFossilPiece 962 57 435 964 63 435 north
+TPL 0 minecraft:nether_fossils/fossil_10 964 57 435 CLOCKWISE_180
+START nether_fossil -60 -60 valid=false
+START nether_fossil -54 18 valid=false
+START nether_fossil -45 0 valid=false
+START nether_fossil -36 -54 valid=false
+START nether_fossil -30 36 valid=false
+START nether_fossil -21 -12 valid=false
+START nether_fossil -15 45 valid=false
+START nether_fossil -6 -18 valid=false
+START nether_fossil 3 -42 valid=false
+START nether_fossil 9 57 valid=false
+START nether_fossil 21 -30 valid=false
+START nether_fossil 30 -60 valid=false
+START nether_fossil 36 15 valid=false
+START nether_fossil 45 -24 valid=false
+START nether_fossil 54 -48 valid=false

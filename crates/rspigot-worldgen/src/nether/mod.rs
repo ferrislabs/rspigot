@@ -76,6 +76,10 @@ impl Ground for NetherGround<'_> {
         self.sea_level
     }
 
+    fn gen_depth(&self) -> i32 {
+        NOISE_HEIGHT
+    }
+
     fn base(&self, x: i32, y: i32, z: i32) -> crate::structures::Base {
         use crate::structures::Base;
         let key = (x >> 4, z >> 4);
@@ -136,17 +140,25 @@ impl Nether {
         }
     }
 
-    pub(crate) fn starts_near(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Arc<Start>> {
-        let ground = NetherGround {
+    pub(crate) fn ground(&self, dimension: &Dimension) -> NetherGround<'_> {
+        NetherGround {
             nether: self,
             min_y: dimension.height.min_y,
             max_y: dimension.height.max_y(),
             sea_level: dimension.sea_level,
             columns: std::cell::RefCell::default(),
-        };
-        let probe = NetherProbe {
+        }
+    }
+
+    pub(crate) fn biome_probe(&self) -> NetherProbe<'_> {
+        NetherProbe {
             biomes: &self.biomes,
-        };
+        }
+    }
+
+    pub(crate) fn starts_near(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Arc<Start>> {
+        let ground = self.ground(dimension);
+        let probe = self.biome_probe();
         self.structures.starts_near(&ground, &probe, (pos.x, pos.z))
     }
 

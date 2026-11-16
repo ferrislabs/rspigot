@@ -1,6 +1,9 @@
+use super::jigsaw::Ground;
 use super::library::Library;
+use super::placement::BiomeProbe;
 use super::shaped::Shaped;
 use super::structure::{Kind, Structures, valid_biomes};
+use crate::nether::Nether;
 use crate::overworld::Overworld;
 use crate::resources::Resources;
 use rspigot_data::multi_noise::ClimateVariant;
@@ -42,22 +45,17 @@ fn expected(fixture: &str) -> Vec<((i32, i32), Option<Vec<String>>)> {
     starts
 }
 
-pub(super) fn check(name: &str, fixture: &str) {
-    let resources = Resources::resolve();
+fn run<G: Ground, P: BiomeProbe>(name: &str, fixture: &str, ground: &G, probe: &P) {
     let library = Library::embedded();
-    let overworld = Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, library);
-    let dimension = Dimension::overworld();
-    let probe = overworld.biome_probe();
-    let ground = overworld.ground(&dimension);
     let structures = Structures::load(library);
     let def = structures.get(name).unwrap();
     let Kind::Shaped(other) = &def.kind else {
         panic!("not a shaped structure");
     };
-    let valid = valid_biomes(def, &probe);
+    let valid = valid_biomes(def, probe);
     let mut checked = 0;
     for (chunk, want) in expected(fixture) {
-        let got = other.generate(library, &ground, &valid, &probe, 1, chunk);
+        let got = other.generate(library, ground, &valid, probe, 1, chunk);
         match want {
             None => assert!(got.is_none(), "{chunk:?} must not start"),
             Some(want) => {
@@ -76,6 +74,35 @@ pub(super) fn check(name: &str, fixture: &str) {
         }
     }
     assert!(checked > 0);
+}
+
+pub(super) fn check(name: &str, fixture: &str) {
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        1,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    let dimension = Dimension::overworld();
+    run(
+        name,
+        fixture,
+        &overworld.ground(&dimension),
+        &overworld.biome_probe(),
+    );
+}
+
+pub(super) fn check_nether(name: &str, fixture: &str) {
+    let resources = Resources::resolve();
+    let nether = Nether::with_library(1, &resources.blocks, Library::embedded());
+    let dimension = Dimension::nether();
+    run(
+        name,
+        fixture,
+        &nether.ground(&dimension),
+        &nether.biome_probe(),
+    );
 }
 
 #[test]
@@ -126,4 +153,54 @@ fn a_buried_treasure_chest_is_built_into_the_generated_chunk() {
         kind == BlockKind::Chest
     });
     assert_eq!(chests, 1);
+}
+
+#[test]
+fn nether_fossil_starts_match_vanilla() {
+    check_nether(
+        "nether_fossil",
+        include_str!("fixtures/shaped_nether_fossil_1.txt"),
+    );
+}
+
+#[test]
+fn a_nether_fossil_is_built_into_the_nether() {
+    use rspigot_blocks::BlockKind;
+    use rspigot_domain::{BlockPos, ChunkPos};
+    let resources = Resources::resolve();
+    let nether = Nether::with_library(1, &resources.blocks, Library::embedded());
+    let dimension = Dimension::nether();
+    let fixture = include_str!("fixtures/shaped_nether_fossil_1.txt");
+    let mut found = None;
+    for (chunk, want) in expected(fixture) {
+        if want.is_none() {
+            continue;
+        }
+        let starts = nether.starts_near(&dimension, ChunkPos::new(chunk.0, chunk.1));
+        if let Some(start) = starts
+            .iter()
+            .find(|start| start.name == "nether_fossil" && start.chunk == chunk)
+        {
+            found = Some((chunk, start.bbox));
+            break;
+        }
+    }
+    let (chunk, bbox) = found.expect("a placed nether fossil");
+    let mut bones = 0;
+    for dx in -1..=1 {
+        for dz in -1..=1 {
+            let at = ChunkPos::new(chunk.0 + dx, chunk.1 + dz);
+            let column = nether.generate(&resources, &dimension, at);
+            for y in bbox.min.1..=bbox.max.1 {
+                for x in 0..16 {
+                    for z in 0..16 {
+                        let pos = BlockPos::new(at.x * 16 + x, y, at.z * 16 + z);
+                        let kind = column.block(pos).and_then(|state| state.kind());
+                        bones += usize::from(kind == Some(BlockKind::BoneBlock));
+                    }
+                }
+            }
+        }
+    }
+    assert!(bones >= 3, "bone blocks {bones}");
 }
