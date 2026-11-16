@@ -1,0 +1,2 @@
+START ruined_portal_jungle -387 -88 valid=true
+PIECE 0 RuinedPortalPiece -6176 89 -1407 -6161 104 -1392 north

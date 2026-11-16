@@ -1,0 +1,2 @@
+START ruined_portal_ocean -400 -192 valid=true
+PIECE 0 RuinedPortalPiece -6399 35 -3072 -6391 42 -3063 north

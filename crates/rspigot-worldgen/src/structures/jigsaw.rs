@@ -12,7 +12,23 @@ pub(crate) enum Heightmap {
     OceanFloorWg,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Base {
+    Air,
+    Solid,
+    Water,
+    Lava,
+}
+
 pub(crate) trait Ground {
+    fn base(&self, x: i32, y: i32, z: i32) -> Base {
+        let _ = (x, y, z);
+        Base::Air
+    }
+    fn cold(&self, biome: u8, x: i32, y: i32, z: i32) -> bool {
+        let _ = (biome, x, y, z);
+        false
+    }
     fn first_free_height(&self, x: i32, z: i32, heightmap: Heightmap) -> i32;
     fn min_y(&self) -> i32;
     fn max_y(&self) -> i32;

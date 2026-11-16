@@ -21,7 +21,7 @@ mod library_tests;
 mod tests;
 
 pub(crate) use bbox::Bbox;
-pub(crate) use jigsaw::{Ground, Heightmap};
+pub(crate) use jigsaw::{Base, Ground, Heightmap};
 pub(crate) use library::Library;
 pub(crate) use nbt::{attach, chunk_entities, spawned_entities};
 pub use pack::LoadIssue;

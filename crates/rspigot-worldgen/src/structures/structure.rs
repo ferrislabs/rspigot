@@ -44,6 +44,7 @@ pub(crate) enum Kind {
     Jigsaw(JigsawDef),
     Mineshaft(super::shaped::mineshaft::Type),
     Stronghold,
+    RuinedPortal(Vec<super::shaped::portal::Setup>),
     Other,
 }
 
@@ -176,6 +177,8 @@ impl Structures {
                     ))
                 } else if kind_name == "stronghold" {
                     Kind::Stronghold
+                } else if kind_name == "ruined_portal" {
+                    Kind::RuinedPortal(super::shaped::portal::setups(value))
                 } else {
                     Kind::Other
                 };

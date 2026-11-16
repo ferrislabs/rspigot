@@ -790,4 +790,144 @@ mod shaped {
         assert_eq!(frames, 12);
         assert_eq!(spawners, 1);
     }
+
+    fn check_portal(name: &str, chunk: (i32, i32), fixture: &str) {
+        use super::super::shaped::portal;
+        use super::super::structure::Kind;
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let probe = overworld.biome_probe();
+        let ground = overworld.ground(&dimension);
+        let structures = Structures::load(with_extras());
+        let def = structures.get(name).unwrap();
+        let Kind::RuinedPortal(setups) = &def.kind else {
+            panic!("not a ruined portal");
+        };
+        let valid = valid_biomes(def, &probe);
+        let piece = portal::generate(setups, with_extras(), &ground, &valid, &probe, 1, chunk)
+            .expect("start must be valid");
+        let b = piece.bbox;
+        let got = format!(
+            "{} {} {} {} {} {}",
+            b.min.0, b.min.1, b.min.2, b.max.0, b.max.1, b.max.2
+        );
+        let want = fixture
+            .lines()
+            .find(|line| line.starts_with("PIECE"))
+            .map(|line| {
+                line.splitn(4, ' ')
+                    .nth(3)
+                    .unwrap()
+                    .rsplit_once(' ')
+                    .unwrap()
+                    .0
+            })
+            .unwrap();
+        assert_eq!(got, want);
+    }
+
+    #[test]
+    fn an_underground_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal",
+            (-400, -374),
+            include_str!("fixtures/ruined_portal_1_-400_-374.txt"),
+        );
+    }
+
+    #[test]
+    fn a_surface_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal",
+            (-400, -348),
+            include_str!("fixtures/ruined_portal_1_-400_-348.txt"),
+        );
+    }
+
+    #[test]
+    fn a_giant_jungle_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal_jungle",
+            (-387, -88),
+            include_str!("fixtures/ruined_portal_jungle_1_-387_-88.txt"),
+        );
+    }
+
+    #[test]
+    fn a_swamp_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal_swamp",
+            (-283, -127),
+            include_str!("fixtures/ruined_portal_swamp_1_-283_-127.txt"),
+        );
+    }
+
+    #[test]
+    fn mountain_ruined_portals_match_vanilla() {
+        check_portal(
+            "ruined_portal_mountain",
+            (-374, -62),
+            include_str!("fixtures/ruined_portal_mountain_1_-374_-62.txt"),
+        );
+        check_portal(
+            "ruined_portal_mountain",
+            (-387, 55),
+            include_str!("fixtures/ruined_portal_mountain_1_-387_55.txt"),
+        );
+    }
+
+    #[test]
+    fn an_ocean_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal_ocean",
+            (-400, -192),
+            include_str!("fixtures/ruined_portal_ocean_1_-400_-192.txt"),
+        );
+    }
+
+    #[test]
+    fn a_ruined_portal_is_built_into_the_generated_chunks() {
+        use rspigot_blocks::BlockKind;
+        use rspigot_domain::{BlockPos, ChunkPos};
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let mut built = 0;
+        for (cx, cz) in [(-24, 15), (19, 18), (15, -40), (-16, -36)] {
+            let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+            let started = column
+                .extra
+                .get_compound("structures")
+                .and_then(|tag| tag.get_compound("starts"))
+                .is_some_and(|starts| {
+                    starts
+                        .iter()
+                        .any(|(key, _)| key.starts_with("minecraft:ruined_portal"))
+                });
+            if !started {
+                continue;
+            }
+            let mut frame = 0;
+            for y in -64..200 {
+                for x in 0..16 {
+                    for z in 0..16 {
+                        let kind = column
+                            .block(BlockPos::new(cx * 16 + x, y, cz * 16 + z))
+                            .and_then(|state| state.kind());
+                        frame += usize::from(matches!(
+                            kind,
+                            Some(BlockKind::Obsidian | BlockKind::CryingObsidian)
+                        ));
+                    }
+                }
+            }
+            if frame > 0 {
+                built += 1;
+            }
+        }
+        assert!(built >= 1, "ruined portals built {built}");
+    }
 }

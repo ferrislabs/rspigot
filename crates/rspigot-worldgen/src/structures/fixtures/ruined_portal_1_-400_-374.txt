@@ -1,0 +1,2 @@
+START ruined_portal -400 -374 valid=true
+PIECE 0 RuinedPortalPiece -6390 17 -5984 -6381 26 -5978 north
