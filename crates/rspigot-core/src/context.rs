@@ -241,15 +241,18 @@ impl<L: ClientLink> CommandContext for Server<L> {
         pos: BlockPos,
         angle: f32,
     ) {
-        if let Some(p) = self.players.get_mut(&player) {
-            p.respawn = Some(rspigot_domain::bed::RespawnConfig {
+        self.set_respawn_position(
+            player,
+            Some(rspigot_domain::bed::RespawnConfig {
                 dimension,
                 pos,
                 yaw: angle,
                 pitch: 0.0,
                 forced: true,
-            });
-        }
+            }),
+            false,
+            crate::plugins::events::PlayerSpawnChangeCause::Command,
+        );
     }
 
     fn tell_player(&mut self, player: PlayerId, message: Component, overlay: bool) {
