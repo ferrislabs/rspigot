@@ -24,8 +24,10 @@ fn describe(shape: &Shaped) -> String {
     )
 }
 
-fn expected(fixture: &str) -> Vec<((i32, i32), Option<Vec<String>>)> {
-    let mut starts: Vec<((i32, i32), Option<Vec<String>>)> = Vec::new();
+type Start = ((i32, i32), Option<Vec<String>>);
+
+fn expected(fixture: &str) -> Vec<Start> {
+    let mut starts: Vec<Start> = Vec::new();
     for line in fixture.lines() {
         let parts: Vec<&str> = line.split(' ').collect();
         match parts[0] {
