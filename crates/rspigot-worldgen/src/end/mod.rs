@@ -153,7 +153,7 @@ impl End {
     ) -> ChunkColumn {
         let mut region = Region::for_end(self, resources, dimension, pos);
         self.features
-            .decorate(&mut region, self.seed as i64, &self.surface);
+            .decorate(&mut region, self.seed as i64, &self.surface, None);
         let (buffer, indices) = region.finish();
         let stored: Vec<BiomeId> = indices
             .iter()
