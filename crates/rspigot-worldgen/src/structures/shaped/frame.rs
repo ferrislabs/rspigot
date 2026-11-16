@@ -42,16 +42,6 @@ pub(crate) fn clockwise(dir: Dir) -> Dir {
     }
 }
 
-pub(crate) fn counter_clockwise(dir: Dir) -> Dir {
-    match dir {
-        Dir::North => Dir::West,
-        Dir::West => Dir::South,
-        Dir::South => Dir::East,
-        Dir::East => Dir::North,
-        other => other,
-    }
-}
-
 pub(crate) fn face_of(dir: Dir) -> Face {
     match dir {
         Dir::Down => Face::Down,
@@ -236,16 +226,6 @@ impl<'a, 'b, 'r> Frame<'a, 'b, 'r> {
         at.1 < self.run.region.height_at(Heightmap::OceanFloor, at.0, at.2)
     }
 
-    pub(crate) fn air_box(&mut self, from: Pos, to: Pos) {
-        for y in from.1..=to.1 {
-            for x in from.0..=to.0 {
-                for z in from.2..=to.2 {
-                    self.place(BlockStateId::AIR, x, y, z);
-                }
-            }
-        }
-    }
-
     pub(crate) fn bounds(
         &mut self,
         from: Pos,
@@ -367,22 +347,6 @@ impl<'a, 'b, 'r> Frame<'a, 'b, 'r> {
         }
     }
 
-    pub(crate) fn fill_column_down(&mut self, state: BlockStateId, x: i32, start_y: i32, z: i32) {
-        let mut at = self.world_pos(x, start_y, z);
-        if !self.chunk.contains(at) {
-            return;
-        }
-        let floor = self.run.region.height().min_y;
-        loop {
-            let held = self.state_at(at);
-            if !replaceable_by_structures(held) || at.1 <= floor + 1 {
-                return;
-            }
-            self.set_raw(at, state);
-            at.1 -= 1;
-        }
-    }
-
     pub(crate) fn sturdy(&mut self, at: Pos, face: Dir) -> bool {
         self.state_at(at)
             .is_face_sturdy(face_of(face), Support::Full)
@@ -448,23 +412,6 @@ impl<'a, 'b, 'r> Frame<'a, 'b, 'r> {
             at,
             json!({ "id": id, "LootTable": table, "LootTableSeed": seed }),
         ));
-    }
-
-    pub(crate) fn dispenser(&mut self, x: i32, y: i32, z: i32, facing: Dir, table: &str) -> bool {
-        let at = self.world_pos(x, y, z);
-        if !self.chunk.contains(at) {
-            return false;
-        }
-        if self.state_at(at).kind() == Some(Kind::Dispenser) {
-            return false;
-        }
-        if !self.replaceable(x, y, z) {
-            return true;
-        }
-        let state = with(Kind::Dispenser, &[("facing", dir_name(facing))]);
-        self.set_raw(at, state);
-        self.add_loot_entity(at, "minecraft:dispenser", table);
-        true
     }
 
     pub(crate) fn spawner(&mut self, at: Pos, entity: &str) {

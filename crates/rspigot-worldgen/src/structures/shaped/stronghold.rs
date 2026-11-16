@@ -80,6 +80,7 @@ pub(crate) struct Piece {
 }
 
 impl Piece {
+    #[cfg(test)]
     pub(crate) fn class(&self) -> &'static str {
         match self.part {
             Part::Straight { .. } => "Straight",
@@ -364,7 +365,7 @@ impl Builder {
         None
     }
 
-    fn from_door(
+    fn pick_piece(
         &mut self,
         random: &mut JavaRandom,
         foot: Pos,
@@ -432,7 +433,7 @@ impl Builder {
         if (foot.0 - self.origin.min.0).abs() >= 113 || (foot.2 - self.origin.min.2).abs() >= 113 {
             return;
         }
-        if let Some(piece) = self.from_door(random, foot, dir, depth + 1) {
+        if let Some(piece) = self.pick_piece(random, foot, dir, depth + 1) {
             self.pieces.push(piece);
             self.pending.push(self.pieces.len() - 1);
         }
@@ -1123,14 +1124,12 @@ fn library(f: &mut Frame, door: Door, tall: bool) {
         f.place(planks, 9, 5, 11);
         f.place(planks, 8, 5, 11);
         f.place(planks, 9, 5, 10);
-        let fence = plain(Kind::OakFence);
         let sides = |names: &[&str]| {
             let props: Vec<(&str, &str)> = names.iter().map(|name| (*name, "true")).collect();
             with(Kind::OakFence, &props)
         };
         let west_east = sides(&["west", "east"]);
         let north_south = sides(&["north", "south"]);
-        let _ = fence;
         fill(f, (3, 6, 3), (3, 6, 11), north_south);
         fill(f, (10, 6, 3), (10, 6, 9), north_south);
         fill(f, (4, 6, 2), (9, 6, 2), west_east);

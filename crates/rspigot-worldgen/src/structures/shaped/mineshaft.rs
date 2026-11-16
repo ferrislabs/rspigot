@@ -82,6 +82,7 @@ pub(crate) struct Piece {
 }
 
 impl Piece {
+    #[cfg(test)]
     pub(crate) fn class(&self) -> &'static str {
         match self.part {
             Part::Room { .. } => "MineShaftRoom",
@@ -1012,8 +1013,6 @@ fn corridor(
                     .contains(rspigot_blocks::StateFlags::SOLID_RENDER)
             {
                 let chance = if frame.is_interior(1, 0, z) { 0.7 } else { 0.9 };
-                let at = frame.world_pos(1, 0, z);
-                let _ = at;
                 frame.maybe_block(chance, (1, 0, z), rail);
             }
         }

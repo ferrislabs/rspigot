@@ -75,8 +75,10 @@ pub(crate) struct Overworld {
     heights: Arc<Mutex<HeightCache>>,
     structures: Arc<Engine>,
     cells: Arc<Mutex<CellCache>>,
-    spawned: Arc<Mutex<HashMap<(i32, i32), Vec<rspigot_nbt::Compound>>>>,
+    spawned: Arc<Mutex<Spawned>>,
 }
+
+type Spawned = HashMap<(i32, i32), Vec<rspigot_nbt::Compound>>;
 
 pub(crate) type ColumnHeights = [(i32, i32); 256];
 

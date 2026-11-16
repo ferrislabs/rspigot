@@ -930,4 +930,54 @@ mod shaped {
         }
         assert!(built >= 1, "ruined portals built {built}");
     }
+
+    #[test]
+    fn a_ruined_portal_is_built_into_the_nether() {
+        use crate::nether::Nether;
+        use rspigot_blocks::BlockKind;
+        use rspigot_domain::{BlockPos, ChunkPos};
+        let resources = Resources::resolve();
+        let nether = Nether::with_library(1, &resources.blocks, with_extras());
+        let dimension = Dimension::nether();
+        let mut found = None;
+        'scan: for cx in -60..60 {
+            for cz in -60..60 {
+                if let Some(start) = nether
+                    .starts_near(&dimension, ChunkPos::new(cx, cz))
+                    .iter()
+                    .find(|start| start.name == "ruined_portal_nether" && start.chunk == (cx, cz))
+                {
+                    found = Some((cx, cz, start.bbox));
+                    break 'scan;
+                }
+            }
+        }
+        let (cx, cz, bbox) = found.expect("a nether portal start");
+        assert!((27..=100).contains(&bbox.min.1), "y {}", bbox.min.1);
+        let mut blackstone = 0;
+        for dx in -1..=1 {
+            for dz in -1..=1 {
+                let column =
+                    nether.generate(&resources, &dimension, ChunkPos::new(cx + dx, cz + dz));
+                for y in 0..128 {
+                    for z in 0..16 {
+                        for x in 0..16 {
+                            let pos = BlockPos::new((cx + dx) * 16 + x, y, (cz + dz) * 16 + z);
+                            let kind = column.block(pos).and_then(|state| state.kind());
+                            blackstone += usize::from(matches!(
+                                kind,
+                                Some(
+                                    BlockKind::Blackstone
+                                        | BlockKind::PolishedBlackstone
+                                        | BlockKind::PolishedBlackstoneBricks
+                                        | BlockKind::CrackedPolishedBlackstoneBricks
+                                )
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(blackstone > 5, "blackstone {blackstone}");
+    }
 }
