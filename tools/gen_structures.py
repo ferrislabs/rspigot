@@ -16,10 +16,12 @@ TEMPLATE_GROUPS = (
     "minecraft:ancient_city/",
     "minecraft:bastion/",
     "minecraft:trial_chambers/",
+    "minecraft:ruined_portal/",
 )
 EMBEDDED_GROUPS = (
     "minecraft:village/",
     "minecraft:pillager_outpost/",
+    "minecraft:ruined_portal/",
 )
 PACK_NAME = "vanilla-extras"
 PACK_MCMETA = {"pack": {"description": "Vanilla jigsaw structures that rspigot does not embed", "pack_format": 121}}
@@ -191,6 +193,15 @@ def convert_template(module, path):
     return {"size": tag["size"], "palettes": palettes, "blocks": blocks, "entities": entities}
 
 
+def portal_templates(root):
+    folder = os.path.join(root, "structure", "ruined_portal")
+    return {
+        "minecraft:ruined_portal/" + file[:-4]
+        for file in os.listdir(folder)
+        if file.endswith(".nbt")
+    }
+
+
 def build(root):
     module = load_templates_module()
     biome_tags = Tags(root, "worldgen/biome")
@@ -214,7 +225,7 @@ def build(root):
                 walk_aliases(alias, starts)
         structures[name] = data
     pools, templates, processor_names = collect_pools(root, starts)
-    expanded = set(templates)
+    expanded = set(templates) | portal_templates(root)
     missing = set()
     while True:
         converted = {}

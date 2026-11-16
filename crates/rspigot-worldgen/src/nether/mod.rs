@@ -51,13 +51,15 @@ impl BiomeProbe for NetherProbe<'_> {
     }
 }
 
-pub(crate) struct NetherGround {
+pub(crate) struct NetherGround<'a> {
+    nether: &'a Nether,
     min_y: i32,
     max_y: i32,
     sea_level: i32,
+    columns: std::cell::RefCell<std::collections::HashMap<(i32, i32), Vec<bool>>>,
 }
 
-impl Ground for NetherGround {
+impl Ground for NetherGround<'_> {
     fn first_free_height(&self, _x: i32, _z: i32, _heightmap: Heightmap) -> i32 {
         self.sea_level
     }
@@ -68,6 +70,46 @@ impl Ground for NetherGround {
 
     fn max_y(&self) -> i32 {
         self.max_y
+    }
+
+    fn sea_level(&self) -> i32 {
+        self.sea_level
+    }
+
+    fn base(&self, x: i32, y: i32, z: i32) -> crate::structures::Base {
+        use crate::structures::Base;
+        let key = (x >> 4, z >> 4);
+        let mut columns = self.columns.borrow_mut();
+        let solid = columns.entry(key).or_insert_with(|| {
+            let height = (self.max_y - self.min_y + 1).min(NOISE_HEIGHT);
+            let corners = density::Corners::build(
+                |sx, sy, sz| self.nether.density.pre_interpolation(sx, sy, sz),
+                density::NETHER_LATTICE,
+                key.0 * 16,
+                key.1 * 16,
+                self.min_y,
+                height,
+            );
+            let mut cells = vec![false; (16 * 16 * height) as usize];
+            corners.fill(|cx, dy, cz, value| {
+                if value > 0.0 {
+                    cells[(dy * 16 + cz) * 16 + cx] = true;
+                }
+            });
+            cells
+        });
+        let dy = y - self.min_y;
+        if dy < 0 {
+            return Base::Air;
+        }
+        let index = (dy as usize * 16 + (z & 15) as usize) * 16 + (x & 15) as usize;
+        if solid.get(index).copied().unwrap_or(false) {
+            Base::Solid
+        } else if y < self.sea_level {
+            Base::Lava
+        } else {
+            Base::Air
+        }
     }
 }
 
@@ -96,9 +138,11 @@ impl Nether {
 
     pub(crate) fn starts_near(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Arc<Start>> {
         let ground = NetherGround {
+            nether: self,
             min_y: dimension.height.min_y,
             max_y: dimension.height.max_y(),
             sea_level: dimension.sea_level,
+            columns: std::cell::RefCell::default(),
         };
         let probe = NetherProbe {
             biomes: &self.biomes,

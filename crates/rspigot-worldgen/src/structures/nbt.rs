@@ -182,6 +182,8 @@ fn start_tag(start: &Start) -> Compound {
             )
         })
         .collect();
+    let mut children = children;
+    children.extend(start.shapes.iter().map(|shape| Tag::Compound(shape.tag())));
     Compound::new()
         .with("id", start_key(&start.name))
         .with("ChunkX", start.chunk.0)
@@ -355,4 +357,14 @@ pub(crate) fn attach(
             .extra
             .insert("structures", structures_tag(&own, starts));
     }
+}
+
+pub(crate) fn spawned_entities(entities: Vec<Value>) -> Vec<Compound> {
+    entities
+        .iter()
+        .filter_map(|value| match json_tag(value) {
+            Tag::Compound(compound) => Some(compound),
+            _ => None,
+        })
+        .collect()
 }

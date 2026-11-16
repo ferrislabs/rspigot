@@ -1,0 +1,2 @@
+START ruined_portal_mountain -374 -62 valid=true
+PIECE 0 RuinedPortalPiece -5976 149 -992 -5969 157 -984 north

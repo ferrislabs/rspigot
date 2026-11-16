@@ -1,0 +1,14 @@
+START stronghold 108 44 valid=true
+PIECE 0 StartPiece 1730 3 706 1734 13 710 east
+PIECE 1 FiveCrossing 1735 1 703 1745 9 712 east
+PIECE 2 RightTurn 1746 1 707 1750 5 711 east
+PIECE 3 Straight 1735 3 713 1739 7 719 south
+PIECE 4 LeftTurn 1735 3 720 1739 7 724 south
+PIECE 5 Straight 1740 3 714 1746 7 718 east
+PIECE 6 StraightStairsDown 1747 -3 714 1754 7 718 east
+PIECE 7 LeftTurn 1755 -3 714 1759 1 718 east
+PIECE 8 Straight 1755 -3 707 1759 1 713 north
+PIECE 9 PortalRoom 1752 -3 691 1762 4 706 north
+PIECE 10 StairsDown 1740 -3 720 1744 7 724 east
+PIECE 11 LeftTurn 1745 -3 720 1749 1 724 east
+PIECE 12 FillerCorridor 1745 -3 718 1749 1 719 north

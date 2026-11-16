@@ -7,6 +7,7 @@ use super::library::Library;
 use super::placement::{BiomeProbe, large_feature_seed};
 use super::pool::{Element, Pools};
 use super::sets::{Chunks, StructureSet, StructureSets};
+use super::shaped::{Shaped, mineshaft, portal, stronghold};
 use super::structure::{Kind, StructureDef, Structures, generate_jigsaw, valid_biomes};
 use crate::legacy::JavaRandom;
 use crate::overworld::features::compile_placed;
@@ -35,6 +36,7 @@ pub(crate) struct Start {
     pub(crate) name: String,
     pub(crate) chunk: (i32, i32),
     pub(crate) pieces: Vec<Piece<'static>>,
+    pub(crate) shapes: Vec<Shaped>,
     pub(crate) bbox: Bbox,
 }
 
@@ -67,7 +69,10 @@ fn step_index(name: &str) -> usize {
 
 fn supported(def: &StructureDef, pools: &Pools) -> bool {
     let Kind::Jigsaw(jigsaw) = &def.kind else {
-        return false;
+        return matches!(
+            def.kind,
+            Kind::Mineshaft(_) | Kind::Stronghold | Kind::RuinedPortal(_)
+        );
     };
     if jigsaw.aliased {
         return false;
@@ -161,8 +166,49 @@ impl Engine {
         chunk: (i32, i32),
     ) -> Option<Start> {
         let valid = self.valid.get(&def.name)?;
-        let Kind::Jigsaw(jigsaw) = &def.kind else {
-            return None;
+        let jigsaw = match &def.kind {
+            Kind::Jigsaw(jigsaw) => jigsaw,
+            Kind::Mineshaft(ty) => {
+                let pieces = mineshaft::generate(*ty, ground, valid, probe, self.seed, chunk)?;
+                let mut bbox = pieces.first()?.bbox;
+                for piece in &pieces {
+                    bbox.encapsulate(&piece.bbox);
+                }
+                return Some(Start {
+                    name: def.name.clone(),
+                    chunk,
+                    pieces: Vec::new(),
+                    shapes: pieces.into_iter().map(Shaped::Mine).collect(),
+                    bbox,
+                });
+            }
+            Kind::Stronghold => {
+                let pieces = stronghold::generate(ground, valid, probe, self.seed, chunk)?;
+                let mut bbox = pieces.first()?.bbox;
+                for piece in &pieces {
+                    bbox.encapsulate(&piece.bbox);
+                }
+                return Some(Start {
+                    name: def.name.clone(),
+                    chunk,
+                    pieces: Vec::new(),
+                    shapes: pieces.into_iter().map(Shaped::Stronghold).collect(),
+                    bbox,
+                });
+            }
+            Kind::RuinedPortal(setups) => {
+                let piece =
+                    portal::generate(setups, self.library, ground, valid, probe, self.seed, chunk)?;
+                let bbox = piece.bbox;
+                return Some(Start {
+                    name: def.name.clone(),
+                    chunk,
+                    pieces: Vec::new(),
+                    shapes: vec![Shaped::Portal(piece)],
+                    bbox,
+                });
+            }
+            _ => return None,
         };
         let assembly = generate_jigsaw(jigsaw, valid, self.pools, ground, probe, self.seed, chunk)?;
         let mut pieces = assembly.pieces;
@@ -190,6 +236,7 @@ impl Engine {
             name: def.name.clone(),
             chunk,
             pieces,
+            shapes: Vec::new(),
             bbox,
         })
     }

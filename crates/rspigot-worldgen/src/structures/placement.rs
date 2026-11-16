@@ -52,6 +52,10 @@ pub(crate) struct Placement {
 
 pub(crate) trait BiomeProbe {
     fn at(&self, qx: i32, qy: i32, qz: i32) -> u8;
+    fn at_after(&self, qx: i32, qy: i32, qz: i32, last: &mut Option<usize>) -> u8 {
+        let _ = last;
+        self.at(qx, qy, qz)
+    }
     fn id(&self, name: &str) -> Option<u8>;
 }
 
@@ -222,13 +226,21 @@ impl Placement {
         let mut angle = random.next_double() * std::f64::consts::PI * 2.0;
         let (mut in_ring, mut ring, mut spread) = (0, 0, spread);
         let mut out = Vec::with_capacity(count as usize);
+        let mut last = None;
         for placed in 0..count {
             let base = f64::from(distance * 4 + distance * ring * 6);
             let radius = base + (random.next_double() - 0.5) * f64::from(distance) * 2.5;
             let x = java_round(angle.cos() * radius);
             let z = java_round(angle.sin() * radius);
             let mut forked = JavaRandom::new(random.next_long());
-            out.push(find_ring_chunk(biomes, &wanted, x, z, &mut forked));
+            out.push(find_ring_chunk(
+                biomes,
+                &wanted,
+                x,
+                z,
+                &mut forked,
+                &mut last,
+            ));
             angle += std::f64::consts::PI * 2.0 / f64::from(spread);
             in_ring += 1;
             if in_ring == spread {
@@ -275,6 +287,7 @@ fn find_ring_chunk(
     chunk_x: i32,
     chunk_z: i32,
     random: &mut JavaRandom,
+    last: &mut Option<usize>,
 ) -> (i32, i32) {
     let (qx, qz) = ((chunk_x * 16 + 8) >> 2, (chunk_z * 16 + 8) >> 2);
     let radius = 112 >> 2;
@@ -283,7 +296,7 @@ fn find_ring_chunk(
     for dz in -radius..=radius {
         for dx in -radius..=radius {
             let (x, z) = (qx + dx, qz + dz);
-            if wanted.contains(&biomes.at(x, 0, z)) {
+            if wanted.contains(&biomes.at_after(x, 0, z, last)) {
                 if found.is_none() || random.next_int(seen + 1) == 0 {
                     found = Some((x, z));
                 }
