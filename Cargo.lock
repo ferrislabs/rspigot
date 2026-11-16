@@ -1605,6 +1605,7 @@ dependencies = [
  "rspigot-protocol",
  "rustc-hash",
  "serde_json",
+ "sha2",
  "thiserror",
  "tokio",
  "tracing",

@@ -304,7 +304,7 @@ mod tests {
         assert!(body.starts_with(
             b"splitnum\0\x80\0hostname\0Hello\0gametype\0SMP\0game_id\0MINECRAFT\0version\0"
         ));
-        assert!(body.ends_with(b"hostip\0127.0.0.1\0\0\x01player_\0\0Ann\0Bob\0\0"));
+        assert!(body.ends_with(b"hostip\x00127.0.0.1\0\0\x01player_\0\0Ann\0Bob\0\0"));
         assert!(body.windows(13).any(|w| w == b"numplayers\x002\0"));
     }
 

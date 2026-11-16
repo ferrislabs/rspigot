@@ -73,13 +73,13 @@ pub fn parse_call(text: &str) -> Result<Call, Value> {
     };
     let id = object.get("id").cloned();
     let shown = id.clone().unwrap_or(Value::Null);
-    if let Some(id) = &id {
-        if !(id.is_string() || id.is_number() || id.is_null()) {
-            return Err(error_response(
-                &Value::Null,
-                &RpcError::new(INVALID_REQUEST, "Invalid Request"),
-            ));
-        }
+    if let Some(id) = &id
+        && !(id.is_string() || id.is_number() || id.is_null())
+    {
+        return Err(error_response(
+            &Value::Null,
+            &RpcError::new(INVALID_REQUEST, "Invalid Request"),
+        ));
     }
     let Some(method) = object.get("method").and_then(Value::as_str) else {
         return Err(error_response(

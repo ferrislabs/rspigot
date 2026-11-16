@@ -103,10 +103,10 @@ pub enum Verdict {
 }
 
 pub fn authenticate(head: &ws::Head, config: &ManagementConfig) -> Verdict {
-    if let Some(origin) = head.header("origin") {
-        if !config.allowed_origins.iter().any(|o| o == origin) {
-            return Verdict::Denied("Origin Not Allowed");
-        }
+    if let Some(origin) = head.header("origin")
+        && !config.allowed_origins.iter().any(|o| o == origin)
+    {
+        return Verdict::Denied("Origin Not Allowed");
     }
     let mut offered_protocol = false;
     let mut token: Option<String> = head
