@@ -1428,6 +1428,7 @@ dependencies = [
  "rspigot-core",
  "rspigot-data",
  "rspigot-domain",
+ "rspigot-management",
  "rspigot-nbt",
  "rspigot-network",
  "rspigot-plugins",
@@ -1557,6 +1558,22 @@ version = "0.1.0"
 dependencies = [
  "rspigot-blocks",
  "rspigot-data",
+]
+
+[[package]]
+name = "rspigot-management"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "crossbeam-channel",
+ "rspigot-core",
+ "serde_json",
+ "sha1",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

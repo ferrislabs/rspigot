@@ -188,6 +188,17 @@ fn main() -> anyhow::Result<()> {
             }
         }
     });
+    let management_config = files.management_config();
+    let management_notices = management_config.as_ref().map(|config| {
+        config.validate()?;
+        let address = config.address();
+        let listener = runtime
+            .block_on(tokio::net::TcpListener::bind(&address))
+            .with_context(|| format!("binding the management port {address}"))?;
+        anyhow::Ok(listener)
+    });
+    let management_listener = management_notices.transpose()?;
+    let (notice_sender, notice_receiver) = crossbeam_channel::unbounded();
     let mut server: Server<NetLink> = Server::new(
         game_config,
         level,
@@ -199,6 +210,9 @@ fn main() -> anyhow::Result<()> {
     .with_admin_sink(admin_updates)
     .with_player_store(Arc::clone(&store))
     .with_startup_inbox(game_inbox.clone());
+    if management_listener.is_some() {
+        server = server.with_management_sink(notice_sender);
+    }
     let spawn_chunks = server.start(Duration::from_secs(60));
     tracing::info!("Preparing spawn area: {spawn_chunks} chunks");
     let network = runtime.spawn(rspigot_network::run(
@@ -206,8 +220,18 @@ fn main() -> anyhow::Result<()> {
         verifier,
         status,
         inbound.clone(),
-        stopped,
+        stopped.clone(),
     ));
+    let management = match (management_listener, management_config) {
+        (Some(listener), Some(config)) => Some(runtime.spawn(rspigot_management::serve(
+            listener,
+            config,
+            inbound.clone(),
+            rspigot_management::bridge(notice_receiver),
+            stopped.clone(),
+        ))),
+        _ => None,
+    };
     let signal_inbox = inbound.clone();
     runtime.spawn(async move {
         if tokio::signal::ctrl_c().await.is_ok() {
@@ -226,6 +250,9 @@ fn main() -> anyhow::Result<()> {
         let adapters = async {
             let _ = network.await;
             let _ = plugins.await;
+            if let Some(management) = management {
+                let _ = management.await;
+            }
         };
         let _ = tokio::time::timeout(Duration::from_secs(5), adapters).await;
     });

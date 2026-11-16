@@ -14,6 +14,7 @@ rspigot-domain = { workspace = true }
 rspigot-blocks = { workspace = true }
 rspigot-nbt = { workspace = true }
 rspigot-network = { workspace = true }
+rspigot-management = { workspace = true }
 rspigot-plugins = { workspace = true }
 rspigot-worldgen = { workspace = true }
 anyhow = "1"

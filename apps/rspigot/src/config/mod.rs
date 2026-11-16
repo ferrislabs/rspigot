@@ -13,6 +13,7 @@ use rspigot_domain::entity::TrackingRanges;
 use rspigot_domain::player::GameMode;
 use rspigot_domain::spawn::state::{CategorySettings, SpawnSettings};
 use rspigot_domain::world::Difficulty;
+use rspigot_management::ManagementConfig;
 use rspigot_network::NetworkConfig;
 use rspigot_plugins::PluginHostConfig;
 
@@ -218,6 +219,29 @@ impl ServerFiles {
         plugins::host_config(&self.plugins, environment_token)
     }
 
+    pub fn management_config(&self) -> Option<ManagementConfig> {
+        let p = &self.properties;
+        if !p.bool("management-server-enabled") {
+            return None;
+        }
+        Some(ManagementConfig {
+            host: Some(p.string("management-server-host"))
+                .filter(|h| !h.is_empty())
+                .unwrap_or("localhost")
+                .to_owned(),
+            port: p.int("management-server-port", 0).clamp(0, 65535) as u16,
+            secret: p.string("management-server-secret").to_owned(),
+            tls_enabled: p.bool("management-server-tls-enabled"),
+            allowed_origins: p
+                .string("management-server-allowed-origins")
+                .split(',')
+                .map(str::trim)
+                .filter(|o| !o.is_empty())
+                .map(str::to_owned)
+                .collect(),
+        })
+    }
+
     pub fn network_config(&self, favicon: Option<String>) -> anyhow::Result<NetworkConfig> {
         let p = &self.properties;
         let ip = p.string("server-ip");
@@ -323,5 +347,24 @@ mod tests {
             .properties
             .set("entity-broadcast-range-percentage", "1");
         assert_eq!(files.tracking_ranges().animals, 9);
+    }
+
+    #[test]
+    fn the_management_server_is_off_by_default_and_reads_its_keys() {
+        let mut files = files("{}", "{}");
+        assert_eq!(files.management_config(), None);
+        files.properties.set("management-server-enabled", "true");
+        files
+            .properties
+            .set("management-server-tls-enabled", "false");
+        files
+            .properties
+            .set("management-server-allowed-origins", "http://a, http://b");
+        files.properties.set("management-server-port", "25585");
+        let config = files.management_config().expect("enabled");
+        assert_eq!(config.host, "localhost");
+        assert_eq!(config.port, 25585);
+        assert_eq!(config.allowed_origins, ["http://a", "http://b"]);
+        assert!(!config.tls_enabled);
     }
 }
