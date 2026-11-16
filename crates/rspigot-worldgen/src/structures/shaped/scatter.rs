@@ -88,7 +88,8 @@ impl Piece {
     pub(crate) fn place(&self, run: &mut Run, write: &Bbox) {
         match self.temple {
             Temple::Desert => self.place_desert(run, write),
-            Temple::Jungle | Temple::SwampHut => {}
+            Temple::Jungle => self.place_jungle(run, write),
+            Temple::SwampHut => {}
         }
     }
 

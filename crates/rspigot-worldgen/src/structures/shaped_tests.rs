@@ -449,3 +449,42 @@ fn a_desert_pyramid_is_built_into_the_generated_chunks() {
     assert!(cut > 100, "cut sandstone {cut}");
     assert!((5..=8).contains(&dusty), "suspicious sand {dusty}");
 }
+
+#[test]
+fn a_jungle_temple_is_built_into_the_generated_chunks() {
+    use rspigot_blocks::BlockKind;
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        3,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    let (cx, cz) = first_placed(
+        &overworld,
+        3,
+        "jungle_temples",
+        "jungle_pyramid",
+        -300..=300,
+    );
+    let mut chests = 0;
+    let mut dispensers = 0;
+    let mut hooks = 0;
+    for dx in 0..=1 {
+        for dz in 0..=1 {
+            let chunk = (cx + dx, cz + dz);
+            chests += count_blocks(&overworld, &resources, chunk, |kind| {
+                kind == BlockKind::Chest
+            });
+            dispensers += count_blocks(&overworld, &resources, chunk, |kind| {
+                kind == BlockKind::Dispenser
+            });
+            hooks += count_blocks(&overworld, &resources, chunk, |kind| {
+                kind == BlockKind::TripwireHook
+            });
+        }
+    }
+    assert_eq!(chests, 2, "chests at {cx},{cz}");
+    assert_eq!(dispensers, 2);
+    assert_eq!(hooks, 4);
+}

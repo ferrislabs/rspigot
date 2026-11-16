@@ -2,6 +2,7 @@ pub(crate) mod desert;
 pub(crate) mod fossil;
 pub(crate) mod frame;
 pub(crate) mod igloo;
+pub(crate) mod jungle;
 pub(crate) mod mineshaft;
 pub(crate) mod ocean_ruin;
 pub(crate) mod portal;
