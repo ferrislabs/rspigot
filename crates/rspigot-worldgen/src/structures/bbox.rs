@@ -52,12 +52,4 @@ impl Bbox {
     pub(crate) fn y_span(&self) -> i32 {
         self.max.1 - self.min.1 + 1
     }
-
-    pub(crate) fn center(&self) -> Pos {
-        (
-            self.min.0 + (self.max.0 - self.min.0 + 1) / 2,
-            self.min.1 + (self.max.1 - self.min.1 + 1) / 2,
-            self.min.2 + (self.max.2 - self.min.2 + 1) / 2,
-        )
-    }
 }

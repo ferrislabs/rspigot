@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-use rspigot_blocks::BlockKind;
+use rspigot_blocks::{BlockKind, StateFlags};
 use rspigot_domain::BlockStateId;
 use serde_json::Value;
 
@@ -32,17 +32,6 @@ impl Dir {
             "east" => Self::East,
             _ => return None,
         })
-    }
-
-    pub(crate) fn name(self) -> &'static str {
-        match self {
-            Self::Down => "down",
-            Self::Up => "up",
-            Self::North => "north",
-            Self::South => "south",
-            Self::West => "west",
-            Self::East => "east",
-        }
     }
 
     pub(crate) fn opposite(self) -> Self {
@@ -143,7 +132,12 @@ fn library() -> &'static HashMap<String, Blueprint> {
 
 fn triple(value: &Value) -> Option<Pos> {
     let items = value.as_array()?;
-    let at = |index: usize| items.get(index)?.as_i64().and_then(|n| i32::try_from(n).ok());
+    let at = |index: usize| {
+        items
+            .get(index)?
+            .as_i64()
+            .and_then(|n| i32::try_from(n).ok())
+    };
     Some((at(0)?, at(1)?, at(2)?))
 }
 
@@ -151,7 +145,10 @@ fn palette_state(entry: &Value) -> BlockStateId {
     let Some(items) = entry.as_array() else {
         return BlockStateId::AIR;
     };
-    let name = items.first().and_then(Value::as_str).unwrap_or("minecraft:air");
+    let name = items
+        .first()
+        .and_then(Value::as_str)
+        .unwrap_or("minecraft:air");
     let properties: Vec<(&str, &str)> = items[1..]
         .iter()
         .filter_map(|pair| {
@@ -176,12 +173,6 @@ fn orientation(state: BlockStateId) -> (Dir, Dir) {
         Dir::parse(front).unwrap_or(Dir::North),
         Dir::parse(top).unwrap_or(Dir::Up),
     )
-}
-
-pub(crate) fn rotate_orientation(state: BlockStateId, rotation: Rotation) -> BlockStateId {
-    let (front, top) = orientation(state);
-    let value = format!("{}_{}", front.rotate(rotation).name(), top.rotate(rotation).name());
-    state.with_property("orientation", &value).unwrap_or(state)
 }
 
 fn jigsaw(pos: Pos, state: BlockStateId, nbt: &Value) -> Jigsaw {
@@ -248,6 +239,18 @@ impl Blueprint {
             }
             blocks.push(Block { pos, state, nbt });
         }
+        let class = |block: &Block| match (
+            &block.nbt,
+            block
+                .state
+                .flags()
+                .contains(StateFlags::FULL_COLLISION_CUBE),
+        ) {
+            (None, true) => 0,
+            (None, false) => 1,
+            (Some(_), _) => 2,
+        };
+        blocks.sort_by_key(|block| (class(block), block.pos.1, block.pos.0, block.pos.2));
         let entities = value
             .get("entities")
             .and_then(Value::as_array)

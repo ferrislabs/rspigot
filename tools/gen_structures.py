@@ -20,6 +20,28 @@ def load_templates_module():
     return module
 
 
+def typed_reader(module):
+    class Typed(module.Reader):
+        def payload(self, kind):
+            value = super().payload(kind)
+            tag = {1: "b", 2: "s", 4: "l", 5: "f", 7: "ba", 11: "ia", 12: "la"}.get(kind)
+            if tag is None:
+                return value
+            return {"$" + tag: value}
+
+    return Typed
+
+
+def read_typed(module, path):
+    import gzip
+
+    with gzip.open(path, "rb") as handle:
+        reader = typed_reader(module)(handle.read())
+    reader.take(">b")
+    reader.string()
+    return reader.payload(10)
+
+
 def load_json(path):
     with open(path, encoding="utf-8") as handle:
         return json.load(handle)
@@ -141,7 +163,7 @@ def nbt_json(value):
 
 
 def convert_template(module, path):
-    tag = module.read_nbt(path)
+    tag = read_typed(module, path)
     palettes = tag.get("palettes")
     if palettes is None:
         palettes = [tag["palette"]]

@@ -1,6 +1,6 @@
 pub(crate) mod features;
 mod freeze;
-mod region;
+pub(crate) mod region;
 mod surface_random;
 mod surface_rules;
 
@@ -14,6 +14,7 @@ use rspigot_domain::{BiomeId, BlockPos, ChunkPos, Vec3};
 use crate::buffer::ChunkBuffer;
 use crate::climate::{BiomeSource, ClimateScratch};
 use crate::resources::{BlockKind, Palette, Resources, biome_id};
+use crate::structures::Engine;
 use crate::terrain::{Cell, Terrain};
 use rspigot_data::multi_noise::{ClimateVariant, overworld_biomes};
 use std::cell::RefCell;
@@ -72,6 +73,7 @@ pub(crate) struct Overworld {
     features: Arc<Features>,
     cache: Arc<Mutex<TerrainCache>>,
     heights: Arc<Mutex<HeightCache>>,
+    structures: Arc<Engine>,
 }
 
 pub(crate) type ColumnHeights = [(i32, i32); 256];
@@ -89,10 +91,15 @@ struct PlacedBiome {
 
 impl Overworld {
     pub(crate) fn new(seed: u64, variant: ClimateVariant, palette: &Palette) -> Self {
+        let source = Arc::new(BiomeSource::new(seed as i64, variant));
+        let probe = OverworldProbe {
+            source: &source,
+            scratch: RefCell::new(source.scratch()),
+        };
         Self {
             seed,
             terrain: Arc::new(Terrain::new(seed as i64, variant)),
-            source: Arc::new(BiomeSource::new(seed as i64, variant)),
+            source: source.clone(),
             placed: overworld_biomes()
                 .iter()
                 .map(|name| PlacedBiome { id: biome_id(name) })
@@ -101,6 +108,7 @@ impl Overworld {
             features: Arc::new(Features::compile(overworld_biomes())),
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
             heights: Arc::new(Mutex::new(HeightCache::default())),
+            structures: Arc::new(Engine::new(seed as i64, &probe)),
         }
     }
 
@@ -126,13 +134,13 @@ impl Overworld {
             }
         }
         let heights = Arc::new(heights);
-        if let Ok(mut cache) = self.heights.lock() {
-            if cache.map.insert((cx, cz), heights.clone()).is_none() {
-                cache.order.push_back((cx, cz));
-                while cache.order.len() > 256 {
-                    if let Some(old) = cache.order.pop_front() {
-                        cache.map.remove(&old);
-                    }
+        if let Ok(mut cache) = self.heights.lock()
+            && cache.map.insert((cx, cz), heights.clone()).is_none()
+        {
+            cache.order.push_back((cx, cz));
+            while cache.order.len() > 256 {
+                if let Some(old) = cache.order.pop_front() {
+                    cache.map.remove(&old);
                 }
             }
         }
@@ -271,8 +279,17 @@ impl Overworld {
         let sea_level = dimension.sea_level;
         let min_y = height.min_y;
         let mut region = Region::new(self, resources, dimension, pos);
-        self.features
-            .decorate(&mut region, self.seed as i64, &self.surface);
+        let probe = self.biome_probe();
+        let starts = self
+            .structures
+            .starts_near(&self.ground(dimension), &probe, (pos.x, pos.z));
+        self.features.decorate(
+            &mut region,
+            self.seed as i64,
+            &self.surface,
+            Some((&self.structures, &starts)),
+        );
+        let block_entities = std::mem::take(&mut region.block_entities);
         let (mut buffer, indices) = region.finish();
         let biome_index = |x: usize, y: i32, z: usize| {
             let layer = ((y.clamp(min_y, height.max_y()) - min_y) >> 2) as usize;
@@ -295,7 +312,38 @@ impl Overworld {
             .iter()
             .map(|index| self.placed[usize::from(*index)].id)
             .collect();
-        buffer.finish_layered(pos, &stored, &resources.classifier)
+        let mut column = buffer.finish_layered(pos, &stored, &resources.classifier);
+        for (at, nbt) in &block_entities {
+            if BlockPos::new(at.0, at.1, at.2).chunk() == pos
+                && let Some(entity) = crate::structures::block_entity(*at, nbt)
+            {
+                column.set_block_entity(entity);
+            }
+        }
+        let own: Vec<_> = starts
+            .iter()
+            .filter(|start| start.chunk == (pos.x, pos.z))
+            .cloned()
+            .collect();
+        if !own.is_empty() || !starts.is_empty() {
+            column.extra.insert(
+                "structures",
+                crate::structures::structures_tag(&own, &starts),
+            );
+        }
+        column
+    }
+
+    pub(crate) fn structure_entities(
+        &self,
+        dimension: &Dimension,
+        pos: ChunkPos,
+    ) -> Vec<rspigot_nbt::Compound> {
+        let probe = self.biome_probe();
+        let starts = self
+            .structures
+            .starts_near(&self.ground(dimension), &probe, (pos.x, pos.z));
+        crate::structures::chunk_entities(&starts, (pos.x, pos.z))
     }
 
     pub(crate) fn spawn_point(&self, resources: &Resources, dimension: &Dimension) -> Vec3 {

@@ -170,7 +170,12 @@ impl Placement {
         })
     }
 
-    pub(crate) fn potential_chunk(&self, seed: i64, chunk_x: i32, chunk_z: i32) -> Option<(i32, i32)> {
+    pub(crate) fn potential_chunk(
+        &self,
+        seed: i64,
+        chunk_x: i32,
+        chunk_z: i32,
+    ) -> Option<(i32, i32)> {
         let Kind::RandomSpread {
             spacing,
             separation,
@@ -183,7 +188,7 @@ impl Placement {
         let mut random = JavaRandom::new(0);
         large_feature_with_salt(&mut random, seed, x, z, self.salt);
         let limit = spacing - separation;
-        let mut evaluate = |random: &mut JavaRandom| match spread {
+        let evaluate = |random: &mut JavaRandom| match spread {
             Spread::Linear => random.next_int(limit),
             Spread::Triangular => (random.next_int(limit) + random.next_int(limit)) / 2,
         };
@@ -209,7 +214,10 @@ impl Placement {
         if count == 0 {
             return Vec::new();
         }
-        let wanted: Vec<u8> = preferred.iter().filter_map(|name| biomes.id(name)).collect();
+        let wanted: Vec<u8> = preferred
+            .iter()
+            .filter_map(|name| biomes.id(name))
+            .collect();
         let mut random = JavaRandom::new(seed);
         let mut angle = random.next_double() * std::f64::consts::PI * 2.0;
         let (mut in_ring, mut ring, mut spread) = (0, 0, spread);
@@ -250,9 +258,10 @@ impl Placement {
                 || self
                     .reduction
                     .should_generate(seed, self.salt, x, z, self.frequency))
-            && self.exclusion.as_ref().is_none_or(|zone| {
-                !others.has_structure_chunk(&zone.other, x, z, zone.chunks)
-            })
+            && self
+                .exclusion
+                .as_ref()
+                .is_none_or(|zone| !others.has_structure_chunk(&zone.other, x, z, zone.chunks))
     }
 }
 

@@ -1,4 +1,4 @@
-mod bodies;
+pub(crate) mod bodies;
 mod cave;
 mod cells;
 mod chorus;
@@ -22,10 +22,10 @@ mod multiface;
 mod mushrooms;
 #[cfg(test)]
 mod nether_plants;
-mod place;
+pub(crate) mod place;
 #[cfg(test)]
 mod probe;
-mod prov;
+pub(crate) mod prov;
 mod replace_blobs;
 mod root;
 mod sculk;
@@ -48,6 +48,7 @@ use super::region::Region;
 use super::surface_rules::SurfaceSystem;
 use crate::climate::Xoroshiro;
 use crate::datapack::worldgen;
+use crate::structures::{Bbox, Engine, Start, place_start};
 
 const STEPS: usize = 11;
 
@@ -104,6 +105,29 @@ fn ordered(lists: &[Vec<String>]) -> Vec<String> {
         }
     }
     result
+}
+
+pub(crate) fn compile_placed(names: &[String]) -> HashMap<String, Arc<Placed>> {
+    let data = worldgen();
+    let empty = Map::new();
+    let placed = data
+        .get("placed")
+        .and_then(Value::as_object)
+        .unwrap_or(&empty);
+    let configured = data
+        .get("configured")
+        .and_then(Value::as_object)
+        .unwrap_or(&empty);
+    let mut compiler = Compiler::new(placed, configured);
+    names
+        .iter()
+        .map(|name| {
+            (
+                name.clone(),
+                compiler.placed_ref(&Value::String(name.clone())),
+            )
+        })
+        .collect()
 }
 
 impl Features {
@@ -189,7 +213,13 @@ impl Features {
         }
     }
 
-    pub(crate) fn decorate(&self, region: &mut Region, seed: i64, surface: &SurfaceSystem) {
+    pub(crate) fn decorate(
+        &self,
+        region: &mut Region,
+        seed: i64,
+        surface: &SurfaceSystem,
+        structures: Option<(&Engine, &[Arc<Start>])>,
+    ) {
         let center = region.center();
         let min_y = region.height().min_y;
         region.set_random(
@@ -218,6 +248,35 @@ impl Features {
                     .wrapping_add(i64::from(oz).wrapping_mul(b)))
                     ^ seed;
                 for (step, entries) in self.steps.iter().enumerate() {
+                    if dx == 0
+                        && dz == 0
+                        && let Some((engine, starts)) = structures
+                    {
+                        let write = Bbox {
+                            min: (ox, min_y + 1, oz),
+                            max: (ox + 15, min_y + region.height().height as i32 - 1, oz + 15),
+                        };
+                        for (index, name) in engine.structures_at(step).iter().enumerate() {
+                            rng.reseed(
+                                population
+                                    .wrapping_add(index as i64)
+                                    .wrapping_add(10_000 * step as i64),
+                            );
+                            let mut run = Run {
+                                region,
+                                rng: &mut rng,
+                                surface,
+                                feature_id: usize::MAX,
+                                seed,
+                                biome_has: &self.biome_has,
+                                universal: &self.universal,
+                                interest: None,
+                            };
+                            for start in starts.iter().filter(|start| start.name == *name) {
+                                place_start(engine, &mut run, start, &write);
+                            }
+                        }
+                    }
                     for (index, entry) in entries.iter().enumerate() {
                         let id = self.first_id[step] + index;
                         rng.reseed(

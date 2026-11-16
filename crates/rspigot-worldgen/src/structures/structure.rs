@@ -41,7 +41,7 @@ impl HeightAnchor {
 #[derive(Debug, Clone)]
 pub(crate) enum Kind {
     Jigsaw(JigsawDef),
-    Other(String),
+    Other,
 }
 
 #[derive(Debug, Clone)]
@@ -69,7 +69,10 @@ fn int(value: &Value, key: &str, default: i32) -> i32 {
 fn pair(value: Option<&Value>, first: &str, second: &str) -> (i32, i32) {
     match value {
         Some(Value::Number(number)) => {
-            let n = number.as_i64().and_then(|n| i32::try_from(n).ok()).unwrap_or(0);
+            let n = number
+                .as_i64()
+                .and_then(|n| i32::try_from(n).ok())
+                .unwrap_or(0);
             (n, n)
         }
         Some(object @ Value::Object(_)) => (int(object, first, 0), int(object, second, 0)),
@@ -119,7 +122,10 @@ fn jigsaw(value: &Value) -> JigsawDef {
             .get("use_expansion_hack")
             .and_then(Value::as_bool)
             .unwrap_or(false),
-        project: match value.get("project_start_to_heightmap").and_then(Value::as_str) {
+        project: match value
+            .get("project_start_to_heightmap")
+            .and_then(Value::as_str)
+        {
             Some("WORLD_SURFACE_WG") => Some(Heightmap::WorldSurfaceWg),
             Some("OCEAN_FLOOR_WG") => Some(Heightmap::OceanFloorWg),
             _ => None,
@@ -159,7 +165,7 @@ impl Structures {
                 let kind = if kind_name == "jigsaw" {
                     Kind::Jigsaw(jigsaw(value))
                 } else {
-                    Kind::Other(kind_name.to_owned())
+                    Kind::Other
                 };
                 defs.insert(
                     name.clone(),
@@ -194,12 +200,19 @@ impl Structures {
         Self { defs }
     }
 
+    pub(crate) fn all(&self) -> impl Iterator<Item = &StructureDef> {
+        self.defs.values()
+    }
+
     pub(crate) fn get(&self, name: &str) -> Option<&StructureDef> {
         self.defs.get(name)
     }
 }
 
-pub(crate) fn valid_biomes(def: &StructureDef, probe: &impl super::placement::BiomeProbe) -> Vec<u8> {
+pub(crate) fn valid_biomes(
+    def: &StructureDef,
+    probe: &impl super::placement::BiomeProbe,
+) -> Vec<u8> {
     def.biomes
         .iter()
         .filter_map(|name| probe.id(name))
@@ -223,7 +236,8 @@ pub(crate) fn generate_jigsaw<'a, G: super::jigsaw::Ground>(
     let y = def.start_height.resolve(ground.min_y(), ground.max_y())?;
     let position = (chunk.0 * 16, y, chunk.1 * 16);
     let could_exist = |x: i32, z: i32| {
-        (ground.min_y() >> 2..=ground.max_y() >> 2).any(|qy| valid.contains(&probe.at(x >> 2, qy, z >> 2)))
+        (ground.min_y() >> 2..=ground.max_y() >> 2)
+            .any(|qy| valid.contains(&probe.at(x >> 2, qy, z >> 2)))
     };
     let assembly = super::jigsaw::assemble(
         pools,

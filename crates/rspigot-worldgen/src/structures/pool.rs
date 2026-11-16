@@ -66,7 +66,12 @@ fn projection(value: &Value) -> Projection {
 
 impl Element {
     fn parse(value: &Value) -> Self {
-        match short(value.get("element_type").and_then(Value::as_str).unwrap_or("")) {
+        match short(
+            value
+                .get("element_type")
+                .and_then(Value::as_str)
+                .unwrap_or(""),
+        ) {
             "single_pool_element" | "legacy_single_pool_element" => {
                 let template = value
                     .get("location")
@@ -83,8 +88,12 @@ impl Element {
                     template,
                     processors,
                     projection: projection(value),
-                    legacy: short(value.get("element_type").and_then(Value::as_str).unwrap_or(""))
-                        == "legacy_single_pool_element",
+                    legacy: short(
+                        value
+                            .get("element_type")
+                            .and_then(Value::as_str)
+                            .unwrap_or(""),
+                    ) == "legacy_single_pool_element",
                 }
             }
             "feature_pool_element" => Self::Feature {
@@ -244,7 +253,9 @@ impl Pool {
     pub(crate) fn shuffled_elements(&self, random: &mut JavaRandom) -> Vec<&Element> {
         let mut list: Vec<usize> = self.expanded.clone();
         shuffle(&mut list, random);
-        list.into_iter().map(|index| &self.elements[index].0).collect()
+        list.into_iter()
+            .map(|index| &self.elements[index].0)
+            .collect()
     }
 
     pub(crate) fn max_size(&self) -> i32 {
@@ -258,6 +269,11 @@ impl Pool {
                 .unwrap_or(0)
         })
     }
+}
+
+pub(crate) fn pools() -> &'static Pools {
+    static POOLS: OnceLock<Pools> = OnceLock::new();
+    POOLS.get_or_init(Pools::load)
 }
 
 #[derive(Debug)]
@@ -278,6 +294,10 @@ impl Pools {
             pools,
             empty: Pool::parse("minecraft:empty", &Value::Null),
         }
+    }
+
+    pub(crate) fn all(&self) -> impl Iterator<Item = &Pool> {
+        self.pools.values()
     }
 
     pub(crate) fn get(&self, name: &str) -> Option<&Pool> {

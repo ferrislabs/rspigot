@@ -71,6 +71,26 @@ impl Rotation {
             })
     }
 
+    fn rail_shape(self, shape: &'static str) -> Option<&'static str> {
+        let mut current = shape;
+        for _ in 0..self.quarter_turns() {
+            current = match current {
+                "north_south" => "east_west",
+                "east_west" => "north_south",
+                "ascending_east" => "ascending_south",
+                "ascending_south" => "ascending_west",
+                "ascending_west" => "ascending_north",
+                "ascending_north" => "ascending_east",
+                "south_east" => "south_west",
+                "south_west" => "north_west",
+                "north_west" => "north_east",
+                "north_east" => "south_east",
+                _ => return None,
+            };
+        }
+        (self != Self::None).then_some(current)
+    }
+
     pub(crate) fn state(self, state: BlockStateId) -> BlockStateId {
         if self == Self::None {
             return state;
@@ -85,6 +105,17 @@ impl Rotation {
             if let Some(axis) = swapped {
                 result = result.with_property("axis", axis).unwrap_or(result);
             }
+        }
+        if let Some(value) = state.property("rotation")
+            && let Ok(index) = value.parse::<usize>()
+        {
+            let turned = ((index + 4 * self.quarter_turns()) % 16).to_string();
+            result = result.with_property("rotation", &turned).unwrap_or(result);
+        }
+        if let Some(shape) = state.property("shape")
+            && let Some(turned) = self.rail_shape(shape)
+        {
+            result = result.with_property("shape", turned).unwrap_or(result);
         }
         if let Some(facing) = state.property("facing")
             && HORIZONTAL.contains(&facing)

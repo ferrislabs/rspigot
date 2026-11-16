@@ -11,7 +11,8 @@ struct Overworld<'a> {
 
 impl BiomeProbe for Overworld<'_> {
     fn at(&self, qx: i32, qy: i32, qz: i32) -> u8 {
-        self.source.biome_index(&mut self.scratch.borrow_mut(), qx, qy, qz)
+        self.source
+            .biome_index(&mut self.scratch.borrow_mut(), qx, qy, qz)
     }
 
     fn id(&self, name: &str) -> Option<u8> {
@@ -22,7 +23,9 @@ impl BiomeProbe for Overworld<'_> {
     }
 }
 
-fn expected(fixture: &str) -> (Vec<(String, i32, i32)>, Vec<(i32, i32)>) {
+type Expected = (Vec<(String, i32, i32)>, Vec<(i32, i32)>);
+
+fn expected(fixture: &str) -> Expected {
     let mut chunks = Vec::new();
     let mut rings = Vec::new();
     for line in fixture.lines() {
@@ -211,5 +214,72 @@ mod jigsaw {
             (-32, -23),
             include_str!("fixtures/jigsaw_village_savanna_-4172144997902289642_-32_-23.txt"),
         );
+    }
+}
+
+mod world {
+    use crate::overworld::Overworld;
+    use crate::resources::Resources;
+    use rspigot_blocks::BlockKind;
+    use rspigot_data::multi_noise::ClimateVariant;
+    use rspigot_domain::world::Dimension;
+    use rspigot_domain::{BlockPos, ChunkPos};
+
+    #[test]
+    fn a_village_is_built_into_the_generated_chunks() {
+        let resources = Resources::resolve();
+        let overworld = Overworld::new(1, ClimateVariant::Normal, &resources.blocks);
+        let dimension = Dimension::overworld();
+        let mut bells = 0;
+        let mut planks = 0;
+        let mut recorded = false;
+        let mut chests = 0;
+        for cx in 39..=41 {
+            for cz in 50..=52 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                for y in 40..100 {
+                    for z in 0..16 {
+                        for x in 0..16 {
+                            let pos = BlockPos::new(cx * 16 + x, y, cz * 16 + z);
+                            match column.block(pos).and_then(|state| state.kind()) {
+                                Some(BlockKind::Bell) => bells += 1,
+                                Some(BlockKind::OakPlanks) => planks += 1,
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                chests += column.block_entities.len();
+                if (cx, cz) == (40, 51) {
+                    recorded = column
+                        .extra
+                        .get_compound("structures")
+                        .and_then(|tag| tag.get_compound("starts"))
+                        .is_some_and(|starts| starts.contains_key("minecraft:village_plains"));
+                }
+            }
+        }
+        assert!(bells >= 1, "bells {bells}");
+        assert!(planks > 100, "planks {planks}");
+        assert!(chests > 0, "block entities {chests}");
+        assert!(recorded);
+    }
+
+    #[test]
+    fn village_templates_spawn_their_villagers() {
+        let resources = Resources::resolve();
+        let overworld = Overworld::new(1, ClimateVariant::Normal, &resources.blocks);
+        let dimension = Dimension::overworld();
+        let mut villagers = 0;
+        for cx in 38..=42 {
+            for cz in 49..=53 {
+                villagers += overworld
+                    .structure_entities(&dimension, ChunkPos::new(cx, cz))
+                    .iter()
+                    .filter(|entity| entity.get_str("id") == Some("minecraft:villager"))
+                    .count();
+            }
+        }
+        assert!(villagers > 0, "villagers {villagers}");
     }
 }

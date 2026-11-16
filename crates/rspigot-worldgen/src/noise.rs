@@ -112,7 +112,8 @@ impl ChunkGenerator for NoiseGenerator {
     fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
         match DimensionKind::of(dimension) {
             DimensionKind::End => self.state.end.pillars().crystals(pos),
-            DimensionKind::Overworld | DimensionKind::Nether => Vec::new(),
+            DimensionKind::Overworld => self.state.overworld.structure_entities(dimension, pos),
+            DimensionKind::Nether => Vec::new(),
         }
     }
 }

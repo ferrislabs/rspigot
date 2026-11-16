@@ -73,9 +73,9 @@ impl Shape {
         candidate.min.0 >= self.low.0
             && candidate.min.1 >= self.low.1
             && candidate.min.2 >= self.low.2
-            && candidate.max.0 + 1 <= self.high.0
-            && candidate.max.1 + 1 <= self.high.1
-            && candidate.max.2 + 1 <= self.high.2
+            && candidate.max.0 < self.high.0
+            && candidate.max.1 < self.high.1
+            && candidate.max.2 < self.high.2
             && !self.holes.iter().any(|hole| hole.intersects(candidate))
     }
 }
@@ -197,8 +197,7 @@ impl<'a, G: Ground> Placer<'a, '_, G> {
                     break;
                 }
                 for rot in shuffled_rotations(self.random) {
-                    let candidate_jigsaws =
-                        candidate.shuffled_jigsaws((0, 0, 0), rot, self.random);
+                    let candidate_jigsaws = candidate.shuffled_jigsaws((0, 0, 0), rot, self.random);
                     let box0 = candidate.bounds((0, 0, 0), rot);
                     let hack = if !self.expansion_hack || box0.y_span() > 16 {
                         0
@@ -284,7 +283,7 @@ impl<'a, G: Ground> Placer<'a, '_, G> {
                             }],
                         };
                         self.pieces.push(child);
-                        if depth + 1 <= self.max_depth {
+                        if depth < self.max_depth {
                             self.queue.add(
                                 State {
                                     piece: self.pieces.len() - 1,
@@ -353,7 +352,9 @@ pub(crate) fn assemble<'a, G: Ground>(
     center.bbox = center.bbox.moved(0, dy, 0);
     center.pos = add(center.pos, (0, dy, 0));
     let (bottom, top) = config.padding;
-    if (bottom, top) != (0, 0) && (center.bbox.min.1 < ground.min_y() + bottom || ground.max_y() - top < center.bbox.max.1) {
+    if (bottom, top) != (0, 0)
+        && (center.bbox.min.1 < ground.min_y() + bottom || ground.max_y() - top < center.bbox.max.1)
+    {
         return None;
     }
     y += offset.1;

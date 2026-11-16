@@ -81,8 +81,7 @@ impl<B: BiomeProbe> Neighbours for Chunks<'_, B> {
         let Some(other) = self.sets.named(set) else {
             return false;
         };
-        (x - range..=x + range).any(|cx| {
-            (z - range..=z + range).any(|cz| self.is_structure_chunk(other, cx, cz))
-        })
+        (x - range..=x + range)
+            .any(|cx| (z - range..=z + range).any(|cz| self.is_structure_chunk(other, cx, cz)))
     }
 }
