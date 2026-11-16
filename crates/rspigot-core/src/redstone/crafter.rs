@@ -46,7 +46,9 @@ impl<L: ClientLink> Server<L> {
             }
         } else if !powered
             && triggered
-            && let Some(next) = state.with_property("triggered", "false")
+            && let Some(next) = state
+                .with_property("triggered", "false")
+                .and_then(|next| next.with_property("crafting", "false"))
         {
             self.set_block_quiet(pos, next);
         }

@@ -21,6 +21,7 @@ use crate::player::Player;
 use crate::plugins::views::Window;
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
+use crate::signal::flag;
 use crate::{beacon, campfire, cooking, lectern};
 use rspigot_domain::game_event::GameEvent;
 
@@ -203,6 +204,7 @@ pub(crate) fn opening_of(state: BlockStateId) -> Option<Opening> {
             "container.dropper",
             Lid::None,
         ),
+        BlockKind::Crafter => storage(MenuKind::Crafter, "crafter", "container.crafter", Lid::None),
         BlockKind::CraftingTable => station(MenuKind::Crafting, None, "container.crafting"),
         BlockKind::Grindstone => station(MenuKind::Grindstone, None, "container.grindstone_title"),
         BlockKind::EnchantingTable => station(MenuKind::Enchantment, None, "container.enchant"),
@@ -459,6 +461,16 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn container_fill_signal(&self, pos: BlockPos, state: BlockStateId) -> Option<i32> {
+        if state.kind() == Some(BlockKind::Crafter) {
+            let items = self.half_items(pos, CRAFTER_SLOTS);
+            let disabled = self.crafter_disabled_mask(pos);
+            let signal = items
+                .iter()
+                .enumerate()
+                .filter(|(slot, stack)| stack.is_some() || disabled & (1 << slot) != 0)
+                .count();
+            return i32::try_from(signal).ok();
+        }
         let opening = opening_of(state).filter(|opening| opening.entity.is_some())?;
         let items = self.half_items(pos, opening.kind.container_size());
         let mut fill = 0.0_f32;
@@ -486,7 +498,11 @@ impl<L: ClientLink> Server<L> {
         if let Some(mount) = open.mount {
             self.mount_menu_items(mount, size)
         } else if open.backing.entity.is_some() {
-            self.container_items(open.backing, size)
+            let mut items = self.container_items(open.backing, size);
+            if open.backing.block == BlockKind::Crafter {
+                self.show_crafter_result(&mut items);
+            }
+            items
         } else {
             let mut local = open.local.clone();
             local.resize(size, None);
@@ -513,6 +529,11 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn store_container(&mut self, backing: Backing, items: &[Slot]) {
         let Some(entity) = backing.entity else {
             return;
+        };
+        let items = if backing.block == BlockKind::Crafter {
+            &items[..items.len().min(CRAFTER_SLOTS)]
+        } else {
+            items
         };
         match backing.second {
             Some(second) => {
@@ -673,7 +694,11 @@ impl<L: ClientLink> Server<L> {
         let kind = open.menu.kind();
         let size = kind.container_size();
         let items = if backing.entity.is_some() {
-            self.container_items(backing, size)
+            let mut items = self.container_items(backing, size);
+            if backing.block == BlockKind::Crafter {
+                self.show_crafter_result(&mut items);
+            }
+            items
         } else if backing.ender {
             let mut own = self
                 .players
@@ -689,6 +714,12 @@ impl<L: ClientLink> Server<L> {
             MenuKind::Beacon => self.beacon_menu_data(pos),
             kind if kind.is_furnace() => self.furnace_data(pos),
             MenuKind::BrewingStand => self.brewing_data(pos),
+            MenuKind::Crafter => {
+                let (mask, powered) = self.crafter_flags(pos);
+                open.menu.set_disabled(mask);
+                open.menu.set_powered(powered);
+                open.menu.data()
+            }
             MenuKind::Enchantment => {
                 open.menu.set_bookshelves(self.bookshelf_count(pos));
                 let seed = self.enchantment_seed_of(id);
@@ -1149,6 +1180,7 @@ impl<L: ClientLink> Server<L> {
                                 | MenuKind::Anvil
                                 | MenuKind::Enchantment
                                 | MenuKind::BrewingStand
+                                | MenuKind::Crafter
                         )
                 })
             })
@@ -1168,12 +1200,17 @@ impl<L: ClientLink> Server<L> {
                 MenuKind::BrewingStand => Some(self.brewing_data(pos)),
                 _ => None,
             };
+            let flags = (kind == MenuKind::Crafter).then(|| self.crafter_flags(pos));
             let Some(player) = self.players.get_mut(&id) else {
                 continue;
             };
             let Some(open) = player.open_menu.as_mut() else {
                 continue;
             };
+            if let Some((mask, powered)) = flags {
+                open.menu.set_disabled(mask);
+                open.menu.set_powered(powered);
+            }
             let current = furnace_data.unwrap_or_else(|| open.menu.data());
             for (index, value) in current.iter().enumerate() {
                 if open.data.get(index) != Some(value) {
@@ -1187,6 +1224,54 @@ impl<L: ClientLink> Server<L> {
                 }
             }
         }
+    }
+
+    pub(crate) fn crafter_flags(&self, pos: BlockPos) -> (u16, bool) {
+        let powered = flag(self.block_or_air(pos), "triggered");
+        (self.crafter_disabled_mask(pos), powered)
+    }
+
+    fn show_crafter_result(&self, items: &mut [Slot]) {
+        let result = rspigot_domain::crafting::result(3, 3, &items[..CRAFTER_SLOTS]);
+        if let Some(cell) = items.get_mut(CRAFTER_SLOTS) {
+            *cell = result;
+        }
+    }
+
+    pub(crate) fn set_crafter_slot_state(
+        &mut self,
+        id: PlayerId,
+        window: i32,
+        slot: i32,
+        enabled: bool,
+    ) {
+        let Some(player) = self.players.get(&id) else {
+            return;
+        };
+        if player.game_mode == GameMode::Spectator {
+            return;
+        }
+        let Some(pos) = player
+            .open_menu
+            .as_ref()
+            .filter(|open| open.window == window && open.menu.kind() == MenuKind::Crafter)
+            .map(|open| open.backing.pos)
+        else {
+            return;
+        };
+        let Some(slot) = usize::try_from(slot)
+            .ok()
+            .filter(|slot| *slot < CRAFTER_SLOTS)
+        else {
+            return;
+        };
+        let filled = self.half_items(pos, CRAFTER_SLOTS)[slot].is_some();
+        if filled {
+            return;
+        }
+        self.write_crafter_disabled(pos, slot, !enabled);
+        self.sync_menu_data();
+        self.update_neighbour_for_output_signal(pos);
     }
 
     pub(crate) fn press_menu_button(&mut self, id: PlayerId, window: i32, button: i32) -> bool {
