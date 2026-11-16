@@ -44,7 +44,7 @@ pub mod clientbound {
         BundleDelimiter, ChangeDifficulty, Login, PlayerAbilities, PlayerInfoRemove,
         PlayerInfoUpdate, PlayerPosition, PlayerRotation, Respawn, ServerData,
         SetDefaultSpawnPosition, SetExperience, SetHealth, SetHeldSlot, StartConfiguration,
-        TabList, TagQuery, TickingState, TickingStep,
+        TabList, TagQuery, TickingState, TickingStep, Transfer,
     };
     pub use super::progress::{
         AdvancementData, AdvancementDisplay, AwardStats, CriterionEntry, PositionedAdvancement,

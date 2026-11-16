@@ -789,6 +789,10 @@ pub enum ClientEvent {
         duration: i32,
     },
     Camera(EntityId),
+    Transfer {
+        host: String,
+        port: i32,
+    },
     Border(rspigot_domain::world_border::BorderView),
     TickingState {
         rate: f32,

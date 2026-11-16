@@ -129,6 +129,7 @@ pub struct Server<L> {
     pub(crate) saving_enabled: bool,
     pub(crate) tick_rate: rspigot_domain::tick_rate::TickRate,
     pub(crate) simulating: bool,
+    pub(crate) profiler: Option<(Instant, u64)>,
     pub(crate) command_source: Option<crate::commands::source::Source>,
     pub(crate) command_result: Option<i32>,
     pub(crate) command_storage: FxHashMap<Identifier, rspigot_nbt::Compound>,
@@ -147,7 +148,7 @@ pub struct Server<L> {
     next_entity_id: i32,
     pub(crate) status: StatusBoard,
     command_trees: [Arc<CommandTree>; 5],
-    tick: u64,
+    pub(crate) tick: u64,
     tps: TpsMeter,
 }
 
@@ -214,6 +215,7 @@ impl<L: ClientLink> Server<L> {
             command_dimension: None,
             tick_rate: Default::default(),
             simulating: true,
+            profiler: None,
             saving_enabled: true,
             command_source: None,
             command_result: None,
@@ -732,6 +734,7 @@ impl<L: ClientLink> Server<L> {
             tracked: FxHashSet::default(),
             loaded: false,
             operator,
+            last_action: self.tick,
             op_level,
             tags: Vec::new(),
             attribute_edits: Vec::new(),
@@ -1047,6 +1050,7 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_border();
+        self.tick_idle_players();
         self.tick_health();
         self.tick_spin_attacks();
         self.tick_fall_flying();
@@ -1111,6 +1115,26 @@ impl<L: ClientLink> Server<L> {
             .collect();
         for id in disconnected {
             self.remove_player(id, true);
+        }
+    }
+
+    fn tick_idle_players(&mut self) {
+        let minutes = self.config.player_idle_timeout;
+        if minutes == 0 {
+            return;
+        }
+        let limit = u64::from(minutes) * 1200;
+        let idle: Vec<PlayerId> = self
+            .players
+            .values()
+            .filter(|player| self.tick.saturating_sub(player.last_action) > limit)
+            .map(|player| player.id)
+            .collect();
+        for id in idle {
+            self.disconnect_player(
+                id,
+                Component::translatable("multiplayer.disconnect.idling", Vec::new()),
+            );
         }
     }
 

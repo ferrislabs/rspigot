@@ -550,6 +550,36 @@ impl<L: ClientLink> CommandContext for Server<L> {
         result
     }
 
+    fn transfer_player(&mut self, player: PlayerId, host: &str, port: i32) {
+        self.push(
+            Audience::One(player),
+            ClientEvent::Transfer {
+                host: host.to_owned(),
+                port,
+            },
+        );
+    }
+
+    fn set_idle_timeout(&mut self, minutes: u32) {
+        self.config.player_idle_timeout = minutes;
+    }
+
+    fn start_profiler(&mut self) -> bool {
+        if self.profiler.is_some() {
+            return false;
+        }
+        self.profiler = Some((std::time::Instant::now(), self.tick));
+        true
+    }
+
+    fn stop_profiler(&mut self) -> Option<(f64, i64)> {
+        let (started, first_tick) = self.profiler.take()?;
+        Some((
+            started.elapsed().as_secs_f64(),
+            i64::try_from(self.tick.saturating_sub(first_tick)).unwrap_or(i64::MAX),
+        ))
+    }
+
     fn world_height(&self) -> (i32, i32) {
         let height = self.world.dimension.height;
         (height.min_y, height.min_y + height.height as i32 - 1)

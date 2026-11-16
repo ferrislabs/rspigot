@@ -1424,6 +1424,13 @@ impl Encoder {
                     warning_time: view.warning_time,
                 },
             ),
+            ClientEvent::Transfer { host, port } => Self::queue(
+                writer,
+                &cb::Transfer {
+                    host: host.clone(),
+                    port: *port,
+                },
+            ),
             ClientEvent::Camera(entity) => Self::queue(
                 writer,
                 &cb::SetCamera {
@@ -2572,6 +2579,15 @@ mod tests {
         assert_eq!(packets[0].0, id::INITIALIZE_BORDER);
         assert_eq!(&packets[0].1[..8], &0.0f64.to_be_bytes());
         assert_eq!(&packets[0].1[16..24], &59_999_968.0f64.to_be_bytes());
+    }
+
+    #[test]
+    fn a_transfer_sends_the_host_and_port() {
+        let packets = encode(ClientEvent::Transfer {
+            host: "x.y".to_owned(),
+            port: 1,
+        });
+        assert_eq!(packets, vec![(id::TRANSFER, vec![3, b'x', b'.', b'y', 1])]);
     }
 
     #[test]

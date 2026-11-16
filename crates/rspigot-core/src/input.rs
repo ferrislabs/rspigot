@@ -28,9 +28,11 @@ const MAX_MOVE_SQUARED: f64 = 100.0 * 100.0;
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn handle_input(&mut self, id: PlayerId, input: PlayerInput) {
-        let Some(player) = self.players.get(&id) else {
+        let tick = self.tick;
+        let Some(player) = self.players.get_mut(&id) else {
             return;
         };
+        player.last_action = tick;
         if player.vitals.dying && acts(&input) {
             self.refuse_while_dying(id, &input);
             return;

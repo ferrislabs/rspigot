@@ -48,6 +48,7 @@ pub struct Player<L> {
     pub tracked: FxHashSet<EntityId>,
     pub loaded: bool,
     pub operator: bool,
+    pub last_action: u64,
     pub op_level: u8,
     pub tags: Vec<String>,
     pub attribute_edits: Vec<rspigot_domain::entity::living::AttributeInstance>,

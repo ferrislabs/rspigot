@@ -1,7 +1,7 @@
 mod common;
 
 use common::*;
-use rspigot_core::events::{ClientEvent, Inbound, PlayerInput};
+use rspigot_core::events::{ClientEvent, Hand, Inbound, PlayerInput};
 use rspigot_core::plugins::events::{
     EntityDamageCause, PlayerSpawnChangeCause, PlayerTeleportCause,
 };
@@ -172,4 +172,44 @@ fn spreadplayers_teleports_a_player_with_the_command_cause() {
         panic!("expected a teleport");
     };
     assert_eq!(event.cause, PlayerTeleportCause::Command);
+}
+
+fn idle_scene(minutes: u32) -> Scene {
+    scene_on(
+        configured(|config| config.player_idle_timeout = minutes),
+        &["Alice"],
+        vec![observe(1, EventKind::PlayerKick)],
+    )
+}
+
+#[test]
+fn an_idle_player_is_kicked_after_the_timeout_through_the_kick_event() {
+    let mut s = idle_scene(1);
+    let alice = s.players[0].clone();
+    s.tick(1_195);
+    assert!(alice.link.disconnected_with().is_none());
+    s.tick(10);
+    let reason = alice.link.disconnected_with().expect("kicked");
+    assert_eq!(reason.plain_text(), "multiplayer.disconnect.idling");
+    assert_eq!(settled_for(&s.plugin, EventKind::PlayerKick).len(), 1);
+}
+
+#[test]
+fn player_activity_pushes_the_idle_kick_back() {
+    let mut s = idle_scene(1);
+    let alice = s.players[0].clone();
+    s.tick(1_000);
+    send_input(&mut s.server, &alice, PlayerInput::Swing(Hand::Main));
+    s.tick(1_000);
+    assert!(alice.link.disconnected_with().is_none());
+    s.tick(300);
+    assert!(alice.link.disconnected_with().is_some());
+}
+
+#[test]
+fn no_idle_timeout_never_kicks() {
+    let mut s = idle_scene(0);
+    let alice = s.players[0].clone();
+    s.tick(2_500);
+    assert!(alice.link.disconnected_with().is_none());
 }

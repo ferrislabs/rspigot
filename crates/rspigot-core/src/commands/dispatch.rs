@@ -459,6 +459,18 @@ pub trait CommandContext {
         (-64, 319)
     }
 
+    fn transfer_player(&mut self, _player: PlayerId, _host: &str, _port: i32) {}
+
+    fn set_idle_timeout(&mut self, _minutes: u32) {}
+
+    fn start_profiler(&mut self) -> bool {
+        false
+    }
+
+    fn stop_profiler(&mut self) -> Option<(f64, i64)> {
+        None
+    }
+
     fn fill_biome(
         &mut self,
         _min: BlockPos,
@@ -700,6 +712,9 @@ pub fn execute<C: CommandContext>(
             super::movement_commands::run(ctx, sender, &label, rest)
         }
         "tick" => super::tick_commands::run(ctx, sender, rest),
+        "transfer" | "setidletimeout" | "debug" => {
+            super::admin_commands::run(ctx, sender, &label, rest)
+        }
         "forceload" | "worldborder" | "spreadplayers" | "fillbiome" => {
             super::world_commands::run(ctx, sender, &label, rest)
         }

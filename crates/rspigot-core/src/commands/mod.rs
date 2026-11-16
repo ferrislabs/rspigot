@@ -1,3 +1,4 @@
+mod admin_commands;
 mod args;
 mod blocks;
 mod boss_commands;
@@ -64,3 +65,6 @@ mod tick_command_tests;
 
 #[cfg(test)]
 mod world_command_tests;
+
+#[cfg(test)]
+mod admin_command_tests;
