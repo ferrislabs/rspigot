@@ -439,6 +439,42 @@ pub trait CommandContext {
         false
     }
 
+    fn vehicle_of(&self, _target: Target) -> Option<Target> {
+        None
+    }
+
+    fn would_loop(&self, _rider: Target, _vehicle: Target) -> bool {
+        false
+    }
+
+    fn start_riding_target(&mut self, _rider: Target, _vehicle: Target) -> bool {
+        false
+    }
+
+    fn stop_riding_target(&mut self, _rider: Target) {}
+
+    fn rotate_to(&mut self, _target: Target, _yaw: f32, _pitch: f32) {}
+
+    fn swing_target(
+        &mut self,
+        _target: Target,
+        _hand: crate::events::Hand,
+        _style: crate::events::SwingStyle,
+        _duration: i32,
+    ) -> bool {
+        false
+    }
+
+    fn is_spectator(&self, _player: PlayerId) -> bool {
+        false
+    }
+
+    fn can_be_camera(&self, _target: Target) -> bool {
+        false
+    }
+
+    fn set_camera_of(&mut self, _player: PlayerId, _target: Option<Target>) {}
+
     fn attribute_state(
         &mut self,
         _target: Target,
@@ -613,6 +649,9 @@ pub fn execute<C: CommandContext>(
         }
         "attribute" | "damage" | "enchant" => {
             super::entity_commands::run(ctx, sender, &label, rest)
+        }
+        "ride" | "rotate" | "spectate" | "swing" => {
+            super::movement_commands::run(ctx, sender, &label, rest)
         }
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
@@ -1156,7 +1195,7 @@ fn summon<C: CommandContext>(
     }
 }
 
-fn parse_time(raw: &str) -> Option<i64> {
+pub(super) fn parse_time(raw: &str) -> Option<i64> {
     let (number, unit) = match raw.chars().last()? {
         'd' => (&raw[..raw.len() - 1], 24000.0),
         's' => (&raw[..raw.len() - 1], 20.0),

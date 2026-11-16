@@ -499,6 +499,127 @@ impl<L: ClientLink> CommandContext for Server<L> {
         }
     }
 
+    fn vehicle_of(&self, target: Target) -> Option<Target> {
+        let rider = self.entity_id_of(target)?;
+        let vehicle = self.entities.rides.vehicle_of(rider)?;
+        self.target_of_entity(vehicle)
+    }
+
+    fn would_loop(&self, rider: Target, vehicle: Target) -> bool {
+        let (Some(rider), Some(vehicle)) = (self.entity_id_of(rider), self.entity_id_of(vehicle))
+        else {
+            return false;
+        };
+        rider == vehicle || self.entities.rides.has_indirect_passenger(rider, vehicle)
+    }
+
+    fn start_riding_target(&mut self, rider: Target, vehicle: Target) -> bool {
+        let (Some(rider), Some(vehicle)) = (self.entity_id_of(rider), self.entity_id_of(vehicle))
+        else {
+            return false;
+        };
+        self.start_riding(rider, vehicle, true, true)
+    }
+
+    fn stop_riding_target(&mut self, rider: Target) {
+        if let Some(rider) = self.entity_id_of(rider) {
+            self.stop_riding(rider);
+        }
+    }
+
+    fn rotate_to(&mut self, target: Target, yaw: f32, pitch: f32) {
+        match target {
+            Target::Player(id) => {
+                let Some(player) = self.players.get_mut(&id) else {
+                    return;
+                };
+                player.rotation = Rotation::new(yaw, pitch);
+                let entity = player.entity_id;
+                self.push(
+                    Audience::One(id),
+                    ClientEvent::PlayerRotation { yaw, pitch },
+                );
+                self.push(
+                    Audience::Trackers(entity),
+                    ClientEvent::EntityHeadRotation { entity, yaw },
+                );
+            }
+            Target::Entity(id) => {
+                if let Some(entity) = self.entities.store.get_mut(id) {
+                    entity.base.set_rotation(yaw, pitch);
+                    entity.base.head_yaw = yaw;
+                }
+            }
+        }
+    }
+
+    fn swing_target(
+        &mut self,
+        target: Target,
+        hand: crate::events::Hand,
+        style: crate::events::SwingStyle,
+        duration: i32,
+    ) -> bool {
+        let (entity, own) = match target {
+            Target::Player(id) => match self.players.get(&id) {
+                Some(player) => (player.entity_id, Some(id)),
+                None => return false,
+            },
+            Target::Entity(id) => {
+                if !self
+                    .entities
+                    .store
+                    .get(id)
+                    .is_some_and(|e| e.living().is_some())
+                {
+                    return false;
+                }
+                (id, None)
+            }
+        };
+        let event = ClientEvent::EntitySwing {
+            entity,
+            hand,
+            style,
+            duration,
+        };
+        if let Some(id) = own {
+            self.push(Audience::One(id), event.clone());
+        }
+        self.push(Audience::Trackers(entity), event);
+        true
+    }
+
+    fn is_spectator(&self, player: PlayerId) -> bool {
+        self.players
+            .get(&player)
+            .is_some_and(|p| p.game_mode == GameMode::Spectator)
+    }
+
+    fn can_be_camera(&self, target: Target) -> bool {
+        match target {
+            Target::Player(_) => true,
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)
+                .is_some_and(|e| e.base.kind.tracking_range() != 0),
+        }
+    }
+
+    fn set_camera_of(&mut self, player: PlayerId, target: Option<Target>) {
+        let Some(own) = self.players.get(&player).map(|p| p.entity_id) else {
+            return;
+        };
+        let camera = target.and_then(|t| self.entity_id_of(t)).unwrap_or(own);
+        self.push(Audience::One(player), ClientEvent::Camera(camera));
+        if camera != own
+            && let Some(at) = target.and_then(|t| self.target_position(t))
+        {
+            self.teleport_player(player, at);
+        }
+    }
+
     fn play_sound_to(
         &mut self,
         player: PlayerId,

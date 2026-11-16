@@ -6,6 +6,7 @@ mod dispatch;
 mod entity_commands;
 mod execute;
 mod json_text;
+mod movement_commands;
 pub mod permission;
 mod scoreboard_commands;
 pub mod selector;
@@ -51,3 +52,6 @@ mod sound_command_tests;
 
 #[cfg(test)]
 mod entity_command_tests;
+
+#[cfg(test)]
+mod movement_command_tests;

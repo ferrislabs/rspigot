@@ -30,8 +30,8 @@ pub mod clientbound {
     pub use super::effect::{RemoveMobEffect, UpdateMobEffect};
     pub use super::entity::{
         AddEntity, Animate, EntityPositionSync, MoveEntityPos, MoveEntityPosRot, MoveEntityRot,
-        RemoveEntities, RotateHead, SetEntityLink, SetEntityMotion, SetEquipment, SetPassengers,
-        SwingAnimation, TakeItemEntity, TeleportEntity, UpdateAttributes,
+        RemoveEntities, RotateHead, SetCamera, SetEntityLink, SetEntityMotion, SetEquipment,
+        SetPassengers, SwingAnimation, TakeItemEntity, TeleportEntity, UpdateAttributes,
     };
     pub use super::inventory::{
         ContainerClose, ContainerSetContent, ContainerSetData, ContainerSetSlot, MerchantOffers,

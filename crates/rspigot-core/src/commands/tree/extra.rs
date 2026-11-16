@@ -145,7 +145,50 @@ fn entity_commands(b: &mut TreeBuilder, root: usize) {
     );
 }
 
+fn rotation() -> ArgumentParser {
+    ArgumentParser::Named("minecraft:rotation")
+}
+
+fn anchor() -> ArgumentParser {
+    ArgumentParser::Named("minecraft:entity_anchor")
+}
+
+fn movement_commands(b: &mut TreeBuilder, root: usize) {
+    let ride = b.literal(root, "ride", false);
+    let target = b.argument(ride, "target", single_entity(), false);
+    let mount = b.literal(target, "mount", false);
+    b.argument(mount, "vehicle", single_entity(), true);
+    b.literal(target, "dismount", true);
+
+    let rotate = b.literal(root, "rotate", false);
+    let target = b.argument(rotate, "target", single_entity(), false);
+    b.argument(target, "rotation", rotation(), true);
+    let facing = b.literal(target, "facing", false);
+    let facing_entity = b.literal(facing, "entity", false);
+    let entity = b.argument(facing_entity, "facingEntity", single_entity(), true);
+    b.argument(entity, "facingAnchor", anchor(), true);
+    b.argument(facing, "facingLocation", ArgumentParser::Vec3, true);
+
+    let spectate = b.literal(root, "spectate", true);
+    let target = b.argument(spectate, "target", single_entity(), true);
+    b.argument(target, "player", player_targets(), true);
+
+    let swing = b.literal(root, "swing", false);
+    let targets = b.argument(swing, "targets", entities(), false);
+    for hand in ["mainhand", "offhand"] {
+        let node = b.literal(targets, hand, true);
+        let animation = b.argument(
+            node,
+            "animation",
+            ArgumentParser::Named("minecraft:swing_animation"),
+            true,
+        );
+        b.argument(animation, "duration", ArgumentParser::Time { min: 1 }, true);
+    }
+}
+
 pub(super) fn extra_commands(b: &mut TreeBuilder, root: usize) {
     sound_commands(b, root);
     entity_commands(b, root);
+    movement_commands(b, root);
 }

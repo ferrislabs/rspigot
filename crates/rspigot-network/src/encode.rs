@@ -7,9 +7,9 @@ use rspigot_core::commands::{
 };
 use rspigot_core::events::{
     Abilities, Animation, ClientEvent, EntityKind, EntityStatus, EquipmentSlot as CoreSlot,
-    GameEvent as CoreGameEvent, MetadataValue, MoveDelta, Movement, PlayerListEntry,
+    GameEvent as CoreGameEvent, Hand, MetadataValue, MoveDelta, Movement, PlayerListEntry,
     Pose as CorePose, PositionPath as CorePath, SoundSource as CoreSoundSource, SpawnInfo,
-    StateKind, VariantKind,
+    StateKind, SwingStyle, VariantKind,
 };
 use rspigot_data::variants::VariantFamily;
 use rspigot_domain::boss_event::{
@@ -534,6 +534,7 @@ fn named_parser(name: &str) -> WireParser {
         "minecraft:component" => parser::COMPONENT,
         "minecraft:uuid" => parser::UUID,
         "minecraft:particle" => parser::PARTICLE,
+        "minecraft:swing_animation" => parser::SWING_ANIMATION,
         _ => return WireParser::String(StringKind::SingleWord),
     };
     simple(id)
@@ -1375,6 +1376,44 @@ impl Encoder {
                 &cb::RotateHead {
                     entity_id: entity.0,
                     y_head_rot: Angle::from_degrees(*yaw),
+                },
+            ),
+            ClientEvent::EntitySwing {
+                entity,
+                hand,
+                style,
+                duration,
+            } => Self::queue(
+                writer,
+                &cb::SwingAnimation {
+                    entity_id: entity.0,
+                    hand: match hand {
+                        Hand::Main => WireHand::MainHand,
+                        Hand::Off => WireHand::OffHand,
+                    },
+                    animation: SwingAnimationStyle {
+                        kind: match style {
+                            SwingStyle::None => SwingAnimationType::None,
+                            SwingStyle::Whack => SwingAnimationType::Whack,
+                            SwingStyle::Stab => SwingAnimationType::Stab,
+                        },
+                        duration: *duration,
+                    },
+                },
+            ),
+            ClientEvent::Camera(entity) => Self::queue(
+                writer,
+                &cb::SetCamera {
+                    camera_id: entity.0,
+                },
+            ),
+            ClientEvent::PlayerRotation { yaw, pitch } => Self::queue(
+                writer,
+                &cb::PlayerRotation {
+                    y_rot: *yaw,
+                    relative_y: false,
+                    x_rot: *pitch,
+                    relative_x: false,
                 },
             ),
             ClientEvent::EntityAnimation { entity, animation } => match animation {
@@ -2484,6 +2523,28 @@ mod tests {
             sound: None,
         });
         assert_eq!(packets, vec![(id::STOP_SOUND, vec![1, 2])]);
+    }
+
+    #[test]
+    fn swing_camera_and_rotation_golden_bytes() {
+        let swing = encode(ClientEvent::EntitySwing {
+            entity: EntityId(5),
+            hand: Hand::Off,
+            style: SwingStyle::Stab,
+            duration: 10,
+        });
+        assert_eq!(swing, vec![(id::SWING_ANIMATION, vec![5, 1, 2, 10])]);
+        assert_eq!(
+            encode(ClientEvent::Camera(EntityId(300))),
+            vec![(id::SET_CAMERA, vec![0xac, 0x02])]
+        );
+        let turned = encode(ClientEvent::PlayerRotation {
+            yaw: 90.0,
+            pitch: 0.0,
+        });
+        assert_eq!(turned.len(), 1);
+        assert_eq!(turned[0].0, id::PLAYER_ROTATION);
+        assert_eq!(turned[0].1[4], 0);
     }
 
     #[test]

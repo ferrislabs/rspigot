@@ -111,3 +111,38 @@ fn damage_hurts_a_player_through_the_damage_event() {
     assert_eq!(event.cause, EntityDamageCause::Custom);
     assert_eq!(event.damage, 3.0);
 }
+
+fn ride_scene() -> Scene {
+    let mut s = scene_with(
+        &["Alice"],
+        vec![
+            observe(1, EventKind::EntityMount),
+            observe(1, EventKind::EntityDismount),
+        ],
+    );
+    console(&mut s, "summon minecraft:cow 5 70 5");
+    console(&mut s, "summon minecraft:pig 6 70 5");
+    s
+}
+
+#[test]
+fn ride_mount_and_dismount_fire_the_mount_events() {
+    let mut s = ride_scene();
+    console(&mut s, "ride @e[type=cow] mount @e[type=pig]");
+    assert_eq!(settled_for(&s.plugin, EventKind::EntityMount).len(), 1);
+    assert!(settled_for(&s.plugin, EventKind::EntityDismount).is_empty());
+    console(&mut s, "ride @e[type=cow] dismount");
+    assert_eq!(settled_for(&s.plugin, EventKind::EntityDismount).len(), 1);
+}
+
+#[test]
+fn a_cancelled_mount_keeps_the_rider_off() {
+    let mut s = scene_with(&["Alice"], vec![deciding(1, EventKind::EntityMount)]);
+    console(&mut s, "summon minecraft:cow 5 70 5");
+    console(&mut s, "summon minecraft:pig 6 70 5");
+    console(&mut s, "ride @e[type=cow] mount @e[type=pig]");
+    let asked = last_asked(&s.plugin, EventKind::EntityMount);
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    console(&mut s, "ride @e[type=cow] dismount");
+    assert!(settled_for(&s.plugin, EventKind::EntityDismount).is_empty());
+}

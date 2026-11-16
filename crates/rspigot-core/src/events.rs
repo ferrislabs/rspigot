@@ -359,6 +359,13 @@ pub enum EntityKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SwingStyle {
+    None,
+    Whack,
+    Stab,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Animation {
     SwingMainArm,
     SwingOffHand,
@@ -774,6 +781,17 @@ pub enum ClientEvent {
         volume: f32,
         pitch: f32,
         seed: i64,
+    },
+    EntitySwing {
+        entity: EntityId,
+        hand: Hand,
+        style: SwingStyle,
+        duration: i32,
+    },
+    Camera(EntityId),
+    PlayerRotation {
+        yaw: f32,
+        pitch: f32,
     },
     NamedSound {
         sound: String,
