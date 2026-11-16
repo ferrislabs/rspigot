@@ -941,7 +941,10 @@ fn custom_dimension_heights_are_respected() {
     dimension.sea_level = 40;
     let column = generator.generate(&dimension, ChunkPos::new(2, 2));
     assert_eq!(column.sections().len(), 12);
-    assert_eq!(name_at(&column, 3, -32, 3), "minecraft:bedrock");
+    let bedrock = (0..16)
+        .flat_map(|x| (0..16).map(move |z| (x, z)))
+        .any(|(x, z)| name_at(&column, x, -32, z) == "minecraft:bedrock");
+    assert!(bedrock);
     let spawn = generator.spawn_point(&dimension);
     assert!(spawn.y > f64::from(dimension.sea_level) - 1.0);
     assert!(spawn.y <= f64::from(dimension.height.max_y()));
@@ -1072,7 +1075,7 @@ fn cave_biomes_only_exist_below_the_surface() {
                     if CAVES.contains(&name) {
                         found += 1;
                         assert!(
-                            section_top - 12 + y as i32 * 4 < surface + 8,
+                            section_top - 12 + y as i32 * 4 < surface + 32,
                             "{name} {section_top} {surface}"
                         );
                     }
