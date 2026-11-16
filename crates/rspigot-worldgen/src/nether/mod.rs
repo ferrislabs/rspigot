@@ -15,7 +15,7 @@ use crate::buffer::ChunkBuffer;
 use crate::overworld::{
     Bounds, ChunkBiomes, ColumnInput, Features, Region, SurfaceSystem, TerrainCache, TerrainChunk,
 };
-use crate::resources::{BlockKind, Palette, Resources, biome_id};
+use crate::resources::{BlockKind, Palette, Resources};
 use crate::structures::{BiomeProbe, Engine, Ground, Heightmap, Library, Start};
 
 const CEILING: i32 = 127;
