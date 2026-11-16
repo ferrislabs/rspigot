@@ -45,6 +45,7 @@ pub(crate) enum Kind {
     Mineshaft(super::shaped::mineshaft::Type),
     Stronghold,
     RuinedPortal(Vec<super::shaped::portal::Setup>),
+    Shaped(super::shaped::Other),
     Other,
 }
 
@@ -179,6 +180,8 @@ impl Structures {
                     Kind::Stronghold
                 } else if kind_name == "ruined_portal" {
                     Kind::RuinedPortal(super::shaped::portal::setups(value))
+                } else if let Some(other) = super::shaped::Other::parse(kind_name, value) {
+                    Kind::Shaped(other)
                 } else {
                     Kind::Other
                 };

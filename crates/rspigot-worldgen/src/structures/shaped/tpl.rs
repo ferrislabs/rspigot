@@ -15,7 +15,12 @@ pub(crate) enum Mirror {
     FrontBack,
 }
 
-pub(crate) fn transform((x, y, z): Pos, mirror: Mirror, rotation: Rotation, (px, pz): (i32, i32)) -> Pos {
+pub(crate) fn transform(
+    (x, y, z): Pos,
+    mirror: Mirror,
+    rotation: Rotation,
+    (px, pz): (i32, i32),
+) -> Pos {
     let x = if mirror == Mirror::FrontBack { -x } else { x };
     match rotation {
         Rotation::Counterclockwise90 => (px - pz + z, y, px + pz - x),
@@ -25,7 +30,13 @@ pub(crate) fn transform((x, y, z): Pos, mirror: Mirror, rotation: Rotation, (px,
     }
 }
 
-pub(crate) fn bounds(size: Pos, origin: Pos, mirror: Mirror, rotation: Rotation, pivot: (i32, i32)) -> Bbox {
+pub(crate) fn bounds(
+    size: Pos,
+    origin: Pos,
+    mirror: Mirror,
+    rotation: Rotation,
+    pivot: (i32, i32),
+) -> Bbox {
     let a = transform((0, 0, 0), mirror, rotation, pivot);
     let b = transform(
         (size.0 - 1, size.1 - 1, size.2 - 1),
@@ -125,7 +136,13 @@ impl Tpl {
     }
 
     pub(crate) fn bbox(&self) -> Bbox {
-        bounds(self.size(), self.pos, self.mirror, self.rotation, self.pivot)
+        bounds(
+            self.size(),
+            self.pos,
+            self.mirror,
+            self.rotation,
+            self.pivot,
+        )
     }
 
     pub(crate) fn world(&self, local: Pos) -> Pos {

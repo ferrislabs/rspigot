@@ -18,6 +18,8 @@ mod world;
 #[cfg(test)]
 mod library_tests;
 #[cfg(test)]
+mod shaped_tests;
+#[cfg(test)]
 mod tests;
 
 pub(crate) use bbox::Bbox;
