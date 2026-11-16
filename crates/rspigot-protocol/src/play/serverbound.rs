@@ -135,6 +135,15 @@ wire_struct! {
     }
 }
 
+wire_struct! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct ContainerSlotStateChanged = sb::CONTAINER_SLOT_STATE_CHANGED {
+        pub slot_id: i32 as Var,
+        pub container_id: i32 as Var,
+        pub new_state: bool,
+    }
+}
+
 wire_enum! {
     pub enum ContainerInput: Zero { Pickup, QuickMove, Swap, Clone, Throw, QuickCraft, PickupAll }
 }
@@ -747,6 +756,7 @@ pub enum ServerboundPlay {
     ContainerButtonClick(ContainerButtonClick),
     ContainerClick(ContainerClick),
     ContainerClose(ContainerClose),
+    ContainerSlotStateChanged(ContainerSlotStateChanged),
     CookieResponse(CookieResponse),
     CustomPayload(ServerboundCustomPayload),
     EditBook(EditBook),
@@ -812,6 +822,9 @@ impl ServerboundPlay {
             sb::CONTAINER_BUTTON_CLICK => Self::ContainerButtonClick(decode_exact(body)?),
             sb::CONTAINER_CLICK => Self::ContainerClick(decode_exact(body)?),
             sb::CONTAINER_CLOSE => Self::ContainerClose(decode_exact(body)?),
+            sb::CONTAINER_SLOT_STATE_CHANGED => {
+                Self::ContainerSlotStateChanged(decode_exact(body)?)
+            }
             sb::COOKIE_RESPONSE => Self::CookieResponse(decode_exact(body)?),
             sb::CUSTOM_PAYLOAD => Self::CustomPayload(decode_exact(body)?),
             sb::EDIT_BOOK => Self::EditBook(decode_exact(body)?),
@@ -853,7 +866,6 @@ impl ServerboundPlay {
             sb::USE_ITEM => Self::UseItem(decode_exact(body)?),
             sb::CUSTOM_CLICK_ACTION => Self::CustomClickAction(decode_exact(body)?),
             sb::BUNDLE_ITEM_SELECTED
-            | sb::CONTAINER_SLOT_STATE_CHANGED
             | sb::DEBUG_SUBSCRIPTION_REQUEST
             | sb::JIGSAW_GENERATE
             | sb::SET_COMMAND_MINECART
@@ -1236,6 +1248,14 @@ mod tests {
             vec![2, 3]
         );
         assert_eq!(roundtrip(&ContainerClose { container_id: 0 }), vec![0]);
+        assert_eq!(
+            roundtrip(&ContainerSlotStateChanged {
+                slot_id: 4,
+                container_id: 2,
+                new_state: true
+            }),
+            vec![4, 2, 1]
+        );
     }
 
     #[test]

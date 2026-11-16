@@ -298,7 +298,7 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
-    fn crafter_disabled_mask(&self, pos: BlockPos) -> u16 {
+    pub(crate) fn crafter_disabled_mask(&self, pos: BlockPos) -> u16 {
         self.world
             .chunks
             .get(pos.chunk())
@@ -310,6 +310,30 @@ impl<L: ClientLink> Server<L> {
                     .filter(|slot| (0..CRAFTER_SLOTS as i32).contains(slot))
                     .fold(0, |mask, slot| mask | 1 << slot)
             })
+    }
+
+    pub(crate) fn write_crafter_disabled(&mut self, pos: BlockPos, slot: usize, disabled: bool) {
+        let mut mask = self.crafter_disabled_mask(pos);
+        if disabled {
+            mask |= 1 << slot;
+        } else {
+            mask &= !(1 << slot);
+        }
+        let slots: Vec<i32> = (0..CRAFTER_SLOTS as i32)
+            .filter(|index| mask & (1 << index) != 0)
+            .collect();
+        let Some(chunk) = self.world.chunks.chunk_mut(pos.chunk()) else {
+            return;
+        };
+        let mut data = chunk
+            .block_entity(pos)
+            .map_or_else(rspigot_nbt::Compound::new, |entity| entity.data.clone());
+        data.insert("disabled_slots", rspigot_nbt::Tag::IntArray(slots));
+        chunk.set_block_entity(rspigot_domain::chunk::BlockEntity {
+            pos,
+            kind: rspigot_domain::Identifier::minecraft("crafter"),
+            data,
+        });
     }
 
     pub(crate) fn cart_holder(&self, id: EntityId) -> Option<Holder> {

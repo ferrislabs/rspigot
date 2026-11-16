@@ -378,6 +378,11 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             window: p.container_id,
             button: p.button_id,
         }),
+        ServerboundPlay::ContainerSlotStateChanged(p) => input(PlayerInput::ContainerSlotState {
+            window: p.container_id,
+            slot: p.slot_id,
+            enabled: p.new_state,
+        }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
         ServerboundPlay::RenameItem(p) => input(PlayerInput::RenameItem(p.name)),
         ServerboundPlay::SeenAdvancements(action) => {

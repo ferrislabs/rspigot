@@ -185,6 +185,11 @@ pub enum PlayerInput {
         window: i32,
         button: i32,
     },
+    ContainerSlotState {
+        window: i32,
+        slot: i32,
+        enabled: bool,
+    },
     SetBeacon {
         primary: Option<i32>,
         secondary: Option<i32>,

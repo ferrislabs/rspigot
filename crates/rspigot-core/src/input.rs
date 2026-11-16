@@ -163,6 +163,11 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::ContainerButtonClick { window, button } => {
                 self.press_button(id, window, button);
             }
+            PlayerInput::ContainerSlotState {
+                window,
+                slot,
+                enabled,
+            } => self.set_crafter_slot_state(id, window, slot, enabled),
             PlayerInput::SetBeacon { primary, secondary } => {
                 self.handle_set_beacon(id, primary, secondary);
             }
@@ -974,6 +979,7 @@ const fn acts(input: &PlayerInput) -> bool {
             | PlayerInput::ContainerClick(_)
             | PlayerInput::ContainerClose(_)
             | PlayerInput::ContainerButtonClick { .. }
+            | PlayerInput::ContainerSlotState { .. }
             | PlayerInput::SetBeacon { .. }
             | PlayerInput::SelectTrade(_)
             | PlayerInput::RenameItem(_)

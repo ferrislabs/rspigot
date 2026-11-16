@@ -182,6 +182,20 @@ impl<L: ClientLink> Server<L> {
         dropped
     }
 
+    pub(crate) fn brush_off_scute(&mut self, target: EntityId) -> bool {
+        if self
+            .entities
+            .store
+            .get(target)
+            .is_none_or(|entity| entity.is_baby())
+        {
+            return false;
+        }
+        self.drop_table_at(target, BRUSH_TABLE);
+        self.entity_sound(target, BRUSH_SOUND, 1.0, 1.0);
+        true
+    }
+
     pub(crate) fn armadillo_interact(
         &mut self,
         player: PlayerId,
