@@ -13,6 +13,7 @@ use crate::health::{CHEST_SLOT, DamageSource, FEET_SLOT, HEAD_SLOT, LEGS_SLOT, O
 use crate::loot::{LootContext, LootDamage};
 use crate::player::Player;
 use crate::plugins::events::EntityPotionEffectCause;
+use crate::plugins::{Combuster, Holder};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -139,10 +140,13 @@ impl<L: ClientLink> Server<L> {
             }
             EntityEffect::Ignite(seconds) => {
                 let seconds = seconds.calculate(level);
-                match self.player_of(target) {
-                    Some(player) => self.ignite_player(player, seconds),
-                    None => self.ignite_entity(target, seconds),
-                }
+                let holder = self
+                    .player_of(target)
+                    .map_or(Holder::Mob(target), Holder::Player);
+                let combuster = self
+                    .subject_view(owner)
+                    .map_or(Combuster::Nothing, Combuster::Entity);
+                self.combust(holder, seconds, combuster);
             }
             EntityEffect::ApplyMobEffect {
                 effect,

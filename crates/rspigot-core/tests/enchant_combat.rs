@@ -3,7 +3,8 @@ mod common;
 use common::*;
 use rspigot_core::events::PlayerInput;
 use rspigot_core::plugins::{
-    Answer, EntityView, InventoryOrder, ItemSpec, Order, PlayerOrder, Question,
+    Answer, EntityView, EventKind, EventPayload, InventoryOrder, ItemSpec, Order, PlayerOrder,
+    Question,
 };
 use rspigot_domain::{EntityId, Vec3};
 
@@ -245,4 +246,28 @@ fn sweeping_edge_hurts_the_neighbours_of_the_target() {
     let edged = swept_cow_health(&[("minecraft:sweeping_edge", 3)]);
     assert!((10.0 - plain - 1.0).abs() < 0.01, "{plain}");
     assert!(plain - edged > 3.0, "{edged} vs {plain}");
+}
+
+#[test]
+fn fire_aspect_fires_the_combust_by_entity_event_with_the_attacker() {
+    let mut s = scene_with(
+        &["Alice"],
+        vec![observe(1, EventKind::EntityCombustByEntity)],
+    );
+    equip(
+        &mut s,
+        HOTBAR_FIRST,
+        enchanted("minecraft:diamond_sword", &[("minecraft:fire_aspect", 2)]),
+    );
+    let target = spawn(&mut s, "minecraft:cow");
+    s.tick(25);
+    let alice = s.players[0].clone();
+    send_input(&mut s.server, &alice, PlayerInput::Attack(target.id));
+    s.tick(2);
+    let events = settled_for(&s.plugin, EventKind::EntityCombustByEntity);
+    let EventPayload::EntityCombustByEntity(combust) = &events[0].payload else {
+        panic!("a combust by entity");
+    };
+    assert_eq!(combust.entity.id, target.id);
+    assert_eq!(combust.duration, 8.0);
 }
