@@ -278,6 +278,7 @@ pub enum Inbound<L> {
     },
     Console(String),
     Management(crate::management::ManagementCall),
+    Reload(Box<crate::reload::ReloadData>),
     StatusPing {
         ping: StatusPing,
         reply: Option<oneshot::Sender<StatusReply>>,

@@ -118,6 +118,9 @@ pub trait CommandContext {
     fn set_weather(&mut self, weather: Weather);
     fn set_world_spawn(&mut self, pos: BlockPos);
     fn save_all(&mut self, flush: bool) -> bool;
+    fn request_reload(&mut self, _whitelist_only: bool) -> bool {
+        false
+    }
     fn tps(&self) -> [f64; 3];
     fn stop(&mut self);
 
@@ -728,6 +731,16 @@ pub fn execute<C: CommandContext>(
         "weather" => weather(ctx, sender, &args),
         "setworldspawn" => set_world_spawn(ctx, sender, &args),
         "save-all" => save_all(ctx, sender, rest),
+        "reload" => {
+            if !ctx.request_reload(false) {
+                return fail(ctx, sender, "commands.reload.failure", Vec::new());
+            }
+            ctx.reply(
+                sender,
+                Component::translatable("commands.reload.success", Vec::new()),
+            );
+            CommandOutcome::Success
+        }
         "stop" => {
             ctx.reply(sender, Component::text("Stopping the server"));
             ctx.stop();
@@ -1795,7 +1808,12 @@ fn whitelist<C: CommandContext>(
                 );
             }
         }
-        (Some("reload"), _) => reply(ctx, "commands.whitelist.reloaded", Vec::new()),
+        (Some("reload"), _) => {
+            if !ctx.request_reload(true) {
+                return fail(ctx, sender, "commands.reload.failure", Vec::new());
+            }
+            reply(ctx, "commands.whitelist.reloaded", Vec::new())
+        }
         _ => {
             return usage(
                 ctx,

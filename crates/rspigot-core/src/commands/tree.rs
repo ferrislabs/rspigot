@@ -1020,6 +1020,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     team_commands(b, root);
     bossbar_commands(b, root);
     b.literal(root, "seed", true);
+    b.literal(root, "reload", true);
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);
     let gamemode = b.literal(root, "gamemode", false);

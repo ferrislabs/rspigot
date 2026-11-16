@@ -1377,6 +1377,10 @@ impl<L: ClientLink> CommandContext for Server<L> {
         true
     }
 
+    fn request_reload(&mut self, whitelist_only: bool) -> bool {
+        self.ask_reload(whitelist_only)
+    }
+
     fn tps(&self) -> [f64; 3] {
         Server::tps(self)
     }

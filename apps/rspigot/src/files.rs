@@ -7,6 +7,9 @@ use rspigot_core::admin::{
     AdminLists, Ban, BanEntry, IpBanEntry, ListEntry, MAX_PERMISSION_LEVEL, format_ban_date,
     parse_ban_date,
 };
+use rspigot_core::events::Inbound;
+use rspigot_core::reload::{ReloadData, ReloadRequest};
+use rspigot_network::NetLink;
 use uuid::Uuid;
 
 use crate::config::Properties;
@@ -446,5 +449,74 @@ mod tests {
             json!([{"ip": "203.0.113.7", "source": "Server", "expires": "forever"}])
         );
         let _ = std::fs::remove_dir_all(&root);
+    }
+}
+
+pub fn reload(root: &Path, request: ReloadRequest) -> anyhow::Result<ReloadData> {
+    let files = crate::config::ServerFiles::load(root)?;
+    let admin = read_admin_lists(root, files.properties.bool("white-list"), SystemTime::now());
+    let config = (!request.whitelist_only).then(|| files.game_config(admin.clone()));
+    Ok(ReloadData { admin, config })
+}
+
+pub fn spawn_reloader(
+    root: PathBuf,
+    requests: Receiver<ReloadRequest>,
+    inbound: crossbeam_channel::Sender<Inbound<NetLink>>,
+) {
+    let spawned = std::thread::Builder::new()
+        .name("reload".to_owned())
+        .spawn(move || {
+            for request in requests {
+                match reload(&root, request) {
+                    Ok(data) => {
+                        if inbound.send(Inbound::Reload(Box::new(data))).is_err() {
+                            break;
+                        }
+                    }
+                    Err(error) => tracing::error!(%error, "reload failed, keeping the old data"),
+                }
+            }
+        });
+    if let Err(error) = spawned {
+        tracing::error!(%error, "reload thread failed to start");
+    }
+}
+
+#[cfg(test)]
+mod reload_tests {
+    use super::*;
+
+    #[test]
+    fn a_reload_rereads_the_properties_and_the_lists() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("server.properties"),
+            "max-players=7\nwhite-list=true\n",
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path().join("whitelist.json"),
+            r#"[{"uuid":"11111111-2222-3333-4444-555555555555","name":"Zed"}]"#,
+        )
+        .unwrap();
+        let data = reload(
+            dir.path(),
+            ReloadRequest {
+                whitelist_only: false,
+            },
+        )
+        .unwrap();
+        assert_eq!(data.config.expect("config").max_players, 7);
+        assert_eq!(data.admin.whitelist.len(), 1);
+        assert!(data.admin.whitelist_enabled);
+        let data = reload(
+            dir.path(),
+            ReloadRequest {
+                whitelist_only: true,
+            },
+        )
+        .unwrap();
+        assert!(data.config.is_none());
     }
 }

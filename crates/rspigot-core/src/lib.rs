@@ -110,6 +110,7 @@ pub mod recipe_book;
 mod recipe_catalog;
 mod recipe_placing;
 mod redstone;
+pub mod reload;
 mod respawning;
 mod riding;
 mod scoreboard;

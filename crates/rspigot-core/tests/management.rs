@@ -278,3 +278,78 @@ fn stop_ends_the_run_and_status_reports_the_version() {
     );
     assert!(!server.is_running());
 }
+
+#[test]
+fn reload_asks_for_the_files_and_applies_what_comes_back() {
+    use rspigot_core::admin::{AdminLists, ListEntry};
+    use rspigot_core::reload::{ReloadData, ReloadRequest};
+    let (server, _heard) = server();
+    let (requests, asked) = crossbeam_channel::unbounded();
+    let mut server = server.with_reload_sink(requests);
+    server.handle(Inbound::Console("reload".to_owned()));
+    assert_eq!(
+        asked.try_recv().expect("a request"),
+        ReloadRequest {
+            whitelist_only: false
+        }
+    );
+    let config = GameConfig {
+        max_players: 3,
+        ..GameConfig::default()
+    };
+    let admin = AdminLists {
+        whitelist: vec![ListEntry::named("Zed")],
+        whitelist_enabled: true,
+        ..AdminLists::default()
+    };
+    server.handle(Inbound::Reload(Box::new(ReloadData {
+        admin,
+        config: Some(config),
+    })));
+    assert_eq!(
+        call(&mut server, ManagementRequest::Allowlist(ListAction::Get)),
+        ManagementReply::Allowlist(vec![PlayerRef::named("Zed")])
+    );
+    assert_eq!(
+        call(
+            &mut server,
+            ManagementRequest::Setting {
+                setting: Setting::MaxPlayers,
+                value: None
+            }
+        ),
+        ManagementReply::Setting(SettingValue::Int(3))
+    );
+}
+
+#[test]
+fn a_whitelist_reload_leaves_the_rest_alone() {
+    use rspigot_core::admin::{AdminLists, ListEntry};
+    use rspigot_core::reload::{ReloadData, ReloadRequest};
+    let (server, _heard) = server();
+    let (requests, asked) = crossbeam_channel::unbounded();
+    let mut server = server.with_reload_sink(requests);
+    server.handle(Inbound::Console("whitelist reload".to_owned()));
+    assert_eq!(
+        asked.try_recv().expect("a request"),
+        ReloadRequest {
+            whitelist_only: true
+        }
+    );
+    server.handle(Inbound::Reload(Box::new(ReloadData {
+        admin: AdminLists {
+            whitelist: vec![ListEntry::named("Zed")],
+            operators: vec![ListEntry::named("Boss")],
+            ..AdminLists::default()
+        },
+        config: None,
+    })));
+    assert_eq!(
+        call(&mut server, ManagementRequest::Operators(ListAction::Get)),
+        ManagementReply::Operators(Vec::new())
+    );
+    assert_eq!(
+        call(&mut server, ManagementRequest::Allowlist(ListAction::Get)),
+        ManagementReply::Allowlist(vec![PlayerRef::named("Zed")])
+    );
+}

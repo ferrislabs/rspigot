@@ -106,6 +106,7 @@ pub struct Server<L> {
     pub(crate) admin_sink: Option<Sender<AdminLists>>,
     pub(crate) management_sink: Option<Sender<crate::management::ManagementNotice>>,
     pub(crate) management_seen: AdminLists,
+    pub(crate) reload_sink: Option<Sender<crate::reload::ReloadRequest>>,
     pub(crate) player_io: Option<PlayerIo>,
     pub(crate) running: bool,
     pub(crate) entities: EntityWorld,
@@ -195,6 +196,7 @@ impl<L: ClientLink> Server<L> {
             admin_sink: None,
             management_sink: None,
             management_seen: AdminLists::default(),
+            reload_sink: None,
             player_io: None,
             running: true,
             entities: EntityWorld::default(),
@@ -437,6 +439,7 @@ impl<L: ClientLink> Server<L> {
             }
             Inbound::Console(line) => self.console_line(line),
             Inbound::Management(call) => self.handle_management(call),
+            Inbound::Reload(data) => self.apply_reload(*data),
             Inbound::StatusPing { ping, reply } => self.status_ping(ping, reply),
             Inbound::PluginConnected {
                 connection,

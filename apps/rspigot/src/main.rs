@@ -210,6 +210,9 @@ fn main() -> anyhow::Result<()> {
     .with_admin_sink(admin_updates)
     .with_player_store(Arc::clone(&store))
     .with_startup_inbox(game_inbox.clone());
+    let (reload_requests, reload_inbox) = crossbeam_channel::unbounded();
+    files::spawn_reloader(args.root.clone(), reload_inbox, inbound.clone());
+    server = server.with_reload_sink(reload_requests);
     if management_listener.is_some() {
         server = server.with_management_sink(notice_sender);
     }
