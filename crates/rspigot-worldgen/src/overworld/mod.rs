@@ -1,4 +1,4 @@
-mod features;
+pub(crate) mod features;
 mod freeze;
 mod region;
 mod surface_random;
@@ -71,6 +71,15 @@ pub(crate) struct Overworld {
     surface: Arc<SurfaceSystem>,
     features: Arc<Features>,
     cache: Arc<Mutex<TerrainCache>>,
+    heights: Arc<Mutex<HeightCache>>,
+}
+
+pub(crate) type ColumnHeights = [(i32, i32); 256];
+
+#[derive(Debug, Default)]
+pub(crate) struct HeightCache {
+    map: HashMap<(i32, i32), Arc<ColumnHeights>>,
+    order: VecDeque<(i32, i32)>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -91,6 +100,49 @@ impl Overworld {
             surface: Arc::new(SurfaceSystem::new(seed as i64, palette)),
             features: Arc::new(Features::compile(overworld_biomes())),
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
+            heights: Arc::new(Mutex::new(HeightCache::default())),
+        }
+    }
+
+    pub(crate) fn column_heights(&self, cx: i32, cz: i32) -> Arc<ColumnHeights> {
+        if let Some(found) = self
+            .heights
+            .lock()
+            .ok()
+            .and_then(|cache| cache.map.get(&(cx, cz)).cloned())
+        {
+            return found;
+        }
+        let min_y = self.terrain.min_y();
+        let mut sampler = self.terrain.sampler();
+        let cells = self.terrain.fill(&mut sampler, cx * 16, cz * 16);
+        let mut heights = [(min_y, min_y); 256];
+        for (index, cell) in cells.iter().enumerate() {
+            let (slot, y) = (index & 255, min_y + (index >> 8) as i32);
+            match cell {
+                Cell::Air => {}
+                Cell::Default => heights[slot] = (y + 1, y + 1),
+                Cell::Water | Cell::Lava => heights[slot].0 = y + 1,
+            }
+        }
+        let heights = Arc::new(heights);
+        if let Ok(mut cache) = self.heights.lock() {
+            if cache.map.insert((cx, cz), heights.clone()).is_none() {
+                cache.order.push_back((cx, cz));
+                while cache.order.len() > 256 {
+                    if let Some(old) = cache.order.pop_front() {
+                        cache.map.remove(&old);
+                    }
+                }
+            }
+        }
+        heights
+    }
+
+    pub(crate) fn biome_probe(&self) -> OverworldProbe<'_> {
+        OverworldProbe {
+            source: &self.source,
+            scratch: RefCell::new(self.source.scratch()),
         }
     }
 
@@ -303,6 +355,60 @@ impl Overworld {
                 f64::from(z) + 0.5,
             )
         })
+    }
+}
+
+pub(crate) struct OverworldProbe<'a> {
+    source: &'a BiomeSource,
+    scratch: RefCell<ClimateScratch>,
+}
+
+impl crate::structures::BiomeProbe for OverworldProbe<'_> {
+    fn at(&self, qx: i32, qy: i32, qz: i32) -> u8 {
+        self.source
+            .biome_index(&mut self.scratch.borrow_mut(), qx, qy, qz)
+    }
+
+    fn id(&self, name: &str) -> Option<u8> {
+        overworld_biomes()
+            .iter()
+            .position(|candidate| candidate.strip_prefix("minecraft:") == Some(name))
+            .map(|index| index as u8)
+    }
+}
+
+pub(crate) struct OverworldGround<'a> {
+    overworld: &'a Overworld,
+    min_y: i32,
+    max_y: i32,
+}
+
+impl crate::structures::Ground for OverworldGround<'_> {
+    fn first_free_height(&self, x: i32, z: i32, heightmap: crate::structures::Heightmap) -> i32 {
+        let heights = self.overworld.column_heights(x >> 4, z >> 4);
+        let (surface, floor) = heights[(((z & 15) << 4) | (x & 15)) as usize];
+        match heightmap {
+            crate::structures::Heightmap::WorldSurfaceWg => surface,
+            crate::structures::Heightmap::OceanFloorWg => floor,
+        }
+    }
+
+    fn min_y(&self) -> i32 {
+        self.min_y
+    }
+
+    fn max_y(&self) -> i32 {
+        self.max_y
+    }
+}
+
+impl Overworld {
+    pub(crate) fn ground(&self, dimension: &Dimension) -> OverworldGround<'_> {
+        OverworldGround {
+            overworld: self,
+            min_y: dimension.height.min_y,
+            max_y: dimension.height.max_y(),
+        }
     }
 }
 

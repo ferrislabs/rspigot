@@ -31,7 +31,7 @@ mod root;
 mod sculk;
 mod speleothem;
 mod spread;
-mod structure;
+pub(crate) mod structure;
 mod templated;
 mod tree;
 mod treedeco;
