@@ -1,0 +1,60 @@
+pub(crate) mod frame;
+pub(crate) mod mineshaft;
+
+use rspigot_nbt::{Compound, Tag};
+
+use super::bbox::Bbox;
+use crate::overworld::features::place::Run;
+
+#[derive(Debug)]
+pub(crate) enum Shaped {
+    Mine(mineshaft::Piece),
+}
+
+impl Shaped {
+    pub(crate) fn bbox(&self) -> &Bbox {
+        match self {
+            Self::Mine(piece) => &piece.bbox,
+        }
+    }
+
+    pub(crate) fn place(&self, run: &mut Run, write: &Bbox) {
+        match self {
+            Self::Mine(piece) => piece.place(run, write),
+        }
+    }
+
+    pub(crate) fn tag(&self) -> Compound {
+        let (id, bbox, facing, depth, extra) = match self {
+            Self::Mine(piece) => (
+                piece.id(),
+                piece.bbox,
+                piece.facing,
+                piece.depth,
+                piece.extra(),
+            ),
+        };
+        let mut tag = Compound::new()
+            .with("id", format!("minecraft:{}", id.to_lowercase()))
+            .with("GD", depth)
+            .with(
+                "BB",
+                Tag::IntArray(vec![
+                    bbox.min.0, bbox.min.1, bbox.min.2, bbox.max.0, bbox.max.1, bbox.max.2,
+                ]),
+            )
+            .with(
+                "O",
+                facing.map_or(-1, |dir| match dir {
+                    super::blueprint::Dir::South => 0,
+                    super::blueprint::Dir::West => 1,
+                    super::blueprint::Dir::North => 2,
+                    _ => 3,
+                }),
+            );
+        for (key, value) in extra {
+            tag.insert(key, value);
+        }
+        tag
+    }
+}

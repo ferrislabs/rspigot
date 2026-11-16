@@ -176,6 +176,7 @@ pub(crate) struct Region<'a> {
     fixed_biome: u8,
     random: Xoroshiro,
     pub(crate) block_entities: Vec<((i32, i32, i32), serde_json::Value)>,
+    pub(crate) entities: Vec<serde_json::Value>,
     #[cfg(test)]
     pub(crate) changed: Vec<(i32, i32)>,
 }
@@ -231,6 +232,7 @@ impl<'a> Region<'a> {
             slots: std::array::from_fn(|_| None),
             fixed_biome: 0,
             block_entities: Vec::new(),
+            entities: Vec::new(),
             #[cfg(test)]
             changed: Vec::new(),
             random: Xoroshiro::from_seed(0),
@@ -253,6 +255,7 @@ impl<'a> Region<'a> {
             slots: std::array::from_fn(|_| None),
             fixed_biome: biome,
             block_entities: Vec::new(),
+            entities: Vec::new(),
             changed: Vec::new(),
             random: Xoroshiro::from_seed(0),
         };

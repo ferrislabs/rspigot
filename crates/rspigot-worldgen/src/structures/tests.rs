@@ -555,3 +555,128 @@ mod nether {
         assert!(recorded);
     }
 }
+
+mod shaped {
+    use super::super::blueprint::Dir;
+    use super::super::shaped::mineshaft::{self, Piece, Type};
+    use super::super::structure::Structures;
+    use super::super::structure::valid_biomes;
+    use super::with_extras;
+    use crate::overworld::Overworld;
+    use crate::resources::Resources;
+    use rspigot_data::multi_noise::ClimateVariant;
+    use rspigot_domain::world::Dimension;
+
+    fn facing(dir: Option<Dir>) -> &'static str {
+        match dir {
+            None => "null",
+            Some(Dir::North) => "north",
+            Some(Dir::South) => "south",
+            Some(Dir::West) => "west",
+            Some(Dir::East) => "east",
+            Some(_) => "?",
+        }
+    }
+
+    fn describe(piece: &Piece) -> String {
+        let b = piece.bbox;
+        format!(
+            "{} {} {} {} {} {} {} {}",
+            piece.class(),
+            b.min.0,
+            b.min.1,
+            b.min.2,
+            b.max.0,
+            b.max.1,
+            b.max.2,
+            facing(piece.facing)
+        )
+    }
+
+    fn check_mine(seed: i64, name: &str, ty: Type, chunk: (i32, i32), fixture: &str) {
+        let resources = Resources::resolve();
+        let overworld = Overworld::with_library(
+            seed as u64,
+            ClimateVariant::Normal,
+            &resources.blocks,
+            with_extras(),
+        );
+        let dimension = Dimension::overworld();
+        let probe = overworld.biome_probe();
+        let ground = overworld.ground(&dimension);
+        let structures = Structures::load(with_extras());
+        let valid = valid_biomes(structures.get(name).unwrap(), &probe);
+        let pieces = mineshaft::generate(ty, &ground, &valid, &probe, seed, chunk)
+            .expect("start must be valid");
+        let want: Vec<&str> = fixture
+            .lines()
+            .filter(|line| line.starts_with("PIECE"))
+            .map(|line| line.splitn(3, ' ').nth(2).unwrap())
+            .collect();
+        for (index, (piece, want)) in pieces.iter().zip(&want).enumerate() {
+            assert_eq!(describe(piece), *want, "piece {index}");
+        }
+        assert_eq!(pieces.len(), want.len(), "piece count");
+    }
+
+    #[test]
+    fn mineshaft_layout_matches_vanilla_for_seed_one() {
+        check_mine(
+            1,
+            "mineshaft",
+            Type::Normal,
+            (10, 10),
+            include_str!("fixtures/mineshaft_1_10_10.txt"),
+        );
+    }
+
+    #[test]
+    fn mesa_mineshaft_layout_matches_vanilla() {
+        check_mine(
+            1,
+            "mineshaft_mesa",
+            Type::Mesa,
+            (-3000, 2901),
+            include_str!("fixtures/mineshaft_mesa_1_-3000_2901.txt"),
+        );
+    }
+
+    #[test]
+    fn a_mineshaft_is_built_into_the_generated_chunks() {
+        use rspigot_blocks::BlockKind;
+        use rspigot_domain::{BlockPos, ChunkPos};
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let mut recorded = false;
+        let mut cave_air = 0;
+        let mut planks = 0;
+        for cx in -36..=-30 {
+            for cz in 2..=8 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                if (cx, cz) == (-33, 5) {
+                    recorded = column
+                        .extra
+                        .get_compound("structures")
+                        .and_then(|tag| tag.get_compound("starts"))
+                        .is_some_and(|starts| starts.contains_key("minecraft:mineshaft"));
+                }
+                for y in -40..-8 {
+                    for x in 0..16 {
+                        for z in 0..16 {
+                            let state = column
+                                .block(BlockPos::new(cx * 16 + x, y, cz * 16 + z))
+                                .and_then(|state| state.kind());
+                            cave_air += usize::from(state == Some(BlockKind::CaveAir));
+                            planks += usize::from(state == Some(BlockKind::OakPlanks));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(recorded);
+        assert!(cave_air > 200, "cave air {cave_air}");
+        assert!(planks > 10, "planks {planks}");
+    }
+}

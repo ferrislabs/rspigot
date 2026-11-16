@@ -10,6 +10,11 @@ use crate::overworld::features::place::Run;
 use crate::overworld::features::structure::commit;
 
 pub(crate) fn place_start(engine: &Engine, run: &mut Run, start: &Start, write: &Bbox) {
+    for shape in &start.shapes {
+        if shape.bbox().intersects(write) {
+            shape.place(run, write);
+        }
+    }
     for piece in &start.pieces {
         if piece.bbox.intersects(write) {
             place_element(engine, run, piece.element, piece, write);

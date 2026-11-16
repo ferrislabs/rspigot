@@ -74,6 +74,7 @@ pub(crate) struct Overworld {
     cache: Arc<Mutex<TerrainCache>>,
     heights: Arc<Mutex<HeightCache>>,
     structures: Arc<Engine>,
+    spawned: Arc<Mutex<HashMap<(i32, i32), Vec<rspigot_nbt::Compound>>>>,
 }
 
 pub(crate) type ColumnHeights = [(i32, i32); 256];
@@ -118,6 +119,7 @@ impl Overworld {
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
             heights: Arc::new(Mutex::new(HeightCache::default())),
             structures: Arc::new(Engine::new(seed as i64, &probe, library)),
+            spawned: Arc::default(),
         }
     }
 
@@ -299,6 +301,12 @@ impl Overworld {
             Some((&self.structures, &starts)),
         );
         let block_entities = std::mem::take(&mut region.block_entities);
+        let spawned = crate::structures::spawned_entities(std::mem::take(&mut region.entities));
+        if !spawned.is_empty()
+            && let Ok(mut pending) = self.spawned.lock()
+        {
+            pending.insert((pos.x, pos.z), spawned);
+        }
         let (mut buffer, indices) = region.finish();
         let biome_index = |x: usize, y: i32, z: usize| {
             let layer = ((y.clamp(min_y, height.max_y()) - min_y) >> 2) as usize;
@@ -335,7 +343,13 @@ impl Overworld {
         let starts = self
             .structures
             .starts_near(&self.ground(dimension), &probe, (pos.x, pos.z));
-        crate::structures::chunk_entities(&starts, (pos.x, pos.z))
+        let mut entities = crate::structures::chunk_entities(&starts, (pos.x, pos.z));
+        if let Ok(mut pending) = self.spawned.lock()
+            && let Some(extra) = pending.remove(&(pos.x, pos.z))
+        {
+            entities.extend(extra);
+        }
+        entities
     }
 
     pub(crate) fn spawn_point(&self, resources: &Resources, dimension: &Dimension) -> Vec3 {

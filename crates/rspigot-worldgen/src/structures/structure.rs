@@ -42,6 +42,7 @@ impl HeightAnchor {
 #[derive(Debug, Clone)]
 pub(crate) enum Kind {
     Jigsaw(JigsawDef),
+    Mineshaft(super::shaped::mineshaft::Type),
     Other,
 }
 
@@ -165,6 +166,13 @@ impl Structures {
                 let kind_name = short(value.get("type").and_then(Value::as_str).unwrap_or(""));
                 let kind = if kind_name == "jigsaw" {
                     Kind::Jigsaw(jigsaw(value))
+                } else if kind_name == "mineshaft" {
+                    Kind::Mineshaft(super::shaped::mineshaft::Type::parse(
+                        value
+                            .get("mineshaft_type")
+                            .and_then(Value::as_str)
+                            .unwrap_or("normal"),
+                    ))
                 } else {
                     Kind::Other
                 };

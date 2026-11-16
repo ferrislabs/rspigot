@@ -16,6 +16,9 @@ pub(crate) trait Ground {
     fn first_free_height(&self, x: i32, z: i32, heightmap: Heightmap) -> i32;
     fn min_y(&self) -> i32;
     fn max_y(&self) -> i32;
+    fn sea_level(&self) -> i32 {
+        63
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
