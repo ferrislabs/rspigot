@@ -7,6 +7,7 @@ mod encode;
 mod link;
 mod listener;
 mod play;
+mod proxy;
 mod status;
 mod text;
 
@@ -16,6 +17,7 @@ use std::time::Duration;
 pub use cache::ChunkPacketCache;
 pub use link::NetLink;
 pub use listener::{run, serve};
+pub use proxy::{ProxyForwarding, hmac_sha256};
 
 #[derive(Debug, Clone)]
 pub struct NetworkConfig {
@@ -39,6 +41,7 @@ pub struct NetworkConfig {
     pub outdated_server_message: String,
     pub code_of_conduct: Option<String>,
     pub chunk_cache_bytes: u64,
+    pub proxy: ProxyForwarding,
 }
 
 impl Default for NetworkConfig {
@@ -64,6 +67,7 @@ impl Default for NetworkConfig {
             outdated_server_message: "Outdated server! I'm still on {0}".to_owned(),
             code_of_conduct: None,
             chunk_cache_bytes: 256 * 1024 * 1024,
+            proxy: ProxyForwarding::Off,
         }
     }
 }

@@ -14,7 +14,7 @@ use rspigot_domain::player::GameMode;
 use rspigot_domain::spawn::state::{CategorySettings, SpawnSettings};
 use rspigot_domain::world::Difficulty;
 use rspigot_management::ManagementConfig;
-use rspigot_network::NetworkConfig;
+use rspigot_network::{NetworkConfig, ProxyForwarding};
 use rspigot_plugins::PluginHostConfig;
 
 use plugins::PLUGINS_DEFAULTS;
@@ -242,8 +242,24 @@ impl ServerFiles {
         })
     }
 
+    fn proxy_forwarding(&self) -> anyhow::Result<ProxyForwarding> {
+        if self.spigot.string("settings.velocity.enabled", "false") == "true" {
+            let secret = self.spigot.string("settings.velocity.secret", "");
+            anyhow::ensure!(
+                !secret.is_empty(),
+                "settings.velocity.secret in spigot.yml is empty while Velocity forwarding is enabled"
+            );
+            return Ok(ProxyForwarding::Velocity(secret.into_bytes()));
+        }
+        if self.spigot.string("settings.bungeecord", "false") == "true" {
+            return Ok(ProxyForwarding::BungeeCord);
+        }
+        Ok(ProxyForwarding::Off)
+    }
+
     pub fn network_config(&self, favicon: Option<String>) -> anyhow::Result<NetworkConfig> {
         let p = &self.properties;
+        let proxy = self.proxy_forwarding()?;
         let ip = p.string("server-ip");
         let port = p.int("server-port", 25565).clamp(1, 65535) as u16;
         let host = if ip.is_empty() { "0.0.0.0" } else { ip };
@@ -260,6 +276,7 @@ impl ServerFiles {
             favicon,
             hide_online_players: p.bool("hide-online-players"),
             enable_status: p.bool("enable-status"),
+            proxy,
             enforce_secure_profile: false,
             accepts_transfers: p.bool("accepts-transfers"),
             keep_alive_timeout: Duration::from_secs(30),
@@ -366,5 +383,30 @@ mod tests {
         assert_eq!(config.port, 25585);
         assert_eq!(config.allowed_origins, ["http://a", "http://b"]);
         assert!(!config.tls_enabled);
+    }
+
+    #[test]
+    fn proxy_forwarding_is_off_until_a_key_turns_it_on() {
+        let off = files("{}", "{}");
+        assert_eq!(off.proxy_forwarding().unwrap(), ProxyForwarding::Off);
+        let bungee = files("settings:\n  bungeecord: true\n", "{}");
+        assert_eq!(
+            bungee.proxy_forwarding().unwrap(),
+            ProxyForwarding::BungeeCord
+        );
+        let velocity = files(
+            "settings:\n  bungeecord: true\n  velocity:\n    enabled: true\n    secret: abc\n",
+            "{}",
+        );
+        assert_eq!(
+            velocity.proxy_forwarding().unwrap(),
+            ProxyForwarding::Velocity(b"abc".to_vec())
+        );
+    }
+
+    #[test]
+    fn velocity_without_a_secret_is_a_configuration_error() {
+        let velocity = files("settings:\n  velocity:\n    enabled: true\n", "{}");
+        assert!(velocity.proxy_forwarding().is_err());
     }
 }
