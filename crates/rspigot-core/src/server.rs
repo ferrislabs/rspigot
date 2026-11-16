@@ -104,6 +104,9 @@ pub struct Server<L> {
     pub(crate) outbox: Vec<(Audience, ClientEvent)>,
     pub(crate) admin: AdminLists,
     pub(crate) admin_sink: Option<Sender<AdminLists>>,
+    pub(crate) management_sink: Option<Sender<crate::management::ManagementNotice>>,
+    pub(crate) management_seen: AdminLists,
+    pub(crate) reload_sink: Option<Sender<crate::reload::ReloadRequest>>,
     pub(crate) player_io: Option<PlayerIo>,
     pub(crate) running: bool,
     pub(crate) entities: EntityWorld,
@@ -191,6 +194,9 @@ impl<L: ClientLink> Server<L> {
             outbox: Vec::new(),
             admin,
             admin_sink: None,
+            management_sink: None,
+            management_seen: AdminLists::default(),
+            reload_sink: None,
             player_io: None,
             running: true,
             entities: EntityWorld::default(),
@@ -286,6 +292,7 @@ impl<L: ClientLink> Server<L> {
         self.world_initialised();
         let loaded = self.wait_for_spawn(timeout);
         self.world_loaded();
+        self.notify_management(crate::management::ManagementNotice::Started);
         loaded
     }
 
@@ -311,10 +318,11 @@ impl<L: ClientLink> Server<L> {
         now
     }
 
-    pub(crate) fn publish_admin(&self) {
+    pub(crate) fn publish_admin(&mut self) {
         if let Some(sink) = &self.admin_sink {
             let _ = sink.send(self.admin.clone());
         }
+        self.diff_management_lists();
     }
 
     pub fn wait_for_spawn(&mut self, timeout: Duration) -> usize {
@@ -430,6 +438,8 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             Inbound::Console(line) => self.console_line(line),
+            Inbound::Management(call) => self.handle_management(call),
+            Inbound::Reload(data) => self.apply_reload(*data),
             Inbound::StatusPing { ping, reply } => self.status_ping(ping, reply),
             Inbound::PluginConnected {
                 connection,
@@ -1332,6 +1342,7 @@ impl<L: ClientLink> Server<L> {
 
     fn shutdown(mut self, inbound: &Receiver<Inbound<L>>) -> LevelData {
         tracing::info!("Stopping server");
+        self.notify_management(crate::management::ManagementNotice::Stopping);
         self.status.update(|status| status.ping = PingHook::Off);
         queued(inbound).for_each(drop);
         self.settle_every_lane();

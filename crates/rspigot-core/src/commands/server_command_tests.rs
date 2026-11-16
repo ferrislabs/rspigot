@@ -264,3 +264,22 @@ fn tellraw_and_title_reach_the_player() {
     );
     assert_eq!(rig.run("title @s times 1 2"), CommandOutcome::Failure);
 }
+
+#[test]
+fn save_all_reports_saving_then_success_and_accepts_flush() {
+    let mut rig = rig();
+    rig.texts();
+    assert_eq!(rig.run("save-all"), CommandOutcome::Success);
+    assert_eq!(rig.run("save-all flush"), CommandOutcome::Success);
+    assert_eq!(rig.run("save-all later"), CommandOutcome::Failure);
+    let texts = rig.texts();
+    assert_eq!(
+        texts[..2],
+        ["commands.save.saving", "commands.save.success"]
+    );
+    assert_eq!(
+        texts[2..4],
+        ["commands.save.saving", "commands.save.success"]
+    );
+    assert!(texts[4].contains("/save-all [flush]"));
+}

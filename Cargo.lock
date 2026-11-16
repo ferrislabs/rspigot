@@ -1421,18 +1421,21 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "crossbeam-channel",
+ "flate2",
  "rspigot-anvil",
  "rspigot-auth",
  "rspigot-blocks",
  "rspigot-core",
  "rspigot-data",
  "rspigot-domain",
+ "rspigot-management",
  "rspigot-nbt",
  "rspigot-network",
  "rspigot-plugins",
  "rspigot-worldgen",
  "serde_json",
  "serde_yaml_ng",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1558,6 +1561,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspigot-management"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "crossbeam-channel",
+ "rspigot-core",
+ "serde_json",
+ "sha1",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "rspigot-nbt"
 version = "0.1.0"
 dependencies = [
@@ -1586,6 +1605,7 @@ dependencies = [
  "rspigot-protocol",
  "rustc-hash",
  "serde_json",
+ "sha2",
  "thiserror",
  "tokio",
  "tracing",

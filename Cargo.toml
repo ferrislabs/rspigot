@@ -27,6 +27,7 @@ rspigot-plugin-protocol = { path = "crates/rspigot-plugin-protocol" }
 rspigot-plugin = { path = "crates/rspigot-plugin" }
 rspigot-plugin-macros = { path = "crates/rspigot-plugin-macros" }
 rspigot-plugins = { path = "crates/rspigot-plugins" }
+rspigot-management = { path = "crates/rspigot-management" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

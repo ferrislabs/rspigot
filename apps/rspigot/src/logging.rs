@@ -34,3 +34,32 @@ where
         writeln!(writer)
     }
 }
+
+pub struct FileFormat;
+
+impl<S, N> FormatEvent<S, N> for FileFormat
+where
+    S: Subscriber + for<'a> LookupSpan<'a>,
+    N: for<'a> FormatFields<'a> + 'static,
+{
+    fn format_event(
+        &self,
+        ctx: &FmtContext<'_, S, N>,
+        mut writer: Writer<'_>,
+        event: &Event<'_>,
+    ) -> fmt::Result {
+        let thread = std::thread::current();
+        let name = match thread.name() {
+            Some("main") | None => "Server thread",
+            Some(other) => other,
+        };
+        write!(
+            writer,
+            "[{}] [{name}/{}]: ",
+            chrono::Local::now().format("%H:%M:%S"),
+            event.metadata().level()
+        )?;
+        ctx.field_format().format_fields(writer.by_ref(), event)?;
+        writeln!(writer)
+    }
+}

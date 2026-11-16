@@ -117,7 +117,10 @@ pub trait CommandContext {
     fn set_difficulty(&mut self, difficulty: Difficulty);
     fn set_weather(&mut self, weather: Weather);
     fn set_world_spawn(&mut self, pos: BlockPos);
-    fn save_all(&mut self) -> usize;
+    fn save_all(&mut self, flush: bool) -> bool;
+    fn request_reload(&mut self, _whitelist_only: bool) -> bool {
+        false
+    }
     fn tps(&self) -> [f64; 3];
     fn stop(&mut self);
 
@@ -727,11 +730,14 @@ pub fn execute<C: CommandContext>(
         "clone" => super::blocks::clone(ctx, sender, rest),
         "weather" => weather(ctx, sender, &args),
         "setworldspawn" => set_world_spawn(ctx, sender, &args),
-        "save-all" => {
-            let count = ctx.save_all();
+        "save-all" => save_all(ctx, sender, rest),
+        "reload" => {
+            if !ctx.request_reload(false) {
+                return fail(ctx, sender, "commands.reload.failure", Vec::new());
+            }
             ctx.reply(
                 sender,
-                Component::text(format!("Saving the game ({count} chunks)")),
+                Component::translatable("commands.reload.success", Vec::new()),
             );
             CommandOutcome::Success
         }
@@ -1457,6 +1463,27 @@ const INSTANT_EFFECTS: [&str; 3] = [
     "minecraft:saturation",
 ];
 
+fn save_all<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -> CommandOutcome {
+    let flush = match rest.trim() {
+        "" => false,
+        "flush" => true,
+        _ => return usage(ctx, sender, "/save-all [flush]"),
+    };
+    ctx.reply(
+        sender,
+        Component::translatable("commands.save.saving", Vec::new()),
+    );
+    if !ctx.save_all(flush) {
+        return fail(ctx, sender, "commands.save.failed", Vec::new());
+    }
+    ctx.record_result(1);
+    ctx.reply(
+        sender,
+        Component::translatable("commands.save.success", Vec::new()),
+    );
+    CommandOutcome::Success
+}
+
 pub(super) fn fail<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -1781,7 +1808,12 @@ fn whitelist<C: CommandContext>(
                 );
             }
         }
-        (Some("reload"), _) => reply(ctx, "commands.whitelist.reloaded", Vec::new()),
+        (Some("reload"), _) => {
+            if !ctx.request_reload(true) {
+                return fail(ctx, sender, "commands.reload.failure", Vec::new());
+            }
+            reply(ctx, "commands.whitelist.reloaded", Vec::new())
+        }
         _ => {
             return usage(
                 ctx,
@@ -2092,6 +2124,7 @@ mod tests {
         teleports: Vec<(PlayerId, Vec3)>,
         day_time: i64,
         stopped: bool,
+        flushed: Vec<bool>,
         effects: Vec<(PlayerId, EffectInstance)>,
         cleared: Vec<(PlayerId, Option<EffectId>)>,
         refuse_effects: bool,
@@ -2284,8 +2317,9 @@ mod tests {
         fn set_difficulty(&mut self, _: Difficulty) {}
         fn set_weather(&mut self, _: Weather) {}
         fn set_world_spawn(&mut self, _: BlockPos) {}
-        fn save_all(&mut self) -> usize {
-            0
+        fn save_all(&mut self, flush: bool) -> bool {
+            self.flushed.push(flush);
+            true
         }
         fn tps(&self) -> [f64; 3] {
             [20.0; 3]

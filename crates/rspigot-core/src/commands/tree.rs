@@ -177,7 +177,9 @@ pub fn build_tree(level: u8) -> CommandTree {
         admin_commands(&mut b, root);
     }
     if level >= LEVEL_OWNERS {
-        for name in ["save-all", "save-on", "save-off", "stop"] {
+        let save_all = b.literal(root, "save-all", true);
+        b.literal(save_all, "flush", true);
+        for name in ["save-on", "save-off", "stop"] {
             b.literal(root, name, true);
         }
     }
@@ -1018,6 +1020,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     team_commands(b, root);
     bossbar_commands(b, root);
     b.literal(root, "seed", true);
+    b.literal(root, "reload", true);
     let say = b.literal(root, "say", false);
     b.argument(say, "message", ArgumentParser::Message, true);
     let gamemode = b.literal(root, "gamemode", false);
