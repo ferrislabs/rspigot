@@ -31,6 +31,12 @@ pub(crate) struct Rule {
 #[derive(Debug, Clone)]
 pub(crate) enum Step {
     IgnoreStructureBlock,
+    IgnoreAir,
+    BlockAge {
+        mossiness: f32,
+    },
+    LavaSubmerged,
+    Blackstone,
     JigsawReplacement,
     Rules(Vec<Rule>),
     BlockRot {
@@ -108,6 +114,14 @@ impl Test {
 }
 
 impl Rule {
+    pub(crate) fn replace(input: Test, output: BlockStateId) -> Self {
+        Self {
+            input,
+            location: Test::Always,
+            output,
+        }
+    }
+
     fn compile(value: &Value) -> Option<Self> {
         Some(Self {
             input: Test::compile(value.get("input_predicate")?)?,
@@ -175,6 +189,36 @@ impl Step {
         match self {
             Self::Nop => true,
             Self::IgnoreStructureBlock => subject.state.kind() != Some(BlockKind::StructureBlock),
+            Self::IgnoreAir => !matches!(
+                subject.state.kind(),
+                Some(BlockKind::Air | BlockKind::StructureBlock)
+            ),
+            Self::BlockAge { mossiness } => {
+                let mut random = JavaRandom::new(position_seed(subject.at));
+                if let Some(aged) = age(subject.state, *mossiness, &mut random) {
+                    subject.state = aged;
+                }
+                true
+            }
+            Self::LavaSubmerged => {
+                let world = run.region.get(subject.at.0, subject.at.1, subject.at.2);
+                if world.kind() == Some(BlockKind::Lava)
+                    && !subject
+                        .state
+                        .flags()
+                        .contains(rspigot_blocks::StateFlags::FULL_COLLISION_CUBE)
+                {
+                    subject.state = BlockKind::Lava.default_state();
+                    subject.nbt = None;
+                }
+                true
+            }
+            Self::Blackstone => {
+                if let Some(replaced) = blackstone(subject.state) {
+                    subject.state = replaced;
+                }
+                true
+            }
             Self::JigsawReplacement => {
                 if subject.state.kind() != Some(BlockKind::Jigsaw) {
                     return true;
@@ -260,4 +304,128 @@ pub(crate) fn steps_for(library: &Library, processors: &Processors) -> Vec<Step>
             .unwrap_or_default(),
         Processors::Inline(value) => compile_list(value),
     }
+}
+
+fn named(name: &str) -> Option<BlockKind> {
+    BlockKind::from_name(name)
+}
+
+fn with_properties_of(target: BlockKind, source: BlockStateId) -> BlockStateId {
+    source
+        .properties()
+        .fold(target.default_state(), |state, (key, value)| {
+            state.with_property(key, value).unwrap_or(state)
+        })
+}
+
+fn random_stairs(kind: BlockKind, random: &mut JavaRandom) -> BlockStateId {
+    let facing = ["north", "east", "south", "west"][random.next_int(4) as usize];
+    let half = ["top", "bottom"][random.next_int(2) as usize];
+    kind.state_with(&[("facing", facing), ("half", half)])
+        .unwrap_or(kind.default_state())
+}
+
+fn pick(
+    random: &mut JavaRandom,
+    mossiness: f32,
+    plain: &[BlockStateId],
+    mossy: &[BlockStateId],
+) -> BlockStateId {
+    let set = if random.next_float() < mossiness {
+        mossy
+    } else {
+        plain
+    };
+    set[random.next_int(set.len() as i32) as usize]
+}
+
+fn age(state: BlockStateId, mossiness: f32, random: &mut JavaRandom) -> Option<BlockStateId> {
+    let kind = state.kind()?;
+    let name = kind.name();
+    if matches!(
+        kind,
+        BlockKind::StoneBricks | BlockKind::Stone | BlockKind::ChiseledStoneBricks
+    ) {
+        if random.next_float() >= 0.5 {
+            return None;
+        }
+        let plain = [
+            BlockKind::CrackedStoneBricks.default_state(),
+            random_stairs(BlockKind::StoneBrickStairs, random),
+        ];
+        let mossy = [
+            BlockKind::MossyStoneBricks.default_state(),
+            random_stairs(BlockKind::MossyStoneBrickStairs, random),
+        ];
+        return Some(pick(random, mossiness, &plain, &mossy));
+    }
+    if name.ends_with("_stairs") {
+        if random.next_float() >= 0.5 {
+            return None;
+        }
+        let plain = [
+            BlockKind::StoneSlab.default_state(),
+            BlockKind::StoneBrickSlab.default_state(),
+        ];
+        let mossy = [
+            with_properties_of(BlockKind::MossyStoneBrickStairs, state),
+            BlockKind::MossyStoneBrickSlab.default_state(),
+        ];
+        return Some(pick(random, mossiness, &plain, &mossy));
+    }
+    if name.ends_with("_slab") {
+        return (random.next_float() < mossiness)
+            .then(|| with_properties_of(BlockKind::MossyStoneBrickSlab, state));
+    }
+    if name.ends_with("_wall") {
+        return (random.next_float() < mossiness)
+            .then(|| with_properties_of(BlockKind::MossyStoneBrickWall, state));
+    }
+    if kind == BlockKind::Obsidian {
+        return (random.next_float() < 0.15).then(|| BlockKind::CryingObsidian.default_state());
+    }
+    None
+}
+
+const BLACKSTONE: [(&str, &str); 24] = [
+    ("cobblestone", "blackstone"),
+    ("mossy_cobblestone", "blackstone"),
+    ("stone", "polished_blackstone"),
+    ("stone_bricks", "polished_blackstone_bricks"),
+    ("mossy_stone_bricks", "polished_blackstone_bricks"),
+    ("cobblestone_stairs", "blackstone_stairs"),
+    ("mossy_cobblestone_stairs", "blackstone_stairs"),
+    ("stone_stairs", "polished_blackstone_stairs"),
+    ("stone_brick_stairs", "polished_blackstone_brick_stairs"),
+    (
+        "mossy_stone_brick_stairs",
+        "polished_blackstone_brick_stairs",
+    ),
+    ("cobblestone_slab", "blackstone_slab"),
+    ("mossy_cobblestone_slab", "blackstone_slab"),
+    ("smooth_stone_slab", "polished_blackstone_slab"),
+    ("stone_slab", "polished_blackstone_slab"),
+    ("stone_brick_slab", "polished_blackstone_brick_slab"),
+    ("mossy_stone_brick_slab", "polished_blackstone_brick_slab"),
+    ("stone_brick_wall", "polished_blackstone_brick_wall"),
+    ("mossy_stone_brick_wall", "polished_blackstone_brick_wall"),
+    ("cobblestone_wall", "blackstone_wall"),
+    ("mossy_cobblestone_wall", "blackstone_wall"),
+    ("chiseled_stone_bricks", "chiseled_polished_blackstone"),
+    ("cracked_stone_bricks", "cracked_polished_blackstone_bricks"),
+    ("iron_bars", "iron_chain"),
+    ("stone_brick_stairs", "polished_blackstone_brick_stairs"),
+];
+
+fn blackstone(state: BlockStateId) -> Option<BlockStateId> {
+    let name = state.kind()?.name();
+    let (_, target) = BLACKSTONE.iter().find(|(source, _)| *source == name)?;
+    let kind = named(target)?;
+    let mut result = kind.default_state();
+    for key in ["facing", "half", "type"] {
+        if let Some(value) = state.property(key) {
+            result = result.with_property(key, value).unwrap_or(result);
+        }
+    }
+    Some(result)
 }

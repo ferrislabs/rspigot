@@ -16,6 +16,11 @@ impl BiomeProbe for Overworld<'_> {
             .biome_index(&mut self.scratch.borrow_mut(), qx, qy, qz)
     }
 
+    fn at_after(&self, qx: i32, qy: i32, qz: i32, last: &mut Option<usize>) -> u8 {
+        self.source
+            .biome_index_after(&mut self.scratch.borrow_mut(), last, qx, qy, qz)
+    }
+
     fn id(&self, name: &str) -> Option<u8> {
         overworld_biomes()
             .iter()
@@ -84,7 +89,7 @@ fn check(seed: i64, fixture: &str) {
             let ours = set.placement.rings(seed, &probe);
             assert_eq!(ours.len(), rings.len());
             let differing = ours.iter().zip(&rings).filter(|(a, b)| a != b).count();
-            assert!(differing <= 8, "{differing} rings differ");
+            assert_eq!(differing, 0, "{differing} rings differ");
             continue;
         }
         let in_world = chunks.iter().any(|(name, _, _)| *name == set.name);
@@ -485,7 +490,7 @@ mod custom {
                             let pos = BlockPos::new(cx * 16 + x, y, cz * 16 + z);
                             match column.block(pos).and_then(|state| state.kind()) {
                                 Some(BlockKind::GoldBlock) => gold += 1,
-                                Some(BlockKind::OakPlanks) => planks += 1,
+                                Some(BlockKind::OakPlanks) if y >= 54 => planks += 1,
                                 _ => {}
                             }
                         }
@@ -553,5 +558,426 @@ mod nether {
         }
         assert!(bricks > 200, "bricks {bricks}");
         assert!(recorded);
+    }
+}
+
+mod shaped {
+    use super::super::blueprint::Dir;
+    use super::super::shaped::mineshaft::{self, Piece, Type};
+    use super::super::structure::Structures;
+    use super::super::structure::valid_biomes;
+    use super::with_extras;
+    use crate::overworld::Overworld;
+    use crate::resources::Resources;
+    use rspigot_data::multi_noise::ClimateVariant;
+    use rspigot_domain::world::Dimension;
+
+    fn facing(dir: Option<Dir>) -> &'static str {
+        match dir {
+            None => "null",
+            Some(Dir::North) => "north",
+            Some(Dir::South) => "south",
+            Some(Dir::West) => "west",
+            Some(Dir::East) => "east",
+            Some(_) => "?",
+        }
+    }
+
+    fn describe(piece: &Piece) -> String {
+        let b = piece.bbox;
+        format!(
+            "{} {} {} {} {} {} {} {}",
+            piece.class(),
+            b.min.0,
+            b.min.1,
+            b.min.2,
+            b.max.0,
+            b.max.1,
+            b.max.2,
+            facing(piece.facing)
+        )
+    }
+
+    fn check_mine(seed: i64, name: &str, ty: Type, chunk: (i32, i32), fixture: &str) {
+        let resources = Resources::resolve();
+        let overworld = Overworld::with_library(
+            seed as u64,
+            ClimateVariant::Normal,
+            &resources.blocks,
+            with_extras(),
+        );
+        let dimension = Dimension::overworld();
+        let probe = overworld.biome_probe();
+        let ground = overworld.ground(&dimension);
+        let structures = Structures::load(with_extras());
+        let valid = valid_biomes(structures.get(name).unwrap(), &probe);
+        let pieces = mineshaft::generate(ty, &ground, &valid, &probe, seed, chunk)
+            .expect("start must be valid");
+        let want: Vec<&str> = fixture
+            .lines()
+            .filter(|line| line.starts_with("PIECE"))
+            .map(|line| line.splitn(3, ' ').nth(2).unwrap())
+            .collect();
+        for (index, (piece, want)) in pieces.iter().zip(&want).enumerate() {
+            assert_eq!(describe(piece), *want, "piece {index}");
+        }
+        assert_eq!(pieces.len(), want.len(), "piece count");
+    }
+
+    #[test]
+    fn mineshaft_layout_matches_vanilla_for_seed_one() {
+        check_mine(
+            1,
+            "mineshaft",
+            Type::Normal,
+            (10, 10),
+            include_str!("fixtures/mineshaft_1_10_10.txt"),
+        );
+    }
+
+    #[test]
+    fn mesa_mineshaft_layout_matches_vanilla() {
+        check_mine(
+            1,
+            "mineshaft_mesa",
+            Type::Mesa,
+            (-3000, 2901),
+            include_str!("fixtures/mineshaft_mesa_1_-3000_2901.txt"),
+        );
+    }
+
+    #[test]
+    fn a_mineshaft_is_built_into_the_generated_chunks() {
+        use rspigot_blocks::BlockKind;
+        use rspigot_domain::{BlockPos, ChunkPos};
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let mut recorded = false;
+        let mut cave_air = 0;
+        let mut planks = 0;
+        for cx in -36..=-30 {
+            for cz in 2..=8 {
+                let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+                if (cx, cz) == (-33, 5) {
+                    recorded = column
+                        .extra
+                        .get_compound("structures")
+                        .and_then(|tag| tag.get_compound("starts"))
+                        .is_some_and(|starts| starts.contains_key("minecraft:mineshaft"));
+                }
+                for y in -40..-8 {
+                    for x in 0..16 {
+                        for z in 0..16 {
+                            let state = column
+                                .block(BlockPos::new(cx * 16 + x, y, cz * 16 + z))
+                                .and_then(|state| state.kind());
+                            cave_air += usize::from(state == Some(BlockKind::CaveAir));
+                            planks += usize::from(state == Some(BlockKind::OakPlanks));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(recorded);
+        assert!(cave_air > 200, "cave air {cave_air}");
+        assert!(planks > 10, "planks {planks}");
+    }
+
+    fn check_stronghold(seed: i64, chunk: (i32, i32), fixture: &str) {
+        use super::super::shaped::stronghold;
+        let resources = Resources::resolve();
+        let overworld = Overworld::with_library(
+            seed as u64,
+            ClimateVariant::Normal,
+            &resources.blocks,
+            with_extras(),
+        );
+        let dimension = Dimension::overworld();
+        let probe = overworld.biome_probe();
+        let ground = overworld.ground(&dimension);
+        let structures = Structures::load(with_extras());
+        let valid = valid_biomes(structures.get("stronghold").unwrap(), &probe);
+        let pieces = stronghold::generate(&ground, &valid, &probe, seed, chunk)
+            .expect("start must be valid");
+        let want: Vec<&str> = fixture
+            .lines()
+            .filter(|line| line.starts_with("PIECE"))
+            .map(|line| line.splitn(3, ' ').nth(2).unwrap())
+            .collect();
+        for (index, (piece, want)) in pieces.iter().zip(&want).enumerate() {
+            let b = piece.bbox;
+            let got = format!(
+                "{} {} {} {} {} {} {} {}",
+                piece.class(),
+                b.min.0,
+                b.min.1,
+                b.min.2,
+                b.max.0,
+                b.max.1,
+                b.max.2,
+                facing(Some(piece.facing))
+            );
+            assert_eq!(got, *want, "piece {index}");
+        }
+        assert_eq!(pieces.len(), want.len(), "piece count");
+    }
+
+    #[test]
+    fn stronghold_layout_matches_vanilla_for_the_first_ring() {
+        check_stronghold(
+            1,
+            (-9, -113),
+            include_str!("fixtures/stronghold_1_-9_-113.txt"),
+        );
+    }
+
+    #[test]
+    fn a_small_stronghold_matches_vanilla() {
+        check_stronghold(
+            1,
+            (108, 44),
+            include_str!("fixtures/stronghold_1_108_44.txt"),
+        );
+    }
+
+    #[test]
+    fn a_stronghold_with_libraries_matches_vanilla() {
+        check_stronghold(
+            1,
+            (-71, 53),
+            include_str!("fixtures/stronghold_1_-71_53.txt"),
+        );
+    }
+
+    #[test]
+    fn a_west_facing_stronghold_matches_vanilla() {
+        check_stronghold(
+            1,
+            (165, -260),
+            include_str!("fixtures/stronghold_1_165_-260.txt"),
+        );
+    }
+
+    #[test]
+    fn a_stronghold_portal_room_is_built_into_the_generated_chunks() {
+        use rspigot_blocks::BlockKind;
+        use rspigot_domain::{BlockPos, ChunkPos};
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let mut frames = 0;
+        let mut spawners = 0;
+        for cx in -7..=-6 {
+            let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, -112));
+            spawners += column
+                .block_entities
+                .iter()
+                .filter(|entity| entity.kind.as_str() == "minecraft:mob_spawner")
+                .count();
+            for y in -44..=-37 {
+                for x in 0..16 {
+                    for z in 0..16 {
+                        let at = BlockPos::new(cx * 16 + x, y, -112 * 16 + z);
+                        let kind = column.block(at).and_then(|state| state.kind());
+                        frames += usize::from(kind == Some(BlockKind::EndPortalFrame));
+                    }
+                }
+            }
+        }
+        assert_eq!(frames, 12);
+        assert_eq!(spawners, 1);
+    }
+
+    fn check_portal(name: &str, chunk: (i32, i32), fixture: &str) {
+        use super::super::shaped::portal;
+        use super::super::structure::Kind;
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let probe = overworld.biome_probe();
+        let ground = overworld.ground(&dimension);
+        let structures = Structures::load(with_extras());
+        let def = structures.get(name).unwrap();
+        let Kind::RuinedPortal(setups) = &def.kind else {
+            panic!("not a ruined portal");
+        };
+        let valid = valid_biomes(def, &probe);
+        let piece = portal::generate(setups, with_extras(), &ground, &valid, &probe, 1, chunk)
+            .expect("start must be valid");
+        let b = piece.bbox;
+        let got = format!(
+            "{} {} {} {} {} {}",
+            b.min.0, b.min.1, b.min.2, b.max.0, b.max.1, b.max.2
+        );
+        let want = fixture
+            .lines()
+            .find(|line| line.starts_with("PIECE"))
+            .map(|line| {
+                line.splitn(4, ' ')
+                    .nth(3)
+                    .unwrap()
+                    .rsplit_once(' ')
+                    .unwrap()
+                    .0
+            })
+            .unwrap();
+        assert_eq!(got, want);
+    }
+
+    #[test]
+    fn an_underground_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal",
+            (-400, -374),
+            include_str!("fixtures/ruined_portal_1_-400_-374.txt"),
+        );
+    }
+
+    #[test]
+    fn a_surface_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal",
+            (-400, -348),
+            include_str!("fixtures/ruined_portal_1_-400_-348.txt"),
+        );
+    }
+
+    #[test]
+    fn a_giant_jungle_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal_jungle",
+            (-387, -88),
+            include_str!("fixtures/ruined_portal_jungle_1_-387_-88.txt"),
+        );
+    }
+
+    #[test]
+    fn a_swamp_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal_swamp",
+            (-283, -127),
+            include_str!("fixtures/ruined_portal_swamp_1_-283_-127.txt"),
+        );
+    }
+
+    #[test]
+    fn mountain_ruined_portals_match_vanilla() {
+        check_portal(
+            "ruined_portal_mountain",
+            (-374, -62),
+            include_str!("fixtures/ruined_portal_mountain_1_-374_-62.txt"),
+        );
+        check_portal(
+            "ruined_portal_mountain",
+            (-387, 55),
+            include_str!("fixtures/ruined_portal_mountain_1_-387_55.txt"),
+        );
+    }
+
+    #[test]
+    fn an_ocean_ruined_portal_matches_vanilla() {
+        check_portal(
+            "ruined_portal_ocean",
+            (-400, -192),
+            include_str!("fixtures/ruined_portal_ocean_1_-400_-192.txt"),
+        );
+    }
+
+    #[test]
+    fn a_ruined_portal_is_built_into_the_generated_chunks() {
+        use rspigot_blocks::BlockKind;
+        use rspigot_domain::{BlockPos, ChunkPos};
+        let resources = Resources::resolve();
+        let overworld =
+            Overworld::with_library(1, ClimateVariant::Normal, &resources.blocks, with_extras());
+        let dimension = Dimension::overworld();
+        let mut built = 0;
+        for (cx, cz) in [(-24, 15), (19, 18), (15, -40), (-16, -36)] {
+            let column = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+            let started = column
+                .extra
+                .get_compound("structures")
+                .and_then(|tag| tag.get_compound("starts"))
+                .is_some_and(|starts| {
+                    starts
+                        .iter()
+                        .any(|(key, _)| key.starts_with("minecraft:ruined_portal"))
+                });
+            if !started {
+                continue;
+            }
+            let mut frame = 0;
+            for y in -64..200 {
+                for x in 0..16 {
+                    for z in 0..16 {
+                        let kind = column
+                            .block(BlockPos::new(cx * 16 + x, y, cz * 16 + z))
+                            .and_then(|state| state.kind());
+                        frame += usize::from(matches!(
+                            kind,
+                            Some(BlockKind::Obsidian | BlockKind::CryingObsidian)
+                        ));
+                    }
+                }
+            }
+            if frame > 0 {
+                built += 1;
+            }
+        }
+        assert!(built >= 1, "ruined portals built {built}");
+    }
+
+    #[test]
+    fn a_ruined_portal_is_built_into_the_nether() {
+        use crate::nether::Nether;
+        use rspigot_blocks::BlockKind;
+        use rspigot_domain::{BlockPos, ChunkPos};
+        let resources = Resources::resolve();
+        let nether = Nether::with_library(1, &resources.blocks, with_extras());
+        let dimension = Dimension::nether();
+        let mut found = None;
+        'scan: for cx in -60..60 {
+            for cz in -60..60 {
+                if let Some(start) = nether
+                    .starts_near(&dimension, ChunkPos::new(cx, cz))
+                    .iter()
+                    .find(|start| start.name == "ruined_portal_nether" && start.chunk == (cx, cz))
+                {
+                    found = Some((cx, cz, start.bbox));
+                    break 'scan;
+                }
+            }
+        }
+        let (cx, cz, bbox) = found.expect("a nether portal start");
+        assert!((27..=100).contains(&bbox.min.1), "y {}", bbox.min.1);
+        let mut blackstone = 0;
+        for dx in -1..=1 {
+            for dz in -1..=1 {
+                let column =
+                    nether.generate(&resources, &dimension, ChunkPos::new(cx + dx, cz + dz));
+                for y in 0..128 {
+                    for z in 0..16 {
+                        for x in 0..16 {
+                            let pos = BlockPos::new((cx + dx) * 16 + x, y, (cz + dz) * 16 + z);
+                            let kind = column.block(pos).and_then(|state| state.kind());
+                            blackstone += usize::from(matches!(
+                                kind,
+                                Some(
+                                    BlockKind::Blackstone
+                                        | BlockKind::PolishedBlackstone
+                                        | BlockKind::PolishedBlackstoneBricks
+                                        | BlockKind::CrackedPolishedBlackstoneBricks
+                                )
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(blackstone > 5, "blackstone {blackstone}");
     }
 }

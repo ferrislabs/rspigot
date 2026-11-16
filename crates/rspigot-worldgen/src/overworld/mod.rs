@@ -74,9 +74,19 @@ pub(crate) struct Overworld {
     cache: Arc<Mutex<TerrainCache>>,
     heights: Arc<Mutex<HeightCache>>,
     structures: Arc<Engine>,
+    cells: Arc<Mutex<CellCache>>,
+    spawned: Arc<Mutex<Spawned>>,
 }
 
+type Spawned = HashMap<(i32, i32), Vec<rspigot_nbt::Compound>>;
+
 pub(crate) type ColumnHeights = [(i32, i32); 256];
+
+#[derive(Debug, Default)]
+pub(crate) struct CellCache {
+    map: HashMap<(i32, i32), Arc<Vec<Cell>>>,
+    order: VecDeque<(i32, i32)>,
+}
 
 #[derive(Debug, Default)]
 pub(crate) struct HeightCache {
@@ -118,6 +128,8 @@ impl Overworld {
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
             heights: Arc::new(Mutex::new(HeightCache::default())),
             structures: Arc::new(Engine::new(seed as i64, &probe, library)),
+            cells: Arc::default(),
+            spawned: Arc::default(),
         }
     }
 
@@ -154,6 +166,30 @@ impl Overworld {
             }
         }
         heights
+    }
+
+    pub(crate) fn base_cells(&self, cx: i32, cz: i32) -> Arc<Vec<Cell>> {
+        if let Some(found) = self
+            .cells
+            .lock()
+            .ok()
+            .and_then(|cache| cache.map.get(&(cx, cz)).cloned())
+        {
+            return found;
+        }
+        let mut sampler = self.terrain.sampler();
+        let cells = Arc::new(self.terrain.fill(&mut sampler, cx * 16, cz * 16));
+        if let Ok(mut cache) = self.cells.lock()
+            && cache.map.insert((cx, cz), cells.clone()).is_none()
+        {
+            cache.order.push_back((cx, cz));
+            while cache.order.len() > 16 {
+                if let Some(old) = cache.order.pop_front() {
+                    cache.map.remove(&old);
+                }
+            }
+        }
+        cells
     }
 
     pub(crate) fn biome_probe(&self) -> OverworldProbe<'_> {
@@ -299,6 +335,12 @@ impl Overworld {
             Some((&self.structures, &starts)),
         );
         let block_entities = std::mem::take(&mut region.block_entities);
+        let spawned = crate::structures::spawned_entities(std::mem::take(&mut region.entities));
+        if !spawned.is_empty()
+            && let Ok(mut pending) = self.spawned.lock()
+        {
+            pending.insert((pos.x, pos.z), spawned);
+        }
         let (mut buffer, indices) = region.finish();
         let biome_index = |x: usize, y: i32, z: usize| {
             let layer = ((y.clamp(min_y, height.max_y()) - min_y) >> 2) as usize;
@@ -335,7 +377,13 @@ impl Overworld {
         let starts = self
             .structures
             .starts_near(&self.ground(dimension), &probe, (pos.x, pos.z));
-        crate::structures::chunk_entities(&starts, (pos.x, pos.z))
+        let mut entities = crate::structures::chunk_entities(&starts, (pos.x, pos.z));
+        if let Ok(mut pending) = self.spawned.lock()
+            && let Some(extra) = pending.remove(&(pos.x, pos.z))
+        {
+            entities.extend(extra);
+        }
+        entities
     }
 
     pub(crate) fn spawn_point(&self, resources: &Resources, dimension: &Dimension) -> Vec3 {
@@ -409,6 +457,11 @@ impl crate::structures::BiomeProbe for OverworldProbe<'_> {
             .biome_index(&mut self.scratch.borrow_mut(), qx, qy, qz)
     }
 
+    fn at_after(&self, qx: i32, qy: i32, qz: i32, last: &mut Option<usize>) -> u8 {
+        self.source
+            .biome_index_after(&mut self.scratch.borrow_mut(), last, qx, qy, qz)
+    }
+
     fn id(&self, name: &str) -> Option<u8> {
         overworld_biomes()
             .iter()
@@ -421,6 +474,7 @@ pub(crate) struct OverworldGround<'a> {
     overworld: &'a Overworld,
     min_y: i32,
     max_y: i32,
+    sea_level: i32,
 }
 
 impl crate::structures::Ground for OverworldGround<'_> {
@@ -440,6 +494,28 @@ impl crate::structures::Ground for OverworldGround<'_> {
     fn max_y(&self) -> i32 {
         self.max_y
     }
+
+    fn base(&self, x: i32, y: i32, z: i32) -> crate::structures::Base {
+        use crate::structures::Base;
+        if y < self.min_y || y > self.max_y {
+            return Base::Air;
+        }
+        let cells = self.overworld.base_cells(x >> 4, z >> 4);
+        let index = (((y - self.min_y) * 16 + (z & 15)) * 16 + (x & 15)) as usize;
+        match cells.get(index) {
+            Some(Cell::Default) => Base::Solid,
+            Some(Cell::Water) => Base::Water,
+            Some(Cell::Lava) => Base::Lava,
+            _ => Base::Air,
+        }
+    }
+
+    fn cold(&self, biome: u8, x: i32, y: i32, z: i32) -> bool {
+        !self
+            .overworld
+            .surface
+            .warm_enough_to_rain(biome, x, y, z, self.sea_level)
+    }
 }
 
 impl Overworld {
@@ -448,6 +524,7 @@ impl Overworld {
             overworld: self,
             min_y: dimension.height.min_y,
             max_y: dimension.height.max_y(),
+            sea_level: dimension.sea_level,
         }
     }
 }
