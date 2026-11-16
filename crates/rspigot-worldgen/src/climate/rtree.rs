@@ -165,6 +165,15 @@ impl Index {
         self.biomes[leaf]
     }
 
+    pub(crate) fn find_after(&self, target: &[i64; 6], last: &mut Option<usize>) -> u8 {
+        let full = [
+            target[0], target[1], target[2], target[3], target[4], target[5], 0,
+        ];
+        let leaf = self.search(&self.root, &full, *last);
+        *last = Some(leaf);
+        self.biomes[leaf]
+    }
+
     fn node_space<'a>(&'a self, node: &'a Tree) -> &'a Space {
         match node {
             Tree::Leaf(i) => &self.spaces[*i],

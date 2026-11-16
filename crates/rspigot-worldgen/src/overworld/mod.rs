@@ -423,6 +423,11 @@ impl crate::structures::BiomeProbe for OverworldProbe<'_> {
             .biome_index(&mut self.scratch.borrow_mut(), qx, qy, qz)
     }
 
+    fn at_after(&self, qx: i32, qy: i32, qz: i32, last: &mut Option<usize>) -> u8 {
+        self.source
+            .biome_index_after(&mut self.scratch.borrow_mut(), last, qx, qy, qz)
+    }
+
     fn id(&self, name: &str) -> Option<u8> {
         overworld_biomes()
             .iter()

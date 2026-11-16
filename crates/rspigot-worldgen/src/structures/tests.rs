@@ -16,6 +16,11 @@ impl BiomeProbe for Overworld<'_> {
             .biome_index(&mut self.scratch.borrow_mut(), qx, qy, qz)
     }
 
+    fn at_after(&self, qx: i32, qy: i32, qz: i32, last: &mut Option<usize>) -> u8 {
+        self.source
+            .biome_index_after(&mut self.scratch.borrow_mut(), last, qx, qy, qz)
+    }
+
     fn id(&self, name: &str) -> Option<u8> {
         overworld_biomes()
             .iter()
@@ -84,7 +89,7 @@ fn check(seed: i64, fixture: &str) {
             let ours = set.placement.rings(seed, &probe);
             assert_eq!(ours.len(), rings.len());
             let differing = ours.iter().zip(&rings).filter(|(a, b)| a != b).count();
-            assert!(differing <= 8, "{differing} rings differ");
+            assert_eq!(differing, 0, "{differing} rings differ");
             continue;
         }
         let in_world = chunks.iter().any(|(name, _, _)| *name == set.name);

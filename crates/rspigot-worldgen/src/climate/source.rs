@@ -50,6 +50,18 @@ impl BiomeSource {
         self.index.find(&target)
     }
 
+    pub(crate) fn biome_index_after(
+        &self,
+        scratch: &mut ClimateScratch,
+        last: &mut Option<usize>,
+        qx: i32,
+        qy: i32,
+        qz: i32,
+    ) -> u8 {
+        let target = self.target(scratch, qx, qy, qz);
+        self.index.find_after(&target, last)
+    }
+
     #[cfg(test)]
     pub(crate) fn biome(
         &self,
