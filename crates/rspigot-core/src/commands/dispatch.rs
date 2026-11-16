@@ -455,6 +455,14 @@ pub trait CommandContext {
         false
     }
 
+    fn world_height(&self) -> (i32, i32) {
+        (-64, 319)
+    }
+
+    fn random_seed(&mut self) -> u64 {
+        0x2545_F491_4F6C_DD1D
+    }
+
     fn set_chunk_forced(&mut self, _x: i32, _z: i32, _forced: bool) -> bool {
         false
     }
@@ -682,7 +690,9 @@ pub fn execute<C: CommandContext>(
             super::movement_commands::run(ctx, sender, &label, rest)
         }
         "tick" => super::tick_commands::run(ctx, sender, rest),
-        "forceload" | "worldborder" => super::world_commands::run(ctx, sender, &label, rest),
+        "forceload" | "worldborder" | "spreadplayers" => {
+            super::world_commands::run(ctx, sender, &label, rest)
+        }
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),

@@ -1,9 +1,13 @@
 use rspigot_domain::text::Component;
 
+use rspigot_blocks::BlockKind;
+use rspigot_domain::spread::{self, Bounds, Point};
 use rspigot_domain::world_border::{MAX_CENTER, MAX_SIZE};
+use rspigot_domain::{BlockPos, Vec3};
 
 use super::dispatch::{
-    CommandContext, CommandOutcome, CommandSender, fail, next_argument, parse_time, usage,
+    CommandContext, CommandOutcome, CommandSender, Target, fail, next_argument, parse_time, select,
+    usage,
 };
 
 const MAX_FORCED_AREA: i64 = 256;
@@ -544,6 +548,239 @@ fn border_warning<C: CommandContext>(
     }
 }
 
+fn java_float(value: f32) -> String {
+    if value.fract() == 0.0 {
+        format!("{value:.1}")
+    } else {
+        value.to_string()
+    }
+}
+
+fn spawn_height<C: CommandContext>(ctx: &C, x: f64, z: f64, max_height: i32) -> i32 {
+    let (min_y, _) = ctx.world_height();
+    let column = (x.floor() as i32, z.floor() as i32);
+    let air = |y: i32| {
+        ctx.block_state_at(BlockPos::new(column.0, y, column.1))
+            .is_none_or(|state| state.is_air())
+    };
+    let mut y = max_height + 1;
+    let mut above = air(y);
+    y -= 1;
+    let mut here = air(y);
+    while y > min_y {
+        y -= 1;
+        let below = air(y);
+        if !below && here && above {
+            return y + 1;
+        }
+        above = here;
+        here = below;
+    }
+    max_height + 1
+}
+
+fn safe_spot<C: CommandContext>(ctx: &C, point: Point, max_height: i32) -> bool {
+    let y = spawn_height(ctx, point.x, point.z, max_height) - 1;
+    if y >= max_height {
+        return false;
+    }
+    let pos = BlockPos::new(point.x.floor() as i32, y, point.z.floor() as i32);
+    ctx.block_state_at(pos).is_none_or(|state| {
+        !state.flags().has_fluid()
+            && !matches!(state.kind(), Some(BlockKind::Fire | BlockKind::SoulFire))
+    })
+}
+
+fn splitmix(state: &mut u64) -> f64 {
+    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    let mut z = *state;
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^= z >> 31;
+    (z >> 11) as f64 / (1u64 << 53) as f64
+}
+
+fn spreadplayers<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    rest: &str,
+) -> CommandOutcome {
+    let help = "/spreadplayers <center> <spreadDistance> <maxRange> [under <maxHeight>] <respectTeams> <targets>";
+    let origin = ctx.sender_origin(sender);
+    let coordinate = |raw: &str, base: f64| -> Result<f64, Component> {
+        let (relative, body) = match raw.strip_prefix('~') {
+            Some(body) => (true, body),
+            None => (false, raw),
+        };
+        let value = if relative && body.is_empty() {
+            0.0
+        } else {
+            body.parse::<f64>()
+                .map_err(|_| Component::translatable("parsing.double.invalid", vec![text(body)]))?
+        };
+        Ok(if relative { base + value } else { value })
+    };
+    let Some((raw_x, rest)) = next_argument(rest) else {
+        return usage(ctx, sender, help);
+    };
+    let Some((raw_z, rest)) = next_argument(rest) else {
+        return usage(ctx, sender, help);
+    };
+    let (center_x, center_z) = match (coordinate(raw_x, origin.x), coordinate(raw_z, origin.z)) {
+        (Ok(x), Ok(z)) => (x as f32, z as f32),
+        (Err(error), _) | (_, Err(error)) => {
+            return super::server_commands::reply_err(ctx, sender, error);
+        }
+    };
+    let Some((raw_spread, rest)) = next_argument(rest) else {
+        return usage(ctx, sender, help);
+    };
+    let Some((raw_range, rest)) = next_argument(rest) else {
+        return usage(ctx, sender, help);
+    };
+    let spread_distance = match number(raw_spread, 0.0, f64::from(f32::MAX)) {
+        Ok(value) => value,
+        Err(error) => return super::server_commands::reply_err(ctx, sender, error),
+    };
+    let max_range = match number(raw_range, 1.0, f64::from(f32::MAX)) {
+        Ok(value) => value,
+        Err(error) => return super::server_commands::reply_err(ctx, sender, error),
+    };
+    let (min_y, top) = ctx.world_height();
+    let mut max_height = top;
+    let mut rest = rest;
+    if next_argument(rest).map(|(word, _)| word) == Some("under") {
+        let Some((_, after)) = next_argument(rest) else {
+            return usage(ctx, sender, help);
+        };
+        let Some((raw_height, after)) = next_argument(after) else {
+            return usage(ctx, sender, help);
+        };
+        let Ok(height) = raw_height.parse::<i32>() else {
+            return fail(ctx, sender, "parsing.int.invalid", vec![text(raw_height)]);
+        };
+        max_height = height;
+        rest = after;
+    }
+    let Some((raw_teams, rest)) = next_argument(rest) else {
+        return usage(ctx, sender, help);
+    };
+    let respect_teams = match raw_teams {
+        "true" => true,
+        "false" => false,
+        _ => return fail(ctx, sender, "parsing.bool.invalid", vec![text(raw_teams)]),
+    };
+    let Some((selector, _)) = next_argument(rest) else {
+        return usage(ctx, sender, help);
+    };
+    let targets = match select(ctx, sender, Some(selector)) {
+        Ok(found) => found,
+        Err(outcome) => return outcome,
+    };
+    if max_height < min_y {
+        return fail(
+            ctx,
+            sender,
+            "commands.spreadplayers.failed.invalid.height",
+            vec![text(max_height), text(min_y)],
+        );
+    }
+    let groups: Vec<Option<String>> = targets
+        .iter()
+        .map(|target| match target {
+            Target::Player(_) if respect_teams => {
+                ctx.score_holder_name(*target).and_then(|holder| {
+                    ctx.scoreboard()
+                        .team_of(&holder)
+                        .map(|team| team.name.clone())
+                })
+            }
+            _ => None,
+        })
+        .collect();
+    let mut teams: Vec<Option<String>> = Vec::new();
+    for group in &groups {
+        if !teams.contains(group) {
+            teams.push(group.clone());
+        }
+    }
+    let count = if respect_teams {
+        teams.len()
+    } else {
+        targets.len()
+    };
+    let mut seed = ctx.random_seed();
+    let bounds = Bounds::around(f64::from(center_x), f64::from(center_z), max_range);
+    let placed = spread::spread(
+        count,
+        spread_distance,
+        bounds,
+        || splitmix(&mut seed),
+        |point| safe_spot(ctx, point, max_height),
+    );
+    let points = match placed {
+        Ok(points) => points,
+        Err(failure) => {
+            let key = if respect_teams {
+                "commands.spreadplayers.failed.teams"
+            } else {
+                "commands.spreadplayers.failed.entities"
+            };
+            return fail(
+                ctx,
+                sender,
+                key,
+                vec![
+                    text(count),
+                    text(java_float(center_x)),
+                    text(java_float(center_z)),
+                    text(format!("{:.2}", failure.smallest_distance)),
+                ],
+            );
+        }
+    };
+    let mut total = 0.0;
+    for (index, target) in targets.iter().enumerate() {
+        let slot = if respect_teams {
+            teams
+                .iter()
+                .position(|team| *team == groups[index])
+                .unwrap_or(0)
+        } else {
+            index
+        };
+        let point = points[slot];
+        let y = spawn_height(ctx, point.x, point.z, max_height);
+        let spot = Vec3::new(point.x.floor() + 0.5, f64::from(y), point.z.floor() + 0.5);
+        ctx.teleport_target(*target, spot);
+        total += spread::nearest_distance(&points, slot);
+    }
+    let average = if targets.len() < 2 {
+        0.0
+    } else {
+        total / targets.len() as f64
+    };
+    let key = if respect_teams {
+        "commands.spreadplayers.success.teams"
+    } else {
+        "commands.spreadplayers.success.entities"
+    };
+    ctx.record_result(i32::try_from(points.len()).unwrap_or(i32::MAX));
+    ctx.reply(
+        sender,
+        Component::translatable(
+            key,
+            vec![
+                text(points.len()),
+                text(java_float(center_x)),
+                text(java_float(center_z)),
+                text(format!("{average:.2}")),
+            ],
+        ),
+    );
+    CommandOutcome::Success
+}
+
 pub(super) fn run<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -552,6 +789,7 @@ pub(super) fn run<C: CommandContext>(
 ) -> CommandOutcome {
     match label {
         "worldborder" => worldborder(ctx, sender, rest),
+        "spreadplayers" => spreadplayers(ctx, sender, rest),
         _ => forceload(ctx, sender, rest),
     }
 }

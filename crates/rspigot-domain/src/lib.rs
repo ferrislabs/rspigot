@@ -50,6 +50,7 @@ pub mod scoreboard;
 pub mod smithing;
 pub mod spawn;
 pub mod spawner;
+pub mod spread;
 pub mod stonecutting;
 pub mod text;
 pub mod tick_rate;

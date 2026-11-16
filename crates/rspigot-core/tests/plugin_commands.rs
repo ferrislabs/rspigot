@@ -2,7 +2,9 @@ mod common;
 
 use common::*;
 use rspigot_core::events::{ClientEvent, Inbound, PlayerInput};
-use rspigot_core::plugins::events::{EntityDamageCause, PlayerSpawnChangeCause};
+use rspigot_core::plugins::events::{
+    EntityDamageCause, PlayerSpawnChangeCause, PlayerTeleportCause,
+};
 use rspigot_core::plugins::{EventKind, EventPayload, PlayerOrder};
 use rspigot_domain::Vec3;
 
@@ -158,4 +160,16 @@ fn a_joining_player_receives_the_world_border() {
             .iter()
             .any(|event| matches!(event, ClientEvent::Border(_)))
     );
+}
+
+#[test]
+fn spreadplayers_teleports_a_player_with_the_command_cause() {
+    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::PlayerTeleport)]);
+    console(&mut s, "spreadplayers 0 0 1 8 under 70 false Alice");
+    let heard = settled_for(&s.plugin, EventKind::PlayerTeleport);
+    assert_eq!(heard.len(), 1);
+    let EventPayload::PlayerTeleport(event) = &heard[0].payload else {
+        panic!("expected a teleport");
+    };
+    assert_eq!(event.cause, PlayerTeleportCause::Command);
 }

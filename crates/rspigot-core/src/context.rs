@@ -550,6 +550,15 @@ impl<L: ClientLink> CommandContext for Server<L> {
         result
     }
 
+    fn world_height(&self) -> (i32, i32) {
+        let height = self.world.dimension.height;
+        (height.min_y, height.min_y + height.height as i32 - 1)
+    }
+
+    fn random_seed(&mut self) -> u64 {
+        rand::Rng::random::<u64>(&mut self.rng)
+    }
+
     fn set_chunk_forced(&mut self, x: i32, z: i32, forced: bool) -> bool {
         self.world
             .chunks

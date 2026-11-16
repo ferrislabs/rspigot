@@ -334,3 +334,95 @@ fn the_border_survives_a_restart_through_the_level() {
     assert_eq!(restored.world.border.size(0), 300.0);
     assert_eq!(restored.world.border.center(), (5.0, 6.0));
 }
+
+fn pig_positions(rig: &Rig) -> Vec<(f64, f64, f64)> {
+    rig.server
+        .select_entities(CommandSender::Player(rig.id), "@e[type=pig]")
+        .expect("parses")
+        .into_iter()
+        .filter_map(|target| rig.server.target_position(target))
+        .map(|at| (at.x, at.y, at.z))
+        .collect()
+}
+
+fn floored(rig: &mut Rig) {
+    assert_eq!(
+        rig.run("fill -12 63 -12 12 63 12 minecraft:stone"),
+        CommandOutcome::Success
+    );
+    rig.texts();
+}
+
+#[test]
+fn spreadplayers_scatters_entities_over_the_floor_at_least_the_distance_apart() {
+    let mut rig = rig();
+    floored(&mut rig);
+    for index in 0..3 {
+        rig.run(&format!("summon minecraft:pig {index} 70 {index}"));
+    }
+    rig.texts();
+    assert_eq!(
+        rig.run("spreadplayers 0 0 6 10 under 70 false @e[type=pig]"),
+        CommandOutcome::Success
+    );
+    let spots = pig_positions(&rig);
+    assert_eq!(spots.len(), 3);
+    for (index, (x, y, z)) in spots.iter().enumerate() {
+        assert_eq!(*y, 64.0);
+        assert!(x.abs() <= 10.5 && z.abs() <= 10.5, "{x} {z}");
+        for (other_x, _, other_z) in &spots[index + 1..] {
+            assert!((x - other_x).hypot(z - other_z) >= 4.0);
+        }
+    }
+    let texts = rig.texts();
+    assert!(
+        texts[0].starts_with("commands.spreadplayers.success.entities 3 0.0 0.0 "),
+        "{texts:?}"
+    );
+}
+
+#[test]
+fn spreadplayers_with_teams_puts_a_team_on_one_spot() {
+    let mut rig = rig();
+    floored(&mut rig);
+    rig.run("team add red");
+    rig.run("team join red Alice");
+    rig.run("summon minecraft:pig 0 70 0");
+    rig.texts();
+    assert_eq!(
+        rig.run("spreadplayers 0 0 6 10 under 70 true @e"),
+        CommandOutcome::Success
+    );
+    let texts = rig.texts();
+    assert!(
+        texts[0].starts_with("commands.spreadplayers.success.teams 2 0.0 0.0 "),
+        "{texts:?}"
+    );
+}
+
+#[test]
+fn spreadplayers_fails_when_there_is_no_room_or_the_height_is_below_the_world() {
+    let mut rig = rig();
+    floored(&mut rig);
+    for index in 0..3 {
+        rig.run(&format!("summon minecraft:pig {index} 70 {index}"));
+    }
+    rig.texts();
+    assert_eq!(
+        rig.run("spreadplayers 0 0 100 1 under 70 false @e[type=pig]"),
+        CommandOutcome::Failure
+    );
+    assert!(rig.texts()[0].starts_with("commands.spreadplayers.failed.entities 3 0.0 0.0 "),);
+    assert_eq!(
+        rig.run("spreadplayers 0 0 1 10 under -100 false @e[type=pig]"),
+        CommandOutcome::Failure
+    );
+    assert_eq!(
+        rig.texts(),
+        ["commands.spreadplayers.failed.invalid.height -100 -64"]
+    );
+    assert_eq!(
+        rig.run("spreadplayers 0 0 1 0.5 false @e[type=pig]"),
+        CommandOutcome::Failure
+    );
+}
