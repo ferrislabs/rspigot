@@ -4,6 +4,7 @@ use rspigot_domain::{BlockPos, BlockStateId, EntityId, Identifier, Rotation, Vec
 use rspigot_entities::EntityKind as Kind;
 use rspigot_nbt::Tag;
 
+use crate::advancements::AdvancementEvent;
 use crate::end_platform;
 use crate::events::{ClientEvent, GameEvent};
 use crate::nether_portal::NetherExit;
@@ -556,6 +557,9 @@ impl<L: ClientLink> Server<L> {
                 }))
             },
         );
+        let mut event = AdvancementEvent::named("minecraft:changed_dimension");
+        event.to = Some(self.world.dimension.key.to_string());
+        self.trigger_event(id, event);
     }
 
     fn may_travel(&self, id: EntityId) -> bool {

@@ -9,6 +9,7 @@ use rspigot_domain::menu::Clicker;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_entities::SoundSource;
 
+use crate::advancements::AdvancementEvent;
 use crate::plugins::events::{EnchantItem, EnchantItemPatch, PrepareItemEnchant};
 use crate::plugins::views::Window;
 use crate::plugins::{Access, Continuation, EnchantOffer, EventKind, EventPayload, Lane, spec_of};
@@ -290,5 +291,6 @@ impl<L: ClientLink> Server<L> {
         self.sync_menu_data();
         self.sync_inventory(id);
         self.after_enchant_slots(id);
+        self.trigger_event(id, AdvancementEvent::named("minecraft:enchanted_item"));
     }
 }

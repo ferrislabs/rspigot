@@ -222,7 +222,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn motion_blocking_top(&self, x: i32, z: i32) -> i32 {
+    pub(crate) fn motion_blocking_top(&self, x: i32, z: i32) -> i32 {
         let height = self.world.dimension.height;
         let pos = BlockPos::new(x, height.min_y, z);
         let Some(chunk) = self.world.chunks.get(pos.chunk()) else {

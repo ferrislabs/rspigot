@@ -1,4 +1,5 @@
 pub mod admin;
+mod advancement_conditions;
 pub mod advancements;
 mod anvil;
 mod armor_stand;
@@ -132,6 +133,7 @@ mod tag_query;
 mod tamable;
 mod throwing;
 mod thrown;
+mod thunder;
 mod tnt;
 mod totem;
 mod trader_spawner;

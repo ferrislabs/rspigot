@@ -137,6 +137,7 @@ impl<L: ClientLink> Server<L> {
         match holder {
             Holder::Player(id) => {
                 if self.held(id, hand).as_ref() == Some(totem) {
+                    self.trigger_item(id, "minecraft:used_totem", totem);
                     self.shrink_held(id, hand, 1);
                     self.refresh_hands(id);
                 }
