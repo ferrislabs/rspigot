@@ -136,6 +136,25 @@ impl Attributes {
         self
     }
 
+    pub fn with_instance(mut self, edit: &crate::entity::living::AttributeInstance) -> Self {
+        match self
+            .states
+            .iter_mut()
+            .find(|s| s.attribute == edit.attribute)
+        {
+            Some(state) => {
+                state.base = edit.base;
+                state.modifiers.extend(edit.modifiers.iter().cloned());
+            }
+            None => self.states.push(AttributeState {
+                attribute: edit.attribute,
+                base: edit.base,
+                modifiers: edit.modifiers.clone(),
+            }),
+        }
+        self
+    }
+
     pub fn get(&self, attribute: &str) -> f64 {
         self.states
             .iter()

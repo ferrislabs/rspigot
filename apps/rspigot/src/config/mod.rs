@@ -50,6 +50,9 @@ impl ServerFiles {
         let p = &self.properties;
         GameConfig {
             max_players: p.int("max-players", 20).clamp(0, i64::from(i32::MAX)) as u32,
+            player_idle_timeout: p
+                .int("player-idle-timeout", 0)
+                .clamp(0, i64::from(i32::MAX)) as u32,
             view_distance: self.distance("world-settings.default.view-distance", "view-distance"),
             simulation_distance: self.distance(
                 "world-settings.default.simulation-distance",

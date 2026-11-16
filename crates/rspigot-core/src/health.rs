@@ -299,8 +299,12 @@ pub(crate) fn equipment(inventory: &Inventory) -> Vec<(ItemSlot, ItemId)> {
 }
 
 pub(crate) fn attributes<L>(player: &Player<L>) -> Attributes {
-    Attributes::of(&player.effects, &equipment(&player.inventory))
-        .with_base(MOVEMENT_SPEED, f64::from(player.walk_speed))
+    let derived = Attributes::of(&player.effects, &equipment(&player.inventory))
+        .with_base(MOVEMENT_SPEED, f64::from(player.walk_speed));
+    player
+        .attribute_edits
+        .iter()
+        .fold(derived, |attributes, edit| attributes.with_instance(edit))
 }
 
 pub(crate) fn max_health<L>(player: &Player<L>) -> f32 {
@@ -933,6 +937,7 @@ impl<L: ClientLink> Server<L> {
         });
         self.teleport_now(id, if elsewhere { spawn } else { position });
         let time = self.time_event();
+        let border = self.border_event();
         let difficulty = self.world.difficulty;
         let raining = self.world.level.raining;
         let thundering = self.world.level.thundering;
@@ -961,6 +966,7 @@ impl<L: ClientLink> Server<L> {
             level: player.permission_level(),
         });
         link.send(time);
+        link.send(border);
         if raining {
             link.send(ClientEvent::GameEvent(GameEvent::StartRaining));
             link.send(ClientEvent::GameEvent(GameEvent::RainLevelChange(1.0)));

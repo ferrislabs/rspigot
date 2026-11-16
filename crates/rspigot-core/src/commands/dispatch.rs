@@ -412,6 +412,22 @@ pub trait CommandContext {
         false
     }
 
+    fn world_border(&self) -> rspigot_domain::world_border::WorldBorder;
+
+    fn world_game_time(&self) -> i64;
+
+    fn change_world_border<R>(
+        &mut self,
+        change: impl FnOnce(&mut rspigot_domain::world_border::WorldBorder, i64) -> R,
+    ) -> R;
+
+    fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate;
+
+    fn change_tick_rate<R>(
+        &mut self,
+        change: impl FnOnce(&mut rspigot_domain::tick_rate::TickRate) -> R,
+    ) -> R;
+
     fn scoreboard(&self) -> &Scoreboard;
 
     fn change_scoreboard<R>(
@@ -428,6 +444,162 @@ pub trait CommandContext {
     }
 
     fn function_exists(&self, _id: &Identifier) -> bool {
+        false
+    }
+
+    fn player_ids(&self) -> Vec<PlayerId> {
+        Vec::new()
+    }
+
+    fn is_living(&self, _target: Target) -> bool {
+        false
+    }
+
+    fn world_height(&self) -> (i32, i32) {
+        (-64, 319)
+    }
+
+    fn transfer_player(&mut self, _player: PlayerId, _host: &str, _port: i32) {}
+
+    fn set_idle_timeout(&mut self, _minutes: u32) {}
+
+    fn start_profiler(&mut self) -> bool {
+        false
+    }
+
+    fn stop_profiler(&mut self) -> Option<(f64, i64)> {
+        None
+    }
+
+    fn fill_biome(
+        &mut self,
+        _min: BlockPos,
+        _max: BlockPos,
+        _biome: u16,
+        _replaceable: Option<&[u16]>,
+    ) -> Result<i32, super::FillBiomeProblem> {
+        Err(super::FillBiomeProblem::NotLoaded)
+    }
+
+    fn random_seed(&mut self) -> u64 {
+        0x2545_F491_4F6C_DD1D
+    }
+
+    fn set_chunk_forced(&mut self, _x: i32, _z: i32, _forced: bool) -> bool {
+        false
+    }
+
+    fn forced_chunks(&self) -> Vec<(i32, i32)> {
+        Vec::new()
+    }
+
+    fn is_chunk_forced(&self, _x: i32, _z: i32) -> bool {
+        false
+    }
+
+    fn vehicle_of(&self, _target: Target) -> Option<Target> {
+        None
+    }
+
+    fn would_loop(&self, _rider: Target, _vehicle: Target) -> bool {
+        false
+    }
+
+    fn start_riding_target(&mut self, _rider: Target, _vehicle: Target) -> bool {
+        false
+    }
+
+    fn stop_riding_target(&mut self, _rider: Target) {}
+
+    fn rotate_to(&mut self, _target: Target, _yaw: f32, _pitch: f32) {}
+
+    fn swing_target(
+        &mut self,
+        _target: Target,
+        _hand: crate::events::Hand,
+        _style: crate::events::SwingStyle,
+        _duration: i32,
+    ) -> bool {
+        false
+    }
+
+    fn is_spectator(&self, _player: PlayerId) -> bool {
+        false
+    }
+
+    fn can_be_camera(&self, _target: Target) -> bool {
+        false
+    }
+
+    fn set_camera_of(&mut self, _player: PlayerId, _target: Option<Target>) {}
+
+    fn attribute_state(
+        &mut self,
+        _target: Target,
+        _attribute: &str,
+    ) -> Option<rspigot_domain::effect::AttributeState> {
+        None
+    }
+
+    fn default_attribute_base(&self, _target: Target, _attribute: &str) -> Option<f64> {
+        None
+    }
+
+    fn set_attribute_base(&mut self, _target: Target, _attribute: &str, _base: f64) {}
+
+    fn add_attribute_modifier(
+        &mut self,
+        _target: Target,
+        _attribute: &str,
+        _modifier: rspigot_domain::effect::AttributeModifier,
+    ) -> bool {
+        false
+    }
+
+    fn remove_attribute_modifier(&mut self, _target: Target, _attribute: &str, _id: &str) -> bool {
+        false
+    }
+
+    fn damage_target(
+        &mut self,
+        _target: Target,
+        _spec: super::entity_commands::DamageSpec,
+        _amount: f32,
+    ) -> bool {
+        false
+    }
+
+    fn main_hand(&self, _target: Target) -> Option<rspigot_domain::item::ItemStack> {
+        None
+    }
+
+    fn set_main_hand(&mut self, _target: Target, _stack: rspigot_domain::item::ItemStack) {}
+
+    fn play_sound_to(
+        &mut self,
+        _player: PlayerId,
+        _sound: &str,
+        _source: rspigot_entities::SoundSource,
+        _position: Vec3,
+        _volume: f32,
+        _pitch: f32,
+    ) {
+    }
+
+    fn stop_sound_for(
+        &mut self,
+        _player: PlayerId,
+        _source: Option<rspigot_entities::SoundSource>,
+        _sound: Option<String>,
+    ) {
+    }
+
+    fn send_particle_to(
+        &mut self,
+        _player: PlayerId,
+        _particle: rspigot_domain::particle::Particle,
+        _force: bool,
+    ) -> bool {
         false
     }
 }
@@ -530,6 +702,22 @@ pub fn execute<C: CommandContext>(
         "defaultgamemode" | "gamerule" | "experience" | "xp" | "tag" | "save-on" | "save-off"
         | "random" | "spawnpoint" => super::server_commands::run(ctx, sender, &label, rest),
         "tellraw" | "title" => super::text_commands::run(ctx, sender, &label, rest),
+        "playsound" | "stopsound" | "particle" => {
+            super::sound_commands::run(ctx, sender, &label, rest)
+        }
+        "attribute" | "damage" | "enchant" => {
+            super::entity_commands::run(ctx, sender, &label, rest)
+        }
+        "ride" | "rotate" | "spectate" | "swing" => {
+            super::movement_commands::run(ctx, sender, &label, rest)
+        }
+        "tick" => super::tick_commands::run(ctx, sender, rest),
+        "transfer" | "setidletimeout" | "debug" => {
+            super::admin_commands::run(ctx, sender, &label, rest)
+        }
+        "forceload" | "worldborder" | "spreadplayers" | "fillbiome" => {
+            super::world_commands::run(ctx, sender, &label, rest)
+        }
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),
@@ -882,7 +1070,7 @@ fn format_coordinate(value: f64) -> Component {
     Component::text(format!("{value:.6}"))
 }
 
-fn select_one<C: CommandContext>(
+pub(super) fn select_one<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     selector: &str,
@@ -1072,7 +1260,7 @@ fn summon<C: CommandContext>(
     }
 }
 
-fn parse_time(raw: &str) -> Option<i64> {
+pub(super) fn parse_time(raw: &str) -> Option<i64> {
     let (number, unit) = match raw.chars().last()? {
         'd' => (&raw[..raw.len() - 1], 24000.0),
         's' => (&raw[..raw.len() - 1], 20.0),
@@ -1340,7 +1528,7 @@ fn parse_effect<C: CommandContext>(
     })
 }
 
-fn select<C: CommandContext>(
+pub(super) fn select<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     selector: Option<&str>,
@@ -1910,6 +2098,8 @@ mod tests {
         killed: Vec<PlayerId>,
         plugins: Vec<String>,
         board: Scoreboard,
+        ticking: rspigot_domain::tick_rate::TickRate,
+        border: rspigot_domain::world_border::WorldBorder,
     }
 
     fn alice() -> PlayerId {
@@ -1917,6 +2107,27 @@ mod tests {
     }
 
     impl CommandContext for FakeContext {
+        fn world_border(&self) -> rspigot_domain::world_border::WorldBorder {
+            self.border.clone()
+        }
+        fn world_game_time(&self) -> i64 {
+            0
+        }
+        fn change_world_border<R>(
+            &mut self,
+            change: impl FnOnce(&mut rspigot_domain::world_border::WorldBorder, i64) -> R,
+        ) -> R {
+            change(&mut self.border, 0)
+        }
+        fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate {
+            self.ticking.clone()
+        }
+        fn change_tick_rate<R>(
+            &mut self,
+            change: impl FnOnce(&mut rspigot_domain::tick_rate::TickRate) -> R,
+        ) -> R {
+            change(&mut self.ticking)
+        }
         fn scoreboard(&self) -> &Scoreboard {
             &self.board
         }

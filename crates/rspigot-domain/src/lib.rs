@@ -50,10 +50,13 @@ pub mod scoreboard;
 pub mod smithing;
 pub mod spawn;
 pub mod spawner;
+pub mod spread;
 pub mod stonecutting;
 pub mod text;
+pub mod tick_rate;
 pub mod warden;
 pub mod world;
+pub mod world_border;
 
 pub use ident::Identifier;
 pub use ids::{BiomeId, BlockStateId, EntityId, ItemId};

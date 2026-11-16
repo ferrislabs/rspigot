@@ -241,15 +241,608 @@ impl<L: ClientLink> CommandContext for Server<L> {
         pos: BlockPos,
         angle: f32,
     ) {
-        if let Some(p) = self.players.get_mut(&player) {
-            p.respawn = Some(rspigot_domain::bed::RespawnConfig {
+        self.set_respawn_position(
+            player,
+            Some(rspigot_domain::bed::RespawnConfig {
                 dimension,
                 pos,
                 yaw: angle,
                 pitch: 0.0,
                 forced: true,
-            });
+            }),
+            false,
+            crate::plugins::events::PlayerSpawnChangeCause::Command,
+        );
+    }
+
+    fn player_ids(&self) -> Vec<PlayerId> {
+        let mut ids: Vec<PlayerId> = self.players.keys().copied().collect();
+        ids.sort();
+        ids
+    }
+
+    fn is_living(&self, target: Target) -> bool {
+        match target {
+            Target::Player(id) => self.players.contains_key(&id),
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)
+                .is_some_and(|e| e.living().is_some()),
         }
+    }
+
+    fn attribute_state(
+        &mut self,
+        target: Target,
+        attribute: &str,
+    ) -> Option<rspigot_domain::effect::AttributeState> {
+        match target {
+            Target::Player(id) => {
+                let player = self.players.get(&id)?;
+                let (name, default) = Kind::Player
+                    .default_attributes()
+                    .iter()
+                    .copied()
+                    .find(|(candidate, _)| *candidate == attribute)?;
+                let derived = crate::health::attributes(player).state(name);
+                let edit = player.attribute_edits.iter().find(|e| e.attribute == name);
+                Some(rspigot_domain::effect::AttributeState {
+                    attribute: name,
+                    base: edit.map_or(default, |e| e.base),
+                    modifiers: derived.modifiers,
+                })
+            }
+            Target::Entity(id) => {
+                let living = self.entities.store.get_mut(id)?.living_mut()?;
+                living.attributes.instance(attribute)?;
+                living.attributes.state(attribute, &living.effects)
+            }
+        }
+    }
+
+    fn default_attribute_base(&self, target: Target, attribute: &str) -> Option<f64> {
+        let kind = match target {
+            Target::Player(_) => Kind::Player,
+            Target::Entity(id) => self.entities.store.get(id)?.base.kind,
+        };
+        kind.default_attributes()
+            .iter()
+            .find(|(candidate, _)| *candidate == attribute)
+            .map(|(_, base)| *base)
+    }
+
+    fn set_attribute_base(&mut self, target: Target, attribute: &str, base: f64) {
+        let base = rspigot_domain::attribute::sanitize(attribute, base);
+        match target {
+            Target::Player(id) => {
+                let Some(name) = self.default_attribute_name(Kind::Player, attribute) else {
+                    return;
+                };
+                let Some(player) = self.players.get_mut(&id) else {
+                    return;
+                };
+                match player
+                    .attribute_edits
+                    .iter_mut()
+                    .find(|e| e.attribute == name)
+                {
+                    Some(edit) => edit.base = base,
+                    None => player.attribute_edits.push(
+                        rspigot_domain::entity::living::AttributeInstance {
+                            attribute: name,
+                            base,
+                            modifiers: Vec::new(),
+                        },
+                    ),
+                }
+                self.after_player_attribute_change(id, name);
+            }
+            Target::Entity(id) => {
+                if let Some(living) = self.entities.store.get_mut(id).and_then(|e| e.living_mut()) {
+                    living.attributes.set_base(attribute, base);
+                }
+                self.after_entity_attribute_change(id, attribute);
+            }
+        }
+    }
+
+    fn add_attribute_modifier(
+        &mut self,
+        target: Target,
+        attribute: &str,
+        modifier: rspigot_domain::effect::AttributeModifier,
+    ) -> bool {
+        match target {
+            Target::Player(id) => {
+                let Some(name) = self.default_attribute_name(Kind::Player, attribute) else {
+                    return false;
+                };
+                let default = self
+                    .default_attribute_base(target, attribute)
+                    .unwrap_or_default();
+                let Some(player) = self.players.get_mut(&id) else {
+                    return false;
+                };
+                let derived = crate::health::attributes(player).state(name);
+                if derived.modifiers.iter().any(|m| m.id == modifier.id) {
+                    return false;
+                }
+                match player
+                    .attribute_edits
+                    .iter_mut()
+                    .find(|e| e.attribute == name)
+                {
+                    Some(edit) => edit.modifiers.push(modifier),
+                    None => player.attribute_edits.push(
+                        rspigot_domain::entity::living::AttributeInstance {
+                            attribute: name,
+                            base: default,
+                            modifiers: vec![modifier],
+                        },
+                    ),
+                }
+                self.after_player_attribute_change(id, name);
+                true
+            }
+            Target::Entity(id) => {
+                let added = self
+                    .entities
+                    .store
+                    .get_mut(id)
+                    .and_then(|e| e.living_mut())
+                    .is_some_and(|living| living.attributes.add_modifier(attribute, modifier));
+                if added {
+                    self.after_entity_attribute_change(id, attribute);
+                }
+                added
+            }
+        }
+    }
+
+    fn remove_attribute_modifier(&mut self, target: Target, attribute: &str, id: &str) -> bool {
+        match target {
+            Target::Player(player_id) => {
+                let Some(player) = self.players.get_mut(&player_id) else {
+                    return false;
+                };
+                let Some(edit) = player
+                    .attribute_edits
+                    .iter_mut()
+                    .find(|e| e.attribute == attribute)
+                else {
+                    return false;
+                };
+                let before = edit.modifiers.len();
+                edit.modifiers.retain(|m| m.id != id);
+                let removed = edit.modifiers.len() != before;
+                if removed {
+                    let name = edit.attribute;
+                    self.after_player_attribute_change(player_id, name);
+                }
+                removed
+            }
+            Target::Entity(entity) => {
+                let removed = self
+                    .entities
+                    .store
+                    .get_mut(entity)
+                    .and_then(|e| e.living_mut())
+                    .is_some_and(|living| living.attributes.remove_modifier(attribute, id));
+                if removed {
+                    self.after_entity_attribute_change(entity, attribute);
+                }
+                removed
+            }
+        }
+    }
+
+    fn damage_target(
+        &mut self,
+        target: Target,
+        spec: crate::commands::DamageSpec,
+        amount: f32,
+    ) -> bool {
+        let mut source = crate::health::DamageSource::new(spec.kind);
+        source.position = spec.position;
+        let describe = |server: &Self, who: Target| match who {
+            Target::Player(id) => server.source_of(id),
+            Target::Entity(id) => server.source_for(id),
+        };
+        source.direct = spec.direct.and_then(|who| describe(self, who));
+        source.causing = spec.cause.and_then(|who| describe(self, who));
+        match target {
+            Target::Player(id) => self.hurt(id, &source, amount),
+            Target::Entity(id) => self.hurt_entity(id, &source, amount),
+        }
+    }
+
+    fn main_hand(&self, target: Target) -> Option<rspigot_domain::item::ItemStack> {
+        match target {
+            Target::Player(id) => self.players.get(&id)?.inventory.held().cloned(),
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)?
+                .living()?
+                .equipment(rspigot_items::EquipmentSlot::Mainhand)
+                .cloned(),
+        }
+    }
+
+    fn set_main_hand(&mut self, target: Target, stack: rspigot_domain::item::ItemStack) {
+        match target {
+            Target::Player(id) => {
+                let Some(player) = self.players.get(&id) else {
+                    return;
+                };
+                let slot = rspigot_domain::item::HOTBAR_START
+                    + usize::from(player.inventory.selected_hotbar);
+                self.set_slot_by_player(id, slot, Some(stack));
+            }
+            Target::Entity(id) => {
+                let slot = rspigot_items::EquipmentSlot::Mainhand;
+                let Some(living) = self.entities.store.get_mut(id).and_then(|e| e.living_mut())
+                else {
+                    return;
+                };
+                living.equipment[rspigot_domain::entity::living::slot_index(slot)] =
+                    Some(stack.clone());
+                self.push(
+                    Audience::Trackers(id),
+                    ClientEvent::EntityEquipment {
+                        entity: id,
+                        slots: vec![(crate::entities::wire_slot(slot), Some(stack))],
+                    },
+                );
+            }
+        }
+    }
+
+    fn world_border(&self) -> rspigot_domain::world_border::WorldBorder {
+        self.world.border.clone()
+    }
+
+    fn world_game_time(&self) -> i64 {
+        self.world.level.game_time
+    }
+
+    fn change_world_border<R>(
+        &mut self,
+        change: impl FnOnce(&mut rspigot_domain::world_border::WorldBorder, i64) -> R,
+    ) -> R {
+        let now = self.world.level.game_time;
+        let before = self.world.border.view(now);
+        let result = change(&mut self.world.border, now);
+        if self.world.border.view(now) != before {
+            self.broadcast_border();
+        }
+        result
+    }
+
+    fn tick_state(&self) -> rspigot_domain::tick_rate::TickRate {
+        self.tick_rate.clone()
+    }
+
+    fn change_tick_rate<R>(
+        &mut self,
+        change: impl FnOnce(&mut rspigot_domain::tick_rate::TickRate) -> R,
+    ) -> R {
+        let before = (self.tick_rate.rate(), self.tick_rate.is_frozen());
+        let steps = self.tick_rate.pending_steps();
+        let result = change(&mut self.tick_rate);
+        let after = (self.tick_rate.rate(), self.tick_rate.is_frozen());
+        if before != after {
+            self.push(
+                Audience::All,
+                ClientEvent::TickingState {
+                    rate: after.0,
+                    frozen: after.1,
+                },
+            );
+        }
+        if self.tick_rate.pending_steps() != steps {
+            self.push(
+                Audience::All,
+                ClientEvent::TickingStep(self.tick_rate.pending_steps()),
+            );
+        }
+        result
+    }
+
+    fn transfer_player(&mut self, player: PlayerId, host: &str, port: i32) {
+        self.push(
+            Audience::One(player),
+            ClientEvent::Transfer {
+                host: host.to_owned(),
+                port,
+            },
+        );
+    }
+
+    fn set_idle_timeout(&mut self, minutes: u32) {
+        self.config.player_idle_timeout = minutes;
+    }
+
+    fn start_profiler(&mut self) -> bool {
+        if self.profiler.is_some() {
+            return false;
+        }
+        self.profiler = Some((std::time::Instant::now(), self.tick));
+        true
+    }
+
+    fn stop_profiler(&mut self) -> Option<(f64, i64)> {
+        let (started, first_tick) = self.profiler.take()?;
+        Some((
+            started.elapsed().as_secs_f64(),
+            i64::try_from(self.tick.saturating_sub(first_tick)).unwrap_or(i64::MAX),
+        ))
+    }
+
+    fn world_height(&self) -> (i32, i32) {
+        let height = self.world.dimension.height;
+        (height.min_y, height.min_y + height.height as i32 - 1)
+    }
+
+    fn fill_biome(
+        &mut self,
+        min: BlockPos,
+        max: BlockPos,
+        biome: u16,
+        replaceable: Option<&[u16]>,
+    ) -> Result<i32, crate::commands::FillBiomeProblem> {
+        use crate::commands::FillBiomeProblem;
+        let (low, high) = (min.chunk(), max.chunk());
+        let mut chunks = Vec::new();
+        for x in low.x..=high.x {
+            for z in low.z..=high.z {
+                let pos = rspigot_domain::ChunkPos::new(x, z);
+                if !self.world.chunks.is_loaded(pos) {
+                    return Err(FillBiomeProblem::NotLoaded);
+                }
+                chunks.push(pos);
+            }
+        }
+        let new = rspigot_domain::BiomeId(biome);
+        let mut changed = 0;
+        let mut touched = Vec::new();
+        for pos in chunks {
+            let Some(column) = self.world.chunks.chunk_mut(pos) else {
+                continue;
+            };
+            let base_y = column.height().min_y;
+            let mut here = 0;
+            for (index, section) in column.sections_mut().iter_mut().enumerate() {
+                for by in 0..4usize {
+                    for bz in 0..4usize {
+                        for bx in 0..4usize {
+                            let block = BlockPos::new(
+                                pos.min_block_x() + bx as i32 * 4,
+                                base_y + index as i32 * 16 + by as i32 * 4,
+                                pos.min_block_z() + bz as i32 * 4,
+                            );
+                            let inside = (min.x..=max.x).contains(&block.x)
+                                && (min.y..=max.y).contains(&block.y)
+                                && (min.z..=max.z).contains(&block.z);
+                            if !inside {
+                                continue;
+                            }
+                            let old = section.biome(bx, by, bz);
+                            if old == new || replaceable.is_some_and(|only| !only.contains(&old.0))
+                            {
+                                continue;
+                            }
+                            section.set_biome(bx, by, bz, new);
+                            here += 1;
+                        }
+                    }
+                }
+            }
+            if here > 0 {
+                changed += here;
+                touched.push(pos);
+            }
+        }
+        if changed == 0 {
+            return Err(FillBiomeProblem::NoChange);
+        }
+        self.resend_chunks(&touched);
+        Ok(changed)
+    }
+
+    fn random_seed(&mut self) -> u64 {
+        rand::Rng::random::<u64>(&mut self.rng)
+    }
+
+    fn set_chunk_forced(&mut self, x: i32, z: i32, forced: bool) -> bool {
+        self.world
+            .chunks
+            .set_forced(rspigot_domain::ChunkPos::new(x, z), forced, &self.workers)
+    }
+
+    fn forced_chunks(&self) -> Vec<(i32, i32)> {
+        self.world
+            .chunks
+            .forced_chunks()
+            .into_iter()
+            .map(|pos| (pos.x, pos.z))
+            .collect()
+    }
+
+    fn is_chunk_forced(&self, x: i32, z: i32) -> bool {
+        self.world
+            .chunks
+            .is_forced(rspigot_domain::ChunkPos::new(x, z))
+    }
+
+    fn vehicle_of(&self, target: Target) -> Option<Target> {
+        let rider = self.entity_id_of(target)?;
+        let vehicle = self.entities.rides.vehicle_of(rider)?;
+        self.target_of_entity(vehicle)
+    }
+
+    fn would_loop(&self, rider: Target, vehicle: Target) -> bool {
+        let (Some(rider), Some(vehicle)) = (self.entity_id_of(rider), self.entity_id_of(vehicle))
+        else {
+            return false;
+        };
+        rider == vehicle || self.entities.rides.has_indirect_passenger(rider, vehicle)
+    }
+
+    fn start_riding_target(&mut self, rider: Target, vehicle: Target) -> bool {
+        let (Some(rider), Some(vehicle)) = (self.entity_id_of(rider), self.entity_id_of(vehicle))
+        else {
+            return false;
+        };
+        self.start_riding(rider, vehicle, true, true)
+    }
+
+    fn stop_riding_target(&mut self, rider: Target) {
+        if let Some(rider) = self.entity_id_of(rider) {
+            self.stop_riding(rider);
+        }
+    }
+
+    fn rotate_to(&mut self, target: Target, yaw: f32, pitch: f32) {
+        match target {
+            Target::Player(id) => {
+                let Some(player) = self.players.get_mut(&id) else {
+                    return;
+                };
+                player.rotation = Rotation::new(yaw, pitch);
+                let entity = player.entity_id;
+                self.push(
+                    Audience::One(id),
+                    ClientEvent::PlayerRotation { yaw, pitch },
+                );
+                self.push(
+                    Audience::Trackers(entity),
+                    ClientEvent::EntityHeadRotation { entity, yaw },
+                );
+            }
+            Target::Entity(id) => {
+                if let Some(entity) = self.entities.store.get_mut(id) {
+                    entity.base.set_rotation(yaw, pitch);
+                    entity.base.head_yaw = yaw;
+                }
+            }
+        }
+    }
+
+    fn swing_target(
+        &mut self,
+        target: Target,
+        hand: crate::events::Hand,
+        style: crate::events::SwingStyle,
+        duration: i32,
+    ) -> bool {
+        let (entity, own) = match target {
+            Target::Player(id) => match self.players.get(&id) {
+                Some(player) => (player.entity_id, Some(id)),
+                None => return false,
+            },
+            Target::Entity(id) => {
+                if !self
+                    .entities
+                    .store
+                    .get(id)
+                    .is_some_and(|e| e.living().is_some())
+                {
+                    return false;
+                }
+                (id, None)
+            }
+        };
+        let event = ClientEvent::EntitySwing {
+            entity,
+            hand,
+            style,
+            duration,
+        };
+        if let Some(id) = own {
+            self.push(Audience::One(id), event.clone());
+        }
+        self.push(Audience::Trackers(entity), event);
+        true
+    }
+
+    fn is_spectator(&self, player: PlayerId) -> bool {
+        self.players
+            .get(&player)
+            .is_some_and(|p| p.game_mode == GameMode::Spectator)
+    }
+
+    fn can_be_camera(&self, target: Target) -> bool {
+        match target {
+            Target::Player(_) => true,
+            Target::Entity(id) => self
+                .entities
+                .store
+                .get(id)
+                .is_some_and(|e| e.base.kind.tracking_range() != 0),
+        }
+    }
+
+    fn set_camera_of(&mut self, player: PlayerId, target: Option<Target>) {
+        let Some(own) = self.players.get(&player).map(|p| p.entity_id) else {
+            return;
+        };
+        let camera = target.and_then(|t| self.entity_id_of(t)).unwrap_or(own);
+        self.push(Audience::One(player), ClientEvent::Camera(camera));
+        if camera != own
+            && let Some(at) = target.and_then(|t| self.target_position(t))
+        {
+            self.teleport_player(player, at);
+        }
+    }
+
+    fn play_sound_to(
+        &mut self,
+        player: PlayerId,
+        sound: &str,
+        source: rspigot_entities::SoundSource,
+        position: Vec3,
+        volume: f32,
+        pitch: f32,
+    ) {
+        let seed = rand::Rng::random::<i64>(&mut self.rng);
+        self.push(
+            Audience::One(player),
+            ClientEvent::NamedSound {
+                sound: sound.to_owned(),
+                source,
+                position,
+                volume,
+                pitch,
+                seed,
+            },
+        );
+    }
+
+    fn stop_sound_for(
+        &mut self,
+        player: PlayerId,
+        source: Option<rspigot_entities::SoundSource>,
+        sound: Option<String>,
+    ) {
+        self.push(
+            Audience::One(player),
+            ClientEvent::StopSound { source, sound },
+        );
+    }
+
+    fn send_particle_to(
+        &mut self,
+        player: PlayerId,
+        particle: rspigot_domain::particle::Particle,
+        _force: bool,
+    ) -> bool {
+        if !self.players.contains_key(&player) {
+            return false;
+        }
+        self.push(Audience::One(player), ClientEvent::Particle(particle));
+        true
     }
 
     fn tell_player(&mut self, player: PlayerId, message: Component, overlay: bool) {
@@ -959,6 +1552,65 @@ fn selection_box(selector: &Selector, origin: Vec3) -> Option<Aabb> {
 }
 
 impl<L: ClientLink> Server<L> {
+    fn resend_chunks(&mut self, chunks: &[rspigot_domain::ChunkPos]) {
+        let dimension = self.world.dimension.key.clone();
+        for pos in chunks {
+            let Some(chunk) = self.world.chunks.get(*pos).cloned() else {
+                continue;
+            };
+            for player in self.players.values() {
+                if player.streamer.has_sent(*pos) {
+                    player.link.send(ClientEvent::Chunk {
+                        dimension: dimension.clone(),
+                        chunk: std::sync::Arc::clone(&chunk),
+                    });
+                }
+            }
+        }
+    }
+
+    fn default_attribute_name(&self, kind: Kind, attribute: &str) -> Option<&'static str> {
+        kind.default_attributes()
+            .iter()
+            .find(|(candidate, _)| *candidate == attribute)
+            .map(|(name, _)| *name)
+    }
+
+    fn after_player_attribute_change(&mut self, id: PlayerId, attribute: &'static str) {
+        self.clamp_vitals(id);
+        self.sync_attributes(id, &[attribute]);
+    }
+
+    fn after_entity_attribute_change(&mut self, id: EntityId, attribute: &str) {
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return;
+        };
+        let base = &mut entity.base;
+        let Some(living) = (match &mut entity.state {
+            EntityState::Living(living) => Some(living),
+            _ => None,
+        }) else {
+            return;
+        };
+        if attribute == living::MAX_HEALTH {
+            let health = living::health(base);
+            living::set_health(base, living, health);
+        }
+        let Some(state) = living.attributes.state(attribute, &living.effects) else {
+            return;
+        };
+        living.attributes.take_dirty();
+        if rspigot_domain::entity::living::is_client_syncable(state.attribute) {
+            self.push(
+                Audience::Trackers(id),
+                ClientEvent::Attributes {
+                    entity: id,
+                    attributes: vec![state],
+                },
+            );
+        }
+    }
+
     pub(crate) fn relocate(&mut self, id: EntityId, position: Vec3, command: bool) {
         self.relocate_tracked(id, position, command, None);
     }
