@@ -8,6 +8,7 @@ mod link;
 mod listener;
 mod play;
 mod proxy;
+mod query;
 mod status;
 mod text;
 
@@ -18,6 +19,7 @@ pub use cache::ChunkPacketCache;
 pub use link::NetLink;
 pub use listener::{run, serve};
 pub use proxy::{ProxyForwarding, hmac_sha256};
+pub use query::{QueryConfig, serve_query};
 
 #[derive(Debug, Clone)]
 pub struct NetworkConfig {

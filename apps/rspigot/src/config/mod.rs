@@ -14,7 +14,7 @@ use rspigot_domain::player::GameMode;
 use rspigot_domain::spawn::state::{CategorySettings, SpawnSettings};
 use rspigot_domain::world::Difficulty;
 use rspigot_management::ManagementConfig;
-use rspigot_network::{NetworkConfig, ProxyForwarding};
+use rspigot_network::{NetworkConfig, ProxyForwarding, QueryConfig};
 use rspigot_plugins::PluginHostConfig;
 
 use plugins::PLUGINS_DEFAULTS;
@@ -242,6 +242,28 @@ impl ServerFiles {
         })
     }
 
+    pub fn query_config(&self) -> Option<QueryConfig> {
+        let p = &self.properties;
+        if !p.bool("enable-query") {
+            return None;
+        }
+        let ip = p.string("server-ip");
+        let host = if ip.is_empty() { "0.0.0.0" } else { ip };
+        let port = p.int("query.port", 25565).clamp(1, 65535) as u16;
+        let bind = format!("{host}:{port}")
+            .parse()
+            .or_else(|_| format!("[{host}]:{port}").parse())
+            .ok()?;
+        Some(QueryConfig {
+            bind,
+            motd: p.string("motd").to_owned(),
+            map: p.string("level-name").to_owned(),
+            version: rspigot_data::VERSION_NAME.to_owned(),
+            server_port: p.int("server-port", 25565).clamp(1, 65535) as u16,
+            server_ip: ip.to_owned(),
+        })
+    }
+
     fn proxy_forwarding(&self) -> anyhow::Result<ProxyForwarding> {
         if self.spigot.string("settings.velocity.enabled", "false") == "true" {
             let secret = self.spigot.string("settings.velocity.secret", "");
@@ -408,5 +430,18 @@ mod tests {
     fn velocity_without_a_secret_is_a_configuration_error() {
         let velocity = files("settings:\n  velocity:\n    enabled: true\n", "{}");
         assert!(velocity.proxy_forwarding().is_err());
+    }
+
+    #[test]
+    fn the_query_listener_is_off_by_default_and_uses_its_own_port() {
+        let mut files = files("{}", "{}");
+        assert!(files.query_config().is_none());
+        files.properties.set("enable-query", "true");
+        files.properties.set("query.port", "25570");
+        files.properties.set("level-name", "lobby");
+        let config = files.query_config().expect("enabled");
+        assert_eq!(config.bind.port(), 25570);
+        assert_eq!(config.map, "lobby");
+        assert_eq!(config.server_port, 25565);
     }
 }

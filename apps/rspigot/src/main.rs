@@ -215,6 +215,15 @@ fn main() -> anyhow::Result<()> {
     }
     let spawn_chunks = server.start(Duration::from_secs(60));
     tracing::info!("Preparing spawn area: {spawn_chunks} chunks");
+    let query = files.query_config().map(|config| {
+        let status = status.clone();
+        let stopped = stopped.clone();
+        runtime.spawn(async move {
+            if let Err(error) = rspigot_network::serve_query(config, status, stopped).await {
+                tracing::error!("Unable to initialise query system: {error}");
+            }
+        })
+    });
     let network = runtime.spawn(rspigot_network::run(
         network_config,
         verifier,
@@ -250,6 +259,9 @@ fn main() -> anyhow::Result<()> {
         let adapters = async {
             let _ = network.await;
             let _ = plugins.await;
+            if let Some(query) = query {
+                let _ = query.await;
+            }
             if let Some(management) = management {
                 let _ = management.await;
             }
