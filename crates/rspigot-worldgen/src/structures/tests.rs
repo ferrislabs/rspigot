@@ -1,3 +1,4 @@
+use super::library::Library;
 use super::placement::BiomeProbe;
 use super::sets::{Chunks, StructureSets};
 use crate::climate::BiomeSource;
@@ -55,7 +56,7 @@ fn check(seed: i64, fixture: &str) {
         scratch: RefCell::new(source.scratch()),
         source: &source,
     };
-    let sets = StructureSets::load();
+    let sets = StructureSets::load(Library::embedded());
     let world = Chunks {
         sets: &sets,
         seed,
@@ -103,7 +104,8 @@ fn placement_matches_vanilla_for_a_negative_seed() {
 
 mod jigsaw {
     use super::super::jigsaw::Piece;
-    use super::super::pool::{Element, Pools, Projection};
+    use super::super::library::Library;
+    use super::super::pool::{Element, Projection};
     use super::super::structure::{Kind, Structures, generate_jigsaw, valid_biomes};
     use crate::overworld::Overworld;
     use crate::resources::Resources;
@@ -170,14 +172,14 @@ mod jigsaw {
         let dimension = Dimension::overworld();
         let probe = overworld.biome_probe();
         let ground = overworld.ground(&dimension);
-        let structures = Structures::load();
+        let structures = Structures::load(Library::embedded());
         let def = structures.get(name).unwrap();
         let Kind::Jigsaw(jigsaw) = &def.kind else {
             panic!("not a jigsaw structure");
         };
-        let pools = Pools::load();
+        let pools = Library::embedded().pools();
         let valid = valid_biomes(def, &probe);
-        let assembly = generate_jigsaw(jigsaw, &valid, &pools, &ground, &probe, seed, chunk)
+        let assembly = generate_jigsaw(jigsaw, &valid, pools, &ground, &probe, seed, chunk)
             .expect("start must be valid");
         let got: Vec<String> = assembly.pieces.iter().map(describe).collect();
         let want: Vec<String> = fixture

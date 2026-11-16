@@ -14,7 +14,7 @@ use rspigot_domain::{BiomeId, BlockPos, ChunkPos, Vec3};
 use crate::buffer::ChunkBuffer;
 use crate::climate::{BiomeSource, ClimateScratch};
 use crate::resources::{BlockKind, Palette, Resources, biome_id};
-use crate::structures::Engine;
+use crate::structures::{Engine, Library};
 use crate::terrain::{Cell, Terrain};
 use rspigot_data::multi_noise::{ClimateVariant, overworld_biomes};
 use std::cell::RefCell;
@@ -91,6 +91,15 @@ struct PlacedBiome {
 
 impl Overworld {
     pub(crate) fn new(seed: u64, variant: ClimateVariant, palette: &Palette) -> Self {
+        Self::with_library(seed, variant, palette, Library::current())
+    }
+
+    pub(crate) fn with_library(
+        seed: u64,
+        variant: ClimateVariant,
+        palette: &Palette,
+        library: &'static Library,
+    ) -> Self {
         let source = Arc::new(BiomeSource::new(seed as i64, variant));
         let probe = OverworldProbe {
             source: &source,
@@ -108,7 +117,7 @@ impl Overworld {
             features: Arc::new(Features::compile(overworld_biomes())),
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
             heights: Arc::new(Mutex::new(HeightCache::default())),
-            structures: Arc::new(Engine::new(seed as i64, &probe)),
+            structures: Arc::new(Engine::new(seed as i64, &probe, library)),
         }
     }
 

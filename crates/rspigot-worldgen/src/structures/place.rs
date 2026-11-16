@@ -46,7 +46,7 @@ fn place_element(
                 return;
             };
             let mut steps = vec![Step::IgnoreStructureBlock, Step::JigsawReplacement];
-            steps.extend(steps_for(processors));
+            steps.extend(steps_for(engine.library(), processors));
             if *projection == Projection::TerrainMatching {
                 steps.push(Step::gravity());
             }

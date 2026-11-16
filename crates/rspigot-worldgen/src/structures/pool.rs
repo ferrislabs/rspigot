@@ -5,7 +5,8 @@ use serde_json::Value;
 
 use super::bbox::{Bbox, Pos};
 use super::blueprint::{Blueprint, Dir, Jigsaw};
-use super::data::{short, structure_data};
+use super::data::short;
+use super::library::Library;
 use crate::legacy::JavaRandom;
 use crate::overworld::features::structure::Rotation;
 
@@ -65,7 +66,7 @@ fn projection(value: &Value) -> Projection {
 }
 
 impl Element {
-    fn parse(value: &Value) -> Self {
+    fn parse(value: &Value, library: &'static Library) -> Self {
         match short(
             value
                 .get("element_type")
@@ -84,7 +85,7 @@ impl Element {
                     None => Processors::Named("minecraft:empty".to_owned()),
                 };
                 Self::Single {
-                    blueprint: Blueprint::named(&template),
+                    blueprint: library.blueprint(&template),
                     template,
                     processors,
                     projection: projection(value),
@@ -108,7 +109,12 @@ impl Element {
                 elements: value
                     .get("elements")
                     .and_then(Value::as_array)
-                    .map(|items| items.iter().map(Self::parse).collect())
+                    .map(|items| {
+                        items
+                            .iter()
+                            .map(|item| Self::parse(item, library))
+                            .collect()
+                    })
                     .unwrap_or_default(),
                 projection: projection(value),
             },
@@ -205,7 +211,7 @@ impl Element {
 }
 
 impl Pool {
-    fn parse(name: &str, value: &Value) -> Self {
+    fn parse(name: &str, value: &Value, library: &'static Library) -> Self {
         let elements: Vec<(Element, i32)> = value
             .get("elements")
             .and_then(Value::as_array)
@@ -214,7 +220,7 @@ impl Pool {
                     .iter()
                     .filter_map(|item| {
                         let weight = i32::try_from(item.get("weight")?.as_i64()?).ok()?;
-                        Some((Element::parse(item.get("element")?), weight))
+                        Some((Element::parse(item.get("element")?, library), weight))
                     })
                     .collect()
             })
@@ -271,11 +277,6 @@ impl Pool {
     }
 }
 
-pub(crate) fn pools() -> &'static Pools {
-    static POOLS: OnceLock<Pools> = OnceLock::new();
-    POOLS.get_or_init(Pools::load)
-}
-
 #[derive(Debug)]
 pub(crate) struct Pools {
     pools: HashMap<String, Pool>,
@@ -283,16 +284,15 @@ pub(crate) struct Pools {
 }
 
 impl Pools {
-    pub(crate) fn load() -> Self {
-        let mut pools = HashMap::new();
-        if let Some(Value::Object(map)) = structure_data().get("pools") {
-            for (name, value) in map {
-                pools.insert(name.clone(), Pool::parse(name, value));
-            }
-        }
+    pub(crate) fn load(library: &'static Library) -> Self {
+        let pools = library
+            .pool_defs()
+            .iter()
+            .map(|(name, value)| (name.clone(), Pool::parse(name, value, library)))
+            .collect();
         Self {
             pools,
-            empty: Pool::parse("minecraft:empty", &Value::Null),
+            empty: Pool::parse("minecraft:empty", &Value::Null, library),
         }
     }
 
