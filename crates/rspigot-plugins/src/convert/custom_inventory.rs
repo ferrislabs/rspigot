@@ -72,6 +72,7 @@ mod tests {
             v1::FromPlugin {
                 body: Some(body),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         )
@@ -291,6 +292,7 @@ mod tests {
                         }
                     )),
                     origin: None,
+                    request: None,
                 },
                 &mut Vec::new()
             )

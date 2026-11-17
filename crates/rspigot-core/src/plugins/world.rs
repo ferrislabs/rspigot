@@ -91,7 +91,9 @@ impl<L: ClientLink> Server<L> {
                 rows,
                 title,
                 locked,
-            } => self.create_plugin_inventory(connection, id, rows, &title, locked)?,
+            } => self
+                .create_plugin_inventory(connection, id, rows, &title, locked)
+                .map_err(|error| error.reason)?,
         }
         Ok(())
     }

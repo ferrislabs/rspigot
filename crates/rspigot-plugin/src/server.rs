@@ -67,12 +67,20 @@ impl Server {
         ScoreboardManager::new(self.link.clone())
     }
 
-    pub fn create_inventory(&self, rows: u8, title: impl Into<String>) -> CustomInventory {
-        CustomInventory::create(&self.link, rows, title.into(), true)
+    pub async fn create_inventory(
+        &self,
+        rows: u8,
+        title: impl Into<String>,
+    ) -> Result<CustomInventory, Error> {
+        CustomInventory::create(&self.link, rows, title.into(), true).await
     }
 
-    pub fn create_storage(&self, rows: u8, title: impl Into<String>) -> CustomInventory {
-        CustomInventory::create(&self.link, rows, title.into(), false)
+    pub async fn create_storage(
+        &self,
+        rows: u8,
+        title: impl Into<String>,
+    ) -> Result<CustomInventory, Error> {
+        CustomInventory::create(&self.link, rows, title.into(), false).await
     }
 
     pub async fn get_players(&self) -> Result<Vec<Player>, Error> {

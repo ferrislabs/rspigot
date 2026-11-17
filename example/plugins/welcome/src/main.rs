@@ -18,7 +18,16 @@ impl Welcome {
 #[listeners]
 impl Welcome {
     async fn on_enable(&self, server: &Server) {
-        let menu = server.create_inventory(1, format!("{}Menu", ChatColor::Gold));
+        let menu = match server
+            .create_inventory(1, format!("{}Menu", ChatColor::Gold))
+            .await
+        {
+            Ok(menu) => menu,
+            Err(error) => {
+                tracing::warn!("No menu: {error}");
+                return;
+            }
+        };
         let leave =
             ItemStack::new(Material::Compass, 1).name(format!("{}Leave", ChatColor::Yellow));
         menu.set(LEAVE_SLOT, Some(leave));
@@ -67,8 +76,10 @@ impl Welcome {
             Err(error) => tracing::warn!("No chicken for {}: {error}", player.name),
         }
 
-        if let Some(menu) = self.menu() {
-            player.inventory().open(&menu);
+        if let Some(menu) = self.menu()
+            && let Err(error) = player.inventory().open(&menu).await
+        {
+            tracing::warn!("Could not open the menu for {}: {error}", player.name);
         }
     }
 

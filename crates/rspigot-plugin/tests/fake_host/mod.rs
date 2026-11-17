@@ -64,12 +64,23 @@ impl Session {
     }
 
     pub async fn hear(&mut self) -> from_plugin::Body {
-        within(self.hears.message())
-            .await
-            .unwrap()
-            .unwrap()
-            .body
-            .unwrap()
+        self.hear_message().await.body.unwrap()
+    }
+
+    pub async fn hear_message(&mut self) -> v1::FromPlugin {
+        within(self.hears.message()).await.unwrap().unwrap()
+    }
+
+    pub async fn acted(&mut self) -> (u64, from_plugin::Body) {
+        let message = self.hear_message().await;
+        let request = message.request.expect("an order that expects a result");
+        (request, message.body.unwrap())
+    }
+
+    pub async fn performed(&mut self, expected: from_plugin::Body) {
+        let (request, body) = self.acted().await;
+        assert_eq!(body, expected);
+        self.say(answer(request, answer::Body::Done(v1::Empty {})));
     }
 
     pub async fn asked(&mut self) -> (u64, question::Question) {

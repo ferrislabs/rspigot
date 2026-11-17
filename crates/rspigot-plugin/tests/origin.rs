@@ -51,6 +51,7 @@ fn said(text: &str, origin: Option<u64>) -> v1::FromPlugin {
             order: Some(server_order::Order::Broadcast(text.to_owned())),
         })),
         origin,
+        request: None,
     }
 }
 
@@ -99,6 +100,7 @@ async fn an_order_sent_while_a_handler_runs_carries_the_event_it_handles() {
             v1::FromPlugin {
                 body: Some(from_plugin::Body::Decision(v1::Decision { event: 5, .. })),
                 origin: None,
+                request: None,
             }
         ),
         "{decision:?}"

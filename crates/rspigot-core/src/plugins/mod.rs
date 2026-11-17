@@ -1,3 +1,4 @@
+mod actions;
 mod aims;
 mod block;
 mod blocks;
@@ -60,6 +61,8 @@ use uuid::Uuid;
 use crate::admin::{BanEntry, IpBanEntry, ListEntry};
 use crate::events::Direction;
 
+pub(crate) use actions::Reply;
+pub use actions::{ActionError, ActionErrorKind};
 pub(crate) use block::{block_state_of, data_of, material_of, snapshot_of};
 pub use boss_bars::{BossBarOrder, BossBarSpec, BossBarView};
 pub(crate) use broadcast::Broadcasts;
@@ -308,6 +311,8 @@ pub enum Answer {
     Target(Option<TargetHit>),
     CustomInventory(CustomInventoryState),
     Refused(String),
+    Done,
+    Failed(ActionError),
     NotFound,
 }
 
@@ -336,6 +341,7 @@ pub enum FromPlugin {
     Order(Order),
     Reaction { event: u64, order: Order },
     Question { request: u64, question: Question },
+    Action { request: u64, order: Order },
 }
 
 #[derive(Debug, Clone, PartialEq)]

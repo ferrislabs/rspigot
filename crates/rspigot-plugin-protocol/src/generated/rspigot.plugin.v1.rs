@@ -9973,6 +9973,8 @@ pub mod question {
 pub struct FromPlugin {
     #[prost(uint64, optional, tag = "11")]
     pub origin: ::core::option::Option<u64>,
+    #[prost(uint64, optional, tag = "14")]
+    pub request: ::core::option::Option<u64>,
     #[prost(oneof = "from_plugin::Body", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13")]
     pub body: ::core::option::Option<from_plugin::Body>,
 }
@@ -10006,6 +10008,14 @@ pub mod from_plugin {
         #[prost(message, tag = "13")]
         BossBar(super::BossBarOrder),
     }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ActionError {
+    #[prost(enumeration = "ActionErrorKind", tag = "1")]
+    pub kind: i32,
+    #[prost(string, tag = "2")]
+    pub reason: ::prost::alloc::string::String,
 }
 #[allow(clippy::all)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -10283,7 +10293,7 @@ pub struct Answer {
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -10332,6 +10342,10 @@ pub mod answer {
         BossBar(super::BossBarState),
         #[prost(message, tag = "21")]
         BossBars(super::BossBarList),
+        #[prost(message, tag = "22")]
+        Done(super::Empty),
+        #[prost(message, tag = "23")]
+        Failed(super::ActionError),
     }
 }
 #[allow(clippy::all)]
@@ -10557,6 +10571,48 @@ impl GameRule {
             "GAME_RULE_MOB_EXPLOSION_DROP_DECAY" => Some(Self::MobExplosionDropDecay),
             "GAME_RULE_BLOCK_DROPS" => Some(Self::BlockDrops),
             "GAME_RULE_UNIVERSAL_ANGER" => Some(Self::UniversalAnger),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ActionErrorKind {
+    Unspecified = 0,
+    InvalidArgument = 1,
+    TargetGone = 2,
+    IncompatibleState = 3,
+    Cancelled = 4,
+    NotFound = 5,
+    LimitReached = 6,
+}
+impl ActionErrorKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ACTION_ERROR_KIND_UNSPECIFIED",
+            Self::InvalidArgument => "INVALID_ARGUMENT",
+            Self::TargetGone => "TARGET_GONE",
+            Self::IncompatibleState => "INCOMPATIBLE_STATE",
+            Self::Cancelled => "CANCELLED",
+            Self::NotFound => "NOT_FOUND",
+            Self::LimitReached => "LIMIT_REACHED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ACTION_ERROR_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "INVALID_ARGUMENT" => Some(Self::InvalidArgument),
+            "TARGET_GONE" => Some(Self::TargetGone),
+            "INCOMPATIBLE_STATE" => Some(Self::IncompatibleState),
+            "CANCELLED" => Some(Self::Cancelled),
+            "NOT_FOUND" => Some(Self::NotFound),
+            "LIMIT_REACHED" => Some(Self::LimitReached),
             _ => None,
         }
     }
