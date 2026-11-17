@@ -408,6 +408,7 @@ mod tests {
                 y: 64.0,
                 z: -3.5,
             }),
+            player: None,
         }
     }
 
@@ -462,6 +463,45 @@ mod tests {
         ));
         assert!(hit.call(3, EventKind::EntityDamageByBlock, &link).is_none());
         assert!(hit.call(4, EventKind::PlayerMove, &link).is_none());
+    }
+
+    #[test]
+    fn a_damager_that_is_a_player_gives_the_player_and_a_mob_gives_none() {
+        let link = Link::default();
+        let hit = |damager: v1::EntitySnapshot| {
+            received(event::Payload::EntityDamageByEntity(
+                v1::EntityDamageByEntity {
+                    cause: v1::EntityDamageCause::EntityAttack as i32,
+                    damage_source: Some(v1::DamageSource::default()),
+                    damager: Some(damager),
+                    entity: Some(zombie()),
+                    entity_type: "minecraft:zombie".to_owned(),
+                    ..v1::EntityDamageByEntity::default()
+                },
+            ))
+        };
+        let by_player = v1::EntitySnapshot {
+            entity_id: 12,
+            uuid: "00000000-0000-0000-0000-000000000001".to_owned(),
+            kind: "minecraft:player".to_owned(),
+            position: snapshot().position,
+            player: Some(snapshot()),
+        };
+        let Some(Ok(Call::EntityDamageByEntity { event, .. })) =
+            hit(by_player).call(1, EventKind::EntityDamageByEntity, &link)
+        else {
+            panic!("an EntityDamageByEntity handler hears the hit");
+        };
+        assert_eq!(
+            event.player().map(|player| player.name.as_str()),
+            Some("Steve")
+        );
+        let Some(Ok(Call::EntityDamageByEntity { event, .. })) =
+            hit(zombie()).call(1, EventKind::EntityDamageByEntity, &link)
+        else {
+            panic!("an EntityDamageByEntity handler hears the hit");
+        };
+        assert!(event.player().is_none());
     }
 
     #[test]

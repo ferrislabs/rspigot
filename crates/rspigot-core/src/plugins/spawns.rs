@@ -46,6 +46,7 @@ impl Newborn {
             uuid: self.uuid,
             kind: self.kind.name().to_owned(),
             position: self.position,
+            player: None,
         }
     }
 }
@@ -103,6 +104,7 @@ impl<L: ClientLink> Server<L> {
                 uuid: player.id.0,
                 kind: Kind::Player.name().to_owned(),
                 position: player.position,
+                player: Some(self.describe(player)),
             });
         }
         self.entity_view(id)

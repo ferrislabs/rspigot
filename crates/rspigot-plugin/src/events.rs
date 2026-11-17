@@ -5615,6 +5615,10 @@ impl EntityBreed {
         self.breeder.as_ref()
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.breeder.as_ref().and_then(Entity::player)
+    }
+
     pub fn entity(&self) -> &Entity {
         &self.entity
     }
@@ -5928,6 +5932,10 @@ impl EntityCombustByEntity {
         &self.combuster
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.combuster.player()
+    }
+
     pub fn duration(&self) -> f32 {
         self.duration
     }
@@ -6229,6 +6237,10 @@ impl EntityDamageByEntity {
         &self.damager
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.damager.player()
+    }
+
     pub fn entity(&self) -> &Entity {
         &self.entity
     }
@@ -6407,6 +6419,10 @@ impl EntityDismount {
 
     pub fn entity(&self) -> &Entity {
         &self.entity
+    }
+
+    pub fn player(&self) -> Option<&Player> {
+        self.entity.player()
     }
 
     pub fn entity_type(&self) -> EntityType {
@@ -7053,6 +7069,10 @@ impl EntityKnockbackByEntity {
         &self.source_entity
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.source_entity.player()
+    }
+
     pub fn set_final_knockback(&mut self, value: Vector) {
         self.patch.final_knockback = Some(value.to_wire());
         self.final_knockback = value;
@@ -7112,6 +7132,10 @@ impl EntityMount {
 
     pub fn entity(&self) -> &Entity {
         &self.entity
+    }
+
+    pub fn player(&self) -> Option<&Player> {
+        self.entity.player()
     }
 
     pub fn entity_type(&self) -> EntityType {
@@ -7174,6 +7198,10 @@ impl EntityPickupItem {
 
     pub fn entity(&self) -> &Entity {
         &self.entity
+    }
+
+    pub fn player(&self) -> Option<&Player> {
+        self.entity.player()
     }
 
     pub fn entity_type(&self) -> EntityType {
@@ -7902,6 +7930,10 @@ impl EntityShootBow {
         &self.entity
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.entity.player()
+    }
+
     pub fn entity_type(&self) -> EntityType {
         self.entity_type
     }
@@ -8178,6 +8210,10 @@ impl EntityTarget {
         self.target.as_ref()
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.target.as_ref().and_then(Entity::player)
+    }
+
     pub fn set_target(&mut self, value: Option<Entity>) {
         self.patch.target = Some(v1::NullableEntitySnapshot {
             value: value.as_ref().map(|value| value.to_wire()),
@@ -8337,6 +8373,10 @@ impl EntityTargetLivingEntity {
         self.target.as_ref()
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.target.as_ref().and_then(Entity::player)
+    }
+
     pub fn set_target(&mut self, value: Option<Entity>) {
         self.patch.target = Some(v1::NullableEntitySnapshot {
             value: value.as_ref().map(|value| value.to_wire()),
@@ -8480,6 +8520,10 @@ impl EntityToggleGlide {
 
     pub fn entity(&self) -> &Entity {
         &self.entity
+    }
+
+    pub fn player(&self) -> Option<&Player> {
+        self.entity.player()
     }
 
     pub fn entity_type(&self) -> EntityType {
@@ -9531,6 +9575,10 @@ impl HangingBreakByEntity {
 
     pub fn remover(&self) -> Option<&Entity> {
         self.remover.as_ref()
+    }
+
+    pub fn player(&self) -> Option<&Player> {
+        self.remover.as_ref().and_then(Entity::player)
     }
 
     pub const fn cancel(&mut self) {
@@ -18136,6 +18184,10 @@ impl VehicleDamage {
         self.attacker.as_ref()
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.attacker.as_ref().and_then(Entity::player)
+    }
+
     pub fn damage(&self) -> f64 {
         self.damage
     }
@@ -18206,6 +18258,10 @@ impl VehicleDestroy {
         self.attacker.as_ref()
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.attacker.as_ref().and_then(Entity::player)
+    }
+
     pub fn vehicle(&self) -> &Entity {
         &self.vehicle
     }
@@ -18258,6 +18314,10 @@ impl VehicleEnter {
 
     pub fn entered(&self) -> &Entity {
         &self.entered
+    }
+
+    pub fn player(&self) -> Option<&Player> {
+        self.entered.player()
     }
 
     pub fn vehicle(&self) -> &Entity {
@@ -18326,6 +18386,10 @@ impl VehicleEntityCollision {
         &self.entity
     }
 
+    pub fn player(&self) -> Option<&Player> {
+        self.entity.player()
+    }
+
     pub fn is_pickup_cancelled(&self) -> bool {
         self.pickup_cancelled
     }
@@ -18382,6 +18446,10 @@ impl VehicleExit {
 
     pub fn exited(&self) -> &Entity {
         &self.exited
+    }
+
+    pub fn player(&self) -> Option<&Player> {
+        self.exited.player()
     }
 
     pub fn vehicle(&self) -> &Entity {

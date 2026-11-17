@@ -255,6 +255,7 @@ pub struct EntityView {
     pub uuid: Uuid,
     pub kind: String,
     pub position: Vec3,
+    pub player: Option<PlayerSnapshot>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

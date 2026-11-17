@@ -492,6 +492,7 @@ impl<L: ClientLink> Server<L> {
                             uuid,
                             kind: Kind::Item.name().to_owned(),
                             position,
+                            player: None,
                         },
                         item: spec_of(&stack),
                     })

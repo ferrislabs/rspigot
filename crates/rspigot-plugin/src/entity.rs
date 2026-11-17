@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::link::Link;
 use crate::server::Server;
 use crate::wire::parse_uuid;
-use crate::{Effect, EffectType, EntityType, Error, Position, Vector};
+use crate::{Effect, EffectType, EntityType, Error, Player, Position, Vector};
 
 #[derive(Debug, Clone)]
 pub struct Entity {
@@ -12,6 +12,7 @@ pub struct Entity {
     pub uuid: Uuid,
     pub kind: EntityType,
     pub position: Position,
+    player: Option<Player>,
     link: Link,
 }
 
@@ -25,8 +26,16 @@ impl Entity {
             uuid: parse_uuid(&snapshot.uuid, "an entity")?,
             kind,
             position: Position::from_wire(snapshot.position, "position")?,
+            player: snapshot
+                .player
+                .map(|player| Player::from_snapshot(player, link))
+                .transpose()?,
             link: link.clone(),
         })
+    }
+
+    pub fn player(&self) -> Option<&Player> {
+        self.player.as_ref()
     }
 
     pub(crate) fn to_wire(&self) -> v1::EntitySnapshot {
@@ -35,6 +44,7 @@ impl Entity {
             uuid: self.uuid.hyphenated().to_string(),
             kind: self.kind.key().to_owned(),
             position: Some(self.position.to_wire()),
+            player: self.player.as_ref().map(Player::to_snapshot),
         }
     }
 

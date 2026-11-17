@@ -129,6 +129,8 @@ pub struct EntitySnapshot {
     pub kind: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub position: ::core::option::Option<Vec3>,
+    #[prost(message, optional, tag = "5")]
+    pub player: ::core::option::Option<PlayerSnapshot>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]

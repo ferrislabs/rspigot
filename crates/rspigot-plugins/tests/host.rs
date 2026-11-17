@@ -405,6 +405,7 @@ fn targeting(uuid: Option<&str>) -> Option<v1::Patch> {
                         y: 64.0,
                         z: 0.0,
                     }),
+                    player: None,
                 }),
             }),
         })),

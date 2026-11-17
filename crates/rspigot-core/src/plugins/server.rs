@@ -1601,7 +1601,7 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
-    fn describe(&self, player: &Player<L>) -> PlayerSnapshot {
+    pub(super) fn describe(&self, player: &Player<L>) -> PlayerSnapshot {
         PlayerSnapshot {
             id: player.id,
             name: player.profile.name.clone(),

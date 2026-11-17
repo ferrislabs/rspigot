@@ -585,6 +585,7 @@ mod tests {
             uuid: Uuid::from_u128(u128::try_from(id).unwrap_or_default()),
             kind: "minecraft:zombie".to_owned(),
             position: Vec3::new(0.0, 64.0, 0.0),
+            player: None,
         }
     }
 
