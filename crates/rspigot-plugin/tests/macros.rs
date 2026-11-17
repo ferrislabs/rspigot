@@ -7,7 +7,7 @@ struct Welcome;
 #[listeners]
 impl Welcome {
     async fn on_player_join(&self, event: &PlayerJoin) {
-        event.player().message().send("Welcome!");
+        event.player().message.send("Welcome!");
     }
 
     #[priority(High)]
@@ -76,7 +76,7 @@ struct Lifecycle;
 #[listeners]
 impl Lifecycle {
     async fn on_enable(&self, server: &Server) {
-        server.message().broadcast("Enabled");
+        server.message.broadcast("Enabled");
     }
 
     async fn on_disable(&self) {}

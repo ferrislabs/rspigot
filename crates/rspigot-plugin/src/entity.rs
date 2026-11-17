@@ -13,6 +13,7 @@ pub struct Entity {
     pub uuid: Uuid,
     pub kind: EntityType,
     pub position: Position,
+    pub attributes: EntityAttributesHandle,
     player: Option<Player>,
     link: Link,
 }
@@ -23,6 +24,7 @@ impl Entity {
             Error::Malformed(format!("an unknown entity type `{}`", snapshot.kind))
         })?;
         Ok(Self {
+            attributes: EntityAttributesHandle::new(snapshot.entity_id, link.clone()),
             entity_id: snapshot.entity_id,
             uuid: parse_uuid(&snapshot.uuid, "an entity")?,
             kind,
@@ -98,10 +100,6 @@ impl Entity {
             )
             .await?;
         EntityState::from_wire(state, &self.link)
-    }
-
-    pub fn attributes(&self) -> EntityAttributesHandle<'_> {
-        EntityAttributesHandle::new(self)
     }
 
     pub(crate) const fn link(&self) -> &Link {

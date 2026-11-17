@@ -34,9 +34,9 @@ fn arena_state() -> v1::WorldState {
 async fn a_created_world_carries_its_id_on_every_call() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let arena = player.world().create(options()).await.unwrap();
+            let arena = player.world.create(options()).await.unwrap();
             assert_eq!(arena.id(), "rspigot:arena");
-            arena.pvp().set(false);
+            arena.pvp.set(false);
         })
     })
     .await;
@@ -82,9 +82,9 @@ async fn a_created_world_carries_its_id_on_every_call() {
 async fn the_default_world_names_no_world() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let world: World = player.world();
+            let world: World = player.world.clone();
             assert_eq!(world.id(), "minecraft:overworld");
-            world.pvp().set(true);
+            world.pvp.set(true);
             let _ = world.get_state().await;
         })
     })
@@ -106,7 +106,7 @@ async fn the_default_world_names_no_world() {
 async fn deleting_a_world_reports_the_result() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let arena = player.world().create(options()).await.unwrap();
+            let arena = player.world.create(options()).await.unwrap();
             arena.delete(true).await.unwrap();
         })
     })
@@ -137,8 +137,8 @@ async fn deleting_a_world_reports_the_result() {
 async fn teleporting_to_a_world_goes_to_its_spawn() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let arena = player.world().create(options()).await.unwrap();
-            player.location().teleport_to_world(&arena).await.unwrap();
+            let arena = player.world.create(options()).await.unwrap();
+            player.location.teleport_to_world(&arena).await.unwrap();
         })
     })
     .await;

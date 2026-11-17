@@ -19,9 +19,9 @@ It also creates a void world named `lobby` when it connects, and deletes it when
 
 `/welcome <place>` needs the `welcome.use` right, and `<place>` completes from `lobby`, `hub` and `zombie`:
 
-- `lobby` teleports the player to the lobby (`player.location().teleport_to_world`);
-- `hub` transfers the player to `127.0.0.1:25565` (`player.connection().transfer`), only with the `welcome.hub` right (`player.permissions().has`); anyone else is told they may not;
-- `zombie` spawns a baby zombie with 40 health at the player (`entity.attributes().set`, `entity.as_zombie()`).
+- `lobby` teleports the player to the lobby (`player.location.teleport_to_world`);
+- `hub` transfers the player to `127.0.0.1:25565` (`player.connection.transfer`), only with the `welcome.hub` right (`player.permissions.has`); anyone else is told they may not;
+- `zombie` spawns a baby zombie with 40 health at the player (`entity.attributes.set`, `entity.as_zombie()`).
 
 Any failure is reported to the player. Every hit between entities is logged with `event.player()`, which is `None` when a mob hit.
 

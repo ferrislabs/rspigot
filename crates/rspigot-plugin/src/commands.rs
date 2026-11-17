@@ -73,7 +73,7 @@ impl Context {
     }
 
     pub fn reply(&self, text: impl Into<String>) {
-        self.sender.message().send(text);
+        self.sender.message.send(text);
     }
 }
 

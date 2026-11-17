@@ -47,7 +47,7 @@ struct Guard {
 impl Guard {
     async fn on_player_join(&self, event: &PlayerJoin) {
         let player = event.player();
-        player.message().send(format!("Welcome, {}!", player.name));
+        player.message.send(format!("Welcome, {}!", player.name));
         let state = player.get_state().await;
         let online = player.server().get_players().await;
         let _ = self.joins.send(Joined {
@@ -492,7 +492,7 @@ async fn a_handler_can_ask_a_question_while_handling_an_event() {
     assert_eq!(joined.player.uuid.to_string(), STEVE);
     assert_eq!(joined.player.name, "Steve");
     assert_eq!(joined.player.entity_id, 12);
-    assert_eq!(joined.player.world, "minecraft:overworld");
+    assert_eq!(joined.player.world.id(), "minecraft:overworld");
     assert_eq!(
         joined.player.position,
         Position {
@@ -508,7 +508,7 @@ async fn a_handler_can_ask_a_question_while_handling_an_event() {
             pitch: -30.0
         }
     );
-    assert_eq!(joined.player.game_mode, GameMode::Creative);
+    assert_eq!(joined.player.game_mode.value(), GameMode::Creative);
     let state = joined.state.unwrap();
     assert_eq!(state.player.name, "Steve");
     assert_eq!((state.health, state.food_level, state.level), (17.5, 12, 3));
@@ -617,7 +617,7 @@ async fn a_lost_connection_is_retried() {
     assert!(matches!(joined.online, Err(Error::Disconnected)));
     let steve = joined.player;
     assert!(matches!(steve.get_state().await, Err(Error::Disconnected)));
-    steve.message().send("nobody hears this");
+    steve.message.send("nobody hears this");
 
     let knock = host.knock().await;
     assert!(lost.elapsed() >= Duration::from_millis(900));
@@ -628,7 +628,7 @@ async fn a_lost_connection_is_retried() {
         second.hear().await,
         decision(2, vec![verdict(2, false, None)])
     );
-    steve.message().send("back again");
+    steve.message.send("back again");
     assert_eq!(second.hear().await, message(STEVE, "back again"));
 
     second.end(Status::unavailable("the server is stopping"));

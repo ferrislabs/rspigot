@@ -183,6 +183,7 @@ impl DamageSource {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum CommandSender {
     Player(Player),
     Console,
@@ -455,6 +456,7 @@ impl HolderRef {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum MerchantRef {
     Entity(Entity),
     Custom,

@@ -1,33 +1,36 @@
-use rspigot_plugin_protocol::v1::{self, entity_order, typed_change::Change};
+use rspigot_plugin_protocol::v1::{self, entity_order, from_plugin, typed_change::Change};
 
+use crate::link::Link;
 use crate::{DyeColor, Entity, EntityType};
 
 macro_rules! typed {
     ($($name:ident => $kind:ident, $method:ident);+ $(;)?) => {
         $(
             #[derive(Debug, Clone)]
-            pub struct $name<'a> {
-                entity: &'a Entity,
+            pub struct $name {
+                entity_id: i32,
+                link: Link,
             }
 
-            impl<'a> $name<'a> {
-                pub const fn entity(&self) -> &'a Entity {
-                    self.entity
-                }
-
+            impl $name {
                 fn change(&self, change: Change) {
-                    self.entity
-                        .order(entity_order::Order::Change(v1::TypedChange {
+                    self.link.order(from_plugin::Body::Entity(v1::EntityOrder {
+                        entity: self.entity_id,
+                        order: Some(entity_order::Order::Change(v1::TypedChange {
                             change: Some(change),
-                        }));
+                        })),
+                    }));
                 }
             }
         )+
 
         impl Entity {
             $(
-                pub fn $method(&self) -> Option<$name<'_>> {
-                    (self.kind == EntityType::$kind).then_some($name { entity: self })
+                pub fn $method(&self) -> Option<$name> {
+                    (self.kind == EntityType::$kind).then(|| $name {
+                        entity_id: self.entity_id,
+                        link: self.link().clone(),
+                    })
                 }
             )+
         }
@@ -92,19 +95,19 @@ indexed!(RabbitVariant {
     Evil = 99,
 });
 
-impl Zombie<'_> {
+impl Zombie {
     pub fn set_baby(&self, baby: bool) {
         self.change(Change::ZombieBaby(baby));
     }
 }
 
-impl Creeper<'_> {
+impl Creeper {
     pub fn set_powered(&self, powered: bool) {
         self.change(Change::CreeperPowered(powered));
     }
 }
 
-impl Sheep<'_> {
+impl Sheep {
     pub fn set_color(&self, color: DyeColor) {
         self.change(Change::SheepColor(color as u32));
     }
@@ -114,31 +117,31 @@ impl Sheep<'_> {
     }
 }
 
-impl Slime<'_> {
+impl Slime {
     pub fn set_size(&self, size: i32) {
         self.change(Change::SlimeSize(size));
     }
 }
 
-impl Villager<'_> {
+impl Villager {
     pub fn set_profession(&self, profession: Profession) {
         self.change(Change::VillagerProfession(profession.wire()));
     }
 }
 
-impl Wolf<'_> {
+impl Wolf {
     pub fn set_collar_color(&self, color: DyeColor) {
         self.change(Change::WolfCollar(color as u32));
     }
 }
 
-impl Cat<'_> {
+impl Cat {
     pub fn set_collar_color(&self, color: DyeColor) {
         self.change(Change::CatCollar(color as u32));
     }
 }
 
-impl Rabbit<'_> {
+impl Rabbit {
     pub fn set_variant(&self, variant: RabbitVariant) {
         self.change(Change::RabbitVariant(variant.wire()));
     }

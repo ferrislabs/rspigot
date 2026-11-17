@@ -174,7 +174,7 @@ async fn creating_and_opening_an_inventory_wait_for_the_result() {
             let storage = server.create_storage(2, "Box").await.unwrap();
             assert_ne!(menu.id(), storage.id());
             menu.set(4, Some(ItemStack::new(Material::Compass, 1)));
-            player.inventory().open(&menu).await.unwrap();
+            player.inventory.open(&menu).await.unwrap();
             let full = server.create_inventory(7, "Big").await;
             let Err(Error::Action(error)) = full else {
                 panic!("expected a refused creation, got {full:?}");
@@ -476,11 +476,11 @@ async fn an_order_on_an_inventory_from_an_earlier_connection_is_dropped() {
             Box::pin(async move {
                 let old = OLD.lock().unwrap().clone().expect("a stored inventory");
                 old.set(0, None);
-                let opened = player.inventory().open(&old).await;
+                let opened = player.inventory.open(&old).await;
                 assert!(matches!(opened, Err(Error::Disconnected)), "{opened:?}");
                 let resolved = old.get_state().await;
                 assert!(matches!(resolved, Err(Error::NotFound)), "{resolved:?}");
-                player.message().send("marker");
+                player.message.send("marker");
             })
         },
         |server| {

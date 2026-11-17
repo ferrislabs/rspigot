@@ -57,7 +57,7 @@ impl Welcome {
             generator: Generator::Void,
             structures: false,
         };
-        match server.world().create(options).await {
+        match server.world.create(options).await {
             Ok(lobby) => {
                 if let Ok(mut held) = self.lobby.lock() {
                     *held = Some(lobby);
@@ -86,25 +86,25 @@ impl Welcome {
         match place.as_str() {
             "lobby" => match self.lobby() {
                 Some(lobby) => {
-                    if let Err(error) = player.location().teleport_to_world(&lobby).await {
+                    if let Err(error) = player.location.teleport_to_world(&lobby).await {
                         ctx.reply(format!("Could not reach the lobby: {error}"));
                     }
                 }
                 None => ctx.reply("The lobby is closed"),
             },
-            "hub" if player.permissions().has("welcome.hub") => {
-                if let Err(error) = player.connection().transfer("127.0.0.1", 25565).await {
+            "hub" if player.permissions.has("welcome.hub") => {
+                if let Err(error) = player.connection.transfer("127.0.0.1", 25565).await {
                     ctx.reply(format!("Transfer refused: {error}"));
                 }
             }
             "hub" => ctx.reply("You may not use the hub"),
             "zombie" => match player
-                .world()
+                .world
                 .spawn(EntityType::Zombie, player.position)
                 .await
             {
                 Ok(zombie) => {
-                    zombie.attributes().set(Attribute::MaxHealth, 40.0);
+                    zombie.attributes.set(Attribute::MaxHealth, 40.0);
                     if let Some(zombie) = zombie.as_zombie() {
                         zombie.set_baby(true);
                     }
@@ -124,12 +124,12 @@ impl Welcome {
 
     async fn on_player_join(&self, event: &PlayerJoin) {
         let player = event.player();
-        player.message().send(format!("Welcome {}!", player.name));
+        player.message.send(format!("Welcome {}!", player.name));
         player
-            .title()
+            .title
             .send(Title::new(format!("{}Welcome", ChatColor::Gold)).subtitle(&player.name));
         player
-            .inventory()
+            .inventory
             .add(ItemStack::new(Material::Compass, 1).name("§eMenu"));
 
         match player.server().get_state().await {
@@ -142,10 +142,10 @@ impl Welcome {
             Err(error) => tracing::warn!("Could not read the server: {error}"),
         }
 
-        let world = player.world();
+        let world = &player.world;
         let feet = player.position;
         world
-            .sound()
+            .sound
             .play(SoundCue::new(Sound::EntityPlayerLevelup).at(feet));
         let below = BlockPos {
             x: feet.x.floor() as i32,
@@ -163,7 +163,7 @@ impl Welcome {
         }
 
         if let Some(menu) = self.menu()
-            && let Err(error) = player.inventory().open(&menu).await
+            && let Err(error) = player.inventory.open(&menu).await
         {
             tracing::warn!("Could not open the menu for {}: {error}", player.name);
         }
@@ -175,8 +175,8 @@ impl Welcome {
             && event.clicked_inventory().and_then(InventoryRef::custom) == menu.as_ref();
         if in_menu && event.slot() == i32::from(LEAVE_SLOT) {
             let player = event.player();
-            player.inventory().close();
-            player.message().send("§aSee you around");
+            player.inventory.close();
+            player.message.send("§aSee you around");
         }
     }
 

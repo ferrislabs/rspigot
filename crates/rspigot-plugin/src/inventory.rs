@@ -77,7 +77,7 @@ impl PlayerInventoryHandle {
             .act_from(
                 inventory.generation(),
                 from_plugin::Body::Player(v1::PlayerOrder {
-                    player: self.target.clone(),
+                    player: self.target.to_string(),
                     order: Some(player_order::Order::OpenInventory(inventory.id())),
                 }),
             )
@@ -88,7 +88,7 @@ impl PlayerInventoryHandle {
         let state = self
             .link
             .ask(
-                question::Question::Inventory(self.target.clone()),
+                question::Question::Inventory(self.target.to_string()),
                 "an inventory",
                 |body| match body {
                     answer::Body::Inventory(state) => Some(state),
