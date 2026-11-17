@@ -18,6 +18,7 @@ mod boss_bar;
 mod link;
 mod listener;
 mod payload;
+mod permissions;
 mod player;
 mod runtime;
 mod scoreboard;
@@ -51,6 +52,7 @@ pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particl
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
 pub use location::PlayerLocationHandle;
 pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
+pub use permissions::PlayerPermissionsHandle;
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
 pub use rspigot_plugin_macros::{Plugin, listeners};
 pub use runtime::{run, run_with};

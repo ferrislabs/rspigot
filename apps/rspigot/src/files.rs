@@ -456,7 +456,14 @@ pub fn reload(root: &Path, request: ReloadRequest) -> anyhow::Result<ReloadData>
     let files = crate::config::ServerFiles::load(root)?;
     let admin = read_admin_lists(root, files.properties.bool("white-list"), SystemTime::now());
     let config = (!request.whitelist_only).then(|| files.game_config(admin.clone()));
-    Ok(ReloadData { admin, config })
+    let permissions = (!request.whitelist_only)
+        .then(|| crate::config::permissions::load_or_create(&root.join("permissions.yml")))
+        .transpose()?;
+    Ok(ReloadData {
+        admin,
+        config,
+        permissions,
+    })
 }
 
 pub fn spawn_reloader(

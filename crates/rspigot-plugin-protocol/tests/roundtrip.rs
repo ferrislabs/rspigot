@@ -19,6 +19,7 @@ use rspigot_plugin_protocol::v1::{
 
 fn steve() -> PlayerSnapshot {
     PlayerSnapshot {
+        permissions: Vec::new(),
         uuid: "00000000-0000-0000-0000-000000000001".to_owned(),
         name: "Steve".to_owned(),
         entity_id: 12,

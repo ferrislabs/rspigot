@@ -158,6 +158,7 @@ impl<L: ClientLink> Server<L> {
             hostname: String::new(),
             kick_message,
             player: PlayerSnapshot {
+                permissions: Vec::new(),
                 id: arrival.profile.id,
                 name: arrival.profile.name.clone(),
                 entity_id: 0,

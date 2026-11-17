@@ -373,8 +373,26 @@ mod tests {
     }
 
     #[test]
+    fn a_snapshot_carries_its_rights() {
+        let snapshot = PlayerSnapshot {
+            permissions: vec!["kit.use".to_owned(), "-kit.ban".to_owned()],
+            id: PlayerId(Uuid::from_u128(1)),
+            name: "Steve".to_owned(),
+            entity_id: 12,
+            world: "minecraft:overworld".to_owned(),
+            position: Vec3::new(1.0, 64.0, -3.5),
+            rotation: Rotation::new(0.0, 0.0),
+            game_mode: GameMode::Creative,
+        };
+        let wire = wire_player(snapshot.clone());
+        assert_eq!(wire.permissions, ["kit.use", "-kit.ban"]);
+        assert_eq!(player::snapshot(wire).unwrap(), snapshot);
+    }
+
+    #[test]
     fn a_snapshot_carries_its_rotation() {
         let snapshot = PlayerSnapshot {
+            permissions: Vec::new(),
             id: PlayerId(Uuid::from_u128(1)),
             name: "Steve".to_owned(),
             entity_id: 12,

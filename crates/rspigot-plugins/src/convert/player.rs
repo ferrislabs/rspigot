@@ -157,6 +157,7 @@ pub(super) fn snapshot(player: v1::PlayerSnapshot) -> Result<PlayerSnapshot, Mal
         position: shared::vec3(required(player.position)?),
         rotation: shared::rotation(required(player.rotation)?),
         game_mode: game_mode(player.game_mode)?,
+        permissions: player.permissions,
     })
 }
 
@@ -169,6 +170,7 @@ pub(super) fn wire_player(player: PlayerSnapshot) -> v1::PlayerSnapshot {
         position: Some(wire_vec(player.position)),
         game_mode: wire_game_mode(player.game_mode) as i32,
         rotation: Some(wire_rotation(player.rotation)),
+        permissions: player.permissions,
     }
 }
 
@@ -229,6 +231,7 @@ mod tests {
 
     fn snapshot() -> PlayerSnapshot {
         PlayerSnapshot {
+            permissions: Vec::new(),
             id: PlayerId(Uuid::from_u128(1)),
             name: "Steve".to_owned(),
             entity_id: 12,

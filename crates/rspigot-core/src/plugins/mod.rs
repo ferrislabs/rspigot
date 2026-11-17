@@ -180,6 +180,7 @@ pub struct PlayerSnapshot {
     pub position: Vec3,
     pub rotation: Rotation,
     pub game_mode: GameMode,
+    pub permissions: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
