@@ -1081,6 +1081,15 @@ impl<L: ClientLink> Server<L> {
         self.close_open_menu_by(id, notify_client, false)
     }
 
+    pub(crate) fn close_window_for_plugin(&mut self, id: PlayerId) {
+        if self.close_open_menu(id, true) {
+            return;
+        }
+        if let Some(player) = self.players.get(&id) {
+            player.link.send(ClientEvent::ContainerClose(0));
+        }
+    }
+
     fn close_open_menu_by(&mut self, id: PlayerId, notify_client: bool, by_player: bool) -> bool {
         if self.close_plugin_menu(id, notify_client, by_player) {
             return true;
