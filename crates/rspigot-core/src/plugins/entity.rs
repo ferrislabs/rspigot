@@ -185,6 +185,7 @@ fn view_of(entity: &Entity) -> EntityView {
         uuid: base.uuid,
         kind: base.kind.name().to_owned(),
         position: base.position,
+        player: None,
     }
 }
 

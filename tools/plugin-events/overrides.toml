@@ -296,6 +296,7 @@ unread = { setFrom = "Spigot never reads it back: the portal search reads getTo(
 unread = { setFrom = "Spigot never reads it back: the portal search reads getTo(), the radii and getCanCreatePortal() only" }
 
 [events.VehicleEntityCollision]
+actor = "entity"
 unread = { setCollisionCancelled = "Spigot never reads it back: boats and minecarts only look at the cancel", setPickupCancelled = "Spigot never reads it back: boats and minecarts only look at the cancel" }
 
 [events.EntityPortalExit]
@@ -436,6 +437,7 @@ omit = { "getDamage(EntityDamageEvent$DamageModifier)" = "deprecated in Bukkit: 
 omit = { "getDamage(EntityDamageEvent$DamageModifier)" = "deprecated in Bukkit: the DamageModifier it takes is deprecated, like the rest of the per-modifier damage", "getOriginalDamage(EntityDamageEvent$DamageModifier)" = "deprecated in Bukkit: the DamageModifier it takes is deprecated, like the rest of the per-modifier damage", "isApplicable(EntityDamageEvent$DamageModifier)" = "deprecated in Bukkit: the DamageModifier it takes is deprecated, like the rest of the per-modifier damage", "setDamage(EntityDamageEvent$DamageModifier, double)" = "deprecated in Bukkit: the DamageModifier it takes is deprecated, like the rest of the per-modifier damage" }
 
 [events.EntityDamageByEntity]
+actor = "damager"
 omit = { "getDamage(EntityDamageEvent$DamageModifier)" = "deprecated in Bukkit: the DamageModifier it takes is deprecated, like the rest of the per-modifier damage", "getOriginalDamage(EntityDamageEvent$DamageModifier)" = "deprecated in Bukkit: the DamageModifier it takes is deprecated, like the rest of the per-modifier damage", "isApplicable(EntityDamageEvent$DamageModifier)" = "deprecated in Bukkit: the DamageModifier it takes is deprecated, like the rest of the per-modifier damage", "setDamage(EntityDamageEvent$DamageModifier, double)" = "deprecated in Bukkit: the DamageModifier it takes is deprecated, like the rest of the per-modifier damage" }
 
 [events.PotionSplash]
@@ -476,3 +478,48 @@ actor = "entity"
 
 [events.TradeSelect]
 actor = "whoClicked"
+
+[events.EntityCombustByEntity]
+actor = "combuster"
+
+[events.EntityKnockbackByEntity]
+actor = "sourceEntity"
+
+[events.EntityBreed]
+actor = "breeder"
+
+[events.EntityShootBow]
+actor = "entity"
+
+[events.EntityTargetLivingEntity]
+actor = "target"
+
+[events.EntityTarget]
+actor = "target"
+
+[events.HangingBreakByEntity]
+actor = "remover"
+
+[events.VehicleDamage]
+actor = "attacker"
+
+[events.VehicleDestroy]
+actor = "attacker"
+
+[events.VehicleEnter]
+actor = "entered"
+
+[events.VehicleExit]
+actor = "exited"
+
+[events.EntityMount]
+actor = "entity"
+
+[events.EntityDismount]
+actor = "entity"
+
+[events.EntityPickupItem]
+actor = "entity"
+
+[events.EntityToggleGlide]
+actor = "entity"

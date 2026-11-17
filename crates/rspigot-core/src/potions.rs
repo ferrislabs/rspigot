@@ -502,6 +502,7 @@ impl<L: ClientLink> Server<L> {
             uuid: cloud.base.uuid,
             kind: cloud.base.kind.name().to_owned(),
             position: cloud.base.position,
+            player: None,
         };
         let potion = step.potion;
         let hit = step.hit;

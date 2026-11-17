@@ -46,6 +46,7 @@ fn zombie() -> EntitySnapshot {
             y: 64.0,
             z: -3.5,
         }),
+        player: None,
     }
 }
 
