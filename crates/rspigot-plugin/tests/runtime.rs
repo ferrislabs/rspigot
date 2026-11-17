@@ -48,8 +48,8 @@ impl Guard {
     async fn on_player_join(&self, event: &PlayerJoin) {
         let player = event.player();
         player.message().send(format!("Welcome, {}!", player.name));
-        let state = player.resolve().await;
-        let online = player.server().players.fetch().await;
+        let state = player.get_state().await;
+        let online = player.server().get_players().await;
         let _ = self.joins.send(Joined {
             player: player.clone(),
             state,
@@ -615,7 +615,7 @@ async fn a_lost_connection_is_retried() {
     assert!(matches!(joined.state, Err(Error::Disconnected)));
     assert!(matches!(joined.online, Err(Error::Disconnected)));
     let steve = joined.player;
-    assert!(matches!(steve.resolve().await, Err(Error::Disconnected)));
+    assert!(matches!(steve.get_state().await, Err(Error::Disconnected)));
     steve.message().send("nobody hears this");
 
     let knock = host.knock().await;

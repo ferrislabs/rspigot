@@ -346,7 +346,7 @@ async fn questions_answer_typed_values() {
         Box::pin(async move {
             let server = player.server();
             assert_eq!(
-                server.resolve().await.unwrap(),
+                server.get_state().await.unwrap(),
                 ServerState {
                     max_players: 20,
                     online: 2,
@@ -354,21 +354,13 @@ async fn questions_answer_typed_values() {
                     whitelist_enabled: true,
                 }
             );
-            let named = server.players.named("alex").fetch().await.unwrap();
+            let named = server.get_players_named("alex").await.unwrap();
             assert_eq!(named.len(), 1);
             assert_eq!(named[0].name, "Alex");
             assert_eq!(named[0].uuid.to_string(), ALEX);
-            assert!(
-                server
-                    .players
-                    .named("nobody")
-                    .fetch()
-                    .await
-                    .unwrap()
-                    .is_empty()
-            );
+            assert!(server.get_players_named("nobody").await.unwrap().is_empty());
             assert_eq!(
-                server.whitelist.fetch().await.unwrap(),
+                server.whitelist().get_names().await.unwrap(),
                 [
                     ListedPlayer {
                         name: "Carol".to_owned(),
@@ -381,14 +373,14 @@ async fn questions_answer_typed_values() {
                 ]
             );
             assert_eq!(
-                server.operators.fetch().await.unwrap(),
+                server.operators().get_names().await.unwrap(),
                 [ListedPlayer {
                     name: "Alice".to_owned(),
                     uuid: None,
                 }]
             );
             assert_eq!(
-                server.bans.fetch().await.unwrap(),
+                server.bans().get_entries().await.unwrap(),
                 [BanEntry {
                     target: "Steve".to_owned(),
                     uuid: Some(steve_uuid()),
@@ -399,7 +391,7 @@ async fn questions_answer_typed_values() {
                 }]
             );
             assert_eq!(
-                server.ip_bans.fetch().await.unwrap(),
+                server.ip_bans().get_entries().await.unwrap(),
                 [IpBanEntry {
                     address: "203.0.113.7".parse().unwrap(),
                     created: ban_created(),
@@ -410,7 +402,7 @@ async fn questions_answer_typed_values() {
             );
             let world = player.world();
             assert_eq!(
-                world.resolve().await.unwrap(),
+                world.get_state().await.unwrap(),
                 WorldState {
                     name: "world".to_owned(),
                     uuid: Some(Uuid::from_u128(9)),
@@ -430,20 +422,20 @@ async fn questions_answer_typed_values() {
                 }
             );
             assert_eq!(
-                world.block(AT).resolve().await.unwrap(),
+                world.get_block(AT).await.unwrap(),
                 BlockState {
                     kind: BlockType::Stone,
                     properties: Vec::new(),
                 }
             );
             assert_eq!(
-                world.block(AT).resolve().await.unwrap(),
+                world.get_block(AT).await.unwrap(),
                 BlockState {
                     kind: BlockType::OakStairs,
                     properties: vec![("facing".to_owned(), "east".to_owned())],
                 }
             );
-            let unloaded = world.block(BlockPos { x: 0, y: 0, z: 0 }).resolve().await;
+            let unloaded = world.get_block(BlockPos { x: 0, y: 0, z: 0 }).await;
             assert!(matches!(unloaded, Err(Error::NotFound)), "{unloaded:?}");
         })
     })
@@ -620,7 +612,7 @@ async fn entity_filters_and_orders() {
                 .entities
                 .near(HERE, 2.0)
                 .of(EntityType::Zombie)
-                .fetch()
+                .get_entities()
                 .await
                 .unwrap();
             assert_eq!(near.len(), 1);
@@ -629,9 +621,14 @@ async fn entity_filters_and_orders() {
             assert_eq!(zombie.uuid, Uuid::from_u128(7));
             assert_eq!(zombie.kind, EntityType::Zombie);
             assert_eq!(zombie.position, HERE);
-            let cows = world.entities.of(EntityType::Cow).fetch().await.unwrap();
+            let cows = world
+                .entities
+                .of(EntityType::Cow)
+                .get_entities()
+                .await
+                .unwrap();
             assert!(cows.is_empty());
-            assert!(world.entities.fetch().await.unwrap().is_empty());
+            assert!(world.entities.get_entities().await.unwrap().is_empty());
             let to = Position {
                 x: 0.5,
                 y: 70.0,
@@ -649,7 +646,7 @@ async fn entity_filters_and_orders() {
                 y: 0.5,
                 z: -0.25,
             });
-            let state = zombie.resolve().await.unwrap();
+            let state = zombie.get_state().await.unwrap();
             assert_eq!(state.entity.entity_id, 12);
             assert_eq!(state.entity.kind, EntityType::Zombie);
             assert_eq!(state.health, Some(15.0));
@@ -664,7 +661,7 @@ async fn entity_filters_and_orders() {
             assert!(state.on_ground);
             assert_eq!(state.custom_name.as_deref(), Some("§cBoss"));
             assert_eq!(state.fire_ticks, 20);
-            let gone = zombie.resolve().await;
+            let gone = zombie.get_state().await;
             assert!(matches!(gone, Err(Error::NotFound)), "{gone:?}");
             zombie.server().message().broadcast("bye");
         })
@@ -850,18 +847,18 @@ async fn answers_the_sdk_cannot_read_are_malformed() {
         Box::pin(async move {
             let server = player.server();
             let world = player.world();
-            malformed(server.resolve().await);
-            malformed(server.resolve().await);
-            malformed(server.whitelist.fetch().await);
-            malformed(server.bans.fetch().await);
-            malformed(server.ip_bans.fetch().await);
-            malformed(world.resolve().await);
-            malformed(world.resolve().await);
-            malformed(world.resolve().await);
-            malformed(world.resolve().await);
-            malformed(world.block(AT).resolve().await);
-            malformed(world.entities.fetch().await);
-            malformed(world.entities.fetch().await);
+            malformed(server.get_state().await);
+            malformed(server.get_state().await);
+            malformed(server.whitelist().get_names().await);
+            malformed(server.bans().get_entries().await);
+            malformed(server.ip_bans().get_entries().await);
+            malformed(world.get_state().await);
+            malformed(world.get_state().await);
+            malformed(world.get_state().await);
+            malformed(world.get_state().await);
+            malformed(world.get_block(AT).await);
+            malformed(world.entities.get_entities().await);
+            malformed(world.entities.get_entities().await);
             malformed(world.spawn(EntityType::Zombie, HERE).await);
             malformed(player.target_block(5.0).await);
             malformed(player.target_block(5.0).await);

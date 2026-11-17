@@ -178,7 +178,7 @@ async fn player_orders_go_on_the_wire_in_order() {
 async fn every_player_order_has_its_wire_body() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let online = player.server().players.fetch().await.unwrap();
+            let online = player.server().get_players().await.unwrap();
             let alex = &online[1];
             let pos = Position {
                 x: -4.5,
@@ -490,7 +490,7 @@ async fn an_item_keeps_one_level_per_enchantment_and_its_last_name_and_lore() {
 async fn resolve_reads_the_full_player_state() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let state = player.resolve().await.unwrap();
+            let state = player.get_state().await.unwrap();
             assert_eq!(state.player.uuid.to_string(), STEVE);
             assert_eq!(state.player.name, "Steve");
             assert_eq!(state.health, 17.5);
@@ -546,7 +546,7 @@ async fn resolve_reads_the_full_player_state() {
 async fn inventory_resolve_reads_every_slot_and_the_held_slot() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let state = player.inventory().resolve().await.unwrap();
+            let state = player.inventory().get_items().await.unwrap();
             assert_eq!(state.held_slot, 3);
             let slots: Vec<InventorySlot> = state.slots.iter().map(|(slot, _)| *slot).collect();
             let mut expected: Vec<InventorySlot> = (0..9).map(InventorySlot::Hotbar).collect();
@@ -621,7 +621,7 @@ async fn an_item_read_keeps_its_hidden_components_when_written_back() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let inventory = player.inventory();
-            let state = inventory.resolve().await.unwrap();
+            let state = inventory.get_items().await.unwrap();
             let (slot, item) = state.slots.into_iter().next().unwrap();
             assert_eq!(slot, InventorySlot::Hotbar(0));
             inventory.set(SlotItem::new(InventorySlot::Main(5), item));
@@ -652,10 +652,10 @@ async fn a_player_answer_the_sdk_cannot_read_is_malformed() {
     let mut called = calling(|player| {
         Box::pin(async move {
             for _ in 0..5 {
-                let resolved = player.resolve().await;
+                let resolved = player.get_state().await;
                 assert!(matches!(resolved, Err(Error::Malformed(_))), "{resolved:?}");
             }
-            assert!(matches!(player.resolve().await, Err(Error::NotFound)));
+            assert!(matches!(player.get_state().await, Err(Error::NotFound)));
         })
     })
     .await;
@@ -696,10 +696,10 @@ async fn an_inventory_answer_the_sdk_cannot_read_is_malformed() {
         Box::pin(async move {
             let inventory = player.inventory();
             for _ in 0..7 {
-                let resolved = inventory.resolve().await;
+                let resolved = inventory.get_items().await;
                 assert!(matches!(resolved, Err(Error::Malformed(_))), "{resolved:?}");
             }
-            assert!(matches!(inventory.resolve().await, Err(Error::NotFound)));
+            assert!(matches!(inventory.get_items().await, Err(Error::NotFound)));
         })
     })
     .await;

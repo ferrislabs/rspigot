@@ -119,7 +119,7 @@ impl CustomInventory {
         self.order(custom_inventory_order::Order::Discard(v1::Empty {}));
     }
 
-    pub async fn resolve(&self) -> Result<CustomInventoryState, Error> {
+    pub async fn get_state(&self) -> Result<CustomInventoryState, Error> {
         if self.link.generation() != self.generation || !self.is_mine() {
             return Err(Error::NotFound);
         }

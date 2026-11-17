@@ -216,7 +216,7 @@ async fn inventory_orders_and_resolve_use_menu_slots() {
             let menu = player.server().create_inventory(6, "Shop");
             menu.set(53, None);
             menu.clear();
-            let state = menu.resolve().await.unwrap();
+            let state = menu.get_state().await.unwrap();
             assert_eq!(
                 state.items,
                 [None, Some(ItemStack::new(Material::Diamond, 3))]
@@ -227,9 +227,9 @@ async fn inventory_orders_and_resolve_use_menu_slots() {
                 .map(|viewer| viewer.name.as_str())
                 .collect();
             assert_eq!(viewers, ["Steve", "Alex"]);
-            let shuffled = menu.resolve().await;
+            let shuffled = menu.get_state().await;
             assert!(matches!(shuffled, Err(Error::Malformed(_))), "{shuffled:?}");
-            let gone = menu.resolve().await;
+            let gone = menu.get_state().await;
             assert!(matches!(gone, Err(Error::NotFound)), "{gone:?}");
             menu.close();
             menu.discard();
@@ -458,7 +458,7 @@ async fn an_order_on_an_inventory_from_an_earlier_connection_is_dropped() {
                 let old = OLD.lock().unwrap().clone().expect("a stored inventory");
                 old.set(0, None);
                 player.inventory().open(&old);
-                let resolved = old.resolve().await;
+                let resolved = old.get_state().await;
                 assert!(matches!(resolved, Err(Error::NotFound)), "{resolved:?}");
                 player.message().send("marker");
             })
@@ -570,5 +570,5 @@ async fn an_inventory_of_another_plugin_never_equals_mine_and_takes_no_order() {
         called.session.hear().await,
         stocked(7, custom_inventory_order::Order::Close(v1::Empty {}))
     );
-    assert!(matches!(theirs.resolve().await, Err(Error::NotFound)));
+    assert!(matches!(theirs.get_state().await, Err(Error::NotFound)));
 }

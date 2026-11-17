@@ -515,7 +515,7 @@ async fn player_command_performs_the_command_line() {
 async fn player_visibility_hides_and_shows_another_player() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let online = player.server().players.fetch().await.unwrap();
+            let online = player.server().get_players().await.unwrap();
             let alex = &online[1];
             player.visibility().hide(alex);
             player.visibility().show(alex);

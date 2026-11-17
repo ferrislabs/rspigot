@@ -1,7 +1,7 @@
 use rspigot_plugin_protocol::v1::{self, answer, question};
 use uuid::Uuid;
 
-use crate::block::{Block, BlockPos};
+use crate::block::{Block, BlockPos, BlockState};
 use crate::entity::{Entities, Entity};
 use crate::link::Link;
 use crate::wire::parse_uuid;
@@ -289,6 +289,10 @@ impl World {
         Block::new(pos, self.link.clone())
     }
 
+    pub async fn get_block(&self, pos: BlockPos) -> Result<BlockState, Error> {
+        self.block(pos).get_state().await
+    }
+
     pub async fn spawn(&self, kind: EntityType, position: Position) -> Result<Entity, Error> {
         self.created(question::Question::Spawn(v1::Spawn {
             kind: kind.key().to_owned(),
@@ -305,7 +309,7 @@ impl World {
         .await
     }
 
-    pub async fn resolve(&self) -> Result<WorldState, Error> {
+    pub async fn get_state(&self) -> Result<WorldState, Error> {
         let state = self
             .link
             .ask(

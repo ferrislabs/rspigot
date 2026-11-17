@@ -37,7 +37,7 @@ impl Welcome {
             .inventory()
             .add(ItemStack::new(Material::Compass, 1).name("§eMenu"));
 
-        match player.server().resolve().await {
+        match player.server().get_state().await {
             Ok(server) => tracing::info!(
                 "{} joined, {} of {} players online",
                 player.name,
@@ -57,7 +57,7 @@ impl Welcome {
             y: feet.y.floor() as i32 - 1,
             z: feet.z.floor() as i32,
         };
-        match world.block(below).resolve().await {
+        match world.get_block(below).await {
             Ok(block) => tracing::info!("{} stands on {}", player.name, block.kind.key()),
             Err(error) => tracing::warn!("Could not read the block under {}: {error}", player.name),
         }
