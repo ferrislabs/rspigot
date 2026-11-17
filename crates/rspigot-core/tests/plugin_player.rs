@@ -502,14 +502,20 @@ fn out_of_range_values_give_one_warning_and_change_nothing() {
 }
 
 #[test]
-fn an_order_for_a_player_who_left_is_dropped_silently() {
+fn an_order_for_a_player_who_left_warns_without_applying() {
     let mut s = scene(&["Alice", "Bob"]);
     let alice = s.players[0].clone();
     s.server.handle(leave_of(&alice));
     s.server.deliver();
     s.act(to(&alice, PlayerOrder::SetHealth(5.0)));
     s.act(to(&alice, PlayerOrder::SetHealth(-1.0)));
-    assert!(s.warnings().is_empty());
+    let warnings = s.warnings();
+    assert_eq!(warnings.len(), 2, "{warnings:?}");
+    assert!(
+        warnings
+            .iter()
+            .all(|warning| warning.contains("the player is not online"))
+    );
 }
 
 #[test]

@@ -9,8 +9,8 @@ use rspigot_core::config::{GameConfig, LevelData, PluginSettings, SpawningConfig
 use rspigot_core::events::{ClientEvent, Inbound, PlayerInput};
 use rspigot_core::plugins::events::{CreatureSpawnReason, EntityRemoveCause};
 use rspigot_core::plugins::{
-    Answer, EntityOrder, EntityView, EventKind, EventPayload, FromPlugin, ItemSpec, Order, Phase,
-    Question, ToPlugin,
+    ActionError, ActionErrorKind, Answer, EntityOrder, EntityView, EventKind, EventPayload,
+    FromPlugin, ItemSpec, Order, Phase, Question, ToPlugin,
 };
 use rspigot_core::ports::ChunkGenerator;
 use rspigot_core::server::Server;
@@ -177,7 +177,13 @@ fn a_cancelled_creature_spawn_never_enters_the_world_nor_fires_a_removal() {
     assert!(!exists(&mut s, zombie));
     rule_on(&mut s.server, 1, asked.id, true, None);
     s.tick(2);
-    assert!(matches!(answer(&s, 9_001), Some(Answer::Refused(_))));
+    assert!(matches!(
+        answer(&s, 9_001),
+        Some(Answer::Failed(ActionError {
+            kind: ActionErrorKind::Cancelled,
+            ..
+        }))
+    ));
     assert!(!exists(&mut s, zombie));
     assert!(!spawned_to(&alice, zombie));
     assert!(removals(&s).is_empty());
@@ -221,7 +227,13 @@ fn an_entity_spawn_decider_decides_the_items_of_its_family() {
     let dropped = spawn.entity.id;
     assert!(!exists(&mut s, dropped));
     rule_on(&mut s.server, 1, asked.id, true, None);
-    assert!(matches!(answer(&s, 9_003), Some(Answer::Refused(_))));
+    assert!(matches!(
+        answer(&s, 9_003),
+        Some(Answer::Failed(ActionError {
+            kind: ActionErrorKind::Cancelled,
+            ..
+        }))
+    ));
     assert!(!exists(&mut s, dropped));
     question(&mut s, 9_004, stick());
     let asked = last_asked(&s.plugin, EventKind::ItemSpawn);
