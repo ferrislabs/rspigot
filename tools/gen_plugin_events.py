@@ -528,7 +528,7 @@ class Model:
 
     def event(self, record, sdk_name, state, note, extra):
         allowed = {"getters", "rename", "collections", "omit", "unread", "revive", "applies_when_cancelled",
-                   "pairs", "extra", "indexed", "limits", "sets"}
+                   "pairs", "extra", "indexed", "limits", "sets", "actor"}
         for option in extra:
             if option not in allowed:
                 fail(f"{record['name']}: unknown override `{option}`")
@@ -541,6 +541,7 @@ class Model:
         direct = set(extra.get("applies_when_cancelled", []))
         pairs = extra.get("pairs", {})
         limits = extra.get("limits", {})
+        actor = extra.get("actor")
         numbers = record["fields"]
         used_overrides = set()
         left_out = []
@@ -605,6 +606,11 @@ class Model:
             if raw in rename:
                 used_overrides.add(("rename", raw))
             method = name if raw in rename else getter_method(entry["name"])
+            if raw == actor:
+                if self.ty(entry["type"]).leaf is not PLAYER or self.ty(entry["type"]).many:
+                    fail(f"{record['name']}: the actor {actor} is not a player getter")
+                method = "player"
+                used_overrides.add(("actor", actor))
             self.check_ident(record["name"], name)
             self.check_ident(record["name"], method)
             if name in fields:
@@ -726,7 +732,8 @@ class Model:
                 fail(f"{record['name']}: the field {snapshot_field(f)} clashes with the snapshot of {f.name}")
         for kind, values in (("omit", omit), ("unread", unread), ("revive", revive), ("getters", extra_getters),
                              ("rename", rename), ("applies_when_cancelled", direct), ("pairs", pairs),
-                             ("indexed", indexed), ("limits", limits)):
+                             ("indexed", indexed), ("limits", limits),
+                             ("actor", [actor] if actor else [])):
             for value in values:
                 if (kind, value) not in used_overrides:
                     fail(f"{record['name']}: the override {kind} {value} matches nothing")

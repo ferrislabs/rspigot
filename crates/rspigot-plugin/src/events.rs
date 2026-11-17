@@ -4740,7 +4740,7 @@ impl CraftItem {
         &self.viewers
     }
 
-    pub fn who_clicked(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.who_clicked
     }
 
@@ -5132,7 +5132,7 @@ impl EnchantItem {
         &self.enchant_block
     }
 
-    pub fn enchanter(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.enchanter
     }
 
@@ -6596,7 +6596,7 @@ impl EntityEnterLoveMode {
         self.entity_type
     }
 
-    pub fn human_entity(&self) -> Option<&Player> {
+    pub fn player(&self) -> Option<&Player> {
         self.human_entity.as_ref()
     }
 
@@ -6665,7 +6665,7 @@ impl EntityExhaustion {
         self.id
     }
 
-    pub fn entity(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.entity
     }
 
@@ -9020,7 +9020,7 @@ impl FoodLevelChange {
         self.id
     }
 
-    pub fn entity(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.entity
     }
 
@@ -9894,7 +9894,7 @@ impl InventoryClick {
         &self.viewers
     }
 
-    pub fn who_clicked(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.who_clicked
     }
 
@@ -10122,7 +10122,7 @@ impl InventoryCreative {
         &self.viewers
     }
 
-    pub fn who_clicked(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.who_clicked
     }
 
@@ -10264,7 +10264,7 @@ impl InventoryDrag {
         &self.viewers
     }
 
-    pub fn who_clicked(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.who_clicked
     }
 
@@ -12331,7 +12331,7 @@ impl PlayerDeath {
         &self.drops
     }
 
-    pub fn entity(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.entity
     }
 
@@ -16045,7 +16045,7 @@ impl PrepareItemEnchant {
         &self.enchant_block
     }
 
-    pub fn enchanter(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.enchanter
     }
 
@@ -17151,7 +17151,7 @@ impl SmithItem {
         &self.viewers
     }
 
-    pub fn who_clicked(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.who_clicked
     }
 
@@ -17849,7 +17849,7 @@ impl TradeSelect {
         &self.viewers
     }
 
-    pub fn who_clicked(&self) -> &Player {
+    pub fn player(&self) -> &Player {
         &self.who_clicked
     }
 
