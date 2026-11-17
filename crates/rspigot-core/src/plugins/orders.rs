@@ -63,6 +63,10 @@ pub enum Order {
     },
     Server(ServerOrder),
     World(WorldOrder),
+    InWorld {
+        world: rspigot_domain::Identifier,
+        order: Box<Order>,
+    },
     Block {
         pos: BlockPos,
         order: BlockOrder,
@@ -92,6 +96,7 @@ impl Order {
             Self::Inventory { order, .. } => order.name(),
             Self::Server(order) => order.name(),
             Self::World(order) => order.name(),
+            Self::InWorld { order, .. } => order.name(),
             Self::Block { order, .. } => order.name(),
             Self::Entity { order, .. } => order.name(),
             Self::CustomInventory { order, .. } => order.name(),
@@ -130,6 +135,7 @@ pub enum ServerOrder {
         title: String,
         locked: bool,
     },
+    CreateWorld(crate::worlds::WorldSpec),
 }
 
 impl ServerOrder {
@@ -149,6 +155,7 @@ impl ServerOrder {
             Self::IpBanAdd { .. } => "server.ip_ban_add",
             Self::IpBanRemove(_) => "server.ip_ban_remove",
             Self::CreateInventory { .. } => "server.create_inventory",
+            Self::CreateWorld(_) => "server.create_world",
         }
     }
 }
@@ -203,6 +210,9 @@ pub enum WorldOrder {
         power: f32,
         breaks_blocks: bool,
     },
+    Delete {
+        files: bool,
+    },
 }
 
 impl WorldOrder {
@@ -218,6 +228,7 @@ impl WorldOrder {
             Self::PlaySound { .. } => "world.play_sound",
             Self::SpawnParticle(_) => "world.spawn_particle",
             Self::Explode { .. } => "world.explode",
+            Self::Delete { .. } => "world.delete",
         }
     }
 }

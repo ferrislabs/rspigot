@@ -71,6 +71,15 @@ impl NoiseGenerator {
     }
 }
 
+impl NoiseGenerator {
+    #[must_use]
+    pub fn without_structures(mut self) -> Self {
+        self.state.overworld.disable_structures();
+        self.state.nether.disable_structures();
+        self
+    }
+}
+
 impl ChunkGenerator for NoiseGenerator {
     fn generate(&self, dimension: &Dimension, pos: ChunkPos) -> ChunkColumn {
         match DimensionKind::of(dimension) {

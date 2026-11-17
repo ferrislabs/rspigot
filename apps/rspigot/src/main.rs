@@ -2,6 +2,7 @@ mod bundled_pack;
 mod config;
 mod console;
 mod crash;
+mod created_worlds;
 mod dimensions;
 mod files;
 mod log_files;
@@ -217,6 +218,13 @@ fn main() -> anyhow::Result<()> {
     let permissions = config::permissions::load_or_create(&args.root.join("permissions.yml"))
         .context("loading permissions.yml")?;
     let (notice_sender, notice_receiver) = crossbeam_channel::unbounded();
+    let created_worlds_file = created_worlds::path(&args.root);
+    let (world_changes, world_updates) = crossbeam_channel::unbounded();
+    created_worlds::spawn_writer(
+        created_worlds_file.clone(),
+        Arc::clone(&store),
+        world_updates,
+    );
     let mut server: Server<NetLink> = Server::new(
         game_config,
         level,
@@ -225,6 +233,8 @@ fn main() -> anyhow::Result<()> {
         status.clone(),
     )
     .with_dimension_provider(dimensions::provide)
+    .with_world_factory(dimensions::create)
+    .with_worlds_sink(world_changes)
     .with_admin_sink(admin_updates)
     .with_player_store(Arc::clone(&store))
     .with_permissions(permissions)
@@ -235,6 +245,7 @@ fn main() -> anyhow::Result<()> {
     if management_listener.is_some() {
         server = server.with_management_sink(notice_sender);
     }
+    server.restore_worlds(created_worlds::load(&created_worlds_file));
     let spawn_chunks = server.start(Duration::from_secs(60));
     tracing::info!("Preparing spawn area: {spawn_chunks} chunks");
     let query = files.query_config().map(|config| {

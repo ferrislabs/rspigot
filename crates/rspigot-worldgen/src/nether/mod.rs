@@ -32,6 +32,7 @@ pub(crate) struct Nether {
     features: Arc<Features>,
     cache: Arc<Mutex<TerrainCache>>,
     structures: Arc<Engine>,
+    structures_on: bool,
 }
 
 pub(crate) struct NetherProbe<'a> {
@@ -131,6 +132,7 @@ impl Nether {
         ));
         Self {
             structures,
+            structures_on: true,
             seed,
             density: density::NetherDensity::new(seed as i64),
             biomes,
@@ -156,7 +158,14 @@ impl Nether {
         }
     }
 
+    pub(crate) fn disable_structures(&mut self) {
+        self.structures_on = false;
+    }
+
     pub(crate) fn starts_near(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Arc<Start>> {
+        if !self.structures_on {
+            return Vec::new();
+        }
         let ground = self.ground(dimension);
         let probe = self.biome_probe();
         self.structures.starts_near(&ground, &probe, (pos.x, pos.z))

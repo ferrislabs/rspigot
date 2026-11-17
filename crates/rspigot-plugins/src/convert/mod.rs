@@ -17,7 +17,7 @@ use rspigot_core::plugins::{
     Access, ActionErrorKind, Answer, FromPlugin, HandlerSpec, Phase, PluginIntro, Priority,
     Question, ToPlugin,
 };
-use rspigot_domain::EntityId;
+use rspigot_domain::{EntityId, Identifier};
 use rspigot_plugin_protocol::v1::{self, answer, from_plugin, question, to_plugin};
 
 use player::{wire_player, wire_state};
@@ -44,6 +44,8 @@ pub(crate) enum Malformed {
     Enum { field: &'static str, value: i32 },
     #[error("{0} ms is not a time the server can hold")]
     Time(i64),
+    #[error("`{0}` is not a world")]
+    World(String),
     #[error("{value} is out of range for {field}")]
     OutOfRange { field: &'static str, value: i64 },
 }
@@ -105,7 +107,8 @@ pub(crate) fn from_plugin(
         (None, Some(event)) => FromPlugin::Reaction { event, order },
         (None, None) => FromPlugin::Order(order),
     };
-    Ok(match message.body.ok_or(Malformed::Empty)? {
+    let world = message.in_world;
+    let converted = match message.body.ok_or(Malformed::Empty)? {
         from_plugin::Body::Hello(_) => return Err(Malformed::SecondHello),
         from_plugin::Body::Decision(decided) => decision::decision(decided, warnings),
         from_plugin::Body::Player(order) => ordered(player::order(order)?),
@@ -118,6 +121,50 @@ pub(crate) fn from_plugin(
         from_plugin::Body::Scoreboard(order) => ordered(scoreboard::order(order)?),
         from_plugin::Body::BossBar(order) => ordered(boss_bar::order(order)?),
         from_plugin::Body::Question(asked) => question(asked)?,
+    };
+    scoped(world, converted)
+}
+
+fn scoped(world: Option<String>, message: FromPlugin) -> Result<FromPlugin, Malformed> {
+    let Some(world) = world.filter(|world| !world.is_empty()) else {
+        return Ok(message);
+    };
+    let world = Identifier::parse(&world).map_err(|_| Malformed::World(world))?;
+    let wrap = |order: rspigot_core::plugins::Order| match order {
+        rspigot_core::plugins::Order::World(_)
+        | rspigot_core::plugins::Order::Block { .. }
+        | rspigot_core::plugins::Order::Entity { .. } => rspigot_core::plugins::Order::InWorld {
+            world: world.clone(),
+            order: Box::new(order),
+        },
+        other => other,
+    };
+    Ok(match message {
+        FromPlugin::Order(order) => FromPlugin::Order(wrap(order)),
+        FromPlugin::Reaction { event, order } => FromPlugin::Reaction {
+            event,
+            order: wrap(order),
+        },
+        FromPlugin::Action { request, order } => FromPlugin::Action {
+            request,
+            order: wrap(order),
+        },
+        FromPlugin::Question { request, question } => FromPlugin::Question {
+            request,
+            question: match question {
+                Question::World
+                | Question::Block(_)
+                | Question::Entities { .. }
+                | Question::Entity(_)
+                | Question::Spawn { .. }
+                | Question::DropItem { .. } => Question::InWorld {
+                    world,
+                    question: Box::new(question),
+                },
+                other => other,
+            },
+        },
+        other => other,
     })
 }
 
@@ -224,6 +271,7 @@ fn wire_answer(answer: Answer) -> answer::Body {
             bars: views.into_iter().map(boss_bar::wire_state).collect(),
         }),
         Answer::Refused(reason) => answer::Body::Refused(v1::Refused { reason }),
+        Answer::WorldCreated(key) => answer::Body::WorldCreated(key),
         Answer::Done => answer::Body::Done(v1::Empty {}),
         Answer::Failed(error) => answer::Body::Failed(v1::ActionError {
             kind: wire_error_kind(error.kind) as i32,
@@ -261,7 +309,58 @@ mod tests {
             body: Some(body),
             origin: None,
             request: None,
+            in_world: None,
         }
+    }
+
+    #[test]
+    fn a_world_id_wraps_the_orders_and_reads_that_depend_on_it() {
+        let arena = Identifier::parse("rspigot:arena").unwrap();
+        let mut set_pvp = body(from_plugin::Body::World(v1::WorldOrder {
+            order: Some(v1::world_order::Order::SetPvp(true)),
+        }));
+        set_pvp.in_world = Some("rspigot:arena".to_owned());
+        assert_eq!(
+            from_plugin(set_pvp, &mut Vec::new()).unwrap(),
+            FromPlugin::Order(Order::InWorld {
+                world: arena.clone(),
+                order: Box::new(Order::World(rspigot_core::plugins::WorldOrder::SetPvp(
+                    true
+                ))),
+            })
+        );
+        let mut asked = body(from_plugin::Body::Question(v1::Question {
+            request: 3,
+            question: Some(question::Question::World(v1::Empty {})),
+        }));
+        asked.in_world = Some("rspigot:arena".to_owned());
+        assert_eq!(
+            from_plugin(asked, &mut Vec::new()).unwrap(),
+            FromPlugin::Question {
+                request: 3,
+                question: Question::InWorld {
+                    world: arena,
+                    question: Box::new(Question::World),
+                },
+            }
+        );
+        let mut players = body(from_plugin::Body::Question(v1::Question {
+            request: 4,
+            question: Some(question::Question::Players(v1::Empty {})),
+        }));
+        players.in_world = Some("rspigot:arena".to_owned());
+        assert_eq!(
+            from_plugin(players, &mut Vec::new()).unwrap(),
+            FromPlugin::Question {
+                request: 4,
+                question: Question::Players,
+            }
+        );
+        let mut nowhere = body(from_plugin::Body::World(v1::WorldOrder {
+            order: Some(v1::world_order::Order::SetPvp(true)),
+        }));
+        nowhere.in_world = Some("not a world".to_owned());
+        assert!(from_plugin(nowhere, &mut Vec::new()).is_err());
     }
 
     #[test]
@@ -315,6 +414,7 @@ mod tests {
             })),
             origin: Some(4),
             request: Some(9),
+            in_world: None,
         };
         assert_eq!(
             from_plugin(teleport, &mut Vec::new()).unwrap(),
@@ -353,6 +453,7 @@ mod tests {
             })),
             origin,
             request: None,
+            in_world: None,
         };
         let order = Order::Server(rspigot_core::plugins::ServerOrder::Broadcast("hi".into()));
         assert_eq!(
@@ -373,6 +474,7 @@ mod tests {
             })),
             origin: Some(9),
             request: None,
+            in_world: None,
         };
         assert_eq!(
             from_plugin(asked, &mut Vec::new()).unwrap(),

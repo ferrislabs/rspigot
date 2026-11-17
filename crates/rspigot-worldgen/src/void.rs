@@ -12,6 +12,7 @@ use crate::resources::{Biome, BlockKind, Resources};
 pub struct VoidGenerator {
     resources: Box<Resources>,
     other_dimensions: Box<NoiseGenerator>,
+    every_dimension: bool,
 }
 
 impl VoidGenerator {
@@ -19,7 +20,14 @@ impl VoidGenerator {
         Self {
             resources: Box::new(Resources::resolve()),
             other_dimensions: Box::new(NoiseGenerator::new(seed)),
+            every_dimension: false,
         }
+    }
+
+    #[must_use]
+    pub fn in_every_dimension(mut self) -> Self {
+        self.every_dimension = true;
+        self
     }
 
     fn platform_y(dimension: &Dimension) -> i32 {
@@ -55,22 +63,18 @@ impl VoidGenerator {
 
 impl ChunkGenerator for VoidGenerator {
     fn generate(&self, dimension: &Dimension, pos: ChunkPos) -> ChunkColumn {
-        match DimensionKind::of(dimension) {
-            DimensionKind::Overworld => self.void_column(dimension, pos),
-            DimensionKind::Nether | DimensionKind::End => {
-                self.other_dimensions.generate(dimension, pos)
-            }
+        if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
+            self.void_column(dimension, pos)
+        } else {
+            self.other_dimensions.generate(dimension, pos)
         }
     }
 
     fn spawn_point(&self, dimension: &Dimension) -> Vec3 {
-        match DimensionKind::of(dimension) {
-            DimensionKind::Overworld => {
-                Vec3::new(0.5, f64::from(Self::platform_y(dimension) + 1), 0.5)
-            }
-            DimensionKind::Nether | DimensionKind::End => {
-                self.other_dimensions.spawn_point(dimension)
-            }
+        if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
+            Vec3::new(0.5, f64::from(Self::platform_y(dimension) + 1), 0.5)
+        } else {
+            self.other_dimensions.spawn_point(dimension)
         }
     }
 

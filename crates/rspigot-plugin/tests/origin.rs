@@ -52,6 +52,7 @@ fn said(text: &str, origin: Option<u64>) -> v1::FromPlugin {
         })),
         origin,
         request: None,
+        in_world: None,
     }
 }
 
@@ -101,6 +102,7 @@ async fn an_order_sent_while_a_handler_runs_carries_the_event_it_handles() {
                 body: Some(from_plugin::Body::Decision(v1::Decision { event: 5, .. })),
                 origin: None,
                 request: None,
+                in_world: None,
             }
         ),
         "{decision:?}"

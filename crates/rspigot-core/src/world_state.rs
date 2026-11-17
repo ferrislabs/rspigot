@@ -51,9 +51,25 @@ impl<L: ClientLink> Server<L> {
         generator: Arc<G>,
         store: Arc<S>,
     ) {
+        self.load_dimension_as(key, dimension, generator, store, None);
+    }
+
+    pub(crate) fn load_dimension_as<S: ChunkStore + EntityStore, G: ChunkGenerator>(
+        &mut self,
+        key: DimensionKey,
+        dimension: Dimension,
+        generator: Arc<G>,
+        store: Arc<S>,
+        identity: Option<(&str, i64)>,
+    ) {
         let dimension = Arc::new(dimension);
         let spawn = generator.spawn_point(&dimension);
         let mut level = self.world.level.clone();
+        if let Some((name, seed)) = identity {
+            name.clone_into(&mut level.name);
+            level.seed = seed;
+            level.uuid = None;
+        }
         level.spawn = Some(spawn.block());
         level.raids = stored_data(&*store, &key, RAIDS_DATA);
         level.dragon_fight = stored_data(&*store, &key, DRAGON_FIGHT_DATA);

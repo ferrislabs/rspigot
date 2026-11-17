@@ -68,7 +68,10 @@ pub use server::{BanEntry, IpBanEntry, ListedPlayer, Server, ServerState};
 pub use target::{BlockTarget, Target};
 pub use text::{ChatColor, Title};
 pub use uuid::Uuid;
-pub use world::{Difficulty, Explosion, GameRule, GameRuleSetting, Weather, World, WorldState};
+pub use world::{
+    Difficulty, Dimension, Explosion, GameRule, GameRuleSetting, Generator, Layer, Weather, World,
+    WorldOptions, WorldState,
+};
 
 pub mod prelude {
     pub use crate::events::*;

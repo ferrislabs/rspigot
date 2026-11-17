@@ -133,6 +133,43 @@ impl AnvilStore {
         self.cache.lock().slots.len()
     }
 
+    pub fn erase_dimension(&self, dimension: &Identifier) -> Result<(), StoreError> {
+        let folder = self
+            .layout
+            .dimension_dir(&self.root, dimension)
+            .map_err(|error| StoreError::Io(std::io::Error::other(error.to_string())))?;
+        let closing: Vec<Arc<Region>> = {
+            let mut cache = self.cache.lock();
+            let keys: Vec<RegionKey> = cache
+                .slots
+                .keys()
+                .filter(|key| key.dimension == *dimension)
+                .cloned()
+                .collect();
+            keys.into_iter()
+                .filter_map(|key| cache.slots.remove(&key))
+                .map(|slot| slot.region)
+                .collect()
+        };
+        for region in closing {
+            close_region(region);
+        }
+        match std::fs::remove_dir_all(&folder) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(StoreError::Io(error)),
+        }
+        let mut parent = folder.parent();
+        for _ in 0..3 {
+            let Some(path) = parent else { break };
+            if std::fs::remove_dir(path).is_err() {
+                break;
+            }
+            parent = path.parent();
+        }
+        Ok(())
+    }
+
     pub fn exists(&self, dimension: &Identifier, pos: ChunkPos) -> Result<bool, StoreError> {
         self.chunk_exists(dimension, pos)
             .map_err(|error| error.into_store(pos))

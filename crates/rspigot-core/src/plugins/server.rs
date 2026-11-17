@@ -127,6 +127,15 @@ impl<L: ClientLink> Server<L> {
             }
             Order::Server(order) => self.apply_server_order(connection, origin, order),
             Order::World(order) => self.apply_world_order(connection, order),
+            Order::InWorld { world, order } => {
+                let name = order.name();
+                let applied = self.within_world(&world, |server| {
+                    server.apply_order(connection, origin, *order);
+                });
+                if applied.is_none() {
+                    self.warn_plugin(connection, name, format!("there is no world {world}"));
+                }
+            }
             Order::Block { pos, order } => self.apply_block_order(connection, pos, order),
             Order::Entity { entity, order } => self.apply_entity_order(connection, entity, order),
             Order::CustomInventory { inventory, order } => {
@@ -188,6 +197,13 @@ impl<L: ClientLink> Server<L> {
             Question::Bans => Answer::Bans(self.ban_entries()),
             Question::IpBans => Answer::IpBans(self.ip_ban_entries()),
             Question::World => Answer::World(self.world_state()),
+            Question::InWorld { world, question } => {
+                return self
+                    .within_world(&world, |server| {
+                        server.answer_question(connection, request, *question)
+                    })
+                    .unwrap_or(Some(Answer::NotFound));
+            }
             Question::Block(pos) => self
                 .block_state(pos)
                 .map_or(Answer::NotFound, Answer::Block),
