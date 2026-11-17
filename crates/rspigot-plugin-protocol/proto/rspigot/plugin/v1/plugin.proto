@@ -43,19 +43,19 @@ message Decision { uint64 event = 1; reserved 2; repeated Verdict verdicts = 3; 
 message PlayerOrder {
   string player = 1;
   oneof order {
-    string send_message = 10; string send_action_bar = 11; Title send_title = 12; Empty reset_title = 13; TabList set_tab_list = 14;
-    Vec3 teleport = 15; Facing teleport_facing = 16; GameMode set_game_mode = 17; string kick = 18;
-    float set_health = 19; float set_absorption = 20; double damage = 21; Empty kill = 22;
-    int32 set_food_level = 23; float set_saturation = 24; float set_exhaustion = 25;
-    int32 give_exp = 26; int32 give_levels = 27; int32 set_level = 28; float set_exp = 29;
-    Effect add_effect = 30; string remove_effect = 31; Empty clear_effects = 32; int32 set_fire_ticks = 33; Vec3 set_velocity = 34;
-    bool set_allow_flight = 35; bool set_flying = 36; float set_fly_speed = 37; float set_walk_speed = 38; bool set_op = 39;
-    Empty respawn = 40; string perform_command = 41; string chat = 42; Sound play_sound = 43 [(rspigot.path) = "player.sound.play"]; Particle spawn_particle = 44;
-    string hide_player = 45; string show_player = 46; uint64 open_inventory = 47; Empty close_inventory = 48 [(rspigot.path) = "player.inventory.close"]; Empty update_inventory = 49;
-    BanTerms ban = 50; Location teleport_to = 51; uint32 set_scoreboard = 52;
+    string send_message = 10 [(rspigot.path) = "player.message.send"]; string send_action_bar = 11 [(rspigot.path) = "player.action_bar.send"]; Title send_title = 12 [(rspigot.path) = "player.title.send"]; Empty reset_title = 13 [(rspigot.path) = "player.title.reset"]; TabList set_tab_list = 14 [(rspigot.path) = "player.tab_list.set"];
+    Vec3 teleport = 15 [(rspigot.path) = "player.location.teleport"]; Facing teleport_facing = 16 [(rspigot.path) = "player.location.teleport_facing"]; GameMode set_game_mode = 17 [(rspigot.path) = "player.game_mode.set"]; string kick = 18 [(rspigot.path) = "player.connection.kick"];
+    float set_health = 19 [(rspigot.path) = "player.health.set"]; float set_absorption = 20 [(rspigot.path) = "player.health.set_absorption"]; double damage = 21 [(rspigot.path) = "player.health.damage"]; Empty kill = 22 [(rspigot.path) = "player.health.kill"];
+    int32 set_food_level = 23 [(rspigot.path) = "player.food.set_level"]; float set_saturation = 24 [(rspigot.path) = "player.food.set_saturation"]; float set_exhaustion = 25 [(rspigot.path) = "player.food.set_exhaustion"];
+    int32 give_exp = 26 [(rspigot.path) = "player.experience.give"]; int32 give_levels = 27 [(rspigot.path) = "player.experience.give_levels"]; int32 set_level = 28 [(rspigot.path) = "player.experience.set_level"]; float set_exp = 29 [(rspigot.path) = "player.experience.set_progress"];
+    Effect add_effect = 30 [(rspigot.path) = "player.effects.add"]; string remove_effect = 31 [(rspigot.path) = "player.effects.remove"]; Empty clear_effects = 32 [(rspigot.path) = "player.effects.clear"]; int32 set_fire_ticks = 33 [(rspigot.path) = "player.health.set_fire_ticks"]; Vec3 set_velocity = 34 [(rspigot.path) = "player.movement.set_velocity"];
+    bool set_allow_flight = 35 [(rspigot.path) = "player.abilities.set_allow_flight"]; bool set_flying = 36 [(rspigot.path) = "player.abilities.set_flying"]; float set_fly_speed = 37 [(rspigot.path) = "player.abilities.set_fly_speed"]; float set_walk_speed = 38 [(rspigot.path) = "player.abilities.set_walk_speed"]; bool set_op = 39 [(rspigot.path) = "player.operator.set"];
+    Empty respawn = 40 [(rspigot.path) = "player.health.respawn"]; string perform_command = 41 [(rspigot.path) = "player.command.perform"]; string chat = 42 [(rspigot.path) = "player.message.chat"]; Sound play_sound = 43 [(rspigot.path) = "player.sound.play"]; Particle spawn_particle = 44 [(rspigot.path) = "player.particle.spawn"];
+    string hide_player = 45 [(rspigot.path) = "player.visibility.hide"]; string show_player = 46 [(rspigot.path) = "player.visibility.show"]; uint64 open_inventory = 47; Empty close_inventory = 48 [(rspigot.path) = "player.inventory.close"]; Empty update_inventory = 49 [(rspigot.path) = "player.inventory.update"];
+    BanTerms ban = 50 [(rspigot.path) = "player.connection.ban"]; Location teleport_to = 51 [(rspigot.path) = "player.location.teleport_to"]; uint32 set_scoreboard = 52 [(rspigot.path) = "player.scoreboard.set"];
   }
 }
-message InventoryOrder { string player = 1; oneof order { Item add = 10; SetSlot set = 11; RemoveItems remove = 12; Empty clear = 13; int32 set_held_slot = 14; } }
+message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
 message ServerOrder {
   oneof order {
     string broadcast = 10; string dispatch_command = 11; Empty shutdown = 12; Empty save = 13; bool set_whitelist_enabled = 14;

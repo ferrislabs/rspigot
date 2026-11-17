@@ -5,8 +5,9 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use fake_host::*;
 use rspigot_plugin::{
-    ArmorSlot, BlockType, Color, Effect, EffectType, Enchantment, Error, GameMode, InventorySlot,
-    ItemStack, Material, Particle, Position, Rotation, Sound, Title, Uuid, Vector,
+    ArmorSlot, BanTerms, BlockType, Color, Effect, EffectType, Enchantment, Error, Facing,
+    GameMode, InventorySlot, ItemRemoval, ItemStack, Material, Particle, ParticleBurst, Position,
+    Rotation, SlotItem, Sound, SoundCue, TabList, Title, Uuid, Vector,
 };
 use rspigot_plugin_protocol::v1::{
     self, answer, from_plugin, inventory_order, particle, player_order, question,
@@ -108,24 +109,27 @@ async fn player_orders_go_on_the_wire_in_order() {
                 y: 64.0,
                 z: 2.0,
             };
-            player.send_message("§6Hi");
-            player.send_title(Title::new("A").subtitle("B"));
-            player.set_health(5.0);
-            player.teleport(pos);
-            player.add_effect(Effect::new(EffectType::Speed, 200, 1));
-            player.play_sound(Sound::EntityCowHurt, 1.0, 1.0);
-            player.spawn_particle(
-                Particle::Dust {
-                    color: Color::rgb(255, 0, 0),
-                    scale: 1.0,
-                },
-                pos,
-                3,
-                Vector::default(),
-                0.0,
+            player.message().send("§6Hi");
+            player.title().send(Title::new("A").subtitle("B"));
+            player.health().set(5.0);
+            player.location().teleport(pos);
+            player.effects().add(Effect::new(EffectType::Speed, 200, 1));
+            player.sound().play(SoundCue::new(Sound::EntityCowHurt));
+            player.particle().spawn(
+                ParticleBurst::new(
+                    Particle::Dust {
+                        color: Color::rgb(255, 0, 0),
+                        scale: 1.0,
+                    },
+                    pos,
+                )
+                .count(3),
             );
-            player.set_fly_speed(0.2);
-            player.ban(Some("x".into()), None);
+            player.abilities().set_fly_speed(0.2);
+            player.connection().ban(BanTerms {
+                reason: Some("x".into()),
+                expires: None,
+            });
         })
     })
     .await;
@@ -186,61 +190,76 @@ async fn every_player_order_has_its_wire_body() {
                 y: 1.0,
                 z: 1.5,
             };
-            player.send_action_bar("§aBar");
-            player.send_title(Title::new("T").times(5, 40, 15));
-            player.reset_title();
-            player.set_tab_list("Head", "Foot");
-            player.teleport_facing(
+            player.action_bar().send("§aBar");
+            player.title().send(Title::new("T").times(5, 40, 15));
+            player.title().reset();
+            player.tab_list().set(TabList::new("Head", "Foot"));
+            player.location().teleport_facing(Facing::new(
                 pos,
                 Rotation {
                     yaw: 45.0,
                     pitch: 10.0,
                 },
-            );
-            player.set_game_mode(GameMode::Spectator);
-            player.kick("§cBye");
-            player.set_absorption(4.0);
-            player.damage(2.5);
-            player.kill();
-            player.set_food_level(18);
-            player.set_saturation(3.5);
-            player.set_exhaustion(0.75);
-            player.give_exp(30);
-            player.give_levels(-2);
-            player.set_level(7);
-            player.set_exp(0.25);
-            player.add_effect(Effect {
+            ));
+            player.game_mode().set(GameMode::Spectator);
+            player.connection().kick("§cBye");
+            player.health().set_absorption(4.0);
+            player.health().damage(2.5);
+            player.health().kill();
+            player.food().set_level(18);
+            player.food().set_saturation(3.5);
+            player.food().set_exhaustion(0.75);
+            player.experience().give(30);
+            player.experience().give_levels(-2);
+            player.experience().set_level(7);
+            player.experience().set_progress(0.25);
+            player.effects().add(Effect {
                 ambient: true,
                 particles: false,
                 icon: false,
                 ..Effect::new(EffectType::Poison, Effect::INFINITE, 3)
             });
-            player.remove_effect(EffectType::Poison);
-            player.clear_effects();
-            player.set_fire_ticks(60);
-            player.set_velocity(spread);
-            player.set_allow_flight(true);
-            player.set_flying(false);
-            player.set_walk_speed(0.1);
-            player.set_op(true);
-            player.respawn();
-            player.perform_command("time set day");
-            player.chat("/spawn");
-            player.spawn_particle(Particle::Flame, pos, 1, spread, 0.5);
-            player.spawn_particle(Particle::Item(Material::DiamondSword), pos, 2, spread, 0.0);
-            player.spawn_particle(
-                Particle::BlockCrumble(BlockType::Stone),
-                pos,
-                4,
-                spread,
-                0.0,
+            player.effects().remove(EffectType::Poison);
+            player.effects().clear();
+            player.health().set_fire_ticks(60);
+            player.movement().set_velocity(spread);
+            player.abilities().set_allow_flight(true);
+            player.abilities().set_flying(false);
+            player.abilities().set_walk_speed(0.1);
+            player.operator().set(true);
+            player.health().respawn();
+            player.command().perform("time set day");
+            player.message().chat("/spawn");
+            player.particle().spawn(
+                ParticleBurst::new(Particle::Flame, pos)
+                    .count(1)
+                    .spread(spread)
+                    .speed(0.5),
             );
-            player.hide_player(alex);
-            player.show_player(alex);
-            player.close_inventory();
-            player.update_inventory();
-            player.ban(None, Some(UNIX_EPOCH + Duration::from_millis(1_000_000)));
-            player.ban(None, Some(UNIX_EPOCH - Duration::from_millis(5_000)));
+            player.particle().spawn(
+                ParticleBurst::new(Particle::Item(Material::DiamondSword), pos)
+                    .count(2)
+                    .spread(spread)
+                    .speed(0.0),
+            );
+            player.particle().spawn(
+                ParticleBurst::new(Particle::BlockCrumble(BlockType::Stone), pos)
+                    .count(4)
+                    .spread(spread)
+                    .speed(0.0),
+            );
+            player.visibility().hide(alex);
+            player.visibility().show(alex);
+            player.inventory().close();
+            player.inventory().update();
+            player.connection().ban(BanTerms {
+                reason: None,
+                expires: Some(UNIX_EPOCH + Duration::from_millis(1_000_000)),
+            });
+            player.connection().ban(BanTerms {
+                reason: None,
+                expires: Some(UNIX_EPOCH - Duration::from_millis(5_000)),
+            });
         })
     })
     .await;
@@ -350,22 +369,34 @@ async fn inventory_calls_use_spigot_slot_numbers() {
         Box::pin(async move {
             let inventory = player.inventory();
             let stone = || Some(ItemStack::new(Material::Stone, 64));
-            inventory.set(InventorySlot::Armor(ArmorSlot::Helmet), stone());
-            inventory.set(InventorySlot::Armor(ArmorSlot::Boots), stone());
-            inventory.set(InventorySlot::Offhand, stone());
-            inventory.set(InventorySlot::Hotbar(2), stone());
-            inventory.set(InventorySlot::Main(0), stone());
-            inventory.set(InventorySlot::Hotbar(9), stone());
-            inventory.set(InventorySlot::Main(27), None);
-            inventory.set(InventorySlot::Armor(ArmorSlot::Leggings), None);
-            inventory.set(InventorySlot::Armor(ArmorSlot::Chestplate), None);
+            inventory.set(SlotItem::new(
+                InventorySlot::Armor(ArmorSlot::Helmet),
+                stone(),
+            ));
+            inventory.set(SlotItem::new(
+                InventorySlot::Armor(ArmorSlot::Boots),
+                stone(),
+            ));
+            inventory.set(SlotItem::new(InventorySlot::Offhand, stone()));
+            inventory.set(SlotItem::new(InventorySlot::Hotbar(2), stone()));
+            inventory.set(SlotItem::new(InventorySlot::Main(0), stone()));
+            inventory.set(SlotItem::new(InventorySlot::Hotbar(9), stone()));
+            inventory.set(SlotItem::new(InventorySlot::Main(27), None));
+            inventory.set(SlotItem::new(
+                InventorySlot::Armor(ArmorSlot::Leggings),
+                None,
+            ));
+            inventory.set(SlotItem::new(
+                InventorySlot::Armor(ArmorSlot::Chestplate),
+                None,
+            ));
             inventory.add(
                 ItemStack::new(Material::DiamondSword, 1)
                     .name("§6X")
                     .lore(["a"])
                     .enchant(Enchantment::Sharpness, 5),
             );
-            inventory.remove(Material::Cobblestone, 32);
+            inventory.remove(ItemRemoval::new(Material::Cobblestone, 32));
             inventory.clear();
             inventory.set_held_slot(4);
         })
@@ -593,7 +624,7 @@ async fn an_item_read_keeps_its_hidden_components_when_written_back() {
             let state = inventory.resolve().await.unwrap();
             let (slot, item) = state.slots.into_iter().next().unwrap();
             assert_eq!(slot, InventorySlot::Hotbar(0));
-            inventory.set(InventorySlot::Main(5), item);
+            inventory.set(SlotItem::new(InventorySlot::Main(5), item));
         })
     })
     .await;
