@@ -1,0 +1,13 @@
+[package]
+name = "plugin-sdk-gen"
+edition = "2024"
+version = "0.1.0"
+license = "MIT"
+publish = false
+
+[dependencies]
+prost = "0.14"
+thiserror = "2"
+tonic-prost-build = "0.14"
+
+[workspace]
