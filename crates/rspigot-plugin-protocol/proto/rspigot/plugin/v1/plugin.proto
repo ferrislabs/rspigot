@@ -58,15 +58,15 @@ message PlayerOrder {
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
 message ServerOrder {
   oneof order {
-    string broadcast = 10; string dispatch_command = 11; Empty shutdown = 12; Empty save = 13; bool set_whitelist_enabled = 14;
-    string whitelist_add = 15; string whitelist_remove = 16; string operator_add = 17; string operator_remove = 18;
-    Ban ban_add = 19; string ban_remove = 20; Ban ip_ban_add = 21; string ip_ban_remove = 22; CreateInventory create_inventory = 23;
+    string broadcast = 10 [(rspigot.path) = "server.message.broadcast"]; string dispatch_command = 11 [(rspigot.path) = "server.command.dispatch"]; Empty shutdown = 12 [(rspigot.path) = "server.lifecycle.shutdown"]; Empty save = 13 [(rspigot.path) = "server.lifecycle.save"]; bool set_whitelist_enabled = 14 [(rspigot.path) = "server.whitelist.set_enabled"];
+    string whitelist_add = 15 [(rspigot.path) = "server.whitelist.add"]; string whitelist_remove = 16 [(rspigot.path) = "server.whitelist.remove"]; string operator_add = 17 [(rspigot.path) = "server.operators.add"]; string operator_remove = 18 [(rspigot.path) = "server.operators.remove"];
+    Ban ban_add = 19 [(rspigot.path) = "server.bans.add"]; string ban_remove = 20 [(rspigot.path) = "server.bans.remove"]; Ban ip_ban_add = 21 [(rspigot.path) = "server.ip_bans.add"]; string ip_ban_remove = 22 [(rspigot.path) = "server.ip_bans.remove"]; CreateInventory create_inventory = 23;
   }
 }
 message WorldOrder {
   oneof order {
-    int64 set_time = 10; Weather set_weather = 11; Difficulty set_difficulty = 12; BlockPos set_spawn = 13; bool set_pvp = 14;
-    SetGameRule set_game_rule = 15; Empty save = 16; Sound play_sound = 17; Particle spawn_particle = 18; Explode explode = 19;
+    int64 set_time = 10 [(rspigot.path) = "world.time.set"]; Weather set_weather = 11 [(rspigot.path) = "world.weather.set"]; Difficulty set_difficulty = 12 [(rspigot.path) = "world.difficulty.set"]; BlockPos set_spawn = 13 [(rspigot.path) = "world.spawn_point.set"]; bool set_pvp = 14 [(rspigot.path) = "world.pvp.set"];
+    SetGameRule set_game_rule = 15 [(rspigot.path) = "world.game_rule.set"]; Empty save = 16 [(rspigot.path) = "world.storage.save"]; Sound play_sound = 17 [(rspigot.path) = "world.sound.play"]; Particle spawn_particle = 18 [(rspigot.path) = "world.particle.spawn"]; Explode explode = 19 [(rspigot.path) = "world.explosion.create"];
   }
 }
 message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; } }

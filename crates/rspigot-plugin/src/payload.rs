@@ -164,6 +164,45 @@ impl From<BanTerms> for v1::BanTerms {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ban {
+    pub target: String,
+    pub reason: Option<String>,
+    pub expires: Option<SystemTime>,
+}
+
+impl Ban {
+    pub fn new(target: impl ToString) -> Self {
+        Self {
+            target: target.to_string(),
+            reason: None,
+            expires: None,
+        }
+    }
+
+    #[must_use]
+    pub fn reason(mut self, reason: impl Into<String>) -> Self {
+        self.reason = Some(reason.into());
+        self
+    }
+
+    #[must_use]
+    pub const fn expires(mut self, expires: SystemTime) -> Self {
+        self.expires = Some(expires);
+        self
+    }
+}
+
+impl From<Ban> for v1::Ban {
+    fn from(ban: Ban) -> Self {
+        Self {
+            target: ban.target,
+            reason: ban.reason,
+            expires_ms: ban.expires.map(millis),
+        }
+    }
+}
+
 impl From<Position> for v1::Vec3 {
     fn from(position: Position) -> Self {
         position.to_wire()

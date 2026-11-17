@@ -6,9 +6,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use fake_host::*;
 use rspigot_plugin::{
-    BanEntry, BlockPos, BlockState, BlockType, Difficulty, Effect, EffectType, EntityType, Error,
-    Face, GameRule, IpBanEntry, ItemStack, ListedPlayer, Material, Particle, Position, ServerState,
-    Sound, Target, Uuid, Vector, Weather, WorldState,
+    Ban, BanEntry, BlockPos, BlockState, BlockType, Difficulty, Effect, EffectType, EntityType,
+    Error, Explosion, Face, GameRule, GameRuleSetting, IpBanEntry, ItemStack, ListedPlayer,
+    Material, Particle, ParticleBurst, Position, ServerState, Sound, SoundCue, Target, Uuid,
+    Vector, Weather, WorldState,
 };
 use rspigot_plugin_protocol::v1::{
     self, answer, block_order, entity_order, from_plugin, question, server_order, target,
@@ -149,32 +150,32 @@ async fn server_orders_and_collections() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let server = player.server();
-            server.broadcast("hi");
-            server.dispatch_command("time set 0");
-            server.shutdown();
-            server.save();
-            server.set_whitelist_enabled(true);
-            server.whitelist.add("Carol");
-            server.whitelist.remove("Dave");
-            server.operators.add(String::from("Alice"));
-            server.operators.remove("Bob");
-            server.bans.add(
-                "Steve",
-                Some("grief".into()),
-                Some(UNIX_EPOCH + Duration::from_secs(1000)),
+            server.message().broadcast("hi");
+            server.command().dispatch("time set 0");
+            server.lifecycle().shutdown();
+            server.lifecycle().save();
+            server.whitelist().set_enabled(true);
+            server.whitelist().add("Carol");
+            server.whitelist().remove("Dave");
+            server.operators().add(String::from("Alice"));
+            server.operators().remove("Bob");
+            server.bans().add(
+                Ban::new("Steve")
+                    .reason("grief")
+                    .expires(UNIX_EPOCH + Duration::from_secs(1000)),
             );
-            server.bans.remove("Steve");
+            server.bans().remove("Steve");
             server
-                .ip_bans
-                .add("203.0.113.7".parse::<IpAddr>().unwrap(), None, None);
-            server.ip_bans.add(
-                "2001:db8::1".parse::<IpAddr>().unwrap(),
-                Some("spam".into()),
-                Some(UNIX_EPOCH - Duration::from_millis(5)),
+                .ip_bans()
+                .add(Ban::new("203.0.113.7".parse::<IpAddr>().unwrap()));
+            server.ip_bans().add(
+                Ban::new("2001:db8::1".parse::<IpAddr>().unwrap())
+                    .reason("spam")
+                    .expires(UNIX_EPOCH - Duration::from_millis(5)),
             );
             server
-                .ip_bans
-                .remove("203.0.113.7".parse::<IpAddr>().unwrap());
+                .ip_bans()
+                .remove("203.0.113.7".parse::<IpAddr>().unwrap().to_string());
         })
     })
     .await;
@@ -222,9 +223,9 @@ async fn world_and_block_orders_go_on_the_wire() {
                 y: 1.0,
                 z: 1.5,
             };
-            world.set_time(6000);
+            world.time().set(6000);
             for weather in [Weather::Clear, Weather::Rain, Weather::Thunder] {
-                world.set_weather(weather);
+                world.weather().set(weather);
             }
             for difficulty in [
                 Difficulty::Peaceful,
@@ -232,23 +233,33 @@ async fn world_and_block_orders_go_on_the_wire() {
                 Difficulty::Normal,
                 Difficulty::Hard,
             ] {
-                world.set_difficulty(difficulty);
+                world.difficulty().set(difficulty);
             }
-            world.set_spawn(BlockPos { x: 8, y: 64, z: -8 });
-            world.set_pvp(false);
+            world.spawn_point().set(BlockPos { x: 8, y: 64, z: -8 });
+            world.pvp().set(false);
             for rule in RULES {
-                world.set_game_rule(rule, true);
+                world.game_rule().set(GameRuleSetting::new(rule, true));
             }
-            world.save();
-            world.play_sound(Sound::EntityGenericExplode, HERE, 4.0, 0.5);
-            world.spawn_particle(Particle::Flame, HERE, 8, spread, 0.1);
-            world.explode(HERE, 4.0, true);
+            world.storage().save();
+            world.sound().play(
+                SoundCue::new(Sound::EntityGenericExplode)
+                    .volume(4.0)
+                    .pitch(0.5)
+                    .at(HERE),
+            );
+            world.particle().spawn(
+                ParticleBurst::new(Particle::Flame, HERE)
+                    .count(8)
+                    .spread(spread)
+                    .speed(0.1),
+            );
+            world.explosion().create(Explosion::new(HERE, 4.0, true));
             let block = world.block(AT);
             assert_eq!(block.pos, AT);
             block.set(BlockType::Stone);
             block.set_with(BlockType::OakStairs, &[("facing", "east"), ("half", "top")]);
             block.break_naturally();
-            player.server().world().set_pvp(true);
+            player.server().world().pvp().set(true);
         })
     })
     .await;
@@ -655,7 +666,7 @@ async fn entity_filters_and_orders() {
             assert_eq!(state.fire_ticks, 20);
             let gone = zombie.resolve().await;
             assert!(matches!(gone, Err(Error::NotFound)), "{gone:?}");
-            zombie.server().broadcast("bye");
+            zombie.server().message().broadcast("bye");
         })
     })
     .await;
