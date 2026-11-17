@@ -177,4 +177,53 @@ mod tests {
     fn campfire_recipes_are_not_in_the_catalog() {
         assert!(by_id("minecraft:cooked_beef_from_campfire_cooking").is_none());
     }
+
+    #[test]
+    fn every_catalog_recipe_satisfies_the_wire_invariants() {
+        let mut bad = Vec::new();
+        for recipe in catalog() {
+            for set in recipe.requirements() {
+                if set.items().is_empty() {
+                    bad.push(format!("{} empty set tag={:?}", recipe.id, set.tag()));
+                }
+                if let Some(tag) = set.tag()
+                    && (tag.starts_with('#') || !tag.contains(':'))
+                {
+                    bad.push(format!("{} tag {tag}", recipe.id));
+                }
+            }
+            if let Some(BookDisplay::Shaped {
+                width,
+                height,
+                cells,
+                ..
+            }) = recipe.display()
+                && cells.len() != usize::from(width) * usize::from(height)
+            {
+                bad.push(format!(
+                    "{} shaped {width}x{height} with {} cells",
+                    recipe.id,
+                    cells.len()
+                ));
+            }
+            let owner = i32::from(recipe.owner.id().0);
+            if owner <= 0 || owner >= 1658 {
+                bad.push(format!("{} owner id {owner}", recipe.id));
+            }
+            for set in recipe.requirements() {
+                for item in set.items() {
+                    if item.0 == 0 || i32::from(item.0) >= 1658 {
+                        bad.push(format!("{} item id {}", recipe.id, item.0));
+                    }
+                }
+            }
+            if recipe.count() == 0 {
+                bad.push(format!("{} zero count", recipe.id));
+            }
+            if recipe.category < 0 || recipe.category > 12 {
+                bad.push(format!("{} category {}", recipe.id, recipe.category));
+            }
+        }
+        assert!(bad.is_empty(), "{bad:#?}");
+    }
 }

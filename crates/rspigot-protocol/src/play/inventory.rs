@@ -160,7 +160,7 @@ pub enum SlotDisplay {
     AnyFuel,
     Item(i32),
     ItemStack(ItemStackTemplate),
-    Tag(String),
+    Tag(HolderSet),
     Composite(Vec<SlotDisplay>),
 }
 
@@ -199,7 +199,7 @@ impl Decode for SlotDisplay {
             slot_display::ANY_FUEL => Self::AnyFuel,
             slot_display::ITEM => Self::Item(read_var(input)?),
             slot_display::ITEM_STACK => Self::ItemStack(ItemStackTemplate::decode(input)?),
-            slot_display::TAG => Self::Tag(String::decode(input)?),
+            slot_display::TAG => Self::Tag(HolderSet::decode(input)?),
             slot_display::COMPOSITE => {
                 let len = decode_len(input, MAX_LIST_LEN)?;
                 let mut parts = Vec::with_capacity(len.min(input.len()));
@@ -437,11 +437,13 @@ mod tests {
     use crate::play::wire::testing::roundtrip;
 
     #[test]
-    fn a_composite_display_lists_its_parts_and_a_tag_is_a_bare_key() {
+    fn a_composite_display_lists_its_parts_and_a_tag_is_a_holder_set() {
         let display = SlotDisplay::Composite(vec![SlotDisplay::Item(3), SlotDisplay::Empty]);
         assert_eq!(roundtrip(&display), vec![10, 2, 4, 3, 0]);
-        let tag = roundtrip(&SlotDisplay::Tag("a:b".into()));
-        assert_eq!(tag, vec![6, 3, b'a', b':', b'b']);
+        let tag = roundtrip(&SlotDisplay::Tag(HolderSet::Tag("a:b".into())));
+        assert_eq!(tag, vec![6, 0, 3, b'a', b':', b'b']);
+        let direct = roundtrip(&SlotDisplay::Tag(HolderSet::Ids(vec![1, 2])));
+        assert_eq!(direct, vec![6, 3, 1, 2]);
     }
 
     #[test]
@@ -621,7 +623,7 @@ mod tests {
             SlotDisplay::Empty,
             SlotDisplay::AnyFuel,
             SlotDisplay::Item(5),
-            SlotDisplay::Tag("minecraft:planks".into()),
+            SlotDisplay::Tag(HolderSet::Tag("minecraft:planks".into())),
         ] {
             roundtrip(&display);
         }
