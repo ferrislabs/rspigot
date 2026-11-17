@@ -49,7 +49,9 @@ impl Welcome {
 
         let world = player.world();
         let feet = player.position;
-        world.play_sound(Sound::EntityPlayerLevelup, feet, 1.0, 1.0);
+        world
+            .sound()
+            .play(SoundCue::new(Sound::EntityPlayerLevelup).at(feet));
         let below = BlockPos {
             x: feet.x.floor() as i32,
             y: feet.y.floor() as i32 - 1,

@@ -1,10 +1,8 @@
-use std::fmt;
 use std::marker::PhantomData;
 use std::net::IpAddr;
 use std::time::SystemTime;
 
-use rspigot_plugin_protocol::v1::server_order::Order;
-use rspigot_plugin_protocol::v1::{self, answer, from_plugin, question};
+use rspigot_plugin_protocol::v1::{self, answer, question};
 use uuid::Uuid;
 
 use crate::Error;
@@ -13,8 +11,12 @@ use crate::custom_inventory::CustomInventory;
 use crate::link::Link;
 use crate::player::Player;
 use crate::scoreboard::ScoreboardManager;
-use crate::wire::{from_millis, millis, parse_address, parse_uuid};
+use crate::wire::{from_millis, parse_address, parse_uuid};
 use crate::world::World;
+use crate::{
+    ServerBansHandle, ServerCommandHandle, ServerIpBansHandle, ServerLifecycleHandle,
+    ServerMessageHandle, ServerOperatorsHandle, ServerWhitelistHandle,
+};
 
 #[derive(Debug, Clone)]
 pub struct Server {
@@ -38,24 +40,32 @@ impl Server {
         }
     }
 
-    pub fn broadcast(&self, text: impl Into<String>) {
-        order(&self.link, Order::Broadcast(text.into()));
+    pub fn message(&self) -> ServerMessageHandle {
+        ServerMessageHandle::new(self.link.clone())
     }
 
-    pub fn dispatch_command(&self, line: impl Into<String>) {
-        order(&self.link, Order::DispatchCommand(line.into()));
+    pub fn command(&self) -> ServerCommandHandle {
+        ServerCommandHandle::new(self.link.clone())
     }
 
-    pub fn shutdown(&self) {
-        order(&self.link, Order::Shutdown(v1::Empty {}));
+    pub fn lifecycle(&self) -> ServerLifecycleHandle {
+        ServerLifecycleHandle::new(self.link.clone())
     }
 
-    pub fn save(&self) {
-        order(&self.link, Order::Save(v1::Empty {}));
+    pub fn whitelist(&self) -> ServerWhitelistHandle {
+        ServerWhitelistHandle::new(self.link.clone())
     }
 
-    pub fn set_whitelist_enabled(&self, enabled: bool) {
-        order(&self.link, Order::SetWhitelistEnabled(enabled));
+    pub fn operators(&self) -> ServerOperatorsHandle {
+        ServerOperatorsHandle::new(self.link.clone())
+    }
+
+    pub fn bans(&self) -> ServerBansHandle {
+        ServerBansHandle::new(self.link.clone())
+    }
+
+    pub fn ip_bans(&self) -> ServerIpBansHandle {
+        ServerIpBansHandle::new(self.link.clone())
     }
 
     pub fn world(&self) -> World {
@@ -182,14 +192,10 @@ impl NameListKind for WhitelistKind {}
 impl NameListKind for OperatorKind {}
 
 impl sealed::NameWire for WhitelistKind {
-    const ADD: fn(String) -> Order = Order::WhitelistAdd;
-    const REMOVE: fn(String) -> Order = Order::WhitelistRemove;
     const QUESTION: question::Question = question::Question::Whitelist(v1::Empty {});
 }
 
 impl sealed::NameWire for OperatorKind {
-    const ADD: fn(String) -> Order = Order::OperatorAdd;
-    const REMOVE: fn(String) -> Order = Order::OperatorRemove;
     const QUESTION: question::Question = question::Question::Operators(v1::Empty {});
 }
 
@@ -209,14 +215,6 @@ impl<K: NameListKind> NameList<K> {
             link,
             kind: PhantomData,
         }
-    }
-
-    pub fn add(&self, name: impl Into<String>) {
-        order(&self.link, K::ADD(name.into()));
-    }
-
-    pub fn remove(&self, name: impl Into<String>) {
-        order(&self.link, K::REMOVE(name.into()));
     }
 
     pub async fn fetch(&self) -> Result<Vec<ListedPlayer>, Error> {
@@ -283,7 +281,6 @@ impl sealed::EntryWire for IpBanEntry {
 }
 
 pub trait BanListKind: sealed::BanWire {
-    type Target: fmt::Display;
     type Entry: sealed::EntryWire;
 }
 
@@ -294,24 +291,18 @@ pub enum ByName {}
 pub enum ByAddress {}
 
 impl BanListKind for ByName {
-    type Target = String;
     type Entry = BanEntry;
 }
 
 impl BanListKind for ByAddress {
-    type Target = IpAddr;
     type Entry = IpBanEntry;
 }
 
 impl sealed::BanWire for ByName {
-    const ADD: fn(v1::Ban) -> Order = Order::BanAdd;
-    const REMOVE: fn(String) -> Order = Order::BanRemove;
     const QUESTION: question::Question = question::Question::Bans(v1::Empty {});
 }
 
 impl sealed::BanWire for ByAddress {
-    const ADD: fn(v1::Ban) -> Order = Order::IpBanAdd;
-    const REMOVE: fn(String) -> Order = Order::IpBanRemove;
     const QUESTION: question::Question = question::Question::IpBans(v1::Empty {});
 }
 
@@ -333,26 +324,6 @@ impl<K: BanListKind> BanList<K> {
         }
     }
 
-    pub fn add(
-        &self,
-        target: impl Into<K::Target>,
-        reason: Option<String>,
-        expires: Option<SystemTime>,
-    ) {
-        order(
-            &self.link,
-            K::ADD(v1::Ban {
-                target: target.into().to_string(),
-                reason,
-                expires_ms: expires.map(millis),
-            }),
-        );
-    }
-
-    pub fn remove(&self, target: impl Into<K::Target>) {
-        order(&self.link, K::REMOVE(target.into().to_string()));
-    }
-
     pub async fn fetch(&self) -> Result<Vec<K::Entry>, Error> {
         let list = self
             .link
@@ -369,20 +340,15 @@ impl<K: BanListKind> BanList<K> {
 }
 
 mod sealed {
-    use rspigot_plugin_protocol::v1::server_order::Order;
     use rspigot_plugin_protocol::v1::{self, question};
 
     use crate::Error;
 
     pub trait NameWire {
-        const ADD: fn(String) -> Order;
-        const REMOVE: fn(String) -> Order;
         const QUESTION: question::Question;
     }
 
     pub trait BanWire {
-        const ADD: fn(v1::Ban) -> Order;
-        const REMOVE: fn(String) -> Order;
         const QUESTION: question::Question;
     }
 
@@ -402,10 +368,4 @@ async fn players(link: &Link, question: question::Question) -> Result<Vec<Player
         .into_iter()
         .map(|player| Player::from_wire(Some(player), link))
         .collect()
-}
-
-fn order(link: &Link, order: Order) {
-    link.order(from_plugin::Body::Server(v1::ServerOrder {
-        order: Some(order),
-    }));
 }
