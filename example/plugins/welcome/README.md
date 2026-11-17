@@ -15,6 +15,20 @@ When a player joins, it:
 
 Clicking the compass in the menu closes it and says "See you around". The plugin also cancels every move, so players stay where they are.
 
+It also creates a void world named `lobby` when it connects, and deletes it when it stops if no player is in it (a refusal is logged).
+
+`/welcome <place>` needs the `welcome.use` right, and `<place>` completes from `lobby`, `hub` and `zombie`:
+
+- `lobby` teleports the player to the lobby (`player.location().teleport_to_world`);
+- `hub` transfers the player to `127.0.0.1:25565` (`player.connection().transfer`), only with the `welcome.hub` right (`player.permissions().has`); anyone else is told they may not;
+- `zombie` spawns a baby zombie with 40 health at the player (`entity.attributes().set`, `entity.as_zombie()`).
+
+Any failure is reported to the player. Every hit between entities is logged with `event.player()`, which is `None` when a mob hit.
+
+Copy `permissions.yml` from this folder to the server folder to give `Steve` the hub right.
+
+The API follows four rules (see the [SDK README](../../../crates/rspigot-plugin/README.md)): domains named `domain.verb(..)`, `get_` for reads, `event.player()` for the actor, and a `Result` for every action the server can refuse.
+
 It reads its events through methods (`event.player()`, `event.slot()`); every event and its methods are listed in [`crates/rspigot-plugin/EVENTS.md`](../../../crates/rspigot-plugin/EVENTS.md).
 
 Start the server in one terminal (it writes its files, `plugins.yml` included, in the directory it runs from):

@@ -1,0 +1,9 @@
+groups:
+  default:
+    permissions: [welcome.use]
+  vip:
+    permissions: [welcome.hub]
+    inherits: [default]
+players:
+  "Steve":
+    groups: [vip]
