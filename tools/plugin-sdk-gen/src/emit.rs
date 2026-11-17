@@ -3,6 +3,15 @@ use std::fmt::Write;
 
 use crate::tree::{Handle, Payload, Tree, Verb, snake};
 
+const SNAPSHOT_VALUES: &[(&str, &str)] = &[("player.game_mode", "GameMode")];
+
+fn snapshot_value(handle: &Handle) -> Option<&'static str> {
+    SNAPSHOT_VALUES
+        .iter()
+        .find(|(path, _)| *path == handle.path)
+        .map(|(_, kind)| *kind)
+}
+
 pub fn files(tree: &Tree) -> BTreeMap<String, String> {
     let mut files = BTreeMap::new();
     let mut index = String::new();
@@ -22,27 +31,53 @@ fn module(handle: &Handle) -> String {
 
 fn handle_file(handle: &Handle) -> String {
     let mut out = String::new();
-    out.push_str("use rspigot_plugin_protocol::v1::{self, from_plugin};\n\n");
-    out.push_str("use crate::link::Link;\n\n");
-    out.push_str("#[derive(Debug, Clone)]\n");
-    let _ = writeln!(out, "pub struct {} {{", handle.name);
+    let value = snapshot_value(handle);
     let targeted = handle
         .verbs
         .first()
         .is_some_and(|verb| verb.target.is_some());
+    out.push_str("use rspigot_plugin_protocol::v1::{self, from_plugin};\n\n");
     if targeted {
-        out.push_str("    pub(crate) target: String,\n");
+        out.push_str("use std::sync::Arc;\n\n");
     }
-    out.push_str("    pub(crate) link: Link,\n}\n\n");
-    let _ = writeln!(out, "impl {} {{", handle.name);
+    out.push_str("use crate::link::Link;\n");
+    if let Some(kind) = value {
+        let _ = writeln!(out, "use crate::{kind};");
+    }
+    out.push_str("\n#[derive(Debug, Clone)]\n");
+    let _ = writeln!(out, "pub struct {} {{", handle.name);
     if targeted {
-        out.push_str(
-            "    #[allow(dead_code)]\n    pub(crate) fn new(target: String, link: Link) -> Self {\n",
+        out.push_str("    pub(crate) target: Arc<str>,\n");
+    }
+    out.push_str("    pub(crate) link: Link,\n");
+    if let Some(kind) = value {
+        let _ = writeln!(out, "    pub(crate) value: {kind},");
+    }
+    out.push_str("}\n\n");
+    let _ = writeln!(out, "impl {} {{", handle.name);
+    let mut parameters = Vec::new();
+    let mut fields = Vec::new();
+    if targeted {
+        parameters.push("target: Arc<str>".to_owned());
+        fields.push("target");
+    }
+    parameters.push("link: Link".to_owned());
+    fields.push("link");
+    if let Some(kind) = value {
+        parameters.push(format!("value: {kind}"));
+        fields.push("value");
+    }
+    let _ = writeln!(
+        out,
+        "    #[allow(dead_code)]\n    pub(crate) fn new({}) -> Self {{",
+        parameters.join(", ")
+    );
+    let _ = writeln!(out, "        Self {{ {} }}\n    }}", fields.join(", "));
+    if let Some(kind) = value {
+        let _ = writeln!(
+            out,
+            "\n    pub const fn value(&self) -> {kind} {{\n        self.value\n    }}"
         );
-        out.push_str("        Self { target, link }\n    }\n");
-    } else {
-        out.push_str("    #[allow(dead_code)]\n    pub(crate) fn new(link: Link) -> Self {\n");
-        out.push_str("        Self { link }\n    }\n");
     }
     for verb in &handle.verbs {
         out.push('\n');
@@ -82,7 +117,7 @@ fn method(verb: &Verb) -> String {
         verb.body, verb.order
     );
     if let Some(target) = &verb.target {
-        let _ = writeln!(out, "            {target}: self.target.clone(),");
+        let _ = writeln!(out, "            {target}: self.target.to_string(),");
     }
     let _ = writeln!(
         out,

@@ -259,6 +259,7 @@ pub struct Clicked {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum Mark {
     Enabled,
     Finished,

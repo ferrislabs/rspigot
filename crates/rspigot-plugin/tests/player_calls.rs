@@ -109,12 +109,12 @@ async fn player_orders_go_on_the_wire_in_order() {
                 y: 64.0,
                 z: 2.0,
             };
-            player.message().send("§6Hi");
-            player.title().send(Title::new("A").subtitle("B"));
-            player.health().set(5.0);
-            player.effects().add(Effect::new(EffectType::Speed, 200, 1));
-            player.sound().play(SoundCue::new(Sound::EntityCowHurt));
-            player.particle().spawn(
+            player.message.send("§6Hi");
+            player.title.send(Title::new("A").subtitle("B"));
+            player.health.set(5.0);
+            player.effects.add(Effect::new(EffectType::Speed, 200, 1));
+            player.sound.play(SoundCue::new(Sound::EntityCowHurt));
+            player.particle.spawn(
                 ParticleBurst::new(
                     Particle::Dust {
                         color: Color::rgb(255, 0, 0),
@@ -124,8 +124,8 @@ async fn player_orders_go_on_the_wire_in_order() {
                 )
                 .count(3),
             );
-            player.abilities().set_fly_speed(0.2);
-            player.connection().ban(BanTerms {
+            player.abilities.set_fly_speed(0.2);
+            player.connection.ban(BanTerms {
                 reason: Some("x".into()),
                 expires: None,
             });
@@ -188,66 +188,66 @@ async fn every_player_order_has_its_wire_body() {
                 y: 1.0,
                 z: 1.5,
             };
-            player.action_bar().send("§aBar");
-            player.title().send(Title::new("T").times(5, 40, 15));
-            player.title().reset();
-            player.tab_list().set(TabList::new("Head", "Foot"));
-            player.game_mode().set(GameMode::Spectator);
-            player.connection().kick("§cBye");
-            player.health().set_absorption(4.0);
-            player.health().damage(2.5);
-            player.health().kill();
-            player.food().set_level(18);
-            player.food().set_saturation(3.5);
-            player.food().set_exhaustion(0.75);
-            player.experience().give(30);
-            player.experience().give_levels(-2);
-            player.experience().set_level(7);
-            player.experience().set_progress(0.25);
-            player.effects().add(Effect {
+            player.action_bar.send("§aBar");
+            player.title.send(Title::new("T").times(5, 40, 15));
+            player.title.reset();
+            player.tab_list.set(TabList::new("Head", "Foot"));
+            player.game_mode.set(GameMode::Spectator);
+            player.connection.kick("§cBye");
+            player.health.set_absorption(4.0);
+            player.health.damage(2.5);
+            player.health.kill();
+            player.food.set_level(18);
+            player.food.set_saturation(3.5);
+            player.food.set_exhaustion(0.75);
+            player.experience.give(30);
+            player.experience.give_levels(-2);
+            player.experience.set_level(7);
+            player.experience.set_progress(0.25);
+            player.effects.add(Effect {
                 ambient: true,
                 particles: false,
                 icon: false,
                 ..Effect::new(EffectType::Poison, Effect::INFINITE, 3)
             });
-            player.effects().remove(EffectType::Poison);
-            player.effects().clear();
-            player.health().set_fire_ticks(60);
-            player.movement().set_velocity(spread);
-            player.abilities().set_allow_flight(true);
-            player.abilities().set_flying(false);
-            player.abilities().set_walk_speed(0.1);
-            player.operator().set(true);
-            player.health().respawn();
-            player.command().perform("time set day");
-            player.message().chat("/spawn");
-            player.particle().spawn(
+            player.effects.remove(EffectType::Poison);
+            player.effects.clear();
+            player.health.set_fire_ticks(60);
+            player.movement.set_velocity(spread);
+            player.abilities.set_allow_flight(true);
+            player.abilities.set_flying(false);
+            player.abilities.set_walk_speed(0.1);
+            player.operator.set(true);
+            player.health.respawn();
+            player.command.perform("time set day");
+            player.message.chat("/spawn");
+            player.particle.spawn(
                 ParticleBurst::new(Particle::Flame, pos)
                     .count(1)
                     .spread(spread)
                     .speed(0.5),
             );
-            player.particle().spawn(
+            player.particle.spawn(
                 ParticleBurst::new(Particle::Item(Material::DiamondSword), pos)
                     .count(2)
                     .spread(spread)
                     .speed(0.0),
             );
-            player.particle().spawn(
+            player.particle.spawn(
                 ParticleBurst::new(Particle::BlockCrumble(BlockType::Stone), pos)
                     .count(4)
                     .spread(spread)
                     .speed(0.0),
             );
-            player.visibility().hide(alex);
-            player.visibility().show(alex);
-            player.inventory().close();
-            player.inventory().update();
-            player.connection().ban(BanTerms {
+            player.visibility.hide(alex);
+            player.visibility.show(alex);
+            player.inventory.close();
+            player.inventory.update();
+            player.connection.ban(BanTerms {
                 reason: None,
                 expires: Some(UNIX_EPOCH + Duration::from_millis(1_000_000)),
             });
-            player.connection().ban(BanTerms {
+            player.connection.ban(BanTerms {
                 reason: None,
                 expires: Some(UNIX_EPOCH - Duration::from_millis(5_000)),
             });
@@ -351,7 +351,7 @@ async fn every_player_order_has_its_wire_body() {
 async fn inventory_calls_use_spigot_slot_numbers() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let inventory = player.inventory();
+            let inventory = player.inventory;
             let stone = || Some(ItemStack::new(Material::Stone, 64));
             inventory.set(SlotItem::new(
                 InventorySlot::Armor(ArmorSlot::Helmet),
@@ -432,7 +432,7 @@ async fn inventory_calls_use_spigot_slot_numbers() {
 async fn an_item_keeps_one_level_per_enchantment_and_its_last_name_and_lore() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.inventory().add(
+            player.inventory.add(
                 ItemStack::new(Material::DiamondSword, 1)
                     .name("first")
                     .name("second")
@@ -530,7 +530,7 @@ async fn resolve_reads_the_full_player_state() {
 async fn inventory_resolve_reads_every_slot_and_the_held_slot() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let state = player.inventory().get_items().await.unwrap();
+            let state = player.inventory.get_items().await.unwrap();
             assert_eq!(state.held_slot, 3);
             let slots: Vec<InventorySlot> = state.slots.iter().map(|(slot, _)| *slot).collect();
             let mut expected: Vec<InventorySlot> = (0..9).map(InventorySlot::Hotbar).collect();
@@ -604,7 +604,7 @@ async fn inventory_resolve_reads_every_slot_and_the_held_slot() {
 async fn an_item_read_keeps_its_hidden_components_when_written_back() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let inventory = player.inventory();
+            let inventory = player.inventory;
             let state = inventory.get_items().await.unwrap();
             let (slot, item) = state.slots.into_iter().next().unwrap();
             assert_eq!(slot, InventorySlot::Hotbar(0));
@@ -678,7 +678,7 @@ async fn a_player_answer_the_sdk_cannot_read_is_malformed() {
 async fn an_inventory_answer_the_sdk_cannot_read_is_malformed() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let inventory = player.inventory();
+            let inventory = player.inventory;
             for _ in 0..7 {
                 let resolved = inventory.get_items().await;
                 assert!(matches!(resolved, Err(Error::Malformed(_))), "{resolved:?}");

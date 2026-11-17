@@ -10,7 +10,7 @@ const AT: BlockPos = BlockPos { x: 2, y: 64, z: -3 };
 async fn get_block_returns_the_block_from_the_server() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let block = player.world().get_block(AT).await.unwrap();
+            let block = player.world.get_block(AT).await.unwrap();
             assert_eq!(block.kind, BlockType::Stone);
         })
     })
@@ -94,13 +94,13 @@ async fn domain_handles_read_their_own_lists() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let server = player.server();
-            let names = server.whitelist().get_names().await.unwrap();
+            let names = server.whitelist.get_names().await.unwrap();
             assert_eq!(names[0].name, "Carol");
-            let ops = server.operators().get_names().await.unwrap();
+            let ops = server.operators.get_names().await.unwrap();
             assert!(ops.is_empty());
-            let bans = server.bans().get_entries().await.unwrap();
+            let bans = server.bans.get_entries().await.unwrap();
             assert_eq!(bans[0].target, "Steve");
-            let ips = server.ip_bans().get_entries().await.unwrap();
+            let ips = server.ip_bans.get_entries().await.unwrap();
             assert_eq!(ips[0].address.to_string(), "203.0.113.7");
         })
     })
@@ -148,7 +148,7 @@ async fn get_entities_lists_the_matching_entities() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let cows = player
-                .world()
+                .world
                 .entities
                 .of(EntityType::Cow)
                 .get_entities()
@@ -212,7 +212,7 @@ async fn get_position_reads_the_current_position_of_a_player() {
             );
             let state = player.get_state().await.unwrap();
             assert_eq!(state.player.name, "Steve");
-            let items = player.inventory().get_items().await.unwrap();
+            let items = player.inventory.get_items().await.unwrap();
             assert_eq!(items.held_slot, 2);
         })
     })

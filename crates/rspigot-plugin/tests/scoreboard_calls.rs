@@ -61,7 +61,7 @@ fn state() -> v1::ScoreboardState {
 async fn scoreboard_orders_go_on_the_wire() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let board = player.server().scoreboard_manager().main_scoreboard();
+            let board = player.server().scoreboard_manager.main_scoreboard();
             assert!(board.is_main());
             let kills = board.register_objective("kills", &Criteria::dummy(), "Kills");
             kills.set_display_name("Total kills");
@@ -191,13 +191,13 @@ async fn scoreboard_orders_go_on_the_wire() {
 async fn a_new_scoreboard_has_its_own_id_and_can_be_shown_to_a_player() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let manager = player.server().scoreboard_manager();
+            let manager = player.server().scoreboard_manager;
             let own = manager.new_scoreboard().await.unwrap();
             assert_eq!(own.id(), 7);
             assert!(!own.is_main());
             own.register_team("blue");
-            player.scoreboard().set(&own);
-            player.scoreboard().set(&manager.main_scoreboard());
+            player.scoreboard.set(&own);
+            player.scoreboard.set(&manager.main_scoreboard());
             own.discard();
         })
     })
@@ -236,7 +236,7 @@ async fn a_new_scoreboard_has_its_own_id_and_can_be_shown_to_a_player() {
 async fn the_state_of_a_scoreboard_is_read_back_as_typed_values() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let board = player.server().scoreboard_manager().main_scoreboard();
+            let board = player.server().scoreboard_manager.main_scoreboard();
             let read = board.state().await.unwrap();
             assert_eq!(read.objectives[0].name, "kills");
             assert_eq!(read.objectives[0].criteria, Criteria::dummy());

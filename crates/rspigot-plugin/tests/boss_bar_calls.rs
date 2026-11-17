@@ -29,7 +29,7 @@ fn state() -> v1::BossBarState {
 async fn creating_a_bar_asks_the_server_and_orders_go_on_the_wire() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let bars = player.server().boss_bars();
+            let bars = player.server().boss_bars;
             let bar = bars
                 .create(
                     "Boss",
@@ -99,7 +99,7 @@ async fn creating_a_bar_asks_the_server_and_orders_go_on_the_wire() {
 async fn keyed_bars_are_created_listed_and_found_by_key() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let bars = player.server().boss_bars();
+            let bars = player.server().boss_bars;
             let made = bars
                 .create_keyed("test:raid", "Raid", BarColor::Pink, BarStyle::Solid, &[])
                 .await
@@ -138,7 +138,7 @@ async fn keyed_bars_are_created_listed_and_found_by_key() {
 async fn the_state_of_a_bar_is_read_back_as_typed_values() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let bar = player.server().boss_bars().get("test:raid").await.unwrap();
+            let bar = player.server().boss_bars.get("test:raid").await.unwrap();
             let bar = bar.unwrap();
             let read = bar.state().await.unwrap();
             assert_eq!(read.color, BarColor::Purple);
@@ -176,7 +176,7 @@ async fn a_server_refusal_surfaces_as_a_rejection() {
         Box::pin(async move {
             let made = player
                 .server()
-                .boss_bars()
+                .boss_bars
                 .create_keyed("test:raid", "x", BarColor::Pink, BarStyle::Solid, &[])
                 .await;
             assert!(matches!(made, Err(Error::Rejected(_))));

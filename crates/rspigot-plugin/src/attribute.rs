@@ -1,7 +1,7 @@
-use rspigot_plugin_protocol::v1::{self, answer, entity_order, question};
+use rspigot_plugin_protocol::v1::{self, answer, entity_order, from_plugin, question};
 
 use crate::Error;
-use crate::entity::Entity;
+use crate::link::Link;
 
 macro_rules! attributes {
     ($($name:ident),+ $(,)?) => {
@@ -65,30 +65,32 @@ attributes!(
     WaypointReceiveRange,
 );
 
-#[derive(Debug, Clone, Copy)]
-pub struct EntityAttributesHandle<'a> {
-    entity: &'a Entity,
+#[derive(Debug, Clone)]
+pub struct EntityAttributesHandle {
+    entity_id: i32,
+    link: Link,
 }
 
-impl<'a> EntityAttributesHandle<'a> {
-    pub(crate) const fn new(entity: &'a Entity) -> Self {
-        Self { entity }
+impl EntityAttributesHandle {
+    pub(crate) const fn new(entity_id: i32, link: Link) -> Self {
+        Self { entity_id, link }
     }
 
     pub fn set(&self, attribute: Attribute, value: f64) {
-        self.entity
-            .order(entity_order::Order::SetAttribute(v1::SetAttribute {
+        self.link.order(from_plugin::Body::Entity(v1::EntityOrder {
+            entity: self.entity_id,
+            order: Some(entity_order::Order::SetAttribute(v1::SetAttribute {
                 attribute: attribute.to_wire() as i32,
                 value,
-            }));
+            })),
+        }));
     }
 
     pub async fn get_value(&self, attribute: Attribute) -> Result<f64, Error> {
-        self.entity
-            .link()
+        self.link
             .ask(
                 question::Question::AttributeValue(v1::AttributeQuery {
-                    entity: self.entity.entity_id,
+                    entity: self.entity_id,
                     attribute: attribute.to_wire() as i32,
                 }),
                 "an attribute value",

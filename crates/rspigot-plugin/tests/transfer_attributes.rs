@@ -61,11 +61,11 @@ async fn transfer_sends_the_host_and_the_port_and_reports_the_result() {
     let mut called = calling(|player| {
         Box::pin(async move {
             player
-                .connection()
+                .connection
                 .transfer("play.example.org", 25570)
                 .await
                 .unwrap();
-            let refused = player.connection().transfer("", 25565).await;
+            let refused = player.connection.transfer("", 25565).await;
             let Err(Error::Action(error)) = refused else {
                 panic!("expected a refused transfer, got {refused:?}");
             };
@@ -95,16 +95,16 @@ async fn attributes_set_and_get_value_use_the_entity_and_the_attribute() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let zombie = player
-                .world()
+                .world
                 .entities
                 .of(EntityType::Zombie)
                 .get_entities()
                 .await
                 .unwrap()
                 .remove(0);
-            zombie.attributes().set(Attribute::MaxHealth, 40.0);
+            zombie.attributes.set(Attribute::MaxHealth, 40.0);
             let speed = zombie
-                .attributes()
+                .attributes
                 .get_value(Attribute::MovementSpeed)
                 .await
                 .unwrap();
@@ -139,7 +139,7 @@ async fn attributes_set_and_get_value_use_the_entity_and_the_attribute() {
 async fn as_zombie_is_none_for_a_creeper() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let entities = player.world().entities.get_entities().await.unwrap();
+            let entities = player.world.entities.get_entities().await.unwrap();
             assert!(entities[0].as_zombie().is_none());
             assert!(entities[0].as_creeper().is_some());
             assert!(entities[1].as_creeper().is_none());
@@ -174,7 +174,7 @@ async fn as_zombie_is_none_for_a_creeper() {
 async fn typed_entities_send_their_own_changes() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let entities = player.world().entities.get_entities().await.unwrap();
+            let entities = player.world.entities.get_entities().await.unwrap();
             for entity in &entities {
                 match entity.kind {
                     EntityType::Creeper => entity.as_creeper().unwrap().set_powered(true),

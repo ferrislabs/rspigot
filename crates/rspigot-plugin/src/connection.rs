@@ -6,7 +6,7 @@ impl PlayerConnectionHandle {
     pub async fn transfer(&self, host: impl Into<String>, port: u16) -> Result<(), Error> {
         self.link
             .act(from_plugin::Body::Player(v1::PlayerOrder {
-                player: self.target.clone(),
+                player: self.target.to_string(),
                 order: Some(player_order::Order::Transfer(v1::Transfer {
                     host: host.into(),
                     port: u32::from(port),

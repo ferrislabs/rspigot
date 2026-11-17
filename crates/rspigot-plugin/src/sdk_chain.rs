@@ -10,14 +10,14 @@ fn a_generated_handle_sends_the_flat_order_for_its_target() {
     let (outbound, mut sent) = mpsc::unbounded_channel();
     let _attached = link.attach(outbound);
 
-    PlayerInventoryHandle::new("abc".to_owned(), link.clone()).close();
-    PlayerSoundHandle::new("abc".to_owned(), link).play(v1::Sound::default());
+    PlayerInventoryHandle::new("abc".into(), link.clone()).close();
+    PlayerSoundHandle::new("abc".into(), link).play(v1::Sound::default());
 
     let first = sent.try_recv().unwrap();
     assert_eq!(
         first.body,
         Some(from_plugin::Body::Player(v1::PlayerOrder {
-            player: "abc".to_owned(),
+            player: "abc".into(),
             order: Some(v1::player_order::Order::CloseInventory(v1::Empty {})),
         }))
     );
