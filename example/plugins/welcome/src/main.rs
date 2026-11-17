@@ -1,17 +1,32 @@
 use std::sync::Mutex;
 
 use rspigot_plugin::prelude::*;
+use rspigot_plugin::{Dimension, Generator, WorldOptions};
 
 const LEAVE_SLOT: u16 = 4;
+const PLACES: [&str; 3] = ["lobby", "hub", "zombie"];
 
 #[derive(Plugin, Default)]
 struct Welcome {
     menu: Mutex<Option<CustomInventory>>,
+    lobby: Mutex<Option<World>>,
 }
 
 impl Welcome {
     fn menu(&self) -> Option<CustomInventory> {
         self.menu.lock().ok().and_then(|menu| menu.clone())
+    }
+
+    fn lobby(&self) -> Option<World> {
+        self.lobby.lock().ok().and_then(|lobby| lobby.clone())
+    }
+
+    async fn places(&self, _player: &Player, typed: &str) -> Vec<String> {
+        PLACES
+            .iter()
+            .filter(|place| place.starts_with(typed))
+            .map(|place| (*place).to_owned())
+            .collect()
     }
 }
 
@@ -33,6 +48,77 @@ impl Welcome {
         menu.set(LEAVE_SLOT, Some(leave));
         if let Ok(mut held) = self.menu.lock() {
             *held = Some(menu);
+        }
+
+        let options = WorldOptions {
+            name: "lobby".to_owned(),
+            dimension: Dimension::Overworld,
+            seed: 0,
+            generator: Generator::Void,
+            structures: false,
+        };
+        match server.world().create(options).await {
+            Ok(lobby) => {
+                if let Ok(mut held) = self.lobby.lock() {
+                    *held = Some(lobby);
+                }
+            }
+            Err(error) => tracing::warn!("No lobby: {error}"),
+        }
+    }
+
+    async fn on_disable(&self) {
+        let Some(lobby) = self.lobby() else { return };
+        match lobby.entities.get_entities().await {
+            Ok(entities) if entities.iter().all(|entity| entity.player().is_none()) => {
+                if let Err(error) = lobby.delete(true).await {
+                    tracing::warn!("Could not delete the lobby: {error}");
+                }
+            }
+            Ok(_) => tracing::info!("The lobby keeps its players"),
+            Err(error) => tracing::warn!("Could not read the lobby: {error}"),
+        }
+    }
+
+    #[command("welcome", permission = "welcome.use")]
+    async fn welcome(&self, ctx: Context, #[suggest(Self::places)] place: String) {
+        let player = ctx.sender();
+        match place.as_str() {
+            "lobby" => match self.lobby() {
+                Some(lobby) => {
+                    if let Err(error) = player.location().teleport_to_world(&lobby).await {
+                        ctx.reply(format!("Could not reach the lobby: {error}"));
+                    }
+                }
+                None => ctx.reply("The lobby is closed"),
+            },
+            "hub" if player.permissions().has("welcome.hub") => {
+                if let Err(error) = player.connection().transfer("127.0.0.1", 25565).await {
+                    ctx.reply(format!("Transfer refused: {error}"));
+                }
+            }
+            "hub" => ctx.reply("You may not use the hub"),
+            "zombie" => match player
+                .world()
+                .spawn(EntityType::Zombie, player.position)
+                .await
+            {
+                Ok(zombie) => {
+                    zombie.attributes().set(Attribute::MaxHealth, 40.0);
+                    if let Some(zombie) = zombie.as_zombie() {
+                        zombie.set_baby(true);
+                    }
+                }
+                Err(error) => ctx.reply(format!("No zombie: {error}")),
+            },
+            other => ctx.reply(format!("Unknown place {other}")),
+        }
+    }
+
+    async fn on_entity_damage_by_entity(&self, event: &EntityDamageByEntity) {
+        match event.player() {
+            Some(attacker) => tracing::info!("{} hit {:?}", attacker.name, event.entity_type()),
+            None => tracing::info!("{:?} hit {:?}", event.damager().kind, event.entity_type()),
         }
     }
 
