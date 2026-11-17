@@ -7,6 +7,8 @@ mod effect;
 mod entity;
 mod error;
 mod events;
+#[rustfmt::skip]
+mod generated;
 mod inventory;
 mod item;
 #[rustfmt::skip]
@@ -23,6 +25,9 @@ mod text;
 mod wire;
 mod world;
 
+#[cfg(test)]
+mod sdk_chain;
+
 pub use block::{Block, BlockPos, BlockState};
 pub use boss_bar::{BarColor, BarFlag, BarStyle, BossBar, BossBarState, BossBars};
 pub use color::Color;
@@ -37,6 +42,7 @@ pub use effect::Effect;
 pub use entity::{Entities, Entity, EntityState};
 pub use error::Error;
 pub use events::*;
+pub use generated::*;
 pub use inventory::{ArmorSlot, Inventory, InventorySlot, InventoryState};
 pub use item::{CustomModelData, ItemStack};
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
