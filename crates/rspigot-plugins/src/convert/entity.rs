@@ -1,6 +1,6 @@
-use rspigot_core::plugins::{EntityDetails, EntityOrder, EntityView, Order, Question};
+use rspigot_core::plugins::{EntityDetails, EntityOrder, EntityTrait, EntityView, Order, Question};
 use rspigot_domain::EntityId;
-use rspigot_plugin_protocol::v1::{self, entity_order::Order as Wire};
+use rspigot_plugin_protocol::v1::{self, entity_order::Order as Wire, typed_change::Change};
 use uuid::Uuid;
 
 use super::Malformed;
@@ -17,8 +17,52 @@ pub(super) fn order(order: v1::EntityOrder) -> Result<Order, Malformed> {
         Wire::RemoveEffect(key) => EntityOrder::RemoveEffect(key),
         Wire::ClearEffects(_) => EntityOrder::ClearEffects,
         Wire::SetVelocity(velocity) => EntityOrder::SetVelocity(shared::vec3(velocity)),
+        Wire::SetAttribute(set) => EntityOrder::SetAttribute {
+            attribute: attribute_key(set.attribute)?,
+            value: set.value,
+        },
+        Wire::Change(change) => EntityOrder::Change(typed(required(change.change)?)),
     };
     Ok(Order::Entity { entity, order })
+}
+
+fn attribute_key(attribute: i32) -> Result<String, Malformed> {
+    match v1::Attribute::try_from(attribute) {
+        Ok(v1::Attribute::Unspecified) | Err(_) => Err(Malformed::Enum {
+            field: "attribute",
+            value: attribute,
+        }),
+        Ok(known) => {
+            let name = known.as_str_name();
+            Ok(format!(
+                "minecraft:{}",
+                name.strip_prefix("ATTRIBUTE_")
+                    .unwrap_or(name)
+                    .to_lowercase()
+            ))
+        }
+    }
+}
+
+pub(super) fn attribute_query(query: v1::AttributeQuery) -> Result<Question, Malformed> {
+    Ok(Question::AttributeValue {
+        entity: EntityId(query.entity),
+        attribute: attribute_key(query.attribute)?,
+    })
+}
+
+const fn typed(change: Change) -> EntityTrait {
+    match change {
+        Change::ZombieBaby(baby) => EntityTrait::ZombieBaby(baby),
+        Change::CreeperPowered(powered) => EntityTrait::CreeperPowered(powered),
+        Change::SheepColor(color) => EntityTrait::SheepColor(color),
+        Change::SheepSheared(sheared) => EntityTrait::SheepSheared(sheared),
+        Change::SlimeSize(size) => EntityTrait::SlimeSize(size),
+        Change::VillagerProfession(profession) => EntityTrait::VillagerProfession(profession),
+        Change::WolfCollar(color) => EntityTrait::WolfCollar(color),
+        Change::CatCollar(color) => EntityTrait::CatCollar(color),
+        Change::RabbitVariant(variant) => EntityTrait::RabbitVariant(variant),
+    }
 }
 
 pub(super) fn query(query: v1::EntityQuery) -> Result<Question, Malformed> {
@@ -80,8 +124,8 @@ pub(super) fn wire_details(details: EntityDetails) -> v1::EntityState {
 #[cfg(test)]
 mod tests {
     use rspigot_core::plugins::{
-        Answer, EntityDetails, EntityOrder, EntityView, FromPlugin, ItemSpec, Order, Question,
-        ToPlugin,
+        Answer, EntityDetails, EntityOrder, EntityTrait, EntityView, FromPlugin, ItemSpec, Order,
+        Question, ToPlugin,
     };
     use rspigot_domain::{EntityId, Vec3};
     use rspigot_plugin_protocol::v1::{self, answer, entity_order};
@@ -313,6 +357,62 @@ mod tests {
                 custom_name: Some("§aBob".into()),
                 fire_ticks: -1,
             }))
+        );
+    }
+
+    #[test]
+    fn attributes_and_typed_changes_convert() {
+        assert_eq!(
+            entity(Some(entity_order::Order::SetAttribute(v1::SetAttribute {
+                attribute: v1::Attribute::MaxHealth as i32,
+                value: 40.0,
+            })))
+            .unwrap(),
+            FromPlugin::Order(Order::Entity {
+                entity: ZOMBIE,
+                order: EntityOrder::SetAttribute {
+                    attribute: "minecraft:max_health".into(),
+                    value: 40.0,
+                },
+            })
+        );
+        assert!(matches!(
+            entity(Some(entity_order::Order::SetAttribute(v1::SetAttribute {
+                attribute: 0,
+                value: 1.0,
+            }))),
+            Err(Malformed::Enum { .. })
+        ));
+        assert_eq!(
+            entity(Some(entity_order::Order::Change(v1::TypedChange {
+                change: Some(v1::typed_change::Change::ZombieBaby(true)),
+            })))
+            .unwrap(),
+            FromPlugin::Order(Order::Entity {
+                entity: ZOMBIE,
+                order: EntityOrder::Change(EntityTrait::ZombieBaby(true)),
+            })
+        );
+        assert!(matches!(
+            entity(Some(entity_order::Order::Change(v1::TypedChange {
+                change: None,
+            }))),
+            Err(Malformed::Empty)
+        ));
+        assert_eq!(
+            ask(question::Question::AttributeValue(v1::AttributeQuery {
+                entity: 42,
+                attribute: v1::Attribute::MovementSpeed as i32,
+            }))
+            .unwrap(),
+            asked(Question::AttributeValue {
+                entity: ZOMBIE,
+                attribute: "minecraft:movement_speed".into(),
+            })
+        );
+        assert_eq!(
+            answered(Answer::AttributeValue(0.25)),
+            Some(answer::Body::AttributeValue(0.25))
         );
     }
 }

@@ -213,6 +213,9 @@ impl<L: ClientLink> Server<L> {
             Question::Entity(id) => self
                 .entity_details(id)
                 .map_or(Answer::NotFound, Answer::Entity),
+            Question::AttributeValue { entity, attribute } => {
+                self.attribute_value_of(entity, &attribute)
+            }
             Question::Spawn { kind, position } => {
                 return self
                     .spawn_for_plugin(connection, request, &kind, position)
