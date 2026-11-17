@@ -107,6 +107,9 @@ impl<L: ClientLink> Server<L> {
             FromPlugin::Reaction { event, order } => {
                 self.apply_order(connection, Some(event), order);
             }
+            FromPlugin::Action { request, order } => {
+                self.apply_action(connection, request, order);
+            }
             FromPlugin::Question { request, question } => {
                 if let Some(answer) = self.answer_question(connection, request, question) {
                     self.plugins
@@ -141,6 +144,12 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(super) fn warn_plugin(&self, connection: u64, order: &str, reason: impl Display) {
+        tracing::warn!(
+            plugin = self.plugins.name(connection).unwrap_or_default(),
+            order,
+            %reason,
+            "A plugin order was not applied"
+        );
         self.plugins.send(
             connection,
             ToPlugin::Warning(format!("{order} was not applied: {reason}")),
@@ -192,13 +201,13 @@ impl<L: ClientLink> Server<L> {
                 return self
                     .spawn_for_plugin(connection, request, &kind, position)
                     .err()
-                    .map(Answer::Refused);
+                    .map(Answer::Failed);
             }
             Question::DropItem { position, item } => {
                 return self
                     .drop_for_plugin(connection, request, position, &item)
                     .err()
-                    .map(Answer::Refused);
+                    .map(Answer::Failed);
             }
             Question::CustomInventory(inventory) => self
                 .custom_inventory_state(connection, inventory)

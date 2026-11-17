@@ -78,6 +78,7 @@ pub(crate) struct TeleportStep {
     pub(crate) cause: PlayerTeleportCause,
     pub(crate) fallback: Option<MoveStep>,
     pub(crate) dimension: Option<crate::world_state::DimensionKey>,
+    pub(crate) reply: Option<crate::plugins::Reply>,
 }
 
 #[derive(Debug)]

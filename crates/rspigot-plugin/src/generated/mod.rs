@@ -18,8 +18,6 @@ mod player_health;
 pub use player_health::PlayerHealthHandle;
 mod player_inventory;
 pub use player_inventory::PlayerInventoryHandle;
-mod player_location;
-pub use player_location::PlayerLocationHandle;
 mod player_message;
 pub use player_message::PlayerMessageHandle;
 mod player_movement;

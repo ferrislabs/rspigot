@@ -14,17 +14,20 @@ use crate::plugins::events::{CreatureSpawnReason, EntityPotionEffectCause, Entit
 use crate::plugins::items::stack_of;
 use crate::plugins::resolve::{self, finite_not_negative};
 use crate::plugins::steps::{Birth, Spawned};
-use crate::plugins::{EntityDetails, EntityOrder, EntityView, ItemSpec};
+use crate::plugins::{
+    ActionError, ActionErrorKind, EntityDetails, EntityOrder, EntityView, ItemSpec,
+};
 use crate::ports::ClientLink;
 use crate::server::Server;
 use rspigot_domain::spawn::SpawnReason;
 
 impl<L: ClientLink> Server<L> {
     pub(super) fn apply_entity_order(&mut self, connection: u64, id: EntityId, order: EntityOrder) {
+        let name = order.name();
         if self.entities.store.get(id).is_none() {
+            self.warn_plugin(connection, name, "the entity is gone");
             return;
         }
-        let name = order.name();
         if let Err(reason) = self.entity_order(id, order) {
             self.warn_plugin(connection, name, reason);
         }
@@ -125,12 +128,12 @@ impl<L: ClientLink> Server<L> {
         request: u64,
         kind: &str,
         position: Vec3,
-    ) -> Result<(), String> {
+    ) -> Result<(), ActionError> {
         let kind = entity_kind(kind)?;
         let position = self.loaded_position(position)?;
         let (entity, random) = self
             .summon_entity(kind, position, None, SpawnReason::Command)
-            .map_err(refusal)?;
+            .map_err(|key| ActionError::new(ActionErrorKind::IncompatibleState, refusal(key)))?;
         self.spawn_entity(
             entity,
             Birth::of(CreatureSpawnReason::Custom)
@@ -143,12 +146,15 @@ impl<L: ClientLink> Server<L> {
         Ok(())
     }
 
-    fn loaded_position(&self, position: Vec3) -> Result<Vec3, String> {
+    fn loaded_position(&self, position: Vec3) -> Result<Vec3, ActionError> {
         let position = resolve::position_of(position)?;
         if self.world.chunks.is_loaded(position.chunk()) {
             Ok(position)
         } else {
-            Err(refusal(SUMMON_FAILED))
+            Err(ActionError::new(
+                ActionErrorKind::IncompatibleState,
+                refusal(SUMMON_FAILED),
+            ))
         }
     }
 
@@ -158,8 +164,9 @@ impl<L: ClientLink> Server<L> {
         request: u64,
         position: Vec3,
         item: &ItemSpec,
-    ) -> Result<(), String> {
-        let stack = stack_of(item)?.ok_or_else(|| "air cannot be dropped".to_owned())?;
+    ) -> Result<(), ActionError> {
+        let stack =
+            stack_of(item)?.ok_or_else(|| ActionError::from("air cannot be dropped".to_owned()))?;
         let position = self.loaded_position(position)?;
         let velocity = Vec3::new(
             self.rng.random::<f64>() * 0.2 - 0.1,

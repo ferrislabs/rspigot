@@ -3,8 +3,8 @@ mod common;
 use common::*;
 use rspigot_core::events::ClientEvent;
 use rspigot_core::plugins::{
-    Answer, EffectSpec, EntityDetails, EntityOrder, EntityView, ItemSpec, Order, Question,
-    WorldOrder,
+    ActionError, ActionErrorKind, Answer, EffectSpec, EntityDetails, EntityOrder, EntityView,
+    ItemSpec, Order, Question, WorldOrder,
 };
 use rspigot_domain::world::Difficulty;
 use rspigot_domain::{EntityId, Vec3};
@@ -102,24 +102,39 @@ fn spawning_is_refused_with_the_vanilla_reason() {
     let at = Vec3::new(4.5, 64.0, 4.5);
     assert_eq!(
         spawn_answer(&mut s, "minecraft:zombie", at),
-        Answer::Refused("Monsters cannot be summoned in Peaceful difficulty".into())
+        Answer::Failed(ActionError::new(
+            ActionErrorKind::IncompatibleState,
+            "Monsters cannot be summoned in Peaceful difficulty"
+        ))
     );
     assert_eq!(
         spawn_answer(&mut s, "minecraft:player", at),
-        Answer::Refused("Unable to summon entity".into())
+        Answer::Failed(ActionError::new(
+            ActionErrorKind::IncompatibleState,
+            "Unable to summon entity"
+        ))
     );
     assert!(matches!(
         spawn_answer(&mut s, "minecraft:nope", at),
-        Answer::Refused(_)
+        Answer::Failed(ActionError {
+            kind: ActionErrorKind::InvalidArgument,
+            ..
+        })
     ));
     let before = s.server.entity_count();
     assert_eq!(
         spawn_answer(&mut s, "minecraft:cow", Vec3::new(100_000.0, 64.0, 0.0)),
-        Answer::Refused("Unable to summon entity".into())
+        Answer::Failed(ActionError::new(
+            ActionErrorKind::IncompatibleState,
+            "Unable to summon entity"
+        ))
     );
     assert!(matches!(
         spawn_answer(&mut s, "minecraft:cow", Vec3::new(f64::NAN, 64.0, 0.0)),
-        Answer::Refused(_)
+        Answer::Failed(ActionError {
+            kind: ActionErrorKind::InvalidArgument,
+            ..
+        })
     ));
     assert_eq!(s.server.entity_count(), before);
     let high = spawn(&mut s, "minecraft:cow", Vec3::new(4.5, 400.0, 4.5));
@@ -150,7 +165,13 @@ fn entities_do_not_list_players() {
         };
         assert_eq!(state.health, 20.0);
     }
-    assert!(s.warnings().is_empty());
+    let warnings = s.warnings();
+    assert_eq!(warnings.len(), players.len(), "{warnings:?}");
+    assert!(
+        warnings
+            .iter()
+            .all(|warning| warning.contains("the entity is gone"))
+    );
 }
 
 #[test]
@@ -194,7 +215,10 @@ fn entity_orders_use_the_command_paths() {
             .contains(&ClientEvent::RemoveEntities(vec![creeper.id]))
     );
     s.act(to(EntityOrder::Teleport(there)));
-    assert!(s.warnings().is_empty());
+    let warnings = s.warnings();
+    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert!(warnings[0].contains("entity.teleport"));
+    assert!(warnings[0].contains("the entity is gone"));
 
     let cow = spawn(&mut s, "minecraft:cow", Vec3::new(2.5, 64.0, 2.5));
     s.act(Order::Entity {
@@ -211,7 +235,7 @@ fn entity_orders_use_the_command_paths() {
     ));
     s.tick(30);
     assert_eq!(s.ask(Question::Entity(cow.id)), Answer::NotFound);
-    assert!(s.warnings().is_empty());
+    assert_eq!(s.warnings().len(), 1);
 }
 
 #[test]
@@ -247,7 +271,10 @@ fn drop_item_returns_the_item_entity() {
                 position: Vec3::new(2.5, 65.0, 2.5),
                 item,
             }),
-            Answer::Refused(_)
+            Answer::Failed(ActionError {
+                kind: ActionErrorKind::InvalidArgument,
+                ..
+            })
         ));
     }
     assert!(matches!(
@@ -255,7 +282,10 @@ fn drop_item_returns_the_item_entity() {
             position: Vec3::new(100_000.0, 65.0, 0.0),
             item: ItemSpec::of("minecraft:diamond", 1),
         }),
-        Answer::Refused(_)
+        Answer::Failed(ActionError {
+            kind: ActionErrorKind::IncompatibleState,
+            ..
+        })
     ));
     assert_eq!(s.server.ground_items().len(), 1);
 }

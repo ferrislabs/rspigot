@@ -22,10 +22,11 @@ impl<L: ClientLink> Server<L> {
         player: PlayerId,
         order: InventoryOrder,
     ) {
+        let name = order.name();
         let Some(before) = self.players.get(&player).map(Self::equipment_of) else {
+            self.warn_plugin(connection, name, "the player is not online");
             return;
         };
-        let name = order.name();
         if let Err(reason) = self.inventory_order(player, order, before) {
             self.warn_plugin(connection, name, reason);
         }

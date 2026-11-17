@@ -13,7 +13,8 @@ mod shared;
 mod world;
 
 use rspigot_core::plugins::{
-    Access, Answer, FromPlugin, HandlerSpec, Phase, PluginIntro, Priority, Question, ToPlugin,
+    Access, ActionErrorKind, Answer, FromPlugin, HandlerSpec, Phase, PluginIntro, Priority,
+    Question, ToPlugin,
 };
 use rspigot_domain::EntityId;
 use rspigot_plugin_protocol::v1::{self, answer, from_plugin, question, to_plugin};
@@ -92,9 +93,11 @@ pub(crate) fn from_plugin(
     warnings: &mut Vec<String>,
 ) -> Result<FromPlugin, Malformed> {
     let origin = message.origin;
-    let ordered = |order| match origin {
-        Some(event) => FromPlugin::Reaction { event, order },
-        None => FromPlugin::Order(order),
+    let request = message.request;
+    let ordered = |order| match (request, origin) {
+        (Some(request), _) => FromPlugin::Action { request, order },
+        (None, Some(event)) => FromPlugin::Reaction { event, order },
+        (None, None) => FromPlugin::Order(order),
     };
     Ok(match message.body.ok_or(Malformed::Empty)? {
         from_plugin::Body::Hello(_) => return Err(Malformed::SecondHello),
@@ -210,7 +213,23 @@ fn wire_answer(answer: Answer) -> answer::Body {
             bars: views.into_iter().map(boss_bar::wire_state).collect(),
         }),
         Answer::Refused(reason) => answer::Body::Refused(v1::Refused { reason }),
+        Answer::Done => answer::Body::Done(v1::Empty {}),
+        Answer::Failed(error) => answer::Body::Failed(v1::ActionError {
+            kind: wire_error_kind(error.kind) as i32,
+            reason: error.reason,
+        }),
         Answer::NotFound => answer::Body::NotFound(v1::NotFound {}),
+    }
+}
+
+const fn wire_error_kind(kind: ActionErrorKind) -> v1::ActionErrorKind {
+    match kind {
+        ActionErrorKind::InvalidArgument => v1::ActionErrorKind::InvalidArgument,
+        ActionErrorKind::TargetGone => v1::ActionErrorKind::TargetGone,
+        ActionErrorKind::IncompatibleState => v1::ActionErrorKind::IncompatibleState,
+        ActionErrorKind::Cancelled => v1::ActionErrorKind::Cancelled,
+        ActionErrorKind::NotFound => v1::ActionErrorKind::NotFound,
+        ActionErrorKind::LimitReached => v1::ActionErrorKind::LimitReached,
     }
 }
 
@@ -230,6 +249,7 @@ mod tests {
         v1::FromPlugin {
             body: Some(body),
             origin: None,
+            request: None,
         }
     }
 
@@ -272,12 +292,56 @@ mod tests {
     }
 
     #[test]
+    fn an_order_with_a_request_becomes_an_action_and_a_refusal_keeps_its_kind() {
+        let teleport = v1::FromPlugin {
+            body: Some(from_plugin::Body::Player(v1::PlayerOrder {
+                player: STEVE.into(),
+                order: Some(player_order::Order::Teleport(v1::Vec3 {
+                    x: 1.0,
+                    y: 2.0,
+                    z: 3.0,
+                })),
+            })),
+            origin: Some(4),
+            request: Some(9),
+        };
+        assert_eq!(
+            from_plugin(teleport, &mut Vec::new()).unwrap(),
+            FromPlugin::Action {
+                request: 9,
+                order: Order::Player {
+                    player: PlayerId(Uuid::from_u128(1)),
+                    order: PlayerOrder::Teleport(Vec3::new(1.0, 2.0, 3.0)),
+                },
+            }
+        );
+        let failed = to_plugin(ToPlugin::Answer {
+            request: 9,
+            answer: Answer::Failed(rspigot_core::plugins::ActionError::new(
+                ActionErrorKind::TargetGone,
+                "gone",
+            )),
+        });
+        assert_eq!(
+            failed.body,
+            Some(to_plugin::Body::Answer(v1::Answer {
+                request: 9,
+                body: Some(answer::Body::Failed(v1::ActionError {
+                    kind: v1::ActionErrorKind::TargetGone as i32,
+                    reason: "gone".into(),
+                })),
+            }))
+        );
+    }
+
+    #[test]
     fn an_order_sent_while_a_handler_runs_becomes_a_reaction_to_its_event() {
         let broadcast = |origin| v1::FromPlugin {
             body: Some(from_plugin::Body::Server(v1::ServerOrder {
                 order: Some(v1::server_order::Order::Broadcast("hi".into())),
             })),
             origin,
+            request: None,
         };
         let order = Order::Server(rspigot_core::plugins::ServerOrder::Broadcast("hi".into()));
         assert_eq!(
@@ -297,6 +361,7 @@ mod tests {
                 question: Some(question::Question::Players(v1::Empty {})),
             })),
             origin: Some(9),
+            request: None,
         };
         assert_eq!(
             from_plugin(asked, &mut Vec::new()).unwrap(),

@@ -180,7 +180,10 @@ fn resolve_lists_the_hidden_players() {
     ));
     assert!(alice.link.take().is_empty());
     assert_eq!(state(&mut s, &alice).hidden, [bob.id]);
-    assert!(s.warnings().is_empty());
+    let warnings = s.warnings();
+    assert_eq!(warnings.len(), 2, "{warnings:?}");
+    assert!(warnings[0].contains("cannot be hidden from themselves"));
+    assert!(warnings[1].contains("the player to hide is not online"));
 }
 
 fn hears_sound(listener: &Player) -> bool {

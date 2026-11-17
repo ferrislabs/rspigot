@@ -5,12 +5,13 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use fake_host::*;
 use rspigot_plugin::{
-    Ban, BanTerms, BlockPos, Color, Difficulty, Effect, EffectType, Explosion, Facing, GameMode,
-    GameRule, GameRuleSetting, InventorySlot, ItemRemoval, ItemStack, Location, Material, Particle,
-    ParticleBurst, Position, Rotation, SlotItem, Sound, SoundCue, TabList, Title, Vector, Weather,
+    ActionErrorKind, Ban, BanTerms, BlockPos, Color, Difficulty, Effect, EffectType, Error,
+    Explosion, Facing, GameMode, GameRule, GameRuleSetting, InventorySlot, ItemRemoval, ItemStack,
+    Location, Material, Particle, ParticleBurst, Position, Rotation, SlotItem, Sound, SoundCue,
+    TabList, Title, Vector, Weather,
 };
 use rspigot_plugin_protocol::v1::{
-    self, from_plugin, inventory_order, particle, player_order, server_order, world_order,
+    self, answer, from_plugin, inventory_order, particle, player_order, server_order, world_order,
 };
 
 fn ordered(order: player_order::Order) -> from_plugin::Body {
@@ -428,7 +429,7 @@ async fn player_tab_list_sets_the_header_and_footer() {
 }
 
 #[tokio::test]
-async fn player_location_sends_the_teleport_orders() {
+async fn player_location_waits_for_the_result_of_each_teleport() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let pos = Position {
@@ -441,13 +442,23 @@ async fn player_location_sends_the_teleport_orders() {
                 pitch: 10.0,
             };
             let location = player.location();
-            location.teleport(pos);
-            location.teleport_facing(Facing::new(pos, rotation));
-            location.teleport_to(&Location {
-                world: "minecraft:the_nether".to_owned(),
-                position: pos,
-                rotation,
-            });
+            location.teleport(pos).await.unwrap();
+            location
+                .teleport_facing(Facing::new(pos, rotation))
+                .await
+                .unwrap();
+            let refused = location
+                .teleport_to(&Location {
+                    world: "minecraft:the_nether".to_owned(),
+                    position: pos,
+                    rotation,
+                })
+                .await;
+            let Err(Error::Action(error)) = refused else {
+                panic!("expected a refused teleport, got {refused:?}");
+            };
+            assert_eq!(error.kind, ActionErrorKind::TargetGone);
+            assert_eq!(error.reason, "the player is not online");
         })
     })
     .await;
@@ -457,22 +468,33 @@ async fn player_location_sends_the_teleport_orders() {
         yaw: 45.0,
         pitch: 10.0,
     };
-    heard(
-        &mut called,
-        vec![
-            ordered(player_order::Order::Teleport(pos)),
-            ordered(player_order::Order::TeleportFacing(v1::Facing {
-                position: Some(pos),
-                rotation: Some(rotation),
-            })),
-            ordered(player_order::Order::TeleportTo(v1::Location {
-                world: "minecraft:the_nether".to_owned(),
-                position: Some(pos),
-                rotation: Some(rotation),
-            })),
-        ],
-    )
-    .await;
+    let session = &mut called.session;
+    session
+        .performed(ordered(player_order::Order::Teleport(pos)))
+        .await;
+    session
+        .performed(ordered(player_order::Order::TeleportFacing(v1::Facing {
+            position: Some(pos),
+            rotation: Some(rotation),
+        })))
+        .await;
+    let (request, body) = session.acted().await;
+    assert_eq!(
+        body,
+        ordered(player_order::Order::TeleportTo(v1::Location {
+            world: "minecraft:the_nether".to_owned(),
+            position: Some(pos),
+            rotation: Some(rotation),
+        }))
+    );
+    session.say(answer(
+        request,
+        answer::Body::Failed(v1::ActionError {
+            kind: v1::ActionErrorKind::TargetGone as i32,
+            reason: "the player is not online".to_owned(),
+        }),
+    ));
+    called.finished().await;
 }
 
 #[tokio::test]

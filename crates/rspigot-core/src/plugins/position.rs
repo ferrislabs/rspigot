@@ -8,8 +8,12 @@ use crate::plugins::decisions::{Continuation, MoveStep, Undone};
 use crate::plugins::events::{
     PlayerTeleport, PlayerTeleportCause, PlayerTeleportPatch, PlayerVelocity, PlayerVelocityPatch,
 };
+use crate::plugins::resolve;
 use crate::plugins::steps::{TeleportStep, VelocityStep};
-use crate::plugins::{DamageSourceView, EntityView, EventPayload, Location, Phase};
+use crate::plugins::{
+    ActionError, ActionErrorKind, DamageSourceView, EntityView, EventPayload, Location, Phase,
+    PlayerOrder, Reply,
+};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 use crate::travel::Destination;
@@ -50,6 +54,87 @@ impl<L: ClientLink> Server<L> {
         if cause == PlayerTeleportCause::Plugin && player.vitals.is_dead() {
             return;
         }
+        self.queue_teleport(id, dimension, position, rotation, cause, fallback, None);
+    }
+
+    pub(super) fn begin_teleport(
+        &mut self,
+        id: PlayerId,
+        order: PlayerOrder,
+        reply: Option<Reply>,
+    ) -> Result<(), ActionError> {
+        let dead = self
+            .players
+            .get(&id)
+            .ok_or_else(ActionError::player_gone)?
+            .vitals
+            .is_dead();
+        if dead {
+            return Err(ActionError::new(
+                ActionErrorKind::IncompatibleState,
+                "the player is dead",
+            ));
+        }
+        let (world, position, rotation) = match order {
+            PlayerOrder::Teleport(position) => (String::new(), position, None),
+            PlayerOrder::TeleportFacing(position, rotation) => (
+                String::new(),
+                position,
+                Some(resolve::rotation_of(rotation)?),
+            ),
+            PlayerOrder::TeleportTo {
+                world,
+                position,
+                rotation,
+            } => (
+                world,
+                position,
+                rotation.map(resolve::rotation_of).transpose()?,
+            ),
+            other => {
+                return Err(ActionError::from(format!(
+                    "{} is not a teleport",
+                    other.name()
+                )));
+            }
+        };
+        let position = resolve::position_of(position)?;
+        let dimension = if world.is_empty() {
+            None
+        } else {
+            let key = Identifier::parse(&world)
+                .map_err(|_| ActionError::from(format!("`{world}` is not a world key")))?;
+            if !self.ensure_dimension(&key) {
+                return Err(ActionError::new(
+                    ActionErrorKind::NotFound,
+                    format!("unknown world `{world}`"),
+                ));
+            }
+            Some(key)
+        };
+        self.queue_teleport(
+            id,
+            dimension,
+            position,
+            rotation,
+            PlayerTeleportCause::Plugin,
+            None,
+            reply,
+        );
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn queue_teleport(
+        &mut self,
+        id: PlayerId,
+        dimension: Option<DimensionKey>,
+        position: Vec3,
+        rotation: Option<Rotation>,
+        cause: PlayerTeleportCause,
+        fallback: Option<MoveStep>,
+        reply: Option<Reply>,
+    ) {
         let step = TeleportStep {
             player: id,
             position,
@@ -57,6 +142,7 @@ impl<L: ClientLink> Server<L> {
             cause,
             fallback,
             dimension: dimension.clone(),
+            reply,
         };
         self.fire(id, Continuation::Teleport(step), move |server| {
             let player = server.snapshot_of(id)?;
@@ -86,10 +172,19 @@ impl<L: ClientLink> Server<L> {
         cancelled: bool,
         patch: PlayerTeleportPatch,
     ) -> Undone {
+        let reply = step.reply;
         let Some(player) = self.players.get_mut(&step.player) else {
+            self.answer_teleport(reply, Err(ActionError::player_gone()));
             return Vec::new();
         };
         if cancelled {
+            self.answer_teleport(
+                reply,
+                Err(ActionError::new(
+                    ActionErrorKind::Cancelled,
+                    "a plugin cancelled the teleportation",
+                )),
+            );
             if let Some(fallback) = step.fallback {
                 self.apply_move(
                     fallback.player,
@@ -101,8 +196,17 @@ impl<L: ClientLink> Server<L> {
             return Vec::new();
         }
         if step.cause == PlayerTeleportCause::Plugin && player.vitals.is_dead() {
+            self.answer_teleport(
+                reply,
+                Err(ActionError::new(
+                    ActionErrorKind::IncompatibleState,
+                    "the player died before the teleportation",
+                )),
+            );
             return Vec::new();
         }
+        let current = player.dim.clone();
+        self.answer_teleport(reply, Ok(()));
         let (position, rotation) = match &patch.to {
             Some(to) => (to.position, Some(to.rotation)),
             None => (step.position, step.rotation),
@@ -112,7 +216,7 @@ impl<L: ClientLink> Server<L> {
             .as_ref()
             .and_then(|to| Identifier::parse(&to.world).ok())
             .or_else(|| step.dimension.clone())
-            .filter(|key| *key != player.dim);
+            .filter(|key| *key != current);
         if let Some(dimension) = elsewhere {
             let dropped = self.decisions.forget(step.player);
             self.change_dimension_now(
@@ -126,7 +230,7 @@ impl<L: ClientLink> Server<L> {
             );
             return dropped;
         }
-        if let Some(rotation) = rotation {
+        if let (Some(rotation), Some(player)) = (rotation, self.players.get_mut(&step.player)) {
             player.rotation = rotation;
         }
         let dropped = if step.fallback.is_some() {
@@ -136,6 +240,12 @@ impl<L: ClientLink> Server<L> {
         };
         self.teleport_player(step.player, position);
         dropped
+    }
+
+    fn answer_teleport(&self, reply: Option<Reply>, result: Result<(), ActionError>) {
+        if let Some(reply) = reply {
+            self.answer_action(reply, result);
+        }
     }
 
     pub(crate) fn teleport_now(&mut self, id: PlayerId, position: Vec3) {

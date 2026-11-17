@@ -437,7 +437,7 @@ fn a_name_with_an_ampersand_survives_a_round_trip() {
 }
 
 #[test]
-fn inventory_of_an_offline_player_is_not_found_and_orders_are_dropped() {
+fn inventory_of_an_offline_player_is_not_found_and_orders_warn() {
     let mut s = scene(&["Alice"]);
     let ghost = Player {
         id: rspigot_domain::player::PlayerId::offline("Ghost"),
@@ -446,5 +446,7 @@ fn inventory_of_an_offline_player_is_not_found_and_orders_are_dropped() {
     };
     s.act(inv(&ghost, set(0, "minecraft:nope", 1)));
     assert_eq!(s.ask(Question::Inventory(ghost.id)), Answer::NotFound);
-    assert!(s.warnings().is_empty());
+    let warnings = s.warnings();
+    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert!(warnings[0].contains("the player is not online"));
 }
