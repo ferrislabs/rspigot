@@ -320,6 +320,7 @@ getters = ["toThunderState"]
 getters = ["toWeatherState"]
 
 [events.EnchantItem]
+actor = "enchanter"
 getters = ["whichButton"]
 
 [events.ServerListPing]
@@ -368,6 +369,7 @@ rename = { yield = "explosion_yield" }
 collections = ["getDrops"]
 
 [events.PlayerDeath]
+actor = "entity"
 collections = ["getDrops"]
 
 [events.BlockPlace]
@@ -393,18 +395,22 @@ collections = ["getLines"]
 omit = { "getLine(int)" = "lines() holds every line", "setLine(int, String)" = "set_lines replaces lines in place: each changed line travels as a replacement at its index, and the last handler to change a line wins it" }
 
 [events.InventoryClick]
+actor = "whoClicked"
 revive = ["setCursor"]
 applies_when_cancelled = ["setCurrentItem", "setCursor"]
 
 [events.CraftItem]
+actor = "whoClicked"
 revive = ["setCursor"]
 applies_when_cancelled = ["setCurrentItem", "setCursor"]
 
 [events.SmithItem]
+actor = "whoClicked"
 revive = ["setCursor"]
 applies_when_cancelled = ["setCurrentItem", "setCursor"]
 
 [events.InventoryCreative]
+actor = "whoClicked"
 applies_when_cancelled = ["setCurrentItem"]
 
 [events.PrepareItemCraft]
@@ -444,6 +450,7 @@ omit = { clearBlockTransformers = "transformers are Java callbacks", clearEntity
 rename = { override = "overrides" }
 
 [events.InventoryDrag]
+actor = "whoClicked"
 rename = { type = "drag_type" }
 
 [events.ServerLoad]
@@ -454,3 +461,18 @@ rename = { id = "click_id" }
 
 [events.PlayerResourcePackStatus]
 rename = { iD = "pack_id" }
+
+[events.PrepareItemEnchant]
+actor = "enchanter"
+
+[events.EntityEnterLoveMode]
+actor = "humanEntity"
+
+[events.EntityExhaustion]
+actor = "entity"
+
+[events.FoodLevelChange]
+actor = "entity"
+
+[events.TradeSelect]
+actor = "whoClicked"

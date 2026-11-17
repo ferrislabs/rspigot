@@ -87,6 +87,32 @@ class Generator(unittest.TestCase):
             path.write_text(original)
         self.assertEqual(generator(self.root, "--check").returncode, 0)
 
+    def sdk_impl(self, event):
+        text = (self.root / "crates/rspigot-plugin/src/events.rs").read_text()
+        start = text.index(f"\nimpl {event} {{")
+        return text[start : text.index("\n}\n", start)]
+
+    def test_every_player_actor_event_has_player_accessor(self):
+        for event in ("InventoryClick", "EnchantItem", "BlockBreak", "CraftItem", "FoodLevelChange", "PlayerDeath"):
+            self.assertIn("pub fn player(&self) -> &Player {", self.sdk_impl(event), event)
+        self.assertIn("pub fn player(&self) -> Option<&Player> {", self.sdk_impl("EntityEnterLoveMode"))
+        text = (self.root / "crates/rspigot-plugin/src/events.rs").read_text()
+        for name in ("who_clicked", "enchanter", "human_entity"):
+            self.assertNotIn(f"pub fn {name}(", text)
+
+    def test_no_event_exposes_two_player_accessors(self):
+        text = (self.root / "crates/rspigot-plugin/src/events.rs").read_text()
+        for body in re.split(r"\nimpl ", text)[1:]:
+            self.assertLessEqual(len(re.findall(r"pub fn player\(", body.split("\n}\n")[0])), 1)
+
+    def test_an_actor_override_must_name_a_player_getter(self):
+        overrides = self.root / INPUTS[1]
+        original = overrides.read_text()
+        overrides.write_text(original.replace('[events.InventoryClick]\nactor = "whoClicked"', '[events.InventoryClick]\nactor = "slot"'))
+        failed = generator(self.root, "--check")
+        self.assertEqual(failed.returncode, 1)
+        self.assertIn("InventoryClick: the actor slot is not a player getter", failed.stderr)
+
     def test_an_unknown_java_type_fails_the_generation(self):
         catalog = self.catalog()
         event = next(event for event in catalog["events"] if event["name"] == "PlayerJoin")

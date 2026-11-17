@@ -15,7 +15,7 @@ When a player joins, it:
 
 Clicking the compass in the menu closes it and says "See you around". The plugin also cancels every move, so players stay where they are.
 
-It reads its events through methods (`event.player()`, `event.who_clicked()`, `event.slot()`); every event and its methods are listed in [`crates/rspigot-plugin/EVENTS.md`](../../../crates/rspigot-plugin/EVENTS.md).
+It reads its events through methods (`event.player()`, `event.slot()`); every event and its methods are listed in [`crates/rspigot-plugin/EVENTS.md`](../../../crates/rspigot-plugin/EVENTS.md).
 
 Start the server in one terminal (it writes its files, `plugins.yml` included, in the directory it runs from):
 
