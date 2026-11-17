@@ -212,7 +212,11 @@ impl Player {
         PlayerScoreboardHandle::new(self.uuid.to_string(), self.link.clone())
     }
 
-    pub async fn resolve(&self) -> Result<PlayerState, Error> {
+    pub async fn get_position(&self) -> Result<Position, Error> {
+        Ok(self.get_state().await?.player.position)
+    }
+
+    pub async fn get_state(&self) -> Result<PlayerState, Error> {
         let state = self
             .link
             .ask(

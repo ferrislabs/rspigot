@@ -56,11 +56,7 @@ pub use scoreboard::{
     CollisionRule, Criteria, DisplaySlot, Objective, ObjectiveState, RenderType, Score, ScoreEntry,
     Scoreboard, ScoreboardManager, ScoreboardState, Team, TeamColor, TeamState, Visibility,
 };
-pub use server::{
-    BanEntry, BanList, BanListKind, Bans, ByAddress, ByName, IpBanEntry, IpBans, ListedPlayer,
-    NameList, NameListKind, NamedPlayers, OperatorKind, Operators, Players, Server, ServerState,
-    Whitelist, WhitelistKind,
-};
+pub use server::{BanEntry, IpBanEntry, ListedPlayer, Server, ServerState};
 pub use target::{BlockTarget, Target};
 pub use text::{ChatColor, Title};
 pub use uuid::Uuid;

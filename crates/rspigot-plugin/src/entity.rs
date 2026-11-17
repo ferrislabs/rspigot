@@ -84,7 +84,7 @@ impl Entity {
         Server::new(self.link.clone())
     }
 
-    pub async fn resolve(&self) -> Result<EntityState, Error> {
+    pub async fn get_state(&self) -> Result<EntityState, Error> {
         let state = self
             .link
             .ask(
@@ -163,7 +163,7 @@ impl Entities {
         }
     }
 
-    pub async fn fetch(&self) -> Result<Vec<Entity>, Error> {
+    pub async fn get_entities(&self) -> Result<Vec<Entity>, Error> {
         let query = v1::EntityQuery {
             near: self.near.map(|(position, radius)| v1::Near {
                 position: Some(position.to_wire()),
