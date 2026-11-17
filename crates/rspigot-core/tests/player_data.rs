@@ -256,6 +256,7 @@ fn connect_plugin(server: &mut Server<Link>) {
     server.handle(Inbound::PluginConnected {
         connection: 1,
         intro: PluginIntro {
+            commands: Vec::new(),
             name: "tester".to_owned(),
             version: "1.0.0".to_owned(),
             handlers: Vec::new(),

@@ -367,6 +367,7 @@ fn deciding_core(status: &StatusBoard) -> (Server<NetLink>, Mailbox) {
     server.handle(Inbound::PluginConnected {
         connection: 1,
         intro: PluginIntro {
+            commands: Vec::new(),
             name: "motd".to_owned(),
             version: "1.0.0".to_owned(),
             handlers: vec![HandlerSpec {

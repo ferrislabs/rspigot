@@ -473,17 +473,23 @@ impl<L: ClientLink> Server<L> {
         outbox: Box<dyn PluginOutbox>,
     ) {
         let tick = self.current_tick();
+        let commanding = !intro.commands.is_empty();
         let plugin = PluginInfo {
             name: intro.name.clone(),
             version: intro.version.clone(),
         };
         let replaced = self.plugins.connect(connection, intro, outbox, tick);
+        let mut changed = commanding;
         if let Some(replaced) = replaced {
+            changed |= replaced.commands;
             replaced.outbox.send(ToPlugin::Replaced);
             self.forget_plugin_inventories(replaced.connection);
             self.plugin_disabled(connection, replaced.plugin);
         }
         self.plugins.send(connection, ToPlugin::Accepted);
+        if changed {
+            self.announce_commands(connection);
+        }
         self.refresh_ping_hook();
         self.plugin_enabled(connection, plugin);
         self.release_departed_plugins();

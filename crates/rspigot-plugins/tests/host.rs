@@ -231,6 +231,7 @@ fn hello(name: &str) -> v1::Hello {
         name: name.to_owned(),
         version: "0.1.0".to_owned(),
         token: String::new(),
+        commands: Vec::new(),
         handlers: vec![
             v1::Handler {
                 id: 1,

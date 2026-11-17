@@ -116,6 +116,7 @@ fn a_hello_and_an_event_survive_encoding() {
             name: "welcome".to_owned(),
             version: "0.1.0".to_owned(),
             token: String::new(),
+            commands: Vec::new(),
             handlers: vec![Handler {
                 id: 1,
                 event: EventKind::EntityDamageByEntity as i32,
@@ -227,8 +228,8 @@ fn every_kind_of_field_survives_encoding() {
 }
 
 #[test]
-fn the_protocol_is_version_four() {
-    assert_eq!(PROTOCOL_VERSION, 4);
+fn the_protocol_is_version_five() {
+    assert_eq!(PROTOCOL_VERSION, 5);
 }
 
 #[test]

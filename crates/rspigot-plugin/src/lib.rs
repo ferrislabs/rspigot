@@ -1,5 +1,6 @@
 mod block;
 mod color;
+mod commands;
 mod contract;
 mod custom_inventory;
 mod diff;
@@ -34,6 +35,9 @@ mod sdk_chain;
 pub use block::{Block, BlockPos, BlockState};
 pub use boss_bar::{BarColor, BarFlag, BarStyle, BossBar, BossBarState, BossBars};
 pub use color::Color;
+pub use commands::{
+    Argument, ArgumentKind, Arguments, CommandArgument, CommandSpec, Context, Invocation, Typing,
+};
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, CommandSender, DamageSource, DroppedItem,
     EnchantOffer, HolderRef, Input, InventoryOwner, InventoryRef, InventoryView, LecternData,
@@ -54,7 +58,7 @@ pub use location::PlayerLocationHandle;
 pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
 pub use permissions::PlayerPermissionsHandle;
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
-pub use rspigot_plugin_macros::{Plugin, listeners};
+pub use rspigot_plugin_macros::{Plugin, command, listeners};
 pub use runtime::{run, run_with};
 pub use scoreboard::{
     CollisionRule, Criteria, DisplaySlot, Objective, ObjectiveState, RenderType, Score, ScoreEntry,
@@ -70,13 +74,13 @@ pub mod prelude {
     pub use crate::events::*;
     pub use crate::{
         ActionError, ActionErrorKind, ArmorSlot, Block, BlockPos, BlockSnapshot, BlockState,
-        BlockTarget, BlockType, ChatColor, Color, CommandSender, CustomInventory,
+        BlockTarget, BlockType, ChatColor, Color, CommandSender, Context, CustomInventory,
         CustomInventoryState, CustomModelData, DamageSource, Difficulty, Effect, EffectType,
         Enchantment, Entity, EntityState, EntityType, Error, GameMode, GameRule, InventoryOwner,
         InventoryRef, InventorySlot, InventoryState, InventoryView, ItemStack, Listeners, Location,
         Material, Particle, Player, PlayerState, Plugin, Position, Priority, Rotation, Server,
-        ServerState, Sound, SoundCue, Target, Title, Vector, Weather, World, WorldState, listeners,
-        run, run_with,
+        ServerState, Sound, SoundCue, Target, Title, Vector, Weather, World, WorldState, command,
+        listeners, run, run_with,
     };
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};

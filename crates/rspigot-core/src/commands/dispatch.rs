@@ -757,7 +757,11 @@ pub fn execute<C: CommandContext>(
     outcome
 }
 
-fn refuse<C: CommandContext>(ctx: &mut C, sender: CommandSender, line: &str) -> CommandOutcome {
+pub(crate) fn refuse<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    line: &str,
+) -> CommandOutcome {
     ctx.reply(
         sender,
         Component::translatable("command.unknown.command", Vec::new()).color(NamedColor::Red),

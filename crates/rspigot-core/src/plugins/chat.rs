@@ -172,7 +172,11 @@ impl<L: ClientLink> Server<L> {
         if chars.next().is_none() {
             return;
         }
-        commands::execute(self, CommandSender::Player(step.player), chars.as_str());
+        let line = chars.as_str();
+        if self.run_plugin_command(step.player, line) {
+            return;
+        }
+        commands::execute(self, CommandSender::Player(step.player), line);
     }
 }
 

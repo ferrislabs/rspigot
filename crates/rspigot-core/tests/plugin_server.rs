@@ -42,6 +42,7 @@ fn arrival(
     let message = Inbound::PluginConnected {
         connection,
         intro: PluginIntro {
+            commands: Vec::new(),
             name: name.to_owned(),
             version: version.to_owned(),
             handlers,
