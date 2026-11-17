@@ -48,7 +48,7 @@ pub use inventory::{ArmorSlot, InventorySlot, InventoryState};
 pub use item::{CustomModelData, ItemStack};
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
-pub use payload::{BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
+pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
 pub use rspigot_plugin_macros::{Plugin, listeners};
 pub use runtime::{run, run_with};
@@ -64,7 +64,7 @@ pub use server::{
 pub use target::{BlockTarget, Target};
 pub use text::{ChatColor, Title};
 pub use uuid::Uuid;
-pub use world::{Difficulty, GameRule, Weather, World, WorldState};
+pub use world::{Difficulty, Explosion, GameRule, GameRuleSetting, Weather, World, WorldState};
 
 pub mod prelude {
     pub use crate::events::*;
@@ -74,8 +74,8 @@ pub mod prelude {
         Difficulty, Effect, EffectType, Enchantment, Entity, EntityState, EntityType, Error,
         GameMode, GameRule, InventoryOwner, InventoryRef, InventorySlot, InventoryState,
         InventoryView, ItemStack, Listeners, Location, Material, Particle, Player, PlayerState,
-        Plugin, Position, Priority, Rotation, Server, ServerState, Sound, Target, Title, Vector,
-        Weather, World, WorldState, listeners, run, run_with,
+        Plugin, Position, Priority, Rotation, Server, ServerState, Sound, SoundCue, Target, Title,
+        Vector, Weather, World, WorldState, listeners, run, run_with,
     };
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};

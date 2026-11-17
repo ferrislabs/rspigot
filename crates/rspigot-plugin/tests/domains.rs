@@ -1,14 +1,17 @@
 mod fake_host;
 
+use std::net::IpAddr;
 use std::time::{Duration, UNIX_EPOCH};
 
 use fake_host::*;
 use rspigot_plugin::{
-    BanTerms, Color, Effect, EffectType, Facing, GameMode, InventorySlot, ItemRemoval, ItemStack,
-    Location, Material, Particle, ParticleBurst, Position, Rotation, SlotItem, Sound, SoundCue,
-    TabList, Title, Vector,
+    Ban, BanTerms, BlockPos, Color, Difficulty, Effect, EffectType, Explosion, Facing, GameMode,
+    GameRule, GameRuleSetting, InventorySlot, ItemRemoval, ItemStack, Location, Material, Particle,
+    ParticleBurst, Position, Rotation, SlotItem, Sound, SoundCue, TabList, Title, Vector, Weather,
 };
-use rspigot_plugin_protocol::v1::{self, from_plugin, inventory_order, particle, player_order};
+use rspigot_plugin_protocol::v1::{
+    self, from_plugin, inventory_order, particle, player_order, server_order, world_order,
+};
 
 fn ordered(order: player_order::Order) -> from_plugin::Body {
     from_plugin::Body::Player(v1::PlayerOrder {
@@ -550,6 +553,189 @@ async fn player_scoreboard_shows_the_scoreboard_to_the_player() {
     heard(
         &mut called,
         vec![ordered(player_order::Order::SetScoreboard(0))],
+    )
+    .await;
+}
+
+fn worldly(order: world_order::Order) -> from_plugin::Body {
+    from_plugin::Body::World(v1::WorldOrder { order: Some(order) })
+}
+
+fn served(order: server_order::Order) -> from_plugin::Body {
+    from_plugin::Body::Server(v1::ServerOrder { order: Some(order) })
+}
+
+#[tokio::test]
+async fn world_time_weather_and_difficulty_set_their_value() {
+    let mut called = calling(|player| {
+        Box::pin(async move {
+            let world = player.world();
+            world.time().set(6000);
+            world.weather().set(Weather::Thunder);
+            world.difficulty().set(Difficulty::Hard);
+            world.pvp().set(false);
+            world.spawn_point().set(BlockPos { x: 8, y: 64, z: -8 });
+            world
+                .game_rule()
+                .set(GameRuleSetting::new(GameRule::BlockDrops, true));
+            world.storage().save();
+        })
+    })
+    .await;
+
+    heard(
+        &mut called,
+        vec![
+            worldly(world_order::Order::SetTime(6000)),
+            worldly(world_order::Order::SetWeather(v1::Weather::Thunder as i32)),
+            worldly(world_order::Order::SetDifficulty(
+                v1::Difficulty::Hard as i32,
+            )),
+            worldly(world_order::Order::SetPvp(false)),
+            worldly(world_order::Order::SetSpawn(v1::BlockPos {
+                x: 8,
+                y: 64,
+                z: -8,
+            })),
+            worldly(world_order::Order::SetGameRule(v1::SetGameRule {
+                rule: v1::GameRule::BlockDrops as i32,
+                value: true,
+            })),
+            worldly(world_order::Order::Save(v1::Empty {})),
+        ],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn world_sound_particle_and_explosion_reach_everyone_nearby() {
+    let mut called = calling(|player| {
+        Box::pin(async move {
+            let world = player.world();
+            let here = Position {
+                x: 4.5,
+                y: 64.0,
+                z: -2.5,
+            };
+            world.sound().play(
+                SoundCue::new(Sound::EntityGenericExplode)
+                    .volume(4.0)
+                    .pitch(0.5)
+                    .at(here),
+            );
+            world.particle().spawn(
+                ParticleBurst::new(Particle::Flame, here)
+                    .count(8)
+                    .spread(Vector {
+                        x: 0.5,
+                        y: 1.0,
+                        z: 1.5,
+                    })
+                    .speed(0.1),
+            );
+            world.explosion().create(Explosion::new(here, 4.0, true));
+        })
+    })
+    .await;
+
+    heard(
+        &mut called,
+        vec![
+            worldly(world_order::Order::PlaySound(v1::Sound {
+                key: "minecraft:entity.generic.explode".to_owned(),
+                volume: 4.0,
+                pitch: 0.5,
+                position: Some(vec3(4.5, 64.0, -2.5)),
+            })),
+            worldly(world_order::Order::SpawnParticle(v1::Particle {
+                key: "minecraft:flame".to_owned(),
+                data: None,
+                position: Some(vec3(4.5, 64.0, -2.5)),
+                count: 8,
+                spread: Some(vec3(0.5, 1.0, 1.5)),
+                speed: 0.1,
+            })),
+            worldly(world_order::Order::Explode(v1::Explode {
+                position: Some(vec3(4.5, 64.0, -2.5)),
+                power: 4.0,
+                breaks_blocks: true,
+            })),
+        ],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn server_message_command_and_lifecycle_send_their_orders() {
+    let mut called = calling(|player| {
+        Box::pin(async move {
+            let server = player.server();
+            server.message().broadcast("hi");
+            server.command().dispatch("time set 0");
+            server.lifecycle().save();
+            server.lifecycle().shutdown();
+        })
+    })
+    .await;
+
+    heard(
+        &mut called,
+        vec![
+            served(server_order::Order::Broadcast("hi".to_owned())),
+            served(server_order::Order::DispatchCommand(
+                "time set 0".to_owned(),
+            )),
+            served(server_order::Order::Save(v1::Empty {})),
+            served(server_order::Order::Shutdown(v1::Empty {})),
+        ],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn server_name_lists_and_ban_lists_send_their_orders() {
+    let mut called = calling(|player| {
+        Box::pin(async move {
+            let server = player.server();
+            server.whitelist().set_enabled(true);
+            server.whitelist().add("Carol");
+            server.whitelist().remove("Dave");
+            server.operators().add("Alice");
+            server.operators().remove("Bob");
+            server.bans().add(
+                Ban::new("Steve")
+                    .reason("grief")
+                    .expires(UNIX_EPOCH + Duration::from_secs(1000)),
+            );
+            server.bans().remove("Steve");
+            let address = "203.0.113.7".parse::<IpAddr>().unwrap();
+            server.ip_bans().add(Ban::new(address));
+            server.ip_bans().remove(address.to_string());
+        })
+    })
+    .await;
+
+    heard(
+        &mut called,
+        vec![
+            served(server_order::Order::SetWhitelistEnabled(true)),
+            served(server_order::Order::WhitelistAdd("Carol".to_owned())),
+            served(server_order::Order::WhitelistRemove("Dave".to_owned())),
+            served(server_order::Order::OperatorAdd("Alice".to_owned())),
+            served(server_order::Order::OperatorRemove("Bob".to_owned())),
+            served(server_order::Order::BanAdd(v1::Ban {
+                target: "Steve".to_owned(),
+                reason: Some("grief".to_owned()),
+                expires_ms: Some(1_000_000),
+            })),
+            served(server_order::Order::BanRemove("Steve".to_owned())),
+            served(server_order::Order::IpBanAdd(v1::Ban {
+                target: "203.0.113.7".to_owned(),
+                reason: None,
+                expires_ms: None,
+            })),
+            served(server_order::Order::IpBanRemove("203.0.113.7".to_owned())),
+        ],
     )
     .await;
 }

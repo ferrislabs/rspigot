@@ -15,19 +15,23 @@ struct Echo {
 #[listeners]
 impl Echo {
     async fn on_enable(&self, server: &Server) {
-        server.broadcast("enabled");
+        server.message().broadcast("enabled");
         let _ = self.server.set(server.clone());
     }
 
     async fn decide_broadcast(&self, event: &mut BroadcastMessage) {
         if let Some(server) = self.server.get() {
-            server.broadcast(format!("inner {}", event.message()));
+            server
+                .message()
+                .broadcast(format!("inner {}", event.message()));
         }
     }
 
     async fn watch_broadcast(&self, event: &BroadcastMessage) {
         if let Some(server) = self.server.get() {
-            server.broadcast(format!("echo {}", event.message()));
+            server
+                .message()
+                .broadcast(format!("echo {}", event.message()));
         }
     }
 }

@@ -1,17 +1,87 @@
-use rspigot_plugin_protocol::v1::{self, answer, from_plugin, question, world_order};
+use rspigot_plugin_protocol::v1::{self, answer, question};
 use uuid::Uuid;
 
 use crate::block::{Block, BlockPos};
 use crate::entity::{Entities, Entity};
 use crate::link::Link;
 use crate::wire::parse_uuid;
-use crate::{EntityType, Error, ItemStack, Particle, Position, Sound, Vector};
+use crate::{
+    EntityType, Error, ItemStack, Position, WorldDifficultyHandle, WorldExplosionHandle,
+    WorldGameRuleHandle, WorldParticleHandle, WorldPvpHandle, WorldSoundHandle,
+    WorldSpawnPointHandle, WorldStorageHandle, WorldTimeHandle, WorldWeatherHandle,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Weather {
     Clear,
     Rain,
     Thunder,
+}
+
+impl From<Weather> for v1::Weather {
+    fn from(weather: Weather) -> Self {
+        weather.to_wire()
+    }
+}
+
+impl From<Difficulty> for v1::Difficulty {
+    fn from(difficulty: Difficulty) -> Self {
+        difficulty.to_wire()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GameRuleSetting {
+    pub rule: GameRule,
+    pub value: bool,
+}
+
+impl GameRuleSetting {
+    pub const fn new(rule: GameRule, value: bool) -> Self {
+        Self { rule, value }
+    }
+}
+
+impl From<GameRuleSetting> for v1::SetGameRule {
+    fn from(setting: GameRuleSetting) -> Self {
+        Self {
+            rule: setting.rule.to_wire() as i32,
+            value: setting.value,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Explosion {
+    pub position: Position,
+    pub power: f32,
+    pub breaks_blocks: bool,
+}
+
+impl Explosion {
+    pub const fn new(position: Position, power: f32, breaks_blocks: bool) -> Self {
+        Self {
+            position,
+            power,
+            breaks_blocks,
+        }
+    }
+}
+
+impl From<Explosion> for v1::Explode {
+    fn from(explosion: Explosion) -> Self {
+        Self {
+            position: Some(explosion.position.to_wire()),
+            power: explosion.power,
+            breaks_blocks: explosion.breaks_blocks,
+        }
+    }
+}
+
+impl From<BlockPos> for v1::BlockPos {
+    fn from(pos: BlockPos) -> Self {
+        pos.to_wire()
+    }
 }
 
 impl Weather {
@@ -175,67 +245,44 @@ impl World {
         self.name.as_deref()
     }
 
-    pub fn set_time(&self, time_of_day: i64) {
-        self.order(world_order::Order::SetTime(time_of_day));
+    pub fn time(&self) -> WorldTimeHandle {
+        WorldTimeHandle::new(self.link.clone())
     }
 
-    pub fn set_weather(&self, weather: Weather) {
-        self.order(world_order::Order::SetWeather(weather.to_wire() as i32));
+    pub fn weather(&self) -> WorldWeatherHandle {
+        WorldWeatherHandle::new(self.link.clone())
     }
 
-    pub fn set_difficulty(&self, difficulty: Difficulty) {
-        self.order(world_order::Order::SetDifficulty(
-            difficulty.to_wire() as i32
-        ));
+    pub fn difficulty(&self) -> WorldDifficultyHandle {
+        WorldDifficultyHandle::new(self.link.clone())
     }
 
-    pub fn set_spawn(&self, pos: BlockPos) {
-        self.order(world_order::Order::SetSpawn(pos.to_wire()));
+    pub fn spawn_point(&self) -> WorldSpawnPointHandle {
+        WorldSpawnPointHandle::new(self.link.clone())
     }
 
-    pub fn set_pvp(&self, pvp: bool) {
-        self.order(world_order::Order::SetPvp(pvp));
+    pub fn pvp(&self) -> WorldPvpHandle {
+        WorldPvpHandle::new(self.link.clone())
     }
 
-    pub fn set_game_rule(&self, rule: GameRule, value: bool) {
-        self.order(world_order::Order::SetGameRule(v1::SetGameRule {
-            rule: rule.to_wire() as i32,
-            value,
-        }));
+    pub fn game_rule(&self) -> WorldGameRuleHandle {
+        WorldGameRuleHandle::new(self.link.clone())
     }
 
-    pub fn save(&self) {
-        self.order(world_order::Order::Save(v1::Empty {}));
+    pub fn storage(&self) -> WorldStorageHandle {
+        WorldStorageHandle::new(self.link.clone())
     }
 
-    pub fn play_sound(&self, sound: Sound, position: Position, volume: f32, pitch: f32) {
-        self.order(world_order::Order::PlaySound(v1::Sound {
-            key: sound.key().to_owned(),
-            volume,
-            pitch,
-            position: Some(position.to_wire()),
-        }));
+    pub fn sound(&self) -> WorldSoundHandle {
+        WorldSoundHandle::new(self.link.clone())
     }
 
-    pub fn spawn_particle(
-        &self,
-        particle: Particle,
-        position: Position,
-        count: i32,
-        spread: Vector,
-        speed: f64,
-    ) {
-        self.order(world_order::Order::SpawnParticle(
-            particle.to_wire(position, count, spread, speed),
-        ));
+    pub fn particle(&self) -> WorldParticleHandle {
+        WorldParticleHandle::new(self.link.clone())
     }
 
-    pub fn explode(&self, position: Position, power: f32, breaks_blocks: bool) {
-        self.order(world_order::Order::Explode(v1::Explode {
-            position: Some(position.to_wire()),
-            power,
-            breaks_blocks,
-        }));
+    pub fn explosion(&self) -> WorldExplosionHandle {
+        WorldExplosionHandle::new(self.link.clone())
     }
 
     pub fn block(&self, pos: BlockPos) -> Block {
@@ -282,11 +329,5 @@ impl World {
             })
             .await?;
         Entity::from_wire(snapshot, &self.link)
-    }
-
-    fn order(&self, order: world_order::Order) {
-        self.link.order(from_plugin::Body::World(v1::WorldOrder {
-            order: Some(order),
-        }));
     }
 }
