@@ -24,6 +24,12 @@ use rspigot_domain::spawn::SpawnReason;
 impl<L: ClientLink> Server<L> {
     pub(super) fn apply_entity_order(&mut self, connection: u64, id: EntityId, order: EntityOrder) {
         let name = order.name();
+        if let EntityOrder::SetAttribute { attribute, value } = &order {
+            if let Err(reason) = self.set_attribute_for_plugin(id, attribute, *value) {
+                self.warn_plugin(connection, name, reason);
+            }
+            return;
+        }
         if self.entities.store.get(id).is_none() {
             self.warn_plugin(connection, name, "the entity is gone");
             return;
@@ -65,6 +71,8 @@ impl<L: ClientLink> Server<L> {
             EntityOrder::ClearEffects => {
                 self.remove_entity_effects(id, None, EntityPotionEffectCause::Plugin);
             }
+            EntityOrder::SetAttribute { .. } => {}
+            EntityOrder::Change(change) => self.change_entity(id, change)?,
             EntityOrder::SetVelocity(velocity) => {
                 let velocity = resolve::velocity_of(velocity)?;
                 if let Some(entity) = self.entities.store.get_mut(id) {

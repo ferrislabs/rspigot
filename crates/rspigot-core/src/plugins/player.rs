@@ -13,7 +13,7 @@ use crate::health::{self, DamageSource};
 use crate::player::Player;
 use crate::plugins::events::{EntityPotionEffectCause, PlayerRespawnReason};
 use crate::plugins::resolve::{self, finite_not_negative, not_negative, within};
-use crate::plugins::{EventKind, PlayerOrder, TitleSpec};
+use crate::plugins::{ActionError, EventKind, PlayerOrder, TitleSpec};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -239,7 +239,31 @@ impl<L: ClientLink> Server<L> {
                     CommandContext::ban_profile(self, target, &source, reason, expires);
                 }
             }
+            PlayerOrder::Transfer { host, port } => {
+                self.transfer_for_plugin(id, &host, port)
+                    .map_err(|error| error.reason)?;
+            }
         }
+        Ok(())
+    }
+
+    pub(super) fn transfer_for_plugin(
+        &mut self,
+        id: PlayerId,
+        host: &str,
+        port: u32,
+    ) -> Result<(), ActionError> {
+        if !self.players.contains_key(&id) {
+            return Err(ActionError::player_gone());
+        }
+        if host.trim().is_empty() {
+            return Err(ActionError::from("the host is empty".to_owned()));
+        }
+        let port = u16::try_from(port)
+            .ok()
+            .filter(|port| *port != 0)
+            .ok_or_else(|| ActionError::from(format!("{port} is not a port")))?;
+        CommandContext::transfer_player(self, id, host, i32::from(port));
         Ok(())
     }
 

@@ -263,6 +263,36 @@ pub enum EntityOrder {
     RemoveEffect(String),
     ClearEffects,
     SetVelocity(Vec3),
+    SetAttribute { attribute: String, value: f64 },
+    Change(EntityTrait),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EntityTrait {
+    ZombieBaby(bool),
+    CreeperPowered(bool),
+    SheepColor(u32),
+    SheepSheared(bool),
+    SlimeSize(i32),
+    VillagerProfession(u32),
+    WolfCollar(u32),
+    CatCollar(u32),
+    RabbitVariant(u32),
+}
+
+impl EntityTrait {
+    pub const fn species(self) -> &'static str {
+        match self {
+            Self::ZombieBaby(_) => "zombie",
+            Self::CreeperPowered(_) => "creeper",
+            Self::SheepColor(_) | Self::SheepSheared(_) => "sheep",
+            Self::SlimeSize(_) => "slime",
+            Self::VillagerProfession(_) => "villager",
+            Self::WolfCollar(_) => "wolf",
+            Self::CatCollar(_) => "cat",
+            Self::RabbitVariant(_) => "rabbit",
+        }
+    }
 }
 
 impl EntityOrder {
@@ -276,6 +306,8 @@ impl EntityOrder {
             Self::RemoveEffect(_) => "entity.remove_effect",
             Self::ClearEffects => "entity.clear_effects",
             Self::SetVelocity(_) => "entity.set_velocity",
+            Self::SetAttribute { .. } => "entity.set_attribute",
+            Self::Change(_) => "entity.change",
         }
     }
 }
@@ -356,6 +388,10 @@ pub enum PlayerOrder {
         reason: Option<String>,
         expires: Option<SystemTime>,
     },
+    Transfer {
+        host: String,
+        port: u32,
+    },
 }
 
 impl PlayerOrder {
@@ -404,6 +440,7 @@ impl PlayerOrder {
             Self::CloseInventory => "player.close_inventory",
             Self::UpdateInventory => "player.update_inventory",
             Self::Ban { .. } => "player.ban",
+            Self::Transfer { .. } => "player.transfer",
         }
     }
 }
