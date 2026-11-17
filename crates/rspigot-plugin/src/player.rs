@@ -1,5 +1,6 @@
 use rspigot_plugin_protocol::v1::{self, answer, question};
 use std::net::IpAddr;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::link::Link;
@@ -90,11 +91,30 @@ pub struct Player {
     pub uuid: Uuid,
     pub name: String,
     pub entity_id: i32,
-    pub world: String,
+    pub world: World,
     pub position: Position,
     pub rotation: Rotation,
-    pub game_mode: GameMode,
-    permissions: Vec<String>,
+    pub game_mode: PlayerGameModeHandle,
+    pub permissions: PlayerPermissionsHandle,
+    pub abilities: PlayerAbilitiesHandle,
+    pub action_bar: PlayerActionBarHandle,
+    pub command: PlayerCommandHandle,
+    pub connection: PlayerConnectionHandle,
+    pub effects: PlayerEffectsHandle,
+    pub experience: PlayerExperienceHandle,
+    pub food: PlayerFoodHandle,
+    pub health: PlayerHealthHandle,
+    pub inventory: PlayerInventoryHandle,
+    pub location: PlayerLocationHandle,
+    pub message: PlayerMessageHandle,
+    pub movement: PlayerMovementHandle,
+    pub operator: PlayerOperatorHandle,
+    pub particle: PlayerParticleHandle,
+    pub scoreboard: PlayerScoreboardHandle,
+    pub sound: PlayerSoundHandle,
+    pub tab_list: PlayerTabListHandle,
+    pub title: PlayerTitleHandle,
+    pub visibility: PlayerVisibilityHandle,
     link: Link,
 }
 
@@ -109,15 +129,97 @@ impl Player {
     }
 
     pub(crate) fn from_snapshot(snapshot: v1::PlayerSnapshot, link: &Link) -> Result<Self, Error> {
+        let uuid = parse_uuid(&snapshot.uuid, "a player")?;
+        let target: Arc<str> = Arc::from(uuid.to_string());
+        let handle = || (Arc::clone(&target), link.clone());
         Ok(Self {
-            uuid: parse_uuid(&snapshot.uuid, "a player")?,
-            game_mode: GameMode::from_wire(snapshot.game_mode)?,
+            uuid,
+            game_mode: {
+                let (target, link) = handle();
+                PlayerGameModeHandle::new(target, link, GameMode::from_wire(snapshot.game_mode)?)
+            },
+            permissions: PlayerPermissionsHandle::new(snapshot.permissions.into()),
             name: snapshot.name,
             entity_id: snapshot.entity_id,
-            world: snapshot.world,
+            world: World::resolved(snapshot.world, link),
             position: Position::from_wire(snapshot.position, "position")?,
             rotation: Rotation::from_wire(snapshot.rotation)?,
-            permissions: snapshot.permissions,
+            abilities: {
+                let (target, link) = handle();
+                PlayerAbilitiesHandle::new(target, link)
+            },
+            action_bar: {
+                let (target, link) = handle();
+                PlayerActionBarHandle::new(target, link)
+            },
+            command: {
+                let (target, link) = handle();
+                PlayerCommandHandle::new(target, link)
+            },
+            connection: {
+                let (target, link) = handle();
+                PlayerConnectionHandle::new(target, link)
+            },
+            effects: {
+                let (target, link) = handle();
+                PlayerEffectsHandle::new(target, link)
+            },
+            experience: {
+                let (target, link) = handle();
+                PlayerExperienceHandle::new(target, link)
+            },
+            food: {
+                let (target, link) = handle();
+                PlayerFoodHandle::new(target, link)
+            },
+            health: {
+                let (target, link) = handle();
+                PlayerHealthHandle::new(target, link)
+            },
+            inventory: {
+                let (target, link) = handle();
+                PlayerInventoryHandle::new(target, link)
+            },
+            location: {
+                let (target, link) = handle();
+                PlayerLocationHandle::new(target, link)
+            },
+            message: {
+                let (target, link) = handle();
+                PlayerMessageHandle::new(target, link)
+            },
+            movement: {
+                let (target, link) = handle();
+                PlayerMovementHandle::new(target, link)
+            },
+            operator: {
+                let (target, link) = handle();
+                PlayerOperatorHandle::new(target, link)
+            },
+            particle: {
+                let (target, link) = handle();
+                PlayerParticleHandle::new(target, link)
+            },
+            scoreboard: {
+                let (target, link) = handle();
+                PlayerScoreboardHandle::new(target, link)
+            },
+            sound: {
+                let (target, link) = handle();
+                PlayerSoundHandle::new(target, link)
+            },
+            tab_list: {
+                let (target, link) = handle();
+                PlayerTabListHandle::new(target, link)
+            },
+            title: {
+                let (target, link) = handle();
+                PlayerTitleHandle::new(target, link)
+            },
+            visibility: {
+                let (target, link) = handle();
+                PlayerVisibilityHandle::new(target, link)
+            },
             link: link.clone(),
         })
     }
@@ -127,96 +229,12 @@ impl Player {
             uuid: self.uuid.hyphenated().to_string(),
             name: self.name.clone(),
             entity_id: self.entity_id,
-            world: self.world.clone(),
+            world: self.world.id().to_owned(),
             position: Some(self.position.to_wire()),
             rotation: Some(self.rotation.to_wire()),
-            game_mode: self.game_mode.to_wire() as i32,
-            permissions: self.permissions.clone(),
+            game_mode: self.game_mode.value().to_wire() as i32,
+            permissions: self.permissions.nodes().to_vec(),
         }
-    }
-
-    pub fn permissions(&self) -> PlayerPermissionsHandle<'_> {
-        PlayerPermissionsHandle::new(&self.permissions)
-    }
-
-    pub fn inventory(&self) -> PlayerInventoryHandle {
-        PlayerInventoryHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn health(&self) -> PlayerHealthHandle {
-        PlayerHealthHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn food(&self) -> PlayerFoodHandle {
-        PlayerFoodHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn experience(&self) -> PlayerExperienceHandle {
-        PlayerExperienceHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn effects(&self) -> PlayerEffectsHandle {
-        PlayerEffectsHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn abilities(&self) -> PlayerAbilitiesHandle {
-        PlayerAbilitiesHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn movement(&self) -> PlayerMovementHandle {
-        PlayerMovementHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn operator(&self) -> PlayerOperatorHandle {
-        PlayerOperatorHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn connection(&self) -> PlayerConnectionHandle {
-        PlayerConnectionHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn sound(&self) -> PlayerSoundHandle {
-        PlayerSoundHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn particle(&self) -> PlayerParticleHandle {
-        PlayerParticleHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn message(&self) -> PlayerMessageHandle {
-        PlayerMessageHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn title(&self) -> PlayerTitleHandle {
-        PlayerTitleHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn action_bar(&self) -> PlayerActionBarHandle {
-        PlayerActionBarHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn tab_list(&self) -> PlayerTabListHandle {
-        PlayerTabListHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn location(&self) -> PlayerLocationHandle {
-        PlayerLocationHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn game_mode(&self) -> PlayerGameModeHandle {
-        PlayerGameModeHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn command(&self) -> PlayerCommandHandle {
-        PlayerCommandHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn visibility(&self) -> PlayerVisibilityHandle {
-        PlayerVisibilityHandle::new(self.uuid.to_string(), self.link.clone())
-    }
-
-    pub fn scoreboard(&self) -> PlayerScoreboardHandle {
-        PlayerScoreboardHandle::new(self.uuid.to_string(), self.link.clone())
     }
 
     pub async fn get_position(&self) -> Result<Position, Error> {
@@ -254,10 +272,6 @@ impl Player {
 
     pub fn server(&self) -> Server {
         Server::new(self.link.clone())
-    }
-
-    pub fn world(&self) -> World {
-        World::new(self.link.clone())
     }
 
     async fn aim(

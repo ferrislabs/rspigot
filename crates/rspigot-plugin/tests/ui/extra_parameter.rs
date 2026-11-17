@@ -7,7 +7,7 @@ struct Guard;
 impl Guard {
     async fn on_player_join(&self, event: &PlayerJoin, server: &Server) {
         let _ = server;
-        event.player().message().send("Welcome!");
+        event.player().message.send("Welcome!");
     }
 }
 

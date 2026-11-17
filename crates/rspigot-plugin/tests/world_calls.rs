@@ -150,31 +150,31 @@ async fn server_orders_and_collections() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let server = player.server();
-            server.message().broadcast("hi");
-            server.command().dispatch("time set 0");
-            server.lifecycle().shutdown();
-            server.lifecycle().save();
-            server.whitelist().set_enabled(true);
-            server.whitelist().add("Carol");
-            server.whitelist().remove("Dave");
-            server.operators().add(String::from("Alice"));
-            server.operators().remove("Bob");
-            server.bans().add(
+            server.message.broadcast("hi");
+            server.command.dispatch("time set 0");
+            server.lifecycle.shutdown();
+            server.lifecycle.save();
+            server.whitelist.set_enabled(true);
+            server.whitelist.add("Carol");
+            server.whitelist.remove("Dave");
+            server.operators.add(String::from("Alice"));
+            server.operators.remove("Bob");
+            server.bans.add(
                 Ban::new("Steve")
                     .reason("grief")
                     .expires(UNIX_EPOCH + Duration::from_secs(1000)),
             );
-            server.bans().remove("Steve");
+            server.bans.remove("Steve");
             server
-                .ip_bans()
+                .ip_bans
                 .add(Ban::new("203.0.113.7".parse::<IpAddr>().unwrap()));
-            server.ip_bans().add(
+            server.ip_bans.add(
                 Ban::new("2001:db8::1".parse::<IpAddr>().unwrap())
                     .reason("spam")
                     .expires(UNIX_EPOCH - Duration::from_millis(5)),
             );
             server
-                .ip_bans()
+                .ip_bans
                 .remove("203.0.113.7".parse::<IpAddr>().unwrap().to_string());
         })
     })
@@ -217,15 +217,15 @@ async fn server_orders_and_collections() {
 async fn world_and_block_orders_go_on_the_wire() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let world = player.world();
+            let world = &player.world;
             let spread = Vector {
                 x: 0.5,
                 y: 1.0,
                 z: 1.5,
             };
-            world.time().set(6000);
+            world.time.set(6000);
             for weather in [Weather::Clear, Weather::Rain, Weather::Thunder] {
-                world.weather().set(weather);
+                world.weather.set(weather);
             }
             for difficulty in [
                 Difficulty::Peaceful,
@@ -233,33 +233,33 @@ async fn world_and_block_orders_go_on_the_wire() {
                 Difficulty::Normal,
                 Difficulty::Hard,
             ] {
-                world.difficulty().set(difficulty);
+                world.difficulty.set(difficulty);
             }
-            world.spawn_point().set(BlockPos { x: 8, y: 64, z: -8 });
-            world.pvp().set(false);
+            world.spawn_point.set(BlockPos { x: 8, y: 64, z: -8 });
+            world.pvp.set(false);
             for rule in RULES {
-                world.game_rule().set(GameRuleSetting::new(rule, true));
+                world.game_rule.set(GameRuleSetting::new(rule, true));
             }
-            world.storage().save();
-            world.sound().play(
+            world.storage.save();
+            world.sound.play(
                 SoundCue::new(Sound::EntityGenericExplode)
                     .volume(4.0)
                     .pitch(0.5)
                     .at(HERE),
             );
-            world.particle().spawn(
+            world.particle.spawn(
                 ParticleBurst::new(Particle::Flame, HERE)
                     .count(8)
                     .spread(spread)
                     .speed(0.1),
             );
-            world.explosion().create(Explosion::new(HERE, 4.0, true));
+            world.explosion.create(Explosion::new(HERE, 4.0, true));
             let block = world.block(AT);
             assert_eq!(block.pos, AT);
             block.set(BlockType::Stone);
             block.set_with(BlockType::OakStairs, &[("facing", "east"), ("half", "top")]);
             block.break_naturally();
-            player.server().world().pvp().set(true);
+            player.server().world.pvp.set(true);
         })
     })
     .await;
@@ -360,7 +360,7 @@ async fn questions_answer_typed_values() {
             assert_eq!(named[0].uuid.to_string(), ALEX);
             assert!(server.get_players_named("nobody").await.unwrap().is_empty());
             assert_eq!(
-                server.whitelist().get_names().await.unwrap(),
+                server.whitelist.get_names().await.unwrap(),
                 [
                     ListedPlayer {
                         name: "Carol".to_owned(),
@@ -373,14 +373,14 @@ async fn questions_answer_typed_values() {
                 ]
             );
             assert_eq!(
-                server.operators().get_names().await.unwrap(),
+                server.operators.get_names().await.unwrap(),
                 [ListedPlayer {
                     name: "Alice".to_owned(),
                     uuid: None,
                 }]
             );
             assert_eq!(
-                server.bans().get_entries().await.unwrap(),
+                server.bans.get_entries().await.unwrap(),
                 [BanEntry {
                     target: "Steve".to_owned(),
                     uuid: Some(steve_uuid()),
@@ -391,7 +391,7 @@ async fn questions_answer_typed_values() {
                 }]
             );
             assert_eq!(
-                server.ip_bans().get_entries().await.unwrap(),
+                server.ip_bans.get_entries().await.unwrap(),
                 [IpBanEntry {
                     address: "203.0.113.7".parse().unwrap(),
                     created: ban_created(),
@@ -400,7 +400,7 @@ async fn questions_answer_typed_values() {
                     reason: None,
                 }]
             );
-            let world = player.world();
+            let world = &player.world;
             assert_eq!(
                 world.get_state().await.unwrap(),
                 WorldState {
@@ -543,7 +543,7 @@ async fn questions_answer_typed_values() {
 async fn spawn_waits_for_the_entity_or_its_refusal() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let world = player.world();
+            let world = &player.world;
             let zombie = world.spawn(EntityType::Zombie, HERE).await.unwrap();
             assert_eq!(zombie.entity_id, 12);
             assert_eq!(zombie.uuid, Uuid::from_u128(7));
@@ -607,7 +607,7 @@ async fn spawn_waits_for_the_entity_or_its_refusal() {
 async fn entity_filters_and_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let world = player.world();
+            let world = &player.world;
             let near = world
                 .entities
                 .near(HERE, 2.0)
@@ -663,7 +663,7 @@ async fn entity_filters_and_orders() {
             assert_eq!(state.fire_ticks, 20);
             let gone = zombie.get_state().await;
             assert!(matches!(gone, Err(Error::NotFound)), "{gone:?}");
-            zombie.server().message().broadcast("bye");
+            zombie.server().message.broadcast("bye");
         })
     })
     .await;
@@ -846,12 +846,12 @@ async fn answers_the_sdk_cannot_read_are_malformed() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let server = player.server();
-            let world = player.world();
+            let world = &player.world;
             malformed(server.get_state().await);
             malformed(server.get_state().await);
-            malformed(server.whitelist().get_names().await);
-            malformed(server.bans().get_entries().await);
-            malformed(server.ip_bans().get_entries().await);
+            malformed(server.whitelist.get_names().await);
+            malformed(server.bans.get_entries().await);
+            malformed(server.ip_bans.get_entries().await);
             malformed(world.get_state().await);
             malformed(world.get_state().await);
             malformed(world.get_state().await);

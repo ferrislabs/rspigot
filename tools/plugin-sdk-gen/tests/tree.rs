@@ -182,8 +182,8 @@ fn a_targeted_order_keeps_the_identifier_of_its_handle() {
     let files = plugin_sdk_gen::emit::files(&Tree::build(&set).unwrap());
 
     let source = &files["player_sound.rs"];
-    assert!(source.contains("pub(crate) fn new(target: String, link: Link) -> Self"));
-    assert!(source.contains("player: self.target.clone(),"));
+    assert!(source.contains("pub(crate) fn new(target: Arc<str>, link: Link) -> Self"));
+    assert!(source.contains("player: self.target.to_string(),"));
     assert!(source.contains("value: impl Into<v1::Sound>"));
 }
 
@@ -216,4 +216,26 @@ fn an_enum_payload_is_sent_as_its_number() {
     let source = &files["player_game_mode.rs"];
     assert!(source.contains("value: impl Into<v1::GameMode>"));
     assert!(source.contains("Into::<v1::GameMode>::into(value) as i32"));
+}
+
+#[test]
+fn a_domain_shadowing_a_snapshot_field_carries_its_value() {
+    let mut order = player_order();
+    order.field.push(verb(
+        "reset_mode",
+        60,
+        ".rspigot.plugin.v1.Empty",
+        "player.game_mode.reset",
+    ));
+    let set = set_of(vec![order, from_plugin()]);
+
+    let files = plugin_sdk_gen::emit::files(&Tree::build(&set).unwrap());
+
+    let source = &files["player_game_mode.rs"];
+    assert!(source.contains("pub(crate) value: GameMode,"));
+    assert!(
+        source.contains("pub(crate) fn new(target: Arc<str>, link: Link, value: GameMode) -> Self")
+    );
+    assert!(source.contains("pub const fn value(&self) -> GameMode"));
+    assert!(!files["player_sound.rs"].contains("value()"));
 }

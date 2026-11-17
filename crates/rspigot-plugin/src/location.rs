@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspigot_plugin_protocol::v1::{self, from_plugin, player_order};
 
 use crate::Error;
@@ -6,12 +8,12 @@ use crate::world::World;
 
 #[derive(Debug, Clone)]
 pub struct PlayerLocationHandle {
-    target: String,
+    target: Arc<str>,
     link: Link,
 }
 
 impl PlayerLocationHandle {
-    pub(crate) const fn new(target: String, link: Link) -> Self {
+    pub(crate) const fn new(target: Arc<str>, link: Link) -> Self {
         Self { target, link }
     }
 
@@ -46,7 +48,7 @@ impl PlayerLocationHandle {
     async fn send(&self, order: player_order::Order) -> Result<(), Error> {
         self.link
             .act(from_plugin::Body::Player(v1::PlayerOrder {
-                player: self.target.clone(),
+                player: self.target.to_string(),
                 order: Some(order),
             }))
             .await

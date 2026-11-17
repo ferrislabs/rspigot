@@ -55,14 +55,17 @@ async fn heard(called: &mut Called, expected: Vec<from_plugin::Body>) {
 async fn player_inventory_close_sends_the_close_order() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let inventory = player.inventory();
-            inventory.close();
-            inventory.update();
-            inventory.add(ItemStack::new(Material::Compass, 2));
-            inventory.set(SlotItem::new(InventorySlot::Offhand, None));
-            inventory.remove(ItemRemoval::new(Material::Compass, 1));
-            inventory.clear();
-            inventory.set_held_slot(3);
+            player.inventory.close();
+            player.inventory.update();
+            player.inventory.add(ItemStack::new(Material::Compass, 2));
+            player
+                .inventory
+                .set(SlotItem::new(InventorySlot::Offhand, None));
+            player
+                .inventory
+                .remove(ItemRemoval::new(Material::Compass, 1));
+            player.inventory.clear();
+            player.inventory.set_held_slot(3);
         })
     })
     .await;
@@ -92,7 +95,7 @@ async fn player_inventory_close_sends_the_close_order() {
 async fn player_health_sends_the_health_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let health = player.health();
+            let health = player.health;
             health.set(5.0);
             health.set_absorption(2.0);
             health.damage(3.5);
@@ -121,7 +124,7 @@ async fn player_health_sends_the_health_orders() {
 async fn player_food_sends_the_food_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let food = player.food();
+            let food = player.food;
             food.set_level(18);
             food.set_saturation(2.5);
             food.set_exhaustion(1.0);
@@ -144,7 +147,7 @@ async fn player_food_sends_the_food_orders() {
 async fn player_experience_sends_the_experience_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let experience = player.experience();
+            let experience = player.experience;
             experience.give(10);
             experience.give_levels(2);
             experience.set_level(7);
@@ -169,7 +172,7 @@ async fn player_experience_sends_the_experience_orders() {
 async fn player_effects_sends_the_effect_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let effects = player.effects();
+            let effects = player.effects;
             effects.add(Effect::new(EffectType::Speed, 200, 1));
             effects.remove(EffectType::Speed);
             effects.clear();
@@ -201,7 +204,7 @@ async fn player_effects_sends_the_effect_orders() {
 async fn player_abilities_sends_the_ability_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let abilities = player.abilities();
+            let abilities = player.abilities;
             abilities.set_allow_flight(true);
             abilities.set_flying(true);
             abilities.set_fly_speed(0.2);
@@ -226,7 +229,7 @@ async fn player_abilities_sends_the_ability_orders() {
 async fn player_movement_sends_the_velocity_order() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.movement().set_velocity(Vector {
+            player.movement.set_velocity(Vector {
                 x: 0.0,
                 y: 1.5,
                 z: 0.0,
@@ -248,7 +251,7 @@ async fn player_movement_sends_the_velocity_order() {
 async fn player_operator_sends_the_operator_order() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.operator().set(true);
+            player.operator.set(true);
         })
     })
     .await;
@@ -260,7 +263,7 @@ async fn player_operator_sends_the_operator_order() {
 async fn player_connection_sends_the_kick_and_ban_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let connection = player.connection();
+            let connection = player.connection;
             connection.kick("bye");
             connection.ban(BanTerms {
                 reason: Some("x".to_owned()),
@@ -288,7 +291,7 @@ async fn player_sound_plays_the_sound_for_the_player() {
     let mut called = calling(|player| {
         Box::pin(async move {
             player
-                .sound()
+                .sound
                 .play(SoundCue::new(Sound::EntityCowHurt).volume(0.5).pitch(2.0));
         })
     })
@@ -310,7 +313,7 @@ async fn player_sound_plays_the_sound_for_the_player() {
 async fn player_particle_spawns_the_particle_for_the_player() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.particle().spawn(
+            player.particle.spawn(
                 ParticleBurst::new(
                     Particle::Dust {
                         color: Color::rgb(255, 0, 0),
@@ -349,8 +352,8 @@ async fn player_particle_spawns_the_particle_for_the_player() {
 async fn player_message_sends_the_message_and_the_chat_line() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.message().send("§6Hi");
-            player.message().chat("hello");
+            player.message.send("§6Hi");
+            player.message.chat("hello");
         })
     })
     .await;
@@ -369,8 +372,8 @@ async fn player_message_sends_the_message_and_the_chat_line() {
 async fn player_title_sends_and_resets_the_title() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.title().send(Title::new("A").subtitle("B"));
-            player.title().reset();
+            player.title.send(Title::new("A").subtitle("B"));
+            player.title.reset();
         })
     })
     .await;
@@ -395,7 +398,7 @@ async fn player_title_sends_and_resets_the_title() {
 async fn player_action_bar_sends_the_text() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.action_bar().send("§aBar");
+            player.action_bar.send("§aBar");
         })
     })
     .await;
@@ -413,7 +416,7 @@ async fn player_action_bar_sends_the_text() {
 async fn player_tab_list_sets_the_header_and_footer() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.tab_list().set(TabList::new("Head", "Foot"));
+            player.tab_list.set(TabList::new("Head", "Foot"));
         })
     })
     .await;
@@ -441,7 +444,7 @@ async fn player_location_waits_for_the_result_of_each_teleport() {
                 yaw: 45.0,
                 pitch: 10.0,
             };
-            let location = player.location();
+            let location = player.location;
             location.teleport(pos).await.unwrap();
             location
                 .teleport_facing(Facing::new(pos, rotation))
@@ -501,7 +504,7 @@ async fn player_location_waits_for_the_result_of_each_teleport() {
 async fn player_game_mode_sets_the_game_mode() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.game_mode().set(GameMode::Spectator);
+            player.game_mode.set(GameMode::Spectator);
         })
     })
     .await;
@@ -519,7 +522,7 @@ async fn player_game_mode_sets_the_game_mode() {
 async fn player_command_performs_the_command_line() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            player.command().perform("spawn");
+            player.command.perform("spawn");
         })
     })
     .await;
@@ -539,8 +542,8 @@ async fn player_visibility_hides_and_shows_another_player() {
         Box::pin(async move {
             let online = player.server().get_players().await.unwrap();
             let alex = &online[1];
-            player.visibility().hide(alex);
-            player.visibility().show(alex);
+            player.visibility.hide(alex);
+            player.visibility.show(alex);
         })
     })
     .await;
@@ -566,8 +569,8 @@ async fn player_visibility_hides_and_shows_another_player() {
 async fn player_scoreboard_shows_the_scoreboard_to_the_player() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let main = player.server().scoreboard_manager().main_scoreboard();
-            player.scoreboard().set(&main);
+            let main = player.server().scoreboard_manager.main_scoreboard();
+            player.scoreboard.set(&main);
         })
     })
     .await;
@@ -591,16 +594,16 @@ fn served(order: server_order::Order) -> from_plugin::Body {
 async fn world_time_weather_and_difficulty_set_their_value() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let world = player.world();
-            world.time().set(6000);
-            world.weather().set(Weather::Thunder);
-            world.difficulty().set(Difficulty::Hard);
-            world.pvp().set(false);
-            world.spawn_point().set(BlockPos { x: 8, y: 64, z: -8 });
+            let world = &player.world;
+            world.time.set(6000);
+            world.weather.set(Weather::Thunder);
+            world.difficulty.set(Difficulty::Hard);
+            world.pvp.set(false);
+            world.spawn_point.set(BlockPos { x: 8, y: 64, z: -8 });
             world
-                .game_rule()
+                .game_rule
                 .set(GameRuleSetting::new(GameRule::BlockDrops, true));
-            world.storage().save();
+            world.storage.save();
         })
     })
     .await;
@@ -633,19 +636,19 @@ async fn world_time_weather_and_difficulty_set_their_value() {
 async fn world_sound_particle_and_explosion_reach_everyone_nearby() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let world = player.world();
+            let world = &player.world;
             let here = Position {
                 x: 4.5,
                 y: 64.0,
                 z: -2.5,
             };
-            world.sound().play(
+            world.sound.play(
                 SoundCue::new(Sound::EntityGenericExplode)
                     .volume(4.0)
                     .pitch(0.5)
                     .at(here),
             );
-            world.particle().spawn(
+            world.particle.spawn(
                 ParticleBurst::new(Particle::Flame, here)
                     .count(8)
                     .spread(Vector {
@@ -655,7 +658,7 @@ async fn world_sound_particle_and_explosion_reach_everyone_nearby() {
                     })
                     .speed(0.1),
             );
-            world.explosion().create(Explosion::new(here, 4.0, true));
+            world.explosion.create(Explosion::new(here, 4.0, true));
         })
     })
     .await;
@@ -692,10 +695,10 @@ async fn server_message_command_and_lifecycle_send_their_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let server = player.server();
-            server.message().broadcast("hi");
-            server.command().dispatch("time set 0");
-            server.lifecycle().save();
-            server.lifecycle().shutdown();
+            server.message.broadcast("hi");
+            server.command.dispatch("time set 0");
+            server.lifecycle.save();
+            server.lifecycle.shutdown();
         })
     })
     .await;
@@ -719,20 +722,20 @@ async fn server_name_lists_and_ban_lists_send_their_orders() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let server = player.server();
-            server.whitelist().set_enabled(true);
-            server.whitelist().add("Carol");
-            server.whitelist().remove("Dave");
-            server.operators().add("Alice");
-            server.operators().remove("Bob");
-            server.bans().add(
+            server.whitelist.set_enabled(true);
+            server.whitelist.add("Carol");
+            server.whitelist.remove("Dave");
+            server.operators.add("Alice");
+            server.operators.remove("Bob");
+            server.bans.add(
                 Ban::new("Steve")
                     .reason("grief")
                     .expires(UNIX_EPOCH + Duration::from_secs(1000)),
             );
-            server.bans().remove("Steve");
+            server.bans.remove("Steve");
             let address = "203.0.113.7".parse::<IpAddr>().unwrap();
-            server.ip_bans().add(Ban::new(address));
-            server.ip_bans().remove(address.to_string());
+            server.ip_bans.add(Ban::new(address));
+            server.ip_bans.remove(address.to_string());
         })
     })
     .await;

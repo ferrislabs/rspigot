@@ -19,52 +19,34 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Server {
+    pub bans: ServerBansHandle,
+    pub boss_bars: BossBars,
+    pub command: ServerCommandHandle,
+    pub ip_bans: ServerIpBansHandle,
+    pub lifecycle: ServerLifecycleHandle,
+    pub message: ServerMessageHandle,
+    pub operators: ServerOperatorsHandle,
+    pub scoreboard_manager: ScoreboardManager,
+    pub whitelist: ServerWhitelistHandle,
+    pub world: World,
     link: Link,
 }
 
 impl Server {
-    pub(crate) const fn new(link: Link) -> Self {
-        Self { link }
-    }
-
-    pub fn message(&self) -> ServerMessageHandle {
-        ServerMessageHandle::new(self.link.clone())
-    }
-
-    pub fn command(&self) -> ServerCommandHandle {
-        ServerCommandHandle::new(self.link.clone())
-    }
-
-    pub fn lifecycle(&self) -> ServerLifecycleHandle {
-        ServerLifecycleHandle::new(self.link.clone())
-    }
-
-    pub fn whitelist(&self) -> ServerWhitelistHandle {
-        ServerWhitelistHandle::new(self.link.clone())
-    }
-
-    pub fn operators(&self) -> ServerOperatorsHandle {
-        ServerOperatorsHandle::new(self.link.clone())
-    }
-
-    pub fn bans(&self) -> ServerBansHandle {
-        ServerBansHandle::new(self.link.clone())
-    }
-
-    pub fn ip_bans(&self) -> ServerIpBansHandle {
-        ServerIpBansHandle::new(self.link.clone())
-    }
-
-    pub fn world(&self) -> World {
-        World::new(self.link.clone())
-    }
-
-    pub fn boss_bars(&self) -> BossBars {
-        BossBars::new(self.link.clone())
-    }
-
-    pub fn scoreboard_manager(&self) -> ScoreboardManager {
-        ScoreboardManager::new(self.link.clone())
+    pub(crate) fn new(link: Link) -> Self {
+        Self {
+            bans: ServerBansHandle::new(link.clone()),
+            boss_bars: BossBars::new(link.clone()),
+            command: ServerCommandHandle::new(link.clone()),
+            ip_bans: ServerIpBansHandle::new(link.clone()),
+            lifecycle: ServerLifecycleHandle::new(link.clone()),
+            message: ServerMessageHandle::new(link.clone()),
+            operators: ServerOperatorsHandle::new(link.clone()),
+            scoreboard_manager: ScoreboardManager::new(link.clone()),
+            whitelist: ServerWhitelistHandle::new(link.clone()),
+            world: World::new(link.clone()),
+            link,
+        }
     }
 
     pub async fn create_inventory(

@@ -293,6 +293,16 @@ impl WorldState {
 #[derive(Debug, Clone)]
 pub struct World {
     pub entities: Entities,
+    pub difficulty: WorldDifficultyHandle,
+    pub explosion: WorldExplosionHandle,
+    pub game_rule: WorldGameRuleHandle,
+    pub particle: WorldParticleHandle,
+    pub pvp: WorldPvpHandle,
+    pub sound: WorldSoundHandle,
+    pub spawn_point: WorldSpawnPointHandle,
+    pub storage: WorldStorageHandle,
+    pub time: WorldTimeHandle,
+    pub weather: WorldWeatherHandle,
     name: Option<String>,
     link: Link,
 }
@@ -301,6 +311,16 @@ impl World {
     pub(crate) fn new(link: Link) -> Self {
         Self {
             entities: Entities::new(link.clone()),
+            difficulty: WorldDifficultyHandle::new(link.clone()),
+            explosion: WorldExplosionHandle::new(link.clone()),
+            game_rule: WorldGameRuleHandle::new(link.clone()),
+            particle: WorldParticleHandle::new(link.clone()),
+            pvp: WorldPvpHandle::new(link.clone()),
+            sound: WorldSoundHandle::new(link.clone()),
+            spawn_point: WorldSpawnPointHandle::new(link.clone()),
+            storage: WorldStorageHandle::new(link.clone()),
+            time: WorldTimeHandle::new(link.clone()),
+            weather: WorldWeatherHandle::new(link.clone()),
             name: None,
             link,
         }
@@ -311,6 +331,14 @@ impl World {
         Self {
             name: Some(name),
             ..Self::new(link)
+        }
+    }
+
+    pub(crate) fn resolved(name: String, link: &Link) -> Self {
+        if name == DEFAULT_WORLD {
+            Self::new(link.clone())
+        } else {
+            Self::named(name, link.clone())
         }
     }
 
@@ -345,46 +373,6 @@ impl World {
                 order: Some(world_order::Order::DeleteWorld(v1::DeleteWorld { files })),
             }))
             .await
-    }
-
-    pub fn time(&self) -> WorldTimeHandle {
-        WorldTimeHandle::new(self.link.clone())
-    }
-
-    pub fn weather(&self) -> WorldWeatherHandle {
-        WorldWeatherHandle::new(self.link.clone())
-    }
-
-    pub fn difficulty(&self) -> WorldDifficultyHandle {
-        WorldDifficultyHandle::new(self.link.clone())
-    }
-
-    pub fn spawn_point(&self) -> WorldSpawnPointHandle {
-        WorldSpawnPointHandle::new(self.link.clone())
-    }
-
-    pub fn pvp(&self) -> WorldPvpHandle {
-        WorldPvpHandle::new(self.link.clone())
-    }
-
-    pub fn game_rule(&self) -> WorldGameRuleHandle {
-        WorldGameRuleHandle::new(self.link.clone())
-    }
-
-    pub fn storage(&self) -> WorldStorageHandle {
-        WorldStorageHandle::new(self.link.clone())
-    }
-
-    pub fn sound(&self) -> WorldSoundHandle {
-        WorldSoundHandle::new(self.link.clone())
-    }
-
-    pub fn particle(&self) -> WorldParticleHandle {
-        WorldParticleHandle::new(self.link.clone())
-    }
-
-    pub fn explosion(&self) -> WorldExplosionHandle {
-        WorldExplosionHandle::new(self.link.clone())
     }
 
     pub fn block(&self, pos: BlockPos) -> Block {
