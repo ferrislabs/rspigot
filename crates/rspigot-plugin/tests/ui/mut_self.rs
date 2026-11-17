@@ -6,7 +6,7 @@ struct Guard;
 #[listeners]
 impl Guard {
     async fn on_player_join(&mut self, event: &PlayerJoin) {
-        event.player().send_message("Welcome!");
+        event.player().message().send("Welcome!");
     }
 }
 

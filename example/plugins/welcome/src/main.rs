@@ -29,8 +29,10 @@ impl Welcome {
 
     async fn on_player_join(&self, event: &PlayerJoin) {
         let player = event.player();
-        player.send_message(format!("Welcome {}!", player.name));
-        player.send_title(Title::new(format!("{}Welcome", ChatColor::Gold)).subtitle(&player.name));
+        player.message().send(format!("Welcome {}!", player.name));
+        player
+            .title()
+            .send(Title::new(format!("{}Welcome", ChatColor::Gold)).subtitle(&player.name));
         player
             .inventory()
             .add(ItemStack::new(Material::Compass, 1).name("§eMenu"));
@@ -64,7 +66,7 @@ impl Welcome {
         }
 
         if let Some(menu) = self.menu() {
-            player.open_inventory(&menu);
+            player.inventory().open(&menu);
         }
     }
 
@@ -74,8 +76,8 @@ impl Welcome {
             && event.clicked_inventory().and_then(InventoryRef::custom) == menu.as_ref();
         if in_menu && event.slot() == i32::from(LEAVE_SLOT) {
             let player = event.player();
-            player.close_inventory();
-            player.send_message("§aSee you around");
+            player.inventory().close();
+            player.message().send("§aSee you around");
         }
     }
 

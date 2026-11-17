@@ -4,8 +4,8 @@ use crate::link::Link;
 
 #[derive(Debug, Clone)]
 pub struct PlayerSoundHandle {
-    target: String,
-    link: Link,
+    pub(crate) target: String,
+    pub(crate) link: Link,
 }
 
 impl PlayerSoundHandle {
@@ -14,10 +14,10 @@ impl PlayerSoundHandle {
         Self { target, link }
     }
 
-    pub fn play(&self, value: v1::Sound) {
+    pub fn play(&self, value: impl Into<v1::Sound>) {
         self.link.order(from_plugin::Body::Player(v1::PlayerOrder {
             player: self.target.clone(),
-            order: Some(v1::player_order::Order::PlaySound(value)),
+            order: Some(v1::player_order::Order::PlaySound(value.into())),
         }));
     }
 }

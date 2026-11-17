@@ -196,8 +196,8 @@ async fn a_new_scoreboard_has_its_own_id_and_can_be_shown_to_a_player() {
             assert_eq!(own.id(), 7);
             assert!(!own.is_main());
             own.register_team("blue");
-            player.set_scoreboard(&own);
-            player.set_scoreboard(&manager.main_scoreboard());
+            player.scoreboard().set(&own);
+            player.scoreboard().set(&manager.main_scoreboard());
             own.discard();
         })
     })

@@ -174,7 +174,7 @@ async fn creating_an_inventory_does_not_wait_and_ids_are_unique() {
             let storage = server.create_storage(2, "Box");
             assert_ne!(menu.id(), storage.id());
             menu.set(4, Some(ItemStack::new(Material::Compass, 1)));
-            player.open_inventory(&menu);
+            player.inventory().open(&menu);
         })
     })
     .await;
@@ -457,10 +457,10 @@ async fn an_order_on_an_inventory_from_an_earlier_connection_is_dropped() {
             Box::pin(async move {
                 let old = OLD.lock().unwrap().clone().expect("a stored inventory");
                 old.set(0, None);
-                player.open_inventory(&old);
+                player.inventory().open(&old);
                 let resolved = old.resolve().await;
                 assert!(matches!(resolved, Err(Error::NotFound)), "{resolved:?}");
-                player.send_message("marker");
+                player.message().send("marker");
             })
         },
         |server| {
