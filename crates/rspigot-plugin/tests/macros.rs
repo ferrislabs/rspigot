@@ -7,7 +7,7 @@ struct Welcome;
 #[listeners]
 impl Welcome {
     async fn on_player_join(&self, event: &PlayerJoin) {
-        event.player().send_message("Welcome!");
+        event.player().message().send("Welcome!");
     }
 
     #[priority(High)]

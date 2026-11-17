@@ -16,6 +16,7 @@ pub mod keys;
 mod boss_bar;
 mod link;
 mod listener;
+mod payload;
 mod player;
 mod runtime;
 mod scoreboard;
@@ -43,10 +44,11 @@ pub use entity::{Entities, Entity, EntityState};
 pub use error::Error;
 pub use events::*;
 pub use generated::*;
-pub use inventory::{ArmorSlot, Inventory, InventorySlot, InventoryState};
+pub use inventory::{ArmorSlot, InventorySlot, InventoryState};
 pub use item::{CustomModelData, ItemStack};
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
+pub use payload::{BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
 pub use rspigot_plugin_macros::{Plugin, listeners};
 pub use runtime::{run, run_with};
@@ -70,7 +72,7 @@ pub mod prelude {
         ArmorSlot, Block, BlockPos, BlockSnapshot, BlockState, BlockTarget, BlockType, ChatColor,
         Color, CommandSender, CustomInventory, CustomInventoryState, CustomModelData, DamageSource,
         Difficulty, Effect, EffectType, Enchantment, Entity, EntityState, EntityType, Error,
-        GameMode, GameRule, Inventory, InventoryOwner, InventoryRef, InventorySlot, InventoryState,
+        GameMode, GameRule, InventoryOwner, InventoryRef, InventorySlot, InventoryState,
         InventoryView, ItemStack, Listeners, Location, Material, Particle, Player, PlayerState,
         Plugin, Position, Priority, Rotation, Server, ServerState, Sound, Target, Title, Vector,
         Weather, World, WorldState, listeners, run, run_with,

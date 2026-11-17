@@ -11,6 +11,7 @@ pub enum Payload {
     Message(String),
     Text,
     Scalar(&'static str),
+    Enum(String),
 }
 
 #[derive(Debug)]
@@ -20,7 +21,7 @@ pub struct Verb {
     pub order: String,
     pub body: String,
     pub oneof: String,
-    pub target: String,
+    pub target: Option<String>,
     pub payload: Payload,
 }
 
@@ -61,7 +62,22 @@ impl Tree {
                 let verb = verb(message, field, path, envelope.copied())?;
                 let domain = domain(path)?;
                 match handles.iter_mut().find(|handle| handle.path == domain) {
-                    Some(handle) => handle.verbs.push(verb),
+                    Some(handle) => {
+                        if handle.verbs.iter().any(|known| known.name == verb.name) {
+                            return Err(Error::Path {
+                                path: path.to_owned(),
+                                reason: format!("the verb `{}` is already taken", verb.name),
+                            });
+                        }
+                        if handle.verbs[0].target.is_some() != verb.target.is_some() {
+                            return Err(Error::Path {
+                                path: path.to_owned(),
+                                reason: "a domain cannot mix orders with and without a target"
+                                    .to_owned(),
+                            });
+                        }
+                        handle.verbs.push(verb);
+                    }
                     None => handles.push(Handle {
                         path: domain.to_owned(),
                         name: format!("{}Handle", pascal(&domain.replace('.', "_"))),
@@ -107,12 +123,19 @@ fn verb(
         .and_then(|index| order.oneof_decl.get(index))
         .and_then(|oneof| oneof.name.clone())
         .ok_or_else(|| invalid("the field is not part of a oneof".to_owned()))?;
-    let target = order
+    let target = match order
         .field
         .iter()
         .find(|candidate| candidate.number == Some(1) && candidate.oneof_index.is_none())
-        .and_then(|candidate| candidate.name.clone())
-        .ok_or_else(|| invalid(format!("`{order_name}` has no target in field 1")))?;
+    {
+        Some(candidate) if candidate.r#type == Some(9) => candidate.name.clone(),
+        Some(_) => {
+            return Err(invalid(format!(
+                "the target in field 1 of `{order_name}` is not a string"
+            )));
+        }
+        None => None,
+    };
     let body = envelope
         .and_then(|envelope| {
             envelope.field.iter().find(|candidate| {
@@ -139,6 +162,12 @@ fn verb(
 
 fn payload(field: &FieldDescriptorProto) -> Result<Payload, String> {
     match field.r#type {
+        Some(14) => {
+            let name = field.type_name.as_deref().unwrap_or_default();
+            Ok(Payload::Enum(
+                name.rsplit('.').next().unwrap_or(name).to_owned(),
+            ))
+        }
         Some(11) => {
             let name = field.type_name.as_deref().unwrap_or_default();
             let short = name.rsplit('.').next().unwrap_or(name);

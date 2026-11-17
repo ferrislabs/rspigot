@@ -1,8 +1,6 @@
-use rspigot_plugin_protocol::v1::{self, answer, from_plugin, inventory_order, question};
-use uuid::Uuid;
+use rspigot_plugin_protocol::v1::{self, answer, from_plugin, player_order, question};
 
-use crate::link::Link;
-use crate::{Error, ItemStack, Material};
+use crate::{CustomInventory, Error, ItemStack, PlayerInventoryHandle};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ArmorSlot {
@@ -73,48 +71,22 @@ impl InventoryState {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Inventory {
-    player: Uuid,
-    link: Link,
-}
-
-impl Inventory {
-    pub(crate) const fn new(player: Uuid, link: Link) -> Self {
-        Self { player, link }
-    }
-
-    pub fn add(&self, item: ItemStack) {
-        self.order(inventory_order::Order::Add(item.into_wire()));
-    }
-
-    pub fn set(&self, slot: InventorySlot, item: Option<ItemStack>) {
-        self.order(inventory_order::Order::Set(v1::SetSlot {
-            slot: slot.index().unwrap_or(-1),
-            item: item.map(ItemStack::into_wire),
-        }));
-    }
-
-    pub fn remove(&self, material: Material, count: i32) {
-        self.order(inventory_order::Order::Remove(v1::RemoveItems {
-            key: material.key().to_owned(),
-            count,
-        }));
-    }
-
-    pub fn clear(&self) {
-        self.order(inventory_order::Order::Clear(v1::Empty {}));
-    }
-
-    pub fn set_held_slot(&self, slot: u8) {
-        self.order(inventory_order::Order::SetHeldSlot(i32::from(slot)));
+impl PlayerInventoryHandle {
+    pub fn open(&self, inventory: &CustomInventory) {
+        self.link.order_from(
+            inventory.generation(),
+            from_plugin::Body::Player(v1::PlayerOrder {
+                player: self.target.clone(),
+                order: Some(player_order::Order::OpenInventory(inventory.id())),
+            }),
+        );
     }
 
     pub async fn resolve(&self) -> Result<InventoryState, Error> {
         let state = self
             .link
             .ask(
-                question::Question::Inventory(self.player.to_string()),
+                question::Question::Inventory(self.target.clone()),
                 "an inventory",
                 |body| match body {
                     answer::Body::Inventory(state) => Some(state),
@@ -123,14 +95,6 @@ impl Inventory {
             )
             .await?;
         InventoryState::from_wire(state)
-    }
-
-    fn order(&self, order: inventory_order::Order) {
-        self.link
-            .order(from_plugin::Body::Inventory(v1::InventoryOrder {
-                player: self.player.to_string(),
-                order: Some(order),
-            }));
     }
 }
 
