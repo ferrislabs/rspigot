@@ -761,7 +761,10 @@ fn update_and_close_inventory() {
             .any(|event| matches!(event, ClientEvent::InventoryContent { .. }))
     );
     s.act(to(&alice, PlayerOrder::CloseInventory));
-    assert!(alice.link.take().is_empty());
+    assert!(matches!(
+        alice.link.take().as_slice(),
+        [ClientEvent::ContainerClose(0)]
+    ));
     assert!(s.warnings().is_empty());
 }
 

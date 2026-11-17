@@ -262,7 +262,7 @@ impl<L: ClientLink> Server<L> {
             }
             PlayerOrder::SetScoreboard(board) => self.set_player_board(id, board)?,
             PlayerOrder::CloseInventory => {
-                self.close_open_menu(id, true);
+                self.close_window_for_plugin(id);
             }
             PlayerOrder::UpdateInventory => self.send_inventory(id),
             PlayerOrder::Ban { reason, expires } => {
