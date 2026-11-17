@@ -75,7 +75,7 @@ impl Block {
         self.order(block_order::Order::BreakNaturally(v1::Empty {}));
     }
 
-    pub async fn resolve(&self) -> Result<BlockState, Error> {
+    pub async fn get_state(&self) -> Result<BlockState, Error> {
         let state = self
             .link
             .ask(

@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 use std::net::IpAddr;
 use std::time::SystemTime;
 
@@ -20,24 +19,12 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Server {
-    pub players: Players,
-    pub whitelist: Whitelist,
-    pub operators: Operators,
-    pub bans: Bans,
-    pub ip_bans: IpBans,
     link: Link,
 }
 
 impl Server {
-    pub(crate) fn new(link: Link) -> Self {
-        Self {
-            players: Players { link: link.clone() },
-            whitelist: NameList::new(link.clone()),
-            operators: NameList::new(link.clone()),
-            bans: BanList::new(link.clone()),
-            ip_bans: BanList::new(link.clone()),
-            link,
-        }
+    pub(crate) const fn new(link: Link) -> Self {
+        Self { link }
     }
 
     pub fn message(&self) -> ServerMessageHandle {
@@ -88,7 +75,15 @@ impl Server {
         CustomInventory::create(&self.link, rows, title.into(), false)
     }
 
-    pub async fn resolve(&self) -> Result<ServerState, Error> {
+    pub async fn get_players(&self) -> Result<Vec<Player>, Error> {
+        players(&self.link, question::Question::Players(v1::Empty {})).await
+    }
+
+    pub async fn get_players_named(&self, name: impl Into<String>) -> Result<Vec<Player>, Error> {
+        players(&self.link, question::Question::PlayerNamed(name.into())).await
+    }
+
+    pub async fn get_state(&self) -> Result<ServerState, Error> {
         let state = self
             .link
             .ask(
@@ -126,40 +121,6 @@ impl ServerState {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Players {
-    link: Link,
-}
-
-impl Players {
-    pub async fn fetch(&self) -> Result<Vec<Player>, Error> {
-        players(&self.link, question::Question::Players(v1::Empty {})).await
-    }
-
-    pub fn named(&self, name: impl Into<String>) -> NamedPlayers {
-        NamedPlayers {
-            name: name.into(),
-            link: self.link.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct NamedPlayers {
-    name: String,
-    link: Link,
-}
-
-impl NamedPlayers {
-    pub async fn fetch(&self) -> Result<Vec<Player>, Error> {
-        players(
-            &self.link,
-            question::Question::PlayerNamed(self.name.clone()),
-        )
-        .await
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListedPlayer {
     pub name: String,
@@ -179,56 +140,15 @@ impl ListedPlayer {
     }
 }
 
-pub trait NameListKind: sealed::NameWire {}
-
-#[derive(Debug, Clone, Copy)]
-pub enum WhitelistKind {}
-
-#[derive(Debug, Clone, Copy)]
-pub enum OperatorKind {}
-
-impl NameListKind for WhitelistKind {}
-
-impl NameListKind for OperatorKind {}
-
-impl sealed::NameWire for WhitelistKind {
-    const QUESTION: question::Question = question::Question::Whitelist(v1::Empty {});
-}
-
-impl sealed::NameWire for OperatorKind {
-    const QUESTION: question::Question = question::Question::Operators(v1::Empty {});
-}
-
-pub type Whitelist = NameList<WhitelistKind>;
-
-pub type Operators = NameList<OperatorKind>;
-
-#[derive(Debug, Clone)]
-pub struct NameList<K> {
-    link: Link,
-    kind: PhantomData<K>,
-}
-
-impl<K: NameListKind> NameList<K> {
-    const fn new(link: Link) -> Self {
-        Self {
-            link,
-            kind: PhantomData,
-        }
+impl ServerWhitelistHandle {
+    pub async fn get_names(&self) -> Result<Vec<ListedPlayer>, Error> {
+        listed(&self.link, question::Question::Whitelist(v1::Empty {})).await
     }
+}
 
-    pub async fn fetch(&self) -> Result<Vec<ListedPlayer>, Error> {
-        let list = self
-            .link
-            .ask(K::QUESTION, "a list of names", |body| match body {
-                answer::Body::Listed(list) => Some(list),
-                _ => None,
-            })
-            .await?;
-        list.players
-            .into_iter()
-            .map(ListedPlayer::from_wire)
-            .collect()
+impl ServerOperatorsHandle {
+    pub async fn get_names(&self) -> Result<Vec<ListedPlayer>, Error> {
+        listed(&self.link, question::Question::Operators(v1::Empty {})).await
     }
 }
 
@@ -242,7 +162,7 @@ pub struct BanEntry {
     pub reason: Option<String>,
 }
 
-impl sealed::EntryWire for BanEntry {
+impl BanEntry {
     fn from_wire(entry: v1::BanEntry) -> Result<Self, Error> {
         Ok(Self {
             uuid: entry
@@ -268,7 +188,7 @@ pub struct IpBanEntry {
     pub reason: Option<String>,
 }
 
-impl sealed::EntryWire for IpBanEntry {
+impl IpBanEntry {
     fn from_wire(entry: v1::BanEntry) -> Result<Self, Error> {
         Ok(Self {
             address: parse_address(&entry.target)?,
@@ -280,80 +200,25 @@ impl sealed::EntryWire for IpBanEntry {
     }
 }
 
-pub trait BanListKind: sealed::BanWire {
-    type Entry: sealed::EntryWire;
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ByName {}
-
-#[derive(Debug, Clone, Copy)]
-pub enum ByAddress {}
-
-impl BanListKind for ByName {
-    type Entry = BanEntry;
-}
-
-impl BanListKind for ByAddress {
-    type Entry = IpBanEntry;
-}
-
-impl sealed::BanWire for ByName {
-    const QUESTION: question::Question = question::Question::Bans(v1::Empty {});
-}
-
-impl sealed::BanWire for ByAddress {
-    const QUESTION: question::Question = question::Question::IpBans(v1::Empty {});
-}
-
-pub type Bans = BanList<ByName>;
-
-pub type IpBans = BanList<ByAddress>;
-
-#[derive(Debug, Clone)]
-pub struct BanList<K> {
-    link: Link,
-    kind: PhantomData<K>,
-}
-
-impl<K: BanListKind> BanList<K> {
-    const fn new(link: Link) -> Self {
-        Self {
-            link,
-            kind: PhantomData,
-        }
-    }
-
-    pub async fn fetch(&self) -> Result<Vec<K::Entry>, Error> {
-        let list = self
-            .link
-            .ask(K::QUESTION, "a ban list", |body| match body {
-                answer::Body::Bans(list) => Some(list),
-                _ => None,
-            })
-            .await?;
-        list.entries
-            .into_iter()
-            .map(sealed::EntryWire::from_wire)
-            .collect()
+impl ServerBansHandle {
+    pub async fn get_entries(&self) -> Result<Vec<BanEntry>, Error> {
+        banned(
+            &self.link,
+            question::Question::Bans(v1::Empty {}),
+            BanEntry::from_wire,
+        )
+        .await
     }
 }
 
-mod sealed {
-    use rspigot_plugin_protocol::v1::{self, question};
-
-    use crate::Error;
-
-    pub trait NameWire {
-        const QUESTION: question::Question;
-    }
-
-    pub trait BanWire {
-        const QUESTION: question::Question;
-    }
-
-    pub trait EntryWire: Sized {
-        fn from_wire(entry: v1::BanEntry) -> Result<Self, Error>;
+impl ServerIpBansHandle {
+    pub async fn get_entries(&self) -> Result<Vec<IpBanEntry>, Error> {
+        banned(
+            &self.link,
+            question::Question::IpBans(v1::Empty {}),
+            IpBanEntry::from_wire,
+        )
+        .await
     }
 }
 
@@ -368,4 +233,31 @@ async fn players(link: &Link, question: question::Question) -> Result<Vec<Player
         .into_iter()
         .map(|player| Player::from_wire(Some(player), link))
         .collect()
+}
+
+async fn listed(link: &Link, question: question::Question) -> Result<Vec<ListedPlayer>, Error> {
+    let list = link
+        .ask(question, "a list of names", |body| match body {
+            answer::Body::Listed(list) => Some(list),
+            _ => None,
+        })
+        .await?;
+    list.players
+        .into_iter()
+        .map(ListedPlayer::from_wire)
+        .collect()
+}
+
+async fn banned<T>(
+    link: &Link,
+    question: question::Question,
+    entry: fn(v1::BanEntry) -> Result<T, Error>,
+) -> Result<Vec<T>, Error> {
+    let list = link
+        .ask(question, "a ban list", |body| match body {
+            answer::Body::Bans(list) => Some(list),
+            _ => None,
+        })
+        .await?;
+    list.entries.into_iter().map(entry).collect()
 }

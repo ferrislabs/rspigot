@@ -82,7 +82,7 @@ impl PlayerInventoryHandle {
         );
     }
 
-    pub async fn resolve(&self) -> Result<InventoryState, Error> {
+    pub async fn get_items(&self) -> Result<InventoryState, Error> {
         let state = self
             .link
             .ask(
