@@ -13,6 +13,16 @@ enum Difficulty { DIFFICULTY_UNSPECIFIED = 0; DIFFICULTY_PEACEFUL = 1; DIFFICULT
 enum Weather { WEATHER_UNSPECIFIED = 0; WEATHER_CLEAR = 1; WEATHER_RAIN = 2; WEATHER_THUNDER = 3; }
 enum GameRule { GAME_RULE_UNSPECIFIED = 0; GAME_RULE_DAYLIGHT_CYCLE = 1; GAME_RULE_NATURAL_REGENERATION = 2; GAME_RULE_KEEP_INVENTORY = 3; GAME_RULE_SHOW_DEATH_MESSAGES = 4; GAME_RULE_IMMEDIATE_RESPAWN = 5; GAME_RULE_FALL_DAMAGE = 6; GAME_RULE_MOB_DROPS = 7; GAME_RULE_MOB_GRIEFING = 8; GAME_RULE_MOB_EXPLOSION_DROP_DECAY = 9; GAME_RULE_BLOCK_DROPS = 10; GAME_RULE_UNIVERSAL_ANGER = 11; }
 
+enum Attribute { ATTRIBUTE_UNSPECIFIED = 0; ATTRIBUTE_AIR_DRAG_MODIFIER = 1; ATTRIBUTE_ARMOR = 2; ATTRIBUTE_ARMOR_TOUGHNESS = 3; ATTRIBUTE_ATTACK_DAMAGE = 4; ATTRIBUTE_ATTACK_KNOCKBACK = 5; ATTRIBUTE_ATTACK_SPEED = 6; ATTRIBUTE_BELOW_NAME_DISTANCE = 7; ATTRIBUTE_BLOCK_BREAK_SPEED = 8; ATTRIBUTE_BLOCK_INTERACTION_RANGE = 9; ATTRIBUTE_BOUNCINESS = 10; ATTRIBUTE_BURNING_TIME = 11; ATTRIBUTE_CAMERA_DISTANCE = 12; ATTRIBUTE_EXPLOSION_KNOCKBACK_RESISTANCE = 13; ATTRIBUTE_ENTITY_INTERACTION_RANGE = 14; ATTRIBUTE_FALL_DAMAGE_MULTIPLIER = 15; ATTRIBUTE_FLYING_SPEED = 16; ATTRIBUTE_FOLLOW_RANGE = 17; ATTRIBUTE_FRICTION_MODIFIER = 18; ATTRIBUTE_GRAVITY = 19; ATTRIBUTE_JUMP_STRENGTH = 20; ATTRIBUTE_KNOCKBACK_RESISTANCE = 21; ATTRIBUTE_LUCK = 22; ATTRIBUTE_MAX_ABSORPTION = 23; ATTRIBUTE_MAX_HEALTH = 24; ATTRIBUTE_MINING_EFFICIENCY = 25; ATTRIBUTE_MOVEMENT_EFFICIENCY = 26; ATTRIBUTE_MOVEMENT_SPEED = 27; ATTRIBUTE_NAME_TAG_DISTANCE = 28; ATTRIBUTE_OXYGEN_BONUS = 29; ATTRIBUTE_SAFE_FALL_DISTANCE = 30; ATTRIBUTE_SCALE = 31; ATTRIBUTE_SNEAKING_SPEED = 32; ATTRIBUTE_SPAWN_REINFORCEMENTS = 33; ATTRIBUTE_STEP_HEIGHT = 34; ATTRIBUTE_SUBMERGED_MINING_SPEED = 35; ATTRIBUTE_SWEEPING_DAMAGE_RATIO = 36; ATTRIBUTE_TEMPT_RANGE = 37; ATTRIBUTE_WATER_MOVEMENT_EFFICIENCY = 38; ATTRIBUTE_WAYPOINT_TRANSMIT_RANGE = 39; ATTRIBUTE_WAYPOINT_RECEIVE_RANGE = 40; }
+message Transfer { string host = 1; uint32 port = 2; }
+message SetAttribute { Attribute attribute = 1; double value = 2; }
+message AttributeQuery { int32 entity = 1; Attribute attribute = 2; }
+message TypedChange {
+  oneof change {
+    bool zombie_baby = 1; bool creeper_powered = 2; uint32 sheep_color = 3; bool sheep_sheared = 4; int32 slime_size = 5;
+    uint32 villager_profession = 6; uint32 wolf_collar = 7; uint32 cat_collar = 8; uint32 rabbit_variant = 9;
+  }
+}
 message Dust { uint32 color = 1; float scale = 2; }
 message Particle { string key = 1; oneof data { string item = 2; string block = 3; Dust dust = 4; } Vec3 position = 5; int32 count = 6; Vec3 spread = 7; double speed = 8; }
 message Sound { string key = 1; float volume = 2; float pitch = 3; Vec3 position = 4; }
@@ -63,7 +73,7 @@ message PlayerOrder {
     bool set_allow_flight = 35 [(rspigot.path) = "player.abilities.set_allow_flight"]; bool set_flying = 36 [(rspigot.path) = "player.abilities.set_flying"]; float set_fly_speed = 37 [(rspigot.path) = "player.abilities.set_fly_speed"]; float set_walk_speed = 38 [(rspigot.path) = "player.abilities.set_walk_speed"]; bool set_op = 39 [(rspigot.path) = "player.operator.set"];
     Empty respawn = 40 [(rspigot.path) = "player.health.respawn"]; string perform_command = 41 [(rspigot.path) = "player.command.perform"]; string chat = 42 [(rspigot.path) = "player.message.chat"]; Sound play_sound = 43 [(rspigot.path) = "player.sound.play"]; Particle spawn_particle = 44 [(rspigot.path) = "player.particle.spawn"];
     string hide_player = 45 [(rspigot.path) = "player.visibility.hide"]; string show_player = 46 [(rspigot.path) = "player.visibility.show"]; uint64 open_inventory = 47; Empty close_inventory = 48 [(rspigot.path) = "player.inventory.close"]; Empty update_inventory = 49 [(rspigot.path) = "player.inventory.update"];
-    BanTerms ban = 50 [(rspigot.path) = "player.connection.ban"]; Location teleport_to = 51; uint32 set_scoreboard = 52 [(rspigot.path) = "player.scoreboard.set"];
+    BanTerms ban = 50 [(rspigot.path) = "player.connection.ban"]; Location teleport_to = 51; uint32 set_scoreboard = 52 [(rspigot.path) = "player.scoreboard.set"]; Transfer transfer = 53;
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
@@ -81,7 +91,7 @@ message WorldOrder {
   }
 }
 message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; } }
-message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; } }
+message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; SetAttribute set_attribute = 18; TypedChange change = 19; } }
 message RegisterObjective { string name = 1; string criteria = 2; string display_name = 3; }
 message ObjectiveText { string objective = 1; string text = 2; }
 message ObjectiveRender { string objective = 1; bool hearts = 2; }
@@ -128,7 +138,7 @@ message Question {
     TargetQuery target_block = 14; TargetQuery target_entity = 15; Empty server = 16; Empty whitelist = 17;
     Empty operators = 18; Empty bans = 19; Empty ip_bans = 20; Empty world = 21; EntityQuery entities = 22;
     int32 entity = 23; BlockPos block = 24; Spawn spawn = 25; DropItem drop_item = 26; uint64 custom_inventory = 27; uint32 scoreboard = 28; Empty new_scoreboard = 29;
-    BossBarCreate create_boss_bar = 30; uint64 boss_bar = 31; Empty boss_bars = 32;
+    BossBarCreate create_boss_bar = 30; uint64 boss_bar = 31; Empty boss_bars = 32; AttributeQuery attribute_value = 33;
   }
 }
 message FromPlugin {
@@ -184,7 +194,7 @@ message Answer {
     Target target = 7; ServerState server = 8; ListedPlayers listed = 9; BanList bans = 10; WorldState world = 11; BlockState block = 12;
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
-    Empty done = 22; ActionError failed = 23; string world_created = 24;
+    Empty done = 22; ActionError failed = 23; string world_created = 24; double attribute_value = 25;
   }
 }
 message Warning { string message = 1; }

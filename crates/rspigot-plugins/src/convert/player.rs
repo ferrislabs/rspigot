@@ -65,6 +65,10 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
         Wire::ShowPlayer(target) => PlayerOrder::ShowPlayer(id(target)?),
         Wire::OpenInventory(inventory) => PlayerOrder::OpenInventory(inventory),
         Wire::SetScoreboard(board) => PlayerOrder::SetScoreboard(board),
+        Wire::Transfer(transfer) => PlayerOrder::Transfer {
+            host: transfer.host,
+            port: transfer.port,
+        },
     };
     Ok(Order::Player { player, order })
 }

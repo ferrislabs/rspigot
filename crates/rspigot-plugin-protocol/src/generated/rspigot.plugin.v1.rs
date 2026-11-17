@@ -9135,6 +9135,61 @@ impl VillagerCareerChangeReason {
     }
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct Transfer {
+    #[prost(string, tag = "1")]
+    pub host: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub port: u32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct SetAttribute {
+    #[prost(enumeration = "Attribute", tag = "1")]
+    pub attribute: i32,
+    #[prost(double, tag = "2")]
+    pub value: f64,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AttributeQuery {
+    #[prost(int32, tag = "1")]
+    pub entity: i32,
+    #[prost(enumeration = "Attribute", tag = "2")]
+    pub attribute: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TypedChange {
+    #[prost(oneof = "typed_change::Change", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9")]
+    pub change: ::core::option::Option<typed_change::Change>,
+}
+/// Nested message and enum types in `TypedChange`.
+pub mod typed_change {
+    #[allow(clippy::all)]
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Change {
+        #[prost(bool, tag = "1")]
+        ZombieBaby(bool),
+        #[prost(bool, tag = "2")]
+        CreeperPowered(bool),
+        #[prost(uint32, tag = "3")]
+        SheepColor(u32),
+        #[prost(bool, tag = "4")]
+        SheepSheared(bool),
+        #[prost(int32, tag = "5")]
+        SlimeSize(i32),
+        #[prost(uint32, tag = "6")]
+        VillagerProfession(u32),
+        #[prost(uint32, tag = "7")]
+        WolfCollar(u32),
+        #[prost(uint32, tag = "8")]
+        CatCollar(u32),
+        #[prost(uint32, tag = "9")]
+        RabbitVariant(u32),
+    }
+}
+#[allow(clippy::all)]
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct Dust {
     #[prost(uint32, tag = "1")]
@@ -9506,7 +9561,7 @@ pub struct PlayerOrder {
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -9601,6 +9656,8 @@ pub mod player_order {
         TeleportTo(super::Location),
         #[prost(uint32, tag = "52")]
         SetScoreboard(u32),
+        #[prost(message, tag = "53")]
+        Transfer(super::Transfer),
     }
 }
 #[allow(clippy::all)]
@@ -9738,7 +9795,10 @@ pub mod block_order {
 pub struct EntityOrder {
     #[prost(int32, tag = "1")]
     pub entity: i32,
-    #[prost(oneof = "entity_order::Order", tags = "10, 11, 12, 13, 14, 15, 16, 17")]
+    #[prost(
+        oneof = "entity_order::Order",
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+    )]
     pub order: ::core::option::Option<entity_order::Order>,
 }
 /// Nested message and enum types in `EntityOrder`.
@@ -9762,6 +9822,10 @@ pub mod entity_order {
         ClearEffects(super::Empty),
         #[prost(message, tag = "17")]
         SetVelocity(super::Vec3),
+        #[prost(message, tag = "18")]
+        SetAttribute(super::SetAttribute),
+        #[prost(message, tag = "19")]
+        Change(super::TypedChange),
     }
 }
 #[allow(clippy::all)]
@@ -10031,7 +10095,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -10086,6 +10150,8 @@ pub mod question {
         BossBar(u64),
         #[prost(message, tag = "32")]
         BossBars(super::Empty),
+        #[prost(message, tag = "33")]
+        AttributeValue(super::AttributeQuery),
     }
 }
 #[allow(clippy::all)]
@@ -10415,7 +10481,7 @@ pub struct Answer {
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -10470,6 +10536,8 @@ pub mod answer {
         Failed(super::ActionError),
         #[prost(string, tag = "24")]
         WorldCreated(::prost::alloc::string::String),
+        #[prost(double, tag = "25")]
+        AttributeValue(f64),
     }
 }
 #[allow(clippy::all)]
@@ -10697,6 +10765,154 @@ impl GameRule {
             "GAME_RULE_MOB_EXPLOSION_DROP_DECAY" => Some(Self::MobExplosionDropDecay),
             "GAME_RULE_BLOCK_DROPS" => Some(Self::BlockDrops),
             "GAME_RULE_UNIVERSAL_ANGER" => Some(Self::UniversalAnger),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum Attribute {
+    Unspecified = 0,
+    AirDragModifier = 1,
+    Armor = 2,
+    ArmorToughness = 3,
+    AttackDamage = 4,
+    AttackKnockback = 5,
+    AttackSpeed = 6,
+    BelowNameDistance = 7,
+    BlockBreakSpeed = 8,
+    BlockInteractionRange = 9,
+    Bounciness = 10,
+    BurningTime = 11,
+    CameraDistance = 12,
+    ExplosionKnockbackResistance = 13,
+    EntityInteractionRange = 14,
+    FallDamageMultiplier = 15,
+    FlyingSpeed = 16,
+    FollowRange = 17,
+    FrictionModifier = 18,
+    Gravity = 19,
+    JumpStrength = 20,
+    KnockbackResistance = 21,
+    Luck = 22,
+    MaxAbsorption = 23,
+    MaxHealth = 24,
+    MiningEfficiency = 25,
+    MovementEfficiency = 26,
+    MovementSpeed = 27,
+    NameTagDistance = 28,
+    OxygenBonus = 29,
+    SafeFallDistance = 30,
+    Scale = 31,
+    SneakingSpeed = 32,
+    SpawnReinforcements = 33,
+    StepHeight = 34,
+    SubmergedMiningSpeed = 35,
+    SweepingDamageRatio = 36,
+    TemptRange = 37,
+    WaterMovementEfficiency = 38,
+    WaypointTransmitRange = 39,
+    WaypointReceiveRange = 40,
+}
+impl Attribute {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ATTRIBUTE_UNSPECIFIED",
+            Self::AirDragModifier => "ATTRIBUTE_AIR_DRAG_MODIFIER",
+            Self::Armor => "ATTRIBUTE_ARMOR",
+            Self::ArmorToughness => "ATTRIBUTE_ARMOR_TOUGHNESS",
+            Self::AttackDamage => "ATTRIBUTE_ATTACK_DAMAGE",
+            Self::AttackKnockback => "ATTRIBUTE_ATTACK_KNOCKBACK",
+            Self::AttackSpeed => "ATTRIBUTE_ATTACK_SPEED",
+            Self::BelowNameDistance => "ATTRIBUTE_BELOW_NAME_DISTANCE",
+            Self::BlockBreakSpeed => "ATTRIBUTE_BLOCK_BREAK_SPEED",
+            Self::BlockInteractionRange => "ATTRIBUTE_BLOCK_INTERACTION_RANGE",
+            Self::Bounciness => "ATTRIBUTE_BOUNCINESS",
+            Self::BurningTime => "ATTRIBUTE_BURNING_TIME",
+            Self::CameraDistance => "ATTRIBUTE_CAMERA_DISTANCE",
+            Self::ExplosionKnockbackResistance => {
+                "ATTRIBUTE_EXPLOSION_KNOCKBACK_RESISTANCE"
+            }
+            Self::EntityInteractionRange => "ATTRIBUTE_ENTITY_INTERACTION_RANGE",
+            Self::FallDamageMultiplier => "ATTRIBUTE_FALL_DAMAGE_MULTIPLIER",
+            Self::FlyingSpeed => "ATTRIBUTE_FLYING_SPEED",
+            Self::FollowRange => "ATTRIBUTE_FOLLOW_RANGE",
+            Self::FrictionModifier => "ATTRIBUTE_FRICTION_MODIFIER",
+            Self::Gravity => "ATTRIBUTE_GRAVITY",
+            Self::JumpStrength => "ATTRIBUTE_JUMP_STRENGTH",
+            Self::KnockbackResistance => "ATTRIBUTE_KNOCKBACK_RESISTANCE",
+            Self::Luck => "ATTRIBUTE_LUCK",
+            Self::MaxAbsorption => "ATTRIBUTE_MAX_ABSORPTION",
+            Self::MaxHealth => "ATTRIBUTE_MAX_HEALTH",
+            Self::MiningEfficiency => "ATTRIBUTE_MINING_EFFICIENCY",
+            Self::MovementEfficiency => "ATTRIBUTE_MOVEMENT_EFFICIENCY",
+            Self::MovementSpeed => "ATTRIBUTE_MOVEMENT_SPEED",
+            Self::NameTagDistance => "ATTRIBUTE_NAME_TAG_DISTANCE",
+            Self::OxygenBonus => "ATTRIBUTE_OXYGEN_BONUS",
+            Self::SafeFallDistance => "ATTRIBUTE_SAFE_FALL_DISTANCE",
+            Self::Scale => "ATTRIBUTE_SCALE",
+            Self::SneakingSpeed => "ATTRIBUTE_SNEAKING_SPEED",
+            Self::SpawnReinforcements => "ATTRIBUTE_SPAWN_REINFORCEMENTS",
+            Self::StepHeight => "ATTRIBUTE_STEP_HEIGHT",
+            Self::SubmergedMiningSpeed => "ATTRIBUTE_SUBMERGED_MINING_SPEED",
+            Self::SweepingDamageRatio => "ATTRIBUTE_SWEEPING_DAMAGE_RATIO",
+            Self::TemptRange => "ATTRIBUTE_TEMPT_RANGE",
+            Self::WaterMovementEfficiency => "ATTRIBUTE_WATER_MOVEMENT_EFFICIENCY",
+            Self::WaypointTransmitRange => "ATTRIBUTE_WAYPOINT_TRANSMIT_RANGE",
+            Self::WaypointReceiveRange => "ATTRIBUTE_WAYPOINT_RECEIVE_RANGE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ATTRIBUTE_UNSPECIFIED" => Some(Self::Unspecified),
+            "ATTRIBUTE_AIR_DRAG_MODIFIER" => Some(Self::AirDragModifier),
+            "ATTRIBUTE_ARMOR" => Some(Self::Armor),
+            "ATTRIBUTE_ARMOR_TOUGHNESS" => Some(Self::ArmorToughness),
+            "ATTRIBUTE_ATTACK_DAMAGE" => Some(Self::AttackDamage),
+            "ATTRIBUTE_ATTACK_KNOCKBACK" => Some(Self::AttackKnockback),
+            "ATTRIBUTE_ATTACK_SPEED" => Some(Self::AttackSpeed),
+            "ATTRIBUTE_BELOW_NAME_DISTANCE" => Some(Self::BelowNameDistance),
+            "ATTRIBUTE_BLOCK_BREAK_SPEED" => Some(Self::BlockBreakSpeed),
+            "ATTRIBUTE_BLOCK_INTERACTION_RANGE" => Some(Self::BlockInteractionRange),
+            "ATTRIBUTE_BOUNCINESS" => Some(Self::Bounciness),
+            "ATTRIBUTE_BURNING_TIME" => Some(Self::BurningTime),
+            "ATTRIBUTE_CAMERA_DISTANCE" => Some(Self::CameraDistance),
+            "ATTRIBUTE_EXPLOSION_KNOCKBACK_RESISTANCE" => {
+                Some(Self::ExplosionKnockbackResistance)
+            }
+            "ATTRIBUTE_ENTITY_INTERACTION_RANGE" => Some(Self::EntityInteractionRange),
+            "ATTRIBUTE_FALL_DAMAGE_MULTIPLIER" => Some(Self::FallDamageMultiplier),
+            "ATTRIBUTE_FLYING_SPEED" => Some(Self::FlyingSpeed),
+            "ATTRIBUTE_FOLLOW_RANGE" => Some(Self::FollowRange),
+            "ATTRIBUTE_FRICTION_MODIFIER" => Some(Self::FrictionModifier),
+            "ATTRIBUTE_GRAVITY" => Some(Self::Gravity),
+            "ATTRIBUTE_JUMP_STRENGTH" => Some(Self::JumpStrength),
+            "ATTRIBUTE_KNOCKBACK_RESISTANCE" => Some(Self::KnockbackResistance),
+            "ATTRIBUTE_LUCK" => Some(Self::Luck),
+            "ATTRIBUTE_MAX_ABSORPTION" => Some(Self::MaxAbsorption),
+            "ATTRIBUTE_MAX_HEALTH" => Some(Self::MaxHealth),
+            "ATTRIBUTE_MINING_EFFICIENCY" => Some(Self::MiningEfficiency),
+            "ATTRIBUTE_MOVEMENT_EFFICIENCY" => Some(Self::MovementEfficiency),
+            "ATTRIBUTE_MOVEMENT_SPEED" => Some(Self::MovementSpeed),
+            "ATTRIBUTE_NAME_TAG_DISTANCE" => Some(Self::NameTagDistance),
+            "ATTRIBUTE_OXYGEN_BONUS" => Some(Self::OxygenBonus),
+            "ATTRIBUTE_SAFE_FALL_DISTANCE" => Some(Self::SafeFallDistance),
+            "ATTRIBUTE_SCALE" => Some(Self::Scale),
+            "ATTRIBUTE_SNEAKING_SPEED" => Some(Self::SneakingSpeed),
+            "ATTRIBUTE_SPAWN_REINFORCEMENTS" => Some(Self::SpawnReinforcements),
+            "ATTRIBUTE_STEP_HEIGHT" => Some(Self::StepHeight),
+            "ATTRIBUTE_SUBMERGED_MINING_SPEED" => Some(Self::SubmergedMiningSpeed),
+            "ATTRIBUTE_SWEEPING_DAMAGE_RATIO" => Some(Self::SweepingDamageRatio),
+            "ATTRIBUTE_TEMPT_RANGE" => Some(Self::TemptRange),
+            "ATTRIBUTE_WATER_MOVEMENT_EFFICIENCY" => Some(Self::WaterMovementEfficiency),
+            "ATTRIBUTE_WAYPOINT_TRANSMIT_RANGE" => Some(Self::WaypointTransmitRange),
+            "ATTRIBUTE_WAYPOINT_RECEIVE_RANGE" => Some(Self::WaypointReceiveRange),
             _ => None,
         }
     }

@@ -44,6 +44,7 @@ mod shots;
 pub(crate) mod spawns;
 pub(crate) mod steps;
 mod targets;
+mod traits;
 pub(crate) mod views;
 mod visibility;
 mod vitals;
@@ -84,8 +85,9 @@ pub use menus::MAX_PLUGIN_INVENTORIES;
 pub(crate) use menus::{PluginInventories, PluginMenu};
 pub(crate) use objects::{UseMemo, slot_of};
 pub use orders::{
-    BlockOrder, CustomInventoryOrder, EffectSpec, EntityOrder, GameRule, InventoryOrder, Order,
-    ParticleDataSpec, ParticleSpec, PlayerOrder, ServerOrder, SoundSpec, TitleSpec, WorldOrder,
+    BlockOrder, CustomInventoryOrder, EffectSpec, EntityOrder, EntityTrait, GameRule,
+    InventoryOrder, Order, ParticleDataSpec, ParticleSpec, PlayerOrder, ServerOrder, SoundSpec,
+    TitleSpec, WorldOrder,
 };
 pub use patch::{ListDiff, SetDiff, Verdict};
 pub(crate) use registry::Registry;
@@ -361,6 +363,7 @@ pub enum Answer {
     Block(BlockState),
     Entities(Vec<EntityView>),
     Entity(EntityDetails),
+    AttributeValue(f64),
     Spawned(EntityView),
     Scoreboard(ScoreboardView),
     ScoreboardCreated(u32),
@@ -439,6 +442,10 @@ pub enum Question {
         kind: Option<String>,
     },
     Entity(EntityId),
+    AttributeValue {
+        entity: EntityId,
+        attribute: String,
+    },
     Spawn {
         kind: String,
         position: Vec3,

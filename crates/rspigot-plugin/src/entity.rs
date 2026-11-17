@@ -1,6 +1,7 @@
 use rspigot_plugin_protocol::v1::{self, answer, entity_order, from_plugin, question};
 use uuid::Uuid;
 
+use crate::attribute::EntityAttributesHandle;
 use crate::link::Link;
 use crate::server::Server;
 use crate::wire::parse_uuid;
@@ -99,7 +100,15 @@ impl Entity {
         EntityState::from_wire(state, &self.link)
     }
 
-    fn order(&self, order: entity_order::Order) {
+    pub fn attributes(&self) -> EntityAttributesHandle<'_> {
+        EntityAttributesHandle::new(self)
+    }
+
+    pub(crate) const fn link(&self) -> &Link {
+        &self.link
+    }
+
+    pub(crate) fn order(&self, order: entity_order::Order) {
         self.link.order(from_plugin::Body::Entity(v1::EntityOrder {
             entity: self.entity_id,
             order: Some(order),

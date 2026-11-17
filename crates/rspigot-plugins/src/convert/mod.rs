@@ -156,6 +156,7 @@ fn scoped(world: Option<String>, message: FromPlugin) -> Result<FromPlugin, Malf
                 | Question::Block(_)
                 | Question::Entities { .. }
                 | Question::Entity(_)
+                | Question::AttributeValue { .. }
                 | Question::Spawn { .. }
                 | Question::DropItem { .. } => Question::InWorld {
                     world,
@@ -195,6 +196,7 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         }
         question::Question::BossBar(bar) => Question::BossBar(bar),
         question::Question::BossBars(_) => Question::BossBars,
+        question::Question::AttributeValue(query) => entity::attribute_query(query)?,
     };
     Ok(FromPlugin::Question {
         request: asked.request,
@@ -258,6 +260,7 @@ fn wire_answer(answer: Answer) -> answer::Body {
             entities: views.into_iter().map(entity::wire_view).collect(),
         }),
         Answer::Entity(details) => answer::Body::Entity(entity::wire_details(details)),
+        Answer::AttributeValue(value) => answer::Body::AttributeValue(value),
         Answer::Spawned(view) => answer::Body::Spawned(entity::wire_view(view)),
         Answer::Target(hit) => answer::Body::Target(player::wire_target(hit)),
         Answer::CustomInventory(state) => {

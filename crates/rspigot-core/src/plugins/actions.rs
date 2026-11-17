@@ -139,6 +139,10 @@ impl<L: ClientLink> Server<L> {
             | PlayerOrder::TeleportTo { .. } => {
                 self.begin_teleport(player, order, Some(reply))?;
             }
+            PlayerOrder::Transfer { host, port } => {
+                self.transfer_for_plugin(player, &host, port)?;
+                return Ok(Outcome::Done);
+            }
             PlayerOrder::OpenInventory(inventory) => {
                 self.begin_plugin_open(connection, player, inventory, Some(reply))?;
             }
