@@ -44,7 +44,7 @@ message PlayerOrder {
   string player = 1;
   oneof order {
     string send_message = 10 [(rspigot.path) = "player.message.send"]; string send_action_bar = 11 [(rspigot.path) = "player.action_bar.send"]; Title send_title = 12 [(rspigot.path) = "player.title.send"]; Empty reset_title = 13 [(rspigot.path) = "player.title.reset"]; TabList set_tab_list = 14 [(rspigot.path) = "player.tab_list.set"];
-    Vec3 teleport = 15 [(rspigot.path) = "player.location.teleport"]; Facing teleport_facing = 16 [(rspigot.path) = "player.location.teleport_facing"]; GameMode set_game_mode = 17 [(rspigot.path) = "player.game_mode.set"]; string kick = 18 [(rspigot.path) = "player.connection.kick"];
+    Vec3 teleport = 15; Facing teleport_facing = 16; GameMode set_game_mode = 17 [(rspigot.path) = "player.game_mode.set"]; string kick = 18 [(rspigot.path) = "player.connection.kick"];
     float set_health = 19 [(rspigot.path) = "player.health.set"]; float set_absorption = 20 [(rspigot.path) = "player.health.set_absorption"]; double damage = 21 [(rspigot.path) = "player.health.damage"]; Empty kill = 22 [(rspigot.path) = "player.health.kill"];
     int32 set_food_level = 23 [(rspigot.path) = "player.food.set_level"]; float set_saturation = 24 [(rspigot.path) = "player.food.set_saturation"]; float set_exhaustion = 25 [(rspigot.path) = "player.food.set_exhaustion"];
     int32 give_exp = 26 [(rspigot.path) = "player.experience.give"]; int32 give_levels = 27 [(rspigot.path) = "player.experience.give_levels"]; int32 set_level = 28 [(rspigot.path) = "player.experience.set_level"]; float set_exp = 29 [(rspigot.path) = "player.experience.set_progress"];
@@ -52,7 +52,7 @@ message PlayerOrder {
     bool set_allow_flight = 35 [(rspigot.path) = "player.abilities.set_allow_flight"]; bool set_flying = 36 [(rspigot.path) = "player.abilities.set_flying"]; float set_fly_speed = 37 [(rspigot.path) = "player.abilities.set_fly_speed"]; float set_walk_speed = 38 [(rspigot.path) = "player.abilities.set_walk_speed"]; bool set_op = 39 [(rspigot.path) = "player.operator.set"];
     Empty respawn = 40 [(rspigot.path) = "player.health.respawn"]; string perform_command = 41 [(rspigot.path) = "player.command.perform"]; string chat = 42 [(rspigot.path) = "player.message.chat"]; Sound play_sound = 43 [(rspigot.path) = "player.sound.play"]; Particle spawn_particle = 44 [(rspigot.path) = "player.particle.spawn"];
     string hide_player = 45 [(rspigot.path) = "player.visibility.hide"]; string show_player = 46 [(rspigot.path) = "player.visibility.show"]; uint64 open_inventory = 47; Empty close_inventory = 48 [(rspigot.path) = "player.inventory.close"]; Empty update_inventory = 49 [(rspigot.path) = "player.inventory.update"];
-    BanTerms ban = 50 [(rspigot.path) = "player.connection.ban"]; Location teleport_to = 51 [(rspigot.path) = "player.location.teleport_to"]; uint32 set_scoreboard = 52 [(rspigot.path) = "player.scoreboard.set"];
+    BanTerms ban = 50 [(rspigot.path) = "player.connection.ban"]; Location teleport_to = 51; uint32 set_scoreboard = 52 [(rspigot.path) = "player.scoreboard.set"];
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
@@ -127,8 +127,13 @@ message FromPlugin {
     ScoreboardOrder scoreboard = 12; BossBarOrder boss_bar = 13;
   }
   optional uint64 origin = 11;
+  optional uint64 request = 14;
 }
 
+enum ActionErrorKind {
+  ACTION_ERROR_KIND_UNSPECIFIED = 0; INVALID_ARGUMENT = 1; TARGET_GONE = 2; INCOMPATIBLE_STATE = 3; CANCELLED = 4; NOT_FOUND = 5; LIMIT_REACHED = 6;
+}
+message ActionError { ActionErrorKind kind = 1; string reason = 2; }
 message Accepted {}
 message NotFound {}
 message Refused { string reason = 1; }
@@ -167,6 +172,7 @@ message Answer {
     Target target = 7; ServerState server = 8; ListedPlayers listed = 9; BanList bans = 10; WorldState world = 11; BlockState block = 12;
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
+    Empty done = 22; ActionError failed = 23;
   }
 }
 message Warning { string message = 1; }

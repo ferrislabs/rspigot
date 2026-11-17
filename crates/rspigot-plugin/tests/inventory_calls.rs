@@ -5,8 +5,8 @@ use std::time::Duration;
 
 use fake_host::*;
 use rspigot_plugin::{
-    ClickKind, CustomInventory, Error, InventoryClick, InventoryClose, InventoryOwner,
-    InventoryTypeSlotType, ItemStack, Material, Plugin, Uuid, listeners, run_with,
+    ActionErrorKind, ClickKind, CustomInventory, Error, InventoryClick, InventoryClose,
+    InventoryOwner, InventoryTypeSlotType, ItemStack, Material, Plugin, Uuid, listeners, run_with,
 };
 use rspigot_plugin_protocol::v1::{
     self, answer, custom_inventory_order, event, from_plugin, inventory_ref, patch, player_order,
@@ -166,27 +166,36 @@ fn wire(id: u32, event: v1::EventKind) -> v1::Handler {
 }
 
 #[tokio::test]
-async fn creating_an_inventory_does_not_wait_and_ids_are_unique() {
+async fn creating_and_opening_an_inventory_wait_for_the_result() {
     let mut called = calling(|player| {
         Box::pin(async move {
             let server = player.server();
-            let menu = server.create_inventory(1, "§6Menu");
-            let storage = server.create_storage(2, "Box");
+            let menu = server.create_inventory(1, "§6Menu").await.unwrap();
+            let storage = server.create_storage(2, "Box").await.unwrap();
             assert_ne!(menu.id(), storage.id());
             menu.set(4, Some(ItemStack::new(Material::Compass, 1)));
-            player.inventory().open(&menu);
+            player.inventory().open(&menu).await.unwrap();
+            let full = server.create_inventory(7, "Big").await;
+            let Err(Error::Action(error)) = full else {
+                panic!("expected a refused creation, got {full:?}");
+            };
+            assert_eq!(error.kind, ActionErrorKind::InvalidArgument);
         })
     })
     .await;
 
     let session = &mut called.session;
-    let menu = creation(session.hear().await);
+    let (request, heard) = session.acted().await;
+    let menu = creation(heard);
+    session.say(answer(request, answer::Body::Done(v1::Empty {})));
     assert_ne!(menu.id, 0);
     assert_eq!(
         (menu.rows, menu.title.as_str(), menu.locked),
         (1, "§6Menu", true)
     );
-    let storage = creation(session.hear().await);
+    let (request, heard) = session.acted().await;
+    let storage = creation(heard);
+    session.say(answer(request, answer::Body::Done(v1::Empty {})));
     assert_eq!(
         (storage.rows, storage.title.as_str(), storage.locked),
         (2, "Box", false)
@@ -202,10 +211,18 @@ async fn creating_an_inventory_does_not_wait_and_ids_are_unique() {
             })
         )
     );
-    assert_eq!(
-        session.hear().await,
-        ordered(player_order::Order::OpenInventory(menu.id))
-    );
+    session
+        .performed(ordered(player_order::Order::OpenInventory(menu.id)))
+        .await;
+    let (request, heard) = session.acted().await;
+    assert_eq!(creation(heard).rows, 7);
+    session.say(answer(
+        request,
+        answer::Body::Failed(v1::ActionError {
+            kind: v1::ActionErrorKind::InvalidArgument as i32,
+            reason: "rows 7 is outside 1..=6".to_owned(),
+        }),
+    ));
     called.finished().await;
 }
 
@@ -213,7 +230,7 @@ async fn creating_an_inventory_does_not_wait_and_ids_are_unique() {
 async fn inventory_orders_and_resolve_use_menu_slots() {
     let mut called = calling(|player| {
         Box::pin(async move {
-            let menu = player.server().create_inventory(6, "Shop");
+            let menu = player.server().create_inventory(6, "Shop").await.unwrap();
             menu.set(53, None);
             menu.clear();
             let state = menu.get_state().await.unwrap();
@@ -238,7 +255,9 @@ async fn inventory_orders_and_resolve_use_menu_slots() {
     .await;
 
     let session = &mut called.session;
-    let menu = creation(session.hear().await).id;
+    let (request, heard) = session.acted().await;
+    let menu = creation(heard).id;
+    session.say(answer(request, answer::Body::Done(v1::Empty {})));
     for order in [
         custom_inventory_order::Order::Set(v1::SetSlot {
             slot: 53,
@@ -457,7 +476,8 @@ async fn an_order_on_an_inventory_from_an_earlier_connection_is_dropped() {
             Box::pin(async move {
                 let old = OLD.lock().unwrap().clone().expect("a stored inventory");
                 old.set(0, None);
-                player.inventory().open(&old);
+                let opened = player.inventory().open(&old).await;
+                assert!(matches!(opened, Err(Error::Disconnected)), "{opened:?}");
                 let resolved = old.get_state().await;
                 assert!(matches!(resolved, Err(Error::NotFound)), "{resolved:?}");
                 player.message().send("marker");
@@ -465,15 +485,18 @@ async fn an_order_on_an_inventory_from_an_earlier_connection_is_dropped() {
         },
         |server| {
             Box::pin(async move {
-                let mut old = OLD.lock().unwrap();
-                if old.is_none() {
-                    *old = Some(server.create_inventory(1, "M"));
+                let stored = OLD.lock().unwrap().is_some();
+                if !stored {
+                    let made = server.create_inventory(1, "M").await.unwrap();
+                    *OLD.lock().unwrap() = Some(made);
                 }
             })
         },
     );
     let mut first = host.knock().await.accept();
-    let created = creation(first.hear().await);
+    let (request, heard) = first.acted().await;
+    let created = creation(heard);
+    first.say(answer(request, answer::Body::Done(v1::Empty {})));
     assert_eq!(
         (created.rows, created.title.as_str(), created.locked),
         (1, "M", true)

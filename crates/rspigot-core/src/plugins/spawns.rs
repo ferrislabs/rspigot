@@ -15,7 +15,9 @@ use crate::plugins::events::{
     EntitySpawn, ItemSpawn, LightningStrike, LightningStrikeCause, ProjectileLaunch, VehicleCreate,
 };
 use crate::plugins::steps::{Birth, Carried, Follow, SpawnStep, Spawned};
-use crate::plugins::{Answer, EntityView, EventKind, EventPayload, ToPlugin};
+use crate::plugins::{
+    ActionError, ActionErrorKind, Answer, EntityView, EventKind, EventPayload, ToPlugin,
+};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -200,6 +202,7 @@ impl<L: ClientLink> Server<L> {
         } = step;
         let id = entity.base.id;
         let mut placed = None;
+        let mut refusal_of = None;
         let orphaned = match birth.then {
             Spawned::Converted {
                 old,
@@ -215,8 +218,16 @@ impl<L: ClientLink> Server<L> {
         };
         if cancelled || orphaned {
             self.entities.mobs.initial_targets.remove(&id);
+            refusal_of = Some(ActionError::new(
+                ActionErrorKind::Cancelled,
+                "a plugin cancelled the spawn",
+            ));
         } else if loaded && !self.world.chunks.is_loaded(entity.base.chunk()) {
             self.entities.mobs.initial_targets.remove(&id);
+            refusal_of = Some(ActionError::new(
+                ActionErrorKind::IncompatibleState,
+                "the chunk unloaded while the entity spawned",
+            ));
             tracing::warn!(
                 "Dropping entity {} whose chunk unloaded while it spawned",
                 id.0
@@ -230,7 +241,31 @@ impl<L: ClientLink> Server<L> {
             self.entities.mobs.spawn_randoms.remove(&id);
             if placed.is_none() {
                 self.entities.mobs.initial_targets.remove(&id);
+                refusal_of = Some(ActionError::new(
+                    ActionErrorKind::IncompatibleState,
+                    refusal(SUMMON_DUPLICATE_UUID),
+                ));
             }
+        }
+        if let Spawned::Answered {
+            connection,
+            request,
+        } = birth.then
+        {
+            let answer = placed.and_then(|(id, _)| self.entity_view(id)).map_or_else(
+                || {
+                    Answer::Failed(refusal_of.unwrap_or_else(|| {
+                        ActionError::new(
+                            ActionErrorKind::IncompatibleState,
+                            "the entity could not be placed",
+                        )
+                    }))
+                },
+                Answer::Spawned,
+            );
+            self.plugins
+                .send(connection, ToPlugin::Answer { request, answer });
+            return;
         }
         self.after_spawn(birth.then, placed);
     }
@@ -325,17 +360,7 @@ impl<L: ClientLink> Server<L> {
             Spawned::Hive(release) => {
                 self.finish_hive_release(*release, placed.map(|(id, _)| id));
             }
-            Spawned::Answered {
-                connection,
-                request,
-            } => {
-                let answer = placed.and_then(|(id, _)| self.entity_view(id)).map_or_else(
-                    || Answer::Refused(refusal(SUMMON_DUPLICATE_UUID)),
-                    Answer::Spawned,
-                );
-                self.plugins
-                    .send(connection, ToPlugin::Answer { request, answer });
-            }
+            Spawned::Answered { .. } => {}
         }
     }
 

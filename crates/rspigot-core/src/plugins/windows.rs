@@ -5,7 +5,7 @@ use crate::containers::OpenMenu;
 use crate::plugins::decisions::{Continuation, Lane};
 use crate::plugins::events::{InventoryClose, InventoryOpen};
 use crate::plugins::views::Window;
-use crate::plugins::{EventKind, EventPayload};
+use crate::plugins::{ActionError, ActionErrorKind, EventKind, EventPayload, Reply};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -21,6 +21,7 @@ pub(crate) struct PluginOpenStep {
     pub(crate) player: PlayerId,
     pub(crate) connection: u64,
     pub(crate) inventory: u64,
+    pub(crate) reply: Option<Reply>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -80,11 +81,18 @@ impl<L: ClientLink> Server<L> {
         self.show_block_menu(step.player, step.pos, step.open);
     }
 
-    pub(crate) fn ask_plugin_open(&mut self, id: PlayerId, connection: u64, inventory: u64) {
+    pub(crate) fn ask_plugin_open(
+        &mut self,
+        id: PlayerId,
+        connection: u64,
+        inventory: u64,
+        reply: Option<Reply>,
+    ) {
         let step = PluginOpenStep {
             player: id,
             connection,
             inventory,
+            reply,
         };
         self.fire(
             Lane::Player(id),
@@ -107,13 +115,52 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn finish_plugin_open(&mut self, step: PluginOpenStep, cancelled: bool) {
-        let free = self.players.get(&step.player).is_some_and(|player| {
-            !player.vitals.is_dead() && player.open_menu.is_none() && player.plugin_menu.is_none()
-        });
-        if cancelled || !free {
-            return;
+        let result = self.plugin_open_result(&step, cancelled);
+        if result.is_ok() {
+            self.show_plugin_menu(step.connection, step.player, step.inventory);
         }
-        self.show_plugin_menu(step.connection, step.player, step.inventory);
+        if let Some(reply) = step.reply {
+            self.answer_action(reply, result);
+        }
+    }
+
+    fn plugin_open_result(
+        &self,
+        step: &PluginOpenStep,
+        cancelled: bool,
+    ) -> Result<(), ActionError> {
+        let player = self
+            .players
+            .get(&step.player)
+            .ok_or_else(ActionError::player_gone)?;
+        if cancelled {
+            return Err(ActionError::new(
+                ActionErrorKind::Cancelled,
+                "a plugin cancelled the opening",
+            ));
+        }
+        if player.vitals.is_dead() {
+            return Err(ActionError::new(
+                ActionErrorKind::IncompatibleState,
+                "the player is dead",
+            ));
+        }
+        if player.open_menu.is_some() || player.plugin_menu.is_some() {
+            return Err(ActionError::new(
+                ActionErrorKind::IncompatibleState,
+                "the player already has an inventory open",
+            ));
+        }
+        if !self
+            .plugin_inventories
+            .contains(step.connection, step.inventory)
+        {
+            return Err(ActionError::new(
+                ActionErrorKind::NotFound,
+                format!("inventory {} no longer exists", step.inventory),
+            ));
+        }
+        Ok(())
     }
 
     pub(crate) fn notify_close(&mut self, id: PlayerId, window: Window, by_player: bool) {

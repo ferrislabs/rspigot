@@ -71,6 +71,7 @@ mod tests {
                     verdicts,
                 })),
                 origin: None,
+                request: None,
             },
             warnings,
         )

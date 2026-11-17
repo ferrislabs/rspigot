@@ -72,14 +72,16 @@ impl InventoryState {
 }
 
 impl PlayerInventoryHandle {
-    pub fn open(&self, inventory: &CustomInventory) {
-        self.link.order_from(
-            inventory.generation(),
-            from_plugin::Body::Player(v1::PlayerOrder {
-                player: self.target.clone(),
-                order: Some(player_order::Order::OpenInventory(inventory.id())),
-            }),
-        );
+    pub async fn open(&self, inventory: &CustomInventory) -> Result<(), Error> {
+        self.link
+            .act_from(
+                inventory.generation(),
+                from_plugin::Body::Player(v1::PlayerOrder {
+                    player: self.target.clone(),
+                    order: Some(player_order::Order::OpenInventory(inventory.id())),
+                }),
+            )
+            .await
     }
 
     pub async fn get_items(&self) -> Result<InventoryState, Error> {

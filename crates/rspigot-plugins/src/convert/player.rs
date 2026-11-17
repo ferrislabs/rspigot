@@ -497,6 +497,7 @@ mod tests {
                     question: Some(asked),
                 })),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         )

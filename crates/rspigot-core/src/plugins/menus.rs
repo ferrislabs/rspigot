@@ -13,8 +13,8 @@ use crate::plugins::items::{spec_of, stack_of};
 use crate::plugins::resolve::text;
 use crate::plugins::views::Window;
 use crate::plugins::{
-    CustomInventoryOrder, CustomInventoryState, InventoryOwner, InventoryRef, InventoryView,
-    PlayerSnapshot,
+    ActionError, ActionErrorKind, CustomInventoryOrder, CustomInventoryState, InventoryOwner,
+    InventoryRef, InventoryView, PlayerSnapshot, Reply,
 };
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -39,6 +39,10 @@ pub(crate) struct PluginInventories {
 }
 
 impl PluginInventories {
+    pub(super) fn contains(&self, connection: u64, inventory: u64) -> bool {
+        self.held.contains_key(&(connection, inventory))
+    }
+
     fn held_by(&self, connection: u64) -> usize {
         self.held
             .range((connection, 0)..=(connection, u64::MAX))
@@ -69,18 +73,28 @@ impl<L: ClientLink> Server<L> {
         rows: i32,
         title: &str,
         locked: bool,
-    ) -> Result<(), String> {
+    ) -> Result<(), ActionError> {
         let rows = u8::try_from(rows)
             .ok()
             .filter(|rows| ROWS.contains(rows))
-            .ok_or_else(|| format!("rows {rows} is outside {}..={}", ROWS.start(), ROWS.end()))?;
+            .ok_or_else(|| {
+                ActionError::from(format!(
+                    "rows {rows} is outside {}..={}",
+                    ROWS.start(),
+                    ROWS.end()
+                ))
+            })?;
         let inventories = &mut self.plugin_inventories;
         if inventories.held.contains_key(&(connection, id)) {
-            return Err(format!("inventory {id} already exists"));
+            return Err(ActionError::new(
+                ActionErrorKind::IncompatibleState,
+                format!("inventory {id} already exists"),
+            ));
         }
         if inventories.held_by(connection) >= MAX_PLUGIN_INVENTORIES {
-            return Err(format!(
-                "the plugin already holds {MAX_PLUGIN_INVENTORIES} inventories"
+            return Err(ActionError::new(
+                ActionErrorKind::LimitReached,
+                format!("the plugin already holds {MAX_PLUGIN_INVENTORIES} inventories"),
             ));
         }
         inventories.held.insert(
@@ -95,13 +109,25 @@ impl<L: ClientLink> Server<L> {
         Ok(())
     }
 
-    pub(super) fn open_plugin_menu(&mut self, connection: u64, id: PlayerId, inventory: u64) {
-        let key = (connection, inventory);
-        if !self.plugin_inventories.held.contains_key(&key) {
-            return;
+    pub(super) fn begin_plugin_open(
+        &mut self,
+        connection: u64,
+        id: PlayerId,
+        inventory: u64,
+        reply: Option<Reply>,
+    ) -> Result<(), ActionError> {
+        if !self.players.contains_key(&id) {
+            return Err(ActionError::player_gone());
+        }
+        if !self.plugin_inventories.contains(connection, inventory) {
+            return Err(ActionError::new(
+                ActionErrorKind::NotFound,
+                format!("inventory {inventory} does not exist"),
+            ));
         }
         self.close_open_menu(id, true);
-        self.ask_plugin_open(id, connection, inventory);
+        self.ask_plugin_open(id, connection, inventory, reply);
+        Ok(())
     }
 
     pub(crate) fn show_plugin_menu(&mut self, connection: u64, id: PlayerId, inventory: u64) {
@@ -322,9 +348,6 @@ impl<L: ClientLink> Server<L> {
         order: CustomInventoryOrder,
     ) {
         let key = (connection, inventory);
-        if !self.plugin_inventories.held.contains_key(&key) {
-            return;
-        }
         let name = order.name();
         if let Err(reason) = self.custom_inventory_order(key, order) {
             self.warn_plugin(connection, name, reason);
@@ -336,11 +359,11 @@ impl<L: ClientLink> Server<L> {
         key: Key,
         order: CustomInventoryOrder,
     ) -> Result<(), String> {
+        let Some(held) = self.plugin_inventories.held.get_mut(&key) else {
+            return Err(format!("there is no inventory {}", key.1));
+        };
         match order {
             CustomInventoryOrder::Set { slot, item } => {
-                let Some(held) = self.plugin_inventories.held.get_mut(&key) else {
-                    return Ok(());
-                };
                 let size = held.items.len();
                 let index = usize::try_from(slot)
                     .ok()
@@ -353,9 +376,7 @@ impl<L: ClientLink> Server<L> {
                 self.sync_plugin_viewers(key);
             }
             CustomInventoryOrder::Clear => {
-                if let Some(held) = self.plugin_inventories.held.get_mut(&key) {
-                    held.items.fill(None);
-                }
+                held.items.fill(None);
                 self.sync_plugin_viewers(key);
             }
             CustomInventoryOrder::Close => self.close_plugin_viewers(key),

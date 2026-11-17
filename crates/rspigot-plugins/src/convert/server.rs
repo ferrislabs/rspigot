@@ -126,6 +126,7 @@ mod tests {
             v1::FromPlugin {
                 body: Some(from_plugin::Body::Server(v1::ServerOrder { order })),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         )
@@ -143,6 +144,7 @@ mod tests {
                     question: Some(asked),
                 })),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         );

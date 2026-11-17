@@ -8,7 +8,7 @@ use std::time::Duration;
 use rspigot_plugin_protocol::v1::{self, answer, from_plugin, question};
 use tokio::sync::{mpsc, oneshot};
 
-use crate::Error;
+use crate::{ActionError, Error};
 
 pub(crate) const ANSWER_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -100,7 +100,50 @@ impl Link {
         expected: &str,
         pick: impl FnOnce(answer::Body) -> Option<T>,
     ) -> Result<T, Error> {
-        let (request, answered) = self.post(question)?;
+        let posted = self.post(|request| {
+            message(from_plugin::Body::Question(v1::Question {
+                request,
+                question: Some(question),
+            }))
+        });
+        match self.exchange(posted).await? {
+            answer::Body::NotFound(_) => Err(Error::NotFound),
+            answer::Body::Refused(refused) => Err(Error::Rejected(refused.reason)),
+            body => pick(body)
+                .ok_or_else(|| Error::Malformed(format!("an answer that is not {expected}"))),
+        }
+    }
+
+    pub(crate) async fn act(&self, body: from_plugin::Body) -> Result<(), Error> {
+        let posted = self.post(|request| v1::FromPlugin {
+            body: Some(body),
+            origin: HANDLING.try_with(|event| *event).ok(),
+            request: Some(request),
+        });
+        match self.exchange(posted).await? {
+            answer::Body::Done(_) => Ok(()),
+            _ => Err(Error::Malformed(
+                "an answer that is not a result".to_owned(),
+            )),
+        }
+    }
+
+    pub(crate) async fn act_from(
+        &self,
+        generation: u64,
+        body: from_plugin::Body,
+    ) -> Result<(), Error> {
+        if self.generation() != generation {
+            return Err(Error::Disconnected);
+        }
+        self.act(body).await
+    }
+
+    async fn exchange(
+        &self,
+        posted: Result<(u64, oneshot::Receiver<Option<answer::Body>>), Error>,
+    ) -> Result<answer::Body, Error> {
+        let (request, answered) = posted?;
         let body = match tokio::time::timeout(ANSWER_TIMEOUT, answered).await {
             Ok(Ok(Some(body))) => body,
             Ok(Ok(None)) => return Err(Error::Malformed("an empty answer".to_owned())),
@@ -111,26 +154,21 @@ impl Link {
             }
         };
         match body {
-            answer::Body::NotFound(_) => Err(Error::NotFound),
-            answer::Body::Refused(refused) => Err(Error::Rejected(refused.reason)),
-            body => pick(body)
-                .ok_or_else(|| Error::Malformed(format!("an answer that is not {expected}"))),
+            answer::Body::Failed(failed) => Err(Error::Action(ActionError::from_wire(failed))),
+            body => Ok(body),
         }
     }
 
     fn post(
         &self,
-        question: question::Question,
+        build: impl FnOnce(u64) -> v1::FromPlugin,
     ) -> Result<(u64, oneshot::Receiver<Option<answer::Body>>), Error> {
         let mut current = self.lock();
         let connection = current.as_mut().ok_or(Error::Disconnected)?;
         let request = self.0.last_request.fetch_add(1, Ordering::Relaxed) + 1;
         connection
             .outbound
-            .send(message(from_plugin::Body::Question(v1::Question {
-                request,
-                question: Some(question),
-            })))
+            .send(build(request))
             .map_err(|_| Error::Disconnected)?;
         let (waiting, answered) = oneshot::channel();
         connection.waiting.insert(request, waiting);
@@ -175,6 +213,7 @@ fn send(connection: Option<&Connection>, body: from_plugin::Body) {
         let _ = connection.outbound.send(v1::FromPlugin {
             body: Some(body),
             origin,
+            request: None,
         });
     }
 }
@@ -183,6 +222,7 @@ pub(crate) const fn message(body: from_plugin::Body) -> v1::FromPlugin {
     v1::FromPlugin {
         body: Some(body),
         origin: None,
+        request: None,
     }
 }
 

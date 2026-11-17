@@ -730,7 +730,7 @@ fn limits_and_unknown_ids() {
             .iter()
             .any(|event| matches!(event, ClientEvent::OpenScreen { .. }))
     );
-    assert_eq!(s.warnings().len(), 6);
+    assert_eq!(s.warnings().len(), 9);
     assert_eq!(s.ask(Question::CustomInventory(99)), Answer::NotFound);
 
     let table = BlockPos::new(2, 64, 0);
@@ -765,7 +765,7 @@ fn limits_and_unknown_ids() {
     for id in 2..=MAX_PLUGIN_INVENTORIES as u64 {
         s.act(create(id, 1, "Many", true));
     }
-    assert_eq!(s.warnings().len(), 6);
+    assert_eq!(s.warnings().len(), 9);
     s.act(create(
         MAX_PLUGIN_INVENTORIES as u64 + 1,
         1,
@@ -773,7 +773,7 @@ fn limits_and_unknown_ids() {
         true,
     ));
     assert_eq!(
-        s.warnings()[6..],
+        s.warnings()[9..],
         [refused("the plugin already holds 1024 inventories")]
     );
     assert_eq!(

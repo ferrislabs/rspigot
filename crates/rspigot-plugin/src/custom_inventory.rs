@@ -55,9 +55,14 @@ impl PartialEq for CustomInventory {
 impl Eq for CustomInventory {}
 
 impl CustomInventory {
-    pub(crate) fn create(link: &Link, rows: u8, title: String, locked: bool) -> Self {
+    pub(crate) async fn create(
+        link: &Link,
+        rows: u8,
+        title: String,
+        locked: bool,
+    ) -> Result<Self, Error> {
         let inventory = Self::new(NEXT_INVENTORY.fetch_add(1, Ordering::Relaxed), link);
-        link.order_from(
+        link.act_from(
             inventory.generation,
             from_plugin::Body::Server(v1::ServerOrder {
                 order: Some(server_order::Order::CreateInventory(v1::CreateInventory {
@@ -67,8 +72,9 @@ impl CustomInventory {
                     locked,
                 })),
             }),
-        );
-        inventory
+        )
+        .await?;
+        Ok(inventory)
     }
 
     pub(crate) fn new(id: u64, link: &Link) -> Self {

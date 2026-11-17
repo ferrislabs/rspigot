@@ -55,6 +55,7 @@ mod tests {
                     order: Some(order),
                 })),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         )?;
@@ -171,6 +172,7 @@ mod tests {
                     order: None,
                 })),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         );
@@ -215,6 +217,7 @@ mod tests {
                     question: Some(question::Question::Inventory(STEVE.into())),
                 })),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         );

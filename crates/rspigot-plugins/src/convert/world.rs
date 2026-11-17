@@ -147,6 +147,7 @@ mod tests {
             v1::FromPlugin {
                 body: Some(from_plugin::Body::World(v1::WorldOrder { order })),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         )?;
@@ -309,6 +310,7 @@ mod tests {
                     question: Some(question::Question::World(v1::Empty {})),
                 })),
                 origin: None,
+                request: None,
             },
             &mut Vec::new(),
         );

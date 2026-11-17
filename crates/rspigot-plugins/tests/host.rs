@@ -189,6 +189,7 @@ impl Plugin {
         says.send(v1::FromPlugin {
             body: Some(first),
             origin: None,
+            request: None,
         })
         .unwrap();
         let mut client = PluginHostClient::new(channel(address).await);
@@ -214,6 +215,7 @@ impl Plugin {
             .send(v1::FromPlugin {
                 body: Some(body),
                 origin: None,
+                request: None,
             })
             .unwrap();
     }

@@ -5,9 +5,9 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use fake_host::*;
 use rspigot_plugin::{
-    ArmorSlot, BanTerms, BlockType, Color, Effect, EffectType, Enchantment, Error, Facing,
-    GameMode, InventorySlot, ItemRemoval, ItemStack, Material, Particle, ParticleBurst, Position,
-    Rotation, SlotItem, Sound, SoundCue, TabList, Title, Uuid, Vector,
+    ArmorSlot, BanTerms, BlockType, Color, Effect, EffectType, Enchantment, Error, GameMode,
+    InventorySlot, ItemRemoval, ItemStack, Material, Particle, ParticleBurst, Position, SlotItem,
+    Sound, SoundCue, TabList, Title, Uuid, Vector,
 };
 use rspigot_plugin_protocol::v1::{
     self, answer, from_plugin, inventory_order, particle, player_order, question,
@@ -112,7 +112,6 @@ async fn player_orders_go_on_the_wire_in_order() {
             player.message().send("§6Hi");
             player.title().send(Title::new("A").subtitle("B"));
             player.health().set(5.0);
-            player.location().teleport(pos);
             player.effects().add(Effect::new(EffectType::Speed, 200, 1));
             player.sound().play(SoundCue::new(Sound::EntityCowHurt));
             player.particle().spawn(
@@ -144,7 +143,6 @@ async fn player_orders_go_on_the_wire_in_order() {
             fade_out: 20,
         }),
         player_order::Order::SetHealth(5.0),
-        player_order::Order::Teleport(vec3(1.0, 64.0, 2.0)),
         player_order::Order::AddEffect(wire_effect("minecraft:speed", 200, 1)),
         player_order::Order::PlaySound(v1::Sound {
             key: "minecraft:entity.cow.hurt".to_owned(),
@@ -194,13 +192,6 @@ async fn every_player_order_has_its_wire_body() {
             player.title().send(Title::new("T").times(5, 40, 15));
             player.title().reset();
             player.tab_list().set(TabList::new("Head", "Foot"));
-            player.location().teleport_facing(Facing::new(
-                pos,
-                Rotation {
-                    yaw: 45.0,
-                    pitch: 10.0,
-                },
-            ));
             player.game_mode().set(GameMode::Spectator);
             player.connection().kick("§cBye");
             player.health().set_absorption(4.0);
@@ -293,13 +284,6 @@ async fn every_player_order_has_its_wire_body() {
         player_order::Order::SetTabList(v1::TabList {
             header: "Head".to_owned(),
             footer: "Foot".to_owned(),
-        }),
-        player_order::Order::TeleportFacing(v1::Facing {
-            position: Some(vec3(-4.5, 70.0, 8.25)),
-            rotation: Some(v1::Rotation {
-                yaw: 45.0,
-                pitch: 10.0,
-            }),
         }),
         player_order::Order::SetGameMode(v1::GameMode::Spectator as i32),
         player_order::Order::Kick("§cBye".to_owned()),

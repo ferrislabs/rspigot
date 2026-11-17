@@ -1,7 +1,6 @@
 use std::ops::RangeInclusive;
 
 use rand::Rng;
-use rspigot_domain::Identifier;
 use rspigot_domain::attribute::MOVEMENT_SPEED;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::food::{MAX_FOOD, MAX_SATURATION};
@@ -12,7 +11,7 @@ use crate::commands::{self, CommandContext, CommandSender};
 use crate::events::{ClientEvent, SoundSource};
 use crate::health::{self, DamageSource};
 use crate::player::Player;
-use crate::plugins::events::{EntityPotionEffectCause, PlayerRespawnReason, PlayerTeleportCause};
+use crate::plugins::events::{EntityPotionEffectCause, PlayerRespawnReason};
 use crate::plugins::resolve::{self, finite_not_negative, not_negative, within};
 use crate::plugins::{EventKind, PlayerOrder, TitleSpec};
 use crate::ports::ClientLink;
@@ -29,10 +28,11 @@ impl<L: ClientLink> Server<L> {
         player: PlayerId,
         order: PlayerOrder,
     ) {
+        let name = order.name();
         if !self.players.contains_key(&player) {
+            self.warn_plugin(connection, name, "the player is not online");
             return;
         }
-        let name = order.name();
         if let Err(reason) = self.player_order(connection, player, order) {
             self.warn_plugin(connection, name, reason);
         }
@@ -69,45 +69,11 @@ impl<L: ClientLink> Server<L> {
                     footer: resolve::text(&footer),
                 },
             ),
-            PlayerOrder::Teleport(position) => {
-                let position = resolve::position_of(position)?;
-                self.ask_teleport(id, position, None, PlayerTeleportCause::Plugin, None);
-            }
-            PlayerOrder::TeleportFacing(position, rotation) => {
-                let position = resolve::position_of(position)?;
-                let rotation = resolve::rotation_of(rotation)?;
-                self.ask_teleport(
-                    id,
-                    position,
-                    Some(rotation),
-                    PlayerTeleportCause::Plugin,
-                    None,
-                );
-            }
-            PlayerOrder::TeleportTo {
-                world,
-                position,
-                rotation,
-            } => {
-                let position = resolve::position_of(position)?;
-                let dimension = if world.is_empty() {
-                    None
-                } else {
-                    let key = Identifier::parse(&world)
-                        .map_err(|_| format!("`{world}` is not a world key"))?;
-                    if !self.ensure_dimension(&key) {
-                        return Err(format!("unknown world `{world}`"));
-                    }
-                    Some(key)
-                };
-                self.ask_teleport_in(
-                    id,
-                    dimension,
-                    position,
-                    rotation,
-                    PlayerTeleportCause::Plugin,
-                    None,
-                );
+            PlayerOrder::Teleport(_)
+            | PlayerOrder::TeleportFacing(..)
+            | PlayerOrder::TeleportTo { .. } => {
+                self.begin_teleport(id, order, None)
+                    .map_err(|error| error.reason)?;
             }
             PlayerOrder::SetGameMode(mode) => self.change_game_mode(id, mode, Vec::new()),
             PlayerOrder::Kick(reason) => CommandContext::kick(self, id, resolve::text(&reason)),
@@ -255,10 +221,11 @@ impl<L: ClientLink> Server<L> {
                 let particle = resolve::particle_of(&spec)?;
                 self.push(Audience::One(id), ClientEvent::Particle(particle));
             }
-            PlayerOrder::HidePlayer(target) => self.hide_player(connection, id, target),
-            PlayerOrder::ShowPlayer(target) => self.show_player(connection, id, target),
+            PlayerOrder::HidePlayer(target) => self.hide_player(connection, id, target)?,
+            PlayerOrder::ShowPlayer(target) => self.show_player(connection, id, target)?,
             PlayerOrder::OpenInventory(inventory) => {
-                self.open_plugin_menu(connection, id, inventory);
+                self.begin_plugin_open(connection, id, inventory, None)
+                    .map_err(|error| error.reason)?;
             }
             PlayerOrder::SetScoreboard(board) => self.set_player_board(id, board)?,
             PlayerOrder::CloseInventory => {
@@ -301,18 +268,26 @@ impl<L: ClientLink> Server<L> {
         Ok(())
     }
 
-    fn hide_player(&mut self, connection: u64, viewer: PlayerId, target: PlayerId) {
+    fn hide_player(
+        &mut self,
+        connection: u64,
+        viewer: PlayerId,
+        target: PlayerId,
+    ) -> Result<(), String> {
         if viewer == target {
-            return;
+            return Err("a player cannot be hidden from themselves".to_owned());
         }
-        let Some(entity) = self.players.get(&target).map(|player| player.entity_id) else {
-            return;
-        };
-        let Some(plugin) = self.plugins.name(connection) else {
-            return;
-        };
+        let entity = self
+            .players
+            .get(&target)
+            .map(|player| player.entity_id)
+            .ok_or("the player to hide is not online")?;
+        let plugin = self
+            .plugins
+            .name(connection)
+            .ok_or("the plugin is no longer connected")?;
         if !self.visibility.hide(plugin, viewer, target) {
-            return;
+            return Ok(());
         }
         if let Some(player) = self.players.get_mut(&viewer) {
             if player.tracked.remove(&entity) {
@@ -323,14 +298,21 @@ impl<L: ClientLink> Server<L> {
                 .send(ClientEvent::PlayerInfoRemove(vec![target]));
         }
         self.notify_visibility(EventKind::PlayerHideEntity, viewer, target);
+        Ok(())
     }
 
-    fn show_player(&mut self, connection: u64, viewer: PlayerId, target: PlayerId) {
-        let Some(plugin) = self.plugins.name(connection) else {
-            return;
-        };
+    fn show_player(
+        &mut self,
+        connection: u64,
+        viewer: PlayerId,
+        target: PlayerId,
+    ) -> Result<(), String> {
+        let plugin = self
+            .plugins
+            .name(connection)
+            .ok_or("the plugin is no longer connected")?;
         if !self.visibility.show(plugin, viewer, target) {
-            return;
+            return Ok(());
         }
         if let (Some(watcher), Some(shown)) = (self.players.get(&viewer), self.players.get(&target))
         {
@@ -339,6 +321,7 @@ impl<L: ClientLink> Server<L> {
                 .send(ClientEvent::PlayerInfo(vec![Self::list_entry(shown)]));
         }
         self.notify_visibility(EventKind::PlayerShowEntity, viewer, target);
+        Ok(())
     }
 
     pub(super) fn send_abilities(&mut self, id: PlayerId) {

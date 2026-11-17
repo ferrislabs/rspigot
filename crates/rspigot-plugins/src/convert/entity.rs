@@ -95,6 +95,7 @@ mod tests {
         v1::FromPlugin {
             body: Some(body),
             origin: None,
+            request: None,
         }
     }
 
