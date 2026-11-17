@@ -190,6 +190,7 @@ impl Plugin {
             body: Some(first),
             origin: None,
             request: None,
+            in_world: None,
         })
         .unwrap();
         let mut client = PluginHostClient::new(channel(address).await);
@@ -216,6 +217,7 @@ impl Plugin {
                 body: Some(body),
                 origin: None,
                 request: None,
+                in_world: None,
             })
             .unwrap();
     }

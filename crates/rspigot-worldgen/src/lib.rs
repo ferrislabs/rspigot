@@ -18,6 +18,7 @@ mod terrain;
 mod void;
 
 use rspigot_core::ports::ChunkGenerator;
+use rspigot_core::worlds::{GeneratorSpec, WorldSpec};
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{ChunkPos, Vec3};
@@ -57,6 +58,51 @@ impl WorldGenerator {
             "amplified" => Self::Noise(NoiseGenerator::with_options(seed, NoiseOptions::AMPLIFIED)),
             _ => Self::Noise(NoiseGenerator::new(seed)),
         }
+    }
+}
+
+impl WorldGenerator {
+    pub fn for_world(spec: &WorldSpec) -> Result<Self, String> {
+        let seed = spec.seed;
+        match &spec.generator {
+            GeneratorSpec::Void => Ok(Self::Void(VoidGenerator::new(seed).in_every_dimension())),
+            GeneratorSpec::Flat(layers) => {
+                let settings = FlatSettings {
+                    biome: "minecraft:plains".to_owned(),
+                    layers: layers
+                        .iter()
+                        .map(|layer| FlatLayer {
+                            block: layer.block.clone(),
+                            height: layer.height,
+                        })
+                        .collect(),
+                };
+                FlatGenerator::new(&settings, seed)
+                    .map(|flat| Self::Flat(flat.in_every_dimension()))
+                    .map_err(|error| error.to_string())
+            }
+            GeneratorSpec::Vanilla => Ok(Self::noise(seed, NoiseOptions::NORMAL, spec.structures)),
+            GeneratorSpec::Datapack(id) => {
+                let options = match id.as_str() {
+                    "minecraft:overworld" => NoiseOptions::NORMAL,
+                    "minecraft:large_biomes" => NoiseOptions::LARGE_BIOMES,
+                    "minecraft:amplified" => NoiseOptions::AMPLIFIED,
+                    other => {
+                        return Err(format!("no noise settings and biome source named {other}"));
+                    }
+                };
+                Ok(Self::noise(seed, options, spec.structures))
+            }
+        }
+    }
+
+    fn noise(seed: i64, options: NoiseOptions, structures: bool) -> Self {
+        let generator = NoiseGenerator::with_options(seed, options);
+        Self::Noise(if structures {
+            generator
+        } else {
+            generator.without_structures()
+        })
     }
 }
 

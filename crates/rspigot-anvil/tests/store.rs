@@ -450,3 +450,25 @@ fn chunks_with_the_wrong_height_for_their_dimension_are_refused() {
     store.save(&custom, &column).unwrap();
     assert_eq!(store.load(&custom, column.pos()).unwrap().unwrap(), column);
 }
+
+#[test]
+fn erasing_a_dimension_removes_its_files_and_forgets_its_open_regions() {
+    let dir = TempDir::new("erase");
+    let store = AnvilStore::open(&dir.world(), DimensionLayout::Spigot).unwrap();
+    let arena = rspigot_domain::Identifier::parse("rspigot:arena").unwrap();
+    let pos = ChunkPos::new(2, 2);
+    store.save(&arena, &simple_column(pos, 1)).unwrap();
+    store.save(&overworld(), &simple_column(pos, 1)).unwrap();
+    store.flush().unwrap();
+    let folder = DimensionLayout::Spigot
+        .dimension_dir(&dir.world(), &arena)
+        .unwrap();
+    assert!(folder.exists());
+    store.erase_dimension(&arena).unwrap();
+    assert!(!folder.exists());
+    assert!(!store.exists(&arena, pos).unwrap());
+    assert!(store.exists(&overworld(), pos).unwrap());
+    store.save(&arena, &simple_column(pos, 2)).unwrap();
+    store.flush().unwrap();
+    assert!(store.exists(&arena, pos).unwrap());
+}

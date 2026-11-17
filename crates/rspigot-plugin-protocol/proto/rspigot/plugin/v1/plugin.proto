@@ -23,6 +23,12 @@ message BanTerms { optional string reason = 1; optional int64 expires_ms = 2; }
 message Ban { string target = 1; optional string reason = 2; optional int64 expires_ms = 3; }
 message SetSlot { int32 slot = 1; Item item = 2; }
 message RemoveItems { string key = 1; int32 count = 2; }
+enum WorldDimension { WORLD_DIMENSION_UNSPECIFIED = 0; OVERWORLD = 1; NETHER = 2; END = 3; }
+message WorldLayer { string block = 1; uint32 height = 2; }
+message FlatLayers { repeated WorldLayer layers = 1; }
+message WorldGenerator { oneof kind { Empty vanilla = 1; FlatLayers flat = 2; Empty void = 3; string datapack = 4; } }
+message CreateWorld { string name = 1; WorldDimension dimension = 2; int64 seed = 3; WorldGenerator generator = 4; bool structures = 5; }
+message DeleteWorld { bool files = 1; }
 message CreateInventory { uint64 id = 1; int32 rows = 2; string title = 3; bool locked = 4; }
 message SetGameRule { GameRule rule = 1; bool value = 2; }
 message Explode { Vec3 position = 1; float power = 2; bool breaks_blocks = 3; }
@@ -65,13 +71,13 @@ message ServerOrder {
   oneof order {
     string broadcast = 10 [(rspigot.path) = "server.message.broadcast"]; string dispatch_command = 11 [(rspigot.path) = "server.command.dispatch"]; Empty shutdown = 12 [(rspigot.path) = "server.lifecycle.shutdown"]; Empty save = 13 [(rspigot.path) = "server.lifecycle.save"]; bool set_whitelist_enabled = 14 [(rspigot.path) = "server.whitelist.set_enabled"];
     string whitelist_add = 15 [(rspigot.path) = "server.whitelist.add"]; string whitelist_remove = 16 [(rspigot.path) = "server.whitelist.remove"]; string operator_add = 17 [(rspigot.path) = "server.operators.add"]; string operator_remove = 18 [(rspigot.path) = "server.operators.remove"];
-    Ban ban_add = 19 [(rspigot.path) = "server.bans.add"]; string ban_remove = 20 [(rspigot.path) = "server.bans.remove"]; Ban ip_ban_add = 21 [(rspigot.path) = "server.ip_bans.add"]; string ip_ban_remove = 22 [(rspigot.path) = "server.ip_bans.remove"]; CreateInventory create_inventory = 23;
+    Ban ban_add = 19 [(rspigot.path) = "server.bans.add"]; string ban_remove = 20 [(rspigot.path) = "server.bans.remove"]; Ban ip_ban_add = 21 [(rspigot.path) = "server.ip_bans.add"]; string ip_ban_remove = 22 [(rspigot.path) = "server.ip_bans.remove"]; CreateInventory create_inventory = 23; CreateWorld create_world = 24;
   }
 }
 message WorldOrder {
   oneof order {
     int64 set_time = 10 [(rspigot.path) = "world.time.set"]; Weather set_weather = 11 [(rspigot.path) = "world.weather.set"]; Difficulty set_difficulty = 12 [(rspigot.path) = "world.difficulty.set"]; BlockPos set_spawn = 13 [(rspigot.path) = "world.spawn_point.set"]; bool set_pvp = 14 [(rspigot.path) = "world.pvp.set"];
-    SetGameRule set_game_rule = 15 [(rspigot.path) = "world.game_rule.set"]; Empty save = 16 [(rspigot.path) = "world.storage.save"]; Sound play_sound = 17 [(rspigot.path) = "world.sound.play"]; Particle spawn_particle = 18 [(rspigot.path) = "world.particle.spawn"]; Explode explode = 19 [(rspigot.path) = "world.explosion.create"];
+    SetGameRule set_game_rule = 15 [(rspigot.path) = "world.game_rule.set"]; Empty save = 16 [(rspigot.path) = "world.storage.save"]; Sound play_sound = 17 [(rspigot.path) = "world.sound.play"]; Particle spawn_particle = 18 [(rspigot.path) = "world.particle.spawn"]; Explode explode = 19 [(rspigot.path) = "world.explosion.create"]; DeleteWorld delete_world = 20;
   }
 }
 message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; } }
@@ -133,6 +139,7 @@ message FromPlugin {
   }
   optional uint64 origin = 11;
   optional uint64 request = 14;
+  optional string in_world = 15;
 }
 
 enum ActionErrorKind {
@@ -177,7 +184,7 @@ message Answer {
     Target target = 7; ServerState server = 8; ListedPlayers listed = 9; BanList bans = 10; WorldState world = 11; BlockState block = 12;
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
-    Empty done = 22; ActionError failed = 23;
+    Empty done = 22; ActionError failed = 23; string world_created = 24;
   }
 }
 message Warning { string message = 1; }

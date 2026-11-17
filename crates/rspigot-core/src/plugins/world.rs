@@ -94,6 +94,9 @@ impl<L: ClientLink> Server<L> {
             } => self
                 .create_plugin_inventory(connection, id, rows, &title, locked)
                 .map_err(|error| error.reason)?,
+            ServerOrder::CreateWorld(_) => {
+                return Err("server.create_world reports a result".to_owned());
+            }
         }
         Ok(())
     }
@@ -143,6 +146,9 @@ impl<L: ClientLink> Server<L> {
                     },
                     ClientEvent::Particle(particle),
                 );
+            }
+            WorldOrder::Delete { .. } => {
+                return Err("world.delete reports a result".to_owned());
             }
             WorldOrder::Explode {
                 position,

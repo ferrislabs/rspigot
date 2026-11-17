@@ -25,7 +25,13 @@ pub(crate) type Outbound = mpsc::UnboundedSender<v1::FromPlugin>;
 type Waiting = oneshot::Sender<Option<answer::Body>>;
 
 #[derive(Clone, Default)]
-pub(crate) struct Link(Arc<Shared>);
+pub(crate) struct Link(Arc<Scope>);
+
+#[derive(Default)]
+struct Scope {
+    shared: Arc<Shared>,
+    world: Option<String>,
+}
 
 #[derive(Default)]
 struct Shared {
@@ -55,7 +61,7 @@ impl Drop for Attached {
 impl Link {
     pub(crate) fn attach(&self, outbound: Outbound) -> Attached {
         let mut current = self.lock();
-        self.0.generation.fetch_add(1, Ordering::Relaxed);
+        self.0.shared.generation.fetch_add(1, Ordering::Relaxed);
         *current = Some(Connection {
             outbound,
             waiting: HashMap::new(),
@@ -65,30 +71,48 @@ impl Link {
     }
 
     pub(crate) fn generation(&self) -> u64 {
-        self.0.generation.load(Ordering::Relaxed)
+        self.0.shared.generation.load(Ordering::Relaxed)
     }
 
     pub(crate) fn name_as(&self, name: &str) {
-        let mut own = self.0.name.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut own = self
+            .0
+            .shared
+            .name
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
         name.clone_into(&mut own);
     }
 
     pub(crate) fn name(&self) -> String {
         self.0
+            .shared
             .name
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .clone()
     }
 
+    pub(crate) fn in_world(&self, world: &str) -> Self {
+        Self(Arc::new(Scope {
+            shared: Arc::clone(&self.0.shared),
+            world: Some(world.to_owned()),
+        }))
+    }
+
+    fn stamped(&self, mut message: v1::FromPlugin) -> v1::FromPlugin {
+        message.in_world = self.0.world.clone();
+        message
+    }
+
     pub(crate) fn order(&self, body: from_plugin::Body) {
-        send(self.lock().as_ref(), body);
+        send(self.lock().as_ref(), self.stamped(message(body)));
     }
 
     pub(crate) fn order_from(&self, generation: u64, body: from_plugin::Body) {
         let current = self.lock();
         if self.generation() == generation {
-            send(current.as_ref(), body);
+            send(current.as_ref(), self.stamped(message(body)));
         } else {
             tracing::warn!("Dropped an order on an inventory made before rspigot reconnected");
         }
@@ -101,10 +125,10 @@ impl Link {
         pick: impl FnOnce(answer::Body) -> Option<T>,
     ) -> Result<T, Error> {
         let posted = self.post(|request| {
-            message(from_plugin::Body::Question(v1::Question {
+            self.stamped(message(from_plugin::Body::Question(v1::Question {
                 request,
                 question: Some(question),
-            }))
+            })))
         });
         match self.exchange(posted).await? {
             answer::Body::NotFound(_) => Err(Error::NotFound),
@@ -115,10 +139,13 @@ impl Link {
     }
 
     pub(crate) async fn act(&self, body: from_plugin::Body) -> Result<(), Error> {
-        let posted = self.post(|request| v1::FromPlugin {
-            body: Some(body),
-            origin: HANDLING.try_with(|event| *event).ok(),
-            request: Some(request),
+        let posted = self.post(|request| {
+            self.stamped(v1::FromPlugin {
+                body: Some(body),
+                origin: HANDLING.try_with(|event| *event).ok(),
+                request: Some(request),
+                in_world: None,
+            })
         });
         match self.exchange(posted).await? {
             answer::Body::Done(_) => Ok(()),
@@ -126,6 +153,24 @@ impl Link {
                 "an answer that is not a result".to_owned(),
             )),
         }
+    }
+
+    pub(crate) async fn act_for<T>(
+        &self,
+        body: from_plugin::Body,
+        expected: &str,
+        pick: impl FnOnce(answer::Body) -> Option<T>,
+    ) -> Result<T, Error> {
+        let posted = self.post(|request| {
+            self.stamped(v1::FromPlugin {
+                body: Some(body),
+                origin: HANDLING.try_with(|event| *event).ok(),
+                request: Some(request),
+                in_world: None,
+            })
+        });
+        pick(self.exchange(posted).await?)
+            .ok_or_else(|| Error::Malformed(format!("an answer that is not {expected}")))
     }
 
     pub(crate) async fn act_from(
@@ -165,7 +210,7 @@ impl Link {
     ) -> Result<(u64, oneshot::Receiver<Option<answer::Body>>), Error> {
         let mut current = self.lock();
         let connection = current.as_mut().ok_or(Error::Disconnected)?;
-        let request = self.0.last_request.fetch_add(1, Ordering::Relaxed) + 1;
+        let request = self.0.shared.last_request.fetch_add(1, Ordering::Relaxed) + 1;
         connection
             .outbound
             .send(build(request))
@@ -193,6 +238,7 @@ impl Link {
 
     fn lock(&self) -> MutexGuard<'_, Option<Connection>> {
         self.0
+            .shared
             .current
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -207,14 +253,10 @@ impl fmt::Debug for Link {
     }
 }
 
-fn send(connection: Option<&Connection>, body: from_plugin::Body) {
+fn send(connection: Option<&Connection>, mut message: v1::FromPlugin) {
     if let Some(connection) = connection {
-        let origin = HANDLING.try_with(|event| *event).ok();
-        let _ = connection.outbound.send(v1::FromPlugin {
-            body: Some(body),
-            origin,
-            request: None,
-        });
+        message.origin = HANDLING.try_with(|event| *event).ok();
+        let _ = connection.outbound.send(message);
     }
 }
 
@@ -223,6 +265,7 @@ pub(crate) const fn message(body: from_plugin::Body) -> v1::FromPlugin {
         body: Some(body),
         origin: None,
         request: None,
+        in_world: None,
     }
 }
 

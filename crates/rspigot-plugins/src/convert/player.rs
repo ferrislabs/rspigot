@@ -501,6 +501,7 @@ mod tests {
                 })),
                 origin: None,
                 request: None,
+                in_world: None,
             },
             &mut Vec::new(),
         )

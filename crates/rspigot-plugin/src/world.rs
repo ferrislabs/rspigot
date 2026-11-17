@@ -1,4 +1,4 @@
-use rspigot_plugin_protocol::v1::{self, answer, question};
+use rspigot_plugin_protocol::v1::{self, answer, from_plugin, question, server_order, world_order};
 use uuid::Uuid;
 
 use crate::block::{Block, BlockPos, BlockState};
@@ -10,6 +10,78 @@ use crate::{
     WorldGameRuleHandle, WorldParticleHandle, WorldPvpHandle, WorldSoundHandle,
     WorldSpawnPointHandle, WorldStorageHandle, WorldTimeHandle, WorldWeatherHandle,
 };
+
+const DEFAULT_WORLD: &str = "minecraft:overworld";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Dimension {
+    Overworld,
+    Nether,
+    End,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Layer {
+    pub block: String,
+    pub height: u32,
+}
+
+impl Layer {
+    pub fn new(block: impl Into<String>, height: u32) -> Self {
+        Self {
+            block: block.into(),
+            height,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Generator {
+    Vanilla,
+    Flat(Vec<Layer>),
+    Void,
+    Datapack(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorldOptions {
+    pub name: String,
+    pub dimension: Dimension,
+    pub seed: i64,
+    pub generator: Generator,
+    pub structures: bool,
+}
+
+impl WorldOptions {
+    fn into_wire(self) -> v1::CreateWorld {
+        let dimension = match self.dimension {
+            Dimension::Overworld => v1::WorldDimension::Overworld,
+            Dimension::Nether => v1::WorldDimension::Nether,
+            Dimension::End => v1::WorldDimension::End,
+        };
+        let kind = match self.generator {
+            Generator::Vanilla => v1::world_generator::Kind::Vanilla(v1::Empty {}),
+            Generator::Flat(layers) => v1::world_generator::Kind::Flat(v1::FlatLayers {
+                layers: layers
+                    .into_iter()
+                    .map(|layer| v1::WorldLayer {
+                        block: layer.block,
+                        height: layer.height,
+                    })
+                    .collect(),
+            }),
+            Generator::Void => v1::world_generator::Kind::Void(v1::Empty {}),
+            Generator::Datapack(id) => v1::world_generator::Kind::Datapack(id),
+        };
+        v1::CreateWorld {
+            name: self.name,
+            dimension: dimension as i32,
+            seed: self.seed,
+            generator: Some(v1::WorldGenerator { kind: Some(kind) }),
+            structures: self.structures,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Weather {
@@ -235,6 +307,7 @@ impl World {
     }
 
     pub(crate) fn named(name: String, link: Link) -> Self {
+        let link = link.in_world(&name);
         Self {
             name: Some(name),
             ..Self::new(link)
@@ -243,6 +316,35 @@ impl World {
 
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
+    }
+
+    pub fn id(&self) -> &str {
+        self.name.as_deref().unwrap_or(DEFAULT_WORLD)
+    }
+
+    pub async fn create(&self, options: WorldOptions) -> Result<World, Error> {
+        let created = self
+            .link
+            .act_for(
+                from_plugin::Body::Server(v1::ServerOrder {
+                    order: Some(server_order::Order::CreateWorld(options.into_wire())),
+                }),
+                "a created world",
+                |body| match body {
+                    answer::Body::WorldCreated(id) => Some(id),
+                    _ => None,
+                },
+            )
+            .await?;
+        Ok(World::named(created, self.link.clone()))
+    }
+
+    pub async fn delete(&self, files: bool) -> Result<(), Error> {
+        self.link
+            .act(from_plugin::Body::World(v1::WorldOrder {
+                order: Some(world_order::Order::DeleteWorld(v1::DeleteWorld { files })),
+            }))
+            .await
     }
 
     pub fn time(&self) -> WorldTimeHandle {

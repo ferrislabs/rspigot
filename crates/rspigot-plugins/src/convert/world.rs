@@ -31,6 +31,7 @@ pub(super) fn order(order: v1::WorldOrder) -> Result<Order, Malformed> {
             power,
             breaks_blocks,
         },
+        Wire::DeleteWorld(v1::DeleteWorld { files }) => WorldOrder::Delete { files },
     };
     Ok(Order::World(order))
 }
@@ -148,6 +149,7 @@ mod tests {
                 body: Some(from_plugin::Body::World(v1::WorldOrder { order })),
                 origin: None,
                 request: None,
+                in_world: None,
             },
             &mut Vec::new(),
         )?;
@@ -311,6 +313,7 @@ mod tests {
                 })),
                 origin: None,
                 request: None,
+                in_world: None,
             },
             &mut Vec::new(),
         );

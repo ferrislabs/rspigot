@@ -74,6 +74,7 @@ pub(crate) struct Overworld {
     cache: Arc<Mutex<TerrainCache>>,
     heights: Arc<Mutex<HeightCache>>,
     structures: Arc<Engine>,
+    structures_on: bool,
     cells: Arc<Mutex<CellCache>>,
     spawned: Arc<Mutex<Spawned>>,
 }
@@ -128,6 +129,7 @@ impl Overworld {
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
             heights: Arc::new(Mutex::new(HeightCache::default())),
             structures: Arc::new(Engine::new(seed as i64, &probe, library)),
+            structures_on: true,
             cells: Arc::default(),
             spawned: Arc::default(),
         }
@@ -325,9 +327,7 @@ impl Overworld {
         let min_y = height.min_y;
         let mut region = Region::new(self, resources, dimension, pos);
         let probe = self.biome_probe();
-        let starts = self
-            .structures
-            .starts_near(&self.ground(dimension), &probe, (pos.x, pos.z));
+        let starts = self.starts_here(dimension, &probe, pos);
         self.features.decorate(
             &mut region,
             self.seed as i64,
@@ -368,15 +368,30 @@ impl Overworld {
         column
     }
 
+    pub(crate) fn disable_structures(&mut self) {
+        self.structures_on = false;
+    }
+
+    fn starts_here(
+        &self,
+        dimension: &Dimension,
+        probe: &impl crate::structures::BiomeProbe,
+        pos: ChunkPos,
+    ) -> Vec<Arc<crate::structures::Start>> {
+        if !self.structures_on {
+            return Vec::new();
+        }
+        self.structures
+            .starts_near(&self.ground(dimension), probe, (pos.x, pos.z))
+    }
+
     pub(crate) fn structure_entities(
         &self,
         dimension: &Dimension,
         pos: ChunkPos,
     ) -> Vec<rspigot_nbt::Compound> {
         let probe = self.biome_probe();
-        let starts = self
-            .structures
-            .starts_near(&self.ground(dimension), &probe, (pos.x, pos.z));
+        let starts = self.starts_here(dimension, &probe, pos);
         let mut entities = crate::structures::chunk_entities(&starts, (pos.x, pos.z));
         if let Ok(mut pending) = self.spawned.lock()
             && let Some(extra) = pending.remove(&(pos.x, pos.z))

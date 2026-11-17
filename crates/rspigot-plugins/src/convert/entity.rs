@@ -96,6 +96,7 @@ mod tests {
             body: Some(body),
             origin: None,
             request: None,
+            in_world: None,
         }
     }
 
