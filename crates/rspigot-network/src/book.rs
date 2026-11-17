@@ -10,7 +10,7 @@ use rspigot_protocol::play::types::HolderSet;
 
 fn ingredient(set: ItemSet) -> SlotDisplay {
     if let Some(tag) = set.tag() {
-        return SlotDisplay::Tag(tag.to_owned());
+        return SlotDisplay::Tag(HolderSet::Tag(tag.to_owned()));
     }
     match set.items() {
         [only] => SlotDisplay::Item(i32::from(only.0)),
@@ -184,5 +184,48 @@ pub(crate) fn advancements_update(
             })
             .collect(),
         show,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rspigot_core::events::BookEntry;
+    use rspigot_items::{ItemId, ItemSet, ItemTag};
+    use rspigot_protocol::codec::{Encode, decode_exact};
+
+    static LOGS: ItemTag = ItemTag {
+        name: "minecraft:acacia_logs",
+        items: &[ItemId(1), ItemId(2)],
+    };
+
+    fn entry_with(ingredients: Vec<ItemSet>) -> BookEntry {
+        BookEntry {
+            display_id: 7,
+            display: BookDisplay::Shapeless {
+                ingredients,
+                result: BookStack {
+                    item: ItemId(4),
+                    count: 4,
+                },
+                station: ItemId(9),
+            },
+            group: 0,
+            category: 0,
+            requirements: Vec::new(),
+            notify: false,
+            highlight: false,
+        }
+    }
+
+    #[test]
+    fn a_tag_ingredient_is_sent_as_a_holder_set_tag_that_the_client_decodes() {
+        let mut bytes = Vec::new();
+        entry(&entry_with(vec![ItemSet::Tag(&LOGS)])).encode(&mut bytes);
+        let name = LOGS.name.as_bytes();
+        let tag = [&[6u8, 0, name.len() as u8][..], name].concat();
+        assert!(bytes.windows(tag.len()).any(|window| window == tag));
+        let decoded: cb::RecipeBookEntry = decode_exact(&bytes).expect("decodes");
+        assert_eq!(decoded, entry(&entry_with(vec![ItemSet::Tag(&LOGS)])));
     }
 }
