@@ -573,6 +573,7 @@ mod tests {
                 uuid: Uuid::from_u128(7),
                 kind: "minecraft:skeleton".into(),
                 position: Vec3::new(0.5, 64.0, 3.5),
+                player: None,
             })))),
             Some(answer::Body::Target(v1::Target {
                 hit: Some(target::Hit::Entity(v1::EntitySnapshot {
@@ -580,6 +581,7 @@ mod tests {
                     uuid: "00000000-0000-0000-0000-000000000007".into(),
                     kind: "minecraft:skeleton".into(),
                     position: Some(wire_vec3(0.5, 64.0, 3.5)),
+                    player: None,
                 })),
             }))
         );

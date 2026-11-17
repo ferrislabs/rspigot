@@ -300,6 +300,7 @@ pub(crate) fn player_entity(player: &v1::PlayerSnapshot) -> v1::EntitySnapshot {
         uuid: player.uuid.clone(),
         kind: "minecraft:player".to_owned(),
         position: player.position,
+        player: Some(player.clone()),
     }
 }
 

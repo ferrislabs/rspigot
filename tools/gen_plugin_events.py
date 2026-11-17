@@ -345,6 +345,7 @@ class Field:
     index: Leaf = None
     limit: int = None
     set: bool = False
+    actor: bool = False
 
 
 @dataclass
@@ -606,10 +607,15 @@ class Model:
             if raw in rename:
                 used_overrides.add(("rename", raw))
             method = name if raw in rename else getter_method(entry["name"])
+            entity_actor = False
             if raw == actor:
-                if self.ty(entry["type"]).leaf is not PLAYER or self.ty(entry["type"]).many:
+                actor_ty = self.ty(entry["type"])
+                if actor_ty.many or actor_ty.leaf not in (PLAYER, ENTITY):
                     fail(f"{record['name']}: the actor {actor} is not a player getter")
-                method = "player"
+                if actor_ty.leaf is PLAYER:
+                    method = "player"
+                else:
+                    entity_actor = True
                 used_overrides.add(("actor", actor))
             self.check_ident(record["name"], name)
             self.check_ident(record["name"], method)
@@ -617,7 +623,7 @@ class Model:
                 fail(f"{record['name']}: two getters give the field {name}")
             fields[name] = Field(
                 name=name, number=numbers[raw], ty=self.ty(entry["type"]), method=method,
-                getter=entry["name"], nullable=entry["nullable"] == "nullable",
+                getter=entry["name"], nullable=entry["nullable"] == "nullable", actor=entity_actor,
             )
         by_getter = {f.getter: f for f in fields.values()}
         for entry in record["setters"]:
@@ -738,7 +744,7 @@ class Model:
                 if (kind, value) not in used_overrides:
                     fail(f"{record['name']}: the override {kind} {value} matches nothing")
         ordered = sorted(fields.values(), key=lambda f: f.number)
-        methods = [f.method for f in ordered if f.method] + [f.setter_method for f in ordered if f.setter_method]
+        methods = [f.method for f in ordered if f.method] + [f.setter_method for f in ordered if f.setter_method] + ["player" for f in ordered if f.actor]
         if len(set(methods)) != len(methods):
             fail(f"{record['name']}: two methods share a name")
         for method in methods:
@@ -1652,6 +1658,15 @@ def emit_sdk(model):
             body(f"    pub fn {f.method}(&self) -> {returns} {{")
             body(f"        {expression}")
             body("    }")
+            if f.actor:
+                usage.uses.add("crate::Player")
+                body()
+                body("    pub fn player(&self) -> Option<&Player> {")
+                if f.nullable:
+                    body(f"        self.{f.name}.as_ref().and_then(Entity::player)")
+                else:
+                    body(f"        self.{f.name}.player()")
+                body("    }")
         for f in e.patched:
             if f.index:
                 body()

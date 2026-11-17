@@ -87,6 +87,7 @@ mod tests {
                 y: 64.0,
                 z: 0.0,
             }),
+            player: None,
         }
     }
 
@@ -196,6 +197,7 @@ mod tests {
                         uuid: Uuid::from_u128(4),
                         kind: "minecraft:zombie".to_owned(),
                         position: Vec3::new(0.0, 64.0, 0.0),
+                        player: None,
                     },
                     0.25
                 )],
@@ -333,6 +335,7 @@ mod tests {
                     uuid: Uuid::from_u128(4),
                     kind: "minecraft:zombie".to_owned(),
                     position: Vec3::new(0.0, 64.0, 0.0),
+                    player: None,
                 }))
             }))
         );

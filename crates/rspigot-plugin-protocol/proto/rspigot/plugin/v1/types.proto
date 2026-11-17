@@ -15,7 +15,7 @@ message Item { string key = 1; int32 count = 2; optional string name = 3; repeat
 message Slot { int32 slot = 1; Item item = 2; }
 message Effect { string key = 1; int32 duration = 2; int32 amplifier = 3; bool ambient = 4; bool particles = 5; bool icon = 6; }
 message PlayerSnapshot { string uuid = 1; string name = 2; int32 entity_id = 3; string world = 4; Vec3 position = 5; GameMode game_mode = 6; Rotation rotation = 7; }
-message EntitySnapshot { int32 entity_id = 1; string uuid = 2; string kind = 3; Vec3 position = 4; }
+message EntitySnapshot { int32 entity_id = 1; string uuid = 2; string kind = 3; Vec3 position = 4; PlayerSnapshot player = 5; }
 message BlockState { string block = 1; repeated Property properties = 2; }
 
 message Location { string world = 1; Vec3 position = 2; Rotation rotation = 3; }

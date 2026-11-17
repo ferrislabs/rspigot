@@ -52,6 +52,7 @@ pub(super) fn view(snapshot: v1::EntitySnapshot) -> Result<EntityView, Malformed
         uuid: Uuid::parse_str(&snapshot.uuid).map_err(|_| Malformed::Entity(snapshot.uuid))?,
         kind: snapshot.kind,
         position: shared::vec3(required(snapshot.position)?),
+        player: snapshot.player.map(super::player::snapshot).transpose()?,
     })
 }
 
@@ -61,6 +62,7 @@ pub(super) fn wire_view(view: EntityView) -> v1::EntitySnapshot {
         uuid: view.uuid.hyphenated().to_string(),
         kind: view.kind,
         position: Some(wire_vec(view.position)),
+        player: view.player.map(super::player::wire_player),
     }
 }
 
@@ -141,6 +143,7 @@ mod tests {
             uuid: Uuid::from_u128(7),
             kind: "minecraft:zombie".into(),
             position: Vec3::new(4.5, 64.0, -2.5),
+            player: None,
         }
     }
 
@@ -150,7 +153,34 @@ mod tests {
             uuid: "00000000-0000-0000-0000-000000000007".into(),
             kind: "minecraft:zombie".into(),
             position: Some(wire_vec3(4.5, 64.0, -2.5)),
+            player: None,
         }
+    }
+
+    #[test]
+    fn a_player_behind_an_entity_survives_both_conversions() {
+        let wire = v1::EntitySnapshot {
+            kind: "minecraft:player".into(),
+            player: Some(v1::PlayerSnapshot {
+                uuid: "00000000-0000-0000-0000-000000000007".into(),
+                name: "Steve".into(),
+                entity_id: 42,
+                world: "minecraft:overworld".into(),
+                position: Some(wire_vec3(4.5, 64.0, -2.5)),
+                game_mode: v1::GameMode::Survival as i32,
+                rotation: Some(v1::Rotation {
+                    yaw: 0.0,
+                    pitch: 0.0,
+                }),
+            }),
+            ..snapshot()
+        };
+        let view = super::view(wire.clone()).unwrap();
+        assert_eq!(
+            view.player.as_ref().map(|player| player.name.as_str()),
+            Some("Steve")
+        );
+        assert_eq!(super::wire_view(view), wire);
     }
 
     #[test]

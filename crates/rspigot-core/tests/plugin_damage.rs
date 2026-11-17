@@ -142,6 +142,33 @@ fn a_player_hit_reaches_the_damage_and_the_damage_by_entity_handlers() {
 }
 
 #[test]
+fn a_player_hit_carries_the_attacking_player_and_a_mob_carries_none() {
+    let mut s = scene_with(
+        &["Alice"],
+        vec![observe(1, EventKind::EntityDamageByEntity)],
+    );
+    let alice = s.players[0].clone();
+    let cow = cow_beside(&mut s);
+    attack(&mut s, &alice, cow.id);
+    let entity = alice_entity(&mut s);
+    let EventPayload::EntityDamageByEntity(hit) =
+        &settled_for(&s.plugin, EventKind::EntityDamageByEntity)[0].payload
+    else {
+        panic!("a damage by entity");
+    };
+    let player = hit.damager.player.as_ref().expect("the attacking player");
+    assert_eq!((player.name.as_str(), player.entity_id), ("Alice", entity));
+    assert_eq!(
+        hit.damage_source
+            .causing
+            .as_ref()
+            .and_then(|causing| causing.player.as_ref()),
+        Some(player)
+    );
+    assert!(hit.entity.player.is_none());
+}
+
+#[test]
 fn a_cancelled_hit_gives_no_knockback_sound_or_counter_change() {
     let mut s = waiting_scene(&["Alice"], vec![deciding(1, EventKind::EntityDamage)]);
     let alice = s.players[0].clone();

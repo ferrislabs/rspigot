@@ -216,6 +216,7 @@ impl<L: ClientLink> Server<L> {
             uuid: uuid.unwrap_or_default(),
             kind: source.kind.name().to_owned(),
             position: source.position,
+            player: source.player.and_then(|id| self.snapshot_of(id)),
         }
     }
 }

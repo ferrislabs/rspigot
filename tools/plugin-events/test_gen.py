@@ -113,6 +113,11 @@ class Generator(unittest.TestCase):
         self.assertEqual(failed.returncode, 1)
         self.assertIn("InventoryClick: the actor slot is not a player getter", failed.stderr)
 
+    def test_an_entity_actor_gives_an_optional_player(self):
+        for event in ("EntityDamageByEntity", "EntityShootBow", "EntityTargetLivingEntity", "VehicleDamage"):
+            self.assertIn("pub fn player(&self) -> Option<&Player> {", self.sdk_impl(event), event)
+        self.assertIn("pub fn damager(&self) -> &Entity {", self.sdk_impl("EntityDamageByEntity"))
+
     def test_an_unknown_java_type_fails_the_generation(self):
         catalog = self.catalog()
         event = next(event for event in catalog["events"] if event["name"] == "PlayerJoin")
