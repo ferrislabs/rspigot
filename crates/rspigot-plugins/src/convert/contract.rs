@@ -335,6 +335,7 @@ mod tests {
     #[test]
     fn a_command_sender_survives_the_round_trip() {
         let steve = PlayerSnapshot {
+            permissions: Vec::new(),
             id: PlayerId(Uuid::from_u128(1)),
             name: "Steve".to_owned(),
             entity_id: 12,

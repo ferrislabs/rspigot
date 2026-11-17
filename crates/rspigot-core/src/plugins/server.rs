@@ -1612,6 +1612,10 @@ impl<L: ClientLink> Server<L> {
 
     pub(super) fn describe(&self, player: &Player<L>) -> PlayerSnapshot {
         PlayerSnapshot {
+            permissions: self
+                .permissions
+                .rights(player.id, player.name(), player.permission_level())
+                .into_nodes(),
             id: player.id,
             name: player.profile.name.clone(),
             entity_id: player.entity_id.0,
@@ -1967,6 +1971,7 @@ mod tests {
             item: None,
             material: "minecraft:air".to_owned(),
             player: PlayerSnapshot {
+                permissions: Vec::new(),
                 id: PlayerId::offline("Alice"),
                 name: "Alice".to_owned(),
                 entity_id: 1,

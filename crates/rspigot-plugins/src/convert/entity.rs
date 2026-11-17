@@ -163,6 +163,7 @@ mod tests {
         let wire = v1::EntitySnapshot {
             kind: "minecraft:player".into(),
             player: Some(v1::PlayerSnapshot {
+                permissions: Vec::new(),
                 uuid: "00000000-0000-0000-0000-000000000007".into(),
                 name: "Steve".into(),
                 entity_id: 42,

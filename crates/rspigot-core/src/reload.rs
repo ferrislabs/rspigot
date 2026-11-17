@@ -3,6 +3,7 @@ use crossbeam_channel::Sender;
 use crate::admin::AdminLists;
 use crate::config::GameConfig;
 use crate::events::ClientEvent;
+use crate::permissions::{Permissions, Rights};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -14,12 +15,25 @@ pub struct ReloadRequest {
 pub struct ReloadData {
     pub admin: AdminLists,
     pub config: Option<GameConfig>,
+    pub permissions: Option<Permissions>,
 }
 
 impl<L: ClientLink> Server<L> {
     pub fn with_reload_sink(mut self, sink: Sender<ReloadRequest>) -> Self {
         self.reload_sink = Some(sink);
         self
+    }
+
+    pub fn with_permissions(mut self, permissions: Permissions) -> Self {
+        self.permissions = permissions;
+        self
+    }
+
+    pub fn rights_of(&self, id: rspigot_domain::player::PlayerId) -> Option<Rights> {
+        self.players.get(&id).map(|player| {
+            self.permissions
+                .rights(id, player.name(), player.permission_level())
+        })
     }
 
     pub(crate) fn ask_reload(&mut self, whitelist_only: bool) -> bool {
@@ -29,7 +43,14 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn apply_reload(&mut self, data: ReloadData) {
-        let ReloadData { admin, config } = data;
+        let ReloadData {
+            admin,
+            config,
+            permissions,
+        } = data;
+        if let Some(permissions) = permissions {
+            self.permissions = permissions;
+        }
         match config {
             Some(config) => {
                 self.config.max_players = config.max_players;

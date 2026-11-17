@@ -12,8 +12,8 @@ use crate::{
     PlayerConnectionHandle, PlayerEffectsHandle, PlayerExperienceHandle, PlayerFoodHandle,
     PlayerGameModeHandle, PlayerHealthHandle, PlayerInventoryHandle, PlayerLocationHandle,
     PlayerMessageHandle, PlayerMovementHandle, PlayerOperatorHandle, PlayerParticleHandle,
-    PlayerScoreboardHandle, PlayerSoundHandle, PlayerTabListHandle, PlayerTitleHandle,
-    PlayerVisibilityHandle,
+    PlayerPermissionsHandle, PlayerScoreboardHandle, PlayerSoundHandle, PlayerTabListHandle,
+    PlayerTitleHandle, PlayerVisibilityHandle,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -94,6 +94,7 @@ pub struct Player {
     pub position: Position,
     pub rotation: Rotation,
     pub game_mode: GameMode,
+    permissions: Vec<String>,
     link: Link,
 }
 
@@ -116,6 +117,7 @@ impl Player {
             world: snapshot.world,
             position: Position::from_wire(snapshot.position, "position")?,
             rotation: Rotation::from_wire(snapshot.rotation)?,
+            permissions: snapshot.permissions,
             link: link.clone(),
         })
     }
@@ -129,7 +131,12 @@ impl Player {
             position: Some(self.position.to_wire()),
             rotation: Some(self.rotation.to_wire()),
             game_mode: self.game_mode.to_wire() as i32,
+            permissions: self.permissions.clone(),
         }
+    }
+
+    pub fn permissions(&self) -> PlayerPermissionsHandle<'_> {
+        PlayerPermissionsHandle::new(&self.permissions)
     }
 
     pub fn inventory(&self) -> PlayerInventoryHandle {

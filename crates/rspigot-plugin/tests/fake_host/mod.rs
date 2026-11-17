@@ -187,6 +187,9 @@ pub fn snapshot(uuid: &str, name: &str, entity_id: i32) -> v1::PlayerSnapshot {
             yaw: 90.0,
             pitch: -30.0,
         }),
+        permissions: ["kit.use", "-kit.ban", "kit.*", "chat.*"]
+            .map(str::to_owned)
+            .to_vec(),
     }
 }
 

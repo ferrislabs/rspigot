@@ -117,6 +117,8 @@ pub struct PlayerSnapshot {
     pub game_mode: i32,
     #[prost(message, optional, tag = "7")]
     pub rotation: ::core::option::Option<Rotation>,
+    #[prost(string, repeated, tag = "8")]
+    pub permissions: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]

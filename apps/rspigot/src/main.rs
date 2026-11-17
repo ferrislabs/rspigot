@@ -214,6 +214,8 @@ fn main() -> anyhow::Result<()> {
         anyhow::Ok(listener)
     });
     let management_listener = management_notices.transpose()?;
+    let permissions = config::permissions::load_or_create(&args.root.join("permissions.yml"))
+        .context("loading permissions.yml")?;
     let (notice_sender, notice_receiver) = crossbeam_channel::unbounded();
     let mut server: Server<NetLink> = Server::new(
         game_config,
@@ -225,6 +227,7 @@ fn main() -> anyhow::Result<()> {
     .with_dimension_provider(dimensions::provide)
     .with_admin_sink(admin_updates)
     .with_player_store(Arc::clone(&store))
+    .with_permissions(permissions)
     .with_startup_inbox(game_inbox.clone());
     let (reload_requests, reload_inbox) = crossbeam_channel::unbounded();
     files::spawn_reloader(args.root.clone(), reload_inbox, inbound.clone());
