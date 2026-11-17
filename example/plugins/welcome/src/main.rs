@@ -73,7 +73,7 @@ impl Welcome {
         let in_menu = menu.is_some()
             && event.clicked_inventory().and_then(InventoryRef::custom) == menu.as_ref();
         if in_menu && event.slot() == i32::from(LEAVE_SLOT) {
-            let player = event.who_clicked();
+            let player = event.player();
             player.close_inventory();
             player.send_message("§aSee you around");
         }

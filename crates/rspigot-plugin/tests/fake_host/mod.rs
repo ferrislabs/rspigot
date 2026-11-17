@@ -271,7 +271,7 @@ impl Caller {
     async fn on_inventory_click(&self, event: &InventoryClick) {
         let _ = self.marks.send(Mark::Clicked(Clicked {
             id: event.id(),
-            who: event.who_clicked().name.clone(),
+            who: event.player().name.clone(),
             inventory: event.inventory().clone(),
             clicked: event.clicked_inventory().cloned(),
             slot: event.slot(),
