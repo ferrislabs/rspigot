@@ -526,6 +526,7 @@ mod tests {
 
     fn steve() -> v1::PlayerSnapshot {
         v1::PlayerSnapshot {
+            permissions: Vec::new(),
             uuid: "00000000-0000-0000-0000-000000000001".to_owned(),
             name: "Steve".to_owned(),
             entity_id: 12,

@@ -654,6 +654,7 @@ mod tests {
 
     fn snapshot(player: PlayerId, position: Vec3) -> PlayerSnapshot {
         PlayerSnapshot {
+            permissions: Vec::new(),
             id: player,
             name: "Alice".to_owned(),
             entity_id: 1,
@@ -1781,6 +1782,7 @@ mod tests {
 
     fn listener(name: &str) -> PlayerSnapshot {
         PlayerSnapshot {
+            permissions: Vec::new(),
             name: name.to_owned(),
             ..snapshot(PlayerId::offline(name), Vec3::new(0.0, 64.0, 0.0))
         }

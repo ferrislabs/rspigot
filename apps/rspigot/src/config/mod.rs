@@ -1,3 +1,4 @@
+pub mod permissions;
 mod plugins;
 mod properties;
 mod yaml;

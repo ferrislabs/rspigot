@@ -305,6 +305,7 @@ fn reload_asks_for_the_files_and_applies_what_comes_back() {
     server.handle(Inbound::Reload(Box::new(ReloadData {
         admin,
         config: Some(config),
+        permissions: None,
     })));
     assert_eq!(
         call(&mut server, ManagementRequest::Allowlist(ListAction::Get)),
@@ -343,6 +344,7 @@ fn a_whitelist_reload_leaves_the_rest_alone() {
             ..AdminLists::default()
         },
         config: None,
+        permissions: None,
     })));
     assert_eq!(
         call(&mut server, ManagementRequest::Operators(ListAction::Get)),

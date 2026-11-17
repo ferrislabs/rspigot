@@ -97,6 +97,7 @@ mod mount_menu;
 mod nature;
 mod nether_portal;
 mod patrol;
+pub mod permissions;
 mod persistence;
 mod phantom_spawner;
 mod pick_item;
