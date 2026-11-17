@@ -1,0 +1,7 @@
+error: #[command] goes on a method inside a #[listeners] impl block
+ --> tests/ui/command_outside_listeners.rs:7:5
+  |
+7 | /     async fn give(&self, ctx: Context) {
+8 | |         let _ = ctx;
+9 | |     }
+  | |_____^

@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::config::PluginSettings;
-use crate::plugins::{Access, EventKind, HandlerSpec, PluginInfo, PluginIntro, Priority, ToPlugin};
+use crate::plugins::{
+    Access, CommandSpec, EventKind, HandlerSpec, PluginInfo, PluginIntro, Priority, ToPlugin,
+};
 use crate::ports::PluginOutbox;
 
 struct Connected {
@@ -22,6 +24,7 @@ impl Connected {
         Departed {
             connection,
             outbox: self.outbox,
+            commands: !self.intro.commands.is_empty(),
             plugin: PluginInfo {
                 name: self.intro.name,
                 version: self.intro.version,
@@ -33,6 +36,7 @@ impl Connected {
 pub(crate) struct Departed {
     pub(crate) connection: u64,
     pub(crate) outbox: Box<dyn PluginOutbox>,
+    pub(crate) commands: bool,
     pub(crate) plugin: PluginInfo,
 }
 
@@ -68,10 +72,11 @@ impl Registry {
         replaced
     }
 
-    pub(crate) fn disconnect(&mut self, connection: u64) -> Option<PluginInfo> {
-        self.connected
-            .remove(&connection)
-            .map(|plugin| plugin.departed(connection).plugin)
+    pub(crate) fn disconnect(&mut self, connection: u64) -> Option<(PluginInfo, bool)> {
+        self.connected.remove(&connection).map(|plugin| {
+            let departed = plugin.departed(connection);
+            (departed.plugin, departed.commands)
+        })
     }
 
     pub(crate) fn connected(&self) -> Vec<(u64, PluginInfo)> {
@@ -79,6 +84,16 @@ impl Registry {
             .iter()
             .map(|(connection, plugin)| (*connection, plugin.info()))
             .collect()
+    }
+
+    pub(crate) fn commands(&self) -> impl Iterator<Item = (u64, &CommandSpec)> {
+        self.connected.iter().flat_map(|(connection, plugin)| {
+            plugin
+                .intro
+                .commands
+                .iter()
+                .map(|command| (*connection, command))
+        })
     }
 
     pub(crate) fn next_event_id(&mut self) -> u64 {
@@ -218,6 +233,7 @@ mod tests {
 
     fn intro(name: &str, handlers: Vec<HandlerSpec>) -> PluginIntro {
         PluginIntro {
+            commands: Vec::new(),
             name: name.to_owned(),
             version: "1.0.0".to_owned(),
             handlers,
@@ -533,10 +549,13 @@ mod tests {
         assert_eq!(registry.summary(&PluginSettings::default()).len(), 1);
         assert_eq!(
             registry.disconnect(2),
-            Some(PluginInfo {
-                name: "welcome".to_owned(),
-                version: "1.0.0".to_owned(),
-            })
+            Some((
+                PluginInfo {
+                    name: "welcome".to_owned(),
+                    version: "1.0.0".to_owned(),
+                },
+                false
+            ))
         );
         assert!(!registry.is_current(2));
         assert!(registry.summary(&PluginSettings::default()).is_empty());

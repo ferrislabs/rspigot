@@ -450,7 +450,7 @@ impl<L: ClientLink> Server<L> {
         let offered = if self.listened(EventKind::PlayerCommandSend) {
             self.players
                 .get(&id)
-                .map(|player| root_names(&self.command_tree(player.permission_level())))
+                .map(|player| root_names(&self.player_tree(player)))
                 .unwrap_or_default()
         } else {
             Vec::new()
@@ -473,7 +473,7 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get(&id) else {
             return;
         };
-        let tree = self.command_tree(player.permission_level());
+        let tree = self.player_tree(player);
         let tree = if patch.commands.is_empty() {
             tree
         } else {

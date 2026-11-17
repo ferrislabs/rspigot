@@ -11,6 +11,8 @@ use tonic::transport::Endpoint;
 use tonic::{Code, Status, Streaming};
 
 use crate::Error;
+use crate::commands::CommandSpec;
+use crate::commands::Invocation;
 use crate::events::EventKind;
 use crate::link::{ANSWER_TIMEOUT, Link, Outbound, handling, message};
 use crate::listener::{HandlerSpec, Listeners, Outcome, Plugin, Verdict};
@@ -28,6 +30,7 @@ enum Queued {
         event: Box<v1::Event>,
         reply: mpsc::WeakUnboundedSender<v1::FromPlugin>,
     },
+    Invocation(Invocation),
     Enable(Link),
     Disable,
 }
@@ -92,6 +95,7 @@ pub async fn run_with<P: Plugin>(
         version: P::VERSION.to_owned(),
         token: token.unwrap_or_default(),
         handlers: specs.into_iter().map(HandlerSpec::to_wire).collect(),
+        commands: P::commands().iter().map(CommandSpec::to_wire).collect(),
     };
     let (error, ()) = tokio::join!(
         keep_connected(endpoint, url, hello, &link, queue),
@@ -225,6 +229,12 @@ async fn listen(
                     return Ended::Lost("the plugin stopped handling events".to_owned());
                 }
             }
+            Some(to_plugin::Body::Invocation(invocation)) => {
+                let queued = Queued::Invocation(Invocation::from_wire(invocation, link));
+                if queue.send(queued).is_err() {
+                    return Ended::Lost("the plugin stopped handling events".to_owned());
+                }
+            }
             Some(to_plugin::Body::Answer(answer)) => link.answer(answer),
             Some(to_plugin::Body::Warning(warning)) => {
                 tracing::warn!("rspigot: {}", warning.message);
@@ -267,6 +277,7 @@ async fn handle_events<P: Listeners>(
     while let Some(next) = queued.recv().await {
         match next {
             Queued::Event { event, reply } => handle(plugin, link, kinds, *event, reply).await,
+            Queued::Invocation(invocation) => plugin.invoke(invocation).await,
             Queued::Enable(connected) => plugin.enable(&Server::new(connected)).await,
             Queued::Disable => plugin.disable().await,
         }

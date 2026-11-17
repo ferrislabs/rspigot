@@ -1,0 +1,5 @@
+error: a command name is lowercase, without spaces
+ --> tests/ui/command_uppercase_name.rs:8:15
+  |
+8 |     #[command("Give")]
+  |               ^^^^^^

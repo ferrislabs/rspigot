@@ -1,0 +1,5 @@
+error: a command is `async fn name(&self, ctx: Context, argument: Type, ...)`; the argument types give the command's tree
+ --> tests/ui/command_without_context.rs:9:19
+  |
+9 |     async fn give(&self) {}
+  |                   ^^^^^

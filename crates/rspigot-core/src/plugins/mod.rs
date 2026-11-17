@@ -67,6 +67,7 @@ pub(crate) use block::{block_state_of, data_of, material_of, snapshot_of};
 pub use boss_bars::{BossBarOrder, BossBarSpec, BossBarView};
 pub(crate) use broadcast::Broadcasts;
 pub(crate) use burning::Combuster;
+pub(crate) use commands::PluginTyping;
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, DamageSourceView, DroppedItem, EnchantOffer,
     HolderRef, Input, InventoryOwner, InventoryRef, InventoryView, LecternData, Location,
@@ -134,6 +135,41 @@ pub struct PluginIntro {
     pub name: String,
     pub version: String,
     pub handlers: Vec<HandlerSpec>,
+    pub commands: Vec<CommandSpec>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ArgumentKind {
+    Player,
+    Item,
+    Integer,
+    Text,
+    Boolean,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommandArgument {
+    pub name: String,
+    pub kind: ArgumentKind,
+    pub optional: bool,
+    pub suggested: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommandSpec {
+    pub id: u32,
+    pub name: String,
+    pub permission: Option<String>,
+    pub arguments: Vec<CommandArgument>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArgumentValue {
+    Player(PlayerSnapshot),
+    Item(String),
+    Integer(i64),
+    Text(String),
+    Flag(bool),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -146,6 +182,12 @@ pub enum IntroError {
     Undecidable(u32),
     #[error("handler {0} decides and ignores cancelled events, which only an observer can do")]
     ObserverOnly(u32),
+    #[error("command {0} is declared more than once")]
+    DuplicateCommand(u32),
+    #[error("command {0} has an empty name")]
+    UnnamedCommand(u32),
+    #[error("command {0} has a required argument after an optional one")]
+    MisplacedOptional(u32),
 }
 
 impl PluginIntro {
@@ -165,6 +207,22 @@ impl PluginIntro {
                 if handler.ignore_cancelled {
                     return Err(IntroError::ObserverOnly(handler.id));
                 }
+            }
+        }
+        let mut commands = FxHashSet::default();
+        for command in &self.commands {
+            if !commands.insert(command.id) {
+                return Err(IntroError::DuplicateCommand(command.id));
+            }
+            if command.name.is_empty() || command.name.contains(char::is_whitespace) {
+                return Err(IntroError::UnnamedCommand(command.id));
+            }
+            let mut rest = command
+                .arguments
+                .iter()
+                .skip_while(|argument| !argument.optional);
+            if rest.any(|argument| !argument.optional) {
+                return Err(IntroError::MisplacedOptional(command.id));
             }
         }
         Ok(())
@@ -334,6 +392,11 @@ pub enum ToPlugin {
     },
     Warning(String),
     Replaced,
+    Invocation {
+        command: u32,
+        sender: PlayerSnapshot,
+        arguments: Vec<ArgumentValue>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -405,6 +468,7 @@ mod tests {
         PluginIntro {
             name: "welcome".to_owned(),
             version: "1.0.0".to_owned(),
+            commands: Vec::new(),
             handlers,
         }
     }

@@ -3019,6 +3019,7 @@ fn breaking_a_furnace_asks_block_exp_after_the_break_and_pays_the_settled_amount
     world.server.handle(Inbound::PluginConnected {
         connection: 1,
         intro: PluginIntro {
+            commands: Vec::new(),
             name: "tester".to_owned(),
             version: "1.0.0".to_owned(),
             handlers: vec![common::deciding(1, EventKind::BlockExp)],

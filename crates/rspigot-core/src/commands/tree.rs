@@ -1,5 +1,7 @@
 mod extra;
 
+use crate::plugins::{ArgumentKind, CommandSpec};
+
 use super::permission::{LEVEL_ADMINS, LEVEL_GAMEMASTERS, LEVEL_OWNERS};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -52,6 +54,65 @@ pub struct CommandNode {
 pub struct CommandTree {
     pub nodes: Vec<CommandNode>,
     pub root: usize,
+}
+
+const ASK_SERVER: &str = "minecraft:ask_server";
+
+fn parser_of(kind: ArgumentKind) -> ArgumentParser {
+    match kind {
+        ArgumentKind::Player => ArgumentParser::Entity {
+            single: true,
+            players_only: true,
+        },
+        ArgumentKind::Item => ArgumentParser::ItemStack,
+        ArgumentKind::Integer => ArgumentParser::Integer {
+            min: None,
+            max: None,
+        },
+        ArgumentKind::Text => ArgumentParser::Word,
+        ArgumentKind::Boolean => ArgumentParser::Bool,
+    }
+}
+
+impl CommandTree {
+    pub(crate) fn with_plugin_commands(&self, commands: &[&CommandSpec]) -> Self {
+        let mut tree = self.clone();
+        for command in commands {
+            let required = command.arguments.iter().any(|argument| !argument.optional);
+            let mut parent = tree.attach(
+                tree.root,
+                CommandNodeKind::Literal(command.name.clone()),
+                !required,
+            );
+            for (index, argument) in command.arguments.iter().enumerate() {
+                let executable = command.arguments[index + 1..]
+                    .iter()
+                    .all(|later| later.optional);
+                parent = tree.attach(
+                    parent,
+                    CommandNodeKind::Argument {
+                        name: argument.name.clone(),
+                        parser: parser_of(argument.kind),
+                        suggests: argument.suggested.then(|| ASK_SERVER.to_owned()),
+                    },
+                    executable,
+                );
+            }
+        }
+        tree
+    }
+
+    fn attach(&mut self, parent: usize, kind: CommandNodeKind, executable: bool) -> usize {
+        self.nodes.push(CommandNode {
+            kind,
+            executable,
+            children: Vec::new(),
+            redirect: None,
+        });
+        let index = self.nodes.len() - 1;
+        self.nodes[parent].children.push(index);
+        index
+    }
 }
 
 struct TreeBuilder {

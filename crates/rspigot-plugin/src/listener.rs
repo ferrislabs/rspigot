@@ -2,6 +2,7 @@ use std::future::Future;
 
 use rspigot_plugin_protocol::v1;
 
+use crate::commands::{CommandSpec, Invocation};
 use crate::events::{Call, EventKind};
 use crate::server::Server;
 
@@ -18,6 +19,15 @@ pub trait Listeners {
     fn enable(&self, server: &Server) -> impl Future<Output = ()> + Send;
 
     fn disable(&self) -> impl Future<Output = ()> + Send;
+
+    fn commands() -> Vec<CommandSpec> {
+        Vec::new()
+    }
+
+    fn invoke(&self, invocation: Invocation) -> impl Future<Output = ()> + Send {
+        let _ = invocation;
+        async {}
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

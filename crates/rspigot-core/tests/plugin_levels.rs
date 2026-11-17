@@ -307,6 +307,7 @@ fn a_plugin_connected_before_startup_hears_the_startup_events() {
         .send(Inbound::PluginConnected {
             connection: 1,
             intro: rspigot_core::plugins::PluginIntro {
+                commands: Vec::new(),
                 name: "early".to_owned(),
                 version: "1.0.0".to_owned(),
                 handlers: vec![

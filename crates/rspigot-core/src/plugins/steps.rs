@@ -1561,6 +1561,7 @@ pub(crate) struct SuggestStep {
     pub(crate) start: i32,
     pub(crate) length: i32,
     pub(crate) matches: Vec<String>,
+    pub(crate) filter: Option<String>,
 }
 
 #[derive(Debug)]

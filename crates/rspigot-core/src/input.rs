@@ -19,7 +19,7 @@ use crate::events::{
 use crate::loot::{self, LootContext};
 use crate::plugins::events::PlayerRespawnReason;
 use crate::plugins::steps::{AbortStep, BuildStep, ClickStep, FinishStep, UseItem, UseOnStep};
-use crate::plugins::{Continuation, Held, SuggestStep};
+use crate::plugins::{Continuation, Held, PluginTyping, SuggestStep};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -858,6 +858,10 @@ impl<L: ClientLink> Server<L> {
     fn handle_suggestion(&mut self, id: PlayerId, request: i32, text: &str) {
         let input = text.trim_start_matches('/');
         let offset = (text.len() - input.len()) as i32;
+        let typing = self.plugin_typing(id, input);
+        if typing == PluginTyping::Silent {
+            return;
+        }
         let (start, prefix, candidates): (i32, &str, Vec<String>) = match input.rsplit_once(' ') {
             None => {
                 let level = self.players.get(&id).map_or(0, |p| p.permission_level());
@@ -875,7 +879,9 @@ impl<L: ClientLink> Server<L> {
             Some((head, last)) => (
                 offset + head.len() as i32 + 1,
                 last,
-                if completes_dimension(head) {
+                if typing == PluginTyping::Dynamic {
+                    Vec::new()
+                } else if completes_dimension(head) {
                     self.dimension_names()
                 } else {
                     self.players
@@ -897,6 +903,7 @@ impl<L: ClientLink> Server<L> {
             start,
             length: prefix.len() as i32,
             matches,
+            filter: (typing == PluginTyping::Dynamic).then_some(lower),
         };
         self.ask_tab_complete(text, step);
     }

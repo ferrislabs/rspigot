@@ -441,7 +441,10 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn plugin_disconnected(&mut self, connection: u64) {
         let departed = self.plugins.disconnect(connection);
         self.forget_plugin_inventories(connection);
-        if let Some(plugin) = departed {
+        if let Some((plugin, commands)) = departed {
+            if commands {
+                self.resend_command_trees();
+            }
             self.refresh_ping_hook();
             self.plugin_disabled(connection, plugin);
         }
@@ -1837,6 +1840,7 @@ mod tests {
         server.handle(Inbound::PluginConnected {
             connection: 1,
             intro: PluginIntro {
+                commands: Vec::new(),
                 name: "watch".to_owned(),
                 version: "1.0.0".to_owned(),
                 handlers: vec![HandlerSpec {

@@ -29,7 +29,12 @@ message Explode { Vec3 position = 1; float power = 2; bool breaks_blocks = 3; }
 message SetBlockWith { string block = 1; repeated Property properties = 2; }
 
 message Handler { uint32 id = 1; EventKind event = 2; Access access = 3; Priority priority = 4; bool ignore_cancelled = 5; }
-message Hello { uint32 protocol_version = 1; string name = 2; string version = 3; string token = 4; repeated Handler handlers = 5; }
+enum ArgumentKind { ARGUMENT_KIND_UNSPECIFIED = 0; ARGUMENT_KIND_PLAYER = 1; ARGUMENT_KIND_ITEM = 2; ARGUMENT_KIND_INTEGER = 3; ARGUMENT_KIND_TEXT = 4; ARGUMENT_KIND_BOOLEAN = 5; }
+message CommandArgument { string name = 1; ArgumentKind kind = 2; bool optional = 3; bool suggested = 4; }
+message CommandSpec { uint32 id = 1; string name = 2; optional string permission = 3; repeated CommandArgument arguments = 4; }
+message ArgumentValue { oneof value { PlayerSnapshot player = 1; string item = 2; int64 integer = 3; string text = 4; bool flag = 5; } }
+message Invocation { uint32 command = 1; PlayerSnapshot sender = 2; repeated ArgumentValue arguments = 3; }
+message Hello { uint32 protocol_version = 1; string name = 2; string version = 3; string token = 4; repeated Handler handlers = 5; repeated CommandSpec commands = 6; }
 message PlayerState {
   PlayerSnapshot player = 1; float health = 2; int32 food = 3; int32 level = 4; float max_health = 5; float absorption = 6;
   float saturation = 7; float exhaustion = 8; float exp = 9; int32 total_exp = 10; bool op = 11; bool allow_flight = 12;
@@ -177,4 +182,4 @@ message Answer {
 }
 message Warning { string message = 1; }
 message Replaced {}
-message ToPlugin { oneof body { Accepted accepted = 1; Event event = 2; Answer answer = 3; Warning warning = 4; Replaced replaced = 5; } }
+message ToPlugin { oneof body { Accepted accepted = 1; Event event = 2; Answer answer = 3; Warning warning = 4; Replaced replaced = 5; Invocation invocation = 6; } }
