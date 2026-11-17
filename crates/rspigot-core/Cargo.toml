@@ -26,6 +26,7 @@ tracing = "0.1"
 uuid = "1"
 
 [dev-dependencies]
+rspigot-worldgen = { workspace = true }
 proptest = "1"
 rsa = { version = "0.9.10", default-features = false, features = ["std", "u64_digit"] }
 sha1 = "0.10.6"

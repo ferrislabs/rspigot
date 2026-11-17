@@ -370,6 +370,7 @@ pub enum Answer {
     Target(Option<TargetHit>),
     CustomInventory(CustomInventoryState),
     Refused(String),
+    WorldCreated(String),
     Done,
     Failed(ActionError),
     NotFound,
@@ -428,6 +429,10 @@ pub enum Question {
     Bans,
     IpBans,
     World,
+    InWorld {
+        world: rspigot_domain::Identifier,
+        question: Box<Question>,
+    },
     Block(BlockPos),
     Entities {
         near: Option<(Vec3, f64)>,

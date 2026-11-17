@@ -1510,6 +1510,7 @@ dependencies = [
  "rspigot-entities",
  "rspigot-items",
  "rspigot-nbt",
+ "rspigot-worldgen",
  "rustc-hash",
  "serde_json",
  "sha1",

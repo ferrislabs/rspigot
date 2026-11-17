@@ -75,6 +75,7 @@ pub struct FlatGenerator {
     biome: BiomeId,
     classifier: Classifier,
     other_dimensions: Box<NoiseGenerator>,
+    every_dimension: bool,
 }
 
 impl FlatGenerator {
@@ -113,12 +114,19 @@ impl FlatGenerator {
         Self::assemble(layers, biome_id("minecraft:plains"), seed)
     }
 
+    #[must_use]
+    pub fn in_every_dimension(mut self) -> Self {
+        self.every_dimension = true;
+        self
+    }
+
     fn assemble(layers: Vec<(BlockStateId, u32)>, biome: BiomeId, seed: i64) -> Self {
         Self {
             layers,
             biome,
             classifier: Classifier::new(),
             other_dimensions: Box::new(NoiseGenerator::new(seed)),
+            every_dimension: false,
         }
     }
 
@@ -171,20 +179,18 @@ impl FlatGenerator {
 
 impl ChunkGenerator for FlatGenerator {
     fn generate(&self, dimension: &Dimension, pos: ChunkPos) -> ChunkColumn {
-        match DimensionKind::of(dimension) {
-            DimensionKind::Overworld => self.flat_column(dimension, pos),
-            DimensionKind::Nether | DimensionKind::End => {
-                self.other_dimensions.generate(dimension, pos)
-            }
+        if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
+            self.flat_column(dimension, pos)
+        } else {
+            self.other_dimensions.generate(dimension, pos)
         }
     }
 
     fn spawn_point(&self, dimension: &Dimension) -> Vec3 {
-        match DimensionKind::of(dimension) {
-            DimensionKind::Overworld => self.flat_spawn(dimension),
-            DimensionKind::Nether | DimensionKind::End => {
-                self.other_dimensions.spawn_point(dimension)
-            }
+        if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
+            self.flat_spawn(dimension)
+        } else {
+            self.other_dimensions.spawn_point(dimension)
         }
     }
 

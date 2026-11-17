@@ -2,7 +2,7 @@ use std::fmt;
 
 use rspigot_domain::player::PlayerId;
 
-use crate::plugins::{Answer, Order, PlayerOrder, ServerOrder, ToPlugin};
+use crate::plugins::{Answer, Order, PlayerOrder, ServerOrder, ToPlugin, WorldOrder};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -88,6 +88,32 @@ impl<L: ClientLink> Server<L> {
             }) => self
                 .create_plugin_inventory(connection, id, rows, &title, locked)
                 .map(|()| Outcome::Done),
+            Order::Server(ServerOrder::CreateWorld(spec)) => match self.create_world(spec) {
+                Ok(key) => {
+                    self.plugins.send(
+                        connection,
+                        ToPlugin::Answer {
+                            request,
+                            answer: Answer::WorldCreated(key.to_string()),
+                        },
+                    );
+                    Ok(Outcome::Pending)
+                }
+                Err(error) => Err(error),
+            },
+            Order::World(WorldOrder::Delete { files }) => {
+                let key = self.world.dimension.key.clone();
+                self.delete_world(&key, files).map(|()| Outcome::Done)
+            }
+            Order::InWorld { world, order } => match *order {
+                Order::World(WorldOrder::Delete { files }) => {
+                    self.delete_world(&world, files).map(|()| Outcome::Done)
+                }
+                other => Err(ActionError::new(
+                    ActionErrorKind::InvalidArgument,
+                    format!("{} does not report a result", other.name()),
+                )),
+            },
             other => Err(ActionError::new(
                 ActionErrorKind::InvalidArgument,
                 format!("{} does not report a result", other.name()),

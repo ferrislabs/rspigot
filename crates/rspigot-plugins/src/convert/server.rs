@@ -1,6 +1,10 @@
 use rspigot_core::admin::{Ban, BanEntry, IpBanEntry, ListEntry};
 use rspigot_core::plugins::{Order, ServerOrder, ServerState};
-use rspigot_plugin_protocol::v1::{self, server_order::Order as Wire};
+use rspigot_core::worlds::{GeneratorSpec, LayerSpec, WorldKind, WorldSpec};
+use rspigot_domain::Identifier;
+use rspigot_plugin_protocol::v1::{
+    self, server_order::Order as Wire, world_generator as generator,
+};
 
 use super::Malformed;
 use super::shared::{expiry, required, wire_time};
@@ -39,8 +43,46 @@ pub(super) fn order(order: v1::ServerOrder) -> Result<Order, Malformed> {
             title,
             locked,
         },
+        Wire::CreateWorld(create) => ServerOrder::CreateWorld(world_spec(create)?),
     };
     Ok(Order::Server(order))
+}
+
+fn world_spec(create: v1::CreateWorld) -> Result<WorldSpec, Malformed> {
+    let kind = match v1::WorldDimension::try_from(create.dimension) {
+        Ok(v1::WorldDimension::Overworld) => WorldKind::Overworld,
+        Ok(v1::WorldDimension::Nether) => WorldKind::Nether,
+        Ok(v1::WorldDimension::End) => WorldKind::End,
+        Ok(v1::WorldDimension::Unspecified) | Err(_) => {
+            return Err(Malformed::Enum {
+                field: "dimension",
+                value: create.dimension,
+            });
+        }
+    };
+    let generator = match required(required(create.generator)?.kind)? {
+        generator::Kind::Vanilla(_) => GeneratorSpec::Vanilla,
+        generator::Kind::Flat(flat) => GeneratorSpec::Flat(
+            flat.layers
+                .into_iter()
+                .map(|layer| LayerSpec {
+                    block: layer.block,
+                    height: layer.height,
+                })
+                .collect(),
+        ),
+        generator::Kind::Void(_) => GeneratorSpec::Void,
+        generator::Kind::Datapack(id) => {
+            GeneratorSpec::Datapack(Identifier::parse(&id).map_err(|_| Malformed::World(id))?)
+        }
+    };
+    Ok(WorldSpec {
+        name: create.name,
+        kind,
+        seed: create.seed,
+        generator,
+        structures: create.structures,
+    })
 }
 
 pub(super) fn wire_state(state: ServerState) -> v1::ServerState {
@@ -127,6 +169,7 @@ mod tests {
                 body: Some(from_plugin::Body::Server(v1::ServerOrder { order })),
                 origin: None,
                 request: None,
+                in_world: None,
             },
             &mut Vec::new(),
         )
@@ -145,6 +188,7 @@ mod tests {
                 })),
                 origin: None,
                 request: None,
+                in_world: None,
             },
             &mut Vec::new(),
         );

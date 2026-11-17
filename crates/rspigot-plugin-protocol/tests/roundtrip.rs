@@ -127,6 +127,7 @@ fn a_hello_and_an_event_survive_encoding() {
         })),
         origin: None,
         request: None,
+        in_world: None,
     };
     let decoded = FromPlugin::decode(hello.encode_to_vec().as_slice()).unwrap();
     assert_eq!(decoded, hello);
@@ -283,6 +284,7 @@ fn a_decision_carries_one_verdict_per_handler_with_its_patch() {
         })),
         origin: None,
         request: None,
+        in_world: None,
     };
     let decoded = FromPlugin::decode(decision.encode_to_vec().as_slice()).unwrap();
     assert_eq!(decoded, decision);

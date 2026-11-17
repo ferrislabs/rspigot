@@ -3,6 +3,7 @@ use std::sync::{Arc, OnceLock};
 use rspigot_anvil::AnvilStore;
 use rspigot_core::ports::ClientLink;
 use rspigot_core::server::Server;
+use rspigot_core::worlds::WorldSpec;
 use rspigot_domain::Identifier;
 use rspigot_domain::world::Dimension;
 use rspigot_worldgen::WorldGenerator;
@@ -16,6 +17,15 @@ static WORLDS: OnceLock<Worlds> = OnceLock::new();
 
 pub fn install(store: Arc<AnvilStore>, generator: Arc<WorldGenerator>) {
     let _ = WORLDS.set(Worlds { store, generator });
+}
+
+pub fn create<L: ClientLink>(server: &mut Server<L>, spec: &WorldSpec) -> Result<(), String> {
+    let worlds = WORLDS
+        .get()
+        .ok_or_else(|| "the world store is not available".to_owned())?;
+    let generator = WorldGenerator::for_world(spec)?;
+    server.load_world(spec, Arc::new(generator), Arc::clone(&worlds.store));
+    Ok(())
 }
 
 pub fn provide<L: ClientLink>(server: &mut Server<L>, key: &Identifier) {
