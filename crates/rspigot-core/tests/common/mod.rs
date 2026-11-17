@@ -304,6 +304,7 @@ pub fn plug(
     server.handle(Inbound::PluginConnected {
         connection,
         intro: PluginIntro {
+            commands: Vec::new(),
             name: name.to_owned(),
             version: "1.0.0".to_owned(),
             handlers,

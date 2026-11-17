@@ -1,3 +1,4 @@
+mod commands;
 mod events;
 mod listeners;
 mod plugin;
@@ -17,4 +18,16 @@ pub fn derive_plugin(input: TokenStream) -> TokenStream {
 pub fn listeners(args: TokenStream, input: TokenStream) -> TokenStream {
     let block = parse_macro_input!(input as ItemImpl);
     listeners::expand(args.into(), block).into()
+}
+
+#[proc_macro_attribute]
+pub fn command(_args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = proc_macro2::TokenStream::from(input);
+    let error = Error::new_spanned(
+        &input,
+        "#[command] goes on a method inside a #[listeners] impl block",
+    );
+    let mut output = error.into_compile_error();
+    output.extend(input);
+    output.into()
 }

@@ -1,5 +1,6 @@
 mod block;
 mod boss_bar;
+mod command;
 mod contract;
 mod custom_inventory;
 mod decision;
@@ -55,6 +56,11 @@ pub(crate) fn intro(hello: v1::Hello) -> Result<PluginIntro, Malformed> {
             .handlers
             .into_iter()
             .map(handler)
+            .collect::<Result<_, _>>()?,
+        commands: hello
+            .commands
+            .into_iter()
+            .map(command::spec)
             .collect::<Result<_, _>>()?,
     })
 }
@@ -171,6 +177,11 @@ pub(crate) fn to_plugin(message: ToPlugin) -> v1::ToPlugin {
         }),
         ToPlugin::Warning(message) => to_plugin::Body::Warning(v1::Warning { message }),
         ToPlugin::Replaced => to_plugin::Body::Replaced(v1::Replaced {}),
+        ToPlugin::Invocation {
+            command,
+            sender,
+            arguments,
+        } => to_plugin::Body::Invocation(command::invocation(command, sender, arguments)),
     };
     v1::ToPlugin { body: Some(body) }
 }

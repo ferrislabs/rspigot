@@ -1641,7 +1641,9 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
+ "rspigot-plugin",
  "syn 2.0.119",
+ "trybuild",
 ]
 
 [[package]]

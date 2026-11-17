@@ -356,6 +356,7 @@ mod tests {
             name: "menus".into(),
             version: "1.0.0".into(),
             token: String::new(),
+            commands: Vec::new(),
             handlers: vec![
                 handler(1, v1::EventKind::InventoryClick),
                 handler(2, v1::EventKind::InventoryClose),

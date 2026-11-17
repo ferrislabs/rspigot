@@ -21,6 +21,7 @@ mod tick_commands;
 mod tree;
 mod world_commands;
 
+pub(crate) use dispatch::refuse;
 pub use dispatch::{
     CommandContext, CommandOutcome, CommandSender, Target, TitleAction, Weather, execute,
 };

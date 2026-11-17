@@ -5,6 +5,7 @@ use syn::{
     Signature, Type,
 };
 
+use crate::commands::{self, Command};
 use crate::events::EVENTS;
 
 const NOT_A_HANDLER: &str = "a #[listeners] block only holds handlers: `async fn name(&self, event: &Event)`; put helpers in another impl block";
@@ -46,6 +47,7 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
         errors.push(Error::new_spanned(&args, "#[listeners] takes no arguments"));
     }
     let mut hooks = Hooks::default();
+    let mut declared: Vec<Command> = Vec::new();
     let handlers: Vec<Handler> = if let Some((_, path, _)) = &block.trait_ {
         errors.push(Error::new_spanned(
             path,
@@ -71,6 +73,11 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
                     hook(method, false, &mut hooks.disable, &mut errors);
                     None
                 }
+                ImplItem::Fn(method) if commands::marked(method) => {
+                    let cfgs = cfgs(&method.attrs);
+                    declared.extend(commands::read(method, id, cfgs, &mut errors));
+                    None
+                }
                 ImplItem::Fn(method) => handler(method, id, &mut errors),
                 other => {
                     errors.push(Error::new_spanned(other, NOT_A_HANDLER));
@@ -79,8 +86,20 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
             })
             .collect()
     };
-    let specs = handlers.iter().map(spec);
-    let arms = handlers.iter().map(arm);
+    let suggesting = commands::suggests(&declared);
+    let specs = handlers
+        .iter()
+        .map(spec)
+        .chain(suggesting.then(commands::suggestion_spec));
+    let arms = handlers
+        .iter()
+        .map(arm)
+        .chain(suggesting.then(|| commands::suggestion_arm(&declared)));
+    let (command_specs, command_invoke) = if declared.is_empty() {
+        (TokenStream::new(), TokenStream::new())
+    } else {
+        (commands::specs(&declared), commands::invoke(&declared))
+    };
     let enables = hooks.enable.iter().map(|cfgs| {
         quote! {
             #(#cfgs)*
@@ -119,6 +138,10 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
             async fn disable(&self) {
                 #(#disables)*
             }
+
+            #command_specs
+
+            #command_invoke
         }
 
         #(#errors)*
@@ -193,7 +216,9 @@ fn cfgs(attrs: &[Attribute]) -> Vec<Attribute> {
 }
 
 fn is_mark(attr: &Attribute) -> bool {
-    attr.path().is_ident("priority") || attr.path().is_ident("ignore_cancelled")
+    attr.path().is_ident("priority")
+        || attr.path().is_ident("ignore_cancelled")
+        || attr.path().is_ident("command")
 }
 
 fn take_marks(attrs: &mut Vec<Attribute>, errors: &mut Vec<Error>) -> Marks {

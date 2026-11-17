@@ -9300,6 +9300,63 @@ pub struct Handler {
     pub ignore_cancelled: bool,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CommandArgument {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(enumeration = "ArgumentKind", tag = "2")]
+    pub kind: i32,
+    #[prost(bool, tag = "3")]
+    pub optional: bool,
+    #[prost(bool, tag = "4")]
+    pub suggested: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommandSpec {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub permission: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "4")]
+    pub arguments: ::prost::alloc::vec::Vec<CommandArgument>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ArgumentValue {
+    #[prost(oneof = "argument_value::Value", tags = "1, 2, 3, 4, 5")]
+    pub value: ::core::option::Option<argument_value::Value>,
+}
+/// Nested message and enum types in `ArgumentValue`.
+pub mod argument_value {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Value {
+        #[prost(message, tag = "1")]
+        Player(super::PlayerSnapshot),
+        #[prost(string, tag = "2")]
+        Item(::prost::alloc::string::String),
+        #[prost(int64, tag = "3")]
+        Integer(i64),
+        #[prost(string, tag = "4")]
+        Text(::prost::alloc::string::String),
+        #[prost(bool, tag = "5")]
+        Flag(bool),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Invocation {
+    #[prost(uint32, tag = "1")]
+    pub command: u32,
+    #[prost(message, optional, tag = "2")]
+    pub sender: ::core::option::Option<PlayerSnapshot>,
+    #[prost(message, repeated, tag = "3")]
+    pub arguments: ::prost::alloc::vec::Vec<ArgumentValue>,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Hello {
     #[prost(uint32, tag = "1")]
@@ -9312,6 +9369,8 @@ pub struct Hello {
     pub token: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "5")]
     pub handlers: ::prost::alloc::vec::Vec<Handler>,
+    #[prost(message, repeated, tag = "6")]
+    pub commands: ::prost::alloc::vec::Vec<CommandSpec>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -10362,7 +10421,7 @@ pub struct Replaced {}
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ToPlugin {
-    #[prost(oneof = "to_plugin::Body", tags = "1, 2, 3, 4, 5")]
+    #[prost(oneof = "to_plugin::Body", tags = "1, 2, 3, 4, 5, 6")]
     pub body: ::core::option::Option<to_plugin::Body>,
 }
 /// Nested message and enum types in `ToPlugin`.
@@ -10380,6 +10439,8 @@ pub mod to_plugin {
         Warning(super::Warning),
         #[prost(message, tag = "5")]
         Replaced(super::Replaced),
+        #[prost(message, tag = "6")]
+        Invocation(super::Invocation),
     }
 }
 #[allow(clippy::all)]
@@ -10573,6 +10634,45 @@ impl GameRule {
             "GAME_RULE_MOB_EXPLOSION_DROP_DECAY" => Some(Self::MobExplosionDropDecay),
             "GAME_RULE_BLOCK_DROPS" => Some(Self::BlockDrops),
             "GAME_RULE_UNIVERSAL_ANGER" => Some(Self::UniversalAnger),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ArgumentKind {
+    Unspecified = 0,
+    Player = 1,
+    Item = 2,
+    Integer = 3,
+    Text = 4,
+    Boolean = 5,
+}
+impl ArgumentKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ARGUMENT_KIND_UNSPECIFIED",
+            Self::Player => "ARGUMENT_KIND_PLAYER",
+            Self::Item => "ARGUMENT_KIND_ITEM",
+            Self::Integer => "ARGUMENT_KIND_INTEGER",
+            Self::Text => "ARGUMENT_KIND_TEXT",
+            Self::Boolean => "ARGUMENT_KIND_BOOLEAN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ARGUMENT_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "ARGUMENT_KIND_PLAYER" => Some(Self::Player),
+            "ARGUMENT_KIND_ITEM" => Some(Self::Item),
+            "ARGUMENT_KIND_INTEGER" => Some(Self::Integer),
+            "ARGUMENT_KIND_TEXT" => Some(Self::Text),
+            "ARGUMENT_KIND_BOOLEAN" => Some(Self::Boolean),
             _ => None,
         }
     }
