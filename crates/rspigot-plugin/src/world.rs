@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::block::{Block, BlockPos, BlockState};
 use crate::entity::{Entities, Entity};
 use crate::link::Link;
+use crate::npc::Npcs;
 use crate::wire::parse_uuid;
 use crate::{
     EntityType, Error, ItemStack, Position, WorldDifficultyHandle, WorldExplosionHandle,
@@ -295,6 +296,7 @@ pub struct World {
     pub entities: Entities,
     pub difficulty: WorldDifficultyHandle,
     pub explosion: WorldExplosionHandle,
+    pub npcs: Npcs,
     pub game_rule: WorldGameRuleHandle,
     pub particle: WorldParticleHandle,
     pub pvp: WorldPvpHandle,
@@ -313,6 +315,7 @@ impl World {
             entities: Entities::new(link.clone()),
             difficulty: WorldDifficultyHandle::new(link.clone()),
             explosion: WorldExplosionHandle::new(link.clone()),
+            npcs: Npcs::new(link.clone()),
             game_rule: WorldGameRuleHandle::new(link.clone()),
             particle: WorldParticleHandle::new(link.clone()),
             pvp: WorldPvpHandle::new(link.clone()),

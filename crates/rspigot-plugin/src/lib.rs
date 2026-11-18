@@ -20,6 +20,7 @@ pub mod keys;
 mod boss_bar;
 mod link;
 mod listener;
+mod npc;
 mod payload;
 mod permissions;
 mod player;
@@ -59,6 +60,7 @@ pub use item::{CustomModelData, ItemStack};
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
 pub use location::PlayerLocationHandle;
+pub use npc::{DEFAULT_SKIN_LAYERS, Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, NpcState, Npcs};
 pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
 pub use permissions::PlayerPermissionsHandle;
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
@@ -94,4 +96,5 @@ pub mod prelude {
     };
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};
+    pub use crate::{Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, Npcs};
 }
