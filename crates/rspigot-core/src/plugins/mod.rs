@@ -87,9 +87,9 @@ pub(crate) use menus::{PluginInventories, PluginMenu};
 pub use npcs::{NpcOrder, NpcSpec, NpcView};
 pub(crate) use objects::{UseMemo, slot_of};
 pub use orders::{
-    BlockOrder, CustomInventoryOrder, EffectSpec, EntityOrder, EntityTrait, GameRule,
-    InventoryOrder, Order, ParticleDataSpec, ParticleSpec, PlayerOrder, ServerOrder, SoundSpec,
-    TitleSpec, WorldOrder,
+    BlockOrder, CustomInventoryOrder, DialogButtonSpec, DialogInputSpec, DialogSpec, EffectSpec,
+    EntityOrder, EntityTrait, GameRule, InventoryOrder, Order, ParticleDataSpec, ParticleSpec,
+    PlayerOrder, ServerOrder, SoundSpec, TitleSpec, WorldOrder,
 };
 pub use patch::{ListDiff, SetDiff, Verdict};
 pub(crate) use registry::Registry;

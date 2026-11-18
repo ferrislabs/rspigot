@@ -621,6 +621,8 @@ pub enum ClientEvent {
         sender_name: Component,
         message: String,
     },
+    ShowDialog(Box<rspigot_domain::dialog::Dialog>),
+    ClearDialog,
     PlayerInfo(Vec<PlayerListEntry>),
     PlayerInfoGameMode {
         player: PlayerId,

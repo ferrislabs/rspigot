@@ -113,6 +113,67 @@ fn wire_vec(v: Vec3) -> WireVec3 {
     }
 }
 
+fn dialog_tag(dialog: &rspigot_domain::dialog::Dialog) -> rspigot_nbt::Tag {
+    use rspigot_nbt::{Compound, Tag};
+
+    let body: Vec<Tag> = dialog
+        .body
+        .iter()
+        .map(|line| {
+            Tag::Compound(
+                Compound::new()
+                    .with("type", "minecraft:plain_message")
+                    .with("contents", text(line).0),
+            )
+        })
+        .collect();
+    let inputs: Vec<Tag> = dialog
+        .inputs
+        .iter()
+        .map(|input| {
+            let mut control = Compound::new()
+                .with("type", "minecraft:text")
+                .with("key", input.key.as_str())
+                .with("label", text(&input.label).0)
+                .with("initial", input.initial.as_str())
+                .with(
+                    "max_length",
+                    i32::try_from(input.max_length).unwrap_or(i32::MAX),
+                );
+            if input.multiline {
+                control.insert("multiline", Compound::new());
+            }
+            Tag::Compound(control)
+        })
+        .collect();
+    let actions: Vec<Tag> = dialog
+        .buttons
+        .iter()
+        .map(|button| {
+            Tag::Compound(
+                Compound::new().with("label", text(&button.label).0).with(
+                    "action",
+                    Compound::new()
+                        .with("type", "minecraft:dynamic/custom")
+                        .with("id", button.id.to_string()),
+                ),
+            )
+        })
+        .collect();
+    let mut root = Compound::new()
+        .with("type", "minecraft:multi_action")
+        .with("title", text(&dialog.title).0)
+        .with("can_close_with_escape", dialog.can_close_with_escape)
+        .with("actions", Tag::List(actions));
+    if !body.is_empty() {
+        root.insert("body", Tag::List(body));
+    }
+    if !inputs.is_empty() {
+        root.insert("inputs", Tag::List(inputs));
+    }
+    Tag::Compound(root)
+}
+
 fn text(component: &rspigot_domain::text::Component) -> Text {
     Text(to_nbt(component))
 }
@@ -1247,6 +1308,16 @@ impl Encoder {
                     stay: *stay,
                     fade_out: *fade_out,
                 },
+            ),
+            ClientEvent::ShowDialog(dialog) => writer.queue(
+                rspigot_protocol::ids::play::clientbound::SHOW_DIALOG,
+                &rspigot_protocol::common::ShowDialogHolder {
+                    dialog: rspigot_protocol::common::DialogHolder::Direct(dialog_tag(dialog)),
+                },
+            ),
+            ClientEvent::ClearDialog => writer.queue(
+                rspigot_protocol::ids::play::clientbound::CLEAR_DIALOG,
+                &rspigot_protocol::common::ClearDialog,
             ),
             ClientEvent::ClearTitles { reset } => Self::queue(
                 writer,
@@ -3448,6 +3519,87 @@ mod tests {
         expected.extend_from_slice(&0.1f32.to_be_bytes());
         expected.extend_from_slice(&[0, 0]);
         assert_eq!(encode(event), vec![(id::LEVEL_PARTICLES, expected)]);
+    }
+
+    #[test]
+    fn a_dialog_is_sent_as_a_multi_action_dialog_with_custom_buttons() {
+        use rspigot_domain::Identifier;
+        use rspigot_domain::dialog::{Dialog, DialogButton, DialogInput};
+        use rspigot_nbt::Tag;
+        use rspigot_protocol::codec::Decode;
+        use rspigot_protocol::common::{DialogHolder, ShowDialogHolder};
+
+        let dialog = Dialog::new(
+            Component::text("Task"),
+            vec![Component::text("Describe it")],
+            vec![DialogInput {
+                key: "task".to_owned(),
+                label: Component::text("What"),
+                initial: "x".to_owned(),
+                max_length: 80,
+                multiline: false,
+            }],
+            vec![DialogButton {
+                label: Component::text("Run"),
+                id: Identifier::parse("agent:run").unwrap(),
+            }],
+            false,
+        )
+        .unwrap();
+        let sent = encode(ClientEvent::ShowDialog(Box::new(dialog)));
+        assert_eq!(sent.len(), 1);
+        assert_eq!(sent[0].0, id::SHOW_DIALOG);
+        let holder = ShowDialogHolder::decode(&mut sent[0].1.as_slice()).unwrap();
+        let DialogHolder::Direct(Tag::Compound(root)) = holder.dialog else {
+            panic!("expected a direct dialog");
+        };
+        assert_eq!(
+            root.get("type"),
+            Some(&Tag::String("minecraft:multi_action".into()))
+        );
+        assert_eq!(root.get("can_close_with_escape"), Some(&Tag::Byte(0)));
+        let Some(Tag::List(actions)) = root.get("actions") else {
+            panic!("expected the actions");
+        };
+        let Tag::Compound(button) = &actions[0] else {
+            panic!("expected a button");
+        };
+        let Some(Tag::Compound(action)) = button.get("action") else {
+            panic!("expected the button action");
+        };
+        assert_eq!(
+            action.get("type"),
+            Some(&Tag::String("minecraft:dynamic/custom".into()))
+        );
+        assert_eq!(action.get("id"), Some(&Tag::String("agent:run".into())));
+        let Some(Tag::List(inputs)) = root.get("inputs") else {
+            panic!("expected the inputs");
+        };
+        let Tag::Compound(input) = &inputs[0] else {
+            panic!("expected an input");
+        };
+        assert_eq!(
+            input.get("type"),
+            Some(&Tag::String("minecraft:text".into()))
+        );
+        assert_eq!(input.get("key"), Some(&Tag::String("task".into())));
+        assert_eq!(input.get("max_length"), Some(&Tag::Int(80)));
+        let Some(Tag::List(body)) = root.get("body") else {
+            panic!("expected the body");
+        };
+        let Tag::Compound(line) = &body[0] else {
+            panic!("expected a body line");
+        };
+        assert_eq!(
+            line.get("type"),
+            Some(&Tag::String("minecraft:plain_message".into()))
+        );
+    }
+
+    #[test]
+    fn clearing_a_dialog_sends_the_clear_packet() {
+        let sent = encode(ClientEvent::ClearDialog);
+        assert_eq!(sent, [(id::CLEAR_DIALOG, Vec::new())]);
     }
 
     #[test]

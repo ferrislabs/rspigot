@@ -702,3 +702,41 @@ fn the_npc_messages_survive_encoding() {
         assert_eq!(decoded, message);
     }
 }
+
+#[test]
+fn a_dialog_order_survives_encoding() {
+    use rspigot_plugin_protocol::v1::{
+        Dialog, DialogButton, DialogInput, PlayerOrder, player_order,
+    };
+
+    let dialog = Dialog {
+        title: "Task".to_owned(),
+        body: vec!["Describe it".to_owned()],
+        inputs: vec![DialogInput {
+            key: "task".to_owned(),
+            label: "What".to_owned(),
+            initial: "x".to_owned(),
+            max_length: 80,
+            multiline: true,
+        }],
+        buttons: vec![DialogButton {
+            label: "Run".to_owned(),
+            id: "agent:run".to_owned(),
+        }],
+        can_close_with_escape: false,
+    };
+    for order in [
+        player_order::Order::ShowDialog(dialog),
+        player_order::Order::ClearDialog(Empty {}),
+    ] {
+        round_trips(&FromPlugin {
+            body: Some(from_plugin::Body::Player(PlayerOrder {
+                player: steve().uuid,
+                order: Some(order),
+            })),
+            origin: None,
+            request: None,
+            in_world: None,
+        });
+    }
+}

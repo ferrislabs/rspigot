@@ -5,6 +5,7 @@ mod commands;
 mod connection;
 mod contract;
 mod custom_inventory;
+mod dialog;
 mod diff;
 mod effect;
 mod entity;
@@ -50,6 +51,7 @@ pub use contract::{
     TrialSpawnerData,
 };
 pub use custom_inventory::{CustomInventory, CustomInventoryState};
+pub use dialog::{Dialog, DialogButton, DialogInput};
 pub use effect::Effect;
 pub use entity::{Entities, Entity, EntityState};
 pub use error::{ActionError, ActionErrorKind, Error};
@@ -96,5 +98,6 @@ pub mod prelude {
     };
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};
+    pub use crate::{Dialog, DialogButton, DialogInput};
     pub use crate::{Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, Npcs};
 }

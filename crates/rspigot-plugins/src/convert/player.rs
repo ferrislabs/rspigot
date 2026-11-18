@@ -7,6 +7,34 @@ use uuid::Uuid;
 use super::shared::{self, required, wire_block_pos, wire_rotation, wire_vec};
 use super::{Malformed, entity};
 
+fn dialog_spec(dialog: v1::Dialog) -> rspigot_core::plugins::DialogSpec {
+    use rspigot_core::plugins::{DialogButtonSpec, DialogInputSpec, DialogSpec};
+    DialogSpec {
+        title: dialog.title,
+        body: dialog.body,
+        inputs: dialog
+            .inputs
+            .into_iter()
+            .map(|input| DialogInputSpec {
+                key: input.key,
+                label: input.label,
+                initial: input.initial,
+                max_length: input.max_length,
+                multiline: input.multiline,
+            })
+            .collect(),
+        buttons: dialog
+            .buttons
+            .into_iter()
+            .map(|button| DialogButtonSpec {
+                label: button.label,
+                id: button.id,
+            })
+            .collect(),
+        can_close_with_escape: dialog.can_close_with_escape,
+    }
+}
+
 pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
     let player = id(order.player)?;
     let order = match required(order.order)? {
@@ -14,6 +42,8 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
         Wire::SendActionBar(text) => PlayerOrder::SendActionBar(text),
         Wire::SendTitle(title) => PlayerOrder::SendTitle(shared::title(title)),
         Wire::ResetTitle(_) => PlayerOrder::ResetTitle,
+        Wire::ShowDialog(dialog) => PlayerOrder::ShowDialog(dialog_spec(dialog)),
+        Wire::ClearDialog(_) => PlayerOrder::ClearDialog,
         Wire::SetTabList(v1::TabList { header, footer }) => {
             PlayerOrder::SetTabList { header, footer }
         }

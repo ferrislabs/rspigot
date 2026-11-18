@@ -17,6 +17,7 @@ pub mod crop;
 pub mod crossbow;
 pub mod custom_boss;
 pub mod damage;
+pub mod dialog;
 pub mod difficulty;
 pub mod dragon;
 pub mod dye;

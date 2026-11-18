@@ -59,6 +59,11 @@ impl<L: ClientLink> Server<L> {
                 },
             ),
             PlayerOrder::SendTitle(title) => self.send_title(id, &title)?,
+            PlayerOrder::ShowDialog(spec) => {
+                let dialog = dialog_of(&spec)?;
+                self.push(Audience::One(id), ClientEvent::ShowDialog(Box::new(dialog)));
+            }
+            PlayerOrder::ClearDialog => self.push(Audience::One(id), ClientEvent::ClearDialog),
             PlayerOrder::ResetTitle => {
                 self.push(Audience::One(id), ClientEvent::ClearTitles { reset: true });
             }
@@ -359,4 +364,45 @@ impl<L: ClientLink> Server<L> {
             change(player);
         }
     }
+}
+
+fn dialog_of(spec: &crate::plugins::DialogSpec) -> Result<rspigot_domain::dialog::Dialog, String> {
+    use rspigot_domain::Identifier;
+    use rspigot_domain::dialog::{Dialog, DialogButton, DialogInput};
+
+    let inputs = spec
+        .inputs
+        .iter()
+        .map(|input| DialogInput {
+            key: input.key.clone(),
+            label: resolve::text(&input.label),
+            initial: input.initial.clone(),
+            max_length: if input.max_length == 0 {
+                rspigot_domain::dialog::DEFAULT_INPUT_LENGTH
+            } else {
+                input.max_length
+            },
+            multiline: input.multiline,
+        })
+        .collect();
+    let buttons = spec
+        .buttons
+        .iter()
+        .map(|button| {
+            Identifier::parse(&button.id)
+                .map(|id| DialogButton {
+                    label: resolve::text(&button.label),
+                    id,
+                })
+                .map_err(|_| format!("`{}` is not a valid button id", button.id))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Dialog::new(
+        resolve::text(&spec.title),
+        spec.body.iter().map(|line| resolve::text(line)).collect(),
+        inputs,
+        buttons,
+        spec.can_close_with_escape,
+    )
+    .map_err(|error| error.to_string())
 }

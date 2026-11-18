@@ -9555,13 +9555,49 @@ pub struct Decision {
     pub verdicts: ::prost::alloc::vec::Vec<Verdict>,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DialogInput {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub initial: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "4")]
+    pub max_length: u32,
+    #[prost(bool, tag = "5")]
+    pub multiline: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DialogButton {
+    #[prost(string, tag = "1")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub id: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Dialog {
+    #[prost(string, tag = "1")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub body: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "3")]
+    pub inputs: ::prost::alloc::vec::Vec<DialogInput>,
+    #[prost(message, repeated, tag = "4")]
+    pub buttons: ::prost::alloc::vec::Vec<DialogButton>,
+    #[prost(bool, tag = "5")]
+    pub can_close_with_escape: bool,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PlayerOrder {
     #[prost(string, tag = "1")]
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -9658,6 +9694,10 @@ pub mod player_order {
         SetScoreboard(u32),
         #[prost(message, tag = "53")]
         Transfer(super::Transfer),
+        #[prost(message, tag = "54")]
+        ShowDialog(super::Dialog),
+        #[prost(message, tag = "55")]
+        ClearDialog(super::Empty),
     }
 }
 #[allow(clippy::all)]

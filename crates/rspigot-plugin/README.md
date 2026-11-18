@@ -39,3 +39,9 @@ The server reads groups and rights from `permissions.yml` (an example is in `exa
 The skin is the `value` and `signature` of a Mojang `textures` property; the server never contacts Mojang. `npc.set_label("§aStep 2 of 5")` shows a line above its head and `clear_label()` removes it. The other orders are `teleport`, `set_skin`, `set_skin_layers`, `set_rotation`, `set_pose`, `set_equipment`, `swing_main_hand`, `swing_off_hand`, `hide_from(&player)`, `show_to(&player)`, `look_at`, `look_at_nearest(range)`, `stop_looking` and `remove`. Only the plugin that created an NPC can order it.
 
 A right click reaches `on_player_interact_at_entity` (the client sends one per hand: keep `EquipmentSlot::Hand`) and a hit reaches `on_entity_damage_by_entity`, both with an `Entity` of type player whose `entity_id` is the NPC's. A hit changes nothing unless a plugin acts on it. [`example/plugins/agent-npc`](../../example/plugins/agent-npc) is a complete example.
+
+## Dialogs
+
+`player.dialog.show(Dialog::new("Task").line("Describe it").input(DialogInput::new("task", "What")).button(DialogButton::new("Run", "agent:run")))` opens a native dialog (a `multi_action` dialog) on that player's screen; `player.dialog.clear()` closes it. A dialog needs at least one button; an input key is letters, digits and underscores and unique in the dialog; a button id is a `namespace:path`; `locked()` stops the player closing it with Escape. An order the server cannot apply is refused with a warning.
+
+A button sends a custom click that reaches `on_player_custom_click` with the button id and a JSON payload holding the value of every input by key, for example `{"task":"fix the build"}`. The server cannot tell a dialog button from any other custom click, so check the id.

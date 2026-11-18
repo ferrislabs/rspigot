@@ -61,6 +61,10 @@ message PlayerState {
 message Verdict { uint32 handler = 1; bool cancel = 2; Patch patch = 3; }
 message Decision { uint64 event = 1; reserved 2; repeated Verdict verdicts = 3; }
 
+message DialogInput { string key = 1; string label = 2; string initial = 3; uint32 max_length = 4; bool multiline = 5; }
+message DialogButton { string label = 1; string id = 2; }
+message Dialog { string title = 1; repeated string body = 2; repeated DialogInput inputs = 3; repeated DialogButton buttons = 4; bool can_close_with_escape = 5; }
+
 message PlayerOrder {
   string player = 1;
   oneof order {
@@ -74,6 +78,7 @@ message PlayerOrder {
     Empty respawn = 40 [(rspigot.path) = "player.health.respawn"]; string perform_command = 41 [(rspigot.path) = "player.command.perform"]; string chat = 42 [(rspigot.path) = "player.message.chat"]; Sound play_sound = 43 [(rspigot.path) = "player.sound.play"]; Particle spawn_particle = 44 [(rspigot.path) = "player.particle.spawn"];
     string hide_player = 45 [(rspigot.path) = "player.visibility.hide"]; string show_player = 46 [(rspigot.path) = "player.visibility.show"]; uint64 open_inventory = 47; Empty close_inventory = 48 [(rspigot.path) = "player.inventory.close"]; Empty update_inventory = 49 [(rspigot.path) = "player.inventory.update"];
     BanTerms ban = 50 [(rspigot.path) = "player.connection.ban"]; Location teleport_to = 51; uint32 set_scoreboard = 52 [(rspigot.path) = "player.scoreboard.set"]; Transfer transfer = 53;
+    Dialog show_dialog = 54 [(rspigot.path) = "player.dialog.show"]; Empty clear_dialog = 55 [(rspigot.path) = "player.dialog.clear"];
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
