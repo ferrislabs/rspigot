@@ -189,6 +189,8 @@ impl Capitainerie {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing_subscriber::fmt().init();
+    dotenvy::from_path(concat!(env!("CARGO_MANIFEST_DIR"), "/.env")).ok();
+    dotenvy::dotenv().ok();
     let config = match Config::from_env() {
         Ok(config) => config,
         Err(error) => {
