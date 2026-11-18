@@ -7,6 +7,35 @@ use uuid::Uuid;
 use super::shared::{self, required, wire_block_pos, wire_rotation, wire_vec};
 use super::{Malformed, entity};
 
+fn rich_parts(
+    message: v1::RichMessage,
+) -> Result<Vec<rspigot_core::plugins::RichPartSpec>, Malformed> {
+    use rspigot_core::plugins::{ClickSpec, RichPartSpec};
+    use v1::rich_click::Action;
+
+    message
+        .parts
+        .into_iter()
+        .map(|part| {
+            let click = match part.click {
+                None => None,
+                Some(click) => Some(match required(click.action)? {
+                    Action::RunCommand(command) => ClickSpec::RunCommand(command),
+                    Action::SuggestCommand(command) => ClickSpec::SuggestCommand(command),
+                    Action::OpenUrl(url) => ClickSpec::OpenUrl(url),
+                    Action::CopyToClipboard(text) => ClickSpec::CopyToClipboard(text),
+                    Action::Custom(id) => ClickSpec::Custom(id),
+                }),
+            };
+            Ok(RichPartSpec {
+                text: part.text,
+                hover: part.hover,
+                click,
+            })
+        })
+        .collect()
+}
+
 fn dialog_spec(dialog: v1::Dialog) -> rspigot_core::plugins::DialogSpec {
     use rspigot_core::plugins::{DialogButtonSpec, DialogInputSpec, DialogSpec};
     DialogSpec {
@@ -44,6 +73,7 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
         Wire::ResetTitle(_) => PlayerOrder::ResetTitle,
         Wire::ShowDialog(dialog) => PlayerOrder::ShowDialog(dialog_spec(dialog)),
         Wire::ClearDialog(_) => PlayerOrder::ClearDialog,
+        Wire::SendRichMessage(message) => PlayerOrder::SendRichMessage(rich_parts(message)?),
         Wire::SetTabList(v1::TabList { header, footer }) => {
             PlayerOrder::SetTabList { header, footer }
         }

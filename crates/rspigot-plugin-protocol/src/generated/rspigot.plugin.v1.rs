@@ -9591,13 +9591,52 @@ pub struct Dialog {
     pub can_close_with_escape: bool,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RichClick {
+    #[prost(oneof = "rich_click::Action", tags = "1, 2, 3, 4, 5")]
+    pub action: ::core::option::Option<rich_click::Action>,
+}
+/// Nested message and enum types in `RichClick`.
+pub mod rich_click {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Action {
+        #[prost(string, tag = "1")]
+        RunCommand(::prost::alloc::string::String),
+        #[prost(string, tag = "2")]
+        SuggestCommand(::prost::alloc::string::String),
+        #[prost(string, tag = "3")]
+        OpenUrl(::prost::alloc::string::String),
+        #[prost(string, tag = "4")]
+        CopyToClipboard(::prost::alloc::string::String),
+        #[prost(string, tag = "5")]
+        Custom(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RichPart {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub hover: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "3")]
+    pub click: ::core::option::Option<RichClick>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RichMessage {
+    #[prost(message, repeated, tag = "1")]
+    pub parts: ::prost::alloc::vec::Vec<RichPart>,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PlayerOrder {
     #[prost(string, tag = "1")]
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -9698,6 +9737,8 @@ pub mod player_order {
         ShowDialog(super::Dialog),
         #[prost(message, tag = "55")]
         ClearDialog(super::Empty),
+        #[prost(message, tag = "56")]
+        SendRichMessage(super::RichMessage),
     }
 }
 #[allow(clippy::all)]

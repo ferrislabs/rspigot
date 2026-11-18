@@ -29,6 +29,8 @@ fn style_into(style: &Style, out: &mut Compound) {
 fn style_from(tag: &Compound) -> Style {
     let flag = |key: &str| tag.get_bool(key);
     Style {
+        click: None,
+        hover: None,
         color: tag.get_str("color").and_then(Color::parse),
         bold: flag("bold"),
         italic: flag("italic"),

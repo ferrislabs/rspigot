@@ -63,6 +63,16 @@ impl<L: ClientLink> Server<L> {
                 let dialog = dialog_of(&spec)?;
                 self.push(Audience::One(id), ClientEvent::ShowDialog(Box::new(dialog)));
             }
+            PlayerOrder::SendRichMessage(parts) => {
+                let message = rich_message_of(&parts)?;
+                self.push(
+                    Audience::One(id),
+                    ClientEvent::SystemChat {
+                        message,
+                        overlay: false,
+                    },
+                );
+            }
             PlayerOrder::ClearDialog => self.push(Audience::One(id), ClientEvent::ClearDialog),
             PlayerOrder::ResetTitle => {
                 self.push(Audience::One(id), ClientEvent::ClearTitles { reset: true });
@@ -405,4 +415,64 @@ fn dialog_of(spec: &crate::plugins::DialogSpec) -> Result<rspigot_domain::dialog
         spec.can_close_with_escape,
     )
     .map_err(|error| error.to_string())
+}
+
+const MAX_CLICK_VALUE: usize = 256;
+const MAX_RICH_PARTS: usize = 64;
+
+fn rich_message_of(
+    parts: &[crate::plugins::RichPartSpec],
+) -> Result<rspigot_domain::text::Component, String> {
+    use rspigot_domain::Identifier;
+    use rspigot_domain::text::{ClickEvent, Component};
+
+    use crate::plugins::ClickSpec;
+
+    if parts.len() > MAX_RICH_PARTS {
+        return Err(format!("a message holds at most {MAX_RICH_PARTS} parts"));
+    }
+    let too_long = |value: &str| {
+        (value.chars().count() > MAX_CLICK_VALUE)
+            .then(|| format!("a click value holds at most {MAX_CLICK_VALUE} characters"))
+    };
+    let mut extra = Vec::with_capacity(parts.len());
+    for part in parts {
+        let mut wrapper = Component::text("");
+        wrapper.extra.push(resolve::text(&part.text));
+        wrapper.style.hover = part
+            .hover
+            .as_deref()
+            .map(|hover| Box::new(resolve::text(hover)));
+        wrapper.style.click = match &part.click {
+            None => None,
+            Some(ClickSpec::RunCommand(command)) => {
+                too_long(command).map_or(Ok(()), Err)?;
+                Some(Box::new(ClickEvent::RunCommand(command.clone())))
+            }
+            Some(ClickSpec::SuggestCommand(command)) => {
+                too_long(command).map_or(Ok(()), Err)?;
+                Some(Box::new(ClickEvent::SuggestCommand(command.clone())))
+            }
+            Some(ClickSpec::OpenUrl(url)) => {
+                too_long(url).map_or(Ok(()), Err)?;
+                if !(url.starts_with("http://") || url.starts_with("https://")) {
+                    return Err(format!("`{url}` is not an http or https address"));
+                }
+                Some(Box::new(ClickEvent::OpenUrl(url.clone())))
+            }
+            Some(ClickSpec::CopyToClipboard(text)) => {
+                too_long(text).map_or(Ok(()), Err)?;
+                Some(Box::new(ClickEvent::CopyToClipboard(text.clone())))
+            }
+            Some(ClickSpec::Custom(id)) => {
+                let id =
+                    Identifier::parse(id).map_err(|_| format!("`{id}` is not a valid click id"))?;
+                Some(Box::new(ClickEvent::Custom(id.to_string())))
+            }
+        };
+        extra.push(wrapper);
+    }
+    let mut root = Component::text("");
+    root.extra = extra;
+    Ok(root)
 }

@@ -338,6 +338,22 @@ impl InventoryOrder {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ClickSpec {
+    RunCommand(String),
+    SuggestCommand(String),
+    OpenUrl(String),
+    CopyToClipboard(String),
+    Custom(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RichPartSpec {
+    pub text: String,
+    pub hover: Option<String>,
+    pub click: Option<ClickSpec>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct DialogInputSpec {
     pub key: String,
@@ -370,6 +386,7 @@ pub enum PlayerOrder {
     ResetTitle,
     ShowDialog(DialogSpec),
     ClearDialog,
+    SendRichMessage(Vec<RichPartSpec>),
     SetTabList {
         header: String,
         footer: String,
@@ -434,6 +451,7 @@ impl PlayerOrder {
             Self::ResetTitle => "player.reset_title",
             Self::ShowDialog(_) => "player.show_dialog",
             Self::ClearDialog => "player.clear_dialog",
+            Self::SendRichMessage(_) => "player.send_rich_message",
             Self::SetTabList { .. } => "player.set_tab_list",
             Self::Teleport(_) => "player.teleport",
             Self::TeleportFacing(..) => "player.teleport_facing",

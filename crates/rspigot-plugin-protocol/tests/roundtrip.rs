@@ -740,3 +740,36 @@ fn a_dialog_order_survives_encoding() {
         });
     }
 }
+
+#[test]
+fn a_rich_message_order_survives_encoding() {
+    use rspigot_plugin_protocol::v1::{
+        PlayerOrder, RichClick, RichMessage, RichPart, player_order, rich_click,
+    };
+
+    let parts = [
+        rich_click::Action::RunCommand("/go".to_owned()),
+        rich_click::Action::SuggestCommand("/go".to_owned()),
+        rich_click::Action::OpenUrl("https://a.b".to_owned()),
+        rich_click::Action::CopyToClipboard("x".to_owned()),
+        rich_click::Action::Custom("agent:cancel".to_owned()),
+    ]
+    .into_iter()
+    .map(|action| RichPart {
+        text: "t".to_owned(),
+        hover: Some("h".to_owned()),
+        click: Some(RichClick {
+            action: Some(action),
+        }),
+    })
+    .collect();
+    round_trips(&FromPlugin {
+        body: Some(from_plugin::Body::Player(PlayerOrder {
+            player: steve().uuid,
+            order: Some(player_order::Order::SendRichMessage(RichMessage { parts })),
+        })),
+        origin: None,
+        request: None,
+        in_world: None,
+    });
+}

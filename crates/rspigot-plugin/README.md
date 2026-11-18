@@ -45,3 +45,7 @@ A right click reaches `on_player_interact_at_entity` (the client sends one per h
 `player.dialog.show(Dialog::new("Task").line("Describe it").input(DialogInput::new("task", "What")).button(DialogButton::new("Run", "agent:run")))` opens a native dialog (a `multi_action` dialog) on that player's screen; `player.dialog.clear()` closes it. A dialog needs at least one button; an input key is letters, digits and underscores and unique in the dialog; a button id is a `namespace:path`; `locked()` stops the player closing it with Escape. An order the server cannot apply is refused with a warning.
 
 A button sends a custom click that reaches `on_player_custom_click` with the button id and a JSON payload holding the value of every input by key, for example `{"task":"fix the build"}`. The server cannot tell a dialog button from any other custom click, so check the id.
+
+## Messages with hover and click
+
+`player.message.send_rich(RichMessage::new().text("Task ").part(Part::new("[Cancel]").hover("Stops the task").click(Click::Custom("agent:cancel".into()))))` sends a chat message whose parts can show a tooltip and react to a click. `Click` is `RunCommand` (the player runs it, as if typed), `SuggestCommand` (fills the chat box), `OpenUrl` (`http` or `https` only), `CopyToClipboard` or `Custom`. A `Custom` click id is a `namespace:path` and reaches `on_player_custom_click` like a dialog button. Text uses `§` codes. A part holds at most 256 characters of click value and a message at most 64 parts; anything else is refused with a warning.
