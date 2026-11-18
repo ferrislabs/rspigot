@@ -121,6 +121,26 @@ impl Npc {
     }
 }
 
+pub(crate) fn view_of(npc: &Npc) -> crate::plugins::EntityView {
+    crate::plugins::EntityView {
+        id: npc.id,
+        uuid: npc.uuid,
+        kind: rspigot_entities::EntityKind::Player.name().to_owned(),
+        position: npc.position,
+        player: None,
+    }
+}
+
+pub(crate) fn bounds_of(npc: &Npc) -> rspigot_domain::entity::Aabb {
+    let height = match npc.pose {
+        Pose::Crouching => 1.5,
+        Pose::Sleeping => 0.2,
+        Pose::Swimming | Pose::FallFlying | Pose::SpinAttack => 0.6,
+        _ => 1.8,
+    };
+    rspigot_domain::entity::Aabb::of_size(npc.position, 0.6, height)
+}
+
 pub(crate) fn rotation_toward(from: Vec3, to: Vec3, current: Rotation) -> Rotation {
     let (dx, dy, dz) = (to.x - from.x, to.y - from.y, to.z - from.z);
     let flat = dx.hypot(dz);

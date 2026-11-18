@@ -170,6 +170,16 @@ impl<L: ClientLink> Server<L> {
                 velocity: entity.base.velocity,
             });
         }
+        if let Some(npc) = self.entities.npcs.get(target) {
+            return Some(Victim {
+                target: Target::Entity(target),
+                entity: target,
+                bounds: crate::npc::bounds_of(npc),
+                living: true,
+                attackable: true,
+                velocity: Vec3::ZERO,
+            });
+        }
         let entity = self.entities.store.get(target)?;
         Some(Victim {
             target: Target::Entity(target),
@@ -228,6 +238,10 @@ impl<L: ClientLink> Server<L> {
             );
             return;
         }
+        if self.entities.npcs.get(target).is_some() {
+            self.attack_npc(id, target);
+            return;
+        }
         if let Some((dragon, part)) = self.dragon_part_of(target) {
             self.dragon_note_part(dragon, part);
         }
@@ -273,6 +287,24 @@ impl<L: ClientLink> Server<L> {
         if let Some(position) = self.players.get(&id).map(|p| p.position) {
             self.play_sound(None, position, sound, SoundSource::Players, 1.0, 1.0);
         }
+    }
+
+    fn attack_npc(&mut self, id: PlayerId, target: EntityId) {
+        let Some(source) = self.source_of(id) else {
+            return;
+        };
+        let Some(attacker) = self.players.get(&id) else {
+            return;
+        };
+        let amount = attributes(attacker).get(ATTACK_DAMAGE) as f32;
+        let source = DamageSource::by(DamageType::PlayerAttack, source);
+        self.strike(
+            Some(id),
+            Struck::Npc(target),
+            &source,
+            amount,
+            AfterHurt::Nothing,
+        );
     }
 
     fn attack(&mut self, id: PlayerId, victim: Victim) {

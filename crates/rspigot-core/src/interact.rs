@@ -202,6 +202,7 @@ impl<L: ClientLink> Server<L> {
             .store
             .get(target)
             .map(|e| e.base.bounding_box())
+            .or_else(|| self.entities.npcs.get(target).map(crate::npc::bounds_of))
         else {
             return false;
         };
@@ -223,12 +224,13 @@ impl<L: ClientLink> Server<L> {
             .players
             .get(&id)
             .is_some_and(|player| !player.vitals.is_dead());
-        let present = self.entities.store.get(target).is_some_and(|entity| {
-            !entity.base.is_removed()
-                && entity
-                    .living()
-                    .is_none_or(|living| !living::is_dead_or_dying(&entity.base, living))
-        });
+        let present = self.entities.npcs.get(target).is_some()
+            || self.entities.store.get(target).is_some_and(|entity| {
+                !entity.base.is_removed()
+                    && entity
+                        .living()
+                        .is_none_or(|living| !living::is_dead_or_dying(&entity.base, living))
+            });
         alive && present && self.within_entity_reach(id, target)
     }
 
@@ -320,7 +322,7 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get(&id) else {
             return Interaction::Pass;
         };
-        if player.game_mode == GameMode::Spectator {
+        if player.game_mode == GameMode::Spectator || self.entities.npcs.get(target).is_some() {
             return Interaction::Pass;
         }
         let before = self.held(id, hand);
