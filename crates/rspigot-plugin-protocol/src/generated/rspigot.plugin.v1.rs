@@ -10093,7 +10093,7 @@ pub struct NpcOrder {
     pub npc: i32,
     #[prost(
         oneof = "npc_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
     )]
     pub order: ::core::option::Option<npc_order::Order>,
 }
@@ -10124,6 +10124,8 @@ pub mod npc_order {
         LookAtNearest(super::NpcGaze),
         #[prost(uint32, tag = "20")]
         SetSkinLayers(u32),
+        #[prost(string, tag = "21")]
+        SetLabel(::prost::alloc::string::String),
     }
 }
 #[allow(clippy::all)]
@@ -10590,6 +10592,8 @@ pub struct NpcState {
     pub pose: ::prost::alloc::string::String,
     #[prost(double, tag = "11")]
     pub gaze_range: f64,
+    #[prost(string, optional, tag = "12")]
+    pub label: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]

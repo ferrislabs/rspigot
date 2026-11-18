@@ -33,6 +33,7 @@ pub struct NpcView {
     pub skin_layers: u8,
     pub pose: String,
     pub gaze_range: f64,
+    pub label: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -54,6 +55,7 @@ pub enum NpcOrder {
     LookAt(Vec3),
     LookAtNearest(f64),
     SetSkinLayers(u8),
+    SetLabel(String),
 }
 
 impl NpcOrder {
@@ -70,6 +72,7 @@ impl NpcOrder {
             Self::LookAt(_) => "npc.look_at",
             Self::LookAtNearest(_) => "npc.look_at_nearest",
             Self::SetSkinLayers(_) => "npc.set_skin_layers",
+            Self::SetLabel(_) => "npc.set_label",
         }
     }
 }
@@ -146,6 +149,7 @@ impl<L: ClientLink> Server<L> {
         let position = resolve::position_of(spec.position)?;
         let rotation = spec.rotation.unwrap_or_default();
         let id = self.allocate_entity_id();
+        let label_id = self.allocate_entity_id();
         let uuid = self.random_uuid();
         self.entities.npcs.insert(Npc {
             id,
@@ -162,6 +166,8 @@ impl<L: ClientLink> Server<L> {
             pose: Pose::Standing,
             equipment: Vec::new(),
             gaze_range: 0.0,
+            label: None,
+            label_id,
         });
         self.update_npc_viewers_of(id);
         self.npc_view(id)
@@ -226,6 +232,9 @@ impl<L: ClientLink> Server<L> {
                 let slot = slot_of(&slot)?;
                 let stack = item.as_ref().map(stack_of).transpose()?.flatten();
                 self.set_npc_equipment(id, slot, stack);
+            }
+            NpcOrder::SetLabel(text) => {
+                self.set_npc_label(id, (!text.is_empty()).then_some(text));
             }
             NpcOrder::SwingMainHand => self.animate_npc(id, Animation::SwingMainArm),
             NpcOrder::SwingOffHand => self.animate_npc(id, Animation::SwingOffHand),
@@ -310,6 +319,7 @@ impl<L: ClientLink> Server<L> {
             skin_layers: npc.skin_layers,
             pose: pose_name(npc.pose).to_owned(),
             gaze_range: npc.gaze_range,
+            label: npc.label.clone(),
         }
     }
 

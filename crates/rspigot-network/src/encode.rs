@@ -1490,6 +1490,7 @@ impl Encoder {
                                 MetadataValue::OptionalComponent(c) => {
                                     EntityDataValue::OptionalComponent(c.as_ref().map(text))
                                 }
+                                MetadataValue::Component(c) => EntityDataValue::Component(text(c)),
                                 MetadataValue::Boolean(b) => EntityDataValue::Boolean(*b),
                                 MetadataValue::Item(item) => {
                                     EntityDataValue::ItemStack(stack(item))

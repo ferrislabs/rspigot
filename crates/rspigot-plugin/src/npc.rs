@@ -236,6 +236,7 @@ pub struct NpcState {
     pub skin_layers: u8,
     pub pose: NpcPose,
     pub gaze_range: f64,
+    pub label: Option<String>,
 }
 
 impl Npc {
@@ -267,10 +268,11 @@ impl Npc {
             .ok_or_else(|| Error::Malformed(format!("the npc pose {}", state.pose)))?;
         let layers = u8::try_from(state.skin_layers)
             .map_err(|_| Error::Malformed(format!("the skin layers {}", state.skin_layers)))?;
-        let (world, skin, gaze_range) = (
+        let (world, skin, gaze_range, label) = (
             state.world.clone(),
             state.skin.clone().map(NpcSkin::from_wire),
             state.gaze_range,
+            state.label.clone(),
         );
         Ok(NpcState {
             npc: Self::from_wire(state, &self.link)?,
@@ -279,6 +281,7 @@ impl Npc {
             skin_layers: layers,
             pose,
             gaze_range,
+            label,
         })
     }
 
@@ -311,6 +314,14 @@ impl Npc {
             slot: slot.name().to_owned(),
             item: item.map(ItemStack::into_wire),
         }));
+    }
+
+    pub fn set_label(&self, text: impl Into<String>) {
+        self.order(Order::SetLabel(text.into()));
+    }
+
+    pub fn clear_label(&self) {
+        self.order(Order::SetLabel(String::new()));
     }
 
     pub fn swing_main_hand(&self) {

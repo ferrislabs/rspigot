@@ -43,6 +43,7 @@ fn state() -> v1::NpcState {
         skin_layers: 0x7f,
         pose: "crouching".to_owned(),
         gaze_range: 6.0,
+        label: Some("Working".to_owned()),
     }
 }
 
@@ -76,6 +77,8 @@ async fn creating_an_npc_sends_its_spec_and_returns_a_handle_that_orders() {
                 Some(ItemStack::new(Material::DiamondHelmet, 1)),
             );
             npc.set_equipment(NpcSlot::OffHand, None);
+            npc.set_label("§aWorking");
+            npc.clear_label();
             npc.swing_main_hand();
             npc.swing_off_hand();
             npc.look_at(HERE);
@@ -127,6 +130,8 @@ async fn creating_an_npc_sends_its_spec_and_returns_a_handle_that_orders() {
             slot: "off_hand".to_owned(),
             item: None,
         }),
+        Order::SetLabel("§aWorking".to_owned()),
+        Order::SetLabel(String::new()),
         Order::SwingMainHand(v1::Empty {}),
         Order::SwingOffHand(v1::Empty {}),
         Order::LookAt(vec3()),
@@ -156,6 +161,7 @@ async fn an_npc_is_found_by_key_listed_and_read_back() {
             assert_eq!(read.gaze_range, 6.0);
             assert_eq!(read.skin.unwrap().value, "dGV4");
             assert_eq!(read.world, "world");
+            assert_eq!(read.label.as_deref(), Some("Working"));
             assert!(matches!(found.get_state().await, Err(Error::NotFound)));
         })
     })

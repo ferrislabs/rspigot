@@ -135,7 +135,7 @@ message NpcOrder {
   oneof order {
     Vec3 teleport = 10; Empty remove = 11; NpcSkin set_skin = 12; Rotation set_rotation = 13; string set_pose = 14;
     NpcEquipment set_equipment = 15; Empty swing_main_hand = 16; Empty swing_off_hand = 17; Vec3 look_at = 18;
-    NpcGaze look_at_nearest = 19; uint32 set_skin_layers = 20;
+    NpcGaze look_at_nearest = 19; uint32 set_skin_layers = 20; string set_label = 21;
   }
 }
 message TargetQuery { string player = 1; double max_distance = 2; }
@@ -202,7 +202,7 @@ message BossBarState {
 message BossBarList { repeated BossBarState bars = 1; }
 message NpcState {
   int32 entity_id = 1; string uuid = 2; string key = 3; string name = 4; string world = 5; Vec3 position = 6; Rotation rotation = 7;
-  optional NpcSkin skin = 8; uint32 skin_layers = 9; string pose = 10; double gaze_range = 11;
+  optional NpcSkin skin = 8; uint32 skin_layers = 9; string pose = 10; double gaze_range = 11; optional string label = 12;
 }
 message NpcList { repeated NpcState npcs = 1; }
 message Answer {

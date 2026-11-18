@@ -415,6 +415,7 @@ pub enum MetadataValue {
     Float(f32),
     Pose(Pose),
     OptionalComponent(Option<Component>),
+    Component(Component),
     Boolean(bool),
     Item(Slot),
     BlockPos(BlockPos),

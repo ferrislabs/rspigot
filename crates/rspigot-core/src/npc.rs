@@ -17,6 +17,10 @@ pub(crate) const SKIN_LAYERS_INDEX: u8 = 16;
 pub(crate) const POSE_INDEX: u8 = 6;
 pub(crate) const EYE_HEIGHT: f64 = 1.62;
 pub(crate) const MAX_NPCS_PER_PLUGIN: usize = 256;
+pub(crate) const LABEL_OFFSET: f64 = 2.35;
+const BILLBOARD_INDEX: u8 = 15;
+const TEXT_INDEX: u8 = 23;
+const BILLBOARD_CENTER: i8 = 3;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Npc {
@@ -32,6 +36,8 @@ pub(crate) struct Npc {
     pub pose: Pose,
     pub equipment: Vec<(EquipmentSlot, ItemStack)>,
     pub gaze_range: f64,
+    pub label: Option<String>,
+    pub label_id: EntityId,
 }
 
 impl Npc {
@@ -70,6 +76,55 @@ impl Npc {
         ]
     }
 
+    pub(crate) fn label_uuid(&self) -> Uuid {
+        Uuid::from_u128(self.uuid.as_u128().wrapping_add(1))
+    }
+
+    pub(crate) fn label_position(&self) -> Vec3 {
+        Vec3::new(
+            self.position.x,
+            self.position.y + LABEL_OFFSET,
+            self.position.z,
+        )
+    }
+
+    pub(crate) fn label_spawn_events(&self) -> Vec<ClientEvent> {
+        let Some(label) = &self.label else {
+            return Vec::new();
+        };
+        vec![
+            ClientEvent::SpawnEntity {
+                entity: self.label_id,
+                uuid: self.label_uuid(),
+                kind: crate::entities::wire_kind(rspigot_entities::EntityKind::TextDisplay),
+                position: self.label_position(),
+                rotation: Rotation::new(0.0, 0.0),
+                head_yaw: 0.0,
+                data: 0,
+                velocity: Vec3::ZERO,
+            },
+            self.label_metadata_event(label),
+        ]
+    }
+
+    pub(crate) fn label_metadata_event(&self, label: &str) -> ClientEvent {
+        ClientEvent::EntityMetadata {
+            entity: self.label_id,
+            entries: vec![
+                MetadataEntry {
+                    index: BILLBOARD_INDEX,
+                    value: MetadataValue::Byte(BILLBOARD_CENTER),
+                },
+                MetadataEntry {
+                    index: TEXT_INDEX,
+                    value: MetadataValue::Component(
+                        rspigot_domain::text::Component::from_section_codes(label),
+                    ),
+                },
+            ],
+        }
+    }
+
     pub(crate) fn spawn_events(&self) -> Vec<ClientEvent> {
         let mut events = vec![
             ClientEvent::PlayerInfo(vec![self.list_entry()]),
@@ -92,6 +147,7 @@ impl Npc {
                 entries: self.metadata(),
             },
         ];
+        events.extend(self.label_spawn_events());
         if !self.equipment.is_empty() {
             events.push(ClientEvent::EntityEquipment {
                 entity: self.id,
@@ -106,8 +162,12 @@ impl Npc {
     }
 
     pub(crate) fn despawn_events(&self) -> Vec<ClientEvent> {
+        let mut gone = vec![self.id];
+        if self.label.is_some() {
+            gone.push(self.label_id);
+        }
         vec![
-            ClientEvent::RemoveEntities(vec![self.id]),
+            ClientEvent::RemoveEntities(gone),
             ClientEvent::PlayerInfoRemove(vec![PlayerId(self.uuid)]),
         ]
     }
@@ -317,6 +377,10 @@ impl<L: ClientLink> Server<L> {
         let from = npc.position;
         npc.position = to;
         let rotation = npc.rotation;
+        let label = npc
+            .label
+            .is_some()
+            .then(|| (npc.label_id, npc.label_position()));
         self.push(
             Audience::Trackers(id),
             ClientEvent::EntityMoved {
@@ -327,7 +391,46 @@ impl<L: ClientLink> Server<L> {
                 on_ground: true,
             },
         );
+        if let Some((label_id, at)) = label {
+            self.push(
+                Audience::Trackers(id),
+                ClientEvent::EntityMoved {
+                    entity: label_id,
+                    from: Vec3::new(from.x, from.y + LABEL_OFFSET, from.z),
+                    to: at,
+                    rotation: None,
+                    on_ground: false,
+                },
+            );
+        }
         self.update_npc_viewers_of(id);
+    }
+
+    pub(crate) fn set_npc_label(&mut self, id: EntityId, label: Option<String>) {
+        let Some(npc) = self.entities.npcs.get_mut(id) else {
+            return;
+        };
+        let had = npc.label.is_some();
+        npc.label = label;
+        let npc = npc.clone();
+        match (&npc.label, had) {
+            (Some(label), true) => {
+                let event = npc.label_metadata_event(label);
+                self.push(Audience::Trackers(id), event);
+            }
+            (Some(_), false) => {
+                for event in npc.label_spawn_events() {
+                    self.push(Audience::Trackers(id), event);
+                }
+            }
+            (None, true) => {
+                self.push(
+                    Audience::Trackers(id),
+                    ClientEvent::RemoveEntities(vec![npc.label_id]),
+                );
+            }
+            (None, false) => {}
+        }
     }
 
     pub(crate) fn drop_npc(&mut self, id: EntityId) {

@@ -650,6 +650,7 @@ fn the_npc_messages_survive_encoding() {
     for order in [
         npc_order::Order::Remove(Empty {}),
         npc_order::Order::SetPose("crouching".to_owned()),
+        npc_order::Order::SetLabel("§aWorking".to_owned()),
         npc_order::Order::SetSkinLayers(0x7f),
         npc_order::Order::SwingMainHand(Empty {}),
         npc_order::Order::LookAtNearest(NpcGaze { range: 6.0 }),
@@ -681,6 +682,7 @@ fn the_npc_messages_survive_encoding() {
         skin_layers: 0x7f,
         pose: "standing".to_owned(),
         gaze_range: 0.0,
+        label: Some("Working".to_owned()),
     };
     let list = NpcList {
         npcs: vec![state.clone()],

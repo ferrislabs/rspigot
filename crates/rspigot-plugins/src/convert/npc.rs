@@ -25,6 +25,7 @@ pub(super) fn order(order: v1::NpcOrder) -> Result<Order, Malformed> {
         Wire::LookAt(target) => NpcOrder::LookAt(shared::vec3(target)),
         Wire::LookAtNearest(gaze) => NpcOrder::LookAtNearest(gaze.range),
         Wire::SetSkinLayers(layers) => NpcOrder::SetSkinLayers(layers_of(layers)?),
+        Wire::SetLabel(text) => NpcOrder::SetLabel(text),
     };
     Ok(Order::Npc { npc, order })
 }
@@ -62,6 +63,7 @@ pub(super) fn wire_state(view: NpcView) -> v1::NpcState {
         skin_layers: u32::from(view.skin_layers),
         pose: view.pose,
         gaze_range: view.gaze_range,
+        label: view.label,
     }
 }
 

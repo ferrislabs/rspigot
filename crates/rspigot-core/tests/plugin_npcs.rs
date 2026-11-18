@@ -361,3 +361,95 @@ fn another_plugin_cannot_order_it() {
     assert!(heard(&intruder).iter().any(|message| matches!(message, ToPlugin::Warning(text) if text.contains("belongs to the plugin tester"))));
     assert!(matches!(s.ask(Question::Npc(npc.id)), Answer::Npc(_)));
 }
+
+fn label_spawn(events: &[ClientEvent], npc: &NpcView) -> Option<(i32, Vec3)> {
+    events.iter().find_map(|event| match event {
+        ClientEvent::SpawnEntity {
+            entity,
+            kind: EntityKind::Other(_),
+            position,
+            ..
+        } if *entity != npc.id => Some((entity.0, *position)),
+        _ => None,
+    })
+}
+
+fn label_text(events: &[ClientEvent], label: i32) -> Option<String> {
+    events.iter().find_map(|event| match event {
+        ClientEvent::EntityMetadata { entity, entries } if entity.0 == label => entries
+            .iter()
+            .find(|entry| entry.index == 23)
+            .and_then(|entry| match &entry.value {
+                MetadataValue::Component(text) => Some(text.to_legacy()),
+                _ => None,
+            }),
+        _ => None,
+    })
+}
+
+#[test]
+fn a_label_is_spawned_with_the_npc_above_its_head() {
+    let mut s = scene(&["Alice"]);
+    let (alice, at) = nearby(&mut s);
+    let npc = created(&mut s, spec("agent-7", "Scout", at));
+    act(&mut s, &npc, NpcOrder::SetLabel("§aWorking".to_owned()));
+    let events = until_seen(&mut s, &alice);
+    let (label, position) = label_spawn(&events, &npc).expect("the label is spawned");
+    assert!((position.y - (at.y + 2.35)).abs() < 1.0e-9);
+    assert_eq!(label_text(&events, label).as_deref(), Some("§aWorking"));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        ClientEvent::EntityMetadata { entity, entries }
+            if entity.0 == label
+                && entries.iter().any(|e| e.index == 15 && e.value == MetadataValue::Byte(3))
+    )));
+}
+
+#[test]
+fn a_label_follows_the_npc_changes_and_clears() {
+    let mut s = scene(&["Alice"]);
+    let (alice, at) = nearby(&mut s);
+    let npc = created(&mut s, spec("agent-7", "Scout", at));
+    until_seen(&mut s, &alice);
+
+    act(&mut s, &npc, NpcOrder::SetLabel("Step 1".to_owned()));
+    let events = alice.link.take();
+    let (label, _) = label_spawn(&events, &npc).expect("a label set late is spawned");
+    assert_eq!(label_text(&events, label).as_deref(), Some("Step 1"));
+
+    act(&mut s, &npc, NpcOrder::SetLabel("Step 2".to_owned()));
+    assert_eq!(
+        label_text(&alice.link.take(), label).as_deref(),
+        Some("Step 2")
+    );
+
+    let near = Vec3::new(at.x, at.y, at.z + 2.0);
+    act(&mut s, &npc, NpcOrder::Teleport(near));
+    assert!(alice.link.take().iter().any(|event| matches!(
+        event,
+        ClientEvent::EntityMoved { entity, to, .. }
+            if entity.0 == label && (to.y - (near.y + 2.35)).abs() < 1.0e-9 && to.z == near.z
+    )));
+
+    act(&mut s, &npc, NpcOrder::SetLabel(String::new()));
+    assert!(alice
+        .link
+        .take()
+        .iter()
+        .any(|event| matches!(event, ClientEvent::RemoveEntities(ids) if ids.iter().any(|id| id.0 == label))));
+}
+
+#[test]
+fn removing_an_npc_removes_its_label_too() {
+    let mut s = scene(&["Alice"]);
+    let (alice, at) = nearby(&mut s);
+    let npc = created(&mut s, spec("agent-7", "Scout", at));
+    act(&mut s, &npc, NpcOrder::SetLabel("Idle".to_owned()));
+    let events = until_seen(&mut s, &alice);
+    let (label, _) = label_spawn(&events, &npc).expect("the label is spawned");
+    act(&mut s, &npc, NpcOrder::Remove);
+    assert!(alice.link.take().iter().any(|event| matches!(
+        event,
+        ClientEvent::RemoveEntities(ids) if ids.len() == 2 && ids.iter().any(|id| id.0 == label)
+    )));
+}
