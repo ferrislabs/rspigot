@@ -48,6 +48,8 @@ pub(crate) enum Malformed {
     World(String),
     #[error("{value} is out of range for {field}")]
     OutOfRange { field: &'static str, value: i64 },
+    #[error("{0} is not served yet")]
+    Unserved(&'static str),
 }
 
 pub(crate) fn intro(hello: v1::Hello) -> Result<PluginIntro, Malformed> {
@@ -120,6 +122,7 @@ pub(crate) fn from_plugin(
         from_plugin::Body::CustomInventory(order) => ordered(custom_inventory::order(order)?),
         from_plugin::Body::Scoreboard(order) => ordered(scoreboard::order(order)?),
         from_plugin::Body::BossBar(order) => ordered(boss_bar::order(order)?),
+        from_plugin::Body::Npc(_) => return Err(Malformed::Unserved("an npc order")),
         from_plugin::Body::Question(asked) => question(asked)?,
     };
     scoped(world, converted)
@@ -197,6 +200,10 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         question::Question::BossBar(bar) => Question::BossBar(bar),
         question::Question::BossBars(_) => Question::BossBars,
         question::Question::AttributeValue(query) => entity::attribute_query(query)?,
+        question::Question::CreateNpc(_)
+        | question::Question::NpcByKey(_)
+        | question::Question::Npcs(_)
+        | question::Question::Npc(_) => return Err(Malformed::Unserved("an npc question")),
     };
     Ok(FromPlugin::Question {
         request: asked.request,

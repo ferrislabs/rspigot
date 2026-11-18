@@ -610,3 +610,91 @@ fn every_wrapper_of_a_patch_survives_encoding() {
         None
     );
 }
+
+#[test]
+fn the_npc_messages_survive_encoding() {
+    use rspigot_plugin_protocol::v1::{
+        NpcEquipment, NpcGaze, NpcList, NpcOrder, NpcSkin, NpcSpec, NpcState, Question, answer,
+        npc_order, question,
+    };
+
+    let spec = NpcSpec {
+        key: "agent-7".to_owned(),
+        name: "Scout".to_owned(),
+        position: Some(Vec3 {
+            x: 1.0,
+            y: 64.0,
+            z: -3.5,
+        }),
+        rotation: Some(Rotation {
+            yaw: 90.0,
+            pitch: 0.0,
+        }),
+        skin: Some(NpcSkin {
+            value: "dGV4dHVyZXM=".to_owned(),
+            signature: "c2ln".to_owned(),
+        }),
+        skin_layers: Some(0x7f),
+    };
+    let asked = FromPlugin {
+        body: Some(from_plugin::Body::Question(Question {
+            request: 9,
+            question: Some(question::Question::CreateNpc(spec)),
+        })),
+        origin: None,
+        request: None,
+        in_world: None,
+    };
+    round_trips(&asked);
+
+    for order in [
+        npc_order::Order::Remove(Empty {}),
+        npc_order::Order::SetPose("crouching".to_owned()),
+        npc_order::Order::SetSkinLayers(0x7f),
+        npc_order::Order::SwingMainHand(Empty {}),
+        npc_order::Order::LookAtNearest(NpcGaze { range: 6.0 }),
+        npc_order::Order::SetEquipment(NpcEquipment {
+            slot: "head".to_owned(),
+            item: None,
+        }),
+    ] {
+        round_trips(&FromPlugin {
+            body: Some(from_plugin::Body::Npc(NpcOrder {
+                npc: 3,
+                order: Some(order),
+            })),
+            origin: None,
+            request: None,
+            in_world: None,
+        });
+    }
+
+    let state = NpcState {
+        entity_id: 3,
+        uuid: "00000000-0000-0000-0000-000000000003".to_owned(),
+        key: "agent-7".to_owned(),
+        name: "Scout".to_owned(),
+        world: "minecraft:overworld".to_owned(),
+        position: Some(Vec3::default()),
+        rotation: Some(Rotation::default()),
+        skin: None,
+        skin_layers: 0x7f,
+        pose: "standing".to_owned(),
+        gaze_range: 0.0,
+    };
+    let list = NpcList {
+        npcs: vec![state.clone()],
+    };
+    for body in [answer::Body::Npc(state), answer::Body::Npcs(list)] {
+        let message = ToPlugin {
+            body: Some(to_plugin::Body::Answer(
+                rspigot_plugin_protocol::v1::Answer {
+                    request: 9,
+                    body: Some(body),
+                },
+            )),
+        };
+        let decoded = ToPlugin::decode(message.encode_to_vec().as_slice()).unwrap();
+        assert_eq!(decoded, message);
+    }
+}
