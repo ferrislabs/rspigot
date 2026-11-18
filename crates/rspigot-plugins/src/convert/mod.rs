@@ -7,6 +7,7 @@ mod decision;
 mod entity;
 mod events;
 mod inventory;
+mod npc;
 mod player;
 mod scoreboard;
 mod server;
@@ -48,8 +49,6 @@ pub(crate) enum Malformed {
     World(String),
     #[error("{value} is out of range for {field}")]
     OutOfRange { field: &'static str, value: i64 },
-    #[error("{0} is not served yet")]
-    Unserved(&'static str),
 }
 
 pub(crate) fn intro(hello: v1::Hello) -> Result<PluginIntro, Malformed> {
@@ -122,7 +121,7 @@ pub(crate) fn from_plugin(
         from_plugin::Body::CustomInventory(order) => ordered(custom_inventory::order(order)?),
         from_plugin::Body::Scoreboard(order) => ordered(scoreboard::order(order)?),
         from_plugin::Body::BossBar(order) => ordered(boss_bar::order(order)?),
-        from_plugin::Body::Npc(_) => return Err(Malformed::Unserved("an npc order")),
+        from_plugin::Body::Npc(order) => ordered(npc::order(order)?),
         from_plugin::Body::Question(asked) => question(asked)?,
     };
     scoped(world, converted)
@@ -136,7 +135,8 @@ fn scoped(world: Option<String>, message: FromPlugin) -> Result<FromPlugin, Malf
     let wrap = |order: rspigot_core::plugins::Order| match order {
         rspigot_core::plugins::Order::World(_)
         | rspigot_core::plugins::Order::Block { .. }
-        | rspigot_core::plugins::Order::Entity { .. } => rspigot_core::plugins::Order::InWorld {
+        | rspigot_core::plugins::Order::Entity { .. }
+        | rspigot_core::plugins::Order::Npc { .. } => rspigot_core::plugins::Order::InWorld {
             world: world.clone(),
             order: Box::new(order),
         },
@@ -161,7 +161,11 @@ fn scoped(world: Option<String>, message: FromPlugin) -> Result<FromPlugin, Malf
                 | Question::Entity(_)
                 | Question::AttributeValue { .. }
                 | Question::Spawn { .. }
-                | Question::DropItem { .. } => Question::InWorld {
+                | Question::DropItem { .. }
+                | Question::CreateNpc(_)
+                | Question::NpcByKey(_)
+                | Question::Npcs
+                | Question::Npc(_) => Question::InWorld {
                     world,
                     question: Box::new(question),
                 },
@@ -200,10 +204,10 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         question::Question::BossBar(bar) => Question::BossBar(bar),
         question::Question::BossBars(_) => Question::BossBars,
         question::Question::AttributeValue(query) => entity::attribute_query(query)?,
-        question::Question::CreateNpc(_)
-        | question::Question::NpcByKey(_)
-        | question::Question::Npcs(_)
-        | question::Question::Npc(_) => return Err(Malformed::Unserved("an npc question")),
+        question::Question::CreateNpc(create) => Question::CreateNpc(npc::spec(create)?),
+        question::Question::NpcByKey(key) => Question::NpcByKey(key),
+        question::Question::Npcs(_) => Question::Npcs,
+        question::Question::Npc(id) => Question::Npc(EntityId(id)),
     };
     Ok(FromPlugin::Question {
         request: asked.request,
@@ -279,6 +283,10 @@ fn wire_answer(answer: Answer) -> answer::Body {
         Answer::BossBar(view) => answer::Body::BossBar(boss_bar::wire_state(view)),
         Answer::BossBars(views) => answer::Body::BossBars(v1::BossBarList {
             bars: views.into_iter().map(boss_bar::wire_state).collect(),
+        }),
+        Answer::Npc(view) => answer::Body::Npc(npc::wire_state(view)),
+        Answer::Npcs(views) => answer::Body::Npcs(v1::NpcList {
+            npcs: views.into_iter().map(npc::wire_state).collect(),
         }),
         Answer::Refused(reason) => answer::Body::Refused(v1::Refused { reason }),
         Answer::WorldCreated(key) => answer::Body::WorldCreated(key),

@@ -145,6 +145,7 @@ impl<L: ClientLink> Server<L> {
                 self.apply_scoreboard_order(connection, board, order);
             }
             Order::BossBar { bar, order } => self.apply_boss_bar_order(connection, bar, order),
+            Order::Npc { npc, order } => self.apply_npc_order(connection, npc, order),
         }
     }
 
@@ -235,6 +236,17 @@ impl<L: ClientLink> Server<L> {
                 .scoreboard_view(board)
                 .map_or(Answer::NotFound, Answer::Scoreboard),
             Question::NewScoreboard => Answer::ScoreboardCreated(self.new_plugin_scoreboard()),
+            Question::CreateNpc(spec) => {
+                return Some(
+                    self.create_npc_for_plugin(connection, spec)
+                        .map_or_else(Answer::Failed, Answer::Npc),
+                );
+            }
+            Question::NpcByKey(key) => self
+                .npc_by_key(connection, &key)
+                .map_or(Answer::NotFound, Answer::Npc),
+            Question::Npcs => Answer::Npcs(self.npc_views(connection)),
+            Question::Npc(id) => self.npc_view(id).map_or(Answer::NotFound, Answer::Npc),
             Question::CreateBossBar(spec) => self
                 .create_boss_bar_for_plugin(spec)
                 .map_or_else(Answer::Refused, Answer::BossBarCreated),

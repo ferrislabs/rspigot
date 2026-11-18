@@ -37,6 +37,7 @@ pub mod item;
 pub mod jukebox;
 pub mod menu;
 pub mod mth;
+pub mod npc;
 pub mod particle;
 pub mod piston;
 pub mod player;
