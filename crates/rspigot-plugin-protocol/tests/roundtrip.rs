@@ -651,6 +651,8 @@ fn the_npc_messages_survive_encoding() {
         npc_order::Order::Remove(Empty {}),
         npc_order::Order::SetPose("crouching".to_owned()),
         npc_order::Order::SetLabel("§aWorking".to_owned()),
+        npc_order::Order::HideFrom("00000000-0000-0000-0000-000000000001".to_owned()),
+        npc_order::Order::ShowTo("00000000-0000-0000-0000-000000000001".to_owned()),
         npc_order::Order::SetSkinLayers(0x7f),
         npc_order::Order::SwingMainHand(Empty {}),
         npc_order::Order::LookAtNearest(NpcGaze { range: 6.0 }),

@@ -79,6 +79,8 @@ async fn creating_an_npc_sends_its_spec_and_returns_a_handle_that_orders() {
             npc.set_equipment(NpcSlot::OffHand, None);
             npc.set_label("§aWorking");
             npc.clear_label();
+            npc.hide_from(&player);
+            npc.show_to(&player);
             npc.swing_main_hand();
             npc.swing_off_hand();
             npc.look_at(HERE);
@@ -132,6 +134,8 @@ async fn creating_an_npc_sends_its_spec_and_returns_a_handle_that_orders() {
         }),
         Order::SetLabel("§aWorking".to_owned()),
         Order::SetLabel(String::new()),
+        Order::HideFrom(STEVE.to_owned()),
+        Order::ShowTo(STEVE.to_owned()),
         Order::SwingMainHand(v1::Empty {}),
         Order::SwingOffHand(v1::Empty {}),
         Order::LookAt(vec3()),

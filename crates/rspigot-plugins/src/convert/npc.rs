@@ -26,6 +26,8 @@ pub(super) fn order(order: v1::NpcOrder) -> Result<Order, Malformed> {
         Wire::LookAtNearest(gaze) => NpcOrder::LookAtNearest(gaze.range),
         Wire::SetSkinLayers(layers) => NpcOrder::SetSkinLayers(layers_of(layers)?),
         Wire::SetLabel(text) => NpcOrder::SetLabel(text),
+        Wire::HideFrom(player) => NpcOrder::HideFrom(super::player::id(player)?),
+        Wire::ShowTo(player) => NpcOrder::ShowTo(super::player::id(player)?),
     };
     Ok(Order::Npc { npc, order })
 }

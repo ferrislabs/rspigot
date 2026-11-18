@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::link::Link;
 use crate::wire::parse_uuid;
-use crate::{Error, ItemStack, Position, Rotation};
+use crate::{Error, ItemStack, Player, Position, Rotation};
 
 pub const DEFAULT_SKIN_LAYERS: u8 = 0x7f;
 
@@ -322,6 +322,14 @@ impl Npc {
 
     pub fn clear_label(&self) {
         self.order(Order::SetLabel(String::new()));
+    }
+
+    pub fn hide_from(&self, player: &Player) {
+        self.order(Order::HideFrom(player.uuid.to_string()));
+    }
+
+    pub fn show_to(&self, player: &Player) {
+        self.order(Order::ShowTo(player.uuid.to_string()));
     }
 
     pub fn swing_main_hand(&self) {

@@ -38,6 +38,7 @@ pub(crate) struct Npc {
     pub gaze_range: f64,
     pub label: Option<String>,
     pub label_id: EntityId,
+    pub hidden: rustc_hash::FxHashSet<PlayerId>,
 }
 
 impl Npc {
@@ -275,11 +276,12 @@ impl Npcs {
 impl<L: ClientLink> Server<L> {
     fn npc_sees(&self, viewer: PlayerId, npc: &Npc) -> bool {
         let range = self.config.player_tracking_range * self.config.player_tracking_range;
-        self.players.get(&viewer).is_some_and(|player| {
-            player.dim == self.world.dimension.key
-                && player.position.distance_squared(npc.position) <= range
-                && player.streamer.has_sent(npc.position.chunk())
-        })
+        !npc.hidden.contains(&viewer)
+            && self.players.get(&viewer).is_some_and(|player| {
+                player.dim == self.world.dimension.key
+                    && player.position.distance_squared(npc.position) <= range
+                    && player.streamer.has_sent(npc.position.chunk())
+            })
     }
 
     pub(crate) fn update_npc_viewers(&mut self) {
@@ -311,6 +313,18 @@ impl<L: ClientLink> Server<L> {
                 }
             }
         }
+    }
+
+    pub(crate) fn set_npc_hidden(&mut self, id: EntityId, viewer: PlayerId, hidden: bool) {
+        let Some(npc) = self.entities.npcs.get_mut(id) else {
+            return;
+        };
+        if hidden {
+            npc.hidden.insert(viewer);
+        } else {
+            npc.hidden.remove(&viewer);
+        }
+        self.update_npc_viewers_of(id);
     }
 
     pub(crate) fn tick_npc_gazes(&mut self) {

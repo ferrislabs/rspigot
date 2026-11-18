@@ -453,3 +453,42 @@ fn removing_an_npc_removes_its_label_too() {
         ClientEvent::RemoveEntities(ids) if ids.len() == 2 && ids.iter().any(|id| id.0 == label)
     )));
 }
+
+#[test]
+fn a_hidden_viewer_loses_the_npc_while_others_keep_it() {
+    let mut s = scene(&["Alice", "Bob"]);
+    let (alice, at) = nearby(&mut s);
+    let bob = s.players[1].clone();
+    let npc = created(&mut s, spec("agent-7", "Scout", at));
+    for _ in 0..400 {
+        s.tick(1);
+        let seen = |viewer: &Player| {
+            viewer
+                .link
+                .take()
+                .iter()
+                .any(|event| matches!(event, ClientEvent::SpawnEntity { entity, .. } if *entity == npc.id))
+        };
+        if seen(&alice) & seen(&bob) {
+            break;
+        }
+    }
+
+    act(&mut s, &npc, NpcOrder::HideFrom(alice.id));
+    assert!(
+        alice
+            .link
+            .take()
+            .contains(&ClientEvent::RemoveEntities(vec![npc.id]))
+    );
+    assert!(bob.link.take().is_empty());
+    s.tick(5);
+    assert!(!alice.link.take().iter().any(
+        |event| matches!(event, ClientEvent::SpawnEntity { entity, .. } if *entity == npc.id)
+    ));
+
+    act(&mut s, &npc, NpcOrder::ShowTo(alice.id));
+    assert!(alice.link.take().iter().any(
+        |event| matches!(event, ClientEvent::SpawnEntity { entity, .. } if *entity == npc.id)
+    ));
+}

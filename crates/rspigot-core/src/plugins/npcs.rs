@@ -1,4 +1,5 @@
 use rspigot_domain::npc::{DEFAULT_SKIN_LAYERS, NpcKey, NpcName, SkinTextures};
+use rspigot_domain::player::PlayerId;
 use rspigot_domain::{EntityId, Rotation, Vec3};
 use uuid::Uuid;
 
@@ -56,6 +57,8 @@ pub enum NpcOrder {
     LookAtNearest(f64),
     SetSkinLayers(u8),
     SetLabel(String),
+    HideFrom(PlayerId),
+    ShowTo(PlayerId),
 }
 
 impl NpcOrder {
@@ -73,6 +76,8 @@ impl NpcOrder {
             Self::LookAtNearest(_) => "npc.look_at_nearest",
             Self::SetSkinLayers(_) => "npc.set_skin_layers",
             Self::SetLabel(_) => "npc.set_label",
+            Self::HideFrom(_) => "npc.hide_from",
+            Self::ShowTo(_) => "npc.show_to",
         }
     }
 }
@@ -168,6 +173,7 @@ impl<L: ClientLink> Server<L> {
             gaze_range: 0.0,
             label: None,
             label_id,
+            hidden: Default::default(),
         });
         self.update_npc_viewers_of(id);
         self.npc_view(id)
@@ -236,6 +242,8 @@ impl<L: ClientLink> Server<L> {
             NpcOrder::SetLabel(text) => {
                 self.set_npc_label(id, (!text.is_empty()).then_some(text));
             }
+            NpcOrder::HideFrom(viewer) => self.set_npc_hidden(id, viewer, true),
+            NpcOrder::ShowTo(viewer) => self.set_npc_hidden(id, viewer, false),
             NpcOrder::SwingMainHand => self.animate_npc(id, Animation::SwingMainArm),
             NpcOrder::SwingOffHand => self.animate_npc(id, Animation::SwingOffHand),
             NpcOrder::LookAt(target) => {

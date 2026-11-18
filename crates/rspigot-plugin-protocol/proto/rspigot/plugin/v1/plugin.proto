@@ -135,7 +135,7 @@ message NpcOrder {
   oneof order {
     Vec3 teleport = 10; Empty remove = 11; NpcSkin set_skin = 12; Rotation set_rotation = 13; string set_pose = 14;
     NpcEquipment set_equipment = 15; Empty swing_main_hand = 16; Empty swing_off_hand = 17; Vec3 look_at = 18;
-    NpcGaze look_at_nearest = 19; uint32 set_skin_layers = 20; string set_label = 21;
+    NpcGaze look_at_nearest = 19; uint32 set_skin_layers = 20; string set_label = 21; string hide_from = 22; string show_to = 23;
   }
 }
 message TargetQuery { string player = 1; double max_distance = 2; }

@@ -10093,7 +10093,7 @@ pub struct NpcOrder {
     pub npc: i32,
     #[prost(
         oneof = "npc_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
     )]
     pub order: ::core::option::Option<npc_order::Order>,
 }
@@ -10126,6 +10126,10 @@ pub mod npc_order {
         SetSkinLayers(u32),
         #[prost(string, tag = "21")]
         SetLabel(::prost::alloc::string::String),
+        #[prost(string, tag = "22")]
+        HideFrom(::prost::alloc::string::String),
+        #[prost(string, tag = "23")]
+        ShowTo(::prost::alloc::string::String),
     }
 }
 #[allow(clippy::all)]
