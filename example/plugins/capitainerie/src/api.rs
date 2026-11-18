@@ -158,8 +158,8 @@ impl Api {
         if let Some(secret) = &self.config.client_secret {
             form.push(("client_secret", secret));
         }
-        if let Some(audience) = &self.config.audience {
-            form.push(("audience", audience));
+        if let Some(resource) = &self.config.resource {
+            form.push(("resource", resource));
         }
         let response = self
             .http

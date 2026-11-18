@@ -13,7 +13,7 @@ pub struct Config {
     pub client_secret: Option<String>,
     pub username: String,
     pub password: String,
-    pub audience: Option<String>,
+    pub resource: Option<String>,
     pub poll: Duration,
 }
 
@@ -64,7 +64,7 @@ impl Config {
                     client_secret: get("CAPITAINERIE_CLIENT_SECRET"),
                     username,
                     password,
-                    audience: get("CAPITAINERIE_AUDIENCE"),
+                    resource: get("CAPITAINERIE_RESOURCE"),
                     poll: Duration::from_secs(poll),
                 })
             }
@@ -80,7 +80,7 @@ impl fmt::Debug for Config {
             .field("token_url", &self.token_url)
             .field("client_id", &self.client_id)
             .field("username", &self.username)
-            .field("audience", &self.audience)
+            .field("resource", &self.resource)
             .field("poll", &self.poll)
             .finish_non_exhaustive()
     }
@@ -113,7 +113,7 @@ mod tests {
         assert_eq!(config.base_url, "http://localhost:4100");
         assert_eq!(config.poll, Duration::from_secs(2));
         assert_eq!(config.client_secret, None);
-        assert_eq!(config.audience, None);
+        assert_eq!(config.resource, None);
     }
 
     #[test]

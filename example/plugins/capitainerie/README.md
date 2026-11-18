@@ -20,10 +20,10 @@ The plugin logs in as one Capitainerie user with a password grant, so every acti
 | `CAPITAINERIE_CLIENT_ID` | A FerrisKey client for this bridge (required) |
 | `CAPITAINERIE_USERNAME`, `CAPITAINERIE_PASSWORD` | The bridge user (required) |
 | `CAPITAINERIE_CLIENT_SECRET` | If the client is confidential |
-| `CAPITAINERIE_AUDIENCE` | Sent as `audience` when Capitainerie sets `AUTH_AUDIENCE` |
+| `CAPITAINERIE_RESOURCE` | Sent as `resource` (RFC 8707) so the token carries the API audience; set it to Capitainerie's `AUTH_AUDIENCE`, for example `http://localhost:4100` |
 | `CAPITAINERIE_POLL_SECONDS` | Refresh interval, 1 to 60, default 2 |
 
-On the Capitainerie side, the client must be listed in `AUTH_ACCEPTED_CLIENTS`, allow direct access grants, and its tokens must carry the API audience. The user has to be a human member of the organization: a service account is not enough, since only humans can create cards and conversations. `RSPIGOT_URL` and `RSPIGOT_TOKEN` work as for any plugin.
+On the Capitainerie side, the client must be listed in `AUTH_ACCEPTED_CLIENTS`, allow direct access grants, and its token request must carry the API as `resource`. The user has to be a human member of the organization: a service account is not enough, since only humans can create cards and conversations. `RSPIGOT_URL` and `RSPIGOT_TOKEN` work as for any plugin.
 
 ```
 cargo run --release -p rspigot

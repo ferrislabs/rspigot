@@ -272,6 +272,7 @@ impl PluginProcess {
             .env("CAPITAINERIE_CLIENT_ID", "capitainerie-minecraft")
             .env("CAPITAINERIE_USERNAME", "bridge")
             .env("CAPITAINERIE_PASSWORD", "s3cret")
+            .env("CAPITAINERIE_RESOURCE", "http://localhost:4100")
             .env("CAPITAINERIE_POLL_SECONDS", "1")
             .spawn()
             .expect("the capitainerie plugin starts");
@@ -523,6 +524,7 @@ fn agents_appear_as_npcs_show_their_progress_take_tasks_and_chat_with_the_captai
         assert_eq!(first["grant_type"], "password");
         assert_eq!(first["username"], "bridge");
         assert_eq!(first["client_id"], "capitainerie-minecraft");
+        assert_eq!(first["resource"], "http://localhost:4100");
     }
 
     fake.lock().unwrap().runs = vec![json!({
