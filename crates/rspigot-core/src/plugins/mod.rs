@@ -343,6 +343,7 @@ pub enum TargetHit {
     },
     Player(PlayerSnapshot),
     Entity(EntityView),
+    Npc(NpcView),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

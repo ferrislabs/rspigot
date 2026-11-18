@@ -10381,7 +10381,7 @@ pub struct BlockHit {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Target {
-    #[prost(oneof = "target::Hit", tags = "1, 2, 3")]
+    #[prost(oneof = "target::Hit", tags = "1, 2, 3, 4")]
     pub hit: ::core::option::Option<target::Hit>,
 }
 /// Nested message and enum types in `Target`.
@@ -10395,6 +10395,8 @@ pub mod target {
         Player(super::PlayerSnapshot),
         #[prost(message, tag = "3")]
         Entity(super::EntitySnapshot),
+        #[prost(message, tag = "4")]
+        Npc(super::NpcState),
     }
 }
 #[allow(clippy::all)]

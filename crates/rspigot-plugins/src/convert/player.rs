@@ -133,6 +133,7 @@ pub(super) fn wire_target(hit: Option<TargetHit>) -> v1::Target {
             }),
             TargetHit::Player(player) => target::Hit::Player(wire_player(player)),
             TargetHit::Entity(view) => target::Hit::Entity(entity::wire_view(view)),
+            TargetHit::Npc(view) => target::Hit::Npc(super::npc::wire_state(view)),
         }),
     }
 }

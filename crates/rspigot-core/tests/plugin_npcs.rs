@@ -492,3 +492,31 @@ fn a_hidden_viewer_loses_the_npc_while_others_keep_it() {
         |event| matches!(event, ClientEvent::SpawnEntity { entity, .. } if *entity == npc.id)
     ));
 }
+
+#[test]
+fn the_entity_a_player_looks_at_can_be_an_npc() {
+    use rspigot_core::plugins::TargetHit;
+
+    let mut s = scene(&["Alice"]);
+    let alice = s.players[0].clone();
+    let at = position_of(&mut s, &alice);
+    let ahead = Vec3::new(at.x, at.y, at.z + 3.0);
+    let npc = created(&mut s, spec("agent-7", "Scout", ahead));
+    let aim = |s: &mut Scene| {
+        s.ask(Question::TargetEntity {
+            player: alice.id,
+            max_distance: 10.0,
+        })
+    };
+    let Answer::Target(Some(TargetHit::Npc(hit))) = aim(&mut s) else {
+        panic!("expected the npc in sight");
+    };
+    assert_eq!(hit.id, npc.id);
+
+    act(
+        &mut s,
+        &npc,
+        NpcOrder::Teleport(Vec3::new(at.x + 20.0, at.y, at.z)),
+    );
+    assert!(matches!(aim(&mut s), Answer::Target(None)));
+}

@@ -180,7 +180,7 @@ message Refused { string reason = 1; }
 message PlayerList { repeated PlayerSnapshot players = 1; }
 message InventoryState { repeated Slot slots = 1; int32 held_slot = 2; }
 message BlockHit { BlockPos pos = 1; Face face = 2; string block = 3; }
-message Target { oneof hit { BlockHit block = 1; PlayerSnapshot player = 2; EntitySnapshot entity = 3; } }
+message Target { oneof hit { BlockHit block = 1; PlayerSnapshot player = 2; EntitySnapshot entity = 3; NpcState npc = 4; } }
 message ServerState { int32 max_players = 1; int32 online = 2; double tps_1m = 3; double tps_5m = 4; double tps_15m = 5; bool whitelist_enabled = 6; }
 message ListedPlayer { string name = 1; optional string uuid = 2; }
 message ListedPlayers { repeated ListedPlayer players = 1; }

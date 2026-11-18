@@ -223,3 +223,39 @@ async fn a_refused_creation_surfaces_as_an_action_error() {
     ));
     called.finished().await;
 }
+
+#[tokio::test]
+async fn an_npc_in_sight_is_a_target_npc() {
+    use rspigot_plugin::Target;
+
+    let mut called = calling(|player| {
+        Box::pin(async move {
+            let Some(Target::Npc(npc)) = player.target_entity(3.0).await.unwrap() else {
+                panic!("expected an npc in sight");
+            };
+            assert_eq!(npc.entity_id, 9);
+            assert_eq!(npc.key, "agent-7");
+            npc.set_label("Hello");
+        })
+    })
+    .await;
+    let (request, asked) = called.session.asked().await;
+    assert_eq!(
+        asked,
+        question::Question::TargetEntity(v1::TargetQuery {
+            player: STEVE.to_owned(),
+            max_distance: 3.0,
+        })
+    );
+    called.session.say(answer(
+        request,
+        answer::Body::Target(v1::Target {
+            hit: Some(v1::target::Hit::Npc(state())),
+        }),
+    ));
+    assert_eq!(
+        called.session.hear().await,
+        ordered(9, npc_order::Order::SetLabel("Hello".to_owned()))
+    );
+    called.finished().await;
+}

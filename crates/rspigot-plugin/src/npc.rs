@@ -240,7 +240,7 @@ pub struct NpcState {
 }
 
 impl Npc {
-    fn from_wire(state: v1::NpcState, link: &Link) -> Result<Self, Error> {
+    pub(crate) fn from_wire(state: v1::NpcState, link: &Link) -> Result<Self, Error> {
         Ok(Self {
             entity_id: state.entity_id,
             uuid: parse_uuid(&state.uuid, "an npc")?,

@@ -38,7 +38,7 @@ The server reads groups and rights from `permissions.yml` (an example is in `exa
 
 The skin is the `value` and `signature` of a Mojang `textures` property; the server never contacts Mojang. `npc.set_label("§aStep 2 of 5")` shows a line above its head and `clear_label()` removes it. The other orders are `teleport`, `set_skin`, `set_skin_layers`, `set_rotation`, `set_pose`, `set_equipment`, `swing_main_hand`, `swing_off_hand`, `hide_from(&player)`, `show_to(&player)`, `look_at`, `look_at_nearest(range)`, `stop_looking` and `remove`. Only the plugin that created an NPC can order it.
 
-A right click reaches `on_player_interact_at_entity` (the client sends one per hand: keep `EquipmentSlot::Hand`) and a hit reaches `on_entity_damage_by_entity`, both with an `Entity` of type player whose `entity_id` is the NPC's. A hit changes nothing unless a plugin acts on it. [`example/plugins/agent-npc`](../../example/plugins/agent-npc) is a complete example.
+A right click reaches `on_player_interact_at_entity` (the client sends one per hand: keep `EquipmentSlot::Hand`) and a hit reaches `on_entity_damage_by_entity`, both with an `Entity` of type player whose `entity_id` is the NPC's. A hit changes nothing unless a plugin acts on it. `player.target_entity(range)` returns `Target::Npc` when the player looks at one. [`example/plugins/agent-npc`](../../example/plugins/agent-npc) is a complete example.
 
 ## Dialogs
 
