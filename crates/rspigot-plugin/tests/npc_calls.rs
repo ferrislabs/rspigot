@@ -44,6 +44,7 @@ fn state() -> v1::NpcState {
         pose: "crouching".to_owned(),
         gaze_range: 6.0,
         label: Some("Working".to_owned()),
+        walking: true,
     }
 }
 
@@ -79,6 +80,9 @@ async fn creating_an_npc_sends_its_spec_and_returns_a_handle_that_orders() {
             npc.set_equipment(NpcSlot::OffHand, None);
             npc.set_label("§aWorking");
             npc.clear_label();
+            npc.walk_to(HERE);
+            npc.walk_to_at(HERE, 6.0);
+            npc.stop_walking();
             npc.hide_from(&player);
             npc.show_to(&player);
             npc.swing_main_hand();
@@ -134,6 +138,15 @@ async fn creating_an_npc_sends_its_spec_and_returns_a_handle_that_orders() {
         }),
         Order::SetLabel("§aWorking".to_owned()),
         Order::SetLabel(String::new()),
+        Order::WalkTo(v1::NpcWalk {
+            target: Some(vec3()),
+            speed: 0.0,
+        }),
+        Order::WalkTo(v1::NpcWalk {
+            target: Some(vec3()),
+            speed: 6.0,
+        }),
+        Order::StopWalking(v1::Empty {}),
         Order::HideFrom(STEVE.to_owned()),
         Order::ShowTo(STEVE.to_owned()),
         Order::SwingMainHand(v1::Empty {}),
@@ -165,6 +178,7 @@ async fn an_npc_is_found_by_key_listed_and_read_back() {
             assert_eq!(read.gaze_range, 6.0);
             assert_eq!(read.skin.unwrap().value, "dGV4");
             assert_eq!(read.world, "world");
+            assert!(read.walking);
             assert_eq!(read.label.as_deref(), Some("Working"));
             assert!(matches!(found.get_state().await, Err(Error::NotFound)));
         })

@@ -520,3 +520,126 @@ fn the_entity_a_player_looks_at_can_be_an_npc() {
     );
     assert!(matches!(aim(&mut s), Answer::Target(None)));
 }
+
+fn position_of_npc(s: &mut Scene, npc: &NpcView) -> Vec3 {
+    let Answer::Npc(view) = s.ask(Question::Npc(npc.id)) else {
+        panic!("expected the npc");
+    };
+    view.position
+}
+
+#[test]
+fn an_npc_walks_to_a_reachable_position_and_stops_there() {
+    let mut s = scene(&["Alice"]);
+    let (alice, at) = nearby(&mut s);
+    let npc = created(&mut s, spec("agent-7", "Scout", at));
+    until_seen(&mut s, &alice);
+    alice.link.take();
+
+    let goal = Vec3::new(at.x, at.y, at.z + 6.0);
+    act(
+        &mut s,
+        &npc,
+        NpcOrder::WalkTo {
+            target: goal,
+            speed: 0.0,
+        },
+    );
+    assert!(s.warnings().is_empty(), "{:?}", s.warnings());
+    let Answer::Npc(view) = s.ask(Question::Npc(npc.id)) else {
+        panic!("expected the npc");
+    };
+    assert!(view.walking);
+
+    s.tick(10);
+    let midway = position_of_npc(&mut s, &npc);
+    assert!(
+        midway.z > at.z + 1.0 && midway.z < goal.z,
+        "walked to {midway:?}"
+    );
+    let moved = alice.link.take().into_iter().any(
+        |event| matches!(&event, ClientEvent::EntityMoved { entity, .. } if *entity == npc.id),
+    );
+    assert!(moved, "viewers see the steps");
+
+    s.tick(80);
+    let end = position_of_npc(&mut s, &npc);
+    assert!(
+        (end.x - goal.x).hypot(end.z - goal.z) < 0.01,
+        "ended at {end:?}"
+    );
+    let Answer::Npc(view) = s.ask(Question::Npc(npc.id)) else {
+        panic!("expected the npc");
+    };
+    assert!(!view.walking);
+}
+
+#[test]
+fn walking_can_be_stopped_and_a_teleport_cancels_it() {
+    let mut s = scene(&["Alice"]);
+    let (_, at) = nearby(&mut s);
+    let npc = created(&mut s, spec("agent-7", "Scout", at));
+    let goal = Vec3::new(at.x, at.y, at.z + 8.0);
+
+    act(
+        &mut s,
+        &npc,
+        NpcOrder::WalkTo {
+            target: goal,
+            speed: 0.0,
+        },
+    );
+    s.tick(5);
+    act(&mut s, &npc, NpcOrder::StopWalking);
+    let stopped = position_of_npc(&mut s, &npc);
+    s.tick(20);
+    assert_eq!(position_of_npc(&mut s, &npc), stopped);
+
+    act(
+        &mut s,
+        &npc,
+        NpcOrder::WalkTo {
+            target: goal,
+            speed: 0.0,
+        },
+    );
+    act(&mut s, &npc, NpcOrder::Teleport(at));
+    s.tick(10);
+    assert_eq!(position_of_npc(&mut s, &npc), at);
+}
+
+#[test]
+fn an_unreachable_target_or_a_bad_speed_warns_and_changes_nothing() {
+    let mut s = scene(&["Alice"]);
+    let (_, at) = nearby(&mut s);
+    let npc = created(&mut s, spec("agent-7", "Scout", at));
+    act(
+        &mut s,
+        &npc,
+        NpcOrder::WalkTo {
+            target: Vec3::new(at.x + 900.0, at.y, at.z),
+            speed: 0.0,
+        },
+    );
+    act(
+        &mut s,
+        &npc,
+        NpcOrder::WalkTo {
+            target: at,
+            speed: -1.0,
+        },
+    );
+    act(
+        &mut s,
+        &npc,
+        NpcOrder::WalkTo {
+            target: at,
+            speed: 50.0,
+        },
+    );
+    assert_eq!(s.warnings().len(), 3);
+    let Answer::Npc(view) = s.ask(Question::Npc(npc.id)) else {
+        panic!("expected the npc");
+    };
+    assert!(!view.walking);
+}

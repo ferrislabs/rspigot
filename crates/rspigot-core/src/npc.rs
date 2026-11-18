@@ -17,6 +17,10 @@ pub(crate) const SKIN_LAYERS_INDEX: u8 = 16;
 pub(crate) const POSE_INDEX: u8 = 6;
 pub(crate) const EYE_HEIGHT: f64 = 1.62;
 pub(crate) const MAX_NPCS_PER_PLUGIN: usize = 256;
+pub(crate) const WALK_SPEED: f64 = 4.317;
+pub(crate) const MAX_WALK_SPEED: f64 = 20.0;
+const NPC_WIDTH: f32 = 0.6;
+const NPC_HEIGHT: f32 = 1.8;
 pub(crate) const LABEL_OFFSET: f64 = 2.35;
 const BILLBOARD_INDEX: u8 = 15;
 const TEXT_INDEX: u8 = 23;
@@ -39,6 +43,14 @@ pub(crate) struct Npc {
     pub label: Option<String>,
     pub label_id: EntityId,
     pub hidden: rustc_hash::FxHashSet<PlayerId>,
+    pub walk: Option<Walk>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Walk {
+    pub waypoints: Vec<Vec3>,
+    pub next: usize,
+    pub step: f64,
 }
 
 impl Npc {
@@ -332,7 +344,7 @@ impl<L: ClientLink> Server<L> {
             .entities
             .npcs
             .iter()
-            .filter(|npc| npc.gaze_range > 0.0)
+            .filter(|npc| npc.gaze_range > 0.0 && npc.walk.is_none())
             .map(|npc| (npc.id, npc.eye(), npc.gaze_range, npc.rotation))
             .collect();
         for (id, eye, range, rotation) in watchers {
@@ -355,6 +367,103 @@ impl<L: ClientLink> Server<L> {
                 if facing != rotation {
                     self.turn_npc(id, facing);
                 }
+            }
+        }
+    }
+
+    pub(crate) fn start_npc_walk(
+        &mut self,
+        id: EntityId,
+        target: Vec3,
+        speed: f64,
+    ) -> Result<(), String> {
+        use rspigot_ai::{MobProfile, MobState, PathFinder};
+
+        let speed = if speed == 0.0 { WALK_SPEED } else { speed };
+        if !(speed.is_finite() && speed > 0.0 && speed <= MAX_WALK_SPEED) {
+            return Err(format!(
+                "a walking speed is above 0 and at most {MAX_WALK_SPEED} blocks per second, got {speed}"
+            ));
+        }
+        let Some(npc) = self.entities.npcs.get(id) else {
+            return Ok(());
+        };
+        let finder = PathFinder::new(MobProfile::new(NPC_WIDTH, NPC_HEIGHT));
+        let mob = MobState {
+            position: npc.position,
+            on_ground: true,
+            in_floatable_fluid: false,
+        };
+        let path = finder
+            .find_path(&self.chunk_view(), &mob, &[target.block()], 1)
+            .filter(rspigot_ai::Path::can_reach)
+            .ok_or_else(|| "there is no path to that position".to_owned())?;
+        let mut waypoints: Vec<Vec3> = (0..path.node_count())
+            .map(|index| path.entity_pos_at_node(NPC_WIDTH, index))
+            .collect();
+        if let Some(last) = waypoints.last().copied()
+            && (target.x - last.x).hypot(target.z - last.z) <= 1.5
+        {
+            waypoints.push(Vec3::new(target.x, last.y, target.z));
+        }
+        if let Some(npc) = self.entities.npcs.get_mut(id) {
+            npc.walk = Some(Walk {
+                waypoints,
+                next: 0,
+                step: speed / 20.0,
+            });
+        }
+        Ok(())
+    }
+
+    pub(crate) fn tick_npc_walks(&mut self) {
+        let walkers: Vec<EntityId> = self
+            .entities
+            .npcs
+            .iter()
+            .filter(|npc| npc.walk.is_some())
+            .map(|npc| npc.id)
+            .collect();
+        for id in walkers {
+            let Some(npc) = self.entities.npcs.get(id) else {
+                continue;
+            };
+            let Some(walk) = npc.walk.clone() else {
+                continue;
+            };
+            let (mut position, mut next, mut left) = (npc.position, walk.next, walk.step);
+            let mut heading = None;
+            while left > 0.0 && next < walk.waypoints.len() {
+                let goal = walk.waypoints[next];
+                let (dx, dy, dz) = (
+                    goal.x - position.x,
+                    goal.y - position.y,
+                    goal.z - position.z,
+                );
+                let distance = (dx * dx + dy * dy + dz * dz).sqrt();
+                if distance > 1.0e-9 && dx.hypot(dz) > 1.0e-9 {
+                    heading = Some((dx, dz));
+                }
+                if distance <= left {
+                    position = goal;
+                    left -= distance;
+                    next += 1;
+                } else {
+                    let ratio = left / distance;
+                    position = Vec3::new(
+                        position.x + dx * ratio,
+                        position.y + dy * ratio,
+                        position.z + dz * ratio,
+                    );
+                    left = 0.0;
+                }
+            }
+            let rotation = heading.map(|(dx, dz)| {
+                Rotation::new(wrap_degrees((dz.atan2(dx).to_degrees() - 90.0) as f32), 0.0)
+            });
+            self.step_npc(id, position, rotation);
+            if let Some(npc) = self.entities.npcs.get_mut(id) {
+                npc.walk = (next < walk.waypoints.len()).then_some(Walk { next, ..walk });
             }
         }
     }
@@ -385,11 +494,21 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn move_npc(&mut self, id: EntityId, to: Vec3) {
+        if let Some(npc) = self.entities.npcs.get_mut(id) {
+            npc.walk = None;
+        }
+        self.step_npc(id, to, None);
+    }
+
+    pub(crate) fn step_npc(&mut self, id: EntityId, to: Vec3, facing: Option<Rotation>) {
         let Some(npc) = self.entities.npcs.get_mut(id) else {
             return;
         };
         let from = npc.position;
         npc.position = to;
+        if let Some(facing) = facing {
+            npc.rotation = facing;
+        }
         let rotation = npc.rotation;
         let label = npc
             .label

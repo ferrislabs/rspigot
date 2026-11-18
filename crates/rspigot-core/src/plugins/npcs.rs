@@ -35,6 +35,7 @@ pub struct NpcView {
     pub pose: String,
     pub gaze_range: f64,
     pub label: Option<String>,
+    pub walking: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -59,6 +60,11 @@ pub enum NpcOrder {
     SetLabel(String),
     HideFrom(PlayerId),
     ShowTo(PlayerId),
+    WalkTo {
+        target: Vec3,
+        speed: f64,
+    },
+    StopWalking,
 }
 
 impl NpcOrder {
@@ -78,6 +84,8 @@ impl NpcOrder {
             Self::SetLabel(_) => "npc.set_label",
             Self::HideFrom(_) => "npc.hide_from",
             Self::ShowTo(_) => "npc.show_to",
+            Self::WalkTo { .. } => "npc.walk_to",
+            Self::StopWalking => "npc.stop_walking",
         }
     }
 }
@@ -174,6 +182,7 @@ impl<L: ClientLink> Server<L> {
             label: None,
             label_id,
             hidden: Default::default(),
+            walk: None,
         });
         self.update_npc_viewers_of(id);
         self.npc_view(id)
@@ -241,6 +250,15 @@ impl<L: ClientLink> Server<L> {
             }
             NpcOrder::SetLabel(text) => {
                 self.set_npc_label(id, (!text.is_empty()).then_some(text));
+            }
+            NpcOrder::WalkTo { target, speed } => {
+                let target = resolve::position_of(target)?;
+                self.start_npc_walk(id, target, speed)?;
+            }
+            NpcOrder::StopWalking => {
+                if let Some(npc) = self.entities.npcs.get_mut(id) {
+                    npc.walk = None;
+                }
             }
             NpcOrder::HideFrom(viewer) => self.set_npc_hidden(id, viewer, true),
             NpcOrder::ShowTo(viewer) => self.set_npc_hidden(id, viewer, false),
@@ -328,6 +346,7 @@ impl<L: ClientLink> Server<L> {
             pose: pose_name(npc.pose).to_owned(),
             gaze_range: npc.gaze_range,
             label: npc.label.clone(),
+            walking: npc.walk.is_some(),
         }
     }
 

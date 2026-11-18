@@ -237,6 +237,7 @@ pub struct NpcState {
     pub pose: NpcPose,
     pub gaze_range: f64,
     pub label: Option<String>,
+    pub walking: bool,
 }
 
 impl Npc {
@@ -268,6 +269,7 @@ impl Npc {
             .ok_or_else(|| Error::Malformed(format!("the npc pose {}", state.pose)))?;
         let layers = u8::try_from(state.skin_layers)
             .map_err(|_| Error::Malformed(format!("the skin layers {}", state.skin_layers)))?;
+        let walking = state.walking;
         let (world, skin, gaze_range, label) = (
             state.world.clone(),
             state.skin.clone().map(NpcSkin::from_wire),
@@ -282,6 +284,7 @@ impl Npc {
             pose,
             gaze_range,
             label,
+            walking,
         })
     }
 
@@ -322,6 +325,21 @@ impl Npc {
 
     pub fn clear_label(&self) {
         self.order(Order::SetLabel(String::new()));
+    }
+
+    pub fn walk_to(&self, position: Position) {
+        self.walk_to_at(position, 0.0);
+    }
+
+    pub fn walk_to_at(&self, position: Position, blocks_per_second: f64) {
+        self.order(Order::WalkTo(v1::NpcWalk {
+            target: Some(position.to_wire()),
+            speed: blocks_per_second,
+        }));
+    }
+
+    pub fn stop_walking(&self) {
+        self.order(Order::StopWalking(v1::Empty {}));
     }
 
     pub fn hide_from(&self, player: &Player) {

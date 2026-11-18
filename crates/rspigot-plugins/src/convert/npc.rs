@@ -26,6 +26,11 @@ pub(super) fn order(order: v1::NpcOrder) -> Result<Order, Malformed> {
         Wire::LookAtNearest(gaze) => NpcOrder::LookAtNearest(gaze.range),
         Wire::SetSkinLayers(layers) => NpcOrder::SetSkinLayers(layers_of(layers)?),
         Wire::SetLabel(text) => NpcOrder::SetLabel(text),
+        Wire::WalkTo(walk) => NpcOrder::WalkTo {
+            target: shared::vec3(required(walk.target)?),
+            speed: walk.speed,
+        },
+        Wire::StopWalking(_) => NpcOrder::StopWalking,
         Wire::HideFrom(player) => NpcOrder::HideFrom(super::player::id(player)?),
         Wire::ShowTo(player) => NpcOrder::ShowTo(super::player::id(player)?),
     };
@@ -66,6 +71,7 @@ pub(super) fn wire_state(view: NpcView) -> v1::NpcState {
         pose: view.pose,
         gaze_range: view.gaze_range,
         label: view.label,
+        walking: view.walking,
     }
 }
 

@@ -651,6 +651,15 @@ fn the_npc_messages_survive_encoding() {
         npc_order::Order::Remove(Empty {}),
         npc_order::Order::SetPose("crouching".to_owned()),
         npc_order::Order::SetLabel("§aWorking".to_owned()),
+        npc_order::Order::WalkTo(rspigot_plugin_protocol::v1::NpcWalk {
+            target: Some(Vec3 {
+                x: 1.0,
+                y: 64.0,
+                z: 2.0,
+            }),
+            speed: 4.0,
+        }),
+        npc_order::Order::StopWalking(Empty {}),
         npc_order::Order::HideFrom("00000000-0000-0000-0000-000000000001".to_owned()),
         npc_order::Order::ShowTo("00000000-0000-0000-0000-000000000001".to_owned()),
         npc_order::Order::SetSkinLayers(0x7f),
@@ -685,6 +694,7 @@ fn the_npc_messages_survive_encoding() {
         pose: "standing".to_owned(),
         gaze_range: 0.0,
         label: Some("Working".to_owned()),
+        walking: true,
     };
     let list = NpcList {
         npcs: vec![state.clone()],

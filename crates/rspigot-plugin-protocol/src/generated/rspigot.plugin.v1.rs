@@ -10168,13 +10168,21 @@ pub struct NpcGaze {
     pub range: f64,
 }
 #[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct NpcWalk {
+    #[prost(message, optional, tag = "1")]
+    pub target: ::core::option::Option<Vec3>,
+    #[prost(double, tag = "2")]
+    pub speed: f64,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NpcOrder {
     #[prost(int32, tag = "1")]
     pub npc: i32,
     #[prost(
         oneof = "npc_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25"
     )]
     pub order: ::core::option::Option<npc_order::Order>,
 }
@@ -10211,6 +10219,10 @@ pub mod npc_order {
         HideFrom(::prost::alloc::string::String),
         #[prost(string, tag = "23")]
         ShowTo(::prost::alloc::string::String),
+        #[prost(message, tag = "24")]
+        WalkTo(super::NpcWalk),
+        #[prost(message, tag = "25")]
+        StopWalking(super::Empty),
     }
 }
 #[allow(clippy::all)]
@@ -10681,6 +10693,8 @@ pub struct NpcState {
     pub gaze_range: f64,
     #[prost(string, optional, tag = "12")]
     pub label: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "13")]
+    pub walking: bool,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
