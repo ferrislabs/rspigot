@@ -4,6 +4,7 @@ mod display;
 mod engine;
 mod flight;
 mod intent;
+mod locate;
 mod registry;
 mod session;
 
@@ -16,6 +17,7 @@ pub use flight::{
     MAX_FLIGHT_TICKS, Observation, Outcome, Stage, Step, can_launch, kind_of,
 };
 pub use intent::Intent;
+pub use locate::{Column, Descent, LOBBY_SCAN_LIFT, Probe, Probes, SCAN_DEPTH, describe};
 pub use registry::{Airborne, Registry};
 pub use session::{
     FORCED_MIN_PLAYERS, ForceStartError, RESET_DELAY_TICKS, RIDER_GRACE_TICKS, SHEEP_STRATEGY,
