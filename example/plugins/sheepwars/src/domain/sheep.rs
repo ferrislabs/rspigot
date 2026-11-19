@@ -1,28 +1,30 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SheepKind {
-    Explosive,
-    Incendiary,
-    Frozen,
-    Seeker,
     Lightning,
-    Healing,
+    Incendiary,
     Boarding,
-    Quake,
-    Darkness,
+    Healing,
+    Seeker,
     Splitting,
+    Darkness,
+    Frozen,
+    Quake,
+    Warp,
+    Intergalactic,
 }
 
 impl SheepKind {
-    pub const ALL: [Self; 10] = [
-        Self::Explosive,
-        Self::Incendiary,
-        Self::Frozen,
-        Self::Seeker,
+    pub const ALL: [Self; 11] = [
         Self::Lightning,
-        Self::Healing,
+        Self::Incendiary,
         Self::Boarding,
-        Self::Quake,
-        Self::Darkness,
+        Self::Healing,
+        Self::Seeker,
         Self::Splitting,
+        Self::Darkness,
+        Self::Frozen,
+        Self::Quake,
+        Self::Warp,
+        Self::Intergalactic,
     ];
 }

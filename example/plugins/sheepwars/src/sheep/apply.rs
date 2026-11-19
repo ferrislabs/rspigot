@@ -4,7 +4,9 @@ use rspigot_plugin::{
 };
 
 use super::catalog::{self, WoolColor};
-use super::impact::{Action, BlockKind, Cell, EffectKind, ParticleKind, SoundKind, Vec3};
+use super::impact::{
+    Action, BlockKind, Cell, EffectKind, ParticleKind, SoundKind, Vec3, outward_velocity,
+};
 use crate::domain::{SheepKind, TeamId};
 
 pub async fn apply(
@@ -52,6 +54,18 @@ pub async fn apply(
                     target.set_velocity(vector(velocity));
                 }
             }
+            Action::Push {
+                team,
+                center,
+                radius,
+                strength,
+                lift,
+            } => {
+                for target in members(world, center, radius, team, &team_of).await? {
+                    let velocity = outward_velocity(center, vec3(target.position), strength, lift);
+                    target.set_velocity(vector(velocity));
+                }
+            }
             Action::Lightning { at } => {
                 world.spawn(EntityType::LightningBolt, position(at)).await?;
             }
@@ -82,7 +96,8 @@ pub async fn nearest_enemy(
 
 pub const fn wool_material(color: WoolColor) -> Material {
     match color {
-        WoolColor::Red => Material::RedWool,
+        WoolColor::Magenta => Material::MagentaWool,
+        WoolColor::Blue => Material::BlueWool,
         WoolColor::Orange => Material::OrangeWool,
         WoolColor::LightBlue => Material::LightBlueWool,
         WoolColor::Green => Material::GreenWool,
@@ -156,7 +171,6 @@ const fn block_pos(c: Cell) -> BlockPos {
 
 const fn block_type(block: BlockKind) -> BlockType {
     match block {
-        BlockKind::Fire => BlockType::Fire,
         BlockKind::Ice => BlockType::Ice,
     }
 }
@@ -176,13 +190,14 @@ const fn particle(kind: ParticleKind) -> Particle {
 const fn sound(kind: SoundKind) -> Sound {
     match kind {
         SoundKind::Explode | SoundKind::Quake => Sound::EntityGenericExplode,
-        SoundKind::Fire => Sound::BlockFireAmbient,
         SoundKind::Ice => Sound::BlockGlassBreak,
         SoundKind::Thunder => Sound::EntityLightningBoltThunder,
         SoundKind::Heal => Sound::EntityPlayerLevelup,
         SoundKind::Teleport => Sound::EntityEndermanTeleport,
         SoundKind::Darkness => Sound::EntityGhastShoot,
         SoundKind::Split => Sound::EntitySheepAmbient,
+        SoundKind::Warp => Sound::EntityEnderDragonShoot,
+        SoundKind::Intergalactic => Sound::EntityWitherSpawn,
     }
 }
 
