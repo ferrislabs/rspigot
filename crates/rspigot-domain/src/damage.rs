@@ -11,6 +11,7 @@ const RESISTANCE_DIVIDER: i32 = 25;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DamageType {
     Fall,
+    EnderPearl,
     OutOfWorld,
     FallingAnvil,
     FallingBlock,
@@ -87,8 +88,9 @@ impl DamageTag {
 }
 
 impl DamageType {
-    pub const ALL: [Self; 39] = [
+    pub const ALL: [Self; 40] = [
         Self::Fall,
+        Self::EnderPearl,
         Self::OutOfWorld,
         Self::FallingAnvil,
         Self::FallingBlock,
@@ -136,6 +138,7 @@ impl DamageType {
     pub const fn name(self) -> &'static str {
         match self {
             Self::Fall => "minecraft:fall",
+            Self::EnderPearl => "minecraft:ender_pearl",
             Self::OutOfWorld => "minecraft:out_of_world",
             Self::FallingAnvil => "minecraft:falling_anvil",
             Self::FallingBlock => "minecraft:falling_block",
@@ -179,7 +182,7 @@ impl DamageType {
 
     pub const fn message_id(self) -> &'static str {
         match self {
-            Self::Fall => "fall",
+            Self::Fall | Self::EnderPearl => "fall",
             Self::OutOfWorld => "outOfWorld",
             Self::FallingAnvil => "anvil",
             Self::FallingBlock => "fallingBlock",
@@ -488,6 +491,19 @@ mod tests {
         assert_eq!(scaled_for_difficulty(1.0, Difficulty::Easy), 1.0);
         assert_eq!(scaled_for_difficulty(3.0, Difficulty::Normal), 3.0);
         assert_eq!(scaled_for_difficulty(3.0, Difficulty::Hard), 4.5);
+    }
+
+    #[test]
+    fn the_ender_pearl_damage_is_a_fall_without_knockback_that_ignores_armor() {
+        let pearl = DamageType::EnderPearl;
+        assert_eq!(pearl.name(), "minecraft:ender_pearl");
+        assert_eq!(pearl.message_id(), "fall");
+        assert!(pearl.registry_id().is_some());
+        assert!(pearl.is(DamageTag::IsFall));
+        assert!(pearl.is(DamageTag::NoKnockback));
+        assert!(pearl.in_tag("minecraft:bypasses_armor"));
+        assert!(!pearl.fall_variants());
+        assert_eq!(DamageType::from_name("minecraft:ender_pearl"), Some(pearl));
     }
 
     #[test]

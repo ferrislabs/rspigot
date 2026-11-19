@@ -41,7 +41,7 @@ pub mod clientbound {
     };
     pub use super::metadata::SetEntityData;
     pub use super::player::{
-        BundleDelimiter, ChangeDifficulty, Login, PlayerAbilities, PlayerInfoRemove,
+        BundleDelimiter, ChangeDifficulty, Cooldown, Login, PlayerAbilities, PlayerInfoRemove,
         PlayerInfoUpdate, PlayerPosition, PlayerRotation, Respawn, ServerData,
         SetDefaultSpawnPosition, SetExperience, SetHealth, SetHeldSlot, StartConfiguration,
         TabList, TagQuery, TickingState, TickingStep, Transfer,
@@ -125,6 +125,7 @@ mod tests {
             (<ContainerSetSlot as Packet>::ID, 20),
             (<SetCursorItem as Packet>::ID, 98),
             (<SetPlayerInventory as Packet>::ID, 110),
+            (<Cooldown as Packet>::ID, 22),
             (<SetHealth as Packet>::ID, 106),
             (<SetExperience as Packet>::ID, 105),
             (<Commands as Packet>::ID, 16),

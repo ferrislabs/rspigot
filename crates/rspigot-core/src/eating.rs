@@ -8,6 +8,7 @@ use rspigot_entities::SoundSource;
 use rspigot_items::{Food, ItemKind};
 
 use crate::bow::{UsingItem, hand_slot};
+use crate::consume::{consumable_of, game_event_of};
 use crate::events::Hand;
 use crate::game_events::GameEventContext;
 use crate::player::Player;
@@ -18,8 +19,6 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 use rspigot_domain::game_event::GameEvent;
 
-const EAT_TICKS: u64 = 32;
-const FAST_EAT_TICKS: u64 = 16;
 const BURP_SOUND: &str = "minecraft:entity.player.burp";
 const OMINOUS_BOTTLE_DISPOSE: &str = "minecraft:item.ominous_bottle.dispose";
 const OMINOUS_BOTTLE_AMPLIFIER: &str = "minecraft:ominous_bottle_amplifier";
@@ -33,12 +32,8 @@ const fn slot_of(hand: Hand) -> EquipmentSlot {
     }
 }
 
-fn eat_ticks(stack: &ItemStack) -> u64 {
-    if stack.item == ItemKind::DriedKelp.id() {
-        FAST_EAT_TICKS
-    } else {
-        EAT_TICKS
-    }
+fn eat_ticks(stack: &ItemStack) -> Option<u64> {
+    consumable_of(stack).map(|consumable| consumable.consume_ticks())
 }
 
 fn is_ominous_bottle(stack: &ItemStack) -> bool {
@@ -59,6 +54,10 @@ fn food_of(stack: &ItemStack) -> Option<Food> {
 
 pub(crate) fn can_eat<L>(player: &Player<L>, food: Food) -> bool {
     player.game_mode == GameMode::Creative || food.can_always_eat || player.vitals.food.needs_food()
+}
+
+fn can_consume<L>(player: &Player<L>, stack: &ItemStack) -> bool {
+    consumable_of(stack).is_some() && food_of(stack).is_none_or(|food| can_eat(player, food))
 }
 
 impl<L: ClientLink> Server<L> {
@@ -109,10 +108,8 @@ impl<L: ClientLink> Server<L> {
             .filter_map(|(id, player)| {
                 let using = player.using_item?;
                 let stack = player.inventory.get(hand_slot(player, using.hand))?;
-                if food_of(stack).is_none() && !is_ominous_bottle(stack) {
-                    return None;
-                }
-                (tick.saturating_sub(using.since) >= eat_ticks(stack)).then_some((*id, using.hand))
+                let ticks = eat_ticks(stack)?;
+                (tick.saturating_sub(using.since) >= ticks).then_some((*id, using.hand))
             })
             .collect();
         for (id, hand) in finished {
@@ -129,13 +126,8 @@ impl<L: ClientLink> Server<L> {
         let Some(stack) = player.inventory.get(slot).cloned() else {
             return;
         };
-        if !is_ominous_bottle(&stack) {
-            let Some(food) = food_of(&stack) else {
-                return;
-            };
-            if !can_eat(player, food) {
-                return;
-            }
+        if !can_consume(player, &stack) {
+            return;
         }
         let step = ConsumeStep {
             player: id,
@@ -197,17 +189,20 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
-        let Some(food) = food_of(&stack) else {
+        let Some(consumable) = consumable_of(&stack) else {
             if replaced {
                 player.inventory.set(slot, Some(stack));
                 self.send_inventory(id);
             }
             return;
         };
-        player
-            .vitals
-            .food
-            .add(food.nutrition as i32, food.saturation);
+        let food = food_of(&stack);
+        if let Some(food) = food {
+            player
+                .vitals
+                .food
+                .add(food.nutrition as i32, food.saturation);
+        }
         let creative = player.game_mode == GameMode::Creative;
         let position = player.position;
         let entity = player.entity_id;
@@ -245,8 +240,27 @@ impl<L: ClientLink> Server<L> {
                 self.drop_at_location(entity, 1.0, spare, Vec3::ZERO);
             }
         }
-        self.play_sound(None, position, BURP_SOUND, SoundSource::Players, 0.5, 1.0);
-        self.game_event(GameEvent::Eat, position, GameEventContext::of(Some(entity)));
+        if food.is_some() {
+            self.play_sound(None, position, BURP_SOUND, SoundSource::Players, 0.5, 1.0);
+        } else {
+            self.play_sound(
+                None,
+                position,
+                consumable.sound,
+                SoundSource::Players,
+                1.0,
+                1.0,
+            );
+        }
+        self.game_event(
+            game_event_of(consumable.animation),
+            position,
+            GameEventContext::of(Some(entity)),
+        );
+        self.apply_consumable(id, &stack, &consumable);
+        if let Some(ticks) = stack.item.kind().and_then(crate::cooldown::use_ticks) {
+            self.start_cooldown(id, stack.item, ticks);
+        }
         self.count_used(id, &stack);
         self.trigger_consume_item(id, &stack);
         self.send_inventory(id);
@@ -255,10 +269,7 @@ impl<L: ClientLink> Server<L> {
 
 pub(crate) fn starts_eating<L>(player: &Player<L>, hand: Hand, since: u64) -> Option<UsingItem> {
     let stack = player.inventory.get(hand_slot(player, hand))?;
-    if is_ominous_bottle(stack) {
-        return Some(UsingItem { hand, since });
-    }
-    can_eat(player, food_of(stack)?).then_some(UsingItem { hand, since })
+    can_consume(player, stack).then_some(UsingItem { hand, since })
 }
 
 #[cfg(test)]

@@ -89,7 +89,13 @@ impl<L: ClientLink> Server<L> {
                 hand,
                 sequence,
                 rotation,
-            } => self.use_item(id, hand, sequence, rotation),
+            } => {
+                if self.held_on_cooldown(id, hand) {
+                    self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                } else {
+                    self.use_item(id, hand, sequence, rotation);
+                }
+            }
             PlayerInput::HeldSlot(slot) => {
                 if slot < 9 {
                     self.select_slot(id, slot);

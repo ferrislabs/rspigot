@@ -1,7 +1,8 @@
 use rspigot_blocks::BlockId;
 
 use crate::{
-    AttributeModifier, CookingKind, Craft, EquipmentSlot, Food, Item, ItemId, ItemSet, Rarity, Tool,
+    AttributeModifier, Consumable, ConsumeAnimation, CookingKind, Craft, EquipmentSlot, Food, Item,
+    ItemId, ItemSet, Rarity, Tool,
 };
 
 pub struct CookedBeef;
@@ -27,6 +28,13 @@ impl Item for CookedBeef {
     const DAMAGE_RESISTANT: Option<&'static str> = None;
     const USE_REMAINDER: Option<ItemId> = None;
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier] = &[];
+    const CONSUMABLE: Option<Consumable> = Some(Consumable {
+        consume_seconds: 1.6,
+        animation: ConsumeAnimation::Eat,
+        sound: "minecraft:entity.generic.eat",
+        has_consume_particles: true,
+        on_consume_effects: &[],
+    });
     const CRAFTS: &'static [Craft] = &[
         Craft::Cooking {
             id: "minecraft:cooked_beef",

@@ -372,6 +372,21 @@ impl Overworld {
         self.structures_on = false;
     }
 
+    pub(crate) fn nearest_stronghold(&self, from: Vec3) -> Option<Vec3> {
+        if !self.structures_on {
+            return None;
+        }
+        let chunks = self
+            .structures
+            .stronghold_chunks_parallel(&|| self.biome_probe());
+        let (x, z) = nearest_chunk(chunks, from)?;
+        Some(Vec3::new(
+            f64::from(x) * 16.0 + 8.0,
+            STRONGHOLD_Y,
+            f64::from(z) * 16.0 + 8.0,
+        ))
+    }
+
     fn starts_here(
         &self,
         dimension: &Dimension,
@@ -560,9 +575,69 @@ fn ring_offsets(ring: i32) -> Vec<(i32, i32)> {
     offsets
 }
 
+const STRONGHOLD_Y: f64 = 32.0;
+
+fn nearest_chunk(chunks: &[(i32, i32)], from: Vec3) -> Option<(i32, i32)> {
+    let (bx, by, bz) = (
+        from.x.floor() as i64,
+        from.y.floor() as i64,
+        from.z.floor() as i64,
+    );
+    chunks.iter().copied().min_by_key(|&(x, z)| {
+        let (dx, dy, dz) = (
+            i64::from(x) * 16 + 8 - bx,
+            i64::from(STRONGHOLD_Y as i32) - by,
+            i64::from(z) * 16 + 8 - bz,
+        );
+        dx * dx + dy * dy + dz * dz
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_nearest_stronghold_to_the_origin_is_a_ring_position_and_the_closest() {
+        let palette = &Resources::resolve().blocks;
+        let mut overworld = Overworld::new(1, ClimateVariant::Normal, palette);
+        let probe = overworld.biome_probe();
+        let rings = overworld.structures.stronghold_chunks(&probe).to_vec();
+        drop(probe);
+        assert!(!rings.is_empty());
+        let found = overworld.nearest_stronghold(Vec3::ZERO).unwrap();
+        assert_eq!(found.y, 32.0);
+        let chunk = (
+            ((found.x - 8.0) / 16.0) as i32,
+            ((found.z - 8.0) / 16.0) as i32,
+        );
+        assert_eq!(found.x, f64::from(chunk.0) * 16.0 + 8.0);
+        assert_eq!(found.z, f64::from(chunk.1) * 16.0 + 8.0);
+        assert!(rings.contains(&chunk));
+        let distance = |(x, z): (i32, i32)| {
+            let (dx, dy, dz) = (i64::from(x) * 16 + 8, 32, i64::from(z) * 16 + 8);
+            dx * dx + dy * dy + dz * dz
+        };
+        assert!(
+            rings
+                .iter()
+                .all(|&other| distance(chunk) <= distance(other))
+        );
+        overworld.disable_structures();
+        assert_eq!(overworld.nearest_stronghold(Vec3::ZERO), None);
+    }
+
+    #[test]
+    fn nearest_uses_the_chunk_center_not_the_corner() {
+        let chunks = [(0, 0), (2, 0)];
+        let from = Vec3::new(9.0, 32.0, 8.0);
+        assert_eq!(nearest_chunk(&chunks, from), Some((0, 0)));
+        let from = Vec3::new(25.0, 32.0, 8.0);
+        assert_eq!(nearest_chunk(&chunks, from), Some((2, 0)));
+        let from = Vec3::new(20.0, 32.0, 8.0);
+        assert_eq!(nearest_chunk(&chunks, from), Some((0, 0)));
+        assert_eq!(nearest_chunk(&[], from), None);
+    }
 
     #[test]
     fn rings_cover_each_cell_once() {

@@ -981,3 +981,22 @@ mod shaped {
         assert!(blackstone > 5, "blackstone {blackstone}");
     }
 }
+
+#[test]
+fn parallel_rings_equal_sequential_rings() {
+    for seed in [1_i64, 42, -7, 123_456_789] {
+        let source = BiomeSource::new(seed, ClimateVariant::Normal);
+        let make = || Overworld {
+            scratch: RefCell::new(source.scratch()),
+            source: &source,
+        };
+        let sequential_sets = StructureSets::load(Library::embedded());
+        let parallel_sets = StructureSets::load(Library::embedded());
+        let sequential = sequential_sets.named("strongholds").unwrap();
+        let parallel = parallel_sets.named("strongholds").unwrap();
+        let one = sequential.placement.rings(seed, &make());
+        let many = parallel.placement.rings_parallel(seed, &make);
+        assert!(!one.is_empty());
+        assert_eq!(one, many, "seed {seed}");
+    }
+}

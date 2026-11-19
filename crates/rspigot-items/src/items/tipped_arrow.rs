@@ -1,6 +1,9 @@
 use rspigot_blocks::BlockId;
 
-use crate::{AttributeModifier, Craft, EquipmentSlot, Food, Item, ItemId, ItemSet, Rarity, Tool};
+use crate::{
+    AttributeModifier, Craft, EquipmentSlot, Food, Item, ItemId, ItemSet, PotionContentsDefault,
+    Rarity, Tool,
+};
 
 pub struct TippedArrow;
 
@@ -21,6 +24,10 @@ impl Item for TippedArrow {
     const DAMAGE_RESISTANT: Option<&'static str> = None;
     const USE_REMAINDER: Option<ItemId> = None;
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier] = &[];
+    const POTION_CONTENTS: Option<PotionContentsDefault> = Some(PotionContentsDefault {
+        potion: None,
+        custom_effects: &[],
+    });
     const CRAFTS: &'static [Craft] = &[Craft::Imbue {
         id: "minecraft:tipped_arrow",
         source: ItemSet::Direct(&[ItemId(1445)]),

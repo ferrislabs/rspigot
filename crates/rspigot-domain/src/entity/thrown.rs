@@ -34,6 +34,7 @@ pub struct ThrownState {
     pub left_owner: bool,
     pub left_owner_checked: bool,
     pub has_been_shot: bool,
+    pub target: Option<Vec3>,
     pub random: LegacyRandom,
 }
 
@@ -52,6 +53,8 @@ pub fn is_thrown(kind: EntityKind) -> bool {
             | EntityKind::Egg
             | EntityKind::ExperienceBottle
             | EntityKind::LlamaSpit
+            | EntityKind::EnderPearl
+            | EntityKind::EyeOfEnder
     ) || is_potion(kind)
 }
 
@@ -70,6 +73,8 @@ pub fn default_item_of(kind: EntityKind) -> ItemStack {
             ItemStack::new(ItemKind::LingeringPotion.id(), NonZeroU8::MIN)
         }
         EntityKind::Egg => ItemStack::new(ItemKind::Egg.id(), NonZeroU8::MIN),
+        EntityKind::EnderPearl => ItemStack::new(ItemKind::EnderPearl.id(), NonZeroU8::MIN),
+        EntityKind::EyeOfEnder => ItemStack::new(ItemKind::EnderEye.id(), NonZeroU8::MIN),
         EntityKind::ExperienceBottle => {
             ItemStack::new(ItemKind::ExperienceBottle.id(), NonZeroU8::MIN)
         }
@@ -99,6 +104,7 @@ impl ThrownState {
             left_owner: false,
             left_owner_checked: false,
             has_been_shot: false,
+            target: None,
             random: LegacyRandom::new(seed),
         }
     }

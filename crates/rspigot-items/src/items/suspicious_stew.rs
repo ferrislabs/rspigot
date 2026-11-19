@@ -1,8 +1,8 @@
 use rspigot_blocks::BlockId;
 
 use crate::{
-    AttributeModifier, Craft, EquipmentSlot, Food, Item, ItemId, ItemSet, Product, ProductComponent,
-    Rarity, StewEffect, Tool, tags,
+    AttributeModifier, Consumable, ConsumeAnimation, Craft, EquipmentSlot, Food, Item, ItemId,
+    ItemSet, Product, ProductComponent, Rarity, StewEffect, Tool, tags,
 };
 
 pub struct SuspiciousStew;
@@ -28,6 +28,14 @@ impl Item for SuspiciousStew {
     const DAMAGE_RESISTANT: Option<&'static str> = None;
     const USE_REMAINDER: Option<ItemId> = Some(ItemId(1006));
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier] = &[];
+    const CONSUMABLE: Option<Consumable> = Some(Consumable {
+        consume_seconds: 1.6,
+        animation: ConsumeAnimation::Eat,
+        sound: "minecraft:entity.generic.eat",
+        has_consume_particles: true,
+        on_consume_effects: &[],
+    });
+    const SUSPICIOUS_STEW_EFFECTS: Option<&'static [StewEffect]> = Some(&[]);
     const CRAFTS: &'static [Craft] = &[
         Craft::Shapeless {
             id: "minecraft:suspicious_stew_from_allium",

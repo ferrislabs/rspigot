@@ -493,6 +493,14 @@ impl<L: ClientLink> Server<L> {
         if wakes {
             self.stop_sleep_in_bed(id, true, true);
         }
+        let immune = self.players.get(&id).is_none_or(|player| {
+            invulnerable_to(player, kind, fall_damage)
+                || (player.abilities().invulnerable && !kind.is(DamageTag::BypassesInvulnerability))
+                || player.vitals.is_dead()
+        });
+        if !immune && self.block_with_shield(id, source, amount) {
+            return false;
+        }
         let protection = self.player_protection(id, source);
         let Some(player) = self.players.get_mut(&id) else {
             return false;

@@ -7,6 +7,7 @@ use rspigot_domain::{EntityId, Vec3, mth, potion};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::ItemKind;
 
+use crate::cooldown;
 use crate::events::Hand;
 use crate::plugins::events::{
     CreatureSpawnReason, EntityRemoveCause, ExpBottle, ExpBottlePatch, PlayerEggThrow,
@@ -39,6 +40,12 @@ fn throwable(item: ItemKind) -> Option<Throwable> {
     let (kind, sound, rotation_offset, power) = match item {
         ItemKind::Snowball => (Kind::Snowball, "minecraft:entity.snowball.throw", 0.0, 1.5),
         ItemKind::Egg => (Kind::Egg, "minecraft:entity.egg.throw", 0.0, 1.5),
+        ItemKind::EnderPearl => (
+            Kind::EnderPearl,
+            "minecraft:entity.ender_pearl.throw",
+            0.0,
+            1.5,
+        ),
         ItemKind::ExperienceBottle => (
             Kind::ExperienceBottle,
             "minecraft:entity.experience_bottle.throw",
@@ -81,6 +88,9 @@ impl<L: ClientLink> Server<L> {
         let Some(stack) = self.held(id, hand) else {
             return false;
         };
+        if stack.item.kind() == Some(ItemKind::EnderEye) {
+            return self.use_eye_of_ender(id, hand);
+        }
         let Some(throwable) = stack.item.kind().and_then(throwable) else {
             return false;
         };
@@ -155,6 +165,9 @@ impl<L: ClientLink> Server<L> {
         if self.held(player, hand).as_ref() == Some(stack) {
             self.consume_held(player, hand, 1);
         }
+        if let Some(ticks) = stack.item.kind().and_then(cooldown::use_ticks) {
+            self.start_cooldown(player, stack.item, ticks);
+        }
         self.player_swing(player, hand, false);
         self.refresh_hands(player);
     }
@@ -193,7 +206,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn thrown_owner_player(&self, id: EntityId) -> Option<PlayerId> {
+    pub(crate) fn thrown_owner_player(&self, id: EntityId) -> Option<PlayerId> {
         let EntityState::Thrown(state) = &self.entities.store.get(id)?.state else {
             return None;
         };

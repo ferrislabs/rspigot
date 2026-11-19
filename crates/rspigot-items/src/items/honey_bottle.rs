@@ -1,7 +1,8 @@
 use rspigot_blocks::BlockId;
 
 use crate::{
-    AttributeModifier, Craft, EquipmentSlot, Food, Item, ItemId, ItemSet, Product, Rarity, Tool,
+    AttributeModifier, Consumable, ConsumeAnimation, ConsumeEffect, Craft, EquipmentSlot, Food,
+    Item, ItemId, ItemSet, Product, Rarity, Tool,
 };
 
 pub struct HoneyBottle;
@@ -28,6 +29,13 @@ impl Item for HoneyBottle {
     const USE_REMAINDER: Option<ItemId> = Some(ItemId(1270));
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier] = &[];
     const CRAFTING_REMAINDER: Option<ItemId> = Some(ItemId(1270));
+    const CONSUMABLE: Option<Consumable> = Some(Consumable {
+        consume_seconds: 2.0,
+        animation: ConsumeAnimation::Drink,
+        sound: "minecraft:item.honey_bottle.drink",
+        has_consume_particles: false,
+        on_consume_effects: &[ConsumeEffect::RemoveEffects(&["minecraft:poison"])],
+    });
     const CRAFTS: &'static [Craft] = &[Craft::Shapeless {
         id: "minecraft:honey_bottle",
         ingredients: &[

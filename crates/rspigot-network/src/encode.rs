@@ -1793,6 +1793,13 @@ impl Encoder {
                     total: *total,
                 },
             ),
+            ClientEvent::Cooldown { group, ticks } => Self::queue(
+                writer,
+                &cb::Cooldown {
+                    group: group.clone(),
+                    ticks: *ticks,
+                },
+            ),
             ClientEvent::Commands(tree) => Self::queue(writer, &commands(tree)),
             ClientEvent::CommandSuggestions {
                 id,
@@ -3004,6 +3011,18 @@ mod tests {
         assert_eq!(
             encode(pickup),
             vec![(id::TAKE_ITEM_ENTITY, vec![0xAC, 0x02, 2, 1])]
+        );
+    }
+
+    #[test]
+    fn cooldown_golden_bytes() {
+        let event = ClientEvent::Cooldown {
+            group: "a:b".into(),
+            ticks: 20,
+        };
+        assert_eq!(
+            encode(event),
+            vec![(id::COOLDOWN, vec![3, b'a', b':', b'b', 20])]
         );
     }
 

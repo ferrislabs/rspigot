@@ -146,6 +146,28 @@ impl Engine {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn stronghold_chunks(&self, probe: &impl BiomeProbe) -> &[(i32, i32)] {
+        if !self.valid.contains_key("stronghold") {
+            return &[];
+        }
+        self.sets
+            .named("strongholds")
+            .map_or(&[], |set| set.placement.rings(self.seed, probe))
+    }
+
+    pub(crate) fn stronghold_chunks_parallel<P: BiomeProbe>(
+        &self,
+        make_probe: &(impl Fn() -> P + Sync),
+    ) -> &[(i32, i32)] {
+        if !self.valid.contains_key("stronghold") {
+            return &[];
+        }
+        self.sets.named("strongholds").map_or(&[], |set| {
+            set.placement.rings_parallel(self.seed, make_probe)
+        })
+    }
+
     pub(crate) fn library(&self) -> &'static Library {
         self.library
     }
