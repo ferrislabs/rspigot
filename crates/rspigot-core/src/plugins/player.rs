@@ -206,7 +206,9 @@ impl<L: ClientLink> Server<L> {
                 if !self.players.get(&id).is_some_and(|p| p.vitals.is_dead()) {
                     return Err("the player is not dead".to_owned());
                 }
-                self.respawn(id, PlayerRespawnReason::Plugin);
+                self.in_player_dimension(id, |server| {
+                    server.respawn(id, PlayerRespawnReason::Plugin);
+                });
             }
             PlayerOrder::PerformCommand(line) => {
                 commands::execute(self, CommandSender::Player(id), &line);
