@@ -194,7 +194,10 @@ impl SheepWars {
 
     async fn on_entity_damage(&self, event: &mut EntityDamage) {
         let Some(game) = self.game() else { return };
-        if event.entity_type() == EntityType::Player && game.blocks_damage() {
+        let Some(player) = event.entity().player() else {
+            return;
+        };
+        if game.blocks_damage_to(player, shieldable(event.cause())) {
             event.cancel();
         }
     }
@@ -220,6 +223,16 @@ impl SheepWars {
     async fn on_block_place(&self, event: &mut BlockPlace) {
         event.cancel();
     }
+}
+
+const fn shieldable(cause: EntityDamageCause) -> bool {
+    matches!(
+        cause,
+        EntityDamageCause::Fall
+            | EntityDamageCause::Suffocation
+            | EntityDamageCause::FlyIntoWall
+            | EntityDamageCause::Contact
+    )
 }
 
 #[tokio::main]

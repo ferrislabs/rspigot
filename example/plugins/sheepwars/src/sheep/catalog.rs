@@ -12,6 +12,19 @@ pub const FROZEN_ICE_RADIUS: i32 = 2;
 pub const SEEKER_POWER: f32 = 2.0;
 pub const SEEKER_SPEED: f64 = 0.8;
 pub const SEEKER_RANGE: f64 = 20.0;
+pub const SEEKER_RUN_SPEED: f64 = 0.25;
+pub const SEEKER_HOP: f64 = 0.3;
+pub const SEEKER_CONTACT_RADIUS: f64 = 1.6;
+pub const SEEKER_RUN_TICKS: u32 = 200;
+
+pub const DEFAULT_FUSE_TICKS: u32 = 40;
+pub const INCENDIARY_FUSE_TICKS: u32 = 60;
+pub const SPLIT_CHILD_FUSE_TICKS: u32 = 20;
+pub const PULSE_INTERVAL_TICKS: u32 = 10;
+pub const PULSE_PARTICLES: i32 = 6;
+pub const INCENDIARY_SCALE_START: f64 = 1.0;
+pub const INCENDIARY_SCALE_END: f64 = 2.5;
+pub const INCENDIARY_SCALE_INTERVAL_TICKS: u32 = 2;
 
 pub const HEALING_RADIUS: f64 = 5.0;
 pub const HEALING_REGENERATION_TICKS: i32 = 100;
@@ -93,6 +106,14 @@ pub const fn homes_in_flight(kind: SheepKind) -> bool {
     matches!(kind, SheepKind::Seeker)
 }
 
+pub const fn fuse_ticks(kind: SheepKind) -> u32 {
+    match kind {
+        SheepKind::Incendiary => INCENDIARY_FUSE_TICKS,
+        SheepKind::Seeker => SEEKER_RUN_TICKS,
+        _ => DEFAULT_FUSE_TICKS,
+    }
+}
+
 pub const fn announces_launch(kind: SheepKind) -> bool {
     matches!(kind, SheepKind::Intergalactic)
 }
@@ -145,6 +166,17 @@ mod tests {
                 assert_eq!(launch_power(kind), super::DEFAULT_THROW_POWER);
             }
         }
+    }
+
+    #[test]
+    fn fuses_are_positive_and_the_incendiary_swells_longest_of_the_short_ones() {
+        for kind in SheepKind::ALL {
+            assert!(fuse_ticks(kind) > 0);
+        }
+        assert_eq!(fuse_ticks(SheepKind::Healing), DEFAULT_FUSE_TICKS);
+        assert_eq!(fuse_ticks(SheepKind::Incendiary), INCENDIARY_FUSE_TICKS);
+        assert_eq!(fuse_ticks(SheepKind::Seeker), SEEKER_RUN_TICKS);
+        const { assert!(SPLIT_CHILD_FUSE_TICKS < DEFAULT_FUSE_TICKS) };
     }
 
     #[test]
