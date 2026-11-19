@@ -68,7 +68,7 @@ pub struct AnvilStore {
     root: PathBuf,
     layout: DimensionLayout,
     options: AnvilOptions,
-    heights: Vec<(Identifier, WorldHeight)>,
+    heights: Mutex<Vec<(Identifier, WorldHeight)>>,
     cache: Mutex<RegionCache>,
 }
 
@@ -96,25 +96,26 @@ impl AnvilStore {
             root: world_root.to_path_buf(),
             layout,
             options,
-            heights: vec![
+            heights: Mutex::new(vec![
                 (Identifier::minecraft("overworld"), WorldHeight::OVERWORLD),
                 (Identifier::minecraft("the_nether"), WorldHeight::NETHER),
                 (Identifier::minecraft("the_end"), WorldHeight::END),
-            ],
+            ]),
             cache: Mutex::new(RegionCache::default()),
         })
     }
 
-    pub fn with_dimension_height(mut self, dimension: Identifier, height: WorldHeight) -> Self {
-        match self
-            .heights
-            .iter_mut()
-            .find(|(known, _)| *known == dimension)
-        {
-            Some(entry) => entry.1 = height,
-            None => self.heights.push((dimension, height)),
-        }
+    pub fn with_dimension_height(self, dimension: Identifier, height: WorldHeight) -> Self {
+        self.register_dimension_height(dimension, height);
         self
+    }
+
+    pub fn register_dimension_height(&self, dimension: Identifier, height: WorldHeight) {
+        let mut heights = self.heights.lock();
+        match heights.iter_mut().find(|(known, _)| *known == dimension) {
+            Some(entry) => entry.1 = height,
+            None => heights.push((dimension, height)),
+        }
     }
 
     pub fn world_root(&self) -> &Path {
@@ -187,6 +188,7 @@ impl AnvilStore {
 
     fn height_for(&self, dimension: &Identifier) -> Option<WorldHeight> {
         self.heights
+            .lock()
             .iter()
             .find(|(known, _)| known == dimension)
             .map(|(_, height)| *height)
