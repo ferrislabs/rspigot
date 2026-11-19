@@ -325,15 +325,17 @@ fn normalized(name: &str) -> std::borrow::Cow<'_, str> {
 }
 
 fn block_state_from_tag(tag: &Tag) -> BlockStateId {
+    if let Some(name) = tag.as_str() {
+        return block_state_named(name, &[]);
+    }
     let Some(compound) = tag.as_compound() else {
         return BlockStateId::AIR;
     };
-    let name = normalized(
-        compound
-            .get_str("Name")
-            .or_else(|| compound.get_str("id"))
-            .unwrap_or(AIR_NAME),
-    );
+    let name = compound
+        .get_str("Name")
+        .or_else(|| compound.get_str("id"))
+        .or_else(|| compound.get_str(""))
+        .unwrap_or(AIR_NAME);
     let props: Vec<(&str, &str)> = compound
         .get_compound("Properties")
         .or_else(|| compound.get_compound("properties"))
@@ -344,11 +346,16 @@ fn block_state_from_tag(tag: &Tag) -> BlockStateId {
                 .collect()
         })
         .unwrap_or_default();
+    block_state_named(name, &props)
+}
+
+fn block_state_named(name: &str, props: &[(&str, &str)]) -> BlockStateId {
+    let name = normalized(name);
     let Some(kind) = BlockKind::from_name(&name) else {
         tracing::warn!(block = %name, "unknown block in a chunk palette, using air");
         return BlockStateId::AIR;
     };
-    if let Some(state) = kind.state_with(&props) {
+    if let Some(state) = kind.state_with(props) {
         return state;
     }
     tracing::warn!(block = %name, "invalid block properties in a chunk palette, keeping the valid ones");
@@ -1157,6 +1164,36 @@ mod tests {
             from_nbt(root, POS, Some(WorldHeight::OVERWORLD)),
             Err(AnvilError::LegacyLayout)
         ));
+    }
+
+    #[test]
+    fn every_palette_entry_form_decodes_to_the_same_block() {
+        let stone = BlockKind::Stone.default_state();
+        let plain = Tag::String("minecraft:stone".into());
+        let empty_key = Tag::Compound(Compound::new().with("", "minecraft:stone"));
+        let named = Tag::Compound(Compound::new().with("Name", "minecraft:stone"));
+        let identified = Tag::Compound(Compound::new().with("id", "minecraft:stone"));
+        for tag in [plain, empty_key, named, identified] {
+            assert_eq!(block_state_from_tag(&tag), stone);
+        }
+    }
+
+    #[test]
+    fn a_palette_entry_with_properties_keeps_them_in_either_key_style() {
+        let properties = Compound::new().with("snowy", "true");
+        let converted = Tag::Compound(
+            Compound::new()
+                .with("id", "minecraft:grass_block")
+                .with("properties", properties.clone()),
+        );
+        let classic = Tag::Compound(
+            Compound::new()
+                .with("Name", "minecraft:grass_block")
+                .with("Properties", properties),
+        );
+        let snowy = block_state_from_tag(&converted);
+        assert_eq!(snowy, block_state_from_tag(&classic));
+        assert_ne!(snowy, BlockKind::GrassBlock.default_state());
     }
 
     fn converted_entry(tag: &Tag) -> Tag {
