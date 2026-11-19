@@ -1,6 +1,6 @@
 use super::impact::Vec3;
 
-pub const DEFAULT_THROW_POWER: f64 = 1.2;
+pub const DEFAULT_THROW_POWER: f64 = 2.5;
 
 pub fn launch_velocity(yaw_degrees: f64, pitch_degrees: f64, power: f64) -> Vec3 {
     let yaw = yaw_degrees.to_radians();
@@ -28,6 +28,53 @@ pub fn steer(from: Vec3, target: Vec3, speed: f64) -> Vec3 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::arena::{ArenaSettings, Layout};
+    use crate::domain::TeamId;
+
+    const GRAVITY: f64 = 0.08;
+    const HORIZONTAL_DRAG: f64 = 0.98;
+    const THROW_PITCH_DEGREES: f64 = -40.0;
+    const MINECRAFT_VELOCITY_CAP: f64 = 3.9;
+    const POWER_STEP: f64 = 0.1;
+
+    fn flat_range(power: f64, pitch_degrees: f64) -> f64 {
+        let v = launch_velocity(0.0, pitch_degrees, power);
+        let (mut z, mut y, mut vz, mut vy) = (0.0, 0.0, v.z, v.y);
+        loop {
+            let previous = (z, y);
+            z += vz;
+            y += vy;
+            vz *= HORIZONTAL_DRAG;
+            vy -= GRAVITY;
+            if y < 0.0 {
+                let share = previous.1 / (previous.1 - y);
+                return previous.0 + (z - previous.0) * share;
+            }
+        }
+    }
+
+    fn spawn_distance() -> f64 {
+        let layout = Layout::new(ArenaSettings::default());
+        let red = layout.spawn_of(TeamId::Red);
+        let blue = layout.spawn_of(TeamId::Blue);
+        (red.x - blue.x).hypot(red.z - blue.z)
+    }
+
+    #[test]
+    fn default_power_crosses_the_arena_at_forty_degrees() {
+        assert!(flat_range(DEFAULT_THROW_POWER, THROW_PITCH_DEGREES) >= spawn_distance());
+    }
+
+    #[test]
+    fn default_power_is_the_smallest_round_value_that_crosses() {
+        let lower = DEFAULT_THROW_POWER - POWER_STEP;
+        assert!(flat_range(lower, THROW_PITCH_DEGREES) < spawn_distance());
+    }
+
+    #[test]
+    fn default_power_stays_under_the_minecraft_velocity_cap() {
+        const { assert!(DEFAULT_THROW_POWER < MINECRAFT_VELOCITY_CAP) };
+    }
 
     fn close(a: f64, b: f64) -> bool {
         (a - b).abs() < 1e-9
