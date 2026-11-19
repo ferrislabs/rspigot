@@ -31,6 +31,15 @@ const MODELLED: [&str; 10] = [
     "isLightOn",
 ];
 
+const LEGACY_KEYS: [&str; 6] = [
+    "HeightMap",
+    "LightPopulated",
+    "TerrainPopulated",
+    "V",
+    "hasLegacyStructureData",
+    "CarvingMasks",
+];
+
 const BEFORE_SECTIONS: [&str; 4] = [
     "LastUpdate",
     "blending_data",
@@ -75,9 +84,7 @@ pub fn from_nbt(
         });
     }
     if root.contains_key("Level") && !root.contains_key("sections") {
-        return Err(AnvilError::corrupt(
-            "chunk uses the pre-1.18 layout, which needs the vanilla data fixer",
-        ));
+        return Err(AnvilError::LegacyLayout);
     }
     let status_name = match root.get_str("Status") {
         Some(name) if !name.is_empty() => name,
@@ -146,7 +153,9 @@ pub fn from_nbt(
     };
     let extra: Compound = root
         .into_iter()
-        .filter(|(key, _)| !MODELLED.contains(&key.as_str()))
+        .filter(|(key, _)| {
+            !MODELLED.contains(&key.as_str()) && !LEGACY_KEYS.contains(&key.as_str())
+        })
         .collect();
     let mut chunk = ChunkColumn::from_sections(pos, height, sections)
         .ok_or_else(|| AnvilError::corrupt("section count does not match the world height"))?;
@@ -319,9 +328,15 @@ fn block_state_from_tag(tag: &Tag) -> BlockStateId {
     let Some(compound) = tag.as_compound() else {
         return BlockStateId::AIR;
     };
-    let name = normalized(compound.get_str("Name").unwrap_or(AIR_NAME));
+    let name = normalized(
+        compound
+            .get_str("Name")
+            .or_else(|| compound.get_str("id"))
+            .unwrap_or(AIR_NAME),
+    );
     let props: Vec<(&str, &str)> = compound
         .get_compound("Properties")
+        .or_else(|| compound.get_compound("properties"))
         .map(|properties| {
             properties
                 .iter()
@@ -1140,8 +1155,102 @@ mod tests {
             .with("Level", Compound::new().with("xPos", 0));
         assert!(matches!(
             from_nbt(root, POS, Some(WorldHeight::OVERWORLD)),
-            Err(AnvilError::Corrupt(_))
+            Err(AnvilError::LegacyLayout)
         ));
+    }
+
+    fn converted_entry(tag: &Tag) -> Tag {
+        let Some(entry) = tag.as_compound() else {
+            return tag.clone();
+        };
+        let mut out = Compound::new();
+        for (key, value) in entry.iter() {
+            match key {
+                "Name" => out.insert("id", value.clone()),
+                "Properties" => out.insert("properties", value.clone()),
+                other => out.insert(other, value.clone()),
+            };
+        }
+        Tag::Compound(out)
+    }
+
+    fn converted_chunk(status: &str) -> Compound {
+        let mut root = hand_built_chunk();
+        let mut sections: Vec<Tag> = root.get_list("sections").unwrap().to_vec();
+        for tag in &mut sections {
+            let Tag::Compound(section) = tag else {
+                continue;
+            };
+            let Some(states) = section.get_compound("block_states") else {
+                continue;
+            };
+            let palette: Vec<Tag> = states
+                .get_list("palette")
+                .unwrap()
+                .iter()
+                .map(converted_entry)
+                .collect();
+            let mut rebuilt = states.clone();
+            rebuilt.insert("palette", Tag::List(palette));
+            section.insert("block_states", rebuilt);
+        }
+        sections.reverse();
+        root.insert("sections", Tag::List(sections));
+        root.remove("yPos");
+        root.remove("isLightOn");
+        root.remove("Heightmaps");
+        root.insert("Status", status);
+        root.insert("HeightMap", Tag::IntArray(vec![0i32; 256]));
+        root.insert("LightPopulated", 1i8);
+        root.insert("TerrainPopulated", 1i8);
+        root.insert("V", 1i8);
+        root.insert("hasLegacyStructureData", 1i8);
+        root.insert("CarvingMasks", Compound::new());
+        root.insert(
+            "UpgradeData",
+            Compound::new().with("Indices", Compound::new()),
+        );
+        root
+    }
+
+    #[test]
+    fn converted_palette_entries_keyed_by_id_decode_like_the_named_ones() {
+        let expected = load(hand_built_chunk());
+        let chunk = load(converted_chunk("minecraft:spawn"));
+        for (index, (got, want)) in chunk.sections().iter().zip(expected.sections()).enumerate() {
+            assert_eq!(
+                got.blocks().values().collect::<Vec<_>>(),
+                want.blocks().values().collect::<Vec<_>>(),
+                "section {index}"
+            );
+        }
+        assert_eq!(chunk.sections()[1].block(3, 0, 0), stairs());
+    }
+
+    #[test]
+    fn converted_chunks_with_a_partial_status_are_loadable() {
+        for name in ["minecraft:terrain", "minecraft:features", "minecraft:spawn"] {
+            let chunk = load(converted_chunk(name));
+            assert_ne!(chunk.status, ChunkStatus::Empty, "{name}");
+            assert!(chunk.sections()[1].non_air_count() > 0, "{name}");
+        }
+    }
+
+    #[test]
+    fn leftover_legacy_keys_are_dropped_and_not_written_back() {
+        let chunk = load(converted_chunk("minecraft:spawn"));
+        for key in [
+            "HeightMap",
+            "LightPopulated",
+            "TerrainPopulated",
+            "V",
+            "hasLegacyStructureData",
+            "CarvingMasks",
+        ] {
+            assert!(!chunk.extra.contains_key(key), "{key} kept in extra");
+            assert!(!to_nbt(&chunk).contains_key(key), "{key} written back");
+        }
+        assert!(chunk.light.sky.iter().all(Option::is_none));
     }
 
     #[test]
