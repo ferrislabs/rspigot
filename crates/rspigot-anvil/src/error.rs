@@ -13,6 +13,10 @@ pub enum AnvilError {
     UnsupportedCompression(u8),
     #[error("chunk data version {found} is newer than the supported {supported}")]
     NewerDataVersion { found: i32, supported: i32 },
+    #[error(
+        "chunk is still in the pre-1.18 layout (Level/Sections): upgrade the map with a server's --forceUpgrade first"
+    )]
+    LegacyLayout,
     #[error("invalid world path: {0}")]
     InvalidPath(String),
 }
