@@ -6,15 +6,11 @@ use rspigot_plugin::{
     ParticleBurst, Player, Position, Rotation, SoundCue, Title, Uuid, Vector,
 };
 
-use super::capture::{
-    CAPTURE_PARTICLE, CAPTURE_PARTICLES, CAPTURE_SOUND, Capture, extract, has_room,
-};
+use super::capture::{CAPTURE_PARTICLE, CAPTURE_PARTICLES, CAPTURE_SOUND, Capture};
 use super::display::lives_line;
-use super::flight::{
-    BOARDING_RIDER_OFFSET, EYE_HEIGHT, Flight, MAX_CONCURRENT_FLIGHTS, Observation, Step,
-    can_launch,
-};
+use super::flight::{BOARDING_RIDER_OFFSET, EYE_HEIGHT, Flight, Observation, Step, can_launch};
 use super::intent::Intent;
+use super::registry::{Airborne, Registry};
 use super::session::{ForceStartError, Session, VoidVerdict, launch_announcement};
 use crate::arena::{Arena, Point};
 use crate::domain::{PlayerId, SheepKind, TeamId};
@@ -31,8 +27,15 @@ pub const ACTION_BAR_REFRESH_TICKS: u64 = 20;
 pub enum Hit {
     NotSheep,
     Denied,
-    Caught {
+    Struck,
+}
+
+#[derive(Debug)]
+pub enum Death {
+    NotSheep,
+    Slain {
         kind: Option<SheepKind>,
+        cue: bool,
         at: Position,
     },
 }
@@ -41,16 +44,10 @@ pub fn player_id(uuid: Uuid) -> PlayerId {
     PlayerId(uuid.as_u128())
 }
 
-#[derive(Debug)]
-struct Airborne {
-    flight: Flight,
-    entity: Entity,
-}
-
 struct State {
     session: Session,
     players: HashMap<PlayerId, Player>,
-    flights: Vec<Airborne>,
+    flights: Registry<Entity>,
     hud: Hud,
     bar: BossBar,
     ticks: u64,
@@ -68,7 +65,7 @@ impl Game {
             state: Mutex::new(State {
                 session,
                 players: HashMap::new(),
-                flights: Vec::new(),
+                flights: Registry::default(),
                 hud,
                 bar,
                 ticks: 0,
@@ -206,74 +203,58 @@ impl Game {
         player
             .inventory
             .remove(ItemRemoval::new(sheep_wool(kind), 1));
-        self.lock().flights.push(Airborne {
-            flight: Flight::new(kind, team, id),
-            entity: sheep,
-        });
+        self.lock()
+            .flights
+            .insert(sheep.entity_id, Flight::new(kind, team, id), sheep);
         if let Some(announcement) = launch_announcement(kind, team) {
             self.run(vec![announcement]).await;
         }
         true
     }
 
-    pub fn catch(&self, attacker: &Player, sheep: &Entity) -> Hit {
+    pub fn strike(&self, attacker: &Player, sheep: &Entity) -> Hit {
         let mut state = self.lock();
-        let Some(index) = state
-            .flights
-            .iter()
-            .position(|airborne| airborne.entity.entity_id == sheep.entity_id)
-        else {
+        let now = state.ticks;
+        let attacker = player_id(attacker.uuid);
+        let State {
+            session, flights, ..
+        } = &mut *state;
+        let Some(airborne) = flights.get_mut(sheep.entity_id) else {
             return Hit::NotSheep;
         };
-        let verdict = state
-            .session
-            .capture(player_id(attacker.uuid), &state.flights[index].flight);
-        if verdict == Capture::Denied {
+        if session.capture(attacker, &airborne.flight) == Capture::Denied {
             return Hit::Denied;
         }
-        let Some(airborne) = extract(&mut state.flights, |airborne| {
-            airborne.entity.entity_id == sheep.entity_id
-        }) else {
-            return Hit::NotSheep;
+        airborne.flight.record_hit(attacker, now);
+        Hit::Struck
+    }
+
+    pub fn slain(&self, sheep: &Entity) -> Death {
+        let mut state = self.lock();
+        let Some(airborne) = state.flights.take(sheep.entity_id) else {
+            return Death::NotSheep;
         };
-        airborne.entity.remove();
         if airborne.flight.kind == SheepKind::Boarding {
             state.session.shield(airborne.flight.thrower);
         }
-        Hit::Caught {
-            kind: match verdict {
-                Capture::Taken { kind } => Some(kind),
-                Capture::Denied | Capture::Fragment => None,
-            },
+        let (kind, cue) = match airborne.flight.loot() {
+            Capture::Denied => (None, false),
+            Capture::Fragment => (None, true),
+            Capture::Taken { kind } => (Some(kind), true),
+        };
+        Death::Slain {
+            kind,
+            cue,
             at: sheep.position,
         }
     }
 
-    pub async fn reward(&self, attacker: &Player, kind: Option<SheepKind>, at: Position) {
-        attacker
-            .world
-            .sound
-            .play(SoundCue::new(CAPTURE_SOUND).at(at));
-        attacker
-            .world
+    pub fn play_capture(&self, at: Position) {
+        let world = &self.arena.world;
+        world.sound.play(SoundCue::new(CAPTURE_SOUND).at(at));
+        world
             .particle
             .spawn(ParticleBurst::new(CAPTURE_PARTICLE, at).count(CAPTURE_PARTICLES));
-        let Some(kind) = kind else { return };
-        let wool = ItemStack::new(sheep_wool(kind), 1).name(display_name(kind));
-        let room = match attacker.inventory.get_items().await {
-            Ok(inventory) => has_room(&inventory, sheep_wool(kind)),
-            Err(error) => {
-                tracing::warn!("could not read the inventory of {}: {error}", attacker.name);
-                true
-            }
-        };
-        if room {
-            attacker.inventory.add(wool);
-            return;
-        }
-        if let Err(error) = attacker.world.drop_item(attacker.position, wool).await {
-            tracing::warn!("could not drop a wool for {}: {error}", attacker.name);
-        }
     }
 
     pub async fn tick(&self) {
@@ -286,7 +267,7 @@ impl Game {
 
     pub fn close(&self) {
         let mut state = self.lock();
-        for airborne in state.flights.drain(..) {
+        for airborne in state.flights.drain() {
             airborne.entity.remove();
         }
         state.hud.close();
@@ -408,7 +389,7 @@ impl Game {
 
     fn reset(&self) -> Vec<Intent> {
         let mut state = self.lock();
-        for airborne in state.flights.drain(..) {
+        for airborne in state.flights.drain() {
             airborne.entity.remove();
         }
         for player in state.players.values() {
@@ -483,15 +464,17 @@ impl Game {
     }
 
     async fn advance_flights(&self, roster: &[Combatant]) {
-        let flights = std::mem::take(&mut self.lock().flights);
-        let mut next = Vec::with_capacity(flights.len());
+        let handles = self.lock().flights.handles();
         let mut children = Vec::new();
-        for mut airborne in flights {
-            let sheep = match airborne.entity.get_state().await {
+        for (id, entity) in handles {
+            let sheep = entity.get_state().await;
+            let Some(mut airborne) = self.lock().flights.take(id) else {
+                continue;
+            };
+            let sheep = match sheep {
                 Ok(sheep) => sheep,
                 Err(error) => {
-                    tracing::warn!("lost track of a sheep: {error}");
-                    airborne.entity.remove();
+                    tracing::debug!("a sheep is gone: {error}");
                     continue;
                 }
             };
@@ -503,37 +486,40 @@ impl Game {
                 enemy: Self::enemy_near(&airborne.flight, position, roster),
             };
             let outcome = airborne.flight.step(observation);
+            let step = outcome.step;
+            let thrower = airborne.flight.thrower;
+            if matches!(step, Step::Detonate | Step::Release) {
+                if outcome.pulse {
+                    self.pulse(position).await;
+                }
+                self.lock().session.shield(thrower);
+                children.extend(self.land(&airborne, position, roster).await);
+                airborne.entity.remove();
+                continue;
+            }
+            let handle = airborne.entity.clone();
+            self.lock()
+                .flights
+                .insert(id, airborne.flight, airborne.entity);
             if outcome.pulse {
                 self.pulse(position).await;
             }
-            match outcome.step {
-                Step::Keep => next.push(airborne),
-                Step::Swell(scale) => {
-                    airborne.entity.attributes.set(Attribute::Scale, scale);
-                    next.push(airborne);
-                }
-                Step::Steer(velocity) => {
-                    airborne.entity.set_velocity(vector(velocity));
-                    next.push(airborne);
-                }
-                Step::Carry(at) => {
-                    self.carry(airborne.flight.thrower, at).await;
-                    next.push(airborne);
-                }
-                Step::Detonate | Step::Release => {
-                    self.lock().session.shield(airborne.flight.thrower);
-                    children.extend(self.land(&airborne, position, roster).await);
-                    airborne.entity.remove();
-                }
+            match step {
+                Step::Swell(scale) => handle.attributes.set(Attribute::Scale, scale),
+                Step::Steer(velocity) => handle.set_velocity(vector(velocity)),
+                Step::Carry(at) => self.carry(thrower, at).await,
+                Step::Keep | Step::Detonate | Step::Release => {}
             }
         }
-        let mut state = self.lock();
-        next.extend(children);
-        next.truncate(MAX_CONCURRENT_FLIGHTS.saturating_sub(state.flights.len()));
-        state.flights.extend(next);
+        self.lock().flights.extend_capped(children);
     }
 
-    async fn land(&self, airborne: &Airborne, at: Vec3, roster: &[Combatant]) -> Vec<Airborne> {
+    async fn land(
+        &self,
+        airborne: &Airborne<Entity>,
+        at: Vec3,
+        roster: &[Combatant],
+    ) -> Vec<Airborne<Entity>> {
         let Flight {
             kind,
             team,
@@ -546,6 +532,7 @@ impl Game {
                 .spawned
                 .into_iter()
                 .map(|(kind, entity)| Airborne {
+                    id: entity.entity_id,
                     flight: Flight::fragment(kind, team, thrower),
                     entity,
                 })
