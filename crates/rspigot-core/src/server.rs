@@ -465,6 +465,17 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn in_player_dimension<R>(
+        &mut self,
+        player: PlayerId,
+        run: impl FnOnce(&mut Self) -> R,
+    ) -> R {
+        match self.dimension_of(player) {
+            Some(key) => self.in_dimension(&key, run),
+            None => run(self),
+        }
+    }
+
     fn dimension_of(&self, player: PlayerId) -> Option<crate::world_state::DimensionKey> {
         self.players
             .get(&player)

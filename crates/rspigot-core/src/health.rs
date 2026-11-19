@@ -31,6 +31,7 @@ use crate::plugins::{
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 use crate::stats;
+use crate::streaming::ChunkStreamer;
 use crate::travel::Destination;
 
 pub const HEAD_SLOT: usize = 5;
@@ -944,6 +945,14 @@ impl<L: ClientLink> Server<L> {
             spawn: spawn_info,
             keep_data: 0,
         });
+        if !elsewhere && let Some(player) = self.players.get_mut(&id) {
+            player.streamer.release_all(&mut self.world.chunks);
+            let view = u8::try_from(player.streamer.view_distance()).unwrap_or(u8::MAX);
+            player.streamer = ChunkStreamer::new(self.config.stream, position.chunk(), view);
+            player
+                .streamer
+                .start(&mut self.world.chunks, &self.workers, &player.link);
+        }
         self.teleport_now(id, if elsewhere { spawn } else { position });
         let time = self.time_event();
         let border = self.border_event();
