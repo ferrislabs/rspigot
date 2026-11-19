@@ -6,6 +6,7 @@ use crate::domain::{
     Phase, PlayerId, Round, RoundError, RoundEvent, RoundRules, SheepKind, TeamId,
 };
 use crate::hud::{message, team_name, team_prefix};
+use crate::sheep::{announces_launch, display_name};
 
 pub const RESET_DELAY_TICKS: u32 = 20 * 10;
 pub const FORCED_MIN_PLAYERS: usize = 1;
@@ -13,6 +14,17 @@ pub const SHEEP_STRATEGY: fn(u32) -> SheepKind = rotation;
 
 const fn rotation(index: u32) -> SheepKind {
     SheepKind::ALL[index as usize % SheepKind::ALL.len()]
+}
+
+pub fn launch_announcement(kind: SheepKind, team: TeamId) -> Option<Intent> {
+    announces_launch(kind).then(|| {
+        Intent::Broadcast(format!(
+            "§9L'équipe {}{} §9lance un {}§9 !",
+            team_prefix(team),
+            team_name(team),
+            display_name(kind)
+        ))
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
@@ -462,6 +474,21 @@ mod tests {
         }
         assert_eq!(kinds[0], SheepKind::ALL[0]);
         assert_eq!(kinds[2], SheepKind::ALL[1]);
+    }
+
+    #[test]
+    fn only_the_intergalactic_launch_is_announced_in_french() {
+        for kind in SheepKind::ALL {
+            let announcement = launch_announcement(kind, TeamId::Red);
+            if kind == SheepKind::Intergalactic {
+                assert!(matches!(
+                    announcement,
+                    Some(Intent::Broadcast(text)) if text.contains("intergalactique") && text.contains("lance")
+                ));
+            } else {
+                assert_eq!(announcement, None);
+            }
+        }
     }
 
     #[test]

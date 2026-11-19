@@ -9,13 +9,13 @@ use rspigot_plugin::{
 use super::display::lives_line;
 use super::flight::{EYE_HEIGHT, Flight, MAX_CONCURRENT_FLIGHTS, can_launch};
 use super::intent::Intent;
-use super::session::{ForceStartError, Session, VoidVerdict};
+use super::session::{ForceStartError, Session, VoidVerdict, launch_announcement};
 use crate::arena::Point;
 use crate::domain::{PlayerId, SheepKind, TeamId};
 use crate::hud::{Hud, bossbar_progress, bossbar_title};
 use crate::sheep::{
-    Action, DEFAULT_THROW_POWER, SEEKER_RANGE, SEEKER_SPEED, Vec3, apply, display_name,
-    homes_in_flight, launch_velocity, nearest_enemy, plan, sheep_wool, steer,
+    Action, SEEKER_RANGE, SEEKER_SPEED, Vec3, apply, display_name, homes_in_flight, launch_power,
+    launch_velocity, nearest_enemy, plan, sheep_wool, steer,
 };
 
 pub const HUD_REFRESH_TICKS: u64 = 5;
@@ -165,7 +165,7 @@ impl Game {
         let velocity = launch_velocity(
             f64::from(player.rotation.yaw),
             f64::from(player.rotation.pitch),
-            DEFAULT_THROW_POWER,
+            launch_power(kind),
         );
         sheep.set_velocity(vector(velocity));
         player
@@ -175,6 +175,9 @@ impl Game {
             flight: Flight::new(kind, team, id),
             entity: sheep,
         });
+        if let Some(announcement) = launch_announcement(kind, team) {
+            self.run(vec![announcement]).await;
+        }
         true
     }
 
