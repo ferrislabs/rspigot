@@ -816,6 +816,19 @@ mod tests {
     }
 
     #[test]
+    fn an_eligible_hit_is_not_denied_and_a_spectator_hit_is_denied() {
+        let session = started();
+        assert!(matches!(
+            session.capture(A, &live(SheepKind::Frozen)),
+            Capture::Taken { .. }
+        ));
+        assert_eq!(
+            session.capture(C, &live(SheepKind::Frozen)),
+            Capture::Denied
+        );
+    }
+
+    #[test]
     fn friendly_fire_is_blocked_but_enemy_hits_pass() {
         let mut session = session();
         session.join(A);
