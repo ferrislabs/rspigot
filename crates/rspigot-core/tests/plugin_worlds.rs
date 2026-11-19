@@ -7,9 +7,11 @@ use common::*;
 use crossbeam_channel::{Receiver, unbounded};
 use rspigot_core::commands::Weather;
 use rspigot_core::events::ClientEvent;
+use rspigot_core::events::PlayerInput;
+use rspigot_core::plugins::events::PlayerRespawnPatch;
 use rspigot_core::plugins::{
-    ActionError, ActionErrorKind, Answer, FromPlugin, Order, PlayerOrder, Question, ServerOrder,
-    ToPlugin, WorldOrder, WorldState,
+    ActionError, ActionErrorKind, Answer, EventPatch, FromPlugin, Location, Order, PlayerOrder,
+    Question, ServerOrder, ToPlugin, WorldOrder, WorldState,
 };
 use rspigot_core::server::Server;
 use rspigot_core::worlds::{
@@ -309,4 +311,136 @@ fn a_player_travels_between_worlds_and_back() {
         Some(Identifier::minecraft("overworld"))
     );
     assert_eq!(respawns(&alice.link.take()), 1);
+}
+
+fn stream_until(s: &mut Scene, player: &Player, wanted: rspigot_domain::ChunkPos) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while Instant::now() < deadline {
+        s.tick(1);
+        std::thread::sleep(Duration::from_millis(10));
+        send_input(
+            &mut s.server,
+            player,
+            PlayerInput::ChunkBatchReceived {
+                chunks_per_tick: 9.0,
+            },
+        );
+        if player
+            .link
+            .take()
+            .iter()
+            .any(|event| matches!(event, ClientEvent::Chunk { chunk, .. } if chunk.pos() == wanted))
+        {
+            return true;
+        }
+    }
+    false
+}
+
+fn dead_in_arena() -> (Scene, Player) {
+    let (sink, _changes) = unbounded();
+    let server = configured(|_| {})
+        .with_world_factory(factory)
+        .with_worlds_sink(sink);
+    let mut s = scene_on(
+        server,
+        &["Alice"],
+        vec![deciding(1, rspigot_core::plugins::EventKind::PlayerRespawn)],
+    );
+    create(&mut s, spec("arena", layers()));
+    travel(&mut s, "rspigot:arena");
+    let alice = s.players[0].clone();
+    let streamed = stream_until(&mut s, &alice, chunk_of(Vec3::new(0.5, 80.0, 0.5)));
+    assert!(streamed, "the chunks were sent before the death");
+    s.act(to(&alice, PlayerOrder::SetHealth(0.0)));
+    assert_eq!(s.server.player_is_dead(alice.id), Some(true));
+    alice.link.take();
+    (s, alice)
+}
+
+fn chunk_of(position: Vec3) -> rspigot_domain::ChunkPos {
+    rspigot_domain::BlockPos::new(
+        position.x.floor() as i32,
+        position.y.floor() as i32,
+        position.z.floor() as i32,
+    )
+    .chunk()
+}
+
+fn respawn_in_arena(position: Vec3) -> Vec<ClientEvent> {
+    let (mut s, alice) = dead_in_arena();
+    send_input(&mut s.server, &alice, PlayerInput::Respawn);
+    let asked = last_asked(&s.plugin, rspigot_core::plugins::EventKind::PlayerRespawn);
+    let there = Location {
+        world: "rspigot:arena".to_owned(),
+        position,
+        rotation: rspigot_domain::Rotation::default(),
+    };
+    rule_on(
+        &mut s.server,
+        1,
+        asked.id,
+        false,
+        Some(EventPatch::PlayerRespawn(PlayerRespawnPatch {
+            respawn_location: Some(there),
+        })),
+    );
+    let mut events = alice.link.take();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let wanted = chunk_of(position);
+    while Instant::now() < deadline
+        && !events
+            .iter()
+            .any(|event| matches!(event, ClientEvent::Chunk { chunk, .. } if chunk.pos() == wanted))
+    {
+        s.tick(1);
+        std::thread::sleep(Duration::from_millis(10));
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::ChunkBatchReceived {
+                chunks_per_tick: 9.0,
+            },
+        );
+        events.extend(alice.link.take());
+    }
+    assert_eq!(s.server.player_is_dead(alice.id), Some(false));
+    assert_eq!(s.server.player_dimension(alice.id), Some(key("arena")));
+    events
+}
+
+fn assert_respawned_in_arena(events: &[ClientEvent], position: Vec3) {
+    let respawn = events
+        .iter()
+        .position(|event| matches!(event, ClientEvent::Respawn { .. }))
+        .expect("a respawn packet");
+    let ClientEvent::Respawn { spawn, .. } = &events[respawn] else {
+        unreachable!();
+    };
+    assert_eq!(spawn.dimension.key, key("arena"));
+    let spawn_point = Vec3::new(0.5, 64.0, 0.5);
+    for event in events {
+        if let ClientEvent::Teleport { position: at, .. } = event {
+            assert_ne!(*at, spawn_point, "no teleport to the overworld spawn");
+        }
+    }
+    let wanted = chunk_of(position);
+    assert!(
+        events[respawn..].iter().any(
+            |event| matches!(event, ClientEvent::Chunk { chunk, .. } if chunk.pos() == wanted)
+        ),
+        "the chunk around the respawn position is sent again"
+    );
+}
+
+#[test]
+fn a_respawn_inside_a_created_world_stays_in_it() {
+    let position = Vec3::new(40.5, -59.0, 40.5);
+    assert_respawned_in_arena(&respawn_in_arena(position), position);
+}
+
+#[test]
+fn a_respawn_at_the_world_origin_sends_the_chunks_again() {
+    let position = Vec3::new(0.5, -59.0, 0.5);
+    assert_respawned_in_arena(&respawn_in_arena(position), position);
 }
