@@ -77,9 +77,18 @@ pub(super) fn query(query: v1::EntityQuery) -> Result<Question, Malformed> {
 }
 
 pub(super) fn spawn(spawn: v1::Spawn) -> Result<Question, Malformed> {
-    Ok(Question::Spawn {
+    let position = shared::vec3(required(spawn.position)?);
+    if spawn.block.is_none() && spawn.velocity.is_none() {
+        return Ok(Question::Spawn {
+            kind: spawn.kind,
+            position,
+        });
+    }
+    Ok(Question::SpawnWith {
         kind: spawn.kind,
-        position: shared::vec3(required(spawn.position)?),
+        position,
+        block: spawn.block,
+        velocity: spawn.velocity.map(shared::vec3),
     })
 }
 
@@ -294,11 +303,27 @@ mod tests {
             ask(question::Question::Spawn(v1::Spawn {
                 kind: "minecraft:zombie".into(),
                 position: Some(wire_vec3(4.5, 64.0, 4.5)),
+                ..v1::Spawn::default()
             }))
             .unwrap(),
             asked(Question::Spawn {
                 kind: "minecraft:zombie".into(),
                 position: Vec3::new(4.5, 64.0, 4.5),
+            })
+        );
+        assert_eq!(
+            ask(question::Question::Spawn(v1::Spawn {
+                kind: "minecraft:falling_block".into(),
+                position: Some(wire_vec3(1.5, 70.0, 2.5)),
+                block: Some("minecraft:stone".into()),
+                velocity: Some(wire_vec3(0.5, 1.0, -0.5)),
+            }))
+            .unwrap(),
+            asked(Question::SpawnWith {
+                kind: "minecraft:falling_block".into(),
+                position: Vec3::new(1.5, 70.0, 2.5),
+                block: Some("minecraft:stone".into()),
+                velocity: Some(Vec3::new(0.5, 1.0, -0.5)),
             })
         );
         assert_eq!(

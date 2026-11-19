@@ -455,6 +455,12 @@ pub enum Question {
         kind: String,
         position: Vec3,
     },
+    SpawnWith {
+        kind: String,
+        position: Vec3,
+        block: Option<String>,
+        velocity: Option<Vec3>,
+    },
     DropItem {
         position: Vec3,
         item: ItemSpec,
