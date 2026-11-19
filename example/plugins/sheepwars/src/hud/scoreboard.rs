@@ -1,4 +1,4 @@
-use rspigot_plugin::{Criteria, DisplaySlot, Objective, Scoreboard, Team};
+use rspigot_plugin::{Criteria, DisplaySlot, Error, Objective, Scoreboard, ScoreboardState, Team};
 
 use crate::domain::{PlayerId, Round, TeamId};
 
@@ -23,19 +23,27 @@ pub struct Hud {
 }
 
 impl Hud {
-    pub fn new(scoreboard: Scoreboard) -> Self {
-        let objective =
-            scoreboard.register_objective(OBJECTIVE_NAME, &Criteria::dummy(), SIDEBAR_TITLE);
+    pub async fn open(scoreboard: Scoreboard) -> Result<Self, Error> {
+        let reuse = Reuse::of(&scoreboard.state().await?);
+        for entry in &reuse.stale_scores {
+            scoreboard.reset_scores(entry.as_str());
+        }
+        let objective = if reuse.objective {
+            scoreboard.objective(OBJECTIVE_NAME)
+        } else {
+            scoreboard.register_objective(OBJECTIVE_NAME, &Criteria::dummy(), SIDEBAR_TITLE)
+        };
+        objective.set_display_name(SIDEBAR_TITLE);
         scoreboard.set_display_slot(DisplaySlot::Sidebar, Some(&objective));
-        let red = Self::register_team(&scoreboard, TeamId::Red);
-        let blue = Self::register_team(&scoreboard, TeamId::Blue);
-        Self {
+        let red = Self::open_team(&scoreboard, TeamId::Red, reuse.has_team(TeamId::Red));
+        let blue = Self::open_team(&scoreboard, TeamId::Blue, reuse.has_team(TeamId::Blue));
+        Ok(Self {
             scoreboard,
             objective,
             red,
             blue,
             shown: Vec::new(),
-        }
+        })
     }
 
     pub fn scoreboard(&self) -> &Scoreboard {
@@ -79,12 +87,136 @@ impl Hud {
         }
     }
 
-    fn register_team(scoreboard: &Scoreboard, id: TeamId) -> Team {
-        let team = scoreboard.register_team(team_key(id));
+    fn open_team(scoreboard: &Scoreboard, id: TeamId, existing: bool) -> Team {
+        let team = if existing {
+            scoreboard.team(team_key(id))
+        } else {
+            scoreboard.register_team(team_key(id))
+        };
         team.set_display_name(team_name(id));
         team.set_prefix(team_prefix(id));
         team.set_color(Some(team_color(id)));
         team.set_friendly_fire(false);
         team
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Reuse {
+    objective: bool,
+    red: bool,
+    blue: bool,
+    stale_scores: Vec<String>,
+}
+
+impl Reuse {
+    fn of(state: &ScoreboardState) -> Self {
+        Self {
+            objective: state
+                .objectives
+                .iter()
+                .any(|objective| objective.name == OBJECTIVE_NAME),
+            red: has_team(state, TeamId::Red),
+            blue: has_team(state, TeamId::Blue),
+            stale_scores: state
+                .scores
+                .iter()
+                .filter(|score| score.objective == OBJECTIVE_NAME)
+                .map(|score| score.entry.clone())
+                .collect(),
+        }
+    }
+
+    const fn has_team(&self, id: TeamId) -> bool {
+        match id {
+            TeamId::Red => self.red,
+            TeamId::Blue => self.blue,
+        }
+    }
+}
+
+fn has_team(state: &ScoreboardState, id: TeamId) -> bool {
+    state.teams.iter().any(|team| team.name == team_key(id))
+}
+
+#[cfg(test)]
+mod tests {
+    use rspigot_plugin::{
+        CollisionRule, ObjectiveState, RenderType, ScoreEntry, TeamState, Visibility,
+    };
+
+    use super::*;
+
+    fn objective(name: &str) -> ObjectiveState {
+        ObjectiveState {
+            name: name.to_owned(),
+            criteria: Criteria::dummy(),
+            display_name: name.to_owned(),
+            render_type: RenderType::Integer,
+            read_only: false,
+        }
+    }
+
+    fn team(name: &str) -> TeamState {
+        TeamState {
+            name: name.to_owned(),
+            display_name: name.to_owned(),
+            prefix: String::new(),
+            suffix: String::new(),
+            color: None,
+            friendly_fire: true,
+            see_friendly_invisibles: true,
+            nametag_visibility: Visibility::Always,
+            death_message_visibility: Visibility::Always,
+            collision_rule: CollisionRule::Always,
+            entries: Vec::new(),
+        }
+    }
+
+    fn score(entry: &str, objective: &str) -> ScoreEntry {
+        ScoreEntry {
+            entry: entry.to_owned(),
+            objective: objective.to_owned(),
+            value: 1,
+        }
+    }
+
+    fn state(
+        objectives: Vec<ObjectiveState>,
+        teams: Vec<TeamState>,
+        scores: Vec<ScoreEntry>,
+    ) -> ScoreboardState {
+        ScoreboardState {
+            objectives,
+            scores,
+            teams,
+            slots: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_clean_scoreboard_reuses_nothing() {
+        assert_eq!(Reuse::of(&state(vec![], vec![], vec![])), Reuse::default());
+    }
+
+    #[test]
+    fn leftovers_of_a_previous_run_are_reused_and_their_lines_cleared() {
+        let leftovers = state(
+            vec![objective(OBJECTIVE_NAME), objective("other")],
+            vec![team("sw_red"), team("sw_blue"), team("unrelated")],
+            vec![score("old line", OBJECTIVE_NAME), score("kept", "other")],
+        );
+        let reuse = Reuse::of(&leftovers);
+        assert!(reuse.objective);
+        assert!(reuse.has_team(TeamId::Red));
+        assert!(reuse.has_team(TeamId::Blue));
+        assert_eq!(reuse.stale_scores, vec!["old line".to_owned()]);
+    }
+
+    #[test]
+    fn a_missing_team_is_not_reused() {
+        let reuse = Reuse::of(&state(vec![], vec![team("sw_red")], vec![]));
+        assert!(reuse.has_team(TeamId::Red));
+        assert!(!reuse.has_team(TeamId::Blue));
     }
 }
