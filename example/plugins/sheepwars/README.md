@@ -1,12 +1,12 @@
 # sheepwars
 
-A SheepWars mini-game plugin for rspigot: two teams (red and blue) fight on one single floating platform. Every 20 seconds each team receives a coloured wool item, a "sheep". A right click throws it at the enemy and it triggers an effect when it lands. The last team with a standing player wins.
+A SheepWars mini-game plugin for rspigot: two teams (red and blue) fight on the EpiCube "Steampunk" map. Every 20 seconds each team receives a coloured wool item, a "sheep". A right click throws it at the enemy and it triggers an effect when it lands. The last team with a standing player wins.
 
 ## How a round goes
 
 1. A player who joins is added to the round, sent to the lobby and shown the sidebar and boss bar. Teams are balanced automatically.
 2. With 2 players the countdown starts (15 s). Under 2 players it is cancelled.
-3. At the start everyone is teleported to their team spawn at either end of the platform and their inventory is cleared.
+3. At the start everyone is teleported to their team spawn at their team spawn on the map and their inventory is cleared.
 4. Every sheep interval each standing player gets one sheep. The kind rotates over the 12 EpiCube sheep (`SHEEP_STRATEGY`, a placeholder: the real distribution is unknown).
 5. A player has 3 lives. Dying (or falling under `void_fall_y`) costs one life and respawns at the team spawn. At 0 lives the player is a spectator.
 6. A win or a draw shows a title. After 10 s the round resets, everybody goes back to the lobby and is re-joined.
@@ -21,13 +21,44 @@ A SheepWars mini-game plugin for rspigot: two teams (red and blue) fight on one 
 | `/sheepwars forcestart` | `sheepwars.admin` | skips the countdown, works with a single player |
 | `/sheepwars stop` | `sheepwars.admin` | cancels the round and resets |
 
+## Map
+
+Only the EpiCube "Steampunk" map is played, there is no random choice.
+
+| Spot | Block | Standing point |
+| --- | --- | --- |
+| Red spawn | (-95, 132, -8) | (-94.5, 132, -7.5) |
+| Blue spawn | (-47, 132, 26) | (-46.5, 132, 26.5) |
+| Lobby (the map's own `level.dat` spawn) | (-47, 156, 24) | (-46.5, 156, 24.5) |
+
+Each dispenser is 2 blocks in front of its team spawn, toward the other spawn: red (-93, 132, -7), blue (-49, 132, 25). The void line is `MAP_VOID_FALL_Y` = 0.0 (the map's content reaches y = 0, so only a fall out of the map kills).
+
+The converted map must be in `example/server/maps/sheepwars/steampunk` (`level.dat` and `region/*.mca`, Anvil), produced by a local conversion of the EpiCube 1.8 map. The folder is third-party and git-ignored: it is never committed.
+
+The world is named `sheepwars_steampunk`. At startup, before the world is created, the plugin copies the `region/*.mca` files of the map into `<server_dir>/<level-name>_rspigot_sheepwars_steampunk/dimensions/rspigot/sheepwars_steampunk/region/` (`level-name` is read from `<server_dir>/server.properties`, default `world`), i.e. by default `example/server/world_rspigot_sheepwars_steampunk/dimensions/rspigot/sheepwars_steampunk/region/`. It copies only when that region folder does not exist or holds no `.mca` file: it never overwrites or deletes anything in an existing world. No block is generated or placed: the Void-generator world loads the stored chunks.
+
+If the world already exists with wrong or empty files: stop the server, delete the folder `example/server/world_rspigot_sheepwars_steampunk` and its entry in `example/server/created-worlds.json`, restart.
+
+Fallback: when the map folder is missing (and the world is not installed yet), the plugin logs a warning and plays on the generated platform (`ArenaSettings::fallback_platform()`, world `sheepwars`): 25 wide (x) by 70 long (z), 3 thick of quartz, top at y=64, centred on 0,0, red spawn at z=-26.5, blue at z=26.5, lobby at the centre, void line y=20. Its blocks are placed when chunks load (`Arena::place_chunk` from the `ChunkLoad` listener). The old `sheepwars` world is left untouched.
+
 ## arena.json
 
-Read from the working directory at startup. Absent: `ArenaSettings::default()`. Invalid: the error is logged and the default is used. Fields: `world_name`, `lobby`, `void_fall_y`, one shared `platform` (`center`, `width` along x, `depth` along z, `thickness`, `block`), and `red` / `blue` each with only `spawn` and `dispenser`. The lobby is a point on the same platform (no separate lobby platform). Files are rejected (default used) when the platform is empty or when the lobby, a spawn or a dispenser is not above the platform footprint. The schema changed: old files with a `platform` per team or a `lobby_platform` are now invalid. Default: 25 wide (x) by 70 long (z), 3 thick, top at y=64, centred on 0,0; red spawn at z=-26.5, blue at z=26.5, lobby at the centre.
+Read from the working directory at startup. Absent: `ArenaSettings::default()` (the Steampunk map). Invalid: the error is logged and the default is used. Fields: `world_name`, `lobby`, `void_fall_y`, `map` (optional: `name`, the map folder name, `source_dir`, `server_dir`, both paths relative to the working directory), `red` / `blue` each with only `spawn` and `dispenser` (a block position), and `platform` (`center`, `width` along x, `depth` along z, `thickness`, `block`; optional, only used when `map` is absent). Unknown fields are rejected, so old files with a `lobby_platform` or a `platform` per team are invalid. With a `map`, only the map name is validated (a plain folder name): the spawns are not checked against any platform. Without a `map`, the file is rejected when the platform is empty or when the lobby, a spawn or a dispenser is not above the platform footprint.
+
+```json
+{
+  "world_name": "sheepwars_steampunk",
+  "lobby": {"x": -46.5, "y": 156.0, "z": 24.5},
+  "void_fall_y": 0.0,
+  "map": {"name": "steampunk", "source_dir": "../../server/maps/sheepwars/steampunk", "server_dir": "../../server"},
+  "red": {"spawn": {"x": -94.5, "y": 132.0, "z": -7.5}, "dispenser": {"x": -93, "y": 132, "z": -7}},
+  "blue": {"spawn": {"x": -46.5, "y": 132.0, "z": 26.5}, "dispenser": {"x": -49, "y": 132, "z": 25}}
+}
+```
 
 ## Arena building
 
-`Arena::create` only creates the world and computes the layout. The platform blocks are placed when chunks load: the `ChunkLoad` listener calls `Arena::place_chunk` for the chunks of the arena world, which places `Layout::blocks_in_chunk`. A chunk that unloads and loads again is rebuilt. The first player to join may therefore see the platform appear a tick late.
+`Arena::create` installs the map files (see Map), then creates the world and computes the layout. For a map arena nothing is placed: `Layout::blocks()` and `chunks()` are empty and `Game::on_chunk_load` does nothing. If the world already exists on the server it is reused.
 
 ## Numbers you can tune
 
@@ -41,10 +72,10 @@ Read from the working directory at startup. Absent: `ArenaSettings::default()`. 
 | Rider damage grace | `RIDER_GRACE_TICKS` in `src/game/session.rs` |
 | Fuses, pulse period, incendiary swell, seeker run | named `const`s in `src/sheep/catalog.rs` |
 | HUD and action bar refresh periods | `src/game/engine.rs` |
-| Throw power (default, Healing is shorter) | `DEFAULT_THROW_POWER` in `src/sheep/launch.rs`, `HEALING_THROW_POWER` in `src/sheep/catalog.rs` |
+| Throw power (default, Healing is shorter) | `DEFAULT_THROW_POWER` in `src/sheep/launch.rs` (2.7: the smallest round value that crosses the 58.8 blocks between the Steampunk spawns), `HEALING_THROW_POWER` in `src/sheep/catalog.rs` |
 | Debris (crater, fraction, caps, launch speeds, direction jitter, spawn lift) | `DEBRIS_*` in `src/sheep/debris.rs` |
 | Sheep effects (radius, power, durations, seeker, meteors, warp push) | named `const`s in `src/sheep/catalog.rs` (all tunable guesses) |
-| Arena size, spawns, lobby, void level | `arena.json` or the `DEFAULT_*` consts in `src/arena/settings.rs` |
+| Spawns, lobby, void level, map | `arena.json` or the `MAP_*` consts in `src/arena/settings.rs` (`FALLBACK_*`/`DEFAULT_*` for the platform) |
 | Tick length of the game loop | `TICK` in `src/main.rs` |
 
 ## The sheep
@@ -135,7 +166,7 @@ When the sheep dies (`EntityDeath`) the handler sets the drops to exactly one wo
 ## Layout
 
 - `src/domain`: rules and state of a round, no SDK.
-- `src/arena`: arena settings, layout (blocks per chunk) and world creation with per-chunk placement.
+- `src/arena`: arena settings, map installer (`install.rs`), layout (blocks per chunk, fallback platform only) and world creation.
 - `src/sheep`: sheep catalogue, impact plans and their application.
 - `src/hud`: sidebar, boss bar and messages.
 - `src/game`: `Session` (pure reducer from player actions to `Intent`s, unit tested) and `Game` (executes intents through the SDK, runs flights and the HUD).

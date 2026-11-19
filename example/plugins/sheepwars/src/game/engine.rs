@@ -85,7 +85,8 @@ impl Game {
     }
 
     pub fn on_chunk_load(&self, event: &ChunkLoad) {
-        if event.world().id() != self.arena.world.id() {
+        if self.arena.layout.settings().map.is_some() || event.world().id() != self.arena.world.id()
+        {
             return;
         }
         let chunk = event.chunk();

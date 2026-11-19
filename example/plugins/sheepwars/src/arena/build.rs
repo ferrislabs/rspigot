@@ -3,6 +3,9 @@ use rspigot_plugin::{
     WorldOptions,
 };
 
+use super::install::{
+    InstallError, Installed, has_regions, install, plan_install, read_level_name, region_dir,
+};
 use super::layout::{Layout, PlacedBlock};
 use super::settings::{ArenaError, ArenaSettings};
 
@@ -18,6 +21,38 @@ fn is_already_created(error: &ActionError) -> bool {
     error.kind == ActionErrorKind::InvalidArgument && error.reason.contains(ALREADY_EXISTS)
 }
 
+fn install_map(settings: ArenaSettings) -> Result<ArenaSettings, ArenaError> {
+    let Some(map) = &settings.map else {
+        return Ok(settings);
+    };
+    let level = read_level_name(&map.server_dir)?;
+    let outcome = plan_install(map, &level, &settings.world_name).and_then(|plan| install(&plan));
+    match outcome {
+        Ok(Installed::Copied(count)) => {
+            tracing::info!("installed {count} region files of the map {}", map.name);
+            Ok(settings)
+        }
+        Ok(Installed::AlreadyThere) => Ok(settings),
+        Err(InstallError::MissingSource(path))
+            if has_regions(&region_dir(map, &level, &settings.world_name)) =>
+        {
+            tracing::debug!(
+                "map folder {} is absent but the world is installed",
+                path.display()
+            );
+            Ok(settings)
+        }
+        Err(InstallError::MissingSource(path)) => {
+            tracing::warn!(
+                "map folder {} is missing, falling back to the generated platform",
+                path.display()
+            );
+            Ok(ArenaSettings::fallback_platform())
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
 pub struct Arena {
     pub world: World,
     pub layout: Layout,
@@ -25,6 +60,7 @@ pub struct Arena {
 
 impl Arena {
     pub async fn create(server: &Server, settings: ArenaSettings) -> Result<Self, ArenaError> {
+        let settings = install_map(settings)?;
         let options = WorldOptions {
             name: settings.world_name.clone(),
             dimension: Dimension::Overworld,
@@ -125,7 +161,71 @@ mod tests {
 
     #[test]
     fn default_blocks_all_resolve() {
-        let layout = Layout::new(ArenaSettings::default());
+        let layout = Layout::new(ArenaSettings::fallback_platform());
         assert!(resolve(&layout.blocks()).is_ok());
+    }
+
+    fn scratch(tag: &str) -> std::path::PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("sheepwars-build-{}-{tag}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("scratch");
+        dir
+    }
+
+    fn map_settings(dir: &std::path::Path) -> ArenaSettings {
+        let mut settings = ArenaSettings {
+            world_name: "arena".to_owned(),
+            ..ArenaSettings::default()
+        };
+        let map = settings.map.as_mut().expect("map");
+        map.source_dir = dir.join("source");
+        map.server_dir = dir.join("server");
+        settings
+    }
+
+    #[test]
+    fn a_missing_map_falls_back_to_the_generated_platform() {
+        let dir = scratch("missing");
+        let settings = install_map(map_settings(&dir)).expect("fallback");
+        assert_eq!(settings, ArenaSettings::fallback_platform());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_present_map_is_installed_and_kept() {
+        let dir = scratch("present");
+        std::fs::create_dir_all(dir.join("source").join("region")).expect("source");
+        std::fs::write(dir.join("source").join("region").join("r.0.0.mca"), b"x").expect("mca");
+        let wanted = map_settings(&dir);
+        let settings = install_map(wanted.clone()).expect("install");
+        assert_eq!(settings, wanted);
+        let target = dir
+            .join("server")
+            .join("world_rspigot_arena")
+            .join("dimensions")
+            .join("rspigot")
+            .join("arena")
+            .join("region")
+            .join("r.0.0.mca");
+        assert!(target.is_file());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn an_installed_world_is_kept_when_the_source_is_gone() {
+        let dir = scratch("gone");
+        let wanted = map_settings(&dir);
+        let target = dir
+            .join("server")
+            .join("world_rspigot_arena")
+            .join("dimensions")
+            .join("rspigot")
+            .join("arena")
+            .join("region");
+        std::fs::create_dir_all(&target).expect("target");
+        std::fs::write(target.join("r.0.0.mca"), b"x").expect("mca");
+        assert_eq!(install_map(wanted.clone()).expect("kept"), wanted);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
