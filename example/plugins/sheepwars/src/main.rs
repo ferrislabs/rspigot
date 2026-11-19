@@ -12,7 +12,7 @@ use tokio::time::MissedTickBehavior;
 
 const ADMIN_PERMISSION: &str = "sheepwars.admin";
 const TICK: Duration = Duration::from_millis(50);
-const ACTIONS: [&str; 4] = ["join", "leave", "forcestart", "stop"];
+const ACTIONS: [&str; 5] = ["join", "leave", "where", "forcestart", "stop"];
 
 #[derive(Plugin, Default)]
 struct SheepWars {
@@ -118,6 +118,11 @@ impl SheepWars {
         match action.as_str() {
             "join" => game.join(player).await,
             "leave" => game.quit(player).await,
+            "where" => {
+                for line in game.locate(player).await {
+                    player.message.send(line);
+                }
+            }
             "forcestart" | "stop" if !admin => ctx.reply("§cVous ne pouvez pas faire ça."),
             "forcestart" => {
                 if let Err(error) = game.force_start().await {
