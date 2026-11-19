@@ -10,11 +10,11 @@ use crate::wire::{parse_address, parse_uuid};
 use crate::world::World;
 use crate::{
     Effect, Error, PlayerAbilitiesHandle, PlayerActionBarHandle, PlayerCommandHandle,
-    PlayerConnectionHandle, PlayerEffectsHandle, PlayerExperienceHandle, PlayerFoodHandle,
-    PlayerGameModeHandle, PlayerHealthHandle, PlayerInventoryHandle, PlayerLocationHandle,
-    PlayerMessageHandle, PlayerMovementHandle, PlayerOperatorHandle, PlayerParticleHandle,
-    PlayerPermissionsHandle, PlayerScoreboardHandle, PlayerSoundHandle, PlayerTabListHandle,
-    PlayerTitleHandle, PlayerVisibilityHandle,
+    PlayerConnectionHandle, PlayerDialogHandle, PlayerEffectsHandle, PlayerExperienceHandle,
+    PlayerFoodHandle, PlayerGameModeHandle, PlayerHealthHandle, PlayerInventoryHandle,
+    PlayerLocationHandle, PlayerMessageHandle, PlayerMovementHandle, PlayerOperatorHandle,
+    PlayerParticleHandle, PlayerPermissionsHandle, PlayerScoreboardHandle, PlayerSoundHandle,
+    PlayerTabListHandle, PlayerTitleHandle, PlayerVisibilityHandle,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -100,6 +100,7 @@ pub struct Player {
     pub action_bar: PlayerActionBarHandle,
     pub command: PlayerCommandHandle,
     pub connection: PlayerConnectionHandle,
+    pub dialog: PlayerDialogHandle,
     pub effects: PlayerEffectsHandle,
     pub experience: PlayerExperienceHandle,
     pub food: PlayerFoodHandle,
@@ -159,6 +160,10 @@ impl Player {
             connection: {
                 let (target, link) = handle();
                 PlayerConnectionHandle::new(target, link)
+            },
+            dialog: {
+                let (target, link) = handle();
+                PlayerDialogHandle::new(target, link)
             },
             effects: {
                 let (target, link) = handle();

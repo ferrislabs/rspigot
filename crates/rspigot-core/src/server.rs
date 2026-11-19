@@ -1131,6 +1131,9 @@ impl<L: ClientLink> Server<L> {
         self.tick_random_blocks();
         self.tick_fluids();
         self.update_tracking();
+        self.update_npc_viewers();
+        self.tick_npc_walks();
+        self.tick_npc_gazes();
         self.notify_poses();
         self.sync_vitals();
         if self.tick.is_multiple_of(20) {
@@ -1188,6 +1191,9 @@ impl<L: ClientLink> Server<L> {
             *away = self.set_aside_players_outside(home);
         }
         self.update_tracking();
+        self.update_npc_viewers();
+        self.tick_npc_walks();
+        self.tick_npc_gazes();
         let disconnected: Vec<PlayerId> = self
             .players
             .values()

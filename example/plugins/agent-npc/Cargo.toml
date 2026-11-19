@@ -1,0 +1,24 @@
+[package]
+name = "agent-npc"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+rspigot-plugin = { workspace = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
+
+[dev-dependencies]
+rspigot-core = { workspace = true }
+rspigot-domain = { workspace = true }
+rspigot-nbt = { workspace = true }
+rspigot-plugins = { workspace = true }
+crossbeam-channel = "0.5"
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "sync"] }
+
+[lints]
+workspace = true

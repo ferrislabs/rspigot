@@ -16,3 +16,6 @@
 /example/server/*
 !/example/server/README.md
 __pycache__/
+
+.env
+!.env.example

@@ -34,6 +34,7 @@ struct Sight {
 enum Struck {
     Player(PlayerId),
     Entity(EntityId),
+    Npc(EntityId),
 }
 
 struct Sightline<'a> {
@@ -175,14 +176,21 @@ impl<L: ClientLink> Server<L> {
             .iter()
             .filter(|entity| !entity.base.is_removed())
             .map(|entity| (entity.base.bounding_box(), Struck::Entity(entity.base.id)));
+        let npcs = self
+            .entities
+            .npcs
+            .iter()
+            .map(|npc| (crate::npc::bounds_of(npc), Struck::Npc(npc.id)));
         let (_, struck) = players
             .chain(entities)
+            .chain(npcs)
             .filter_map(|(bounds, struck)| Some((sight.distance_to(&bounds)?, struck)))
             .filter(|(distance, _)| *distance < limit)
             .min_by(|a, b| a.0.total_cmp(&b.0))?;
         match struck {
             Struck::Player(id) => self.snapshot_of(id).map(TargetHit::Player),
             Struck::Entity(id) => self.entity_view(id).map(TargetHit::Entity),
+            Struck::Npc(id) => self.npc_view(id).map(TargetHit::Npc),
         }
     }
 }

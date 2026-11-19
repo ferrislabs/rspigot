@@ -25,6 +25,7 @@ mod knockback;
 mod levels;
 mod lifecycle;
 mod menus;
+mod npcs;
 mod objects;
 mod orders;
 mod patch;
@@ -83,11 +84,12 @@ pub use items::ItemSpec;
 pub(crate) use items::{spec_of, stack_of};
 pub use menus::MAX_PLUGIN_INVENTORIES;
 pub(crate) use menus::{PluginInventories, PluginMenu};
+pub use npcs::{NpcOrder, NpcSpec, NpcView};
 pub(crate) use objects::{UseMemo, slot_of};
 pub use orders::{
-    BlockOrder, CustomInventoryOrder, EffectSpec, EntityOrder, EntityTrait, GameRule,
-    InventoryOrder, Order, ParticleDataSpec, ParticleSpec, PlayerOrder, ServerOrder, SoundSpec,
-    TitleSpec, WorldOrder,
+    BlockOrder, ClickSpec, CustomInventoryOrder, DialogButtonSpec, DialogInputSpec, DialogSpec,
+    EffectSpec, EntityOrder, EntityTrait, GameRule, InventoryOrder, Order, ParticleDataSpec,
+    ParticleSpec, PlayerOrder, RichPartSpec, ServerOrder, SoundSpec, TitleSpec, WorldOrder,
 };
 pub use patch::{ListDiff, SetDiff, Verdict};
 pub(crate) use registry::Registry;
@@ -341,6 +343,7 @@ pub enum TargetHit {
     },
     Player(PlayerSnapshot),
     Entity(EntityView),
+    Npc(NpcView),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -370,6 +373,8 @@ pub enum Answer {
     BossBarCreated(u64),
     BossBar(BossBarView),
     BossBars(Vec<BossBarView>),
+    Npc(NpcView),
+    Npcs(Vec<NpcView>),
     Target(Option<TargetHit>),
     CustomInventory(CustomInventoryState),
     Refused(String),
@@ -460,6 +465,10 @@ pub enum Question {
     CreateBossBar(BossBarSpec),
     BossBar(u64),
     BossBars,
+    CreateNpc(NpcSpec),
+    NpcByKey(String),
+    Npcs,
+    Npc(EntityId),
 }
 
 #[cfg(test)]

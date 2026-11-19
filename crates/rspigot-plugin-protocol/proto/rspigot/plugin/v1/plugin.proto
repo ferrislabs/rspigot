@@ -61,6 +61,14 @@ message PlayerState {
 message Verdict { uint32 handler = 1; bool cancel = 2; Patch patch = 3; }
 message Decision { uint64 event = 1; reserved 2; repeated Verdict verdicts = 3; }
 
+message DialogInput { string key = 1; string label = 2; string initial = 3; uint32 max_length = 4; bool multiline = 5; }
+message DialogButton { string label = 1; string id = 2; }
+message Dialog { string title = 1; repeated string body = 2; repeated DialogInput inputs = 3; repeated DialogButton buttons = 4; bool can_close_with_escape = 5; }
+
+message RichClick { oneof action { string run_command = 1; string suggest_command = 2; string open_url = 3; string copy_to_clipboard = 4; string custom = 5; } }
+message RichPart { string text = 1; optional string hover = 2; optional RichClick click = 3; }
+message RichMessage { repeated RichPart parts = 1; }
+
 message PlayerOrder {
   string player = 1;
   oneof order {
@@ -74,6 +82,8 @@ message PlayerOrder {
     Empty respawn = 40 [(rspigot.path) = "player.health.respawn"]; string perform_command = 41 [(rspigot.path) = "player.command.perform"]; string chat = 42 [(rspigot.path) = "player.message.chat"]; Sound play_sound = 43 [(rspigot.path) = "player.sound.play"]; Particle spawn_particle = 44 [(rspigot.path) = "player.particle.spawn"];
     string hide_player = 45 [(rspigot.path) = "player.visibility.hide"]; string show_player = 46 [(rspigot.path) = "player.visibility.show"]; uint64 open_inventory = 47; Empty close_inventory = 48 [(rspigot.path) = "player.inventory.close"]; Empty update_inventory = 49 [(rspigot.path) = "player.inventory.update"];
     BanTerms ban = 50 [(rspigot.path) = "player.connection.ban"]; Location teleport_to = 51; uint32 set_scoreboard = 52 [(rspigot.path) = "player.scoreboard.set"]; Transfer transfer = 53;
+    Dialog show_dialog = 54 [(rspigot.path) = "player.dialog.show"]; Empty clear_dialog = 55 [(rspigot.path) = "player.dialog.clear"];
+    RichMessage send_rich_message = 56 [(rspigot.path) = "player.message.send_rich"];
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
@@ -126,6 +136,19 @@ message BossBarOrder {
 message BossBarCreate { string title = 1; string color = 2; string style = 3; repeated string flags = 4; optional string key = 5; }
 message CustomInventoryOrder { uint64 inventory = 1; oneof order { SetSlot set = 10; Empty clear = 11; Empty close = 12; Empty discard = 13; } }
 
+message NpcSkin { string value = 1; string signature = 2; }
+message NpcSpec { string key = 1; string name = 2; Vec3 position = 3; optional Rotation rotation = 4; optional NpcSkin skin = 5; optional uint32 skin_layers = 6; }
+message NpcEquipment { string slot = 1; optional Item item = 2; }
+message NpcGaze { double range = 1; }
+message NpcWalk { Vec3 target = 1; double speed = 2; }
+message NpcOrder {
+  int32 npc = 1;
+  oneof order {
+    Vec3 teleport = 10; Empty remove = 11; NpcSkin set_skin = 12; Rotation set_rotation = 13; string set_pose = 14;
+    NpcEquipment set_equipment = 15; Empty swing_main_hand = 16; Empty swing_off_hand = 17; Vec3 look_at = 18;
+    NpcGaze look_at_nearest = 19; uint32 set_skin_layers = 20; string set_label = 21; string hide_from = 22; string show_to = 23; NpcWalk walk_to = 24; Empty stop_walking = 25;
+  }
+}
 message TargetQuery { string player = 1; double max_distance = 2; }
 message Near { Vec3 position = 1; double radius = 2; }
 message EntityQuery { Near near = 1; optional string kind = 2; }
@@ -139,13 +162,14 @@ message Question {
     Empty operators = 18; Empty bans = 19; Empty ip_bans = 20; Empty world = 21; EntityQuery entities = 22;
     int32 entity = 23; BlockPos block = 24; Spawn spawn = 25; DropItem drop_item = 26; uint64 custom_inventory = 27; uint32 scoreboard = 28; Empty new_scoreboard = 29;
     BossBarCreate create_boss_bar = 30; uint64 boss_bar = 31; Empty boss_bars = 32; AttributeQuery attribute_value = 33;
+    NpcSpec create_npc = 34; string npc_by_key = 35; Empty npcs = 36; int32 npc = 37;
   }
 }
 message FromPlugin {
   oneof body {
     Hello hello = 1; Decision decision = 2; PlayerOrder player = 3; InventoryOrder inventory = 4; ServerOrder server = 5;
     WorldOrder world = 6; BlockOrder block = 7; EntityOrder entity = 8; CustomInventoryOrder custom_inventory = 9; Question question = 10;
-    ScoreboardOrder scoreboard = 12; BossBarOrder boss_bar = 13;
+    ScoreboardOrder scoreboard = 12; BossBarOrder boss_bar = 13; NpcOrder npc = 16;
   }
   optional uint64 origin = 11;
   optional uint64 request = 14;
@@ -162,7 +186,7 @@ message Refused { string reason = 1; }
 message PlayerList { repeated PlayerSnapshot players = 1; }
 message InventoryState { repeated Slot slots = 1; int32 held_slot = 2; }
 message BlockHit { BlockPos pos = 1; Face face = 2; string block = 3; }
-message Target { oneof hit { BlockHit block = 1; PlayerSnapshot player = 2; EntitySnapshot entity = 3; } }
+message Target { oneof hit { BlockHit block = 1; PlayerSnapshot player = 2; EntitySnapshot entity = 3; NpcState npc = 4; } }
 message ServerState { int32 max_players = 1; int32 online = 2; double tps_1m = 3; double tps_5m = 4; double tps_15m = 5; bool whitelist_enabled = 6; }
 message ListedPlayer { string name = 1; optional string uuid = 2; }
 message ListedPlayers { repeated ListedPlayer players = 1; }
@@ -187,6 +211,11 @@ message BossBarState {
   repeated string flags = 7; bool visible = 8; repeated string players = 9;
 }
 message BossBarList { repeated BossBarState bars = 1; }
+message NpcState {
+  int32 entity_id = 1; string uuid = 2; string key = 3; string name = 4; string world = 5; Vec3 position = 6; Rotation rotation = 7;
+  optional NpcSkin skin = 8; uint32 skin_layers = 9; string pose = 10; double gaze_range = 11; optional string label = 12; bool walking = 13;
+}
+message NpcList { repeated NpcState npcs = 1; }
 message Answer {
   uint64 request = 1;
   oneof body {
@@ -195,6 +224,7 @@ message Answer {
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
     Empty done = 22; ActionError failed = 23; string world_created = 24; double attribute_value = 25;
+    NpcState npc = 26; NpcList npcs = 27;
   }
 }
 message Warning { string message = 1; }

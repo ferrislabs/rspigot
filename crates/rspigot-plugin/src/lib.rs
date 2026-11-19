@@ -5,6 +5,7 @@ mod commands;
 mod connection;
 mod contract;
 mod custom_inventory;
+mod dialog;
 mod diff;
 mod effect;
 mod entity;
@@ -20,9 +21,11 @@ pub mod keys;
 mod boss_bar;
 mod link;
 mod listener;
+mod npc;
 mod payload;
 mod permissions;
 mod player;
+mod rich;
 mod runtime;
 mod scoreboard;
 mod server;
@@ -49,6 +52,7 @@ pub use contract::{
     TrialSpawnerData,
 };
 pub use custom_inventory::{CustomInventory, CustomInventoryState};
+pub use dialog::{Dialog, DialogButton, DialogInput};
 pub use effect::Effect;
 pub use entity::{Entities, Entity, EntityState};
 pub use error::{ActionError, ActionErrorKind, Error};
@@ -59,9 +63,11 @@ pub use item::{CustomModelData, ItemStack};
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
 pub use location::PlayerLocationHandle;
+pub use npc::{DEFAULT_SKIN_LAYERS, Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, NpcState, Npcs};
 pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
 pub use permissions::PlayerPermissionsHandle;
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
+pub use rich::{Click, Part, RichMessage};
 pub use rspigot_plugin_macros::{Plugin, command, listeners};
 pub use runtime::{run, run_with};
 pub use scoreboard::{
@@ -93,5 +99,8 @@ pub mod prelude {
         WorldState, command, listeners, run, run_with,
     };
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
+    pub use crate::{Click, Part, RichMessage};
     pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};
+    pub use crate::{Dialog, DialogButton, DialogInput};
+    pub use crate::{Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, Npcs};
 }

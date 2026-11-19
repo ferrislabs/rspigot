@@ -41,6 +41,7 @@ pub(crate) struct EntityWorld {
     pub store: Entities,
     pub rides: rspigot_domain::entity::riding::Rides,
     pub tracked: FxHashMap<EntityId, TrackedEntity>,
+    pub npcs: crate::npc::Npcs,
     pub mobs: crate::mobs::MobTable,
     pub boss_bars: FxHashMap<EntityId, rspigot_domain::boss_event::ServerBossEvent>,
     pub dragons: FxHashMap<EntityId, crate::dragon::DragonRuntime>,

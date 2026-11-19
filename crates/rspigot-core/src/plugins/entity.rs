@@ -85,7 +85,11 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn entity_view(&self, id: EntityId) -> Option<EntityView> {
-        self.entities.store.get(id).map(view_of)
+        self.entities
+            .store
+            .get(id)
+            .map(view_of)
+            .or_else(|| self.entities.npcs.get(id).map(crate::npc::view_of))
     }
 
     pub(super) fn entity_details(&self, id: EntityId) -> Option<EntityDetails> {
