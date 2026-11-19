@@ -70,15 +70,17 @@ pub struct Strike {
 pub fn strike(
     base: f32,
     enchanted_bonus: f32,
+    smash_bonus: f32,
     scale: f32,
     sprinting: bool,
     can_critical: bool,
 ) -> Option<Strike> {
-    let damage = base * base_damage_scale(scale);
+    let scaled = base * base_damage_scale(scale);
     let bonus = enchanted_bonus * scale;
-    if damage <= 0.0 && bonus <= 0.0 {
+    if scaled <= 0.0 && bonus <= 0.0 {
         return None;
     }
+    let damage = scaled + smash_bonus;
     let full = scale > FULL_STRENGTH;
     let critical = full && can_critical && !sprinting;
     let weapon_damage = if critical {
@@ -321,7 +323,15 @@ impl<L: ClientLink> Server<L> {
         let Some(source) = self.source_of(id) else {
             return;
         };
-        let source = DamageSource::by(DamageType::PlayerAttack, source);
+        let smashing = self.players.get(&id).is_some_and(crate::mace::smashes);
+        let source = DamageSource::by(
+            if smashing {
+                DamageType::MaceSmash
+            } else {
+                DamageType::PlayerAttack
+            },
+            source,
+        );
         let victim_facts = self.entity_loot_facts(victim.entity);
         let damage_facts = self.damage_facts(&source);
         let Some(attacker) = self.players.get(&id) else {
@@ -357,6 +367,13 @@ impl<L: ClientLink> Server<L> {
             stats.get(ATTACK_SPEED),
             ATTACK_PARTIAL_TICK,
         );
+        let smash_bonus = crate::mace::smash_bonus(
+            &weapon,
+            attacker.vitals.fall_distance as f32,
+            attacker.fall_flying,
+            &enchant_context,
+            &mut self.rng,
+        );
         let can_critical = attacker.vitals.fall_distance > 0.0
             && !attacker.on_ground
             && !climbing
@@ -366,6 +383,7 @@ impl<L: ClientLink> Server<L> {
         let Some(strike) = strike(
             base_damage,
             enchanted_bonus,
+            smash_bonus,
             scale,
             attacker.sprinting,
             can_critical,
@@ -503,6 +521,13 @@ impl<L: ClientLink> Server<L> {
         if victim.living {
             self.damage_weapon(id);
         }
+        let bounds = victim.bounds;
+        let feet = Vec3::new(
+            (bounds.min_x + bounds.max_x) / 2.0,
+            bounds.min_y,
+            (bounds.min_z + bounds.max_z) / 2.0,
+        );
+        self.mace_smash(id, victim.entity, feet);
         self.exhaust(id, ATTACK_EXHAUSTION, EntityExhaustionReason::Unknown);
     }
 
@@ -611,24 +636,24 @@ mod tests {
     fn spamming_scales_damage_down_to_a_fifth() {
         assert_eq!(base_damage_scale(1.0), 1.0);
         assert!((base_damage_scale(0.0) - 0.2).abs() < 1e-6);
-        let weak = strike(7.0, 0.0, 0.1, false, true).unwrap();
+        let weak = strike(7.0, 0.0, 0.0, 0.1, false, true).unwrap();
         assert!((weak.damage - 7.0 * (0.2 + 0.01 * 0.8)).abs() < 1e-5);
         assert!(!weak.critical);
     }
 
     #[test]
     fn critical_hits_need_full_strength_and_no_sprint() {
-        let critical = strike(7.0, 0.0, 1.0, false, true).unwrap();
+        let critical = strike(7.0, 0.0, 0.0, 1.0, false, true).unwrap();
         assert_eq!(critical.damage, 10.5);
         assert!(critical.critical);
         assert!(!critical.sprint_knockback);
-        let sprinting = strike(7.0, 0.0, 1.0, true, true).unwrap();
+        let sprinting = strike(7.0, 0.0, 0.0, 1.0, true, true).unwrap();
         assert_eq!(sprinting.damage, 7.0);
         assert!(!sprinting.critical);
         assert!(sprinting.sprint_knockback);
-        let grounded = strike(1.0, 0.0, 1.0, false, false).unwrap();
+        let grounded = strike(1.0, 0.0, 0.0, 1.0, false, false).unwrap();
         assert_eq!(grounded.damage, 1.0);
-        assert!(strike(0.0, 0.0, 1.0, false, true).is_none());
+        assert!(strike(0.0, 0.0, 0.0, 1.0, false, true).is_none());
     }
 
     #[test]
@@ -660,12 +685,12 @@ mod tests {
 
     #[test]
     fn enchanted_damage_scales_with_the_attack_strength_and_skips_the_critical() {
-        let full = strike(7.0, 2.0, 1.0, false, true).unwrap();
+        let full = strike(7.0, 2.0, 0.0, 1.0, false, true).unwrap();
         assert_eq!(full.weapon_damage, 10.5);
         assert_eq!(full.damage, 12.5);
-        let weak = strike(7.0, 2.0, 0.1, false, true).unwrap();
+        let weak = strike(7.0, 2.0, 0.0, 0.1, false, true).unwrap();
         assert!((weak.damage - (7.0 * 0.208 + 0.2)).abs() < 1e-4);
-        let only_bonus = strike(0.0, 2.0, 1.0, false, false).unwrap();
+        let only_bonus = strike(0.0, 2.0, 0.0, 1.0, false, false).unwrap();
         assert_eq!(only_bonus.damage, 2.0);
     }
 }

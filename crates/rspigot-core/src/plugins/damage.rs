@@ -227,13 +227,13 @@ impl<L: ClientLink> Server<L> {
         let entity = self.subject_view(self.struck_entity(victim)?)?;
         let entity_type = entity.kind.clone();
         let final_damage = f64::from(match victim {
-            Struck::Player(id) => self.player_final_damage(id, source.kind, amount),
+            Struck::Player(id) => self.player_final_damage(id, source, amount),
             Struck::Mob(id) => {
                 let self_inflicted = source
                     .causing
                     .as_ref()
                     .is_some_and(|causing| causing.entity == id);
-                self.mob_final_damage(id, source.kind, self_inflicted, amount)
+                self.mob_final_damage(id, source, self_inflicted, amount)
             }
             Struck::Item(_)
             | Struck::Projectile(_)

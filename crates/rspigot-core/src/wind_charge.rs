@@ -186,6 +186,11 @@ impl<L: ClientLink> Server<L> {
             let direction = (target.eye - center).normalize();
             let power =
                 (1.0 - distance) * f64::from(exposure) * f64::from(multiplier) * (1.0 - resistance);
+            if let Some(player) = target.player
+                && power > 0.0
+            {
+                self.begin_impulse(player, center);
+            }
             self.blast_knockback(BlastFollow {
                 target: target.id,
                 player: target.player,

@@ -4,11 +4,14 @@ use rspigot_data::enchantments::{EffectRole, EntityEffect};
 use rspigot_domain::Vec3;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
-use rspigot_domain::entity::{Entity, EntityState, arrow};
+use rspigot_domain::entity::{Entities, Entity, EntityState, arrow};
 use rspigot_domain::{EntityId, player::PlayerId};
 use rspigot_entities::EntityKind as Kind;
+use rspigot_items::EquipmentSlot;
+use rustc_hash::FxHashMap;
 
 use crate::enchant_effects::{self, EquipSlot, Planned, Worn};
+use crate::events::Hand;
 use crate::health::{CHEST_SLOT, DamageSource, FEET_SLOT, HEAD_SLOT, LEGS_SLOT, OFFHAND_SLOT};
 use crate::loot::{LootContext, LootDamage};
 use crate::player::Player;
@@ -41,6 +44,37 @@ pub(crate) fn worn_gear<L>(player: &Player<L>) -> Vec<Worn<'_>> {
     .collect()
 }
 
+const MOB_GEAR: [(EquipmentSlot, EquipSlot); 6] = [
+    (EquipmentSlot::Mainhand, EquipSlot::Mainhand),
+    (EquipmentSlot::Offhand, EquipSlot::Offhand),
+    (EquipmentSlot::Head, EquipSlot::Head),
+    (EquipmentSlot::Chest, EquipSlot::Chest),
+    (EquipmentSlot::Legs, EquipSlot::Legs),
+    (EquipmentSlot::Feet, EquipSlot::Feet),
+];
+
+fn gear_in<'a, L>(
+    players: &'a FxHashMap<PlayerId, Player<L>>,
+    entities: &'a Entities,
+    entity: EntityId,
+) -> Vec<Worn<'a>> {
+    if let Some(player) = players.values().find(|p| p.entity_id == entity) {
+        return worn_gear(player);
+    }
+    let Some(living) = entities.get(entity).and_then(Entity::living) else {
+        return Vec::new();
+    };
+    MOB_GEAR
+        .iter()
+        .filter_map(|(slot, equip)| {
+            Some(Worn {
+                stack: living.equipment(*slot)?,
+                slot: *equip,
+            })
+        })
+        .collect()
+}
+
 fn between(rng: &mut impl Rng, min: f32, max: f32) -> f32 {
     rng.random::<f32>() * (max - min) + min
 }
@@ -64,6 +98,23 @@ impl<L: ClientLink> Server<L> {
         )
     }
 
+    pub(crate) fn mob_protection(&self, id: EntityId, source: &DamageSource) -> f32 {
+        let Some(facts) = self.entity_loot_facts(id) else {
+            return 0.0;
+        };
+        let damage = self.damage_facts(source);
+        let context = LootContext {
+            this: Some(&facts),
+            damage: Some(&damage),
+            ..LootContext::default()
+        };
+        enchant_effects::damage_protection(
+            &gear_in(&self.players, &self.entities.store, id),
+            &context,
+            &mut StdRng::seed_from_u64(0),
+        )
+    }
+
     pub(crate) fn run_post_attack(&mut self, source: &DamageSource, victim: EntityId) {
         if source.kind == DamageType::Thorns || source.causing.is_none() {
             return;
@@ -77,8 +128,7 @@ impl<L: ClientLink> Server<L> {
         let planned = {
             let gear_of = |entity: Option<EntityId>| {
                 entity
-                    .and_then(|entity| self.players.values().find(|p| p.entity_id == entity))
-                    .map(worn_gear)
+                    .map(|entity| gear_in(&self.players, &self.entities.store, entity))
                     .unwrap_or_default()
             };
             let attacker_gear = gear_of(attacker);
@@ -121,7 +171,7 @@ impl<L: ClientLink> Server<L> {
         let target = Self::entity_for(plan.affected, victim, attacker, direct);
         let owner = Self::entity_for(plan.enchanted, victim, attacker, direct);
         if let (Some(target), Some(owner)) = (target, owner) {
-            self.apply_entity_effect_plan(plan.effect, plan.level, target, owner);
+            self.apply_entity_effect_plan(plan.effect, plan.level, target, owner, Some(plan.slot));
         }
     }
 
@@ -131,11 +181,12 @@ impl<L: ClientLink> Server<L> {
         level: i32,
         target: EntityId,
         owner: EntityId,
+        worn: Option<EquipSlot>,
     ) {
         match effect {
             EntityEffect::AllOf(effects) => {
                 for effect in *effects {
-                    self.apply_entity_effect_plan(effect, level, target, owner);
+                    self.apply_entity_effect_plan(effect, level, target, owner, worn);
                 }
             }
             EntityEffect::Ignite(seconds) => {
@@ -205,7 +256,27 @@ impl<L: ClientLink> Server<L> {
                     }
                 }
             }
-            EntityEffect::ChangeItemDamage(_) => {}
+            EntityEffect::ChangeItemDamage(amount) => {
+                if let Some(slot) = worn {
+                    self.wear_enchanted(owner, slot, amount.calculate(level) as i32);
+                }
+            }
+        }
+    }
+
+    fn wear_enchanted(&mut self, owner: EntityId, slot: EquipSlot, amount: i32) {
+        if let Some(player) = self.player_of(owner) {
+            let armor = match slot {
+                EquipSlot::Head => HEAD_SLOT,
+                EquipSlot::Chest => CHEST_SLOT,
+                EquipSlot::Legs => LEGS_SLOT,
+                EquipSlot::Feet => FEET_SLOT,
+                EquipSlot::Mainhand => return self.wear(player, Hand::Main, amount),
+                EquipSlot::Offhand => return self.wear(player, Hand::Off, amount),
+            };
+            self.wear_slot(player, Hand::Main, armor, amount);
+        } else if let Some((worn, _)) = MOB_GEAR.iter().find(|(_, equip)| *equip == slot) {
+            self.damage_mob_equipment(owner, *worn, amount);
         }
     }
 
@@ -217,10 +288,7 @@ impl<L: ClientLink> Server<L> {
             return 0.0;
         };
         let damage = self.damage_facts(source);
-        let Some(player) = self.players.values().find(|p| p.entity_id == attacker) else {
-            return 0.0;
-        };
-        let gear = worn_gear(player);
+        let gear = gear_in(&self.players, &self.entities.store, attacker);
         let context = LootContext {
             this: Some(&facts),
             damage: Some(&damage),

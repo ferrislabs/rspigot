@@ -16,6 +16,7 @@ const STALAGMITE_BONUS: f64 = 2.5;
 const STALAGMITE_MULTIPLIER: f32 = 2.0;
 const BEDS_TAG: &str = "minecraft:beds";
 const BIG_FALL: i32 = 4;
+const IMPULSE_GRACE_TICKS: u32 = 40;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FallImpact {
@@ -100,6 +101,19 @@ impl<L: ClientLink> Server<L> {
             .map_or((center, state(center)), |pos| (pos, state(pos)))
     }
 
+    pub(crate) fn begin_impulse(&mut self, id: PlayerId, at: Vec3) {
+        let Some(player) = self.players.get_mut(&id) else {
+            return;
+        };
+        let kept = player
+            .vitals
+            .impulse
+            .map(|(impact, _)| impact)
+            .filter(|impact| impact.y <= at.y)
+            .unwrap_or(at);
+        player.vitals.impulse = Some((kept, player.vitals.tick_count));
+    }
+
     pub(crate) fn check_fall(&mut self, id: PlayerId, dy: f64, on_ground: bool) {
         let in_water = self.feet_in_water(id);
         let Some(player) = self.players.get_mut(&id) else {
@@ -111,8 +125,14 @@ impl<L: ClientLink> Server<L> {
         let vitals = &mut player.vitals;
         if in_water {
             vitals.fall_distance = 0.0;
+            vitals.impulse = None;
         } else if dy < 0.0 {
             vitals.fall_distance -= f64::from(dy as f32);
+        }
+        if let Some((impact, _)) = vitals.impulse {
+            vitals.fall_distance = vitals
+                .fall_distance
+                .min((impact.y - player.position.y).max(0.0));
         }
         if player.fall_flying && dy > -0.5 && vitals.fall_distance > 1.0 {
             vitals.fall_distance = 1.0;
@@ -138,6 +158,11 @@ impl<L: ClientLink> Server<L> {
             }
             if let Some(player) = self.players.get_mut(&id) {
                 player.vitals.fall_distance = 0.0;
+                if let Some((_, since)) = player.vitals.impulse
+                    && player.vitals.tick_count.saturating_sub(since) >= IMPULSE_GRACE_TICKS
+                {
+                    player.vitals.impulse = None;
+                }
             }
         }
         if dy > 0.0

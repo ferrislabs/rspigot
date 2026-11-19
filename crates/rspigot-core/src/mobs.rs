@@ -1881,7 +1881,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn mob_final_damage(
         &self,
         id: EntityId,
-        kind: DamageType,
+        source: &DamageSource,
         self_inflicted: bool,
         amount: f32,
     ) -> f32 {
@@ -1890,7 +1890,10 @@ impl<L: ClientLink> Server<L> {
             .get(id)
             .and_then(Entity::living)
             .map_or(0.0, |state| {
-                living::final_damage(&mut state.clone(), kind, self_inflicted, amount)
+                let mut state = state.clone();
+                state.damage.protection = self.mob_protection(id, source);
+                state.damage.breach = 1.0 - self.armor_effectiveness_against(id, source);
+                living::final_damage(&mut state, source.kind, self_inflicted, amount)
             })
     }
 
@@ -1912,6 +1915,8 @@ impl<L: ClientLink> Server<L> {
             .filter(|c| c.kind.living())
             .map(|c| c.entity);
         let hurt_source = hurt_source_of(source, id);
+        let protection = self.mob_protection(id, source);
+        let breach = 1.0 - self.armor_effectiveness_against(id, source);
         let Some(Entity {
             base,
             state: EntityState::Living(state),
@@ -1923,6 +1928,8 @@ impl<L: ClientLink> Server<L> {
         if !living::can_hurt(base, state, &hurt_source) {
             return false;
         }
+        state.damage.protection = protection;
+        state.damage.breach = breach;
         let health_before = living::health(base);
         let outcome = living::hurt_settled(base, state, &hurt_source, amount, now);
         if outcome == HurtOutcome::Ignored {

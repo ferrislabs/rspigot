@@ -171,6 +171,7 @@ pub struct Vitals {
     pub absorption: f32,
     pub food: FoodData,
     pub fall_distance: f64,
+    pub impulse: Option<(Vec3, u32)>,
     pub damage_cooldown: u32,
     pub last_hurt: f32,
     pub hurt_time: u32,
@@ -222,6 +223,7 @@ impl Default for Vitals {
             absorption: 0.0,
             food: FoodData::default(),
             fall_distance: 0.0,
+            impulse: None,
             damage_cooldown: 0,
             last_hurt: 0.0,
             hurt_time: 0,
@@ -330,14 +332,16 @@ fn absorb_hurt<L>(
     amount: f32,
     attributes: &Attributes,
     protection: f32,
+    effectiveness: f32,
 ) -> f32 {
     let kind = source.kind;
     let mut amount = amount;
     if !kind.is(DamageTag::BypassesArmor) {
-        amount = damage::after_armor(
+        amount = damage::after_armor_breached(
             amount,
             attributes.get(ARMOR).floor() as f32,
             attributes.get(ARMOR_TOUGHNESS) as f32,
+            effectiveness,
         );
     }
     if !kind.is(DamageTag::BypassesEffects) {
@@ -441,20 +445,28 @@ impl<L: ClientLink> Server<L> {
         Some(if amount < 0.0 { 0.0 } else { amount })
     }
 
-    pub(crate) fn player_final_damage(&self, id: PlayerId, kind: DamageType, amount: f32) -> f32 {
+    pub(crate) fn player_final_damage(
+        &self,
+        id: PlayerId,
+        source: &DamageSource,
+        amount: f32,
+    ) -> f32 {
+        let kind = source.kind;
         let Some(player) = self.players.get(&id) else {
             return 0.0;
         };
+        let effectiveness = self.armor_effectiveness_against(player.entity_id, source);
         let mut amount = if amount < 0.0 { 0.0 } else { amount };
         if kind.is(DamageTag::DamagesHelmet) && player.inventory.get(HEAD_SLOT).is_some() {
             amount *= HELMET_FACTOR;
         }
         let attributes = attributes(player);
         if !kind.is(DamageTag::BypassesArmor) {
-            amount = damage::after_armor(
+            amount = damage::after_armor_breached(
                 amount,
                 attributes.get(ARMOR).floor() as f32,
                 attributes.get(ARMOR_TOUGHNESS) as f32,
+                effectiveness,
             );
         }
         if !kind.is(DamageTag::BypassesEffects) {
@@ -466,7 +478,7 @@ impl<L: ClientLink> Server<L> {
             if amount <= 0.0 {
                 amount = 0.0;
             } else {
-                let protection = self.player_protection(id, &DamageSource::new(kind));
+                let protection = self.player_protection(id, source);
                 if protection > 0.0 {
                     amount = crate::enchant_effects::after_magic_absorb(amount, protection);
                 }
@@ -503,6 +515,9 @@ impl<L: ClientLink> Server<L> {
             return false;
         }
         let protection = self.player_protection(id, source);
+        let effectiveness = self.players.get(&id).map_or(1.0, |player| {
+            self.armor_effectiveness_against(player.entity_id, source)
+        });
         let Some(player) = self.players.get_mut(&id) else {
             return false;
         };
@@ -528,13 +543,27 @@ impl<L: ClientLink> Server<L> {
                 return false;
             }
             let extra = amount - player.vitals.last_hurt;
-            let dealt = absorb_hurt(player, source, extra, &attributes, protection);
+            let dealt = absorb_hurt(
+                player,
+                source,
+                extra,
+                &attributes,
+                protection,
+                effectiveness,
+            );
             player.vitals.last_hurt = amount;
             (false, dealt)
         } else {
             player.vitals.last_hurt = amount;
             player.vitals.damage_cooldown = DAMAGE_COOLDOWN;
-            let dealt = absorb_hurt(player, source, amount, &attributes, protection);
+            let dealt = absorb_hurt(
+                player,
+                source,
+                amount,
+                &attributes,
+                protection,
+                effectiveness,
+            );
             player.vitals.hurt_time = HURT_DURATION;
             (true, dealt)
         };
