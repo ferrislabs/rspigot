@@ -1,6 +1,6 @@
 use super::impact::Vec3;
 
-pub const DEFAULT_THROW_POWER: f64 = 2.5;
+pub const DEFAULT_THROW_POWER: f64 = 2.7;
 
 pub fn launch_velocity(yaw_degrees: f64, pitch_degrees: f64, power: f64) -> Vec3 {
     let yaw = yaw_degrees.to_radians();

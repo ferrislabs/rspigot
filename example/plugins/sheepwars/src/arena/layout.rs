@@ -28,6 +28,9 @@ impl Layout {
     }
 
     pub fn blocks(&self) -> Vec<PlacedBlock> {
+        if self.settings.map.is_some() {
+            return Vec::new();
+        }
         platform_blocks(&self.settings.platform)
     }
 
@@ -91,7 +94,7 @@ mod tests {
     use super::*;
 
     fn layout() -> Layout {
-        Layout::new(ArenaSettings::default())
+        Layout::new(ArenaSettings::fallback_platform())
     }
 
     fn standing(layout: &Layout, point: Point) -> bool {
@@ -203,7 +206,7 @@ mod tests {
     }
 
     fn custom_layout() -> Layout {
-        let mut settings = ArenaSettings::default();
+        let mut settings = ArenaSettings::fallback_platform();
         settings.platform.center = BlockPoint {
             x: -20,
             y: 64,
@@ -257,5 +260,22 @@ mod tests {
         for (x, z) in layout.chunks() {
             assert!(!layout.blocks_in_chunk(x, z).is_empty());
         }
+    }
+
+    #[test]
+    fn a_map_arena_places_no_generated_block() {
+        let layout = Layout::new(ArenaSettings::default());
+        assert!(layout.blocks().is_empty());
+        assert!(layout.chunks().is_empty());
+        assert!(layout.blocks_in_chunk(-3, 0).is_empty());
+    }
+
+    #[test]
+    fn a_map_arena_keeps_its_spawns_and_lobby() {
+        let layout = Layout::new(ArenaSettings::default());
+        assert_eq!(layout.spawn_of(TeamId::Red).y, 132.0);
+        assert_eq!(layout.lobby().y, 156.0);
+        assert!(!layout.is_void_fall(0.0));
+        assert!(layout.is_void_fall(-0.5));
     }
 }
