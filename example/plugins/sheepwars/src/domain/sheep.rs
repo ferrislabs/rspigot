@@ -1,5 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SheepKind {
+    Explosive,
     Lightning,
     Incendiary,
     Boarding,
@@ -14,7 +15,8 @@ pub enum SheepKind {
 }
 
 impl SheepKind {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 12] = [
+        Self::Explosive,
         Self::Lightning,
         Self::Incendiary,
         Self::Boarding,
