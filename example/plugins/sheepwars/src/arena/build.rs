@@ -1,0 +1,88 @@
+use rspigot_plugin::{BlockPos, BlockType, Dimension, Generator, Server, World, WorldOptions};
+
+use super::layout::{Layout, PlacedBlock};
+use super::settings::{ArenaError, ArenaSettings};
+
+const WORLD_SEED: i64 = 0;
+
+pub struct Arena {
+    pub world: World,
+    pub layout: Layout,
+}
+
+impl Arena {
+    pub async fn create(server: &Server, settings: ArenaSettings) -> Result<Self, ArenaError> {
+        let options = WorldOptions {
+            name: settings.world_name.clone(),
+            dimension: Dimension::Overworld,
+            seed: WORLD_SEED,
+            generator: Generator::Void,
+            structures: false,
+        };
+        let world = server.world.create(options).await?;
+        let layout = Layout::new(settings);
+        build(&world, &layout)?;
+        Ok(Self { world, layout })
+    }
+}
+
+pub fn build(world: &World, layout: &Layout) -> Result<(), ArenaError> {
+    let placed = layout.blocks();
+    let resolved = resolve(&placed)?;
+    for (pos, kind) in resolved {
+        world.block(pos).set(kind);
+    }
+    Ok(())
+}
+
+fn resolve(placed: &[PlacedBlock]) -> Result<Vec<(BlockPos, BlockType)>, ArenaError> {
+    placed
+        .iter()
+        .map(|block| {
+            let kind = BlockType::from_key(&block.block)
+                .ok_or_else(|| ArenaError::UnknownBlock(block.block.clone()))?;
+            Ok((
+                BlockPos {
+                    x: block.x,
+                    y: block.y,
+                    z: block.z,
+                },
+                kind,
+            ))
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn placed(block: &str) -> PlacedBlock {
+        PlacedBlock {
+            x: 1,
+            y: 2,
+            z: 3,
+            block: block.to_owned(),
+        }
+    }
+
+    #[test]
+    fn resolves_known_blocks() {
+        let resolved = resolve(&[placed("minecraft:stone")]).expect("known");
+        assert_eq!(resolved[0].0, BlockPos { x: 1, y: 2, z: 3 });
+    }
+
+    #[test]
+    fn unknown_block_is_a_typed_error() {
+        assert!(matches!(
+            resolve(&[placed("minecraft:nope")]),
+            Err(ArenaError::UnknownBlock(_))
+        ));
+    }
+
+    #[test]
+    fn default_blocks_all_resolve() {
+        let layout = Layout::new(ArenaSettings::default());
+        assert!(resolve(&layout.blocks()).is_ok());
+    }
+}
