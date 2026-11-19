@@ -21,18 +21,17 @@ impl Arena {
         };
         let world = server.world.create(options).await?;
         let layout = Layout::new(settings);
-        build(&world, &layout)?;
         Ok(Self { world, layout })
     }
-}
 
-pub fn build(world: &World, layout: &Layout) -> Result<(), ArenaError> {
-    let placed = layout.blocks();
-    let resolved = resolve(&placed)?;
-    for (pos, kind) in resolved {
-        world.block(pos).set(kind);
+    pub fn place_chunk(&self, chunk_x: i32, chunk_z: i32) -> Result<usize, ArenaError> {
+        let placed = self.layout.blocks_in_chunk(chunk_x, chunk_z);
+        let resolved = resolve(&placed)?;
+        for (pos, kind) in &resolved {
+            self.world.block(*pos).set(*kind);
+        }
+        Ok(resolved.len())
     }
-    Ok(())
 }
 
 fn resolve(placed: &[PlacedBlock]) -> Result<Vec<(BlockPos, BlockType)>, ArenaError> {
