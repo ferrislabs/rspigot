@@ -47,7 +47,7 @@ mod tests {
 
     fn flight(age: u32) -> Flight {
         Flight {
-            kind: SheepKind::Explosive,
+            kind: SheepKind::Lightning,
             team: TeamId::Red,
             thrower: PlayerId(1),
             age,

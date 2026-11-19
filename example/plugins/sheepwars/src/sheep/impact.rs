@@ -35,7 +35,6 @@ pub struct Cell {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlockKind {
-    Fire,
     Ice,
 }
 
@@ -53,7 +52,6 @@ pub enum ParticleKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SoundKind {
     Explode,
-    Fire,
     Ice,
     Thunder,
     Heal,
@@ -61,6 +59,8 @@ pub enum SoundKind {
     Quake,
     Darkness,
     Split,
+    Warp,
+    Intergalactic,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -104,6 +104,13 @@ pub enum Action {
         radius: f64,
         velocity: Vec3,
     },
+    Push {
+        team: TeamId,
+        center: Vec3,
+        radius: f64,
+        strength: f64,
+        lift: f64,
+    },
     Lightning {
         at: Vec3,
     },
@@ -120,20 +127,16 @@ pub enum Action {
 pub fn plan(kind: SheepKind, at: Vec3, thrower_team: TeamId) -> Vec<Action> {
     let enemies = thrower_team.other();
     match kind {
-        SheepKind::Explosive => vec![
+        SheepKind::Incendiary => vec![
             Action::Explode {
                 at,
-                power: catalog::EXPLOSIVE_POWER,
-                breaks_blocks: catalog::EXPLOSIVE_BREAKS_BLOCKS,
+                power: catalog::INCENDIARY_POWER,
+                breaks_blocks: catalog::INCENDIARY_BREAKS_BLOCKS,
             },
-            particle(ParticleKind::Explosion, at, 3),
+            particle(ParticleKind::Explosion, at, 5),
+            particle(ParticleKind::Flame, at, 60),
+            sound(SoundKind::Explode, at),
         ],
-        SheepKind::Incendiary => {
-            let mut actions = disc(at.cell(), catalog::INCENDIARY_RADIUS, 0, BlockKind::Fire);
-            actions.push(particle(ParticleKind::Flame, at, 60));
-            actions.push(sound(SoundKind::Fire, at));
-            actions
-        }
         SheepKind::Frozen => {
             let mut actions = disc(at.cell(), catalog::FROZEN_ICE_RADIUS, -1, BlockKind::Ice);
             actions.push(Action::Effect {
@@ -201,23 +204,85 @@ pub fn plan(kind: SheepKind, at: Vec3, thrower_team: TeamId) -> Vec<Action> {
             sound(SoundKind::Darkness, at),
         ],
         SheepKind::Splitting => {
-            let mut actions: Vec<Action> = (0..catalog::SPLIT_COUNT)
-                .map(|index| {
-                    let angle = TAU * f64::from(index) / f64::from(catalog::SPLIT_COUNT);
-                    Action::SpawnSheep {
-                        kind: catalog::SPLIT_CHILD,
-                        at,
-                        velocity: Vec3 {
-                            x: angle.cos() * catalog::SPLIT_HORIZONTAL_SPEED,
-                            y: catalog::SPLIT_VERTICAL_SPEED,
-                            z: angle.sin() * catalog::SPLIT_HORIZONTAL_SPEED,
-                        },
-                    }
-                })
-                .collect();
+            let mut actions = vec![Action::Explode {
+                at,
+                power: catalog::SPLIT_PARENT_POWER,
+                breaks_blocks: false,
+            }];
+            actions.extend((0..catalog::SPLIT_COUNT).map(|index| {
+                let angle = TAU * f64::from(index) / f64::from(catalog::SPLIT_COUNT);
+                Action::SpawnSheep {
+                    kind: catalog::SPLIT_CHILD,
+                    at,
+                    velocity: Vec3 {
+                        x: angle.cos() * catalog::SPLIT_HORIZONTAL_SPEED,
+                        y: catalog::SPLIT_VERTICAL_SPEED,
+                        z: angle.sin() * catalog::SPLIT_HORIZONTAL_SPEED,
+                    },
+                }
+            }));
             actions.push(sound(SoundKind::Split, at));
             actions
         }
+        SheepKind::Warp => vec![
+            Action::Push {
+                team: enemies,
+                center: at,
+                radius: catalog::WARP_RADIUS,
+                strength: catalog::WARP_PUSH,
+                lift: catalog::WARP_LIFT,
+            },
+            Action::Explode {
+                at,
+                power: catalog::WARP_BLAST_POWER,
+                breaks_blocks: catalog::WARP_BLAST_BREAKS_BLOCKS,
+            },
+            particle(ParticleKind::Portal, at, 80),
+            sound(SoundKind::Warp, at),
+        ],
+        SheepKind::Intergalactic => {
+            let mut actions: Vec<Action> = (0..catalog::INTERGALACTIC_METEORS)
+                .map(|index| Action::Explode {
+                    at: meteor_point(at, index),
+                    power: catalog::INTERGALACTIC_POWER,
+                    breaks_blocks: catalog::INTERGALACTIC_BREAKS_BLOCKS,
+                })
+                .collect();
+            actions.push(Action::Lightning { at });
+            actions.push(particle(ParticleKind::Explosion, at, 20));
+            actions.push(sound(SoundKind::Intergalactic, at));
+            actions
+        }
+    }
+}
+
+const GOLDEN_ANGLE: f64 = 2.399_963_229_728_653;
+
+fn meteor_point(center: Vec3, index: u32) -> Vec3 {
+    let share = f64::from(index + 1) / f64::from(catalog::INTERGALACTIC_METEORS);
+    let distance = catalog::INTERGALACTIC_SPREAD * share.sqrt();
+    let angle = GOLDEN_ANGLE * f64::from(index);
+    Vec3 {
+        x: center.x + angle.cos() * distance,
+        y: center.y,
+        z: center.z + angle.sin() * distance,
+    }
+}
+
+pub fn outward_velocity(center: Vec3, target: Vec3, strength: f64, lift: f64) -> Vec3 {
+    let (dx, dz) = (target.x - center.x, target.z - center.z);
+    let length = dx.hypot(dz);
+    if length <= f64::EPSILON {
+        return Vec3 {
+            x: 0.0,
+            y: lift,
+            z: 0.0,
+        };
+    }
+    Vec3 {
+        x: dx / length * strength,
+        y: lift,
+        z: dz / length * strength,
     }
 }
 
@@ -266,9 +331,9 @@ mod tests {
     }
 
     #[test]
-    fn each_of_the_ten_kinds_has_its_own_non_empty_plan() {
+    fn each_of_the_eleven_kinds_has_its_own_non_empty_plan() {
         let plans = plans();
-        assert_eq!(plans.len(), 10);
+        assert_eq!(plans.len(), 11);
         for (index, (kind, actions)) in plans.iter().enumerate() {
             assert!(!actions.is_empty(), "{kind:?} has an empty plan");
             for (other, other_actions) in &plans[index + 1..] {
@@ -278,31 +343,87 @@ mod tests {
     }
 
     #[test]
-    fn explosive_explodes_at_the_impact_point() {
-        assert!(
-            plan(SheepKind::Explosive, AT, TeamId::Red).contains(&Action::Explode {
-                at: AT,
-                power: catalog::EXPLOSIVE_POWER,
-                breaks_blocks: catalog::EXPLOSIVE_BREAKS_BLOCKS,
-            })
+    fn incendiary_is_a_large_block_breaking_explosion_without_fire() {
+        let actions = plan(SheepKind::Incendiary, AT, TeamId::Red);
+        assert!(actions.contains(&Action::Explode {
+            at: AT,
+            power: catalog::INCENDIARY_POWER,
+            breaks_blocks: catalog::INCENDIARY_BREAKS_BLOCKS,
+        }));
+        assert!(!actions.iter().any(|a| matches!(a, Action::SetBlock { .. })));
+        const { assert!(catalog::INCENDIARY_POWER > catalog::SEEKER_POWER) };
+    }
+
+    #[test]
+    fn warp_pushes_enemies_away_and_blasts_the_impact() {
+        let actions = plan(SheepKind::Warp, AT, TeamId::Red);
+        assert!(actions.iter().any(|a| matches!(
+            a,
+            Action::Push {
+                team: TeamId::Blue,
+                ..
+            }
+        )));
+        assert!(actions.contains(&Action::Explode {
+            at: AT,
+            power: catalog::WARP_BLAST_POWER,
+            breaks_blocks: catalog::WARP_BLAST_BREAKS_BLOCKS,
+        }));
+    }
+
+    #[test]
+    fn outward_velocity_points_away_from_the_center() {
+        let v = outward_velocity(
+            Vec3::ZERO,
+            Vec3 {
+                x: 3.0,
+                y: 0.0,
+                z: 0.0,
+            },
+            2.0,
+            0.5,
+        );
+        assert_eq!(
+            v,
+            Vec3 {
+                x: 2.0,
+                y: 0.5,
+                z: 0.0
+            }
+        );
+        let on_center = outward_velocity(Vec3::ZERO, Vec3::ZERO, 2.0, 0.5);
+        assert_eq!(
+            on_center,
+            Vec3 {
+                x: 0.0,
+                y: 0.5,
+                z: 0.0
+            }
         );
     }
 
     #[test]
-    fn incendiary_sets_fire_on_a_disc_around_the_impact() {
-        let fires = plan(SheepKind::Incendiary, AT, TeamId::Red)
-            .into_iter()
-            .filter(|a| {
-                matches!(
-                    a,
-                    Action::SetBlock {
-                        block: BlockKind::Fire,
-                        ..
-                    }
-                )
+    fn intergalactic_drops_distinct_lethal_meteors_within_the_spread() {
+        let actions = plan(SheepKind::Intergalactic, AT, TeamId::Red);
+        let points: Vec<Vec3> = actions
+            .iter()
+            .filter_map(|a| match a {
+                Action::Explode { at, power, .. } if *power >= catalog::INTERGALACTIC_POWER => {
+                    Some(*at)
+                }
+                _ => None,
             })
-            .count();
-        assert_eq!(fires, 29);
+            .collect();
+        assert_eq!(points.len(), catalog::INTERGALACTIC_METEORS as usize);
+        for (index, point) in points.iter().enumerate() {
+            assert!(!points[index + 1..].contains(point));
+            let distance = (point.x - AT.x).hypot(point.z - AT.z);
+            assert!(distance <= catalog::INTERGALACTIC_SPREAD + 1e-9);
+        }
+        assert!(actions.contains(&Action::Sound {
+            kind: SoundKind::Intergalactic,
+            at: AT
+        }));
     }
 
     #[test]
@@ -377,6 +498,15 @@ mod tests {
                         ..
                     }
                 ))
+        );
+    }
+
+    #[test]
+    fn splitting_also_explodes_itself() {
+        assert!(
+            plan(SheepKind::Splitting, AT, TeamId::Red)
+                .iter()
+                .any(|a| matches!(a, Action::Explode { at, .. } if *at == AT))
         );
     }
 
