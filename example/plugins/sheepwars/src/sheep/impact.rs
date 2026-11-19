@@ -1,6 +1,7 @@
 use std::f64::consts::TAU;
 
 use super::catalog;
+use super::debris::{self, DEBRIS_MAX_PER_PLAN};
 use crate::domain::{SheepKind, TeamId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -120,6 +121,11 @@ pub enum Action {
         at: Vec3,
         velocity: Vec3,
     },
+    Scatter {
+        from: Cell,
+        to: Cell,
+        delay_ticks: u32,
+    },
 }
 
 pub fn plan_pulse(at: Vec3) -> Vec<Action> {
@@ -130,8 +136,56 @@ pub fn plan_pulse(at: Vec3) -> Vec<Action> {
 }
 
 pub fn plan(kind: SheepKind, at: Vec3, thrower_team: TeamId) -> Vec<Action> {
+    let base = base_plan(kind, at, thrower_team);
+    let mut actions = debris_for(&base);
+    actions.extend(base);
+    actions
+}
+
+fn debris_for(base: &[Action]) -> Vec<Action> {
+    let mut taken: Vec<Cell> = Vec::new();
+    let mut scatters = Vec::new();
+    for (index, action) in base.iter().enumerate() {
+        let Action::Explode {
+            at,
+            power,
+            breaks_blocks: true,
+        } = *action
+        else {
+            continue;
+        };
+        let center = at.cell();
+        let seed = debris::seed_of(center, index as u64);
+        for throw in debris::plan_debris(center, power, seed) {
+            if scatters.len() >= DEBRIS_MAX_PER_PLAN {
+                return scatters;
+            }
+            if taken.contains(&throw.from) {
+                continue;
+            }
+            taken.push(throw.from);
+            scatters.push(Action::Scatter {
+                from: throw.from,
+                to: throw.to,
+                delay_ticks: throw.delay_ticks,
+            });
+        }
+    }
+    scatters
+}
+
+fn base_plan(kind: SheepKind, at: Vec3, thrower_team: TeamId) -> Vec<Action> {
     let enemies = thrower_team.other();
     match kind {
+        SheepKind::Explosive => vec![
+            Action::Explode {
+                at,
+                power: catalog::EXPLOSIVE_POWER,
+                breaks_blocks: catalog::EXPLOSIVE_BREAKS_BLOCKS,
+            },
+            particle(ParticleKind::Explosion, at, 8),
+            sound(SoundKind::Explode, at),
+        ],
         SheepKind::Incendiary => vec![
             Action::Explode {
                 at,
@@ -211,7 +265,7 @@ pub fn plan(kind: SheepKind, at: Vec3, thrower_team: TeamId) -> Vec<Action> {
             let mut actions = vec![Action::Explode {
                 at,
                 power: catalog::SPLIT_PARENT_POWER,
-                breaks_blocks: false,
+                breaks_blocks: catalog::SPLIT_PARENT_BREAKS_BLOCKS,
             }];
             actions.extend((0..catalog::SPLIT_COUNT).map(|index| {
                 let angle = TAU * f64::from(index) / f64::from(catalog::SPLIT_COUNT);
@@ -335,9 +389,9 @@ mod tests {
     }
 
     #[test]
-    fn each_of_the_eleven_kinds_has_its_own_non_empty_plan() {
+    fn each_of_the_twelve_kinds_has_its_own_non_empty_plan() {
         let plans = plans();
-        assert_eq!(plans.len(), 11);
+        assert_eq!(plans.len(), 12);
         for (index, (kind, actions)) in plans.iter().enumerate() {
             assert!(!actions.is_empty(), "{kind:?} has an empty plan");
             for (other, other_actions) in &plans[index + 1..] {
@@ -356,6 +410,86 @@ mod tests {
         }));
         assert!(!actions.iter().any(|a| matches!(a, Action::SetBlock { .. })));
         const { assert!(catalog::INCENDIARY_POWER > catalog::SEEKER_POWER) };
+    }
+
+    fn scatters(actions: &[Action]) -> Vec<(Cell, Cell, u32)> {
+        actions
+            .iter()
+            .filter_map(|a| match *a {
+                Action::Scatter {
+                    from,
+                    to,
+                    delay_ticks,
+                } => Some((from, to, delay_ticks)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_explosive_is_a_plain_tnt_like_block_breaking_explosion() {
+        let actions = plan(SheepKind::Explosive, AT, TeamId::Red);
+        assert!(actions.contains(&Action::Explode {
+            at: AT,
+            power: catalog::EXPLOSIVE_POWER,
+            breaks_blocks: true,
+        }));
+        assert!(
+            !actions
+                .iter()
+                .any(|a| matches!(a, Action::Effect { .. } | Action::SpawnSheep { .. }))
+        );
+        const { assert!(catalog::EXPLOSIVE_POWER >= 4.0) };
+    }
+
+    #[test]
+    fn every_breaking_explosion_throws_debris_and_the_others_do_not() {
+        for kind in SheepKind::ALL {
+            let actions = plan(kind, AT, TeamId::Red);
+            let breaks = actions.iter().any(|a| {
+                matches!(
+                    a,
+                    Action::Explode {
+                        breaks_blocks: true,
+                        ..
+                    }
+                )
+            });
+            assert_eq!(!scatters(&actions).is_empty(), breaks, "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn debris_is_planned_before_the_explosion_so_it_can_read_the_blocks() {
+        let actions = plan(SheepKind::Explosive, AT, TeamId::Red);
+        let first_explosion = actions
+            .iter()
+            .position(|a| matches!(a, Action::Explode { .. }))
+            .expect("an explosion");
+        let last_scatter = actions
+            .iter()
+            .rposition(|a| matches!(a, Action::Scatter { .. }))
+            .expect("debris");
+        assert!(last_scatter < first_explosion);
+    }
+
+    #[test]
+    fn debris_is_deterministic_capped_and_never_reuses_a_cell() {
+        for kind in SheepKind::ALL {
+            let first = plan(kind, AT, TeamId::Red);
+            assert_eq!(first, plan(kind, AT, TeamId::Red));
+            let thrown = scatters(&first);
+            assert!(thrown.len() <= DEBRIS_MAX_PER_PLAN, "{kind:?}");
+            for (index, (from, _, _)) in thrown.iter().enumerate() {
+                assert!(
+                    thrown[index + 1..]
+                        .iter()
+                        .all(|(other, _, _)| other != from)
+                );
+            }
+        }
+        let intergalactic = scatters(&plan(SheepKind::Intergalactic, AT, TeamId::Red));
+        assert_eq!(intergalactic.len(), DEBRIS_MAX_PER_PLAN);
     }
 
     #[test]

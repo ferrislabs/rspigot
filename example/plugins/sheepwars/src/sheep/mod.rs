@@ -1,18 +1,24 @@
 mod apply;
 mod catalog;
+mod debris;
 mod impact;
 mod launch;
+mod select;
 
-pub use apply::{apply, nearest_enemy, sheep_wool, wool_material};
+pub use apply::{
+    Applied, Combatant, Landing, apply, dye_color, nearest_enemy, paint, settle, sheep_wool,
+    wool_material,
+};
 pub use catalog::{
-    DARKNESS_BLINDNESS_AMPLIFIER, DARKNESS_BLINDNESS_TICKS, DARKNESS_RADIUS, FROZEN_ICE_RADIUS,
-    FROZEN_RADIUS, FROZEN_SLOWNESS_AMPLIFIER, FROZEN_SLOWNESS_TICKS, HEALING_RADIUS,
+    DARKNESS_BLINDNESS_AMPLIFIER, DARKNESS_BLINDNESS_TICKS, DARKNESS_RADIUS,
+    EXPLOSIVE_BREAKS_BLOCKS, EXPLOSIVE_POWER, FROZEN_ICE_RADIUS, FROZEN_RADIUS,
+    FROZEN_SLOWNESS_AMPLIFIER, FROZEN_SLOWNESS_TICKS, HEALING_RADIUS,
     HEALING_REGENERATION_AMPLIFIER, HEALING_REGENERATION_TICKS, HEALING_THROW_POWER,
     INCENDIARY_BREAKS_BLOCKS, INCENDIARY_POWER, INTERGALACTIC_BREAKS_BLOCKS, INTERGALACTIC_METEORS,
     INTERGALACTIC_POWER, INTERGALACTIC_SPREAD, QUAKE_LIFT, QUAKE_RADIUS, SEEKER_POWER,
     SEEKER_RANGE, SEEKER_SPEED, SPLIT_CHILD, SPLIT_COUNT, SPLIT_HORIZONTAL_SPEED,
-    SPLIT_PARENT_POWER, SPLIT_VERTICAL_SPEED, WARP_BLAST_BREAKS_BLOCKS, WARP_BLAST_POWER,
-    WARP_LIFT, WARP_PUSH, WARP_RADIUS,
+    SPLIT_PARENT_BREAKS_BLOCKS, SPLIT_PARENT_POWER, SPLIT_VERTICAL_SPEED, WARP_BLAST_BREAKS_BLOCKS,
+    WARP_BLAST_POWER, WARP_LIFT, WARP_PUSH, WARP_RADIUS,
 };
 pub use catalog::{
     DEFAULT_FUSE_TICKS, INCENDIARY_FUSE_TICKS, INCENDIARY_SCALE_END,
@@ -23,8 +29,10 @@ pub use catalog::{
 pub use catalog::{
     WoolColor, announces_launch, display_name, homes_in_flight, launch_power, wool_color,
 };
+pub use debris::{Schedule, blocked_by_player};
 pub use impact::{
     Action, BlockKind, Cell, EffectKind, ParticleKind, SoundKind, Vec3, outward_velocity, plan,
     plan_pulse,
 };
 pub use launch::{DEFAULT_THROW_POWER, launch_velocity, steer};
+pub use select::targetable;

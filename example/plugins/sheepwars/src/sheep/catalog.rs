@@ -1,6 +1,9 @@
 use super::launch::DEFAULT_THROW_POWER;
 use crate::domain::SheepKind;
 
+pub const EXPLOSIVE_POWER: f32 = 4.0;
+pub const EXPLOSIVE_BREAKS_BLOCKS: bool = true;
+
 pub const INCENDIARY_POWER: f32 = 6.0;
 pub const INCENDIARY_BREAKS_BLOCKS: bool = true;
 
@@ -43,6 +46,7 @@ pub const SPLIT_HORIZONTAL_SPEED: f64 = 0.5;
 pub const SPLIT_VERTICAL_SPEED: f64 = 0.6;
 pub const SPLIT_CHILD: SheepKind = SheepKind::Seeker;
 pub const SPLIT_PARENT_POWER: f32 = 2.0;
+pub const SPLIT_PARENT_BREAKS_BLOCKS: bool = true;
 
 pub const WARP_RADIUS: f64 = 8.0;
 pub const WARP_PUSH: f64 = 2.0;
@@ -57,13 +61,14 @@ pub const INTERGALACTIC_BREAKS_BLOCKS: bool = true;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WoolColor {
+    Red,
+    White,
     Orange,
     Magenta,
     LightBlue,
     Green,
     Yellow,
     Pink,
-    Purple,
     Blue,
     Brown,
     Black,
@@ -72,6 +77,7 @@ pub enum WoolColor {
 
 pub const fn display_name(kind: SheepKind) -> &'static str {
     match kind {
+        SheepKind::Explosive => "§cMouton explosif",
         SheepKind::Lightning => "§eInvocateur de foudre",
         SheepKind::Incendiary => "§6Mouton incendiaire",
         SheepKind::Boarding => "§5Mouton d'abordage",
@@ -88,9 +94,10 @@ pub const fn display_name(kind: SheepKind) -> &'static str {
 
 pub const fn wool_color(kind: SheepKind) -> WoolColor {
     match kind {
+        SheepKind::Explosive => WoolColor::Red,
         SheepKind::Lightning => WoolColor::Yellow,
         SheepKind::Incendiary => WoolColor::Orange,
-        SheepKind::Boarding => WoolColor::Purple,
+        SheepKind::Boarding => WoolColor::White,
         SheepKind::Healing => WoolColor::Pink,
         SheepKind::Seeker => WoolColor::Green,
         SheepKind::Splitting => WoolColor::Gray,
@@ -180,7 +187,32 @@ mod tests {
     }
 
     #[test]
-    fn there_are_eleven_kinds() {
-        assert_eq!(SheepKind::ALL.len(), 11);
+    fn there_are_twelve_kinds_starting_with_the_explosive() {
+        assert_eq!(SheepKind::ALL.len(), 12);
+        assert_eq!(SheepKind::ALL[0], SheepKind::Explosive);
+        assert_eq!(display_name(SheepKind::Explosive), "§cMouton explosif");
+        assert_eq!(fuse_ticks(SheepKind::Explosive), DEFAULT_FUSE_TICKS);
+    }
+
+    #[test]
+    fn the_colours_follow_the_epicube_table() {
+        let expected = [
+            (SheepKind::Explosive, WoolColor::Red),
+            (SheepKind::Incendiary, WoolColor::Orange),
+            (SheepKind::Lightning, WoolColor::Yellow),
+            (SheepKind::Intergalactic, WoolColor::Blue),
+            (SheepKind::Seeker, WoolColor::Green),
+            (SheepKind::Darkness, WoolColor::Black),
+            (SheepKind::Splitting, WoolColor::Gray),
+            (SheepKind::Healing, WoolColor::Pink),
+            (SheepKind::Frozen, WoolColor::LightBlue),
+            (SheepKind::Quake, WoolColor::Brown),
+            (SheepKind::Boarding, WoolColor::White),
+            (SheepKind::Warp, WoolColor::Magenta),
+        ];
+        assert_eq!(expected.len(), SheepKind::ALL.len());
+        for (kind, color) in expected {
+            assert_eq!(wool_color(kind), color, "{kind:?}");
+        }
     }
 }
