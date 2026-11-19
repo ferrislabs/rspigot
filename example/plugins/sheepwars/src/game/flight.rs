@@ -1,5 +1,6 @@
 use rspigot_plugin::Material;
 
+use super::capture::Capture;
 use crate::domain::{PlayerId, SheepKind, TeamId};
 use crate::sheep::{
     INCENDIARY_SCALE_END, INCENDIARY_SCALE_INTERVAL_TICKS, INCENDIARY_SCALE_START,
@@ -28,6 +29,8 @@ pub struct Flight {
     pub stage: Stage,
     pub fuse: u32,
     pub fragment: bool,
+    pub last_hitter: Option<PlayerId>,
+    pub last_hit_tick: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -74,6 +77,8 @@ impl Flight {
             stage: Stage::Flying,
             fuse,
             fragment: false,
+            last_hitter: None,
+            last_hit_tick: 0,
         }
     }
 
@@ -81,6 +86,21 @@ impl Flight {
         Self {
             fragment: true,
             ..Self::with_fuse(kind, team, thrower, SPLIT_CHILD_FUSE_TICKS)
+        }
+    }
+
+    pub const fn record_hit(&mut self, player: PlayerId, tick: u64) {
+        self.last_hitter = Some(player);
+        self.last_hit_tick = tick;
+    }
+
+    pub const fn loot(&self) -> Capture {
+        if self.is_detonating() {
+            Capture::Denied
+        } else if self.fragment {
+            Capture::Fragment
+        } else {
+            Capture::Taken { kind: self.kind }
         }
     }
 
@@ -428,6 +448,56 @@ mod tests {
     #[test]
     fn lands_when_the_lifetime_is_over() {
         assert!(flight(MAX_FLIGHT_TICKS).should_land(false));
+    }
+
+    #[test]
+    fn a_hit_records_the_hitter_and_the_tick_and_keeps_the_flight() {
+        let mut flight = flight(3);
+        assert_eq!(flight.last_hitter, None);
+        flight.record_hit(PlayerId(7), 100);
+        assert_eq!(flight.last_hitter, Some(PlayerId(7)));
+        assert_eq!(flight.last_hit_tick, 100);
+        assert_eq!(flight.stage, Stage::Flying);
+        flight.record_hit(PlayerId(8), 110);
+        assert_eq!(flight.last_hitter, Some(PlayerId(8)));
+        assert_eq!(flight.last_hit_tick, 110);
+    }
+
+    #[test]
+    fn a_dead_live_flight_drops_its_wool_whoever_killed_it() {
+        let mut hit = flight(3);
+        hit.record_hit(PlayerId(7), 1);
+        for flight in [flight(3), hit] {
+            assert_eq!(
+                flight.loot(),
+                Capture::Taken {
+                    kind: SheepKind::Lightning
+                }
+            );
+        }
+    }
+
+    #[test]
+    fn a_landed_flight_with_a_running_fuse_drops_its_wool() {
+        let mut flight = flight(3);
+        flight.stage = Stage::Landed { ticks: 1 };
+        assert!(matches!(flight.loot(), Capture::Taken { .. }));
+    }
+
+    #[test]
+    fn a_dead_fragment_drops_nothing() {
+        let child = Flight::fragment(SheepKind::Seeker, TeamId::Red, PlayerId(1));
+        assert_eq!(child.loot(), Capture::Fragment);
+    }
+
+    #[test]
+    fn a_dead_detonating_flight_drops_nothing() {
+        let mut flight = flight(3);
+        flight.stage = Stage::Landed { ticks: flight.fuse };
+        assert_eq!(flight.loot(), Capture::Denied);
+        let mut boarding = Flight::new(SheepKind::Boarding, TeamId::Red, PlayerId(1));
+        boarding.stage = Stage::Landed { ticks: 0 };
+        assert_eq!(boarding.loot(), Capture::Denied);
     }
 
     #[test]
