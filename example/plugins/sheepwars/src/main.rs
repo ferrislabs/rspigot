@@ -71,7 +71,13 @@ impl SheepWars {
                 return;
             }
         };
-        let hud = Hud::new(server.scoreboard_manager.main_scoreboard());
+        let hud = match Hud::open(server.scoreboard_manager.main_scoreboard()).await {
+            Ok(hud) => hud,
+            Err(error) => {
+                tracing::error!("could not open the scoreboard: {error}");
+                return;
+            }
+        };
         let game = Arc::new(Game::new(arena, session, hud, bar));
         if self.game.set(Arc::clone(&game)).is_err() {
             return;
