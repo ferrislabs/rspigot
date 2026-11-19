@@ -353,6 +353,10 @@ impl World {
         self.name.as_deref().unwrap_or(DEFAULT_WORLD)
     }
 
+    pub fn by_id(&self, id: impl Into<String>) -> World {
+        Self::resolved(id.into(), &self.link)
+    }
+
     pub async fn create(&self, options: WorldOptions) -> Result<World, Error> {
         let created = self
             .link
