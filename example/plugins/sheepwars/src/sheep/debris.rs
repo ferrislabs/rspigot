@@ -7,12 +7,12 @@ pub const DEBRIS_DEPTH: i32 = 2;
 pub const DEBRIS_FRACTION: f64 = 0.3;
 pub const DEBRIS_MAX_PER_EXPLOSION: usize = 12;
 pub const DEBRIS_MAX_PER_PLAN: usize = 32;
-pub const DEBRIS_MIN_GAP: f64 = 1.5;
-pub const DEBRIS_SPREAD: f64 = 6.0;
-pub const DEBRIS_LANDING_DELAY_TICKS: u32 = 12;
-pub const DEBRIS_DELAY_JITTER_TICKS: u32 = 8;
-pub const DEBRIS_PLAYER_CLEARANCE: f64 = 1.2;
-pub const DEBRIS_PLAYER_HEIGHT: f64 = 1.8;
+pub const DEBRIS_HORIZONTAL_SPEED_MIN: f64 = 0.35;
+pub const DEBRIS_HORIZONTAL_SPEED_MAX: f64 = 0.9;
+pub const DEBRIS_VERTICAL_SPEED_MIN: f64 = 0.5;
+pub const DEBRIS_VERTICAL_SPEED_MAX: f64 = 1.1;
+pub const DEBRIS_DIRECTION_JITTER: f64 = 0.7;
+pub const DEBRIS_SPAWN_LIFT: f64 = 0.1;
 pub const DEBRIS_PARTICLES: i32 = 4;
 
 const SEED_X: u64 = 73_856_093;
@@ -50,11 +50,10 @@ pub fn seed_of(cell: Cell, salt: u64) -> u64 {
         ^ salt.wrapping_mul(SEED_FALLBACK)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Throw {
     pub from: Cell,
-    pub to: Cell,
-    pub delay_ticks: u32,
+    pub velocity: Vec3,
 }
 
 pub fn crater_radius(power: f32) -> i32 {
@@ -77,19 +76,13 @@ pub fn plan_debris(center: Cell, power: f32, seed: u64) -> Vec<Throw> {
                 if rng.unit() >= DEBRIS_FRACTION {
                     continue;
                 }
-                let to = landing(center, radius, &mut rng);
-                if throws.iter().any(|throw| throw.to == to) {
-                    continue;
-                }
                 throws.push(Throw {
                     from: Cell {
                         x: center.x + dx,
                         y: center.y + dy,
                         z: center.z + dz,
                     },
-                    to,
-                    delay_ticks: DEBRIS_LANDING_DELAY_TICKS
-                        + (rng.unit() * f64::from(DEBRIS_DELAY_JITTER_TICKS + 1)) as u32,
+                    velocity: launch(dx, dz, &mut rng),
                 });
             }
         }
@@ -97,65 +90,32 @@ pub fn plan_debris(center: Cell, power: f32, seed: u64) -> Vec<Throw> {
     throws
 }
 
-fn landing(center: Cell, radius: i32, rng: &mut Rng) -> Cell {
-    let angle = TAU * rng.unit();
-    let distance = f64::from(radius) + DEBRIS_MIN_GAP + rng.unit() * DEBRIS_SPREAD;
-    Cell {
-        x: center.x + (angle.cos() * distance).round() as i32,
-        y: center.y,
-        z: center.z + (angle.sin() * distance).round() as i32,
+fn launch(dx: i32, dz: i32, rng: &mut Rng) -> Vec3 {
+    let jitter = (rng.unit() * 2.0 - 1.0) * DEBRIS_DIRECTION_JITTER;
+    let angle = if dx == 0 && dz == 0 {
+        TAU * rng.unit()
+    } else {
+        f64::from(dz).atan2(f64::from(dx)) + jitter
+    };
+    let horizontal = lerp(
+        DEBRIS_HORIZONTAL_SPEED_MIN,
+        DEBRIS_HORIZONTAL_SPEED_MAX,
+        rng.unit(),
+    );
+    let vertical = lerp(
+        DEBRIS_VERTICAL_SPEED_MIN,
+        DEBRIS_VERTICAL_SPEED_MAX,
+        rng.unit(),
+    );
+    Vec3 {
+        x: angle.cos() * horizontal,
+        y: vertical,
+        z: angle.sin() * horizontal,
     }
 }
 
-pub fn blocked_by_player(cell: Cell, players: &[Vec3]) -> bool {
-    let (x, z) = (f64::from(cell.x) + 0.5, f64::from(cell.z) + 0.5);
-    players.iter().any(|player| {
-        (player.x - x).hypot(player.z - z) <= DEBRIS_PLAYER_CLEARANCE
-            && player.y - f64::from(cell.y) > -DEBRIS_PLAYER_HEIGHT
-            && player.y - f64::from(cell.y) < 1.0
-    })
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Schedule<T> {
-    pending: Vec<(u32, Cell, T)>,
-}
-
-impl<T> Default for Schedule<T> {
-    fn default() -> Self {
-        Self {
-            pending: Vec::new(),
-        }
-    }
-}
-
-impl<T> Schedule<T> {
-    pub fn push(&mut self, delay_ticks: u32, at: Cell, item: T) {
-        self.pending.push((delay_ticks, at, item));
-    }
-
-    pub fn len(&self) -> usize {
-        self.pending.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.pending.is_empty()
-    }
-
-    pub fn advance(&mut self) -> Vec<(Cell, T)> {
-        let mut due = Vec::new();
-        let mut waiting = Vec::with_capacity(self.pending.len());
-        for (remaining, at, item) in self.pending.drain(..) {
-            let remaining = remaining.saturating_sub(1);
-            if remaining == 0 {
-                due.push((at, item));
-            } else {
-                waiting.push((remaining, at, item));
-            }
-        }
-        self.pending = waiting;
-        due
-    }
+fn lerp(min: f64, max: f64, unit: f64) -> f64 {
+    min + (max - min) * unit
 }
 
 #[cfg(test)]
@@ -169,6 +129,8 @@ mod tests {
         y: 64,
         z: -3,
     };
+    const DIRECTION_TOLERANCE: f64 = DEBRIS_DIRECTION_JITTER + 1e-9;
+    const VELOCITY_CAP: f64 = 3.9;
 
     fn horizontal_squared(a: Cell, b: Cell) -> i32 {
         (a.x - b.x).pow(2) + (a.z - b.z).pow(2)
@@ -203,73 +165,78 @@ mod tests {
     }
 
     #[test]
-    fn debris_comes_from_below_the_floor_top_inside_the_crater_and_lands_outside_it() {
+    fn debris_comes_from_below_the_floor_top_inside_the_crater_without_repeats() {
         let radius = crater_radius(4.0);
-        assert!(radius >= 1);
         for seed in 1..40 {
-            let throws = plan_debris(CENTER, 4.0, seed);
-            let mut landings = HashSet::new();
             let mut origins = HashSet::new();
-            for throw in &throws {
+            for throw in plan_debris(CENTER, 4.0, seed) {
                 assert!(horizontal_squared(throw.from, CENTER) <= radius * radius);
                 assert!(throw.from.y < CENTER.y && throw.from.y >= CENTER.y - DEBRIS_DEPTH);
-                assert!(horizontal_squared(throw.to, CENTER) > radius * radius);
-                assert_eq!(throw.to.y, CENTER.y);
-                assert!(throw.delay_ticks >= DEBRIS_LANDING_DELAY_TICKS);
-                assert!(
-                    throw.delay_ticks <= DEBRIS_LANDING_DELAY_TICKS + DEBRIS_DELAY_JITTER_TICKS
-                );
-                assert!(landings.insert(throw.to));
                 assert!(origins.insert(throw.from));
             }
         }
     }
 
     #[test]
-    fn landings_stay_within_the_spread() {
-        let radius = f64::from(crater_radius(4.0));
-        for seed in 1..40 {
-            for throw in plan_debris(CENTER, 4.0, seed) {
-                let reach = f64::from(horizontal_squared(throw.to, CENTER)).sqrt();
-                assert!(reach <= radius + DEBRIS_MIN_GAP + DEBRIS_SPREAD + 1.0);
+    fn every_launch_goes_up_and_stays_within_the_speed_ranges_and_the_cap() {
+        for seed in 1..60 {
+            for throw in plan_debris(CENTER, 6.0, seed) {
+                let v = throw.velocity;
+                let horizontal = v.x.hypot(v.z);
+                assert!(v.y >= DEBRIS_VERTICAL_SPEED_MIN && v.y <= DEBRIS_VERTICAL_SPEED_MAX);
+                assert!(v.y > 0.0);
+                assert!(
+                    (DEBRIS_HORIZONTAL_SPEED_MIN - 1e-9..=DEBRIS_HORIZONTAL_SPEED_MAX + 1e-9)
+                        .contains(&horizontal)
+                );
+                assert!(v.x.abs() < VELOCITY_CAP);
+                assert!(v.y.abs() < VELOCITY_CAP);
+                assert!(v.z.abs() < VELOCITY_CAP);
             }
         }
+    }
+
+    #[test]
+    fn the_launch_points_away_from_the_impact_centre_within_the_jitter() {
+        let mut checked = 0;
+        for seed in 1..60 {
+            for throw in plan_debris(CENTER, 6.0, seed) {
+                let (dx, dz) = (
+                    f64::from(throw.from.x - CENTER.x),
+                    f64::from(throw.from.z - CENTER.z),
+                );
+                if dx == 0.0 && dz == 0.0 {
+                    continue;
+                }
+                let wanted = dz.atan2(dx);
+                let actual = throw.velocity.z.atan2(throw.velocity.x);
+                let mut gap = (actual - wanted).abs() % TAU;
+                if gap > std::f64::consts::PI {
+                    gap = TAU - gap;
+                }
+                assert!(gap <= DIRECTION_TOLERANCE, "gap {gap}");
+                checked += 1;
+            }
+        }
+        assert!(checked > 0);
+    }
+
+    #[test]
+    fn the_jitter_keeps_the_launch_in_the_outward_half_plane() {
+        const { assert!(DEBRIS_DIRECTION_JITTER < std::f64::consts::FRAC_PI_2) };
+    }
+
+    #[test]
+    fn the_speed_caps_stay_below_the_server_clamp() {
+        const { assert!(DEBRIS_HORIZONTAL_SPEED_MAX < VELOCITY_CAP) };
+        const { assert!(DEBRIS_VERTICAL_SPEED_MAX < VELOCITY_CAP) };
+        const { assert!(DEBRIS_HORIZONTAL_SPEED_MIN < DEBRIS_HORIZONTAL_SPEED_MAX) };
+        const { assert!(DEBRIS_VERTICAL_SPEED_MIN < DEBRIS_VERTICAL_SPEED_MAX) };
     }
 
     #[test]
     fn the_crater_grows_with_the_power() {
         assert!(crater_radius(6.0) > crater_radius(2.0));
         assert!(crater_radius(0.1) >= 1);
-    }
-
-    #[test]
-    fn a_landing_next_to_a_player_is_blocked() {
-        let cell = Cell { x: 5, y: 64, z: 5 };
-        let near = Vec3 {
-            x: 5.5,
-            y: 64.0,
-            z: 5.5,
-        };
-        let far = Vec3 {
-            x: 9.5,
-            y: 64.0,
-            z: 5.5,
-        };
-        assert!(blocked_by_player(cell, &[far, near]));
-        assert!(!blocked_by_player(cell, &[far]));
-        assert!(!blocked_by_player(cell, &[]));
-    }
-
-    #[test]
-    fn the_schedule_releases_each_item_after_its_delay_exactly_once() {
-        let mut schedule = Schedule::default();
-        schedule.push(1, CENTER, 'a');
-        schedule.push(3, Cell { x: 0, ..CENTER }, 'b');
-        assert_eq!(schedule.len(), 2);
-        assert_eq!(schedule.advance(), vec![(CENTER, 'a')]);
-        assert!(schedule.advance().is_empty());
-        assert_eq!(schedule.advance(), vec![(Cell { x: 0, ..CENTER }, 'b')]);
-        assert!(schedule.is_empty());
-        assert!(schedule.advance().is_empty());
     }
 }

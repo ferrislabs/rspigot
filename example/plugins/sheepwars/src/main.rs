@@ -4,7 +4,7 @@ use std::time::Duration;
 use rspigot_plugin::prelude::*;
 use sheepwars::arena::Arena;
 use sheepwars::domain::RoundRules;
-use sheepwars::game::{Game, Session, VoidVerdict, kind_of, load_settings};
+use sheepwars::game::{Game, Hit, Session, VoidVerdict, kind_of, load_settings};
 use sheepwars::hud::{Hud, bossbar_title};
 use tokio::task::JoinHandle;
 use tokio::time::MissedTickBehavior;
@@ -204,6 +204,21 @@ impl SheepWars {
 
     async fn on_entity_damage_by_entity(&self, event: &mut EntityDamageByEntity) {
         let Some(game) = self.game() else { return };
+        let hit = event
+            .player()
+            .map(|attacker| (game.catch(attacker, event.entity()), attacker.clone()));
+        match hit {
+            Some((Hit::Denied, _)) => {
+                event.cancel();
+                return;
+            }
+            Some((Hit::Caught { kind, at }, attacker)) => {
+                event.cancel();
+                tokio::spawn(async move { game.reward(&attacker, kind, at).await });
+                return;
+            }
+            Some((Hit::NotSheep, _)) | None => {}
+        }
         let victim = event.entity().player();
         if let (Some(attacker), Some(victim)) = (event.player(), victim)
             && game.blocks_hit(attacker, victim)

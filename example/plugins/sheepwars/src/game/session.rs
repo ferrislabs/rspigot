@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use thiserror::Error;
 
+use super::capture::Capture;
+use super::flight::Flight;
 use super::intent::Intent;
 use crate::arena::{Layout, Point};
 use crate::domain::{
@@ -214,6 +216,20 @@ impl Session {
         self.blocks_damage() || (shieldable && self.is_shielded(player))
     }
 
+    pub fn capture(&self, attacker: PlayerId, flight: &Flight) -> Capture {
+        let standing = self
+            .standing()
+            .iter()
+            .any(|(member, _)| *member == attacker);
+        if !self.is_playing() || !standing || flight.is_detonating() {
+            Capture::Denied
+        } else if flight.fragment {
+            Capture::Fragment
+        } else {
+            Capture::Taken { kind: flight.kind }
+        }
+    }
+
     pub fn blocks_hit(&self, attacker: PlayerId, victim: PlayerId) -> bool {
         if !self.is_playing() {
             return true;
@@ -352,6 +368,7 @@ mod tests {
     use super::*;
     use crate::arena::ArenaSettings;
     use crate::domain::RespawnRule;
+    use crate::game::flight::Stage;
 
     const A: PlayerId = PlayerId(1);
     const B: PlayerId = PlayerId(2);
@@ -680,6 +697,122 @@ mod tests {
     fn damage_is_blocked_outside_the_playing_phase() {
         assert!(session().blocks_damage());
         assert!(!started().blocks_damage());
+    }
+
+    fn live(kind: SheepKind) -> Flight {
+        Flight::new(kind, TeamId::Red, A)
+    }
+
+    fn eliminated() -> Session {
+        let mut session = started();
+        let victim = session
+            .standing()
+            .into_iter()
+            .map(|(player, _)| player)
+            .next()
+            .unwrap();
+        session.die(victim);
+        session.die(victim);
+        assert!(!session.standing().iter().any(|(p, _)| *p == victim));
+        session
+    }
+
+    fn standing_of(session: &Session, team: TeamId) -> PlayerId {
+        session
+            .standing()
+            .into_iter()
+            .find(|(_, member)| *member == team)
+            .unwrap()
+            .0
+    }
+
+    #[test]
+    fn a_standing_player_of_either_team_captures_and_gets_the_kind() {
+        let session = started();
+        let flight = live(SheepKind::Frozen);
+        for team in TeamId::ALL {
+            assert_eq!(
+                session.capture(standing_of(&session, team), &flight),
+                Capture::Taken {
+                    kind: SheepKind::Frozen
+                }
+            );
+        }
+    }
+
+    #[test]
+    fn the_thrower_can_capture_their_own_sheep() {
+        let session = started();
+        let thrower = standing_of(&session, TeamId::Red);
+        let flight = Flight::new(SheepKind::Healing, TeamId::Red, thrower);
+        assert!(matches!(
+            session.capture(thrower, &flight),
+            Capture::Taken { .. }
+        ));
+    }
+
+    #[test]
+    fn an_eliminated_player_cannot_capture() {
+        let session = eliminated();
+        let victim = [A, B]
+            .into_iter()
+            .find(|p| !session.standing().iter().any(|(s, _)| s == p))
+            .unwrap();
+        assert_eq!(
+            session.capture(victim, &live(SheepKind::Frozen)),
+            Capture::Denied
+        );
+    }
+
+    #[test]
+    fn a_spectator_or_outsider_cannot_capture() {
+        let mut session = started();
+        session.join(C);
+        assert_eq!(
+            session.capture(C, &live(SheepKind::Frozen)),
+            Capture::Denied
+        );
+        assert_eq!(
+            session.capture(PlayerId(99), &live(SheepKind::Frozen)),
+            Capture::Denied
+        );
+    }
+
+    #[test]
+    fn nobody_captures_outside_the_playing_phase() {
+        let session = session();
+        assert_eq!(
+            session.capture(A, &live(SheepKind::Frozen)),
+            Capture::Denied
+        );
+    }
+
+    #[test]
+    fn a_splitting_fragment_is_destroyed_without_wool() {
+        let session = started();
+        let child = Flight::fragment(SheepKind::Seeker, TeamId::Red, A);
+        assert_eq!(session.capture(A, &child), Capture::Fragment);
+    }
+
+    #[test]
+    fn a_landed_sheep_with_a_running_fuse_can_be_captured() {
+        let session = started();
+        let mut flight = live(SheepKind::Frozen);
+        flight.stage = Stage::Landed {
+            ticks: flight.fuse - 1,
+        };
+        assert!(matches!(session.capture(A, &flight), Capture::Taken { .. }));
+    }
+
+    #[test]
+    fn a_detonating_sheep_cannot_be_captured() {
+        let session = started();
+        let mut flight = live(SheepKind::Frozen);
+        flight.stage = Stage::Landed { ticks: flight.fuse };
+        assert_eq!(session.capture(A, &flight), Capture::Denied);
+        let mut boarding = live(SheepKind::Boarding);
+        boarding.stage = Stage::Landed { ticks: 0 };
+        assert_eq!(session.capture(A, &boarding), Capture::Denied);
     }
 
     #[test]
