@@ -11,7 +11,6 @@ use crate::domain::{SheepKind, TeamId};
 
 pub async fn apply(
     world: &World,
-    thrower: &Entity,
     actions: &[Action],
     team_of: impl Fn(&Entity) -> Option<TeamId>,
 ) -> Result<Vec<(SheepKind, Entity)>, Error> {
@@ -74,7 +73,6 @@ pub async fn apply(
                 entity.set_velocity(vector(velocity));
                 spawned.push((kind, entity));
             }
-            Action::TeleportThrower { to } => thrower.teleport(position(to)),
         }
     }
     Ok(spawned)
@@ -198,6 +196,7 @@ const fn sound(kind: SoundKind) -> Sound {
         SoundKind::Split => Sound::EntitySheepAmbient,
         SoundKind::Warp => Sound::EntityEnderDragonShoot,
         SoundKind::Intergalactic => Sound::EntityWitherSpawn,
+        SoundKind::Hiss => Sound::EntityCreeperPrimed,
     }
 }
 
