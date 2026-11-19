@@ -115,7 +115,7 @@ impl<L: ClientLink> Server<L> {
                 let margin = time.wrapping_sub(full_time).rem_euclid(DAY_TICKS);
                 self.change_day_time(full_time.wrapping_add(margin), Some(TimeSkipReason::Custom));
             }
-            WorldOrder::SetWeather(weather) => CommandContext::set_weather(self, weather),
+            WorldOrder::SetWeather(weather) => CommandContext::set_weather(self, weather, None),
             WorldOrder::SetDifficulty(difficulty) => {
                 CommandContext::set_difficulty(self, difficulty);
             }

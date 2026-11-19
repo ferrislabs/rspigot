@@ -115,7 +115,7 @@ pub trait CommandContext {
     fn seed(&self) -> i64;
     fn difficulty(&self) -> Difficulty;
     fn set_difficulty(&mut self, difficulty: Difficulty);
-    fn set_weather(&mut self, weather: Weather);
+    fn set_weather(&mut self, weather: Weather, duration: Option<i32>);
     fn set_world_spawn(&mut self, pos: BlockPos);
     fn save_all(&mut self, flush: bool) -> bool;
     fn request_reload(&mut self, _whitelist_only: bool) -> bool {
@@ -828,7 +828,7 @@ fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome
             "/kill [targets]",
             "/summon <entity> [pos] [nbt]",
             "/difficulty [level]",
-            "/weather <clear|rain|thunder>",
+            "/weather <clear|rain|thunder> [duration]",
             "/setworldspawn [x y z]",
         ]);
     }
@@ -2073,9 +2073,16 @@ fn weather<C: CommandContext>(ctx: &mut C, sender: CommandSender, args: &[&str])
         Some("clear") => (Weather::Clear, "commands.weather.set.clear"),
         Some("rain") => (Weather::Rain, "commands.weather.set.rain"),
         Some("thunder") => (Weather::Thunder, "commands.weather.set.thunder"),
-        _ => return usage(ctx, sender, "/weather <clear|rain|thunder>"),
+        _ => return usage(ctx, sender, "/weather <clear|rain|thunder> [duration]"),
     };
-    ctx.set_weather(weather);
+    let duration = match args.get(1) {
+        None => None,
+        Some(raw) => match parse_time(raw).filter(|ticks| *ticks >= 1) {
+            Some(ticks) => Some(i32::try_from(ticks).unwrap_or(i32::MAX)),
+            None => return usage(ctx, sender, "/weather <clear|rain|thunder> [duration]"),
+        },
+    };
+    ctx.set_weather(weather, duration);
     ctx.reply(sender, Component::translatable(key, Vec::new()));
     CommandOutcome::Success
 }
@@ -2319,7 +2326,7 @@ mod tests {
             Difficulty::Easy
         }
         fn set_difficulty(&mut self, _: Difficulty) {}
-        fn set_weather(&mut self, _: Weather) {}
+        fn set_weather(&mut self, _: Weather, _: Option<i32>) {}
         fn set_world_spawn(&mut self, _: BlockPos) {}
         fn save_all(&mut self, flush: bool) -> bool {
             self.flushed.push(flush);
