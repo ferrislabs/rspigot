@@ -61,6 +61,7 @@ pub enum SoundKind {
     Split,
     Warp,
     Intergalactic,
+    Hiss,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,9 +120,13 @@ pub enum Action {
         at: Vec3,
         velocity: Vec3,
     },
-    TeleportThrower {
-        to: Vec3,
-    },
+}
+
+pub fn plan_pulse(at: Vec3) -> Vec<Action> {
+    vec![
+        particle(ParticleKind::LargeSmoke, at, catalog::PULSE_PARTICLES),
+        sound(SoundKind::Hiss, at),
+    ]
 }
 
 pub fn plan(kind: SheepKind, at: Vec3, thrower_team: TeamId) -> Vec<Action> {
@@ -173,7 +178,6 @@ pub fn plan(kind: SheepKind, at: Vec3, thrower_team: TeamId) -> Vec<Action> {
             sound(SoundKind::Heal, at),
         ],
         SheepKind::Boarding => vec![
-            Action::TeleportThrower { to: at },
             particle(ParticleKind::Portal, at, 50),
             sound(SoundKind::Teleport, at),
         ],
@@ -463,11 +467,29 @@ mod tests {
     }
 
     #[test]
-    fn boarding_teleports_the_thrower_to_the_impact() {
+    fn boarding_only_shows_particles_and_a_sound() {
+        let actions = plan(SheepKind::Boarding, AT, TeamId::Red);
+        assert!(actions.iter().any(|a| matches!(a, Action::Particle { .. })));
+        assert!(actions.iter().any(|a| matches!(a, Action::Sound { .. })));
         assert!(
-            plan(SheepKind::Boarding, AT, TeamId::Red)
-                .contains(&Action::TeleportThrower { to: AT })
+            actions
+                .iter()
+                .all(|a| matches!(a, Action::Particle { .. } | Action::Sound { .. }))
         );
+    }
+
+    #[test]
+    fn a_pulse_is_a_particle_and_a_hiss() {
+        let actions = plan_pulse(AT);
+        assert_eq!(actions.len(), 2);
+        assert!(matches!(actions[0], Action::Particle { at, .. } if at == AT));
+        assert!(matches!(
+            actions[1],
+            Action::Sound {
+                kind: SoundKind::Hiss,
+                ..
+            }
+        ));
     }
 
     #[test]

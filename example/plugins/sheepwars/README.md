@@ -37,7 +37,9 @@ Read from the working directory at startup. Absent: `ArenaSettings::default()`. 
 | Delay before the reset after a win | `RESET_DELAY_TICKS` in `src/game/session.rs` |
 | Which sheep is given each time | `SHEEP_STRATEGY` in `src/game/session.rs` |
 | Min players when forcing a start | `FORCED_MIN_PLAYERS` in `src/game/session.rs` |
-| Concurrent flights, max flight time, landing grace, eye height | `src/game/flight.rs` |
+| Concurrent flights, max flight time, landing grace, eye height, rider offset | `src/game/flight.rs` |
+| Rider damage grace | `RIDER_GRACE_TICKS` in `src/game/session.rs` |
+| Fuses, pulse period, incendiary swell, seeker run | named `const`s in `src/sheep/catalog.rs` |
 | HUD and action bar refresh periods | `src/game/engine.rs` |
 | Throw power (default, Healing is shorter) | `DEFAULT_THROW_POWER` in `src/sheep/launch.rs`, `HEALING_THROW_POWER` in `src/sheep/catalog.rs` |
 | Sheep effects (radius, power, durations, seeker, meteors, warp push) | named `const`s in `src/sheep/catalog.rs` (all tunable guesses) |
@@ -46,27 +48,37 @@ Read from the working directory at startup. Absent: `ArenaSettings::default()`. 
 
 ## The sheep
 
-Source: blog post by Zephni, 7 Sept 2014 (https://zephnisurminecraft.blogspot.com/2014/09/presentation.html). It describes effects but gives no number (radius, duration, cooldown, frequency): every number is a guess in `src/sheep/catalog.rs`. "Moutons Blindés" is a kit, not a sheep.
+A thrown sheep is a small state machine (`Flight::step` in `src/game/flight.rs`, pure and unit tested, `Game` only executes its `Step`s). It flies until it is on the ground (after `LANDING_GRACE_TICKS`, or after `MAX_FLIGHT_TICKS`). Landing never detonates by itself: the sheep then waits for its fuse, in ticks, pulsing a smoke particle and a creeper hiss every `PULSE_INTERVAL_TICKS` (10). At the end of the fuse the plan of the kind runs and the sheep is removed.
 
-| Kind | Name | Wool | Plan | Constants |
-| --- | --- | --- | --- | --- |
-| `Lightning` | Invocateur de foudre | yellow | lightning bolt entity at the impact, thunder (untested on a real server) | none |
-| `Incendiary` | Mouton incendiaire | orange | large block-breaking explosion plus flame particles, no fire blocks | `INCENDIARY_POWER`, `INCENDIARY_BREAKS_BLOCKS` |
-| `Boarding` | Mouton d'abordage | purple | teleports the thrower to the impact | none |
-| `Healing` | Mouton soigneur | pink | regeneration on the thrower team near the impact, short throw | `HEALING_RADIUS`, `HEALING_REGENERATION_*`, `HEALING_THROW_POWER` |
-| `Seeker` | Mouton chercheur | green | homes on the nearest enemy in flight, explodes on landing | `SEEKER_POWER`, `SEEKER_SPEED`, `SEEKER_RANGE` |
-| `Splitting` | Mouton à fragmentation | gray | small explosion, then `SPLIT_COUNT` child sheep (kind `SPLIT_CHILD`) that land and explode | `SPLIT_*` |
-| `Darkness` | Mouton ténébreux | black | blindness on enemies nearby | `DARKNESS_*` |
-| `Frozen` | Mouton glacé | light blue | ice disc, slowness on enemies nearby | `FROZEN_*` |
-| `Quake` | Mouton tremblement de terre | brown | upward velocity on enemies nearby | `QUAKE_RADIUS`, `QUAKE_LIFT` |
-| `Warp` | Mouton à distorsion | magenta | pushes enemies away and up, small block-breaking explosion | `WARP_*` |
-| `Intergalactic` | Mouton intergalactique | blue | `INTERGALACTIC_METEORS` lethal explosions spread around the impact, a lightning bolt, a distinct sound; a chat message announces the throw | `INTERGALACTIC_*` |
+| Kind | Name | Wool | After landing | Fuse (ticks) | Plan at the end | Constants |
+| --- | --- | --- | --- | --- | --- | --- |
+| `Lightning` | Invocateur de foudre | yellow | waits and pulses | 40 | lightning bolt at the sheep, thunder (untested on a real server) | `DEFAULT_FUSE_TICKS` |
+| `Incendiary` | Mouton incendiaire | orange | swells: `Scale` attribute from 1.0 to 2.5, updated every 2 ticks | 60 | large block-breaking explosion plus flames | `INCENDIARY_POWER`, `INCENDIARY_BREAKS_BLOCKS`, `INCENDIARY_FUSE_TICKS`, `INCENDIARY_SCALE_START`, `INCENDIARY_SCALE_END`, `INCENDIARY_SCALE_INTERVAL_TICKS` |
+| `Boarding` | Mouton d'abordage | purple | no fuse: the rider is released the tick it lands | 0 | particles and a teleport sound only, no explosion | `BOARDING_RIDER_OFFSET`, `RIDER_GRACE_TICKS` |
+| `Healing` | Mouton soigneur | pink | waits and pulses | 40 | regeneration on the thrower team nearby | `HEALING_*` |
+| `Seeker` | Mouton chercheur | green | runs: every tick it finds the nearest enemy within `SEEKER_RANGE` and gets a horizontal velocity of `SEEKER_RUN_SPEED` toward it, with a hop of `SEEKER_HOP` while on the ground; with no enemy in range it stays still | max run 200 | explosion; detonates earlier within `SEEKER_CONTACT_RADIUS` (1.6) of an enemy. In flight it still homes at `SEEKER_SPEED` | `SEEKER_POWER`, `SEEKER_SPEED`, `SEEKER_RANGE`, `SEEKER_RUN_SPEED`, `SEEKER_HOP`, `SEEKER_CONTACT_RADIUS`, `SEEKER_RUN_TICKS` |
+| `Splitting` | Mouton à fragmentation | gray | waits and pulses | 40 | small explosion, then `SPLIT_COUNT` child seekers with a short fuse (max run 20) | `SPLIT_*`, `SPLIT_CHILD_FUSE_TICKS` |
+| `Darkness` | Mouton ténébreux | black | waits and pulses | 40 | blindness on enemies nearby | `DARKNESS_*` |
+| `Frozen` | Mouton glacé | light blue | waits and pulses | 40 | ice disc, slowness on enemies nearby | `FROZEN_*` |
+| `Quake` | Mouton tremblement de terre | brown | waits and pulses | 40 | upward velocity on enemies nearby | `QUAKE_RADIUS`, `QUAKE_LIFT` |
+| `Warp` | Mouton à distorsion | magenta | waits and pulses | 40 | pushes enemies away and up, small block-breaking explosion | `WARP_*` |
+| `Intergalactic` | Mouton intergalactique | blue | waits and pulses | 40 | `INTERGALACTIC_METEORS` lethal explosions around the sheep, a lightning bolt, a distinct sound; a chat message announces the throw | `INTERGALACTIC_*` |
 
-The plan of a landing is instantaneous: the meteors of the Intergalactic sheep land all at once, not delayed, and the sky does not darken. The launch announcement is `announces_launch(kind)` in the catalogue, broadcast by `launch_announcement` in `src/game/session.rs`.
+Every fuse is `fuse_ticks(kind)` in `src/sheep/catalog.rs` (default `DEFAULT_FUSE_TICKS` = 40). The plan itself is still instantaneous: the meteors of the Intergalactic sheep land all at once and the sky does not darken. The launch announcement is `announces_launch(kind)` in the catalogue, broadcast by `launch_announcement` in `src/game/session.rs`.
+
+Source: blog post by Zephni, 7 Sept 2014 (https://zephnisurminecraft.blogspot.com/2014/09/presentation.html). It gives no number: every number is a guess. "Moutons Blindés" is a kit, not a sheep.
+
+## Boarding: how the thrower rides
+
+The thrower is carried, not mounted. Each tick while the Boarding sheep flies, the plugin teleports the thrower to the sheep position plus `BOARDING_RIDER_OFFSET` (1.0 block up) through `Entity::teleport` (one extra player lookup per tick). Reason: the preferred mechanism, `/ride <name> mount <sheep>` through `player.command.perform`, is not usable. `PlayerOrder::PerformCommand` runs the command with the player's own rights (checked in `crates/rspigot-core/tests/plugin_player.rs`, `perform_command_runs_with_the_players_rights`) and `ride` needs permission level 2 (`crates/rspigot-core/src/commands/permission.rs`), so it fails for a non-operator player. The SDK has no passenger or mount order.
+
+When the sheep lands the rider is released where it stands and the sheep is removed, without an explosion. The thrower is shielded (`Session::shield`) at every carry tick and at the release: fall, suffocation, fly-into-wall and contact damage are cancelled for `RIDER_GRACE_TICKS` (20) ticks after the last shield, then the shield expires. Other damage is not affected.
 
 ## Still unconfirmed
 
-- The Seeker should explode on contact with an enemy: only homing plus explosion on landing is implemented.
+- The fuse of every sheep (40 ticks by default) is a guess, as are the incendiary swell (60 ticks, scale 1.0 to 2.5), the seeker run (speed 0.25, hop 0.3, contact 1.6, max 200 ticks) and the children fuse (20 ticks).
+- Boarding carries the thrower by teleport each tick, it is not a real mount (see above).
+- The thrower is not protected from explosions: explosions are not team filtered.
 - Healing: the post says "tout joueur à proximité", it only heals the thrower team here.
 - Splitting children use the Seeker kind (so they also home); the real fragment behaviour is unknown.
 - Warp: "quelques blocs" are broken by the small explosion, not moved.
