@@ -1,9 +1,32 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::domain::TeamId;
 
-const DEFAULT_WORLD_NAME: &str = "sheepwars";
+const FALLBACK_WORLD_NAME: &str = "sheepwars";
+const MAP_WORLD_NAME: &str = "sheepwars_steampunk";
+const MAP_NAME: &str = "steampunk";
+const MAP_SOURCE_DIR: &str = "../../server/maps/sheepwars/steampunk";
+const MAP_SERVER_DIR: &str = "../../server";
+const MAP_RED_SPAWN: BlockPoint = BlockPoint {
+    x: -95,
+    y: 132,
+    z: -8,
+};
+const MAP_BLUE_SPAWN: BlockPoint = BlockPoint {
+    x: -47,
+    y: 132,
+    z: 26,
+};
+const MAP_LOBBY: BlockPoint = BlockPoint {
+    x: -47,
+    y: 156,
+    z: 24,
+};
+const MAP_DISPENSER_OFFSET: f64 = 2.0;
+pub const MAP_VOID_FALL_Y: f64 = 0.0;
 const DEFAULT_PLATFORM_BLOCK: &str = "minecraft:quartz_block";
 const DEFAULT_PLATFORM_WIDTH: i32 = 25;
 const DEFAULT_PLATFORM_LENGTH: i32 = 70;
@@ -11,7 +34,7 @@ const DEFAULT_PLATFORM_THICKNESS: i32 = 3;
 const DEFAULT_TOP_Y: i32 = 64;
 const DEFAULT_SPAWN_INSET: i32 = 8;
 const DEFAULT_DISPENSER_OFFSET: i32 = 3;
-const DEFAULT_VOID_FALL_Y: f64 = 20.0;
+const FALLBACK_VOID_FALL_Y: f64 = 20.0;
 const BLOCK_CENTER: f64 = 0.5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,6 +52,10 @@ pub enum ArenaError {
     EmptyPlatform,
     #[error("{0:?} is not above the platform")]
     OffPlatform(Spot),
+    #[error("`{0}` is not a plain map folder name")]
+    InvalidMapName(String),
+    #[error("{0}")]
+    Install(#[from] super::install::InstallError),
     #[error("unknown block `{0}`")]
     UnknownBlock(String),
     #[error("could not create the arena world: {0}")]
@@ -85,17 +112,33 @@ impl Platform {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MapSettings {
+    pub name: String,
+    pub source_dir: PathBuf,
+    pub server_dir: PathBuf,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TeamSite {
     pub spawn: Point,
     pub dispenser: BlockPoint,
 }
 
+fn fallback_platform_value() -> Platform {
+    ArenaSettings::fallback_platform().platform
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ArenaSettings {
     pub world_name: String,
     pub lobby: Point,
     pub void_fall_y: f64,
+    #[serde(default)]
+    pub map: Option<MapSettings>,
+    #[serde(default = "fallback_platform_value")]
     pub platform: Platform,
     pub red: TeamSite,
     pub blue: TeamSite,
@@ -109,6 +152,9 @@ impl ArenaSettings {
     }
 
     fn validate(&self) -> Result<(), ArenaError> {
+        if let Some(map) = &self.map {
+            return map.validate();
+        }
         if self.platform.is_empty() {
             return Err(ArenaError::EmptyPlatform);
         }
@@ -142,6 +188,46 @@ impl ArenaSettings {
     }
 }
 
+impl MapSettings {
+    fn validate(&self) -> Result<(), ArenaError> {
+        let plain = !self.name.is_empty() && self.name != ".." && !self.name.contains(['/', '\\']);
+        if plain {
+            Ok(())
+        } else {
+            Err(ArenaError::InvalidMapName(self.name.clone()))
+        }
+    }
+}
+
+fn centre(block: BlockPoint) -> Point {
+    Point {
+        x: f64::from(block.x) + BLOCK_CENTER,
+        y: f64::from(block.y),
+        z: f64::from(block.z) + BLOCK_CENTER,
+    }
+}
+
+fn toward(from: BlockPoint, to: BlockPoint, distance: f64) -> BlockPoint {
+    let dx = f64::from(to.x - from.x);
+    let dz = f64::from(to.z - from.z);
+    let length = dx.hypot(dz);
+    if length == 0.0 {
+        return from;
+    }
+    BlockPoint {
+        x: from.x + (dx / length * distance).round() as i32,
+        y: from.y,
+        z: from.z + (dz / length * distance).round() as i32,
+    }
+}
+
+fn map_site(spawn: BlockPoint, other: BlockPoint) -> TeamSite {
+    TeamSite {
+        spawn: centre(spawn),
+        dispenser: toward(spawn, other, MAP_DISPENSER_OFFSET),
+    }
+}
+
 fn default_site(spawn_z: i32, dispenser_z: i32) -> TeamSite {
     TeamSite {
         spawn: Point {
@@ -157,8 +243,8 @@ fn default_site(spawn_z: i32, dispenser_z: i32) -> TeamSite {
     }
 }
 
-impl Default for ArenaSettings {
-    fn default() -> Self {
+impl ArenaSettings {
+    pub fn fallback_platform() -> Self {
         let platform = Platform {
             center: BlockPoint {
                 x: 0,
@@ -173,16 +259,35 @@ impl Default for ArenaSettings {
         let red_z = platform.min_z() + DEFAULT_SPAWN_INSET;
         let blue_z = platform.min_z() + platform.depth - 1 - DEFAULT_SPAWN_INSET;
         Self {
-            world_name: DEFAULT_WORLD_NAME.to_owned(),
+            world_name: FALLBACK_WORLD_NAME.to_owned(),
             lobby: Point {
                 x: BLOCK_CENTER,
                 y: f64::from(DEFAULT_TOP_Y + 1),
                 z: BLOCK_CENTER,
             },
-            void_fall_y: DEFAULT_VOID_FALL_Y,
+            void_fall_y: FALLBACK_VOID_FALL_Y,
+            map: None,
             platform,
             red: default_site(red_z, red_z + DEFAULT_DISPENSER_OFFSET),
             blue: default_site(blue_z, blue_z - DEFAULT_DISPENSER_OFFSET),
+        }
+    }
+}
+
+impl Default for ArenaSettings {
+    fn default() -> Self {
+        Self {
+            map: Some(MapSettings {
+                name: MAP_NAME.to_owned(),
+                source_dir: PathBuf::from(MAP_SOURCE_DIR),
+                server_dir: PathBuf::from(MAP_SERVER_DIR),
+            }),
+            world_name: MAP_WORLD_NAME.to_owned(),
+            lobby: centre(MAP_LOBBY),
+            void_fall_y: MAP_VOID_FALL_Y,
+            red: map_site(MAP_RED_SPAWN, MAP_BLUE_SPAWN),
+            blue: map_site(MAP_BLUE_SPAWN, MAP_RED_SPAWN),
+            ..Self::fallback_platform()
         }
     }
 }
@@ -191,6 +296,77 @@ impl Default for ArenaSettings {
 mod tests {
     use super::*;
 
+    #[test]
+    fn default_settings_are_the_steampunk_map_with_the_owner_spawns() {
+        let settings = ArenaSettings::default();
+        let map = settings.map.as_ref().expect("map");
+        assert_eq!(map.name, "steampunk");
+        assert_eq!(
+            map.source_dir,
+            PathBuf::from("../../server/maps/sheepwars/steampunk")
+        );
+        assert_eq!(map.server_dir, PathBuf::from("../../server"));
+        assert_eq!(settings.world_name, "sheepwars_steampunk");
+        let point = |x, y, z| Point { x, y, z };
+        assert_eq!(settings.red.spawn, point(-94.5, 132.0, -7.5));
+        assert_eq!(settings.blue.spawn, point(-46.5, 132.0, 26.5));
+        assert_eq!(settings.lobby, point(-46.5, 156.0, 24.5));
+        assert_eq!(settings.void_fall_y, MAP_VOID_FALL_Y);
+        assert_eq!(settings.void_fall_y, 0.0);
+    }
+
+    #[test]
+    fn default_dispensers_sit_two_blocks_toward_the_other_spawn() {
+        let settings = ArenaSettings::default();
+        let block = |x, y, z| BlockPoint { x, y, z };
+        assert_eq!(settings.red.dispenser, block(-93, 132, -7));
+        assert_eq!(settings.blue.dispenser, block(-49, 132, 25));
+    }
+
+    #[test]
+    fn default_map_settings_round_trip_through_json() {
+        let settings = ArenaSettings::default();
+        let json = serde_json::to_string(&settings).expect("serialize");
+        assert_eq!(ArenaSettings::from_json(&json).expect("parse"), settings);
+    }
+
+    #[test]
+    fn a_map_arena_skips_the_platform_validation() {
+        let mut settings = ArenaSettings::default();
+        settings.platform.width = 0;
+        settings.red.spawn.x = 9999.5;
+        let json = serde_json::to_string(&settings).expect("serialize");
+        assert!(ArenaSettings::from_json(&json).is_ok());
+    }
+
+    #[test]
+    fn a_map_name_must_be_a_plain_folder_name() {
+        for name in ["", "a/b", "..", "a\\b"] {
+            let mut settings = ArenaSettings::default();
+            settings.map.as_mut().expect("map").name = name.to_owned();
+            assert!(matches!(rejected(&settings), ArenaError::InvalidMapName(_)));
+        }
+    }
+
+    #[test]
+    fn a_json_without_map_is_the_fallback_platform() {
+        let mut settings = ArenaSettings::fallback_platform();
+        settings.map = None;
+        let mut value = serde_json::to_value(&settings).expect("value");
+        value.as_object_mut().expect("object").remove("map");
+        let parsed = ArenaSettings::from_json(&value.to_string()).expect("parse");
+        assert!(parsed.map.is_none());
+        assert_eq!(parsed, ArenaSettings::fallback_platform());
+    }
+
+    #[test]
+    fn the_fallback_platform_has_no_map_and_its_own_world() {
+        let settings = ArenaSettings::fallback_platform();
+        assert!(settings.map.is_none());
+        assert_eq!(settings.world_name, "sheepwars");
+        assert_eq!(settings.void_fall_y, 20.0);
+    }
+
     fn rejected(settings: &ArenaSettings) -> ArenaError {
         let json = serde_json::to_string(settings).expect("serialize");
         ArenaSettings::from_json(&json).expect_err("must be rejected")
@@ -198,7 +374,7 @@ mod tests {
 
     #[test]
     fn default_settings_round_trip_through_json() {
-        let settings = ArenaSettings::default();
+        let settings = ArenaSettings::fallback_platform();
         let json = serde_json::to_string(&settings).expect("serialize");
         assert_eq!(ArenaSettings::from_json(&json).expect("parse"), settings);
     }
@@ -237,7 +413,7 @@ mod tests {
     #[test]
     fn empty_platform_is_rejected() {
         for field in 0..3 {
-            let mut settings = ArenaSettings::default();
+            let mut settings = ArenaSettings::fallback_platform();
             match field {
                 0 => settings.platform.width = 0,
                 1 => settings.platform.depth = 0,
@@ -249,7 +425,7 @@ mod tests {
 
     #[test]
     fn a_spawn_off_the_platform_is_rejected() {
-        let mut settings = ArenaSettings::default();
+        let mut settings = ArenaSettings::fallback_platform();
         settings.blue.spawn.x = 500.5;
         assert!(matches!(
             rejected(&settings),
@@ -259,7 +435,7 @@ mod tests {
 
     #[test]
     fn a_spawn_below_the_platform_top_is_rejected() {
-        let mut settings = ArenaSettings::default();
+        let mut settings = ArenaSettings::fallback_platform();
         settings.red.spawn.y = 10.0;
         assert!(matches!(
             rejected(&settings),
@@ -269,7 +445,7 @@ mod tests {
 
     #[test]
     fn a_dispenser_off_the_platform_is_rejected() {
-        let mut settings = ArenaSettings::default();
+        let mut settings = ArenaSettings::fallback_platform();
         settings.red.dispenser.z = -500;
         assert!(matches!(
             rejected(&settings),
@@ -279,7 +455,7 @@ mod tests {
 
     #[test]
     fn a_lobby_off_the_platform_is_rejected() {
-        let mut settings = ArenaSettings::default();
+        let mut settings = ArenaSettings::fallback_platform();
         settings.lobby.z = 500.5;
         assert!(matches!(
             rejected(&settings),
@@ -289,7 +465,7 @@ mod tests {
 
     #[test]
     fn the_platform_edges_are_inside() {
-        let mut settings = ArenaSettings::default();
+        let mut settings = ArenaSettings::fallback_platform();
         settings.red.spawn.x = f64::from(settings.platform.min_x()) + 0.5;
         settings.red.spawn.z = f64::from(settings.platform.min_z()) + 0.5;
         let json = serde_json::to_string(&settings).expect("serialize");
