@@ -1421,11 +1421,12 @@ pub(crate) struct NatureStep {
     pub(crate) drops: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) struct GrowStep {
     pub(crate) pos: BlockPos,
     pub(crate) state: BlockStateId,
     pub(crate) fertilizer: Option<PlayerId>,
+    pub(crate) companions: Vec<(BlockPos, BlockStateId)>,
 }
 
 #[derive(Debug)]
