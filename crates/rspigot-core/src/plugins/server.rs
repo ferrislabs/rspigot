@@ -715,7 +715,9 @@ impl<L: ClientLink> Server<L> {
                 Vec::new()
             }
             Continuation::Respawn(step) => {
-                self.finish_respawn(step, patch_of!(patch, PlayerRespawn));
+                let player = step.player;
+                let patch = patch_of!(patch, PlayerRespawn);
+                self.in_player_dimension(player, |server| server.finish_respawn(step, patch));
                 Vec::new()
             }
             Continuation::Death(step) => {
