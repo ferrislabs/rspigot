@@ -28,11 +28,7 @@ impl Layout {
     }
 
     pub fn blocks(&self) -> Vec<PlacedBlock> {
-        TeamId::ALL
-            .into_iter()
-            .flat_map(|team| platform_blocks(&self.settings.site(team).platform))
-            .chain(platform_blocks(&self.settings.lobby_platform))
-            .collect()
+        platform_blocks(&self.settings.platform)
     }
 
     pub fn blocks_in_chunk(&self, chunk_x: i32, chunk_z: i32) -> Vec<PlacedBlock> {
@@ -71,9 +67,9 @@ fn chunk_of(block: &PlacedBlock) -> (i32, i32) {
 }
 
 fn platform_blocks(platform: &Platform) -> Vec<PlacedBlock> {
-    let min_x = platform.center.x - platform.width / 2;
-    let min_z = platform.center.z - platform.depth / 2;
-    let min_y = platform.center.y - platform.thickness + 1;
+    let min_x = platform.min_x();
+    let min_z = platform.min_z();
+    let min_y = platform.min_y();
     let mut blocks = Vec::new();
     for y in min_y..=platform.center.y {
         for x in min_x..min_x + platform.width {
@@ -98,7 +94,7 @@ mod tests {
         Layout::new(ArenaSettings::default())
     }
 
-    fn solid_below(layout: &Layout, point: Point) -> bool {
+    fn standing(layout: &Layout, point: Point) -> bool {
         let x = point.x.floor() as i32;
         let y = point.y.floor() as i32 - 1;
         let z = point.z.floor() as i32;
@@ -108,36 +104,44 @@ mod tests {
             .any(|placed| (placed.x, placed.y, placed.z) == (x, y, z))
     }
 
-    #[test]
-    fn block_count_matches_both_platforms_and_the_lobby() {
-        let layout = layout();
-        let volume =
-            |platform: &Platform| (platform.width * platform.depth * platform.thickness) as usize;
-        let settings = layout.settings();
-        let expected = volume(&settings.red.platform)
-            + volume(&settings.blue.platform)
-            + volume(&settings.lobby_platform);
-        assert_eq!(layout.blocks().len(), expected);
+    fn key(block: &PlacedBlock) -> (i32, i32, i32) {
+        (block.x, block.y, block.z)
     }
 
     #[test]
-    fn the_lobby_stands_on_its_platform() {
+    fn there_is_one_platform_and_nothing_else() {
         let layout = layout();
-        assert!(solid_below(&layout, layout.lobby()));
+        let platform = &layout.settings().platform;
+        let volume = (platform.width * platform.depth * platform.thickness) as usize;
+        assert_eq!(layout.blocks().len(), volume);
+        assert!(layout.blocks().iter().all(|b| b.block == platform.block));
+    }
+
+    #[test]
+    fn blocks_have_no_duplicate() {
+        let blocks = layout().blocks();
+        let unique: BTreeSet<_> = blocks.iter().map(key).collect();
+        assert_eq!(unique.len(), blocks.len());
+    }
+
+    #[test]
+    fn the_lobby_stands_on_the_platform() {
+        let layout = layout();
+        assert!(standing(&layout, layout.lobby()));
+    }
+
+    #[test]
+    fn spawns_stand_on_the_platform() {
+        let layout = layout();
+        for team in TeamId::ALL {
+            assert!(standing(&layout, layout.spawn_of(team)));
+        }
     }
 
     #[test]
     fn spawns_are_distinct() {
         let layout = layout();
         assert_ne!(layout.spawn_of(TeamId::Red), layout.spawn_of(TeamId::Blue));
-    }
-
-    #[test]
-    fn spawns_stand_on_their_own_platform() {
-        let layout = layout();
-        for team in TeamId::ALL {
-            assert!(solid_below(&layout, layout.spawn_of(team)));
-        }
     }
 
     #[test]
@@ -151,17 +155,26 @@ mod tests {
     }
 
     #[test]
-    fn dispensers_are_symmetric_and_distinct() {
+    fn red_is_on_the_negative_end_and_blue_on_the_positive_end() {
+        let layout = layout();
+        assert!(layout.spawn_of(TeamId::Red).z < layout.lobby().z);
+        assert!(layout.spawn_of(TeamId::Blue).z > layout.lobby().z);
+    }
+
+    #[test]
+    fn dispensers_are_symmetric_distinct_and_in_front_of_their_spawn() {
         let layout = layout();
         let red = layout.dispenser_of(TeamId::Red);
         let blue = layout.dispenser_of(TeamId::Blue);
         assert_ne!(red, blue);
         assert_eq!((red.x, red.y), (blue.x, blue.y));
         assert_eq!(red.z, -1 - blue.z);
+        assert!(f64::from(red.z) > layout.spawn_of(TeamId::Red).z);
+        assert!(f64::from(blue.z) < layout.spawn_of(TeamId::Blue).z);
     }
 
     #[test]
-    fn dispensers_sit_on_their_platform() {
+    fn dispensers_sit_on_the_platform() {
         let layout = layout();
         for team in TeamId::ALL {
             let dispenser = layout.dispenser_of(team);
@@ -170,7 +183,7 @@ mod tests {
                 y: f64::from(dispenser.y),
                 z: f64::from(dispenser.z),
             };
-            assert!(solid_below(&layout, point));
+            assert!(standing(&layout, point));
         }
     }
 
@@ -191,16 +204,12 @@ mod tests {
 
     fn custom_layout() -> Layout {
         let mut settings = ArenaSettings::default();
-        settings.lobby_platform.center = BlockPoint {
+        settings.platform.center = BlockPoint {
             x: -20,
             y: 64,
             z: -1,
         };
         Layout::new(settings)
-    }
-
-    fn key(block: &PlacedBlock) -> (i32, i32, i32) {
-        (block.x, block.y, block.z)
     }
 
     #[test]
