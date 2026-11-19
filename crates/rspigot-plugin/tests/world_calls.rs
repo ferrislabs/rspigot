@@ -575,6 +575,7 @@ async fn spawn_waits_for_the_entity_or_its_refusal() {
         question::Question::Spawn(v1::Spawn {
             kind: "minecraft:zombie".to_owned(),
             position: Some(vec3(4.5, 64.0, -2.5)),
+            ..v1::Spawn::default()
         })
     };
     let drop = || {
@@ -598,6 +599,53 @@ async fn spawn_waits_for_the_entity_or_its_refusal() {
     ] {
         let (request, asked) = session.asked().await;
         assert_eq!(asked, expected);
+        session.say(answer(request, body));
+    }
+    called.finished().await;
+}
+
+#[tokio::test]
+async fn spawn_falling_block_sends_its_block_and_velocity() {
+    let mut called = calling(|player| {
+        Box::pin(async move {
+            let launch = Vector {
+                x: 1.0,
+                y: 0.5,
+                z: 0.0,
+            };
+            let block = player
+                .world
+                .spawn_falling_block(BlockType::Stone, HERE, launch)
+                .await
+                .unwrap();
+            assert_eq!(block.kind, EntityType::Zombie);
+            let refused = player
+                .world
+                .spawn_falling_block(BlockType::Stone, HERE, launch)
+                .await;
+            assert!(
+                matches!(&refused, Err(Error::Rejected(reason)) if reason == "stone cannot fall"),
+                "{refused:?}"
+            );
+        })
+    })
+    .await;
+
+    let session = &mut called.session;
+    let expected = || {
+        question::Question::Spawn(v1::Spawn {
+            kind: "minecraft:falling_block".to_owned(),
+            position: Some(vec3(4.5, 64.0, -2.5)),
+            block: Some("minecraft:stone".to_owned()),
+            velocity: Some(vec3(1.0, 0.5, 0.0)),
+        })
+    };
+    for body in [
+        answer::Body::Spawned(zombie("minecraft:zombie")),
+        refused("stone cannot fall"),
+    ] {
+        let (request, asked) = session.asked().await;
+        assert_eq!(asked, expected());
         session.say(answer(request, body));
     }
     called.finished().await;

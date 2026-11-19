@@ -10256,6 +10256,10 @@ pub struct Spawn {
     pub kind: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
     pub position: ::core::option::Option<Vec3>,
+    #[prost(string, optional, tag = "3")]
+    pub block: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "4")]
+    pub velocity: ::core::option::Option<Vec3>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
