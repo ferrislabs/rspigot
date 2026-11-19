@@ -25,6 +25,10 @@ A SheepWars mini-game plugin for rspigot: two teams (red and blue) fight on two 
 
 Read from the working directory at startup. Absent: `ArenaSettings::default()`. Invalid: the error is logged and the default is used. Fields: `world_name`, `lobby`, `void_fall_y`, and `red` / `blue` each with `platform` (`center`, `width`, `depth`, `thickness`, `block`), `spawn` and `dispenser`. See `src/arena/settings.rs`.
 
+## Arena building
+
+`Arena::create` only creates the world and computes the layout. The platform blocks are placed when chunks load: the `ChunkLoad` listener calls `Arena::place_chunk` for the chunks of the arena world, which places `Layout::blocks_in_chunk`. A chunk that unloads and loads again is rebuilt. The first player to join may therefore see the platform appear a tick late.
+
 ## Numbers you can tune
 
 | What | Where |
@@ -82,7 +86,7 @@ The plan of a landing is instantaneous: the meteors of the Intergalactic sheep l
 ## Layout
 
 - `src/domain`: rules and state of a round, no SDK.
-- `src/arena`: arena settings, layout and world building.
+- `src/arena`: arena settings, layout (blocks per chunk) and world creation with per-chunk placement.
 - `src/sheep`: sheep catalogue, impact plans and their application.
 - `src/hud`: sidebar, boss bar and messages.
 - `src/game`: `Session` (pure reducer from player actions to `Intent`s, unit tested) and `Game` (executes intents through the SDK, runs flights and the HUD).

@@ -2,15 +2,15 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use rspigot_plugin::{
-    BossBar, Entity, EntityState, EntityType, GameMode, ItemRemoval, ItemStack, Location, Player,
-    Position, Rotation, Title, Uuid, Vector, World,
+    BossBar, ChunkLoad, Entity, EntityState, EntityType, GameMode, ItemRemoval, ItemStack,
+    Location, Player, Position, Rotation, Title, Uuid, Vector,
 };
 
 use super::display::lives_line;
 use super::flight::{EYE_HEIGHT, Flight, MAX_CONCURRENT_FLIGHTS, can_launch};
 use super::intent::Intent;
 use super::session::{ForceStartError, Session, VoidVerdict, launch_announcement};
-use crate::arena::Point;
+use crate::arena::{Arena, Point};
 use crate::domain::{PlayerId, SheepKind, TeamId};
 use crate::hud::{Hud, bossbar_progress, bossbar_title};
 use crate::sheep::{
@@ -41,14 +41,14 @@ struct State {
 }
 
 pub struct Game {
-    world: World,
+    arena: Arena,
     state: Mutex<State>,
 }
 
 impl Game {
-    pub fn new(world: World, session: Session, hud: Hud, bar: BossBar) -> Self {
+    pub fn new(arena: Arena, session: Session, hud: Hud, bar: BossBar) -> Self {
         Self {
-            world,
+            arena,
             state: Mutex::new(State {
                 session,
                 players: HashMap::new(),
@@ -69,6 +69,22 @@ impl Game {
             state.session.join(id)
         };
         self.run(intents).await;
+    }
+
+    pub fn on_chunk_load(&self, event: &ChunkLoad) {
+        if event.world().id() != self.arena.world.id() {
+            return;
+        }
+        let chunk = event.chunk();
+        match self.arena.place_chunk(chunk.x, chunk.z) {
+            Ok(0) => {}
+            Ok(placed) => {
+                tracing::debug!("placed {placed} blocks in chunk ({}, {})", chunk.x, chunk.z)
+            }
+            Err(error) => {
+                tracing::warn!("could not place chunk ({}, {}): {error}", chunk.x, chunk.z)
+            }
+        }
     }
 
     pub async fn release(&self, player: &Player) {
@@ -155,7 +171,7 @@ impl Game {
             y: player.position.y + EYE_HEIGHT,
             z: player.position.z,
         };
-        let sheep = match self.world.spawn(EntityType::Sheep, eye).await {
+        let sheep = match self.arena.world.spawn(EntityType::Sheep, eye).await {
             Ok(sheep) => sheep,
             Err(error) => {
                 tracing::warn!("could not spawn a sheep for {}: {error}", player.name);
@@ -211,7 +227,7 @@ impl Game {
 
     fn location(&self, point: Point) -> Location {
         Location {
-            world: self.world.id().to_owned(),
+            world: self.arena.world.id().to_owned(),
             position: Position {
                 x: point.x,
                 y: point.y,
@@ -406,7 +422,14 @@ impl Game {
             None
         };
         let thrower_entity = thrower_entity.as_ref().unwrap_or(&airborne.entity);
-        match apply(&self.world, thrower_entity, &actions, team_lookup(teams)).await {
+        match apply(
+            &self.arena.world,
+            thrower_entity,
+            &actions,
+            team_lookup(teams),
+        )
+        .await
+        {
             Ok(spawned) => spawned
                 .into_iter()
                 .map(|(kind, entity)| Airborne {
@@ -429,7 +452,7 @@ impl Game {
     ) {
         let from = vec3(sheep.entity.position);
         match nearest_enemy(
-            &self.world,
+            &self.arena.world,
             from,
             SEEKER_RANGE,
             airborne.flight.team,
@@ -449,6 +472,7 @@ impl Game {
 
     async fn thrower_entity(&self, thrower: PlayerId) -> Option<Entity> {
         let players = self
+            .arena
             .world
             .entities
             .of(EntityType::Player)
