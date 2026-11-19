@@ -4,8 +4,9 @@ use std::time::Duration;
 use rspigot_plugin::prelude::*;
 use sheepwars::arena::Arena;
 use sheepwars::domain::RoundRules;
-use sheepwars::game::{Game, Hit, Session, VoidVerdict, kind_of, load_settings};
+use sheepwars::game::{Death, Game, Hit, Session, VoidVerdict, kind_of, load_settings};
 use sheepwars::hud::{Hud, bossbar_title};
+use sheepwars::sheep::{display_name, sheep_wool};
 use tokio::task::JoinHandle;
 use tokio::time::MissedTickBehavior;
 
@@ -206,24 +207,39 @@ impl SheepWars {
         let Some(game) = self.game() else { return };
         let hit = event
             .player()
-            .map(|attacker| (game.catch(attacker, event.entity()), attacker.clone()));
+            .map(|attacker| game.strike(attacker, event.entity()));
         match hit {
-            Some((Hit::Denied, _)) => {
+            Some(Hit::Denied) => {
                 event.cancel();
                 return;
             }
-            Some((Hit::Caught { kind, at }, attacker)) => {
-                event.cancel();
-                tokio::spawn(async move { game.reward(&attacker, kind, at).await });
-                return;
-            }
-            Some((Hit::NotSheep, _)) | None => {}
+            Some(Hit::Struck) => return,
+            Some(Hit::NotSheep) | None => {}
         }
         let victim = event.entity().player();
         if let (Some(attacker), Some(victim)) = (event.player(), victim)
             && game.blocks_hit(attacker, victim)
         {
             event.cancel();
+        }
+    }
+
+    async fn on_entity_death(&self, event: &mut EntityDeath) {
+        let Some(game) = self.game() else { return };
+        if event.entity_type() != EntityType::Sheep {
+            return;
+        }
+        let Death::Slain { kind, cue, at } = game.slain(event.entity()) else {
+            return;
+        };
+        let drops = kind
+            .map(|kind| ItemStack::new(sheep_wool(kind), 1).name(display_name(kind)))
+            .into_iter()
+            .collect();
+        event.set_drops(drops);
+        event.set_dropped_exp(0);
+        if cue {
+            game.play_capture(at);
         }
     }
 
