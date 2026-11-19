@@ -69,6 +69,14 @@ pub struct BlockEntity {
     pub data: Compound,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SavedTick {
+    pub id: Identifier,
+    pub pos: BlockPos,
+    pub priority: i32,
+    pub delay: i32,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChunkColumn {
     pos: ChunkPos,
@@ -77,6 +85,8 @@ pub struct ChunkColumn {
     pub heightmaps: Heightmaps,
     pub light: ChunkLight,
     pub block_entities: Vec<BlockEntity>,
+    pub block_ticks: Vec<SavedTick>,
+    pub fluid_ticks: Vec<SavedTick>,
     pub status: ChunkStatus,
     pub inhabited_time: i64,
     pub extra: Compound,
@@ -94,6 +104,8 @@ impl ChunkColumn {
             heightmaps: Heightmaps::default(),
             light: ChunkLight::new(count),
             block_entities: Vec::new(),
+            block_ticks: Vec::new(),
+            fluid_ticks: Vec::new(),
             status: ChunkStatus::Full,
             inhabited_time: 0,
             extra: Compound::new(),
@@ -118,6 +130,8 @@ impl ChunkColumn {
             heightmaps: Heightmaps::default(),
             light: ChunkLight::new(count),
             block_entities: Vec::new(),
+            block_ticks: Vec::new(),
+            fluid_ticks: Vec::new(),
             status: ChunkStatus::Full,
             inhabited_time: 0,
             extra: Compound::new(),
@@ -244,6 +258,13 @@ mod tests {
         assert_eq!(column.sections()[0].non_air_count(), 1);
         assert!(column.is_dirty());
         assert_eq!(column.revision(), 1);
+    }
+
+    #[test]
+    fn a_new_column_has_no_saved_ticks() {
+        let column = ChunkColumn::empty(ChunkPos::new(0, 0), overworld(), BiomeId(0));
+        assert!(column.block_ticks.is_empty());
+        assert!(column.fluid_ticks.is_empty());
     }
 
     #[test]

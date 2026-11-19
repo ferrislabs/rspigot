@@ -678,6 +678,7 @@ impl<L: ClientLink> Server<L> {
             }
         }
         for (pos, new_chunk) in events.loaded {
+            self.restore_scheduled_ticks(pos);
             self.chunk_loaded(pos, new_chunk);
         }
         for (pos, entities) in events.entity_loads {
@@ -689,6 +690,7 @@ impl<L: ClientLink> Server<L> {
         }
         if events.autosaved && self.saving_enabled {
             self.world_saving();
+            self.store_scheduled_ticks();
             let decisions = &self.decisions;
             self.world.chunks.save_dirty_except(&self.workers, |pos| {
                 decisions.in_flight(Lane::Chunk(pos), |then| {

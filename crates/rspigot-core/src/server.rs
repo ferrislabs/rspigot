@@ -1398,6 +1398,7 @@ impl<L: ClientLink> Server<L> {
         self.save_forced_chunks();
         self.save_world_border();
         self.save_dragon_fight();
+        self.store_scheduled_ticks();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
         let keys: Vec<crate::world_state::DimensionKey> = self.dormant.keys().cloned().collect();
@@ -1408,6 +1409,7 @@ impl<L: ClientLink> Server<L> {
             self.swap_world(&mut state);
             self.save_all_entities();
             self.save_world_data();
+            self.store_scheduled_ticks();
             self.world.chunks.save_dirty(&self.workers);
             self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);
             self.swap_world(&mut state);

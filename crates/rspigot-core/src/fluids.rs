@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use rand::Rng;
 use rspigot_blocks::{BlockKind, Face, StateFlags};
-use rspigot_domain::{BlockPos, BlockStateId, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, Vec3};
 use rspigot_entities::SoundSource;
 use rustc_hash::FxHashSet;
 
@@ -37,6 +37,51 @@ const NEVER_HOLDS: [&str; 7] = [
 pub struct ScheduledFluids {
     due: BTreeMap<u64, Vec<BlockPos>>,
     pending: FxHashSet<BlockPos>,
+}
+
+impl ScheduledFluids {
+    pub(crate) fn entries(&self) -> impl Iterator<Item = (u64, BlockPos)> + '_ {
+        self.due
+            .iter()
+            .flat_map(|(&due, positions)| positions.iter().map(move |&pos| (due, pos)))
+    }
+
+    pub(crate) fn remove_chunk(&mut self, chunk: ChunkPos) {
+        let pending = &mut self.pending;
+        self.due.retain(|_, positions| {
+            positions.retain(|pos| {
+                let keep = pos.chunk() != chunk;
+                if !keep {
+                    pending.remove(pos);
+                }
+                keep
+            });
+            !positions.is_empty()
+        });
+    }
+
+    pub(crate) fn restore(&mut self, due: u64, pos: BlockPos) {
+        if self.pending.insert(pos) {
+            self.due.entry(due).or_default().push(pos);
+        }
+    }
+}
+
+pub(crate) fn saved_fluid_id(state: BlockStateId) -> Option<&'static str> {
+    let flow = Flow::of(state)?;
+    Some(match (flow.liquid, flow.is_source()) {
+        (Liquid::Water, true) => "minecraft:water",
+        (Liquid::Water, false) => "minecraft:flowing_water",
+        (Liquid::Lava, true) => "minecraft:lava",
+        (Liquid::Lava, false) => "minecraft:flowing_lava",
+    })
+}
+
+pub(crate) fn is_fluid_id(id: &str) -> bool {
+    matches!(
+        id,
+        "minecraft:water" | "minecraft:flowing_water" | "minecraft:lava" | "minecraft:flowing_lava"
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

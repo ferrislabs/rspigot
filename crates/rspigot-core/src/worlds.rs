@@ -200,6 +200,7 @@ impl<L: ClientLink> Server<L> {
             self.swap_world(&mut state);
             self.save_all_entities();
             self.save_world_data();
+            self.store_scheduled_ticks();
             self.world.chunks.save_dirty(&self.workers);
             self.workers.submit(
                 crate::chunks::Priority::BACKGROUND,

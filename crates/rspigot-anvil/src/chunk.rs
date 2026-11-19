@@ -4,7 +4,7 @@ use rspigot_blocks::BlockKind;
 use rspigot_data::registries::{biome_id, biome_name};
 use rspigot_domain::chunk::{
     Biomes, BlockEntity, Blocks, ChunkColumn, ChunkLight, ChunkSection, ChunkStatus, Heightmap,
-    HeightmapKind, LightArray, PaletteStrategy, PalettedContainer,
+    HeightmapKind, LightArray, PaletteStrategy, PalettedContainer, SavedTick,
 };
 use rspigot_domain::world::WorldHeight;
 use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Identifier};
@@ -18,7 +18,7 @@ const LIGHT_BYTES: usize = 2048;
 const AIR_NAME: &str = "minecraft:air";
 const DEFAULT_BIOME: &str = "minecraft:plains";
 
-const MODELLED: [&str; 10] = [
+const MODELLED: [&str; 12] = [
     "DataVersion",
     "xPos",
     "yPos",
@@ -27,6 +27,8 @@ const MODELLED: [&str; 10] = [
     "InhabitedTime",
     "sections",
     "block_entities",
+    "block_ticks",
+    "fluid_ticks",
     "Heightmaps",
     "isLightOn",
 ];
@@ -37,8 +39,8 @@ const BEFORE_SECTIONS: [&str; 4] = [
     "below_zero_retrogen",
     "UpgradeData",
 ];
-const AFTER_BLOCK_ENTITIES: [&str; 4] =
-    ["entities", "block_ticks", "fluid_ticks", "PostProcessing"];
+const BEFORE_TICKS: [&str; 1] = ["entities"];
+const AFTER_TICKS: [&str; 1] = ["PostProcessing"];
 const AFTER_HEIGHTMAPS: [&str; 2] = ["structures", "ChunkBukkitValues"];
 
 static WARNED_OLD_VERSION: AtomicBool = AtomicBool::new(false);
@@ -144,6 +146,8 @@ pub fn from_nbt(
         Some(Tag::List(items)) => items.into_iter().filter_map(decode_block_entity).collect(),
         _ => Vec::new(),
     };
+    let block_ticks = decode_ticks(root.remove("block_ticks"));
+    let fluid_ticks = decode_ticks(root.remove("fluid_ticks"));
     let extra: Compound = root
         .into_iter()
         .filter(|(key, _)| !MODELLED.contains(&key.as_str()))
@@ -157,6 +161,8 @@ pub fn from_nbt(
         chunk.heightmaps = heightmaps;
     }
     chunk.block_entities = block_entities;
+    chunk.block_ticks = block_ticks;
+    chunk.fluid_ticks = fluid_ticks;
     chunk.extra = extra;
     Ok(Some(chunk))
 }
@@ -274,6 +280,56 @@ fn decode_block_entity(tag: Tag) -> Option<BlockEntity> {
         .filter(|(key, _)| !matches!(key.as_str(), "id" | "x" | "y" | "z"))
         .collect();
     Some(BlockEntity { pos, kind, data })
+}
+
+fn decode_ticks(tag: Option<Tag>) -> Vec<SavedTick> {
+    match tag {
+        Some(Tag::List(items)) => items.iter().filter_map(decode_tick).collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn decode_tick(tag: &Tag) -> Option<SavedTick> {
+    let compound = tag.as_compound()?;
+    let id = compound
+        .get_str("i")
+        .and_then(|id| Identifier::parse(id).ok());
+    let pos = match (
+        compound.get_i32("x"),
+        compound.get_i32("y"),
+        compound.get_i32("z"),
+    ) {
+        (Some(x), Some(y), Some(z)) => Some(BlockPos::new(x, y, z)),
+        _ => None,
+    };
+    let (Some(id), Some(pos)) = (id, pos) else {
+        tracing::warn!("skipping a scheduled tick without an id or position");
+        return None;
+    };
+    Some(SavedTick {
+        id,
+        pos,
+        priority: compound.get_i32("p").unwrap_or(0),
+        delay: compound.get_i32("t").unwrap_or(0),
+    })
+}
+
+fn encode_ticks(ticks: &[SavedTick]) -> Tag {
+    Tag::List(
+        ticks
+            .iter()
+            .map(|tick| {
+                let mut compound = Compound::with_capacity(6);
+                compound.insert("i", tick.id.as_str());
+                compound.insert("p", tick.priority);
+                compound.insert("t", tick.delay);
+                compound.insert("x", tick.pos.x);
+                compound.insert("y", tick.pos.y);
+                compound.insert("z", tick.pos.z);
+                Tag::Compound(compound)
+            })
+            .collect(),
+    )
 }
 
 fn ceil_log2(value: usize) -> u8 {
@@ -402,7 +458,10 @@ pub fn to_nbt(chunk: &ChunkColumn) -> Compound {
                 .collect(),
         ),
     );
-    copy_extra(&mut root, extra, &AFTER_BLOCK_ENTITIES);
+    copy_extra(&mut root, extra, &BEFORE_TICKS);
+    root.insert("block_ticks", encode_ticks(&chunk.block_ticks));
+    root.insert("fluid_ticks", encode_ticks(&chunk.fluid_ticks));
+    copy_extra(&mut root, extra, &AFTER_TICKS);
     root.insert("Heightmaps", encode_heightmaps(chunk, height));
     copy_extra(&mut root, extra, &AFTER_HEIGHTMAPS);
     for (key, value) in extra.iter() {
@@ -730,8 +789,24 @@ mod tests {
                     Compound::new().with("id", "minecraft:pig"),
                 )]),
             )
-            .with("block_ticks", Tag::List(Vec::new()))
-            .with("fluid_ticks", Tag::List(Vec::new()))
+            .with(
+                "block_ticks",
+                Tag::List(vec![
+                    tick_tag("minecraft:repeater", -3, 4, 10, 70, -5),
+                    tick_tag("minecraft:sand", 0, 2, -40, -60, 120),
+                ]),
+            )
+            .with(
+                "fluid_ticks",
+                Tag::List(vec![tick_tag(
+                    "minecraft:flowing_water",
+                    0,
+                    5,
+                    -41,
+                    65,
+                    121,
+                )]),
+            )
             .with(
                 "PostProcessing",
                 Tag::List(vec![Tag::List(Vec::new()), Tag::List(Vec::new())]),
@@ -744,6 +819,27 @@ mod tests {
                     .with("References", Compound::new()),
             )
             .with("ChunkBukkitValues", Compound::new().with("plugin:key", 1))
+    }
+
+    fn tick_tag(id: &str, p: i32, t: i32, x: i32, y: i32, z: i32) -> Tag {
+        Tag::Compound(
+            Compound::new()
+                .with("i", id)
+                .with("p", p)
+                .with("t", t)
+                .with("x", x)
+                .with("y", y)
+                .with("z", z),
+        )
+    }
+
+    fn saved(id: &str, priority: i32, delay: i32, x: i32, y: i32, z: i32) -> SavedTick {
+        SavedTick {
+            id: Identifier::parse(id).unwrap(),
+            pos: rspigot_domain::BlockPos::new(x, y, z),
+            priority,
+            delay,
+        }
     }
 
     const POS: ChunkPos = ChunkPos::new(-3, 7);
@@ -818,14 +914,24 @@ mod tests {
                 .with("Items", Tag::List(Vec::new()))
         );
 
+        assert_eq!(
+            chunk.block_ticks,
+            [
+                saved("minecraft:repeater", -3, 4, 10, 70, -5),
+                saved("minecraft:sand", 0, 2, -40, -60, 120)
+            ]
+        );
+        assert_eq!(
+            chunk.fluid_ticks,
+            [saved("minecraft:flowing_water", 0, 5, -41, 65, 121)]
+        );
+
         let extra_keys: Vec<&str> = chunk.extra.iter().map(|(k, _)| k).collect();
         assert_eq!(
             extra_keys,
             [
                 "LastUpdate",
                 "entities",
-                "block_ticks",
-                "fluid_ticks",
                 "PostProcessing",
                 "structures",
                 "ChunkBukkitValues"
@@ -941,6 +1047,58 @@ mod tests {
     }
 
     #[test]
+    fn block_and_fluid_ticks_round_trip_with_their_fields() {
+        let mut original = sample_column();
+        original.block_ticks = vec![
+            saved("minecraft:comparator", -2, 0, 80, 11, -143),
+            saved("minecraft:dripstone", 1, 17, 81, -64, -144),
+        ];
+        original.fluid_ticks = vec![saved("minecraft:lava", 0, 30, 82, 12, -145)];
+        let nbt = to_nbt(&original);
+        let blocks = nbt.get_list("block_ticks").unwrap();
+        assert_eq!(blocks.len(), 2);
+        let first = blocks[0].as_compound().unwrap();
+        assert_eq!(first.get_str("i"), Some("minecraft:comparator"));
+        assert_eq!(first.get_i32("p"), Some(-2));
+        assert_eq!(first.get_i32("t"), Some(0));
+        assert_eq!(first.get_i32("x"), Some(80));
+        assert_eq!(first.get_i32("y"), Some(11));
+        assert_eq!(first.get_i32("z"), Some(-143));
+        assert!(matches!(first.get("t"), Some(Tag::Int(0))));
+        assert_eq!(nbt.get_list("fluid_ticks").unwrap().len(), 1);
+        let loaded = from_nbt(nbt, original.pos(), Some(original.height()))
+            .unwrap()
+            .unwrap();
+        assert_eq!(loaded, original);
+        let decoded = decode(&encode(&original), original.pos(), Some(original.height()))
+            .unwrap()
+            .unwrap();
+        assert_eq!(decoded.block_ticks, original.block_ticks);
+        assert_eq!(decoded.fluid_ticks, original.fluid_ticks);
+    }
+
+    #[test]
+    fn ticks_without_an_id_or_position_are_skipped() {
+        let mut root = hand_built_chunk();
+        root.insert(
+            "block_ticks",
+            Tag::List(vec![
+                Tag::Compound(Compound::new().with("i", "minecraft:sand").with("t", 1)),
+                Tag::Compound(
+                    Compound::new()
+                        .with("t", 1)
+                        .with("x", 0)
+                        .with("y", 0)
+                        .with("z", 0),
+                ),
+                tick_tag("minecraft:sand", 0, 1, 1, 2, 3),
+            ]),
+        );
+        let chunk = load(root);
+        assert_eq!(chunk.block_ticks, [saved("minecraft:sand", 0, 1, 1, 2, 3)]);
+    }
+
+    #[test]
     fn nether_and_end_heights_round_trip() {
         for height in [WorldHeight::NETHER, WorldHeight::END] {
             let mut chunk = ChunkColumn::empty(ChunkPos::new(0, 0), height, biome(PLAINS));
@@ -972,6 +1130,8 @@ mod tests {
                 "sections",
                 "isLightOn",
                 "block_entities",
+                "block_ticks",
+                "fluid_ticks",
                 "PostProcessing",
                 "Heightmaps",
                 "structures",
