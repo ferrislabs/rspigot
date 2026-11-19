@@ -123,8 +123,7 @@ pub enum Action {
     },
     Scatter {
         from: Cell,
-        to: Cell,
-        delay_ticks: u32,
+        velocity: Vec3,
     },
 }
 
@@ -166,8 +165,7 @@ fn debris_for(base: &[Action]) -> Vec<Action> {
             taken.push(throw.from);
             scatters.push(Action::Scatter {
                 from: throw.from,
-                to: throw.to,
-                delay_ticks: throw.delay_ticks,
+                velocity: throw.velocity,
             });
         }
     }
@@ -412,15 +410,11 @@ mod tests {
         const { assert!(catalog::INCENDIARY_POWER > catalog::SEEKER_POWER) };
     }
 
-    fn scatters(actions: &[Action]) -> Vec<(Cell, Cell, u32)> {
+    fn scatters(actions: &[Action]) -> Vec<(Cell, Vec3)> {
         actions
             .iter()
             .filter_map(|a| match *a {
-                Action::Scatter {
-                    from,
-                    to,
-                    delay_ticks,
-                } => Some((from, to, delay_ticks)),
+                Action::Scatter { from, velocity } => Some((from, velocity)),
                 _ => None,
             })
             .collect()
@@ -480,12 +474,8 @@ mod tests {
             assert_eq!(first, plan(kind, AT, TeamId::Red));
             let thrown = scatters(&first);
             assert!(thrown.len() <= DEBRIS_MAX_PER_PLAN, "{kind:?}");
-            for (index, (from, _, _)) in thrown.iter().enumerate() {
-                assert!(
-                    thrown[index + 1..]
-                        .iter()
-                        .all(|(other, _, _)| other != from)
-                );
+            for (index, (from, _)) in thrown.iter().enumerate() {
+                assert!(thrown[index + 1..].iter().all(|(other, _)| other != from));
             }
         }
         let intergalactic = scatters(&plan(SheepKind::Intergalactic, AT, TeamId::Red));

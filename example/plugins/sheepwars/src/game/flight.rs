@@ -3,8 +3,8 @@ use rspigot_plugin::Material;
 use crate::domain::{PlayerId, SheepKind, TeamId};
 use crate::sheep::{
     INCENDIARY_SCALE_END, INCENDIARY_SCALE_INTERVAL_TICKS, INCENDIARY_SCALE_START,
-    PULSE_INTERVAL_TICKS, SEEKER_CONTACT_RADIUS, SEEKER_HOP, SEEKER_RUN_SPEED, SEEKER_SPEED, Vec3,
-    fuse_ticks, homes_in_flight, sheep_wool, steer,
+    PULSE_INTERVAL_TICKS, SEEKER_CONTACT_RADIUS, SEEKER_HOP, SEEKER_RUN_SPEED, SEEKER_SPEED,
+    SPLIT_CHILD_FUSE_TICKS, Vec3, fuse_ticks, homes_in_flight, sheep_wool, steer,
 };
 
 pub const MAX_CONCURRENT_FLIGHTS: usize = 32;
@@ -27,6 +27,7 @@ pub struct Flight {
     pub age: u32,
     pub stage: Stage,
     pub fuse: u32,
+    pub fragment: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -72,6 +73,23 @@ impl Flight {
             age: 0,
             stage: Stage::Flying,
             fuse,
+            fragment: false,
+        }
+    }
+
+    pub const fn fragment(kind: SheepKind, team: TeamId, thrower: PlayerId) -> Self {
+        Self {
+            fragment: true,
+            ..Self::with_fuse(kind, team, thrower, SPLIT_CHILD_FUSE_TICKS)
+        }
+    }
+
+    pub const fn is_detonating(&self) -> bool {
+        match self.stage {
+            Stage::Flying => false,
+            Stage::Landed { ticks } => {
+                ticks >= self.fuse || matches!(self.kind, SheepKind::Boarding)
+            }
         }
     }
 
