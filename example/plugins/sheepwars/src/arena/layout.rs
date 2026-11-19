@@ -27,6 +27,7 @@ impl Layout {
         TeamId::ALL
             .into_iter()
             .flat_map(|team| platform_blocks(&self.settings.site(team).platform))
+            .chain(platform_blocks(&self.settings.lobby_platform))
             .collect()
     }
 
@@ -86,11 +87,21 @@ mod tests {
     }
 
     #[test]
-    fn block_count_matches_both_platforms() {
+    fn block_count_matches_both_platforms_and_the_lobby() {
         let layout = layout();
-        let platform = &layout.settings().red.platform;
-        let each = (platform.width * platform.depth * platform.thickness) as usize;
-        assert_eq!(layout.blocks().len(), each * 2);
+        let volume =
+            |platform: &Platform| (platform.width * platform.depth * platform.thickness) as usize;
+        let settings = layout.settings();
+        let expected = volume(&settings.red.platform)
+            + volume(&settings.blue.platform)
+            + volume(&settings.lobby_platform);
+        assert_eq!(layout.blocks().len(), expected);
+    }
+
+    #[test]
+    fn the_lobby_stands_on_its_platform() {
+        let layout = layout();
+        assert!(solid_below(&layout, layout.lobby()));
     }
 
     #[test]

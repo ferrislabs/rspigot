@@ -13,6 +13,9 @@ const DEFAULT_RED_CENTER_Z: i32 = -24;
 const DEFAULT_BLUE_CENTER_Z: i32 = 23;
 const DEFAULT_DISPENSER_OFFSET: i32 = 3;
 const DEFAULT_LOBBY_Y: f64 = 100.0;
+const DEFAULT_LOBBY_PLATFORM_SIZE: i32 = 9;
+const DEFAULT_LOBBY_PLATFORM_THICKNESS: i32 = 1;
+const DEFAULT_LOBBY_PLATFORM_BLOCK: &str = "minecraft:smooth_stone";
 const DEFAULT_VOID_FALL_Y: f64 = 20.0;
 const BLOCK_CENTER: f64 = 0.5;
 
@@ -22,6 +25,8 @@ pub enum ArenaError {
     Parse(#[from] serde_json::Error),
     #[error("the {0:?} platform has no volume")]
     EmptyPlatform(TeamId),
+    #[error("the lobby platform has no volume")]
+    EmptyLobbyPlatform,
     #[error("unknown block `{0}`")]
     UnknownBlock(String),
     #[error("could not create the arena world: {0}")]
@@ -51,6 +56,12 @@ pub struct Platform {
     pub block: String,
 }
 
+impl Platform {
+    const fn is_empty(&self) -> bool {
+        self.width <= 0 || self.depth <= 0 || self.thickness <= 0
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TeamSite {
     pub platform: Platform,
@@ -62,6 +73,7 @@ pub struct TeamSite {
 pub struct ArenaSettings {
     pub world_name: String,
     pub lobby: Point,
+    pub lobby_platform: Platform,
     pub void_fall_y: f64,
     pub red: TeamSite,
     pub blue: TeamSite,
@@ -71,10 +83,12 @@ impl ArenaSettings {
     pub fn from_json(json: &str) -> Result<Self, ArenaError> {
         let settings: Self = serde_json::from_str(json)?;
         for team in TeamId::ALL {
-            let platform = &settings.site(team).platform;
-            if platform.width <= 0 || platform.depth <= 0 || platform.thickness <= 0 {
+            if settings.site(team).platform.is_empty() {
                 return Err(ArenaError::EmptyPlatform(team));
             }
+        }
+        if settings.lobby_platform.is_empty() {
+            return Err(ArenaError::EmptyLobbyPlatform);
         }
         Ok(settings)
     }
@@ -121,6 +135,17 @@ impl Default for ArenaSettings {
                 x: BLOCK_CENTER,
                 y: DEFAULT_LOBBY_Y,
                 z: BLOCK_CENTER,
+            },
+            lobby_platform: Platform {
+                center: BlockPoint {
+                    x: 0,
+                    y: DEFAULT_LOBBY_Y as i32 - 1,
+                    z: 0,
+                },
+                width: DEFAULT_LOBBY_PLATFORM_SIZE,
+                depth: DEFAULT_LOBBY_PLATFORM_SIZE,
+                thickness: DEFAULT_LOBBY_PLATFORM_THICKNESS,
+                block: DEFAULT_LOBBY_PLATFORM_BLOCK.to_owned(),
             },
             void_fall_y: DEFAULT_VOID_FALL_Y,
             red: default_site(
@@ -170,6 +195,17 @@ mod tests {
         assert!(matches!(
             ArenaSettings::from_json(&json),
             Err(ArenaError::EmptyPlatform(TeamId::Blue))
+        ));
+    }
+
+    #[test]
+    fn empty_lobby_platform_is_rejected() {
+        let mut settings = ArenaSettings::default();
+        settings.lobby_platform.thickness = 0;
+        let json = serde_json::to_string(&settings).expect("serialize");
+        assert!(matches!(
+            ArenaSettings::from_json(&json),
+            Err(ArenaError::EmptyLobbyPlatform)
         ));
     }
 }
