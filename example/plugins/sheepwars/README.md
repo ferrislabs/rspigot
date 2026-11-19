@@ -1,14 +1,14 @@
 # sheepwars
 
-A SheepWars mini-game plugin for rspigot: two teams (red and blue) fight on two floating platforms. Every 20 seconds each team receives a coloured wool item, a "sheep". A right click throws it at the enemy and it triggers an effect when it lands. The last team with a standing player wins.
+A SheepWars mini-game plugin for rspigot: two teams (red and blue) fight on one single floating platform. Every 20 seconds each team receives a coloured wool item, a "sheep". A right click throws it at the enemy and it triggers an effect when it lands. The last team with a standing player wins.
 
 ## How a round goes
 
 1. A player who joins is added to the round, sent to the lobby and shown the sidebar and boss bar. Teams are balanced automatically.
 2. With 2 players the countdown starts (15 s). Under 2 players it is cancelled.
-3. At the start everyone is teleported to their team platform and their inventory is cleared.
+3. At the start everyone is teleported to their team spawn at either end of the platform and their inventory is cleared.
 4. Every sheep interval each standing player gets one sheep. The kind rotates over the 11 EpiCube sheep (`SHEEP_STRATEGY`, a placeholder: the real distribution is unknown).
-5. A player has 3 lives. Dying (or falling under `void_fall_y`) costs one life and respawns on the team platform. At 0 lives the player is a spectator.
+5. A player has 3 lives. Dying (or falling under `void_fall_y`) costs one life and respawns at the team spawn. At 0 lives the player is a spectator.
 6. A win or a draw shows a title. After 10 s the round resets, everybody goes back to the lobby and is re-joined.
 7. A player who joins during a round is a spectator in the lobby until the next round.
 
@@ -23,7 +23,7 @@ A SheepWars mini-game plugin for rspigot: two teams (red and blue) fight on two 
 
 ## arena.json
 
-Read from the working directory at startup. Absent: `ArenaSettings::default()`. Invalid: the error is logged and the default is used. Fields: `world_name`, `lobby`, `void_fall_y`, and `red` / `blue` each with `platform` (`center`, `width`, `depth`, `thickness`, `block`), `spawn` and `dispenser`. See `src/arena/settings.rs`.
+Read from the working directory at startup. Absent: `ArenaSettings::default()`. Invalid: the error is logged and the default is used. Fields: `world_name`, `lobby`, `void_fall_y`, one shared `platform` (`center`, `width` along x, `depth` along z, `thickness`, `block`), and `red` / `blue` each with only `spawn` and `dispenser`. The lobby is a point on the same platform (no separate lobby platform). Files are rejected (default used) when the platform is empty or when the lobby, a spawn or a dispenser is not above the platform footprint. The schema changed: old files with a `platform` per team or a `lobby_platform` are now invalid. Default: 25 wide (x) by 70 long (z), 3 thick, top at y=64, centred on 0,0; red spawn at z=-26.5, blue at z=26.5, lobby at the centre.
 
 ## Arena building
 
@@ -41,7 +41,7 @@ Read from the working directory at startup. Absent: `ArenaSettings::default()`. 
 | HUD and action bar refresh periods | `src/game/engine.rs` |
 | Throw power (default, Healing is shorter) | `DEFAULT_THROW_POWER` in `src/sheep/launch.rs`, `HEALING_THROW_POWER` in `src/sheep/catalog.rs` |
 | Sheep effects (radius, power, durations, seeker, meteors, warp push) | named `const`s in `src/sheep/catalog.rs` (all tunable guesses) |
-| Arena size, lobby, void level | `arena.json` or `src/arena/settings.rs` |
+| Arena size, spawns, lobby, void level | `arena.json` or the `DEFAULT_*` consts in `src/arena/settings.rs` |
 | Tick length of the game loop | `TICK` in `src/main.rs` |
 
 ## The sheep
