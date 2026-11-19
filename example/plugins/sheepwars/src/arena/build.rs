@@ -1,6 +1,6 @@
 use rspigot_plugin::{
-    ActionError, ActionErrorKind, BlockPos, BlockType, Dimension, Error, Generator, Server, World,
-    WorldOptions,
+    ActionError, ActionErrorKind, BlockPos, BlockType, Dimension, Error, GameRule, GameRuleSetting,
+    Generator, Server, Weather, World, WorldOptions,
 };
 
 use super::install::{
@@ -10,6 +10,7 @@ use super::layout::{Layout, PlacedBlock};
 use super::settings::{ArenaError, ArenaSettings};
 
 const WORLD_SEED: i64 = 0;
+const ARENA_DAY_TIME: i64 = 6000;
 const WORLD_NAMESPACE: &str = "rspigot";
 const ALREADY_EXISTS: &str = "already exists";
 
@@ -75,6 +76,11 @@ impl Arena {
             }
             Err(error) => return Err(error.into()),
         };
+        world
+            .game_rule
+            .set(GameRuleSetting::new(GameRule::DaylightCycle, false));
+        world.time.set(ARENA_DAY_TIME);
+        world.weather.set(Weather::Clear);
         let layout = Layout::new(settings);
         Ok(Self { world, layout })
     }
