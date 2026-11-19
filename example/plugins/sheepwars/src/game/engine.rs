@@ -2,20 +2,23 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use rspigot_plugin::{
-    BossBar, ChunkLoad, Entity, EntityState, EntityType, GameMode, ItemRemoval, ItemStack,
-    Location, Player, Position, Rotation, Title, Uuid, Vector,
+    Attribute, BossBar, ChunkLoad, Entity, EntityType, GameMode, ItemRemoval, ItemStack, Location,
+    Player, Position, Rotation, Title, Uuid, Vector,
 };
 
 use super::display::lives_line;
-use super::flight::{EYE_HEIGHT, Flight, MAX_CONCURRENT_FLIGHTS, can_launch};
+use super::flight::{
+    BOARDING_RIDER_OFFSET, EYE_HEIGHT, Flight, MAX_CONCURRENT_FLIGHTS, Observation, Step,
+    can_launch,
+};
 use super::intent::Intent;
 use super::session::{ForceStartError, Session, VoidVerdict, launch_announcement};
 use crate::arena::{Arena, Point};
 use crate::domain::{PlayerId, SheepKind, TeamId};
 use crate::hud::{Hud, bossbar_progress, bossbar_title};
 use crate::sheep::{
-    Action, SEEKER_RANGE, SEEKER_SPEED, Vec3, apply, display_name, homes_in_flight, launch_power,
-    launch_velocity, nearest_enemy, plan, sheep_wool, steer,
+    SEEKER_RANGE, SPLIT_CHILD_FUSE_TICKS, Vec3, apply, display_name, homes_in_flight, launch_power,
+    launch_velocity, nearest_enemy, plan, plan_pulse, sheep_wool,
 };
 
 pub const HUD_REFRESH_TICKS: u64 = 5;
@@ -134,8 +137,10 @@ impl Game {
         self.location(point)
     }
 
-    pub fn blocks_damage(&self) -> bool {
-        self.lock().session.blocks_damage()
+    pub fn blocks_damage_to(&self, player: &Player, shieldable: bool) -> bool {
+        self.lock()
+            .session
+            .blocks_damage_to(player_id(player.uuid), shieldable)
     }
 
     pub fn blocks_hit(&self, attacker: &Player, victim: &Player) -> bool {
@@ -375,7 +380,6 @@ impl Game {
         let mut next = Vec::with_capacity(flights.len());
         let mut children = Vec::new();
         for mut airborne in flights {
-            airborne.flight.age += 1;
             let sheep = match airborne.entity.get_state().await {
                 Ok(sheep) => sheep,
                 Err(error) => {
@@ -384,14 +388,36 @@ impl Game {
                     continue;
                 }
             };
-            if airborne.flight.should_land(sheep.on_ground) {
-                children.extend(self.land(&airborne, &sheep, &teams).await);
-                airborne.entity.remove();
-            } else {
-                if homes_in_flight(airborne.flight.kind) {
-                    self.home(&airborne, &sheep, &teams).await;
+            let position = vec3(sheep.entity.position);
+            let observation = Observation {
+                on_ground: sheep.on_ground,
+                position,
+                vertical_speed: sheep.velocity.y,
+                enemy: self.enemy_near(&airborne.flight, position, &teams).await,
+            };
+            let outcome = airborne.flight.step(observation);
+            if outcome.pulse {
+                self.pulse(position).await;
+            }
+            match outcome.step {
+                Step::Keep => next.push(airborne),
+                Step::Swell(scale) => {
+                    airborne.entity.attributes.set(Attribute::Scale, scale);
+                    next.push(airborne);
                 }
-                next.push(airborne);
+                Step::Steer(velocity) => {
+                    airborne.entity.set_velocity(vector(velocity));
+                    next.push(airborne);
+                }
+                Step::Carry(at) => {
+                    self.carry(airborne.flight.thrower, at).await;
+                    next.push(airborne);
+                }
+                Step::Detonate | Step::Release => {
+                    self.lock().session.shield(airborne.flight.thrower);
+                    children.extend(self.land(&airborne, position, &teams).await);
+                    airborne.entity.remove();
+                }
             }
         }
         let mut state = self.lock();
@@ -403,7 +429,7 @@ impl Game {
     async fn land(
         &self,
         airborne: &Airborne,
-        sheep: &EntityState,
+        at: Vec3,
         teams: &HashMap<PlayerId, TeamId>,
     ) -> Vec<Airborne> {
         let Flight {
@@ -412,28 +438,12 @@ impl Game {
             thrower,
             ..
         } = airborne.flight;
-        let actions = plan(kind, vec3(sheep.entity.position), team);
-        let needs_thrower = actions
-            .iter()
-            .any(|action| matches!(action, Action::TeleportThrower { .. }));
-        let thrower_entity = if needs_thrower {
-            self.thrower_entity(thrower).await
-        } else {
-            None
-        };
-        let thrower_entity = thrower_entity.as_ref().unwrap_or(&airborne.entity);
-        match apply(
-            &self.arena.world,
-            thrower_entity,
-            &actions,
-            team_lookup(teams),
-        )
-        .await
-        {
+        let actions = plan(kind, at, team);
+        match apply(&self.arena.world, &actions, team_lookup(teams)).await {
             Ok(spawned) => spawned
                 .into_iter()
                 .map(|(kind, entity)| Airborne {
-                    flight: Flight::new(kind, team, thrower),
+                    flight: Flight::with_fuse(kind, team, thrower, SPLIT_CHILD_FUSE_TICKS),
                     entity,
                 })
                 .collect(),
@@ -444,29 +454,48 @@ impl Game {
         }
     }
 
-    async fn home(
+    async fn enemy_near(
         &self,
-        airborne: &Airborne,
-        sheep: &EntityState,
+        flight: &Flight,
+        from: Vec3,
         teams: &HashMap<PlayerId, TeamId>,
-    ) {
-        let from = vec3(sheep.entity.position);
+    ) -> Option<Vec3> {
+        if !homes_in_flight(flight.kind) {
+            return None;
+        }
         match nearest_enemy(
             &self.arena.world,
             from,
             SEEKER_RANGE,
-            airborne.flight.team,
+            flight.team,
             team_lookup(teams),
         )
         .await
         {
-            Ok(Some(target)) => {
-                airborne
-                    .entity
-                    .set_velocity(vector(steer(from, target, SEEKER_SPEED)))
+            Ok(target) => target,
+            Err(error) => {
+                tracing::warn!("a seeker sheep lost its target: {error}");
+                None
             }
-            Ok(None) => {}
-            Err(error) => tracing::warn!("a seeker sheep lost its target: {error}"),
+        }
+    }
+
+    async fn pulse(&self, at: Vec3) {
+        let actions = plan_pulse(at);
+        let teams = HashMap::new();
+        if let Err(error) = apply(&self.arena.world, &actions, team_lookup(&teams)).await {
+            tracing::warn!("a sheep fuse failed to pulse: {error}");
+        }
+    }
+
+    async fn carry(&self, thrower: PlayerId, at: Vec3) {
+        self.lock().session.shield(thrower);
+        if let Some(rider) = self.thrower_entity(thrower).await {
+            rider.teleport(Position {
+                x: at.x,
+                y: at.y + BOARDING_RIDER_OFFSET,
+                z: at.z,
+            });
         }
     }
 

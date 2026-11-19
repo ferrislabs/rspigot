@@ -15,9 +15,16 @@ pub use catalog::{
     WARP_LIFT, WARP_PUSH, WARP_RADIUS,
 };
 pub use catalog::{
+    DEFAULT_FUSE_TICKS, INCENDIARY_FUSE_TICKS, INCENDIARY_SCALE_END,
+    INCENDIARY_SCALE_INTERVAL_TICKS, INCENDIARY_SCALE_START, PULSE_INTERVAL_TICKS, PULSE_PARTICLES,
+    SEEKER_CONTACT_RADIUS, SEEKER_HOP, SEEKER_RUN_SPEED, SEEKER_RUN_TICKS, SPLIT_CHILD_FUSE_TICKS,
+    fuse_ticks,
+};
+pub use catalog::{
     WoolColor, announces_launch, display_name, homes_in_flight, launch_power, wool_color,
 };
 pub use impact::{
     Action, BlockKind, Cell, EffectKind, ParticleKind, SoundKind, Vec3, outward_velocity, plan,
+    plan_pulse,
 };
 pub use launch::{DEFAULT_THROW_POWER, launch_velocity, steer};

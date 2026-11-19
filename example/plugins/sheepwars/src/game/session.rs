@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use thiserror::Error;
 
 use super::intent::Intent;
@@ -9,6 +11,7 @@ use crate::hud::{message, team_name, team_prefix};
 use crate::sheep::{announces_launch, display_name};
 
 pub const RESET_DELAY_TICKS: u32 = 20 * 10;
+pub const RIDER_GRACE_TICKS: u32 = 20;
 pub const FORCED_MIN_PLAYERS: usize = 1;
 pub const SHEEP_STRATEGY: fn(u32) -> SheepKind = rotation;
 
@@ -41,6 +44,7 @@ pub struct Session {
     rules: RoundRules,
     round: Round,
     reset_in: Option<u32>,
+    shields: HashMap<PlayerId, u32>,
 }
 
 impl Session {
@@ -50,6 +54,7 @@ impl Session {
             rules,
             round: Round::new(rules),
             reset_in: None,
+            shields: HashMap::new(),
         }
     }
 
@@ -139,6 +144,10 @@ impl Session {
     }
 
     pub fn tick(&mut self) -> Vec<Intent> {
+        self.shields.retain(|_, remaining| {
+            *remaining -= 1;
+            *remaining > 0
+        });
         let events = self.round.tick();
         let mut intents = self.absorb(&events);
         if let Some(remaining) = self.reset_in {
@@ -193,6 +202,18 @@ impl Session {
         !self.is_playing()
     }
 
+    pub fn shield(&mut self, player: PlayerId) {
+        self.shields.insert(player, RIDER_GRACE_TICKS);
+    }
+
+    pub fn is_shielded(&self, player: PlayerId) -> bool {
+        self.shields.contains_key(&player)
+    }
+
+    pub fn blocks_damage_to(&self, player: PlayerId, shieldable: bool) -> bool {
+        self.blocks_damage() || (shieldable && self.is_shielded(player))
+    }
+
     pub fn blocks_hit(&self, attacker: PlayerId, victim: PlayerId) -> bool {
         if !self.is_playing() {
             return true;
@@ -231,6 +252,7 @@ impl Session {
     fn reset(&mut self, text: &str) -> Vec<Intent> {
         self.round = Round::new(self.rules);
         self.reset_in = None;
+        self.shields.clear();
         vec![Intent::Broadcast(text.to_owned()), Intent::Reset]
     }
 
@@ -680,5 +702,47 @@ mod tests {
         assert_eq!(session.void_verdict(A, low), VoidVerdict::Kill);
         assert_eq!(session.void_verdict(C, low), VoidVerdict::ToLobby);
         assert_eq!(session.void_verdict(A, 64.0), VoidVerdict::Safe);
+    }
+
+    #[test]
+    fn a_shield_blocks_shieldable_damage_only() {
+        let mut session = started();
+        assert!(!session.blocks_damage_to(A, true));
+        session.shield(A);
+        assert!(session.blocks_damage_to(A, true));
+        assert!(!session.blocks_damage_to(A, false));
+        assert!(!session.blocks_damage_to(B, true));
+    }
+
+    #[test]
+    fn a_shield_expires_after_the_grace() {
+        let mut session = started();
+        session.shield(A);
+        for _ in 0..RIDER_GRACE_TICKS - 1 {
+            session.tick();
+            assert!(session.is_shielded(A));
+        }
+        session.tick();
+        assert!(!session.is_shielded(A));
+    }
+
+    #[test]
+    fn shielding_again_refreshes_the_grace() {
+        let mut session = started();
+        session.shield(A);
+        for _ in 0..RIDER_GRACE_TICKS - 1 {
+            session.tick();
+        }
+        session.shield(A);
+        session.tick();
+        assert!(session.is_shielded(A));
+    }
+
+    #[test]
+    fn a_reset_drops_the_shields() {
+        let mut session = started();
+        session.shield(A);
+        session.stop();
+        assert!(!session.is_shielded(A));
     }
 }
