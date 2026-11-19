@@ -1,5 +1,9 @@
+use std::collections::BTreeSet;
+
 use super::settings::{ArenaSettings, BlockPoint, Platform, Point};
 use crate::domain::TeamId;
+
+const CHUNK_SIZE: i32 = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlacedBlock {
@@ -31,6 +35,17 @@ impl Layout {
             .collect()
     }
 
+    pub fn blocks_in_chunk(&self, chunk_x: i32, chunk_z: i32) -> Vec<PlacedBlock> {
+        self.blocks()
+            .into_iter()
+            .filter(|block| chunk_of(block) == (chunk_x, chunk_z))
+            .collect()
+    }
+
+    pub fn chunks(&self) -> BTreeSet<(i32, i32)> {
+        self.blocks().iter().map(chunk_of).collect()
+    }
+
     pub const fn spawn_of(&self, team: TeamId) -> Point {
         self.settings.site(team).spawn
     }
@@ -46,6 +61,13 @@ impl Layout {
     pub fn is_void_fall(&self, y: f64) -> bool {
         y < self.settings.void_fall_y
     }
+}
+
+fn chunk_of(block: &PlacedBlock) -> (i32, i32) {
+    (
+        block.x.div_euclid(CHUNK_SIZE),
+        block.z.div_euclid(CHUNK_SIZE),
+    )
 }
 
 fn platform_blocks(platform: &Platform) -> Vec<PlacedBlock> {
@@ -165,5 +187,66 @@ mod tests {
     fn lobby_is_above_the_void_line() {
         let layout = layout();
         assert!(!layout.is_void_fall(layout.lobby().y));
+    }
+
+    fn custom_layout() -> Layout {
+        let mut settings = ArenaSettings::default();
+        settings.lobby_platform.center = BlockPoint {
+            x: -20,
+            y: 64,
+            z: -1,
+        };
+        Layout::new(settings)
+    }
+
+    fn key(block: &PlacedBlock) -> (i32, i32, i32) {
+        (block.x, block.y, block.z)
+    }
+
+    #[test]
+    fn chunks_together_equal_blocks_without_loss_or_duplicate() {
+        for layout in [layout(), custom_layout()] {
+            let mut gathered: Vec<(i32, i32, i32)> = layout
+                .chunks()
+                .into_iter()
+                .flat_map(|(x, z)| layout.blocks_in_chunk(x, z))
+                .map(|block| key(&block))
+                .collect();
+            let mut expected: Vec<(i32, i32, i32)> = layout.blocks().iter().map(key).collect();
+            gathered.sort_unstable();
+            expected.sort_unstable();
+            assert_eq!(gathered, expected);
+            let unique: BTreeSet<_> = expected.iter().collect();
+            assert_eq!(unique.len(), expected.len());
+        }
+    }
+
+    #[test]
+    fn blocks_land_in_their_own_chunk_negative_coordinates_included() {
+        let layout = custom_layout();
+        let mut seen_negative = false;
+        for (chunk_x, chunk_z) in layout.chunks() {
+            for block in layout.blocks_in_chunk(chunk_x, chunk_z) {
+                assert_eq!(block.x.div_euclid(CHUNK_SIZE), chunk_x);
+                assert_eq!(block.z.div_euclid(CHUNK_SIZE), chunk_z);
+                seen_negative |= block.x < 0 || block.z < 0;
+            }
+        }
+        assert!(seen_negative);
+    }
+
+    #[test]
+    fn a_chunk_without_block_is_empty() {
+        let layout = layout();
+        assert!(layout.blocks_in_chunk(10_000, 10_000).is_empty());
+        assert!(!layout.chunks().contains(&(10_000, 10_000)));
+    }
+
+    #[test]
+    fn every_listed_chunk_has_blocks() {
+        let layout = custom_layout();
+        for (x, z) in layout.chunks() {
+            assert!(!layout.blocks_in_chunk(x, z).is_empty());
+        }
     }
 }

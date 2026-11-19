@@ -54,7 +54,7 @@ impl SheepWars {
                 return;
             }
         };
-        let session = Session::new(arena.layout, RoundRules::default());
+        let session = Session::new(arena.layout.clone(), RoundRules::default());
         let bar = match server
             .boss_bars
             .create(
@@ -72,7 +72,7 @@ impl SheepWars {
             }
         };
         let hud = Hud::new(server.scoreboard_manager.main_scoreboard());
-        let game = Arc::new(Game::new(arena.world, session, hud, bar));
+        let game = Arc::new(Game::new(arena, session, hud, bar));
         if self.game.set(Arc::clone(&game)).is_err() {
             return;
         }
@@ -119,6 +119,12 @@ impl SheepWars {
             }
             "stop" => game.stop().await,
             other => ctx.reply(format!("§cAction inconnue : {other}")),
+        }
+    }
+
+    async fn on_chunk_load(&self, event: &ChunkLoad) {
+        if let Some(game) = self.game() {
+            game.on_chunk_load(event);
         }
     }
 
