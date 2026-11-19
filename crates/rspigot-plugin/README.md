@@ -30,7 +30,7 @@ The server reads groups and rights from `permissions.yml` (an example is in `exa
 
 ## Worlds and entities
 
-`server.world.create(WorldOptions { .. })` makes a world (`Generator::Void`, `Flat`, `Vanilla` or `Datapack`) and `world.delete(files)` removes it. `player.location.teleport_to_world(&world)` moves a player to its spawn. `entity.as_zombie()` (and the other typed views) is `Some` only for the matching type.
+`server.world.create(WorldOptions { .. })` makes a world (`Generator::Void`, `Flat`, `Vanilla` or `Datapack`) and `world.delete(files)` removes it. A created world survives a restart, so `create` answers `already exists` the second time: `server.world.by_id("rspigot:<name>")` returns the handle of an existing world without asking the server. `player.location.teleport_to_world(&world)` moves a player to its spawn. `entity.as_zombie()` (and the other typed views) is `Some` only for the matching type.
 
 ## NPCs
 
