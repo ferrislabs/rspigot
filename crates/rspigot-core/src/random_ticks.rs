@@ -83,6 +83,9 @@ impl<L: ClientLink> Server<L> {
             BlockKind::Farmland => self.farmland_tick(pos, picked),
             kind if is_leaves(kind) => self.leaves_random_tick(pos, picked),
             _ if is_sapling(picked) => self.sapling_random_tick(pos, picked),
+            _ if self.random_tick_crop(pos, picked) => {}
+            _ if self.random_tick_stalk(pos, picked) => {}
+            _ if self.random_tick_copper(pos, picked) => {}
             _ => {}
         }
     }
