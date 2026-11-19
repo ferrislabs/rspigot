@@ -1,8 +1,9 @@
 use rand::Rng;
+use rspigot_blocks::BlockKind;
 use rspigot_domain::damage::DamageType;
-use rspigot_domain::entity::{Entity, RemovalReason, living};
+use rspigot_domain::entity::{Entity, EntityState, FallingState, RemovalReason, living};
 use rspigot_domain::text::Component;
-use rspigot_domain::{EntityId, Vec3};
+use rspigot_domain::{BlockStateId, EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 use crate::commands::{CommandContext, Target};
@@ -141,21 +142,57 @@ impl<L: ClientLink> Server<L> {
         kind: &str,
         position: Vec3,
     ) -> Result<(), ActionError> {
+        self.spawn_with_for_plugin(connection, request, kind, position, None, None)
+    }
+
+    pub(super) fn spawn_with_for_plugin(
+        &mut self,
+        connection: u64,
+        request: u64,
+        kind: &str,
+        position: Vec3,
+        block: Option<&str>,
+        velocity: Option<Vec3>,
+    ) -> Result<(), ActionError> {
         let kind = entity_kind(kind)?;
+        let state = block.map(|key| falling_state_of(kind, key)).transpose()?;
+        let velocity = velocity.map(launch_velocity).transpose()?;
         let position = self.loaded_position(position)?;
-        let (entity, random) = self
-            .summon_entity(kind, position, None, SpawnReason::Command)
-            .map_err(|key| ActionError::new(ActionErrorKind::IncompatibleState, refusal(key)))?;
+        let (mut entity, random) = match state {
+            Some(state) => (self.falling_entity(position, state), None),
+            None => {
+                let (entity, random) = self
+                    .summon_entity(kind, position, None, SpawnReason::Command)
+                    .map_err(|key| {
+                        ActionError::new(ActionErrorKind::IncompatibleState, refusal(key))
+                    })?;
+                (entity, Some(random))
+            }
+        };
+        if let Some(velocity) = velocity {
+            entity.base.velocity = velocity;
+        }
+        let birth = Birth::of(CreatureSpawnReason::Custom).then(Spawned::Answered {
+            connection,
+            request,
+        });
         self.spawn_entity(
             entity,
-            Birth::of(CreatureSpawnReason::Custom)
-                .with_random(random)
-                .then(Spawned::Answered {
-                    connection,
-                    request,
-                }),
+            match random {
+                Some(random) => birth.with_random(random),
+                None => birth,
+            },
         );
         Ok(())
+    }
+
+    fn falling_entity(&mut self, position: Vec3, state: BlockStateId) -> Entity {
+        let mut base = self.new_entity_base(Kind::FallingBlock);
+        base.snap_to(position, 0.0, 0.0);
+        let mut falling = FallingState::new(&mut base, state, position.block());
+        falling.drop_item = THROWN_BLOCK_DROPS_ITEM;
+        falling.hurt_entities = THROWN_BLOCK_HURTS_ENTITIES;
+        Entity::new(base, EntityState::Falling(falling))
     }
 
     fn loaded_position(&self, position: Vec3) -> Result<Vec3, ActionError> {
@@ -206,6 +243,38 @@ fn view_of(entity: &Entity) -> EntityView {
         position: base.position,
         player: None,
     }
+}
+
+const MAX_LAUNCH_SPEED: f64 = 3.9;
+const THROWN_BLOCK_DROPS_ITEM: bool = false;
+const THROWN_BLOCK_HURTS_ENTITIES: bool = false;
+
+fn launch_velocity(velocity: Vec3) -> Result<Vec3, ActionError> {
+    let velocity = resolve::velocity_of(velocity)?;
+    let clamp = |axis: f64| axis.clamp(-MAX_LAUNCH_SPEED, MAX_LAUNCH_SPEED);
+    Ok(Vec3::new(
+        clamp(velocity.x),
+        clamp(velocity.y),
+        clamp(velocity.z),
+    ))
+}
+
+fn falling_state_of(kind: Kind, key: &str) -> Result<BlockStateId, ActionError> {
+    if kind != Kind::FallingBlock {
+        return Err(ActionError::from(format!(
+            "a block is only valid with minecraft:falling_block, not {}",
+            kind.name()
+        )));
+    }
+    let state = BlockKind::from_name(key)
+        .ok_or_else(|| ActionError::from(format!("unknown block {key}")))?
+        .default_state();
+    if state.is_air() {
+        return Err(ActionError::from(format!(
+            "{key} cannot be a falling block"
+        )));
+    }
+    Ok(state)
 }
 
 fn entity_kind(key: &str) -> Result<Kind, String> {

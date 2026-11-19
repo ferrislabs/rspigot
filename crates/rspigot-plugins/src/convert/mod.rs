@@ -161,6 +161,7 @@ fn scoped(world: Option<String>, message: FromPlugin) -> Result<FromPlugin, Malf
                 | Question::Entity(_)
                 | Question::AttributeValue { .. }
                 | Question::Spawn { .. }
+                | Question::SpawnWith { .. }
                 | Question::DropItem { .. }
                 | Question::CreateNpc(_)
                 | Question::NpcByKey(_)

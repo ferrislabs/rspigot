@@ -152,7 +152,7 @@ message NpcOrder {
 message TargetQuery { string player = 1; double max_distance = 2; }
 message Near { Vec3 position = 1; double radius = 2; }
 message EntityQuery { Near near = 1; optional string kind = 2; }
-message Spawn { string kind = 1; Vec3 position = 2; }
+message Spawn { string kind = 1; Vec3 position = 2; optional string block = 3; optional Vec3 velocity = 4; }
 message DropItem { Vec3 position = 1; Item item = 2; }
 message Question {
   uint64 request = 1;
