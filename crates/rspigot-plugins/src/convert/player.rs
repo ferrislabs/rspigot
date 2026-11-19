@@ -7,6 +7,63 @@ use uuid::Uuid;
 use super::shared::{self, required, wire_block_pos, wire_rotation, wire_vec};
 use super::{Malformed, entity};
 
+fn rich_parts(
+    message: v1::RichMessage,
+) -> Result<Vec<rspigot_core::plugins::RichPartSpec>, Malformed> {
+    use rspigot_core::plugins::{ClickSpec, RichPartSpec};
+    use v1::rich_click::Action;
+
+    message
+        .parts
+        .into_iter()
+        .map(|part| {
+            let click = match part.click {
+                None => None,
+                Some(click) => Some(match required(click.action)? {
+                    Action::RunCommand(command) => ClickSpec::RunCommand(command),
+                    Action::SuggestCommand(command) => ClickSpec::SuggestCommand(command),
+                    Action::OpenUrl(url) => ClickSpec::OpenUrl(url),
+                    Action::CopyToClipboard(text) => ClickSpec::CopyToClipboard(text),
+                    Action::Custom(id) => ClickSpec::Custom(id),
+                }),
+            };
+            Ok(RichPartSpec {
+                text: part.text,
+                hover: part.hover,
+                click,
+            })
+        })
+        .collect()
+}
+
+fn dialog_spec(dialog: v1::Dialog) -> rspigot_core::plugins::DialogSpec {
+    use rspigot_core::plugins::{DialogButtonSpec, DialogInputSpec, DialogSpec};
+    DialogSpec {
+        title: dialog.title,
+        body: dialog.body,
+        inputs: dialog
+            .inputs
+            .into_iter()
+            .map(|input| DialogInputSpec {
+                key: input.key,
+                label: input.label,
+                initial: input.initial,
+                max_length: input.max_length,
+                multiline: input.multiline,
+            })
+            .collect(),
+        buttons: dialog
+            .buttons
+            .into_iter()
+            .map(|button| DialogButtonSpec {
+                label: button.label,
+                id: button.id,
+            })
+            .collect(),
+        can_close_with_escape: dialog.can_close_with_escape,
+    }
+}
+
 pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
     let player = id(order.player)?;
     let order = match required(order.order)? {
@@ -14,6 +71,9 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
         Wire::SendActionBar(text) => PlayerOrder::SendActionBar(text),
         Wire::SendTitle(title) => PlayerOrder::SendTitle(shared::title(title)),
         Wire::ResetTitle(_) => PlayerOrder::ResetTitle,
+        Wire::ShowDialog(dialog) => PlayerOrder::ShowDialog(dialog_spec(dialog)),
+        Wire::ClearDialog(_) => PlayerOrder::ClearDialog,
+        Wire::SendRichMessage(message) => PlayerOrder::SendRichMessage(rich_parts(message)?),
         Wire::SetTabList(v1::TabList { header, footer }) => {
             PlayerOrder::SetTabList { header, footer }
         }
@@ -103,6 +163,7 @@ pub(super) fn wire_target(hit: Option<TargetHit>) -> v1::Target {
             }),
             TargetHit::Player(player) => target::Hit::Player(wire_player(player)),
             TargetHit::Entity(view) => target::Hit::Entity(entity::wire_view(view)),
+            TargetHit::Npc(view) => target::Hit::Npc(super::npc::wire_state(view)),
         }),
     }
 }

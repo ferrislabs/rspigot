@@ -1076,6 +1076,7 @@ pub(crate) enum Struck {
     Crystal(EntityId),
     Hanging(EntityId),
     Stand(EntityId),
+    Npc(EntityId),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

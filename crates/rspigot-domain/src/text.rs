@@ -77,6 +77,8 @@ const FLAG_CODES: [char; 5] = ['l', 'o', 'n', 'm', 'k'];
 const SECTION: char = '§';
 const RGB_MAX: u32 = 0xFF_FFFF;
 const SPIGOT_RESET: Style = Style {
+    click: None,
+    hover: None,
     color: None,
     bold: Some(false),
     italic: Some(false),
@@ -110,8 +112,19 @@ impl Color {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ClickEvent {
+    RunCommand(String),
+    SuggestCommand(String),
+    OpenUrl(String),
+    CopyToClipboard(String),
+    Custom(String),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Style {
+    pub click: Option<Box<ClickEvent>>,
+    pub hover: Option<Box<Component>>,
     pub color: Option<Color>,
     pub bold: Option<bool>,
     pub italic: Option<bool>,
@@ -136,6 +149,8 @@ impl Style {
         [bold, italic, underlined, strikethrough, obfuscated]: [Option<bool>; 5],
     ) -> Self {
         Self {
+            click: None,
+            hover: None,
             color,
             bold,
             italic,
@@ -150,7 +165,11 @@ impl Style {
         for (flag, inherited) in flags.iter_mut().zip(parent.flags()) {
             *flag = flag.or(inherited);
         }
-        Self::from_parts(self.color.or(parent.color), flags)
+        Self {
+            click: self.click.clone().or_else(|| parent.click.clone()),
+            hover: self.hover.clone().or_else(|| parent.hover.clone()),
+            ..Self::from_parts(self.color.or(parent.color), flags)
+        }
     }
 
     fn write_change(&self, next: &Self, out: &mut String) {
@@ -481,6 +500,8 @@ mod tests {
     #[test]
     fn section_codes_reset_like_spigot() {
         let spigot_reset = Style {
+            click: None,
+            hover: None,
             color: None,
             bold: Some(false),
             italic: Some(false),

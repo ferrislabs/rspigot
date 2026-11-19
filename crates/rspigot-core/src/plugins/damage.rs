@@ -114,7 +114,8 @@ impl<L: ClientLink> Server<L> {
             | Struck::Projectile(id)
             | Struck::Crystal(id)
             | Struck::Hanging(id)
-            | Struck::Stand(id) => Some(id),
+            | Struck::Stand(id)
+            | Struck::Npc(id) => Some(id),
         }
     }
 
@@ -163,6 +164,7 @@ impl<L: ClientLink> Server<L> {
             Struck::Crystal(id) => self.ask_hurt_crystal(id, source, amount),
             Struck::Hanging(id) => self.ask_hurt_hanging(id, source).then_some(amount),
             Struck::Stand(id) => self.ask_hurt_stand(id, source).then_some(amount),
+            Struck::Npc(id) => self.entities.npcs.get(id).map(|_| amount),
         };
         let (Some(amount), Some(subject)) = (asked, self.struck_entity(victim)) else {
             self.after_hurt(then, Outcome::Missed);
@@ -237,7 +239,8 @@ impl<L: ClientLink> Server<L> {
             | Struck::Projectile(_)
             | Struck::Crystal(_)
             | Struck::Hanging(_)
-            | Struck::Stand(_) => amount,
+            | Struck::Stand(_)
+            | Struck::Npc(_) => amount,
         });
         let damage = f64::from(amount);
         let damage_source = self.damage_view(source);
@@ -310,6 +313,7 @@ impl<L: ClientLink> Server<L> {
                 Struck::Crystal(id) => self.apply_hurt_crystal(id, source),
                 Struck::Hanging(id) => self.apply_hurt_hanging(id, source),
                 Struck::Stand(id) => self.apply_hurt_stand(id, source),
+                Struck::Npc(_) => false,
             };
             if hurt {
                 self.emit_damage_event(victim);
@@ -336,7 +340,8 @@ impl<L: ClientLink> Server<L> {
             | Struck::Projectile(_)
             | Struck::Crystal(_)
             | Struck::Hanging(_)
-            | Struck::Stand(_) => None,
+            | Struck::Stand(_)
+            | Struck::Npc(_) => None,
         };
         let Some(entity) = entity else {
             return;

@@ -6,6 +6,8 @@ mod player_command;
 pub use player_command::PlayerCommandHandle;
 mod player_connection;
 pub use player_connection::PlayerConnectionHandle;
+mod player_dialog;
+pub use player_dialog::PlayerDialogHandle;
 mod player_effects;
 pub use player_effects::PlayerEffectsHandle;
 mod player_experience;

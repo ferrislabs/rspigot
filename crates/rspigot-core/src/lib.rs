@@ -96,6 +96,7 @@ pub mod mobs;
 mod mount_menu;
 mod nature;
 mod nether_portal;
+mod npc;
 mod patrol;
 pub mod permissions;
 mod persistence;

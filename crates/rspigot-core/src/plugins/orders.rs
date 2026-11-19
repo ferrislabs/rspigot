@@ -87,6 +87,10 @@ pub enum Order {
         bar: u64,
         order: crate::plugins::BossBarOrder,
     },
+    Npc {
+        npc: EntityId,
+        order: crate::plugins::NpcOrder,
+    },
 }
 
 impl Order {
@@ -102,6 +106,7 @@ impl Order {
             Self::CustomInventory { order, .. } => order.name(),
             Self::Scoreboard { order, .. } => order.name(),
             Self::BossBar { order, .. } => order.name(),
+            Self::Npc { order, .. } => order.name(),
         }
     }
 }
@@ -333,12 +338,55 @@ impl InventoryOrder {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ClickSpec {
+    RunCommand(String),
+    SuggestCommand(String),
+    OpenUrl(String),
+    CopyToClipboard(String),
+    Custom(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RichPartSpec {
+    pub text: String,
+    pub hover: Option<String>,
+    pub click: Option<ClickSpec>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DialogInputSpec {
+    pub key: String,
+    pub label: String,
+    pub initial: String,
+    pub max_length: u32,
+    pub multiline: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DialogButtonSpec {
+    pub label: String,
+    pub id: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DialogSpec {
+    pub title: String,
+    pub body: Vec<String>,
+    pub inputs: Vec<DialogInputSpec>,
+    pub buttons: Vec<DialogButtonSpec>,
+    pub can_close_with_escape: bool,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlayerOrder {
     SendMessage(String),
     SendActionBar(String),
     SendTitle(TitleSpec),
     ResetTitle,
+    ShowDialog(DialogSpec),
+    ClearDialog,
+    SendRichMessage(Vec<RichPartSpec>),
     SetTabList {
         header: String,
         footer: String,
@@ -401,6 +449,9 @@ impl PlayerOrder {
             Self::SendActionBar(_) => "player.send_action_bar",
             Self::SendTitle(_) => "player.send_title",
             Self::ResetTitle => "player.reset_title",
+            Self::ShowDialog(_) => "player.show_dialog",
+            Self::ClearDialog => "player.clear_dialog",
+            Self::SendRichMessage(_) => "player.send_rich_message",
             Self::SetTabList { .. } => "player.set_tab_list",
             Self::Teleport(_) => "player.teleport",
             Self::TeleportFacing(..) => "player.teleport_facing",

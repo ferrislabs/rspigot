@@ -29,4 +29,11 @@ impl PlayerMessageHandle {
             order: Some(v1::player_order::Order::Chat(value.into())),
         }));
     }
+
+    pub fn send_rich(&self, value: impl Into<v1::RichMessage>) {
+        self.link.order(from_plugin::Body::Player(v1::PlayerOrder {
+            player: self.target.to_string(),
+            order: Some(v1::player_order::Order::SendRichMessage(value.into())),
+        }));
+    }
 }

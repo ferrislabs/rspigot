@@ -415,6 +415,7 @@ pub enum MetadataValue {
     Float(f32),
     Pose(Pose),
     OptionalComponent(Option<Component>),
+    Component(Component),
     Boolean(bool),
     Item(Slot),
     BlockPos(BlockPos),
@@ -620,6 +621,8 @@ pub enum ClientEvent {
         sender_name: Component,
         message: String,
     },
+    ShowDialog(Box<rspigot_domain::dialog::Dialog>),
+    ClearDialog,
     PlayerInfo(Vec<PlayerListEntry>),
     PlayerInfoGameMode {
         player: PlayerId,

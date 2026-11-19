@@ -9555,13 +9555,88 @@ pub struct Decision {
     pub verdicts: ::prost::alloc::vec::Vec<Verdict>,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DialogInput {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub initial: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "4")]
+    pub max_length: u32,
+    #[prost(bool, tag = "5")]
+    pub multiline: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DialogButton {
+    #[prost(string, tag = "1")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub id: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Dialog {
+    #[prost(string, tag = "1")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub body: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "3")]
+    pub inputs: ::prost::alloc::vec::Vec<DialogInput>,
+    #[prost(message, repeated, tag = "4")]
+    pub buttons: ::prost::alloc::vec::Vec<DialogButton>,
+    #[prost(bool, tag = "5")]
+    pub can_close_with_escape: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RichClick {
+    #[prost(oneof = "rich_click::Action", tags = "1, 2, 3, 4, 5")]
+    pub action: ::core::option::Option<rich_click::Action>,
+}
+/// Nested message and enum types in `RichClick`.
+pub mod rich_click {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Action {
+        #[prost(string, tag = "1")]
+        RunCommand(::prost::alloc::string::String),
+        #[prost(string, tag = "2")]
+        SuggestCommand(::prost::alloc::string::String),
+        #[prost(string, tag = "3")]
+        OpenUrl(::prost::alloc::string::String),
+        #[prost(string, tag = "4")]
+        CopyToClipboard(::prost::alloc::string::String),
+        #[prost(string, tag = "5")]
+        Custom(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RichPart {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub hover: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "3")]
+    pub click: ::core::option::Option<RichClick>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RichMessage {
+    #[prost(message, repeated, tag = "1")]
+    pub parts: ::prost::alloc::vec::Vec<RichPart>,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PlayerOrder {
     #[prost(string, tag = "1")]
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -9658,6 +9733,12 @@ pub mod player_order {
         SetScoreboard(u32),
         #[prost(message, tag = "53")]
         Transfer(super::Transfer),
+        #[prost(message, tag = "54")]
+        ShowDialog(super::Dialog),
+        #[prost(message, tag = "55")]
+        ClearDialog(super::Empty),
+        #[prost(message, tag = "56")]
+        SendRichMessage(super::RichMessage),
     }
 }
 #[allow(clippy::all)]
@@ -10049,6 +10130,102 @@ pub mod custom_inventory_order {
     }
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct NpcSkin {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub signature: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NpcSpec {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(message, optional, tag = "4")]
+    pub rotation: ::core::option::Option<Rotation>,
+    #[prost(message, optional, tag = "5")]
+    pub skin: ::core::option::Option<NpcSkin>,
+    #[prost(uint32, optional, tag = "6")]
+    pub skin_layers: ::core::option::Option<u32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NpcEquipment {
+    #[prost(string, tag = "1")]
+    pub slot: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub item: ::core::option::Option<Item>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct NpcGaze {
+    #[prost(double, tag = "1")]
+    pub range: f64,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct NpcWalk {
+    #[prost(message, optional, tag = "1")]
+    pub target: ::core::option::Option<Vec3>,
+    #[prost(double, tag = "2")]
+    pub speed: f64,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NpcOrder {
+    #[prost(int32, tag = "1")]
+    pub npc: i32,
+    #[prost(
+        oneof = "npc_order::Order",
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25"
+    )]
+    pub order: ::core::option::Option<npc_order::Order>,
+}
+/// Nested message and enum types in `NpcOrder`.
+pub mod npc_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Order {
+        #[prost(message, tag = "10")]
+        Teleport(super::Vec3),
+        #[prost(message, tag = "11")]
+        Remove(super::Empty),
+        #[prost(message, tag = "12")]
+        SetSkin(super::NpcSkin),
+        #[prost(message, tag = "13")]
+        SetRotation(super::Rotation),
+        #[prost(string, tag = "14")]
+        SetPose(::prost::alloc::string::String),
+        #[prost(message, tag = "15")]
+        SetEquipment(super::NpcEquipment),
+        #[prost(message, tag = "16")]
+        SwingMainHand(super::Empty),
+        #[prost(message, tag = "17")]
+        SwingOffHand(super::Empty),
+        #[prost(message, tag = "18")]
+        LookAt(super::Vec3),
+        #[prost(message, tag = "19")]
+        LookAtNearest(super::NpcGaze),
+        #[prost(uint32, tag = "20")]
+        SetSkinLayers(u32),
+        #[prost(string, tag = "21")]
+        SetLabel(::prost::alloc::string::String),
+        #[prost(string, tag = "22")]
+        HideFrom(::prost::alloc::string::String),
+        #[prost(string, tag = "23")]
+        ShowTo(::prost::alloc::string::String),
+        #[prost(message, tag = "24")]
+        WalkTo(super::NpcWalk),
+        #[prost(message, tag = "25")]
+        StopWalking(super::Empty),
+    }
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TargetQuery {
     #[prost(string, tag = "1")]
@@ -10095,7 +10272,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -10152,6 +10329,14 @@ pub mod question {
         BossBars(super::Empty),
         #[prost(message, tag = "33")]
         AttributeValue(super::AttributeQuery),
+        #[prost(message, tag = "34")]
+        CreateNpc(super::NpcSpec),
+        #[prost(string, tag = "35")]
+        NpcByKey(::prost::alloc::string::String),
+        #[prost(message, tag = "36")]
+        Npcs(super::Empty),
+        #[prost(int32, tag = "37")]
+        Npc(i32),
     }
 }
 #[allow(clippy::all)]
@@ -10163,7 +10348,10 @@ pub struct FromPlugin {
     pub request: ::core::option::Option<u64>,
     #[prost(string, optional, tag = "15")]
     pub in_world: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(oneof = "from_plugin::Body", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13")]
+    #[prost(
+        oneof = "from_plugin::Body",
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 16"
+    )]
     pub body: ::core::option::Option<from_plugin::Body>,
 }
 /// Nested message and enum types in `FromPlugin`.
@@ -10195,6 +10383,8 @@ pub mod from_plugin {
         Scoreboard(super::ScoreboardOrder),
         #[prost(message, tag = "13")]
         BossBar(super::BossBarOrder),
+        #[prost(message, tag = "16")]
+        Npc(super::NpcOrder),
     }
 }
 #[allow(clippy::all)]
@@ -10244,7 +10434,7 @@ pub struct BlockHit {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Target {
-    #[prost(oneof = "target::Hit", tags = "1, 2, 3")]
+    #[prost(oneof = "target::Hit", tags = "1, 2, 3, 4")]
     pub hit: ::core::option::Option<target::Hit>,
 }
 /// Nested message and enum types in `Target`.
@@ -10258,6 +10448,8 @@ pub mod target {
         Player(super::PlayerSnapshot),
         #[prost(message, tag = "3")]
         Entity(super::EntitySnapshot),
+        #[prost(message, tag = "4")]
+        Npc(super::NpcState),
     }
 }
 #[allow(clippy::all)]
@@ -10476,12 +10668,48 @@ pub struct BossBarList {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NpcState {
+    #[prost(int32, tag = "1")]
+    pub entity_id: i32,
+    #[prost(string, tag = "2")]
+    pub uuid: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub world: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "6")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(message, optional, tag = "7")]
+    pub rotation: ::core::option::Option<Rotation>,
+    #[prost(message, optional, tag = "8")]
+    pub skin: ::core::option::Option<NpcSkin>,
+    #[prost(uint32, tag = "9")]
+    pub skin_layers: u32,
+    #[prost(string, tag = "10")]
+    pub pose: ::prost::alloc::string::String,
+    #[prost(double, tag = "11")]
+    pub gaze_range: f64,
+    #[prost(string, optional, tag = "12")]
+    pub label: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "13")]
+    pub walking: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NpcList {
+    #[prost(message, repeated, tag = "1")]
+    pub npcs: ::prost::alloc::vec::Vec<NpcState>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Answer {
     #[prost(uint64, tag = "1")]
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -10538,6 +10766,10 @@ pub mod answer {
         WorldCreated(::prost::alloc::string::String),
         #[prost(double, tag = "25")]
         AttributeValue(f64),
+        #[prost(message, tag = "26")]
+        Npc(super::NpcState),
+        #[prost(message, tag = "27")]
+        Npcs(super::NpcList),
     }
 }
 #[allow(clippy::all)]
