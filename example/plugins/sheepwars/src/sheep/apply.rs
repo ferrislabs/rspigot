@@ -3,8 +3,10 @@ use rspigot_plugin::{
     Material, Particle, ParticleBurst, Player, Position, Sound, SoundCue, Vector, World,
 };
 
+use tokio::task::JoinSet;
+
 use super::catalog::{self, WoolColor};
-use super::debris::{DEBRIS_PARTICLES, blocked_by_player};
+use super::debris::{DEBRIS_PARTICLES, DEBRIS_SPAWN_LIFT};
 use super::impact::{
     Action, BlockKind, Cell, EffectKind, ParticleKind, SoundKind, Vec3, outward_velocity,
 };
@@ -18,17 +20,9 @@ pub struct Combatant {
     pub position: Vec3,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Landing {
-    pub at: Cell,
-    pub block: BlockType,
-    pub delay_ticks: u32,
-}
-
 #[derive(Debug, Default)]
 pub struct Applied {
     pub spawned: Vec<(SheepKind, Entity)>,
-    pub landings: Vec<Landing>,
 }
 
 pub async fn apply(
@@ -37,7 +31,11 @@ pub async fn apply(
     roster: &[Combatant],
 ) -> Result<Applied, Error> {
     let mut applied = Applied::default();
+    let mut throws = JoinSet::new();
     for action in actions {
+        if !matches!(action, Action::Scatter { .. }) {
+            finish(&mut throws).await;
+        }
         match *action {
             Action::Explode {
                 at,
@@ -100,58 +98,49 @@ pub async fn apply(
                 entity.set_velocity(vector(velocity));
                 applied.spawned.push((kind, entity));
             }
-            Action::Scatter {
-                from,
-                to,
-                delay_ticks,
-            } => {
-                if let Some(block) = lift(world, from).await {
-                    applied.landings.push(Landing {
-                        at: to,
-                        block,
-                        delay_ticks,
-                    });
-                }
+            Action::Scatter { from, velocity } => {
+                throws.spawn(throw(world.clone(), from, velocity));
             }
         }
     }
+    finish(&mut throws).await;
     Ok(applied)
 }
 
-async fn lift(world: &World, from: Cell) -> Option<BlockType> {
+async fn finish(throws: &mut JoinSet<()>) {
+    while let Some(result) = throws.join_next().await {
+        if let Err(error) = result {
+            tracing::debug!("a debris task failed: {error}");
+        }
+    }
+}
+
+async fn throw(world: World, from: Cell, velocity: Vec3) {
     let block = world.block(block_pos(from));
     let kind = match block.get_state().await {
         Ok(state) => state.kind,
         Err(error) => {
-            tracing::warn!("could not read a debris block: {error}");
-            return None;
+            tracing::debug!("could not read a debris block: {error}");
+            return;
         }
     };
     if is_empty(kind) {
-        return None;
-    }
-    block.set(BlockType::Air);
-    world.particle.spawn(
-        ParticleBurst::new(Particle::Block(kind), cell_center(from)).count(DEBRIS_PARTICLES),
-    );
-    Some(kind)
-}
-
-pub async fn settle(world: &World, landing: Cell, block: BlockType, players: &[Vec3]) {
-    if blocked_by_player(landing, players) {
         return;
     }
-    let target = world.block(block_pos(landing));
-    match target.get_state().await {
-        Ok(state) if is_empty(state.kind) => {
-            target.set(block);
-            world.particle.spawn(
-                ParticleBurst::new(Particle::Block(block), cell_center(landing))
-                    .count(DEBRIS_PARTICLES),
-            );
-        }
-        Ok(_) => {}
-        Err(error) => tracing::warn!("could not land a debris block: {error}"),
+    block.set(BlockType::Air);
+    let centre = cell_center(from);
+    world
+        .particle
+        .spawn(ParticleBurst::new(Particle::Block(kind), centre).count(DEBRIS_PARTICLES));
+    let start = Position {
+        y: centre.y + DEBRIS_SPAWN_LIFT,
+        ..centre
+    };
+    if let Err(error) = world
+        .spawn_falling_block(kind, start, vector(velocity))
+        .await
+    {
+        tracing::debug!("could not throw a debris block: {error}");
     }
 }
 

@@ -2,10 +2,13 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use rspigot_plugin::{
-    Attribute, BlockType, BossBar, ChunkLoad, Entity, EntityType, GameMode, ItemRemoval, ItemStack,
-    Location, Player, Position, Rotation, Title, Uuid, Vector,
+    Attribute, BossBar, ChunkLoad, Entity, EntityType, GameMode, ItemRemoval, ItemStack, Location,
+    ParticleBurst, Player, Position, Rotation, SoundCue, Title, Uuid, Vector,
 };
 
+use super::capture::{
+    CAPTURE_PARTICLE, CAPTURE_PARTICLES, CAPTURE_SOUND, Capture, extract, has_room,
+};
 use super::display::lives_line;
 use super::flight::{
     BOARDING_RIDER_OFFSET, EYE_HEIGHT, Flight, MAX_CONCURRENT_FLIGHTS, Observation, Step,
@@ -17,13 +20,22 @@ use crate::arena::{Arena, Point};
 use crate::domain::{PlayerId, SheepKind, TeamId};
 use crate::hud::{Hud, bossbar_progress, bossbar_title};
 use crate::sheep::{
-    Combatant, SEEKER_RANGE, SPLIT_CHILD_FUSE_TICKS, Schedule, Vec3, apply, display_name,
-    homes_in_flight, launch_power, launch_velocity, nearest_enemy, paint, plan, plan_pulse, settle,
-    sheep_wool, targetable,
+    Combatant, SEEKER_RANGE, Vec3, apply, display_name, homes_in_flight, launch_power,
+    launch_velocity, nearest_enemy, paint, plan, plan_pulse, sheep_wool, targetable,
 };
 
 pub const HUD_REFRESH_TICKS: u64 = 5;
 pub const ACTION_BAR_REFRESH_TICKS: u64 = 20;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Hit {
+    NotSheep,
+    Denied,
+    Caught {
+        kind: Option<SheepKind>,
+        at: Position,
+    },
+}
 
 pub fn player_id(uuid: Uuid) -> PlayerId {
     PlayerId(uuid.as_u128())
@@ -39,7 +51,6 @@ struct State {
     session: Session,
     players: HashMap<PlayerId, Player>,
     flights: Vec<Airborne>,
-    landings: Schedule<BlockType>,
     hud: Hud,
     bar: BossBar,
     ticks: u64,
@@ -58,7 +69,6 @@ impl Game {
                 session,
                 players: HashMap::new(),
                 flights: Vec::new(),
-                landings: Schedule::default(),
                 hud,
                 bar,
                 ticks: 0,
@@ -206,12 +216,71 @@ impl Game {
         true
     }
 
+    pub fn catch(&self, attacker: &Player, sheep: &Entity) -> Hit {
+        let mut state = self.lock();
+        let Some(index) = state
+            .flights
+            .iter()
+            .position(|airborne| airborne.entity.entity_id == sheep.entity_id)
+        else {
+            return Hit::NotSheep;
+        };
+        let verdict = state
+            .session
+            .capture(player_id(attacker.uuid), &state.flights[index].flight);
+        if verdict == Capture::Denied {
+            return Hit::Denied;
+        }
+        let Some(airborne) = extract(&mut state.flights, |airborne| {
+            airborne.entity.entity_id == sheep.entity_id
+        }) else {
+            return Hit::NotSheep;
+        };
+        airborne.entity.remove();
+        if airborne.flight.kind == SheepKind::Boarding {
+            state.session.shield(airborne.flight.thrower);
+        }
+        Hit::Caught {
+            kind: match verdict {
+                Capture::Taken { kind } => Some(kind),
+                Capture::Denied | Capture::Fragment => None,
+            },
+            at: sheep.position,
+        }
+    }
+
+    pub async fn reward(&self, attacker: &Player, kind: Option<SheepKind>, at: Position) {
+        attacker
+            .world
+            .sound
+            .play(SoundCue::new(CAPTURE_SOUND).at(at));
+        attacker
+            .world
+            .particle
+            .spawn(ParticleBurst::new(CAPTURE_PARTICLE, at).count(CAPTURE_PARTICLES));
+        let Some(kind) = kind else { return };
+        let wool = ItemStack::new(sheep_wool(kind), 1).name(display_name(kind));
+        let room = match attacker.inventory.get_items().await {
+            Ok(inventory) => has_room(&inventory, sheep_wool(kind)),
+            Err(error) => {
+                tracing::warn!("could not read the inventory of {}: {error}", attacker.name);
+                true
+            }
+        };
+        if room {
+            attacker.inventory.add(wool);
+            return;
+        }
+        if let Err(error) = attacker.world.drop_item(attacker.position, wool).await {
+            tracing::warn!("could not drop a wool for {}: {error}", attacker.name);
+        }
+    }
+
     pub async fn tick(&self) {
         let intents = self.lock().session.tick();
         self.run(intents).await;
         let roster = self.roster().await;
         self.advance_flights(&roster).await;
-        self.land_debris(&roster).await;
         self.refresh();
     }
 
@@ -380,7 +449,7 @@ impl Game {
     async fn roster(&self) -> Vec<Combatant> {
         let (players, teams) = {
             let state = self.lock();
-            if state.flights.is_empty() && state.landings.is_empty() {
+            if state.flights.is_empty() {
                 return Vec::new();
             }
             let teams: HashMap<PlayerId, TeamId> = state.session.standing().into_iter().collect();
@@ -411,17 +480,6 @@ impl Game {
             });
         }
         roster
-    }
-
-    async fn land_debris(&self, roster: &[Combatant]) {
-        let due = self.lock().landings.advance();
-        if due.is_empty() {
-            return;
-        }
-        let players: Vec<Vec3> = roster.iter().map(|combatant| combatant.position).collect();
-        for (at, block) in due {
-            settle(&self.arena.world, at, block, &players).await;
-        }
     }
 
     async fn advance_flights(&self, roster: &[Combatant]) {
@@ -484,22 +542,14 @@ impl Game {
         } = airborne.flight;
         let actions = plan(kind, at, team);
         match apply(&self.arena.world, &actions, roster).await {
-            Ok(applied) => {
-                let mut state = self.lock();
-                for landing in applied.landings {
-                    state
-                        .landings
-                        .push(landing.delay_ticks, landing.at, landing.block);
-                }
-                applied
-                    .spawned
-                    .into_iter()
-                    .map(|(kind, entity)| Airborne {
-                        flight: Flight::with_fuse(kind, team, thrower, SPLIT_CHILD_FUSE_TICKS),
-                        entity,
-                    })
-                    .collect()
-            }
+            Ok(applied) => applied
+                .spawned
+                .into_iter()
+                .map(|(kind, entity)| Airborne {
+                    flight: Flight::fragment(kind, team, thrower),
+                    entity,
+                })
+                .collect(),
             Err(error) => {
                 tracing::warn!("a {kind:?} sheep failed to land: {error}");
                 Vec::new()

@@ -6,8 +6,7 @@ mod launch;
 mod select;
 
 pub use apply::{
-    Applied, Combatant, Landing, apply, dye_color, nearest_enemy, paint, settle, sheep_wool,
-    wool_material,
+    Applied, Combatant, apply, dye_color, nearest_enemy, paint, sheep_wool, wool_material,
 };
 pub use catalog::{
     DARKNESS_BLINDNESS_AMPLIFIER, DARKNESS_BLINDNESS_TICKS, DARKNESS_RADIUS,
@@ -29,7 +28,6 @@ pub use catalog::{
 pub use catalog::{
     WoolColor, announces_launch, display_name, homes_in_flight, launch_power, wool_color,
 };
-pub use debris::{Schedule, blocked_by_player};
 pub use impact::{
     Action, BlockKind, Cell, EffectKind, ParticleKind, SoundKind, Vec3, outward_velocity, plan,
     plan_pulse,
