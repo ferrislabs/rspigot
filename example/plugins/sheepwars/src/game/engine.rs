@@ -2,14 +2,15 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use rspigot_plugin::{
-    Attribute, BossBar, ChunkLoad, Entity, EntityType, GameMode, ItemRemoval, ItemStack, Location,
-    ParticleBurst, Player, Position, Rotation, SoundCue, Title, Uuid, Vector,
+    Attribute, BlockPos, BossBar, ChunkLoad, Entity, EntityType, GameMode, ItemRemoval, ItemStack,
+    Location, ParticleBurst, Player, Position, Rotation, SoundCue, Title, Uuid, Vector,
 };
 
 use super::capture::{CAPTURE_PARTICLE, CAPTURE_PARTICLES, CAPTURE_SOUND, Capture};
 use super::display::lives_line;
 use super::flight::{BOARDING_RIDER_OFFSET, EYE_HEIGHT, Flight, Observation, Step, can_launch};
 use super::intent::Intent;
+use super::locate::{Column, Descent, LOBBY_SCAN_LIFT, Probe, Probes, SCAN_DEPTH, describe};
 use super::registry::{Airborne, Registry};
 use super::session::{ForceStartError, Session, VoidVerdict, launch_announcement};
 use crate::arena::{Arena, Point};
@@ -167,6 +168,68 @@ impl Game {
     pub async fn rescue(&self, player: &Player) {
         let lobby = self.lock().session.layout().lobby();
         self.teleport(player, lobby).await;
+    }
+
+    async fn probe(&self, x: i32, y: i32, z: i32) -> Probe {
+        match self.arena.world.get_block(BlockPos { x, y, z }).await {
+            Ok(state) => Probe::of_key(state.kind.key()),
+            Err(_) => Probe::Unloaded,
+        }
+    }
+
+    async fn descend(&self, x: i32, z: i32, start: i32) -> Descent {
+        for depth in 0..SCAN_DEPTH {
+            let y = start - depth;
+            match self.probe(x, y, z).await {
+                Probe::Air => {}
+                Probe::Solid(block) => return Descent::Hit { y, depth, block },
+                Probe::Unloaded => return Descent::Unloaded { y },
+            }
+        }
+        Descent::Empty
+    }
+
+    pub async fn locate(&self, player: &Player) -> Vec<String> {
+        let state = match player.get_state().await {
+            Ok(state) => state,
+            Err(error) => return vec![format!("§cÉtat du joueur illisible : {error}")],
+        };
+        let located = &state.player;
+        let in_arena = located.world.id() == self.arena.world.id();
+        let position = located.position;
+        let column = if in_arena {
+            let (x, z) = (position.x.floor() as i32, position.z.floor() as i32);
+            let feet_y = position.y.floor() as i32;
+            Some(Column {
+                feet: self.probe(x, feet_y, z).await,
+                below: self.probe(x, feet_y - 1, z).await,
+                ground: self.descend(x, z, feet_y).await,
+            })
+        } else {
+            None
+        };
+        let lobby = self.lock().session.layout().lobby();
+        let lobby_top = lobby.y.floor() as i32 + LOBBY_SCAN_LIFT;
+        let lobby_ground = self
+            .descend(lobby.x.floor() as i32, lobby.z.floor() as i32, lobby_top)
+            .await;
+        let probes = Probes {
+            player: column,
+            lobby: lobby_ground,
+            lobby_top,
+        };
+        let lines = describe(
+            located.world.id(),
+            self.arena.world.id(),
+            (position.x, position.y, position.z),
+            &probes,
+        );
+        tracing::info!(
+            "where: {} in_arena={in_arena} world={}",
+            player.name,
+            located.world.id()
+        );
+        lines
     }
 
     pub async fn throw(&self, player: &Player, kind: SheepKind) -> bool {

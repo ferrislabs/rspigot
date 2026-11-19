@@ -18,6 +18,7 @@ A SheepWars mini-game plugin for rspigot: two teams (red and blue) fight on the 
 | --- | --- | --- |
 | `/sheepwars join` | everyone | joins the round (or spectates if it has started) |
 | `/sheepwars leave` | everyone | leaves the round and becomes a spectator in the lobby |
+| `/sheepwars where` | everyone | diagnostic: world, position, blocks under the player and under the lobby as the server sees them |
 | `/sheepwars forcestart` | `sheepwars.admin` | skips the countdown, works with a single player |
 | `/sheepwars stop` | `sheepwars.admin` | cancels the round and resets |
 
