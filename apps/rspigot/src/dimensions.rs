@@ -24,6 +24,9 @@ pub fn create<L: ClientLink>(server: &mut Server<L>, spec: &WorldSpec) -> Result
         .get()
         .ok_or_else(|| "the world store is not available".to_owned())?;
     let generator = WorldGenerator::for_world(spec)?;
+    worlds
+        .store
+        .register_dimension_height(spec.key(), spec.dimension().height);
     server.load_world(spec, Arc::new(generator), Arc::clone(&worlds.store));
     Ok(())
 }
