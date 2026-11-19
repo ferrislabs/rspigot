@@ -16,6 +16,8 @@ use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
+use crate::block_components;
+
 const BLOCK_REGISTRY: &str = "minecraft:block";
 const ITEM_REGISTRY: &str = "minecraft:item";
 const ENTITY_REGISTRY: &str = "minecraft:entity_type";
@@ -79,6 +81,7 @@ pub struct LootContext<'a> {
     pub explosion_radius: Option<f32>,
     pub biome: Option<&'a str>,
     pub enchantment_level: i32,
+    pub block_entity: Option<&'a Compound>,
 }
 
 impl<'a> LootContext<'a> {
@@ -92,6 +95,13 @@ impl<'a> LootContext<'a> {
             tool,
             this: breaker,
             ..Self::default()
+        }
+    }
+
+    pub fn with_block_entity(self, data: Option<&'a Compound>) -> Self {
+        Self {
+            block_entity: data,
+            ..self
         }
     }
 
@@ -714,6 +724,13 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                     trade_gen::enchant_with_levels(&mut random, single, options, levels);
                 stack.item = enchanted.item.0;
                 stack.components = enchanted.components;
+            }
+            FunctionKind::CopyComponents { include } => {
+                if let Some(data) = self.context.block_entity {
+                    for (name, value) in block_components::collect(data, include).iter() {
+                        stack.components.insert(name, value.clone());
+                    }
+                }
             }
             FunctionKind::Components(_) => {}
         }

@@ -170,6 +170,9 @@ impl<L: ClientLink> Server<L> {
         }
         if let Some(target) = step.changes.last() {
             self.check_wither_summon(target.pos);
+            if step.tool.is_none() {
+                self.apply_item_components(target.pos, target.new, &step.using.stack.components);
+            }
         }
         let using = step.using;
         let id = using.player;

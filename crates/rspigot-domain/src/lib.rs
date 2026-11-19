@@ -36,6 +36,7 @@ pub mod ident;
 pub mod ids;
 pub mod item;
 pub mod jukebox;
+pub mod loom;
 pub mod menu;
 pub mod mth;
 pub mod npc;

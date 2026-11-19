@@ -163,6 +163,7 @@ pub enum MenuEffect {
         amount: u32,
     },
     StonecutterTaken,
+    LoomTaken,
     SmithingTaken,
     GrindstoneTaken {
         experience: i32,

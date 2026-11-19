@@ -18,6 +18,7 @@ const ENTITY: &str = "campfire";
 const COOKING_TIMES: &str = "CookingTimes";
 const COOKING_TOTAL_TIMES: &str = "CookingTotalTimes";
 const LIT: &str = "lit";
+const WATERLOGGED: &str = "waterlogged";
 
 pub(crate) fn is_campfire(state: BlockStateId) -> bool {
     matches!(
@@ -26,8 +27,41 @@ pub(crate) fn is_campfire(state: BlockStateId) -> bool {
     )
 }
 
-fn is_lit(state: BlockStateId) -> bool {
-    state.property(LIT) == Some("true")
+pub(crate) fn is_lit(state: BlockStateId) -> bool {
+    is_campfire(state) && state.property(LIT) == Some("true")
+}
+
+pub(crate) fn is_waterlogged(state: BlockStateId) -> bool {
+    is_campfire(state) && state.property(WATERLOGGED) == Some("true")
+}
+
+pub(crate) fn can_waterlog(state: BlockStateId) -> bool {
+    is_campfire(state) && state.property(WATERLOGGED) == Some("false")
+}
+
+pub(crate) fn doused(state: BlockStateId) -> BlockStateId {
+    if is_lit(state) && is_waterlogged(state) {
+        state.with_property(LIT, "false").unwrap_or(state)
+    } else {
+        state
+    }
+}
+
+pub(crate) fn placed(state: BlockStateId, replaced: BlockStateId) -> BlockStateId {
+    if !is_campfire(state) {
+        return state;
+    }
+    let water =
+        replaced.kind() == Some(BlockKind::Water) && replaced.property("level") == Some("0");
+    let (lit, waterlogged) = if water {
+        ("false", "true")
+    } else {
+        ("true", "false")
+    };
+    state
+        .with_property(LIT, lit)
+        .and_then(|state| state.with_property(WATERLOGGED, waterlogged))
+        .unwrap_or(state)
 }
 
 fn read_counters(data: &Compound, key: &str) -> [i32; SLOTS] {
@@ -313,5 +347,44 @@ impl<L: ClientLink> Server<L> {
             Lane::Block(pos),
             |then| matches!(then, Continuation::Cook(step) if step.slot == slot),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn campfire(lit: &str, waterlogged: &str) -> BlockStateId {
+        BlockKind::Campfire
+            .state_with(&[("lit", lit), ("waterlogged", waterlogged)])
+            .expect("a valid state")
+    }
+
+    #[test]
+    fn a_lit_waterlogged_campfire_is_put_out() {
+        let state = doused(campfire("true", "true"));
+        assert_eq!(state.property("lit"), Some("false"));
+        assert_eq!(state.property("waterlogged"), Some("true"));
+    }
+
+    #[test]
+    fn a_dry_lit_campfire_is_left_alone() {
+        let state = campfire("true", "false");
+        assert_eq!(doused(state), state);
+    }
+
+    #[test]
+    fn placing_in_a_water_source_waterlogs_and_leaves_it_unlit() {
+        let water = BlockKind::Water.default_state();
+        let state = placed(campfire("true", "false"), water);
+        assert_eq!(state.property("lit"), Some("false"));
+        assert_eq!(state.property("waterlogged"), Some("true"));
+    }
+
+    #[test]
+    fn placing_in_air_lights_it() {
+        let state = placed(campfire("false", "false"), BlockStateId::AIR);
+        assert_eq!(state.property("lit"), Some("true"));
+        assert_eq!(state.property("waterlogged"), Some("false"));
     }
 }

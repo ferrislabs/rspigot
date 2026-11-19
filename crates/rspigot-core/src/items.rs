@@ -312,12 +312,19 @@ impl<L: ClientLink> Server<L> {
         if player.vitals.is_dead() || player.game_mode == GameMode::Spectator {
             return;
         }
-        let outcome = player.inventory.insert(
-            stack.item,
-            u32::from(stack.count.get()),
-            stack.item.max_stack_size(),
-        );
-        let taken = u32::from(stack.count.get()) - outcome.remaining;
+        let remaining = if stack.components.is_empty() {
+            player
+                .inventory
+                .insert(
+                    stack.item,
+                    u32::from(stack.count.get()),
+                    stack.item.max_stack_size(),
+                )
+                .remaining
+        } else {
+            rspigot_domain::item::count(&player.inventory.place_back(stack.clone()).leftover)
+        };
+        let taken = u32::from(stack.count.get()) - remaining;
         if taken == 0 {
             return;
         }
@@ -331,7 +338,7 @@ impl<L: ClientLink> Server<L> {
         self.sync_inventory(player_id);
         self.push(Audience::TrackersExcept(id, player_id), pickup);
         self.broadcast_held_item(player_id);
-        match std::num::NonZeroU8::new(outcome.remaining as u8) {
+        match std::num::NonZeroU8::new(remaining as u8) {
             Some(count) => {
                 if let Some(entity) = self.entities.store.get_mut(id) {
                     let mut stack = stack;

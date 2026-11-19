@@ -2202,6 +2202,7 @@ impl<L: ClientLink> Server<L> {
                     explosion_radius: None,
                     biome: None,
                     enchantment_level: 0,
+                    block_entity: None,
                 };
                 drops.extend(loot::table_drops(table, &context, &mut self.rng));
             }

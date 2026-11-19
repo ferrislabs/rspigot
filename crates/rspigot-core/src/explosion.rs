@@ -588,10 +588,12 @@ impl<L: ClientLink> Server<L> {
                 continue;
             }
             let hive = self.hive_snapshot(*pos);
+            let entity_data = self.block_entity_data(*pos);
             self.spawn_after_break(*pos, state, None);
             let context = LootContext {
                 explosion_radius: decay,
                 ..LootContext::block(state, None, this.as_ref())
+                    .with_block_entity(entity_data.as_ref())
             };
             let drops = loot::block_drops(&context, &mut self.rng);
             for drop in drops {

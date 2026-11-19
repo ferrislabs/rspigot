@@ -9,6 +9,7 @@ use rspigot_domain::{BlockPos, BlockStateId, Rotation, Vec3};
 use rspigot_blocks::{BlockKind, Face, PlaceContext, StateFlags, UseContext};
 
 use crate::block_tools::ToolUse;
+use crate::campfire;
 use crate::chests;
 use crate::crops;
 use crate::doors::is_door_state;
@@ -23,6 +24,7 @@ use crate::plugins::{Continuation, Held, PluginTyping, SuggestStep};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
+const CAMPFIRE_DOUSE_EVENT: i32 = 1009;
 const OFFHAND_SLOT: usize = 45;
 const MAX_REACH_SQUARED: f64 = 64.0;
 const MAX_MOVE_SQUARED: f64 = 100.0 * 100.0;
@@ -439,7 +441,11 @@ impl<L: ClientLink> Server<L> {
         let Some(state) = self.world.chunks.block(pos).filter(|state| !state.is_air()) else {
             return false;
         };
-        self.pop_block_loot(pos, &LootContext::block(state, None, None));
+        let entity_data = self.block_entity_data(pos);
+        self.pop_block_loot(
+            pos,
+            &LootContext::block(state, None, None).with_block_entity(entity_data.as_ref()),
+        );
         self.spawn_after_break(pos, state, None);
         self.set_block(pos, BlockStateId::AIR)
     }
@@ -455,6 +461,10 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn set_block(&mut self, pos: BlockPos, state: BlockStateId) -> bool {
         let before = self.world.chunks.block(pos);
+        let state = campfire::doused(state);
+        if before.is_some_and(|old| campfire::is_lit(old) && campfire::is_waterlogged(state)) {
+            self.level_event(CAMPFIRE_DOUSE_EVENT, pos, 0);
+        }
         let lost = before
             .map(|old| self.contents_lost_by(pos, old, state))
             .unwrap_or_default();
@@ -560,6 +570,11 @@ impl<L: ClientLink> Server<L> {
                     .players
                     .get(&id)
                     .is_some_and(|player| player.inventory.get(OFFHAND_SLOT).is_some());
+            if !(sneaking && holding)
+                && self.snuff_candle(id, stack.as_ref(), pos, clicked, cursor.y, sequence)
+            {
+                return;
+            }
             if !(sneaking && holding) && self.use_sign(id, pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
@@ -639,6 +654,12 @@ impl<L: ClientLink> Server<L> {
             sneaking,
             game_mode,
         };
+        if let Some(held) = &stack
+            && (self.use_fire_starter(id, hand, held, pos, face, sequence)
+                || self.douse_with_shovel(id, held, &usage, sequence))
+        {
+            return;
+        }
         if let Some(held) = &stack
             && self.use_tool_on_block(id, held, &usage, slot, sequence)
         {
@@ -727,6 +748,7 @@ impl<L: ClientLink> Server<L> {
             self.refuse_block(id, target, sequence);
             return;
         };
+        let state = campfire::placed(state, old);
         let chunks = &self.world.chunks;
         let state = chests::placed_state(state, target, face, sneaking, |at| chunks.block(at));
         let mut linked = placement
