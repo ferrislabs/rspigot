@@ -7,7 +7,7 @@ use rspigot_anvil::{AnvilOptions, AnvilStore, Compression, DimensionLayout};
 use rspigot_core::ports::{ChunkStore, StoreError};
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::WorldHeight;
-use rspigot_domain::{BlockStateId, ChunkPos};
+use rspigot_domain::{BlockStateId, ChunkPos, Identifier};
 
 fn region_file(
     root: &std::path::Path,
@@ -471,4 +471,15 @@ fn erasing_a_dimension_removes_its_files_and_forgets_its_open_regions() {
     store.save(&arena, &simple_column(pos, 2)).unwrap();
     store.flush().unwrap();
     assert!(store.exists(&arena, pos).unwrap());
+}
+
+#[test]
+fn a_registered_height_is_enforced_for_a_created_world_dimension() {
+    let dir = TempDir::new("created-height");
+    let store = AnvilStore::open(&dir.world(), DimensionLayout::Spigot).unwrap();
+    let arena = Identifier::parse("rspigot:arena").unwrap();
+    let column = simple_column_in(ChunkPos::new(0, 0), WorldHeight::NETHER, 1);
+    assert!(store.save(&arena, &column).is_ok());
+    store.register_dimension_height(arena.clone(), WorldHeight::OVERWORLD);
+    assert!(store.save(&arena, &column).is_err());
 }
