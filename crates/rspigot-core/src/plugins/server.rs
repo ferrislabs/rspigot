@@ -223,6 +223,24 @@ impl<L: ClientLink> Server<L> {
                     .err()
                     .map(Answer::Failed);
             }
+            Question::SpawnWith {
+                kind,
+                position,
+                block,
+                velocity,
+            } => {
+                return self
+                    .spawn_with_for_plugin(
+                        connection,
+                        request,
+                        &kind,
+                        position,
+                        block.as_deref(),
+                        velocity,
+                    )
+                    .err()
+                    .map(Answer::Failed);
+            }
             Question::DropItem { position, item } => {
                 return self
                     .drop_for_plugin(connection, request, position, &item)

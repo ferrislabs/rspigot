@@ -7,9 +7,10 @@ use crate::link::Link;
 use crate::npc::Npcs;
 use crate::wire::parse_uuid;
 use crate::{
-    EntityType, Error, ItemStack, Position, WorldDifficultyHandle, WorldExplosionHandle,
-    WorldGameRuleHandle, WorldParticleHandle, WorldPvpHandle, WorldSoundHandle,
-    WorldSpawnPointHandle, WorldStorageHandle, WorldTimeHandle, WorldWeatherHandle,
+    BlockType, EntityType, Error, ItemStack, Position, Vector, WorldDifficultyHandle,
+    WorldExplosionHandle, WorldGameRuleHandle, WorldParticleHandle, WorldPvpHandle,
+    WorldSoundHandle, WorldSpawnPointHandle, WorldStorageHandle, WorldTimeHandle,
+    WorldWeatherHandle,
 };
 
 const DEFAULT_WORLD: &str = "minecraft:overworld";
@@ -394,6 +395,22 @@ impl World {
         self.created(question::Question::Spawn(v1::Spawn {
             kind: kind.key().to_owned(),
             position: Some(position.to_wire()),
+            ..v1::Spawn::default()
+        }))
+        .await
+    }
+
+    pub async fn spawn_falling_block(
+        &self,
+        block: BlockType,
+        position: Position,
+        velocity: Vector,
+    ) -> Result<Entity, Error> {
+        self.created(question::Question::Spawn(v1::Spawn {
+            kind: EntityType::FallingBlock.key().to_owned(),
+            position: Some(position.to_wire()),
+            block: Some(block.key().to_owned()),
+            velocity: Some(velocity.to_wire()),
         }))
         .await
     }
