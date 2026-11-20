@@ -166,3 +166,14 @@ fn a_spawn_egg_used_on_a_spawner_changes_its_mob_and_is_spent() {
         Some("minecraft:wandering_trader")
     );
 }
+
+#[test]
+fn the_spawner_blocks_work_rule_off_stops_every_spawner() {
+    let mut s = world(vec![spawner(0, 20)], Vec::new());
+    console(&mut s, "gamerule spawner_blocks_work false");
+    s.tick(5);
+    assert_eq!(villagers(&s), 0);
+    console(&mut s, "gamerule spawner_blocks_work true");
+    s.tick(5);
+    assert!(villagers(&s) >= 1);
+}

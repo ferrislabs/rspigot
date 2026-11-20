@@ -27,7 +27,9 @@ impl<L: ClientLink> Server<L> {
             .thrown_owner_player(id)
             .and_then(|player| self.players.get(&player))
         {
-            Some(player) => player.vitals.is_dead(),
+            Some(player) => {
+                player.vitals.is_dead() && self.config.rules.ender_pearls_vanish_on_death
+            }
             None => true,
         }
     }

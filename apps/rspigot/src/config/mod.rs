@@ -1,6 +1,7 @@
 pub mod permissions;
 mod plugins;
 mod properties;
+mod unapplied;
 mod yaml;
 
 use std::path::Path;
@@ -8,7 +9,9 @@ use std::time::Duration;
 
 use rspigot_core::admin::AdminLists;
 use rspigot_core::chunks::ChunkManagerConfig;
-use rspigot_core::config::{ActivationRanges, GameConfig, MobSettings, SpawningConfig};
+use rspigot_core::config::{
+    ActivationRanges, GameConfig, MobSettings, ServerMessages, SpawningConfig,
+};
 use rspigot_core::streaming::StreamConfig;
 use rspigot_domain::entity::TrackingRanges;
 use rspigot_domain::player::GameMode;
@@ -20,7 +23,8 @@ use rspigot_plugins::PluginHostConfig;
 
 use plugins::PLUGINS_DEFAULTS;
 pub use properties::Properties;
-use yaml::{BUKKIT_DEFAULTS, SPIGOT_DEFAULTS, YamlConfig};
+pub use yaml::YamlConfig;
+use yaml::{BUKKIT_DEFAULTS, SPIGOT_DEFAULTS};
 
 pub struct ServerFiles {
     pub properties: Properties,
@@ -96,8 +100,69 @@ impl ServerFiles {
             spawning: self.spawning(),
             mobs: self.mob_settings(),
             plugins: plugins::settings(&self.plugins),
+            enforce_whitelist: p.bool("enforce-whitelist"),
+            log_ips: p.bool("log-ips"),
+            log_commands: self.spigot.string("commands.log", "true") != "false",
+            max_tick_time_ms: p.int("max-tick-time", 60_000),
+            pause_when_empty_seconds: p
+                .int("pause-when-empty-seconds", 60)
+                .clamp(0, i64::from(u32::MAX)) as u32,
+            item_despawn_ticks: self
+                .spigot
+                .int("world-settings.default.item-despawn-rate", 6000)
+                .clamp(1, i64::from(u32::MAX)) as u32,
+            item_merge_radius: self
+                .spigot
+                .float("world-settings.default.merge-radius.item", 0.5)
+                .max(0.0),
+            hopper_transfer_ticks: self
+                .spigot
+                .int("world-settings.default.ticks-per.hopper-transfer", 8)
+                .clamp(1, i64::from(i32::MAX)) as i32,
+            max_tnt_per_tick: self
+                .spigot
+                .int("world-settings.default.max-tnt-per-tick", 100)
+                .clamp(0, i64::from(i32::MAX)) as i32,
+            combat_exhaustion: self
+                .spigot
+                .float("world-settings.default.hunger.combat-exhaustion", 0.1)
+                .max(0.0) as f32,
+            messages: self.messages(),
             ..GameConfig::default()
         }
+    }
+
+    fn messages(&self) -> ServerMessages {
+        let defaults = ServerMessages::default();
+        let custom = |text: String, vanilla: &str| {
+            if text == vanilla { String::new() } else { text }
+        };
+        ServerMessages {
+            unknown_command: custom(
+                self.spigot
+                    .string("messages.unknown-command", unapplied::UNKNOWN_COMMAND),
+                unapplied::UNKNOWN_COMMAND,
+            ),
+            server_full: custom(
+                self.spigot
+                    .string("messages.server-full", unapplied::SERVER_FULL),
+                unapplied::SERVER_FULL,
+            ),
+            restart: self.spigot.string("messages.restart", &defaults.restart),
+            shutdown: self
+                .bukkit
+                .string("settings.shutdown-message", &defaults.shutdown),
+            restart_script: self.spigot.string("settings.restart-script", ""),
+        }
+    }
+
+    pub fn permissions_file(&self) -> String {
+        self.bukkit
+            .string("settings.permissions-file", "permissions.yml")
+    }
+
+    pub fn unapplied_keys(&self) -> Vec<String> {
+        unapplied::warnings(self)
     }
 
     fn spawning(&self) -> SpawningConfig {
@@ -467,5 +532,74 @@ mod tests {
         assert_eq!(config.bind.port(), 25570);
         assert_eq!(config.map, "lobby");
         assert_eq!(config.server_port, 25565);
+    }
+
+    #[test]
+    fn the_applied_properties_reach_the_game_config() {
+        let mut files = files("{}", "{}");
+        for (key, value) in [
+            ("enforce-whitelist", "true"),
+            ("log-ips", "false"),
+            ("max-tick-time", "-1"),
+            ("pause-when-empty-seconds", "5"),
+        ] {
+            files.properties.set(key, value);
+        }
+        let config = files.game_config(AdminLists::default());
+        assert!(config.enforce_whitelist);
+        assert!(!config.log_ips);
+        assert_eq!(config.max_tick_time_ms, -1);
+        assert_eq!(config.pause_when_empty_seconds, 5);
+        let mut shipped = super::ServerFiles {
+            properties: Properties::parse(""),
+            ..files
+        };
+        for (key, value) in properties::DEFAULTS {
+            shipped.properties.set(key, value);
+        }
+        let shipped = shipped.game_config(AdminLists::default());
+        assert!(!shipped.enforce_whitelist);
+        assert!(shipped.log_ips);
+        assert_eq!(shipped.max_tick_time_ms, 60_000);
+        assert_eq!(shipped.pause_when_empty_seconds, 60);
+    }
+
+    #[test]
+    fn the_applied_spigot_keys_reach_the_game_config() {
+        let spigot = "world-settings:\n  default:\n    item-despawn-rate: 300\n    merge-radius:\n      item: 3.5\n    ticks-per:\n      hopper-transfer: 2\n    max-tnt-per-tick: 4\n    hunger:\n      combat-exhaustion: 0.25\n";
+        let config = files(spigot, "{}").game_config(AdminLists::default());
+        assert_eq!(config.item_despawn_ticks, 300);
+        assert_eq!(config.item_merge_radius, 3.5);
+        assert_eq!(config.hopper_transfer_ticks, 2);
+        assert_eq!(config.max_tnt_per_tick, 4);
+        assert!((config.combat_exhaustion - 0.25).abs() < 1e-6);
+        let vanilla = files("{}", "{}").game_config(AdminLists::default());
+        assert_eq!(vanilla.item_despawn_ticks, 6000);
+        assert_eq!(vanilla.item_merge_radius, 0.5);
+        assert_eq!(vanilla.hopper_transfer_ticks, 8);
+        assert_eq!(vanilla.max_tnt_per_tick, 100);
+        assert!((vanilla.combat_exhaustion - 0.1).abs() < 1e-6);
+    }
+
+    #[test]
+    fn the_messages_keep_the_vanilla_text_until_they_are_customised() {
+        let vanilla = files("{}", "{}").game_config(AdminLists::default());
+        assert_eq!(vanilla.messages.unknown_command, "");
+        assert_eq!(vanilla.messages.server_full, "");
+        assert_eq!(vanilla.messages.restart, "Server is restarting");
+        assert_eq!(vanilla.messages.shutdown, "Server closed");
+        let spigot = "messages:\n  unknown-command: Nope\n  server-full: Full up\n  restart: Back soon\nsettings:\n  restart-script: ./again.sh\n";
+        let bukkit = "settings:\n  shutdown-message: Bye now\n  permissions-file: perms.yml\n";
+        let configured = files(spigot, bukkit);
+        let config = configured.game_config(AdminLists::default());
+        assert_eq!(config.messages.unknown_command, "Nope");
+        assert_eq!(config.messages.server_full, "Full up");
+        assert_eq!(config.messages.restart, "Back soon");
+        assert_eq!(config.messages.shutdown, "Bye now");
+        assert_eq!(config.messages.restart_script, "./again.sh");
+        assert!(config.log_commands);
+        let quiet = files("commands:\n  log: false\n", "{}").game_config(AdminLists::default());
+        assert!(!quiet.log_commands);
+        assert_eq!(configured.permissions_file(), "perms.yml");
     }
 }

@@ -748,3 +748,76 @@ fn immediate_respawn_rule_hides_the_death_screen() {
     });
     assert_eq!(shown, Some(false));
 }
+
+fn health_after_damage(adjust: impl FnOnce(&mut GameRules), kind: &str) -> f32 {
+    let mut server = server_with(|config| adjust(&mut config.rules));
+    let mut alice = join(&mut server, "Alice");
+    settle(&mut server, &mut [&mut alice]);
+    command(
+        &mut server,
+        &alice,
+        &format!("damage @s 4 minecraft:{kind}"),
+    );
+    ticks(&mut server, &mut [&mut alice], 1);
+    health(&server, &alice)
+}
+
+#[test]
+fn the_damage_rules_spare_players_from_their_damage_type() {
+    assert_eq!(health_after_damage(|_| {}, "drown"), 16.0);
+    assert_eq!(
+        health_after_damage(|rules| rules.drowning_damage = false, "drown"),
+        20.0
+    );
+    assert_eq!(
+        health_after_damage(|rules| rules.fall_damage = false, "fall"),
+        20.0
+    );
+    assert_eq!(health_after_damage(|_| {}, "on_fire"), 16.0);
+    assert_eq!(
+        health_after_damage(|rules| rules.fire_damage = false, "on_fire"),
+        20.0
+    );
+    assert_eq!(
+        health_after_damage(|rules| rules.fire_damage = false, "lava"),
+        20.0
+    );
+    assert_eq!(
+        health_after_damage(|rules| rules.fire_damage = false, "generic"),
+        16.0
+    );
+}
+
+fn bounced_after_a_huge_step(adjust: impl FnOnce(&mut GameRules)) -> bool {
+    let mut server = server_with(|config| adjust(&mut config.rules));
+    let mut alice = join(&mut server, "Alice");
+    settle(&mut server, &mut [&mut alice]);
+    alice.drain();
+    walk(&mut server, &alice, Vec3::new(500.5, 64.0, 0.5), true);
+    alice
+        .drain()
+        .iter()
+        .any(|event| matches!(event, ClientEvent::Teleport { .. }))
+}
+
+#[test]
+fn the_player_movement_check_rule_decides_whether_a_huge_step_is_rejected() {
+    assert!(bounced_after_a_huge_step(|_| {}));
+    assert!(!bounced_after_a_huge_step(|rules| {
+        rules.player_movement_check = false;
+    }));
+}
+
+#[test]
+fn the_combat_exhaustion_setting_scales_what_an_attack_costs() {
+    let mut server = server_with(|config| config.combat_exhaustion = 0.5);
+    let mut alice = join(&mut server, "Alice");
+    let mut bob = join(&mut server, "Bob");
+    ticks(&mut server, &mut [&mut alice, &mut bob], 30);
+    let Some(bob_entity) = entity_of(&alice.events, bob.id) else {
+        panic!("Bob never appeared");
+    };
+    input(&mut server, alice.id, PlayerInput::Attack(bob_entity));
+    let (_, _, exhaustion) = server.player_food(alice.id).unwrap_or_default();
+    assert!((exhaustion - 0.5).abs() < 1e-6, "{exhaustion}");
+}

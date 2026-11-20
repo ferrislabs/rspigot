@@ -92,6 +92,13 @@ pub struct InputState {
     pub sprint: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommandBlockMode {
+    Sequence,
+    Auto,
+    Redstone,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlayerInput {
     Move {
@@ -210,6 +217,19 @@ pub enum PlayerInput {
         pos: BlockPos,
         front: bool,
         lines: Vec<String>,
+    },
+    SetCommandBlock {
+        pos: BlockPos,
+        command: String,
+        mode: CommandBlockMode,
+        track_output: bool,
+        conditional: bool,
+        automatic: bool,
+    },
+    SetCommandMinecart {
+        entity: EntityId,
+        command: String,
+        track_output: bool,
     },
     ResourcePack {
         id: uuid::Uuid,

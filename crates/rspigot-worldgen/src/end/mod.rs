@@ -71,6 +71,33 @@ impl End {
         self.density(x, y, z, self.islands.erosion(x, z))
     }
 
+    pub(crate) fn nearest_biome(
+        &self,
+        dimension: &Dimension,
+        from: rspigot_domain::Vec3,
+        wanted: &[String],
+    ) -> Option<(String, rspigot_domain::Vec3)> {
+        let search = crate::locate::Search {
+            sample: |qx, _, qz| self.biome_index(qx, qz),
+            names: &END_BIOMES,
+            min_y: dimension.height.min_y,
+            max_y: dimension.height.max_y(),
+        };
+        let (name, at) = search.closest(
+            wanted,
+            (
+                from.x.floor() as i32,
+                from.y.floor() as i32,
+                from.z.floor() as i32,
+            ),
+            crate::locate::BIOME_RADIUS,
+        )?;
+        Some((
+            name,
+            rspigot_domain::Vec3::new(f64::from(at.0), f64::from(at.1), f64::from(at.2)),
+        ))
+    }
+
     pub(crate) fn biome_index(&self, qx: i32, qz: i32) -> u8 {
         let (block_x, block_z) = (qx * 4, qz * 4);
         let (section_x, section_z) = (block_x >> 4, block_z >> 4);

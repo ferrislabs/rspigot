@@ -387,6 +387,97 @@ impl Overworld {
         ))
     }
 
+    pub(crate) fn nearest_structures(
+        &self,
+        dimension: &Dimension,
+        from: Vec3,
+        ids: &[String],
+    ) -> Option<(String, Vec3)> {
+        if !self.structures_on {
+            return None;
+        }
+        let wanted: Vec<String> = ids
+            .iter()
+            .map(|id| id.strip_prefix("minecraft:").unwrap_or(id).to_owned())
+            .collect();
+        let (name, at) = self.structures.nearest_start(
+            &self.ground(dimension),
+            &|| self.biome_probe(),
+            &wanted,
+            (from.x.floor() as i32, from.z.floor() as i32),
+            STRUCTURE_SEARCH_RADIUS,
+        )?;
+        Some((
+            format!("minecraft:{name}"),
+            Vec3::new(f64::from(at.0), f64::from(at.1), f64::from(at.2)),
+        ))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn engine(&self) -> &Engine {
+        &self.structures
+    }
+
+    pub(crate) fn knows_structure(&self, id: &str) -> bool {
+        self.structures_on
+            && self
+                .structures
+                .knows(id.strip_prefix("minecraft:").unwrap_or(id))
+    }
+
+    pub(crate) fn nearest_biome(
+        &self,
+        dimension: &Dimension,
+        from: Vec3,
+        wanted: &[String],
+    ) -> Option<(String, Vec3)> {
+        use crate::structures::BiomeProbe;
+        let probe = self.biome_probe();
+        let search = crate::locate::Search {
+            sample: |qx, qy, qz| probe.at(qx, qy, qz),
+            names: overworld_biomes(),
+            min_y: dimension.height.min_y,
+            max_y: dimension.height.max_y(),
+        };
+        let (name, at) = search.closest(
+            wanted,
+            (
+                from.x.floor() as i32,
+                from.y.floor() as i32,
+                from.z.floor() as i32,
+            ),
+            crate::locate::BIOME_RADIUS,
+        )?;
+        Some((
+            name,
+            Vec3::new(f64::from(at.0), f64::from(at.1), f64::from(at.2)),
+        ))
+    }
+
+    pub(crate) fn place_structure(
+        &self,
+        dimension: &Dimension,
+        id: &str,
+        pos: BlockPos,
+    ) -> Result<Vec<rspigot_core::ports::PlacedBlock>, rspigot_core::ports::PlaceFailure> {
+        use rspigot_core::ports::PlaceFailure;
+        let name = id.strip_prefix("minecraft:").unwrap_or(id);
+        if !self.structures_on || !self.structures.knows(name) {
+            return Err(PlaceFailure::Failed);
+        }
+        let probe = self.biome_probe();
+        let start = self
+            .structures
+            .start_at(
+                &self.ground(dimension),
+                &probe,
+                name,
+                (pos.x >> 4, pos.z >> 4),
+            )
+            .ok_or(PlaceFailure::Failed)?;
+        crate::placing::placed(dimension, crate::structures::start_blocks(&start))
+    }
+
     fn starts_here(
         &self,
         dimension: &Dimension,
@@ -576,6 +667,7 @@ fn ring_offsets(ring: i32) -> Vec<(i32, i32)> {
 }
 
 const STRONGHOLD_Y: f64 = 32.0;
+const STRUCTURE_SEARCH_RADIUS: i32 = 100;
 
 fn nearest_chunk(chunks: &[(i32, i32)], from: Vec3) -> Option<(i32, i32)> {
     let (bx, by, bz) = (

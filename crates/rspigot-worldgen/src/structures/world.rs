@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use super::bbox::Bbox;
 use super::jigsaw::{Ground, Piece};
 use super::library::Library;
-use super::placement::{BiomeProbe, large_feature_seed};
+use super::placement::{BiomeProbe, Kind as PlacementKind, large_feature_seed};
 use super::pool::{Element, Pools};
 use super::sets::{Chunks, StructureSet, StructureSets};
 use super::shaped::{Shaped, mineshaft, portal, stronghold};
@@ -166,6 +166,120 @@ impl Engine {
         self.sets.named("strongholds").map_or(&[], |set| {
             set.placement.rings_parallel(self.seed, make_probe)
         })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn potential_chunk(&self, set: &str, x: i32, z: i32) -> Option<(i32, i32)> {
+        self.sets
+            .named(set)?
+            .placement
+            .potential_chunk(self.seed, x, z)
+    }
+
+    pub(crate) fn knows(&self, name: &str) -> bool {
+        self.defs.get(name).is_some()
+    }
+
+    pub(crate) fn start_at<G: Ground, B: BiomeProbe>(
+        &self,
+        ground: &G,
+        probe: &B,
+        name: &str,
+        chunk: (i32, i32),
+    ) -> Option<Start> {
+        self.generate(self.defs.get(name)?, ground, probe, chunk)
+    }
+
+    pub(crate) fn nearest_start<G: Ground, P: BiomeProbe>(
+        &self,
+        ground: &G,
+        make_probe: &(impl Fn() -> P + Sync),
+        wanted: &[String],
+        from: (i32, i32),
+        radius: i32,
+    ) -> Option<(String, (i32, i32, i32))> {
+        let probe = make_probe();
+        let world = Chunks {
+            sets: &self.sets,
+            seed: self.seed,
+            biomes: &probe,
+        };
+        let mut best: Option<(i64, String, (i32, i32, i32))> = None;
+        for &index in &self.active {
+            let set = &self.sets.all()[index];
+            let names: Vec<&str> = set
+                .entries
+                .iter()
+                .map(|entry| entry.structure.as_str())
+                .filter(|name| self.valid.contains_key(*name) && wanted.iter().any(|w| w == name))
+                .collect();
+            if names.is_empty() {
+                continue;
+            }
+            let distance = |pos: (i32, i32, i32)| {
+                let (dx, dz) = (i64::from(pos.0 - from.0), i64::from(pos.2 - from.1));
+                dx * dx + dz * dz
+            };
+            let found = match &set.placement.kind {
+                PlacementKind::Rings { .. } => set
+                    .placement
+                    .rings_parallel(self.seed, make_probe)
+                    .iter()
+                    .map(|&(x, z)| set.placement.locate_pos(x, z))
+                    .min_by_key(|pos| distance(*pos))
+                    .map(|pos| (names[0].to_owned(), pos)),
+                PlacementKind::RandomSpread { spacing, .. } => {
+                    let spacing = *spacing;
+                    let (cx, cz) = (from.0.div_euclid(16), from.1.div_euclid(16));
+                    let (rx, rz) = (cx.div_euclid(spacing), cz.div_euclid(spacing));
+                    let mut hit = None;
+                    for ring in 0..=radius {
+                        let mut ring_best: Option<(i64, String, (i32, i32, i32))> = None;
+                        for dx in -ring..=ring {
+                            for dz in -ring..=ring {
+                                if dx.abs() != ring && dz.abs() != ring {
+                                    continue;
+                                }
+                                let Some((px, pz)) = set.placement.potential_chunk(
+                                    self.seed,
+                                    (rx + dx) * spacing,
+                                    (rz + dz) * spacing,
+                                ) else {
+                                    continue;
+                                };
+                                if !world.is_structure_chunk(set, px, pz) {
+                                    continue;
+                                }
+                                let Some(start) = self.try_set(set, ground, &probe, (px, pz))
+                                else {
+                                    continue;
+                                };
+                                if !names.contains(&start.name.as_str()) {
+                                    continue;
+                                }
+                                let pos = set.placement.locate_pos(px, pz);
+                                let d = distance(pos);
+                                if ring_best.as_ref().is_none_or(|(old, _, _)| d < *old) {
+                                    ring_best = Some((d, start.name.clone(), pos));
+                                }
+                            }
+                        }
+                        if let Some((_, name, pos)) = ring_best {
+                            hit = Some((name, pos));
+                            break;
+                        }
+                    }
+                    hit
+                }
+            };
+            if let Some((name, pos)) = found {
+                let d = distance(pos);
+                if best.as_ref().is_none_or(|(old, _, _)| d < *old) {
+                    best = Some((d, name, pos));
+                }
+            }
+        }
+        best.map(|(_, name, pos)| (name, pos))
     }
 
     pub(crate) fn library(&self) -> &'static Library {

@@ -47,6 +47,7 @@ pub(crate) struct Placement {
     pub(crate) frequency: f32,
     pub(crate) salt: i32,
     pub(crate) exclusion: Option<Exclusion>,
+    pub(crate) locate_offset: (i32, i32, i32),
     rings: OnceLock<Vec<(i32, i32)>>,
 }
 
@@ -123,7 +124,27 @@ fn int(value: &Value, key: &str) -> i32 {
         .unwrap_or(0)
 }
 
+fn offset(value: Option<&Value>) -> (i32, i32, i32) {
+    let at = |index: usize| {
+        value
+            .and_then(Value::as_array)
+            .and_then(|items| items.get(index))
+            .and_then(Value::as_i64)
+            .and_then(|n| i32::try_from(n).ok())
+            .unwrap_or(0)
+    };
+    (at(0), at(1), at(2))
+}
+
 impl Placement {
+    pub(crate) fn locate_pos(&self, chunk_x: i32, chunk_z: i32) -> (i32, i32, i32) {
+        (
+            chunk_x * 16 + self.locate_offset.0,
+            self.locate_offset.1,
+            chunk_z * 16 + self.locate_offset.2,
+        )
+    }
+
     pub(crate) fn parse(value: &Value) -> Option<Self> {
         let kind = match short(value.get("type")?.as_str()?) {
             "random_spread" => Kind::RandomSpread {
@@ -170,6 +191,7 @@ impl Placement {
                 .map_or(1.0, |f| f as f32),
             salt: int(value, "salt"),
             exclusion,
+            locate_offset: offset(value.get("locate_offset")),
             rings: OnceLock::new(),
         })
     }

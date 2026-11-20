@@ -161,6 +161,10 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_portal_entity(at, portal);
             }
         }
+        if !self.config.rules.global_sound_events {
+            self.level_event(PORTAL_OPENED_EVENT, center, 0);
+            return true;
+        }
         let key = self.world.dimension.key.clone();
         self.push(
             Audience::Dimension(key),

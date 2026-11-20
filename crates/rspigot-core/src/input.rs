@@ -200,6 +200,29 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::SignUpdate { pos, front, lines } => {
                 self.handle_sign_update(id, pos, front, lines);
             }
+            PlayerInput::SetCommandBlock {
+                pos,
+                command,
+                mode,
+                track_output,
+                conditional,
+                automatic,
+            } => self.handle_set_command_block(
+                id,
+                &crate::command_block::BlockEdit {
+                    pos,
+                    command,
+                    mode,
+                    track_output,
+                    conditional,
+                    automatic,
+                },
+            ),
+            PlayerInput::SetCommandMinecart {
+                entity,
+                command,
+                track_output,
+            } => self.handle_set_command_minecart(id, entity, command, track_output),
             PlayerInput::ResourcePack { id: pack, status } => {
                 self.hear_resource_pack(id, pack, status);
             }
@@ -285,7 +308,10 @@ impl<L: ClientLink> Server<L> {
                 );
                 return;
             }
-            if from.distance_squared(target) > MAX_MOVE_SQUARED {
+            let rules = &self.config.rules;
+            let checked =
+                rules.player_movement_check && (rules.elytra_movement_check || !player.fall_flying);
+            if checked && from.distance_squared(target) > MAX_MOVE_SQUARED {
                 tracing::warn!(
                     "{} moved too quickly! {:.2},{:.2},{:.2}",
                     player.profile.name,
@@ -503,6 +529,7 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_gateway_entity(pos, state);
                 self.ensure_beehive_entity(pos, state);
                 self.ensure_jukebox_entity(pos, state);
+                self.ensure_command_block_entity(pos, state);
                 self.ensure_spawner_entity(pos, state);
                 self.ensure_trial_spawner_entity(pos, state);
                 self.ensure_vault_entity(pos, state);
@@ -573,6 +600,10 @@ impl<L: ClientLink> Server<L> {
             if !(sneaking && holding)
                 && self.snuff_candle(id, stack.as_ref(), pos, clicked, cursor.y, sequence)
             {
+                return;
+            }
+            if !(sneaking && holding) && self.use_command_block(id, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
             if !(sneaking && holding) && self.use_sign(id, pos, clicked) {
@@ -915,6 +946,11 @@ impl<L: ClientLink> Server<L> {
                     self.function_names()
                 } else if let Some(names) = self.pack_names_after(head) {
                     names
+                } else if let Some(names) = self.game_command_names(
+                    self.players.get(&id).map_or(0, |p| p.permission_level()),
+                    head,
+                ) {
+                    names
                 } else {
                     self.players
                         .values()
@@ -1094,4 +1130,41 @@ fn completes_dimension(head: &str) -> bool {
         .as_deref()
         .map(|word| word.strip_prefix("minecraft:").unwrap_or(word));
     first == Some("execute") && head.split_whitespace().last() == Some("in")
+}
+
+#[cfg(test)]
+mod movement_rule_tests {
+    use rspigot_domain::Vec3;
+
+    use crate::end_tests::arrive;
+    use crate::events::{ClientEvent, Inbound, PlayerInput};
+
+    fn bounced(elytra_check: bool, gliding: bool) -> bool {
+        let (mut server, id, link) = arrive();
+        server.config.rules.elytra_movement_check = elytra_check;
+        if let Some(player) = server.players.get_mut(&id) {
+            player.fall_flying = gliding;
+            player.pending_teleport = None;
+        }
+        link.take();
+        server.handle(Inbound::Input {
+            player: id,
+            input: PlayerInput::Move {
+                position: Some(Vec3::new(500.5, 64.0, 0.5)),
+                rotation: None,
+                on_ground: false,
+            },
+        });
+        server.deliver();
+        link.take()
+            .iter()
+            .any(|event| matches!(event, ClientEvent::Teleport { .. }))
+    }
+
+    #[test]
+    fn the_elytra_check_rule_spares_only_gliding_players() {
+        assert!(bounced(true, true));
+        assert!(!bounced(false, true));
+        assert!(bounced(false, false));
+    }
 }

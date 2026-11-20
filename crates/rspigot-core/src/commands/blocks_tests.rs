@@ -243,3 +243,25 @@ fn setblock_inside_execute_uses_the_new_position() {
     assert_eq!(rig.run(&line), CommandOutcome::Success);
     assert_eq!(rig.kind(at.x + 2, at.y + 6, at.z), Some(BlockKind::Stone));
 }
+
+#[test]
+fn the_block_modification_rule_sets_the_fill_and_clone_limit() {
+    let mut rig = rig();
+    let at = rig.origin();
+    assert_eq!(
+        rig.run("gamerule max_block_modifications 10"),
+        CommandOutcome::Success
+    );
+    rig.texts();
+    let line = format!(
+        "fill {} {} {} {} {} {} stone",
+        at.x,
+        at.y,
+        at.z,
+        at.x + 2,
+        at.y + 2,
+        at.z + 2
+    );
+    assert_eq!(rig.run(&line), CommandOutcome::Failure);
+    assert_eq!(rig.texts(), ["commands.fill.toobig 10 27"]);
+}

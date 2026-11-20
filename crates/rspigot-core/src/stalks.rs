@@ -281,7 +281,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn vine_tick(&mut self, pos: BlockPos, state: BlockStateId) {
-        if self.rng.random_range(0..VINE_SPREAD_ODDS) != 0 {
+        if !self.config.rules.spread_vines || self.rng.random_range(0..VINE_SPREAD_ODDS) != 0 {
             return;
         }
         let direction = Face::ALL[self.rng.random_range(0..Face::ALL.len())];
@@ -439,6 +439,27 @@ mod tests {
             }
         }
         false
+    }
+
+    fn spreads_down(spread_vines: bool) -> bool {
+        let mut server = server();
+        server.config.rules.spread_vines = spread_vines;
+        let pos = BlockPos::new(4, 66, 4);
+        for dy in 0..3 {
+            server.set_block(pos.offset(0, dy, -1), BlockKind::Stone.default_state());
+        }
+        let vine = state(BlockKind::Vine, &[("north", "true")]);
+        server.set_block(pos, vine);
+        for _ in 0..4000 {
+            server.random_tick_stalk(pos, vine);
+        }
+        at(&server, pos.offset(0, -1, 0)).kind() == Some(BlockKind::Vine)
+    }
+
+    #[test]
+    fn the_spread_vines_rule_stops_vines_from_growing() {
+        assert!(spreads_down(true));
+        assert!(!spreads_down(false));
     }
 
     #[test]

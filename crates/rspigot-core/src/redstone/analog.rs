@@ -39,6 +39,9 @@ impl<L: ClientLink> Server<L> {
             BlockKind::EndPortalFrame => Some(if flag(state, "eye") { 15 } else { 0 }),
             BlockKind::Lectern => Some(self.lectern_signal(pos)),
             BlockKind::Jukebox => Some(self.jukebox_comparator(pos)),
+            BlockKind::CommandBlock
+            | BlockKind::ChainCommandBlock
+            | BlockKind::RepeatingCommandBlock => Some(self.command_block_signal(pos)),
             BlockKind::SculkSensor | BlockKind::CalibratedSculkSensor => {
                 Some(level(state, "power"))
             }

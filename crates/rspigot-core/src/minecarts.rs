@@ -100,6 +100,13 @@ impl<L: ClientLink> Server<L> {
         };
         let kind = entity.base.kind;
         let chest = state.cargo.is_some();
+        if kind == Kind::CommandBlockMinecart {
+            return Some(if self.command_minecart_interact(id, target) {
+                Interaction::Predicted
+            } else {
+                Interaction::Pass
+            });
+        }
         let rider = self.players.get(&id)?.entity_id;
         if chest {
             return Some(if self.open_cargo(id, target) {
@@ -159,6 +166,7 @@ impl<L: ClientLink> Server<L> {
             self.vehicle_moved_by_tick(id, from, to);
         }
         self.crowd_minecart(id);
+        self.tick_command_minecart(id);
     }
 
     fn crowd_minecart(&mut self, id: EntityId) {
