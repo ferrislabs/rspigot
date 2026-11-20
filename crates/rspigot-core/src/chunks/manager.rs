@@ -348,6 +348,10 @@ impl ChunkManager {
         self.loaded.contains_key(&pos)
     }
 
+    pub fn load_unhandled(&self, pos: ChunkPos) -> bool {
+        self.events.loaded.iter().any(|(loaded, _)| *loaded == pos)
+    }
+
     pub fn is_pending(&self, pos: ChunkPos) -> bool {
         self.pending.contains_key(&pos)
     }

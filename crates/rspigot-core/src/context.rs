@@ -1369,6 +1369,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.save_all_entities();
         self.save_world_data();
         self.persist_all_players();
+        self.store_scheduled_ticks();
         self.world.chunks.save_dirty(&self.workers);
         if flush {
             return self.workers.flush_blocking(Duration::from_secs(60));
