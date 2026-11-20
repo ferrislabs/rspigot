@@ -14,7 +14,7 @@ use rspigot_domain::entity::{Entity, EntityState, RemovalReason};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::text::Component;
-use rspigot_domain::{BlockPos, BlockStateId, EntityId, ItemId, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rustc_hash::FxHashSet;
 
@@ -47,6 +47,33 @@ pub struct ScheduledFalls {
     running: FxHashSet<(BlockPos, BlockKind)>,
     sequence: u64,
     pub(crate) redstone: crate::redstone::Runtime,
+}
+
+impl ScheduledFalls {
+    pub(crate) fn entries(&self) -> impl Iterator<Item = (u64, i8, BlockPos, BlockKind)> + '_ {
+        self.due
+            .iter()
+            .map(|(&(due, priority, _), &(pos, kind))| (due, priority, pos, kind))
+    }
+
+    pub(crate) fn remove_chunk(&mut self, chunk: ChunkPos) {
+        let pending = &mut self.pending;
+        self.due.retain(|_, (pos, kind)| {
+            let keep = pos.chunk() != chunk;
+            if !keep {
+                pending.remove(&(*pos, *kind));
+            }
+            keep
+        });
+    }
+
+    pub(crate) fn restore(&mut self, due: u64, priority: i8, pos: BlockPos, kind: BlockKind) {
+        if self.pending.insert((pos, kind)) {
+            let order = self.sequence;
+            self.sequence += 1;
+            self.due.insert((due, priority, order), (pos, kind));
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

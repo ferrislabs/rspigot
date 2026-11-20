@@ -7,7 +7,7 @@ use rspigot_blocks::BlockKind;
 use rspigot_data::registries::biome_id;
 use rspigot_domain::chunk::{
     Biomes, BlockEntity, Blocks, ChunkColumn, ChunkLight, ChunkSection, ChunkStatus, Heightmap,
-    HeightmapKind, LightArray, PalettedContainer,
+    HeightmapKind, LightArray, PalettedContainer, SavedTick,
 };
 use rspigot_domain::world::WorldHeight;
 use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Identifier};
@@ -180,6 +180,18 @@ pub fn rich_column(pos: ChunkPos) -> ChunkColumn {
             )
             .with("Lock", ""),
     });
+    column.block_ticks = vec![SavedTick {
+        id: rspigot_domain::Identifier::minecraft("repeater"),
+        pos: rspigot_domain::BlockPos::new(-110, 70, 641),
+        priority: -3,
+        delay: 2,
+    }];
+    column.fluid_ticks = vec![SavedTick {
+        id: rspigot_domain::Identifier::minecraft("flowing_water"),
+        pos: rspigot_domain::BlockPos::new(-111, 70, 641),
+        priority: 0,
+        delay: 5,
+    }];
     column.extra = Compound::new()
         .with("LastUpdate", 777i64)
         .with(
@@ -188,8 +200,6 @@ pub fn rich_column(pos: ChunkPos) -> ChunkColumn {
                 .with("starts", Compound::new())
                 .with("References", Compound::new()),
         )
-        .with("block_ticks", Tag::List(Vec::new()))
-        .with("fluid_ticks", Tag::List(Vec::new()))
         .with(
             "PostProcessing",
             Tag::List(vec![Tag::List(vec![Tag::Short(5)]), Tag::List(Vec::new())]),

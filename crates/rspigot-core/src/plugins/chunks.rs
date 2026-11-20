@@ -101,6 +101,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn finish_chunk_unload(&mut self, pos: ChunkPos, patch: ChunkUnloadPatch) {
         let save = patch.save_chunk.unwrap_or(true);
         if self.world.chunks.unload_due(pos) {
+            self.unload_scheduled_ticks(pos);
             let leaving = self.entities.store.in_chunk(pos).to_vec();
             self.settle_acting_on(&leaving);
         }

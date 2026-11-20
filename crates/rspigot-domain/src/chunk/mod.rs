@@ -4,7 +4,7 @@ mod light;
 mod paletted;
 mod section;
 
-pub use column::{BlockEntity, ChunkColumn, ChunkStatus};
+pub use column::{BlockEntity, ChunkColumn, ChunkStatus, SavedTick};
 pub use heightmap::{Heightmap, HeightmapKind, Heightmaps};
 pub use light::{ChunkLight, LightArray};
 pub use paletted::{Biomes, Blocks, PaletteError, PaletteStrategy, PalettedContainer};

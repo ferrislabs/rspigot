@@ -120,6 +120,7 @@ mod redstone;
 pub mod reload;
 mod respawning;
 mod riding;
+mod scheduled_ticks;
 mod scoreboard;
 mod sculk;
 pub mod server;
