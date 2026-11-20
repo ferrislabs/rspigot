@@ -1088,6 +1088,7 @@ impl<L: ClientLink> Server<L> {
         self.world.chunks.relight();
         self.send_entity_changes();
         self.tick_border();
+        self.tick_weather();
         self.tick_idle_players();
         self.tick_health();
         self.tick_spin_attacks();

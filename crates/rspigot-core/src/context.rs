@@ -1356,8 +1356,8 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.apply_difficulty(difficulty, true);
     }
 
-    fn set_weather(&mut self, weather: Weather) {
-        self.change_weather(weather != Weather::Clear, weather == Weather::Thunder);
+    fn set_weather(&mut self, weather: Weather, duration: Option<i32>) {
+        self.command_weather(weather, duration);
     }
 
     fn set_world_spawn(&mut self, pos: BlockPos) {

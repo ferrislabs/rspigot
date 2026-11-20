@@ -747,7 +747,7 @@ impl<L: ClientLink> Server<L> {
             self.finish_night_skip();
         }
         if self.world.level.raining {
-            self.change_weather(false, false);
+            self.reset_weather_cycle();
         }
     }
 }

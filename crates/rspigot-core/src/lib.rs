@@ -152,6 +152,7 @@ mod trial_spawner;
 mod trident;
 mod vault;
 mod vehicles;
+mod weather;
 mod wind_charge;
 mod wither_summon;
 mod world_state;
