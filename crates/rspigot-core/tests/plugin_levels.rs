@@ -369,3 +369,64 @@ fn a_cancelled_thunder_change_alone_keeps_the_rain_and_the_clear_sky_above_it() 
     let state = world_state(&mut s);
     assert!(state.raining && !state.thundering);
 }
+
+#[test]
+fn a_storm_started_by_the_rain_timer_fires_the_weather_event_once_and_tells_the_players() {
+    let server = configured_level(|_| {}, |level| level.rain_time = 3);
+    let mut s = scene_on(
+        server,
+        &["Alice"],
+        vec![observe(1, EventKind::WeatherChange)],
+    );
+    let alice = s.players[0].clone();
+    s.tick(2);
+    assert!(!s.server.level_snapshot().raining);
+    s.tick(10);
+    assert!(s.server.level_snapshot().raining);
+    assert_eq!(settled_for(&s.plugin, EventKind::WeatherChange).len(), 1);
+    assert!(weather_packets(&alice).contains(&GameEvent::StartRaining));
+    assert!(s.server.level_snapshot().rain_time >= 12_000);
+}
+
+#[test]
+fn the_clear_weather_time_stops_a_storm_that_the_timers_would_keep() {
+    let server = configured_level(
+        |_| {},
+        |level| {
+            level.raining = true;
+            level.rain_time = 5000;
+            level.clear_weather_time = 100;
+        },
+    );
+    let mut s = scene_on(server, &["Alice"], Vec::new());
+    s.tick(2);
+    let level = s.server.level_snapshot();
+    assert!(!level.raining);
+    assert_eq!(level.clear_weather_time, 98);
+}
+
+#[test]
+fn the_weather_command_sets_the_timers_with_and_without_a_duration() {
+    let mut s = scene_with(&["Alice"], Vec::new());
+    console(&mut s, "weather rain 600");
+    let level = s.server.level_snapshot();
+    assert!(level.raining && !level.thundering);
+    assert_eq!(
+        (
+            level.clear_weather_time,
+            level.rain_time,
+            level.thunder_time
+        ),
+        (0, 600, 600)
+    );
+    console(&mut s, "weather clear 10s");
+    let level = s.server.level_snapshot();
+    assert!(!level.raining);
+    assert_eq!(level.clear_weather_time, 200);
+    console(&mut s, "weather thunder");
+    let level = s.server.level_snapshot();
+    assert!(level.raining && level.thundering);
+    assert_eq!(level.clear_weather_time, 0);
+    assert!((3_600..=15_600).contains(&level.rain_time));
+    assert_eq!(level.rain_time, level.thunder_time);
+}

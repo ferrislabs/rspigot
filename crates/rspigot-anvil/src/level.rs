@@ -182,6 +182,11 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     level.day_time = data.get_i64("DayTime").unwrap_or(level.day_time);
     level.raining = data.get_bool("raining").unwrap_or(level.raining);
     level.thundering = data.get_bool("thundering").unwrap_or(level.thundering);
+    level.clear_weather_time = data
+        .get_i32("clearWeatherTime")
+        .unwrap_or(level.clear_weather_time);
+    level.rain_time = data.get_i32("rainTime").unwrap_or(level.rain_time);
+    level.thunder_time = data.get_i32("thunderTime").unwrap_or(level.thunder_time);
     if let Some(rule) = data
         .get_compound("GameRules")
         .and_then(|rules| rules.get("doDaylightCycle"))
@@ -208,6 +213,13 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     if let Some(weather) = optional_saved_data(world_root, "weather") {
         level.raining = weather.get_bool("raining").unwrap_or(level.raining);
         level.thundering = weather.get_bool("thundering").unwrap_or(level.thundering);
+        level.clear_weather_time = weather
+            .get_i32("clear_weather_time")
+            .unwrap_or(level.clear_weather_time);
+        level.rain_time = weather.get_i32("rain_time").unwrap_or(level.rain_time);
+        level.thunder_time = weather
+            .get_i32("thunder_time")
+            .unwrap_or(level.thunder_time);
     }
     if let Some(clocks) = optional_saved_data(world_root, "world_clocks")
         && let Some(ticks) = clocks
@@ -300,11 +312,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
             || data.get_bool("thundering") != Some(level.thundering);
         data.insert("raining", level.raining);
         data.insert("thundering", level.thundering);
-        for key in ["clear_weather_time", "rain_time", "thunder_time"] {
-            if !data.contains_key(key) {
-                data.insert(key, 0);
-                changed = true;
-            }
+        for (key, value) in [
+            ("clear_weather_time", level.clear_weather_time),
+            ("rain_time", level.rain_time),
+            ("thunder_time", level.thunder_time),
+        ] {
+            changed |= data.get_i32(key) != Some(value);
+            data.insert(key, value);
         }
         changed
     })?;
@@ -512,6 +526,9 @@ mod tests {
             daylight_cycle: false,
             raining: true,
             thundering: true,
+            clear_weather_time: 0,
+            rain_time: 0,
+            thunder_time: 0,
             spawn_mobs: true,
             spawn_monsters: false,
             uuid: None,
@@ -648,6 +665,52 @@ mod tests {
         let file = read_file(&root, "data/minecraft/chunks.dat");
         assert_eq!(file.get_compound("data"), Some(&forced));
         assert_eq!(read_level_data(&root).unwrap(), Some(level));
+    }
+
+    #[test]
+    fn the_weather_timers_are_saved_and_read_back() {
+        let dir = TempDir::new("level-weather-timers");
+        let root = dir.path().join("world");
+        let level = LevelData {
+            clear_weather_time: 11,
+            rain_time: 22,
+            thunder_time: 33,
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/weather.dat");
+        let weather = file.get_compound("data").unwrap();
+        assert_eq!(weather.get_i32("clear_weather_time"), Some(11));
+        assert_eq!(weather.get_i32("rain_time"), Some(22));
+        assert_eq!(weather.get_i32("thunder_time"), Some(33));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
+    }
+
+    #[test]
+    fn the_weather_timers_are_read_from_a_legacy_level_file() {
+        let dir = TempDir::new("level-weather-legacy");
+        let root = dir.path();
+        write_file(
+            root,
+            "level.dat",
+            &Compound::new().with("DataVersion", 5023).with(
+                "Data",
+                Compound::new()
+                    .with("LevelName", "Old")
+                    .with("clearWeatherTime", 5)
+                    .with("rainTime", 6)
+                    .with("thunderTime", 7),
+            ),
+        );
+        let level = read_level_data(root).unwrap().unwrap();
+        assert_eq!(
+            (
+                level.clear_weather_time,
+                level.rain_time,
+                level.thunder_time
+            ),
+            (5, 6, 7)
+        );
     }
 
     #[test]
@@ -961,9 +1024,9 @@ mod tests {
 
         let weather = read_file(root, "data/minecraft/weather.dat");
         let weather = weather.get_compound("data").unwrap();
-        assert_eq!(weather.get_i32("clear_weather_time"), Some(11));
-        assert_eq!(weather.get_i32("rain_time"), Some(22));
-        assert_eq!(weather.get_i32("thunder_time"), Some(33));
+        assert_eq!(weather.get_i32("clear_weather_time"), Some(0));
+        assert_eq!(weather.get_i32("rain_time"), Some(0));
+        assert_eq!(weather.get_i32("thunder_time"), Some(0));
         assert_eq!(weather.get_bool("raining"), Some(true));
         assert_eq!(weather.get_bool("thundering"), Some(true));
 
