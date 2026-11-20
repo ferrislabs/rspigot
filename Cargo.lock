@@ -576,6 +576,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "factions"
+version = "0.1.0"
+dependencies = [
+ "rspigot-plugin",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

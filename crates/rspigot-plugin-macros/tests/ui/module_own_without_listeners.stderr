@@ -1,0 +1,23 @@
+error[E0277]: `Node` is not a module
+  --> tests/ui/module_own_without_listeners.rs:10:8
+   |
+10 | struct Node {
+   |        ^^^^ this type does not implement `Listeners`
+   |
+help: the trait `Listeners` is not implemented for `Node`
+  --> tests/ui/module_own_without_listeners.rs:10:1
+   |
+10 | struct Node {
+   | ^^^^^^^^^^^
+   = note: a leaf module is a struct with a `#[listeners]` impl block; a node is a struct with `#[module]` fields and `#[derive(Module)]` (`#[derive(Plugin)]` for the root); a node declared `#[module(own)]` or `#[plugin(own)]` also needs a `#[listeners]` impl block
+help: the trait `Listeners` is implemented for `Leaf`
+  --> tests/ui/module_own_without_listeners.rs:5:1
+   |
+ 5 | #[listeners]
+   | ^^^^^^^^^^^^
+note: required by a bound in `assert_listeners`
+  --> tests/ui/module_own_without_listeners.rs:8:10
+   |
+ 8 | #[derive(Module)]
+   |          ^^^^^^ required by this bound in `assert_listeners`
+   = note: this error originates in the attribute macro `listeners` which comes from the expansion of the derive macro `Module` (in Nightly builds, run with -Z macro-backtrace for more info)

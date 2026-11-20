@@ -175,67 +175,65 @@ fn params(method: &mut ImplItemFn, errors: &mut Vec<Error>) -> Option<Vec<Param>
     valid.then_some(params)
 }
 
-pub(crate) fn specs(commands: &[Command]) -> TokenStream {
-    let specs = commands.iter().map(|command| {
-        let Command {
-            cfgs,
-            id,
-            root,
-            path,
-            aliases,
-            permission,
-            params,
-            ..
-        } = command;
-        let id = Literal::u32_unsuffixed(*id);
-        let permission = permission.as_ref().map_or_else(
-            || quote!(::core::option::Option::None),
-            |node| quote!(::core::option::Option::Some(#node)),
-        );
-        let literals = path.iter().map(|word| {
+pub(crate) fn specs(commands: &[Command]) -> Vec<TokenStream> {
+    commands
+        .iter()
+        .map(|command| {
+            let Command {
+                cfgs,
+                id,
+                root,
+                path,
+                aliases,
+                permission,
+                params,
+                ..
+            } = command;
+            let id = Literal::u32_unsuffixed(*id);
+            let permission = permission.as_ref().map_or_else(
+                || quote!(::core::option::Option::None),
+                |node| quote!(::core::option::Option::Some(#node)),
+            );
+            let literals = path.iter().map(|word| {
+                quote! {
+                    ::rspigot_plugin::CommandArgument {
+                        name: #word,
+                        kind: ::rspigot_plugin::ArgumentKind::Literal,
+                        optional: false,
+                        suggested: false,
+                        choices: &[],
+                    }
+                }
+            });
+            let arguments = params.iter().map(|param| {
+                let label = param.ident.to_string();
+                let ty = &param.ty;
+                let suggested = param.suggest.is_some();
+                quote! {
+                    ::rspigot_plugin::CommandArgument {
+                        name: #label,
+                        kind: <#ty as ::rspigot_plugin::Argument>::KIND,
+                        optional: <#ty as ::rspigot_plugin::Argument>::OPTIONAL,
+                        suggested: #suggested,
+                        choices: <#ty as ::rspigot_plugin::Argument>::CHOICES,
+                    }
+                }
+            });
             quote! {
-                ::rspigot_plugin::CommandArgument {
-                    name: #word,
-                    kind: ::rspigot_plugin::ArgumentKind::Literal,
-                    optional: false,
-                    suggested: false,
-                    choices: &[],
+                #(#cfgs)*
+                ::rspigot_plugin::CommandSpec {
+                    id: #id,
+                    name: #root,
+                    aliases: &[#(#aliases),*],
+                    permission: #permission,
+                    arguments: ::std::vec![#(#literals,)* #(#arguments),*],
                 }
             }
-        });
-        let arguments = params.iter().map(|param| {
-            let label = param.ident.to_string();
-            let ty = &param.ty;
-            let suggested = param.suggest.is_some();
-            quote! {
-                ::rspigot_plugin::CommandArgument {
-                    name: #label,
-                    kind: <#ty as ::rspigot_plugin::Argument>::KIND,
-                    optional: <#ty as ::rspigot_plugin::Argument>::OPTIONAL,
-                    suggested: #suggested,
-                    choices: <#ty as ::rspigot_plugin::Argument>::CHOICES,
-                }
-            }
-        });
-        quote! {
-            #(#cfgs)*
-            ::rspigot_plugin::CommandSpec {
-                id: #id,
-                name: #root,
-                aliases: &[#(#aliases),*],
-                permission: #permission,
-                arguments: ::std::vec![#(#literals,)* #(#arguments),*],
-            }
-        }
-    });
-    quote! {
-        fn commands() -> ::std::vec::Vec<::rspigot_plugin::CommandSpec> {
-            ::std::vec![#(#specs),*]
-        }
-    }
+        })
+        .collect()
 }
 
-pub(crate) fn invoke(commands: &[Command], fallback: bool) -> TokenStream {
+pub(crate) fn invoke_match(commands: &[Command], fallback: bool) -> TokenStream {
     let rest = if fallback {
         quote!(_ => self.on_command(invocation).await,)
     } else {
@@ -268,19 +266,9 @@ pub(crate) fn invoke(commands: &[Command], fallback: bool) -> TokenStream {
         }
     });
     quote! {
-        async fn invoke(&self, invocation: ::rspigot_plugin::Invocation) {
-            match invocation.command() {
-                #(#arms)*
-                #rest
-            }
-        }
-    }
-}
-
-pub(crate) fn invoke_dynamic_only() -> TokenStream {
-    quote! {
-        async fn invoke(&self, invocation: ::rspigot_plugin::Invocation) {
-            self.on_command(invocation).await;
+        match command {
+            #(#arms)*
+            #rest
         }
     }
 }
@@ -291,10 +279,10 @@ pub(crate) fn suggests(commands: &[Command]) -> bool {
         .any(|command| command.params.iter().any(|param| param.suggest.is_some()))
 }
 
-pub(crate) fn suggestion_spec() -> TokenStream {
+pub(crate) fn suggestion_spec(tab: &TokenStream) -> TokenStream {
     quote! {
         ::rspigot_plugin::HandlerSpec {
-            id: ::core::primitive::u32::MAX,
+            id: #tab,
             event: ::rspigot_plugin::EventKind::TabComplete,
             access: ::rspigot_plugin::Access::Decide,
             priority: ::rspigot_plugin::Priority::Normal,
@@ -303,7 +291,7 @@ pub(crate) fn suggestion_spec() -> TokenStream {
     }
 }
 
-pub(crate) fn suggestion_arm(commands: &[Command]) -> TokenStream {
+pub(crate) fn suggestion_arm(commands: &[Command], tab: &TokenStream) -> TokenStream {
     let routes = commands.iter().flat_map(|command| {
         let cfgs = &command.cfgs;
         let root = &command.root;
@@ -344,7 +332,7 @@ pub(crate) fn suggestion_arm(commands: &[Command]) -> TokenStream {
             })
     });
     quote! {
-        ::rspigot_plugin::Call::TabComplete { handler: ::core::primitive::u32::MAX, mut event } => {
+        (__handler, ::rspigot_plugin::Call::TabComplete { mut event, .. }) if __handler == #tab => {
             let buffer = event.buffer().to_owned();
             if let ::core::option::Option::Some(typing) =
                 ::rspigot_plugin::Typing::of(&buffer, event.sender())

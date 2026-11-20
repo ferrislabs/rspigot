@@ -11,8 +11,8 @@ use tonic::transport::Endpoint;
 use tonic::{Code, Status, Streaming};
 
 use crate::Error;
-use crate::commands::CommandSpec;
 use crate::commands::Invocation;
+use crate::commands::{ArgumentKind, CommandSpec};
 use crate::events::EventKind;
 use crate::link::{ANSWER_TIMEOUT, Link, Outbound, handling, message};
 use crate::listener::{HandlerSpec, Listeners, Outcome, Plugin, Verdict};
@@ -90,6 +90,8 @@ pub async fn run_with<P: Plugin>(
     token: Option<String>,
 ) -> Result<(), Error> {
     let endpoint = endpoint(&url)?;
+    let commands = P::commands();
+    check_commands::<P>(&commands)?;
     let link = Link::default();
     link.name_as(P::NAME);
     let (queue, queued) = mpsc::unbounded_channel();
@@ -101,13 +103,49 @@ pub async fn run_with<P: Plugin>(
         version: P::VERSION.to_owned(),
         token: token.unwrap_or_default(),
         handlers: specs.into_iter().map(HandlerSpec::to_wire).collect(),
-        commands: P::commands().iter().map(CommandSpec::to_wire).collect(),
+        commands: commands.iter().map(CommandSpec::to_wire).collect(),
     };
     let (error, ()) = tokio::join!(
         keep_connected(endpoint, url, hello, &link, queue),
         handle_events(&plugin, &link, &kinds, queued),
     );
     Err(error)
+}
+
+fn command_path(spec: &CommandSpec) -> Vec<&'static str> {
+    std::iter::once(spec.name)
+        .chain(
+            spec.arguments
+                .iter()
+                .take_while(|argument| argument.kind == ArgumentKind::Literal)
+                .map(|argument| argument.name),
+        )
+        .collect()
+}
+
+fn check_commands<P: Listeners>(commands: &[CommandSpec]) -> Result<(), Error> {
+    let mut modules = Vec::new();
+    P::command_modules(0, &mut modules);
+    let owner = |spec: &CommandSpec| modules.iter().find(|module| module.contains(spec.id));
+    for (index, spec) in commands.iter().enumerate() {
+        let path = command_path(spec);
+        let first = owner(spec);
+        let clash = commands[index + 1..].iter().find(|other| {
+            command_path(other) == path && owner(other).map(|m| &m.name) != first.map(|m| &m.name)
+        });
+        if let Some(other) = clash {
+            let name = |spec: &CommandSpec| {
+                owner(spec).map_or_else(|| "?".to_owned(), |module| module.name.clone())
+            };
+            return Err(Error::Modules(format!(
+                "`/{}` is declared by both `{}` and `{}`",
+                path.join(" "),
+                name(spec),
+                name(other)
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn endpoint(url: &str) -> Result<Endpoint, Error> {
@@ -305,7 +343,7 @@ async fn handle<P: Listeners>(
                 for (handler, call) in calls(&received, &handlers, kinds, link) {
                     match call {
                         Some(call) => {
-                            handling(id, plugin.dispatch(call)).await;
+                            handling(id, plugin.dispatch_at(handler, call)).await;
                         }
                         None => tracing::warn!("Skipped event {id} for handler {handler}"),
                     }
@@ -327,7 +365,7 @@ async fn handle<P: Listeners>(
                     tracing::warn!("Let event {id} through for handler {handler}");
                     continue;
                 };
-                let verdict = match handling(id, plugin.dispatch(call)).await {
+                let verdict = match handling(id, plugin.dispatch_at(handler, call)).await {
                     Outcome::Decided(verdict) => verdict,
                     Outcome::Observed => Verdict::default(),
                 };

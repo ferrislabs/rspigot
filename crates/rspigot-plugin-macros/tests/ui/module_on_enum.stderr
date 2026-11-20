@@ -1,0 +1,5 @@
+error: a node is a struct whose `#[module]` fields are its modules
+ --> tests/ui/module_on_enum.rs:4:6
+  |
+4 | enum Node {
+  |      ^^^^

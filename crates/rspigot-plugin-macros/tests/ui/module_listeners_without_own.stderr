@@ -1,0 +1,10 @@
+error[E0119]: conflicting implementations of trait `Listeners` for type `Node`
+  --> tests/ui/module_listeners_without_own.rs:14:1
+   |
+ 8 | #[derive(Module)]
+   |          ------ first implementation here
+...
+14 | #[listeners]
+   | ^^^^^^^^^^^^ conflicting implementation for `Node`
+   |
+   = note: this error originates in the attribute macro `listeners` (in Nightly builds, run with -Z macro-backtrace for more info)

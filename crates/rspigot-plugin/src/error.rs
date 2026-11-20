@@ -78,4 +78,6 @@ pub enum Error {
     Action(ActionError),
     #[error("rspigot sent {0}")]
     Malformed(String),
+    #[error("the plugin's modules clash: {0}")]
+    Modules(String),
 }
