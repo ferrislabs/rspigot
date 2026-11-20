@@ -1,4 +1,4 @@
-use crate::spawns::{BiomeSpawns, DimensionSpawns, SpawnCost, SpawnCount, Spawner};
+use crate::spawns::{BiomeSpawns, DimensionSpawns, SpawnCost, SpawnCount, Spawner, StructureBox, StructureOverride, StructureSpawns};
 
 pub(crate) static BIOME_SPAWNS: [BiomeSpawns; 67] = [
     BiomeSpawns {
@@ -1924,6 +1924,137 @@ pub(crate) static DIMENSION_SPAWNS: [(&str, DimensionSpawns); 4] = [
             monster_spawn_block_light_limit: 15,
             ambient_light: 0.1,
             has_ceiling: true,
+        },
+    ),
+];
+
+pub(crate) static STRUCTURE_SPAWNS: [(&str, StructureSpawns); 6] = [
+    (
+        "minecraft:ancient_city",
+        StructureSpawns {
+            monster: Some(StructureOverride { bounding_box: StructureBox::Full, spawns: &[] }),
+            creature: Some(StructureOverride { bounding_box: StructureBox::Full, spawns: &[] }),
+            ambient: Some(StructureOverride { bounding_box: StructureBox::Full, spawns: &[] }),
+            axolotls: Some(StructureOverride { bounding_box: StructureBox::Full, spawns: &[] }),
+            underground_water_creature: Some(StructureOverride {
+                bounding_box: StructureBox::Full,
+                spawns: &[],
+            }),
+            water_creature: Some(StructureOverride {
+                bounding_box: StructureBox::Full,
+                spawns: &[],
+            }),
+            water_ambient: Some(StructureOverride {
+                bounding_box: StructureBox::Full,
+                spawns: &[],
+            }),
+            misc: Some(StructureOverride { bounding_box: StructureBox::Full, spawns: &[] }),
+        },
+    ),
+    (
+        "minecraft:fortress",
+        StructureSpawns {
+            monster: Some(StructureOverride {
+                bounding_box: StructureBox::Piece,
+                spawns: &[
+                    Spawner {
+                        entity: 14,
+                        weight: 10,
+                        count: SpawnCount::Uniform { min: 2, max: 3 },
+                    },
+                    Spawner { entity: 158, weight: 5, count: SpawnCount::Constant(4) },
+                    Spawner { entity: 150, weight: 8, count: SpawnCount::Constant(5) },
+                    Spawner { entity: 118, weight: 2, count: SpawnCount::Constant(5) },
+                    Spawner { entity: 81, weight: 3, count: SpawnCount::Constant(4) },
+                ],
+            }),
+            creature: None,
+            ambient: None,
+            axolotls: None,
+            underground_water_creature: None,
+            water_creature: None,
+            water_ambient: None,
+            misc: None,
+        },
+    ),
+    (
+        "minecraft:monument",
+        StructureSpawns {
+            monster: Some(StructureOverride {
+                bounding_box: StructureBox::Full,
+                spawns: &[Spawner {
+                    entity: 64,
+                    weight: 1,
+                    count: SpawnCount::Uniform { min: 2, max: 4 },
+                }],
+            }),
+            creature: None,
+            ambient: None,
+            axolotls: Some(StructureOverride { bounding_box: StructureBox::Full, spawns: &[] }),
+            underground_water_creature: Some(StructureOverride {
+                bounding_box: StructureBox::Full,
+                spawns: &[],
+            }),
+            water_creature: None,
+            water_ambient: None,
+            misc: None,
+        },
+    ),
+    (
+        "minecraft:pillager_outpost",
+        StructureSpawns {
+            monster: Some(StructureOverride {
+                bounding_box: StructureBox::Full,
+                spawns: &[Spawner { entity: 104, weight: 1, count: SpawnCount::Constant(1) }],
+            }),
+            creature: None,
+            ambient: None,
+            axolotls: None,
+            underground_water_creature: None,
+            water_creature: None,
+            water_ambient: None,
+            misc: None,
+        },
+    ),
+    (
+        "minecraft:swamp_hut",
+        StructureSpawns {
+            monster: Some(StructureOverride {
+                bounding_box: StructureBox::Piece,
+                spawns: &[Spawner { entity: 148, weight: 1, count: SpawnCount::Constant(1) }],
+            }),
+            creature: Some(StructureOverride {
+                bounding_box: StructureBox::Piece,
+                spawns: &[Spawner { entity: 21, weight: 1, count: SpawnCount::Constant(1) }],
+            }),
+            ambient: None,
+            axolotls: None,
+            underground_water_creature: None,
+            water_creature: None,
+            water_ambient: None,
+            misc: None,
+        },
+    ),
+    (
+        "minecraft:trial_chambers",
+        StructureSpawns {
+            monster: Some(StructureOverride { bounding_box: StructureBox::Piece, spawns: &[] }),
+            creature: Some(StructureOverride { bounding_box: StructureBox::Piece, spawns: &[] }),
+            ambient: Some(StructureOverride { bounding_box: StructureBox::Piece, spawns: &[] }),
+            axolotls: Some(StructureOverride { bounding_box: StructureBox::Piece, spawns: &[] }),
+            underground_water_creature: Some(StructureOverride {
+                bounding_box: StructureBox::Piece,
+                spawns: &[],
+            }),
+            water_creature: Some(StructureOverride {
+                bounding_box: StructureBox::Piece,
+                spawns: &[],
+            }),
+            water_ambient: Some(StructureOverride {
+                bounding_box: StructureBox::Piece,
+                spawns: &[],
+            }),
+            misc: Some(StructureOverride { bounding_box: StructureBox::Piece, spawns: &[] }),
         },
     ),
 ];

@@ -583,3 +583,41 @@ fn an_ocean_monument_is_built_into_the_generated_chunks() {
     assert!(bricks > 500, "prismarine bricks {bricks}");
     assert_eq!(elders, 3);
 }
+
+#[test]
+fn generated_chunks_carry_monument_starts_with_piece_boxes_and_references() {
+    use rspigot_domain::ChunkPos;
+    let resources = Resources::resolve();
+    let overworld = Overworld::with_library(
+        1,
+        ClimateVariant::Normal,
+        &resources.blocks,
+        Library::embedded(),
+    );
+    let dimension = Dimension::overworld();
+    let (cx, cz) = first_placed(&overworld, 1, "ocean_monuments", "monument", -80..=80);
+    let origin = overworld.generate(&resources, &dimension, ChunkPos::new(cx, cz));
+    let start = origin
+        .extra
+        .get_compound("structures")
+        .and_then(|structures| structures.get_compound("starts"))
+        .and_then(|starts| starts.get_compound("minecraft:monument"))
+        .expect("the monument start");
+    assert_eq!(start.get_i32("ChunkX"), Some(cx));
+    assert_eq!(start.get_i32("ChunkZ"), Some(cz));
+    let children = start.get_list("Children").unwrap();
+    assert!(!children.is_empty());
+    for child in children {
+        let bounds = child.as_compound().unwrap().get_int_array("BB").unwrap();
+        assert_eq!(bounds.len(), 6);
+        assert!(bounds[0] <= bounds[3] && bounds[1] <= bounds[4] && bounds[2] <= bounds[5]);
+    }
+    let references = origin
+        .extra
+        .get_compound("structures")
+        .and_then(|structures| structures.get_compound("References"))
+        .and_then(|references| references.get_long_array("minecraft:monument"))
+        .expect("the monument reference");
+    let packed = (i64::from(cx) & 0xFFFF_FFFF) | ((i64::from(cz) & 0xFFFF_FFFF) << 32);
+    assert!(references.contains(&packed));
+}

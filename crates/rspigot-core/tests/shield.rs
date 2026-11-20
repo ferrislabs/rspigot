@@ -119,7 +119,8 @@ fn server() -> Server<Link> {
         Arc::new(NoStore),
         Arc::new(Floor),
         StatusBoard::new(20),
-    );
+    )
+    .with_rng_seed(5);
     server.wait_for_spawn(Duration::from_secs(10));
     server
 }
@@ -210,7 +211,6 @@ fn a_raised_shield_blocks_a_zombie_hit_from_the_front() {
     let mut client = join_client(&mut server);
     console(&mut server, "time set 18000");
     console(&mut server, "give Alice minecraft:shield");
-    console(&mut server, "summon minecraft:zombie 0.5 64 1.5");
     run_ticks(&mut server, &mut client, 2);
     server.handle(Inbound::Input {
         player: client.id,
@@ -220,6 +220,11 @@ fn a_raised_shield_blocks_a_zombie_hit_from_the_front() {
             rotation: AIM,
         },
     });
+    for _ in 0..8 {
+        stand(&mut server, &client);
+        run_ticks(&mut server, &mut client, 1);
+    }
+    console(&mut server, "summon minecraft:zombie 0.5 64 1.5");
     let mut blocked = false;
     let mut hurt = false;
     let player = server.player_entity_id(client.id).unwrap();
@@ -236,7 +241,7 @@ fn a_raised_shield_blocks_a_zombie_hit_from_the_front() {
             break;
         }
     }
-    assert!(blocked, "the shield never blocked the zombie");
+    assert!(blocked, "the shield never blocked the zombie, hurt={hurt}");
     assert!(!hurt, "the player was hurt through the shield");
     assert_eq!(server.player_health(client.id), Some(20.0));
 }
