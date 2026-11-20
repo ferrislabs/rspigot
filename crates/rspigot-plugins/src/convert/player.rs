@@ -140,6 +140,8 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
         Wire::RemoveGroup(group) => PlayerOrder::RemoveGroup(group),
         Wire::GrantAdvancement(advancement) => PlayerOrder::GrantAdvancement(advancement),
         Wire::RevokeAdvancement(advancement) => PlayerOrder::RevokeAdvancement(advancement),
+        Wire::DiscoverRecipe(recipe) => PlayerOrder::DiscoverRecipe(recipe),
+        Wire::UndiscoverRecipe(recipe) => PlayerOrder::UndiscoverRecipe(recipe),
     };
     Ok(Order::Player { player, order })
 }

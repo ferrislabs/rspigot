@@ -11,6 +11,7 @@ mod inventory;
 mod meta;
 mod npc;
 mod player;
+mod recipes;
 mod scoreboard;
 mod server;
 mod shared;
@@ -226,6 +227,10 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         question::Question::DoneAdvancements(player) => {
             Question::DoneAdvancements(player::id(player)?)
         }
+        question::Question::Recipes(_) => Question::Recipes,
+        question::Question::DiscoveredRecipes(player) => {
+            Question::DiscoveredRecipes(player::id(player)?)
+        }
         question::Question::AttributeValue(query) => entity::attribute_query(query)?,
         question::Question::CreateNpc(create) => Question::CreateNpc(npc::spec(create)?),
         question::Question::NpcByKey(key) => Question::NpcByKey(key),
@@ -329,6 +334,8 @@ fn wire_answer(answer: Answer) -> answer::Body {
             })
         }
         Answer::Advancements(ids) => answer::Body::Advancements(v1::AdvancementList { ids }),
+        Answer::Recipes(views) => answer::Body::Recipes(recipes::wire_list(views)),
+        Answer::RecipeIds(ids) => answer::Body::RecipeIds(v1::RecipeIdList { ids }),
         Answer::PermissionGroups(groups) => {
             answer::Body::PermissionGroups(server::wire_groups(groups))
         }

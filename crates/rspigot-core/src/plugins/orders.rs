@@ -111,7 +111,7 @@ impl Order {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ServerOrder {
     Broadcast(String),
     DispatchCommand(String),
@@ -141,6 +141,8 @@ pub enum ServerOrder {
         locked: bool,
     },
     CreateWorld(crate::worlds::WorldSpec),
+    AddRecipe(Box<crate::plugins::RecipeSpec>),
+    RemoveRecipe(String),
 }
 
 impl ServerOrder {
@@ -161,6 +163,8 @@ impl ServerOrder {
             Self::IpBanRemove(_) => "server.ip_ban_remove",
             Self::CreateInventory { .. } => "server.create_inventory",
             Self::CreateWorld(_) => "server.create_world",
+            Self::AddRecipe(_) => "server.recipes.add",
+            Self::RemoveRecipe(_) => "server.recipes.remove",
         }
     }
 }
@@ -461,6 +465,8 @@ pub enum PlayerOrder {
     RefreshCommands,
     GrantAdvancement(String),
     RevokeAdvancement(String),
+    DiscoverRecipe(String),
+    UndiscoverRecipe(String),
 }
 
 impl PlayerOrder {
@@ -521,6 +527,8 @@ impl PlayerOrder {
             Self::RefreshCommands => "player.command.refresh",
             Self::GrantAdvancement(_) => "player.advancements.grant",
             Self::RevokeAdvancement(_) => "player.advancements.revoke",
+            Self::DiscoverRecipe(_) => "player.recipes.discover",
+            Self::UndiscoverRecipe(_) => "player.recipes.undiscover",
         }
     }
 }

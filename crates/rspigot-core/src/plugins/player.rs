@@ -54,6 +54,8 @@ impl<L: ClientLink> Server<L> {
             PlayerOrder::RevokeAdvancement(advancement) => {
                 self.plugin_advancement(id, &advancement, false)?;
             }
+            PlayerOrder::DiscoverRecipe(recipe) => self.plugin_discover(id, &recipe)?,
+            PlayerOrder::UndiscoverRecipe(recipe) => self.plugin_undiscover(id, &recipe)?,
             order @ (PlayerOrder::SetPermission { .. }
             | PlayerOrder::UnsetPermission(_)
             | PlayerOrder::AddGroup(_)

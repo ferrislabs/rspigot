@@ -93,6 +93,24 @@ impl Market {
         }
     }
 
+    async fn on_enable(&self, server: &Server) {
+        let voucher = Recipe::shaped(
+            "market:voucher",
+            ItemStack::new(Material::Paper, 3).name("Shop voucher"),
+            ["EPE", " P "],
+            [
+                ('E', Ingredient::item(Material::Emerald)),
+                ('P', Ingredient::tag("minecraft:planks")),
+            ],
+        )
+        .group("market")
+        .category(RecipeCategory::Misc)
+        .auto_discover(true);
+        if let Err(error) = server.recipes.add(voucher).await {
+            tracing::warn!("Could not register the voucher recipe: {error}");
+        }
+    }
+
     async fn on_player_join(&self, event: &PlayerJoin) {
         let open = self
             .config

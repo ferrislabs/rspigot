@@ -1055,3 +1055,67 @@ fn an_entity_snapshot_carries_its_name_and_tags() {
         ..zombie()
     });
 }
+
+#[test]
+fn a_recipe_definition_and_its_answers_survive_the_wire() {
+    use rspigot_plugin_protocol::v1::{
+        Answer, RecipeCategory, RecipeDef, RecipeIdList, RecipeInfo, RecipeIngredient, RecipeKey,
+        RecipeKind, RecipeList, ServerOrder, ShapedRecipe, answer, recipe_def, recipe_ingredient,
+        server_order,
+    };
+    let order = FromPlugin {
+        body: Some(from_plugin::Body::Server(ServerOrder {
+            order: Some(server_order::Order::AddRecipe(RecipeDef {
+                id: "demo:wand".to_owned(),
+                result: Some(Item {
+                    key: "minecraft:stick".to_owned(),
+                    count: 1,
+                    ..Default::default()
+                }),
+                group: "wands".to_owned(),
+                category: RecipeCategory::Equipment as i32,
+                override_vanilla: true,
+                auto_discover: false,
+                body: Some(recipe_def::Body::Shaped(ShapedRecipe {
+                    pattern: vec!["AB".to_owned()],
+                    keys: vec![RecipeKey {
+                        symbol: "A".to_owned(),
+                        ingredient: Some(RecipeIngredient {
+                            choice: Some(recipe_ingredient::Choice::Tag(
+                                "minecraft:planks".to_owned(),
+                            )),
+                        }),
+                    }],
+                    mirror: true,
+                })),
+            })),
+        })),
+        origin: None,
+        request: Some(7),
+        in_world: None,
+    };
+    let decoded = FromPlugin::decode(order.encode_to_vec().as_slice()).expect("decodes");
+    assert_eq!(decoded, order);
+    let answers = [
+        answer::Body::Recipes(RecipeList {
+            recipes: vec![RecipeInfo {
+                id: "demo:wand".to_owned(),
+                kind: RecipeKind::Shaped as i32,
+                plugin: true,
+            }],
+        }),
+        answer::Body::RecipeIds(RecipeIdList {
+            ids: vec!["demo:wand".to_owned()],
+        }),
+    ];
+    for body in answers {
+        let answer = Answer {
+            request: 7,
+            body: Some(body),
+        };
+        assert_eq!(
+            Answer::decode(answer.encode_to_vec().as_slice()).expect("decodes"),
+            answer
+        );
+    }
+}

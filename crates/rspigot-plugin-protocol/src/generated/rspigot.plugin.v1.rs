@@ -9264,6 +9264,132 @@ pub struct AdvancementList {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ItemKeys {
+    #[prost(string, repeated, tag = "1")]
+    pub keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecipeIngredient {
+    #[prost(oneof = "recipe_ingredient::Choice", tags = "1, 2")]
+    pub choice: ::core::option::Option<recipe_ingredient::Choice>,
+}
+/// Nested message and enum types in `RecipeIngredient`.
+pub mod recipe_ingredient {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Choice {
+        #[prost(message, tag = "1")]
+        Items(super::ItemKeys),
+        #[prost(string, tag = "2")]
+        Tag(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecipeKey {
+    #[prost(string, tag = "1")]
+    pub symbol: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub ingredient: ::core::option::Option<RecipeIngredient>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ShapedRecipe {
+    #[prost(string, repeated, tag = "1")]
+    pub pattern: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "2")]
+    pub keys: ::prost::alloc::vec::Vec<RecipeKey>,
+    #[prost(bool, tag = "3")]
+    pub mirror: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ShapelessRecipe {
+    #[prost(message, repeated, tag = "1")]
+    pub ingredients: ::prost::alloc::vec::Vec<RecipeIngredient>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CookingRecipe {
+    #[prost(enumeration = "RecipeKind", tag = "1")]
+    pub kind: i32,
+    #[prost(message, optional, tag = "2")]
+    pub ingredient: ::core::option::Option<RecipeIngredient>,
+    #[prost(float, tag = "3")]
+    pub experience: f32,
+    #[prost(uint32, tag = "4")]
+    pub time: u32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SmithingRecipe {
+    #[prost(message, optional, tag = "1")]
+    pub template: ::core::option::Option<RecipeIngredient>,
+    #[prost(message, optional, tag = "2")]
+    pub base: ::core::option::Option<RecipeIngredient>,
+    #[prost(message, optional, tag = "3")]
+    pub addition: ::core::option::Option<RecipeIngredient>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RecipeDef {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub result: ::core::option::Option<Item>,
+    #[prost(string, tag = "3")]
+    pub group: ::prost::alloc::string::String,
+    #[prost(enumeration = "RecipeCategory", tag = "4")]
+    pub category: i32,
+    #[prost(bool, tag = "5")]
+    pub override_vanilla: bool,
+    #[prost(bool, tag = "6")]
+    pub auto_discover: bool,
+    #[prost(oneof = "recipe_def::Body", tags = "10, 11, 12, 13, 14")]
+    pub body: ::core::option::Option<recipe_def::Body>,
+}
+/// Nested message and enum types in `RecipeDef`.
+pub mod recipe_def {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Body {
+        #[prost(message, tag = "10")]
+        Shaped(super::ShapedRecipe),
+        #[prost(message, tag = "11")]
+        Shapeless(super::ShapelessRecipe),
+        #[prost(message, tag = "12")]
+        Cooking(super::CookingRecipe),
+        #[prost(message, tag = "13")]
+        Stonecutting(super::RecipeIngredient),
+        #[prost(message, tag = "14")]
+        Smithing(super::SmithingRecipe),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecipeInfo {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(enumeration = "RecipeKind", tag = "2")]
+    pub kind: i32,
+    #[prost(bool, tag = "3")]
+    pub plugin: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RecipeList {
+    #[prost(message, repeated, tag = "1")]
+    pub recipes: ::prost::alloc::vec::Vec<RecipeInfo>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RecipeIdList {
+    #[prost(string, repeated, tag = "1")]
+    pub ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Transfer {
     #[prost(string, tag = "1")]
     pub host: ::prost::alloc::string::String,
@@ -9774,7 +9900,7 @@ pub struct PlayerOrder {
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -9893,6 +10019,10 @@ pub mod player_order {
         GrantAdvancement(::prost::alloc::string::String),
         #[prost(string, tag = "64")]
         RevokeAdvancement(::prost::alloc::string::String),
+        #[prost(string, tag = "65")]
+        DiscoverRecipe(::prost::alloc::string::String),
+        #[prost(string, tag = "66")]
+        UndiscoverRecipe(::prost::alloc::string::String),
     }
 }
 #[allow(clippy::all)]
@@ -9925,7 +10055,7 @@ pub mod inventory_order {
 pub struct ServerOrder {
     #[prost(
         oneof = "server_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26"
     )]
     pub order: ::core::option::Option<server_order::Order>,
 }
@@ -9964,6 +10094,10 @@ pub mod server_order {
         CreateInventory(super::CreateInventory),
         #[prost(message, tag = "24")]
         CreateWorld(super::CreateWorld),
+        #[prost(message, tag = "25")]
+        AddRecipe(super::RecipeDef),
+        #[prost(string, tag = "26")]
+        RemoveRecipe(::prost::alloc::string::String),
     }
 }
 #[allow(clippy::all)]
@@ -10770,7 +10904,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -10853,6 +10987,10 @@ pub mod question {
         AdvancementProgress(super::AdvancementQuery),
         #[prost(string, tag = "46")]
         DoneAdvancements(::prost::alloc::string::String),
+        #[prost(message, tag = "47")]
+        Recipes(super::Empty),
+        #[prost(string, tag = "48")]
+        DiscoveredRecipes(::prost::alloc::string::String),
     }
 }
 #[allow(clippy::all)]
@@ -11457,7 +11595,7 @@ pub struct Answer {
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -11532,6 +11670,10 @@ pub mod answer {
         AdvancementProgress(super::AdvancementProgress),
         #[prost(message, tag = "34")]
         Advancements(super::AdvancementList),
+        #[prost(message, tag = "35")]
+        Recipes(super::RecipeList),
+        #[prost(message, tag = "36")]
+        RecipeIds(super::RecipeIdList),
     }
 }
 #[allow(clippy::all)]
@@ -11907,6 +12049,96 @@ impl Attribute {
             "ATTRIBUTE_WATER_MOVEMENT_EFFICIENCY" => Some(Self::WaterMovementEfficiency),
             "ATTRIBUTE_WAYPOINT_TRANSMIT_RANGE" => Some(Self::WaypointTransmitRange),
             "ATTRIBUTE_WAYPOINT_RECEIVE_RANGE" => Some(Self::WaypointReceiveRange),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RecipeKind {
+    Unspecified = 0,
+    Shaped = 1,
+    Shapeless = 2,
+    Furnace = 3,
+    BlastFurnace = 4,
+    Smoker = 5,
+    Campfire = 6,
+    Stonecutting = 7,
+    Smithing = 8,
+    Special = 9,
+}
+impl RecipeKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "RECIPE_KIND_UNSPECIFIED",
+            Self::Shaped => "RECIPE_KIND_SHAPED",
+            Self::Shapeless => "RECIPE_KIND_SHAPELESS",
+            Self::Furnace => "RECIPE_KIND_FURNACE",
+            Self::BlastFurnace => "RECIPE_KIND_BLAST_FURNACE",
+            Self::Smoker => "RECIPE_KIND_SMOKER",
+            Self::Campfire => "RECIPE_KIND_CAMPFIRE",
+            Self::Stonecutting => "RECIPE_KIND_STONECUTTING",
+            Self::Smithing => "RECIPE_KIND_SMITHING",
+            Self::Special => "RECIPE_KIND_SPECIAL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "RECIPE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "RECIPE_KIND_SHAPED" => Some(Self::Shaped),
+            "RECIPE_KIND_SHAPELESS" => Some(Self::Shapeless),
+            "RECIPE_KIND_FURNACE" => Some(Self::Furnace),
+            "RECIPE_KIND_BLAST_FURNACE" => Some(Self::BlastFurnace),
+            "RECIPE_KIND_SMOKER" => Some(Self::Smoker),
+            "RECIPE_KIND_CAMPFIRE" => Some(Self::Campfire),
+            "RECIPE_KIND_STONECUTTING" => Some(Self::Stonecutting),
+            "RECIPE_KIND_SMITHING" => Some(Self::Smithing),
+            "RECIPE_KIND_SPECIAL" => Some(Self::Special),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RecipeCategory {
+    Unspecified = 0,
+    Building = 1,
+    Redstone = 2,
+    Equipment = 3,
+    Misc = 4,
+    Food = 5,
+}
+impl RecipeCategory {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "RECIPE_CATEGORY_UNSPECIFIED",
+            Self::Building => "RECIPE_CATEGORY_BUILDING",
+            Self::Redstone => "RECIPE_CATEGORY_REDSTONE",
+            Self::Equipment => "RECIPE_CATEGORY_EQUIPMENT",
+            Self::Misc => "RECIPE_CATEGORY_MISC",
+            Self::Food => "RECIPE_CATEGORY_FOOD",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "RECIPE_CATEGORY_UNSPECIFIED" => Some(Self::Unspecified),
+            "RECIPE_CATEGORY_BUILDING" => Some(Self::Building),
+            "RECIPE_CATEGORY_REDSTONE" => Some(Self::Redstone),
+            "RECIPE_CATEGORY_EQUIPMENT" => Some(Self::Equipment),
+            "RECIPE_CATEGORY_MISC" => Some(Self::Misc),
+            "RECIPE_CATEGORY_FOOD" => Some(Self::Food),
             _ => None,
         }
     }

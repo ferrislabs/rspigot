@@ -774,6 +774,7 @@ impl<L: ClientLink> Server<L> {
             player.advancements.inventory_seen = Some(state);
             let periodic = player.vitals.tick_count % 20 == 0;
             if changed {
+                self.auto_discover_recipes(id);
                 self.trigger_inventory_changed(id);
             }
             if first || periodic {

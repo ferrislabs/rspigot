@@ -311,30 +311,51 @@ fn difficulty(d: DomainDifficulty) -> WireDifficulty {
 }
 
 pub fn update_recipes() -> cb::UpdateRecipes {
+    let plugin = rspigot_domain::plugin_recipes::published().unwrap_or_default();
+    update_recipes_with(&plugin)
+}
+
+fn stonecutter_entry(
+    ingredient: rspigot_items::ItemSet,
+    result: rspigot_items::ItemId,
+    count: u8,
+) -> StonecutterEntry {
+    StonecutterEntry {
+        input: HolderSet::Ids(
+            ingredient
+                .items()
+                .iter()
+                .map(|item| i32::from(item.0))
+                .collect(),
+        ),
+        display: SlotDisplay::ItemStack(ItemStackTemplate {
+            item: i32::from(result.0),
+            count: i32::from(count),
+            components: DataComponentPatch::EMPTY,
+        }),
+    }
+}
+
+pub fn update_recipes_with(
+    plugin: &rspigot_domain::plugin_recipes::PluginRecipes,
+) -> cb::UpdateRecipes {
     cb::UpdateRecipes {
-        property_sets: rspigot_domain::recipes::property_sets()
-            .iter()
+        property_sets: rspigot_domain::recipes::merged_property_sets(plugin)
+            .into_iter()
             .map(|(key, items)| RecipePropertySet {
-                key: (*key).to_owned(),
-                items: items.iter().copied().map(i32::from).collect(),
+                key: key.to_owned(),
+                items: items.into_iter().map(i32::from).collect(),
             })
             .collect(),
         stonecutter: rspigot_domain::stonecutting::recipes()
             .iter()
-            .map(|cut| StonecutterEntry {
-                input: HolderSet::Ids(
-                    cut.ingredient
-                        .items()
-                        .iter()
-                        .map(|item| i32::from(item.0))
-                        .collect(),
+            .map(|cut| stonecutter_entry(cut.ingredient, cut.result.id(), cut.count))
+            .chain(plugin.iter().filter_map(|recipe| match &recipe.body {
+                rspigot_domain::plugin_recipes::Body::Stonecutting { ingredient } => Some(
+                    stonecutter_entry(*ingredient, recipe.result.item, recipe.result.count.get()),
                 ),
-                display: SlotDisplay::ItemStack(ItemStackTemplate {
-                    item: i32::from(cut.result.id().0),
-                    count: i32::from(cut.count),
-                    components: DataComponentPatch::EMPTY,
-                }),
-            })
+                _ => None,
+            }))
             .collect(),
     }
 }
@@ -3432,6 +3453,72 @@ mod tests {
             data: rspigot_nbt::Compound::new(),
         };
         assert_eq!(encode(unknown), Vec::new());
+    }
+
+    #[test]
+    fn the_recipe_sync_appends_the_plugin_cuts_and_inputs() {
+        use rspigot_domain::plugin_recipes::{self, Body, Category, PluginRecipe, PluginRecipes};
+        let (id, display_id) = plugin_recipes::intern_id("t:sync");
+        let mut plugin = PluginRecipes::default();
+        let template = || plugin_recipes::intern_items(&[named("minecraft:stick")]);
+        plugin.add(PluginRecipe {
+            id,
+            display_id,
+            owner: "t".to_owned(),
+            body: Body::Stonecutting {
+                ingredient: template(),
+            },
+            result: rspigot_domain::item::ItemStack::new(
+                named("minecraft:diamond"),
+                std::num::NonZeroU8::new(3).unwrap(),
+            ),
+            group: String::new(),
+            category: Category::Misc,
+            override_vanilla: false,
+            auto_discover: false,
+        });
+        plugin.add(PluginRecipe {
+            id,
+            display_id,
+            owner: "t".to_owned(),
+            body: Body::Cooking {
+                kind: rspigot_items::CookingKind::Smoking,
+                ingredient: template(),
+                experience: 0.5,
+                time: 10,
+            },
+            result: rspigot_domain::item::ItemStack::new(
+                named("minecraft:diamond"),
+                std::num::NonZeroU8::MIN,
+            ),
+            group: String::new(),
+            category: Category::Misc,
+            override_vanilla: false,
+            auto_discover: false,
+        });
+        let packet = update_recipes_with(&plugin);
+        assert_eq!(packet.stonecutter.len(), 352);
+        assert_eq!(
+            packet.stonecutter[351].display,
+            SlotDisplay::ItemStack(ItemStackTemplate {
+                item: i32::from(named("minecraft:diamond").0),
+                count: 3,
+                components: DataComponentPatch::EMPTY,
+            })
+        );
+        let stick = i32::from(named("minecraft:stick").0);
+        let smoker = packet
+            .property_sets
+            .iter()
+            .find(|set| set.key == "minecraft:smoker_input")
+            .unwrap();
+        assert!(smoker.items.contains(&stick));
+        assert_eq!(
+            update_recipes_with(&PluginRecipes::default())
+                .stonecutter
+                .len(),
+            351
+        );
     }
 
     #[test]

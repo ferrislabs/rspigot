@@ -44,6 +44,7 @@ pub mod npc;
 pub mod particle;
 pub mod piston;
 pub mod player;
+pub mod plugin_recipes;
 pub mod poi;
 pub mod portal;
 pub mod pos;

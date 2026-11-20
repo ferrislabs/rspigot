@@ -13,7 +13,7 @@ pub const CAMPFIRE_INPUT: &str = "minecraft:campfire_input";
 pub const BREWING_INPUT: &str = "minecraft:brewing_input";
 pub const BREWING_REAGENT: &str = "minecraft:brewing_reagent";
 
-fn cooking_key(kind: CookingKind) -> &'static str {
+pub(crate) fn cooking_key(kind: CookingKind) -> &'static str {
     match kind {
         CookingKind::Smelting => FURNACE_INPUT,
         CookingKind::Blasting => BLAST_FURNACE_INPUT,
@@ -32,6 +32,24 @@ pub fn contains(key: &str, item: u16) -> bool {
         .iter()
         .find(|(candidate, _)| *candidate == key)
         .is_some_and(|(_, items)| items.binary_search(&item).is_ok())
+        || crate::plugin_recipes::with(|plugin| {
+            plugin.property_items(key).binary_search(&item).is_ok()
+        })
+}
+
+pub fn merged_property_sets(
+    plugin: &crate::plugin_recipes::PluginRecipes,
+) -> Vec<(&'static str, Vec<u16>)> {
+    property_sets()
+        .iter()
+        .map(|(key, items)| {
+            let mut merged = items.clone();
+            merged.extend(plugin.property_items(key));
+            merged.sort_unstable();
+            merged.dedup();
+            (*key, merged)
+        })
+        .collect()
 }
 
 fn build() -> Vec<(&'static str, Vec<u16>)> {
