@@ -854,6 +854,8 @@ impl<L: ClientLink> Server<L> {
             sleep_counter: 0,
             waking: false,
             respawn: None,
+            meta: Default::default(),
+            volatile_meta: Default::default(),
         };
         if let Some(save) = &saved {
             save.restore(&mut player, self.world.spawn, self.world.level.spawn_angle);

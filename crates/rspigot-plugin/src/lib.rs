@@ -16,6 +16,7 @@ mod generated;
 mod inventory;
 mod item;
 mod location;
+mod meta;
 #[rustfmt::skip]
 pub mod keys;
 mod boss_bar;
@@ -63,6 +64,7 @@ pub use item::{CustomModelData, ItemStack};
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
 pub use location::PlayerLocationHandle;
+pub use meta::{MetaHandle, MetaValue, WorldMetaHandle};
 pub use npc::{DEFAULT_SKIN_LAYERS, Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, NpcState, Npcs};
 pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
 pub use permissions::PlayerPermissionsHandle;
@@ -94,9 +96,9 @@ pub mod prelude {
         CustomInventory, CustomInventoryState, CustomModelData, DamageSource, Difficulty, Effect,
         EffectType, Enchantment, Entity, EntityState, EntityType, Error, GameMode, GameRule,
         InventoryOwner, InventoryRef, InventorySlot, InventoryState, InventoryView, ItemStack,
-        Listeners, Location, Material, Particle, Player, PlayerState, Plugin, Position, Priority,
-        Rotation, Server, ServerState, Sound, SoundCue, Target, Title, Vector, Weather, World,
-        WorldState, command, listeners, run, run_with,
+        Listeners, Location, Material, MetaHandle, MetaValue, Particle, Player, PlayerState,
+        Plugin, Position, Priority, Rotation, Server, ServerState, Sound, SoundCue, Target, Title,
+        Vector, Weather, World, WorldState, command, listeners, run, run_with,
     };
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Click, Part, RichMessage};

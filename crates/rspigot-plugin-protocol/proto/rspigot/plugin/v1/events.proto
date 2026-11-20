@@ -448,7 +448,7 @@ message WorldSave { string world = 1; }
 message WorldUnload { string world = 1; }
 
 message Event {
-  uint64 id = 1; repeated uint32 handlers = 2; Phase phase = 3; bool cancelled = 4;
+  uint64 id = 1; repeated uint32 handlers = 2; Phase phase = 3; bool cancelled = 4; repeated BlockMeta block_meta = 5;
   oneof payload {
     PlayerJoin player_join = 10;
     PlayerLeave player_leave = 11;

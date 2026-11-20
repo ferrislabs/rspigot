@@ -50,7 +50,7 @@ const STYLE_FLAGS: [&str; 5] = [
     "strikethrough",
     "obfuscated",
 ];
-const ENTITY_KEYS: [&str; 29] = [
+const ENTITY_KEYS: [&str; 30] = [
     "id",
     "Pos",
     "Motion",
@@ -80,6 +80,7 @@ const ENTITY_KEYS: [&str; 29] = [
     "HasVisualFire",
     "Tags",
     "data",
+    "BukkitValues",
 ];
 const LIVING_KEYS: [&str; 18] = [
     "Health",
@@ -491,6 +492,10 @@ fn read_base(nbt: &Compound, base: &mut EntityBase) -> Result<(), LoadError> {
     base.set_ticks_frozen(nbt.get_i32("TicksFrozen").unwrap_or(0));
     base.has_visual_fire = nbt.get_bool("HasVisualFire").unwrap_or(false);
     base.custom_data = nbt.get_compound("data").cloned();
+    base.meta = nbt
+        .get_compound("BukkitValues")
+        .map(crate::meta::Metadata::from_nbt)
+        .unwrap_or_default();
     base.tags = nbt
         .get_list("Tags")
         .map(|tags| {
@@ -1384,6 +1389,9 @@ fn write_base(entity: &Entity, out: &mut Compound, world: Option<Uuid>) {
     {
         out.insert("data", data.clone());
     }
+    if !base.meta.is_empty() {
+        out.insert("BukkitValues", base.meta.to_nbt());
+    }
 }
 
 fn write_living(base: &EntityBase, living: &LivingState, out: &mut Compound) {
@@ -1795,6 +1803,41 @@ mod tests {
         assert_eq!(saved.get_f64("Health"), Some(7.5));
         let again = load_entity(&saved, EntityId(2), Uuid::from_u128(2)).unwrap();
         assert_eq!(save_entity(&again, None), Some(saved));
+    }
+
+    #[test]
+    fn bukkit_values_keep_spigot_tags_and_rspigot_values_through_a_round_trip() {
+        use crate::meta::MetaValue;
+        let values = Compound::new()
+            .with("plugin:count", Tag::Int(7))
+            .with("plugin:ints", Tag::IntArray(vec![1, 2]))
+            .with("marker:kind", MetaValue::Text("boss".to_owned()).to_nbt());
+        let nbt = cow_nbt().with("BukkitValues", values.clone());
+        let mut entity = load_entity(&nbt, EntityId(1), Uuid::from_u128(1)).unwrap();
+        assert_eq!(
+            entity.base.meta.get("marker:kind"),
+            Some(MetaValue::Text("boss".to_owned()))
+        );
+        assert!(!entity.extra.contains_key("BukkitValues"));
+        entity
+            .base
+            .meta
+            .set("marker:n", MetaValue::Bool(true))
+            .unwrap();
+        entity
+            .base
+            .volatile_meta
+            .set("marker:tmp", MetaValue::Int(1))
+            .unwrap();
+        let saved = save_entity(&entity, None).unwrap();
+        let written = saved.get_compound("BukkitValues").unwrap();
+        assert_eq!(written.get("plugin:count"), Some(&Tag::Int(7)));
+        assert_eq!(written.get("plugin:ints"), values.get("plugin:ints"));
+        assert!(written.contains_key("marker:n"));
+        assert!(!written.contains_key("marker:tmp"));
+        let again = load_entity(&saved, EntityId(2), Uuid::from_u128(2)).unwrap();
+        assert_eq!(again.base.meta.get("marker:n"), Some(MetaValue::Bool(true)));
+        assert_eq!(again.base.volatile_meta.get("marker:tmp"), None);
     }
 
     #[test]

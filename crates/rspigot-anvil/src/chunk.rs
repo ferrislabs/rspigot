@@ -3,8 +3,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use rspigot_blocks::BlockKind;
 use rspigot_data::registries::{biome_id, biome_name};
 use rspigot_domain::chunk::{
-    Biomes, BlockEntity, Blocks, ChunkColumn, ChunkLight, ChunkSection, ChunkStatus, Heightmap,
-    HeightmapKind, LightArray, PaletteStrategy, PalettedContainer, SavedTick,
+    Biomes, BlockEntity, Blocks, ChunkColumn, ChunkLight, ChunkMeta, ChunkSection, ChunkStatus,
+    Heightmap, HeightmapKind, LightArray, PaletteStrategy, PalettedContainer, SavedTick,
 };
 use rspigot_domain::world::WorldHeight;
 use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Identifier};
@@ -51,7 +51,9 @@ const BEFORE_SECTIONS: [&str; 4] = [
 ];
 const BEFORE_TICKS: [&str; 1] = ["entities"];
 const AFTER_TICKS: [&str; 1] = ["PostProcessing"];
-const AFTER_HEIGHTMAPS: [&str; 2] = ["structures", "ChunkBukkitValues"];
+const AFTER_HEIGHTMAPS: [&str; 2] = ["structures", BUKKIT_VALUES];
+const BUKKIT_VALUES: &str = "ChunkBukkitValues";
+const BLOCKS_KEY: &str = "rspigot:blocks";
 
 static WARNED_OLD_VERSION: AtomicBool = AtomicBool::new(false);
 
@@ -153,12 +155,13 @@ pub fn from_nbt(
     };
     let block_ticks = decode_ticks(root.remove("block_ticks"));
     let fluid_ticks = decode_ticks(root.remove("fluid_ticks"));
-    let extra: Compound = root
+    let mut extra: Compound = root
         .into_iter()
         .filter(|(key, _)| {
             !MODELLED.contains(&key.as_str()) && !LEGACY_KEYS.contains(&key.as_str())
         })
         .collect();
+    let block_meta = take_blocks(&mut extra);
     let mut chunk = ChunkColumn::from_sections(pos, height, sections)
         .ok_or_else(|| AnvilError::corrupt("section count does not match the world height"))?;
     chunk.status = status;
@@ -171,10 +174,26 @@ pub fn from_nbt(
     chunk.block_ticks = block_ticks;
     chunk.fluid_ticks = fluid_ticks;
     chunk.extra = extra;
+    chunk.block_meta = block_meta;
     if was_upgraded {
         chunk.touch();
     }
     Ok(Some(chunk))
+}
+
+fn take_blocks(extra: &mut Compound) -> ChunkMeta {
+    let Some(Tag::Compound(values)) = extra.get_mut(BUKKIT_VALUES) else {
+        return ChunkMeta::default();
+    };
+    let meta = match values.get(BLOCKS_KEY) {
+        Some(Tag::Compound(blocks)) => ChunkMeta::from_blocks(blocks),
+        _ => return ChunkMeta::default(),
+    };
+    values.remove(BLOCKS_KEY);
+    if values.is_empty() {
+        extra.remove(BUKKIT_VALUES);
+    }
+    meta
 }
 
 fn infer_height(root: &Compound) -> Result<WorldHeight, AnvilError> {
@@ -487,6 +506,14 @@ pub fn to_nbt(chunk: &ChunkColumn) -> Compound {
     copy_extra(&mut root, extra, &AFTER_TICKS);
     root.insert("Heightmaps", encode_heightmaps(chunk, height));
     copy_extra(&mut root, extra, &AFTER_HEIGHTMAPS);
+    if let Some(blocks) = chunk.block_meta.to_blocks() {
+        let mut values = match extra.get(BUKKIT_VALUES) {
+            Some(Tag::Compound(foreign)) => foreign.clone(),
+            _ => Compound::new(),
+        };
+        values.insert(BLOCKS_KEY, blocks);
+        root.insert(BUKKIT_VALUES, values);
+    }
     for (key, value) in extra.iter() {
         if !root.contains_key(key) && !MODELLED.contains(&key) {
             root.insert(key, value.clone());
@@ -982,6 +1009,46 @@ mod tests {
             chunk.extra.get_compound("ChunkBukkitValues"),
             Some(&Compound::new().with("plugin:key", 1))
         );
+        assert!(chunk.block_meta.is_empty());
+    }
+
+    #[test]
+    fn block_metadata_round_trips_beside_foreign_chunk_values_and_volatile_is_not_written() {
+        use rspigot_domain::meta::MetaValue;
+        let mut column = sample_column();
+        let chunk_pos = column.pos();
+        let at = BlockPos::new(chunk_pos.x * 16 + 5, 70, chunk_pos.z * 16 + 7);
+        column.extra.insert(
+            "ChunkBukkitValues",
+            Compound::new().with("plugin:flag", Tag::Byte(1)),
+        );
+        column
+            .set_block_meta(at, "marker:kind", MetaValue::Text("a".to_owned()), false)
+            .unwrap();
+        column
+            .set_block_meta(at, "marker:tmp", MetaValue::Int(1), true)
+            .unwrap();
+        let nbt = to_nbt(&column);
+        let values = nbt.get_compound("ChunkBukkitValues").unwrap();
+        assert_eq!(values.get("plugin:flag"), Some(&Tag::Byte(1)));
+        assert!(values.get_compound("rspigot:blocks").is_some());
+        let decoded = from_nbt(nbt, chunk_pos, Some(column.height()))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            decoded
+                .block_meta
+                .persistent(at)
+                .unwrap()
+                .get("marker:kind"),
+            Some(MetaValue::Text("a".to_owned()))
+        );
+        assert!(decoded.block_meta.volatile(at).is_none());
+        assert_eq!(
+            decoded.extra.get_compound("ChunkBukkitValues"),
+            Some(&Compound::new().with("plugin:flag", Tag::Byte(1)))
+        );
+        assert_eq!(to_nbt(&decoded), to_nbt(&column));
     }
 
     fn sample_column() -> ChunkColumn {

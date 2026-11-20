@@ -25,6 +25,7 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(10);
 const KEEP_ALIVE_TIMEOUT: Duration = Duration::from_secs(20);
 
+#[allow(clippy::large_enum_variant)]
 enum Queued {
     Event {
         event: Box<v1::Event>,
@@ -47,6 +48,7 @@ pub(crate) struct Meta {
 pub(crate) struct Received {
     pub(crate) payload: event::Payload,
     pub(crate) meta: Meta,
+    pub(crate) blocks: std::sync::Arc<Vec<v1::BlockMeta>>,
 }
 
 impl Received {
@@ -59,7 +61,11 @@ impl Received {
         let payload = event
             .payload
             .ok_or_else(|| Error::Malformed(format!("event {} without a payload", meta.id)))?;
-        Ok(Self { payload, meta })
+        Ok(Self {
+            payload,
+            meta,
+            blocks: std::sync::Arc::new(event.block_meta),
+        })
     }
 }
 
@@ -352,7 +358,9 @@ fn calls(
             let call = kinds
                 .iter()
                 .find(|(id, _)| *id == handler)
-                .and_then(|&(_, kind)| received.call(handler, kind, link))
+                .and_then(|&(_, kind)| {
+                    crate::meta::scoped(&received.blocks, || received.call(handler, kind, link))
+                })
                 .and_then(|call| {
                     call.map_err(|error| tracing::warn!("Event {}: {error}", received.meta.id))
                         .ok()
@@ -407,6 +415,7 @@ mod tests {
                 yaw: 0.0,
                 pitch: 0.0,
             }),
+            ..Default::default()
         }
     }
 
@@ -421,6 +430,7 @@ mod tests {
                 z: -3.5,
             }),
             player: None,
+            ..Default::default()
         }
     }
 
@@ -431,6 +441,7 @@ mod tests {
             phase: v1::Phase::Decide as i32,
             cancelled: false,
             payload: Some(payload),
+            block_meta: Vec::new(),
         })
         .expect("an event with a payload")
     }
@@ -498,6 +509,7 @@ mod tests {
             kind: "minecraft:player".to_owned(),
             position: snapshot().position,
             player: Some(snapshot()),
+            ..Default::default()
         };
         let Some(Ok(Call::EntityDamageByEntity { event, .. })) =
             hit(by_player).call(1, EventKind::EntityDamageByEntity, &link)

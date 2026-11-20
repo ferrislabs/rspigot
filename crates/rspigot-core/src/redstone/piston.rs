@@ -1,4 +1,5 @@
 use rspigot_blocks::{BlockKind, Face};
+use rspigot_domain::chunk::BlockMeta;
 use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::piston::motion::STEP_PER_TICK;
 use rspigot_domain::piston::{Limits, Reaction, Resolver, is_pushable, reaction_of};
@@ -37,6 +38,7 @@ pub(crate) struct Moving {
     pub(crate) source: bool,
     pub(crate) created: u64,
     pub(crate) progress: f32,
+    pub(crate) meta: BlockMeta,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -383,6 +385,7 @@ impl<L: ClientLink> Server<L> {
                 source: true,
                 created,
                 progress: 0.0,
+                meta: BlockMeta::default(),
             },
         );
         self.schedule(pos, BlockKind::MovingPiston, 1);
@@ -501,6 +504,10 @@ impl<L: ClientLink> Server<L> {
             direction.opposite()
         };
         let states: Vec<BlockStateId> = pushed.iter().map(|at| self.block_or_air(*at)).collect();
+        let mut carried: Vec<BlockMeta> = pushed
+            .iter()
+            .map(|at| self.world.chunks.take_block_meta(*at))
+            .collect();
         let mut vacated: FxHashMap<BlockPos, BlockStateId> =
             pushed.iter().copied().zip(states.iter().copied()).collect();
         let created = self.current_tick();
@@ -524,6 +531,7 @@ impl<L: ClientLink> Server<L> {
                     source: false,
                     created,
                     progress: 0.0,
+                    meta: std::mem::take(&mut carried[index]),
                 },
             );
             arrivals.push(target);
@@ -546,6 +554,7 @@ impl<L: ClientLink> Server<L> {
                     source: true,
                     created,
                     progress: 0.0,
+                    meta: BlockMeta::default(),
                 },
             );
             arrivals.push(front);
@@ -605,6 +614,9 @@ impl<L: ClientLink> Server<L> {
             moving.state
         };
         self.set_block(pos, state);
+        if !state.is_air() {
+            self.world.chunks.restore_block_meta(pos, moving.meta);
+        }
         self.neighbor_changed(pos, pos);
     }
 

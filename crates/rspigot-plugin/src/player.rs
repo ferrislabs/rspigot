@@ -4,6 +4,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::link::Link;
+use crate::meta::MetaHandle;
 use crate::server::Server;
 use crate::target::{BlockTarget, Target};
 use crate::wire::{parse_address, parse_uuid};
@@ -116,6 +117,8 @@ pub struct Player {
     pub tab_list: PlayerTabListHandle,
     pub title: PlayerTitleHandle,
     pub visibility: PlayerVisibilityHandle,
+    pub meta: MetaHandle,
+    pub volatile_meta: MetaHandle,
     link: Link,
 }
 
@@ -225,6 +228,18 @@ impl Player {
                 let (target, link) = handle();
                 PlayerVisibilityHandle::new(target, link)
             },
+            meta: MetaHandle::of_player(
+                Arc::clone(&target),
+                false,
+                crate::meta::snapshot(snapshot.meta)?,
+                link.clone(),
+            ),
+            volatile_meta: MetaHandle::of_player(
+                Arc::clone(&target),
+                true,
+                crate::meta::snapshot(snapshot.volatile_meta)?,
+                link.clone(),
+            ),
             link: link.clone(),
         })
     }
@@ -239,6 +254,8 @@ impl Player {
             rotation: Some(self.rotation.to_wire()),
             game_mode: self.game_mode.value().to_wire() as i32,
             permissions: self.permissions.nodes().to_vec(),
+            meta: Default::default(),
+            volatile_meta: Default::default(),
         }
     }
 

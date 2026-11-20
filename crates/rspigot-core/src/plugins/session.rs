@@ -166,6 +166,7 @@ impl<L: ClientLink> Server<L> {
                 position: self.world.spawn,
                 rotation: rspigot_domain::Rotation::new(self.world.level.spawn_angle, 0.0),
                 game_mode: self.config.default_game_mode,
+                meta: Default::default(),
             },
             real_address: arrival.address,
             result,

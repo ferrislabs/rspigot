@@ -54,6 +54,7 @@ fn as_zombie_is_none_for_a_creeper() {
 fn a_zombie_becomes_a_baby() {
     let mut s = arena();
     let zombie = spawn(&mut s, "minecraft:zombie");
+    change(&mut s, zombie, EntityTrait::ZombieBaby(false));
     assert_ne!(saved(&s, zombie).get_bool("IsBaby"), Some(true));
 
     change(&mut s, zombie, EntityTrait::ZombieBaby(true));

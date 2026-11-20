@@ -543,6 +543,7 @@ mod tests {
                 pitch: -30.0,
             }),
             game_mode: v1::GameMode::Creative as i32,
+            ..Default::default()
         }
     }
 

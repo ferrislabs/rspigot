@@ -2,7 +2,9 @@ use std::fmt;
 
 use rspigot_domain::player::PlayerId;
 
-use crate::plugins::{Answer, Order, PlayerOrder, ServerOrder, ToPlugin, WorldOrder};
+use crate::plugins::{
+    Answer, BlockOrder, EntityOrder, Order, PlayerOrder, ServerOrder, ToPlugin, WorldOrder,
+};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -72,6 +74,13 @@ enum Outcome {
     Pending,
 }
 
+fn no_world(world: &rspigot_domain::Identifier) -> ActionError {
+    ActionError::new(
+        ActionErrorKind::NotFound,
+        format!("there is no world {world}"),
+    )
+}
+
 impl<L: ClientLink> Server<L> {
     pub(super) fn apply_action(&mut self, connection: u64, request: u64, order: Order) {
         let reply = Reply {
@@ -109,11 +118,35 @@ impl<L: ClientLink> Server<L> {
                 Order::World(WorldOrder::Delete { files }) => {
                     self.delete_world(&world, files).map(|()| Outcome::Done)
                 }
+                Order::Entity {
+                    entity,
+                    order: EntityOrder::Meta(order),
+                } => self
+                    .within_world(&world, |server| server.entity_meta_change(entity, order))
+                    .unwrap_or_else(|| Err(no_world(&world)))
+                    .map(|()| Outcome::Done),
+                Order::Block {
+                    pos,
+                    order: BlockOrder::Meta(order),
+                } => self
+                    .within_world(&world, |server| server.block_meta_change(pos, order))
+                    .unwrap_or_else(|| Err(no_world(&world)))
+                    .map(|()| Outcome::Done),
                 other => Err(ActionError::new(
                     ActionErrorKind::InvalidArgument,
                     format!("{} does not report a result", other.name()),
                 )),
             },
+            Order::Entity {
+                entity,
+                order: EntityOrder::Meta(order),
+            } => self
+                .entity_meta_change(entity, order)
+                .map(|()| Outcome::Done),
+            Order::Block {
+                pos,
+                order: BlockOrder::Meta(order),
+            } => self.block_meta_change(pos, order).map(|()| Outcome::Done),
             other => Err(ActionError::new(
                 ActionErrorKind::InvalidArgument,
                 format!("{} does not report a result", other.name()),
@@ -138,6 +171,10 @@ impl<L: ClientLink> Server<L> {
             | PlayerOrder::TeleportFacing(..)
             | PlayerOrder::TeleportTo { .. } => {
                 self.begin_teleport(player, order, Some(reply))?;
+            }
+            PlayerOrder::Meta(order) => {
+                self.player_meta_change(player, order)?;
+                return Ok(Outcome::Done);
             }
             PlayerOrder::Transfer { host, port } => {
                 self.transfer_for_plugin(player, &host, port)?;

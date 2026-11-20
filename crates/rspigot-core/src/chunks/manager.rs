@@ -2,7 +2,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use rspigot_domain::chunk::ChunkColumn;
+use rspigot_domain::chunk::{BlockMeta, ChunkColumn};
+use rspigot_domain::meta::{MetaError, MetaValue};
 use rspigot_domain::poi::PoiManager;
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos};
@@ -238,6 +239,8 @@ impl ChunkManager {
                 }
                 self.stats.total_load_time += elapsed;
                 self.poi.import_chunk(&chunk, poi.as_ref());
+                let mut chunk = chunk;
+                chunk.block_meta.drop_volatile();
                 self.loaded.insert(
                     pos,
                     Loaded {
@@ -385,6 +388,112 @@ impl ChunkManager {
 
     pub fn block(&self, pos: BlockPos) -> Option<BlockStateId> {
         self.get(pos.chunk())?.block(pos)
+    }
+
+    pub fn any_block_meta(&self) -> bool {
+        self.loaded
+            .values()
+            .any(|loaded| loaded.chunk.block_meta.has_any())
+    }
+
+    fn meta_chunk_mut(&mut self, pos: BlockPos, volatile: bool) -> Option<&mut ChunkColumn> {
+        if volatile {
+            let loaded = self.loaded.get_mut(&pos.chunk())?;
+            Some(Arc::make_mut(&mut loaded.chunk))
+        } else {
+            self.chunk_mut(pos.chunk())
+        }
+    }
+
+    pub fn block_meta(&self, pos: BlockPos) -> Option<BlockMeta> {
+        let chunk = self.get(pos.chunk())?;
+        let meta = &chunk.block_meta;
+        if !meta.has_any() {
+            return None;
+        }
+        let held = BlockMeta {
+            persistent: meta.persistent(pos).cloned().unwrap_or_default(),
+            volatile: meta.volatile(pos).cloned().unwrap_or_default(),
+        };
+        (!held.is_empty()).then_some(held)
+    }
+
+    pub fn set_block_meta(
+        &mut self,
+        pos: BlockPos,
+        key: &str,
+        value: MetaValue,
+        volatile: bool,
+    ) -> Option<Result<(), MetaError>> {
+        let chunk = self.meta_chunk_mut(pos, volatile)?;
+        Some(chunk.set_block_meta(pos, key, value, volatile))
+    }
+
+    pub fn remove_block_meta(&mut self, pos: BlockPos, key: &str, volatile: bool) -> bool {
+        if self.block_meta(pos).is_none() {
+            return false;
+        }
+        self.meta_chunk_mut(pos, volatile)
+            .is_some_and(|chunk| chunk.remove_block_meta(pos, key, volatile))
+    }
+
+    pub fn clear_block_meta(&mut self, pos: BlockPos, volatile: bool) -> bool {
+        if self.block_meta(pos).is_none() {
+            return false;
+        }
+        self.meta_chunk_mut(pos, volatile)
+            .is_some_and(|chunk| chunk.clear_block_meta(pos, volatile))
+    }
+
+    pub fn take_block_meta(&mut self, pos: BlockPos) -> BlockMeta {
+        if self.block_meta(pos).is_none() {
+            return BlockMeta::default();
+        }
+        self.chunk_mut(pos.chunk())
+            .map(|chunk| chunk.take_block_meta(pos))
+            .unwrap_or_default()
+    }
+
+    pub fn restore_block_meta(&mut self, pos: BlockPos, meta: BlockMeta) {
+        if meta.is_empty() {
+            return;
+        }
+        if let Some(chunk) = self.chunk_mut(pos.chunk()) {
+            chunk.restore_block_meta(pos, meta);
+        }
+    }
+
+    pub fn blocks_with_meta(
+        &self,
+        key: &str,
+        value: Option<&MetaValue>,
+        volatile: bool,
+        limit: usize,
+    ) -> Vec<BlockPos> {
+        let mut found = Vec::new();
+        let mut chunks: Vec<ChunkPos> = self.loaded.keys().copied().collect();
+        chunks.sort();
+        for chunk_pos in chunks {
+            let Some(chunk) = self.get(chunk_pos) else {
+                continue;
+            };
+            let mut positions: Vec<BlockPos> = chunk.block_meta.positions().collect();
+            positions.sort();
+            positions.dedup();
+            for pos in positions {
+                let holder = chunk.block_meta.holder(pos, volatile);
+                let matched = holder
+                    .and_then(|holder| holder.get(key))
+                    .is_some_and(|held| value.is_none_or(|wanted| *wanted == held));
+                if matched {
+                    found.push(pos);
+                    if found.len() >= limit {
+                        return found;
+                    }
+                }
+            }
+        }
+        found
     }
 
     pub fn set_block(&mut self, pos: BlockPos, state: BlockStateId) -> Option<BlockStateId> {

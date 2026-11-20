@@ -90,6 +90,7 @@ mod tests {
                 z: 0.0,
             }),
             player: None,
+            ..Default::default()
         }
     }
 
@@ -195,6 +196,7 @@ mod tests {
             Some(EventPatch::PotionSplash(PotionSplashPatch {
                 intensities: vec![(
                     EntityView {
+                        meta: Default::default(),
                         id: EntityId(4),
                         uuid: Uuid::from_u128(4),
                         kind: "minecraft:zombie".to_owned(),
@@ -333,6 +335,7 @@ mod tests {
             }))),
             Some(EventPatch::EntityTarget(EntityTargetPatch {
                 target: Some(Some(EntityView {
+                    meta: Default::default(),
                     id: EntityId(4),
                     uuid: Uuid::from_u128(4),
                     kind: "minecraft:zombie".to_owned(),

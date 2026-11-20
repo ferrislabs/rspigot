@@ -32,6 +32,9 @@ impl<L: ClientLink> Server<L> {
             BlockOrder::BreakNaturally => {
                 self.break_block_naturally(pos);
             }
+            BlockOrder::Meta(order) => {
+                self.block_meta_change(pos, order).map_err(|e| e.reason)?;
+            }
         }
         Ok(())
     }

@@ -87,6 +87,7 @@ fn observers_hear_a_player_join_and_leave() {
     let joined = heard(&observer);
     assert_eq!(joined.len(), 1);
     let ToPlugin::Event {
+        blocks: _,
         id,
         handlers,
         phase,
@@ -116,6 +117,7 @@ fn observers_hear_a_player_join_and_leave() {
     let left = heard(&observer);
     assert_eq!(left.len(), 2);
     let ToPlugin::Event {
+        blocks: _,
         id,
         handlers,
         phase,
@@ -377,6 +379,7 @@ fn moves(mailbox: &Mailbox) -> Vec<Heard> {
         .into_iter()
         .filter_map(|message| match message {
             ToPlugin::Event {
+                blocks: _,
                 id,
                 handlers,
                 phase,

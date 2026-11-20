@@ -22,6 +22,7 @@ pub(super) fn order(order: v1::EntityOrder) -> Result<Order, Malformed> {
             value: set.value,
         },
         Wire::Change(change) => EntityOrder::Change(typed(required(change.change)?)),
+        Wire::Meta(order) => EntityOrder::Meta(super::meta::order(order)?),
     };
     Ok(Order::Entity { entity, order })
 }
@@ -106,6 +107,7 @@ pub(super) fn view(snapshot: v1::EntitySnapshot) -> Result<EntityView, Malformed
         kind: snapshot.kind,
         position: shared::vec3(required(snapshot.position)?),
         player: snapshot.player.map(super::player::snapshot).transpose()?,
+        meta: super::meta::snapshot(snapshot.meta, snapshot.volatile_meta)?,
     })
 }
 
@@ -116,6 +118,8 @@ pub(super) fn wire_view(view: EntityView) -> v1::EntitySnapshot {
         kind: view.kind,
         position: Some(wire_vec(view.position)),
         player: view.player.map(super::player::wire_player),
+        meta: super::meta::wire_map(view.meta.persistent()),
+        volatile_meta: super::meta::wire_map(view.meta.volatile()),
     }
 }
 
@@ -194,6 +198,7 @@ mod tests {
 
     fn view() -> EntityView {
         EntityView {
+            meta: Default::default(),
             id: ZOMBIE,
             uuid: Uuid::from_u128(7),
             kind: "minecraft:zombie".into(),
@@ -209,6 +214,7 @@ mod tests {
             kind: "minecraft:zombie".into(),
             position: Some(wire_vec3(4.5, 64.0, -2.5)),
             player: None,
+            ..Default::default()
         }
     }
 
@@ -228,6 +234,7 @@ mod tests {
                     yaw: 0.0,
                     pitch: 0.0,
                 }),
+                ..Default::default()
             }),
             ..snapshot()
         };

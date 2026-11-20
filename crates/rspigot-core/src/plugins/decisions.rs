@@ -654,6 +654,7 @@ mod tests {
 
     fn snapshot(player: PlayerId, position: Vec3) -> PlayerSnapshot {
         PlayerSnapshot {
+            meta: Default::default(),
             permissions: Vec::new(),
             id: player,
             name: "Alice".to_owned(),
@@ -1659,6 +1660,7 @@ mod tests {
             kind: "minecraft:zombie".to_owned(),
             position: Vec3::new(0.0, 64.0, 0.0),
             player: None,
+            meta: crate::plugins::MetaSnapshot::default(),
         }
     }
 

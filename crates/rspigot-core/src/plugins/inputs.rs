@@ -262,6 +262,7 @@ impl<L: ClientLink> Server<L> {
                 kind: rspigot_entities::EntityKind::Player.name().to_owned(),
                 position: shown.position,
                 player: server.snapshot_of(target),
+                meta: crate::plugins::MetaSnapshot::default(),
             };
             Some(if kind == EventKind::PlayerHideEntity {
                 EventPayload::PlayerHideEntity(PlayerHideEntity { entity, player })

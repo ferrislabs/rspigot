@@ -73,6 +73,9 @@ impl<L: ClientLink> Server<L> {
                 self.remove_entity_effects(id, None, EntityPotionEffectCause::Plugin);
             }
             EntityOrder::SetAttribute { .. } => {}
+            EntityOrder::Meta(order) => {
+                self.entity_meta_change(id, order).map_err(|e| e.reason)?;
+            }
             EntityOrder::Change(change) => self.change_entity(id, change)?,
             EntityOrder::SetVelocity(velocity) => {
                 let velocity = resolve::velocity_of(velocity)?;
@@ -242,6 +245,7 @@ fn view_of(entity: &Entity) -> EntityView {
         kind: base.kind.name().to_owned(),
         position: base.position,
         player: None,
+        meta: crate::plugins::MetaSnapshot::of(base),
     }
 }
 

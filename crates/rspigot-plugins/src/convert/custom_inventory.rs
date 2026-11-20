@@ -57,6 +57,7 @@ mod tests {
 
     fn steve() -> PlayerSnapshot {
         PlayerSnapshot {
+            meta: Default::default(),
             permissions: Vec::new(),
             id: PlayerId(Uuid::from_u128(1)),
             name: "Steve".to_owned(),
@@ -86,6 +87,7 @@ mod tests {
             payload: Some(payload),
             ..
         })) = to_plugin(ToPlugin::Event {
+            blocks: Vec::new(),
             id: 4,
             handlers: vec![1],
             phase: Phase::Settled,
