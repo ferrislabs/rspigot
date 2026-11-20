@@ -587,6 +587,7 @@ mod tests {
             position: Vec3::new(0.0, 64.0, 0.0),
             player: None,
             meta: crate::plugins::MetaSnapshot::default(),
+            marks: Default::default(),
         }
     }
 

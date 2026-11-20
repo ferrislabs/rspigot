@@ -14,7 +14,9 @@ mod contract;
 mod damage;
 mod decisions;
 mod digging;
+mod edits;
 mod entity;
+mod entity_edits;
 pub mod events;
 pub(crate) mod furnaces;
 mod heard;
@@ -46,6 +48,7 @@ mod shots;
 pub(crate) mod spawns;
 pub(crate) mod steps;
 mod targets;
+mod tiles;
 mod traits;
 pub(crate) mod views;
 mod visibility;
@@ -80,6 +83,7 @@ pub use contract::{
 pub(crate) use damage::Impacts;
 pub(crate) use decisions::{Continuation, Decisions, Held, Lane};
 pub(crate) use digging::Mining;
+pub use edits::{EntityEdit, EquipmentView, LivingDetails};
 pub use events::{EventKind, EventPatch, EventPayload};
 pub use items::ItemSpec;
 pub(crate) use items::{spec_of, stack_of};
@@ -109,6 +113,10 @@ pub(crate) use steps::{
 };
 pub use targets::MAX_TARGET_DISTANCE;
 pub(crate) use targets::{direction_of, ray_end};
+pub use tiles::{
+    BlockInfo, ContentsView, FurnaceEdit, FurnaceView, SignView, SpawnerEdit, SpawnerView,
+    TileData, TileEdit, TileView,
+};
 pub(crate) use visibility::Visibility;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -326,6 +334,35 @@ pub struct EntityView {
     pub position: Vec3,
     pub player: Option<PlayerSnapshot>,
     pub meta: MetaSnapshot,
+    pub marks: EntityMarks,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct EntityMarks(Option<Box<(Option<String>, Vec<String>)>>);
+
+impl EntityMarks {
+    pub fn new(custom_name: Option<String>, tags: Vec<String>) -> Self {
+        if custom_name.is_none() && tags.is_empty() {
+            Self(None)
+        } else {
+            Self(Some(Box::new((custom_name, tags))))
+        }
+    }
+
+    pub fn of(base: &rspigot_domain::entity::EntityBase) -> Self {
+        Self::new(
+            base.custom_name().map(|name| name.to_legacy()),
+            base.tags.clone(),
+        )
+    }
+
+    pub fn custom_name(&self) -> Option<&str> {
+        self.0.as_ref().and_then(|marks| marks.0.as_deref())
+    }
+
+    pub fn tags(&self) -> &[String] {
+        self.0.as_ref().map_or(&[], |marks| &marks.1)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -336,6 +373,27 @@ pub struct EntityDetails {
     pub on_ground: bool,
     pub custom_name: Option<String>,
     pub fire_ticks: i32,
+    pub flags: EntityFlags,
+    pub freeze_ticks: i32,
+    pub air: i32,
+    pub fall_distance: f32,
+    pub rotation: Rotation,
+    pub ticks_lived: i32,
+    pub tags: Vec<String>,
+    pub passengers: Vec<EntityId>,
+    pub vehicle: Option<EntityId>,
+    pub living: Option<Box<LivingDetails>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct EntityFlags {
+    pub custom_name_visible: bool,
+    pub glowing: bool,
+    pub invisible: bool,
+    pub silent: bool,
+    pub gravity: bool,
+    pub invulnerable: bool,
+    pub persistent: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -368,6 +426,8 @@ pub enum Answer {
     IpBans(Vec<IpBanEntry>),
     World(WorldState),
     Block(BlockState),
+    Tile(TileView),
+    BlockInfo(BlockInfo),
     Entities(Vec<EntityView>),
     Entity(EntityDetails),
     AttributeValue(f64),
@@ -449,6 +509,8 @@ pub enum Question {
         question: Box<Question>,
     },
     Block(BlockPos),
+    Tile(BlockPos),
+    BlockInfo(BlockPos),
     Entities {
         near: Option<(Vec3, f64)>,
         kind: Option<String>,

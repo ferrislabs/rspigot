@@ -35,6 +35,14 @@ impl<L: ClientLink> Server<L> {
             BlockOrder::Meta(order) => {
                 self.block_meta_change(pos, order).map_err(|e| e.reason)?;
             }
+            BlockOrder::SetData(properties) => {
+                let current = self.world.chunks.block(pos).unwrap_or_default();
+                let state = merged_state(current, &properties)?;
+                if state != current {
+                    self.set_block(pos, state);
+                }
+            }
+            BlockOrder::Tile(edit) => self.apply_tile(pos, edit)?,
         }
         Ok(())
     }
@@ -84,4 +92,18 @@ fn state_with(key: &str, properties: &[(String, String)]) -> Result<BlockStateId
             .collect();
         format!("{} does not take {}", kind.name(), asked.join(","))
     })
+}
+
+fn merged_state(
+    current: BlockStateId,
+    properties: &[(String, String)],
+) -> Result<BlockStateId, String> {
+    let kind = current.kind().map_or("minecraft:air", BlockKind::name);
+    let mut state = current;
+    for (name, value) in properties {
+        state = state
+            .with_property(name, value)
+            .ok_or_else(|| format!("{kind} does not take {name}={value}"))?;
+    }
+    Ok(state)
 }

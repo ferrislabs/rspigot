@@ -1,9 +1,10 @@
 use rand::Rng;
 use rspigot_blocks::BlockKind;
 use rspigot_domain::damage::DamageType;
+use rspigot_domain::entity::FLAG_INVISIBLE;
 use rspigot_domain::entity::{Entity, EntityState, FallingState, RemovalReason, living};
 use rspigot_domain::text::Component;
-use rspigot_domain::{BlockStateId, EntityId, Vec3};
+use rspigot_domain::{BlockStateId, EntityId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 use crate::commands::{CommandContext, Target};
@@ -16,7 +17,7 @@ use crate::plugins::items::stack_of;
 use crate::plugins::resolve::{self, finite_not_negative};
 use crate::plugins::steps::{Birth, Spawned};
 use crate::plugins::{
-    ActionError, ActionErrorKind, EntityDetails, EntityOrder, EntityView, ItemSpec,
+    ActionError, ActionErrorKind, EntityDetails, EntityFlags, EntityOrder, EntityView, ItemSpec,
 };
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -77,6 +78,7 @@ impl<L: ClientLink> Server<L> {
                 self.entity_meta_change(id, order).map_err(|e| e.reason)?;
             }
             EntityOrder::Change(change) => self.change_entity(id, change)?,
+            EntityOrder::Edit(edit) => self.edit_entity(id, edit)?,
             EntityOrder::SetVelocity(velocity) => {
                 let velocity = resolve::velocity_of(velocity)?;
                 if let Some(entity) = self.entities.store.get_mut(id) {
@@ -106,6 +108,30 @@ impl<L: ClientLink> Server<L> {
             on_ground: base.on_ground,
             custom_name: base.custom_name().map(Component::to_legacy),
             fire_ticks: self.entity_fire_ticks(id)?,
+            flags: EntityFlags {
+                custom_name_visible: base.custom_name_visible(),
+                glowing: base.has_glowing_tag,
+                invisible: base.shared_flag(FLAG_INVISIBLE),
+                silent: base.is_silent(),
+                gravity: !base.is_no_gravity(),
+                invulnerable: base.invulnerable,
+                persistent: entity
+                    .living()
+                    .and_then(|living| living.mob.as_ref())
+                    .is_some_and(|mob| mob.persistence_required),
+            },
+            freeze_ticks: base.ticks_frozen(),
+            air: base.air_supply(),
+            fall_distance: base.fall_distance as f32,
+            rotation: Rotation {
+                yaw: base.yaw,
+                pitch: base.pitch,
+            },
+            ticks_lived: base.tick_count,
+            tags: base.tags.clone(),
+            passengers: self.entities.rides.passengers_of(id).to_vec(),
+            vehicle: self.entities.rides.vehicle_of(id),
+            living: self.living_details(id),
         })
     }
 
@@ -246,6 +272,7 @@ fn view_of(entity: &Entity) -> EntityView {
         position: base.position,
         player: None,
         meta: crate::plugins::MetaSnapshot::of(base),
+        marks: crate::plugins::EntityMarks::of(base),
     }
 }
 

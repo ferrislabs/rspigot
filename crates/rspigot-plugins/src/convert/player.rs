@@ -650,6 +650,7 @@ mod tests {
                 kind: "minecraft:skeleton".into(),
                 position: Vec3::new(0.5, 64.0, 3.5),
                 player: None,
+                marks: Default::default(),
             })))),
             Some(answer::Body::Target(v1::Target {
                 hit: Some(target::Hit::Entity(v1::EntitySnapshot {

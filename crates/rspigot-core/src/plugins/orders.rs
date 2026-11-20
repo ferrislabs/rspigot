@@ -247,6 +247,8 @@ pub enum BlockOrder {
     },
     BreakNaturally,
     Meta(crate::plugins::meta::MetaOrder),
+    SetData(Vec<(String, String)>),
+    Tile(crate::plugins::TileEdit),
 }
 
 impl BlockOrder {
@@ -256,6 +258,8 @@ impl BlockOrder {
             Self::SetWith { .. } => "block.set_with",
             Self::BreakNaturally => "block.break_naturally",
             Self::Meta(order) => order.name(),
+            Self::SetData(_) => "block.set_data",
+            Self::Tile(edit) => edit.name(),
         }
     }
 }
@@ -273,6 +277,7 @@ pub enum EntityOrder {
     SetAttribute { attribute: String, value: f64 },
     Change(EntityTrait),
     Meta(crate::plugins::meta::MetaOrder),
+    Edit(crate::plugins::EntityEdit),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -317,6 +322,7 @@ impl EntityOrder {
             Self::SetAttribute { .. } => "entity.set_attribute",
             Self::Change(_) => "entity.change",
             Self::Meta(order) => order.name(),
+            Self::Edit(edit) => edit.name(),
         }
     }
 }

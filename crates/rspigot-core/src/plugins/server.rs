@@ -210,6 +210,14 @@ impl<L: ClientLink> Server<L> {
             Question::Block(pos) => self
                 .block_state(pos)
                 .map_or(Answer::NotFound, Answer::Block),
+            Question::Tile(pos) => match self.tile_view(pos) {
+                Ok(Some(view)) => Answer::Tile(view),
+                Ok(None) => Answer::NotFound,
+                Err(reason) => Answer::Refused(reason),
+            },
+            Question::BlockInfo(pos) => self
+                .block_info(pos)
+                .map_or(Answer::NotFound, Answer::BlockInfo),
             Question::Entities { near, kind } => self
                 .listed_entities(near, kind.as_deref())
                 .map_or_else(Answer::Refused, Answer::Entities),

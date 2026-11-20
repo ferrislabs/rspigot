@@ -510,6 +510,7 @@ impl<L: ClientLink> Server<L> {
                             position,
                             player: None,
                             meta: crate::plugins::MetaSnapshot::default(),
+                            marks: Default::default(),
                         },
                         item: spec_of(&stack),
                     })

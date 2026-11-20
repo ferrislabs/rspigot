@@ -302,6 +302,8 @@ pub(crate) fn player_entity(player: &v1::PlayerSnapshot) -> v1::EntitySnapshot {
         player: Some(player.clone()),
         meta: std::collections::HashMap::new(),
         volatile_meta: std::collections::HashMap::new(),
+        custom_name: None,
+        tags: Vec::new(),
     }
 }
 

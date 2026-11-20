@@ -786,3 +786,272 @@ fn a_rich_message_order_survives_encoding() {
         in_world: None,
     });
 }
+
+fn plain(body: from_plugin::Body) -> FromPlugin {
+    FromPlugin {
+        body: Some(body),
+        origin: None,
+        request: None,
+        in_world: None,
+    }
+}
+
+#[test]
+fn every_entity_edit_survives_encoding() {
+    use rspigot_plugin_protocol::v1::{
+        DropChanceEdit, EntityEdit, EntityOrder, EquipmentEdit, entity_edit, entity_order,
+    };
+
+    let helmet = Item {
+        key: "minecraft:iron_helmet".to_owned(),
+        count: 1,
+        ..Default::default()
+    };
+    let edits = vec![
+        entity_edit::Edit::SetCustomName("Bob".to_owned()),
+        entity_edit::Edit::ClearCustomName(Empty {}),
+        entity_edit::Edit::SetCustomNameVisible(true),
+        entity_edit::Edit::SetGlowing(true),
+        entity_edit::Edit::SetInvisible(true),
+        entity_edit::Edit::SetSilent(true),
+        entity_edit::Edit::SetGravity(false),
+        entity_edit::Edit::SetInvulnerable(true),
+        entity_edit::Edit::SetPersistent(true),
+        entity_edit::Edit::SetFireTicks(40),
+        entity_edit::Edit::SetFreezeTicks(10),
+        entity_edit::Edit::SetAir(100),
+        entity_edit::Edit::SetFallDistance(2.5),
+        entity_edit::Edit::SetRotation(Rotation {
+            yaw: 90.0,
+            pitch: 10.0,
+        }),
+        entity_edit::Edit::LookAt(Vec3 {
+            x: 1.0,
+            y: 2.0,
+            z: 3.0,
+        }),
+        entity_edit::Edit::SetTicksLived(5),
+        entity_edit::Edit::AddTag("a".to_owned()),
+        entity_edit::Edit::RemoveTag("a".to_owned()),
+        entity_edit::Edit::Mount(7),
+        entity_edit::Edit::Dismount(Empty {}),
+        entity_edit::Edit::EjectPassengers(Empty {}),
+        entity_edit::Edit::SetHealth(4.0),
+        entity_edit::Edit::SetAbsorption(2.0),
+        entity_edit::Edit::SetAi(false),
+        entity_edit::Edit::SetCanPickUpLoot(true),
+        entity_edit::Edit::SetLeftHanded(true),
+        entity_edit::Edit::SetEquipment(EquipmentEdit {
+            slot: "head".to_owned(),
+            item: Some(helmet),
+        }),
+        entity_edit::Edit::SetDropChance(DropChanceEdit {
+            slot: "head".to_owned(),
+            chance: 1.0,
+        }),
+        entity_edit::Edit::SetLeashHolder(8),
+        entity_edit::Edit::ClearLeash(Empty {}),
+        entity_edit::Edit::SetOwner("Steve".to_owned()),
+        entity_edit::Edit::ClearOwner(Empty {}),
+        entity_edit::Edit::SetTamed(true),
+        entity_edit::Edit::SetSitting(true),
+        entity_edit::Edit::SetTarget(9),
+        entity_edit::Edit::ClearTarget(Empty {}),
+        entity_edit::Edit::SetAge(-100),
+        entity_edit::Edit::SetAgeLocked(true),
+        entity_edit::Edit::SetBreeding(true),
+    ];
+    for edit in edits {
+        round_trips(&plain(from_plugin::Body::Entity(EntityOrder {
+            entity: 40,
+            order: Some(entity_order::Order::Edit(EntityEdit { edit: Some(edit) })),
+        })));
+    }
+}
+
+#[test]
+fn every_tile_edit_and_data_edit_survives_encoding() {
+    use rspigot_plugin_protocol::v1::{
+        BannerPattern, BannerPatterns, BeaconEffects, BlockDataEdit, BlockOrder, CommandEdit,
+        FurnaceEdit, GatewayExit, PotSherds, SetSlot, SignLines, SignStyle, SkullOwner,
+        SpawnerEdit, TileEdit, block_order, tile_edit,
+    };
+
+    let pos = BlockPos { x: 1, y: 2, z: 3 };
+    let stone = Item {
+        key: "minecraft:stone".to_owned(),
+        count: 3,
+        ..Default::default()
+    };
+    let patterns = BannerPatterns {
+        patterns: vec![BannerPattern {
+            pattern: "minecraft:stripe_top".to_owned(),
+            color: "red".to_owned(),
+        }],
+    };
+    let edits = vec![
+        tile_edit::Edit::SignLines(SignLines {
+            front: true,
+            lines: vec!["a".to_owned(), "b".to_owned()],
+        }),
+        tile_edit::Edit::SignStyle(SignStyle {
+            front: false,
+            color: Some("red".to_owned()),
+            glowing: Some(true),
+        }),
+        tile_edit::Edit::SignWaxed(true),
+        tile_edit::Edit::InventorySet(SetSlot {
+            slot: 2,
+            item: Some(stone.clone()),
+        }),
+        tile_edit::Edit::InventoryAdd(stone.clone()),
+        tile_edit::Edit::InventoryClear(Empty {}),
+        tile_edit::Edit::Furnace(FurnaceEdit {
+            burn_time: Some(100),
+            cook_time: Some(5),
+            cook_time_total: Some(200),
+        }),
+        tile_edit::Edit::Spawner(SpawnerEdit {
+            entity: Some("minecraft:zombie".to_owned()),
+            delay: Some(1),
+            min_delay: Some(2),
+            max_delay: Some(3),
+            spawn_count: Some(4),
+            max_nearby: Some(5),
+            required_player_range: Some(6),
+            spawn_range: Some(7),
+        }),
+        tile_edit::Edit::SkullOwner(SkullOwner {
+            name: Some("Steve".to_owned()),
+            uuid: None,
+        }),
+        tile_edit::Edit::BannerPatterns(patterns.clone()),
+        tile_edit::Edit::CommandBlock(CommandEdit {
+            command: Some("say hi".to_owned()),
+            name: Some("n".to_owned()),
+        }),
+        tile_edit::Edit::Beacon(BeaconEffects {
+            primary: Some("minecraft:speed".to_owned()),
+            secondary: None,
+        }),
+        tile_edit::Edit::JukeboxDisc(stone.clone()),
+        tile_edit::Edit::JukeboxClear(Empty {}),
+        tile_edit::Edit::EndGateway(GatewayExit {
+            exit: Some(pos),
+            exact: true,
+        }),
+        tile_edit::Edit::LecternBook(stone),
+        tile_edit::Edit::LecternClear(Empty {}),
+        tile_edit::Edit::DecoratedPot(PotSherds {
+            sherds: vec!["minecraft:brick".to_owned()],
+        }),
+    ];
+    for edit in edits {
+        round_trips(&plain(from_plugin::Body::Block(BlockOrder {
+            pos: Some(pos),
+            order: Some(block_order::Order::Tile(TileEdit { edit: Some(edit) })),
+        })));
+    }
+    round_trips(&plain(from_plugin::Body::Block(BlockOrder {
+        pos: Some(pos),
+        order: Some(block_order::Order::SetData(BlockDataEdit {
+            properties: vec![Property {
+                name: "facing".to_owned(),
+                value: "north".to_owned(),
+            }],
+        })),
+    })));
+}
+
+#[test]
+fn the_new_questions_and_answers_survive_encoding() {
+    use rspigot_plugin_protocol::v1::{
+        Answer, BlockInfo, DiscState, EntityState, EquipmentState, InventoryContents, LivingExtra,
+        Question, SignState, Slot, TileState, answer, question, tile_state,
+    };
+
+    let pos = BlockPos { x: 1, y: 2, z: 3 };
+    for asked in [
+        question::Question::Tile(pos),
+        question::Question::BlockInfo(pos),
+    ] {
+        round_trips(&plain(from_plugin::Body::Question(Question {
+            request: 4,
+            question: Some(asked),
+        })));
+    }
+    let item = Item {
+        key: "minecraft:stone".to_owned(),
+        count: 1,
+        ..Default::default()
+    };
+    let state = EntityState {
+        entity: Some(zombie()),
+        passengers: vec![1, 2],
+        vehicle: Some(3),
+        tags: vec!["x".to_owned()],
+        rotation: Some(Rotation {
+            yaw: 1.0,
+            pitch: 2.0,
+        }),
+        living: Some(LivingExtra {
+            equipment: vec![EquipmentState {
+                slot: "head".to_owned(),
+                item: Some(item.clone()),
+                drop_chance: 0.5,
+            }],
+            owner: Some("id".to_owned()),
+            target: Some(5),
+            leash_holder: Some(6),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    round_trips(&Answer {
+        request: 4,
+        body: Some(answer::Body::Entity(state)),
+    });
+    round_trips(&Answer {
+        request: 4,
+        body: Some(answer::Body::BlockInfo(BlockInfo {
+            light: 15,
+            sky_light: 15,
+            block_light: 0,
+            power: 3,
+            biome: "minecraft:plains".to_owned(),
+        })),
+    });
+    let tiles = [
+        tile_state::State::Sign(SignState {
+            front: vec!["a".to_owned()],
+            waxed: true,
+            ..Default::default()
+        }),
+        tile_state::State::Inventory(InventoryContents {
+            size: 27,
+            slots: vec![Slot {
+                slot: 0,
+                item: Some(item.clone()),
+            }],
+        }),
+        tile_state::State::Jukebox(DiscState { item: Some(item) }),
+    ];
+    for state in tiles {
+        round_trips(&Answer {
+            request: 4,
+            body: Some(answer::Body::Tile(TileState {
+                kind: "minecraft:chest".to_owned(),
+                state: Some(state),
+            })),
+        });
+    }
+}
+
+#[test]
+fn an_entity_snapshot_carries_its_name_and_tags() {
+    round_trips(&EntitySnapshot {
+        custom_name: Some("Bob".to_owned()),
+        tags: vec!["boss".to_owned()],
+        ..zombie()
+    });
+}

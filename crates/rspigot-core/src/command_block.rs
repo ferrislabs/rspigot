@@ -199,7 +199,7 @@ impl<L: ClientLink> Server<L> {
             .map(|entity| &entity.data)
     }
 
-    fn store_command_block(&mut self, pos: BlockPos, data: Compound) {
+    pub(crate) fn store_command_block(&mut self, pos: BlockPos, data: Compound) {
         if let Some(chunk) = self.world.chunks.chunk_mut(pos.chunk()) {
             chunk.set_block_entity(BlockEntity {
                 pos,
@@ -209,7 +209,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn send_command_block(&mut self, pos: BlockPos) {
+    pub(crate) fn send_command_block(&mut self, pos: BlockPos) {
         if let Some(data) = self.command_block_data(pos).cloned() {
             self.push(
                 Audience::ChunkViewers(pos.chunk()),

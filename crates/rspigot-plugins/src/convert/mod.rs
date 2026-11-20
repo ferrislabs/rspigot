@@ -4,6 +4,7 @@ mod command;
 mod contract;
 mod custom_inventory;
 mod decision;
+mod edits;
 mod entity;
 mod events;
 mod inventory;
@@ -13,6 +14,7 @@ mod player;
 mod scoreboard;
 mod server;
 mod shared;
+mod tiles;
 mod world;
 
 use rspigot_core::plugins::{
@@ -158,6 +160,8 @@ fn scoped(world: Option<String>, message: FromPlugin) -> Result<FromPlugin, Malf
             question: match question {
                 Question::World
                 | Question::Block(_)
+                | Question::Tile(_)
+                | Question::BlockInfo(_)
                 | Question::Entities { .. }
                 | Question::Entity(_)
                 | Question::AttributeValue { .. }
@@ -196,6 +200,8 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         question::Question::IpBans(_) => Question::IpBans,
         question::Question::World(_) => Question::World,
         question::Question::Block(pos) => Question::Block(shared::block_pos(pos)),
+        question::Question::Tile(pos) => Question::Tile(shared::block_pos(pos)),
+        question::Question::BlockInfo(pos) => Question::BlockInfo(shared::block_pos(pos)),
         question::Question::Entities(query) => entity::query(query)?,
         question::Question::Entity(id) => Question::Entity(EntityId(id)),
         question::Question::Spawn(spawn) => entity::spawn(spawn)?,
@@ -284,10 +290,12 @@ fn wire_answer(answer: Answer) -> answer::Body {
         Answer::IpBans(bans) => answer::Body::Bans(server::wire_ip_bans(bans)),
         Answer::World(state) => answer::Body::World(world::wire_state(state)),
         Answer::Block(state) => answer::Body::Block(block::wire_state(state)),
+        Answer::Tile(view) => answer::Body::Tile(tiles::wire_tile(view)),
+        Answer::BlockInfo(info) => answer::Body::BlockInfo(tiles::wire_info(info)),
         Answer::Entities(views) => answer::Body::Entities(v1::EntityList {
             entities: views.into_iter().map(entity::wire_view).collect(),
         }),
-        Answer::Entity(details) => answer::Body::Entity(entity::wire_details(details)),
+        Answer::Entity(details) => answer::Body::Entity(edits::wire_details(details)),
         Answer::AttributeValue(value) => answer::Body::AttributeValue(value),
         Answer::Spawned(view) => answer::Body::Spawned(entity::wire_view(view)),
         Answer::Target(hit) => answer::Body::Target(player::wire_target(hit)),

@@ -1,4 +1,4 @@
-use rspigot_core::plugins::{EntityDetails, EntityOrder, EntityTrait, EntityView, Order, Question};
+use rspigot_core::plugins::{EntityMarks, EntityOrder, EntityTrait, EntityView, Order, Question};
 use rspigot_domain::EntityId;
 use rspigot_plugin_protocol::v1::{self, entity_order::Order as Wire, typed_change::Change};
 use uuid::Uuid;
@@ -23,6 +23,7 @@ pub(super) fn order(order: v1::EntityOrder) -> Result<Order, Malformed> {
         },
         Wire::Change(change) => EntityOrder::Change(typed(required(change.change)?)),
         Wire::Meta(order) => EntityOrder::Meta(super::meta::order(order)?),
+        Wire::Edit(edit) => EntityOrder::Edit(super::edits::edit(edit)?),
     };
     Ok(Order::Entity { entity, order })
 }
@@ -108,6 +109,7 @@ pub(super) fn view(snapshot: v1::EntitySnapshot) -> Result<EntityView, Malformed
         position: shared::vec3(required(snapshot.position)?),
         player: snapshot.player.map(super::player::snapshot).transpose()?,
         meta: super::meta::snapshot(snapshot.meta, snapshot.volatile_meta)?,
+        marks: EntityMarks::new(snapshot.custom_name, snapshot.tags),
     })
 }
 
@@ -120,27 +122,18 @@ pub(super) fn wire_view(view: EntityView) -> v1::EntitySnapshot {
         player: view.player.map(super::player::wire_player),
         meta: super::meta::wire_map(view.meta.persistent()),
         volatile_meta: super::meta::wire_map(view.meta.volatile()),
-    }
-}
-
-pub(super) fn wire_details(details: EntityDetails) -> v1::EntityState {
-    v1::EntityState {
-        entity: Some(wire_view(details.entity)),
-        health: details.health,
-        velocity: Some(wire_vec(details.velocity)),
-        on_ground: details.on_ground,
-        custom_name: details.custom_name,
-        fire_ticks: details.fire_ticks,
+        custom_name: view.marks.custom_name().map(str::to_owned),
+        tags: view.marks.tags().to_vec(),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use rspigot_core::plugins::{
-        Answer, EntityDetails, EntityOrder, EntityTrait, EntityView, FromPlugin, ItemSpec, Order,
-        Question, ToPlugin,
+        Answer, EntityDetails, EntityFlags, EntityOrder, EntityTrait, EntityView, FromPlugin,
+        ItemSpec, Order, Question, ToPlugin,
     };
-    use rspigot_domain::{EntityId, Vec3};
+    use rspigot_domain::{EntityId, Rotation, Vec3};
     use rspigot_plugin_protocol::v1::{self, answer, entity_order};
     use uuid::Uuid;
 
@@ -204,6 +197,31 @@ mod tests {
             kind: "minecraft:zombie".into(),
             position: Vec3::new(4.5, 64.0, -2.5),
             player: None,
+            marks: Default::default(),
+        }
+    }
+
+    fn details_rest() -> EntityDetails {
+        EntityDetails {
+            entity: view(),
+            health: None,
+            velocity: Vec3::ZERO,
+            on_ground: false,
+            custom_name: None,
+            fire_ticks: 0,
+            flags: EntityFlags {
+                gravity: true,
+                ..Default::default()
+            },
+            freeze_ticks: 0,
+            air: 0,
+            fall_distance: 0.0,
+            rotation: Rotation::default(),
+            ticks_lived: 0,
+            tags: Vec::new(),
+            passengers: Vec::new(),
+            vehicle: None,
+            living: None,
         }
     }
 
@@ -380,6 +398,7 @@ mod tests {
                 on_ground: true,
                 custom_name: Some("§aBob".into()),
                 fire_ticks: -1,
+                ..details_rest()
             })),
             Some(answer::Body::Entity(v1::EntityState {
                 entity: Some(snapshot()),
@@ -388,6 +407,12 @@ mod tests {
                 on_ground: true,
                 custom_name: Some("§aBob".into()),
                 fire_ticks: -1,
+                gravity: true,
+                rotation: Some(v1::Rotation {
+                    yaw: 0.0,
+                    pitch: 0.0,
+                }),
+                ..Default::default()
             }))
         );
     }
@@ -446,5 +471,121 @@ mod tests {
             answered(Answer::AttributeValue(0.25)),
             Some(answer::Body::AttributeValue(0.25))
         );
+    }
+
+    #[test]
+    fn entity_edits_convert_and_the_living_part_survives_the_answer() {
+        use rspigot_core::plugins::{EntityEdit, EquipmentView, LivingDetails};
+
+        let edit = |edit| {
+            entity(Some(entity_order::Order::Edit(v1::EntityEdit {
+                edit: Some(edit),
+            })))
+        };
+        let expected = |edit| {
+            FromPlugin::Order(Order::Entity {
+                entity: ZOMBIE,
+                order: EntityOrder::Edit(edit),
+            })
+        };
+        assert_eq!(
+            edit(v1::entity_edit::Edit::SetCustomName("Bob".into())).unwrap(),
+            expected(EntityEdit::SetCustomName("Bob".into()))
+        );
+        assert_eq!(
+            edit(v1::entity_edit::Edit::SetEquipment(v1::EquipmentEdit {
+                slot: "head".into(),
+                item: Some(v1::Item {
+                    key: "minecraft:iron_helmet".into(),
+                    count: 1,
+                    ..Default::default()
+                }),
+            }))
+            .unwrap(),
+            expected(EntityEdit::SetEquipment {
+                slot: "head".into(),
+                item: Some(ItemSpec::of("minecraft:iron_helmet", 1)),
+            })
+        );
+        assert_eq!(
+            edit(v1::entity_edit::Edit::Mount(7)).unwrap(),
+            expected(EntityEdit::Mount(EntityId(7)))
+        );
+        assert_eq!(
+            edit(v1::entity_edit::Edit::SetRotation(v1::Rotation {
+                yaw: 90.0,
+                pitch: 5.0,
+            }))
+            .unwrap(),
+            expected(EntityEdit::SetRotation {
+                yaw: 90.0,
+                pitch: 5.0,
+            })
+        );
+        assert!(matches!(
+            edit(v1::entity_edit::Edit::SetOwner("nope".into())),
+            Err(Malformed::Uuid(_))
+        ));
+        assert!(matches!(
+            entity(Some(entity_order::Order::Edit(v1::EntityEdit {
+                edit: None
+            }))),
+            Err(Malformed::Empty)
+        ));
+
+        let owner = Uuid::from_u128(9);
+        let Some(answer::Body::Entity(state)) = answered(Answer::Entity(EntityDetails {
+            tags: vec!["boss".into()],
+            passengers: vec![EntityId(3)],
+            vehicle: Some(EntityId(4)),
+            living: Some(Box::new(LivingDetails {
+                max_health: 20.0,
+                absorption: 1.0,
+                ai: false,
+                can_pick_up_loot: true,
+                left_handed: false,
+                equipment: vec![EquipmentView {
+                    slot: "head",
+                    item: Some(ItemSpec::of("minecraft:iron_helmet", 1)),
+                    drop_chance: 0.5,
+                }],
+                leash_holder: Some(EntityId(5)),
+                owner: Some(owner),
+                tamed: true,
+                sitting: true,
+                target: Some(EntityId(6)),
+                age: -5,
+                age_locked: true,
+                baby: true,
+                in_love: false,
+            })),
+            ..details_rest()
+        })) else {
+            panic!("expected an entity state");
+        };
+        assert_eq!(state.passengers, vec![3]);
+        assert_eq!(state.vehicle, Some(4));
+        let living = state.living.expect("a living part");
+        assert!(!living.ai && living.tamed && living.sitting && living.baby);
+        assert_eq!(
+            living.owner.as_deref(),
+            Some("00000000-0000-0000-0000-000000000009")
+        );
+        assert_eq!(living.leash_holder, Some(5));
+        assert_eq!(living.target, Some(6));
+        assert_eq!(living.equipment[0].slot, "head");
+        assert_eq!(living.equipment[0].drop_chance, 0.5);
+    }
+
+    #[test]
+    fn a_snapshot_keeps_its_name_and_tags_both_ways() {
+        let wire = v1::EntitySnapshot {
+            custom_name: Some("Bob".into()),
+            tags: vec!["boss".into()],
+            ..snapshot()
+        };
+        let view = super::view(wire.clone()).unwrap();
+        assert_eq!(view.marks.custom_name(), Some("Bob"));
+        assert_eq!(super::wire_view(view), wire);
     }
 }
