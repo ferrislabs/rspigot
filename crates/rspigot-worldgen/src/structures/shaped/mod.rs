@@ -1,10 +1,12 @@
 pub(crate) mod desert;
+pub(crate) mod end_city;
 pub(crate) mod fortress;
 pub(crate) mod fossil;
 pub(crate) mod frame;
 pub(crate) mod hut;
 pub(crate) mod igloo;
 pub(crate) mod jungle;
+pub(crate) mod mansion;
 pub(crate) mod mineshaft;
 pub(crate) mod monument;
 pub(crate) mod ocean_ruin;
@@ -38,6 +40,8 @@ pub(crate) enum Shaped {
     Ruin(ocean_ruin::Piece),
     Temple(scatter::Piece),
     Monument(monument::Piece),
+    Mansion(mansion::Piece),
+    EndCity(end_city::Piece),
 }
 
 impl Shaped {
@@ -54,6 +58,8 @@ impl Shaped {
             Self::Ruin(piece) => &piece.bbox,
             Self::Temple(piece) => &piece.bbox,
             Self::Monument(piece) => &piece.bbox,
+            Self::Mansion(piece) => &piece.bbox,
+            Self::EndCity(piece) => &piece.bbox,
         }
     }
 
@@ -70,6 +76,8 @@ impl Shaped {
             Self::Ruin(piece) => piece.place(run, write),
             Self::Temple(piece) => piece.place(run, write),
             Self::Monument(piece) => piece.place(run, write),
+            Self::Mansion(piece) => piece.place(run, write),
+            Self::EndCity(piece) => piece.place(run, write),
         }
     }
 
@@ -82,6 +90,8 @@ impl Shaped {
             Self::Portal(_) => "RuinedPortalPiece".to_owned(),
             Self::Treasure(_) => "BuriedTreasurePiece".to_owned(),
             Self::Monument(_) => "MonumentBuilding".to_owned(),
+            Self::Mansion(_) => "WoodlandMansionPiece".to_owned(),
+            Self::EndCity(_) => "EndCityPiece".to_owned(),
             Self::Fossil(_) => "NetherFossilPiece".to_owned(),
             Self::Igloo(_) => "IglooPiece".to_owned(),
             Self::Wreck(_) => "ShipwreckPiece".to_owned(),
@@ -103,7 +113,7 @@ impl Shaped {
             Self::Fortress(piece) => Some(piece.facing),
             Self::Stronghold(piece) => Some(piece.facing),
             Self::Portal(_) => Some(Dir::North),
-            Self::Treasure(_) => None,
+            Self::Treasure(_) | Self::Mansion(_) | Self::EndCity(_) => None,
             Self::Temple(piece) => Some(piece.facing),
             Self::Monument(piece) => Some(piece.facing),
             Self::Fossil(_) | Self::Igloo(_) | Self::Wreck(_) | Self::Ruin(_) => Some(Dir::North),
@@ -166,6 +176,28 @@ impl Shaped {
             ),
             Self::Treasure(piece) => (piece.id(), piece.bbox, None, 0, Vec::new()),
             Self::Monument(piece) => (piece.id(), piece.bbox, Some(piece.facing), 0, Vec::new()),
+            Self::EndCity(piece) => (
+                piece.id(),
+                piece.bbox,
+                None,
+                0,
+                vec![
+                    ("Template", Tag::from(piece.template())),
+                    ("Rot", Tag::from(piece.tpl.rotation_name())),
+                    ("OW", Tag::from(piece.overwrite)),
+                ],
+            ),
+            Self::Mansion(piece) => (
+                piece.id(),
+                piece.bbox,
+                None,
+                0,
+                vec![
+                    ("Template", Tag::from(piece.template())),
+                    ("Rot", Tag::from(piece.tpl.rotation_name())),
+                    ("Mi", Tag::from(piece.mirror_name())),
+                ],
+            ),
             Self::Temple(piece) => {
                 let (width, height, depth) = piece.temple.size();
                 (
@@ -288,6 +320,8 @@ pub(crate) enum Other {
     Temple(scatter::Temple),
     Monument,
     Fortress,
+    Mansion,
+    EndCity,
 }
 
 impl Other {
@@ -297,6 +331,8 @@ impl Other {
             "igloo" => Self::Igloo,
             "ocean_monument" => Self::Monument,
             "fortress" => Self::Fortress,
+            "woodland_mansion" => Self::Mansion,
+            "end_city" => Self::EndCity,
             "desert_pyramid" => Self::Temple(scatter::Temple::Desert),
             "jungle_temple" => Self::Temple(scatter::Temple::Jungle),
             "swamp_hut" => Self::Temple(scatter::Temple::SwampHut),
@@ -356,6 +392,10 @@ impl Other {
                 .map(|piece| vec![Shaped::Monument(piece)]),
             Self::Fortress => fortress::generate(valid, probe, seed, chunk)
                 .map(|pieces| pieces.into_iter().map(Shaped::Fortress).collect()),
+            Self::Mansion => mansion::generate(library, ground, valid, probe, seed, chunk)
+                .map(|pieces| pieces.into_iter().map(Shaped::Mansion).collect()),
+            Self::EndCity => end_city::generate(library, ground, valid, probe, seed, chunk)
+                .map(|pieces| pieces.into_iter().map(Shaped::EndCity).collect()),
             Self::Igloo => igloo::generate(library, ground, valid, probe, seed, chunk)
                 .map(|pieces| pieces.into_iter().map(Shaped::Igloo).collect()),
             Self::NetherFossil(height) => {

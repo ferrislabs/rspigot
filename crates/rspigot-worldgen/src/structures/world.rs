@@ -74,7 +74,7 @@ fn supported(def: &StructureDef, pools: &Pools) -> bool {
             Kind::Mineshaft(_) | Kind::Stronghold | Kind::RuinedPortal(_) | Kind::Shaped(_)
         );
     };
-    if jigsaw.aliased {
+    if jigsaw.aliases.is_none() {
         return false;
     }
     let Some(pool) = pools.get(&jigsaw.start_pool) else {

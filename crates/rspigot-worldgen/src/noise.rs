@@ -76,6 +76,7 @@ impl NoiseGenerator {
     pub fn without_structures(mut self) -> Self {
         self.state.overworld.disable_structures();
         self.state.nether.disable_structures();
+        self.state.end.disable_structures();
         self
     }
 }
@@ -120,7 +121,15 @@ impl ChunkGenerator for NoiseGenerator {
 
     fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
         match DimensionKind::of(dimension) {
-            DimensionKind::End => self.state.end.pillars().crystals(pos),
+            DimensionKind::End => {
+                let mut entities = self.state.end.pillars().crystals(pos);
+                entities.extend(self.state.end.structure_entities(
+                    &self.state.resources,
+                    dimension,
+                    pos,
+                ));
+                entities
+            }
             DimensionKind::Overworld => self.state.overworld.structure_entities(dimension, pos),
             DimensionKind::Nether => self.state.nether.structure_entities(dimension, pos),
         }
@@ -152,7 +161,12 @@ impl ChunkGenerator for NoiseGenerator {
                     .nether
                     .nearest_structures(dimension, from, structure_ids)
             }
-            DimensionKind::End => None,
+            DimensionKind::End => self.state.end.nearest_structures(
+                &self.state.resources,
+                dimension,
+                from,
+                structure_ids,
+            ),
         }
     }
 
@@ -160,7 +174,7 @@ impl ChunkGenerator for NoiseGenerator {
         match DimensionKind::of(dimension) {
             DimensionKind::Overworld => self.state.overworld.knows_structure(structure_id),
             DimensionKind::Nether => self.state.nether.knows_structure(structure_id),
-            DimensionKind::End => false,
+            DimensionKind::End => self.state.end.knows_structure(structure_id),
         }
     }
 
@@ -189,6 +203,10 @@ impl ChunkGenerator for NoiseGenerator {
             (PlaceRequest::Structure { id, pos }, DimensionKind::Nether) => {
                 self.state.nether.place_structure(dimension, id, *pos)
             }
+            (PlaceRequest::Structure { id, pos }, DimensionKind::End) => self
+                .state
+                .end
+                .place_structure(&self.state.resources, dimension, id, *pos),
             _ => crate::placing::standalone(dimension, request),
         }
     }
