@@ -3,6 +3,7 @@ use std::future::Future;
 use rspigot_plugin_protocol::v1;
 
 use crate::commands::{CommandSpec, Invocation};
+use crate::compose::{self, CommandModule};
 use crate::events::{Call, EventKind};
 use crate::server::Server;
 
@@ -11,10 +12,29 @@ pub trait Plugin: Listeners + Send + Sync + 'static {
     const VERSION: &'static str;
 }
 
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` is not a module",
+    label = "this type does not implement `Listeners`",
+    note = "a leaf module is a struct with a `#[listeners]` impl block; a node is a struct with `#[module]` fields and `#[derive(Module)]` (`#[derive(Plugin)]` for the root); a node declared `#[module(own)]` or `#[plugin(own)]` also needs a `#[listeners]` impl block"
+)]
 pub trait Listeners {
+    const HANDLER_SLOTS: u32 = u32::MAX;
+
+    const COMMAND_SLOTS: u32 = u32::MAX;
+
+    const TAB_SLOT: bool = false;
+
     fn handlers() -> Vec<HandlerSpec>;
 
-    fn dispatch(&self, call: Call) -> impl Future<Output = Outcome> + Send;
+    fn dispatch(&self, call: Call) -> impl Future<Output = Outcome> + Send {
+        let _ = call;
+        async { Outcome::Observed }
+    }
+
+    fn dispatch_at(&self, handler: u32, call: Call) -> impl Future<Output = Outcome> + Send {
+        let _ = handler;
+        self.dispatch(call)
+    }
 
     fn enable(&self, server: &Server) -> impl Future<Output = ()> + Send;
 
@@ -22,6 +42,10 @@ pub trait Listeners {
 
     fn commands() -> Vec<CommandSpec> {
         Vec::new()
+    }
+
+    fn command_modules(base: u32, out: &mut Vec<CommandModule>) {
+        compose::push_own_module::<Self>(out, base, Self::COMMAND_SLOTS);
     }
 
     fn invoke(&self, invocation: Invocation) -> impl Future<Output = ()> + Send {

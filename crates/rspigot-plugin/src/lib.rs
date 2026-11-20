@@ -4,6 +4,8 @@ mod block;
 mod color;
 mod commands;
 mod component;
+#[doc(hidden)]
+pub mod compose;
 mod config;
 mod connection;
 mod contract;
@@ -57,6 +59,7 @@ pub use commands::{
     GreedyText, Invocation, Typing,
 };
 pub use component::ComponentValue;
+pub use compose::CommandModule;
 pub use config::{Config, ConfigError, ConfigValue};
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, CommandSender, DamageSource, DroppedItem,
@@ -94,7 +97,7 @@ pub use permissions::{PermissionGroup, PlayerPermissionsHandle, ServerPermission
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
 pub use recipes::{CookingKind, Ingredient, Recipe, RecipeCategory, RecipeInfo, RecipeKind};
 pub use rich::{Click, Part, RichMessage};
-pub use rspigot_plugin_macros::{Plugin, command, listeners};
+pub use rspigot_plugin_macros::{Module, Plugin, command, listeners};
 pub use runtime::{run, run_with};
 pub use scoreboard::{
     CollisionRule, Criteria, DisplaySlot, Objective, ObjectiveState, RenderType, Score, ScoreEntry,
@@ -126,9 +129,9 @@ pub mod prelude {
         CustomInventory, CustomInventoryState, CustomModelData, DamageSource, Difficulty, Effect,
         EffectType, Enchantment, Entity, EntityState, EntityType, Error, GameMode, GameRule,
         InventoryOwner, InventoryRef, InventorySlot, InventoryState, InventoryView, ItemStack,
-        Listeners, Location, Material, MetaHandle, MetaValue, Particle, Player, PlayerState,
-        Plugin, Position, Priority, Rotation, Server, ServerState, Sound, SoundCue, Target, Title,
-        Vector, Weather, World, WorldState, command, listeners, run, run_with,
+        Listeners, Location, Material, MetaHandle, MetaValue, Module, Particle, Player,
+        PlayerState, Plugin, Position, Priority, Rotation, Server, ServerState, Sound, SoundCue,
+        Target, Title, Vector, Weather, World, WorldState, command, listeners, run, run_with,
     };
     pub use crate::{
         AttributeModifier, BannerLayer, ComponentValue, Equippable, FireworkExplosion,

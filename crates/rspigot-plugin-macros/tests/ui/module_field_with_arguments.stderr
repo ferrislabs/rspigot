@@ -1,0 +1,5 @@
+error: `#[module]` on a field takes no arguments
+  --> tests/ui/module_field_with_arguments.rs:10:5
+   |
+10 |     #[module(own)]
+   |     ^^^^^^^^^^^^^^
