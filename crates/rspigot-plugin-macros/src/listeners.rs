@@ -205,7 +205,7 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
                 }
 
                 async fn invoke(&self, invocation: ::rspigot_plugin::Invocation) {
-                    let command = invocation.command();
+                    let command = invocation.command;
                     if #present
                         && command > #own_commands
                         && command <= #own_commands

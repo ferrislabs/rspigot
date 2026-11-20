@@ -73,7 +73,7 @@ impl ConfigValue {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
-    path: PathBuf,
+    pub path: PathBuf,
     root: toml::Table,
 }
 
@@ -131,10 +131,6 @@ impl Config {
                 message: error.to_string(),
             })?;
         Ok(())
-    }
-
-    pub fn path(&self) -> &Path {
-        &self.path
     }
 
     fn find(&self, path: &str) -> Option<&toml::Value> {
@@ -272,7 +268,7 @@ mod tests {
         assert!(!Config::save_default_in(&folder, "limit = 2\n").unwrap());
         let config = Config::open(&folder).unwrap();
         assert_eq!(config.get_i64("limit"), Some(1));
-        assert_eq!(config.path(), folder.join(FILE));
+        assert_eq!(config.path, folder.join(FILE));
     }
 
     #[test]
@@ -300,7 +296,7 @@ mod tests {
     fn load_reads_below_the_plugins_folder_of_the_working_directory() {
         let config = Config::load("market-not-there").unwrap();
         assert_eq!(
-            config.path(),
+            config.path,
             Path::new("plugins/market-not-there/config.toml")
         );
         assert!(!config.contains("anything"));

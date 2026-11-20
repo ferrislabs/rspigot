@@ -94,10 +94,10 @@ impl InventoryRef {
     pub(crate) fn to_wire(&self) -> v1::InventoryRef {
         let plugin = self
             .custom()
-            .map(|inventory| inventory.plugin().to_owned())
+            .map(|inventory| inventory.plugin.clone())
             .unwrap_or_default();
         let owner = match &self.owner {
-            InventoryOwner::Custom(inventory) => inventory_ref::Owner::Custom(inventory.id()),
+            InventoryOwner::Custom(inventory) => inventory_ref::Owner::Custom(inventory.id),
             InventoryOwner::Player(id) => inventory_ref::Owner::Player(id.hyphenated().to_string()),
             InventoryOwner::Block(block) => inventory_ref::Owner::Block(block.pos.to_wire()),
             InventoryOwner::Entity(id) => inventory_ref::Owner::Entity(*id),

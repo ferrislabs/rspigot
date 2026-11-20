@@ -1688,9 +1688,9 @@ def emit_sdk(model):
                 body()
                 body("    pub fn player(&self) -> Option<&Player> {")
                 if f.nullable:
-                    body(f"        self.{f.name}.as_ref().and_then(Entity::player)")
+                    body(f"        self.{f.name}.as_ref().and_then(|entity| entity.player.as_ref())")
                 else:
-                    body(f"        self.{f.name}.player()")
+                    body(f"        self.{f.name}.player.as_ref()")
                 body("    }")
         for f in e.patched:
             if f.index:

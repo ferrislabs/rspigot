@@ -111,7 +111,7 @@ impl Aggressive {
     }
 
     async fn on_command(&self, invocation: Invocation) {
-        said(&self.log, &format!("dynamic {}", invocation.command()));
+        said(&self.log, &format!("dynamic {}", invocation.command));
     }
 }
 

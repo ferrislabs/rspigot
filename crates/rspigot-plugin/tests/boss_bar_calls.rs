@@ -39,8 +39,8 @@ async fn creating_a_bar_asks_the_server_and_orders_go_on_the_wire() {
                 )
                 .await
                 .unwrap();
-            assert_eq!(bar.id(), 7);
-            assert_eq!(bar.key(), None);
+            assert_eq!(bar.id, 7);
+            assert_eq!(bar.key, None);
             bar.set_title("New");
             bar.set_color(BarColor::Green);
             bar.set_style(BarStyle::Solid);
@@ -104,7 +104,7 @@ async fn keyed_bars_are_created_listed_and_found_by_key() {
                 .create_keyed("test:raid", "Raid", BarColor::Pink, BarStyle::Solid, &[])
                 .await
                 .unwrap();
-            assert_eq!(made.key(), Some("test:raid"));
+            assert_eq!(made.key.as_deref(), Some("test:raid"));
             let listed = bars.all().await.unwrap();
             assert_eq!(listed.len(), 1);
             assert_eq!(listed[0], made);

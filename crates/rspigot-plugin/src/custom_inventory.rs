@@ -40,8 +40,8 @@ impl CustomInventoryState {
 
 #[derive(Debug, Clone)]
 pub struct CustomInventory {
-    id: u64,
-    plugin: String,
+    pub id: u64,
+    pub plugin: String,
     generation: u64,
     link: Link,
 }
@@ -88,14 +88,6 @@ impl CustomInventory {
             generation: link.generation(),
             link: link.clone(),
         }
-    }
-
-    pub const fn id(&self) -> u64 {
-        self.id
-    }
-
-    pub fn plugin(&self) -> &str {
-        &self.plugin
     }
 
     pub fn is_mine(&self) -> bool {

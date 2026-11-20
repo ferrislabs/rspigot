@@ -138,7 +138,7 @@ enum Body {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Recipe {
-    id: String,
+    pub id: String,
     result: ItemStack,
     body: Body,
     group: String,
@@ -268,10 +268,6 @@ impl Recipe {
             auto_discover,
             ..self
         }
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id
     }
 
     fn into_wire(self) -> v1::RecipeDef {

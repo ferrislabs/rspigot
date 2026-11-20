@@ -170,11 +170,13 @@ impl CollisionRule {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Criteria(String);
+pub struct Criteria {
+    pub name: String,
+}
 
 impl Criteria {
     pub fn named(name: impl Into<String>) -> Self {
-        Self(name.into())
+        Self { name: name.into() }
     }
 
     pub fn dummy() -> Self {
@@ -222,15 +224,15 @@ impl Criteria {
     }
 
     pub fn team_kill(color: TeamColor) -> Self {
-        Self(format!("teamkill.{}", color.name()))
+        Self {
+            name: format!("teamkill.{}", color.name()),
+        }
     }
 
     pub fn killed_by_team(color: TeamColor) -> Self {
-        Self(format!("killedByTeam.{}", color.name()))
-    }
-
-    pub fn name(&self) -> &str {
-        &self.0
+        Self {
+            name: format!("killedByTeam.{}", color.name()),
+        }
     }
 }
 
@@ -383,34 +385,30 @@ impl ScoreboardManager {
 
 #[derive(Debug, Clone)]
 pub struct Scoreboard {
-    board: u32,
+    pub id: u32,
     link: Link,
 }
 
 impl PartialEq for Scoreboard {
     fn eq(&self, other: &Self) -> bool {
-        self.board == other.board
+        self.id == other.id
     }
 }
 
 impl Scoreboard {
-    pub(crate) fn new(board: u32, link: Link) -> Self {
-        Self { board, link }
-    }
-
-    pub const fn id(&self) -> u32 {
-        self.board
+    pub(crate) fn new(id: u32, link: Link) -> Self {
+        Self { id, link }
     }
 
     pub const fn is_main(&self) -> bool {
-        self.board == 0
+        self.id == 0
     }
 
     pub async fn state(&self) -> Result<ScoreboardState, Error> {
         let state = self
             .link
             .ask(
-                question::Question::Scoreboard(self.board),
+                question::Question::Scoreboard(self.id),
                 "a scoreboard",
                 |body| match body {
                     answer::Body::Scoreboard(state) => Some(state),
@@ -430,7 +428,7 @@ impl Scoreboard {
         let name = name.into();
         self.order(Order::RegisterObjective(v1::RegisterObjective {
             name: name.clone(),
-            criteria: criteria.name().to_owned(),
+            criteria: criteria.name.clone(),
             display_name: display_name.into(),
         }));
         self.objective(name)
@@ -477,7 +475,7 @@ impl Scoreboard {
     fn order(&self, order: Order) {
         self.link
             .order(from_plugin::Body::Scoreboard(v1::ScoreboardOrder {
-                board: self.board,
+                board: self.id,
                 order: Some(order),
             }));
     }
@@ -485,19 +483,11 @@ impl Scoreboard {
 
 #[derive(Debug, Clone)]
 pub struct Objective {
-    scoreboard: Scoreboard,
-    name: String,
+    pub scoreboard: Scoreboard,
+    pub name: String,
 }
 
 impl Objective {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub const fn scoreboard(&self) -> &Scoreboard {
-        &self.scoreboard
-    }
-
     pub fn set_display_name(&self, text: impl Into<String>) {
         self.scoreboard
             .order(Order::SetObjectiveDisplayName(v1::ObjectiveText {
@@ -529,15 +519,11 @@ impl Objective {
 
 #[derive(Debug, Clone)]
 pub struct Score {
-    objective: Objective,
-    entry: String,
+    pub objective: Objective,
+    pub entry: String,
 }
 
 impl Score {
-    pub fn entry(&self) -> &str {
-        &self.entry
-    }
-
     pub fn set(&self, value: i32) {
         self.objective
             .scoreboard
@@ -569,15 +555,11 @@ impl Score {
 
 #[derive(Debug, Clone)]
 pub struct Team {
-    scoreboard: Scoreboard,
-    name: String,
+    pub scoreboard: Scoreboard,
+    pub name: String,
 }
 
 impl Team {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
     pub fn set_display_name(&self, text: impl Into<String>) {
         self.option(TeamChoice::DisplayName(text.into()));
     }

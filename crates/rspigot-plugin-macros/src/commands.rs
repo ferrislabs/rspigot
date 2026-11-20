@@ -324,7 +324,7 @@ pub(crate) fn suggestion_arm(commands: &[Command], tab: &TokenStream) -> TokenSt
                             )
                         {
                             found = ::core::option::Option::Some(
-                                #suggest(self, typing.player(), typing.text()).await
+                                #suggest(self, &typing.player, &typing.text).await
                             );
                         }
                     }
