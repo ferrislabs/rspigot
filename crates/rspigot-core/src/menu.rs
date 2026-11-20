@@ -166,6 +166,7 @@ impl<L: ClientLink> Server<L> {
                 MenuEffect::Crafted { item, amount } => self.count_crafted(id, item, amount),
                 MenuEffect::FurnaceOutputTaken { .. }
                 | MenuEffect::StonecutterTaken
+                | MenuEffect::LoomTaken
                 | MenuEffect::SmithingTaken
                 | MenuEffect::AnvilTaken { .. }
                 | MenuEffect::GrindstoneTaken { .. }

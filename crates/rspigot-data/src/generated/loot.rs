@@ -1261,7 +1261,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -1306,7 +1306,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -1331,7 +1331,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents { include: &["minecraft:bees"] },
                         },
                         Function {
                             condition: None,
@@ -1365,7 +1365,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:copy_components"),
+                                    kind: FunctionKind::CopyComponents {
+                                        include: &["minecraft:bees"],
+                                    },
                                 },
                                 Function {
                                     condition: None,
@@ -1935,7 +1937,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -2195,7 +2205,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -2453,7 +2470,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -2477,7 +2494,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -2779,7 +2804,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -3085,7 +3117,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -3205,7 +3237,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -3538,7 +3578,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -4560,7 +4607,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -5682,7 +5729,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -5731,7 +5778,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents {
+                                include: &["minecraft:custom_name"],
+                            },
                         },
                         Function {
                             condition: None,
@@ -6125,7 +6174,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -6736,7 +6785,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -6996,7 +7053,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -8095,7 +8159,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                             condition: None,
                             modifier: &[Function {
                                 condition: None,
-                                kind: FunctionKind::Components("minecraft:copy_components"),
+                                kind: FunctionKind::CopyComponents {
+                                    include: &["minecraft:pot_decorations"],
+                                },
                             }],
                             kind: EntryKind::Leaf(Leaf {
                                 weight: 1,
@@ -8945,7 +9011,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -8990,7 +9056,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -9073,7 +9139,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -9163,7 +9229,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -9475,7 +9541,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -9524,7 +9590,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents {
+                                include: &["minecraft:custom_name"],
+                            },
                         },
                         Function {
                             condition: None,
@@ -10018,7 +10086,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -10564,7 +10632,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -10824,7 +10900,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -10986,7 +11069,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -11246,7 +11337,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -11555,7 +11653,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -12823,7 +12921,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -13083,7 +13189,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -13245,7 +13358,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -13505,7 +13626,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -13775,7 +13903,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -14035,7 +14171,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -14239,7 +14382,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -14499,7 +14650,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -16557,7 +16715,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -16894,7 +17060,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -17203,7 +17376,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -17252,7 +17425,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents {
+                                include: &["minecraft:custom_name"],
+                            },
                         },
                         Function {
                             condition: None,
@@ -18028,7 +18203,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -18052,7 +18227,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -18375,7 +18558,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -18741,7 +18931,13 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:profile",
+                                "minecraft:note_block_sound",
+                                "minecraft:custom_name",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -21869,7 +22065,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -22129,7 +22333,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -22588,7 +22799,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -23228,7 +23447,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -24408,7 +24634,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -24432,7 +24665,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -24540,7 +24773,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -27252,7 +27485,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -28235,7 +28468,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -28284,7 +28517,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents {
+                                include: &["minecraft:custom_name"],
+                            },
                         },
                         Function {
                             condition: None,
@@ -28556,7 +28791,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -28605,7 +28840,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents {
+                                include: &["minecraft:custom_name"],
+                            },
                         },
                         Function {
                             condition: None,
@@ -28919,7 +29156,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -28968,7 +29205,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents {
+                                include: &["minecraft:custom_name"],
+                            },
                         },
                         Function {
                             condition: None,
@@ -29261,7 +29500,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -29310,7 +29549,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents {
+                                include: &["minecraft:custom_name"],
+                            },
                         },
                         Function {
                             condition: None,
@@ -29603,7 +29844,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -29652,7 +29893,9 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     modifier: &[
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_components"),
+                            kind: FunctionKind::CopyComponents {
+                                include: &["minecraft:custom_name"],
+                            },
                         },
                         Function {
                             condition: None,
@@ -30013,7 +30256,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -30273,7 +30524,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -30540,7 +30798,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -30564,7 +30822,15 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:item_name",
+                                "minecraft:tooltip_display",
+                                "minecraft:banner_patterns",
+                                "minecraft:rarity",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -30901,7 +31167,14 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents {
+                            include: &[
+                                "minecraft:custom_name",
+                                "minecraft:container",
+                                "minecraft:lock",
+                                "minecraft:container_loot",
+                            ],
+                        },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,
@@ -31063,7 +31336,7 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
                     condition: None,
                     modifier: &[Function {
                         condition: None,
-                        kind: FunctionKind::Components("minecraft:copy_components"),
+                        kind: FunctionKind::CopyComponents { include: &["minecraft:custom_name"] },
                     }],
                     kind: EntryKind::Leaf(Leaf {
                         weight: 1,

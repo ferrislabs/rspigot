@@ -581,8 +581,12 @@ impl<L: ClientLink> Server<L> {
         let pitch = arrow::hit_block(base, state, state_at);
         let position = base.position;
         let silent = base.is_silent();
+        let burning = fire::is_on_fire(base);
         if !silent {
             self.play_sound(None, position, sound, SoundSource::Neutral, 1.0, pitch);
+        }
+        if burning {
+            self.arrow_lights(id, hit.pos, state_at);
         }
     }
 

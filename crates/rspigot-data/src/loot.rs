@@ -260,6 +260,9 @@ pub enum FunctionKind {
         levels: IntProvider,
     },
     Components(&'static str),
+    CopyComponents {
+        include: &'static [&'static str],
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
