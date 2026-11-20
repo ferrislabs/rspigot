@@ -49,12 +49,14 @@ pub(crate) struct Worn<'a> {
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Active {
+    pub slot: EquipSlot,
     pub level: i32,
     pub effects: &'static EnchantmentEffects,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Planned {
+    pub slot: EquipSlot,
     pub enchanted: EffectRole,
     pub affected: EffectRole,
     pub effect: &'static EntityEffect,
@@ -73,6 +75,7 @@ pub(crate) fn active_in(worn: &[Worn<'_>]) -> Vec<Active> {
                         .iter()
                         .any(|group| worn.slot.belongs_to(group))
                         .then_some(Active {
+                            slot: worn.slot,
                             level: i32::from(level),
                             effects,
                         })
@@ -138,6 +141,35 @@ pub(crate) fn modify_knockback(
     rng: &mut (impl Rng + ?Sized),
 ) -> f32 {
     process_value(&active_in(weapon), |e| e.knockback, base, context, rng)
+}
+
+pub(crate) fn smash_damage_per_fallen_block(
+    weapon: &[Worn<'_>],
+    context: &LootContext<'_>,
+    rng: &mut (impl Rng + ?Sized),
+) -> f32 {
+    process_value(
+        &active_in(weapon),
+        |e| e.smash_damage_per_fallen_block,
+        0.0,
+        context,
+        rng,
+    )
+}
+
+pub(crate) fn armor_effectiveness(
+    weapon: &[Worn<'_>],
+    context: &LootContext<'_>,
+    rng: &mut (impl Rng + ?Sized),
+) -> f32 {
+    process_value(
+        &active_in(weapon),
+        |e| e.armor_effectiveness,
+        1.0,
+        context,
+        rng,
+    )
+    .clamp(0.0, 1.0)
 }
 
 pub(crate) fn damage_protection(
@@ -211,6 +243,7 @@ pub(crate) fn post_attack(
                         .is_none_or(|requirements| condition_holds(requirements, &scoped, rng))
                 {
                     planned.push(Planned {
+                        slot: active.slot,
                         enchanted: entry.enchanted,
                         affected: entry.affected,
                         effect: &entry.effect,
@@ -244,6 +277,7 @@ pub(crate) fn projectile_spawned(
                 .is_none_or(|requirements| condition_holds(requirements, &scoped, rng))
             {
                 planned.push(Planned {
+                    slot: active.slot,
                     enchanted: EffectRole::Attacker,
                     affected: EffectRole::DamagingEntity,
                     effect,

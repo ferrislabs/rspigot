@@ -929,3 +929,57 @@ fn falling_anvils_hurt_mobs_below_them() {
     assert_eq!(hits[0].0, DamageType::FallingAnvil);
     assert!(health(&server, cow) < 10.0);
 }
+
+fn geared_zombie(server: &mut Server<Link>, alice: &mut Client, enchantments: &str) -> EntityId {
+    summon(
+        server,
+        alice,
+        &format!(
+            "/summon zombie 0.5 64 2.5 {{NoAI:1b,equipment:{{head:{{id:\"minecraft:diamond_helmet\",count:1,components:{{\"minecraft:enchantments\":{enchantments}}}}}}}}}"
+        ),
+        Kind::Zombie,
+    )
+}
+
+#[test]
+fn a_zombie_with_a_thorns_helmet_hurts_its_attacker_and_wears_the_helmet() {
+    let mut server = server(Arc::default());
+    let mut alice = join(&mut server, "Alice");
+    give_sword(&mut server, &mut alice);
+    let zombie = geared_zombie(&mut server, &mut alice, "{\"minecraft:thorns\":10}");
+    alice.drain();
+    attack(&mut server, &alice, zombie);
+    assert!(server.player_health(alice.id).unwrap() < 20.0);
+    let events = alice.drain();
+    assert!(
+        damage_events(&events, zombie)
+            .iter()
+            .all(|(kind, _)| *kind != DamageType::Thorns)
+    );
+    let helmet = server
+        .mob_damage(zombie)
+        .unwrap()
+        .equipment
+        .into_iter()
+        .find(|(slot, _)| *slot == EquipmentSlot::Head)
+        .map(|(_, stack)| stack)
+        .expect("the helmet is still worn");
+    assert_eq!(helmet.components.get_i32("minecraft:damage"), Some(2));
+}
+
+fn zombie_health_after_a_hit(enchantments: &str) -> f32 {
+    let mut server = server(Arc::default());
+    let mut alice = join(&mut server, "Alice");
+    give_sword(&mut server, &mut alice);
+    let zombie = geared_zombie(&mut server, &mut alice, enchantments);
+    attack(&mut server, &alice, zombie);
+    server.mob_damage(zombie).unwrap().health
+}
+
+#[test]
+fn a_zombie_wearing_protection_takes_less_damage() {
+    let plain = zombie_health_after_a_hit("{}");
+    let protected = zombie_health_after_a_hit("{\"minecraft:protection\":4}");
+    assert!(plain < 20.0, "{plain}");
+    assert!(protected > plain, "{protected} vs {plain}");
+}

@@ -50,6 +50,7 @@ pub enum DamageType {
     LightningBolt,
     Fireworks,
     OutsideBorder,
+    MaceSmash,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -88,7 +89,7 @@ impl DamageTag {
 }
 
 impl DamageType {
-    pub const ALL: [Self; 40] = [
+    pub const ALL: [Self; 41] = [
         Self::Fall,
         Self::EnderPearl,
         Self::OutOfWorld,
@@ -129,6 +130,7 @@ impl DamageType {
         Self::LightningBolt,
         Self::Fireworks,
         Self::OutsideBorder,
+        Self::MaceSmash,
     ];
 
     pub fn from_name(name: &str) -> Option<Self> {
@@ -177,6 +179,7 @@ impl DamageType {
             Self::LightningBolt => "minecraft:lightning_bolt",
             Self::Fireworks => "minecraft:fireworks",
             Self::OutsideBorder => "minecraft:outside_border",
+            Self::MaceSmash => "minecraft:mace_smash",
         }
     }
 
@@ -220,6 +223,7 @@ impl DamageType {
             Self::LightningBolt => "lightningBolt",
             Self::Fireworks => "fireworks",
             Self::OutsideBorder => "outsideBorder",
+            Self::MaceSmash => "mace_smash",
         }
     }
 
@@ -227,6 +231,7 @@ impl DamageType {
         match self {
             Self::FallingAnvil | Self::FallingBlock | Self::FallingStalactite => 0.1,
             Self::PlayerAttack
+            | Self::MaceSmash
             | Self::MobAttack
             | Self::MobAttackNoAggro
             | Self::Sting
@@ -302,13 +307,17 @@ pub fn fall_damage(distance: f64, multiplier: f32, safe_fall: f64, damage_multip
 }
 
 pub fn after_armor(damage: f32, armor: f32, toughness: f32) -> f32 {
+    after_armor_breached(damage, armor, toughness, 1.0)
+}
+
+pub fn after_armor_breached(damage: f32, armor: f32, toughness: f32, effectiveness: f32) -> f32 {
     let toughness = ARMOR_TOUGHNESS_BASE + toughness / ARMOR_TOUGHNESS_DIVIDER;
     let effective = java_clamp(
         armor - damage / toughness,
         armor * MIN_ARMOR_RATIO,
         MAX_ARMOR,
     );
-    damage * (1.0 - effective / ARMOR_PROTECTION_DIVIDER)
+    damage * (1.0 - effective / ARMOR_PROTECTION_DIVIDER * effectiveness)
 }
 
 pub fn after_resistance(damage: f32, amplifier: u8) -> f32 {
@@ -334,6 +343,27 @@ pub fn absorb(damage: f32, absorption: f32) -> Absorbed {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn breached_armor_keeps_a_share_of_the_protection() {
+        assert_eq!(
+            after_armor_breached(10.0, 20.0, 8.0, 1.0),
+            after_armor(10.0, 20.0, 8.0)
+        );
+        assert_eq!(after_armor_breached(10.0, 20.0, 8.0, 0.0), 10.0);
+        assert!(after_armor_breached(10.0, 20.0, 8.0, 0.4) > after_armor(10.0, 20.0, 8.0));
+    }
+
+    #[test]
+    fn the_mace_smash_type_is_synced_and_tagged() {
+        assert!(DamageType::MaceSmash.registry_id().is_some());
+        assert!(DamageType::MaceSmash.in_tag("minecraft:mace_smash"));
+        assert_eq!(DamageType::MaceSmash.message_id(), "mace_smash");
+        assert_eq!(
+            DamageType::from_name("minecraft:mace_smash"),
+            Some(DamageType::MaceSmash)
+        );
+    }
 
     #[test]
     fn registry_ids_follow_the_synced_damage_type_order() {

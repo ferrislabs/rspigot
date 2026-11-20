@@ -77,6 +77,16 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn blast_push(&mut self, target: Holder, delta: Vec3, source: Option<EntityId>) {
+        self.push_for(target, delta, EntityKnockbackCause::Explosion, source);
+    }
+
+    pub(crate) fn push_for(
+        &mut self,
+        target: Holder,
+        delta: Vec3,
+        cause: EntityKnockbackCause,
+        source: Option<EntityId>,
+    ) {
         let velocity = match target {
             Holder::Player(id) => self.players.get(&id).map(|player| player.vitals.velocity),
             Holder::Mob(id) => self
@@ -92,7 +102,7 @@ impl<L: ClientLink> Server<L> {
         self.fire_knock(
             target,
             push,
-            EntityKnockbackCause::Explosion,
+            cause,
             source,
             delta.length(),
             delta,
