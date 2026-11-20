@@ -70,7 +70,25 @@ Like Spigot's `onEnable` and `onDisable`, the `#[listeners]` block may hold `asy
 
 ## Datapacks
 
-The server reads worldgen datapacks from `<world>/datapacks/`, in the vanilla layout: one folder per pack, each with a `pack.mcmeta`. Zipped packs are not read; extract them. Packs apply in alphabetical order, and a later pack replaces an earlier one that uses the same identifier, a vanilla one included. A file that fails to load is skipped with a warning in the log; the server keeps starting. Datapacks are read once at startup.
+The server reads worldgen datapacks from `<world>/datapacks/`, in the vanilla layout: one folder per pack, each with a `pack.mcmeta`. Zipped packs are not read; extract them. Packs apply in alphabetical order, and a later pack replaces an earlier one that uses the same identifier, a vanilla one included. A file that fails to load is skipped with a warning in the log; the server keeps starting. Structure templates and the other worldgen files are read once at startup. Functions, predicates, loot tables and tags load from the same `<world>/datapacks/` folder, and `/reload` (or `/datapack enable|disable`) reads them again; zipped packs are still not read.
+
+- `data/<ns>/function/**.mcfunction` and `data/<ns>/tags/function/**.json` (`#minecraft:load`, `#minecraft:tick`), run with `/function`, `/schedule` and `execute if function`.
+- `data/<ns>/predicate/**.json`, a loot condition or an array of them (all must hold), used by `execute if|unless predicate <id>` and the selector option `predicate=<id>` / `predicate=!<id>`. An unsupported condition makes the file fail to load, with a warning.
+- `data/<ns>/loot_table/**.json`, replacing the built-in table with the same identifier (a later pack replaces an earlier one) or adding a new one. Entries and functions the server cannot represent are skipped with a warning.
+- `data/<ns>/tags/<registry>/**.json` for `block`, `item`, `entity_type`, `fluid`, `game_event`, `damage_type`, `enchantment`, `worldgen/biome` and `point_of_interest_type`, merged over the built-in tags (`replace`, `#nested` and optional entries work). Joining players receive the merged tags; a `/reload` does not resend them to players already online.
+
+```mcfunction
+# data/example/function/hello.mcfunction
+execute if predicate example:night run say good evening
+```
+
+```json
+{
+  "condition": "minecraft:time_check",
+  "value": { "min": 13000, "max": 23000 },
+  "period": 24000
+}
+```
 
 Villages, pillager outposts and the non-jigsaw structures are built in. Abandoned camps, ancient cities, bastions, trail ruins and trial chambers live in [`datapacks/vanilla-extras`](datapacks/vanilla-extras): copy that folder into `<world>/datapacks/` to get them.
 

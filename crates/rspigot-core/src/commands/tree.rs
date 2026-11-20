@@ -1,4 +1,5 @@
 mod extra;
+mod functions;
 
 use crate::plugins::{ArgumentKind, CommandSpec};
 
@@ -708,6 +709,7 @@ fn rule_commands(b: &mut TreeBuilder, root: usize) {
                 | "random_tick_speed"
                 | "fire_spread_radius_around_player"
                 | "max_snow_accumulation_height"
+                | "max_command_sequence_length"
         );
         let parser = if numeric {
             ArgumentParser::Integer {
@@ -1098,6 +1100,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     b.alias(root, "tp", teleport);
     execute_tree(b, root);
     extra::extra_commands(b, root);
+    functions::function_commands(b, root);
     let summon = b.literal(root, "summon", false);
     let entity = b.suggesting(
         summon,
@@ -1327,6 +1330,72 @@ mod tests {
         for name in ["score", "bossbar", "entity", "block", "storage"] {
             assert!(literal(result, name).is_some(), "{name}");
         }
+    }
+
+    #[test]
+    fn the_function_commands_follow_the_vanilla_tree() {
+        let tree = build_tree(2);
+        let literal = |parent: usize, name: &str| {
+            tree.nodes[parent]
+                .children
+                .iter()
+                .copied()
+                .find(|c| tree.nodes[*c].kind == CommandNodeKind::Literal(name.to_owned()))
+        };
+        let argument = |parent: usize, wanted: &str| {
+            tree.nodes[parent].children.iter().copied().find(|c| {
+                matches!(&tree.nodes[*c].kind, CommandNodeKind::Argument { name, .. } if name == wanted)
+            })
+        };
+        let function = literal(tree.root, "function").expect("function");
+        let name = argument(function, "name").expect("name");
+        assert!(tree.nodes[name].executable);
+        assert!(matches!(
+            &tree.nodes[name].kind,
+            CommandNodeKind::Argument {
+                parser: ArgumentParser::Named("minecraft:function"),
+                suggests: Some(_),
+                ..
+            }
+        ));
+        let arguments = argument(name, "arguments").expect("arguments");
+        assert!(matches!(
+            &tree.nodes[arguments].kind,
+            CommandNodeKind::Argument {
+                parser: ArgumentParser::NbtCompoundTag,
+                ..
+            }
+        ));
+        let with = literal(name, "with").expect("with");
+        for source in ["entity", "block", "storage"] {
+            assert!(literal(with, source).is_some(), "{source}");
+        }
+        let schedule = literal(tree.root, "schedule").expect("schedule");
+        let scheduled = literal(schedule, "function").expect("function");
+        let name = argument(scheduled, "name").expect("name");
+        let time = argument(name, "time").expect("time");
+        assert!(matches!(
+            &tree.nodes[time].kind,
+            CommandNodeKind::Argument {
+                parser: ArgumentParser::Time { min: 0 },
+                ..
+            }
+        ));
+        assert!(literal(time, "append").is_some() && literal(time, "replace").is_some());
+        assert!(literal(schedule, "clear").is_some());
+        let returning = literal(tree.root, "return").expect("return");
+        assert!(literal(returning, "fail").is_some());
+        let run = literal(returning, "run").expect("run");
+        assert_eq!(tree.nodes[run].redirect, Some(tree.root));
+        let datapack = literal(tree.root, "datapack").expect("datapack");
+        for name in ["enable", "disable", "list"] {
+            assert!(literal(datapack, name).is_some(), "{name}");
+        }
+        assert!(
+            !root_names(1)
+                .iter()
+                .any(|n| n == "function" || n == "datapack")
+        );
     }
 
     #[test]

@@ -107,6 +107,25 @@ fn target<'a, C: CommandContext>(
     }
 }
 
+pub(super) struct DataSource {
+    pub data: Compound,
+    pub path: Option<NbtPath>,
+}
+
+pub(super) fn read_source<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    input: &str,
+) -> Result<DataSource, CommandOutcome> {
+    let (spec, rest) = target(ctx, sender, input)?;
+    let data = compound_of(read(ctx, sender, &spec)?);
+    let path = match next_argument(rest) {
+        Some((token, _)) => Some(path_of(ctx, sender, token)?),
+        None => None,
+    };
+    Ok(DataSource { data, path })
+}
+
 fn label<C: CommandContext>(ctx: &C, spec: &Spec) -> Component {
     match &spec.target {
         DataTarget::Entity(target) => ctx.target_name(*target),

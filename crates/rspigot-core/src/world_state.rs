@@ -136,6 +136,7 @@ impl<L: ClientLink> Server<L> {
             self.save_custom_boss_bars_data();
             self.save_forced_chunks_data();
             self.save_world_border_data();
+            self.save_scheduled_events_data();
             return;
         }
         self.save_forced_chunks_data();

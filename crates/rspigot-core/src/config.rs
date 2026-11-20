@@ -32,6 +32,7 @@ pub struct GameRules {
     pub random_tick_speed: i32,
     pub fire_spread_radius: i32,
     pub max_snow_accumulation_height: i32,
+    pub max_command_sequence_length: i32,
 }
 
 impl Default for GameRules {
@@ -57,6 +58,7 @@ impl Default for GameRules {
             random_tick_speed: 3,
             fire_spread_radius: 128,
             max_snow_accumulation_height: 1,
+            max_command_sequence_length: 65_536,
         }
     }
 }
@@ -243,6 +245,8 @@ pub struct LevelData {
     pub custom_boss_events: Option<rspigot_nbt::Compound>,
     pub forced_chunks: Option<rspigot_nbt::Compound>,
     pub world_border: Option<rspigot_nbt::Compound>,
+    pub scheduled_events: Option<rspigot_nbt::Compound>,
+    pub data_packs: Option<crate::functions::DataPackLists>,
 }
 
 impl Default for LevelData {
@@ -269,6 +273,8 @@ impl Default for LevelData {
             custom_boss_events: None,
             forced_chunks: None,
             world_border: None,
+            scheduled_events: None,
+            data_packs: None,
         }
     }
 }

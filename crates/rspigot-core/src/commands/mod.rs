@@ -6,6 +6,7 @@ mod data;
 mod dispatch;
 mod entity_commands;
 mod execute;
+mod function_commands;
 mod json_text;
 mod movement_commands;
 pub mod permission;
@@ -26,6 +27,7 @@ pub use dispatch::{
     CommandContext, CommandOutcome, CommandSender, Target, TitleAction, Weather, execute,
 };
 pub use entity_commands::DamageSpec;
+pub(crate) use function_commands::{run_scheduled, run_server_tag};
 pub use tree::{ArgumentParser, CommandNode, CommandNodeKind, CommandTree, build_tree};
 pub use world_commands::FillBiomeProblem;
 
@@ -70,3 +72,6 @@ mod world_command_tests;
 
 #[cfg(test)]
 mod admin_command_tests;
+
+#[cfg(test)]
+mod function_command_tests;
