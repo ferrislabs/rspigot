@@ -190,6 +190,7 @@ pub fn snapshot(uuid: &str, name: &str, entity_id: i32) -> v1::PlayerSnapshot {
         permissions: ["kit.use", "-kit.ban", "kit.*", "chat.*"]
             .map(str::to_owned)
             .to_vec(),
+        ..Default::default()
     }
 }
 
@@ -214,6 +215,7 @@ pub fn event(
         phase: phase as i32,
         cancelled,
         payload: Some(payload),
+        ..Default::default()
     })
 }
 

@@ -7,6 +7,7 @@ mod decision;
 mod entity;
 mod events;
 mod inventory;
+mod meta;
 mod npc;
 mod player;
 mod scoreboard;
@@ -166,7 +167,10 @@ fn scoped(world: Option<String>, message: FromPlugin) -> Result<FromPlugin, Malf
                 | Question::CreateNpc(_)
                 | Question::NpcByKey(_)
                 | Question::Npcs
-                | Question::Npc(_) => Question::InWorld {
+                | Question::Npc(_)
+                | Question::Meta { .. }
+                | Question::FindBlocks { .. }
+                | Question::EntitiesWithMeta { .. } => Question::InWorld {
                     world,
                     question: Box::new(question),
                 },
@@ -209,6 +213,16 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         question::Question::NpcByKey(key) => Question::NpcByKey(key),
         question::Question::Npcs(_) => Question::Npcs,
         question::Question::Npc(id) => Question::Npc(EntityId(id)),
+        question::Question::Meta(query) => meta::query(query)?,
+        question::Question::FindBlocks(find) => meta::find_blocks(find)?,
+        question::Question::EntitiesWithMeta(query) => Question::EntitiesWithMeta {
+            key: query.key,
+            volatile: query.volatile,
+        },
+        question::Question::PlayersWithMeta(query) => Question::PlayersWithMeta {
+            key: query.key,
+            volatile: query.volatile,
+        },
     };
     Ok(FromPlugin::Question {
         request: asked.request,
@@ -225,11 +239,13 @@ pub(crate) fn to_plugin(message: ToPlugin) -> v1::ToPlugin {
             phase,
             cancelled,
             payload,
+            blocks,
         } => to_plugin::Body::Event(v1::Event {
             id,
             handlers,
             phase: wire_phase(phase) as i32,
             cancelled,
+            block_meta: blocks.into_iter().map(meta::wire_block).collect(),
             payload: Some(events::wire_payload(payload)),
         }),
         ToPlugin::Answer { request, answer } => to_plugin::Body::Answer(v1::Answer {
@@ -286,6 +302,10 @@ fn wire_answer(answer: Answer) -> answer::Body {
             bars: views.into_iter().map(boss_bar::wire_state).collect(),
         }),
         Answer::Npc(view) => answer::Body::Npc(npc::wire_state(view)),
+        Answer::MetaEntries(entries) => answer::Body::MetaEntries(meta::wire_entries(entries)),
+        Answer::BlockPositions(positions) => {
+            answer::Body::BlockPositions(meta::wire_positions(positions))
+        }
         Answer::Npcs(views) => answer::Body::Npcs(v1::NpcList {
             npcs: views.into_iter().map(npc::wire_state).collect(),
         }),
@@ -507,6 +527,7 @@ mod tests {
     #[test]
     fn a_snapshot_carries_its_rights() {
         let snapshot = PlayerSnapshot {
+            meta: Default::default(),
             permissions: vec!["kit.use".to_owned(), "-kit.ban".to_owned()],
             id: PlayerId(Uuid::from_u128(1)),
             name: "Steve".to_owned(),
@@ -524,6 +545,7 @@ mod tests {
     #[test]
     fn a_snapshot_carries_its_rotation() {
         let snapshot = PlayerSnapshot {
+            meta: Default::default(),
             permissions: Vec::new(),
             id: PlayerId(Uuid::from_u128(1)),
             name: "Steve".to_owned(),

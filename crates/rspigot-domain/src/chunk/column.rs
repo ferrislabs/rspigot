@@ -1,10 +1,12 @@
 use rspigot_nbt::Compound;
 
+use super::block_meta::{BlockMeta, ChunkMeta};
 use super::heightmap::Heightmaps;
 use super::light::ChunkLight;
 use super::section::ChunkSection;
 use crate::ident::Identifier;
 use crate::ids::{BiomeId, BlockStateId};
+use crate::meta::{MetaError, MetaValue};
 use crate::pos::{BlockPos, ChunkPos};
 use crate::world::WorldHeight;
 
@@ -90,6 +92,7 @@ pub struct ChunkColumn {
     pub status: ChunkStatus,
     pub inhabited_time: i64,
     pub extra: Compound,
+    pub block_meta: ChunkMeta,
     revision: u64,
     dirty: bool,
 }
@@ -109,6 +112,7 @@ impl ChunkColumn {
             status: ChunkStatus::Full,
             inhabited_time: 0,
             extra: Compound::new(),
+            block_meta: ChunkMeta::default(),
             revision: 0,
             dirty: false,
         }
@@ -135,6 +139,7 @@ impl ChunkColumn {
             status: ChunkStatus::Full,
             inhabited_time: 0,
             extra: Compound::new(),
+            block_meta: ChunkMeta::default(),
             revision: 0,
             dirty: false,
         })
@@ -196,9 +201,63 @@ impl ChunkColumn {
         let (x, section, y, z) = self.locate(pos)?;
         let old = self.sections[section].set_block(x, y, z, state);
         if old != state {
+            if old.kind() != state.kind() && self.block_meta.has_any() {
+                let lost = self.block_meta.take(pos);
+                if !lost.persistent.is_empty() {
+                    self.touch();
+                }
+            }
             self.touch();
         }
         Some(old)
+    }
+
+    pub fn set_block_meta(
+        &mut self,
+        pos: BlockPos,
+        key: &str,
+        value: MetaValue,
+        volatile: bool,
+    ) -> Result<(), MetaError> {
+        self.block_meta.holder_mut(pos, volatile).set(key, value)?;
+        self.block_meta.prune(pos);
+        if !volatile {
+            self.touch();
+        }
+        Ok(())
+    }
+
+    pub fn remove_block_meta(&mut self, pos: BlockPos, key: &str, volatile: bool) -> bool {
+        let removed = self.block_meta.holder_mut(pos, volatile).remove(key);
+        self.block_meta.prune(pos);
+        if removed && !volatile {
+            self.touch();
+        }
+        removed
+    }
+
+    pub fn clear_block_meta(&mut self, pos: BlockPos, volatile: bool) -> bool {
+        let cleared = self.block_meta.holder_mut(pos, volatile).clear();
+        self.block_meta.prune(pos);
+        if cleared && !volatile {
+            self.touch();
+        }
+        cleared
+    }
+
+    pub fn take_block_meta(&mut self, pos: BlockPos) -> BlockMeta {
+        let taken = self.block_meta.take(pos);
+        if !taken.persistent.is_empty() {
+            self.touch();
+        }
+        taken
+    }
+
+    pub fn restore_block_meta(&mut self, pos: BlockPos, meta: BlockMeta) {
+        if !meta.persistent.is_empty() {
+            self.touch();
+        }
+        self.block_meta.put(pos, meta);
     }
 
     pub fn block_entity(&self, pos: BlockPos) -> Option<&BlockEntity> {
@@ -243,6 +302,35 @@ mod tests {
 
     fn overworld() -> WorldHeight {
         WorldHeight::new(-64, 384).unwrap()
+    }
+
+    #[test]
+    fn block_meta_is_dropped_on_a_kind_change_kept_on_a_state_change_and_marks_dirty() {
+        use rspigot_blocks::BlockKind;
+        let pos = BlockPos::new(2, 10, 2);
+        let mut column = ChunkColumn::empty(ChunkPos::new(0, 0), overworld(), BiomeId(0));
+        column.set_block(pos, BlockKind::OakDoor.default_state());
+        column.mark_saved();
+        column
+            .set_block_meta(pos, "marker:kind", MetaValue::Int(1), false)
+            .unwrap();
+        assert!(column.is_dirty());
+        let open = BlockKind::OakDoor
+            .default_state()
+            .with_property("open", "true")
+            .unwrap();
+        column.set_block(pos, open);
+        assert!(column.block_meta.persistent(pos).is_some());
+        column.set_block(pos, BlockKind::Stone.default_state());
+        assert!(column.block_meta.persistent(pos).is_none());
+
+        column
+            .set_block_meta(pos, "marker:v", MetaValue::Int(1), true)
+            .unwrap();
+        column.mark_saved();
+        assert!(!column.is_dirty());
+        column.set_block(pos, BlockStateId::AIR);
+        assert!(column.block_meta.volatile(pos).is_none());
     }
 
     #[test]

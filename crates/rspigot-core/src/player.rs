@@ -84,6 +84,8 @@ pub struct Player<L> {
     pub sleep_counter: i32,
     pub(crate) waking: bool,
     pub respawn: Option<rspigot_domain::bed::RespawnConfig>,
+    pub meta: rspigot_domain::meta::Metadata,
+    pub volatile_meta: rspigot_domain::meta::Metadata,
 }
 
 impl<L> Player<L> {

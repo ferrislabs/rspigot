@@ -5,6 +5,7 @@ use uuid::Uuid;
 use super::aabb::Aabb;
 use super::data::{Pose, SyncedData, SyncedValue};
 use super::fluid::FluidContact;
+use crate::meta::Metadata;
 use crate::text::Component;
 use crate::{ChunkPos, EntityId, Vec3};
 
@@ -96,6 +97,8 @@ pub struct EntityBase {
     pub in_powder_snow: bool,
     pub was_in_powder_snow: bool,
     pub data: SyncedData,
+    pub meta: Metadata,
+    pub volatile_meta: Metadata,
 }
 
 impl EntityBase {
@@ -153,6 +156,8 @@ impl EntityBase {
             in_powder_snow: false,
             was_in_powder_snow: false,
             data,
+            meta: Metadata::new(),
+            volatile_meta: Metadata::new(),
         }
     }
 

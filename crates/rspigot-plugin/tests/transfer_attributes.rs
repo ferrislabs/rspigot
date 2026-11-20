@@ -30,6 +30,7 @@ fn snapshot(kind: &str) -> v1::EntitySnapshot {
             z: 0.0,
         }),
         player: None,
+        ..Default::default()
     }
 }
 

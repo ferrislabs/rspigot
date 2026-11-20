@@ -16,6 +16,7 @@ pub(super) fn order(order: v1::BlockOrder) -> Result<Order, Malformed> {
                 .collect(),
         },
         Wire::BreakNaturally(_) => BlockOrder::BreakNaturally,
+        Wire::Meta(order) => BlockOrder::Meta(super::meta::order(order)?),
     };
     Ok(Order::Block { pos, order })
 }

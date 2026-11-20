@@ -255,6 +255,7 @@ fn hello(name: &str) -> v1::Hello {
 
 fn steve() -> PlayerSnapshot {
     PlayerSnapshot {
+        meta: Default::default(),
         permissions: Vec::new(),
         id: PlayerId(Uuid::from_u128(1)),
         name: "Steve".to_owned(),
@@ -304,6 +305,7 @@ async fn a_plugin_that_introduces_itself_is_accepted() {
     host.tell(
         connection,
         ToPlugin::Event {
+            blocks: Vec::new(),
             id: 7,
             handlers: vec![2],
             phase: Phase::Decide,
@@ -412,6 +414,7 @@ fn targeting(uuid: Option<&str>) -> Option<v1::Patch> {
                         z: 0.0,
                     }),
                     player: None,
+                    ..Default::default()
                 }),
             }),
         })),
@@ -714,6 +717,7 @@ async fn a_plugin_disable_the_core_sends_before_a_stop_reaches_the_plugin_before
     host.tell(
         1,
         ToPlugin::Event {
+            blocks: Vec::new(),
             id: 4,
             handlers: vec![1],
             phase: Phase::Settled,

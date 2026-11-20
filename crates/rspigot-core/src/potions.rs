@@ -503,6 +503,7 @@ impl<L: ClientLink> Server<L> {
             kind: cloud.base.kind.name().to_owned(),
             position: cloud.base.position,
             player: None,
+            meta: crate::plugins::MetaSnapshot::of(&cloud.base),
         };
         let potion = step.potion;
         let hit = step.hit;

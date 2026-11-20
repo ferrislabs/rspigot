@@ -4,6 +4,7 @@ use uuid::Uuid;
 use crate::block::{Block, BlockPos, BlockState};
 use crate::entity::{Entities, Entity};
 use crate::link::Link;
+use crate::meta::WorldMetaHandle;
 use crate::npc::Npcs;
 use crate::wire::parse_uuid;
 use crate::{
@@ -295,6 +296,8 @@ impl WorldState {
 #[derive(Debug, Clone)]
 pub struct World {
     pub entities: Entities,
+    pub meta: WorldMetaHandle,
+    pub volatile_meta: WorldMetaHandle,
     pub difficulty: WorldDifficultyHandle,
     pub explosion: WorldExplosionHandle,
     pub npcs: Npcs,
@@ -314,6 +317,8 @@ impl World {
     pub(crate) fn new(link: Link) -> Self {
         Self {
             entities: Entities::new(link.clone()),
+            meta: WorldMetaHandle::new(false, link.clone()),
+            volatile_meta: WorldMetaHandle::new(true, link.clone()),
             difficulty: WorldDifficultyHandle::new(link.clone()),
             explosion: WorldExplosionHandle::new(link.clone()),
             npcs: Npcs::new(link.clone()),

@@ -84,6 +84,7 @@ message PlayerOrder {
     BanTerms ban = 50 [(rspigot.path) = "player.connection.ban"]; Location teleport_to = 51; uint32 set_scoreboard = 52 [(rspigot.path) = "player.scoreboard.set"]; Transfer transfer = 53;
     Dialog show_dialog = 54 [(rspigot.path) = "player.dialog.show"]; Empty clear_dialog = 55 [(rspigot.path) = "player.dialog.clear"];
     RichMessage send_rich_message = 56 [(rspigot.path) = "player.message.send_rich"];
+    MetaOrder meta = 57;
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
@@ -100,8 +101,9 @@ message WorldOrder {
     SetGameRule set_game_rule = 15 [(rspigot.path) = "world.game_rule.set"]; Empty save = 16 [(rspigot.path) = "world.storage.save"]; Sound play_sound = 17 [(rspigot.path) = "world.sound.play"]; Particle spawn_particle = 18 [(rspigot.path) = "world.particle.spawn"]; Explode explode = 19 [(rspigot.path) = "world.explosion.create"]; DeleteWorld delete_world = 20;
   }
 }
-message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; } }
-message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; SetAttribute set_attribute = 18; TypedChange change = 19; } }
+message MetaOrder { bool volatile = 1; oneof change { MetaEntry set = 10; string remove = 11; Empty clear = 12; } }
+message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; MetaOrder meta = 13; } }
+message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; SetAttribute set_attribute = 18; TypedChange change = 19; MetaOrder meta = 20; } }
 message RegisterObjective { string name = 1; string criteria = 2; string display_name = 3; }
 message ObjectiveText { string objective = 1; string text = 2; }
 message ObjectiveRender { string objective = 1; bool hearts = 2; }
@@ -154,6 +156,9 @@ message Near { Vec3 position = 1; double radius = 2; }
 message EntityQuery { Near near = 1; optional string kind = 2; }
 message Spawn { string kind = 1; Vec3 position = 2; optional string block = 3; optional Vec3 velocity = 4; }
 message DropItem { Vec3 position = 1; Item item = 2; }
+message MetaQuery { oneof holder { int32 entity = 1; BlockPos block = 2; string player = 5; } optional string key = 3; bool volatile = 4; }
+message FindBlocks { string key = 1; optional MetaValue value = 2; bool volatile = 3; }
+message EntitiesWithMeta { string key = 1; bool volatile = 2; }
 message Question {
   uint64 request = 1;
   oneof question {
@@ -163,6 +168,7 @@ message Question {
     int32 entity = 23; BlockPos block = 24; Spawn spawn = 25; DropItem drop_item = 26; uint64 custom_inventory = 27; uint32 scoreboard = 28; Empty new_scoreboard = 29;
     BossBarCreate create_boss_bar = 30; uint64 boss_bar = 31; Empty boss_bars = 32; AttributeQuery attribute_value = 33;
     NpcSpec create_npc = 34; string npc_by_key = 35; Empty npcs = 36; int32 npc = 37;
+    MetaQuery meta = 38; FindBlocks find_blocks = 39; EntitiesWithMeta entities_with_meta = 40; EntitiesWithMeta players_with_meta = 41;
   }
 }
 message FromPlugin {
@@ -215,6 +221,8 @@ message NpcState {
   int32 entity_id = 1; string uuid = 2; string key = 3; string name = 4; string world = 5; Vec3 position = 6; Rotation rotation = 7;
   optional NpcSkin skin = 8; uint32 skin_layers = 9; string pose = 10; double gaze_range = 11; optional string label = 12; bool walking = 13;
 }
+message MetaEntries { repeated MetaEntry entries = 1; }
+message BlockPositions { repeated BlockPos positions = 1; }
 message NpcList { repeated NpcState npcs = 1; }
 message Answer {
   uint64 request = 1;
@@ -224,7 +232,7 @@ message Answer {
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
     Empty done = 22; ActionError failed = 23; string world_created = 24; double attribute_value = 25;
-    NpcState npc = 26; NpcList npcs = 27;
+    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29;
   }
 }
 message Warning { string message = 1; }

@@ -34,6 +34,7 @@ fn steve() -> PlayerSnapshot {
             yaw: 90.0,
             pitch: -30.0,
         }),
+        ..Default::default()
     }
 }
 
@@ -48,6 +49,7 @@ fn zombie() -> EntitySnapshot {
             z: -3.5,
         }),
         player: None,
+        ..Default::default()
     }
 }
 
@@ -93,6 +95,7 @@ fn event(payload: event::Payload) -> ToPlugin {
             phase: Phase::Decide as i32,
             cancelled: false,
             payload: Some(payload),
+            ..Default::default()
         })),
     }
 }

@@ -57,6 +57,7 @@ pub struct PlayerSave {
     pub warden_tracker: rspigot_domain::warden::WardenSpawnTracker,
     pub respawn: Option<rspigot_domain::bed::RespawnConfig>,
     pub sleep_timer: i16,
+    pub meta: rspigot_domain::meta::Metadata,
 }
 
 impl PlayerSave {
@@ -84,6 +85,7 @@ impl PlayerSave {
             warden_tracker: vitals.warden_tracker,
             respawn: player.respawn.clone(),
             sleep_timer: player.sleep_counter.clamp(0, i32::from(i16::MAX)) as i16,
+            meta: player.meta.clone(),
         }
     }
 
@@ -104,6 +106,7 @@ impl PlayerSave {
         player.vitals.experience = self.experience;
         player.vitals.warden_tracker = self.warden_tracker;
         player.respawn = self.respawn.clone();
+        player.meta = self.meta.clone();
         player.sleep_counter = i32::from(self.sleep_timer);
         if self.is_dead() {
             player.position = spawn;
@@ -204,6 +207,9 @@ impl PlayerSave {
             out.insert("equipment", equipment);
         }
         write_items_at(&mut out, ENDER_ITEMS, &self.ender_items);
+        if !self.meta.is_empty() {
+            out.insert("BukkitValues", self.meta.to_nbt());
+        }
         out
     }
 
@@ -295,6 +301,10 @@ impl PlayerSave {
                 .get_i32("SleepTimer")
                 .unwrap_or(0)
                 .clamp(0, i32::from(i16::MAX)) as i16,
+            meta: data
+                .get_compound("BukkitValues")
+                .map(rspigot_domain::meta::Metadata::from_nbt)
+                .unwrap_or_default(),
         })
     }
 }
@@ -399,6 +409,17 @@ mod tests {
                 forced: false,
             }),
             sleep_timer: 7,
+            meta: {
+                let mut meta = rspigot_domain::meta::Metadata::from_nbt(
+                    &Compound::new().with("plugin:count", Tag::Int(3)),
+                );
+                meta.set(
+                    "marker:kind",
+                    rspigot_domain::meta::MetaValue::Text("vip".to_owned()),
+                )
+                .expect("a valid key");
+                meta
+            },
             seen_credits: true,
             recipe_book: {
                 let mut book = crate::recipe_book::RecipeBook::default();

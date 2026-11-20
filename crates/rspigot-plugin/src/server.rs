@@ -73,6 +73,28 @@ impl Server {
         players(&self.link, question::Question::PlayerNamed(name.into())).await
     }
 
+    pub async fn get_players_with_meta(&self, key: &str) -> Result<Vec<Player>, Error> {
+        players(
+            &self.link,
+            question::Question::PlayersWithMeta(v1::EntitiesWithMeta {
+                key: key.to_owned(),
+                volatile: false,
+            }),
+        )
+        .await
+    }
+
+    pub async fn get_players_with_volatile_meta(&self, key: &str) -> Result<Vec<Player>, Error> {
+        players(
+            &self.link,
+            question::Question::PlayersWithMeta(v1::EntitiesWithMeta {
+                key: key.to_owned(),
+                volatile: true,
+            }),
+        )
+        .await
+    }
+
     pub async fn get_state(&self) -> Result<ServerState, Error> {
         let state = self
             .link

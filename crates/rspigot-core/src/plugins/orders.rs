@@ -238,7 +238,7 @@ impl WorldOrder {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum BlockOrder {
     Set(String),
     SetWith {
@@ -246,6 +246,7 @@ pub enum BlockOrder {
         properties: Vec<(String, String)>,
     },
     BreakNaturally,
+    Meta(crate::plugins::meta::MetaOrder),
 }
 
 impl BlockOrder {
@@ -254,6 +255,7 @@ impl BlockOrder {
             Self::Set(_) => "block.set",
             Self::SetWith { .. } => "block.set_with",
             Self::BreakNaturally => "block.break_naturally",
+            Self::Meta(order) => order.name(),
         }
     }
 }
@@ -270,6 +272,7 @@ pub enum EntityOrder {
     SetVelocity(Vec3),
     SetAttribute { attribute: String, value: f64 },
     Change(EntityTrait),
+    Meta(crate::plugins::meta::MetaOrder),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -313,6 +316,7 @@ impl EntityOrder {
             Self::SetVelocity(_) => "entity.set_velocity",
             Self::SetAttribute { .. } => "entity.set_attribute",
             Self::Change(_) => "entity.change",
+            Self::Meta(order) => order.name(),
         }
     }
 }
@@ -440,6 +444,7 @@ pub enum PlayerOrder {
         host: String,
         port: u32,
     },
+    Meta(crate::plugins::meta::MetaOrder),
 }
 
 impl PlayerOrder {
@@ -492,6 +497,7 @@ impl PlayerOrder {
             Self::UpdateInventory => "player.update_inventory",
             Self::Ban { .. } => "player.ban",
             Self::Transfer { .. } => "player.transfer",
+            Self::Meta(order) => order.name(),
         }
     }
 }

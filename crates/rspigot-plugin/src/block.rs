@@ -1,7 +1,10 @@
 use rspigot_plugin_protocol::v1::{self, answer, block_order, from_plugin, question};
 
 use crate::link::Link;
+use crate::meta::MetaHandle;
 use crate::{BlockType, Error};
+
+type Entries = std::sync::Arc<std::collections::BTreeMap<String, crate::MetaValue>>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct BlockPos {
@@ -46,12 +49,28 @@ impl BlockState {
 #[derive(Debug, Clone)]
 pub struct Block {
     pub pos: BlockPos,
+    pub meta: MetaHandle,
+    pub volatile_meta: MetaHandle,
     link: Link,
 }
 
 impl Block {
-    pub(crate) const fn new(pos: BlockPos, link: Link) -> Self {
-        Self { pos, link }
+    pub(crate) fn new(pos: BlockPos, link: Link) -> Self {
+        Self::with_meta(pos, link, Entries::default(), Entries::default())
+    }
+
+    pub(crate) fn with_meta(
+        pos: BlockPos,
+        link: Link,
+        persistent: Entries,
+        volatile: Entries,
+    ) -> Self {
+        Self {
+            pos,
+            meta: MetaHandle::of_block(pos, false, persistent, link.clone()),
+            volatile_meta: MetaHandle::of_block(pos, true, volatile, link.clone()),
+            link,
+        }
     }
 
     pub fn set(&self, kind: BlockType) {

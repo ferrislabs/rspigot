@@ -45,6 +45,9 @@ impl<L: ClientLink> Server<L> {
         order: PlayerOrder,
     ) -> Result<(), String> {
         match order {
+            PlayerOrder::Meta(order) => {
+                self.player_meta_change(id, order).map_err(|e| e.reason)?;
+            }
             PlayerOrder::SendMessage(message) => {
                 self.push(
                     Audience::One(id),

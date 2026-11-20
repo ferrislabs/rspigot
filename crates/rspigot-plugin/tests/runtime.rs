@@ -702,6 +702,7 @@ fn splashed(entity_id: i32, kind: &str) -> v1::EntitySnapshot {
             z: 0.0,
         }),
         player: None,
+        ..Default::default()
     }
 }
 
