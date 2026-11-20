@@ -719,23 +719,17 @@ fn test<C: CommandContext>(
         }
         Cond::Dimension(wanted) => Ok(i32::from(ctx.current_dimension().as_ref() == Some(wanted))),
         Cond::Entity(sel) => Ok(ctx.select_entities(sender, sel)?.len() as i32),
-        Cond::Predicate(id) => Err(Component::translatable(
-            "argument.resource.not_found",
-            vec![
-                Component::text(id.to_string()),
-                Component::text("minecraft:predicate"),
-            ],
-        )),
-        Cond::Function(id) => {
-            if ctx.function_exists(id) {
-                Ok(1)
-            } else {
-                Err(Component::translatable(
-                    "arguments.function.unknown",
-                    vec![Component::text(id.to_string())],
-                ))
-            }
-        }
+        Cond::Predicate(id) => match ctx.predicate_holds(sender, id) {
+            Some(held) => Ok(i32::from(held)),
+            None => Err(Component::translatable(
+                "argument.resource.not_found",
+                vec![
+                    Component::text(id.to_string()),
+                    Component::text("minecraft:predicate"),
+                ],
+            )),
+        },
+        Cond::Function(id) => super::function_commands::probe(ctx, sender, id),
         Cond::Data(spec, path) => {
             let target = data_target(ctx, sender, spec)?;
             let data = Tag::Compound(ctx.read_data(&target)?);

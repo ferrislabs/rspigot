@@ -33,6 +33,9 @@ use rspigot_domain::chunk::HeightmapKind;
 
 impl<L: ClientLink> CommandContext for Server<L> {
     fn reply(&mut self, sender: CommandSender, message: Component) {
+        if self.functions.runtime.silent {
+            return;
+        }
         match sender {
             CommandSender::Console => tracing::info!("{}", crate::console::console_text(&message)),
             CommandSender::Player(id) => self.push(Audience::One(id), ClientEvent::system(message)),
@@ -1014,6 +1017,36 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.command_result = Some(value);
     }
 
+    fn function_state(&self) -> &crate::functions::FunctionState {
+        &self.functions
+    }
+
+    fn function_state_mut(&mut self) -> &mut crate::functions::FunctionState {
+        &mut self.functions
+    }
+
+    fn reload_datapacks(&mut self) -> bool {
+        self.reload_data_packs()
+    }
+
+    fn datapack_lists_changed(&mut self, lists: crate::functions::DataPackLists) {
+        self.world.level.data_packs = Some(lists);
+    }
+
+    fn server_function_permission(&self) -> u8 {
+        self.config.function_permission_level
+    }
+
+    fn server_function_source(&self) -> Source {
+        Source {
+            executor: None,
+            position: self.world.spawn,
+            rotation: Rotation::default(),
+            anchor: Anchor::Feet,
+            dimension: None,
+        }
+    }
+
     fn take_result(&mut self) -> Option<i32> {
         self.command_result.take()
     }
@@ -1414,6 +1447,15 @@ impl<L: ClientLink> CommandContext for Server<L> {
                 Vec3::new(f64::from(spawn.x), f64::from(spawn.y), f64::from(spawn.z))
             }
         }
+    }
+
+    fn predicate_holds(&self, sender: CommandSender, id: &Identifier) -> Option<bool> {
+        let executor = match (&self.command_source, sender) {
+            (Some(source), _) => source.executor,
+            (None, CommandSender::Player(id)) => Some(Target::Player(id)),
+            (None, CommandSender::Console) => None,
+        };
+        self.predicate_result(id.as_str(), executor, self.sender_origin(sender))
     }
 
     fn select_entities(&self, sender: CommandSender, text: &str) -> Result<Vec<Target>, Component> {
@@ -1910,7 +1952,11 @@ impl<L: ClientLink> Server<L> {
                 return false;
             }
         }
-        if !selector.predicates.iter().all(|(negated, _)| *negated) {
+        if !selector.predicates.iter().all(|(negated, name)| {
+            self.predicate_result(name, Some(candidate.target), candidate.position)
+                .unwrap_or(false)
+                != *negated
+        }) {
             return false;
         }
         if !selector.advancements.is_empty() {

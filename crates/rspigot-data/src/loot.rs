@@ -1,4 +1,9 @@
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
 use crate::generated::loot::{BLOCK_TABLES, ENTITY_TABLES, PREDICATES, SMELTING, TABLES};
+use crate::registries;
 use crate::tags::HolderSet;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -78,6 +83,31 @@ pub enum Condition {
     AnyOf(&'static [Condition]),
     AllOf(&'static [Condition]),
     Reference(&'static str),
+    TimeCheck {
+        period: Option<i64>,
+        min: Option<f32>,
+        max: Option<f32>,
+    },
+    WeatherCheck {
+        raining: Option<bool>,
+        thundering: Option<bool>,
+    },
+    ValueCheck {
+        value: NumberProvider,
+        min: Option<NumberProvider>,
+        max: Option<NumberProvider>,
+    },
+    EntityScores {
+        target: EntityTarget,
+        scores: &'static [(&'static str, IntRange)],
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum NumberProvider {
+    Constant(f32),
+    Uniform { min: f32, max: f32 },
+    Binomial { n: i32, p: f32 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -289,21 +319,106 @@ pub fn tables() -> &'static [(&'static str, LootTable)] {
     &TABLES
 }
 
+#[derive(Debug, Default)]
+pub struct LootOverlay {
+    tables: BTreeMap<String, &'static LootTable>,
+    predicates: BTreeMap<String, &'static Condition>,
+}
+
+impl LootOverlay {
+    pub fn insert_table(&mut self, name: &str, table: &'static LootTable) {
+        self.tables.insert(name.to_owned(), table);
+    }
+
+    pub fn insert_predicate(&mut self, name: &str, condition: &'static Condition) {
+        self.predicates.insert(name.to_owned(), condition);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.tables.is_empty() && self.predicates.is_empty()
+    }
+
+    pub fn table_names(&self) -> impl Iterator<Item = &str> {
+        self.tables.keys().map(String::as_str)
+    }
+
+    pub fn predicate_names(&self) -> impl Iterator<Item = &str> {
+        self.predicates.keys().map(String::as_str)
+    }
+}
+
+thread_local! {
+    static ACTIVE: RefCell<Option<Arc<LootOverlay>>> = const { RefCell::new(None) };
+}
+
+pub fn activate(overlay: &Arc<LootOverlay>) {
+    ACTIVE.with(|active| {
+        let mut active = active.borrow_mut();
+        let same = match active.as_ref() {
+            Some(current) => Arc::ptr_eq(current, overlay),
+            None => overlay.is_empty(),
+        };
+        if !same {
+            *active = (!overlay.is_empty()).then(|| Arc::clone(overlay));
+        }
+    });
+}
+
+fn overlaid<T>(look: impl FnOnce(&LootOverlay) -> Option<T>) -> Option<T> {
+    ACTIVE.with(|active| active.borrow().as_ref().and_then(|overlay| look(overlay)))
+}
+
+fn overlay_active() -> bool {
+    ACTIVE.with(|active| active.borrow().is_some())
+}
+
 pub fn table(name: &str) -> Option<&'static LootTable> {
+    overlaid(|overlay| overlay.tables.get(name).copied()).or_else(|| static_table(name))
+}
+
+pub fn static_table(name: &str) -> Option<&'static LootTable> {
     TABLES
         .binary_search_by(|(candidate, _)| (*candidate).cmp(name))
         .ok()
         .map(|index| &TABLES[index].1)
 }
 
+fn overlaid_default(
+    registry: &str,
+    folder: &str,
+    id: u16,
+    fallback: Option<&str>,
+) -> Option<&'static LootTable> {
+    if !overlay_active() {
+        return None;
+    }
+    let name = registries::static_entries(registry)?.get(usize::from(id))?;
+    let path = name.strip_prefix("minecraft:")?;
+    let own = format!("minecraft:{folder}/{path}");
+    overlaid(|overlay| {
+        overlay
+            .tables
+            .get(&own)
+            .or_else(|| fallback.and_then(|name| overlay.tables.get(name)))
+            .copied()
+    })
+}
+
 pub fn block_table(block: u16) -> Option<&'static LootTable> {
-    let index = *BLOCK_TABLES.get(usize::from(block))?;
-    TABLES.get(usize::from(index)).map(|(_, table)| table)
+    let index = BLOCK_TABLES.get(usize::from(block)).copied();
+    let fallback = index.and_then(|index| TABLES.get(usize::from(index)).map(|(name, _)| *name));
+    overlaid_default("minecraft:block", "blocks", block, fallback).or_else(|| static_default(index))
 }
 
 pub fn entity_table(entity_type: u16) -> Option<&'static LootTable> {
-    let index = *ENTITY_TABLES.get(usize::from(entity_type))?;
-    TABLES.get(usize::from(index)).map(|(_, table)| table)
+    let index = ENTITY_TABLES.get(usize::from(entity_type)).copied();
+    let fallback = index.and_then(|index| TABLES.get(usize::from(index)).map(|(name, _)| *name));
+    overlaid_default("minecraft:entity_type", "entities", entity_type, fallback)
+        .or_else(|| static_default(index))
+}
+
+fn static_default(index: Option<u16>) -> Option<&'static LootTable> {
+    TABLES.get(usize::from(index?)).map(|(_, table)| table)
 }
 
 pub fn smelted(item: u16) -> Option<u16> {
@@ -318,6 +433,10 @@ pub fn predicates() -> &'static [(&'static str, Condition)] {
 }
 
 pub fn predicate(name: &str) -> Option<&'static Condition> {
+    overlaid(|overlay| overlay.predicates.get(name).copied()).or_else(|| static_predicate(name))
+}
+
+pub fn static_predicate(name: &str) -> Option<&'static Condition> {
     PREDICATES
         .binary_search_by(|(candidate, _)| (*candidate).cmp(name))
         .ok()
@@ -731,5 +850,65 @@ mod tests {
                 },
             }
         );
+    }
+
+    fn marker(item: u16) -> &'static LootTable {
+        let entry: &'static [Entry] = Vec::leak(vec![Entry {
+            condition: None,
+            modifier: &[],
+            kind: EntryKind::Leaf(Leaf {
+                weight: 1,
+                quality: 0,
+                output: Output::Item(item),
+            }),
+        }]);
+        let pools: &'static [Pool] = Vec::leak(vec![Pool {
+            rolls: IntProvider::Constant(1),
+            bonus_rolls: 0.0,
+            condition: None,
+            modifier: &[],
+            entries: entry,
+        }]);
+        Box::leak(Box::new(LootTable {
+            pools,
+            modifier: &[],
+        }))
+    }
+
+    #[test]
+    fn an_active_overlay_replaces_tables_and_predicates_by_name() {
+        let stone = block_id("minecraft:stone");
+        let static_stone = block_table(stone).unwrap();
+        let diamond = marker(item_id("minecraft:diamond"));
+        let torch = marker(item_id("minecraft:stick"));
+        let flag: &'static Condition = Box::leak(Box::new(Condition::KilledByPlayer));
+        let mut overlay = LootOverlay::default();
+        overlay.insert_table("minecraft:blocks/stone", diamond);
+        overlay.insert_table("minecraft:blocks/torch", torch);
+        overlay.insert_table("t:new", diamond);
+        overlay.insert_predicate("t:p", flag);
+        overlay.insert_predicate("minecraft:tool/can_shear", flag);
+        let overlay = Arc::new(overlay);
+        activate(&overlay);
+        assert!(ptr::eq(block_table(stone).unwrap(), diamond));
+        assert!(ptr::eq(table("t:new").unwrap(), diamond));
+        assert!(ptr::eq(
+            block_table(block_id("minecraft:wall_torch")).unwrap(),
+            torch
+        ));
+        assert!(ptr::eq(predicate_of("t:p"), flag));
+        assert!(ptr::eq(predicate_of("minecraft:tool/can_shear"), flag));
+        assert!(ptr::eq(
+            table("minecraft:blocks/dirt").unwrap(),
+            block_table(block_id("minecraft:dirt")).unwrap()
+        ));
+        activate(&Arc::new(LootOverlay::default()));
+        assert!(ptr::eq(block_table(stone).unwrap(), static_stone));
+        assert!(table("t:new").is_none());
+        assert!(predicate("t:p").is_none());
+    }
+
+    fn predicate_of(name: &str) -> &'static Condition {
+        predicate(name).unwrap()
     }
 }

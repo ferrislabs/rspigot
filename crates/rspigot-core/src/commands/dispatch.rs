@@ -124,6 +124,10 @@ pub trait CommandContext {
     fn tps(&self) -> [f64; 3];
     fn stop(&mut self);
 
+    fn predicate_holds(&self, _sender: CommandSender, _id: &Identifier) -> Option<bool> {
+        None
+    }
+
     fn sender_rotation(&self, _sender: CommandSender) -> Rotation {
         Rotation::default()
     }
@@ -446,8 +450,36 @@ pub trait CommandContext {
         None
     }
 
-    fn function_exists(&self, _id: &Identifier) -> bool {
+    fn function_exists(&self, id: &Identifier) -> bool {
+        self.function_state().library.function(id).is_some()
+    }
+
+    fn function_state(&self) -> &crate::functions::FunctionState;
+
+    fn function_state_mut(&mut self) -> &mut crate::functions::FunctionState;
+
+    fn reload_datapacks(&mut self) -> bool {
         false
+    }
+
+    fn datapack_lists_changed(&mut self, _lists: crate::functions::DataPackLists) {}
+
+    fn server_function_permission(&self) -> u8 {
+        2
+    }
+
+    fn server_function_source(&self) -> Source {
+        self.command_source(CommandSender::Console)
+    }
+
+    fn apply_packs(&mut self, packs: crate::functions::Packs)
+    where
+        Self: Sized,
+    {
+        self.function_state_mut().apply(packs);
+        let lists = self.function_state().packs.lists();
+        self.datapack_lists_changed(lists);
+        super::function_commands::run_server_tag(self, &Identifier::minecraft("load"));
     }
 
     fn player_ids(&self) -> Vec<PlayerId> {
@@ -624,7 +656,13 @@ pub fn execute<C: CommandContext>(
         .unwrap_or(&label)
         .to_owned();
     let args: Vec<&str> = parts.collect();
-    if !super::permission::may_use(&label, ctx.permission_level(sender)) {
+    let level = ctx.permission_level(sender);
+    let level = ctx
+        .function_state()
+        .runtime
+        .permission_cap
+        .map_or(level, |cap| level.min(cap));
+    if !super::permission::may_use(&label, level) {
         return refuse(ctx, sender, line);
     }
     let rest = line
@@ -721,6 +759,9 @@ pub fn execute<C: CommandContext>(
         "forceload" | "worldborder" | "spreadplayers" | "fillbiome" => {
             super::world_commands::run(ctx, sender, &label, rest)
         }
+        "function" | "schedule" | "return" | "datapack" => {
+            super::function_commands::run(ctx, sender, &label, rest)
+        }
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),
@@ -732,12 +773,17 @@ pub fn execute<C: CommandContext>(
         "setworldspawn" => set_world_spawn(ctx, sender, &args),
         "save-all" => save_all(ctx, sender, rest),
         "reload" => {
-            if !ctx.request_reload(false) {
+            let datapacks = ctx.reload_datapacks();
+            if !ctx.request_reload(false) && !datapacks {
                 return fail(ctx, sender, "commands.reload.failure", Vec::new());
             }
             ctx.reply(
                 sender,
-                Component::translatable("commands.reload.success", Vec::new()),
+                if datapacks {
+                    Component::text("Reloaded!")
+                } else {
+                    Component::translatable("commands.reload.success", Vec::new())
+                },
             );
             CommandOutcome::Success
         }
@@ -2144,6 +2190,7 @@ mod tests {
         board: Scoreboard,
         ticking: rspigot_domain::tick_rate::TickRate,
         border: rspigot_domain::world_border::WorldBorder,
+        functions: crate::functions::FunctionState,
     }
 
     fn alice() -> PlayerId {
@@ -2151,6 +2198,12 @@ mod tests {
     }
 
     impl CommandContext for FakeContext {
+        fn function_state(&self) -> &crate::functions::FunctionState {
+            &self.functions
+        }
+        fn function_state_mut(&mut self) -> &mut crate::functions::FunctionState {
+            &mut self.functions
+        }
         fn world_border(&self) -> rspigot_domain::world_border::WorldBorder {
             self.border.clone()
         }

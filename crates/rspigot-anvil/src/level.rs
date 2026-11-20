@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use rspigot_core::config::LevelData;
+use rspigot_core::functions::DataPackLists;
 use rspigot_core::ports::StoreError;
 use rspigot_domain::BlockPos;
 use rspigot_nbt::{Compound, Tag, read_named, write_named};
@@ -234,7 +235,43 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     level.custom_boss_events = optional_saved_data(world_root, "custom_boss_events");
     level.forced_chunks = optional_saved_data(world_root, "chunks");
     level.world_border = optional_saved_data(world_root, "world_border");
+    level.scheduled_events = optional_saved_data(world_root, "scheduled_events");
+    level.data_packs = read_data_packs(data);
     Ok(Some(level))
+}
+
+fn read_data_packs(data: &Compound) -> Option<DataPackLists> {
+    let packs = data.get_compound("DataPacks")?;
+    let names = |key: &str| -> Vec<String> {
+        packs
+            .get_list(key)
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|tag| tag.as_str().map(str::to_owned))
+            .collect()
+    };
+    Some(DataPackLists {
+        enabled: names("Enabled"),
+        disabled: names("Disabled"),
+    })
+}
+
+fn write_data_packs(data: &mut Compound, lists: &DataPackLists) {
+    let mut packs = match data.remove("DataPacks") {
+        Some(Tag::Compound(packs)) => packs,
+        _ => Compound::new(),
+    };
+    let names = |values: &[String]| {
+        Tag::List(
+            values
+                .iter()
+                .map(|name| Tag::String(name.clone()))
+                .collect(),
+        )
+    };
+    packs.insert("Enabled", names(&lists.enabled));
+    packs.insert("Disabled", names(&lists.disabled));
+    data.insert("DataPacks", packs);
 }
 
 fn flag(tag: &Tag) -> Option<bool> {
@@ -370,6 +407,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
             changed
         })?;
     }
+    if let Some(events) = &level.scheduled_events {
+        update_saved_data(world_root, "scheduled_events", |data| {
+            let changed = data != events;
+            data.clone_from(events);
+            changed
+        })?;
+    }
     if let Some(scoreboard) = &level.scoreboard {
         update_saved_data(world_root, "scoreboard", |data| {
             let changed = data != scoreboard;
@@ -383,6 +427,9 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         _ => Compound::new(),
     };
     apply_level_fields(&mut data, level, fresh);
+    if let Some(lists) = &level.data_packs {
+        write_data_packs(&mut data, lists);
+    }
     root.insert("Data", data);
     let backup = world_root.join(LEVEL_BACKUP);
     write_gzip_nbt(
@@ -538,6 +585,11 @@ mod tests {
             custom_boss_events: None,
             forced_chunks: None,
             world_border: None,
+            scheduled_events: None,
+            data_packs: Some(DataPackLists {
+                enabled: vec!["vanilla".to_owned()],
+                disabled: Vec::new(),
+            }),
         }
     }
 
@@ -552,6 +604,77 @@ mod tests {
         rspigot_nbt::write_named(&mut raw, "", compound);
         let packed = crate::Compression::Gzip.compress(&raw).unwrap();
         std::fs::write(path, packed).unwrap();
+    }
+
+    #[test]
+    fn the_data_pack_lists_are_written_read_and_kept() {
+        let dir = TempDir::new("level-packs");
+        let root = dir.path().join("world");
+        let lists = DataPackLists {
+            enabled: vec![
+                "vanilla".to_owned(),
+                "file/b".to_owned(),
+                "file/a".to_owned(),
+            ],
+            disabled: vec!["file/c".to_owned()],
+        };
+        let level = LevelData {
+            data_packs: Some(lists.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let data = read_file(&root, "level.dat");
+        let packs = data
+            .get_compound("Data")
+            .and_then(|data| data.get_compound("DataPacks"))
+            .unwrap();
+        let names = |key: &str| -> Vec<String> {
+            packs
+                .get_list(key)
+                .unwrap()
+                .iter()
+                .map(|tag| tag.as_str().unwrap().to_owned())
+                .collect()
+        };
+        assert_eq!(names("Enabled"), lists.enabled);
+        assert_eq!(names("Disabled"), lists.disabled);
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
+        let untouched = LevelData {
+            data_packs: None,
+            game_time: 5,
+            ..sample()
+        };
+        write_level_data(&root, &untouched).unwrap();
+        let kept = read_level_data(&root).unwrap().unwrap();
+        assert_eq!(kept.data_packs, Some(lists));
+    }
+
+    #[test]
+    fn scheduled_events_are_saved_in_their_own_data_file_and_read_back() {
+        let dir = TempDir::new("level-scheduled");
+        let root = dir.path().join("world");
+        let events = Compound::new().with(
+            "events",
+            Tag::List(vec![Tag::Compound(
+                Compound::new()
+                    .with("id", "t:later")
+                    .with("trigger_time", 200i64)
+                    .with(
+                        "callback",
+                        Compound::new()
+                            .with("type", "minecraft:function")
+                            .with("id", "t:later"),
+                    ),
+            )]),
+        );
+        let level = LevelData {
+            scheduled_events: Some(events.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/scheduled_events.dat");
+        assert_eq!(file.get_compound("data"), Some(&events));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
     }
 
     #[test]

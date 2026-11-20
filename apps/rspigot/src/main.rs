@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime};
 
 use anyhow::Context;
-use rspigot_anvil::{AnvilOptions, AnvilStore, Compression, DimensionLayout};
+use rspigot_anvil::{AnvilOptions, AnvilStore, Compression, DimensionLayout, DirectoryDatapacks};
 use rspigot_auth::MojangSessionVerifier;
 use rspigot_core::config::LevelData;
 use rspigot_core::events::Inbound;
@@ -238,6 +238,7 @@ fn main() -> anyhow::Result<()> {
     .with_admin_sink(admin_updates)
     .with_player_store(Arc::clone(&store))
     .with_permissions(permissions)
+    .with_datapacks(Arc::new(DirectoryDatapacks::new(&datapacks)))
     .with_startup_inbox(game_inbox.clone());
     let (reload_requests, reload_inbox) = crossbeam_channel::unbounded();
     files::spawn_reloader(args.root.clone(), reload_inbox, inbound.clone());

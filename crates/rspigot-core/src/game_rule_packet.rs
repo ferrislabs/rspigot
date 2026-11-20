@@ -40,6 +40,9 @@ fn rule_of(key: &str) -> Option<Rule> {
         "max_snow_accumulation_height" => {
             Rule::Number(|rules| &mut rules.max_snow_accumulation_height, 0, 8)
         }
+        "max_command_sequence_length" => {
+            Rule::Number(|rules| &mut rules.max_command_sequence_length, 1, i32::MAX)
+        }
         _ => return None,
     })
 }
@@ -52,7 +55,7 @@ fn flag(value: &str) -> Option<bool> {
     }
 }
 
-pub(crate) const RULE_NAMES: [&str; 21] = [
+pub(crate) const RULE_NAMES: [&str; 22] = [
     "advance_time",
     "natural_health_regeneration",
     "keep_inventory",
@@ -74,6 +77,7 @@ pub(crate) const RULE_NAMES: [&str; 21] = [
     "random_tick_speed",
     "fire_spread_radius_around_player",
     "max_snow_accumulation_height",
+    "max_command_sequence_length",
 ];
 
 impl<L: ClientLink> Server<L> {
