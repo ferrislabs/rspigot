@@ -491,6 +491,17 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn run_captured_console(&mut self, name: &str, line: &str) -> Vec<Component> {
+        let outer = self.falls.redstone.command.capture.replace(Capture {
+            name: name.to_owned(),
+            replies: Vec::new(),
+        });
+        execute(self, CommandSender::Console, line);
+        std::mem::replace(&mut self.falls.redstone.command.capture, outer)
+            .map(|capture| capture.replies)
+            .unwrap_or_default()
+    }
+
     pub(crate) fn capture_command_reply(&mut self, message: &Component) -> bool {
         match &mut self.falls.redstone.command.capture {
             Some(capture) => {

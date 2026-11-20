@@ -15,6 +15,7 @@ use rspigot_data::variants::VariantFamily;
 use rspigot_domain::boss_event::{
     BossColor as DomainBossColor, BossOverlay as DomainBossOverlay, BossUpdate,
 };
+use rspigot_domain::chat_chain::MessageSignature as DomainSignature;
 use rspigot_domain::chunk::{
     ChunkColumn, HeightmapKind as DomainHeightmap, LightArray as DomainLight,
 };
@@ -34,7 +35,10 @@ use rspigot_protocol::frame::{Compression, build_frame};
 use rspigot_protocol::play::boss::{
     BossColor as WireBossColor, BossOperation, BossOverlay as WireBossOverlay,
 };
-use rspigot_protocol::play::chat::ChatTypeBound;
+use rspigot_protocol::play::chat::{
+    ChatSession as WireChatSession, ChatTypeBound, FilterMask, MessageSignature as WireSignature,
+    PackedSignature, SignedMessageBody,
+};
 use rspigot_protocol::play::chunk::{
     BlockEntityInfo, ChunkSection as WireSection, Heightmap as WireHeightmap,
     HeightmapKind as WireHeightmap2, LevelChunkData, LightData, PaletteStrategy,
@@ -76,6 +80,7 @@ use rspigot_protocol::{Encode, Packet, write_packet};
 
 use crate::cache::ChunkPacketCache;
 use crate::connection::{ConnectionError, PacketWriter};
+use crate::signature_cache::SignatureCache;
 use crate::text::to_nbt;
 
 pub trait PacketSink {
@@ -95,6 +100,8 @@ impl PacketSink for PacketWriter {
 
 pub struct Encoder {
     online_mode: bool,
+    signatures: SignatureCache,
+    chat_index: i32,
 }
 
 fn position(pos: BlockPos) -> Position {
@@ -176,6 +183,16 @@ fn dialog_tag(dialog: &rspigot_domain::dialog::Dialog) -> rspigot_nbt::Tag {
 
 fn text(component: &rspigot_domain::text::Component) -> Text {
     Text(to_nbt(component))
+}
+
+fn chat_bound(name: &rspigot_domain::text::Component) -> ChatTypeBound {
+    let chat = rspigot_data::registries::synced_index("minecraft:chat_type", "minecraft:chat")
+        .map_or(0, |id| id as i32);
+    ChatTypeBound {
+        chat_type: Holder::Reference(chat),
+        name: text(name),
+        target_name: None,
+    }
 }
 
 fn number_format_packet(format: &DomainNumberFormat) -> WireNumberFormat {
@@ -435,6 +452,15 @@ fn entity_type(kind: EntityKind) -> i32 {
         EntityKind::Other(id) => return i32::from(id),
     };
     rspigot_data::registries::static_index("minecraft:entity_type", name).map_or(0, |id| id as i32)
+}
+
+fn look_anchor(
+    anchor: rspigot_core::events::LookAnchor,
+) -> rspigot_protocol::play::gaps::EntityAnchor {
+    match anchor {
+        rspigot_core::events::LookAnchor::Feet => rspigot_protocol::play::gaps::EntityAnchor::Feet,
+        rspigot_core::events::LookAnchor::Eyes => rspigot_protocol::play::gaps::EntityAnchor::Eyes,
+    }
 }
 
 fn sound_source(source: CoreSoundSource) -> WireSoundSource {
@@ -837,13 +863,13 @@ fn heightmap_kind(kind: DomainHeightmap) -> WireHeightmap2 {
     }
 }
 
-pub fn chunk_packet(chunk: &ChunkColumn, out: &mut Vec<u8>) {
+fn wire_sections(chunk: &ChunkColumn) -> Vec<WireSection<'static>> {
     let blocks = PaletteStrategy::blocks(rspigot_blocks::STATE_COUNT as u32);
     let biome_count = rspigot_data::registries::synced_entries("minecraft:worldgen/biome")
         .map_or(1, <[&str]>::len) as u32;
     let biomes = PaletteStrategy::biomes(biome_count);
     let mut scratch = Vec::new();
-    let sections: Vec<WireSection<'static>> = chunk
+    chunk
         .sections()
         .iter()
         .map(|section| WireSection {
@@ -852,7 +878,19 @@ pub fn chunk_packet(chunk: &ChunkColumn, out: &mut Vec<u8>) {
             blocks: container_for(section.blocks(), &blocks, |s| u32::from(s.0), &mut scratch),
             biomes: container_for(section.biomes(), &biomes, |b| u32::from(b.0), &mut scratch),
         })
-        .collect();
+        .collect()
+}
+
+pub fn chunk_biome_buffer(chunk: &ChunkColumn) -> Vec<u8> {
+    let mut out = Vec::new();
+    for section in wire_sections(chunk) {
+        section.biomes.encode(&mut out);
+    }
+    out
+}
+
+pub fn chunk_packet(chunk: &ChunkColumn, out: &mut Vec<u8>) {
+    let sections = wire_sections(chunk);
     let mut data = Vec::with_capacity(16 * 1024);
     write_sections(&sections, &mut data);
     let height = chunk.height().height;
@@ -980,7 +1018,18 @@ fn delta(from: Vec3, to: Vec3) -> Option<VecDelta> {
 
 impl Encoder {
     pub fn new(online_mode: bool) -> Self {
-        Self { online_mode }
+        Self {
+            online_mode,
+            signatures: SignatureCache::default(),
+            chat_index: 0,
+        }
+    }
+
+    fn packed(&self, signature: &DomainSignature) -> PackedSignature {
+        match self.signatures.pack(signature) {
+            Some(index) => PackedSignature::Id(index as i32),
+            None => PackedSignature::Full(Box::new(WireSignature(signature.0))),
+        }
     }
 
     fn queue<P: Packet, W: PacketSink>(writer: &mut W, packet: &P) -> Result<(), ConnectionError> {
@@ -1372,22 +1421,66 @@ impl Encoder {
                 sender_name,
                 message,
                 ..
-            } => {
-                let chat =
-                    rspigot_data::registries::synced_index("minecraft:chat_type", "minecraft:chat")
-                        .map_or(0, |id| id as i32);
-                Self::queue(
-                    writer,
-                    &cb::DisguisedChat {
-                        message: Text(rspigot_nbt::Tag::String(message.clone())),
-                        chat_type: ChatTypeBound {
-                            chat_type: Holder::Reference(chat),
-                            name: text(sender_name),
-                            target_name: None,
-                        },
+            } => Self::queue(
+                writer,
+                &cb::DisguisedChat {
+                    message: Text(rspigot_nbt::Tag::String(message.clone())),
+                    chat_type: chat_bound(sender_name),
+                },
+            ),
+            ClientEvent::SignedChat(chat) => {
+                let packet = cb::PlayerChat {
+                    global_index: self.chat_index,
+                    sender: chat.sender.0,
+                    index: chat.index,
+                    signature: Some(WireSignature(chat.signature.0)),
+                    body: SignedMessageBody {
+                        content: chat.content.clone(),
+                        timestamp: chat.timestamp_ms,
+                        salt: chat.salt,
+                        last_seen: chat
+                            .last_seen
+                            .iter()
+                            .map(|seen| self.packed(seen))
+                            .collect(),
                     },
-                )
+                    unsigned_content: chat
+                        .unsigned_content
+                        .as_ref()
+                        .map(|content| Text(rspigot_nbt::Tag::String(content.clone()))),
+                    filter_mask: FilterMask::PassThrough,
+                    chat_type: chat_bound(&chat.sender_name),
+                };
+                Self::queue(writer, &packet)?;
+                self.chat_index = self.chat_index.wrapping_add(1);
+                self.signatures.push(&chat.last_seen, &chat.signature);
+                Ok(())
             }
+            ClientEvent::DeleteChat { signature } => Self::queue(
+                writer,
+                &cb::DeleteChat {
+                    signature: self.packed(signature),
+                },
+            ),
+            ClientEvent::ChatSessions(sessions) => Self::queue(
+                writer,
+                &cb::PlayerInfoUpdate {
+                    actions: PlayerInfoActions::INITIALIZE_CHAT,
+                    entries: sessions
+                        .iter()
+                        .map(|(player, key)| PlayerInfoEntry {
+                            profile_id: player.0,
+                            chat_session: Some(WireChatSession {
+                                session_id: key.session,
+                                expires_at: key.expires_at_ms,
+                                public_key: key.public_key.clone(),
+                                key_signature: key.key_signature.clone(),
+                            }),
+                            ..PlayerInfoEntry::default()
+                        })
+                        .collect(),
+                },
+            ),
             ClientEvent::PlayerInfo(entries) => Self::queue(
                 writer,
                 &cb::PlayerInfoUpdate {
@@ -1525,6 +1618,123 @@ impl Encoder {
             ClientEvent::TickingStep(steps) => {
                 Self::queue(writer, &cb::TickingStep { tick_steps: *steps })
             }
+            ClientEvent::BorderCenter { x, z } => Self::queue(
+                writer,
+                &cb::SetBorderCenter {
+                    new_center_x: *x,
+                    new_center_z: *z,
+                },
+            ),
+            ClientEvent::BorderSize(size) => {
+                Self::queue(writer, &cb::SetBorderSize { size: *size })
+            }
+            ClientEvent::BorderLerp {
+                old_size,
+                new_size,
+                time,
+            } => Self::queue(
+                writer,
+                &cb::SetBorderLerpSize {
+                    old_size: *old_size,
+                    new_size: *new_size,
+                    lerp_time: *time,
+                },
+            ),
+            ClientEvent::BorderWarningDelay(ticks) => Self::queue(
+                writer,
+                &cb::SetBorderWarningDelay {
+                    warning_delay: *ticks,
+                },
+            ),
+            ClientEvent::BorderWarningDistance(blocks) => Self::queue(
+                writer,
+                &cb::SetBorderWarningDistance {
+                    warning_blocks: *blocks,
+                },
+            ),
+            ClientEvent::ChunksBiomes(chunks) => Self::queue(
+                writer,
+                &cb::ChunksBiomes {
+                    chunks: chunks
+                        .iter()
+                        .map(|chunk| cb::ChunkBiomeData {
+                            x: chunk.pos().x,
+                            z: chunk.pos().z,
+                            buffer: chunk_biome_buffer(chunk),
+                        })
+                        .collect(),
+                },
+            ),
+            ClientEvent::OpenBook(hand) => Self::queue(
+                writer,
+                &cb::OpenBook {
+                    hand: match hand {
+                        Hand::Main => WireHand::MainHand,
+                        Hand::Off => WireHand::OffHand,
+                    },
+                },
+            ),
+            ClientEvent::LookAt {
+                from,
+                target,
+                entity,
+            } => Self::queue(
+                writer,
+                &cb::PlayerLookAt {
+                    from_anchor: look_anchor(*from),
+                    x: target.x,
+                    y: target.y,
+                    z: target.z,
+                    at_entity: entity.map(|(entity, anchor)| cb::LookAtEntity {
+                        entity_id: entity.0,
+                        to_anchor: look_anchor(anchor),
+                    }),
+                },
+            ),
+            ClientEvent::EntitySound {
+                sound,
+                source,
+                entity,
+                volume,
+                pitch,
+                seed,
+            } => match rspigot_data::registries::static_index("minecraft:sound_event", sound)
+                .and_then(|id| i32::try_from(id).ok())
+            {
+                Some(id) => Self::queue(
+                    writer,
+                    &cb::SoundEntity {
+                        sound: Holder::Reference(id),
+                        source: sound_source(*source),
+                        entity_id: entity.0,
+                        volume: *volume,
+                        pitch: *pitch,
+                        seed: *seed,
+                    },
+                ),
+                None => Ok(()),
+            },
+            ClientEvent::CombatEnter => Self::queue(writer, &cb::PlayerCombatEnter),
+            ClientEvent::CombatEnd { duration } => Self::queue(
+                writer,
+                &cb::PlayerCombatEnd {
+                    duration: *duration,
+                },
+            ),
+            ClientEvent::GameRuleValues(values) => Self::queue(
+                writer,
+                &rspigot_protocol::play::world::GameRuleValues {
+                    values: values
+                        .iter()
+                        .map(
+                            |(rule, value)| rspigot_protocol::play::world::GameRuleValue {
+                                rule: rule.clone(),
+                                value: value.clone(),
+                            },
+                        )
+                        .collect(),
+                },
+            ),
             ClientEvent::Border(view) => Self::queue(
                 writer,
                 &cb::InitializeBorder {
@@ -1545,6 +1755,13 @@ impl Encoder {
                     port: *port,
                 },
             ),
+            ClientEvent::ResourcePackPush(_)
+            | ClientEvent::ResourcePackPop(_)
+            | ClientEvent::ServerLinks(_)
+            | ClientEvent::StoreCookie { .. }
+            | ClientEvent::CookieRequest(_)
+            | ClientEvent::ReportDetails(_)
+            | ClientEvent::Reconfigure => crate::extras::encode(event, writer),
             ClientEvent::Camera(entity) => Self::queue(
                 writer,
                 &cb::SetCamera {
@@ -2276,6 +2493,116 @@ mod tests {
             .encode(&event, &mut sink, &ChunkPacketCache::new(1024), None, 0)
             .unwrap();
         sink.0
+    }
+
+    fn signed(index: i32, signature: u8, seen: &[u8]) -> ClientEvent {
+        ClientEvent::SignedChat(std::sync::Arc::new(rspigot_core::events::SignedChat {
+            sender: rspigot_domain::player::PlayerId(uuid::Uuid::from_u128(1)),
+            sender_name: Component::text("Alex"),
+            index,
+            signature: DomainSignature([signature; 256]),
+            content: "hi".to_owned(),
+            timestamp_ms: 7,
+            salt: 3,
+            last_seen: seen
+                .iter()
+                .map(|byte| DomainSignature([*byte; 256]))
+                .collect(),
+            unsigned_content: None,
+        }))
+    }
+
+    fn encode_all(events: Vec<ClientEvent>) -> Vec<(i32, Vec<u8>)> {
+        let mut sink = Captured::default();
+        let mut encoder = Encoder::new(false);
+        for event in events {
+            encoder
+                .encode(&event, &mut sink, &ChunkPacketCache::new(1024), None, 0)
+                .unwrap();
+        }
+        sink.0
+    }
+
+    fn last_seen_of(body: &[u8]) -> Vec<u8> {
+        let content_at = 1 + 16 + 1 + 1 + 256;
+        let after = content_at + 1 + 2 + 8 + 8;
+        let count = body[after] as usize;
+        let mut at = after + 1;
+        let mut packed = Vec::new();
+        for _ in 0..count {
+            let value = body[at];
+            packed.push(value);
+            at += if value == 0 { 1 + 256 } else { 1 };
+        }
+        packed
+    }
+
+    #[test]
+    fn a_signed_chat_is_a_player_chat_with_a_running_global_index() {
+        let packets = encode_all(vec![signed(0, 0xAA, &[]), signed(1, 0xBB, &[0xAA])]);
+        assert_eq!(packets.len(), 2);
+        assert_eq!(packets[0].0, id::PLAYER_CHAT);
+        let first = &packets[0].1;
+        assert_eq!(first[0], 0);
+        assert_eq!(&first[1..17], &uuid::Uuid::from_u128(1).into_bytes());
+        assert_eq!(&first[17..19], &[0, 1]);
+        assert_eq!(&first[19..21], &[0xAA, 0xAA]);
+        assert_eq!(&first[19 + 256..19 + 256 + 3], &[2, b'h', b'i']);
+        assert_eq!(packets[1].1[0], 1);
+    }
+
+    #[test]
+    fn the_second_message_references_the_first_by_its_cache_index() {
+        let packets = encode_all(vec![
+            signed(0, 0xAA, &[]),
+            signed(1, 0xBB, &[0xAA]),
+            signed(2, 0xCC, &[0xAA, 0xBB]),
+        ]);
+        assert_eq!(last_seen_of(&packets[0].1), Vec::<u8>::new());
+        assert_eq!(last_seen_of(&packets[1].1), vec![1]);
+        assert_eq!(last_seen_of(&packets[2].1), vec![2, 1]);
+    }
+
+    #[test]
+    fn a_message_the_receiver_never_saw_is_sent_in_full() {
+        let packets = encode_all(vec![signed(0, 0xBB, &[0xAA])]);
+        assert_eq!(last_seen_of(&packets[0].1), vec![0]);
+    }
+
+    #[test]
+    fn delete_chat_uses_the_cache_index_or_the_full_signature() {
+        let known = DomainSignature([0xAA; 256]);
+        let packets = encode_all(vec![
+            signed(0, 0xAA, &[]),
+            ClientEvent::DeleteChat { signature: known },
+            ClientEvent::DeleteChat {
+                signature: DomainSignature([0xEE; 256]),
+            },
+        ]);
+        assert_eq!(packets[1], (id::DELETE_CHAT, vec![1]));
+        assert_eq!(packets[2].0, id::DELETE_CHAT);
+        assert_eq!(&packets[2].1[..2], &[0, 0xEE]);
+        assert_eq!(packets[2].1.len(), 257);
+    }
+
+    #[test]
+    fn chat_sessions_are_the_initialize_chat_action() {
+        let event = ClientEvent::ChatSessions(vec![(
+            rspigot_domain::player::PlayerId(uuid::Uuid::from_u128(1)),
+            rspigot_core::events::ChatSessionKey {
+                session: uuid::Uuid::from_u128(2),
+                expires_at_ms: 3,
+                public_key: vec![9, 8],
+                key_signature: vec![7],
+            },
+        )]);
+        let mut expected = vec![0x02, 1];
+        expected.extend(uuid::Uuid::from_u128(1).into_bytes());
+        expected.push(1);
+        expected.extend(uuid::Uuid::from_u128(2).into_bytes());
+        expected.extend(3i64.to_be_bytes());
+        expected.extend([2, 9, 8, 1, 7]);
+        assert_eq!(encode(event), vec![(id::PLAYER_INFO_UPDATE, expected)]);
     }
 
     #[test]
@@ -3219,6 +3546,147 @@ mod tests {
             decoded[0].biomes.entries(&strategy),
             vec![1; strategy.entries]
         );
+    }
+
+    #[test]
+    fn border_updates_golden_bytes() {
+        let mut expected = 1.5f64.to_be_bytes().to_vec();
+        expected.extend_from_slice(&(-2.0f64).to_be_bytes());
+        assert_eq!(
+            encode(ClientEvent::BorderCenter { x: 1.5, z: -2.0 }),
+            vec![(id::SET_BORDER_CENTER, expected)]
+        );
+        assert_eq!(
+            encode(ClientEvent::BorderSize(100.0)),
+            vec![(id::SET_BORDER_SIZE, 100.0f64.to_be_bytes().to_vec())]
+        );
+        let mut lerp = 100.0f64.to_be_bytes().to_vec();
+        lerp.extend_from_slice(&50.0f64.to_be_bytes());
+        lerp.extend_from_slice(&[0xC8, 0x01]);
+        assert_eq!(
+            encode(ClientEvent::BorderLerp {
+                old_size: 100.0,
+                new_size: 50.0,
+                time: 200
+            }),
+            vec![(id::SET_BORDER_LERP_SIZE, lerp)]
+        );
+        assert_eq!(
+            encode(ClientEvent::BorderWarningDelay(200)),
+            vec![(id::SET_BORDER_WARNING_DELAY, vec![0xC8, 0x01])]
+        );
+        assert_eq!(
+            encode(ClientEvent::BorderWarningDistance(9)),
+            vec![(id::SET_BORDER_WARNING_DISTANCE, vec![9])]
+        );
+    }
+
+    #[test]
+    fn open_book_look_at_and_combat_golden_bytes() {
+        assert_eq!(
+            encode(ClientEvent::OpenBook(Hand::Off)),
+            vec![(id::OPEN_BOOK, vec![1])]
+        );
+        let mut look = vec![1];
+        for value in [1.0f64, 2.0, 3.0] {
+            look.extend_from_slice(&value.to_be_bytes());
+        }
+        look.extend_from_slice(&[1, 7, 1]);
+        assert_eq!(
+            encode(ClientEvent::LookAt {
+                from: rspigot_core::events::LookAnchor::Eyes,
+                target: Vec3::new(1.0, 2.0, 3.0),
+                entity: Some((
+                    rspigot_domain::EntityId(7),
+                    rspigot_core::events::LookAnchor::Eyes
+                )),
+            }),
+            vec![(id::PLAYER_LOOK_AT, look)]
+        );
+        assert_eq!(
+            encode(ClientEvent::CombatEnter),
+            vec![(id::PLAYER_COMBAT_ENTER, Vec::new())]
+        );
+        assert_eq!(
+            encode(ClientEvent::CombatEnd { duration: 301 }),
+            vec![(id::PLAYER_COMBAT_END, vec![0xAD, 0x02])]
+        );
+    }
+
+    #[test]
+    fn entity_sound_golden_bytes() {
+        let event = ClientEvent::EntitySound {
+            sound: "minecraft:entity.sheep.shear",
+            source: CoreSoundSource::Players,
+            entity: rspigot_domain::EntityId(300),
+            volume: 1.0,
+            pitch: 0.5,
+            seed: 9,
+        };
+        let sheared = rspigot_data::registries::static_index(
+            "minecraft:sound_event",
+            "minecraft:entity.sheep.shear",
+        )
+        .unwrap();
+        let mut expected = Vec::new();
+        write_var(i32::try_from(sheared).unwrap() + 1, &mut expected);
+        expected.extend_from_slice(&[7, 0xAC, 0x02]);
+        expected.extend_from_slice(&1.0f32.to_be_bytes());
+        expected.extend_from_slice(&0.5f32.to_be_bytes());
+        expected.extend_from_slice(&9i64.to_be_bytes());
+        assert_eq!(encode(event), vec![(id::SOUND_ENTITY, expected)]);
+        let unknown = ClientEvent::EntitySound {
+            sound: "minecraft:nope",
+            source: CoreSoundSource::Players,
+            entity: rspigot_domain::EntityId(1),
+            volume: 1.0,
+            pitch: 1.0,
+            seed: 0,
+        };
+        assert!(encode(unknown).is_empty());
+    }
+
+    #[test]
+    fn game_rule_values_golden_bytes() {
+        let event = ClientEvent::GameRuleValues(vec![(
+            "minecraft:keep_inventory".to_owned(),
+            "false".to_owned(),
+        )]);
+        let mut expected = vec![1];
+        for text in ["minecraft:keep_inventory", "false"] {
+            expected.push(text.len() as u8);
+            expected.extend_from_slice(text.as_bytes());
+        }
+        assert_eq!(encode(event), vec![(id::GAME_RULE_VALUES, expected)]);
+    }
+
+    #[test]
+    fn chunks_biomes_carry_only_the_biome_containers_of_every_section() {
+        use rspigot_domain::BiomeId;
+        use rspigot_domain::chunk::ChunkSection;
+        use rspigot_domain::world::WorldHeight;
+
+        let height = WorldHeight::OVERWORLD;
+        let sections: Vec<ChunkSection> = (0..height.section_count())
+            .map(|_| ChunkSection::empty(BiomeId(1)))
+            .collect();
+        let column = std::sync::Arc::new(
+            ChunkColumn::from_sections(ChunkPos::new(-3, 4), height, sections)
+                .expect("section count"),
+        );
+        let packets = encode(ClientEvent::ChunksBiomes(vec![column]));
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].0, id::CHUNKS_BIOMES);
+        let mut expected = vec![1];
+        expected.extend_from_slice(&(-3i32).to_be_bytes());
+        expected.extend_from_slice(&4i32.to_be_bytes());
+        let section = [0u8, 1];
+        let buffer_len = section.len() * height.section_count();
+        write_var(buffer_len as i32, &mut expected);
+        for _ in 0..height.section_count() {
+            expected.extend_from_slice(&section);
+        }
+        assert_eq!(packets[0].1, expected);
     }
 
     #[test]

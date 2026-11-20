@@ -12,7 +12,7 @@ mod function_commands;
 mod game_commands;
 mod game_completion;
 mod item_commands;
-mod json_text;
+pub(crate) mod json_text;
 mod locate_commands;
 mod loot_commands;
 pub(crate) mod loot_source;
@@ -38,7 +38,8 @@ mod world_commands;
 
 pub(crate) use dispatch::refuse;
 pub use dispatch::{
-    CommandContext, CommandOutcome, CommandSender, Target, TitleAction, Weather, execute,
+    CommandContext, CommandOutcome, CommandSender, FaceRequest, Target, TitleAction, Weather,
+    execute,
 };
 pub use entity_commands::DamageSpec;
 pub(crate) use function_commands::{run_scheduled, run_server_tag};

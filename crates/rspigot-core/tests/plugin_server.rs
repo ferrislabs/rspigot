@@ -10,8 +10,9 @@ use rspigot_core::config::PluginSettings;
 use rspigot_core::events::{ClientEvent, Inbound, PlayerInput};
 use rspigot_core::plugins::events::{
     BroadcastMessage, BroadcastMessagePatch, PlayerCommandSend, PlayerCommandSendPatch,
-    PluginDisable, PluginEnable, ServerCommand, ServerCommandPatch, ServerListPing,
-    ServerListPingPatch, ServerLoad, ServerLoadType, TabComplete, TabCompletePatch,
+    PluginDisable, PluginEnable, RemoteServerCommand, RemoteServerCommandPatch, ServerCommand,
+    ServerCommandPatch, ServerListPing, ServerListPingPatch, ServerLoad, ServerLoadType,
+    TabComplete, TabCompletePatch,
 };
 use rspigot_core::plugins::{
     EventKind, EventPatch, EventPayload, FromPlugin, HandlerSpec, ListDiff, Order, PlayerSnapshot,
@@ -990,4 +991,63 @@ fn two_plugins_that_each_remove_a_broadcast_recipient_both_keep_it_from_them() {
         assert!(system_texts(&bob).is_empty(), "{later_answers_first}");
         assert!(system_texts(&carol).is_empty(), "{later_answers_first}");
     }
+}
+
+fn rcon(s: &mut Scene, line: &str) -> crossbeam_channel::Receiver<String> {
+    let (reply, answer) = unbounded();
+    s.server.handle(Inbound::Rcon(rspigot_core::rcon::RconCall {
+        command: line.to_owned(),
+        reply,
+    }));
+    s.server.deliver();
+    answer
+}
+
+#[test]
+fn an_rcon_command_fires_remote_server_command_then_answers() {
+    let mut s = scene_with(&["Alice"], vec![observe(1, EventKind::RemoteServerCommand)]);
+    let answer = rcon(&mut s, "list");
+    assert_eq!(
+        payloads(&s.plugin, EventKind::RemoteServerCommand),
+        [EventPayload::RemoteServerCommand(RemoteServerCommand {
+            command: "list".to_owned(),
+            sender: SenderView::Console,
+        })]
+    );
+    assert!(answer.try_recv().expect("answered").contains("Alice"));
+}
+
+#[test]
+fn a_cancelled_rcon_command_answers_nothing_and_runs_nothing() {
+    let mut s = scene_with(
+        &["Alice"],
+        vec![deciding(1, EventKind::RemoteServerCommand)],
+    );
+    let alice = s.players[0].clone();
+    let answer = rcon(&mut s, "say hi");
+    let asked = last_asked(&s.plugin, EventKind::RemoteServerCommand);
+    assert!(answer.try_recv().is_err());
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    assert_eq!(answer.try_recv().expect("answered"), "");
+    assert!(system_texts(&alice).is_empty());
+}
+
+#[test]
+fn a_changed_rcon_command_runs_the_new_line() {
+    let mut s = scene_with(
+        &["Alice"],
+        vec![deciding(1, EventKind::RemoteServerCommand)],
+    );
+    let answer = rcon(&mut s, "say hi");
+    let asked = last_asked(&s.plugin, EventKind::RemoteServerCommand);
+    rule_on(
+        &mut s.server,
+        1,
+        asked.id,
+        false,
+        Some(EventPatch::RemoteServerCommand(RemoteServerCommandPatch {
+            command: Some("list".to_owned()),
+        })),
+    );
+    assert!(answer.try_recv().expect("answered").contains("Alice"));
 }

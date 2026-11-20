@@ -867,11 +867,9 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(target) else {
             return;
         };
-        let position = entity.base.position;
         let facts = crate::mobs::loot_facts_of(entity);
-        self.play_sound(
-            None,
-            position,
+        self.play_entity_sound(
+            target,
             "minecraft:entity.sheep.shear",
             SoundSource::Players,
             1.0,

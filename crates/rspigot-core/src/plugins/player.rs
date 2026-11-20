@@ -215,7 +215,7 @@ impl<L: ClientLink> Server<L> {
             }
             PlayerOrder::Chat(text) => match text.strip_prefix('/') {
                 Some(command) => self.run_player_command(id, command),
-                None => self.broadcast_chat(id, &text),
+                None => self.broadcast_chat(id, &text, None),
             },
             PlayerOrder::PlaySound(spec) => {
                 let sound = resolve::sound_of(&spec)?;

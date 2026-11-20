@@ -181,6 +181,7 @@ pub struct Vitals {
     pub death_time: u32,
     pub removed: bool,
     pub combat: CombatTracker,
+    pub combat_signal: crate::combat_signal::CombatSignal,
     pub kill_credit: Option<KillCredit>,
     pub attack_ticker: u32,
     pub held_item: Option<ItemId>,
@@ -233,6 +234,7 @@ impl Default for Vitals {
             death_time: 0,
             removed: false,
             combat: CombatTracker::default(),
+            combat_signal: crate::combat_signal::CombatSignal::default(),
             kill_credit: None,
             attack_ticker: 0,
             held_item: None,
@@ -397,6 +399,9 @@ fn commit_hurt<L>(
         now,
         alive,
     );
+    vitals
+        .combat_signal
+        .record(now, alive, source.living_cause());
     vitals.health = java_clamp(
         vitals.health - amount,
         0.0,
@@ -584,6 +589,7 @@ impl<L: ClientLink> Server<L> {
             if let Some(player) = self.players.get_mut(&id) {
                 commit_hurt(player, source, dealt, &attributes, now);
             }
+            self.flush_combat(id);
             let tenths = (dealt * 10.0).round() as i32;
             self.award_custom(id, stats::custom::DAMAGE_TAKEN, tenths);
             if let Some(attacker) = source.attacker()
@@ -770,6 +776,7 @@ impl<L: ClientLink> Server<L> {
         vitals.death_location = Some(player.position.block());
         vitals.death_dimension = Some(player.dim.clone());
         vitals.combat.recheck(now, false);
+        vitals.combat_signal.recheck(now, false);
         let entity = player.entity_id;
         let feet = player.position;
         let origin = Vec3::new(
@@ -794,6 +801,7 @@ impl<L: ClientLink> Server<L> {
                 message: spoken.clone().unwrap_or_else(|| Component::text("")),
             },
         );
+        self.flush_combat(id);
         if let Some(message) = spoken {
             tracing::info!("{}", crate::console::console_text(&message));
             self.send_death_message(id, message);
@@ -1132,6 +1140,7 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             vitals.combat.recheck(now, true);
+            vitals.combat_signal.recheck(now, true);
             if vitals.arrow_count > 0 {
                 if vitals.remove_arrow_time <= 0 {
                     vitals.remove_arrow_time = 20 * (30 - vitals.arrow_count);
@@ -1233,6 +1242,9 @@ impl<L: ClientLink> Server<L> {
         for (id, names) in changed_equipment {
             self.sync_attributes(id, &names);
             self.clamp_vitals(id);
+        }
+        for id in ids {
+            self.flush_combat(id);
         }
     }
 

@@ -259,6 +259,12 @@ pub struct GameConfig {
     pub max_tnt_per_tick: i32,
     pub combat_exhaustion: f32,
     pub messages: ServerMessages,
+    pub motd: String,
+    pub hide_online_players: bool,
+    pub accepts_transfers: bool,
+    pub entity_broadcast_range_percentage: u32,
+    pub status_heartbeat_interval: u32,
+    pub enable_status: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -327,6 +333,12 @@ impl Default for GameConfig {
             max_tnt_per_tick: 100,
             combat_exhaustion: 0.1,
             messages: ServerMessages::default(),
+            motd: "A Minecraft Server".to_owned(),
+            hide_online_players: false,
+            accepts_transfers: false,
+            entity_broadcast_range_percentage: 100,
+            status_heartbeat_interval: 0,
+            enable_status: true,
         }
     }
 }

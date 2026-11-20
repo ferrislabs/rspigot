@@ -9,8 +9,10 @@ use rsa::{Pkcs1v15Sign, RsaPrivateKey};
 use rspigot_core::config::ChatSecurity;
 use rspigot_core::events::{
     ChatMessage, ChatSessionKey, ClientEvent, LastSeenUpdate, MessageSignature, PlayerInput,
-    SignedCommand,
+    SignedChat, SignedCommand,
 };
+use rspigot_core::plugins::events::AsyncPlayerChatPatch;
+use rspigot_core::plugins::{EventKind, EventPatch};
 use rspigot_domain::text::Component;
 use sha1::Sha1;
 use sha2::{Digest, Sha256};
@@ -86,13 +88,14 @@ fn session_key(player: &Player, expires_at_ms: i64) -> ChatSessionKey {
     }
 }
 
-fn sign_message(
+fn payload(
     player: &Player,
     index: i32,
     content: &str,
     timestamp_ms: i64,
     salt: i64,
-) -> MessageSignature {
+    seen: &[MessageSignature],
+) -> Vec<u8> {
     let mut payload = 1i32.to_be_bytes().to_vec();
     payload.extend(player.id.0.as_bytes());
     payload.extend(uuid::Uuid::from_u128(SESSION).as_bytes());
@@ -101,7 +104,32 @@ fn sign_message(
     payload.extend((timestamp_ms / 1000).to_be_bytes());
     payload.extend((content.len() as i32).to_be_bytes());
     payload.extend(content.as_bytes());
-    payload.extend(0i32.to_be_bytes());
+    payload.extend((seen.len() as i32).to_be_bytes());
+    for signature in seen {
+        payload.extend(signature.0);
+    }
+    payload
+}
+
+fn sign_message(
+    player: &Player,
+    index: i32,
+    content: &str,
+    timestamp_ms: i64,
+    salt: i64,
+) -> MessageSignature {
+    sign_seen(player, index, content, timestamp_ms, salt, &[])
+}
+
+fn sign_seen(
+    player: &Player,
+    index: i32,
+    content: &str,
+    timestamp_ms: i64,
+    salt: i64,
+    seen: &[MessageSignature],
+) -> MessageSignature {
+    let payload = payload(player, index, content, timestamp_ms, salt, seen);
     MessageSignature(
         sign(
             &private(PLAYER_KEY),
@@ -130,6 +158,7 @@ fn heard(player: &Player) -> Vec<String> {
         .into_iter()
         .filter_map(|event| match event {
             ClientEvent::PlayerChat { message, .. } => Some(format!("chat:{message}")),
+            ClientEvent::SignedChat(signed) => Some(format!("signed:{}", signed.content)),
             ClientEvent::SystemChat { message, .. } => Some(format!(
                 "system:{}",
                 match &message.content {
@@ -201,7 +230,7 @@ fn signed_messages_are_broadcast_in_chain_order() {
     let (alice, bob) = two_players(&mut server);
     send_input(&mut server, &alice, chat(&alice, 0, "one", 100_000));
     send_input(&mut server, &alice, chat(&alice, 1, "two", 200_000));
-    assert_eq!(heard(&bob), ["chat:one", "chat:two"]);
+    assert_eq!(heard(&bob), ["signed:one", "signed:two"]);
 }
 
 #[test]
@@ -332,7 +361,7 @@ fn a_whisper_signed_argument_advances_the_chain() {
             .all(|line| !line.starts_with("system:chat.disabled"))
     );
     send_input(&mut server, &alice, chat(&alice, 1, "next", 200_000));
-    assert_eq!(heard(&bob).last().map(String::as_str), Some("chat:next"));
+    assert_eq!(heard(&bob).last().map(String::as_str), Some("signed:next"));
 }
 
 #[test]
@@ -413,4 +442,224 @@ fn a_key_that_expires_before_the_known_one_disconnects_the_player() {
             Vec::new()
         ))
     );
+}
+
+fn signed_events(player: &Player) -> Vec<std::sync::Arc<SignedChat>> {
+    player
+        .link
+        .take()
+        .into_iter()
+        .filter_map(|event| match event {
+            ClientEvent::SignedChat(signed) => Some(signed),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn the_relayed_signature_verifies_against_the_senders_public_key() {
+    let mut server = secure_server();
+    let (alice, bob) = two_players(&mut server);
+    send_input(&mut server, &alice, chat(&alice, 0, "one", 100_000));
+    let received = signed_events(&bob);
+    assert_eq!(received.len(), 1);
+    let first = &received[0];
+    assert_eq!(first.sender, alice.id);
+    assert_eq!(first.index, 0);
+    assert_eq!(first.unsigned_content, None);
+    let key =
+        rspigot_domain::chat_chain::PublicKey::from_der(&public_der(&private(PLAYER_KEY))).unwrap();
+    let signed = payload(
+        &alice,
+        first.index,
+        &first.content,
+        first.timestamp_ms,
+        first.salt,
+        &first.last_seen,
+    );
+    assert!(key.verify_sha256(&signed, &first.signature.0));
+}
+
+#[test]
+fn the_second_message_lists_the_first_among_the_messages_the_sender_saw() {
+    let mut server = secure_server();
+    let (alice, bob) = two_players(&mut server);
+    send_input(&mut server, &alice, chat(&alice, 0, "one", 100_000));
+    let first = signed_events(&bob).remove(0);
+    alice.link.take();
+    let second_signature = sign_seen(&alice, 1, "two", 200_000, 9, &[first.signature]);
+    send_input(
+        &mut server,
+        &alice,
+        PlayerInput::ChatMessage(Box::new(ChatMessage {
+            content: "two".to_owned(),
+            timestamp_ms: 200_000,
+            salt: 9,
+            signature: Some(second_signature),
+            last_seen: LastSeenUpdate {
+                offset: 1,
+                acknowledged: 1 << 19,
+                checksum: 0,
+            },
+        })),
+    );
+    let second = signed_events(&bob).remove(0);
+    assert_eq!(second.index, 1);
+    assert_eq!(second.last_seen, vec![first.signature]);
+    assert_eq!(second.signature, second_signature);
+}
+
+#[test]
+fn a_newcomer_receives_the_sessions_of_the_players_already_online() {
+    let mut server = secure_server();
+    let (alice, _bob) = two_players(&mut server);
+    let carol = arrive(&mut server, "Carol");
+    let sessions: Vec<_> = carol
+        .link
+        .take()
+        .into_iter()
+        .filter_map(|event| match event {
+            ClientEvent::ChatSessions(sessions) => Some(sessions),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(sessions.len(), 1);
+    assert_eq!(sessions[0].len(), 1);
+    assert_eq!(sessions[0][0].0, alice.id);
+}
+
+#[test]
+fn a_session_update_is_announced_to_every_player() {
+    let mut server = secure_server();
+    let alice = arrive(&mut server, "Alice");
+    let bob = arrive(&mut server, "Bob");
+    alice.link.take();
+    bob.link.take();
+    let key = session_key(&alice, KEY_EXPIRES_MS);
+    send_input(&mut server, &alice, PlayerInput::ChatSession(key.clone()));
+    for player in [&alice, &bob] {
+        assert!(
+            player
+                .link
+                .take()
+                .contains(&ClientEvent::ChatSessions(vec![(alice.id, key.clone())]))
+        );
+    }
+}
+
+#[test]
+fn a_message_without_a_session_is_relayed_as_plain_chat_when_not_enforced() {
+    let mut server = configured(|config| {
+        config.chat = ChatSecurity {
+            enforce_secure_profile: false,
+            services_keys: vec![public_der(&private(SERVICES_KEY))],
+        }
+    })
+    .with_clock(clock);
+    let alice = arrive(&mut server, "Alice");
+    let bob = arrive(&mut server, "Bob");
+    alice.link.take();
+    bob.link.take();
+    send_input(&mut server, &alice, PlayerInput::Chat("hello".to_owned()));
+    assert_eq!(heard(&bob), ["chat:hello"]);
+}
+
+#[test]
+fn a_player_without_a_key_cannot_chat_when_the_profile_is_enforced() {
+    let mut server = secure_server();
+    let alice = arrive(&mut server, "Alice");
+    alice.link.take();
+    send_input(&mut server, &alice, PlayerInput::Chat("hello".to_owned()));
+    assert_eq!(heard(&alice), ["system:chat.disabled.missingProfileKey"]);
+    assert!(alice.link.disconnected_with().is_none());
+}
+
+#[test]
+fn deleting_a_relayed_message_reaches_every_player() {
+    let mut server = secure_server();
+    let (alice, bob) = two_players(&mut server);
+    send_input(&mut server, &alice, chat(&alice, 0, "one", 100_000));
+    let signature = signed_events(&bob).remove(0).signature;
+    alice.link.take();
+    assert!(server.delete_chat(alice.id, signature));
+    server.deliver();
+    for player in [&alice, &bob] {
+        assert!(
+            player
+                .link
+                .take()
+                .contains(&ClientEvent::DeleteChat { signature })
+        );
+    }
+    assert!(!server.delete_chat(alice.id, signature));
+    assert!(!server.delete_chat(bob.id, signature));
+}
+
+fn plugin_scene() -> (Scene, Player, Player) {
+    let mut s = scene_on(
+        secure_server(),
+        &["Alice", "Bob"],
+        vec![deciding(1, EventKind::AsyncPlayerChat)],
+    );
+    let (alice, bob) = (s.players[0].clone(), s.players[1].clone());
+    for player in [&alice, &bob] {
+        send_input(
+            &mut s.server,
+            player,
+            PlayerInput::ChatSession(session_key(player, KEY_EXPIRES_MS)),
+        );
+    }
+    alice.link.take();
+    bob.link.take();
+    (s, alice, bob)
+}
+
+fn judged(patch: Option<AsyncPlayerChatPatch>) -> Vec<String> {
+    let (mut s, alice, bob) = plugin_scene();
+    send_input(&mut s.server, &alice, chat(&alice, 0, "orig", 100_000));
+    let asked = last_asked(&s.plugin, EventKind::AsyncPlayerChat);
+    rule_on(
+        &mut s.server,
+        1,
+        asked.id,
+        false,
+        patch.map(EventPatch::AsyncPlayerChat),
+    );
+    bob.link
+        .take()
+        .into_iter()
+        .filter_map(|event| match event {
+            ClientEvent::SignedChat(signed) => Some(format!(
+                "signed:{}:{:?}",
+                signed.content, signed.unsigned_content
+            )),
+            ClientEvent::SystemChat { message, .. } => {
+                Some(rspigot_core::console::console_text(&message))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_chat_the_plugin_leaves_alone_stays_signed() {
+    assert_eq!(judged(None), ["signed:orig:None"]);
+}
+
+#[test]
+fn a_message_the_plugin_edits_is_relayed_signed_with_unsigned_content() {
+    let patch = AsyncPlayerChatPatch {
+        message: Some("edited".to_owned()),
+        ..AsyncPlayerChatPatch::default()
+    };
+    assert_eq!(judged(Some(patch)), ["signed:orig:Some(\"edited\")"]);
+}
+
+#[test]
+fn a_format_the_plugin_changes_is_relayed_as_system_text() {
+    let patch = AsyncPlayerChatPatch {
+        format: Some("[%s] %s".to_owned()),
+        ..AsyncPlayerChatPatch::default()
+    };
+    assert_eq!(judged(Some(patch)), ["[Alice] orig"]);
 }

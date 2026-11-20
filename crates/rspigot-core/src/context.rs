@@ -659,8 +659,9 @@ impl<L: ClientLink> CommandContext for Server<L> {
         let now = self.world.level.game_time;
         let before = self.world.border.view(now);
         let result = change(&mut self.world.border, now);
-        if self.world.border.view(now) != before {
-            self.broadcast_border();
+        let after = self.world.border.view(now);
+        if after != before {
+            self.broadcast_border_change(&before, &after);
         }
         result
     }
@@ -792,7 +793,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
         if changed == 0 {
             return Err(FillBiomeProblem::NoChange);
         }
-        self.resend_chunks(&touched);
+        self.resend_biomes(&touched);
         Ok(changed)
     }
 
@@ -873,6 +874,40 @@ impl<L: ClientLink> CommandContext for Server<L> {
                 }
             }
         }
+    }
+
+    fn face_target(&mut self, target: Target, facing: &crate::commands::FaceRequest) {
+        let Target::Player(id) = target else {
+            self.rotate_to(target, facing.rotation.yaw, facing.rotation.pitch);
+            return;
+        };
+        let anchor = |anchor| match anchor {
+            crate::commands::source::Anchor::Feet => crate::events::LookAnchor::Feet,
+            crate::commands::source::Anchor::Eyes => crate::events::LookAnchor::Eyes,
+        };
+        let entity = facing
+            .entity
+            .and_then(|(looked, to)| self.entity_id_of(looked).map(|looked| (looked, anchor(to))));
+        let Some(player) = self.players.get_mut(&id) else {
+            return;
+        };
+        player.rotation = facing.rotation;
+        let tracked = player.entity_id;
+        self.push(
+            Audience::One(id),
+            ClientEvent::LookAt {
+                from: anchor(facing.from),
+                target: facing.at,
+                entity,
+            },
+        );
+        self.push(
+            Audience::Trackers(tracked),
+            ClientEvent::EntityHeadRotation {
+                entity: tracked,
+                yaw: facing.rotation.yaw,
+            },
+        );
     }
 
     fn swing_target(
@@ -1772,19 +1807,19 @@ fn selection_box(selector: &Selector, origin: Vec3) -> Option<Aabb> {
 }
 
 impl<L: ClientLink> Server<L> {
-    fn resend_chunks(&mut self, chunks: &[rspigot_domain::ChunkPos]) {
-        let dimension = self.world.dimension.key.clone();
-        for pos in chunks {
-            let Some(chunk) = self.world.chunks.get(*pos).cloned() else {
-                continue;
-            };
-            for player in self.players.values() {
-                if player.streamer.has_sent(*pos) {
-                    player.link.send(ClientEvent::Chunk {
-                        dimension: dimension.clone(),
-                        chunk: std::sync::Arc::clone(&chunk),
-                    });
-                }
+    fn resend_biomes(&mut self, chunks: &[rspigot_domain::ChunkPos]) {
+        let columns: Vec<_> = chunks
+            .iter()
+            .filter_map(|pos| Some((*pos, self.world.chunks.get(*pos).cloned()?)))
+            .collect();
+        for player in self.players.values() {
+            let visible: Vec<_> = columns
+                .iter()
+                .filter(|(pos, _)| player.streamer.has_sent(*pos))
+                .map(|(_, chunk)| std::sync::Arc::clone(chunk))
+                .collect();
+            if !visible.is_empty() {
+                player.link.send(ClientEvent::ChunksBiomes(visible));
             }
         }
     }

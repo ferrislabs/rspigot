@@ -160,7 +160,9 @@ fn sounds(events: &[ClientEvent]) -> Vec<&'static str> {
     events
         .iter()
         .filter_map(|event| match event {
-            ClientEvent::Sound { sound, .. } => Some(*sound),
+            ClientEvent::Sound { sound, .. } | ClientEvent::EntitySound { sound, .. } => {
+                Some(*sound)
+            }
             _ => None,
         })
         .collect()

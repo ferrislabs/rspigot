@@ -7,7 +7,7 @@ use rspigot_domain::player::PlayerId;
 use rspigot_domain::text::{Component, NamedColor};
 
 use crate::commands::signable::signable_arguments;
-use crate::events::{ChatMessage, ChatSessionKey, ClientEvent, SignedCommand};
+use crate::events::{ChatMessage, ChatSessionKey, ClientEvent, SignedChat, SignedCommand};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -80,7 +80,9 @@ impl<L: ClientLink> Server<L> {
         };
         player.chat.decoder =
             Decoder::keyed(player.profile.id.0, key.session, public, key.expires_at_ms);
-        player.chat_session = Some(key);
+        player.chat_index = 0;
+        player.chat_session = Some(key.clone());
+        self.push(Audience::All, ClientEvent::ChatSessions(vec![(id, key)]));
     }
 
     pub(crate) fn handle_chat_ack(&mut self, id: PlayerId, offset: i32) {
@@ -151,6 +153,7 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
+        let keyed = player.chat_session.is_some();
         let body = MessageBody {
             content: &message.content,
             timestamp_ms: message.timestamp_ms,
@@ -166,7 +169,25 @@ impl<L: ClientLink> Server<L> {
             self.reject_chat(id, translatable(error.translation_key()));
             return;
         }
-        self.broadcast_chat(id, &message.content);
+        let signed = match message.signature {
+            Some(signature) if keyed => {
+                let index = player.chat_index;
+                player.chat_index = index.saturating_add(1);
+                Some(Box::new(SignedChat {
+                    sender: id,
+                    sender_name: Component::text(player.profile.name.clone()),
+                    index,
+                    signature,
+                    content: message.content.clone(),
+                    timestamp_ms: message.timestamp_ms,
+                    salt: message.salt,
+                    last_seen: seen,
+                    unsigned_content: None,
+                }))
+            }
+            _ => None,
+        };
+        self.broadcast_chat(id, &message.content, signed);
     }
 
     pub(crate) fn handle_unsigned_command(&mut self, id: PlayerId, command: &str) {
@@ -214,6 +235,7 @@ impl<L: ClientLink> Server<L> {
         };
         let verdict = verify_arguments(
             &mut player.chat.decoder,
+            &mut player.chat_index,
             enforce,
             now,
             &signed,
@@ -243,6 +265,7 @@ enum Mismatch {
 
 fn verify_arguments(
     decoder: &mut Decoder,
+    chain_index: &mut i32,
     enforce: bool,
     now: i64,
     signed: &SignedCommand,
@@ -278,6 +301,7 @@ fn verify_arguments(
         decoder
             .unpack(enforce, now, Some(signature), &body)
             .map_err(Mismatch::Chain)?;
+        *chain_index = chain_index.saturating_add(1);
         verified.push(name);
     }
     if arguments

@@ -468,7 +468,13 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn shear_copper_golem(&mut self, player: PlayerId, target: EntityId, hand: Hand) {
-        self.entity_sound(target, SHEAR_SOUND, 1.0, 1.0);
+        self.play_entity_sound(
+            target,
+            SHEAR_SOUND,
+            crate::events::SoundSource::Players,
+            1.0,
+            1.0,
+        );
         let Some(living) = self
             .entities
             .store

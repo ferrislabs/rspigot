@@ -104,11 +104,13 @@ pub struct Server<L> {
     pub(crate) pending_queries: Vec<crate::locate::PendingQuery>,
     pub(crate) players: FxHashMap<PlayerId, Player<L>>,
     pub(crate) outbox: Vec<(Audience, ClientEvent)>,
+    pub(crate) extras: crate::client_extras::Extras,
     pub(crate) admin: AdminLists,
     pub(crate) permissions: crate::permissions::Permissions,
     pub(crate) admin_sink: Option<Sender<AdminLists>>,
     pub(crate) management_sink: Option<Sender<crate::management::ManagementNotice>>,
     pub(crate) management_seen: AdminLists,
+    pub(crate) management_activity: Option<std::time::Instant>,
     pub(crate) reload_sink: Option<Sender<crate::reload::ReloadRequest>>,
     pub(crate) player_io: Option<PlayerIo>,
     pub(crate) running: bool,
@@ -127,6 +129,8 @@ pub struct Server<L> {
     pub(crate) decisions: Decisions,
     pub(crate) broadcasts: Broadcasts,
     pub(crate) visibility: Visibility,
+    pub(crate) chat_history:
+        std::collections::VecDeque<(PlayerId, rspigot_domain::chat_chain::MessageSignature)>,
     pub(crate) plugin_inventories: PluginInventories,
     pub(crate) impacts: Impacts,
     pub(crate) difficulty_locked: bool,
@@ -214,10 +218,12 @@ impl<L: ClientLink> Server<L> {
             workers,
             players: FxHashMap::default(),
             outbox: Vec::new(),
+            extras: Default::default(),
             admin,
             permissions: crate::permissions::Permissions::default(),
             admin_sink: None,
             management_sink: None,
+            management_activity: None,
             management_seen: AdminLists::default(),
             reload_sink: None,
             player_io: None,
@@ -239,6 +245,7 @@ impl<L: ClientLink> Server<L> {
             decisions: Decisions::default(),
             broadcasts: Broadcasts::default(),
             visibility: Visibility::default(),
+            chat_history: std::collections::VecDeque::new(),
             plugin_inventories: PluginInventories::default(),
             impacts: Impacts::default(),
             difficulty_locked: false,
@@ -446,6 +453,9 @@ impl<L: ClientLink> Server<L> {
 
     pub fn handle(&mut self, message: Inbound<L>) {
         self.functions.data.activate();
+        if matches!(message, Inbound::Input { .. } | Inbound::Join { .. }) {
+            self.note_management_activity();
+        }
         match message {
             Inbound::PreLogin {
                 name,
@@ -482,6 +492,7 @@ impl<L: ClientLink> Server<L> {
             }
             Inbound::Console(line) => self.console_line(line),
             Inbound::Management(call) => self.handle_management(call),
+            Inbound::Rcon(call) => self.rcon_line(call),
             Inbound::Reload(data) => self.apply_reload(*data),
             Inbound::StatusPing { ping, reply } => self.status_ping(ping, reply),
             Inbound::PluginConnected {
@@ -804,6 +815,7 @@ impl<L: ClientLink> Server<L> {
             latency: 0,
             chat_session: None,
             chat: rspigot_domain::chat_chain::ChatState::default(),
+            chat_index: 0,
             client_brand: None,
             tracked: FxHashSet::default(),
             loaded: false,
@@ -872,6 +884,14 @@ impl<L: ClientLink> Server<L> {
             .chain(std::iter::once(Self::list_entry(&player)))
             .collect();
         player.link.send(ClientEvent::PlayerInfo(entries));
+        let sessions: Vec<(PlayerId, crate::events::ChatSessionKey)> = self
+            .players
+            .values()
+            .filter_map(|other| Some((other.id, other.chat_session.clone()?)))
+            .collect();
+        if !sessions.is_empty() {
+            player.link.send(ClientEvent::ChatSessions(sessions));
+        }
         self.push(
             Audience::All,
             ClientEvent::PlayerInfo(vec![Self::list_entry(&player)]),
@@ -895,7 +915,7 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn send_join_sequence(&self, player: &mut Player<L>) {
+    pub(crate) fn send_join_sequence(&self, player: &mut Player<L>) {
         let info = JoinInfo {
             entity_id: player.entity_id,
             hardcore: self.config.hardcore,
@@ -1019,6 +1039,7 @@ impl<L: ClientLink> Server<L> {
         let Some(mut player) = self.players.remove(&id) else {
             return;
         };
+        self.extras.forget(id);
         self.persist_player(&player);
         player.streamer.release_all(&mut self.world.chunks);
         for other in self.players.values_mut() {

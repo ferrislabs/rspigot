@@ -1,5 +1,5 @@
 use std::net::IpAddr;
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use crossbeam_channel::Sender;
 use rspigot_domain::player::{GameMode, PlayerId};
@@ -11,6 +11,8 @@ use crate::admin::{AdminLists, Ban, IpBanEntry, ListEntry};
 use crate::commands::CommandContext;
 use crate::ports::ClientLink;
 use crate::server::Server;
+
+const ACTIVITY_INTERVAL: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PlayerRef {
@@ -77,6 +79,18 @@ pub enum Setting {
     ForceGameMode,
     AllowFlight,
     OperatorPermissionLevel,
+    UseAllowlist,
+    ViewDistance,
+    SimulationDistance,
+    PlayerIdleTimeout,
+    SpawnProtectionRadius,
+    PauseWhenEmptySeconds,
+    StatusHeartbeatInterval,
+    Motd,
+    HideOnlinePlayers,
+    AcceptTransfers,
+    EntityBroadcastRange,
+    StatusReplies,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -184,6 +198,8 @@ pub enum ManagementNotice {
     IpBanAdded(IpBanView),
     IpBanRemoved(String),
     GameRuleUpdated { key: String, value: String },
+    Activity,
+    Status(StatusView),
 }
 
 pub struct ManagementCall {
@@ -233,6 +249,10 @@ fn mode_name(mode: GameMode) -> &'static str {
         GameMode::Adventure => "adventure",
         GameMode::Spectator => "spectator",
     }
+}
+
+fn distance(value: i64) -> Option<u8> {
+    u8::try_from(value).ok().filter(|n| (2..=32).contains(n))
 }
 
 fn same_player(a: &ListEntry, b: &ListEntry) -> bool {
@@ -684,8 +704,50 @@ impl<L: ClientLink> Server<L> {
                         Difficulty::from_name(&name).ok_or_else(|| invalid("a difficulty name"))?;
                     self.set_difficulty(difficulty);
                 }
-                (Setting::EnforceAllowlist, SettingValue::Bool(on)) => {
+                (Setting::UseAllowlist, SettingValue::Bool(on)) => {
                     self.set_whitelist_enabled(on);
+                }
+                (Setting::EnforceAllowlist, SettingValue::Bool(on)) => {
+                    self.config.enforce_whitelist = on;
+                    if on {
+                        self.enforce_whitelist();
+                    }
+                }
+                (Setting::ViewDistance, SettingValue::Int(n)) => {
+                    self.config.view_distance = distance(n).ok_or_else(|| invalid("2 to 32"))?;
+                }
+                (Setting::SimulationDistance, SettingValue::Int(n)) => {
+                    self.config.simulation_distance =
+                        distance(n).ok_or_else(|| invalid("2 to 32"))?;
+                }
+                (Setting::PlayerIdleTimeout, SettingValue::Int(n)) => {
+                    self.config.player_idle_timeout =
+                        u32::try_from(n).map_err(|_| invalid("a number of minutes"))?;
+                }
+                (Setting::SpawnProtectionRadius, SettingValue::Int(n)) => {
+                    self.config.spawn_protection =
+                        u32::try_from(n).map_err(|_| invalid("a radius"))?;
+                }
+                (Setting::PauseWhenEmptySeconds, SettingValue::Int(n)) => {
+                    self.config.pause_when_empty_seconds =
+                        u32::try_from(n).map_err(|_| invalid("a number of seconds"))?;
+                }
+                (Setting::StatusHeartbeatInterval, SettingValue::Int(n)) => {
+                    self.config.status_heartbeat_interval =
+                        u32::try_from(n).map_err(|_| invalid("a number of seconds"))?;
+                }
+                (
+                    Setting::Motd
+                    | Setting::HideOnlinePlayers
+                    | Setting::AcceptTransfers
+                    | Setting::EntityBroadcastRange
+                    | Setting::StatusReplies,
+                    _,
+                ) => {
+                    return Err(ManagementFault::Failed(
+                        "This setting is read at startup and cannot change while running"
+                            .to_owned(),
+                    ));
                 }
                 (Setting::MaxPlayers, SettingValue::Int(n)) => {
                     self.config.max_players = u32::try_from(n).map_err(|_| invalid("a count"))?;
@@ -715,7 +777,31 @@ impl<L: ClientLink> Server<L> {
             Setting::Difficulty => {
                 SettingValue::Text(difficulty_name(self.difficulty()).to_owned())
             }
-            Setting::EnforceAllowlist => SettingValue::Bool(self.admin.whitelist_enabled),
+            Setting::UseAllowlist => SettingValue::Bool(self.admin.whitelist_enabled),
+            Setting::EnforceAllowlist => SettingValue::Bool(self.config.enforce_whitelist),
+            Setting::ViewDistance => SettingValue::Int(i64::from(self.config.view_distance)),
+            Setting::SimulationDistance => {
+                SettingValue::Int(i64::from(self.config.simulation_distance))
+            }
+            Setting::PlayerIdleTimeout => {
+                SettingValue::Int(i64::from(self.config.player_idle_timeout))
+            }
+            Setting::SpawnProtectionRadius => {
+                SettingValue::Int(i64::from(self.config.spawn_protection))
+            }
+            Setting::PauseWhenEmptySeconds => {
+                SettingValue::Int(i64::from(self.config.pause_when_empty_seconds))
+            }
+            Setting::StatusHeartbeatInterval => {
+                SettingValue::Int(i64::from(self.config.status_heartbeat_interval))
+            }
+            Setting::Motd => SettingValue::Text(self.config.motd.clone()),
+            Setting::HideOnlinePlayers => SettingValue::Bool(self.config.hide_online_players),
+            Setting::AcceptTransfers => SettingValue::Bool(self.config.accepts_transfers),
+            Setting::EntityBroadcastRange => {
+                SettingValue::Int(i64::from(self.config.entity_broadcast_range_percentage))
+            }
+            Setting::StatusReplies => SettingValue::Bool(self.config.enable_status),
             Setting::MaxPlayers => SettingValue::Int(i64::from(self.config.max_players)),
             Setting::GameMode => {
                 SettingValue::Text(mode_name(self.config.default_game_mode).to_owned())
@@ -759,6 +845,28 @@ impl<L: ClientLink> Server<L> {
         Ok(ManagementReply::Done(true))
     }
 
+    fn status_view(&self) -> StatusView {
+        StatusView {
+            started: true,
+            players: self.online_players(),
+            version_name: rspigot_data::VERSION_NAME.to_owned(),
+            protocol: rspigot_data::PROTOCOL_VERSION,
+        }
+    }
+
+    pub(crate) fn note_management_activity(&mut self) {
+        if self.management_sink.is_none() {
+            return;
+        }
+        let due = self
+            .management_activity
+            .is_none_or(|last| last.elapsed() >= ACTIVITY_INTERVAL);
+        if due {
+            self.management_activity = Some(std::time::Instant::now());
+            self.notify_management(ManagementNotice::Activity);
+        }
+    }
+
     pub(crate) fn handle_management(&mut self, call: ManagementCall) {
         let ManagementCall { request, reply } = call;
         let outcome = match request {
@@ -771,12 +879,7 @@ impl<L: ClientLink> Server<L> {
             ManagementRequest::GameRules => Ok(self.manage_game_rules()),
             ManagementRequest::GameRule { key, value } => self.manage_game_rule(&key, &value),
             ManagementRequest::Setting { setting, value } => self.manage_setting(setting, value),
-            ManagementRequest::Status => Ok(ManagementReply::Status(StatusView {
-                started: true,
-                players: self.online_players(),
-                version_name: rspigot_data::VERSION_NAME.to_owned(),
-                protocol: rspigot_data::PROTOCOL_VERSION,
-            })),
+            ManagementRequest::Status => Ok(ManagementReply::Status(self.status_view())),
             ManagementRequest::Save { flush } => {
                 self.notify_management(ManagementNotice::Saving);
                 let done = CommandContext::save_all(self, flush);
@@ -853,6 +956,87 @@ mod tests {
                 ManagementNotice::IpBanRemoved("10.0.0.1".to_owned()),
             ]
         );
+    }
+
+    fn setting(
+        server: &mut Server<crate::end_tests::Tap>,
+        setting: Setting,
+        value: Option<SettingValue>,
+    ) -> ManagementReply {
+        let (reply, answer) = crossbeam_channel::bounded(1);
+        server.handle_management(ManagementCall {
+            request: ManagementRequest::Setting { setting, value },
+            reply,
+        });
+        answer.try_recv().expect("answered")
+    }
+
+    #[test]
+    fn distances_are_settable_between_two_and_thirty_two() {
+        let (mut server, _, _) = crate::end_tests::arrive();
+        assert_eq!(
+            setting(
+                &mut server,
+                Setting::ViewDistance,
+                Some(SettingValue::Int(12))
+            ),
+            ManagementReply::Setting(SettingValue::Int(12))
+        );
+        assert_eq!(server.config.view_distance, 12);
+        assert!(matches!(
+            setting(
+                &mut server,
+                Setting::SimulationDistance,
+                Some(SettingValue::Int(1))
+            ),
+            ManagementReply::Fault(ManagementFault::InvalidParams(_))
+        ));
+    }
+
+    #[test]
+    fn use_and_enforce_allowlist_are_two_settings() {
+        let (mut server, _, _) = crate::end_tests::arrive();
+        setting(
+            &mut server,
+            Setting::EnforceAllowlist,
+            Some(SettingValue::Bool(true)),
+        );
+        assert_eq!(
+            setting(&mut server, Setting::UseAllowlist, None),
+            ManagementReply::Setting(SettingValue::Bool(false))
+        );
+        assert_eq!(
+            setting(&mut server, Setting::EnforceAllowlist, None),
+            ManagementReply::Setting(SettingValue::Bool(true))
+        );
+    }
+
+    #[test]
+    fn startup_settings_read_back_and_refuse_a_change() {
+        let (mut server, _, _) = crate::end_tests::arrive();
+        server.config.motd = "Hello".to_owned();
+        assert_eq!(
+            setting(&mut server, Setting::Motd, None),
+            ManagementReply::Setting(SettingValue::Text("Hello".to_owned()))
+        );
+        assert!(matches!(
+            setting(
+                &mut server,
+                Setting::Motd,
+                Some(SettingValue::Text("x".to_owned()))
+            ),
+            ManagementReply::Fault(ManagementFault::Failed(_))
+        ));
+    }
+
+    #[test]
+    fn activity_is_announced_once_per_interval() {
+        let (server, _, _) = crate::end_tests::arrive();
+        let (sink, notices) = crossbeam_channel::unbounded();
+        let mut server = server.with_management_sink(sink);
+        server.note_management_activity();
+        server.note_management_activity();
+        assert_eq!(notices.try_iter().count(), 1);
     }
 
     #[test]

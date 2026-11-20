@@ -8,7 +8,7 @@ struct Property {
     default: &'static str,
 }
 
-const PROPERTIES: [Property; 21] = [
+const PROPERTIES: [Property; 14] = [
     Property {
         key: "generate-structures",
         default: "true",
@@ -20,30 +20,6 @@ const PROPERTIES: [Property; 21] = [
     Property {
         key: "rate-limit",
         default: "0",
-    },
-    Property {
-        key: "enable-rcon",
-        default: "false",
-    },
-    Property {
-        key: "resource-pack",
-        default: "",
-    },
-    Property {
-        key: "resource-pack-id",
-        default: "",
-    },
-    Property {
-        key: "resource-pack-sha1",
-        default: "",
-    },
-    Property {
-        key: "resource-pack-prompt",
-        default: "",
-    },
-    Property {
-        key: "require-resource-pack",
-        default: "false",
     },
     Property {
         key: "chat-spam-threshold-seconds",
@@ -70,10 +46,6 @@ const PROPERTIES: [Property; 21] = [
         default: "true",
     },
     Property {
-        key: "status-heartbeat-interval",
-        default: "0",
-    },
-    Property {
         key: "initial-enabled-packs",
         default: "vanilla",
     },
@@ -95,7 +67,7 @@ const PROPERTIES: [Property; 21] = [
     },
 ];
 
-const MORE_PROPERTIES: [Property; 4] = [
+const MORE_PROPERTIES: [Property; 2] = [
     Property {
         key: "text-filtering-config",
         default: "",
@@ -103,14 +75,6 @@ const MORE_PROPERTIES: [Property; 4] = [
     Property {
         key: "text-filtering-version",
         default: "0",
-    },
-    Property {
-        key: "bug-report-link",
-        default: "",
-    },
-    Property {
-        key: "management-server-tls-keystore",
-        default: "",
     },
 ];
 

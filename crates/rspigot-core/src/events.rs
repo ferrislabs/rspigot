@@ -93,6 +93,12 @@ pub struct InputState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LookAnchor {
+    Feet,
+    Eyes,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandBlockMode {
     Sequence,
     Auto,
@@ -235,6 +241,11 @@ pub enum PlayerInput {
         id: uuid::Uuid,
         status: crate::plugins::events::ResourcePackStatus,
     },
+    CookieResponse {
+        key: String,
+        payload: Option<Vec<u8>>,
+    },
+    Reconfigured,
     CustomClick {
         id: String,
         data: Option<String>,
@@ -246,6 +257,14 @@ pub enum PlayerInput {
     SetGameRules(Vec<(String, String)>),
     ChatSession(ChatSessionKey),
     ClientBrand(String),
+    RequestGameRuleValues,
+    SetJigsawBlock(Box<crate::block_editors::JigsawEdit>),
+    JigsawGenerate {
+        pos: BlockPos,
+        levels: i32,
+        keep_jigsaws: bool,
+    },
+    SetStructureBlock(Box<crate::block_editors::StructureEdit>),
     BlockTagQuery {
         transaction: i32,
         pos: BlockPos,
@@ -274,6 +293,19 @@ pub struct SignedCommand {
     pub salt: i64,
     pub arguments: Vec<(String, MessageSignature)>,
     pub last_seen: LastSeenUpdate,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SignedChat {
+    pub sender: PlayerId,
+    pub sender_name: Component,
+    pub index: i32,
+    pub signature: MessageSignature,
+    pub content: String,
+    pub timestamp_ms: i64,
+    pub salt: i64,
+    pub last_seen: Vec<MessageSignature>,
+    pub unsigned_content: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -326,6 +358,7 @@ pub enum Inbound<L> {
     },
     Console(String),
     Management(crate::management::ManagementCall),
+    Rcon(crate::rcon::RconCall),
     Reload(Box<crate::reload::ReloadData>),
     StatusPing {
         ping: StatusPing,
@@ -641,6 +674,11 @@ pub enum ClientEvent {
         sender_name: Component,
         message: String,
     },
+    SignedChat(std::sync::Arc<SignedChat>),
+    DeleteChat {
+        signature: MessageSignature,
+    },
+    ChatSessions(Vec<(PlayerId, ChatSessionKey)>),
     ShowDialog(Box<rspigot_domain::dialog::Dialog>),
     ClearDialog,
     PlayerInfo(Vec<PlayerListEntry>),
@@ -850,7 +888,29 @@ pub enum ClientEvent {
         host: String,
         port: i32,
     },
+    ResourcePackPush(crate::client_extras::ResourcePackOffer),
+    ResourcePackPop(Option<uuid::Uuid>),
+    ServerLinks(Vec<crate::client_extras::ServerLink>),
+    StoreCookie {
+        key: String,
+        payload: Vec<u8>,
+    },
+    CookieRequest(String),
+    ReportDetails(Vec<(String, String)>),
+    Reconfigure,
     Border(rspigot_domain::world_border::BorderView),
+    BorderCenter {
+        x: f64,
+        z: f64,
+    },
+    BorderSize(f64),
+    BorderLerp {
+        old_size: f64,
+        new_size: f64,
+        time: i64,
+    },
+    BorderWarningDelay(i32),
+    BorderWarningDistance(i32),
     TickingState {
         rate: f32,
         frozen: bool,
@@ -892,6 +952,26 @@ pub enum ClientEvent {
         data: i32,
     },
     Particle(Particle),
+    ChunksBiomes(Vec<Arc<ChunkColumn>>),
+    OpenBook(Hand),
+    LookAt {
+        from: LookAnchor,
+        target: Vec3,
+        entity: Option<(EntityId, LookAnchor)>,
+    },
+    EntitySound {
+        sound: &'static str,
+        source: SoundSource,
+        entity: EntityId,
+        volume: f32,
+        pitch: f32,
+        seed: i64,
+    },
+    CombatEnter,
+    CombatEnd {
+        duration: i32,
+    },
+    GameRuleValues(Vec<(String, String)>),
     Disconnect(Component),
 }
 

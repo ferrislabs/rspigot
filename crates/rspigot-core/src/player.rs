@@ -45,6 +45,7 @@ pub struct Player<L> {
     pub latency: i32,
     pub chat_session: Option<crate::events::ChatSessionKey>,
     pub chat: rspigot_domain::chat_chain::ChatState,
+    pub(crate) chat_index: i32,
     pub client_brand: Option<String>,
     pub tracked: FxHashSet<EntityId>,
     pub loaded: bool,

@@ -3,7 +3,7 @@ use rspigot_domain::text::Component;
 
 use crate::commands::{self, CommandSender};
 use crate::console::console_text;
-use crate::events::ClientEvent;
+use crate::events::{ClientEvent, SignedChat};
 use crate::plugins::decisions::Continuation;
 use crate::plugins::events::{
     AsyncPlayerChat, AsyncPlayerChatPatch, PlayerCommandPreprocess, PlayerCommandPreprocessPatch,
@@ -54,7 +54,12 @@ pub(crate) fn java_format(format: &str, name: &str, message: &str) -> Option<Str
 }
 
 impl<L: ClientLink> Server<L> {
-    pub(crate) fn broadcast_chat(&mut self, id: PlayerId, message: &str) {
+    pub(crate) fn broadcast_chat(
+        &mut self,
+        id: PlayerId,
+        message: &str,
+        signed: Option<Box<SignedChat>>,
+    ) {
         let Some(name) = self.players.get(&id).map(|p| p.profile.name.clone()) else {
             return;
         };
@@ -75,6 +80,7 @@ impl<L: ClientLink> Server<L> {
                 ChatStep {
                     player: id,
                     message: message.to_owned(),
+                    signed,
                 },
                 offered,
             ),
@@ -105,18 +111,32 @@ impl<L: ClientLink> Server<L> {
         };
         if patch == AsyncPlayerChatPatch::default() {
             tracing::info!("<{name}> {}", step.message);
-            self.push(
-                Audience::All,
-                ClientEvent::PlayerChat {
-                    sender: step.player,
-                    sender_name: Component::text(name),
-                    message: step.message,
-                },
-            );
+            match step.signed {
+                Some(signed) => self.relay_signed(signed),
+                None => self.push(
+                    Audience::All,
+                    ClientEvent::PlayerChat {
+                        sender: step.player,
+                        sender_name: Component::text(name),
+                        message: step.message,
+                    },
+                ),
+            }
             return;
         }
         let message = patch.message.unwrap_or(step.message);
         if message.is_empty() {
+            return;
+        }
+        if let Some(mut signed) = step.signed
+            && patch.format.is_none()
+            && patch.recipients.is_empty()
+        {
+            tracing::info!("<{name}> {message}");
+            if message != signed.content {
+                signed.unsigned_content = Some(message);
+            }
+            self.relay_signed(signed);
             return;
         }
         let format = patch.format.unwrap_or_else(|| CHAT_FORMAT.to_owned());
@@ -159,6 +179,7 @@ impl<L: ClientLink> Server<L> {
         let step = ChatStep {
             player: id,
             message: message.clone(),
+            signed: None,
         };
         self.fire(id, Continuation::Command(step), move |server| {
             server.snapshot_of(id).map(|player| {
