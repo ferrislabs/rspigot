@@ -17,6 +17,7 @@ pub enum AnvilError {
         "chunk is still in the pre-1.18 layout (Level/Sections): upgrade the map with a server's --forceUpgrade first"
     )]
     LegacyLayout,
+    #[error(
         "world data version {found} is older than the oldest supported version {oldest}; open it with a vanilla server first"
     )]
     TooOldDataVersion { found: i32, oldest: i32 },
