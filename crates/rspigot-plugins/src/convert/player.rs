@@ -129,6 +129,7 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
             host: transfer.host,
             port: transfer.port,
         },
+        Wire::Meta(order) => PlayerOrder::Meta(super::meta::order(order)?),
     };
     Ok(Order::Player { player, order })
 }
@@ -223,6 +224,7 @@ pub(super) fn snapshot(player: v1::PlayerSnapshot) -> Result<PlayerSnapshot, Mal
         rotation: shared::rotation(required(player.rotation)?),
         game_mode: game_mode(player.game_mode)?,
         permissions: player.permissions,
+        meta: super::meta::snapshot(player.meta, player.volatile_meta)?,
     })
 }
 
@@ -236,6 +238,8 @@ pub(super) fn wire_player(player: PlayerSnapshot) -> v1::PlayerSnapshot {
         game_mode: wire_game_mode(player.game_mode) as i32,
         rotation: Some(wire_rotation(player.rotation)),
         permissions: player.permissions,
+        meta: super::meta::wire_map(player.meta.persistent()),
+        volatile_meta: super::meta::wire_map(player.meta.volatile()),
     }
 }
 
@@ -296,6 +300,7 @@ mod tests {
 
     fn snapshot() -> PlayerSnapshot {
         PlayerSnapshot {
+            meta: Default::default(),
             permissions: Vec::new(),
             id: PlayerId(Uuid::from_u128(1)),
             name: "Steve".to_owned(),
@@ -639,6 +644,7 @@ mod tests {
         );
         assert_eq!(
             answered(Answer::Target(Some(TargetHit::Entity(EntityView {
+                meta: Default::default(),
                 id: EntityId(42),
                 uuid: Uuid::from_u128(7),
                 kind: "minecraft:skeleton".into(),
@@ -652,6 +658,7 @@ mod tests {
                     kind: "minecraft:skeleton".into(),
                     position: Some(wire_vec3(0.5, 64.0, 3.5)),
                     player: None,
+                    ..Default::default()
                 })),
             }))
         );

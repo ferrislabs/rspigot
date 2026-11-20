@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::attribute::EntityAttributesHandle;
 use crate::link::Link;
+use crate::meta::MetaHandle;
 use crate::server::Server;
 use crate::wire::parse_uuid;
 use crate::{Effect, EffectType, EntityType, Error, Player, Position, Vector};
@@ -14,6 +15,8 @@ pub struct Entity {
     pub kind: EntityType,
     pub position: Position,
     pub attributes: EntityAttributesHandle,
+    pub meta: MetaHandle,
+    pub volatile_meta: MetaHandle,
     player: Option<Player>,
     link: Link,
 }
@@ -25,6 +28,18 @@ impl Entity {
         })?;
         Ok(Self {
             attributes: EntityAttributesHandle::new(snapshot.entity_id, link.clone()),
+            meta: MetaHandle::of_entity(
+                snapshot.entity_id,
+                false,
+                crate::meta::snapshot(snapshot.meta)?,
+                link.clone(),
+            ),
+            volatile_meta: MetaHandle::of_entity(
+                snapshot.entity_id,
+                true,
+                crate::meta::snapshot(snapshot.volatile_meta)?,
+                link.clone(),
+            ),
             entity_id: snapshot.entity_id,
             uuid: parse_uuid(&snapshot.uuid, "an entity")?,
             kind,
@@ -48,6 +63,8 @@ impl Entity {
             kind: self.kind.key().to_owned(),
             position: Some(self.position.to_wire()),
             player: self.player.as_ref().map(Player::to_snapshot),
+            meta: Default::default(),
+            volatile_meta: Default::default(),
         }
     }
 
@@ -145,6 +162,37 @@ pub struct Entities {
     near: Option<(Position, f64)>,
     kind: Option<EntityType>,
     link: Link,
+}
+
+impl Entities {
+    pub async fn with_meta(&self, key: &str) -> Result<Vec<Entity>, Error> {
+        self.holding(key, false).await
+    }
+
+    pub async fn with_volatile_meta(&self, key: &str) -> Result<Vec<Entity>, Error> {
+        self.holding(key, true).await
+    }
+
+    async fn holding(&self, key: &str, volatile: bool) -> Result<Vec<Entity>, Error> {
+        let list = self
+            .link
+            .ask(
+                question::Question::EntitiesWithMeta(v1::EntitiesWithMeta {
+                    key: key.to_owned(),
+                    volatile,
+                }),
+                "an entity list",
+                |body| match body {
+                    answer::Body::Entities(list) => Some(list),
+                    _ => None,
+                },
+            )
+            .await?;
+        list.entities
+            .into_iter()
+            .map(|entity| Entity::from_wire(entity, &self.link))
+            .collect()
+    }
 }
 
 impl Entities {

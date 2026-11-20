@@ -7780,6 +7780,299 @@ impl EventPayload {
             _ => false,
         }
     }
+
+    pub fn block_positions(&self, out: &mut Vec<BlockPos>) {
+        match self {
+            Self::BellResonate(event) => {
+                out.push(event.block);
+            }
+            Self::BellRing(event) => {
+                out.push(event.block);
+            }
+            Self::BlockBreak(event) => {
+                out.push(event.block);
+            }
+            Self::BlockBrush(event) => {
+                out.push(event.block);
+                out.push(event.new_state.pos);
+            }
+            Self::BlockBurn(event) => {
+                out.push(event.block);
+                if let Some(item) = &event.igniting_block {
+                    out.push(*item);
+                }
+            }
+            Self::BlockCanBuild(event) => {
+                out.push(event.block);
+            }
+            Self::BlockCook(event) => {
+                out.push(event.block);
+            }
+            Self::BlockDamage(event) => {
+                out.push(event.block);
+            }
+            Self::BlockDamageAbort(event) => {
+                out.push(event.block);
+            }
+            Self::BlockDispense(event) => {
+                out.push(event.block);
+            }
+            Self::BlockDispenseArmor(event) => {
+                out.push(event.block);
+            }
+            Self::BlockDispenseLoot(event) => {
+                out.push(event.block);
+            }
+            Self::BlockDropItem(event) => {
+                out.push(event.block);
+                out.push(event.block_state.pos);
+            }
+            Self::BlockExp(event) => {
+                out.push(event.block);
+            }
+            Self::BlockExplode(event) => {
+                out.push(event.block);
+                out.extend(event.block_list.iter().copied());
+                out.push(event.exploded_block_state.pos);
+            }
+            Self::BlockFade(event) => {
+                out.push(event.block);
+                out.push(event.new_state.pos);
+            }
+            Self::BlockFertilize(event) => {
+                out.push(event.block);
+                out.extend(event.blocks.iter().map(|item| item.pos));
+            }
+            Self::BlockForm(event) => {
+                out.push(event.block);
+                out.push(event.new_state.pos);
+            }
+            Self::BlockFromTo(event) => {
+                out.push(event.block);
+                out.push(event.to_block);
+            }
+            Self::BlockGrow(event) => {
+                out.push(event.block);
+                out.push(event.new_state.pos);
+            }
+            Self::BlockIgnite(event) => {
+                out.push(event.block);
+                if let Some(item) = &event.igniting_block {
+                    out.push(*item);
+                }
+            }
+            Self::BlockMultiPlace(event) => {
+                out.push(event.block);
+                out.push(event.block_against);
+                out.push(event.block_placed);
+                out.push(event.block_replaced_state.pos);
+                out.extend(event.replaced_block_states.iter().map(|item| item.pos));
+                out.push(event.placed_state.pos);
+                out.extend(event.placed_states.iter().map(|item| item.pos));
+            }
+            Self::BlockPhysics(event) => {
+                out.push(event.block);
+                out.push(event.source_block);
+            }
+            Self::BlockPistonExtend(event) => {
+                out.push(event.block);
+                out.extend(event.blocks.iter().copied());
+            }
+            Self::BlockPistonRetract(event) => {
+                out.push(event.block);
+                out.extend(event.blocks.iter().copied());
+            }
+            Self::BlockPlace(event) => {
+                out.push(event.block);
+                out.push(event.block_against);
+                out.push(event.block_placed);
+                out.push(event.block_replaced_state.pos);
+                out.push(event.placed_state.pos);
+            }
+            Self::BlockReceiveGame(event) => {
+                out.push(event.block);
+            }
+            Self::BlockRedstone(event) => {
+                out.push(event.block);
+            }
+            Self::BlockShearEntity(event) => {
+                out.push(event.block);
+            }
+            Self::BlockSpread(event) => {
+                out.push(event.block);
+                out.push(event.new_state.pos);
+                out.push(event.source);
+            }
+            Self::Brew(event) => {
+                out.push(event.block);
+            }
+            Self::BrewingStandFuel(event) => {
+                out.push(event.block);
+            }
+            Self::BrewingStart(event) => {
+                out.push(event.block);
+            }
+            Self::CampfireStart(event) => {
+                out.push(event.block);
+            }
+            Self::CauldronLevelChange(event) => {
+                out.push(event.block);
+                out.push(event.new_state.pos);
+            }
+            Self::CrafterCraft(event) => {
+                out.push(event.block);
+            }
+            Self::EnchantItem(event) => {
+                out.push(event.enchant_block);
+            }
+            Self::EntityBlockForm(event) => {
+                out.push(event.block);
+                out.push(event.new_state.pos);
+            }
+            Self::EntityBreakDoor(event) => {
+                out.push(event.block);
+            }
+            Self::EntityChangeBlock(event) => {
+                out.push(event.block);
+            }
+            Self::EntityCombustByBlock(event) => {
+                if let Some(item) = &event.combuster {
+                    out.push(*item);
+                }
+            }
+            Self::EntityDamageByBlock(event) => {
+                if let Some(item) = &event.damager {
+                    out.push(*item);
+                }
+                if let Some(item) = &event.damager_block_state {
+                    out.push(item.pos);
+                }
+            }
+            Self::EntityEnterBlock(event) => {
+                out.push(event.block);
+            }
+            Self::EntityExplode(event) => {
+                out.extend(event.block_list.iter().copied());
+            }
+            Self::EntityInteract(event) => {
+                out.push(event.block);
+            }
+            Self::EntityPlace(event) => {
+                out.push(event.block);
+            }
+            Self::EntityTargetBlock(event) => {
+                if let Some(item) = &event.target {
+                    out.push(*item);
+                }
+            }
+            Self::ExpBottle(event) => {
+                if let Some(item) = &event.hit_block {
+                    out.push(*item);
+                }
+            }
+            Self::FluidLevelChange(event) => {
+                out.push(event.block);
+            }
+            Self::FurnaceBurn(event) => {
+                out.push(event.block);
+            }
+            Self::FurnaceExtract(event) => {
+                out.push(event.block);
+            }
+            Self::FurnaceSmelt(event) => {
+                out.push(event.block);
+            }
+            Self::FurnaceStartSmelt(event) => {
+                out.push(event.block);
+            }
+            Self::HangingPlace(event) => {
+                out.push(event.block);
+            }
+            Self::HopperInventorySearch(event) => {
+                out.push(event.block);
+                out.push(event.search_block);
+            }
+            Self::LeavesDecay(event) => {
+                out.push(event.block);
+            }
+            Self::LingeringPotionSplash(event) => {
+                if let Some(item) = &event.hit_block {
+                    out.push(*item);
+                }
+            }
+            Self::MoistureChange(event) => {
+                out.push(event.block);
+                out.push(event.new_state.pos);
+            }
+            Self::NotePlay(event) => {
+                out.push(event.block);
+            }
+            Self::PlayerBedEnter(event) => {
+                out.push(event.bed);
+            }
+            Self::PlayerBedLeave(event) => {
+                out.push(event.bed);
+            }
+            Self::PlayerBucketEmpty(event) => {
+                out.push(event.block);
+                out.push(event.block_clicked);
+            }
+            Self::PlayerBucketFill(event) => {
+                out.push(event.block);
+                out.push(event.block_clicked);
+            }
+            Self::PlayerHarvestBlock(event) => {
+                out.push(event.harvested_block);
+            }
+            Self::PlayerInteract(event) => {
+                if let Some(item) = &event.clicked_block {
+                    out.push(*item);
+                }
+            }
+            Self::PortalCreate(event) => {
+                out.extend(event.blocks.iter().map(|item| item.pos));
+            }
+            Self::PotionSplash(event) => {
+                if let Some(item) = &event.hit_block {
+                    out.push(*item);
+                }
+            }
+            Self::PrepareItemEnchant(event) => {
+                out.push(event.enchant_block);
+            }
+            Self::ProjectileHit(event) => {
+                if let Some(item) = &event.hit_block {
+                    out.push(*item);
+                }
+            }
+            Self::SculkBloom(event) => {
+                out.push(event.block);
+            }
+            Self::SignChange(event) => {
+                out.push(event.block);
+            }
+            Self::SpongeAbsorb(event) => {
+                out.push(event.block);
+                out.extend(event.blocks.iter().map(|item| item.pos));
+            }
+            Self::StructureGrow(event) => {
+                out.extend(event.blocks.iter().map(|item| item.pos));
+            }
+            Self::TNTPrime(event) => {
+                out.push(event.block);
+                if let Some(item) = &event.priming_block {
+                    out.push(*item);
+                }
+            }
+            Self::VaultDisplayItem(event) => {
+                out.push(event.block);
+            }
+            Self::VehicleBlockCollision(event) => {
+                out.push(event.block);
+            }
+            _ => {}
+        }
+    }
 }
 
 #[allow(clippy::large_enum_variant)]

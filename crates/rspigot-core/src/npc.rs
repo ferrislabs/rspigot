@@ -196,6 +196,7 @@ impl Npc {
 
 pub(crate) fn view_of(npc: &Npc) -> crate::plugins::EntityView {
     crate::plugins::EntityView {
+        meta: crate::plugins::MetaSnapshot::default(),
         id: npc.id,
         uuid: npc.uuid,
         kind: rspigot_entities::EntityKind::Player.name().to_owned(),

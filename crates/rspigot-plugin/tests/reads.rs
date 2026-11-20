@@ -171,6 +171,7 @@ async fn get_entities_lists_the_matching_entities() {
             z: 0.0,
         }),
         player: None,
+        ..Default::default()
     };
     let (request, _) = called.session.asked().await;
     called.session.say(answer(

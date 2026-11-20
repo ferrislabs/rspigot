@@ -12,6 +12,7 @@ use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::falling::{self, FallingState};
 use rspigot_domain::entity::{Entity, EntityState, RemovalReason};
 use rspigot_domain::item::ItemStack;
+use rspigot_domain::meta::{FALLING_KEY, MetaValue};
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::text::Component;
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, EntityId, ItemId, Vec3};
@@ -551,9 +552,26 @@ impl<L: ClientLink> Server<L> {
         self.change_block(view, pos, left_behind(state), step, false);
     }
 
-    pub(crate) fn finish_fall(&mut self, pos: BlockPos, state: BlockStateId, entity: Entity) {
+    pub(crate) fn finish_fall(&mut self, pos: BlockPos, state: BlockStateId, mut entity: Entity) {
         if self.block_or_air(pos) != state {
             return;
+        }
+        let carried = self.world.chunks.take_block_meta(pos);
+        if !carried.persistent.is_empty()
+            && let Err(error) = entity
+                .base
+                .meta
+                .set(FALLING_KEY, carried.persistent.as_value())
+        {
+            tracing::warn!(%error, ?pos, "The metadata of a falling block is too large to carry and is dropped");
+        }
+        if !carried.volatile.is_empty()
+            && let Err(error) = entity
+                .base
+                .volatile_meta
+                .set(FALLING_KEY, carried.volatile.as_value())
+        {
+            tracing::warn!(%error, ?pos, "The volatile metadata of a falling block is too large to carry and is dropped");
         }
         self.set_block(pos, left_behind(state));
         self.add_entity(entity, CreatureSpawnReason::Default);
@@ -780,6 +798,12 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let dropper = self.entity_view(id);
+        let carried = self.entities.store.get(id).map(|entity| {
+            (
+                entity.base.meta.get(FALLING_KEY),
+                entity.base.volatile_meta.get(FALLING_KEY),
+            )
+        });
         self.remove_falling(id, EntityRemoveCause::Despawn);
         if cancelled {
             return;
@@ -791,9 +815,31 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if self.set_block(pos, state) {
+            if let Some((persistent, volatile)) = carried {
+                self.restore_falling_meta(pos, persistent, volatile);
+            }
             self.on_land(pos, original, replaced);
         } else if drop_item {
             self.drop_item(dropper, original, pos);
+        }
+    }
+
+    fn restore_falling_meta(
+        &mut self,
+        pos: BlockPos,
+        persistent: Option<MetaValue>,
+        volatile: Option<MetaValue>,
+    ) {
+        for (value, is_volatile) in [(persistent, false), (volatile, true)] {
+            let Some(MetaValue::Map(entries)) = value else {
+                continue;
+            };
+            for (key, value) in entries {
+                let _ = self
+                    .world
+                    .chunks
+                    .set_block_meta(pos, &key, value, is_volatile);
+            }
         }
     }
 

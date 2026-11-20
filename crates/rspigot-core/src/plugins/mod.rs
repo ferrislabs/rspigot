@@ -25,6 +25,7 @@ mod knockback;
 mod levels;
 mod lifecycle;
 mod menus;
+pub mod meta;
 mod npcs;
 mod objects;
 mod orders;
@@ -84,6 +85,7 @@ pub use items::ItemSpec;
 pub(crate) use items::{spec_of, stack_of};
 pub use menus::MAX_PLUGIN_INVENTORIES;
 pub(crate) use menus::{PluginInventories, PluginMenu};
+pub use meta::{BlockMetaView, MetaChange, MetaEntries, MetaHolder, MetaOrder, MetaSnapshot};
 pub use npcs::{NpcOrder, NpcSpec, NpcView};
 pub(crate) use objects::{UseMemo, slot_of};
 pub use orders::{
@@ -243,6 +245,7 @@ pub struct PlayerSnapshot {
     pub rotation: Rotation,
     pub game_mode: GameMode,
     pub permissions: Vec<String>,
+    pub meta: MetaSnapshot,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -322,6 +325,7 @@ pub struct EntityView {
     pub kind: String,
     pub position: Vec3,
     pub player: Option<PlayerSnapshot>,
+    pub meta: MetaSnapshot,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -375,6 +379,8 @@ pub enum Answer {
     BossBars(Vec<BossBarView>),
     Npc(NpcView),
     Npcs(Vec<NpcView>),
+    MetaEntries(Vec<(String, rspigot_domain::meta::MetaValue)>),
+    BlockPositions(Vec<BlockPos>),
     Target(Option<TargetHit>),
     CustomInventory(CustomInventoryState),
     Refused(String),
@@ -394,6 +400,7 @@ pub enum ToPlugin {
         phase: Phase,
         cancelled: bool,
         payload: EventPayload,
+        blocks: Vec<BlockMetaView>,
     },
     Answer {
         request: u64,
@@ -475,6 +482,24 @@ pub enum Question {
     NpcByKey(String),
     Npcs,
     Npc(EntityId),
+    Meta {
+        holder: MetaHolder,
+        key: Option<String>,
+        volatile: bool,
+    },
+    FindBlocks {
+        key: String,
+        value: Option<rspigot_domain::meta::MetaValue>,
+        volatile: bool,
+    },
+    EntitiesWithMeta {
+        key: String,
+        volatile: bool,
+    },
+    PlayersWithMeta {
+        key: String,
+        volatile: bool,
+    },
 }
 
 #[cfg(test)]

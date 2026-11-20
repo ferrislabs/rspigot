@@ -330,6 +330,12 @@ impl<L: ClientLink> Server<L> {
             kind: source.kind.name().to_owned(),
             position: source.position,
             player: source.player.and_then(|id| self.snapshot_of(id)),
+            meta: self
+                .entities
+                .store
+                .get(source.entity)
+                .map(|entity| crate::plugins::MetaSnapshot::of(&entity.base))
+                .unwrap_or_default(),
         }
     }
 }

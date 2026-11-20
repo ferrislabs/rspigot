@@ -263,14 +263,13 @@ pub(crate) fn effect_type(key: String) -> Result<EffectType, Error> {
 }
 
 pub(crate) fn block(pos: v1::BlockPos, link: &Link) -> Block {
-    Block::new(
-        BlockPos {
-            x: pos.x,
-            y: pos.y,
-            z: pos.z,
-        },
-        link.clone(),
-    )
+    let pos = BlockPos {
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+    };
+    let (persistent, volatile) = crate::meta::block_entries(pos);
+    Block::with_meta(pos, link.clone(), persistent, volatile)
 }
 
 pub(crate) const fn vector(vec: v1::Vec3) -> Vector {
@@ -301,6 +300,8 @@ pub(crate) fn player_entity(player: &v1::PlayerSnapshot) -> v1::EntitySnapshot {
         kind: "minecraft:player".to_owned(),
         position: player.position,
         player: Some(player.clone()),
+        meta: std::collections::HashMap::new(),
+        volatile_meta: std::collections::HashMap::new(),
     }
 }
 

@@ -49,6 +49,7 @@ impl Newborn {
             kind: self.kind.name().to_owned(),
             position: self.position,
             player: None,
+            meta: crate::plugins::MetaSnapshot::default(),
         }
     }
 }
@@ -70,7 +71,9 @@ pub(crate) fn spawn_kind(entity: &Entity) -> EventKind {
 }
 
 pub(crate) fn view_of_entity(entity: &Entity) -> EntityView {
-    Newborn::of(entity).view()
+    let mut view = Newborn::of(entity).view();
+    view.meta = crate::plugins::MetaSnapshot::of(&entity.base);
+    view
 }
 
 pub(crate) fn name_of_entity(entity: &Entity) -> Component {
@@ -107,6 +110,7 @@ impl<L: ClientLink> Server<L> {
                 kind: Kind::Player.name().to_owned(),
                 position: player.position,
                 player: Some(self.describe(player)),
+                meta: crate::plugins::MetaSnapshot::default(),
             });
         }
         self.entity_view(id)

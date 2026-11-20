@@ -77,6 +77,7 @@ impl<L: ClientLink> Server<L> {
         phase: Phase,
     ) {
         let (cancelled, heard) = audience(listeners, payload, cancelled, phase);
+        let blocks = self.blocks_meta_of(payload);
         for (connection, handlers) in heard {
             self.plugins.send(
                 connection,
@@ -86,6 +87,7 @@ impl<L: ClientLink> Server<L> {
                     phase,
                     cancelled,
                     payload: payload.clone(),
+                    blocks: blocks.clone(),
                 },
             );
         }
@@ -265,6 +267,24 @@ impl<L: ClientLink> Server<L> {
                 .map_or(Answer::NotFound, Answer::Npc),
             Question::Npcs => Answer::Npcs(self.npc_views(connection)),
             Question::Npc(id) => self.npc_view(id).map_or(Answer::NotFound, Answer::Npc),
+            Question::Meta {
+                holder,
+                key,
+                volatile,
+            } => self
+                .meta_entries(&holder, key.as_deref(), volatile)
+                .map_or(Answer::NotFound, Answer::MetaEntries),
+            Question::FindBlocks {
+                key,
+                value,
+                volatile,
+            } => Answer::BlockPositions(self.blocks_with_meta(&key, value.as_ref(), volatile)),
+            Question::PlayersWithMeta { key, volatile } => {
+                Answer::Players(self.players_with_meta(&key, volatile))
+            }
+            Question::EntitiesWithMeta { key, volatile } => {
+                Answer::Entities(self.entities_with_meta(&key, volatile))
+            }
             Question::CreateBossBar(spec) => self
                 .create_boss_bar_for_plugin(spec)
                 .map_or_else(Answer::Refused, Answer::BossBarCreated),
@@ -423,6 +443,7 @@ impl<L: ClientLink> Server<L> {
         } else {
             Vec::new()
         };
+        let blocks = self.blocks_meta_of(&payload);
         for (connection, handlers) in recipients(deciders, false, Phase::Decide) {
             self.plugins.send(
                 connection,
@@ -432,6 +453,7 @@ impl<L: ClientLink> Server<L> {
                     phase: Phase::Decide,
                     cancelled: false,
                     payload: payload.clone(),
+                    blocks: blocks.clone(),
                 },
             );
         }
@@ -1689,6 +1711,14 @@ impl<L: ClientLink> Server<L> {
             position: player.position,
             rotation: player.rotation,
             game_mode: player.game_mode,
+            meta: if player.meta.has_visible() || player.volatile_meta.has_visible() {
+                crate::plugins::MetaSnapshot::new(
+                    player.meta.entries(),
+                    player.volatile_meta.entries(),
+                )
+            } else {
+                crate::plugins::MetaSnapshot::default()
+            },
         }
     }
 
@@ -2038,6 +2068,7 @@ mod tests {
             item: None,
             material: "minecraft:air".to_owned(),
             player: PlayerSnapshot {
+                meta: Default::default(),
                 permissions: Vec::new(),
                 id: PlayerId::offline("Alice"),
                 name: "Alice".to_owned(),

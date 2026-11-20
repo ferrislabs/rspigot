@@ -509,6 +509,7 @@ impl<L: ClientLink> Server<L> {
                             kind: Kind::Item.name().to_owned(),
                             position,
                             player: None,
+                            meta: crate::plugins::MetaSnapshot::default(),
                         },
                         item: spec_of(&stack),
                     })

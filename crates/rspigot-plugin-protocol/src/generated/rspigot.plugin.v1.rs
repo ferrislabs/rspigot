@@ -119,6 +119,13 @@ pub struct PlayerSnapshot {
     pub rotation: ::core::option::Option<Rotation>,
     #[prost(string, repeated, tag = "8")]
     pub permissions: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(map = "string, message", tag = "9")]
+    pub meta: ::std::collections::HashMap<::prost::alloc::string::String, MetaValue>,
+    #[prost(map = "string, message", tag = "10")]
+    pub volatile_meta: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        MetaValue,
+    >,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -133,6 +140,13 @@ pub struct EntitySnapshot {
     pub position: ::core::option::Option<Vec3>,
     #[prost(message, optional, tag = "5")]
     pub player: ::core::option::Option<PlayerSnapshot>,
+    #[prost(map = "string, message", tag = "6")]
+    pub meta: ::std::collections::HashMap<::prost::alloc::string::String, MetaValue>,
+    #[prost(map = "string, message", tag = "7")]
+    pub volatile_meta: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        MetaValue,
+    >,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -432,6 +446,66 @@ pub struct LootContext {
     pub killer: ::core::option::Option<EntitySnapshot>,
     #[prost(message, optional, tag = "4")]
     pub looted: ::core::option::Option<EntitySnapshot>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetaValue {
+    #[prost(oneof = "meta_value::Value", tags = "1, 2, 3, 4, 5, 6, 7")]
+    pub value: ::core::option::Option<meta_value::Value>,
+}
+/// Nested message and enum types in `MetaValue`.
+pub mod meta_value {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Value {
+        #[prost(bool, tag = "1")]
+        Flag(bool),
+        #[prost(int64, tag = "2")]
+        Number(i64),
+        #[prost(double, tag = "3")]
+        Decimal(f64),
+        #[prost(string, tag = "4")]
+        Text(::prost::alloc::string::String),
+        #[prost(bytes, tag = "5")]
+        Data(::prost::alloc::vec::Vec<u8>),
+        #[prost(message, tag = "6")]
+        List(super::MetaList),
+        #[prost(message, tag = "7")]
+        Map(super::MetaMap),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetaList {
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<MetaValue>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetaMap {
+    #[prost(map = "string, message", tag = "1")]
+    pub entries: ::std::collections::HashMap<::prost::alloc::string::String, MetaValue>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetaEntry {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub value: ::core::option::Option<MetaValue>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BlockMeta {
+    #[prost(message, optional, tag = "1")]
+    pub pos: ::core::option::Option<BlockPos>,
+    #[prost(map = "string, message", tag = "2")]
+    pub meta: ::std::collections::HashMap<::prost::alloc::string::String, MetaValue>,
+    #[prost(map = "string, message", tag = "3")]
+    pub volatile_meta: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        MetaValue,
+    >,
 }
 #[allow(clippy::all)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
@@ -4460,6 +4534,8 @@ pub struct Event {
     pub phase: i32,
     #[prost(bool, tag = "4")]
     pub cancelled: bool,
+    #[prost(message, repeated, tag = "5")]
+    pub block_meta: ::prost::alloc::vec::Vec<BlockMeta>,
     #[prost(
         oneof = "event::Payload",
         tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 130, 131, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213, 214, 215, 216, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267"
@@ -9636,7 +9712,7 @@ pub struct PlayerOrder {
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -9739,6 +9815,8 @@ pub mod player_order {
         ClearDialog(super::Empty),
         #[prost(message, tag = "56")]
         SendRichMessage(super::RichMessage),
+        #[prost(message, tag = "57")]
+        Meta(super::MetaOrder),
     }
 }
 #[allow(clippy::all)]
@@ -9852,10 +9930,31 @@ pub mod world_order {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetaOrder {
+    #[prost(bool, tag = "1")]
+    pub volatile: bool,
+    #[prost(oneof = "meta_order::Change", tags = "10, 11, 12")]
+    pub change: ::core::option::Option<meta_order::Change>,
+}
+/// Nested message and enum types in `MetaOrder`.
+pub mod meta_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Change {
+        #[prost(message, tag = "10")]
+        Set(super::MetaEntry),
+        #[prost(string, tag = "11")]
+        Remove(::prost::alloc::string::String),
+        #[prost(message, tag = "12")]
+        Clear(super::Empty),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BlockOrder {
     #[prost(message, optional, tag = "1")]
     pub pos: ::core::option::Option<BlockPos>,
-    #[prost(oneof = "block_order::Order", tags = "10, 11, 12")]
+    #[prost(oneof = "block_order::Order", tags = "10, 11, 12, 13")]
     pub order: ::core::option::Option<block_order::Order>,
 }
 /// Nested message and enum types in `BlockOrder`.
@@ -9869,6 +9968,8 @@ pub mod block_order {
         SetWith(super::SetBlockWith),
         #[prost(message, tag = "12")]
         BreakNaturally(super::Empty),
+        #[prost(message, tag = "13")]
+        Meta(super::MetaOrder),
     }
 }
 #[allow(clippy::all)]
@@ -9878,7 +9979,7 @@ pub struct EntityOrder {
     pub entity: i32,
     #[prost(
         oneof = "entity_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
     )]
     pub order: ::core::option::Option<entity_order::Order>,
 }
@@ -9907,6 +10008,8 @@ pub mod entity_order {
         SetAttribute(super::SetAttribute),
         #[prost(message, tag = "19")]
         Change(super::TypedChange),
+        #[prost(message, tag = "20")]
+        Meta(super::MetaOrder),
     }
 }
 #[allow(clippy::all)]
@@ -10270,13 +10373,54 @@ pub struct DropItem {
     pub item: ::core::option::Option<Item>,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MetaQuery {
+    #[prost(string, optional, tag = "3")]
+    pub key: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "4")]
+    pub volatile: bool,
+    #[prost(oneof = "meta_query::Holder", tags = "1, 2, 5")]
+    pub holder: ::core::option::Option<meta_query::Holder>,
+}
+/// Nested message and enum types in `MetaQuery`.
+pub mod meta_query {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Holder {
+        #[prost(int32, tag = "1")]
+        Entity(i32),
+        #[prost(message, tag = "2")]
+        Block(super::BlockPos),
+        #[prost(string, tag = "5")]
+        Player(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FindBlocks {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub value: ::core::option::Option<MetaValue>,
+    #[prost(bool, tag = "3")]
+    pub volatile: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EntitiesWithMeta {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub volatile: bool,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Question {
     #[prost(uint64, tag = "1")]
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -10341,6 +10485,14 @@ pub mod question {
         Npcs(super::Empty),
         #[prost(int32, tag = "37")]
         Npc(i32),
+        #[prost(message, tag = "38")]
+        Meta(super::MetaQuery),
+        #[prost(message, tag = "39")]
+        FindBlocks(super::FindBlocks),
+        #[prost(message, tag = "40")]
+        EntitiesWithMeta(super::EntitiesWithMeta),
+        #[prost(message, tag = "41")]
+        PlayersWithMeta(super::EntitiesWithMeta),
     }
 }
 #[allow(clippy::all)]
@@ -10702,6 +10854,18 @@ pub struct NpcState {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MetaEntries {
+    #[prost(message, repeated, tag = "1")]
+    pub entries: ::prost::alloc::vec::Vec<MetaEntry>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BlockPositions {
+    #[prost(message, repeated, tag = "1")]
+    pub positions: ::prost::alloc::vec::Vec<BlockPos>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NpcList {
     #[prost(message, repeated, tag = "1")]
     pub npcs: ::prost::alloc::vec::Vec<NpcState>,
@@ -10713,7 +10877,7 @@ pub struct Answer {
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -10774,6 +10938,10 @@ pub mod answer {
         Npc(super::NpcState),
         #[prost(message, tag = "27")]
         Npcs(super::NpcList),
+        #[prost(message, tag = "28")]
+        MetaEntries(super::MetaEntries),
+        #[prost(message, tag = "29")]
+        BlockPositions(super::BlockPositions),
     }
 }
 #[allow(clippy::all)]

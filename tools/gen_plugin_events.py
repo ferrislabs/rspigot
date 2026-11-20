@@ -980,7 +980,7 @@ def emit_proto(model):
     w()
     payloads = ", ".join(str(number + PAYLOAD_OFFSET) for number in model.reserved)
     w("message Event {")
-    w("  uint64 id = 1; repeated uint32 handlers = 2; Phase phase = 3; bool cancelled = 4;")
+    w("  uint64 id = 1; repeated uint32 handlers = 2; Phase phase = 3; bool cancelled = 4; repeated BlockMeta block_meta = 5;")
     if payloads:
         w(f"  reserved {payloads};")
     w("  oneof payload {")
@@ -1221,6 +1221,31 @@ def emit_core(model):
         main = next(f for f in e.patched if f.name == e.main_result)
         body(f"            Self::{e.name}(event) => matches!(event.{main.name}, {main.ty.leaf.core}::{pascal(e.cancel_sets[main.name])}),")
     body("            _ => false,")
+    body("        }")
+    body("    }")
+    body()
+    body("    pub fn block_positions(&self, out: &mut Vec<BlockPos>) {")
+    body("        match self {")
+    for e in events:
+        pushes = []
+        for f in e.readable:
+            if f.index or f.ty.leaf.id not in ("block", "block_snapshot"):
+                continue
+            tail = "" if f.ty.leaf.id == "block" else ".pos"
+            deref = "*" if f.ty.leaf.id == "block" else ""
+            if f.ty.many:
+                mapper = ".copied()" if not tail else ".map(|item| item.pos)"
+                pushes.append(f"                out.extend(event.{f.name}.iter(){mapper});")
+            elif f.nullable:
+                pushes.append(f"                if let Some(item) = &event.{f.name} {{ out.push({deref}item{tail}); }}")
+            else:
+                pushes.append(f"                out.push(event.{f.name}{tail});")
+        if pushes:
+            body(f"            Self::{e.name}(event) => {{")
+            for line in pushes:
+                body(line)
+            body("            }")
+    body("            _ => {}")
     body("        }")
     body("    }")
     body("}")

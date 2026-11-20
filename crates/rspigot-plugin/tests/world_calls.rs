@@ -87,6 +87,7 @@ fn zombie(kind: &str) -> v1::EntitySnapshot {
         kind: kind.to_owned(),
         position: Some(vec3(4.5, 64.0, -2.5)),
         player: None,
+        ..Default::default()
     }
 }
 
