@@ -420,6 +420,12 @@ TABLE_TYPES = {
 EXTRA_TABLES = [
     ("minecraft:charged_creeper/root", "minecraft:entity"),
     ("minecraft:brush/armadillo", "minecraft:entity_interact"),
+    ("minecraft:archaeology/desert_pyramid", "minecraft:archaeology"),
+    ("minecraft:archaeology/desert_well", "minecraft:archaeology"),
+    ("minecraft:archaeology/ocean_ruin_cold", "minecraft:archaeology"),
+    ("minecraft:archaeology/ocean_ruin_warm", "minecraft:archaeology"),
+    ("minecraft:archaeology/trail_ruins_common", "minecraft:archaeology"),
+    ("minecraft:archaeology/trail_ruins_rare", "minecraft:archaeology"),
     ("minecraft:spawners/trial_chamber/consumables", "minecraft:chest"),
     ("minecraft:spawners/trial_chamber/items_to_drop_when_ominous", "minecraft:chest"),
     ("minecraft:spawners/trial_chamber/key", "minecraft:chest"),

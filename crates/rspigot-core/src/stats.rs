@@ -1,17 +1,21 @@
 use std::collections::BTreeMap;
 
+use rspigot_blocks::BlockKind;
 use rspigot_data::registries::static_index;
 use rspigot_domain::attribute::{ARMOR, ARMOR_TOUGHNESS};
 use rspigot_domain::container_menu::MenuKind;
 use rspigot_domain::damage::{self, DamageTag, DamageType};
 use rspigot_domain::entity::living::LivingState;
+use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::item::ItemStack;
-use rspigot_domain::player::PlayerId;
-use rspigot_domain::{EntityId, ItemId, Vec3};
+use rspigot_domain::player::{GameMode, PlayerId};
+use rspigot_domain::{BlockPos, BlockStateId, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use serde_json::{Map, Value};
 
 use crate::containers::{Backing, Lid};
+use crate::events::Hand;
+use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
 use crate::plugins::events::CauldronLevelChangeReason;
 use crate::plugins::events::{PlayerStatisticIncrement, Statistic};
@@ -882,6 +886,94 @@ impl<L: ClientLink> Server<L> {
     }
 }
 
+const CAKE_SLICES: i32 = 6;
+const CAKE_NUTRITION: i32 = 2;
+const CAKE_SATURATION: f32 = 0.1;
+const CANDLES: &str = "minecraft:candles";
+
+fn potted_of(item: ItemId) -> Option<BlockKind> {
+    let name = item.kind()?.name().strip_prefix("minecraft:")?;
+    BlockKind::from_name(&format!("minecraft:potted_{name}"))
+        .or_else(|| BlockKind::from_name(&format!("minecraft:potted_{name}_bush")))
+}
+
+fn is_candle(item: ItemId) -> bool {
+    rspigot_data::tags::tag("minecraft:item", CANDLES)
+        .is_some_and(|items| items.binary_search(&u32::from(item.0)).is_ok())
+}
+
+impl<L: ClientLink> Server<L> {
+    pub(crate) fn use_cake(
+        &mut self,
+        id: PlayerId,
+        held: Option<&ItemStack>,
+        pos: BlockPos,
+        clicked: BlockStateId,
+        sequence: i32,
+    ) -> bool {
+        if clicked.kind() != Some(BlockKind::Cake) {
+            return false;
+        }
+        let bites: i32 = clicked
+            .property("bites")
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(0);
+        if bites == 0 && held.is_some_and(|stack| is_candle(stack.item)) {
+            return false;
+        }
+        let Some(player) = self.players.get_mut(&id) else {
+            return false;
+        };
+        if player.game_mode != GameMode::Creative && !player.vitals.food.needs_food() {
+            return false;
+        }
+        player.vitals.food.eat(CAKE_NUTRITION, CAKE_SATURATION);
+        let entity = player.entity_id;
+        self.award_custom(id, custom::EAT_CAKE_SLICE, 1);
+        self.block_game_event(GameEvent::Eat, pos, GameEventContext::of(Some(entity)));
+        if bites < CAKE_SLICES {
+            if let Some(eaten) = clicked.with_property("bites", &(bites + 1).to_string()) {
+                self.set_block(pos, eaten);
+            }
+        } else {
+            self.set_block(pos, BlockStateId::AIR);
+            self.block_game_event(
+                GameEvent::BlockDestroy,
+                pos,
+                GameEventContext::of(Some(entity)),
+            );
+        }
+        self.player_swing(id, Hand::Main, false);
+        self.ack_block(id, sequence);
+        true
+    }
+
+    pub(crate) fn use_flower_pot(
+        &mut self,
+        id: PlayerId,
+        hand: Hand,
+        held: Option<&ItemStack>,
+        pos: BlockPos,
+        clicked: BlockStateId,
+        sequence: i32,
+    ) -> bool {
+        if clicked.kind() != Some(BlockKind::FlowerPot) {
+            return false;
+        }
+        let Some(potted) = held.and_then(|stack| potted_of(stack.item)) else {
+            return false;
+        };
+        self.set_block(pos, potted.default_state());
+        self.award_custom(id, custom::POT_FLOWER, 1);
+        self.consume_held(id, hand, 1);
+        let entity = self.players.get(&id).map(|player| player.entity_id);
+        self.block_game_event(GameEvent::BlockChange, pos, GameEventContext::of(entity));
+        self.player_swing(id, hand, false);
+        self.ack_block(id, sequence);
+        true
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -913,6 +1005,21 @@ mod tests {
                 "{name}"
             );
         }
+    }
+
+    #[test]
+    fn flowers_map_to_their_potted_block() {
+        use rspigot_items::ItemKind;
+        assert_eq!(
+            potted_of(ItemKind::Dandelion.id()),
+            Some(BlockKind::PottedDandelion)
+        );
+        assert_eq!(
+            potted_of(ItemKind::Azalea.id()),
+            Some(BlockKind::PottedAzaleaBush)
+        );
+        assert_eq!(potted_of(ItemKind::Stone.id()), None);
+        assert!(is_candle(ItemKind::Candle.id()));
     }
 
     #[test]

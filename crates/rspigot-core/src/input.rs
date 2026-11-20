@@ -473,7 +473,11 @@ impl<L: ClientLink> Server<L> {
             DigAction::DropItem => self.handle_drop_action(id, false),
             DigAction::DropStack => self.handle_drop_action(id, true),
             DigAction::ReleaseUseItem => self.release_use_item(id),
-            DigAction::Stab => self.send_inventory(id),
+            DigAction::Stab => {
+                if !self.spear_stab(id) {
+                    self.send_inventory(id);
+                }
+            }
         }
     }
 
@@ -662,6 +666,12 @@ impl<L: ClientLink> Server<L> {
             {
                 return;
             }
+            if !(sneaking && holding)
+                && (self.use_cake(id, stack.as_ref(), pos, clicked, sequence)
+                    || self.use_flower_pot(id, hand, stack.as_ref(), pos, clicked, sequence))
+            {
+                return;
+            }
             if !(sneaking && holding) && self.use_bed(id, pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
@@ -686,6 +696,10 @@ impl<L: ClientLink> Server<L> {
             }
         } else {
             self.resync_denied_block(id, pos, face, clicked, stack.as_ref());
+        }
+        if item_ok && self.use_brush(id, hand) {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+            return;
         }
         if !item_ok {
             self.refuse_click(id, pos, face, sequence);
