@@ -195,7 +195,7 @@ impl SheepWars {
 
     async fn on_entity_damage(&self, event: &mut EntityDamage) {
         let Some(game) = self.game() else { return };
-        let Some(player) = event.entity().player() else {
+        let Some(player) = event.entity().player.as_ref() else {
             return;
         };
         if game.blocks_damage_to(player, shieldable(event.cause())) {
