@@ -204,6 +204,8 @@ pub trait CommandContext {
         }
     }
 
+    fn face_target(&mut self, _target: Target, _facing: &FaceRequest) {}
+
     fn kill_target(&mut self, target: Target) -> bool {
         match target {
             Target::Player(id) => self.kill(id),
@@ -1268,6 +1270,55 @@ pub(super) fn select_one<C: CommandContext>(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct FaceRequest {
+    pub rotation: Rotation,
+    pub from: Anchor,
+    pub at: Vec3,
+    pub entity: Option<(Target, Anchor)>,
+}
+
+enum Facing {
+    Position(Vec3),
+    Entity(Target, Anchor),
+}
+
+fn parse_facing<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    tail: &str,
+) -> Result<Option<Facing>, CommandOutcome> {
+    let usage_text =
+        "/tp <targets> <location> [facing <location> | facing entity <entity> [anchor]]";
+    let Some((word, after)) = next_argument(tail) else {
+        return Ok(None);
+    };
+    if word != "facing" {
+        return Err(usage(ctx, sender, usage_text));
+    }
+    let Some((second, after_second)) = next_argument(after) else {
+        return Err(usage(ctx, sender, usage_text));
+    };
+    if second == "entity" {
+        let Some((selector, after_selector)) = next_argument(after_second) else {
+            return Err(usage(ctx, sender, usage_text));
+        };
+        let target = select_one(ctx, sender, selector)?;
+        let anchor = match next_argument(after_selector) {
+            None => Anchor::Feet,
+            Some((raw, _)) => match Anchor::parse(raw) {
+                Some(found) => found,
+                None => return Err(usage(ctx, sender, usage_text)),
+            },
+        };
+        return Ok(Some(Facing::Entity(target, anchor)));
+    }
+    match take_vec3(ctx, sender, after) {
+        Ok(Some((position, _))) => Ok(Some(Facing::Position(position))),
+        _ => Err(usage(ctx, sender, usage_text)),
+    }
+}
+
 fn teleport<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -1279,9 +1330,9 @@ fn teleport<C: CommandContext>(
     };
     let executor = ctx.command_source(sender).executor;
     let self_target = || executor;
-    let (targets, destination, destination_name) = if looks_like_coordinate(first) {
-        let position = match take_vec3(ctx, sender, rest) {
-            Ok(Some((position, _))) => position,
+    let (targets, destination, destination_name, tail) = if looks_like_coordinate(first) {
+        let (position, tail) = match take_vec3(ctx, sender, rest) {
+            Ok(Some((position, tail))) => (position, tail),
             Ok(None) => return Err(usage(ctx, sender, usage_text)),
             Err(message) => {
                 ctx.reply(sender, message.color(NamedColor::Red));
@@ -1291,7 +1342,7 @@ fn teleport<C: CommandContext>(
         let Some(target) = self_target() else {
             return Err(fail(ctx, sender, "permissions.requires.entity", Vec::new()));
         };
-        (vec![target], position, None)
+        (vec![target], position, None, tail)
     } else {
         match next_argument(after_first) {
             None => {
@@ -1300,24 +1351,29 @@ fn teleport<C: CommandContext>(
                     return Err(fail(ctx, sender, "permissions.requires.entity", Vec::new()));
                 };
                 let position = ctx.target_position(destination).unwrap_or(Vec3::ZERO);
-                (vec![target], position, Some(ctx.target_name(destination)))
+                (
+                    vec![target],
+                    position,
+                    Some(ctx.target_name(destination)),
+                    "",
+                )
             }
             Some((second, _)) => {
                 let targets = select(ctx, sender, Some(first))?;
                 if looks_like_coordinate(second) {
-                    let position = match take_vec3(ctx, sender, after_first) {
-                        Ok(Some((position, _))) => position,
+                    let (position, tail) = match take_vec3(ctx, sender, after_first) {
+                        Ok(Some((position, tail))) => (position, tail),
                         Ok(None) => return Err(usage(ctx, sender, usage_text)),
                         Err(message) => {
                             ctx.reply(sender, message.color(NamedColor::Red));
                             return Err(CommandOutcome::Failure);
                         }
                     };
-                    (targets, position, None)
+                    (targets, position, None, tail)
                 } else {
                     let destination = select_one(ctx, sender, second)?;
                     let position = ctx.target_position(destination).unwrap_or(Vec3::ZERO);
-                    (targets, position, Some(ctx.target_name(destination)))
+                    (targets, position, Some(ctx.target_name(destination)), "")
                 }
             }
         }
@@ -1334,8 +1390,37 @@ fn teleport<C: CommandContext>(
             Vec::new(),
         ));
     }
+    let facing = parse_facing(ctx, sender, tail)?;
     for target in &targets {
         ctx.teleport_target(*target, destination);
+    }
+    if let Some(facing) = &facing {
+        let anchor = ctx.command_source(sender).anchor;
+        let (looked, entity) = match facing {
+            Facing::Position(at) => (*at, None),
+            Facing::Entity(target, to) => {
+                let at = ctx.target_position(*target).unwrap_or(Vec3::ZERO);
+                let eye = match to {
+                    Anchor::Feet => 0.0,
+                    Anchor::Eyes => ctx.target_eye_height(*target),
+                };
+                (Vec3::new(at.x, at.y + eye, at.z), Some((*target, *to)))
+            }
+        };
+        for target in &targets {
+            let eye = match anchor {
+                Anchor::Feet => 0.0,
+                Anchor::Eyes => ctx.target_eye_height(*target),
+            };
+            let from = Vec3::new(destination.x, destination.y + eye, destination.z);
+            let request = FaceRequest {
+                rotation: super::execute::look_at(from, looked),
+                from: anchor,
+                at: looked,
+                entity,
+            };
+            ctx.face_target(*target, &request);
+        }
     }
     ctx.record_result(targets.len() as i32);
     let message = match (targets.as_slice(), destination_name) {

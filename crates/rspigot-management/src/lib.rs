@@ -1,4 +1,5 @@
 mod rpc;
+mod tls;
 mod ws;
 
 use std::net::SocketAddr;
@@ -10,8 +11,9 @@ use rspigot_core::events::Inbound;
 use rspigot_core::management::{ManagementCall, ManagementNotice, ManagementReply};
 use serde_json::Value;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpListener;
 use tokio::sync::{broadcast, watch};
+use tokio_rustls::TlsAcceptor;
 
 use ws::Frame;
 
@@ -24,9 +26,11 @@ pub enum ManagementError {
     #[error("the management server secret must be 40 alphanumeric characters")]
     InvalidSecret,
     #[error(
-        "the management server needs TLS, which is not supported yet: set management-server-tls-enabled=false and keep it on localhost"
+        "management-server-tls-enabled is true but management-server-tls-keystore is empty: point it to a PEM file holding the certificate chain and the private key, or set management-server-tls-enabled=false and keep the server on localhost"
     )]
-    TlsUnsupported,
+    TlsKeystoreMissing,
+    #[error("management server TLS: {0}")]
+    Tls(String),
     #[error("the management server refuses to listen beyond loopback without TLS")]
     PublicWithoutTls,
     #[error("i/o error: {0}")]
@@ -39,6 +43,8 @@ pub struct ManagementConfig {
     pub port: u16,
     pub secret: String,
     pub tls_enabled: bool,
+    pub tls_keystore: String,
+    pub tls_keystore_password: String,
     pub allowed_origins: Vec<String>,
 }
 
@@ -48,12 +54,25 @@ impl ManagementConfig {
             return Err(ManagementError::InvalidSecret);
         }
         if self.tls_enabled {
-            return Err(ManagementError::TlsUnsupported);
-        }
-        if !self.is_loopback() {
+            if self.tls_keystore.is_empty() {
+                return Err(ManagementError::TlsKeystoreMissing);
+            }
+        } else if !self.is_loopback() {
             return Err(ManagementError::PublicWithoutTls);
         }
         Ok(())
+    }
+
+    pub fn tls_acceptor(&self) -> Result<Option<TlsAcceptor>, ManagementError> {
+        if !self.tls_enabled {
+            return Ok(None);
+        }
+        if !self.tls_keystore_password.is_empty() {
+            tracing::warn!(
+                "management-server-tls-keystore-password is ignored: the keystore is an unencrypted PEM file"
+            );
+        }
+        tls::acceptor_from_pem(&self.tls_keystore).map(Some)
     }
 
     fn is_loopback(&self) -> bool {
@@ -142,8 +161,10 @@ pub async fn serve<L: Send + 'static>(
     inbound: Sender<Inbound<L>>,
     notices: broadcast::Sender<ManagementNotice>,
     mut stopped: watch::Receiver<bool>,
+    tls: Option<TlsAcceptor>,
 ) {
     let config = Arc::new(config);
+    tokio::spawn(heartbeat(inbound.clone(), notices.clone(), stopped.clone()));
     match listener.local_addr() {
         Ok(address) => tracing::info!("Json-RPC Management connection listening on {address}"),
         Err(error) => tracing::warn!(%error, "management listener address unknown"),
@@ -156,10 +177,26 @@ pub async fn serve<L: Send + 'static>(
                 let inbound = inbound.clone();
                 let notices = notices.subscribe();
                 let stopped = stopped.clone();
+                let tls = tls.clone();
                 tokio::spawn(async move {
-                    if let Err(error) =
-                        connection(stream, peer, &config, inbound, notices, stopped).await
-                    {
+                    let outcome = match tls {
+                        None => connection(stream, peer, &config, inbound, notices, stopped).await,
+                        Some(acceptor) => {
+                            let secured = tokio::time::timeout(
+                                HANDSHAKE_TIMEOUT,
+                                acceptor.accept(stream),
+                            )
+                            .await;
+                            match secured {
+                                Ok(Ok(secured)) => {
+                                    connection(secured, peer, &config, inbound, notices, stopped)
+                                        .await
+                                }
+                                _ => Err(ws::WsError::BadRequest),
+                            }
+                        }
+                    };
+                    if let Err(error) = outcome {
                         tracing::debug!(%peer, %error, "management connection ended");
                     }
                 });
@@ -169,14 +206,18 @@ pub async fn serve<L: Send + 'static>(
     }
 }
 
-async fn connection<L: Send + 'static>(
-    mut stream: TcpStream,
+async fn connection<S, L>(
+    mut stream: S,
     peer: SocketAddr,
     config: &ManagementConfig,
     inbound: Sender<Inbound<L>>,
     notices: broadcast::Receiver<ManagementNotice>,
     stopped: watch::Receiver<bool>,
-) -> Result<(), ws::WsError> {
+) -> Result<(), ws::WsError>
+where
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    L: Send + 'static,
+{
     let head = tokio::time::timeout(HANDSHAKE_TIMEOUT, ws::read_head(&mut stream))
         .await
         .map_err(|_| ws::WsError::BadRequest)??;
@@ -205,6 +246,47 @@ async fn connection<L: Send + 'static>(
             let outcome = session(stream, inbound, notices, stopped).await;
             tracing::info!("Management connection closed for {peer}");
             outcome
+        }
+    }
+}
+
+async fn heartbeat<L: Send + 'static>(
+    inbound: Sender<Inbound<L>>,
+    notices: broadcast::Sender<ManagementNotice>,
+    mut stopped: watch::Receiver<bool>,
+) {
+    let mut waited = 0u64;
+    loop {
+        tokio::select! {
+            _ = tokio::time::sleep(Duration::from_secs(1)) => {}
+            _ = stopped.changed() => return,
+        }
+        waited += 1;
+        let interval = match ask(
+            &inbound,
+            rspigot_core::management::ManagementRequest::Setting {
+                setting: rspigot_core::management::Setting::StatusHeartbeatInterval,
+                value: None,
+            },
+        )
+        .await
+        {
+            Some(ManagementReply::Setting(rspigot_core::management::SettingValue::Int(n))) => {
+                u64::try_from(n).unwrap_or(0)
+            }
+            _ => 0,
+        };
+        if interval == 0 || waited < interval {
+            continue;
+        }
+        waited = 0;
+        if let Some(ManagementReply::Status(status)) = ask(
+            &inbound,
+            rspigot_core::management::ManagementRequest::Status,
+        )
+        .await
+        {
+            let _ = notices.send(ManagementNotice::Status(status));
         }
     }
 }
@@ -314,7 +396,9 @@ where
 #[cfg(test)]
 mod tests {
     use rspigot_core::management::{PlayerRef, StatusView};
+    use rustls_pki_types::pem::PemObject;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use tokio::net::TcpStream;
 
     use super::*;
 
@@ -326,6 +410,8 @@ mod tests {
             port: 0,
             secret: SECRET.to_owned(),
             tls_enabled: false,
+            tls_keystore: String::new(),
+            tls_keystore_password: String::new(),
             allowed_origins: vec!["http://panel.local".to_owned()],
         }
     }
@@ -353,8 +439,11 @@ mod tests {
         tls.tls_enabled = true;
         assert!(matches!(
             tls.validate(),
-            Err(ManagementError::TlsUnsupported)
+            Err(ManagementError::TlsKeystoreMissing)
         ));
+        tls.tls_keystore = "identity.pem".to_owned();
+        tls.host = "0.0.0.0".to_owned();
+        assert!(tls.validate().is_ok());
         let mut public = config();
         public.host = "0.0.0.0".to_owned();
         assert!(matches!(
@@ -491,5 +580,130 @@ mod tests {
         drop(writer);
         drop(reader);
         let _ = task.await;
+    }
+
+    fn identity_file() -> std::path::PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "rspigot-management-identity-{}.pem",
+            std::process::id()
+        ));
+        std::fs::write(&path, include_str!("test_identity.pem")).unwrap();
+        path
+    }
+
+    #[test]
+    fn a_missing_or_broken_keystore_is_a_clear_error() {
+        let mut config = config();
+        config.tls_enabled = true;
+        config.tls_keystore = "/nonexistent/identity.pem".to_owned();
+        assert!(matches!(
+            config.tls_acceptor(),
+            Err(ManagementError::Tls(_))
+        ));
+        let empty = std::env::temp_dir().join(format!("rspigot-empty-{}.pem", std::process::id()));
+        std::fs::write(&empty, "nothing").unwrap();
+        config.tls_keystore = empty.to_string_lossy().into_owned();
+        assert!(matches!(
+            config.tls_acceptor(),
+            Err(ManagementError::Tls(_))
+        ));
+        let _ = std::fs::remove_file(empty);
+    }
+
+    #[tokio::test]
+    async fn a_tls_client_reaches_the_websocket_upgrade() {
+        let path = identity_file();
+        let mut config = config();
+        config.tls_enabled = true;
+        config.tls_keystore = path.to_string_lossy().into_owned();
+        let acceptor = config.tls_acceptor().unwrap();
+        let _ = std::fs::remove_file(&path);
+        assert!(acceptor.is_some());
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let (inbound, _game) = crossbeam_channel::unbounded::<Inbound<()>>();
+        let (notices, _) = broadcast::channel(16);
+        let (_stop, stopped) = watch::channel(false);
+        tokio::spawn(serve(listener, config, inbound, notices, stopped, acceptor));
+
+        let mut roots = rustls::RootCertStore::empty();
+        let pem = include_str!("test_identity.pem");
+        let certificate = rustls_pki_types::CertificateDer::pem_slice_iter(pem.as_bytes())
+            .next()
+            .unwrap()
+            .unwrap();
+        roots.add(certificate).unwrap();
+        let client = rustls::ClientConfig::builder_with_provider(Arc::new(
+            rustls::crypto::ring::default_provider(),
+        ))
+        .with_safe_default_protocol_versions()
+        .unwrap()
+        .with_root_certificates(roots)
+        .with_no_client_auth();
+        let connector = tokio_rustls::TlsConnector::from(Arc::new(client));
+        let tcp = TcpStream::connect(address).await.unwrap();
+        let name = rustls_pki_types::ServerName::try_from("localhost").unwrap();
+        let mut stream = connector.connect(name, tcp).await.unwrap();
+        let request = format!(
+            "GET / HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\nAuthorization: Bearer {SECRET}\r\n\r\n"
+        );
+        stream.write_all(request.as_bytes()).await.unwrap();
+        let mut head = vec![0u8; 12];
+        stream.read_exact(&mut head).await.unwrap();
+        assert_eq!(&head, b"HTTP/1.1 101");
+    }
+
+    #[tokio::test]
+    async fn a_plain_client_cannot_talk_to_a_tls_listener() {
+        let path = identity_file();
+        let mut config = config();
+        config.tls_enabled = true;
+        config.tls_keystore = path.to_string_lossy().into_owned();
+        let acceptor = config.tls_acceptor().unwrap();
+        let _ = std::fs::remove_file(&path);
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let (inbound, _game) = crossbeam_channel::unbounded::<Inbound<()>>();
+        let (notices, _) = broadcast::channel(16);
+        let (_stop, stopped) = watch::channel(false);
+        tokio::spawn(serve(listener, config, inbound, notices, stopped, acceptor));
+        let mut tcp = TcpStream::connect(address).await.unwrap();
+        tcp.write_all(b"GET / HTTP/1.1\r\n\r\n").await.unwrap();
+        let mut buffer = [0u8; 64];
+        let read = tokio::time::timeout(Duration::from_secs(5), tcp.read(&mut buffer))
+            .await
+            .unwrap();
+        assert!(!buffer[..read.unwrap_or(0)].starts_with(b"HTTP/1.1 101"));
+    }
+
+    #[tokio::test]
+    async fn the_heartbeat_pushes_the_status_at_the_configured_interval() {
+        let (inbound, game) = crossbeam_channel::unbounded::<Inbound<()>>();
+        let (notices, mut listener) = broadcast::channel(16);
+        let (_stop, stopped) = watch::channel(false);
+        std::thread::spawn(move || {
+            for message in game {
+                if let Inbound::Management(call) = message {
+                    let reply = match call.request {
+                        rspigot_core::management::ManagementRequest::Setting { .. } => {
+                            ManagementReply::Setting(rspigot_core::management::SettingValue::Int(2))
+                        }
+                        _ => ManagementReply::Status(StatusView {
+                            started: true,
+                            players: Vec::new(),
+                            version_name: "26.3".to_owned(),
+                            protocol: 777,
+                        }),
+                    };
+                    let _ = call.reply.send(reply);
+                }
+            }
+        });
+        tokio::spawn(heartbeat(inbound, notices, stopped));
+        let notice = tokio::time::timeout(Duration::from_secs(30), listener.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(matches!(notice, ManagementNotice::Status(_)));
     }
 }

@@ -217,10 +217,9 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(target) else {
             return;
         };
-        let position = entity.base.position;
         let eye_height = f64::from(entity.base.eye_height());
         let facts = crate::mobs::loot_facts_of(entity);
-        self.play_sound(None, position, SHEAR_SOUND, SoundSource::Players, 1.0, 1.0);
+        self.play_entity_sound(target, SHEAR_SOUND, SoundSource::Players, 1.0, 1.0);
         if let Some(entity) = self.entities.store.get_mut(target) {
             snow_golem::set_pumpkin(&mut entity.base, false);
         }

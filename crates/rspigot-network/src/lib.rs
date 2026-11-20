@@ -4,11 +4,13 @@ mod components;
 mod connection;
 mod decode;
 mod encode;
+mod extras;
 mod link;
 mod listener;
 mod play;
 mod proxy;
 mod query;
+mod signature_cache;
 mod status;
 mod text;
 
@@ -42,6 +44,8 @@ pub struct NetworkConfig {
     pub outdated_client_message: String,
     pub outdated_server_message: String,
     pub code_of_conduct: Option<String>,
+    pub resource_pack: Option<rspigot_core::client_extras::ResourcePackOffer>,
+    pub server_links: Vec<rspigot_core::client_extras::ServerLink>,
     pub chunk_cache_bytes: u64,
     pub proxy: ProxyForwarding,
 }
@@ -68,6 +72,8 @@ impl Default for NetworkConfig {
             outdated_client_message: "Outdated client! Please use {0}".to_owned(),
             outdated_server_message: "Outdated server! I'm still on {0}".to_owned(),
             code_of_conduct: None,
+            resource_pack: None,
+            server_links: Vec::new(),
             chunk_cache_bytes: 256 * 1024 * 1024,
             proxy: ProxyForwarding::Off,
         }

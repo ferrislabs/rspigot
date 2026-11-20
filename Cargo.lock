@@ -1776,6 +1776,7 @@ dependencies = [
  "chrono",
  "crossbeam-channel",
  "flate2",
+ "md-5",
  "rspigot-anvil",
  "rspigot-auth",
  "rspigot-blocks",
@@ -1786,6 +1787,7 @@ dependencies = [
  "rspigot-nbt",
  "rspigot-network",
  "rspigot-plugins",
+ "rspigot-rcon",
  "rspigot-worldgen",
  "serde_json",
  "serde_yaml_ng",
@@ -1930,10 +1932,13 @@ dependencies = [
  "chrono",
  "crossbeam-channel",
  "rspigot-core",
+ "rustls",
+ "rustls-pki-types",
  "serde_json",
  "sha1",
  "thiserror",
  "tokio",
+ "tokio-rustls",
  "tracing",
  "uuid",
 ]
@@ -2051,6 +2056,16 @@ dependencies = [
  "sha1",
  "thiserror",
  "uuid",
+]
+
+[[package]]
+name = "rspigot-rcon"
+version = "0.1.0"
+dependencies = [
+ "rspigot-core",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -2,7 +2,10 @@ use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use std::time::Duration;
 
+use uuid::Uuid;
+
 use rspigot_core::events::{Inbound, PreLoginVerdict};
+use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_core::ports::SessionVerifier;
 use rspigot_core::status::{PingHook, StatusPing, StatusReply, StatusSnapshot};
 use rspigot_data::tags::TagOverlay;
@@ -33,6 +36,8 @@ use tokio::net::TcpStream;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
 use crate::NetworkConfig;
+use crate::decode::pack_status;
+use crate::link::NetLink;
 use crate::listener::Shared;
 use crate::play;
 use crate::proxy::{self, Forwarded, ProxyForwarding};
@@ -418,8 +423,8 @@ async fn login<V: SessionVerifier>(
             }
         }
     }
-    let settings = configure(&shared, &mut session).await?;
-    play::run(shared, session, profile, settings).await
+    let configured = configure(&shared.config, &mut session).await?;
+    play::run(shared, session, profile, configured).await
 }
 
 async fn velocity(
@@ -637,27 +642,147 @@ fn update_tags_with(overlay: Option<&TagOverlay>) -> Result<UpdateTags, Connecti
     Ok(UpdateTags { registries })
 }
 
-async fn configure<V: SessionVerifier>(
-    shared: &Shared<V>,
-    session: &mut Session,
-) -> Result<ClientSettings, ConnectionError> {
+pub struct Configured {
+    pub settings: ClientSettings,
+    pub packs: Vec<(Uuid, ResourcePackStatus)>,
+}
+
+pub(crate) trait ConfigWire {
+    async fn read(&mut self) -> Result<Vec<u8>, ConnectionError>;
+    fn queue<P: Encode + ?Sized>(&mut self, id: i32, packet: &P) -> Result<(), ConnectionError>;
+    async fn flush(&mut self) -> Result<(), ConnectionError>;
+    async fn close(&mut self);
+}
+
+impl ConfigWire for Session {
+    async fn read(&mut self) -> Result<Vec<u8>, ConnectionError> {
+        self.reader.next().await
+    }
+
+    fn queue<P: Encode + ?Sized>(&mut self, id: i32, packet: &P) -> Result<(), ConnectionError> {
+        self.writer.queue(id, packet)
+    }
+
+    async fn flush(&mut self) -> Result<(), ConnectionError> {
+        self.writer.flush().await
+    }
+
+    async fn close(&mut self) {
+        self.writer.shutdown().await;
+    }
+}
+
+pub(crate) struct Relay<'a> {
+    pub reader: &'a mut PacketReader,
+    pub link: &'a NetLink,
+}
+
+impl ConfigWire for Relay<'_> {
+    async fn read(&mut self) -> Result<Vec<u8>, ConnectionError> {
+        self.reader.next().await
+    }
+
+    fn queue<P: Encode + ?Sized>(&mut self, id: i32, packet: &P) -> Result<(), ConnectionError> {
+        let mut body = Vec::new();
+        packet.encode(&mut body);
+        self.link.raw(id, body);
+        Ok(())
+    }
+
+    async fn flush(&mut self) -> Result<(), ConnectionError> {
+        Ok(())
+    }
+
+    async fn close(&mut self) {
+        self.link.close();
+    }
+}
+
+pub(crate) struct Raw<'a>(pub &'a [u8]);
+
+impl Encode for Raw<'_> {
+    fn encode(&self, out: &mut Vec<u8>) {
+        out.extend_from_slice(self.0);
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Stage {
+    Known,
+    Conduct,
+    Pack,
+    Finish,
+}
+
+fn terminal(status: ResourcePackStatus) -> bool {
+    !matches!(
+        status,
+        ResourcePackStatus::Accepted | ResourcePackStatus::Downloaded
+    )
+}
+
+fn pack_failed(status: ResourcePackStatus) -> bool {
+    matches!(
+        status,
+        ResourcePackStatus::Declined
+            | ResourcePackStatus::FailedDownload
+            | ResourcePackStatus::InvalidUrl
+            | ResourcePackStatus::FailedReload
+    )
+}
+
+async fn enter<W: ConfigWire>(
+    config: &NetworkConfig,
+    wire: &mut W,
+    mut next: Stage,
+) -> Result<Stage, ConnectionError> {
     use ids::configuration::clientbound as cb;
-    let writer = &mut session.writer;
-    writer.queue(
+    if next == Stage::Conduct {
+        if let Some(text) = &config.code_of_conduct {
+            wire.queue(cb::CODE_OF_CONDUCT, &CodeOfConduct { text: text.clone() })?;
+            wire.flush().await?;
+            return Ok(Stage::Conduct);
+        }
+        next = Stage::Pack;
+    }
+    if next == Stage::Pack
+        && let Some(offer) = &config.resource_pack
+    {
+        wire.queue(cb::RESOURCE_PACK_PUSH, &crate::extras::wire_pack(offer))?;
+        wire.flush().await?;
+        return Ok(Stage::Pack);
+    }
+    wire.queue(cb::FINISH_CONFIGURATION, &ClientboundFinishConfiguration)?;
+    wire.flush().await?;
+    Ok(Stage::Finish)
+}
+
+pub(crate) async fn configure<W: ConfigWire>(
+    config: &NetworkConfig,
+    wire: &mut W,
+) -> Result<Configured, ConnectionError> {
+    use ids::configuration::clientbound as cb;
+    wire.queue(
         cb::CUSTOM_PAYLOAD,
         &ClientboundCustomPayload {
             channel: identifier("minecraft:brand")?,
-            data: brand_payload(&shared.config.brand),
+            data: brand_payload(&config.brand),
         },
     )?;
-    writer.queue(
+    if !config.server_links.is_empty() {
+        wire.queue(
+            cb::SERVER_LINKS,
+            &crate::extras::wire_links(&config.server_links),
+        )?;
+    }
+    wire.queue(
         cb::UPDATE_ENABLED_FEATURES,
         &UpdateEnabledFeatures {
             features: vec![identifier("minecraft:vanilla")?],
         },
     )?;
     let core = rspigot_data::KNOWN_PACK;
-    writer.queue(
+    wire.queue(
         cb::SELECT_KNOWN_PACKS,
         &ClientboundSelectKnownPacks {
             packs: vec![KnownPack {
@@ -667,12 +792,13 @@ async fn configure<V: SessionVerifier>(
             }],
         },
     )?;
-    writer.flush().await?;
+    wire.flush().await?;
     let mut settings = ClientSettings::default();
+    let mut packs = Vec::new();
     let mut registries_sent = false;
-    let mut conduct_pending = false;
+    let mut stage = Stage::Known;
     loop {
-        let packet = session.reader.next().await?;
+        let packet = wire.read().await?;
         let (id, body) = split_packet_id(&packet)?;
         match ServerboundConfiguration::decode(id, body)? {
             ServerboundConfiguration::ClientInformation(info) => settings = client_settings(&info),
@@ -685,37 +811,41 @@ async fn configure<V: SessionVerifier>(
                         "This server requires the vanilla {} data (minecraft:core).",
                         rspigot_data::VERSION_NAME
                     ));
-                    send_configuration_disconnect(session, &reason).await?;
+                    send_configuration_disconnect(wire, &reason).await?;
                     return Err(ConnectionError::Rejected(
                         "client lacks minecraft:core".to_owned(),
                     ));
                 }
-                send_registries(session).await?;
+                send_registries(wire).await?;
                 registries_sent = true;
-                if let Some(text) = &shared.config.code_of_conduct {
-                    session
-                        .writer
-                        .send(cb::CODE_OF_CONDUCT, &CodeOfConduct { text: text.clone() })
-                        .await?;
-                    conduct_pending = true;
-                } else {
-                    session
-                        .writer
-                        .send(cb::FINISH_CONFIGURATION, &ClientboundFinishConfiguration)
-                        .await?;
+                stage = enter(config, wire, Stage::Conduct).await?;
+            }
+            ServerboundConfiguration::AcceptCodeOfConduct(_) if stage == Stage::Conduct => {
+                stage = enter(config, wire, Stage::Pack).await?;
+            }
+            ServerboundConfiguration::ResourcePack(answer) => {
+                let status = pack_status(answer.action);
+                packs.push((answer.id, status));
+                let required = config
+                    .resource_pack
+                    .as_ref()
+                    .is_some_and(|pack| pack.required);
+                if stage == Stage::Pack && terminal(status) {
+                    if required && pack_failed(status) {
+                        let reason = Component::translatable(
+                            rspigot_core::client_extras::REQUIRED_PACK_DISCONNECT,
+                            Vec::new(),
+                        );
+                        send_configuration_disconnect(wire, &reason).await?;
+                        return Err(ConnectionError::Rejected(
+                            "required resource pack refused".to_owned(),
+                        ));
+                    }
+                    stage = enter(config, wire, Stage::Finish).await?;
                 }
             }
-            ServerboundConfiguration::AcceptCodeOfConduct(_) if conduct_pending => {
-                conduct_pending = false;
-                session
-                    .writer
-                    .send(cb::FINISH_CONFIGURATION, &ClientboundFinishConfiguration)
-                    .await?;
-            }
-            ServerboundConfiguration::FinishConfiguration(_)
-                if registries_sent && !conduct_pending =>
-            {
-                return Ok(settings);
+            ServerboundConfiguration::FinishConfiguration(_) if stage == Stage::Finish => {
+                return Ok(Configured { settings, packs });
             }
             ServerboundConfiguration::KeepAlive(KeepAlive { .. }) => {}
             _ => {}
@@ -723,22 +853,29 @@ async fn configure<V: SessionVerifier>(
     }
 }
 
-async fn send_configuration_disconnect(
-    session: &mut Session,
+pub(crate) async fn reconfigure<V>(
+    shared: &Shared<V>,
+    reader: &mut PacketReader,
+    link: &NetLink,
+) -> Result<Configured, ConnectionError> {
+    let mut relay = Relay { reader, link };
+    configure(&shared.config, &mut relay).await
+}
+
+async fn send_configuration_disconnect<W: ConfigWire>(
+    wire: &mut W,
     reason: &Component,
 ) -> Result<(), ConnectionError> {
     let packet = rspigot_protocol::common::Disconnect {
         reason: rspigot_protocol::types::Text(crate::text::to_nbt(reason)),
     };
-    session
-        .writer
-        .send(ids::configuration::clientbound::DISCONNECT, &packet)
-        .await?;
-    session.writer.shutdown().await;
+    wire.queue(ids::configuration::clientbound::DISCONNECT, &packet)?;
+    wire.flush().await?;
+    wire.close().await;
     Ok(())
 }
 
-async fn send_registries(session: &mut Session) -> Result<(), ConnectionError> {
+async fn send_registries<W: ConfigWire>(wire: &mut W) -> Result<(), ConnectionError> {
     for registry in rspigot_data::registries::SYNCED {
         let entries = registry
             .entries
@@ -754,20 +891,295 @@ async fn send_registries(session: &mut Session) -> Result<(), ConnectionError> {
             registry: identifier(registry.id)?,
             entries,
         };
-        session
-            .writer
-            .queue(ids::configuration::clientbound::REGISTRY_DATA, &packet)?;
+        wire.queue(ids::configuration::clientbound::REGISTRY_DATA, &packet)?;
     }
-    session.writer.queue(
+    wire.queue(
         ids::configuration::clientbound::UPDATE_TAGS,
         &update_tags()?,
     )?;
-    session.writer.flush().await
+    wire.flush().await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct Script {
+        incoming: std::collections::VecDeque<Vec<u8>>,
+        sent: Vec<(i32, Vec<u8>)>,
+        closed: bool,
+    }
+
+    impl Script {
+        fn new() -> Self {
+            Self {
+                incoming: std::collections::VecDeque::new(),
+                sent: Vec::new(),
+                closed: false,
+            }
+        }
+
+        fn says<P: Encode>(&mut self, id: i32, packet: &P) {
+            let mut bytes = Vec::new();
+            rspigot_protocol::write_packet_with_id(id, packet, &mut bytes);
+            self.incoming.push_back(bytes);
+        }
+
+        fn knows_core(&mut self) {
+            let core = rspigot_data::KNOWN_PACK;
+            self.says(
+                ids::configuration::serverbound::SELECT_KNOWN_PACKS,
+                &rspigot_protocol::configuration::ServerboundSelectKnownPacks {
+                    packs: vec![KnownPack {
+                        namespace: core.namespace.to_owned(),
+                        id: core.id.to_owned(),
+                        version: core.version.to_owned(),
+                    }],
+                },
+            );
+        }
+
+        fn answers(&mut self, action: rspigot_protocol::common::ResourcePackAction) {
+            self.says(
+                ids::configuration::serverbound::RESOURCE_PACK,
+                &rspigot_protocol::common::ResourcePackResponse {
+                    id: Uuid::from_u128(5),
+                    action,
+                },
+            );
+        }
+
+        fn finishes(&mut self) {
+            self.says(
+                ids::configuration::serverbound::FINISH_CONFIGURATION,
+                &rspigot_protocol::configuration::ServerboundFinishConfiguration,
+            );
+        }
+
+        fn ids(&self) -> Vec<i32> {
+            self.sent.iter().map(|(id, _)| *id).collect()
+        }
+    }
+
+    impl ConfigWire for Script {
+        async fn read(&mut self) -> Result<Vec<u8>, ConnectionError> {
+            self.incoming.pop_front().ok_or(ConnectionError::Closed)
+        }
+
+        fn queue<P: Encode + ?Sized>(
+            &mut self,
+            id: i32,
+            packet: &P,
+        ) -> Result<(), ConnectionError> {
+            let mut body = Vec::new();
+            packet.encode(&mut body);
+            self.sent.push((id, body));
+            Ok(())
+        }
+
+        async fn flush(&mut self) -> Result<(), ConnectionError> {
+            Ok(())
+        }
+
+        async fn close(&mut self) {
+            self.closed = true;
+        }
+    }
+
+    fn pack_config(required: bool) -> crate::NetworkConfig {
+        crate::NetworkConfig {
+            resource_pack: Some(rspigot_core::client_extras::ResourcePackOffer {
+                id: Uuid::from_u128(5),
+                url: "https://example.org/p.zip".to_owned(),
+                hash: "ab".to_owned(),
+                required,
+                prompt: None,
+            }),
+            ..crate::NetworkConfig::default()
+        }
+    }
+
+    fn run<T>(future: impl std::future::Future<Output = T>) -> T {
+        tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap()
+            .block_on(future)
+    }
+
+    #[test]
+    fn a_required_pack_holds_the_finish_until_it_is_loaded() {
+        use ids::configuration::clientbound as cb;
+        use rspigot_protocol::common::ResourcePackAction as Action;
+        let config = pack_config(true);
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.answers(Action::Accepted);
+        wire.answers(Action::Downloaded);
+        wire.answers(Action::SuccessfullyLoaded);
+        wire.finishes();
+        let configured = run(configure(&config, &mut wire)).unwrap();
+        let sent = wire.ids();
+        let push = sent
+            .iter()
+            .position(|id| *id == cb::RESOURCE_PACK_PUSH)
+            .unwrap();
+        let finish = sent
+            .iter()
+            .position(|id| *id == cb::FINISH_CONFIGURATION)
+            .unwrap();
+        assert!(push < finish);
+        assert_eq!(
+            sent.iter()
+                .filter(|id| **id == cb::FINISH_CONFIGURATION)
+                .count(),
+            1
+        );
+        assert_eq!(configured.packs.len(), 3);
+        assert_eq!(
+            configured.packs[2],
+            (Uuid::from_u128(5), ResourcePackStatus::SuccessfullyLoaded)
+        );
+    }
+
+    #[test]
+    fn the_finish_is_not_sent_while_the_pack_is_only_accepted() {
+        use ids::configuration::clientbound as cb;
+        use rspigot_protocol::common::ResourcePackAction as Action;
+        let config = pack_config(true);
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.answers(Action::Accepted);
+        wire.answers(Action::Downloaded);
+        let result = run(configure(&config, &mut wire));
+        assert!(matches!(result, Err(ConnectionError::Closed)));
+        assert!(!wire.ids().contains(&cb::FINISH_CONFIGURATION));
+    }
+
+    #[test]
+    fn a_declined_required_pack_is_kicked_with_the_vanilla_message() {
+        use ids::configuration::clientbound as cb;
+        use rspigot_protocol::common::ResourcePackAction as Action;
+        let config = pack_config(true);
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.answers(Action::Declined);
+        let result = run(configure(&config, &mut wire));
+        assert!(matches!(result, Err(ConnectionError::Rejected(_))));
+        assert!(wire.closed);
+        assert!(!wire.ids().contains(&cb::FINISH_CONFIGURATION));
+        let (id, body) = wire.sent.last().unwrap();
+        assert_eq!(*id, cb::DISCONNECT);
+        let text = String::from_utf8_lossy(body);
+        assert!(text.contains("multiplayer.requiredTexturePrompt.disconnect"));
+    }
+
+    #[test]
+    fn a_failed_download_of_a_required_pack_is_kicked() {
+        use rspigot_protocol::common::ResourcePackAction as Action;
+        let config = pack_config(true);
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.answers(Action::FailedDownload);
+        assert!(matches!(
+            run(configure(&config, &mut wire)),
+            Err(ConnectionError::Rejected(_))
+        ));
+    }
+
+    #[test]
+    fn a_declined_optional_pack_goes_on_to_play() {
+        use ids::configuration::clientbound as cb;
+        use rspigot_protocol::common::ResourcePackAction as Action;
+        let config = pack_config(false);
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.answers(Action::Declined);
+        wire.finishes();
+        let configured = run(configure(&config, &mut wire)).unwrap();
+        assert!(wire.ids().contains(&cb::FINISH_CONFIGURATION));
+        assert!(!wire.closed);
+        assert_eq!(
+            configured.packs,
+            vec![(Uuid::from_u128(5), ResourcePackStatus::Declined)]
+        );
+    }
+
+    #[test]
+    fn without_a_pack_the_finish_follows_the_registries() {
+        use ids::configuration::clientbound as cb;
+        let config = crate::NetworkConfig::default();
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.finishes();
+        run(configure(&config, &mut wire)).unwrap();
+        let sent = wire.ids();
+        assert!(!sent.contains(&cb::RESOURCE_PACK_PUSH));
+        assert_eq!(*sent.last().unwrap(), cb::FINISH_CONFIGURATION);
+    }
+
+    #[test]
+    fn the_server_links_are_sent_before_the_features_with_the_bug_report_link() {
+        use ids::configuration::clientbound as cb;
+        use rspigot_core::client_extras::{KnownLink, LinkLabel, ServerLink};
+        let config = crate::NetworkConfig {
+            server_links: vec![ServerLink {
+                label: LinkLabel::Known(KnownLink::BugReport),
+                url: "x".to_owned(),
+            }],
+            ..crate::NetworkConfig::default()
+        };
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.finishes();
+        run(configure(&config, &mut wire)).unwrap();
+        let sent = wire.ids();
+        let links = sent.iter().position(|id| *id == cb::SERVER_LINKS).unwrap();
+        let features = sent
+            .iter()
+            .position(|id| *id == cb::UPDATE_ENABLED_FEATURES)
+            .unwrap();
+        assert!(links < features);
+        assert_eq!(wire.sent[links].1, vec![1, 1, 0, 1, b'x']);
+    }
+
+    #[test]
+    fn no_links_packet_is_sent_without_links() {
+        use ids::configuration::clientbound as cb;
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.finishes();
+        run(configure(&crate::NetworkConfig::default(), &mut wire)).unwrap();
+        assert!(!wire.ids().contains(&cb::SERVER_LINKS));
+    }
+
+    #[test]
+    fn the_code_of_conduct_comes_before_the_pack() {
+        use ids::configuration::clientbound as cb;
+        use rspigot_protocol::common::ResourcePackAction as Action;
+        let config = crate::NetworkConfig {
+            code_of_conduct: Some("be nice".to_owned()),
+            ..pack_config(false)
+        };
+        let mut wire = Script::new();
+        wire.knows_core();
+        wire.says(
+            ids::configuration::serverbound::ACCEPT_CODE_OF_CONDUCT,
+            &rspigot_protocol::configuration::AcceptCodeOfConduct,
+        );
+        wire.answers(Action::SuccessfullyLoaded);
+        wire.finishes();
+        run(configure(&config, &mut wire)).unwrap();
+        let sent = wire.ids();
+        let conduct = sent
+            .iter()
+            .position(|id| *id == cb::CODE_OF_CONDUCT)
+            .unwrap();
+        let push = sent
+            .iter()
+            .position(|id| *id == cb::RESOURCE_PACK_PUSH)
+            .unwrap();
+        assert!(conduct < push);
+    }
 
     #[test]
     fn names_follow_vanilla_rules() {

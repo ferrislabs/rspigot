@@ -68,6 +68,7 @@ pub(crate) struct SettingsStep {
 pub(crate) struct ChatStep {
     pub(crate) player: PlayerId,
     pub(crate) message: String,
+    pub(crate) signed: Option<Box<crate::events::SignedChat>>,
 }
 
 #[derive(Debug)]
@@ -1803,6 +1804,7 @@ pub(crate) enum Continuation {
     Creative(Box<CreativeStep>),
     Ping(Box<PingStep>),
     ServerCommand(String),
+    RemoteServerCommand(Box<crate::rcon::RconCall>),
     TabComplete(Box<SuggestStep>),
     Broadcast(String, Vec<Recipient>),
 }
@@ -2013,6 +2015,7 @@ impl Continuation {
             Self::CreativeSlot(_) | Self::Creative(_) => EventKind::InventoryCreative,
             Self::Ping(_) => EventKind::ServerListPing,
             Self::ServerCommand(_) => EventKind::ServerCommand,
+            Self::RemoteServerCommand(_) => EventKind::RemoteServerCommand,
             Self::TabComplete(_) => EventKind::TabComplete,
             Self::Broadcast(..) => EventKind::BroadcastMessage,
         }

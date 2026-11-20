@@ -321,7 +321,8 @@ impl<L: ClientLink> Server<L> {
                     || self.use_steering_item(step.player, step.hand)
                     || self.use_throwable(step.player, step.hand)
                     || self.use_fishing_rod(step.player, step.hand, step.rotation)
-                    || self.use_firework(step.player, step.hand))
+                    || self.use_firework(step.player, step.hand)
+                    || self.use_written_book(step.player, step.hand))
             {
             } else if item_ok {
                 self.start_using_item(step.player, step.hand);

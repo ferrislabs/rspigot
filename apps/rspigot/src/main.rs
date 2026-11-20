@@ -216,7 +216,8 @@ fn main() -> anyhow::Result<()> {
         let listener = runtime
             .block_on(tokio::net::TcpListener::bind(&address))
             .with_context(|| format!("binding the management port {address}"))?;
-        anyhow::Ok(listener)
+        let acceptor = config.tls_acceptor()?;
+        anyhow::Ok((listener, acceptor))
     });
     let management_listener = management_notices.transpose()?;
     let permissions_file = files.permissions_file();
@@ -277,15 +278,19 @@ fn main() -> anyhow::Result<()> {
         stopped.clone(),
     ));
     let management = match (management_listener, management_config) {
-        (Some(listener), Some(config)) => Some(runtime.spawn(rspigot_management::serve(
-            listener,
-            config,
-            inbound.clone(),
-            rspigot_management::bridge(notice_receiver),
-            stopped.clone(),
-        ))),
+        (Some((listener, acceptor)), Some(config)) => {
+            Some(runtime.spawn(rspigot_management::serve(
+                listener,
+                config,
+                inbound.clone(),
+                rspigot_management::bridge(notice_receiver),
+                stopped.clone(),
+                acceptor,
+            )))
+        }
         _ => None,
     };
+    let rcon = start_rcon(&runtime, files.rcon_config(), &inbound, &stopped);
     let signal_inbox = inbound.clone();
     runtime.spawn(async move {
         if tokio::signal::ctrl_c().await.is_ok() {
@@ -310,6 +315,9 @@ fn main() -> anyhow::Result<()> {
             if let Some(management) = management {
                 let _ = management.await;
             }
+            if let Some(rcon) = rcon {
+                let _ = rcon.await;
+            }
         };
         let _ = tokio::time::timeout(Duration::from_secs(5), adapters).await;
     });
@@ -319,4 +327,32 @@ fn main() -> anyhow::Result<()> {
         restart::perform(&args.root, &restart_script);
     }
     Ok(())
+}
+
+fn start_rcon(
+    runtime: &tokio::runtime::Runtime,
+    config: Option<rspigot_rcon::RconConfig>,
+    inbound: &crossbeam_channel::Sender<Inbound<NetLink>>,
+    stopped: &tokio::sync::watch::Receiver<bool>,
+) -> Option<tokio::task::JoinHandle<()>> {
+    let config = config?;
+    if let Err(error) = config.validate() {
+        tracing::error!("{error}");
+        return None;
+    }
+    let address = config.address();
+    let listener = match runtime.block_on(tokio::net::TcpListener::bind(&address)) {
+        Ok(listener) => listener,
+        Err(error) => {
+            tracing::error!("Failed to start RCON listener on {address}: {error}");
+            return None;
+        }
+    };
+    let executor = Arc::new(rspigot_core::rcon::RconGateway::new(inbound.clone()));
+    Some(runtime.spawn(rspigot_rcon::serve(
+        listener,
+        config,
+        executor,
+        stopped.clone(),
+    )))
 }

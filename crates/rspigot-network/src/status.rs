@@ -131,6 +131,22 @@ mod tests {
     }
 
     #[test]
+    fn the_board_status_carries_the_configured_favicon_only_when_there_is_one() {
+        let snapshot = StatusSnapshot::default();
+        let plain = NetworkConfig::default();
+        let parsed: Value =
+            serde_json::from_str(&status_json(&plain, &Shown::board(&plain, &snapshot))).unwrap();
+        assert!(parsed.get("favicon").is_none());
+        let iconic = NetworkConfig {
+            favicon: Some("data:image/png;base64,AAAA".to_owned()),
+            ..NetworkConfig::default()
+        };
+        let parsed: Value =
+            serde_json::from_str(&status_json(&iconic, &Shown::board(&iconic, &snapshot))).unwrap();
+        assert_eq!(parsed["favicon"], "data:image/png;base64,AAAA");
+    }
+
+    #[test]
     fn legacy_status_is_utf16_with_kick_prefix() {
         let config = NetworkConfig::default();
         let snapshot = StatusSnapshot::default();

@@ -10,6 +10,10 @@ use crate::play::chat::{
     ArgumentSignature, ChatSession, LastSeenUpdate, MAX_ARGUMENT_SIGNATURES, MAX_CHAT_CHARS,
     MessageSignature,
 };
+use crate::play::gaps::{
+    DebugSubscriptionRequest, JigsawGenerate, SelectBundleItem, SetJigsawBlock, SetStructureBlock,
+    SetTestBlock,
+};
 use crate::play::slot::{HashedStack, ItemStack, Untrusted};
 use crate::play::types::{Difficulty, Direction, GameMode, Hand, LpVec3, Vec3};
 use crate::play::wire::{
@@ -807,6 +811,12 @@ pub enum ServerboundPlay {
     UseItemOn(UseItemOn),
     UseItem(UseItem),
     CustomClickAction(CustomClickAction),
+    SelectBundleItem(SelectBundleItem),
+    JigsawGenerate(JigsawGenerate),
+    SetJigsawBlock(SetJigsawBlock),
+    SetStructureBlock(SetStructureBlock),
+    SetTestBlock(SetTestBlock),
+    DebugSubscriptionRequest(DebugSubscriptionRequest),
     Unhandled { id: i32 },
 }
 
@@ -876,14 +886,13 @@ impl ServerboundPlay {
             sb::USE_ITEM_ON => Self::UseItemOn(decode_exact(body)?),
             sb::USE_ITEM => Self::UseItem(decode_exact(body)?),
             sb::CUSTOM_CLICK_ACTION => Self::CustomClickAction(decode_exact(body)?),
-            sb::BUNDLE_ITEM_SELECTED
-            | sb::DEBUG_SUBSCRIPTION_REQUEST
-            | sb::JIGSAW_GENERATE
-            | sb::SET_JIGSAW_BLOCK
-            | sb::SET_STRUCTURE_BLOCK
-            | sb::SET_TEST_BLOCK
-            | sb::SPECTATOR_ACTION
-            | sb::TEST_INSTANCE_BLOCK_ACTION => Self::Unhandled { id },
+            sb::BUNDLE_ITEM_SELECTED => Self::SelectBundleItem(decode_exact(body)?),
+            sb::DEBUG_SUBSCRIPTION_REQUEST => Self::DebugSubscriptionRequest(decode_exact(body)?),
+            sb::JIGSAW_GENERATE => Self::JigsawGenerate(decode_exact(body)?),
+            sb::SET_JIGSAW_BLOCK => Self::SetJigsawBlock(decode_exact(body)?),
+            sb::SET_STRUCTURE_BLOCK => Self::SetStructureBlock(decode_exact(body)?),
+            sb::SET_TEST_BLOCK => Self::SetTestBlock(decode_exact(body)?),
+            sb::SPECTATOR_ACTION | sb::TEST_INSTANCE_BLOCK_ACTION => Self::Unhandled { id },
             other => return Err(DecodeError::UnknownPacket(other)),
         })
     }

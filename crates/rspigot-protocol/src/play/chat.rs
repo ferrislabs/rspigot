@@ -238,6 +238,13 @@ wire_struct! {
     }
 }
 
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct DeleteChat = id::DELETE_CHAT {
+        pub signature: PackedSignature,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rspigot_nbt::{Compound, Tag};
@@ -359,6 +366,46 @@ mod tests {
         });
         oversized.truncate(oversized.len() - 2);
         assert!(decode_exact::<ChatSession>(&oversized).is_err());
+    }
+
+    #[test]
+    fn delete_chat_golden() {
+        let by_id = DeleteChat {
+            signature: PackedSignature::Id(4),
+        };
+        assert_eq!(roundtrip(&by_id), vec![5]);
+        let full = DeleteChat {
+            signature: PackedSignature::Full(Box::new(MessageSignature([7; SIGNATURE_BYTES]))),
+        };
+        let bytes = roundtrip(&full);
+        assert_eq!(&bytes[..2], &[0, 7]);
+        assert_eq!(bytes.len(), 1 + SIGNATURE_BYTES);
+    }
+
+    #[test]
+    fn player_chat_golden_minimal() {
+        let packet = PlayerChat {
+            global_index: 0,
+            sender: Uuid::from_u128(1),
+            index: 0,
+            signature: None,
+            body: SignedMessageBody {
+                content: "a".into(),
+                timestamp: 1,
+                salt: 2,
+                last_seen: Vec::new(),
+            },
+            unsigned_content: Some(text("b")),
+            filter_mask: FilterMask::PassThrough,
+            chat_type: bound(),
+        };
+        let mut expected = vec![0];
+        expected.extend(Uuid::from_u128(1).into_bytes());
+        expected.extend([0, 0, 1, b'a']);
+        expected.extend(1i64.to_be_bytes());
+        expected.extend(2i64.to_be_bytes());
+        expected.extend([0, 1, 8, 0, 1, b'b', 0, 1, 8, 0, 5]);
+        assert_eq!(&roundtrip(&packet)[..expected.len()], &expected[..]);
     }
 
     #[test]

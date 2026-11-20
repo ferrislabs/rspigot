@@ -664,4 +664,33 @@ mod tests {
         assert_eq!(encoded(&removed).len(), 17);
         assert!(decode_exact::<PlayerInfoUpdate>(&[0x01, 1]).is_err());
     }
+
+    #[test]
+    fn initialize_chat_action_golden() {
+        let init = |session: Option<ChatSession>| PlayerInfoUpdate {
+            actions: PlayerInfoActions::INITIALIZE_CHAT,
+            entries: vec![PlayerInfoEntry {
+                profile_id: Uuid::from_u128(1),
+                chat_session: session,
+                ..PlayerInfoEntry::default()
+            }],
+        };
+        let with = init(Some(ChatSession {
+            session_id: Uuid::from_u128(2),
+            expires_at: 3,
+            public_key: vec![9, 8],
+            key_signature: vec![7],
+        }));
+        let mut expected = vec![0x02, 1];
+        expected.extend(Uuid::from_u128(1).into_bytes());
+        expected.push(1);
+        expected.extend(Uuid::from_u128(2).into_bytes());
+        expected.extend(3i64.to_be_bytes());
+        expected.extend([2, 9, 8, 1, 7]);
+        assert_eq!(roundtrip(&with), expected);
+        let mut empty = vec![0x02, 1];
+        empty.extend(Uuid::from_u128(1).into_bytes());
+        empty.push(0);
+        assert_eq!(roundtrip(&init(None)), empty);
+    }
 }

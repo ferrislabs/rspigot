@@ -1,11 +1,13 @@
 use std::num::NonZeroU8;
 
+use rspigot_core::block_editors::{JigsawEdit, StructureEdit, StructureMode, StructureUpdate};
 use rspigot_core::events::{
     ChatMessage, ChatSessionKey, ClickInput, CommandBlockMode, ComponentHasher, ContainerClick,
     DigAction, Direction, Hand, HashedItem, HashedSlot, InputState, LastSeenUpdate,
     MessageSignature, MovementAction, PlayerInput, SignedCommand,
 };
 use rspigot_core::plugins::events::ResourcePackStatus;
+use rspigot_core::ports::{TemplateMirror, TemplateRotation};
 use rspigot_core::recipe_book::BookKind;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::GameMode;
@@ -15,6 +17,10 @@ use rspigot_nbt::Tag;
 use rspigot_protocol::codec::{Position, decode_string};
 use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
+use rspigot_protocol::play::gaps::{
+    StructureMirror as WireMirror, StructureMode as WireStructureMode,
+    StructureRotation as WireRotation, StructureUpdateType as WireUpdate,
+};
 use rspigot_protocol::play::serverbound::CommandBlockMode as WireCommandBlockMode;
 use rspigot_protocol::play::serverbound::{
     ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction, RecipeBookType,
@@ -28,7 +34,7 @@ use rspigot_protocol::play::types::{
 
 use crate::connection::client_settings;
 
-fn pack_status(action: ResourcePackAction) -> ResourcePackStatus {
+pub(crate) fn pack_status(action: ResourcePackAction) -> ResourcePackStatus {
     match action {
         ResourcePackAction::SuccessfullyLoaded => ResourcePackStatus::SuccessfullyLoaded,
         ResourcePackAction::Declined => ResourcePackStatus::Declined,
@@ -256,8 +262,63 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
         ServerboundPlay::ClientCommand(p) => match p.action {
             ClientCommandAction::PerformRespawn => input(PlayerInput::Respawn),
             ClientCommandAction::RequestStats => input(PlayerInput::RequestStats),
-            _ => Decoded::Ignored,
+            ClientCommandAction::RequestGameRuleValues => input(PlayerInput::RequestGameRuleValues),
         },
+        ServerboundPlay::SetJigsawBlock(p) => {
+            input(PlayerInput::SetJigsawBlock(Box::new(JigsawEdit {
+                pos: block_pos(p.pos),
+                name: p.name.to_string(),
+                target: p.target.to_string(),
+                pool: p.pool.to_string(),
+                final_state: p.final_state,
+                joint: p.joint,
+                selection_priority: p.selection_priority,
+                placement_priority: p.placement_priority,
+            })))
+        }
+        ServerboundPlay::JigsawGenerate(p) => input(PlayerInput::JigsawGenerate {
+            pos: block_pos(p.pos),
+            levels: p.levels,
+            keep_jigsaws: p.keep_jigsaws,
+        }),
+        ServerboundPlay::SetStructureBlock(p) => {
+            input(PlayerInput::SetStructureBlock(Box::new(StructureEdit {
+                pos: block_pos(p.pos),
+                update: match p.update_type {
+                    WireUpdate::UpdateData => StructureUpdate::UpdateData,
+                    WireUpdate::SaveArea => StructureUpdate::SaveArea,
+                    WireUpdate::LoadArea => StructureUpdate::LoadArea,
+                    WireUpdate::ScanArea => StructureUpdate::ScanArea,
+                },
+                mode: match p.mode {
+                    WireStructureMode::Save => StructureMode::Save,
+                    WireStructureMode::Load => StructureMode::Load,
+                    WireStructureMode::Corner => StructureMode::Corner,
+                    WireStructureMode::Data => StructureMode::Data,
+                },
+                name: p.name,
+                offset: p.offset.map(i32::from),
+                size: p.size.map(i32::from),
+                mirror: match p.mirror {
+                    WireMirror::None => TemplateMirror::None,
+                    WireMirror::LeftRight => TemplateMirror::LeftRight,
+                    WireMirror::FrontBack => TemplateMirror::FrontBack,
+                },
+                rotation: match p.rotation {
+                    WireRotation::None => TemplateRotation::None,
+                    WireRotation::Clockwise90 => TemplateRotation::Clockwise90,
+                    WireRotation::Clockwise180 => TemplateRotation::Clockwise180,
+                    WireRotation::Counterclockwise90 => TemplateRotation::Counterclockwise90,
+                },
+                data: p.data,
+                integrity: p.integrity,
+                seed: p.seed,
+                ignore_entities: p.ignore_entities,
+                show_air: p.show_air,
+                show_bounding_box: p.show_bounding_box,
+                strict: p.strict,
+            })))
+        }
         ServerboundPlay::ClientInformation(info) => {
             input(PlayerInput::Settings(client_settings(&info)))
         }
@@ -439,6 +500,10 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             id: p.id,
             status: pack_status(p.action),
         }),
+        ServerboundPlay::CookieResponse(p) => input(PlayerInput::CookieResponse {
+            key: p.key.as_str().to_owned(),
+            payload: p.payload,
+        }),
         ServerboundPlay::CustomClickAction(p) => input(PlayerInput::CustomClick {
             id: p.id.to_string(),
             data: p.payload.as_ref().map(|tag| tag_json(tag).to_string()),
@@ -496,6 +561,88 @@ mod tests {
             Decoded::Input(input) => input,
             _ => panic!("packet {id} was not turned into a player input"),
         }
+    }
+
+    #[test]
+    fn the_game_rule_request_and_the_block_editors_become_inputs() {
+        assert_eq!(
+            decoded(sb::CLIENT_COMMAND, &[2]),
+            PlayerInput::RequestGameRuleValues
+        );
+        let pos = Position { x: 1, y: 2, z: 3 };
+        let mut body = Vec::new();
+        pos.encode(&mut body);
+        body.extend_from_slice(&[4, 1]);
+        assert_eq!(
+            decoded(sb::JIGSAW_GENERATE, &body),
+            PlayerInput::JigsawGenerate {
+                pos: BlockPos::new(1, 2, 3),
+                levels: 4,
+                keep_jigsaws: true
+            }
+        );
+        let jigsaw = rspigot_protocol::play::gaps::SetJigsawBlock {
+            pos,
+            name: rspigot_protocol::common::Identifier::parse("a").unwrap(),
+            target: rspigot_protocol::common::Identifier::parse("b").unwrap(),
+            pool: rspigot_protocol::common::Identifier::parse("p").unwrap(),
+            final_state: "air".to_owned(),
+            joint: "aligned".to_owned(),
+            selection_priority: 3,
+            placement_priority: 4,
+        };
+        let mut body = Vec::new();
+        jigsaw.encode(&mut body);
+        let PlayerInput::SetJigsawBlock(edit) = decoded(sb::SET_JIGSAW_BLOCK, &body) else {
+            panic!("a jigsaw edit");
+        };
+        assert_eq!(edit.pool, "minecraft:p");
+        assert_eq!(edit.joint, "aligned");
+        assert_eq!(edit.placement_priority, 4);
+        let structure = rspigot_protocol::play::gaps::SetStructureBlock {
+            pos,
+            update_type: WireUpdate::LoadArea,
+            mode: WireStructureMode::Load,
+            name: "n".to_owned(),
+            offset: [1, -2, 3],
+            size: [4, 5, 6],
+            mirror: WireMirror::FrontBack,
+            rotation: WireRotation::Clockwise180,
+            data: String::new(),
+            integrity: 0.5,
+            seed: 7,
+            ignore_entities: true,
+            show_air: false,
+            show_bounding_box: true,
+            strict: false,
+        };
+        let mut body = Vec::new();
+        structure.encode(&mut body);
+        let PlayerInput::SetStructureBlock(edit) = decoded(sb::SET_STRUCTURE_BLOCK, &body) else {
+            panic!("a structure edit");
+        };
+        assert_eq!(edit.update, StructureUpdate::LoadArea);
+        assert_eq!(edit.mode, StructureMode::Load);
+        assert_eq!(edit.offset, [1, -2, 3]);
+        assert_eq!(edit.mirror, TemplateMirror::FrontBack);
+        assert_eq!(edit.rotation, TemplateRotation::Clockwise180);
+        assert!(edit.ignore_entities && edit.show_bounding_box && !edit.strict);
+    }
+
+    #[test]
+    fn bundle_selection_test_blocks_and_debug_subscriptions_are_ignored() {
+        let ignored = |id: i32, body: &[u8]| {
+            matches!(
+                decode(ServerboundPlay::decode(id, body).unwrap()),
+                Decoded::Ignored
+            )
+        };
+        assert!(ignored(sb::BUNDLE_ITEM_SELECTED, &[36, 1]));
+        assert!(ignored(sb::DEBUG_SUBSCRIPTION_REQUEST, &[1, 0]));
+        let mut test_block = Vec::new();
+        Position { x: 0, y: 0, z: 0 }.encode(&mut test_block);
+        test_block.extend_from_slice(&[1, 1, b'x']);
+        assert!(ignored(sb::SET_TEST_BLOCK, &test_block));
     }
 
     #[test]
@@ -837,6 +984,31 @@ mod tests {
             PlayerInput::ResourcePack {
                 id: uuid::Uuid::from_u128(7),
                 status: ResourcePackStatus::Declined,
+            }
+        );
+    }
+
+    #[test]
+    fn a_cookie_response_becomes_an_input() {
+        let mut body = vec![4];
+        body.extend_from_slice(b"a:bc");
+        body.push(1);
+        body.extend_from_slice(&[2, 7, 8]);
+        assert_eq!(
+            decoded(sb::COOKIE_RESPONSE, &body),
+            PlayerInput::CookieResponse {
+                key: "a:bc".to_owned(),
+                payload: Some(vec![7, 8]),
+            }
+        );
+        let mut absent = vec![4];
+        absent.extend_from_slice(b"a:bc");
+        absent.push(0);
+        assert_eq!(
+            decoded(sb::COOKIE_RESPONSE, &absent),
+            PlayerInput::CookieResponse {
+                key: "a:bc".to_owned(),
+                payload: None,
             }
         );
     }
