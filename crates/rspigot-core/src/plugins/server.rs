@@ -319,6 +319,10 @@ impl<L: ClientLink> Server<L> {
                         .collect()
                 })
                 .map_or(Answer::NotFound, Answer::Advancements),
+            Question::Recipes => Answer::Recipes(self.recipe_views()),
+            Question::DiscoveredRecipes(player) => self
+                .discovered_recipes(player)
+                .map_or(Answer::NotFound, Answer::RecipeIds),
         })
     }
 
@@ -541,6 +545,7 @@ impl<L: ClientLink> Server<L> {
         self.forget_plugin_inventories(connection);
         let attached = self.plugins.attachments.forget_plugin(connection);
         if let Some((plugin, commands)) = departed {
+            self.forget_plugin_recipes(&plugin.name);
             if commands || attached {
                 self.resend_command_trees();
             }

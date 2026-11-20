@@ -20,6 +20,22 @@ message PermissionGroups { repeated PermissionGroup groups = 1; }
 message AdvancementQuery { string player = 1; string advancement = 2; }
 message AdvancementProgress { bool done = 1; repeated string criteria_done = 2; repeated string criteria_remaining = 3; }
 message AdvancementList { repeated string ids = 1; }
+enum RecipeKind { RECIPE_KIND_UNSPECIFIED = 0; RECIPE_KIND_SHAPED = 1; RECIPE_KIND_SHAPELESS = 2; RECIPE_KIND_FURNACE = 3; RECIPE_KIND_BLAST_FURNACE = 4; RECIPE_KIND_SMOKER = 5; RECIPE_KIND_CAMPFIRE = 6; RECIPE_KIND_STONECUTTING = 7; RECIPE_KIND_SMITHING = 8; RECIPE_KIND_SPECIAL = 9; }
+enum RecipeCategory { RECIPE_CATEGORY_UNSPECIFIED = 0; RECIPE_CATEGORY_BUILDING = 1; RECIPE_CATEGORY_REDSTONE = 2; RECIPE_CATEGORY_EQUIPMENT = 3; RECIPE_CATEGORY_MISC = 4; RECIPE_CATEGORY_FOOD = 5; }
+message ItemKeys { repeated string keys = 1; }
+message RecipeIngredient { oneof choice { ItemKeys items = 1; string tag = 2; } }
+message RecipeKey { string symbol = 1; RecipeIngredient ingredient = 2; }
+message ShapedRecipe { repeated string pattern = 1; repeated RecipeKey keys = 2; bool mirror = 3; }
+message ShapelessRecipe { repeated RecipeIngredient ingredients = 1; }
+message CookingRecipe { RecipeKind kind = 1; RecipeIngredient ingredient = 2; float experience = 3; uint32 time = 4; }
+message SmithingRecipe { RecipeIngredient template = 1; RecipeIngredient base = 2; RecipeIngredient addition = 3; }
+message RecipeDef {
+  string id = 1; Item result = 2; string group = 3; RecipeCategory category = 4; bool override_vanilla = 5; bool auto_discover = 6;
+  oneof body { ShapedRecipe shaped = 10; ShapelessRecipe shapeless = 11; CookingRecipe cooking = 12; RecipeIngredient stonecutting = 13; SmithingRecipe smithing = 14; }
+}
+message RecipeInfo { string id = 1; RecipeKind kind = 2; bool plugin = 3; }
+message RecipeList { repeated RecipeInfo recipes = 1; }
+message RecipeIdList { repeated string ids = 1; }
 message Transfer { string host = 1; uint32 port = 2; }
 message SetAttribute { Attribute attribute = 1; double value = 2; }
 message AttributeQuery { int32 entity = 1; Attribute attribute = 2; }
@@ -93,6 +109,7 @@ message PlayerOrder {
     MetaOrder meta = 57;
     Empty refresh_commands = 58 [(rspigot.path) = "player.command.refresh"]; PermissionSet set_permission = 59; string unset_permission = 60; string add_group = 61; string remove_group = 62;
     string grant_advancement = 63 [(rspigot.path) = "player.advancements.grant"]; string revoke_advancement = 64 [(rspigot.path) = "player.advancements.revoke"];
+    string discover_recipe = 65 [(rspigot.path) = "player.recipes.discover"]; string undiscover_recipe = 66 [(rspigot.path) = "player.recipes.undiscover"];
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
@@ -101,6 +118,7 @@ message ServerOrder {
     string broadcast = 10 [(rspigot.path) = "server.message.broadcast"]; string dispatch_command = 11 [(rspigot.path) = "server.command.dispatch"]; Empty shutdown = 12 [(rspigot.path) = "server.lifecycle.shutdown"]; Empty save = 13 [(rspigot.path) = "server.lifecycle.save"]; bool set_whitelist_enabled = 14 [(rspigot.path) = "server.whitelist.set_enabled"];
     string whitelist_add = 15 [(rspigot.path) = "server.whitelist.add"]; string whitelist_remove = 16 [(rspigot.path) = "server.whitelist.remove"]; string operator_add = 17 [(rspigot.path) = "server.operators.add"]; string operator_remove = 18 [(rspigot.path) = "server.operators.remove"];
     Ban ban_add = 19 [(rspigot.path) = "server.bans.add"]; string ban_remove = 20 [(rspigot.path) = "server.bans.remove"]; Ban ip_ban_add = 21 [(rspigot.path) = "server.ip_bans.add"]; string ip_ban_remove = 22 [(rspigot.path) = "server.ip_bans.remove"]; CreateInventory create_inventory = 23; CreateWorld create_world = 24;
+    RecipeDef add_recipe = 25; string remove_recipe = 26 [(rspigot.path) = "server.recipes.remove"];
   }
 }
 message WorldOrder {
@@ -218,7 +236,7 @@ message Question {
     BossBarCreate create_boss_bar = 30; uint64 boss_bar = 31; Empty boss_bars = 32; AttributeQuery attribute_value = 33;
     NpcSpec create_npc = 34; string npc_by_key = 35; Empty npcs = 36; int32 npc = 37;
     MetaQuery meta = 38; FindBlocks find_blocks = 39; EntitiesWithMeta entities_with_meta = 40; EntitiesWithMeta players_with_meta = 41;
-    BlockPos tile = 42; BlockPos block_info = 43; Empty permission_groups = 44; AdvancementQuery advancement_progress = 45; string done_advancements = 46;
+    BlockPos tile = 42; BlockPos block_info = 43; Empty permission_groups = 44; AdvancementQuery advancement_progress = 45; string done_advancements = 46; Empty recipes = 47; string discovered_recipes = 48;
   }
 }
 message FromPlugin {
@@ -304,7 +322,7 @@ message Answer {
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
     Empty done = 22; ActionError failed = 23; string world_created = 24; double attribute_value = 25;
-    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29; TileState tile = 30; BlockInfo block_info = 31; PermissionGroups permission_groups = 32; AdvancementProgress advancement_progress = 33; AdvancementList advancements = 34;
+    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29; TileState tile = 30; BlockInfo block_info = 31; PermissionGroups permission_groups = 32; AdvancementProgress advancement_progress = 33; AdvancementList advancements = 34; RecipeList recipes = 35; RecipeIdList recipe_ids = 36;
   }
 }
 message Warning { string message = 1; }

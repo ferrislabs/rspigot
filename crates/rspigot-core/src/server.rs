@@ -153,6 +153,7 @@ pub struct Server<L> {
     pub(crate) command_source: Option<crate::commands::source::Source>,
     pub(crate) command_result: Option<i32>,
     pub(crate) functions: crate::functions::FunctionState,
+    pub(crate) plugin_recipes: std::sync::Arc<rspigot_domain::plugin_recipes::PluginRecipes>,
     pub(crate) datapacks: Option<crate::functions::DatapackLoader>,
     pub(crate) command_storage: FxHashMap<Identifier, rspigot_nbt::Compound>,
     pub(crate) stopwatches: std::collections::BTreeMap<String, i64>,
@@ -268,6 +269,7 @@ impl<L: ClientLink> Server<L> {
             command_source: None,
             command_result: None,
             functions: crate::functions::FunctionState::default(),
+            plugin_recipes: std::sync::Arc::default(),
             datapacks: None,
             command_storage: FxHashMap::default(),
             stopwatches: std::collections::BTreeMap::new(),
@@ -335,7 +337,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn start(&mut self, timeout: Duration) -> usize {
-        self.functions.data.activate();
+        self.activate_data();
         self.world_initialised();
         let loaded = self.wait_for_spawn(timeout);
         self.world_loaded();
@@ -452,7 +454,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn handle(&mut self, message: Inbound<L>) {
-        self.functions.data.activate();
+        self.activate_data();
         if matches!(message, Inbound::Input { .. } | Inbound::Join { .. }) {
             self.note_management_activity();
         }
@@ -545,6 +547,7 @@ impl<L: ClientLink> Server<L> {
             changed |= replaced.commands;
             replaced.outbox.send(ToPlugin::Replaced);
             self.forget_plugin_inventories(replaced.connection);
+            self.forget_plugin_recipes(&replaced.plugin.name);
             changed |= self.plugins.attachments.forget_plugin(replaced.connection);
             self.plugin_disabled(connection, replaced.plugin);
         }
@@ -555,6 +558,11 @@ impl<L: ClientLink> Server<L> {
         self.refresh_ping_hook();
         self.plugin_enabled(connection, plugin);
         self.release_departed_plugins();
+    }
+
+    pub(crate) fn activate_data(&self) {
+        self.functions.data.activate();
+        rspigot_domain::plugin_recipes::activate(&self.plugin_recipes);
     }
 
     pub(crate) fn current_tick(&self) -> u64 {
@@ -1077,7 +1085,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn tick(&mut self) {
-        self.functions.data.activate();
+        self.activate_data();
         self.tick += 1;
         self.tps.record(self.tick);
         self.track_emptiness();

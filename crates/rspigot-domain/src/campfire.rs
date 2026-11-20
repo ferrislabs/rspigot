@@ -58,10 +58,7 @@ impl Campfire {
     }
 
     pub fn result_of(stack: &ItemStack) -> ItemStack {
-        Self::recipe(stack).map_or_else(
-            || stack.clone(),
-            |recipe| ItemStack::new(recipe.result.id(), NonZeroU8::MIN),
-        )
+        Self::recipe(stack).map_or_else(|| stack.clone(), |recipe| recipe.result)
     }
 
     pub fn cook(&mut self) -> Vec<ItemStack> {

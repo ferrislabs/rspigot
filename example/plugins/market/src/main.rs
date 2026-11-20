@@ -52,7 +52,7 @@ impl Market {
 
     #[command("shop buy", permission = "shop.buy")]
     async fn buy(&self, ctx: Context, item: Material, amount: u32) {
-        let player = ctx.sender();
+        let player = &ctx.sender;
         let Some(price) = self.price(item) else {
             ctx.reply("That item is not for sale");
             return;
@@ -90,6 +90,24 @@ impl Market {
         match reloaded {
             Ok(()) => ctx.reply("Reloaded"),
             Err(error) => ctx.reply(format!("Could not reload: {error}")),
+        }
+    }
+
+    async fn on_enable(&self, server: &Server) {
+        let voucher = Recipe::shaped(
+            "market:voucher",
+            ItemStack::new(Material::Paper, 3).name("Shop voucher"),
+            ["EPE", " P "],
+            [
+                ('E', Ingredient::item(Material::Emerald)),
+                ('P', Ingredient::tag("minecraft:planks")),
+            ],
+        )
+        .group("market")
+        .category(RecipeCategory::Misc)
+        .auto_discover(true);
+        if let Err(error) = server.recipes.add(voucher).await {
+            tracing::warn!("Could not register the voucher recipe: {error}");
         }
     }
 

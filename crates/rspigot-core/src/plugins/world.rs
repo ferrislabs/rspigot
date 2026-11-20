@@ -97,6 +97,10 @@ impl<L: ClientLink> Server<L> {
             ServerOrder::CreateWorld(_) => {
                 return Err("server.create_world reports a result".to_owned());
             }
+            ServerOrder::AddRecipe(_) => {
+                return Err("server.recipes.add reports a result".to_owned());
+            }
+            ServerOrder::RemoveRecipe(id) => self.remove_plugin_recipe(connection, &id)?,
         }
         Ok(())
     }

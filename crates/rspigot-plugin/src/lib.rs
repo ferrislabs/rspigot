@@ -32,6 +32,7 @@ mod npc;
 mod payload;
 mod permissions;
 mod player;
+mod recipes;
 mod rich;
 mod runtime;
 mod scoreboard;
@@ -91,6 +92,7 @@ pub use npc::{DEFAULT_SKIN_LAYERS, Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, NpcS
 pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
 pub use permissions::{PermissionGroup, PlayerPermissionsHandle, ServerPermissionsHandle};
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
+pub use recipes::{CookingKind, Ingredient, Recipe, RecipeCategory, RecipeInfo, RecipeKind};
 pub use rich::{Click, Part, RichMessage};
 pub use rspigot_plugin_macros::{Plugin, command, listeners};
 pub use runtime::{run, run_with};
@@ -137,6 +139,7 @@ pub mod prelude {
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Click, Part, RichMessage};
     pub use crate::{Config, ConfigValue};
+    pub use crate::{CookingKind, Ingredient, Recipe, RecipeCategory, RecipeInfo, RecipeKind};
     pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};
     pub use crate::{Dialog, DialogButton, DialogInput};
     pub use crate::{Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, Npcs};

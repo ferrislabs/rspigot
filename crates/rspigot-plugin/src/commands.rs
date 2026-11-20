@@ -90,14 +90,10 @@ impl CommandSpec {
 
 #[derive(Debug, Clone)]
 pub struct Context {
-    sender: Player,
+    pub sender: Player,
 }
 
 impl Context {
-    pub const fn sender(&self) -> &Player {
-        &self.sender
-    }
-
     pub fn reply(&self, text: impl Into<String>) {
         self.sender.message.send(text);
     }

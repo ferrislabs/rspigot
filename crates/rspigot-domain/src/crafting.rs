@@ -6,6 +6,7 @@ use rspigot_nbt::{Compound, Tag};
 
 use crate::dye::{DYE_COLORS, of_dye_item};
 use crate::item::{ItemStack, Slot, count, same_item_same_components, with_count};
+use crate::plugin_recipes::{self, Body, PluginRecipe};
 
 const SUSPICIOUS_STEW_EFFECTS: &str = "minecraft:suspicious_stew_effects";
 const WRITTEN_BOOK_CONTENT: &str = "minecraft:written_book_content";
@@ -75,11 +76,52 @@ fn recipes() -> &'static [(ItemKind, &'static Craft)] {
     })
 }
 
-fn find(input: &Input) -> Option<(ItemKind, &'static Craft)> {
-    recipes()
-        .iter()
-        .find(|(owner, craft)| matches(*owner, craft, input))
-        .copied()
+enum Found {
+    Vanilla(ItemKind, &'static Craft),
+    Plugin(&'static str, ItemStack),
+}
+
+impl Found {
+    fn craft(&self) -> Option<&'static Craft> {
+        match self {
+            Self::Vanilla(_, craft) => Some(craft),
+            Self::Plugin(..) => None,
+        }
+    }
+}
+
+fn plugin_matches(recipe: &PluginRecipe, input: &Input) -> bool {
+    match &recipe.body {
+        Body::Shaped {
+            width,
+            height,
+            mirror,
+            cells,
+        } => shaped_matches(*width, *height, !*mirror, cells, input),
+        Body::Shapeless { ingredients } => shapeless_matches(ingredients, input),
+        _ => false,
+    }
+}
+
+fn find_plugin(overriding: bool, input: &Input) -> Option<Found> {
+    plugin_recipes::with(|recipes| {
+        recipes
+            .precedence(overriding)
+            .filter(|recipe| recipe.uses_crafting_grid())
+            .find(|recipe| plugin_matches(recipe, input))
+            .map(|recipe| Found::Plugin(recipe.id, recipe.result.clone()))
+    })
+}
+
+fn find(input: &Input) -> Option<Found> {
+    find_plugin(true, input)
+        .or_else(|| {
+            recipes()
+                .iter()
+                .find(|(owner, craft)| matches(*owner, craft, input))
+                .map(|(owner, craft)| Found::Vanilla(*owner, craft))
+        })
+        .or_else(|| find_plugin(false, input))
 }
 
 fn matches(owner: ItemKind, craft: &Craft, input: &Input) -> bool {
@@ -930,17 +972,21 @@ pub struct Recipe {
 
 pub fn recipe(width: usize, height: usize, slots: &[Slot]) -> Option<Recipe> {
     let input = Input::of(width, height, slots)?;
-    let (_, craft) = find(&input)?;
-    Some(Recipe {
-        id: craft.id(),
-        repair: matches!(craft, Craft::RepairItem { .. }),
+    Some(match find(&input)? {
+        Found::Vanilla(_, craft) => Recipe {
+            id: craft.id(),
+            repair: matches!(craft, Craft::RepairItem { .. }),
+        },
+        Found::Plugin(id, _) => Recipe { id, repair: false },
     })
 }
 
 pub fn result(width: usize, height: usize, slots: &[Slot]) -> Slot {
     let input = Input::of(width, height, slots)?;
-    let (owner, craft) = find(&input)?;
-    assemble(owner, craft, &input)
+    match find(&input)? {
+        Found::Vanilla(owner, craft) => assemble(owner, craft, &input),
+        Found::Plugin(_, result) => Some(result),
+    }
 }
 
 fn remainders(craft: Option<&Craft>, slots: &[Slot]) -> Vec<Slot> {
@@ -972,7 +1018,7 @@ fn remainders(craft: Option<&Craft>, slots: &[Slot]) -> Vec<Slot> {
 pub fn take_result(width: usize, height: usize, slots: &mut [Slot]) -> Vec<ItemStack> {
     let matched = Input::of(width, height, slots).and_then(|input| find(&input));
     let mut leftovers = Vec::new();
-    let remainders = remainders(matched.map(|(_, craft)| craft), slots);
+    let remainders = remainders(matched.as_ref().and_then(Found::craft), slots);
     for (slot, remainder) in slots.iter_mut().zip(remainders) {
         let Some(stack) = slot.take() else {
             continue;
@@ -2215,5 +2261,162 @@ mod tests {
             vec![ItemStack::new(ItemKind::GlassBottle.id(), NonZeroU8::MIN)]
         );
         assert_eq!(slots[0], stack(ItemKind::HoneyBottle, 3));
+    }
+
+    fn installed(recipes: Vec<crate::plugin_recipes::PluginRecipe>) {
+        let mut set = crate::plugin_recipes::PluginRecipes::default();
+        for recipe in recipes {
+            set.add(recipe);
+        }
+        crate::plugin_recipes::activate(&std::sync::Arc::new(set));
+    }
+
+    fn custom(
+        id: &str,
+        body: crate::plugin_recipes::Body,
+        result: ItemKind,
+        amount: u8,
+        override_vanilla: bool,
+    ) -> crate::plugin_recipes::PluginRecipe {
+        let (id, display_id) = crate::plugin_recipes::intern_id(id);
+        crate::plugin_recipes::PluginRecipe {
+            id,
+            display_id,
+            owner: "test".to_owned(),
+            body,
+            result: ItemStack::new(result.id(), NonZeroU8::new(amount).unwrap()),
+            group: String::new(),
+            category: crate::plugin_recipes::Category::Misc,
+            override_vanilla,
+            auto_discover: false,
+        }
+    }
+
+    fn choice(items: &[ItemKind]) -> ItemSet {
+        let ids: Vec<_> = items.iter().map(|item| item.id()).collect();
+        crate::plugin_recipes::intern_items(&ids)
+    }
+
+    fn bridge(mirror: bool) -> crate::plugin_recipes::Body {
+        let stick = choice(&[ItemKind::Stick]);
+        let planks = choice(&[ItemKind::OakPlanks, ItemKind::SprucePlanks]);
+        crate::plugin_recipes::Body::Shaped {
+            width: 2,
+            height: 2,
+            mirror,
+            cells: vec![Some(stick), Some(planks), None, Some(planks)],
+        }
+    }
+
+    #[test]
+    fn a_plugin_shaped_recipe_with_a_choice_crafts_in_both_grid_sizes() {
+        installed(vec![custom(
+            "t:bridge",
+            bridge(true),
+            ItemKind::Diamond,
+            3,
+            false,
+        )]);
+        let filled = [
+            (0, ItemKind::Stick, 1),
+            (1, ItemKind::SprucePlanks, 1),
+            (3, ItemKind::OakPlanks, 1),
+        ];
+        assert_eq!(crafted(2, 2, &filled), stack(ItemKind::Diamond, 3));
+        let shifted = [
+            (4, ItemKind::Stick, 1),
+            (5, ItemKind::OakPlanks, 1),
+            (8, ItemKind::OakPlanks, 1),
+        ];
+        assert_eq!(crafted(3, 3, &shifted), stack(ItemKind::Diamond, 3));
+        let wrong = [
+            (0, ItemKind::Stick, 1),
+            (1, ItemKind::Dirt, 1),
+            (3, ItemKind::OakPlanks, 1),
+        ];
+        assert_eq!(crafted(2, 2, &wrong), None);
+        installed(Vec::new());
+        assert_eq!(crafted(2, 2, &filled), None);
+    }
+
+    #[test]
+    fn a_plugin_shaped_recipe_matches_its_mirror_only_when_allowed() {
+        let mirrored = [
+            (1, ItemKind::Stick, 1),
+            (0, ItemKind::OakPlanks, 1),
+            (2, ItemKind::OakPlanks, 1),
+        ];
+        installed(vec![custom(
+            "t:bridge",
+            bridge(true),
+            ItemKind::Diamond,
+            1,
+            false,
+        )]);
+        assert_eq!(crafted(2, 2, &mirrored), stack(ItemKind::Diamond, 1));
+        installed(vec![custom(
+            "t:bridge",
+            bridge(false),
+            ItemKind::Diamond,
+            1,
+            false,
+        )]);
+        assert_eq!(crafted(2, 2, &mirrored), None);
+        installed(Vec::new());
+    }
+
+    #[test]
+    fn a_plugin_shapeless_recipe_ignores_the_positions() {
+        let body = crate::plugin_recipes::Body::Shapeless {
+            ingredients: vec![
+                choice(&[ItemKind::Stick]),
+                choice(&[ItemKind::Dirt, ItemKind::Stone]),
+            ],
+        };
+        installed(vec![custom("t:pair", body, ItemKind::Emerald, 2, false)]);
+        assert_eq!(
+            crafted(3, 3, &[(8, ItemKind::Stone, 1), (2, ItemKind::Stick, 1)]),
+            stack(ItemKind::Emerald, 2)
+        );
+        assert_eq!(crafted(2, 2, &[(0, ItemKind::Stick, 1)]), None);
+        installed(Vec::new());
+    }
+
+    #[test]
+    fn a_vanilla_recipe_wins_over_a_plugin_one_unless_it_overrides() {
+        let body = || crate::plugin_recipes::Body::Shapeless {
+            ingredients: vec![choice(&[ItemKind::OakLog])],
+        };
+        let log = [(0, ItemKind::OakLog, 1)];
+        installed(vec![custom("t:logs", body(), ItemKind::Diamond, 1, false)]);
+        assert_eq!(crafted(2, 2, &log), stack(ItemKind::OakPlanks, 4));
+        assert_eq!(
+            recipe(2, 2, &grid(2, 2, &log)).unwrap().id,
+            "minecraft:oak_planks"
+        );
+        installed(vec![custom("t:logs", body(), ItemKind::Diamond, 1, true)]);
+        assert_eq!(crafted(2, 2, &log), stack(ItemKind::Diamond, 1));
+        let found = recipe(2, 2, &grid(2, 2, &log)).unwrap();
+        assert_eq!((found.id, found.repair), ("t:logs", false));
+        installed(Vec::new());
+        assert_eq!(crafted(2, 2, &log), stack(ItemKind::OakPlanks, 4));
+    }
+
+    #[test]
+    fn a_plugin_recipe_keeps_the_crafting_remainder_of_its_ingredients() {
+        let body = crate::plugin_recipes::Body::Shapeless {
+            ingredients: vec![choice(&[ItemKind::MilkBucket]), choice(&[ItemKind::Stick])],
+        };
+        installed(vec![custom("t:milk", body, ItemKind::Diamond, 1, false)]);
+        let mut slots = grid(
+            2,
+            2,
+            &[(0, ItemKind::MilkBucket, 1), (1, ItemKind::Stick, 2)],
+        );
+        assert_eq!(result(2, 2, &slots), stack(ItemKind::Diamond, 1));
+        assert!(take_result(2, 2, &mut slots).is_empty());
+        assert_eq!(slots[0], stack(ItemKind::Bucket, 1));
+        assert_eq!(slots[1], stack(ItemKind::Stick, 1));
+        installed(Vec::new());
     }
 }

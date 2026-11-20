@@ -5,6 +5,7 @@ use rspigot_items::{Craft, ItemKind, ItemSet};
 use rspigot_nbt::Compound;
 
 use crate::item::{ItemStack, Slot};
+use crate::plugin_recipes::{self, Body};
 
 pub const TEMPLATE: usize = 0;
 pub const BASE: usize = 1;
@@ -81,30 +82,74 @@ fn trim_of(material: &str, pattern: &str) -> Compound {
         .with("pattern", pattern)
 }
 
+fn plugin_made(
+    template: &ItemStack,
+    base: &ItemStack,
+    addition: &ItemStack,
+    overriding: bool,
+) -> Option<(&'static str, ItemStack)> {
+    plugin_recipes::with(|recipes| {
+        recipes
+            .precedence(overriding)
+            .find_map(|recipe| match &recipe.body {
+                Body::Smithing {
+                    template: wanted_template,
+                    base: wanted_base,
+                    addition: wanted_addition,
+                } if wanted_template.contains(template.item)
+                    && wanted_base.contains(base.item)
+                    && wanted_addition.contains(addition.item) =>
+                {
+                    let mut components = base.components.clone();
+                    for (name, value) in recipe.result.components.iter() {
+                        components.insert(name.to_owned(), value.clone());
+                    }
+                    Some((
+                        recipe.id,
+                        ItemStack {
+                            item: recipe.result.item,
+                            count: recipe.result.count,
+                            components,
+                        },
+                    ))
+                }
+                _ => None,
+            })
+    })
+}
+
+fn vanilla_entry(
+    template: &ItemStack,
+    base: &ItemStack,
+    addition: &ItemStack,
+) -> Option<&'static Entry> {
+    entries().iter().find(|entry| {
+        entry.template.contains(template.item)
+            && entry.base.contains(base.item)
+            && entry.addition.contains(addition.item)
+    })
+}
+
 pub fn recipe_id(template: &Slot, base: &Slot, addition: &Slot) -> Option<&'static str> {
     let (Some(template), Some(base), Some(addition)) = (template, base, addition) else {
         return None;
     };
-    entries()
-        .iter()
-        .find(|entry| {
-            entry.template.contains(template.item)
-                && entry.base.contains(base.item)
-                && entry.addition.contains(addition.item)
-        })
-        .map(|entry| entry.id)
+    plugin_made(template, base, addition, true)
+        .map(|(id, _)| id)
+        .or_else(|| vanilla_entry(template, base, addition).map(|entry| entry.id))
+        .or_else(|| plugin_made(template, base, addition, false).map(|(id, _)| id))
 }
 
 pub fn craft(template: &Slot, base: &Slot, addition: &Slot) -> Outcome {
     let (Some(template), Some(base), Some(addition)) = (template, base, addition) else {
         return Outcome::NoRecipe;
     };
-    let Some(entry) = entries().iter().find(|entry| {
-        entry.template.contains(template.item)
-            && entry.base.contains(base.item)
-            && entry.addition.contains(addition.item)
-    }) else {
-        return Outcome::NoRecipe;
+    if let Some((_, made)) = plugin_made(template, base, addition, true) {
+        return Outcome::Made(made);
+    }
+    let Some(entry) = vanilla_entry(template, base, addition) else {
+        return plugin_made(template, base, addition, false)
+            .map_or(Outcome::NoRecipe, |(_, made)| Outcome::Made(made));
     };
     match entry.recipe {
         Recipe::Transform { result } => Outcome::Made(ItemStack {
@@ -322,5 +367,61 @@ mod tests {
             craft(&stack(ItemKind::Stick), &tool, &ingot),
             Outcome::NoRecipe
         );
+    }
+
+    fn plugin_upgrade(overriding: bool) {
+        let (id, display_id) = plugin_recipes::intern_id("t:upgrade");
+        let mut set = plugin_recipes::PluginRecipes::default();
+        let mut result = ItemStack::new(ItemKind::Trident.id(), NonZeroU8::MIN);
+        result.components.insert("minecraft:custom_name", "forged");
+        set.add(plugin_recipes::PluginRecipe {
+            id,
+            display_id,
+            owner: "test".to_owned(),
+            body: Body::Smithing {
+                template: plugin_recipes::intern_items(&[
+                    ItemKind::NetheriteUpgradeSmithingTemplate.id(),
+                ]),
+                base: plugin_recipes::intern_items(&[
+                    ItemKind::DiamondSword.id(),
+                    ItemKind::Stick.id(),
+                ]),
+                addition: plugin_recipes::intern_items(&[ItemKind::NetheriteIngot.id()]),
+            },
+            result,
+            group: String::new(),
+            category: plugin_recipes::Category::Misc,
+            override_vanilla: overriding,
+            auto_discover: false,
+        });
+        plugin_recipes::activate(&std::sync::Arc::new(set));
+    }
+
+    #[test]
+    fn a_plugin_smithing_recipe_keeps_the_base_components_and_loses_to_vanilla_unless_it_overrides()
+    {
+        plugin_upgrade(false);
+        let template = stack(ItemKind::NetheriteUpgradeSmithingTemplate);
+        let ingot = stack(ItemKind::NetheriteIngot);
+        let mut stick = ItemStack::new(ItemKind::Stick.id(), NonZeroU8::MIN);
+        stick.components.insert("minecraft:damage", 4);
+        let made = result(&template, &Some(stick), &ingot).unwrap();
+        assert_eq!(made.item, ItemKind::Trident.id());
+        assert_eq!(made.components.get_i32("minecraft:damage"), Some(4));
+        assert_eq!(
+            made.components.get_str("minecraft:custom_name"),
+            Some("forged")
+        );
+        assert_eq!(
+            recipe_id(&template, &stack(ItemKind::Stick), &ingot),
+            Some("t:upgrade")
+        );
+        let vanilla = result(&template, &stack(ItemKind::DiamondSword), &ingot).unwrap();
+        assert_eq!(vanilla.item, ItemKind::NetheriteSword.id());
+        plugin_upgrade(true);
+        let overridden = result(&template, &stack(ItemKind::DiamondSword), &ingot).unwrap();
+        assert_eq!(overridden.item, ItemKind::Trident.id());
+        plugin_recipes::activate(&std::sync::Arc::default());
+        assert_eq!(result(&template, &stack(ItemKind::Stick), &ingot), None);
     }
 }

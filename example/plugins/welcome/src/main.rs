@@ -82,7 +82,7 @@ impl Welcome {
 
     #[command("welcome", permission = "welcome.use")]
     async fn welcome(&self, ctx: Context, #[suggest(Self::places)] place: String) {
-        let player = ctx.sender();
+        let player = &ctx.sender;
         match place.as_str() {
             "lobby" => match self.lobby() {
                 Some(lobby) => {
