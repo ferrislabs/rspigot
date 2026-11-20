@@ -9,7 +9,7 @@ struct Zoo;
 impl Zoo {
     #[command("zoo")]
     async fn zoo(&self, ctx: Context) {
-        let player = ctx.sender();
+        let player = &ctx.sender;
         let world = &player.world;
         let at = Position {
             x: player.position.x + SPAWN_AHEAD,

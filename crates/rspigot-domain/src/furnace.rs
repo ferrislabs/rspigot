@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 use rspigot_items::{CookingKind, Craft, ItemKind};
 
 use crate::item::{ItemStack, Slot, count, max_stack, same_item_same_components, with_count};
+use crate::plugin_recipes::{self, Body};
 
 pub const INPUT_SLOT: usize = 0;
 pub const FUEL_SLOT: usize = 1;
@@ -16,23 +17,42 @@ const FAST_SPEED: f32 = 2.0;
 const NORMAL_SPEED: f32 = 1.0;
 const DECAY_PER_TICK: i32 = 2;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CookingRecipe {
     pub id: &'static str,
-    pub result: ItemKind,
+    pub result: ItemStack,
     pub experience: f32,
     pub cooking_time: u16,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct Vanilla {
+    id: &'static str,
+    result: ItemKind,
+    experience: f32,
+    cooking_time: u16,
+}
+
+impl Vanilla {
+    fn recipe(self) -> CookingRecipe {
+        CookingRecipe {
+            id: self.id,
+            result: ItemStack::new(self.result.id(), NonZeroU8::MIN),
+            experience: self.experience,
+            cooking_time: self.cooking_time,
+        }
+    }
+}
+
 struct Index {
-    by_input: HashMap<(CookingKind, u16), CookingRecipe>,
-    by_id: HashMap<&'static str, CookingRecipe>,
+    by_input: HashMap<(CookingKind, u16), Vanilla>,
+    by_id: HashMap<&'static str, Vanilla>,
 }
 
 fn index() -> &'static Index {
     static INDEX: OnceLock<Index> = OnceLock::new();
     INDEX.get_or_init(|| {
-        let mut by_input: HashMap<(CookingKind, u16), CookingRecipe> = HashMap::new();
+        let mut by_input: HashMap<(CookingKind, u16), Vanilla> = HashMap::new();
         let mut by_id = HashMap::new();
         for owner in ItemKind::ALL {
             for craft in owner.crafts() {
@@ -46,7 +66,7 @@ fn index() -> &'static Index {
                 else {
                     continue;
                 };
-                let recipe = CookingRecipe {
+                let recipe = Vanilla {
                     id,
                     result: owner,
                     experience,
@@ -65,12 +85,62 @@ fn index() -> &'static Index {
     })
 }
 
+fn plugin_recipe_for(
+    kind: CookingKind,
+    input: &ItemStack,
+    overriding: bool,
+) -> Option<CookingRecipe> {
+    plugin_recipes::with(|recipes| {
+        recipes
+            .precedence(overriding)
+            .find_map(|recipe| match &recipe.body {
+                Body::Cooking {
+                    kind: wanted,
+                    ingredient,
+                    experience,
+                    time,
+                } if *wanted == kind && ingredient.contains(input.item) => Some(CookingRecipe {
+                    id: recipe.id,
+                    result: recipe.result.clone(),
+                    experience: *experience,
+                    cooking_time: *time,
+                }),
+                _ => None,
+            })
+    })
+}
+
 pub fn recipe_for(kind: CookingKind, input: &ItemStack) -> Option<CookingRecipe> {
-    index().by_input.get(&(kind, input.item.0)).copied()
+    plugin_recipe_for(kind, input, true)
+        .or_else(|| {
+            index()
+                .by_input
+                .get(&(kind, input.item.0))
+                .map(|vanilla| vanilla.recipe())
+        })
+        .or_else(|| plugin_recipe_for(kind, input, false))
 }
 
 pub fn recipe_by_id(id: &str) -> Option<CookingRecipe> {
-    index().by_id.get(id).copied()
+    index()
+        .by_id
+        .get(id)
+        .map(|vanilla| vanilla.recipe())
+        .or_else(|| {
+            plugin_recipes::with(|recipes| {
+                recipes.get(id).and_then(|recipe| match &recipe.body {
+                    Body::Cooking {
+                        experience, time, ..
+                    } => Some(CookingRecipe {
+                        id: recipe.id,
+                        result: recipe.result.clone(),
+                        experience: *experience,
+                        cooking_time: *time,
+                    }),
+                    _ => None,
+                })
+            })
+        })
 }
 
 pub fn can_smelt(kind: CookingKind, stack: &ItemStack) -> bool {
@@ -318,7 +388,7 @@ impl Furnace {
                 None => self.cooking_time_spent = 0,
                 Some(input) => {
                     if let Some(recipe) = recipe_for(kind, &input) {
-                        match self.cook(kind, recipe, &input, &mut is_lit, answers) {
+                        match self.cook(kind, &recipe, &input, &mut is_lit, answers) {
                             Cooked::Changed(cooked) => changed |= cooked,
                             Cooked::Ask(ask) => return Progress::Ask(ask),
                             Cooked::Refused => {
@@ -349,12 +419,12 @@ impl Furnace {
     fn cook(
         &mut self,
         kind: CookingKind,
-        recipe: CookingRecipe,
+        recipe: &CookingRecipe,
         input: &ItemStack,
         is_lit: &mut bool,
         answers: &Answers,
     ) -> Cooked {
-        let result = ItemStack::new(recipe.result.id(), NonZeroU8::MIN);
+        let result = recipe.result.clone();
         if !self.can_burn(&result) {
             self.cooking_time_spent = 0;
             return Cooked::Changed(false);
@@ -397,7 +467,7 @@ impl Furnace {
                 None => {
                     return Cooked::Ask(Ask::StartSmelt {
                         source: input.clone(),
-                        recipe,
+                        recipe: recipe.clone(),
                         total_cook_time: total_cook_time(
                             recipe.cooking_time,
                             self.speed_multiplier,
@@ -880,7 +950,7 @@ mod tests {
     fn recipes_are_found_by_input_and_by_id() {
         let input = ItemStack::new(ItemKind::Cod.id(), NonZeroU8::MIN);
         let smelting = recipe_for(CookingKind::Smelting, &input).unwrap();
-        assert_eq!(smelting.result, ItemKind::CookedCod);
+        assert_eq!(smelting.result.item, ItemKind::CookedCod.id());
         assert_eq!(smelting.cooking_time, 200);
         assert_eq!(recipe_by_id(smelting.id), Some(smelting));
         assert!(recipe_for(CookingKind::Campfire, &input).is_some());
@@ -896,5 +966,86 @@ mod tests {
             ItemKind::Dirt.id(),
             NonZeroU8::MIN
         )));
+    }
+
+    fn plugin_cooking(kind: CookingKind, overriding: bool) {
+        let (id, display_id) = plugin_recipes::intern_id("t:cook");
+        let mut set = plugin_recipes::PluginRecipes::default();
+        let mut result = ItemStack::new(ItemKind::Diamond.id(), NonZeroU8::new(2).unwrap());
+        result.components.insert("minecraft:custom_name", "gem");
+        set.add(plugin_recipes::PluginRecipe {
+            id,
+            display_id,
+            owner: "test".to_owned(),
+            body: Body::Cooking {
+                kind,
+                ingredient: plugin_recipes::intern_items(&[
+                    ItemKind::Stick.id(),
+                    ItemKind::Potato.id(),
+                ]),
+                experience: 1.5,
+                time: 40,
+            },
+            result,
+            group: String::new(),
+            category: plugin_recipes::Category::Misc,
+            override_vanilla: overriding,
+            auto_discover: false,
+        });
+        plugin_recipes::activate(&std::sync::Arc::new(set));
+    }
+
+    #[test]
+    fn a_plugin_cooking_recipe_smelts_with_its_time_result_and_experience() {
+        plugin_cooking(CookingKind::Smelting, false);
+        let stick = ItemStack::new(ItemKind::Stick.id(), NonZeroU8::MIN);
+        let found = recipe_for(CookingKind::Smelting, &stick).unwrap();
+        assert_eq!(
+            (found.id, found.cooking_time, found.experience),
+            ("t:cook", 40, 1.5)
+        );
+        assert!(recipe_for(CookingKind::Smoking, &stick).is_none());
+        let mut furnace = furnace(stack(ItemKind::Stick, 2), stack(ItemKind::Coal, 1));
+        assert_eq!(furnace.cooking_total_time, 40);
+        run(&mut furnace, CookingKind::Smelting, 41);
+        let made = furnace.items[RESULT_SLOT].clone().unwrap();
+        assert_eq!(made.item, ItemKind::Diamond.id());
+        assert_eq!(made.count.get(), 2);
+        assert_eq!(
+            made.components.get_str("minecraft:custom_name"),
+            Some("gem")
+        );
+        assert_eq!(furnace.recipes_used.get("t:cook"), Some(&1));
+        assert_eq!(
+            recipe_by_id("t:cook").map(|recipe| recipe.experience),
+            Some(1.5)
+        );
+        let potato = ItemStack::new(ItemKind::Potato.id(), NonZeroU8::MIN);
+        assert_eq!(
+            recipe_for(CookingKind::Smelting, &potato).unwrap().id,
+            "minecraft:baked_potato"
+        );
+        plugin_cooking(CookingKind::Smelting, true);
+        assert_eq!(
+            recipe_for(CookingKind::Smelting, &potato).unwrap().id,
+            "t:cook"
+        );
+        plugin_recipes::activate(&std::sync::Arc::default());
+        assert!(recipe_for(CookingKind::Smelting, &stick).is_none());
+    }
+
+    #[test]
+    fn plugin_recipes_exist_for_the_blast_furnace_smoker_and_campfire() {
+        let stick = ItemStack::new(ItemKind::Stick.id(), NonZeroU8::MIN);
+        for kind in [
+            CookingKind::Blasting,
+            CookingKind::Smoking,
+            CookingKind::Campfire,
+        ] {
+            plugin_cooking(kind, false);
+            assert_eq!(recipe_for(kind, &stick).unwrap().cooking_time, 40);
+            assert!(recipe_for(CookingKind::Smelting, &stick).is_none());
+        }
+        plugin_recipes::activate(&std::sync::Arc::default());
     }
 }

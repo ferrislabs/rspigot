@@ -45,6 +45,8 @@ pub(super) fn order(order: v1::ServerOrder) -> Result<Order, Malformed> {
             locked,
         },
         Wire::CreateWorld(create) => ServerOrder::CreateWorld(world_spec(create)?),
+        Wire::AddRecipe(def) => ServerOrder::AddRecipe(Box::new(super::recipes::spec(def)?)),
+        Wire::RemoveRecipe(id) => ServerOrder::RemoveRecipe(id),
     };
     Ok(Order::Server(order))
 }

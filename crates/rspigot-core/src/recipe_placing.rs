@@ -1,12 +1,12 @@
 use rspigot_domain::container_menu::MenuKind;
 use rspigot_domain::item::{Inventory, ItemStack, Slot, same_item_same_components, with_count};
 use rspigot_domain::player::PlayerId;
-use rspigot_items::{Craft, ItemSet};
+use rspigot_items::ItemSet;
 
 use crate::events::ClientEvent;
 use crate::plugins::views::Window;
 use crate::ports::ClientLink;
-use crate::recipe_catalog::CatalogRecipe;
+use crate::recipe_catalog::{CatalogRecipe, Shape};
 use crate::server::{Audience, Server};
 
 const STORAGE: std::ops::RangeInclusive<usize> = 9..=44;
@@ -23,14 +23,13 @@ struct Target {
 
 fn layout(recipe: &CatalogRecipe, target: &Target) -> Option<Vec<Option<ItemSet>>> {
     let mut cells = vec![None; target.width * target.height];
-    match *recipe.craft {
-        Craft::Shaped {
+    match &recipe.shape {
+        Shape::Shaped {
             width,
             height,
             cells: ingredients,
-            ..
         } => {
-            let (width, height) = (usize::from(width), usize::from(height));
+            let (width, height) = (usize::from(*width), usize::from(*height));
             if width > target.width || height > target.height {
                 return None;
             }
@@ -40,7 +39,7 @@ fn layout(recipe: &CatalogRecipe, target: &Target) -> Option<Vec<Option<ItemSet>
                 }
             }
         }
-        Craft::Shapeless { ingredients, .. } => {
+        Shape::Shapeless(ingredients) => {
             if ingredients.len() > cells.len() {
                 return None;
             }
@@ -48,8 +47,8 @@ fn layout(recipe: &CatalogRecipe, target: &Target) -> Option<Vec<Option<ItemSet>
                 *cell = Some(*ingredient);
             }
         }
-        Craft::Cooking { ingredient, .. } => cells[0] = Some(ingredient),
-        _ => return None,
+        Shape::Cooking { ingredient, .. } => cells[0] = Some(*ingredient),
+        Shape::Other => return None,
     }
     Some(cells)
 }
@@ -167,7 +166,7 @@ impl<L: ClientLink> Server<L> {
     fn placing_target(&self, id: PlayerId, recipe: &CatalogRecipe) -> Option<Target> {
         let player = self.players.get(&id)?;
         let window = self.window_of(id)?;
-        let grid = matches!(recipe.craft, Craft::Shaped { .. } | Craft::Shapeless { .. });
+        let grid = matches!(recipe.shape, Shape::Shaped { .. } | Shape::Shapeless(_));
         match window {
             Window::Inventory if grid => Some(Target {
                 window,
@@ -177,8 +176,8 @@ impl<L: ClientLink> Server<L> {
             }),
             Window::Container(_) => {
                 let kind = player.open_menu.as_ref()?.menu.kind();
-                match (*recipe.craft, kind) {
-                    (Craft::Shaped { .. } | Craft::Shapeless { .. }, MenuKind::Crafting) => {
+                match (&recipe.shape, kind) {
+                    (Shape::Shaped { .. } | Shape::Shapeless(_), MenuKind::Crafting) => {
                         Some(Target {
                             window,
                             slots: &TABLE_GRID,
@@ -186,8 +185,8 @@ impl<L: ClientLink> Server<L> {
                             height: 3,
                         })
                     }
-                    (Craft::Cooking { kind: cooking, .. }, menu)
-                        if menu.cooking() == Some(cooking) =>
+                    (Shape::Cooking { kind: cooking, .. }, menu)
+                        if menu.cooking() == Some(*cooking) =>
                     {
                         Some(Target {
                             window,
@@ -232,7 +231,7 @@ impl<L: ClientLink> Server<L> {
         &mut self,
         id: PlayerId,
         window: i32,
-        recipe: &'static CatalogRecipe,
+        recipe: &CatalogRecipe,
         max: bool,
     ) {
         if self.window_of(id).map(Window::id) != Some(window) {

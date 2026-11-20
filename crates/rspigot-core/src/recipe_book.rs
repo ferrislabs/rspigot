@@ -252,7 +252,7 @@ pub(crate) fn initial_events(book: &RecipeBook) -> [ClientEvent; 2] {
     let entries = book
         .known()
         .filter_map(recipe_catalog::by_id)
-        .filter_map(|recipe| entry_of(recipe, (false, book.is_highlighted(recipe.id))))
+        .filter_map(|recipe| entry_of(&recipe, (false, book.is_highlighted(recipe.id))))
         .collect();
     [
         ClientEvent::RecipeBookSettings(book.settings),
@@ -268,14 +268,14 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get(&id) else {
             return 0;
         };
-        let fresh: Vec<&'static CatalogRecipe> = recipes
+        let fresh: Vec<CatalogRecipe> = recipes
             .iter()
             .filter_map(|name| recipe_catalog::by_id(name))
             .filter(|recipe| !player.recipe_book.contains(recipe.id))
             .collect();
         let count = fresh.len();
         if !self.listened(EventKind::PlayerRecipeDiscover) {
-            self.grant_recipes(id, &fresh);
+            self.grant_recipes(id, fresh);
             return count;
         }
         for recipe in fresh {
@@ -302,17 +302,16 @@ impl<L: ClientLink> Server<L> {
             .get(&step.player)
             .is_some_and(|player| player.recipe_book.contains(recipe.id));
         if !cancelled && !known {
-            self.grant_recipes(step.player, &[recipe]);
+            self.grant_recipes(step.player, vec![recipe]);
         }
     }
 
-    fn grant_recipes(&mut self, id: PlayerId, recipes: &[&'static CatalogRecipe]) {
+    fn grant_recipes(&mut self, id: PlayerId, recipes: Vec<CatalogRecipe>) {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
-        let fresh: Vec<&'static CatalogRecipe> = recipes
-            .iter()
-            .copied()
+        let fresh: Vec<CatalogRecipe> = recipes
+            .into_iter()
             .filter(|recipe| player.recipe_book.add(recipe.id))
             .collect();
         let entries: Vec<BookEntry> = fresh
@@ -326,7 +325,7 @@ impl<L: ClientLink> Server<L> {
             entries,
             replace: false,
         });
-        for recipe in fresh {
+        for recipe in &fresh {
             self.trigger_recipe_unlocked(id, recipe.id);
         }
     }
@@ -386,17 +385,18 @@ impl<L: ClientLink> Server<L> {
         {
             return;
         }
+        let recipe_id = recipe.id;
         let step = BookClickStep {
             player: id,
             window,
-            original: recipe.id,
+            original: recipe_id,
             max,
         };
         self.fire(id, Continuation::BookClick(step), move |server| {
             Some(EventPayload::PlayerRecipeBookClick(PlayerRecipeBookClick {
-                original_recipe: recipe.id.to_owned(),
+                original_recipe: recipe_id.to_owned(),
                 player: server.snapshot_of(id)?,
-                recipe: recipe.id.to_owned(),
+                recipe: recipe_id.to_owned(),
                 shift_click: max,
             }))
         });
@@ -416,6 +416,6 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let max = patch.shift_click.unwrap_or(step.max);
-        self.place_recipe(step.player, step.window, recipe, max);
+        self.place_recipe(step.player, step.window, &recipe, max);
     }
 }

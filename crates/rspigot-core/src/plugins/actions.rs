@@ -110,6 +110,9 @@ impl<L: ClientLink> Server<L> {
                 }
                 Err(error) => Err(error),
             },
+            Order::Server(ServerOrder::AddRecipe(spec)) => self
+                .add_plugin_recipe(connection, &spec)
+                .map(|()| Outcome::Done),
             Order::World(WorldOrder::Delete { files }) => {
                 let key = self.world.dimension.key.clone();
                 self.delete_world(&key, files).map(|()| Outcome::Done)

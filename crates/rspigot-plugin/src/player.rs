@@ -14,8 +14,9 @@ use crate::{
     PlayerCommandHandle, PlayerConnectionHandle, PlayerDialogHandle, PlayerEffectsHandle,
     PlayerExperienceHandle, PlayerFoodHandle, PlayerGameModeHandle, PlayerHealthHandle,
     PlayerInventoryHandle, PlayerLocationHandle, PlayerMessageHandle, PlayerMovementHandle,
-    PlayerOperatorHandle, PlayerParticleHandle, PlayerPermissionsHandle, PlayerScoreboardHandle,
-    PlayerSoundHandle, PlayerTabListHandle, PlayerTitleHandle, PlayerVisibilityHandle,
+    PlayerOperatorHandle, PlayerParticleHandle, PlayerPermissionsHandle, PlayerRecipesHandle,
+    PlayerScoreboardHandle, PlayerSoundHandle, PlayerTabListHandle, PlayerTitleHandle,
+    PlayerVisibilityHandle,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -108,6 +109,7 @@ pub struct Player {
     pub food: PlayerFoodHandle,
     pub health: PlayerHealthHandle,
     pub inventory: PlayerInventoryHandle,
+    pub recipes: PlayerRecipesHandle,
     pub location: PlayerLocationHandle,
     pub message: PlayerMessageHandle,
     pub movement: PlayerMovementHandle,
@@ -195,6 +197,10 @@ impl Player {
             inventory: {
                 let (target, link) = handle();
                 PlayerInventoryHandle::new(target, link)
+            },
+            recipes: {
+                let (target, link) = handle();
+                PlayerRecipesHandle::new(target, link)
             },
             location: {
                 let (target, link) = handle();

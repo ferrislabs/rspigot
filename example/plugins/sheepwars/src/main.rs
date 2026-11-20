@@ -113,7 +113,7 @@ impl SheepWars {
             ctx.reply("§cLe jeu n'est pas prêt.");
             return;
         };
-        let player = ctx.sender();
+        let player = &ctx.sender;
         let admin = player.permissions.has(ADMIN_PERMISSION);
         match action.as_str() {
             "join" => game.join(player).await,

@@ -43,6 +43,7 @@ mod poses;
 mod position;
 mod potions;
 pub(crate) mod prepare;
+mod recipes;
 mod registry;
 mod resolve;
 mod rights;
@@ -103,6 +104,10 @@ pub use orders::{
     ParticleSpec, PlayerOrder, RichPartSpec, ServerOrder, SoundSpec, TitleSpec, WorldOrder,
 };
 pub use patch::{ListDiff, SetDiff, Verdict};
+pub use recipes::{
+    CookingKind, IngredientSpec, MAX_PLUGIN_RECIPES, MAX_RECIPE_LIST, RecipeKind, RecipeShape,
+    RecipeSpec, RecipeView,
+};
 pub(crate) use registry::Registry;
 pub use scoreboard::{
     ObjectiveView, ScoreView, ScoreboardOrder, ScoreboardView, TeamOptionSpec, TeamView,
@@ -532,6 +537,8 @@ pub enum Answer {
     PermissionGroups(Vec<crate::permissions::GroupView>),
     AdvancementProgress(AdvancementView),
     Advancements(Vec<String>),
+    Recipes(Vec<RecipeView>),
+    RecipeIds(Vec<String>),
     Refused(String),
     WorldCreated(String),
     Done,
@@ -637,6 +644,8 @@ pub enum Question {
         advancement: String,
     },
     DoneAdvancements(PlayerId),
+    Recipes,
+    DiscoveredRecipes(PlayerId),
     CreateNpc(NpcSpec),
     NpcByKey(String),
     Npcs,

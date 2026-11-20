@@ -602,17 +602,12 @@ fn refresh_cutter(container: &mut [Slot], cutter: &mut Cutter) {
 fn set_cutter_result(container: &mut [Slot], cutter: &Cutter) {
     let cuts = cutter
         .input
-        .map(stonecutting::recipes_for)
+        .map(stonecutting::offers_for)
         .unwrap_or_default();
     let result = usize::try_from(cutter.selected)
         .ok()
         .and_then(|index| cuts.get(index))
-        .and_then(|cut| {
-            Some(ItemStack::new(
-                cut.result.id(),
-                std::num::NonZeroU8::new(cut.count)?,
-            ))
-        });
+        .map(|offer| offer.result.clone());
     if let Some(slot) = container.get_mut(CUTTER_RESULT) {
         *slot = result;
     }
@@ -2093,7 +2088,7 @@ impl ContainerMenu {
         let cuts = self
             .cutter
             .input
-            .map(stonecutting::recipes_for)
+            .map(stonecutting::offers_for)
             .unwrap_or_default();
         if self.cutter.selected == button {
             return false;
