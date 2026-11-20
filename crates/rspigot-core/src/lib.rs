@@ -94,6 +94,7 @@ pub mod lighting;
 mod lightning;
 mod liquid_bucket;
 pub mod loot;
+mod mace;
 pub mod management;
 mod mending;
 mod menu;

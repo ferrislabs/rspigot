@@ -50,6 +50,8 @@ pub const SAFE_FALL_DISTANCE: &str = "minecraft:safe_fall_distance";
 pub const FALL_DAMAGE_MULTIPLIER: &str = "minecraft:fall_damage_multiplier";
 pub const COOLDOWN_THRESHOLD: f32 = 10.0;
 const HELMET_FACTOR: f32 = 0.75;
+const MAX_PROTECTION: f32 = 20.0;
+const PROTECTION_DIVISOR: f32 = 25.0;
 const FALL_DAMAGE_IMMUNE: &str = "minecraft:fall_damage_immune";
 const ENTITY_TYPES: &str = "minecraft:entity_type";
 pub const DEFAULT_DROP_CHANCE: f32 = 0.085;
@@ -380,6 +382,8 @@ pub struct DamageMemory {
     pub last_hurt_mob_at: i32,
     pub last_source: Option<(DamageType, i64)>,
     pub last_source_entity: Option<EntityId>,
+    pub protection: f32,
+    pub breach: f32,
     pub combat: CombatTracker,
 }
 
@@ -787,7 +791,13 @@ fn after_magic(living: &LivingState, kind: DamageType, amount: f32) -> f32 {
     {
         amount = damage::after_resistance(amount, resistance.amplifier);
     }
-    if amount <= 0.0 { 0.0 } else { amount }
+    if amount <= 0.0 {
+        0.0
+    } else if living.damage.protection > 0.0 {
+        amount * (1.0 - living.damage.protection.clamp(0.0, MAX_PROTECTION) / PROTECTION_DIVISOR)
+    } else {
+        amount
+    }
 }
 
 fn species_absorb(
@@ -819,7 +829,7 @@ pub fn actually_hurt(
     if !kind.is(DamageTag::BypassesArmor) {
         let armor = living.attribute(ARMOR).floor() as f32;
         let toughness = living.attribute(ARMOR_TOUGHNESS) as f32;
-        amount = damage::after_armor(amount, armor, toughness);
+        amount = damage::after_armor_breached(amount, armor, toughness, 1.0 - living.damage.breach);
     }
     amount = after_magic(living, kind, amount);
     amount = species_absorb(living, kind, source.self_inflicted, amount);
@@ -878,7 +888,7 @@ pub fn final_damage(
     if !kind.is(DamageTag::BypassesArmor) {
         let armor = living.attribute(ARMOR).floor() as f32;
         let toughness = living.attribute(ARMOR_TOUGHNESS) as f32;
-        amount = damage::after_armor(amount, armor, toughness);
+        amount = damage::after_armor_breached(amount, armor, toughness, 1.0 - living.damage.breach);
     }
     amount = after_magic(living, kind, amount);
     amount = species_absorb(living, kind, self_inflicted, amount);
@@ -1742,6 +1752,16 @@ mod tests {
         living.dead = true;
         let removed = (0..DEATH_DURATION).any(|_| base_tick(&mut base, &mut living).removed);
         assert!(removed);
+    }
+
+    #[test]
+    fn a_breach_lets_more_of_the_hit_through_the_mob_armor() {
+        let (_, mut living) = zombie();
+        let plain = final_damage(&mut living, DamageType::MobAttack, false, 6.0);
+        living.damage.breach = 0.6;
+        let breached = final_damage(&mut living, DamageType::MobAttack, false, 6.0);
+        assert!(breached > plain, "{breached} vs {plain}");
+        assert!(breached <= 6.0);
     }
 
     #[test]

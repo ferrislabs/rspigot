@@ -271,3 +271,57 @@ fn fire_aspect_fires_the_combust_by_entity_event_with_the_attacker() {
     assert_eq!(combust.entity.id, target.id);
     assert_eq!(combust.duration, 8.0);
 }
+
+fn chestplate_of(
+    events: &[rspigot_core::events::ClientEvent],
+) -> Option<Option<rspigot_domain::item::ItemStack>> {
+    events.iter().rev().find_map(|event| match event {
+        rspigot_core::events::ClientEvent::InventorySlot { slot: 6, stack, .. } => {
+            Some(stack.clone())
+        }
+        _ => None,
+    })
+}
+
+fn worn_chestplate(damage: i32) -> ItemSpec {
+    let mut spec = enchanted("minecraft:diamond_chestplate", &[("minecraft:thorns", 10)]);
+    let mut bytes = Vec::new();
+    rspigot_nbt::write_network(
+        &mut bytes,
+        &rspigot_nbt::Tag::Compound(rspigot_nbt::Compound::new().with("minecraft:damage", damage)),
+    );
+    spec.components = bytes;
+    spec
+}
+
+fn hit_thorns_wearer(damage: i32) -> Option<Option<rspigot_domain::item::ItemStack>> {
+    let mut s = scene_with(&["Alice", "Bob"], Vec::new());
+    equip_for(&mut s, 1, 38, worn_chestplate(damage));
+    s.tick(25);
+    let alice = s.players[0].clone();
+    let bob = s.players[1].clone();
+    let bob_entity = match s.ask(Question::Player(bob.id)) {
+        Answer::Player(state) => state.player.entity_id,
+        _ => panic!("expected Bob"),
+    };
+    bob.link.take();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::Attack(EntityId(bob_entity)),
+    );
+    chestplate_of(&bob.link.take())
+}
+
+#[test]
+fn thorns_wear_the_chestplate_by_two_durability() {
+    let worn = hit_thorns_wearer(10)
+        .flatten()
+        .expect("the chestplate is resent");
+    assert_eq!(worn.components.get_i32("minecraft:damage"), Some(12));
+}
+
+#[test]
+fn a_chestplate_worn_out_by_thorns_breaks() {
+    assert_eq!(hit_thorns_wearer(527), Some(None));
+}
