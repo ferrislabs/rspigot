@@ -2,7 +2,7 @@ mod extra;
 mod functions;
 mod game;
 
-use crate::plugins::{ArgumentKind, CommandSpec};
+use crate::plugins::{ArgumentKind, CommandArgument, PluginRoot};
 
 use super::permission::{LEVEL_ADMINS, LEVEL_GAMEMASTERS, LEVEL_OWNERS};
 
@@ -69,42 +69,89 @@ fn parser_of(kind: ArgumentKind) -> ArgumentParser {
             single: true,
             players_only: true,
         },
+        ArgumentKind::Entities => ArgumentParser::Entity {
+            single: false,
+            players_only: false,
+        },
         ArgumentKind::Item => ArgumentParser::ItemStack,
         ArgumentKind::Integer => ArgumentParser::Integer {
             min: None,
             max: None,
         },
-        ArgumentKind::Text => ArgumentParser::Word,
+        ArgumentKind::Double => ArgumentParser::Double {
+            min: None,
+            max: None,
+        },
+        ArgumentKind::Float => ArgumentParser::Float {
+            min: None,
+            max: None,
+        },
+        ArgumentKind::Location => ArgumentParser::Vec3,
+        ArgumentKind::GreedyText => ArgumentParser::GreedyString,
+        ArgumentKind::Text | ArgumentKind::Choice | ArgumentKind::Literal => ArgumentParser::Word,
         ArgumentKind::Boolean => ArgumentParser::Bool,
     }
 }
 
+fn node_of(argument: &CommandArgument) -> CommandNodeKind {
+    if argument.kind == ArgumentKind::Literal {
+        return CommandNodeKind::Literal(argument.name.to_ascii_lowercase());
+    }
+    CommandNodeKind::Argument {
+        name: argument.name.clone(),
+        parser: parser_of(argument.kind),
+        suggests: (argument.suggested || argument.kind == ArgumentKind::Choice)
+            .then(|| ASK_SERVER.to_owned()),
+    }
+}
+
 impl CommandTree {
-    pub(crate) fn with_plugin_commands(&self, commands: &[&CommandSpec]) -> Self {
+    pub(crate) fn with_plugin_commands(&self, roots: &[PluginRoot<'_>]) -> Self {
         let mut tree = self.clone();
-        for command in commands {
-            let required = command.arguments.iter().any(|argument| !argument.optional);
-            let mut parent = tree.attach(
+        for root in roots {
+            let executable = root
+                .specs
+                .iter()
+                .any(|spec| spec.arguments.iter().all(|argument| argument.optional));
+            let head = tree.attach(
                 tree.root,
-                CommandNodeKind::Literal(command.name.clone()),
-                !required,
+                CommandNodeKind::Literal(root.name.clone()),
+                executable,
             );
-            for (index, argument) in command.arguments.iter().enumerate() {
-                let executable = command.arguments[index + 1..]
-                    .iter()
-                    .all(|later| later.optional);
-                parent = tree.attach(
-                    parent,
-                    CommandNodeKind::Argument {
-                        name: argument.name.clone(),
-                        parser: parser_of(argument.kind),
-                        suggests: argument.suggested.then(|| ASK_SERVER.to_owned()),
-                    },
+            for spec in &root.specs {
+                let mut parent = head;
+                for (index, argument) in spec.arguments.iter().enumerate() {
+                    let executable = spec.arguments[index + 1..]
+                        .iter()
+                        .all(|later| later.optional);
+                    parent = tree.merge(parent, node_of(argument), executable);
+                }
+            }
+            for alias in &root.aliases {
+                let index = tree.attach(
+                    tree.root,
+                    CommandNodeKind::Literal(alias.clone()),
                     executable,
                 );
+                tree.nodes[index].redirect = Some(head);
             }
         }
         tree
+    }
+
+    fn merge(&mut self, parent: usize, kind: CommandNodeKind, executable: bool) -> usize {
+        let same = self.nodes[parent]
+            .children
+            .iter()
+            .copied()
+            .find(|child| self.nodes[*child].kind == kind);
+        match same {
+            Some(child) => {
+                self.nodes[child].executable |= executable;
+                child
+            }
+            None => self.attach(parent, kind, executable),
+        }
     }
 
     fn attach(&mut self, parent: usize, kind: CommandNodeKind, executable: bool) -> usize {

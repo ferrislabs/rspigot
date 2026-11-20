@@ -22,4 +22,11 @@ impl PlayerCommandHandle {
             order: Some(v1::player_order::Order::PerformCommand(value.into())),
         }));
     }
+
+    pub fn refresh(&self) {
+        self.link.order(from_plugin::Body::Player(v1::PlayerOrder {
+            player: self.target.to_string(),
+            order: Some(v1::player_order::Order::RefreshCommands(v1::Empty {})),
+        }));
+    }
 }

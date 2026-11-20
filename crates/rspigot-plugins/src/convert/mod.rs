@@ -126,6 +126,10 @@ pub(crate) fn from_plugin(
         from_plugin::Body::BossBar(order) => ordered(boss_bar::order(order)?),
         from_plugin::Body::Npc(order) => ordered(npc::order(order)?),
         from_plugin::Body::Question(asked) => question(asked)?,
+        from_plugin::Body::RegisterCommand(spec) => {
+            FromPlugin::RegisterCommand(command::spec(spec)?)
+        }
+        from_plugin::Body::UnregisterCommand(name) => FromPlugin::UnregisterCommand(name),
     };
     scoped(world, converted)
 }
@@ -214,6 +218,14 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         }
         question::Question::BossBar(bar) => Question::BossBar(bar),
         question::Question::BossBars(_) => Question::BossBars,
+        question::Question::PermissionGroups(_) => Question::PermissionGroups,
+        question::Question::AdvancementProgress(query) => Question::AdvancementProgress {
+            player: player::id(query.player)?,
+            advancement: query.advancement,
+        },
+        question::Question::DoneAdvancements(player) => {
+            Question::DoneAdvancements(player::id(player)?)
+        }
         question::Question::AttributeValue(query) => entity::attribute_query(query)?,
         question::Question::CreateNpc(create) => Question::CreateNpc(npc::spec(create)?),
         question::Question::NpcByKey(key) => Question::NpcByKey(key),
@@ -309,6 +321,17 @@ fn wire_answer(answer: Answer) -> answer::Body {
         Answer::BossBars(views) => answer::Body::BossBars(v1::BossBarList {
             bars: views.into_iter().map(boss_bar::wire_state).collect(),
         }),
+        Answer::AdvancementProgress(view) => {
+            answer::Body::AdvancementProgress(v1::AdvancementProgress {
+                done: view.done,
+                criteria_done: view.criteria_done,
+                criteria_remaining: view.criteria_remaining,
+            })
+        }
+        Answer::Advancements(ids) => answer::Body::Advancements(v1::AdvancementList { ids }),
+        Answer::PermissionGroups(groups) => {
+            answer::Body::PermissionGroups(server::wire_groups(groups))
+        }
         Answer::Npc(view) => answer::Body::Npc(npc::wire_state(view)),
         Answer::MetaEntries(entries) => answer::Body::MetaEntries(meta::wire_entries(entries)),
         Answer::BlockPositions(positions) => {
@@ -529,6 +552,39 @@ mod tests {
                 request: 3,
                 question: Question::Players
             }
+        );
+    }
+
+    #[test]
+    fn a_dynamic_command_registration_and_removal_convert() {
+        let registered = v1::FromPlugin {
+            body: Some(from_plugin::Body::RegisterCommand(v1::CommandSpec {
+                id: 9,
+                name: "late".to_owned(),
+                permission: None,
+                arguments: Vec::new(),
+                aliases: vec!["l".to_owned()],
+            })),
+            origin: None,
+            request: None,
+            in_world: None,
+        };
+        let Ok(FromPlugin::RegisterCommand(spec)) = from_plugin(registered, &mut Vec::new()) else {
+            panic!("a registration");
+        };
+        assert_eq!(
+            (spec.id, spec.name.as_str(), spec.aliases.as_slice()),
+            (9, "late", ["l".to_owned()].as_slice())
+        );
+        let removed = v1::FromPlugin {
+            body: Some(from_plugin::Body::UnregisterCommand("late".to_owned())),
+            origin: Some(3),
+            request: None,
+            in_world: None,
+        };
+        assert_eq!(
+            from_plugin(removed, &mut Vec::new()).unwrap(),
+            FromPlugin::UnregisterCommand("late".to_owned())
         );
     }
 

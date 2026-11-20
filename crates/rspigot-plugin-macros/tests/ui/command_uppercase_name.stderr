@@ -1,4 +1,4 @@
-error: a command name is lowercase, without spaces
+error: a command name is lowercase words: the command, then its literal sub-commands (`"shop buy"`)
  --> tests/ui/command_uppercase_name.rs:8:15
   |
 8 |     #[command("Give")]

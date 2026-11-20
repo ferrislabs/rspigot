@@ -6,40 +6,28 @@ use rspigot_domain::text::{Component, NamedColor};
 use crate::commands::{self, CommandNodeKind, CommandSender, CommandTree};
 use crate::events::ClientEvent;
 use crate::player::Player;
+use crate::plugins::command_args::{Unfit, argument_at};
 use crate::plugins::decisions::{Continuation, Lane};
 use crate::plugins::events::{ServerCommand, ServerCommandPatch, TabComplete, TabCompletePatch};
 use crate::plugins::steps::SuggestStep;
 use crate::plugins::{
-    ArgumentKind, ArgumentValue, CommandSpec, EventKind, EventPayload, SenderView, ToPlugin,
+    ArgumentKind, CommandSpec, EventKind, EventPayload, PluginRoot, SenderView, ToPlugin,
 };
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
 const OPERATOR_TREE: u8 = 4;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum PluginTyping {
     Elsewhere,
     Silent,
     Dynamic,
-}
-
-enum Unfit {
-    Incomplete,
-    NoPlayer,
+    Choices(Vec<String>),
 }
 
 fn label_of(word: &str) -> String {
     word.trim_start_matches('/').to_ascii_lowercase()
-}
-
-fn item_key(word: &str) -> String {
-    let word = word.to_ascii_lowercase();
-    if word.contains(':') {
-        word
-    } else {
-        format!("minecraft:{word}")
-    }
 }
 
 impl<L: ClientLink> Server<L> {
@@ -61,41 +49,73 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    fn declared_commands(&self) -> Vec<(u64, &CommandSpec)> {
-        let vanilla = self.command_tree(OPERATOR_TREE);
-        let mut taken: Vec<String> = vanilla_roots(&vanilla);
-        let mut kept = Vec::new();
-        for (connection, command) in self.plugins.commands() {
-            let name = label_of(&command.name);
-            if !taken.contains(&name) {
-                taken.push(name);
-                kept.push((connection, command));
+    pub(crate) fn plugin_roots(&self) -> Vec<PluginRoot<'_>> {
+        let vanilla = vanilla_roots(&self.command_tree(OPERATOR_TREE));
+        let mut roots: Vec<PluginRoot<'_>> = Vec::new();
+        for (connection, spec) in self.plugins.commands() {
+            let name = label_of(&spec.name);
+            if vanilla.contains(&name) {
+                continue;
+            }
+            match roots.iter_mut().find(|root| root.name == name) {
+                Some(root) if root.connection == connection => root.specs.push(spec),
+                Some(_) => {}
+                None => roots.push(PluginRoot {
+                    name,
+                    connection,
+                    aliases: Vec::new(),
+                    specs: vec![spec],
+                }),
             }
         }
-        kept
+        for (connection, spec) in self.plugins.commands() {
+            let name = label_of(&spec.name);
+            for alias in &spec.aliases {
+                let alias = label_of(alias);
+                let free = !vanilla.contains(&alias)
+                    && !roots
+                        .iter()
+                        .any(|root| root.name == alias || root.aliases.contains(&alias));
+                if free
+                    && let Some(root) = roots
+                        .iter_mut()
+                        .find(|root| root.name == name && root.connection == connection)
+                {
+                    root.aliases.push(alias);
+                }
+            }
+        }
+        roots
     }
 
-    fn plugin_command(&self, label: &str) -> Option<(u64, &CommandSpec)> {
-        self.declared_commands()
+    fn plugin_root(&self, label: &str) -> Option<PluginRoot<'_>> {
+        self.plugin_roots()
             .into_iter()
-            .find(|(_, command)| label_of(&command.name) == label)
+            .find(|root| root.name == label || root.aliases.iter().any(|alias| alias == label))
     }
 
-    fn may_run(&self, player: &Player<L>, command: &CommandSpec) -> bool {
-        command.permission.as_deref().is_none_or(|node| {
-            self.permissions
-                .rights(player.id, player.name(), player.permission_level())
-                .has(node)
-        })
+    fn permitted<'a>(&self, player: &Player<L>, root: &PluginRoot<'a>) -> Vec<&'a CommandSpec> {
+        let rights = self.rights_for(player);
+        root.specs
+            .iter()
+            .copied()
+            .filter(|spec| {
+                spec.permission
+                    .as_deref()
+                    .is_none_or(|node| rights.has(node))
+            })
+            .collect()
     }
 
     pub(crate) fn player_tree(&self, player: &Player<L>) -> Arc<CommandTree> {
         let base = self.command_tree(player.permission_level());
-        let granted: Vec<&CommandSpec> = self
-            .declared_commands()
+        let granted: Vec<PluginRoot<'_>> = self
+            .plugin_roots()
             .into_iter()
-            .map(|(_, command)| command)
-            .filter(|command| self.may_run(player, command))
+            .filter_map(|root| {
+                let specs = self.permitted(player, &root);
+                (!specs.is_empty()).then_some(PluginRoot { specs, ..root })
+            })
             .collect();
         if granted.is_empty() {
             base
@@ -104,36 +124,86 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    pub(crate) fn announce_commands(&mut self, connection: u64) {
+    fn command_conflicts(&self, connection: u64, only: Option<&str>) -> Vec<String> {
         let vanilla = vanilla_roots(&self.command_tree(OPERATOR_TREE));
-        let mut warnings = Vec::new();
+        let roots = self.plugin_roots();
+        let mut warnings: Vec<String> = Vec::new();
         let mut seen: Vec<String> = Vec::new();
         for (owner, command) in self.plugins.commands() {
             if owner != connection {
                 continue;
             }
             let name = label_of(&command.name);
+            if only.is_some_and(|only| only != name) || seen.contains(&name) {
+                continue;
+            }
+            seen.push(name.clone());
             if vanilla.contains(&name) {
                 warnings.push(format!(
                     "the command /{name} already exists in the server, the plugin's one is ignored"
                 ));
-            } else if seen.contains(&name)
-                || self
-                    .plugins
-                    .commands()
-                    .any(|(other, taken)| other < connection && label_of(&taken.name) == name)
+            } else if roots
+                .iter()
+                .any(|root| root.name == name && root.connection != connection)
             {
                 warnings.push(format!(
                     "the command /{name} is already declared by another plugin, this one is ignored"
                 ));
             }
-            seen.push(name);
+            for alias in self
+                .plugins
+                .commands()
+                .filter(|(other, spec)| *other == connection && label_of(&spec.name) == name)
+                .flat_map(|(_, spec)| spec.aliases.iter())
+            {
+                let alias = label_of(alias);
+                let kept = roots
+                    .iter()
+                    .any(|root| root.name == name && root.aliases.contains(&alias));
+                let own = roots
+                    .iter()
+                    .any(|root| root.name == name && root.connection == connection);
+                if own && !kept && alias != name {
+                    warnings.push(format!(
+                        "the alias /{alias} of /{name} is already taken, the plugin's one is ignored"
+                    ));
+                }
+            }
         }
-        for warning in warnings {
+        warnings
+    }
+
+    pub(crate) fn announce_commands(&mut self, connection: u64) {
+        for warning in self.command_conflicts(connection, None) {
             tracing::warn!("{warning}");
             self.plugins.send(connection, ToPlugin::Warning(warning));
         }
         self.resend_command_trees();
+    }
+
+    pub(super) fn register_command(&mut self, connection: u64, spec: CommandSpec) {
+        let name = label_of(&spec.name);
+        if let Err(error) = self.plugins.add_command(connection, spec) {
+            self.warn_plugin(connection, "server.command.register", error);
+            return;
+        }
+        for warning in self.command_conflicts(connection, Some(&name)) {
+            tracing::warn!("{warning}");
+            self.plugins.send(connection, ToPlugin::Warning(warning));
+        }
+        self.resend_command_trees();
+    }
+
+    pub(super) fn unregister_command(&mut self, connection: u64, name: &str) {
+        if self.plugins.remove_command(connection, name) {
+            self.resend_command_trees();
+        } else {
+            self.warn_plugin(
+                connection,
+                "server.command.unregister",
+                format!("the plugin has no command {name}"),
+            );
+        }
     }
 
     pub(crate) fn resend_command_trees(&mut self) {
@@ -148,18 +218,30 @@ impl<L: ClientLink> Server<L> {
         let (Some(label), Some(player)) = (words.next(), self.players.get(&id)) else {
             return PluginTyping::Elsewhere;
         };
-        let words = words.count();
-        if words == 0 {
+        let mut typed: Vec<&str> = words.collect();
+        if typed.pop().is_none() {
             return PluginTyping::Elsewhere;
         }
-        let Some((_, command)) = self.plugin_command(&label_of(label)) else {
+        let Some(root) = self.plugin_root(&label_of(label)) else {
             return PluginTyping::Elsewhere;
         };
-        let suggested = command
-            .arguments
-            .get(words - 1)
-            .is_some_and(|argument| argument.suggested);
-        if suggested && self.may_run(player, command) {
+        let mut dynamic = false;
+        let mut choices: Vec<String> = Vec::new();
+        for spec in self.permitted(player, &root) {
+            let Some(argument) = argument_at(spec, &typed) else {
+                continue;
+            };
+            if argument.kind == ArgumentKind::Choice {
+                choices.extend(argument.choices.iter().cloned());
+            } else if argument.suggested {
+                dynamic = true;
+            }
+        }
+        if !choices.is_empty() {
+            choices.sort();
+            choices.dedup();
+            PluginTyping::Choices(choices)
+        } else if dynamic {
             PluginTyping::Dynamic
         } else {
             PluginTyping::Silent
@@ -168,87 +250,64 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn run_plugin_command(&mut self, id: PlayerId, line: &str) -> bool {
         let line = line.trim();
-        let mut words = line.split_whitespace();
-        let Some(label) = words.next().map(label_of) else {
+        let (label, arguments) = line
+            .split_once(char::is_whitespace)
+            .map_or((line, ""), |(label, rest)| (label, rest.trim_start()));
+        let label = label_of(label);
+        let Some(root) = self.plugin_root(&label) else {
             return false;
         };
-        let Some((connection, command)) = self.plugin_command(&label) else {
-            return false;
-        };
-        let command = command.clone();
+        let connection = root.connection;
         let Some(player) = self.players.get(&id) else {
             return true;
         };
         let sender = CommandSender::Player(id);
-        if !self.may_run(player, &command) {
+        let permitted = self.permitted(player, &root);
+        if permitted.is_empty() {
             commands::refuse(self, sender, line);
             return true;
         }
-        let words: Vec<&str> = words.collect();
-        match self.read_arguments(&command, &words) {
-            Ok(arguments) => {
+        let mut best: Option<(&CommandSpec, Vec<_>, usize)> = None;
+        let mut failure = Unfit::Incomplete;
+        for spec in permitted {
+            match self.read_arguments(id, spec, arguments) {
+                Ok((values, literals)) => {
+                    if best.as_ref().is_none_or(|(_, _, most)| literals > *most) {
+                        best = Some((spec, values, literals));
+                    }
+                }
+                Err(Unfit::NoPlayer) => failure = Unfit::NoPlayer,
+                Err(_) => {}
+            }
+        }
+        match best {
+            Some((spec, arguments, _)) => {
+                let command = spec.id;
                 if let Some(snapshot) = self.snapshot_of(id) {
                     self.plugins.send(
                         connection,
                         ToPlugin::Invocation {
-                            command: command.id,
+                            command,
                             sender: snapshot,
                             arguments,
                         },
                     );
                 }
             }
-            Err(Unfit::Incomplete) => {
+            None if failure == Unfit::NoPlayer => {
+                self.push(
+                    Audience::One(id),
+                    ClientEvent::system(
+                        Component::translatable("argument.entity.notfound.player", Vec::new())
+                            .color(NamedColor::Red),
+                    ),
+                );
+            }
+            None => {
                 commands::refuse(self, sender, line);
             }
-            Err(Unfit::NoPlayer) => self.push(
-                Audience::One(id),
-                ClientEvent::system(
-                    Component::translatable("argument.entity.notfound.player", Vec::new())
-                        .color(NamedColor::Red),
-                ),
-            ),
         }
         true
-    }
-
-    fn read_arguments(
-        &self,
-        command: &CommandSpec,
-        words: &[&str],
-    ) -> Result<Vec<ArgumentValue>, Unfit> {
-        let required = command
-            .arguments
-            .iter()
-            .filter(|argument| !argument.optional)
-            .count();
-        if words.len() < required || words.len() > command.arguments.len() {
-            return Err(Unfit::Incomplete);
-        }
-        command
-            .arguments
-            .iter()
-            .zip(words)
-            .map(|(argument, word)| match argument.kind {
-                ArgumentKind::Player => self
-                    .players
-                    .values()
-                    .find(|player| player.name().eq_ignore_ascii_case(word))
-                    .and_then(|player| self.snapshot_of(player.id))
-                    .map(ArgumentValue::Player)
-                    .ok_or(Unfit::NoPlayer),
-                ArgumentKind::Item => Ok(ArgumentValue::Item(item_key(word))),
-                ArgumentKind::Integer => word
-                    .parse()
-                    .map(ArgumentValue::Integer)
-                    .map_err(|_| Unfit::Incomplete),
-                ArgumentKind::Text => Ok(ArgumentValue::Text((*word).to_owned())),
-                ArgumentKind::Boolean => word
-                    .parse()
-                    .map(ArgumentValue::Flag)
-                    .map_err(|_| Unfit::Incomplete),
-            })
-            .collect()
     }
 
     pub(super) fn finish_server_command(&mut self, line: String, patch: ServerCommandPatch) {

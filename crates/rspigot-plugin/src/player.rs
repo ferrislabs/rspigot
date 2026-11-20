@@ -10,12 +10,12 @@ use crate::target::{BlockTarget, Target};
 use crate::wire::{parse_address, parse_uuid};
 use crate::world::World;
 use crate::{
-    Effect, Error, PlayerAbilitiesHandle, PlayerActionBarHandle, PlayerCommandHandle,
-    PlayerConnectionHandle, PlayerDialogHandle, PlayerEffectsHandle, PlayerExperienceHandle,
-    PlayerFoodHandle, PlayerGameModeHandle, PlayerHealthHandle, PlayerInventoryHandle,
-    PlayerLocationHandle, PlayerMessageHandle, PlayerMovementHandle, PlayerOperatorHandle,
-    PlayerParticleHandle, PlayerPermissionsHandle, PlayerScoreboardHandle, PlayerSoundHandle,
-    PlayerTabListHandle, PlayerTitleHandle, PlayerVisibilityHandle,
+    Effect, Error, PlayerAbilitiesHandle, PlayerActionBarHandle, PlayerAdvancementsHandle,
+    PlayerCommandHandle, PlayerConnectionHandle, PlayerDialogHandle, PlayerEffectsHandle,
+    PlayerExperienceHandle, PlayerFoodHandle, PlayerGameModeHandle, PlayerHealthHandle,
+    PlayerInventoryHandle, PlayerLocationHandle, PlayerMessageHandle, PlayerMovementHandle,
+    PlayerOperatorHandle, PlayerParticleHandle, PlayerPermissionsHandle, PlayerScoreboardHandle,
+    PlayerSoundHandle, PlayerTabListHandle, PlayerTitleHandle, PlayerVisibilityHandle,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -99,6 +99,7 @@ pub struct Player {
     pub permissions: PlayerPermissionsHandle,
     pub abilities: PlayerAbilitiesHandle,
     pub action_bar: PlayerActionBarHandle,
+    pub advancements: PlayerAdvancementsHandle,
     pub command: PlayerCommandHandle,
     pub connection: PlayerConnectionHandle,
     pub dialog: PlayerDialogHandle,
@@ -142,7 +143,10 @@ impl Player {
                 let (target, link) = handle();
                 PlayerGameModeHandle::new(target, link, GameMode::from_wire(snapshot.game_mode)?)
             },
-            permissions: PlayerPermissionsHandle::new(snapshot.permissions.into()),
+            permissions: {
+                let (target, link) = handle();
+                PlayerPermissionsHandle::new(snapshot.permissions.into(), target, link)
+            },
             name: snapshot.name,
             entity_id: snapshot.entity_id,
             world: World::resolved(snapshot.world, link),
@@ -155,6 +159,10 @@ impl Player {
             action_bar: {
                 let (target, link) = handle();
                 PlayerActionBarHandle::new(target, link)
+            },
+            advancements: {
+                let (target, link) = handle();
+                PlayerAdvancementsHandle::new(target, link)
             },
             command: {
                 let (target, link) = handle();

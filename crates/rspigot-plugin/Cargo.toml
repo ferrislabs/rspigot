@@ -10,6 +10,7 @@ rspigot-nbt = { workspace = true }
 rspigot-plugin-macros = { workspace = true }
 rspigot-plugin-protocol = { workspace = true }
 thiserror = "2"
+toml = "1"
 tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
 tokio-stream = "0.1"
 tonic = "0.14"
@@ -17,6 +18,7 @@ tracing = "0.1"
 uuid = "1"
 
 [dev-dependencies]
+tempfile = "3"
 rspigot-data = { workspace = true }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "net", "test-util"] }
 trybuild = "1"

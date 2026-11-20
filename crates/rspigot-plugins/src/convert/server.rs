@@ -1,4 +1,5 @@
 use rspigot_core::admin::{Ban, BanEntry, IpBanEntry, ListEntry};
+use rspigot_core::permissions::GroupView;
 use rspigot_core::plugins::{Order, ServerOrder, ServerState};
 use rspigot_core::worlds::{GeneratorSpec, LayerSpec, WorldKind, WorldSpec};
 use rspigot_domain::Identifier;
@@ -94,6 +95,19 @@ pub(super) fn wire_state(state: ServerState) -> v1::ServerState {
         tps_5m,
         tps_15m,
         whitelist_enabled: state.whitelist_enabled,
+    }
+}
+
+pub(super) fn wire_groups(groups: Vec<GroupView>) -> v1::PermissionGroups {
+    v1::PermissionGroups {
+        groups: groups
+            .into_iter()
+            .map(|group| v1::PermissionGroup {
+                name: group.name,
+                permissions: group.permissions,
+                inherits: group.inherits,
+            })
+            .collect(),
     }
 }
 

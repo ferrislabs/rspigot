@@ -16,6 +16,13 @@ pub struct Permissions {
     players: FxHashMap<String, Vec<String>>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GroupView {
+    pub name: String,
+    pub permissions: Vec<String>,
+    pub inherits: Vec<String>,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Rights {
     nodes: Vec<String>,
@@ -41,7 +48,35 @@ impl Permissions {
         self
     }
 
+    pub fn has_group(&self, name: &str) -> bool {
+        self.groups.contains_key(name)
+    }
+
+    pub fn group_views(&self) -> Vec<GroupView> {
+        let mut views: Vec<GroupView> = self
+            .groups
+            .iter()
+            .map(|(name, group)| GroupView {
+                name: name.clone(),
+                permissions: group.permissions.clone(),
+                inherits: group.inherits.clone(),
+            })
+            .collect();
+        views.sort_by(|a, b| a.name.cmp(&b.name));
+        views
+    }
+
     pub fn rights(&self, id: PlayerId, name: &str, op_level: u8) -> Rights {
+        self.rights_with(id, name, op_level, &[])
+    }
+
+    pub fn rights_with(
+        &self,
+        id: PlayerId,
+        name: &str,
+        op_level: u8,
+        extra_groups: &[&str],
+    ) -> Rights {
         if op_level >= OPERATOR_LEVEL {
             return Rights {
                 nodes: vec!["*".to_owned()],
@@ -53,7 +88,8 @@ impl Permissions {
         let mut nodes = Vec::new();
         let roots = std::iter::once(DEFAULT_GROUP)
             .chain(by_uuid.into_iter().flatten().map(String::as_str))
-            .chain(by_name.into_iter().flatten().map(String::as_str));
+            .chain(by_name.into_iter().flatten().map(String::as_str))
+            .chain(extra_groups.iter().copied());
         for root in roots {
             self.collect(root, &mut seen, &mut nodes);
         }
@@ -81,6 +117,11 @@ impl Rights {
 
     pub fn nodes(&self) -> &[String] {
         &self.nodes
+    }
+
+    pub fn extended(mut self, overlay: impl IntoIterator<Item = String>) -> Self {
+        self.nodes.extend(overlay);
+        self
     }
 
     pub fn into_nodes(self) -> Vec<String> {
