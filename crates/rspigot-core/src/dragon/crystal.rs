@@ -4,7 +4,7 @@ use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 use crate::dragon::CrystalFacts;
-use crate::explosion::{BlockInteraction, fire_state_on};
+use crate::explosion::fire_state_on;
 use crate::health::DamageSource;
 use crate::plugins::events::{
     BlockIgnite, BlockIgniteCause, EntityRemoveCause, ExplosionPrime, ExplosionPrimePatch,
@@ -212,12 +212,13 @@ impl<L: ClientLink> Server<L> {
             (None, Some(direct)) => DamageSource::by(DamageType::Explosion, direct),
             _ => DamageSource::new(DamageType::Explosion),
         };
+        let interaction = self.block_block_interaction();
         self.explode(
             Some(id),
             &blast,
             position,
             radius,
-            BlockInteraction::DestroyWithDecay,
+            interaction,
             fire,
             Some(id),
         );

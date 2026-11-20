@@ -9,6 +9,7 @@ mod place;
 mod placement;
 mod pool;
 mod processors;
+mod render;
 mod sets;
 mod shaped;
 pub(crate) mod structure;
@@ -29,6 +30,7 @@ pub(crate) use nbt::{attach, chunk_entities, spawned_entities};
 pub use pack::LoadIssue;
 pub(crate) use place::place_start;
 pub(crate) use placement::BiomeProbe;
+pub(crate) use render::{jigsaw_blocks, start_blocks, template_blocks};
 pub(crate) use world::{Engine, Start};
 
 pub fn install_datapacks(dir: &std::path::Path) -> Vec<LoadIssue> {

@@ -106,3 +106,27 @@ fn other_items_and_full_stacks_do_not_merge() {
     assert_eq!(stacks(&s).len(), 4);
     assert!(settled_for(&s.plugin, EventKind::ItemMerge).is_empty());
 }
+
+fn merged_stacks_at_a_gap(radius: f64) -> usize {
+    let mut s = scene_on(
+        configured(|config| config.item_merge_radius = radius),
+        &["Alice"],
+        Vec::new(),
+    );
+    console(
+        &mut s,
+        "summon item 8.5 64 8.5 {Item:{id:\"minecraft:cobblestone\",count:3},Motion:[0.0,0.0,0.0]}",
+    );
+    console(
+        &mut s,
+        "summon item 9.9 64 8.5 {Item:{id:\"minecraft:cobblestone\",count:4},Motion:[0.0,0.0,0.0]}",
+    );
+    s.tick(45);
+    stacks(&s).len()
+}
+
+#[test]
+fn the_merge_radius_setting_decides_whether_far_stacks_join() {
+    assert_eq!(merged_stacks_at_a_gap(0.5), 2);
+    assert_eq!(merged_stacks_at_a_gap(2.0), 1);
+}

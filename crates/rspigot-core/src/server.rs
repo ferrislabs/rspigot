@@ -101,6 +101,7 @@ pub struct Server<L> {
     pub(crate) world: World,
     pub(crate) workers: ChunkWorkers,
     pub(crate) pending_eyes: Vec<crate::eye_of_ender::PendingEye>,
+    pub(crate) pending_queries: Vec<crate::locate::PendingQuery>,
     pub(crate) players: FxHashMap<PlayerId, Player<L>>,
     pub(crate) outbox: Vec<(Audience, ClientEvent)>,
     pub(crate) admin: AdminLists,
@@ -138,12 +139,19 @@ pub struct Server<L> {
     pub(crate) saving_enabled: bool,
     pub(crate) tick_rate: rspigot_domain::tick_rate::TickRate,
     pub(crate) simulating: bool,
+    pub(crate) tnt_ticked: (u64, i32),
+    pub(crate) restarting: bool,
+    pub(crate) timings: crate::timings::Timings,
+    pub(crate) timings_sink: Option<Sender<crate::timings::TimingsReport>>,
+    pub(crate) restart_signal: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
+    pub(crate) empty_ticks: u64,
     pub(crate) profiler: Option<(Instant, u64)>,
     pub(crate) command_source: Option<crate::commands::source::Source>,
     pub(crate) command_result: Option<i32>,
     pub(crate) functions: crate::functions::FunctionState,
     pub(crate) datapacks: Option<crate::functions::DatapackLoader>,
     pub(crate) command_storage: FxHashMap<Identifier, rspigot_nbt::Compound>,
+    pub(crate) stopwatches: std::collections::BTreeMap<String, i64>,
     pub(crate) portal_queue: Vec<(
         crate::world_state::DimensionKey,
         crate::end_portal::Traveler,
@@ -165,12 +173,18 @@ pub struct Server<L> {
 
 impl<L: ClientLink> Server<L> {
     pub fn new<S: ChunkStore + EntityStore, G: ChunkGenerator>(
-        config: GameConfig,
+        mut config: GameConfig,
         mut level: LevelData,
         store: Arc<S>,
         generator: Arc<G>,
         status: StatusBoard,
     ) -> Self {
+        if let Some(rules) = level.rules.take() {
+            config.rules = rules;
+        }
+        if let Some(pvp) = level.pvp.take() {
+            config.pvp = pvp;
+        }
         let dimension = Arc::new(Dimension::overworld());
         let spawn = match level.spawn {
             Some(pos) => pos.center(),
@@ -215,6 +229,7 @@ impl<L: ClientLink> Server<L> {
             fluids: crate::fluids::ScheduledFluids::default(),
             rng: StdRng::from_os_rng(),
             pending_eyes: Vec::new(),
+            pending_queries: Vec::new(),
             spawning,
             raids: crate::raids::RaidRuntime::default(),
             trial: crate::trial_spawner::TrialRuntime::default(),
@@ -235,6 +250,12 @@ impl<L: ClientLink> Server<L> {
             command_dimension: None,
             tick_rate: Default::default(),
             simulating: true,
+            tnt_ticked: (0, 0),
+            restarting: false,
+            timings: Default::default(),
+            timings_sink: None,
+            restart_signal: None,
+            empty_ticks: 0,
             profiler: None,
             saving_enabled: true,
             command_source: None,
@@ -242,6 +263,7 @@ impl<L: ClientLink> Server<L> {
             functions: crate::functions::FunctionState::default(),
             datapacks: None,
             command_storage: FxHashMap::default(),
+            stopwatches: std::collections::BTreeMap::new(),
             portal_queue: Vec::new(),
             nether_queue: Vec::new(),
             nether_time: FxHashMap::default(),
@@ -374,6 +396,7 @@ impl<L: ClientLink> Server<L> {
                 }
                 let started = Instant::now();
                 self.tick();
+                self.report_slow_tick(started.elapsed());
                 self.finish_tick_timing(started.elapsed());
                 if self.tick_rate.is_sprinting() {
                     next_tick = Instant::now();
@@ -718,7 +741,10 @@ impl<L: ClientLink> Server<L> {
         if self.players.len() as u32 >= self.config.max_players && !bypass {
             return Some(Refusal {
                 result: PlayerLoginResult::KickFull,
-                reason: Component::translatable("multiplayer.disconnect.server_full", Vec::new()),
+                reason: match self.config.messages.server_full.as_str() {
+                    "" => Component::translatable("multiplayer.disconnect.server_full", Vec::new()),
+                    custom => Component::text(custom),
+                },
             });
         }
         None
@@ -823,12 +849,15 @@ impl<L: ClientLink> Server<L> {
                 player.dim = save.dimension.clone();
             }
         }
+        if self.config.force_game_mode {
+            player.game_mode = self.config.default_game_mode;
+        }
         player.stats = self.load_stats(player.id);
         player.advancements = self.load_advancements(player.id);
         tracing::info!(
-            "{}[/{}] logged in with entity id {} at ([{}]{:.1}, {:.1}, {:.1})",
+            "{}[{}] logged in with entity id {} at ([{}]{:.1}, {:.1}, {:.1})",
             player.name(),
-            player.id,
+            crate::enforcement::login_origin(self.config.log_ips, player.address),
             entity_id.0,
             self.world.level.name,
             position.x,
@@ -878,9 +907,9 @@ impl<L: ClientLink> Server<L> {
             max_players: self.config.max_players,
             view_distance: self.config.view_distance,
             simulation_distance: self.config.simulation_distance,
-            reduced_debug_info: false,
+            reduced_debug_info: self.config.rules.reduced_debug_info,
             enable_respawn_screen: !self.config.rules.immediate_respawn,
-            do_limited_crafting: false,
+            do_limited_crafting: self.config.rules.limited_crafting,
             spawn: self.spawn_info(player),
             enforces_secure_chat: self.config.chat.enforce_secure_profile,
         };
@@ -986,6 +1015,7 @@ impl<L: ClientLink> Server<L> {
         self.forget_sign_editor(id);
         self.leave_bed_for_good(id);
         self.forget_pending_eyes(id);
+        self.forget_pending_queries(id);
         let Some(mut player) = self.players.remove(&id) else {
             return;
         };
@@ -1025,7 +1055,8 @@ impl<L: ClientLink> Server<L> {
         self.functions.data.activate();
         self.tick += 1;
         self.tps.record(self.tick);
-        self.simulating = self.tick_rate.runs_simulation();
+        self.track_emptiness();
+        self.simulating = self.tick_rate.runs_simulation() && !self.paused_while_empty();
         if self.simulating {
             self.tick_functions();
         }
@@ -1046,6 +1077,7 @@ impl<L: ClientLink> Server<L> {
         self.run_portal_queue();
         self.run_nether_queue();
         self.expire_pending_eyes();
+        self.expire_pending_queries();
     }
 
     fn tick_dormant(&mut self, key: &crate::world_state::DimensionKey) {
@@ -1127,6 +1159,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_raids();
         self.tick_dragon_fight();
         self.tick_pending_eyes();
+        self.tick_pending_queries();
         self.tick_entities();
         self.tick_portals();
         self.tick_nether_portals();
@@ -1409,10 +1442,7 @@ impl<L: ClientLink> Server<L> {
         let ids: Vec<PlayerId> = self.players.keys().copied().collect();
         for id in ids {
             if let Some(player) = self.players.get(&id) {
-                player.link.disconnect(Component::translatable(
-                    "multiplayer.disconnect.server_shutdown",
-                    Vec::new(),
-                ));
+                player.link.disconnect(self.shutdown_reason());
             }
             self.remove_player(id, false);
         }

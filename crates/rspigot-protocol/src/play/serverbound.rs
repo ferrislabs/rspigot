@@ -735,6 +735,15 @@ impl crate::Packet for SetCommandBlock {
     const ID: i32 = sb::SET_COMMAND_BLOCK;
 }
 
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct SetCommandMinecart = sb::SET_COMMAND_MINECART {
+        pub entity_id: i32 as Var,
+        pub command: String,
+        pub track_output: bool,
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ServerboundPlay {
     AcceptTeleportation(AcceptTeleportation),
@@ -790,6 +799,7 @@ pub enum ServerboundPlay {
     SetBeacon(SetBeacon),
     SetCarriedItem(SetCarriedItem),
     SetCommandBlock(SetCommandBlock),
+    SetCommandMinecart(SetCommandMinecart),
     SetCreativeModeSlot(SetCreativeModeSlot),
     SetGameRule(SetGameRule),
     SignUpdate(SignUpdate),
@@ -858,6 +868,7 @@ impl ServerboundPlay {
             sb::SET_BEACON => Self::SetBeacon(decode_exact(body)?),
             sb::SET_CARRIED_ITEM => Self::SetCarriedItem(decode_exact(body)?),
             sb::SET_COMMAND_BLOCK => Self::SetCommandBlock(decode_exact(body)?),
+            sb::SET_COMMAND_MINECART => Self::SetCommandMinecart(decode_exact(body)?),
             sb::SET_CREATIVE_MODE_SLOT => Self::SetCreativeModeSlot(decode_exact(body)?),
             sb::SET_GAME_RULE => Self::SetGameRule(decode_exact(body)?),
             sb::TELEPORT_TO_ENTITY => Self::TeleportToEntity(decode_exact(body)?),
@@ -868,7 +879,6 @@ impl ServerboundPlay {
             sb::BUNDLE_ITEM_SELECTED
             | sb::DEBUG_SUBSCRIPTION_REQUEST
             | sb::JIGSAW_GENERATE
-            | sb::SET_COMMAND_MINECART
             | sb::SET_JIGSAW_BLOCK
             | sb::SET_STRUCTURE_BLOCK
             | sb::SET_TEST_BLOCK
@@ -1393,6 +1403,19 @@ mod tests {
         assert_eq!(
             &roundtrip(&command_block)[8..],
             &[3, b's', b'a', b'y', 2, 0x05]
+        );
+        let minecart = SetCommandMinecart {
+            entity_id: 300,
+            command: "say".into(),
+            track_output: true,
+        };
+        assert_eq!(
+            roundtrip(&minecart),
+            vec![0xac, 0x02, 3, b's', b'a', b'y', 1]
+        );
+        assert_eq!(
+            ServerboundPlay::decode(sb::SET_COMMAND_MINECART, &encoded(&minecart)).unwrap(),
+            ServerboundPlay::SetCommandMinecart(minecart)
         );
     }
 

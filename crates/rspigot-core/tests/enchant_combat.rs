@@ -225,7 +225,7 @@ fn swept_cow_health(enchantments: &[(&str, i32)]) -> f32 {
         Answer::Spawned(view) => view,
         _ => panic!("expected the second cow"),
     };
-    s.tick(30);
+    s.tick(16);
     let alice = s.players[0].clone();
     send_input(
         &mut s.server,

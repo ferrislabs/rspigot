@@ -17,7 +17,6 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 use crate::signal::flag;
 
-const TRANSFER_COOLDOWN: i32 = 8;
 const BUSY_LIMIT: u64 = 100;
 const HOPPER_SLOTS: usize = 5;
 const SUCK_LOW: f64 = 0.6875;
@@ -266,20 +265,22 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn hopper_finished(&mut self, hopper: BlockPos, changed: bool) {
+        let transfer_cooldown = self.config.hopper_transfer_ticks;
         let clock = self.falls.redstone.hoppers.entry(hopper).or_default();
         clock.busy = None;
         if changed {
-            clock.cooldown = TRANSFER_COOLDOWN;
+            clock.cooldown = transfer_cooldown;
         }
     }
 
     fn hopper_cancelled(&mut self, hopper: BlockPos) {
+        let transfer_cooldown = self.config.hopper_transfer_ticks;
         self.falls
             .redstone
             .hoppers
             .entry(hopper)
             .or_default()
-            .cooldown = TRANSFER_COOLDOWN;
+            .cooldown = transfer_cooldown;
     }
 
     fn hopper_eject(&mut self, pos: BlockPos, state: BlockStateId) {
@@ -558,12 +559,13 @@ impl<L: ClientLink> Server<L> {
             .get(&source.pos)
             .filter(|_| source.is_hopper())
             .map(|clock| clock.ticked);
+        let transfer_cooldown = self.config.hopper_transfer_ticks;
         let clock = self.falls.redstone.hoppers.entry(destination).or_default();
-        if clock.cooldown > TRANSFER_COOLDOWN {
+        if clock.cooldown > transfer_cooldown {
             return;
         }
         let behind = source_ticked.is_some_and(|ticked| clock.ticked >= ticked);
-        clock.cooldown = TRANSFER_COOLDOWN - i32::from(behind);
+        clock.cooldown = transfer_cooldown - i32::from(behind);
     }
 
     pub(crate) fn finish_hopper_pickup(
@@ -594,9 +596,10 @@ impl<L: ClientLink> Server<L> {
         }
         self.store_holder(&me, &own);
         if was_empty {
+            let transfer_cooldown = self.config.hopper_transfer_ticks;
             let clock = self.falls.redstone.hoppers.entry(hopper).or_default();
-            if clock.cooldown <= TRANSFER_COOLDOWN {
-                clock.cooldown = TRANSFER_COOLDOWN;
+            if clock.cooldown <= transfer_cooldown {
+                clock.cooldown = transfer_cooldown;
             }
         }
         match leftover {

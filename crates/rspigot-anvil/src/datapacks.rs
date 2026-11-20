@@ -11,6 +11,7 @@ const FUNCTION_DIR: &str = "function";
 const TAG_DIR: &str = "tags/function";
 const PREDICATE_DIR: &str = "predicate";
 const LOOT_TABLE_DIR: &str = "loot_table";
+const ITEM_MODIFIER_DIR: &str = "item_modifier";
 
 #[derive(Debug, Clone)]
 pub struct DirectoryDatapacks {
@@ -80,6 +81,7 @@ fn read_pack(name: String, folder: &Path) -> Option<PackContents> {
     let mut function_tags = Vec::new();
     let mut predicates = Vec::new();
     let mut loot_tables = Vec::new();
+    let mut item_modifiers = Vec::new();
     let mut tags = Vec::new();
     let data = folder.join("data");
     for namespace in sorted_entries(&data) {
@@ -103,6 +105,12 @@ fn read_pack(name: String, folder: &Path) -> Option<PackContents> {
             "json",
             &mut loot_tables,
         );
+        collect(
+            &namespace.join(ITEM_MODIFIER_DIR),
+            ns,
+            "json",
+            &mut item_modifiers,
+        );
         for registry in SUPPORTED_REGISTRIES {
             let mut files = Vec::new();
             collect(
@@ -124,6 +132,7 @@ fn read_pack(name: String, folder: &Path) -> Option<PackContents> {
         function_tags,
         predicates,
         loot_tables,
+        item_modifiers,
         tags,
     })
 }
@@ -383,6 +392,7 @@ mod tests {
         meta(root, "a");
         write(root, "a/data/t/predicate/deep/p.json", b"{}");
         write(root, "a/data/t/loot_table/blocks/stone.json", b"{}");
+        write(root, "a/data/t/item_modifier/deep/m.json", b"[]");
         write(root, "a/data/t/tags/block/group.json", b"{}");
         write(root, "a/data/t/tags/worldgen/biome/warm.json", b"{}");
         write(root, "a/data/t/tags/nonsense/other.json", b"{}");
@@ -390,6 +400,7 @@ mod tests {
         let pack = &packs[0];
         assert_eq!(pack.predicates[0].id.to_string(), "t:deep/p");
         assert_eq!(pack.loot_tables[0].id.to_string(), "t:blocks/stone");
+        assert_eq!(pack.item_modifiers[0].id.to_string(), "t:deep/m");
         let tags: Vec<(&str, String)> = pack
             .tags
             .iter()

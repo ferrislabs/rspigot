@@ -7,9 +7,11 @@ mod end;
 mod end_spikes;
 mod flat;
 mod legacy;
+mod locate;
 mod nether;
 mod noise;
 mod overworld;
+mod placing;
 mod resources;
 mod simplex;
 mod structures;
@@ -17,7 +19,7 @@ mod temperature;
 mod terrain;
 mod void;
 
-use rspigot_core::ports::ChunkGenerator;
+use rspigot_core::ports::{ChunkGenerator, PlaceFailure, PlaceRequest, PlacedBlock};
 use rspigot_core::worlds::{GeneratorSpec, WorldSpec};
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::Dimension;
@@ -135,6 +137,60 @@ impl ChunkGenerator for WorldGenerator {
             Self::Flat(generator) => generator.structure_entities(dimension, pos),
             Self::Void(generator) => generator.structure_entities(dimension, pos),
             Self::Noise(generator) => generator.structure_entities(dimension, pos),
+        }
+    }
+
+    fn nearest_structure(
+        &self,
+        dimension: &Dimension,
+        from: Vec3,
+        structure_id: &str,
+    ) -> Option<(String, Vec3)> {
+        match self {
+            Self::Noise(generator) => generator.nearest_structure(dimension, from, structure_id),
+            Self::Flat(_) | Self::Void(_) => None,
+        }
+    }
+
+    fn nearest_structures(
+        &self,
+        dimension: &Dimension,
+        from: Vec3,
+        structure_ids: &[String],
+    ) -> Option<(String, Vec3)> {
+        match self {
+            Self::Noise(generator) => generator.nearest_structures(dimension, from, structure_ids),
+            Self::Flat(_) | Self::Void(_) => None,
+        }
+    }
+
+    fn knows_structure(&self, dimension: &Dimension, structure_id: &str) -> bool {
+        match self {
+            Self::Noise(generator) => generator.knows_structure(dimension, structure_id),
+            Self::Flat(_) | Self::Void(_) => false,
+        }
+    }
+
+    fn nearest_biome(
+        &self,
+        dimension: &Dimension,
+        from: Vec3,
+        biomes: &[String],
+    ) -> Option<(String, Vec3)> {
+        match self {
+            Self::Noise(generator) => generator.nearest_biome(dimension, from, biomes),
+            Self::Flat(_) | Self::Void(_) => None,
+        }
+    }
+
+    fn place(
+        &self,
+        dimension: &Dimension,
+        request: &PlaceRequest,
+    ) -> Result<Vec<PlacedBlock>, PlaceFailure> {
+        match self {
+            Self::Noise(generator) => generator.place(dimension, request),
+            Self::Flat(_) | Self::Void(_) => placing::standalone(dimension, request),
         }
     }
 

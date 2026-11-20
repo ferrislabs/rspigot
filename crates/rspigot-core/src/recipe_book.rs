@@ -16,6 +16,16 @@ use crate::server::Server;
 
 pub const RECIPE_BOOK: &str = "recipeBook";
 
+pub fn all_recipe_ids() -> impl Iterator<Item = &'static str> {
+    rspigot_data::recipe_book::all()
+        .iter()
+        .map(|recipe| recipe.id)
+}
+
+pub fn recipe_exists(id: &str) -> bool {
+    rspigot_data::recipe_book::find(id).is_some()
+}
+
 pub type BookKind = PlayerRecipeBookSettingsChangeRecipeBookType;
 
 const KINDS: [BookKind; 4] = [

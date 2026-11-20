@@ -7,7 +7,6 @@ use crate::plugins::{Continuation, EventPayload, Lane};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
-const MERGE_RADIUS: f64 = 0.5;
 const MOVED_INTERVAL: i32 = 2;
 const IDLE_INTERVAL: i32 = 40;
 const MERGE_AGE_LIMIT: i32 = 6000;
@@ -62,11 +61,11 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(id) else {
             return Vec::new();
         };
-        let area: Aabb =
-            entity
-                .base
-                .bounding_box()
-                .inflate_by(MERGE_RADIUS, MERGE_RADIUS - 0.5, MERGE_RADIUS);
+        let radius = self.config.item_merge_radius;
+        let area: Aabb = entity
+            .base
+            .bounding_box()
+            .inflate_by(radius, radius - 0.5, radius);
         let low = ChunkPos::from_block(area.min_x, area.min_z);
         let high = ChunkPos::from_block(area.max_x, area.max_z);
         let mut found = Vec::new();

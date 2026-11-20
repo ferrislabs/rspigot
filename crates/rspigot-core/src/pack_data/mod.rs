@@ -1,5 +1,6 @@
 mod evaluate;
 mod json;
+mod modifier;
 mod table;
 mod tags;
 
@@ -11,12 +12,14 @@ use rspigot_data::tags::TagOverlay;
 use crate::ports::PackContents;
 
 pub use json::{DataError, condition, predicate_file};
+pub use modifier::parse_functions;
 pub use tags::SUPPORTED_REGISTRIES;
 
 #[derive(Debug, Clone, Default)]
 pub struct PackData {
     loot: Arc<LootOverlay>,
     tags: Arc<TagOverlay>,
+    item_modifiers: Arc<modifier::ItemModifiers>,
 }
 
 fn parse_json(text: &str) -> Result<serde_json::Value, DataError> {
@@ -26,7 +29,9 @@ fn parse_json(text: &str) -> Result<serde_json::Value, DataError> {
 impl PackData {
     pub fn build(packs: &[&PackContents]) -> Self {
         let mut loot = LootOverlay::default();
+        let mut item_modifiers = modifier::ItemModifiers::new();
         for pack in packs {
+            modifier::collect(&pack.item_modifiers, &pack.name, &mut item_modifiers);
             for file in &pack.predicates {
                 let parsed = parse_json(&file.text).and_then(|json| predicate_file(&json));
                 match parsed {
@@ -63,6 +68,7 @@ impl PackData {
         Self {
             loot: Arc::new(loot),
             tags: Arc::new(tags::merge(packs)),
+            item_modifiers: Arc::new(item_modifiers),
         }
     }
 
@@ -77,6 +83,14 @@ impl PackData {
 
     pub fn loot(&self) -> &LootOverlay {
         &self.loot
+    }
+
+    pub fn item_modifier(&self, id: &str) -> Option<&'static [rspigot_data::loot::Function]> {
+        self.item_modifiers.get(id).copied()
+    }
+
+    pub fn item_modifier_ids(&self) -> impl Iterator<Item = &str> {
+        self.item_modifiers.keys().map(String::as_str)
     }
 
     pub fn tags(&self) -> &TagOverlay {

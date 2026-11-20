@@ -74,6 +74,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn prime_tnt(&mut self, step: TntPrimeStep) {
+        if !self.config.rules.tnt_explodes {
+            return;
+        }
         let TntPrimeStep {
             pos,
             cause,
@@ -201,6 +204,17 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn tick_tnt(&mut self, id: EntityId) {
+        let limit = self.config.max_tnt_per_tick;
+        if limit > 0 {
+            let (stamp, ticked) = &mut self.tnt_ticked;
+            if *stamp != self.tick {
+                (*stamp, *ticked) = (self.tick, 0);
+            }
+            *ticked += 1;
+            if *ticked > limit {
+                return;
+            }
+        }
         let chunks = &self.world.chunks;
         let Some(entity) = self.entities.store.get_mut(id) else {
             return;

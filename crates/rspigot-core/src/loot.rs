@@ -159,6 +159,37 @@ pub fn table_drops<R: Rng + ?Sized>(
     roller.drops
 }
 
+pub fn modified_stack<R: Rng + ?Sized>(
+    functions: &[Function],
+    stack: &ItemStack,
+    context: &LootContext<'_>,
+    rng: &mut R,
+) -> Option<ItemStack> {
+    let mut roller = Roller {
+        context,
+        rng,
+        drops: Vec::new(),
+        visiting: Vec::new(),
+        depth: 0,
+    };
+    let mut working = Working {
+        item: stack.item.0,
+        count: i32::from(stack.count.get()),
+        components: stack.components.clone(),
+    };
+    for function in functions {
+        working = roller.apply(function, working);
+    }
+    if working.is_empty() {
+        return None;
+    }
+    let limit = i32::from(ItemId(working.item).max_stack_size()).max(1);
+    let size = u8::try_from(working.count.min(limit)).ok()?;
+    let mut out = ItemStack::new(ItemId(working.item), NonZeroU8::new(size)?);
+    out.components = working.components;
+    Some(out)
+}
+
 fn working_stack(stack: &Working) -> ItemStack {
     let mut single = ItemStack::new(ItemId(stack.item), NonZeroU8::MIN);
     single.components = stack.components.clone();

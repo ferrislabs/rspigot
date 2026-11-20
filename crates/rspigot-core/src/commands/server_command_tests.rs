@@ -283,3 +283,183 @@ fn save_all_reports_saving_then_success_and_accepts_flush() {
     );
     assert!(texts[4].contains("/save-all [flush]"));
 }
+
+#[test]
+fn every_registry_gamerule_can_be_queried_and_set_with_its_vanilla_type() {
+    let mut rig = rig();
+    for name in crate::game_rule_packet::RULE_NAMES {
+        let query = format!("gamerule {name}");
+        assert_eq!(rig.run(&query), CommandOutcome::Success, "{name}");
+        let current = rig.texts().pop().expect("a reply");
+        let value = current.rsplit(' ').next().expect("a value").to_owned();
+        let set = format!("gamerule {name} {value}");
+        assert_eq!(rig.run(&set), CommandOutcome::Success, "{name}");
+        match crate::game_rule_packet::integer_bounds(name) {
+            Some((min, max)) => {
+                assert!(value.parse::<i32>().is_ok(), "{name}");
+                if min > i32::MIN {
+                    let below = format!("gamerule {name} {}", min - 1);
+                    assert_eq!(rig.run(&below), CommandOutcome::Failure, "{name}");
+                }
+                if max < i32::MAX {
+                    let above = format!("gamerule {name} {}", max + 1);
+                    assert_eq!(rig.run(&above), CommandOutcome::Failure, "{name}");
+                }
+            }
+            None => {
+                assert!(value == "true" || value == "false", "{name}");
+                let bad = format!("gamerule {name} 7");
+                assert_eq!(rig.run(&bad), CommandOutcome::Failure, "{name}");
+            }
+        }
+        rig.texts();
+    }
+    assert_eq!(crate::game_rule_packet::RULE_NAMES.len(), 59);
+}
+
+#[test]
+fn gamerule_values_follow_the_vanilla_defaults() {
+    let mut rig = rig();
+    for (name, expected) in [
+        ("respawn_radius", "10"),
+        ("max_entity_cramming", "24"),
+        ("players_nether_portal_default_delay", "80"),
+        ("players_nether_portal_creative_delay", "0"),
+        ("max_block_modifications", "32768"),
+        ("max_command_forks", "65536"),
+        ("max_minecart_speed", "8"),
+        ("lava_source_conversion", "false"),
+        ("tnt_explosion_drop_decay", "false"),
+        ("water_source_conversion", "true"),
+        ("pvp", "true"),
+        ("spawn_mobs", "true"),
+    ] {
+        rig.run(&format!("gamerule {name}"));
+        assert_eq!(
+            rig.texts(),
+            [format!("commands.gamerule.query {name} {expected}")],
+            "{name}"
+        );
+    }
+    rig.run("gamerule pvp false");
+    assert!(!rig.server.config.pvp);
+    rig.run("gamerule spawn_monsters false");
+    assert!(!rig.server.world.level.spawn_monsters);
+}
+
+#[test]
+fn the_command_feedback_rule_hides_successes_from_a_player_but_not_failures() {
+    let mut rig = rig();
+    assert_eq!(
+        rig.run("gamerule send_command_feedback false"),
+        CommandOutcome::Success
+    );
+    assert!(rig.texts().is_empty());
+    assert_eq!(
+        rig.run("gamerule keep_inventory true"),
+        CommandOutcome::Success
+    );
+    assert!(rig.server.config.rules.keep_inventory);
+    assert!(rig.texts().is_empty());
+    assert_eq!(rig.run("gamerule nothing"), CommandOutcome::Failure);
+    assert_eq!(rig.texts().len(), 1);
+}
+
+#[test]
+fn the_unknown_command_message_replaces_the_vanilla_text() {
+    let mut rig = rig();
+    rig.texts();
+    assert_eq!(rig.run("definitelynotacommand"), CommandOutcome::Unknown);
+    assert_eq!(rig.texts(), ["Unknown command. Type \"/help\" for help."]);
+    rig.server.config.messages.unknown_command = "Nope, not here.".to_owned();
+    assert_eq!(rig.run("definitelynotacommand"), CommandOutcome::Unknown);
+    assert_eq!(rig.texts(), ["Nope, not here."]);
+}
+
+#[test]
+fn restart_stops_the_server_and_marks_it_as_restarting() {
+    let mut rig = rig();
+    assert_eq!(rig.run("restart"), CommandOutcome::Success);
+    assert!(!rig.server.running);
+    assert!(rig.server.restarting);
+}
+
+#[test]
+fn restart_spigot_and_timings_need_an_owner() {
+    let mut rig = rig();
+    if let Some(player) = rig.server.players.get_mut(&rig.id) {
+        player.op_level = 3;
+    }
+    for line in ["restart", "spigot reload", "timings on"] {
+        assert_eq!(rig.run(line), CommandOutcome::Denied, "{line}");
+    }
+    assert!(rig.server.running);
+}
+
+#[test]
+fn spigot_reload_asks_for_a_reload_and_says_so() {
+    let mut rig = rig();
+    rig.texts();
+    assert_eq!(rig.run("spigot reload"), CommandOutcome::Failure);
+    let (sink, requests) = crossbeam_channel::unbounded();
+    rig.server =
+        std::mem::replace(&mut rig.server, crate::end_tests::arrive().0).with_reload_sink(sink);
+    rig.texts();
+    assert_eq!(rig.run("spigot reload"), CommandOutcome::Success);
+    let texts = rig.texts();
+    assert_eq!(texts.last().map(String::as_str), Some("Reload complete."));
+    assert!(!requests.try_recv().expect("a request").whitelist_only);
+    assert_eq!(rig.run("spigot"), CommandOutcome::Failure);
+}
+
+#[test]
+fn timings_replies_follow_bukkit_and_a_report_needs_timings_on() {
+    let mut rig = rig();
+    rig.texts();
+    assert_eq!(rig.run("timings report"), CommandOutcome::Success);
+    assert_eq!(rig.texts(), ["Please enable timings by typing /timings on"]);
+    rig.run("timings on");
+    assert_eq!(rig.texts(), ["Enabled Timings & Reset"]);
+    assert!(rig.server.timings.enabled);
+    rig.run("timings verbon");
+    assert_eq!(rig.texts(), ["Enabled Verbose Timings"]);
+    rig.run("timings verboff");
+    assert_eq!(rig.texts(), ["Disabled Verbose Timings"]);
+    rig.run("timings reset");
+    assert_eq!(
+        rig.texts(),
+        ["Timings reset. Please wait 5-10 minutes before using /timings report."]
+    );
+    let (sink, reports) = crossbeam_channel::unbounded();
+    rig.server.timings_sink = Some(sink);
+    assert_eq!(rig.run("timings paste"), CommandOutcome::Success);
+    let file = reports.try_recv().expect("a report").file;
+    assert_eq!(
+        rig.texts(),
+        [format!(
+            "Timings report written to timings/{file} (nothing is uploaded)"
+        )]
+    );
+    rig.run("timings off");
+    assert_eq!(rig.texts(), ["Disabled Timings"]);
+    assert_eq!(rig.run("timings nonsense"), CommandOutcome::Failure);
+}
+
+#[test]
+fn the_client_tree_lists_the_bukkit_commands_for_owners_only() {
+    let names = |level: u8| -> Vec<String> {
+        let tree = crate::commands::build_tree(level);
+        tree.nodes[tree.root]
+            .children
+            .iter()
+            .filter_map(|child| match &tree.nodes[*child].kind {
+                crate::commands::CommandNodeKind::Literal(name) => Some(name.clone()),
+                _ => None,
+            })
+            .collect()
+    };
+    for command in ["restart", "spigot", "timings"] {
+        assert!(names(4).iter().any(|name| name == command), "{command}");
+        assert!(!names(3).iter().any(|name| name == command), "{command}");
+    }
+}

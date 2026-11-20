@@ -565,40 +565,83 @@ fn parser(p: &CoreParser) -> WireParser {
         CoreParser::ResourceOrTag { registry } => WireParser::ResourceOrTag {
             registry: registry.clone(),
         },
+        CoreParser::ResourceKey { registry } => WireParser::ResourceKey {
+            registry: registry.clone(),
+        },
+        CoreParser::ResourceOrTagKey { registry } => WireParser::ResourceOrTagKey {
+            registry: registry.clone(),
+        },
+        CoreParser::ResourceSelector { registry } => WireParser::ResourceSelector {
+            registry: registry.clone(),
+        },
         CoreParser::Named(name) => named_parser(name),
     }
 }
 
+const NAMED_PARSERS: [(&str, i32); 48] = [
+    ("minecraft:column_pos", parser::COLUMN_POS),
+    ("minecraft:vec2", parser::VEC2),
+    ("minecraft:block_predicate", parser::BLOCK_PREDICATE),
+    ("minecraft:item_predicate", parser::ITEM_PREDICATE),
+    ("minecraft:team_color", parser::TEAM_COLOR),
+    ("minecraft:hex_color", parser::HEX_COLOR),
+    ("minecraft:component", parser::COMPONENT),
+    ("minecraft:style", parser::STYLE),
+    ("minecraft:nbt_tag", parser::NBT_TAG),
+    ("minecraft:nbt_path", parser::NBT_PATH),
+    ("minecraft:objective", parser::OBJECTIVE),
+    ("minecraft:objective_criteria", parser::OBJECTIVE_CRITERIA),
+    ("minecraft:operation", parser::OPERATION),
+    ("minecraft:particle", parser::PARTICLE),
+    ("minecraft:angle", parser::ANGLE),
+    ("minecraft:rotation", parser::ROTATION),
+    ("minecraft:scoreboard_slot", parser::SCOREBOARD_SLOT),
+    ("minecraft:swizzle", parser::SWIZZLE),
+    ("minecraft:team", parser::TEAM),
+    ("minecraft:item_slot", parser::ITEM_SLOT),
+    ("minecraft:item_slots", parser::ITEM_SLOTS),
+    ("minecraft:function", parser::FUNCTION),
+    ("minecraft:entity_anchor", parser::ENTITY_ANCHOR),
+    ("minecraft:int_range", parser::INT_RANGE),
+    ("minecraft:float_range", parser::FLOAT_RANGE),
+    ("minecraft:template_mirror", parser::TEMPLATE_MIRROR),
+    ("minecraft:template_rotation", parser::TEMPLATE_ROTATION),
+    ("minecraft:heightmap", parser::HEIGHTMAP),
+    ("minecraft:loot_table", parser::LOOT_TABLE),
+    ("minecraft:loot_predicate", parser::LOOT_PREDICATE),
+    ("minecraft:loot_modifier", parser::LOOT_MODIFIER),
+    (
+        "minecraft:context_float_provider",
+        parser::CONTEXT_FLOAT_PROVIDER,
+    ),
+    (
+        "minecraft:context_int_provider",
+        parser::CONTEXT_INT_PROVIDER,
+    ),
+    ("minecraft:slot_source", parser::SLOT_SOURCE),
+    ("minecraft:dialog", parser::DIALOG),
+    ("minecraft:feature", parser::FEATURE),
+    ("minecraft:swing_animation", parser::SWING_ANIMATION),
+    ("minecraft:uuid", parser::UUID),
+    ("minecraft:game_profile", parser::GAME_PROFILE),
+    ("minecraft:block_pos", parser::BLOCK_POS),
+    ("minecraft:vec3", parser::VEC3),
+    ("minecraft:block_state", parser::BLOCK_STATE),
+    ("minecraft:item_stack", parser::ITEM_STACK),
+    ("minecraft:message", parser::MESSAGE),
+    ("minecraft:nbt_compound_tag", parser::NBT_COMPOUND_TAG),
+    ("minecraft:dimension", parser::DIMENSION),
+    ("minecraft:gamemode", parser::GAMEMODE),
+    ("minecraft:resource_location", parser::RESOURCE_LOCATION),
+];
+
 fn named_parser(name: &str) -> WireParser {
-    let id = match name {
-        "minecraft:rotation" => parser::ROTATION,
-        "minecraft:swizzle" => parser::SWIZZLE,
-        "minecraft:entity_anchor" => parser::ENTITY_ANCHOR,
-        "minecraft:block_predicate" => parser::BLOCK_PREDICATE,
-        "minecraft:nbt_path" => parser::NBT_PATH,
-        "minecraft:nbt_tag" => parser::NBT_TAG,
-        "minecraft:objective" => parser::OBJECTIVE,
-        "minecraft:objective_criteria" => parser::OBJECTIVE_CRITERIA,
-        "minecraft:scoreboard_slot" => parser::SCOREBOARD_SLOT,
-        "minecraft:team" => parser::TEAM,
-        "minecraft:style" => parser::STYLE,
-        "minecraft:team_color" => parser::TEAM_COLOR,
-        "minecraft:heightmap" => parser::HEIGHTMAP,
-        "minecraft:function" => parser::FUNCTION,
-        "minecraft:int_range" => parser::INT_RANGE,
-        "minecraft:float_range" => parser::FLOAT_RANGE,
-        "minecraft:loot_predicate" => parser::LOOT_PREDICATE,
-        "minecraft:vec2" => parser::VEC2,
-        "minecraft:column_pos" => parser::COLUMN_POS,
-        "minecraft:angle" => parser::ANGLE,
-        "minecraft:operation" => parser::OPERATION,
-        "minecraft:component" => parser::COMPONENT,
-        "minecraft:uuid" => parser::UUID,
-        "minecraft:particle" => parser::PARTICLE,
-        "minecraft:swing_animation" => parser::SWING_ANIMATION,
-        _ => return WireParser::String(StringKind::SingleWord),
-    };
-    simple(id)
+    NAMED_PARSERS
+        .iter()
+        .find(|(known, _)| *known == name)
+        .map_or(WireParser::String(StringKind::SingleWord), |(_, id)| {
+            simple(*id)
+        })
 }
 
 fn commands(tree: &CommandTree) -> cb::Commands {
@@ -3770,5 +3813,131 @@ mod tests {
         expected.extend_from_slice(&0.5f64.to_be_bytes());
         expected.extend_from_slice(&[0, 0, 0, 0, 0x82, 0x02]);
         assert_eq!(encode(event), vec![(id::ADD_ENTITY, expected)]);
+    }
+
+    fn parser_bytes(p: &CoreParser) -> Vec<u8> {
+        let mut out = Vec::new();
+        parser(p).encode(&mut out);
+        out
+    }
+
+    #[test]
+    fn every_argument_type_of_commands_json_has_an_encoder_entry() {
+        let named = [
+            ("minecraft:block_pos", 8),
+            ("minecraft:block_predicate", 13),
+            ("minecraft:block_state", 12),
+            ("minecraft:column_pos", 9),
+            ("minecraft:component", 18),
+            ("minecraft:context_float_provider", 55),
+            ("minecraft:context_int_provider", 56),
+            ("minecraft:dialog", 58),
+            ("minecraft:dimension", 41),
+            ("minecraft:entity_anchor", 38),
+            ("minecraft:feature", 59),
+            ("minecraft:float_range", 40),
+            ("minecraft:function", 37),
+            ("minecraft:game_profile", 7),
+            ("minecraft:gamemode", 42),
+            ("minecraft:heightmap", 51),
+            ("minecraft:hex_color", 17),
+            ("minecraft:int_range", 39),
+            ("minecraft:item_predicate", 15),
+            ("minecraft:item_slot", 34),
+            ("minecraft:item_stack", 14),
+            ("minecraft:loot_modifier", 54),
+            ("minecraft:loot_predicate", 53),
+            ("minecraft:loot_table", 52),
+            ("minecraft:message", 20),
+            ("minecraft:nbt_compound_tag", 21),
+            ("minecraft:nbt_path", 23),
+            ("minecraft:nbt_tag", 22),
+            ("minecraft:objective", 24),
+            ("minecraft:objective_criteria", 25),
+            ("minecraft:operation", 26),
+            ("minecraft:particle", 27),
+            ("minecraft:resource_location", 36),
+            ("minecraft:rotation", 29),
+            ("minecraft:scoreboard_slot", 30),
+            ("minecraft:slot_source", 57),
+            ("minecraft:style", 19),
+            ("minecraft:swing_animation", 60),
+            ("minecraft:swizzle", 32),
+            ("minecraft:team", 33),
+            ("minecraft:team_color", 16),
+            ("minecraft:template_mirror", 49),
+            ("minecraft:template_rotation", 50),
+            ("minecraft:uuid", 61),
+            ("minecraft:vec2", 11),
+            ("minecraft:vec3", 10),
+        ];
+        for (name, expected) in named {
+            let mut out = Vec::new();
+            named_parser(name).encode(&mut out);
+            assert_eq!(out, vec![expected], "{name}");
+        }
+    }
+
+    fn with_registry(id: u8, registry: &str) -> Vec<u8> {
+        let mut out = vec![id, u8::try_from(registry.len()).unwrap()];
+        out.extend_from_slice(registry.as_bytes());
+        out
+    }
+
+    #[test]
+    fn registry_parsers_carry_their_registry_golden_bytes() {
+        let registry = |r: &str| r.to_owned();
+        assert_eq!(
+            parser_bytes(&CoreParser::ResourceOrTagKey {
+                registry: registry("minecraft:worldgen/structure")
+            }),
+            with_registry(45, "minecraft:worldgen/structure")
+        );
+        assert_eq!(
+            parser_bytes(&CoreParser::ResourceKey {
+                registry: registry("minecraft:worldgen/template_pool")
+            }),
+            with_registry(47, "minecraft:worldgen/template_pool")
+        );
+        assert_eq!(
+            parser_bytes(&CoreParser::ResourceSelector {
+                registry: registry("minecraft:test_instance")
+            }),
+            with_registry(48, "minecraft:test_instance")
+        );
+    }
+
+    #[test]
+    fn new_named_parsers_golden_bytes() {
+        for (name, id) in [
+            ("minecraft:slot_source", 57),
+            ("minecraft:item_slot", 34),
+            ("minecraft:loot_modifier", 54),
+            ("minecraft:loot_table", 52),
+            ("minecraft:hex_color", 17),
+            ("minecraft:template_rotation", 50),
+            ("minecraft:template_mirror", 49),
+            ("minecraft:feature", 59),
+        ] {
+            assert_eq!(parser_bytes(&CoreParser::Named(name)), vec![id]);
+        }
+    }
+
+    #[test]
+    fn no_argument_of_the_tree_falls_back_to_a_string() {
+        let tree = rspigot_core::commands::build_tree(4);
+        for node in &tree.nodes {
+            if let CoreNodeKind::Argument {
+                name,
+                parser: CoreParser::Named(known),
+                ..
+            } = &node.kind
+            {
+                assert!(
+                    NAMED_PARSERS.iter().any(|(n, _)| n == known),
+                    "{name}: {known}"
+                );
+            }
+        }
     }
 }

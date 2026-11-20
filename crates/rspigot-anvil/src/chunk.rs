@@ -1054,6 +1054,37 @@ mod tests {
     }
 
     #[test]
+    fn a_command_block_entity_survives_save_and_load() {
+        let mut original = sample_column();
+        let data = Compound::new()
+            .with("Command", "say hi")
+            .with("CustomName", "Boss")
+            .with("LastOutput", "[00:00:01] hi")
+            .with("TrackOutput", true)
+            .with("SuccessCount", 2)
+            .with("conditionMet", true)
+            .with("powered", true)
+            .with("auto", false)
+            .with("UpdateLastExecution", true)
+            .with("LastExecution", 77i64);
+        original
+            .block_entities
+            .push(rspigot_domain::chunk::BlockEntity {
+                pos: rspigot_domain::BlockPos::new(82, 11, -130),
+                kind: rspigot_domain::Identifier::minecraft("command_block"),
+                data: data.clone(),
+            });
+        let loaded = decode(&encode(&original), original.pos(), Some(original.height()))
+            .unwrap()
+            .unwrap();
+        let entity = loaded
+            .block_entity(rspigot_domain::BlockPos::new(82, 11, -130))
+            .unwrap();
+        assert_eq!(entity.kind.as_str(), "minecraft:command_block");
+        assert_eq!(entity.data, data);
+    }
+
+    #[test]
     fn save_then_load_returns_an_equal_column() {
         let original = sample_column();
         let nbt = to_nbt(&original);

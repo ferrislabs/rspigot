@@ -440,7 +440,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn try_summon_warden(&mut self, pos: BlockPos) -> bool {
-        if self.warning_level_at(pos) < SUMMON_LEVEL {
+        if !self.config.rules.spawn_wardens || self.warning_level_at(pos) < SUMMON_LEVEL {
             return false;
         }
         for _ in 0..SUMMON_ATTEMPTS {

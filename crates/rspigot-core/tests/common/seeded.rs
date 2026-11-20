@@ -123,12 +123,22 @@ pub fn world(seeds: Vec<Seed>, handlers: Vec<HandlerSpec>) -> Scene {
 }
 
 pub fn world_spawning(seeds: Vec<Seed>, handlers: Vec<HandlerSpec>, spawn_mobs: bool) -> Scene {
-    let config = GameConfig {
+    world_configured(seeds, handlers, spawn_mobs, |_| {})
+}
+
+pub fn world_configured(
+    seeds: Vec<Seed>,
+    handlers: Vec<HandlerSpec>,
+    spawn_mobs: bool,
+    adjust: impl FnOnce(&mut GameConfig),
+) -> Scene {
+    let mut config = GameConfig {
         view_distance: 3,
         chunk_workers: 2,
         spawn_protection: 0,
         ..GameConfig::default()
     };
+    adjust(&mut config);
     let level = LevelData {
         spawn_mobs,
         ..LevelData::default()

@@ -866,6 +866,8 @@ impl<L: ClientLink> Server<L> {
 
     pub fn level_snapshot(&self) -> crate::config::LevelData {
         let mut level = self.world.level.clone();
+        level.rules = Some(self.config.rules);
+        level.pvp = Some(self.config.pvp);
         if let Some(fight) = &self.entities.fight {
             level.dragon_fight = Some(fight.data.to_nbt());
         }

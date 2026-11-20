@@ -92,6 +92,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn tick_spawners(&mut self) {
+        if !self.config.rules.spawner_blocks_work {
+            return;
+        }
         let mut found: Vec<BlockPos> = Vec::new();
         for chunk_pos in self.world.chunks.loaded_positions() {
             let Some(chunk) = self.world.chunks.get(chunk_pos) else {

@@ -10,6 +10,12 @@ use super::dispatch::{
 
 const MAX_BLOCKS: i64 = 32_768;
 
+fn block_limit<C: CommandContext>(ctx: &C) -> i64 {
+    ctx.game_rule_text("max_block_modifications")
+        .and_then(|value| value.parse::<i64>().ok())
+        .unwrap_or(MAX_BLOCKS)
+}
+
 fn reply_error<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
@@ -173,13 +179,14 @@ pub(super) fn fill<C: CommandContext>(
     };
     let (min, max) = bounds(from, to);
     let total = volume(min, max);
-    if total > MAX_BLOCKS {
+    let limit = block_limit(ctx);
+    if total > limit {
         return fail(
             ctx,
             sender,
             "commands.fill.toobig",
             vec![
-                Component::text(MAX_BLOCKS.to_string()),
+                Component::text(limit.to_string()),
                 Component::text(total.to_string()),
             ],
         );
@@ -308,13 +315,14 @@ pub(super) fn clone<C: CommandContext>(
     }
     let (min, max) = bounds(begin, end);
     let total = volume(min, max);
-    if total > MAX_BLOCKS {
+    let limit = block_limit(ctx);
+    if total > limit {
         return fail(
             ctx,
             sender,
             "commands.clone.toobig",
             vec![
-                Component::text(MAX_BLOCKS.to_string()),
+                Component::text(limit.to_string()),
                 Component::text(total.to_string()),
             ],
         );

@@ -508,6 +508,9 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.remove_stand(id, remover) else {
             return;
         };
+        if !self.config.rules.entity_drops {
+            return;
+        }
         let mut drops = Vec::new();
         if with_stand {
             let mut stand = ItemStack::new(ItemKind::ArmorStand.id(), NonZeroU8::MIN);

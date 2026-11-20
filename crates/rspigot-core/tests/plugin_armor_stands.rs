@@ -229,3 +229,19 @@ fn the_flags_and_poses_survive_a_save() {
     assert_eq!(nbt.get_bool("Invisible"), Some(true));
     assert!(nbt.get_compound("Pose").unwrap().contains_key("Head"));
 }
+
+#[test]
+fn the_entity_drops_rule_off_makes_a_broken_stand_drop_nothing() {
+    let (mut s, alice) = survival(Vec::new(), "");
+    console(&mut s, "gamerule entity_drops false");
+    let id = summon(
+        &mut s,
+        "{equipment:{head:{id:\"minecraft:iron_helmet\",count:1}}}",
+    );
+    send_input(&mut s.server, &alice, PlayerInput::Attack(id));
+    s.tick(1);
+    send_input(&mut s.server, &alice, PlayerInput::Attack(id));
+    s.tick(1);
+    assert!(s.server.entities_of(Kind::ArmorStand).is_empty());
+    assert!(s.server.entities_of(Kind::Item).is_empty());
+}

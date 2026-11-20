@@ -164,10 +164,18 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn tnt_block_interaction(&self) -> BlockInteraction {
-        if self.config.rules.mob_griefing {
-            BlockInteraction::Destroy
+        if self.config.rules.tnt_explosion_drop_decay {
+            BlockInteraction::DestroyWithDecay
         } else {
-            BlockInteraction::Keep
+            BlockInteraction::Destroy
+        }
+    }
+
+    pub(crate) fn block_block_interaction(&self) -> BlockInteraction {
+        if self.config.rules.block_explosion_drop_decay {
+            BlockInteraction::DestroyWithDecay
+        } else {
+            BlockInteraction::Destroy
         }
     }
 

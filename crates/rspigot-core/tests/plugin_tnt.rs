@@ -139,3 +139,51 @@ fn a_tnt_block_caught_in_a_blast_is_primed_again_with_a_short_fuse() {
     assert!(causes.contains(&TNTPrimeCause::Redstone));
     assert!(causes.contains(&TNTPrimeCause::Explosion));
 }
+
+#[test]
+fn the_tnt_explodes_rule_off_keeps_a_powered_tnt_block_unprimed() {
+    let mut s = scene_on(
+        configured(|config| config.rules.tnt_explodes = false),
+        &["Alice"],
+        Vec::new(),
+    );
+    put(&mut s, TNT, "minecraft:tnt");
+    put(&mut s, POWER, "minecraft:redstone_block");
+    assert_eq!(kind_at(&mut s, TNT), "minecraft:tnt");
+    assert_eq!(primed(&mut s), 0);
+}
+
+#[test]
+fn a_tnt_blast_ignores_mob_griefing_and_follows_its_own_rules() {
+    let mut s = scene_on(
+        configured(|config| config.rules.mob_griefing = false),
+        &["Alice"],
+        Vec::new(),
+    );
+    put(&mut s, BlockPos::new(3, 64, 2), "minecraft:dirt");
+    put(&mut s, TNT, "minecraft:tnt");
+    put(&mut s, POWER, "minecraft:redstone_block");
+    s.tick(90);
+    assert_eq!(kind_at(&mut s, BlockPos::new(3, 64, 2)), "minecraft:air");
+}
+
+fn primed_after_the_fuse(limit: i32) -> usize {
+    let mut s = scene_on(
+        configured(|config| config.max_tnt_per_tick = limit),
+        &["Alice"],
+        Vec::new(),
+    );
+    let far = BlockPos::new(9, 64, 3);
+    put(&mut s, TNT, "minecraft:tnt");
+    put(&mut s, far, "minecraft:tnt");
+    put(&mut s, POWER, "minecraft:redstone_block");
+    put(&mut s, far.offset(0, 0, 1), "minecraft:redstone_block");
+    s.tick(85);
+    primed(&mut s)
+}
+
+#[test]
+fn the_tnt_per_tick_limit_delays_the_blasts_beyond_it() {
+    assert_eq!(primed_after_the_fuse(100), 0);
+    assert_eq!(primed_after_the_fuse(1), 1);
+}

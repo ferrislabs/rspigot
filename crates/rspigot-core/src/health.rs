@@ -18,6 +18,7 @@ use rspigot_domain::{BlockPos, BlockStateId, EntityId, ItemId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_items::EquipmentSlot as ItemSlot;
 
+use crate::config::GameRules;
 use crate::events::{ClientEvent, EntityStatus, GameEvent, MetadataEntry, MetadataValue};
 use crate::player::Player;
 use crate::plugins::events::{
@@ -322,8 +323,11 @@ fn amplifier<L>(player: &Player<L>, name: &str) -> Option<u8> {
     effect(name).and_then(|id| player.effects.get(id).map(|e| e.amplifier))
 }
 
-fn invulnerable_to<L>(player: &Player<L>, kind: DamageType, fall_damage: bool) -> bool {
-    (kind.is(DamageTag::IsFall) && !fall_damage) || !player.vitals.client_loaded()
+fn invulnerable_to<L>(player: &Player<L>, kind: DamageType, rules: &GameRules) -> bool {
+    (kind.is(DamageTag::IsFall) && !rules.fall_damage)
+        || (kind == DamageType::Drown && !rules.drowning_damage)
+        || (kind.is(DamageTag::IsFire) && !rules.fire_damage)
+        || !player.vitals.client_loaded()
 }
 
 fn absorb_hurt<L>(
@@ -424,7 +428,7 @@ impl<L: ClientLink> Server<L> {
     ) -> Option<f32> {
         let kind = source.kind;
         let player = self.players.get(&id)?;
-        if invulnerable_to(player, kind, self.config.rules.fall_damage)
+        if invulnerable_to(player, kind, &self.config.rules)
             || (source.attacker().is_some() && !self.config.pvp)
             || source
                 .attacker()
@@ -497,12 +501,12 @@ impl<L: ClientLink> Server<L> {
         source: &DamageSource,
         amount: f32,
     ) -> bool {
-        let fall_damage = self.config.rules.fall_damage;
+        let rules = self.config.rules;
         let now = self.current_tick();
         let kind = source.kind;
         let wakes = self.players.get(&id).is_some_and(|player| {
             player.sleeping.is_some()
-                && !(invulnerable_to(player, kind, fall_damage)
+                && !(invulnerable_to(player, kind, &rules)
                     || (player.abilities().invulnerable
                         && !kind.is(DamageTag::BypassesInvulnerability))
                     || player.vitals.is_dead())
@@ -511,7 +515,7 @@ impl<L: ClientLink> Server<L> {
             self.stop_sleep_in_bed(id, true, true);
         }
         let immune = self.players.get(&id).is_none_or(|player| {
-            invulnerable_to(player, kind, fall_damage)
+            invulnerable_to(player, kind, &rules)
                 || (player.abilities().invulnerable && !kind.is(DamageTag::BypassesInvulnerability))
                 || player.vitals.is_dead()
         });
@@ -526,7 +530,7 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get_mut(&id) else {
             return false;
         };
-        if invulnerable_to(player, kind, fall_damage)
+        if invulnerable_to(player, kind, &rules)
             || (player.abilities().invulnerable && !kind.is(DamageTag::BypassesInvulnerability))
             || player.vitals.is_dead()
             || amount == 0.0

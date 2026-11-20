@@ -61,12 +61,25 @@ impl<L: ClientLink> Server<L> {
                 self.config.spawn_protection = config.spawn_protection;
                 self.config.op_permission_level = config.op_permission_level;
                 self.config.function_permission_level = config.function_permission_level;
+                self.config.enforce_whitelist = config.enforce_whitelist;
+                self.config.log_ips = config.log_ips;
+                self.config.log_commands = config.log_commands;
+                self.config.max_tick_time_ms = config.max_tick_time_ms;
+                self.config.pause_when_empty_seconds = config.pause_when_empty_seconds;
+                self.config.item_despawn_ticks = config.item_despawn_ticks;
+                self.config.item_merge_radius = config.item_merge_radius;
+                self.config.hopper_transfer_ticks = config.hopper_transfer_ticks;
+                self.config.max_tnt_per_tick = config.max_tnt_per_tick;
+                self.config.combat_exhaustion = config.combat_exhaustion;
+                self.config.messages = config.messages;
+                self.config.whitelist_message = config.whitelist_message;
                 self.admin = admin;
             }
             None => self.admin.whitelist = admin.whitelist,
         }
         self.publish_admin();
         self.refresh_operators();
+        self.enforce_whitelist();
         tracing::info!("Reloaded the server configuration and the player lists");
     }
 
@@ -93,5 +106,49 @@ impl<L: ClientLink> Server<L> {
             });
             self.send_commands(id);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::ServerMessages;
+    use crate::end_tests::arrive;
+
+    #[test]
+    fn a_reload_re_applies_the_keys_that_can_change_live() {
+        let (mut server, _, _) = arrive();
+        let config = GameConfig {
+            enforce_whitelist: true,
+            item_despawn_ticks: 100,
+            item_merge_radius: 2.5,
+            hopper_transfer_ticks: 3,
+            max_tnt_per_tick: 7,
+            combat_exhaustion: 0.3,
+            max_tick_time_ms: 500,
+            pause_when_empty_seconds: 9,
+            log_ips: false,
+            log_commands: false,
+            messages: ServerMessages {
+                unknown_command: "What?".to_owned(),
+                ..ServerMessages::default()
+            },
+            ..GameConfig::default()
+        };
+        server.apply_reload(ReloadData {
+            admin: AdminLists::default(),
+            config: Some(config),
+            permissions: None,
+        });
+        let applied = &server.config;
+        assert!(applied.enforce_whitelist && !applied.log_ips && !applied.log_commands);
+        assert_eq!(applied.item_despawn_ticks, 100);
+        assert_eq!(applied.item_merge_radius, 2.5);
+        assert_eq!(applied.hopper_transfer_ticks, 3);
+        assert_eq!(applied.max_tnt_per_tick, 7);
+        assert_eq!(applied.combat_exhaustion, 0.3);
+        assert_eq!(applied.max_tick_time_ms, 500);
+        assert_eq!(applied.pause_when_empty_seconds, 9);
+        assert_eq!(applied.messages.unknown_command, "What?");
     }
 }

@@ -280,3 +280,32 @@ fn a_pearl_vanishes_when_its_owner_leaves() {
     s.tick(2);
     assert!(s.server.entities_of(Kind::EnderPearl).is_empty());
 }
+
+fn pearls_after_the_owner_dies(vanish: bool) -> usize {
+    let mut s = ready_with(Vec::new(), |config| {
+        config.rules.ender_pearls_vanish_on_death = vanish;
+    });
+    console(&mut s, "gamemode survival Alice");
+    console(&mut s, "give Alice ender_pearl 5");
+    let alice = s.players[0].clone();
+    send_input(
+        &mut s.server,
+        &alice,
+        PlayerInput::UseItem {
+            hand: Hand::Main,
+            sequence: 1,
+            rotation: Rotation::new(0.0, -90.0),
+        },
+    );
+    s.tick(1);
+    assert_eq!(s.server.entities_of(Kind::EnderPearl).len(), 1);
+    console(&mut s, "kill Alice");
+    s.tick(2);
+    s.server.entities_of(Kind::EnderPearl).len()
+}
+
+#[test]
+fn the_vanish_on_death_rule_decides_whether_a_pearl_outlives_a_dead_owner() {
+    assert_eq!(pearls_after_the_owner_dies(true), 0);
+    assert_eq!(pearls_after_the_owner_dies(false), 1);
+}

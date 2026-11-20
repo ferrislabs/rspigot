@@ -549,3 +549,24 @@ fn a_hopper_skips_the_disabled_slots_of_a_crafter() {
     assert!(items[0].is_none() && items[1].is_none());
     assert_eq!(items[2].as_ref().map(|stack| stack.count.get()), Some(1));
 }
+
+#[test]
+fn the_hopper_transfer_setting_changes_the_cooldown_between_moves() {
+    let mut s = seeded::world_configured(
+        pushing(&[("minecraft:stone", 3)]),
+        Vec::new(),
+        false,
+        |config| config.hopper_transfer_ticks = 2,
+    );
+    let alice = s.players[0].clone();
+    s.tick(1);
+    assert_eq!(
+        contents(&mut s, &alice, CHEST, 1),
+        [Some(("minecraft:stone", 1))]
+    );
+    s.tick(2);
+    assert_eq!(
+        contents(&mut s, &alice, CHEST, 1),
+        [Some(("minecraft:stone", 2))]
+    );
+}
