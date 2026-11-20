@@ -35,6 +35,22 @@ pub(crate) struct Terrain {
     height: i32,
 }
 
+pub(crate) struct Carving {
+    aquifer: Aquifer,
+}
+
+impl Carving {
+    pub(crate) fn substance(
+        &mut self,
+        sampler: &mut Sampler<'_>,
+        x: i32,
+        y: i32,
+        z: i32,
+    ) -> Option<Fluid> {
+        self.aquifer.substance(sampler, x, y, z, 0.0)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Vein {
     ore: BlockStateId,
@@ -51,6 +67,54 @@ fn variant_key(variant: ClimateVariant) -> &'static str {
         ClimateVariant::Normal => "normal",
         ClimateVariant::LargeBiomes => "large_biomes",
         ClimateVariant::Amplified => "amplified",
+    }
+}
+
+pub(crate) fn check_function(functions: &Value, noises: &Value, name: &str) -> Result<(), String> {
+    let mut compiler = Compiler::new(functions);
+    compiler
+        .build(&Value::String(name.to_owned()))
+        .map_err(|error| format!("density function {name}: {error}"))?;
+    missing_noise(noises, &compiler.finish(), name)
+}
+
+pub(crate) fn check_settings(
+    functions: &Value,
+    noises: &Value,
+    settings: &Value,
+) -> Result<(), String> {
+    let mut compiler = Compiler::new(functions);
+    let router = &settings["router"];
+    let aquifers = &settings["aquifers"];
+    let roots = [
+        ("final_density", &router["final_density"]),
+        ("chunk_surface_level", &router["chunk_surface_level"]),
+        ("barrier", &aquifers["barrier"]),
+        (
+            "fluid_level_floodedness",
+            &aquifers["fluid_level_floodedness"],
+        ),
+        ("fluid_level_spread", &aquifers["fluid_level_spread"]),
+        ("lava", &aquifers["lava"]),
+        ("exclusion", &aquifers["exclusion"]),
+        ("surface_level", &aquifers["surface_level"]),
+    ];
+    for (label, root) in roots {
+        compiler
+            .build(root)
+            .map_err(|error| format!("noise settings {label}: {error}"))?;
+    }
+    missing_noise(noises, &compiler.finish(), "noise settings")
+}
+
+fn missing_noise(noises: &Value, graph: &graph::Graph, owner: &str) -> Result<(), String> {
+    match graph
+        .noise_names
+        .iter()
+        .find(|name| noises.get(name.as_str()).is_none())
+    {
+        Some(name) => Err(format!("{owner} uses the unknown noise {name}")),
+        None => Ok(()),
     }
 }
 
@@ -138,6 +202,25 @@ impl Terrain {
 
     pub(crate) fn min_y(&self) -> i32 {
         self.min_y
+    }
+
+    pub(crate) fn depth(&self) -> i32 {
+        self.height
+    }
+
+    pub(crate) fn carving(&self, sampler: &mut Sampler<'_>, x0: i32, z0: i32) -> Carving {
+        Carving {
+            aquifer: Aquifer::new(
+                sampler,
+                self.ids,
+                self.aquifer_random,
+                self.sea_level,
+                x0,
+                z0,
+                self.min_y,
+                self.height,
+            ),
+        }
     }
 
     pub(crate) fn fill(&self, sampler: &mut Sampler<'_>, x0: i32, z0: i32) -> Vec<Cell> {

@@ -10,6 +10,7 @@ use rspigot_domain::world::WorldHeight;
 use rspigot_domain::{BiomeId, BlockPos, BlockStateId, ChunkPos, Identifier};
 use rspigot_nbt::{Compound, Tag, read_named, write_named};
 
+use crate::datafix::{self, DataKind};
 use crate::error::AnvilError;
 
 pub const DATA_VERSION: i32 = 5023;
@@ -74,17 +75,14 @@ pub fn encode(chunk: &ChunkColumn) -> Vec<u8> {
 }
 
 pub fn from_nbt(
-    mut root: Compound,
+    root: Compound,
     pos: ChunkPos,
     height: Option<WorldHeight>,
 ) -> Result<Option<ChunkColumn>, AnvilError> {
-    let version = root.get_i32("DataVersion").unwrap_or(0);
-    if version > DATA_VERSION {
-        return Err(AnvilError::NewerDataVersion {
-            found: version,
-            supported: DATA_VERSION,
-        });
-    }
+    let upgraded = datafix::upgrade_checked(DataKind::Chunk, root)?;
+    let version = upgraded.from_version;
+    let was_upgraded = upgraded.changed();
+    let mut root = upgraded.compound;
     if root.contains_key("Level") && !root.contains_key("sections") {
         return Err(AnvilError::LegacyLayout);
     }
@@ -92,11 +90,11 @@ pub fn from_nbt(
         Some(name) if !name.is_empty() => name,
         _ => return Ok(None),
     };
-    if version < DATA_VERSION && !WARNED_OLD_VERSION.swap(true, Ordering::Relaxed) {
-        tracing::warn!(
+    if was_upgraded && !WARNED_OLD_VERSION.swap(true, Ordering::Relaxed) {
+        tracing::info!(
             data_version = version,
-            supported = DATA_VERSION,
-            "loading chunks written by an older version without upgrading them"
+            current = DATA_VERSION,
+            "upgrading chunks written by an older version with the data fixers"
         );
     }
     let status = status_from_name(status_name);
@@ -173,6 +171,9 @@ pub fn from_nbt(
     chunk.block_ticks = block_ticks;
     chunk.fluid_ticks = fluid_ticks;
     chunk.extra = extra;
+    if was_upgraded {
+        chunk.touch();
+    }
     Ok(Some(chunk))
 }
 
@@ -546,14 +547,14 @@ fn biome_to_name(biome: BiomeId) -> String {
 fn block_state_to_tag(state: &BlockStateId) -> Tag {
     let name = state.kind().map_or(AIR_NAME, BlockKind::name);
     let mut entry = Compound::with_capacity(2);
-    entry.insert("Name", name);
+    entry.insert("id", name);
     let props: Vec<_> = state.properties().collect();
     if !props.is_empty() {
         let mut compound = Compound::with_capacity(props.len());
         for (key, value) in props {
             compound.insert(key, value);
         }
-        entry.insert("Properties", compound);
+        entry.insert("properties", compound);
     }
     Tag::Compound(entry)
 }
@@ -671,6 +672,23 @@ mod tests {
 
     fn named(name: &str) -> Tag {
         Tag::Compound(Compound::new().with("Name", name))
+    }
+
+    fn written(name: &str) -> Tag {
+        Tag::Compound(Compound::new().with("id", name))
+    }
+
+    fn written_stairs() -> Tag {
+        Tag::Compound(
+            Compound::new().with("id", "minecraft:oak_stairs").with(
+                "properties",
+                Compound::new()
+                    .with("facing", "north")
+                    .with("half", "bottom")
+                    .with("shape", "straight")
+                    .with("waterlogged", "false"),
+            ),
+        )
     }
 
     fn stairs_tag() -> Tag {
@@ -1286,13 +1304,13 @@ mod tests {
         assert!(states.get("data").is_none());
         assert_eq!(
             states.get_list("palette").unwrap()[0],
-            named("minecraft:air")
+            written("minecraft:air")
         );
 
         let mixed = section_compound(&nbt, -1);
         let states = mixed.get_compound("block_states").unwrap();
         let palette = states.get_list("palette").unwrap();
-        assert_eq!(palette, &[named("minecraft:stone"), stairs_tag()]);
+        assert_eq!(palette, &[written("minecraft:stone"), written_stairs()]);
         assert_eq!(states.get_long_array("data").unwrap().len(), 256);
         let biomes = mixed.get_compound("biomes").unwrap();
         assert_eq!(
@@ -1342,7 +1360,10 @@ mod tests {
             .unwrap()
             .get_list("palette")
             .unwrap();
-        assert_eq!(palette, &[named("minecraft:dirt"), named("minecraft:air")]);
+        assert_eq!(
+            palette,
+            &[written("minecraft:dirt"), written("minecraft:air")]
+        );
         let loaded = from_nbt(nbt, chunk.pos(), Some(chunk.height()))
             .unwrap()
             .unwrap();
@@ -1353,6 +1374,34 @@ mod tests {
                 chunk.sections()[0].block(x, y, z)
             );
         }
+    }
+
+    #[test]
+    fn written_palette_entries_use_id_and_properties_and_round_trip() {
+        let chunk = load(hand_built_chunk());
+        let nbt = to_nbt(&chunk);
+        let mut seen_properties = false;
+        for section in nbt.get_list("sections").unwrap() {
+            let states = section.as_compound().unwrap().get_compound("block_states");
+            for entry in states
+                .into_iter()
+                .flat_map(|s| s.get_list("palette").unwrap())
+            {
+                let entry = entry.as_compound().unwrap();
+                assert!(entry.contains_key("id") && !entry.contains_key("Name"));
+                assert!(!entry.contains_key("Properties"));
+                seen_properties |= entry.get_compound("properties").is_some();
+            }
+        }
+        assert!(seen_properties);
+        let reloaded = load(nbt);
+        for (got, want) in reloaded.sections().iter().zip(chunk.sections()) {
+            assert_eq!(
+                got.blocks().values().collect::<Vec<_>>(),
+                want.blocks().values().collect::<Vec<_>>()
+            );
+        }
+        assert_eq!(reloaded.sections()[1].block(3, 0, 0), stairs());
     }
 
     #[test]

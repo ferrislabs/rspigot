@@ -162,7 +162,7 @@ mod tests {
         let mut out = Compound::new();
         write(&base, &EndermanState::default(), &mut out);
         let saved = out.get_compound(CARRIED_BLOCK_KEY).expect("saved block");
-        assert_eq!(saved.get_str("Name"), Some("minecraft:grass_block"));
+        assert_eq!(saved.get_str("id"), Some("minecraft:grass_block"));
         let (mut loaded, _) = enderman();
         read(&out, &mut loaded, &mut EndermanState::default());
         assert_eq!(carried_block(&loaded), Some(grass));

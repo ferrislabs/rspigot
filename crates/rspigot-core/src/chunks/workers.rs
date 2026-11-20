@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use rspigot_domain::chunk::ChunkColumn;
+use rspigot_domain::poi::PoiChunkData;
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{ChunkPos, Vec3};
 
@@ -46,6 +47,11 @@ pub enum ChunkJob {
         merge: bool,
         generation: u64,
     },
+    SavePoi {
+        dimension: Arc<Dimension>,
+        pos: ChunkPos,
+        data: Arc<PoiChunkData>,
+    },
     SaveData {
         dimension: Arc<Dimension>,
         name: &'static str,
@@ -80,6 +86,7 @@ pub enum ChunkResult {
         source: ChunkSource,
         elapsed: Duration,
         entities: Option<Vec<Compound>>,
+        poi: Option<PoiChunkData>,
         relit: bool,
     },
     Saved {
@@ -92,6 +99,9 @@ pub enum ChunkResult {
     Failed {
         pos: ChunkPos,
         error: String,
+    },
+    PoiSaved {
+        pos: ChunkPos,
     },
     DataSaved,
     Flushed,
@@ -242,6 +252,17 @@ fn execute<S: ChunkStore + EntityStore, G: ChunkGenerator>(
                 error: error.to_string(),
             },
         },
+        ChunkJob::SavePoi {
+            dimension,
+            pos,
+            data,
+        } => match store.save_poi(&dimension.key, pos, &data) {
+            Ok(()) => ChunkResult::PoiSaved { pos },
+            Err(error) => ChunkResult::Failed {
+                pos,
+                error: error.to_string(),
+            },
+        },
         ChunkJob::SaveData {
             dimension,
             name,
@@ -319,6 +340,13 @@ fn load<S: ChunkStore + EntityStore, G: ChunkGenerator>(
             None
         }
     };
+    let poi = match source {
+        ChunkSource::Disk => store
+            .load_poi(&dimension.key, pos)
+            .map_err(|error| tracing::error!(?pos, %error, "Failed to load points of interest"))
+            .unwrap_or(None),
+        ChunkSource::Generated => None,
+    };
     let stale = source == ChunkSource::Disk
         && dimension.has_skylight
         && lighting::has_light(&chunk)
@@ -343,6 +371,7 @@ fn load<S: ChunkStore + EntityStore, G: ChunkGenerator>(
         source,
         elapsed: started.elapsed(),
         entities,
+        poi,
         relit: stale,
     }
 }
