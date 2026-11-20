@@ -58,6 +58,7 @@ pub(crate) struct Spawning {
     pub(crate) patrol_next_tick: i32,
     pub(crate) phantom: crate::phantom_spawner::PhantomSpawner,
     pub(crate) trader: crate::trader_spawner::TraderSpawner,
+    pub(crate) siege: crate::village_siege::Siege,
 }
 
 impl Spawning {
@@ -76,6 +77,7 @@ impl Spawning {
             patrol_next_tick: 0,
             phantom: crate::phantom_spawner::PhantomSpawner::default(),
             trader: crate::trader_spawner::TraderSpawner::default(),
+            siege: crate::village_siege::Siege::default(),
         }
     }
 }
@@ -234,6 +236,14 @@ impl<L: ClientLink> SpawnLevel for Server<L> {
         zoomed_biome(self.spawning.zoom_seed, pos.x, pos.y, pos.z, |x, y, z| {
             chunk_noise_biome(chunks, origin, x, y, z)
         })
+    }
+
+    fn spawns_at(&self, pos: BlockPos) -> &'static rspigot_data::spawns::BiomeSpawns {
+        crate::structure_spawns::spawns_at(
+            |chunk| self.world.chunks.get(chunk).map(|column| &**column),
+            self.biome(pos).0,
+            pos,
+        )
     }
 
     fn top_height(&self, heightmap: SpawnHeightmap, x: i32, z: i32) -> i32 {
@@ -501,6 +511,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn tick_spawning(&mut self) {
         self.update_spawning();
+        self.tick_village_siege();
         let players = self.spawning.players.clone();
         if players.is_empty() || !self.world.level.spawn_mobs {
             return;

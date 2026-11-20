@@ -1,6 +1,6 @@
 use std::sync::OnceLock;
 
-use crate::generated::spawns::{BIOME_SPAWNS, DIMENSION_SPAWNS};
+use crate::generated::spawns::{BIOME_SPAWNS, DIMENSION_SPAWNS, STRUCTURE_SPAWNS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SpawnCount {
@@ -42,6 +42,40 @@ pub struct DimensionSpawns {
     pub monster_spawn_block_light_limit: i32,
     pub ambient_light: f32,
     pub has_ceiling: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StructureBox {
+    Piece,
+    Full,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StructureOverride {
+    pub bounding_box: StructureBox,
+    pub spawns: &'static [Spawner],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StructureSpawns {
+    pub monster: Option<StructureOverride>,
+    pub creature: Option<StructureOverride>,
+    pub ambient: Option<StructureOverride>,
+    pub axolotls: Option<StructureOverride>,
+    pub underground_water_creature: Option<StructureOverride>,
+    pub water_creature: Option<StructureOverride>,
+    pub water_ambient: Option<StructureOverride>,
+    pub misc: Option<StructureOverride>,
+}
+
+pub fn structure_index(name: &str) -> Option<usize> {
+    STRUCTURE_SPAWNS
+        .binary_search_by(|(candidate, _)| (*candidate).cmp(name))
+        .ok()
+}
+
+pub fn structure(index: usize) -> Option<&'static StructureSpawns> {
+    STRUCTURE_SPAWNS.get(index).map(|(_, spawns)| spawns)
 }
 
 pub const EMPTY: BiomeSpawns = BiomeSpawns {
@@ -94,6 +128,52 @@ pub fn dimension(name: &str) -> Option<&'static DimensionSpawns> {
 mod tests {
     use super::*;
     use crate::{entities, registries};
+
+    fn structure_named(name: &str) -> &'static StructureSpawns {
+        structure(structure_index(name).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn the_fortress_replaces_monsters_by_piece() {
+        let fortress = structure_named("minecraft:fortress");
+        let monster = fortress.monster.unwrap();
+        assert_eq!(monster.bounding_box, StructureBox::Piece);
+        let blaze = entities::id("minecraft:blaze").unwrap();
+        assert_eq!(
+            monster.spawns[0],
+            Spawner {
+                entity: blaze,
+                weight: 10,
+                count: SpawnCount::Uniform { min: 2, max: 3 }
+            }
+        );
+        assert_eq!(monster.spawns.len(), 5);
+        assert!(fortress.creature.is_none());
+    }
+
+    #[test]
+    fn the_monument_outpost_and_hut_follow_the_datapack() {
+        let guardian = entities::id("minecraft:guardian").unwrap();
+        let monument = structure_named("minecraft:monument");
+        let monster = monument.monster.unwrap();
+        assert_eq!(monster.bounding_box, StructureBox::Full);
+        assert_eq!(monster.spawns[0].entity, guardian);
+        assert!(monument.axolotls.unwrap().spawns.is_empty());
+        let pillager = entities::id("minecraft:pillager").unwrap();
+        assert_eq!(
+            structure_named("minecraft:pillager_outpost")
+                .monster
+                .unwrap()
+                .spawns[0]
+                .entity,
+            pillager
+        );
+        let witch = entities::id("minecraft:witch").unwrap();
+        let hut = structure_named("minecraft:swamp_hut");
+        assert_eq!(hut.monster.unwrap().spawns[0].entity, witch);
+        assert_eq!(hut.creature.unwrap().bounding_box, StructureBox::Piece);
+        assert!(structure_index("minecraft:village_plains").is_none());
+    }
 
     #[test]
     fn plains_spawners_follow_the_datapack() {
