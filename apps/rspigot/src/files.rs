@@ -247,6 +247,40 @@ mod tests {
 
     use super::*;
 
+    fn png_of(width: u32, height: u32) -> Vec<u8> {
+        let mut bytes = b"\x89PNG\r\n\x1a\n".to_vec();
+        bytes.extend_from_slice(&13u32.to_be_bytes());
+        bytes.extend_from_slice(b"IHDR");
+        bytes.extend_from_slice(&width.to_be_bytes());
+        bytes.extend_from_slice(&height.to_be_bytes());
+        bytes
+    }
+
+    #[test]
+    fn a_64_by_64_server_icon_becomes_a_data_uri() {
+        let dir = tempfile::tempdir().unwrap();
+        let bytes = png_of(64, 64);
+        std::fs::write(dir.path().join("server-icon.png"), &bytes).unwrap();
+        assert_eq!(
+            read_favicon(dir.path()),
+            Some(format!("data:image/png;base64,{}", STANDARD.encode(&bytes)))
+        );
+    }
+
+    #[test]
+    fn a_server_icon_of_another_size_or_kind_is_ignored() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(read_favicon(dir.path()), None);
+        std::fs::write(dir.path().join("server-icon.png"), png_of(32, 64)).unwrap();
+        assert_eq!(read_favicon(dir.path()), None);
+        std::fs::write(
+            dir.path().join("server-icon.png"),
+            b"not a png at all, really",
+        )
+        .unwrap();
+        assert_eq!(read_favicon(dir.path()), None);
+    }
+
     const STEVE: &str = "00000000-0000-0000-0000-000000000001";
 
     fn noon() -> SystemTime {

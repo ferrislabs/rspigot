@@ -1,3 +1,4 @@
+mod offers;
 pub mod permissions;
 mod plugins;
 mod properties;
@@ -20,6 +21,7 @@ use rspigot_domain::world::Difficulty;
 use rspigot_management::ManagementConfig;
 use rspigot_network::{NetworkConfig, ProxyForwarding, QueryConfig};
 use rspigot_plugins::PluginHostConfig;
+use rspigot_rcon::RconConfig;
 
 use plugins::PLUGINS_DEFAULTS;
 pub use properties::Properties;
@@ -128,6 +130,17 @@ impl ServerFiles {
                 .float("world-settings.default.hunger.combat-exhaustion", 0.1)
                 .max(0.0) as f32,
             messages: self.messages(),
+            motd: p.string("motd").to_owned(),
+            hide_online_players: p.bool("hide-online-players"),
+            accepts_transfers: p.bool("accepts-transfers"),
+            entity_broadcast_range_percentage: p
+                .int("entity-broadcast-range-percentage", 100)
+                .clamp(0, i64::from(u32::MAX))
+                as u32,
+            status_heartbeat_interval: p
+                .int("status-heartbeat-interval", 0)
+                .clamp(0, i64::from(u32::MAX)) as u32,
+            enable_status: p.bool("enable-status"),
             ..GameConfig::default()
         }
     }
@@ -302,6 +315,10 @@ impl ServerFiles {
             port: p.int("management-server-port", 0).clamp(0, 65535) as u16,
             secret: p.string("management-server-secret").to_owned(),
             tls_enabled: p.bool("management-server-tls-enabled"),
+            tls_keystore: p.string("management-server-tls-keystore").to_owned(),
+            tls_keystore_password: p
+                .string("management-server-tls-keystore-password")
+                .to_owned(),
             allowed_origins: p
                 .string("management-server-allowed-origins")
                 .split(',')
@@ -309,6 +326,18 @@ impl ServerFiles {
                 .filter(|o| !o.is_empty())
                 .map(str::to_owned)
                 .collect(),
+        })
+    }
+
+    pub fn rcon_config(&self) -> Option<RconConfig> {
+        let p = &self.properties;
+        if !p.bool("enable-rcon") {
+            return None;
+        }
+        Some(RconConfig {
+            host: p.string("server-ip").to_owned(),
+            port: p.int("rcon.port", 25575).clamp(1, 65535) as u16,
+            password: p.string("rcon.password").to_owned(),
         })
     }
 
@@ -366,6 +395,8 @@ impl ServerFiles {
             compression_threshold: usize::try_from(threshold).ok(),
             motd: p.string("motd").to_owned(),
             favicon,
+            resource_pack: offers::resource_pack(p),
+            server_links: offers::server_links(p, &self.spigot),
             hide_online_players: p.bool("hide-online-players"),
             enable_status: p.bool("enable-status"),
             proxy,
@@ -494,6 +525,35 @@ mod tests {
         assert_eq!(config.port, 25585);
         assert_eq!(config.allowed_origins, ["http://a", "http://b"]);
         assert!(!config.tls_enabled);
+    }
+
+    #[test]
+    fn rcon_is_off_by_default_and_reads_its_keys() {
+        let mut files = files("{}", "{}");
+        assert_eq!(files.rcon_config(), None);
+        files.properties.set("enable-rcon", "true");
+        files.properties.set("rcon.password", "pw");
+        files.properties.set("rcon.port", "25576");
+        files.properties.set("server-ip", "10.0.0.2");
+        let config = files.rcon_config().expect("enabled");
+        assert_eq!(config.port, 25576);
+        assert_eq!(config.password, "pw");
+        assert_eq!(config.host, "10.0.0.2");
+    }
+
+    #[test]
+    fn the_management_keystore_keys_are_read() {
+        let mut files = files("{}", "{}");
+        files.properties.set("management-server-enabled", "true");
+        files
+            .properties
+            .set("management-server-tls-enabled", "true");
+        files
+            .properties
+            .set("management-server-tls-keystore", "identity.pem");
+        let config = files.management_config().expect("enabled");
+        assert!(config.tls_enabled);
+        assert_eq!(config.tls_keystore, "identity.pem");
     }
 
     #[test]

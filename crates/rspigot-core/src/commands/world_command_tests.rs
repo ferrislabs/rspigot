@@ -141,15 +141,52 @@ fn forced_chunks_survive_a_restart_through_the_level() {
     assert_eq!(restored.forced_chunks(), vec![(-2, 0)]);
 }
 
-fn border_events(rig: &Rig) -> Vec<rspigot_domain::world_border::BorderView> {
+fn border_updates(rig: &Rig) -> Vec<ClientEvent> {
     rig.link
         .take()
         .into_iter()
-        .filter_map(|event| match event {
-            ClientEvent::Border(view) => Some(view),
-            _ => None,
+        .filter(|event| {
+            matches!(
+                event,
+                ClientEvent::Border(_)
+                    | ClientEvent::BorderCenter { .. }
+                    | ClientEvent::BorderSize(_)
+                    | ClientEvent::BorderLerp { .. }
+                    | ClientEvent::BorderWarningDelay(_)
+                    | ClientEvent::BorderWarningDistance(_)
+            )
         })
         .collect()
+}
+
+#[test]
+fn border_changes_send_the_matching_packet_to_the_dimension() {
+    let mut rig = rig();
+    rig.run("worldborder set 100");
+    assert_eq!(border_updates(&rig), [ClientEvent::BorderSize(100.0)]);
+    rig.run("worldborder set 50 10s");
+    assert_eq!(
+        border_updates(&rig),
+        [ClientEvent::BorderLerp {
+            old_size: 100.0,
+            new_size: 50.0,
+            time: 200
+        }]
+    );
+    rig.run("worldborder center 10.5 -20");
+    assert_eq!(
+        border_updates(&rig),
+        [ClientEvent::BorderCenter { x: 10.5, z: -20.0 }]
+    );
+    rig.run("worldborder warning distance 9");
+    assert_eq!(
+        border_updates(&rig),
+        [ClientEvent::BorderWarningDistance(9)]
+    );
+    rig.run("worldborder warning time 10s");
+    assert_eq!(border_updates(&rig), [ClientEvent::BorderWarningDelay(200)]);
+    rig.run("worldborder damage amount 1");
+    assert!(border_updates(&rig).is_empty());
 }
 
 #[test]
@@ -164,8 +201,7 @@ fn worldborder_set_changes_the_size_at_once_and_tells_the_clients() {
     let mut rig = rig();
     assert_eq!(rig.run("worldborder set 100"), CommandOutcome::Success);
     assert_eq!(rig.server.world.border.size(0), 100.0);
-    let views = border_events(&rig);
-    assert_eq!(views.last().map(|view| view.new_size), Some(100.0));
+    assert_eq!(border_updates(&rig), [ClientEvent::BorderSize(100.0)]);
     assert_eq!(rig.run("worldborder set 100"), CommandOutcome::Failure);
     assert_eq!(rig.run("worldborder set 0.5"), CommandOutcome::Failure);
     assert_eq!(rig.run("worldborder set 70000000"), CommandOutcome::Failure);
@@ -459,6 +495,11 @@ fn fillbiome_rewrites_the_quantized_cells_and_resends_the_chunk() {
     let events = rig.link.take();
     assert!(
         events
+            .iter()
+            .any(|event| matches!(event, ClientEvent::ChunksBiomes(chunks) if chunks.len() == 1))
+    );
+    assert!(
+        !events
             .iter()
             .any(|event| matches!(event, ClientEvent::Chunk { .. }))
     );

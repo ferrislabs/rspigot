@@ -253,17 +253,53 @@ enum Kind {
     Text,
 }
 
-const SETTINGS: [(&str, Setting, Kind); 8] = [
+const SETTINGS: [(&str, Setting, Kind); 20] = [
     ("autosave", Setting::Autosave, Kind::Bool),
     ("difficulty", Setting::Difficulty, Kind::Text),
     ("enforce_allowlist", Setting::EnforceAllowlist, Kind::Bool),
+    ("use_allowlist", Setting::UseAllowlist, Kind::Bool),
     ("max_players", Setting::MaxPlayers, Kind::Int),
-    ("game_mode", Setting::GameMode, Kind::Text),
-    ("force_game_mode", Setting::ForceGameMode, Kind::Bool),
+    (
+        "pause_when_empty_seconds",
+        Setting::PauseWhenEmptySeconds,
+        Kind::Int,
+    ),
+    ("player_idle_timeout", Setting::PlayerIdleTimeout, Kind::Int),
     ("allow_flight", Setting::AllowFlight, Kind::Bool),
+    ("motd", Setting::Motd, Kind::Text),
+    (
+        "spawn_protection_radius",
+        Setting::SpawnProtectionRadius,
+        Kind::Int,
+    ),
+    ("force_game_mode", Setting::ForceGameMode, Kind::Bool),
+    ("game_mode", Setting::GameMode, Kind::Text),
+    ("view_distance", Setting::ViewDistance, Kind::Int),
+    (
+        "simulation_distance",
+        Setting::SimulationDistance,
+        Kind::Int,
+    ),
+    ("accept_transfers", Setting::AcceptTransfers, Kind::Bool),
+    (
+        "status_heartbeat_interval",
+        Setting::StatusHeartbeatInterval,
+        Kind::Int,
+    ),
     (
         "operator_user_permission_level",
         Setting::OperatorPermissionLevel,
+        Kind::Int,
+    ),
+    (
+        "hide_online_players",
+        Setting::HideOnlinePlayers,
+        Kind::Bool,
+    ),
+    ("status_replies", Setting::StatusReplies, Kind::Bool),
+    (
+        "entity_broadcast_range",
+        Setting::EntityBroadcastRange,
         Kind::Int,
     ),
 ];
@@ -606,6 +642,8 @@ pub fn notification(notice: &ManagementNotice) -> Value {
         ManagementNotice::GameRuleUpdated { key, value } => {
             ("gamerules/updated", Some(rule_json(key, value)))
         }
+        ManagementNotice::Activity => ("server/activity", None),
+        ManagementNotice::Status(status) => ("server/status", Some(status_json(status))),
     };
     let mut object = Map::new();
     object.insert("jsonrpc".into(), json!("2.0"));
@@ -751,6 +789,53 @@ mod tests {
         assert!(joined.get("id").is_none());
         let started = notification(&ManagementNotice::Started);
         assert!(started.get("params").is_none());
+    }
+
+    #[test]
+    fn activity_and_status_are_notifications() {
+        let activity = notification(&ManagementNotice::Activity);
+        assert_eq!(activity["method"], "minecraft:notification/server/activity");
+        assert!(activity.get("params").is_none());
+        let status = notification(&ManagementNotice::Status(StatusView {
+            started: true,
+            players: Vec::new(),
+            version_name: "26.3".to_owned(),
+            protocol: 777,
+        }));
+        assert_eq!(status["method"], "minecraft:notification/server/status");
+        assert_eq!(status["params"][0]["version"]["protocol"], 777);
+    }
+
+    #[test]
+    fn every_vanilla_server_setting_is_a_method() {
+        let names = method_names();
+        for key in [
+            "accept_transfers",
+            "allow_flight",
+            "autosave",
+            "difficulty",
+            "enforce_allowlist",
+            "entity_broadcast_range",
+            "force_game_mode",
+            "game_mode",
+            "hide_online_players",
+            "max_players",
+            "motd",
+            "operator_user_permission_level",
+            "pause_when_empty_seconds",
+            "player_idle_timeout",
+            "simulation_distance",
+            "spawn_protection_radius",
+            "status_heartbeat_interval",
+            "status_replies",
+            "use_allowlist",
+            "view_distance",
+        ] {
+            for suffix in ["", "/set"] {
+                let name = format!("minecraft:serversettings/{key}{suffix}");
+                assert!(names.contains(&name), "{name}");
+            }
+        }
     }
 
     #[test]

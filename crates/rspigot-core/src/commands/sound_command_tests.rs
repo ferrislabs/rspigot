@@ -2,7 +2,7 @@ use rspigot_domain::Vec3;
 use rspigot_domain::player::PlayerId;
 use rspigot_entities::SoundSource;
 
-use super::{CommandContext, CommandOutcome, CommandSender, execute};
+use super::{CommandOutcome, CommandSender, execute};
 use crate::end_tests::{Tap, arrive};
 use crate::events::ClientEvent;
 use crate::server::Server;

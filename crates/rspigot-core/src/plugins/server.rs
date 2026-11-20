@@ -1549,6 +1549,14 @@ impl<L: ClientLink> Server<L> {
                 Vec::new()
             }
             Continuation::ServerCommand(_) | Continuation::Broadcast(..) if cancelled => Vec::new(),
+            Continuation::RemoteServerCommand(call) if cancelled => {
+                Self::cancel_rcon(&call);
+                Vec::new()
+            }
+            Continuation::RemoteServerCommand(call) => {
+                self.finish_rcon(*call, patch_of!(patch, RemoteServerCommand));
+                Vec::new()
+            }
             Continuation::ServerCommand(line) => {
                 self.finish_server_command(line, patch_of!(patch, ServerCommand));
                 Vec::new()

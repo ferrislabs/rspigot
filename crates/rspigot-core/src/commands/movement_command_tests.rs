@@ -240,3 +240,56 @@ fn spectate_needs_a_spectator_and_a_trackable_target() {
             .any(|event| matches!(event, ClientEvent::Camera(id) if *id == own))
     );
 }
+
+#[test]
+fn tp_facing_a_position_sends_look_at_and_turns_the_player() {
+    let mut rig = rig();
+    rig.events();
+    assert_eq!(
+        rig.run("tp @s 5 70 5 facing 5 70 15"),
+        CommandOutcome::Success
+    );
+    let events = rig.events();
+    assert!(events.contains(&ClientEvent::LookAt {
+        from: crate::events::LookAnchor::Feet,
+        target: Vec3::new(5.5, 70.0, 15.5),
+        entity: None,
+    }));
+    let rotation = rig.server.players.get(&rig.id).expect("player").rotation;
+    assert!(rotation.yaw.abs() < 0.01);
+    assert!(rotation.pitch.abs() < 0.01);
+}
+
+#[test]
+fn tp_facing_an_entity_names_it_and_its_anchor() {
+    let mut rig = rig();
+    rig.events();
+    assert_eq!(
+        rig.run("tp @s 5 70 5 facing entity @s eyes"),
+        CommandOutcome::Success
+    );
+    let entity = rig.server.players.get(&rig.id).expect("player").entity_id;
+    let found = rig.events().into_iter().any(|event| {
+        matches!(
+            event,
+            ClientEvent::LookAt {
+                from: crate::events::LookAnchor::Feet,
+                entity: Some((looked, crate::events::LookAnchor::Eyes)),
+                ..
+            } if looked == entity
+        )
+    });
+    assert!(found);
+}
+
+#[test]
+fn tp_with_an_unknown_trailing_word_is_refused_without_moving() {
+    let mut rig = rig();
+    rig.events();
+    assert_eq!(rig.run("tp @s 5 70 5 sideways"), CommandOutcome::Failure);
+    assert!(
+        !rig.events()
+            .iter()
+            .any(|event| matches!(event, ClientEvent::LookAt { .. }))
+    );
+}

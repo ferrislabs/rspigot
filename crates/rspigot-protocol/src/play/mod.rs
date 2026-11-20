@@ -5,6 +5,7 @@ pub mod combat;
 pub mod commands;
 pub mod effect;
 pub mod entity;
+pub mod gaps;
 pub mod inventory;
 pub mod metadata;
 pub mod player;
@@ -21,8 +22,8 @@ pub use serverbound::ServerboundPlay;
 pub mod clientbound {
     pub use super::boss::BossEvent;
     pub use super::chat::{
-        ClearTitles, DisguisedChat, PlayerChat, SetSubtitleText, SetTitleText, SetTitlesAnimation,
-        SystemChat,
+        ClearTitles, DeleteChat, DisguisedChat, PlayerChat, SetSubtitleText, SetTitleText,
+        SetTitlesAnimation, SystemChat,
     };
     pub use super::chunk::{ForgetLevelChunk, LevelChunkWithLight, LightUpdate};
     pub use super::combat::{DamageEvent, EntityEvent, HurtAnimation, PlayerCombatKill};
@@ -32,6 +33,11 @@ pub mod clientbound {
         AddEntity, Animate, EntityPositionSync, MoveEntityPos, MoveEntityPosRot, MoveEntityRot,
         RemoveEntities, RotateHead, SetCamera, SetEntityLink, SetEntityMotion, SetEquipment,
         SetPassengers, SwingAnimation, TakeItemEntity, TeleportEntity, UpdateAttributes,
+    };
+    pub use super::gaps::{
+        ChunkBiomeData, ChunksBiomes, LookAtEntity, OpenBook, PlayerCombatEnd, PlayerCombatEnter,
+        PlayerLookAt, SetBorderCenter, SetBorderLerpSize, SetBorderSize, SetBorderWarningDelay,
+        SetBorderWarningDistance, SoundEntity,
     };
     pub use super::inventory::{
         ContainerClose, ContainerSetContent, ContainerSetData, ContainerSetSlot, MerchantOffers,
@@ -92,6 +98,7 @@ mod tests {
             (<SystemChat as Packet>::ID, 124),
             (<DisguisedChat as Packet>::ID, 33),
             (<PlayerChat as Packet>::ID, 66),
+            (<DeleteChat as Packet>::ID, 31),
             (<PlayerInfoUpdate as Packet>::ID, 71),
             (<PlayerInfoRemove as Packet>::ID, 70),
             (<TabList as Packet>::ID, 125),
@@ -153,6 +160,11 @@ mod tests {
             (<EntityEvent as Packet>::ID, 34),
             (<HurtAnimation as Packet>::ID, 43),
             (<PlayerCombatKill as Packet>::ID, 69),
+            (<PlayerCombatEnter as Packet>::ID, 68),
+            (<PlayerCombatEnd as Packet>::ID, 67),
+            (<SetBorderCenter as Packet>::ID, 90),
+            (<SoundEntity as Packet>::ID, 118),
+            (<ChunksBiomes as Packet>::ID, 13),
             (<BossEvent as Packet>::ID, 9),
             (<AwardStats as Packet>::ID, 3),
             (<UpdateAdvancements as Packet>::ID, 133),

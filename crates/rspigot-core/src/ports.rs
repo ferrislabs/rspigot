@@ -277,3 +277,7 @@ pub struct PackContents {
 pub trait DatapackSource: Send + Sync + 'static {
     fn read_packs(&self) -> Result<Vec<PackContents>, DatapackError>;
 }
+
+pub trait RconExecutor: Send + Sync + 'static {
+    fn execute(&self, command: &str) -> Option<String>;
+}

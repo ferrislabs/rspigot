@@ -213,21 +213,13 @@ impl<L: ClientLink> Server<L> {
         if self.held(id, hand).as_ref() == Some(stack) {
             self.consume_held(id, hand, 1);
         }
-        let position = self
-            .entities
-            .store
-            .get(thrown)
-            .map(|entity| entity.base.position);
-        if let Some(position) = position {
-            self.play_sound(
-                None,
-                position,
-                arrow::TRIDENT_THROW_SOUND,
-                SoundSource::Players,
-                1.0,
-                1.0,
-            );
-        }
+        self.play_entity_sound(
+            thrown,
+            arrow::TRIDENT_THROW_SOUND,
+            SoundSource::Players,
+            1.0,
+            1.0,
+        );
         self.refresh_hands(id);
     }
 

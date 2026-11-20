@@ -36,6 +36,9 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         player.last_action = tick;
+        if self.extras.paused(id, &input) {
+            return;
+        }
         if player.vitals.dying && acts(&input) {
             self.refuse_while_dying(id, &input);
             return;
@@ -224,8 +227,13 @@ impl<L: ClientLink> Server<L> {
                 track_output,
             } => self.handle_set_command_minecart(id, entity, command, track_output),
             PlayerInput::ResourcePack { id: pack, status } => {
+                self.enforce_required_pack(id, pack, status);
                 self.hear_resource_pack(id, pack, status);
             }
+            PlayerInput::CookieResponse { key, payload } => {
+                self.handle_cookie_response(id, key, payload)
+            }
+            PlayerInput::Reconfigured => self.finish_reconfiguration(id),
             PlayerInput::CustomClick { id: click, data } => {
                 self.hear_custom_click(id, click, data);
             }
@@ -240,6 +248,12 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             PlayerInput::SetGameRules(entries) => self.handle_set_game_rules(id, entries),
+            PlayerInput::RequestGameRuleValues => self.send_game_rule_values(id),
+            PlayerInput::SetJigsawBlock(edit) => self.handle_set_jigsaw_block(id, &edit),
+            PlayerInput::JigsawGenerate { pos, levels, .. } => {
+                self.handle_jigsaw_generate(id, pos, levels);
+            }
+            PlayerInput::SetStructureBlock(edit) => self.handle_set_structure_block(id, &edit),
             PlayerInput::TeleportToEntity(target) => self.handle_teleport_to_entity(id, target),
             PlayerInput::BlockTagQuery { transaction, pos } => {
                 self.handle_block_tag_query(id, transaction, pos);
