@@ -32,13 +32,23 @@ impl<L: ClientLink> Server<L> {
         }
         let mut random = ServerRandom(&mut self.rng);
         if let Some(grown) = crop::bonemealed_state(state, &mut random) {
-            self.grow_block_by(lane, fertilizer, pos, grown);
+            self.grow_block_by(lane, fertilizer, pos, grown, Vec::new());
         }
         true
     }
 
     pub(crate) fn grow_block(&mut self, lane: Lane, pos: BlockPos, state: BlockStateId) {
-        self.grow_block_by(lane, None, pos, state);
+        self.grow_block_by(lane, None, pos, state, Vec::new());
+    }
+
+    pub(crate) fn grow_block_with(
+        &mut self,
+        lane: Lane,
+        pos: BlockPos,
+        state: BlockStateId,
+        companions: Vec<(BlockPos, BlockStateId)>,
+    ) {
+        self.grow_block_by(lane, None, pos, state, companions);
     }
 
     fn grow_block_by(
@@ -47,6 +57,7 @@ impl<L: ClientLink> Server<L> {
         fertilizer: Option<PlayerId>,
         pos: BlockPos,
         state: BlockStateId,
+        companions: Vec<(BlockPos, BlockStateId)>,
     ) {
         self.fire(
             lane,
@@ -54,6 +65,7 @@ impl<L: ClientLink> Server<L> {
                 pos,
                 state,
                 fertilizer,
+                companions,
             }),
             move |_| {
                 Some(EventPayload::BlockGrow(BlockGrow {
@@ -69,6 +81,9 @@ impl<L: ClientLink> Server<L> {
             self.fertilize(player, step.pos, vec![(step.pos, step.state)]);
         } else if !cancelled {
             self.set_block(step.pos, step.state);
+            for (at, state) in step.companions {
+                self.set_block(at, state);
+            }
             if step.state.kind() == Some(rspigot_blocks::BlockKind::TurtleEgg) {
                 self.finish_turtle_egg_crack(step.pos);
             }
