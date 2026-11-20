@@ -141,6 +141,8 @@ pub struct Server<L> {
     pub(crate) profiler: Option<(Instant, u64)>,
     pub(crate) command_source: Option<crate::commands::source::Source>,
     pub(crate) command_result: Option<i32>,
+    pub(crate) functions: crate::functions::FunctionState,
+    pub(crate) datapacks: Option<crate::functions::DatapackLoader>,
     pub(crate) command_storage: FxHashMap<Identifier, rspigot_nbt::Compound>,
     pub(crate) portal_queue: Vec<(
         crate::world_state::DimensionKey,
@@ -237,6 +239,8 @@ impl<L: ClientLink> Server<L> {
             saving_enabled: true,
             command_source: None,
             command_result: None,
+            functions: crate::functions::FunctionState::default(),
+            datapacks: None,
             command_storage: FxHashMap::default(),
             portal_queue: Vec::new(),
             nether_queue: Vec::new(),
@@ -259,6 +263,7 @@ impl<L: ClientLink> Server<L> {
         server.load_custom_boss_bars();
         server.load_forced_chunks();
         server.load_world_border();
+        server.load_scheduled_events();
         server.load_dragon_fight();
         let center = spawn.chunk();
         let radius = server.config.spawn_chunk_radius;
@@ -301,9 +306,11 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn start(&mut self, timeout: Duration) -> usize {
+        self.functions.data.activate();
         self.world_initialised();
         let loaded = self.wait_for_spawn(timeout);
         self.world_loaded();
+        self.run_load_functions();
         self.notify_management(crate::management::ManagementNotice::Started);
         loaded
     }
@@ -415,6 +422,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn handle(&mut self, message: Inbound<L>) {
+        self.functions.data.activate();
         match message {
             Inbound::PreLogin {
                 name,
@@ -1014,10 +1022,17 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn tick(&mut self) {
+        self.functions.data.activate();
         self.tick += 1;
         self.tps.record(self.tick);
         self.simulating = self.tick_rate.runs_simulation();
+        if self.simulating {
+            self.tick_functions();
+        }
         self.tick_world(true);
+        if self.simulating {
+            self.tick_scheduled_events();
+        }
         let mut keys: Vec<crate::world_state::DimensionKey> = self
             .dormant
             .keys()
@@ -1417,6 +1432,7 @@ impl<L: ClientLink> Server<L> {
         self.save_forced_chunks();
         self.save_world_border();
         self.save_dragon_fight();
+        self.save_scheduled_events();
         self.store_scheduled_ticks();
         let saved = self.world.chunks.save_dirty(&self.workers);
         self.workers.submit(Priority::BACKGROUND, ChunkJob::Flush);

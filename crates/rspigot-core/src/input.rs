@@ -911,6 +911,10 @@ impl<L: ClientLink> Server<L> {
                     Vec::new()
                 } else if completes_dimension(head) {
                     self.dimension_names()
+                } else if completes_function(head) {
+                    self.function_names()
+                } else if let Some(names) = self.pack_names_after(head) {
+                    names
                 } else {
                     self.players
                         .values()
@@ -1064,6 +1068,22 @@ const fn block_face(face: Direction) -> Face {
         Direction::South => Face::South,
         Direction::West => Face::West,
         Direction::East => Face::East,
+    }
+}
+
+fn completes_function(head: &str) -> bool {
+    let words: Vec<String> = head
+        .split_whitespace()
+        .map(str::to_ascii_lowercase)
+        .collect();
+    let words: Vec<&str> = words
+        .iter()
+        .map(|word| word.strip_prefix("minecraft:").unwrap_or(word))
+        .collect();
+    match words.as_slice() {
+        ["function"] | ["schedule", "function"] => true,
+        [first, .., "function"] if *first == "execute" => true,
+        _ => false,
     }
 }
 

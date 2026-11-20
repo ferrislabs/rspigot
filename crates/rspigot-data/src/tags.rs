@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::sync::{Arc, RwLock};
+
 pub use crate::generated::tags::TAGS;
 
 pub struct RegistryTags {
@@ -24,7 +28,78 @@ impl HolderSet {
     }
 }
 
+#[derive(Debug, Default)]
+pub struct TagOverlay {
+    registries: BTreeMap<String, BTreeMap<String, &'static [u32]>>,
+}
+
+impl TagOverlay {
+    pub fn insert(&mut self, registry: &str, name: &str, ids: &'static [u32]) {
+        self.registries
+            .entry(registry.to_owned())
+            .or_default()
+            .insert(name.to_owned(), ids);
+    }
+
+    pub fn get(&self, registry: &str, name: &str) -> Option<&'static [u32]> {
+        self.registries.get(registry)?.get(name).copied()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.registries.values().all(BTreeMap::is_empty)
+    }
+
+    pub fn registries(&self) -> impl Iterator<Item = (&str, &BTreeMap<String, &'static [u32]>)> {
+        self.registries
+            .iter()
+            .map(|(registry, tags)| (registry.as_str(), tags))
+    }
+}
+
+thread_local! {
+    static ACTIVE: RefCell<Option<Arc<TagOverlay>>> = const { RefCell::new(None) };
+}
+
+static PUBLISHED: RwLock<Option<Arc<TagOverlay>>> = RwLock::new(None);
+
+pub fn activate(overlay: &Arc<TagOverlay>) {
+    ACTIVE.with(|active| {
+        let mut active = active.borrow_mut();
+        let same = match active.as_ref() {
+            Some(current) => Arc::ptr_eq(current, overlay),
+            None => overlay.is_empty(),
+        };
+        if !same {
+            *active = (!overlay.is_empty()).then(|| Arc::clone(overlay));
+        }
+    });
+}
+
+pub fn publish(overlay: Option<Arc<TagOverlay>>) {
+    let mut published = PUBLISHED
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    *published = overlay;
+}
+
+pub fn published() -> Option<Arc<TagOverlay>> {
+    PUBLISHED
+        .read()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+}
+
 pub fn tag(registry: &str, name: &str) -> Option<&'static [u32]> {
+    let overridden = ACTIVE.with(|active| {
+        active
+            .borrow()
+            .as_ref()
+            .and_then(|overlay| overlay.get(registry, name))
+    });
+    overridden.or_else(|| static_tag(registry, name))
+}
+
+pub fn static_tag(registry: &str, name: &str) -> Option<&'static [u32]> {
     let registry = TAGS
         .binary_search_by(|candidate| candidate.registry.cmp(registry))
         .ok()?;
@@ -61,5 +136,46 @@ mod tests {
                 .ids("minecraft:block")
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn an_active_overlay_wins_over_the_static_tag() {
+        let stone = registries::static_index("minecraft:block", "minecraft:stone").unwrap();
+        let ids: &'static [u32] = Vec::leak(vec![stone]);
+        let mut overlay = TagOverlay::default();
+        overlay.insert("minecraft:block", "minecraft:mineable/pickaxe", ids);
+        overlay.insert("minecraft:block", "t:new", ids);
+        let overlay = Arc::new(overlay);
+        activate(&overlay);
+        assert_eq!(
+            tag("minecraft:block", "minecraft:mineable/pickaxe"),
+            Some(ids)
+        );
+        assert_eq!(tag("minecraft:block", "t:new"), Some(ids));
+        assert!(HolderSet::Tag("t:new").contains("minecraft:block", stone));
+        assert!(tag("minecraft:block", "minecraft:climbable").is_some());
+        activate(&Arc::new(TagOverlay::default()));
+        assert!(tag("minecraft:block", "t:new").is_none());
+        assert!(
+            tag("minecraft:block", "minecraft:mineable/pickaxe")
+                .unwrap()
+                .len()
+                > 1
+        );
+    }
+
+    #[test]
+    fn published_tags_are_shared_across_threads() {
+        let mut overlay = TagOverlay::default();
+        overlay.insert("minecraft:item", "t:shared_probe", &[1]);
+        publish(Some(Arc::new(overlay)));
+        let seen = std::thread::spawn(|| {
+            published().and_then(|o| o.get("minecraft:item", "t:shared_probe"))
+        })
+        .join()
+        .unwrap();
+        assert_eq!(seen, Some(&[1][..]));
+        publish(None);
+        assert!(published().is_none());
     }
 }

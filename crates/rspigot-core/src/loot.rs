@@ -4,7 +4,7 @@ use rand::Rng;
 use rspigot_data::loot::{
     self, BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate,
     EntityPredicate, EntitySubPredicate, EntityTarget, Entry, EntryKind, FloatProvider, Function,
-    FunctionKind, IntProvider, ItemPredicate, Leaf, LootTable, Output, Pool,
+    FunctionKind, IntProvider, ItemPredicate, Leaf, LootTable, NumberProvider, Output, Pool,
 };
 use rspigot_data::{registries, tags};
 use rspigot_domain::damage::DamageType;
@@ -44,6 +44,7 @@ pub struct LootEntity {
     pub cube_size: Option<i32>,
     pub raider: Option<RaiderFacts>,
     pub open_water: Option<bool>,
+    pub scores: Vec<(String, i32)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -82,6 +83,9 @@ pub struct LootContext<'a> {
     pub biome: Option<&'a str>,
     pub enchantment_level: i32,
     pub block_entity: Option<&'a Compound>,
+    pub day_time: Option<i64>,
+    pub weather: Option<(bool, bool)>,
+    pub blocks_at: &'a [([i32; 3], BlockStateId)],
 }
 
 impl<'a> LootContext<'a> {
@@ -149,6 +153,7 @@ pub fn table_drops<R: Rng + ?Sized>(
         rng,
         drops: Vec::new(),
         visiting: Vec::new(),
+        depth: 0,
     };
     roller.table(table, &[]);
     roller.drops
@@ -170,6 +175,7 @@ pub fn condition_holds<R: Rng + ?Sized>(
         rng,
         drops: Vec::new(),
         visiting: Vec::new(),
+        depth: 0,
     }
     .test(condition)
 }
@@ -356,6 +362,7 @@ struct Roller<'r, 'a, R: ?Sized> {
     rng: &'r mut R,
     drops: Vec<ItemStack>,
     visiting: Vec<*const LootTable>,
+    depth: usize,
 }
 
 impl<R: Rng + ?Sized> Roller<'_, '_, R> {
@@ -798,6 +805,20 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
         }
     }
 
+    fn number(&mut self, provider: NumberProvider) -> f32 {
+        match provider {
+            NumberProvider::Constant(value) => value,
+            NumberProvider::Uniform { min, max } => {
+                if max <= min {
+                    min
+                } else {
+                    self.rng.random::<f32>() * (max - min) + min
+                }
+            }
+            NumberProvider::Binomial { n, p } => self.successes(n, p) as f32,
+        }
+    }
+
     fn passes(&mut self, condition: Option<&Condition>) -> bool {
         condition.is_none_or(|condition| self.test(condition))
     }
@@ -808,12 +829,24 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 Some(radius) => self.rng.random::<f32>() <= 1.0 / radius,
                 None => true,
             },
-            Condition::LocationCheck { biomes, .. } => {
-                biomes.is_empty()
-                    || self
-                        .context
-                        .biome
-                        .is_some_and(|biome| biomes.contains(&biome))
+            Condition::LocationCheck {
+                offset,
+                block,
+                biomes,
+            } => {
+                let block_holds = block.is_none_or(|predicate| {
+                    self.context
+                        .blocks_at
+                        .iter()
+                        .find(|(at, _)| at == offset)
+                        .is_none_or(|(_, state)| block_matches(&predicate, Some(*state)))
+                });
+                block_holds
+                    && (biomes.is_empty()
+                        || self
+                            .context
+                            .biome
+                            .is_some_and(|biome| biomes.contains(&biome)))
             }
             Condition::MatchBlock(predicate) => block_matches(predicate, self.context.block),
             Condition::MatchTool(predicate) => item_matches(predicate, self.context.tool),
@@ -856,7 +889,49 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
             Condition::AnyOf(terms) => terms.iter().any(|term| self.test(term)),
             Condition::AllOf(terms) => terms.iter().all(|term| self.test(term)),
             Condition::Reference(name) => {
-                loot::predicate(name).is_some_and(|condition| self.test(condition))
+                if self.depth >= MAX_NESTING {
+                    tracing::warn!("Detected infinite loop in predicate references at {name}");
+                    return false;
+                }
+                let Some(condition) = loot::predicate(name) else {
+                    tracing::warn!("Unknown predicate {name} referenced by a loot condition");
+                    return false;
+                };
+                self.depth += 1;
+                let held = self.test(condition);
+                self.depth -= 1;
+                held
+            }
+            Condition::TimeCheck { period, min, max } => {
+                let Some(time) = self.context.day_time else {
+                    return false;
+                };
+                let time = period.map_or(time, |period| time % period.max(1)) as f32;
+                min.is_none_or(|min| time >= min) && max.is_none_or(|max| time <= max)
+            }
+            Condition::WeatherCheck {
+                raining,
+                thundering,
+            } => self.context.weather.is_some_and(|(rain, thunder)| {
+                raining.is_none_or(|wanted| wanted == rain)
+                    && thundering.is_none_or(|wanted| wanted == thunder)
+            }),
+            Condition::ValueCheck { value, min, max } => {
+                let value = self.number(*value);
+                let low = min.map(|provider| self.number(provider));
+                let high = max.map(|provider| self.number(provider));
+                low.is_none_or(|low| value >= low) && high.is_none_or(|high| value <= high)
+            }
+            Condition::EntityScores { target, scores } => {
+                self.context.target(*target).is_some_and(|entity| {
+                    scores.iter().all(|(objective, range)| {
+                        entity
+                            .scores
+                            .iter()
+                            .find(|(name, _)| name == objective)
+                            .is_some_and(|(_, value)| range.contains(*value))
+                    })
+                })
             }
         }
     }
@@ -1804,5 +1879,129 @@ mod tests {
             )
             .is_empty()
         );
+    }
+
+    fn holds(condition: &Condition, context: &LootContext<'_>) -> bool {
+        condition_holds(condition, context, &mut StdRng::seed_from_u64(1))
+    }
+
+    #[test]
+    fn time_and_weather_checks_read_the_context() {
+        let time = Condition::TimeCheck {
+            period: Some(24_000),
+            min: Some(0.0),
+            max: Some(6_000.0),
+        };
+        let at = |day_time| LootContext {
+            day_time: Some(day_time),
+            ..LootContext::default()
+        };
+        assert!(holds(&time, &at(30_000)));
+        assert!(!holds(&time, &at(13_000)));
+        assert!(!holds(&time, &LootContext::default()));
+        let rain = Condition::WeatherCheck {
+            raining: Some(true),
+            thundering: Some(false),
+        };
+        let weather = |state| LootContext {
+            weather: Some(state),
+            ..LootContext::default()
+        };
+        assert!(holds(&rain, &weather((true, false))));
+        assert!(!holds(&rain, &weather((true, true))));
+        assert!(!holds(&rain, &weather((false, false))));
+    }
+
+    #[test]
+    fn value_checks_and_entity_scores_compare_numbers() {
+        let check = |value, min, max| Condition::ValueCheck { value, min, max };
+        let constant = |n| Some(NumberProvider::Constant(n));
+        let context = LootContext::default();
+        assert!(holds(
+            &check(NumberProvider::Constant(3.0), constant(3.0), constant(3.0)),
+            &context
+        ));
+        assert!(!holds(
+            &check(NumberProvider::Constant(4.0), constant(1.0), constant(3.0)),
+            &context
+        ));
+        assert!(holds(
+            &check(
+                NumberProvider::Uniform { min: 1.0, max: 2.0 },
+                constant(1.0),
+                constant(2.0)
+            ),
+            &context
+        ));
+        let scores: &'static [(&'static str, rspigot_data::loot::IntRange)] = Vec::leak(vec![(
+            "n",
+            rspigot_data::loot::IntRange {
+                min: Some(2),
+                max: None,
+            },
+        )]);
+        let condition = Condition::EntityScores {
+            target: EntityTarget::This,
+            scores,
+        };
+        let mut entity = LootEntity::of(EntityKind::Zombie);
+        let with = |entity: &LootEntity| {
+            holds(
+                &condition,
+                &LootContext {
+                    this: Some(entity),
+                    ..LootContext::default()
+                },
+            )
+        };
+        assert!(!with(&entity));
+        entity.scores = vec![("n".to_owned(), 1)];
+        assert!(!with(&entity));
+        entity.scores = vec![("n".to_owned(), 5)];
+        assert!(with(&entity));
+    }
+
+    #[test]
+    fn location_checks_test_the_sampled_block_at_their_offset() {
+        let stone = block("minecraft:stone");
+        let predicate = BlockPredicate {
+            blocks: Some(HolderSet::Direct(Vec::leak(vec![u32::from(
+                kind("minecraft:stone").id().0,
+            )]))),
+            state: &[],
+        };
+        let condition = Condition::LocationCheck {
+            offset: [0, -1, 0],
+            block: Some(predicate),
+            biomes: &[],
+        };
+        let sampled = |state| {
+            let samples: &[([i32; 3], BlockStateId)] = Vec::leak(vec![([0, -1, 0], state)]);
+            LootContext {
+                blocks_at: samples,
+                ..LootContext::default()
+            }
+        };
+        assert!(holds(&condition, &sampled(stone)));
+        assert!(!holds(&condition, &sampled(block("minecraft:dirt"))));
+        assert!(holds(&condition, &LootContext::default()));
+    }
+
+    #[test]
+    fn cyclic_predicate_references_fail_instead_of_looping() {
+        let looped = Condition::Reference("t:self_loop");
+        let own: &'static Condition = Box::leak(Box::new(looped));
+        let mut overlay = rspigot_data::loot::LootOverlay::default();
+        overlay.insert_predicate("t:self_loop", own);
+        let overlay = std::sync::Arc::new(overlay);
+        rspigot_data::loot::activate(&overlay);
+        assert!(!holds(own, &LootContext::default()));
+        assert!(!holds(
+            &Condition::Reference("t:absent"),
+            &LootContext::default()
+        ));
+        rspigot_data::loot::activate(&std::sync::Arc::new(
+            rspigot_data::loot::LootOverlay::default(),
+        ));
     }
 }

@@ -5,6 +5,7 @@ use std::time::Duration;
 use rspigot_core::events::{Inbound, PreLoginVerdict};
 use rspigot_core::ports::SessionVerifier;
 use rspigot_core::status::{PingHook, StatusPing, StatusReply, StatusSnapshot};
+use rspigot_data::tags::TagOverlay;
 use rspigot_domain::player::{ClientSettings, GameProfile, MainHand, PlayerId, ProfileProperty};
 use rspigot_domain::text::Component;
 use rspigot_protocol::codec::Encode;
@@ -577,19 +578,61 @@ fn brand_payload(brand: &str) -> Vec<u8> {
 }
 
 fn update_tags() -> Result<UpdateTags, ConnectionError> {
+    update_tags_with(rspigot_data::tags::published().as_deref())
+}
+
+fn network_tag(name: &str, entries: &[u32]) -> Result<NetworkTag, ConnectionError> {
+    Ok(NetworkTag {
+        name: identifier(name)?,
+        entries: entries.iter().map(|e| *e as i32).collect(),
+    })
+}
+
+fn update_tags_with(overlay: Option<&TagOverlay>) -> Result<UpdateTags, ConnectionError> {
     let mut registries = Vec::with_capacity(rspigot_data::tags::TAGS.len());
     for registry in rspigot_data::tags::TAGS {
+        let changed = overlay.and_then(|overlay| {
+            overlay
+                .registries()
+                .find(|(name, _)| *name == registry.registry)
+                .map(|(_, tags)| tags)
+        });
         let mut tags = Vec::with_capacity(registry.tags.len());
         for (name, entries) in registry.tags {
-            tags.push(NetworkTag {
-                name: identifier(name)?,
-                entries: entries.iter().map(|e| *e as i32).collect(),
-            });
+            let entries = changed
+                .and_then(|changed| changed.get(*name))
+                .map_or(*entries, |merged| *merged);
+            tags.push(network_tag(name, entries)?);
+        }
+        if let Some(changed) = changed {
+            for (name, entries) in changed {
+                if rspigot_data::tags::static_tag(registry.registry, name).is_none() {
+                    tags.push(network_tag(name, entries)?);
+                }
+            }
         }
         registries.push(RegistryTags {
             registry: identifier(registry.registry)?,
             tags,
         });
+    }
+    if let Some(overlay) = overlay {
+        for (registry, changed) in overlay.registries() {
+            if rspigot_data::tags::TAGS
+                .iter()
+                .any(|known| known.registry == registry)
+            {
+                continue;
+            }
+            let mut tags = Vec::with_capacity(changed.len());
+            for (name, entries) in changed {
+                tags.push(network_tag(name, entries)?);
+            }
+            registries.push(RegistryTags {
+                registry: identifier(registry)?,
+                tags,
+            });
+        }
     }
     Ok(UpdateTags { registries })
 }
@@ -750,5 +793,62 @@ mod tests {
             .collect();
         assert!(names.contains(&"minecraft:block"));
         assert!(names.contains(&"minecraft:item"));
+    }
+
+    #[test]
+    fn merged_tags_replace_static_ones_and_add_new_ones() {
+        let stone =
+            rspigot_data::registries::static_index("minecraft:block", "minecraft:stone").unwrap();
+        let dirt =
+            rspigot_data::registries::static_index("minecraft:block", "minecraft:dirt").unwrap();
+        let mut overlay = TagOverlay::default();
+        overlay.insert(
+            "minecraft:block",
+            "minecraft:mineable/pickaxe",
+            Vec::leak(vec![dirt]),
+        );
+        overlay.insert(
+            "minecraft:block",
+            "t:brand_new",
+            Vec::leak(vec![stone, dirt]),
+        );
+        let tags = update_tags_with(Some(&overlay)).unwrap();
+        let blocks = tags
+            .registries
+            .iter()
+            .find(|r| r.registry.as_str() == "minecraft:block")
+            .unwrap();
+        let find = |name: &str| blocks.tags.iter().find(|t| t.name.as_str() == name);
+        assert_eq!(
+            find("minecraft:mineable/pickaxe").unwrap().entries,
+            vec![dirt as i32]
+        );
+        assert_eq!(
+            find("t:brand_new").unwrap().entries,
+            vec![stone as i32, dirt as i32]
+        );
+        assert!(find("minecraft:mineable/axe").unwrap().entries.len() > 1);
+        let plain = update_tags_with(None).unwrap();
+        let plain_blocks = plain
+            .registries
+            .iter()
+            .find(|r| r.registry.as_str() == "minecraft:block")
+            .unwrap();
+        assert!(
+            plain_blocks
+                .tags
+                .iter()
+                .find(|t| t.name.as_str() == "minecraft:mineable/pickaxe")
+                .unwrap()
+                .entries
+                .len()
+                > 1
+        );
+        assert!(
+            plain_blocks
+                .tags
+                .iter()
+                .all(|t| t.name.as_str() != "t:brand_new")
+        );
     }
 }

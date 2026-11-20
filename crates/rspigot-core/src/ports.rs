@@ -134,3 +134,43 @@ pub trait ClientLink: Send + 'static {
 pub trait PluginOutbox: Send + 'static {
     fn send(&self, message: ToPlugin);
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum DatapackError {
+    #[error("i/o error: {0}")]
+    Io(#[from] std::io::Error),
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PackMeta {
+    pub description: String,
+    pub pack_format: Option<i32>,
+    pub min_format: Option<i32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackFile {
+    pub id: Identifier,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackTag {
+    pub registry: String,
+    pub file: PackFile,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PackContents {
+    pub name: String,
+    pub meta: PackMeta,
+    pub functions: Vec<PackFile>,
+    pub function_tags: Vec<PackFile>,
+    pub predicates: Vec<PackFile>,
+    pub loot_tables: Vec<PackFile>,
+    pub tags: Vec<PackTag>,
+}
+
+pub trait DatapackSource: Send + Sync + 'static {
+    fn read_packs(&self) -> Result<Vec<PackContents>, DatapackError>;
+}
