@@ -2,8 +2,8 @@ use super::{ArgumentParser, TreeBuilder, entities, player_targets, single_entity
 
 const ASK_SERVER: &str = "minecraft:ask_server";
 
-fn resource(registry: &str) -> ArgumentParser {
-    ArgumentParser::Resource {
+fn resource_key(registry: &str) -> ArgumentParser {
+    ArgumentParser::ResourceKey {
         registry: registry.to_owned(),
     }
 }
@@ -19,7 +19,7 @@ fn advancement_commands(b: &mut TreeBuilder, root: usize) {
             b.suggesting(
                 mode,
                 "advancement",
-                resource("minecraft:advancement"),
+                resource_key("minecraft:advancement"),
                 ASK_SERVER,
                 true,
             );
@@ -28,7 +28,7 @@ fn advancement_commands(b: &mut TreeBuilder, root: usize) {
         let name = b.suggesting(
             only,
             "advancement",
-            resource("minecraft:advancement"),
+            resource_key("minecraft:advancement"),
             ASK_SERVER,
             true,
         );
@@ -51,7 +51,7 @@ fn recipe_commands(b: &mut TreeBuilder, root: usize) {
         b.suggesting(
             targets,
             "recipe",
-            resource("minecraft:recipe"),
+            resource_key("minecraft:recipe"),
             ASK_SERVER,
             true,
         );
