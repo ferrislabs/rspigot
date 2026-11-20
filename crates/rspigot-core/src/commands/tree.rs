@@ -1,5 +1,6 @@
 mod extra;
 mod functions;
+mod game;
 
 use crate::plugins::{ArgumentKind, CommandSpec};
 
@@ -29,6 +30,9 @@ pub enum ArgumentParser {
     NbtCompoundTag,
     ScoreHolder { multiple: bool },
     ResourceOrTag { registry: String },
+    ResourceKey { registry: String },
+    ResourceOrTagKey { registry: String },
+    ResourceSelector { registry: String },
     Named(&'static str),
 }
 
@@ -241,8 +245,14 @@ pub fn build_tree(level: u8) -> CommandTree {
     if level >= LEVEL_OWNERS {
         let save_all = b.literal(root, "save-all", true);
         b.literal(save_all, "flush", true);
-        for name in ["save-on", "save-off", "stop"] {
+        for name in ["save-on", "save-off", "stop", "restart"] {
             b.literal(root, name, true);
+        }
+        let spigot = b.literal(root, "spigot", false);
+        b.literal(spigot, "reload", true);
+        let timings = b.literal(root, "timings", false);
+        for action in ["reset", "report", "on", "off", "paste", "verbon", "verboff"] {
+            b.literal(timings, action, true);
         }
     }
     CommandTree {
@@ -703,21 +713,12 @@ fn rule_commands(b: &mut TreeBuilder, root: usize) {
     let gamerule = b.literal(root, "gamerule", false);
     for name in crate::game_rule_packet::RULE_NAMES {
         let rule = b.literal(gamerule, name, true);
-        let numeric = matches!(
-            name,
-            "players_sleeping_percentage"
-                | "random_tick_speed"
-                | "fire_spread_radius_around_player"
-                | "max_snow_accumulation_height"
-                | "max_command_sequence_length"
-        );
-        let parser = if numeric {
-            ArgumentParser::Integer {
-                min: None,
-                max: None,
-            }
-        } else {
-            ArgumentParser::Bool
+        let parser = match crate::game_rule_packet::integer_bounds(name) {
+            Some((min, max)) => ArgumentParser::Integer {
+                min: (min != i32::MIN).then_some(min),
+                max: (max != i32::MAX).then_some(max),
+            },
+            None => ArgumentParser::Bool,
         };
         b.argument(rule, "value", parser, true);
     }
@@ -1101,6 +1102,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     execute_tree(b, root);
     extra::extra_commands(b, root);
     functions::function_commands(b, root);
+    game::game_commands(b, root);
     let summon = b.literal(root, "summon", false);
     let entity = b.suggesting(
         summon,

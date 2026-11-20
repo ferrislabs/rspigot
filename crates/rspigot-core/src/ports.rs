@@ -4,7 +4,7 @@ use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::player::{GameProfile, PlayerId};
 use rspigot_domain::text::Component;
 use rspigot_domain::world::Dimension;
-use rspigot_domain::{ChunkPos, Identifier, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, Identifier, Vec3};
 use rspigot_nbt::Compound;
 
 use crate::events::ClientEvent;
@@ -89,6 +89,61 @@ pub trait PlayerStore: Send + Sync + 'static {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TemplateRotation {
+    #[default]
+    None,
+    Clockwise90,
+    Clockwise180,
+    Counterclockwise90,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TemplateMirror {
+    #[default]
+    None,
+    LeftRight,
+    FrontBack,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PlaceRequest {
+    Structure {
+        id: String,
+        pos: BlockPos,
+    },
+    Jigsaw {
+        pool: String,
+        target: String,
+        max_depth: i32,
+        pos: BlockPos,
+    },
+    Template {
+        id: String,
+        pos: BlockPos,
+        rotation: TemplateRotation,
+        mirror: TemplateMirror,
+        integrity: f32,
+        seed: i32,
+    },
+    Feature {
+        id: String,
+        pos: BlockPos,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PlacedBlock {
+    pub pos: BlockPos,
+    pub state: BlockStateId,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlaceFailure {
+    Unknown,
+    Failed,
+}
+
 pub trait ChunkGenerator: Send + Sync + 'static {
     fn generate(&self, dimension: &Dimension, pos: ChunkPos) -> ChunkColumn;
     fn spawn_point(&self, dimension: &Dimension) -> Vec3;
@@ -103,6 +158,51 @@ pub trait ChunkGenerator: Send + Sync + 'static {
 
     fn nearest_stronghold(&self, _dimension: &Dimension, _from: Vec3) -> Option<Vec3> {
         None
+    }
+
+    fn nearest_structure(
+        &self,
+        _dimension: &Dimension,
+        _from: Vec3,
+        _structure_id: &str,
+    ) -> Option<(String, Vec3)> {
+        None
+    }
+
+    fn nearest_structures(
+        &self,
+        dimension: &Dimension,
+        from: Vec3,
+        structure_ids: &[String],
+    ) -> Option<(String, Vec3)> {
+        structure_ids
+            .iter()
+            .filter_map(|id| self.nearest_structure(dimension, from, id))
+            .min_by(|(_, a), (_, b)| {
+                let distance = |at: &Vec3| (at.x - from.x).powi(2) + (at.z - from.z).powi(2);
+                distance(a).total_cmp(&distance(b))
+            })
+    }
+
+    fn knows_structure(&self, _dimension: &Dimension, _structure_id: &str) -> bool {
+        false
+    }
+
+    fn nearest_biome(
+        &self,
+        _dimension: &Dimension,
+        _from: Vec3,
+        _biomes: &[String],
+    ) -> Option<(String, Vec3)> {
+        None
+    }
+
+    fn place(
+        &self,
+        _dimension: &Dimension,
+        _request: &PlaceRequest,
+    ) -> Result<Vec<PlacedBlock>, PlaceFailure> {
+        Err(PlaceFailure::Failed)
     }
 }
 
@@ -154,6 +254,8 @@ pub struct PackFile {
     pub text: String,
 }
 
+pub type PackItemModifier = PackFile;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackTag {
     pub registry: String,
@@ -168,6 +270,7 @@ pub struct PackContents {
     pub function_tags: Vec<PackFile>,
     pub predicates: Vec<PackFile>,
     pub loot_tables: Vec<PackFile>,
+    pub item_modifiers: Vec<PackItemModifier>,
     pub tags: Vec<PackTag>,
 }
 

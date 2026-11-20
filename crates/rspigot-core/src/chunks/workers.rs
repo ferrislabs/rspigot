@@ -12,7 +12,22 @@ use super::queue::{JobQueue, Priority};
 use crate::lighting;
 use rspigot_nbt::Compound;
 
-use crate::ports::{ChunkGenerator, ChunkStore, EntityStore};
+use crate::ports::{
+    ChunkGenerator, ChunkStore, EntityStore, PlaceFailure, PlaceRequest, PlacedBlock,
+};
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum WorldQuery {
+    Structures(Vec<String>),
+    Biomes(Vec<String>),
+    Place(PlaceRequest),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum QueryAnswer {
+    Located(Option<(String, Vec3)>),
+    Placed(Result<Vec<PlacedBlock>, PlaceFailure>),
+}
 
 pub enum ChunkJob {
     Load {
@@ -42,6 +57,12 @@ pub enum ChunkJob {
         dimension: Arc<Dimension>,
         from: Vec3,
         reply: Sender<Option<Vec3>>,
+    },
+    Query {
+        dimension: Arc<Dimension>,
+        from: Vec3,
+        query: WorldQuery,
+        reply: Sender<QueryAnswer>,
     },
 }
 
@@ -141,6 +162,25 @@ impl ChunkWorkers {
         answer
     }
 
+    pub fn request_query(
+        &self,
+        dimension: &Arc<Dimension>,
+        from: Vec3,
+        query: WorldQuery,
+    ) -> Receiver<QueryAnswer> {
+        let (reply, answer) = unbounded();
+        self.submit(
+            Priority::URGENT,
+            ChunkJob::Query {
+                dimension: Arc::clone(dimension),
+                from,
+                query,
+                reply,
+            },
+        );
+        answer
+    }
+
     pub fn backlog(&self) -> usize {
         self.queue.len()
     }
@@ -225,6 +265,26 @@ fn execute<S: ChunkStore + EntityStore, G: ChunkGenerator>(
             reply,
         } => {
             let _ = reply.send(generator.nearest_stronghold(&dimension, from));
+            ChunkResult::Flushed
+        }
+        ChunkJob::Query {
+            dimension,
+            from,
+            query,
+            reply,
+        } => {
+            let answer = match query {
+                WorldQuery::Structures(ids) => {
+                    QueryAnswer::Located(generator.nearest_structures(&dimension, from, &ids))
+                }
+                WorldQuery::Biomes(ids) => {
+                    QueryAnswer::Located(generator.nearest_biome(&dimension, from, &ids))
+                }
+                WorldQuery::Place(request) => {
+                    QueryAnswer::Placed(generator.place(&dimension, &request))
+                }
+            };
+            let _ = reply.send(answer);
             ChunkResult::Flushed
         }
         ChunkJob::Flush => {

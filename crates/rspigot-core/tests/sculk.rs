@@ -390,3 +390,16 @@ fn a_summoned_warden_agitates_as_it_emerges() {
     assert!(sounds(&heard).contains(&"minecraft:entity.warden.agitated"));
     assert_eq!(s.server.entities_of(Kind::Warden).len(), 1);
 }
+
+#[test]
+fn the_spawn_wardens_rule_off_keeps_the_fourth_warning_from_calling_a_warden() {
+    let mut s = ready();
+    s.server
+        .handle(Inbound::Console("gamerule spawn_wardens false".to_owned()));
+    s.server.deliver();
+    for _ in 1..=4 {
+        step_on_shrieker(&mut s);
+        s.tick(220);
+    }
+    assert!(s.server.entities_of(Kind::Warden).is_empty());
+}

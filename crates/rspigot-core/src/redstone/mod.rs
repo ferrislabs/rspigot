@@ -69,6 +69,7 @@ pub(crate) struct Runtime {
     pub(crate) events: Vec<piston::BlockEvent>,
     pub(crate) hoppers: FxHashMap<BlockPos, hopper::Clock>,
     pub(crate) bells: FxHashMap<BlockPos, bell::Ringing>,
+    pub(crate) command: crate::command_block::Runtime,
     quiet: bool,
     pub(crate) unsent: bool,
     pub(crate) pushed:
@@ -234,6 +235,11 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::Dispenser | BlockKind::Dropper) => {
                 self.dispenser_neighbor_changed(pos, state);
             }
+            Some(
+                BlockKind::CommandBlock
+                | BlockKind::ChainCommandBlock
+                | BlockKind::RepeatingCommandBlock,
+            ) => self.command_block_neighbor_changed(pos, state),
             _ => {}
         }
     }
@@ -320,6 +326,9 @@ impl<L: ClientLink> Server<L> {
             BlockKind::Repeater | BlockKind::Comparator => self.diode_tick(pos, state),
             BlockKind::Observer => self.observer_tick(pos, state),
             BlockKind::Dispenser | BlockKind::Dropper => self.dispenser_tick(pos, state),
+            BlockKind::CommandBlock
+            | BlockKind::ChainCommandBlock
+            | BlockKind::RepeatingCommandBlock => self.command_block_tick(pos, state),
             BlockKind::DetectorRail => self.detector_tick(pos, state),
             BlockKind::Lectern => self.lectern_tick(pos),
             BlockKind::Target => self.target_tick(pos, state),

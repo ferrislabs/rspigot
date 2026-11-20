@@ -1,9 +1,9 @@
 use std::num::NonZeroU8;
 
 use rspigot_core::events::{
-    ChatMessage, ChatSessionKey, ClickInput, ComponentHasher, ContainerClick, DigAction, Direction,
-    Hand, HashedItem, HashedSlot, InputState, LastSeenUpdate, MessageSignature, MovementAction,
-    PlayerInput, SignedCommand,
+    ChatMessage, ChatSessionKey, ClickInput, CommandBlockMode, ComponentHasher, ContainerClick,
+    DigAction, Direction, Hand, HashedItem, HashedSlot, InputState, LastSeenUpdate,
+    MessageSignature, MovementAction, PlayerInput, SignedCommand,
 };
 use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_core::recipe_book::BookKind;
@@ -15,6 +15,7 @@ use rspigot_nbt::Tag;
 use rspigot_protocol::codec::{Position, decode_string};
 use rspigot_protocol::common::ResourcePackAction;
 use rspigot_protocol::play::ServerboundPlay;
+use rspigot_protocol::play::serverbound::CommandBlockMode as WireCommandBlockMode;
 use rspigot_protocol::play::serverbound::{
     ClientCommandAction, ContainerInput, PlayerActionKind, PlayerCommandAction, RecipeBookType,
     SeenAdvancements, SignTextSlot,
@@ -417,6 +418,23 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             front: matches!(p.slot, SignTextSlot::Front),
             lines: p.lines.to_vec(),
         }),
+        ServerboundPlay::SetCommandBlock(p) => input(PlayerInput::SetCommandBlock {
+            pos: block_pos(p.pos),
+            command: p.command,
+            mode: match p.mode {
+                WireCommandBlockMode::Sequence => CommandBlockMode::Sequence,
+                WireCommandBlockMode::Auto => CommandBlockMode::Auto,
+                WireCommandBlockMode::Redstone => CommandBlockMode::Redstone,
+            },
+            track_output: p.track_output,
+            conditional: p.conditional,
+            automatic: p.automatic,
+        }),
+        ServerboundPlay::SetCommandMinecart(p) => input(PlayerInput::SetCommandMinecart {
+            entity: EntityId(p.entity_id),
+            command: p.command,
+            track_output: p.track_output,
+        }),
         ServerboundPlay::ResourcePack(p) => input(PlayerInput::ResourcePack {
             id: p.id,
             status: pack_status(p.action),
@@ -756,6 +774,58 @@ mod tests {
             decoded(sb::SIGN_UPDATE, &body),
             PlayerInput::SignUpdate { front: true, .. }
         ));
+    }
+
+    #[test]
+    fn a_set_command_block_carries_its_mode_and_flags() {
+        let mut body = Vec::new();
+        Position { x: 1, y: 64, z: 2 }.encode(&mut body);
+        "say hi".to_owned().encode(&mut body);
+        body.extend_from_slice(&[2, 0x05]);
+        assert_eq!(
+            decoded(sb::SET_COMMAND_BLOCK, &body),
+            PlayerInput::SetCommandBlock {
+                pos: BlockPos::new(1, 64, 2),
+                command: "say hi".to_owned(),
+                mode: CommandBlockMode::Redstone,
+                track_output: true,
+                conditional: false,
+                automatic: true,
+            }
+        );
+        let mode = body.len() - 2;
+        body[mode] = 0;
+        assert!(matches!(
+            decoded(sb::SET_COMMAND_BLOCK, &body),
+            PlayerInput::SetCommandBlock {
+                mode: CommandBlockMode::Sequence,
+                ..
+            }
+        ));
+        body[mode] = 1;
+        assert!(matches!(
+            decoded(sb::SET_COMMAND_BLOCK, &body),
+            PlayerInput::SetCommandBlock {
+                mode: CommandBlockMode::Auto,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn a_set_command_minecart_carries_its_entity_command_and_tracking() {
+        let mut body = Vec::new();
+        rspigot_protocol::codec::VarInt(300).encode(&mut body);
+        "say hi".to_owned().encode(&mut body);
+        body.push(1);
+        assert_eq!(
+            decoded(sb::SET_COMMAND_MINECART, &body),
+            PlayerInput::SetCommandMinecart {
+                entity: EntityId(300),
+                command: "say hi".to_owned(),
+                track_output: true,
+            }
+        );
     }
 
     #[test]

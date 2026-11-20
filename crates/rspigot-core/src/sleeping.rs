@@ -8,7 +8,6 @@ use rspigot_entities::EntityKind as Kind;
 use rspigot_entities::SoundSource;
 
 use crate::events::{Animation, ClientEvent};
-use crate::explosion::BlockInteraction;
 use crate::health::DamageSource;
 use crate::plugins::events::{
     EventResult, PlayerBedEnter, PlayerBedEnterPatch, PlayerBedEnterResult, PlayerBedLeave,
@@ -445,12 +444,13 @@ impl<L: ClientLink> Server<L> {
             }
         }
         let damage = DamageSource::new(DamageType::BadRespawnPoint);
+        let interaction = self.block_block_interaction();
         self.explode(
             None,
             &damage,
             pos.center() + Vec3::new(0.0, 0.5, 0.0),
             EXPLOSION_POWER,
-            BlockInteraction::DestroyWithDecay,
+            interaction,
             true,
             None,
         );

@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use rspigot_core::config::LevelData;
+use rspigot_core::config::{GameRules, LevelData, RuleValue};
 use rspigot_core::functions::DataPackLists;
 use rspigot_core::ports::StoreError;
 use rspigot_domain::BlockPos;
@@ -19,6 +19,7 @@ const LEVEL_BACKUP: &str = "level.dat_old";
 const STORAGE_VERSION: i32 = 19133;
 const OVERWORLD_CLOCK: &str = "minecraft:overworld";
 const ADVANCE_TIME_RULE: &str = "minecraft:advance_time";
+const PVP_RULE: &str = "minecraft:pvp";
 const SPAWN_MOBS_RULE: &str = "minecraft:spawn_mobs";
 const SPAWN_MONSTERS_RULE: &str = "minecraft:spawn_monsters";
 const OVERWORLD: &str = "minecraft:overworld";
@@ -210,6 +211,19 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
         level.daylight_cycle = rule(ADVANCE_TIME_RULE, level.daylight_cycle);
         level.spawn_mobs = rule(SPAWN_MOBS_RULE, level.spawn_mobs);
         level.spawn_monsters = rule(SPAWN_MONSTERS_RULE, level.spawn_monsters);
+        let mut stored = GameRules::default();
+        for (name, current) in GameRules::default().values() {
+            let key = format!("minecraft:{name}");
+            let value = match current {
+                RuleValue::Flag(_) => rules.get(&key).and_then(flag).map(RuleValue::Flag),
+                RuleValue::Number(_) => rules.get_i32(&key).map(RuleValue::Number),
+            };
+            if let Some(value) = value {
+                stored.assign(name, value);
+            }
+        }
+        level.rules = Some(stored);
+        level.pvp = rules.get(PVP_RULE).and_then(flag);
     }
     if let Some(weather) = optional_saved_data(world_root, "weather") {
         level.raining = weather.get_bool("raining").unwrap_or(level.raining);
@@ -341,6 +355,25 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         ] {
             changed |= data.get_bool(key) != Some(value);
             data.insert(key, value);
+        }
+        if let Some(pvp) = level.pvp {
+            changed |= data.get_bool(PVP_RULE) != Some(pvp);
+            data.insert(PVP_RULE, pvp);
+        }
+        if let Some(rules) = &level.rules {
+            for (name, value) in rules.values() {
+                let key = format!("minecraft:{name}");
+                match value {
+                    RuleValue::Flag(value) => {
+                        changed |= data.get_bool(&key) != Some(value);
+                        data.insert(key, value);
+                    }
+                    RuleValue::Number(value) => {
+                        changed |= data.get_i32(&key) != Some(value);
+                        data.insert(key, value);
+                    }
+                }
+            }
         }
         changed
     })?;
@@ -578,6 +611,8 @@ mod tests {
             thunder_time: 0,
             spawn_mobs: true,
             spawn_monsters: false,
+            rules: Some(GameRules::default()),
+            pvp: None,
             uuid: None,
             raids: None,
             scoreboard: None,
@@ -604,6 +639,62 @@ mod tests {
         rspigot_nbt::write_named(&mut raw, "", compound);
         let packed = crate::Compression::Gzip.compress(&raw).unwrap();
         std::fs::write(path, packed).unwrap();
+    }
+
+    #[test]
+    fn every_game_rule_is_saved_in_the_game_rules_data_and_read_back() {
+        let dir = TempDir::new("level-rules");
+        let root = dir.path().join("world");
+        let rules = GameRules {
+            water_source_conversion: false,
+            lava_source_conversion: true,
+            respawn_radius: 3,
+            max_entity_cramming: 0,
+            keep_inventory: true,
+            random_tick_speed: 9,
+            ..GameRules::default()
+        };
+        let level = LevelData {
+            rules: Some(rules),
+            pvp: Some(false),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let saved = read_file(&root, "data/minecraft/game_rules.dat");
+        let data = saved.get_compound("data").unwrap();
+        assert_eq!(
+            data.get_bool("minecraft:water_source_conversion"),
+            Some(false)
+        );
+        assert_eq!(
+            data.get_bool("minecraft:lava_source_conversion"),
+            Some(true)
+        );
+        assert_eq!(data.get_i32("minecraft:respawn_radius"), Some(3));
+        assert_eq!(data.get_i32("minecraft:max_entity_cramming"), Some(0));
+        assert_eq!(data.get_bool("minecraft:pvp"), Some(false));
+        assert_eq!(data.get_bool("minecraft:spawn_monsters"), Some(false));
+        let read = read_level_data(&root).unwrap().unwrap();
+        assert_eq!(read.rules, Some(rules));
+        assert_eq!(read.pvp, Some(false));
+        assert!(!read.spawn_monsters);
+    }
+
+    #[test]
+    fn game_rules_missing_from_the_data_keep_their_vanilla_defaults() {
+        let dir = TempDir::new("level-rules-partial");
+        let root = dir.path().join("world");
+        write_level_data(&root, &sample()).unwrap();
+        let mut saved = read_file(&root, "data/minecraft/game_rules.dat");
+        let mut data = saved.get_compound("data").unwrap().clone();
+        data.insert("minecraft:respawn_radius", 4);
+        saved.insert("data", data);
+        write_file(&root, "data/minecraft/game_rules.dat", &saved);
+        let read = read_level_data(&root).unwrap().unwrap();
+        let rules = read.rules.unwrap();
+        assert_eq!(rules.respawn_radius, 4);
+        assert!(rules.water_source_conversion);
+        assert_eq!(rules.players_nether_portal_default_delay, 80);
     }
 
     #[test]
@@ -1090,7 +1181,11 @@ mod tests {
         assert!(before.daylight_cycle);
         assert!(!before.raining);
 
-        write_level_data(root, &sample()).unwrap();
+        let untouched_rules = LevelData {
+            rules: None,
+            ..sample()
+        };
+        write_level_data(root, &untouched_rules).unwrap();
 
         let level = read_file(root, "level.dat");
         let data = level.get_compound("Data").unwrap();

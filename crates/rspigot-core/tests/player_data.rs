@@ -163,7 +163,15 @@ fn profile(name: &str) -> GameProfile {
 }
 
 fn server(players: &Arc<Players>, autosave_ticks: u64) -> Server<Link> {
-    let config = GameConfig {
+    server_with(players, autosave_ticks, |_| {})
+}
+
+fn server_with(
+    players: &Arc<Players>,
+    autosave_ticks: u64,
+    adjust: impl FnOnce(&mut GameConfig),
+) -> Server<Link> {
+    let mut config = GameConfig {
         view_distance: 3,
         chunk_workers: 2,
         chunks: ChunkManagerConfig {
@@ -178,6 +186,7 @@ fn server(players: &Arc<Players>, autosave_ticks: u64) -> Server<Link> {
         },
         ..GameConfig::default()
     };
+    adjust(&mut config);
     let mut server = Server::new(
         config,
         LevelData::default(),
@@ -557,4 +566,21 @@ fn ender_chest_items_survive_leaving_and_rejoining() {
     let stone = rspigot_items::ItemKind::from_name("minecraft:stone").map(|kind| kind.id().0);
     let kept = ender_slot(&events, window, 4);
     assert_eq!(kept.map(|(item, _)| item), stone);
+}
+
+#[test]
+fn force_gamemode_puts_a_returning_player_back_in_the_default_mode() {
+    let players = Arc::new(Players::default());
+    let mut server = server_with(&players, 6000, |config| config.force_game_mode = true);
+    let (alice, link, mut events) = join(&mut server, "Alice");
+    console(&mut server, "gamemode creative Alice");
+    run_ticks(&mut server, alice, &link, 5, &mut events);
+    server.handle(Inbound::Leave {
+        player: alice,
+        session: 0,
+    });
+    server.deliver();
+    assert!(players.wait_saved(alice).is_some());
+    let (_, _, events) = join(&mut server, "Alice");
+    assert_eq!(join_game_mode(&events), Some(GameMode::Survival));
 }

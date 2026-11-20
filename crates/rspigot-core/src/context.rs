@@ -33,7 +33,16 @@ use rspigot_domain::chunk::HeightmapKind;
 
 impl<L: ClientLink> CommandContext for Server<L> {
     fn reply(&mut self, sender: CommandSender, message: Component) {
+        if sender == CommandSender::Console && self.capture_command_reply(&message) {
+            return;
+        }
         if self.functions.runtime.silent {
+            return;
+        }
+        if matches!(sender, CommandSender::Player(_))
+            && !self.config.rules.send_command_feedback
+            && !crate::command_block::is_failure(&message)
+        {
             return;
         }
         match sender {
@@ -59,7 +68,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
 
     fn sender_name(&self, sender: CommandSender) -> String {
         match sender {
-            CommandSender::Console => "Server".to_owned(),
+            CommandSender::Console => self.running_command_name().unwrap_or("Server").to_owned(),
             CommandSender::Player(id) => self.player_name(id).unwrap_or_default(),
         }
     }
@@ -159,6 +168,10 @@ impl<L: ClientLink> CommandContext for Server<L> {
 
     fn set_default_game_mode(&mut self, mode: GameMode) {
         self.config.default_game_mode = mode;
+    }
+
+    fn unknown_command_text(&self) -> Option<String> {
+        Some(self.config.messages.unknown_command.clone()).filter(|text| !text.is_empty())
     }
 
     fn game_rule_text(&self, name: &str) -> Option<String> {
@@ -500,6 +513,135 @@ impl<L: ClientLink> CommandContext for Server<L> {
                 );
             }
         }
+    }
+
+    fn advancement_criteria(&self, player: PlayerId, advancement: &str) -> Vec<&'static str> {
+        self.obtained_criteria(player, advancement)
+    }
+
+    fn advancement_done(&self, player: PlayerId, advancement: &str) -> bool {
+        self.advancement_is_done(player, advancement)
+    }
+
+    fn grant_criterion(&mut self, player: PlayerId, advancement: &str, criterion: &str) -> bool {
+        self.grant_advancement_criterion(player, advancement, criterion)
+    }
+
+    fn revoke_criterion(&mut self, player: PlayerId, advancement: &str, criterion: &str) -> bool {
+        self.revoke_advancement_criterion(player, advancement, criterion)
+    }
+
+    fn give_recipes(&mut self, player: PlayerId, recipes: &[&str]) -> usize {
+        self.award_recipes(player, recipes)
+    }
+
+    fn take_recipes_of(&mut self, player: PlayerId, recipes: &[&str]) -> usize {
+        self.take_recipes(player, recipes)
+    }
+
+    fn read_slot(
+        &self,
+        holder: crate::commands::slots::SlotHolder,
+        slot: i32,
+    ) -> Option<Option<rspigot_domain::item::ItemStack>> {
+        self.read_command_slot(holder, slot)
+    }
+
+    fn write_slot(
+        &mut self,
+        holder: crate::commands::slots::SlotHolder,
+        slot: i32,
+        stack: Option<rspigot_domain::item::ItemStack>,
+    ) -> bool {
+        self.write_command_slot(holder, slot, stack)
+    }
+
+    fn container_slots(&self, pos: BlockPos) -> usize {
+        self.command_slot_count(crate::commands::slots::SlotHolder::Block(pos))
+    }
+
+    fn insert_stack(
+        &mut self,
+        pos: BlockPos,
+        stack: rspigot_domain::item::ItemStack,
+    ) -> Option<Option<rspigot_domain::item::ItemStack>> {
+        self.insert_into_container(pos, stack)
+    }
+
+    fn give_stack(&mut self, player: PlayerId, stack: rspigot_domain::item::ItemStack) {
+        self.give_command_stack(player, stack);
+    }
+
+    fn drop_stack(&mut self, at: Vec3, stack: rspigot_domain::item::ItemStack) {
+        self.drop_command_stack(at, stack);
+    }
+
+    fn roll_loot(
+        &mut self,
+        sender: CommandSender,
+        source: &crate::commands::loot_source::LootSource,
+    ) -> Result<Vec<rspigot_domain::item::ItemStack>, Component> {
+        self.roll_command_loot(sender, source)
+    }
+
+    fn apply_item_modifier(
+        &mut self,
+        _sender: CommandSender,
+        functions: &[rspigot_data::loot::Function],
+        stack: &rspigot_domain::item::ItemStack,
+    ) -> Option<rspigot_domain::item::ItemStack> {
+        crate::loot::modified_stack(
+            functions,
+            stack,
+            &crate::loot::LootContext::default(),
+            &mut self.rng,
+        )
+    }
+
+    fn start_world_query(
+        &mut self,
+        sender: CommandSender,
+        query: crate::chunks::WorldQuery,
+        kind: crate::locate::QueryKind,
+        label: String,
+    ) -> bool {
+        self.begin_world_query(sender, query, kind, label);
+        true
+    }
+
+    fn nearest_poi(&self, origin: Vec3, types: &[String]) -> Option<(String, BlockPos)> {
+        let center = BlockPos::new(
+            origin.x.floor() as i32,
+            origin.y.floor() as i32,
+            origin.z.floor() as i32,
+        );
+        let poi = self.world.chunks.poi();
+        let wanted = |kind: rspigot_domain::poi::PoiType| types.iter().any(|t| t == kind.name());
+        let found = poi.find_closest(wanted, center, 256, rspigot_domain::poi::Occupancy::Any)?;
+        Some((poi.type_at(found)?.name().to_owned(), found))
+    }
+
+    fn item_modifier(&self, id: &str) -> Option<&'static [rspigot_data::loot::Function]> {
+        self.functions.data.item_modifier(id)
+    }
+
+    fn stopwatch_started(&self, id: &str) -> Option<i64> {
+        self.stopwatches.get(id).copied()
+    }
+
+    fn set_stopwatch(&mut self, id: &str, started: Option<i64>) {
+        match started {
+            Some(at) => {
+                self.stopwatches.insert(id.to_owned(), at);
+            }
+            None => {
+                self.stopwatches.remove(id);
+            }
+        }
+    }
+
+    fn stopwatch_ids(&self) -> Vec<String> {
+        self.stopwatches.keys().cloned().collect()
     }
 
     fn world_border(&self) -> rspigot_domain::world_border::WorldBorder {
@@ -1160,6 +1302,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
         }
         self.admin.whitelist_enabled = enabled;
         self.publish_admin();
+        self.enforce_whitelist();
         true
     }
 
@@ -1179,6 +1322,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
         let changed = AdminLists::remove(&mut self.admin.whitelist, name);
         if changed {
             self.publish_admin();
+            self.enforce_whitelist();
         }
         changed
     }
@@ -1421,6 +1565,32 @@ impl<L: ClientLink> CommandContext for Server<L> {
 
     fn stop(&mut self) {
         self.running = false;
+    }
+
+    fn restart(&mut self) -> bool {
+        self.request_restart();
+        true
+    }
+
+    fn timings_enabled(&self) -> bool {
+        self.timings.enabled
+    }
+
+    fn timings_enable(&mut self, enabled: bool) {
+        self.timings.enabled = enabled;
+        self.timings.reset();
+    }
+
+    fn timings_verbose(&mut self, enabled: bool) {
+        self.timings.verbose = enabled;
+    }
+
+    fn timings_reset(&mut self) {
+        self.timings.reset();
+    }
+
+    fn timings_report(&mut self) -> Option<String> {
+        Server::timings_report(self)
     }
 
     fn sender_rotation(&self, sender: CommandSender) -> Rotation {

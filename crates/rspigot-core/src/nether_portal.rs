@@ -17,8 +17,6 @@ use crate::server::Server;
 use crate::travel::Destination;
 use crate::world_state::DimensionKey;
 
-const PLAYER_DELAY: i32 = 80;
-const CREATIVE_DELAY: i32 = 1;
 const DECAY: i32 = 4;
 const SEARCH_TO_NETHER: i32 = 16;
 const SEARCH_TO_OVERWORLD: i32 = 128;
@@ -131,7 +129,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn portal_enabled(&self) -> bool {
-        self.config.allow_nether && self.in_portal_dimension()
+        self.config.allow_nether
+            && self.config.rules.allow_entering_nether_using_portals
+            && self.in_portal_dimension()
     }
 
     pub(crate) fn try_light_portal(&mut self, pos: BlockPos) {
@@ -261,10 +261,11 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = player.and_then(|id| self.players.get(&id)) else {
             return 0;
         };
+        let rules = &self.config.rules;
         if player.game_mode == GameMode::Creative {
-            CREATIVE_DELAY
+            rules.players_nether_portal_creative_delay
         } else {
-            PLAYER_DELAY
+            rules.players_nether_portal_default_delay
         }
     }
 
@@ -915,7 +916,7 @@ mod tests {
     }
 
     #[test]
-    fn a_creative_player_travels_after_one_tick_of_delay() {
+    fn a_creative_player_travels_on_the_first_tick_with_the_default_creative_delay() {
         let (mut server, id) = arrive(true, GameMode::Creative);
         build_frame(&mut server);
         server.set_block(ORIGIN, BlockKind::Fire.default_state());
@@ -923,10 +924,50 @@ mod tests {
         stand_in_portal(&mut server, id);
         server.tick();
         server.deliver();
+        assert_eq!(server.players[&id].dim, nether());
+    }
+
+    #[test]
+    fn the_creative_delay_rule_adds_ticks_before_a_creative_player_travels() {
+        let (mut server, id) = arrive(true, GameMode::Creative);
+        server.config.rules.players_nether_portal_creative_delay = 2;
+        build_frame(&mut server);
+        server.set_block(ORIGIN, BlockKind::Fire.default_state());
+        server.deliver();
+        stand_in_portal(&mut server, id);
+        for _ in 0..2 {
+            server.tick();
+            server.deliver();
+        }
         assert_eq!(server.players[&id].dim, Identifier::minecraft("overworld"));
         server.tick();
         server.deliver();
         assert_eq!(server.players[&id].dim, nether());
+    }
+
+    #[test]
+    fn the_default_delay_rule_shortens_a_survival_wait() {
+        let (mut server, id) = lit();
+        server.config.rules.players_nether_portal_default_delay = 3;
+        stand_in_portal(&mut server, id);
+        for _ in 0..3 {
+            server.tick();
+            server.deliver();
+        }
+        assert_eq!(server.players[&id].dim, Identifier::minecraft("overworld"));
+        server.tick();
+        server.deliver();
+        assert_eq!(server.players[&id].dim, nether());
+    }
+
+    #[test]
+    fn the_nether_entry_rule_off_stops_portals_from_lighting() {
+        let (mut server, _) = arrive(true, GameMode::Survival);
+        server.config.rules.allow_entering_nether_using_portals = false;
+        build_frame(&mut server);
+        server.set_block(ORIGIN, BlockKind::Fire.default_state());
+        server.deliver();
+        assert_eq!(portal_blocks(&server, ORIGIN.offset(0, 1, 0), 4), 0);
     }
 
     #[test]

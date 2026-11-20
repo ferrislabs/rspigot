@@ -150,7 +150,11 @@ impl<L: ClientLink> Server<L> {
         let Some(name) = self.players.get(&id).map(|p| p.profile.name.clone()) else {
             return;
         };
-        tracing::info!("{name} issued server command: /{command}");
+        if let Some(line) =
+            crate::enforcement::command_log_line(self.config.log_commands, &name, command)
+        {
+            tracing::info!("{line}");
+        }
         let message = format!("/{command}");
         let step = ChatStep {
             player: id,

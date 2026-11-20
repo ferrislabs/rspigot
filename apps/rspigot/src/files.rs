@@ -527,3 +527,24 @@ mod reload_tests {
         assert!(data.config.is_none());
     }
 }
+
+pub fn spawn_timings_writer(
+    root: PathBuf,
+    reports: Receiver<rspigot_core::timings::TimingsReport>,
+) {
+    let spawned = std::thread::Builder::new()
+        .name("timings".to_owned())
+        .spawn(move || {
+            for report in reports {
+                let folder = root.join("timings");
+                let written = std::fs::create_dir_all(&folder)
+                    .and_then(|()| std::fs::write(folder.join(&report.file), &report.text));
+                if let Err(error) = written {
+                    tracing::error!(%error, "could not write the timings report");
+                }
+            }
+        });
+    if let Err(error) = spawned {
+        tracing::error!(%error, "timings thread failed to start");
+    }
+}

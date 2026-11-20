@@ -122,6 +122,11 @@ impl ChunkGenerator for Terrain {
             at(&mut chunk, 1, 64, 8, lava);
             at(&mut chunk, 3, 64, 8, water);
         }
+        if pos == ChunkPos::new(1, 0) {
+            let lava = BlockKind::Lava.default_state();
+            at(&mut chunk, 24, 64, 8, lava);
+            at(&mut chunk, 26, 64, 8, lava);
+        }
         chunk
     }
 
@@ -131,7 +136,11 @@ impl ChunkGenerator for Terrain {
 }
 
 fn server() -> Server<Link> {
-    let config = GameConfig {
+    server_with(|_| {})
+}
+
+fn server_with(adjust: impl FnOnce(&mut GameConfig)) -> Server<Link> {
+    let mut config = GameConfig {
         view_distance: 3,
         chunk_workers: 2,
         admin: AdminLists {
@@ -142,6 +151,7 @@ fn server() -> Server<Link> {
         },
         ..GameConfig::default()
     };
+    adjust(&mut config);
     let mut server = Server::new(
         config,
         LevelData::default(),
@@ -376,4 +386,49 @@ fn lava_on_soul_soil_beside_blue_ice_becomes_basalt() {
     let events = settled(&mut server, &link, 10);
     let state = block_at(&events, BlockPos::new(14, 64, 4));
     assert_eq!(state.and_then(BlockStateId::kind), Some(BlockKind::Basalt));
+}
+
+fn middle_of_two_sources(
+    adjust: impl FnOnce(&mut GameConfig),
+    stand: Vec3,
+    floor: BlockPos,
+    middle: BlockPos,
+    kind: BlockKind,
+) -> Option<String> {
+    let mut server = server_with(adjust);
+    let (alice, link) = creative(&mut server);
+    trigger(&mut server, alice, stand, floor);
+    let events = settled(&mut server, &link, 200);
+    let state = block_at(&events, middle).filter(|s| s.kind() == Some(kind))?;
+    state.property(LEVEL).map(str::to_owned)
+}
+
+#[test]
+fn the_water_source_conversion_rule_stops_the_third_source() {
+    let middle = |on: bool| {
+        middle_of_two_sources(
+            |config| config.rules.water_source_conversion = on,
+            Vec3::new(11.5, 64.0, 8.5),
+            BlockPos::new(11, 63, 11),
+            BlockPos::new(12, 64, 10),
+            BlockKind::Water,
+        )
+    };
+    assert_eq!(middle(true), Some("0".to_owned()));
+    assert_ne!(middle(false), Some("0".to_owned()));
+}
+
+#[test]
+fn the_lava_source_conversion_rule_allows_the_third_lava_source() {
+    let middle = |on: bool| {
+        middle_of_two_sources(
+            |config| config.rules.lava_source_conversion = on,
+            Vec3::new(24.5, 64.0, 4.5),
+            BlockPos::new(24, 63, 9),
+            BlockPos::new(25, 64, 8),
+            BlockKind::Lava,
+        )
+    };
+    assert_ne!(middle(false), Some("0".to_owned()));
+    assert_eq!(middle(true), Some("0".to_owned()));
 }

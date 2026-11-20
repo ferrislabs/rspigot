@@ -7,6 +7,7 @@ mod dimensions;
 mod files;
 mod log_files;
 mod logging;
+mod restart;
 
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -112,6 +113,9 @@ fn main() -> anyhow::Result<()> {
         rspigot_data::VERSION_NAME
     );
     let mut files = ServerFiles::load(&args.root).context("loading configuration")?;
+    for warning in files.unapplied_keys() {
+        tracing::warn!("{warning}");
+    }
     if let Some(port) = args.port {
         files.properties.set("server-port", &port.to_string());
     }
@@ -215,8 +219,9 @@ fn main() -> anyhow::Result<()> {
         anyhow::Ok(listener)
     });
     let management_listener = management_notices.transpose()?;
-    let permissions = config::permissions::load_or_create(&args.root.join("permissions.yml"))
-        .context("loading permissions.yml")?;
+    let permissions_file = files.permissions_file();
+    let permissions = config::permissions::load_or_create(&args.root.join(&permissions_file))
+        .with_context(|| format!("loading {permissions_file}"))?;
     let (notice_sender, notice_receiver) = crossbeam_channel::unbounded();
     let created_worlds_file = created_worlds::path(&args.root);
     let (world_changes, world_updates) = crossbeam_channel::unbounded();
@@ -225,6 +230,10 @@ fn main() -> anyhow::Result<()> {
         Arc::clone(&store),
         world_updates,
     );
+    let restart_requested = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let restart_script = game_config.messages.restart_script.clone();
+    let (timings_reports, timings_inbox) = crossbeam_channel::unbounded();
+    files::spawn_timings_writer(args.root.clone(), timings_inbox);
     let mut server: Server<NetLink> = Server::new(
         game_config,
         level,
@@ -239,7 +248,9 @@ fn main() -> anyhow::Result<()> {
     .with_player_store(Arc::clone(&store))
     .with_permissions(permissions)
     .with_datapacks(Arc::new(DirectoryDatapacks::new(&datapacks)))
-    .with_startup_inbox(game_inbox.clone());
+    .with_startup_inbox(game_inbox.clone())
+    .with_timings_sink(timings_reports)
+    .with_restart_signal(Arc::clone(&restart_requested));
     let (reload_requests, reload_inbox) = crossbeam_channel::unbounded();
     files::spawn_reloader(args.root.clone(), reload_inbox, inbound.clone());
     server = server.with_reload_sink(reload_requests);
@@ -304,5 +315,8 @@ fn main() -> anyhow::Result<()> {
     });
     rspigot_anvil::write_level_data(&world_root, &level)?;
     tracing::info!("Server stopped");
+    if restart_requested.load(std::sync::atomic::Ordering::SeqCst) {
+        restart::perform(&args.root, &restart_script);
+    }
     Ok(())
 }

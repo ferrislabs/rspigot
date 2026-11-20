@@ -1025,3 +1025,31 @@ fn a_netherite_upgrade_grants_no_trim_criterion() {
             .is_empty()
     );
 }
+
+fn announcements_after_granting(rule: &str) -> usize {
+    let mut s = meadow(Vec::new());
+    console(
+        &mut s,
+        &format!("gamerule show_advancement_messages {rule}"),
+    );
+    s.players[0].link.take();
+    console(
+        &mut s,
+        "advancement grant Alice only minecraft:story/mine_stone",
+    );
+    s.players[0]
+        .link
+        .take()
+        .iter()
+        .filter(|event| {
+            matches!(event, rspigot_core::events::ClientEvent::SystemChat { message, .. }
+                if message.plain_text().contains("chat.type.advancement"))
+        })
+        .count()
+}
+
+#[test]
+fn the_show_advancement_messages_rule_silences_the_chat_announcement() {
+    assert_eq!(announcements_after_granting("true"), 1);
+    assert_eq!(announcements_after_granting("false"), 0);
+}

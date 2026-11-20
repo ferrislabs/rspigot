@@ -199,6 +199,20 @@ impl PlayerAdvancements {
         true
     }
 
+    fn revoke(&mut self, index: usize, criterion: &str) -> bool {
+        let Some(criteria) = self.obtained.get_mut(&index) else {
+            return false;
+        };
+        let removed = criteria.remove(criterion).is_some();
+        if criteria.is_empty() {
+            self.obtained.remove(&index);
+        }
+        if removed {
+            self.dirty.insert(index);
+        }
+        removed
+    }
+
     fn criteria_of(&self, index: usize) -> Vec<(&'static str, Option<i64>)> {
         let obtained = self.obtained.get(&index);
         advancements::all()[index]
@@ -341,6 +355,56 @@ impl<L: ClientLink> Server<L> {
             .collect()
     }
 
+    pub fn advancement_is_done(&self, id: PlayerId, advancement: &str) -> bool {
+        let Some((index, _)) = advancements::find(advancement) else {
+            return false;
+        };
+        self.players
+            .get(&id)
+            .is_some_and(|player| player.advancements.is_done(index))
+    }
+
+    pub fn grant_advancement_criterion(
+        &mut self,
+        id: PlayerId,
+        advancement: &str,
+        criterion: &str,
+    ) -> bool {
+        let Some((index, found)) = advancements::find(advancement) else {
+            return false;
+        };
+        let Some(known) = found.criteria.iter().find(|known| known.name == criterion) else {
+            return false;
+        };
+        let Some(player) = self.players.get(&id) else {
+            return false;
+        };
+        if player.advancements.has(index, known.name) {
+            return false;
+        }
+        self.award_criterion(id, index, known.name);
+        true
+    }
+
+    pub fn revoke_advancement_criterion(
+        &mut self,
+        id: PlayerId,
+        advancement: &str,
+        criterion: &str,
+    ) -> bool {
+        let Some((index, _)) = advancements::find(advancement) else {
+            return false;
+        };
+        let Some(player) = self.players.get_mut(&id) else {
+            return false;
+        };
+        if !player.advancements.revoke(index, criterion) {
+            return false;
+        }
+        self.flush_advancements(id, false, false);
+        true
+    }
+
     pub fn done_advancements(&self, id: PlayerId) -> Vec<&'static str> {
         self.players
             .get(&id)
@@ -415,6 +479,7 @@ impl<L: ClientLink> Server<L> {
         }
         if let Some(display) = &found.display
             && display.announce_to_chat
+            && self.config.rules.show_advancement_messages
         {
             self.announce_advancement(id, display);
         }

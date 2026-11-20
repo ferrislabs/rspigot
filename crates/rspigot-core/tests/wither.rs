@@ -403,3 +403,28 @@ fn a_t_built_in_peaceful_summons_nothing() {
     let state = s.server.block_state_at(BlockPos::new(8, 66, 6)).unwrap();
     assert!(!state.is_air());
 }
+
+#[test]
+fn without_the_global_sound_events_rule_the_wither_spawn_is_a_local_level_event() {
+    let mut s = ready(3);
+    console(&mut s, "gamerule global_sound_events false");
+    summon(
+        &mut s,
+        Kind::Wither,
+        "8.5 100 24.5",
+        "{Invul:5,Health:100f}",
+    );
+    s.players[0].link.take();
+    s.tick(8);
+    let events = s.players[0].link.take();
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, ClientEvent::GlobalLevelEvent { event: 1023, .. }))
+    );
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, ClientEvent::LevelEvent { event: 1023, .. }))
+    );
+}

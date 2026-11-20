@@ -11,6 +11,12 @@ use crate::plugins::{EventKind, Priority};
 use crate::streaming::StreamConfig;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuleValue {
+    Flag(bool),
+    Number(i32),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GameRules {
     pub natural_regeneration: bool,
     pub keep_inventory: bool,
@@ -33,6 +39,40 @@ pub struct GameRules {
     pub fire_spread_radius: i32,
     pub max_snow_accumulation_height: i32,
     pub max_command_sequence_length: i32,
+    pub command_blocks_work: bool,
+    pub command_block_output: bool,
+    pub send_command_feedback: bool,
+    pub advance_weather: bool,
+    pub allow_entering_nether_using_portals: bool,
+    pub block_explosion_drop_decay: bool,
+    pub drowning_damage: bool,
+    pub elytra_movement_check: bool,
+    pub ender_pearls_vanish_on_death: bool,
+    pub entity_drops: bool,
+    pub fire_damage: bool,
+    pub freeze_damage: bool,
+    pub global_sound_events: bool,
+    pub lava_source_conversion: bool,
+    pub limited_crafting: bool,
+    pub locator_bar: bool,
+    pub log_admin_commands: bool,
+    pub player_movement_check: bool,
+    pub projectiles_can_break_blocks: bool,
+    pub reduced_debug_info: bool,
+    pub show_advancement_messages: bool,
+    pub spawner_blocks_work: bool,
+    pub spawn_wardens: bool,
+    pub spectators_generate_chunks: bool,
+    pub spread_vines: bool,
+    pub tnt_explosion_drop_decay: bool,
+    pub water_source_conversion: bool,
+    pub max_block_modifications: i32,
+    pub max_command_forks: i32,
+    pub max_entity_cramming: i32,
+    pub max_minecart_speed: i32,
+    pub players_nether_portal_creative_delay: i32,
+    pub players_nether_portal_default_delay: i32,
+    pub respawn_radius: i32,
 }
 
 impl Default for GameRules {
@@ -59,6 +99,40 @@ impl Default for GameRules {
             fire_spread_radius: 128,
             max_snow_accumulation_height: 1,
             max_command_sequence_length: 65_536,
+            command_blocks_work: true,
+            command_block_output: true,
+            send_command_feedback: true,
+            advance_weather: true,
+            allow_entering_nether_using_portals: true,
+            block_explosion_drop_decay: true,
+            drowning_damage: true,
+            elytra_movement_check: true,
+            ender_pearls_vanish_on_death: true,
+            entity_drops: true,
+            fire_damage: true,
+            freeze_damage: true,
+            global_sound_events: true,
+            lava_source_conversion: false,
+            limited_crafting: false,
+            locator_bar: true,
+            log_admin_commands: true,
+            player_movement_check: true,
+            projectiles_can_break_blocks: true,
+            reduced_debug_info: false,
+            show_advancement_messages: true,
+            spawner_blocks_work: true,
+            spawn_wardens: true,
+            spectators_generate_chunks: true,
+            spread_vines: true,
+            tnt_explosion_drop_decay: false,
+            water_source_conversion: true,
+            max_block_modifications: 32768,
+            max_command_forks: 65536,
+            max_entity_cramming: 24,
+            max_minecart_speed: 8,
+            players_nether_portal_creative_delay: 0,
+            players_nether_portal_default_delay: 80,
+            respawn_radius: 10,
         }
     }
 }
@@ -175,6 +249,37 @@ pub struct GameConfig {
     pub plugins: PluginSettings,
     pub chat: ChatSecurity,
     pub thunder_chance: i32,
+    pub enforce_whitelist: bool,
+    pub log_ips: bool,
+    pub log_commands: bool,
+    pub max_tick_time_ms: i64,
+    pub pause_when_empty_seconds: u32,
+    pub item_merge_radius: f64,
+    pub hopper_transfer_ticks: i32,
+    pub max_tnt_per_tick: i32,
+    pub combat_exhaustion: f32,
+    pub messages: ServerMessages,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServerMessages {
+    pub unknown_command: String,
+    pub server_full: String,
+    pub restart: String,
+    pub shutdown: String,
+    pub restart_script: String,
+}
+
+impl Default for ServerMessages {
+    fn default() -> Self {
+        Self {
+            unknown_command: String::new(),
+            server_full: String::new(),
+            restart: "Server is restarting".to_owned(),
+            shutdown: "Server closed".to_owned(),
+            restart_script: String::new(),
+        }
+    }
 }
 
 impl Default for GameConfig {
@@ -212,6 +317,16 @@ impl Default for GameConfig {
             plugins: PluginSettings::default(),
             chat: ChatSecurity::default(),
             thunder_chance: 100_000,
+            enforce_whitelist: false,
+            log_ips: true,
+            log_commands: true,
+            max_tick_time_ms: 0,
+            pause_when_empty_seconds: 0,
+            item_merge_radius: 0.5,
+            hopper_transfer_ticks: 8,
+            max_tnt_per_tick: 100,
+            combat_exhaustion: 0.1,
+            messages: ServerMessages::default(),
         }
     }
 }
@@ -238,6 +353,8 @@ pub struct LevelData {
     pub thunder_time: i32,
     pub spawn_mobs: bool,
     pub spawn_monsters: bool,
+    pub rules: Option<GameRules>,
+    pub pvp: Option<bool>,
     pub uuid: Option<uuid::Uuid>,
     pub raids: Option<rspigot_nbt::Compound>,
     pub scoreboard: Option<rspigot_nbt::Compound>,
@@ -266,6 +383,8 @@ impl Default for LevelData {
             thunder_time: 0,
             spawn_mobs: true,
             spawn_monsters: true,
+            rules: None,
+            pvp: None,
             uuid: None,
             raids: None,
             scoreboard: None,

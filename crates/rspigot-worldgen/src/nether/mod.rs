@@ -158,6 +158,91 @@ impl Nether {
         }
     }
 
+    pub(crate) fn nearest_structures(
+        &self,
+        dimension: &Dimension,
+        from: rspigot_domain::Vec3,
+        ids: &[String],
+    ) -> Option<(String, rspigot_domain::Vec3)> {
+        if !self.structures_on {
+            return None;
+        }
+        let wanted: Vec<String> = ids
+            .iter()
+            .map(|id| id.strip_prefix("minecraft:").unwrap_or(id).to_owned())
+            .collect();
+        let (name, at) = self.structures.nearest_start(
+            &self.ground(dimension),
+            &|| self.biome_probe(),
+            &wanted,
+            (from.x.floor() as i32, from.z.floor() as i32),
+            100,
+        )?;
+        Some((
+            format!("minecraft:{name}"),
+            rspigot_domain::Vec3::new(f64::from(at.0), f64::from(at.1), f64::from(at.2)),
+        ))
+    }
+
+    pub(crate) fn knows_structure(&self, id: &str) -> bool {
+        self.structures_on
+            && self
+                .structures
+                .knows(id.strip_prefix("minecraft:").unwrap_or(id))
+    }
+
+    pub(crate) fn nearest_biome(
+        &self,
+        dimension: &Dimension,
+        from: rspigot_domain::Vec3,
+        wanted: &[String],
+    ) -> Option<(String, rspigot_domain::Vec3)> {
+        let probe = self.biome_probe();
+        let search = crate::locate::Search {
+            sample: |qx, qy, qz| probe.at(qx, qy, qz),
+            names: &NETHER_BIOMES,
+            min_y: dimension.height.min_y,
+            max_y: dimension.height.max_y(),
+        };
+        let (name, at) = search.closest(
+            wanted,
+            (
+                from.x.floor() as i32,
+                from.y.floor() as i32,
+                from.z.floor() as i32,
+            ),
+            crate::locate::BIOME_RADIUS,
+        )?;
+        Some((
+            name,
+            rspigot_domain::Vec3::new(f64::from(at.0), f64::from(at.1), f64::from(at.2)),
+        ))
+    }
+
+    pub(crate) fn place_structure(
+        &self,
+        dimension: &Dimension,
+        id: &str,
+        pos: rspigot_domain::BlockPos,
+    ) -> Result<Vec<rspigot_core::ports::PlacedBlock>, rspigot_core::ports::PlaceFailure> {
+        use rspigot_core::ports::PlaceFailure;
+        let name = id.strip_prefix("minecraft:").unwrap_or(id);
+        if !self.structures_on || !self.structures.knows(name) {
+            return Err(PlaceFailure::Failed);
+        }
+        let probe = self.biome_probe();
+        let start = self
+            .structures
+            .start_at(
+                &self.ground(dimension),
+                &probe,
+                name,
+                (pos.x >> 4, pos.z >> 4),
+            )
+            .ok_or(PlaceFailure::Failed)?;
+        crate::placing::placed(dimension, crate::structures::start_blocks(&start))
+    }
+
     pub(crate) fn disable_structures(&mut self) {
         self.structures_on = false;
     }

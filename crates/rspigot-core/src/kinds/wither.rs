@@ -311,6 +311,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn global_level_event_near(&mut self, at: Vec3, event: i32) {
+        if !self.config.rules.global_sound_events {
+            self.level_event(event, at.block(), 0);
+            return;
+        }
         let range = f64::from(i32::from(self.config.view_distance) * 16);
         let events: Vec<(rspigot_domain::player::PlayerId, BlockPos)> = self
             .players

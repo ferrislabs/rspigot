@@ -101,6 +101,9 @@ const LEVELS: &[(&str, u8)] = &[
     ("save-off", LEVEL_OWNERS),
     ("save-on", LEVEL_OWNERS),
     ("stop", LEVEL_OWNERS),
+    ("restart", LEVEL_OWNERS),
+    ("spigot", LEVEL_OWNERS),
+    ("timings", LEVEL_OWNERS),
     ("debug", LEVEL_ADMINS),
 ];
 

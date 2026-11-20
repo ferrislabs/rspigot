@@ -81,7 +81,7 @@ pub(crate) fn set_cycle(
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn tick_weather(&mut self) {
-        if !self.world.dimension.can_have_weather() {
+        if !self.world.dimension.can_have_weather() || !self.config.rules.advance_weather {
             return;
         }
         let mut rng = weather_rng(self.world.level.game_time);
@@ -109,7 +109,45 @@ mod tests {
     use rand::SeedableRng;
     use rand::rngs::StdRng;
 
+    use std::sync::Arc;
+    use std::time::Duration;
+
     use super::*;
+    use crate::config::GameConfig;
+    use crate::status::StatusBoard;
+    use crate::world_state::tests::Quiet;
+
+    fn rain_time_after_ticks(advance_weather: bool) -> i32 {
+        let mut config = GameConfig {
+            chunk_workers: 1,
+            spawn_chunk_radius: 1,
+            ..GameConfig::default()
+        };
+        config.rules.advance_weather = advance_weather;
+        let level = LevelData {
+            rain_time: 10,
+            thunder_time: 10,
+            ..LevelData::default()
+        };
+        let mut server: Server<Quiet> = Server::new(
+            config,
+            level,
+            Arc::new(Quiet),
+            Arc::new(Quiet),
+            StatusBoard::new(1),
+        );
+        server.wait_for_spawn(Duration::from_secs(10));
+        for _ in 0..3 {
+            server.tick_weather();
+        }
+        server.world.level.rain_time
+    }
+
+    #[test]
+    fn the_advance_weather_rule_freezes_the_natural_cycle() {
+        assert_eq!(rain_time_after_ticks(true), 7);
+        assert_eq!(rain_time_after_ticks(false), 10);
+    }
 
     fn rng() -> StdRng {
         StdRng::seed_from_u64(7)

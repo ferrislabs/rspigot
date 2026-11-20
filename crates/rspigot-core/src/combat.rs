@@ -24,7 +24,6 @@ const SPRINT_KNOCKBACK: f32 = 0.5;
 const ATTACK_PARTIAL_TICK: f32 = 0.5;
 const FULL_STRENGTH: f32 = 0.9;
 const CRITICAL_MULTIPLIER: f32 = 1.5;
-const ATTACK_EXHAUSTION: f32 = 0.1;
 const ATTACK_RANGE_BUFFER: f64 = 3.0;
 const SURVIVAL_REACH: f64 = 3.0;
 const CREATIVE_REACH: f64 = 5.0;
@@ -528,7 +527,8 @@ impl<L: ClientLink> Server<L> {
             (bounds.min_z + bounds.max_z) / 2.0,
         );
         self.mace_smash(id, victim.entity, feet);
-        self.exhaust(id, ATTACK_EXHAUSTION, EntityExhaustionReason::Unknown);
+        let exhaustion = self.config.combat_exhaustion;
+        self.exhaust(id, exhaustion, EntityExhaustionReason::Unknown);
     }
 
     fn sweep_attack(

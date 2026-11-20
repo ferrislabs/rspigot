@@ -231,6 +231,9 @@ impl<L: ClientLink> Server<L> {
             entity.base.position,
             GameEventContext::of(killer.or(Some(id))),
         );
+        if !self.config.rules.entity_drops {
+            return;
+        }
         self.drop_cargo(&view, &entity);
         let Some(item) = drop_item_of(entity.base.kind) else {
             return;

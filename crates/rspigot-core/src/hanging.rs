@@ -391,6 +391,9 @@ impl<L: ClientLink> Server<L> {
         let EntityState::Hanging(state) = &entity.state else {
             return;
         };
+        if !self.config.rules.entity_drops {
+            return;
+        }
         if kind == Kind::Painting {
             if !creative {
                 let stack = frame_stack(kind, entity.base.custom_name());

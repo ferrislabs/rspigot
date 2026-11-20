@@ -123,6 +123,18 @@ pub trait CommandContext {
     }
     fn tps(&self) -> [f64; 3];
     fn stop(&mut self);
+    fn restart(&mut self) -> bool {
+        false
+    }
+    fn timings_enabled(&self) -> bool {
+        false
+    }
+    fn timings_enable(&mut self, _enabled: bool) {}
+    fn timings_verbose(&mut self, _enabled: bool) {}
+    fn timings_reset(&mut self) {}
+    fn timings_report(&mut self) -> Option<String> {
+        None
+    }
 
     fn predicate_holds(&self, _sender: CommandSender, _id: &Identifier) -> Option<bool> {
         None
@@ -248,6 +260,10 @@ pub trait CommandContext {
     }
 
     fn set_default_game_mode(&mut self, _mode: GameMode) {}
+
+    fn unknown_command_text(&self) -> Option<String> {
+        None
+    }
 
     fn game_rule_text(&self, _name: &str) -> Option<String> {
         None
@@ -637,6 +653,113 @@ pub trait CommandContext {
     ) -> bool {
         false
     }
+
+    fn advancement_criteria(&self, _player: PlayerId, _advancement: &str) -> Vec<&'static str> {
+        Vec::new()
+    }
+
+    fn advancement_done(&self, _player: PlayerId, _advancement: &str) -> bool {
+        false
+    }
+
+    fn grant_criterion(&mut self, _player: PlayerId, _advancement: &str, _criterion: &str) -> bool {
+        false
+    }
+
+    fn revoke_criterion(
+        &mut self,
+        _player: PlayerId,
+        _advancement: &str,
+        _criterion: &str,
+    ) -> bool {
+        false
+    }
+
+    fn give_recipes(&mut self, _player: PlayerId, _recipes: &[&str]) -> usize {
+        0
+    }
+
+    fn take_recipes_of(&mut self, _player: PlayerId, _recipes: &[&str]) -> usize {
+        0
+    }
+
+    fn read_slot(
+        &self,
+        _holder: super::slots::SlotHolder,
+        _slot: i32,
+    ) -> Option<Option<rspigot_domain::item::ItemStack>> {
+        None
+    }
+
+    fn write_slot(
+        &mut self,
+        _holder: super::slots::SlotHolder,
+        _slot: i32,
+        _stack: Option<rspigot_domain::item::ItemStack>,
+    ) -> bool {
+        false
+    }
+
+    fn container_slots(&self, _pos: BlockPos) -> usize {
+        0
+    }
+
+    fn insert_stack(
+        &mut self,
+        _pos: BlockPos,
+        _stack: rspigot_domain::item::ItemStack,
+    ) -> Option<Option<rspigot_domain::item::ItemStack>> {
+        None
+    }
+
+    fn give_stack(&mut self, _player: PlayerId, _stack: rspigot_domain::item::ItemStack) {}
+
+    fn drop_stack(&mut self, _at: Vec3, _stack: rspigot_domain::item::ItemStack) {}
+
+    fn roll_loot(
+        &mut self,
+        _sender: CommandSender,
+        _source: &super::loot_source::LootSource,
+    ) -> Result<Vec<rspigot_domain::item::ItemStack>, Component> {
+        Ok(Vec::new())
+    }
+
+    fn apply_item_modifier(
+        &mut self,
+        _sender: CommandSender,
+        _functions: &[rspigot_data::loot::Function],
+        stack: &rspigot_domain::item::ItemStack,
+    ) -> Option<rspigot_domain::item::ItemStack> {
+        Some(stack.clone())
+    }
+
+    fn start_world_query(
+        &mut self,
+        _sender: CommandSender,
+        _query: crate::chunks::WorldQuery,
+        _kind: crate::locate::QueryKind,
+        _label: String,
+    ) -> bool {
+        false
+    }
+
+    fn nearest_poi(&self, _origin: Vec3, _types: &[String]) -> Option<(String, BlockPos)> {
+        None
+    }
+
+    fn item_modifier(&self, _id: &str) -> Option<&'static [rspigot_data::loot::Function]> {
+        None
+    }
+
+    fn stopwatch_started(&self, _id: &str) -> Option<i64> {
+        None
+    }
+
+    fn set_stopwatch(&mut self, _id: &str, _started: Option<i64>) {}
+
+    fn stopwatch_ids(&self) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 pub fn execute<C: CommandContext>(
@@ -762,6 +885,8 @@ pub fn execute<C: CommandContext>(
         "function" | "schedule" | "return" | "datapack" => {
             super::function_commands::run(ctx, sender, &label, rest)
         }
+        "advancement" | "recipe" | "item" | "loot" | "waypoint" | "stopwatch" | "locate"
+        | "place" => super::game_commands::run(ctx, sender, &label, rest),
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),
@@ -792,13 +917,14 @@ pub fn execute<C: CommandContext>(
             ctx.stop();
             CommandOutcome::Success
         }
+        "restart" | "spigot" | "timings" => super::bukkit_commands::run(ctx, sender, &label, rest),
         _ => CommandOutcome::Unknown,
     };
     if outcome == CommandOutcome::Unknown {
-        ctx.reply(
-            sender,
-            Component::text("Unknown command. Type \"/help\" for help."),
-        );
+        let text = ctx
+            .unknown_command_text()
+            .unwrap_or_else(|| "Unknown command. Type \"/help\" for help.".to_owned());
+        ctx.reply(sender, Component::text(text));
     }
     outcome
 }
@@ -808,6 +934,10 @@ pub(crate) fn refuse<C: CommandContext>(
     sender: CommandSender,
     line: &str,
 ) -> CommandOutcome {
+    if let Some(text) = ctx.unknown_command_text() {
+        ctx.reply(sender, Component::text(text));
+        return CommandOutcome::Denied;
+    }
     ctx.reply(
         sender,
         Component::translatable("command.unknown.command", Vec::new()).color(NamedColor::Red),

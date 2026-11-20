@@ -294,3 +294,16 @@ fn the_player_position_is_a_block_position_for_conditions() {
             .is_position_loaded(BlockPos::new(at.x, at.y, at.z))
     );
 }
+
+#[test]
+fn the_fork_rule_caps_the_contexts_of_an_execute_chain() {
+    let mut rig = rig();
+    rig.run("summon minecraft:cow 5 70 5");
+    rig.run("summon minecraft:cow 9 70 9");
+    rig.run("summon minecraft:cow 13 70 13");
+    rig.run("gamerule max_command_forks 2");
+    rig.texts();
+    rig.run("execute as @e[type=cow] run summon minecraft:pig 0 70 0");
+    assert_eq!(rig.count("@e[type=pig]"), 2);
+    assert_eq!(rig.texts()[0], "command.forkLimit 2");
+}

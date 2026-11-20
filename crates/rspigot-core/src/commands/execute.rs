@@ -1001,6 +1001,21 @@ fn walk<C: CommandContext>(
         ctx.reply(sender, error.color(NamedColor::Red));
         return;
     }
+    let fork_limit = ctx
+        .game_rule_text("max_command_forks")
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(65_536);
+    if next.len() > fork_limit {
+        next.truncate(fork_limit);
+        ctx.reply(
+            sender,
+            Component::translatable(
+                "command.forkLimit",
+                vec![Component::text(fork_limit.to_string())],
+            )
+            .color(NamedColor::Red),
+        );
+    }
     for (child, dimension) in next {
         let target = dimension.clone();
         let entered = enter(ctx, target, plan.swap, |ctx| {

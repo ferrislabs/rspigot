@@ -127,10 +127,6 @@ impl Liquid {
             Self::Lava => 2,
         }
     }
-
-    const fn makes_sources(self) -> bool {
-        matches!(self, Self::Water)
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -410,7 +406,11 @@ impl<L: ClientLink> Server<L> {
                 highest = highest.max(side.amount());
             }
         }
-        if liquid.makes_sources() && sources >= SOURCES_TO_FILL {
+        let converts = match liquid {
+            Liquid::Water => self.config.rules.water_source_conversion,
+            Liquid::Lava => self.config.rules.lava_source_conversion,
+        };
+        if converts && sources >= SOURCES_TO_FILL {
             let supported = match self.cell(step(pos, Face::Down)) {
                 Cell::Solid => true,
                 Cell::Fluid(below) => below.liquid == liquid && below.is_source(),
