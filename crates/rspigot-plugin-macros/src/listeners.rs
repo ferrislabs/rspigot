@@ -92,23 +92,38 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
             .collect()
     };
     let suggesting = commands::suggests(&declared);
+    let own_ids = handlers.iter().map(|handler| handler.id).max().unwrap_or(0);
+    let own_commands = declared.iter().map(|command| command.id).max().unwrap_or(0);
+    let own_ids = Literal::u32_unsuffixed(own_ids);
+    let own_commands = Literal::u32_unsuffixed(own_commands);
+    let kids = quote!(&Self::__RSPIGOT_KIDS);
+    let present = quote!(::rspigot_plugin::compose::present::<Self, _>(#kids));
+    let own_slots = if suggesting {
+        quote!(#own_ids + 1)
+    } else {
+        quote!(#own_ids)
+    };
+    let tab = quote! {
+        (if #present { #own_ids + 1 } else { ::core::primitive::u32::MAX })
+    };
+    let tab_slot = if suggesting {
+        quote!(!#present)
+    } else {
+        quote!(false)
+    };
     let specs = handlers
         .iter()
         .map(spec)
-        .chain(suggesting.then(commands::suggestion_spec));
+        .chain(suggesting.then(|| commands::suggestion_spec(&tab)));
     let arms = handlers
         .iter()
         .map(arm)
-        .chain(suggesting.then(|| commands::suggestion_arm(&declared)));
-    let command_specs = if declared.is_empty() {
-        TokenStream::new()
+        .chain(suggesting.then(|| commands::suggestion_arm(&declared, &tab)));
+    let command_specs = commands::specs(&declared);
+    let command_match = if declared.is_empty() && !dynamic {
+        quote!(let _ = command;)
     } else {
-        commands::specs(&declared)
-    };
-    let command_invoke = match (declared.is_empty(), dynamic) {
-        (true, true) => commands::invoke_dynamic_only(),
-        (true, false) => TokenStream::new(),
-        (false, _) => commands::invoke(&declared, dynamic),
+        commands::invoke_match(&declared, dynamic)
     };
     let enables = hooks.enable.iter().map(|cfgs| {
         quote! {
@@ -125,34 +140,94 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
     let errors = errors.iter().map(Error::to_compile_error);
     let plugin = &block.self_ty;
     let (impl_generics, _, where_clause) = block.generics.split_for_impl();
+    let kids_trait = quote!(<_ as ::rspigot_plugin::compose::Kids<Self>>);
     quote! {
         #block
 
-        impl #impl_generics ::rspigot_plugin::Listeners for #plugin #where_clause {
-            fn handlers() -> ::std::vec::Vec<::rspigot_plugin::HandlerSpec> {
-                ::std::vec![#(#specs),*]
-            }
+        #[allow(unused_imports)]
+        const _: () = {
+            use ::rspigot_plugin::compose::Detect as _;
 
-            async fn dispatch(&self, call: ::rspigot_plugin::Call) -> ::rspigot_plugin::Outcome {
-                match call {
-                    #(#arms)*
-                    _ => ::rspigot_plugin::Outcome::Observed,
+            impl #impl_generics ::rspigot_plugin::Listeners for #plugin #where_clause {
+                const HANDLER_SLOTS: u32 =
+                    #own_slots
+                        + ::rspigot_plugin::compose::kids_handler_slots::<Self, _>(#kids);
+
+                const COMMAND_SLOTS: u32 =
+                    #own_commands
+                        + ::rspigot_plugin::compose::kids_command_slots::<Self, _>(#kids);
+
+                const TAB_SLOT: bool = #tab_slot;
+
+                fn handlers() -> ::std::vec::Vec<::rspigot_plugin::HandlerSpec> {
+                    let mut out = ::std::vec![#(#specs),*];
+                    #kids_trait::handlers(#kids, #own_slots, &mut out);
+                    out
+                }
+
+                async fn dispatch_at(
+                    &self,
+                    handler: u32,
+                    call: ::rspigot_plugin::Call,
+                ) -> ::rspigot_plugin::Outcome {
+                    if #present && handler > #own_slots {
+                        return #kids_trait::dispatch(#kids, self, #own_slots, handler, call).await;
+                    }
+                    match (handler, call) {
+                        #(#arms)*
+                        _ => ::rspigot_plugin::Outcome::Observed,
+                    }
+                }
+
+                async fn enable(&self, server: &::rspigot_plugin::Server) {
+                    let _ = server;
+                    #(#enables)*
+                    #kids_trait::enable(#kids, self, server).await;
+                }
+
+                async fn disable(&self) {
+                    #kids_trait::disable(#kids, self).await;
+                    #(#disables)*
+                }
+
+                fn commands() -> ::std::vec::Vec<::rspigot_plugin::CommandSpec> {
+                    let mut out = ::std::vec![#(#command_specs),*];
+                    #kids_trait::commands(#kids, #own_commands, &mut out);
+                    out
+                }
+
+                fn command_modules(
+                    base: u32,
+                    out: &mut ::std::vec::Vec<::rspigot_plugin::CommandModule>,
+                ) {
+                    ::rspigot_plugin::compose::push_own_module::<Self>(out, base, #own_commands);
+                    #kids_trait::command_modules(#kids, base + #own_commands, out);
+                }
+
+                async fn invoke(&self, invocation: ::rspigot_plugin::Invocation) {
+                    let command = invocation.command();
+                    if #present
+                        && command > #own_commands
+                        && command <= #own_commands
+                            + ::rspigot_plugin::compose::kids_command_slots::<Self, _>(#kids)
+                    {
+                        return #kids_trait::invoke(#kids, self, #own_commands, invocation).await;
+                    }
+                    let beyond = if #present
+                        && command > #own_commands
+                            + ::rspigot_plugin::compose::kids_command_slots::<Self, _>(#kids)
+                    {
+                        ::core::option::Option::Some(invocation.clone())
+                    } else {
+                        ::core::option::Option::None
+                    };
+                    #command_match
+                    if let ::core::option::Option::Some(rest) = beyond {
+                        #kids_trait::invoke(#kids, self, #own_commands, rest).await;
+                    }
                 }
             }
-
-            async fn enable(&self, server: &::rspigot_plugin::Server) {
-                let _ = server;
-                #(#enables)*
-            }
-
-            async fn disable(&self) {
-                #(#disables)*
-            }
-
-            #command_specs
-
-            #command_invoke
-        }
+        };
 
         #(#errors)*
     }
@@ -377,7 +452,7 @@ fn arm(handler: &Handler) -> TokenStream {
     if handler.decides {
         quote! {
             #(#cfgs)*
-            ::rspigot_plugin::Call::#kind { handler: #id, mut event } => {
+            (#id, ::rspigot_plugin::Call::#kind { mut event, .. }) => {
                 self.#method(&mut event).await;
                 ::rspigot_plugin::Outcome::Decided(::rspigot_plugin::Verdict::from(event))
             }
@@ -385,7 +460,7 @@ fn arm(handler: &Handler) -> TokenStream {
     } else {
         quote! {
             #(#cfgs)*
-            ::rspigot_plugin::Call::#kind { handler: #id, event } => {
+            (#id, ::rspigot_plugin::Call::#kind { event, .. }) => {
                 self.#method(&event).await;
                 ::rspigot_plugin::Outcome::Observed
             }

@@ -317,7 +317,7 @@ impl ServerCommandHandle {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Invocation {
     command: u32,
     sender: Option<v1::PlayerSnapshot>,
@@ -337,6 +337,12 @@ impl Invocation {
 
     pub const fn command(&self) -> u32 {
         self.command
+    }
+
+    #[must_use]
+    pub const fn rebased(mut self, base: u32) -> Self {
+        self.command = self.command.saturating_sub(base);
+        self
     }
 
     pub fn open(self) -> Option<(Context, Arguments)> {

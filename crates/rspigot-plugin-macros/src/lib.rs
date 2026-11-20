@@ -1,12 +1,21 @@
 mod commands;
 mod events;
 mod listeners;
+mod module;
 mod plugin;
 
 use proc_macro::TokenStream;
 use syn::{DeriveInput, Error, ItemImpl, parse_macro_input};
 
-#[proc_macro_derive(Plugin, attributes(plugin))]
+#[proc_macro_derive(Module, attributes(module))]
+pub fn derive_module(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    module::derive(&input)
+        .unwrap_or_else(Error::into_compile_error)
+        .into()
+}
+
+#[proc_macro_derive(Plugin, attributes(plugin, module))]
 pub fn derive_plugin(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     plugin::derive(&input)

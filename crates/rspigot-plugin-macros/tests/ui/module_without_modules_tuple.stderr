@@ -1,0 +1,5 @@
+error: a node needs at least one `#[module]` field; a leaf module is a plain struct with a `#[listeners]` impl block and no derive
+ --> tests/ui/module_without_modules_tuple.rs:9:8
+  |
+9 | struct Node(Leaf);
+  |        ^^^^

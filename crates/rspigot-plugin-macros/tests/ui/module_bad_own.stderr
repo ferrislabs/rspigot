@@ -1,0 +1,5 @@
+error: `#[module(own)]` is the only argument a node takes: it declares that the struct also has its own `#[listeners] impl` block
+ --> tests/ui/module_bad_own.rs:9:10
+  |
+9 | #[module(mine)]
+  |          ^^^^
