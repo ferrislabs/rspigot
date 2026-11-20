@@ -30,10 +30,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub fn rights_of(&self, id: rspigot_domain::player::PlayerId) -> Option<Rights> {
-        self.players.get(&id).map(|player| {
-            self.permissions
-                .rights(id, player.name(), player.permission_level())
-        })
+        self.players.get(&id).map(|player| self.rights_for(player))
     }
 
     pub(crate) fn ask_reload(&mut self, whitelist_only: bool) -> bool {

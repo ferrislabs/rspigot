@@ -14,6 +14,12 @@ enum Weather { WEATHER_UNSPECIFIED = 0; WEATHER_CLEAR = 1; WEATHER_RAIN = 2; WEA
 enum GameRule { GAME_RULE_UNSPECIFIED = 0; GAME_RULE_DAYLIGHT_CYCLE = 1; GAME_RULE_NATURAL_REGENERATION = 2; GAME_RULE_KEEP_INVENTORY = 3; GAME_RULE_SHOW_DEATH_MESSAGES = 4; GAME_RULE_IMMEDIATE_RESPAWN = 5; GAME_RULE_FALL_DAMAGE = 6; GAME_RULE_MOB_DROPS = 7; GAME_RULE_MOB_GRIEFING = 8; GAME_RULE_MOB_EXPLOSION_DROP_DECAY = 9; GAME_RULE_BLOCK_DROPS = 10; GAME_RULE_UNIVERSAL_ANGER = 11; }
 
 enum Attribute { ATTRIBUTE_UNSPECIFIED = 0; ATTRIBUTE_AIR_DRAG_MODIFIER = 1; ATTRIBUTE_ARMOR = 2; ATTRIBUTE_ARMOR_TOUGHNESS = 3; ATTRIBUTE_ATTACK_DAMAGE = 4; ATTRIBUTE_ATTACK_KNOCKBACK = 5; ATTRIBUTE_ATTACK_SPEED = 6; ATTRIBUTE_BELOW_NAME_DISTANCE = 7; ATTRIBUTE_BLOCK_BREAK_SPEED = 8; ATTRIBUTE_BLOCK_INTERACTION_RANGE = 9; ATTRIBUTE_BOUNCINESS = 10; ATTRIBUTE_BURNING_TIME = 11; ATTRIBUTE_CAMERA_DISTANCE = 12; ATTRIBUTE_EXPLOSION_KNOCKBACK_RESISTANCE = 13; ATTRIBUTE_ENTITY_INTERACTION_RANGE = 14; ATTRIBUTE_FALL_DAMAGE_MULTIPLIER = 15; ATTRIBUTE_FLYING_SPEED = 16; ATTRIBUTE_FOLLOW_RANGE = 17; ATTRIBUTE_FRICTION_MODIFIER = 18; ATTRIBUTE_GRAVITY = 19; ATTRIBUTE_JUMP_STRENGTH = 20; ATTRIBUTE_KNOCKBACK_RESISTANCE = 21; ATTRIBUTE_LUCK = 22; ATTRIBUTE_MAX_ABSORPTION = 23; ATTRIBUTE_MAX_HEALTH = 24; ATTRIBUTE_MINING_EFFICIENCY = 25; ATTRIBUTE_MOVEMENT_EFFICIENCY = 26; ATTRIBUTE_MOVEMENT_SPEED = 27; ATTRIBUTE_NAME_TAG_DISTANCE = 28; ATTRIBUTE_OXYGEN_BONUS = 29; ATTRIBUTE_SAFE_FALL_DISTANCE = 30; ATTRIBUTE_SCALE = 31; ATTRIBUTE_SNEAKING_SPEED = 32; ATTRIBUTE_SPAWN_REINFORCEMENTS = 33; ATTRIBUTE_STEP_HEIGHT = 34; ATTRIBUTE_SUBMERGED_MINING_SPEED = 35; ATTRIBUTE_SWEEPING_DAMAGE_RATIO = 36; ATTRIBUTE_TEMPT_RANGE = 37; ATTRIBUTE_WATER_MOVEMENT_EFFICIENCY = 38; ATTRIBUTE_WAYPOINT_TRANSMIT_RANGE = 39; ATTRIBUTE_WAYPOINT_RECEIVE_RANGE = 40; }
+message PermissionSet { string node = 1; bool value = 2; }
+message PermissionGroup { string name = 1; repeated string permissions = 2; repeated string inherits = 3; }
+message PermissionGroups { repeated PermissionGroup groups = 1; }
+message AdvancementQuery { string player = 1; string advancement = 2; }
+message AdvancementProgress { bool done = 1; repeated string criteria_done = 2; repeated string criteria_remaining = 3; }
+message AdvancementList { repeated string ids = 1; }
 message Transfer { string host = 1; uint32 port = 2; }
 message SetAttribute { Attribute attribute = 1; double value = 2; }
 message AttributeQuery { int32 entity = 1; Attribute attribute = 2; }
@@ -45,10 +51,10 @@ message Explode { Vec3 position = 1; float power = 2; bool breaks_blocks = 3; }
 message SetBlockWith { string block = 1; repeated Property properties = 2; }
 
 message Handler { uint32 id = 1; EventKind event = 2; Access access = 3; Priority priority = 4; bool ignore_cancelled = 5; }
-enum ArgumentKind { ARGUMENT_KIND_UNSPECIFIED = 0; ARGUMENT_KIND_PLAYER = 1; ARGUMENT_KIND_ITEM = 2; ARGUMENT_KIND_INTEGER = 3; ARGUMENT_KIND_TEXT = 4; ARGUMENT_KIND_BOOLEAN = 5; }
-message CommandArgument { string name = 1; ArgumentKind kind = 2; bool optional = 3; bool suggested = 4; }
-message CommandSpec { uint32 id = 1; string name = 2; optional string permission = 3; repeated CommandArgument arguments = 4; }
-message ArgumentValue { oneof value { PlayerSnapshot player = 1; string item = 2; int64 integer = 3; string text = 4; bool flag = 5; } }
+enum ArgumentKind { ARGUMENT_KIND_UNSPECIFIED = 0; ARGUMENT_KIND_PLAYER = 1; ARGUMENT_KIND_ITEM = 2; ARGUMENT_KIND_INTEGER = 3; ARGUMENT_KIND_TEXT = 4; ARGUMENT_KIND_BOOLEAN = 5; ARGUMENT_KIND_LITERAL = 6; ARGUMENT_KIND_GREEDY_TEXT = 7; ARGUMENT_KIND_DOUBLE = 8; ARGUMENT_KIND_FLOAT = 9; ARGUMENT_KIND_ENTITIES = 10; ARGUMENT_KIND_LOCATION = 11; ARGUMENT_KIND_CHOICE = 12; }
+message CommandArgument { string name = 1; ArgumentKind kind = 2; bool optional = 3; bool suggested = 4; repeated string choices = 5; }
+message CommandSpec { uint32 id = 1; string name = 2; optional string permission = 3; repeated CommandArgument arguments = 4; repeated string aliases = 5; }
+message ArgumentValue { oneof value { PlayerSnapshot player = 1; string item = 2; int64 integer = 3; string text = 4; bool flag = 5; double decimal = 6; EntityList entities = 7; Vec3 location = 8; } }
 message Invocation { uint32 command = 1; PlayerSnapshot sender = 2; repeated ArgumentValue arguments = 3; }
 message Hello { uint32 protocol_version = 1; string name = 2; string version = 3; string token = 4; repeated Handler handlers = 5; repeated CommandSpec commands = 6; }
 message PlayerState {
@@ -85,6 +91,8 @@ message PlayerOrder {
     Dialog show_dialog = 54 [(rspigot.path) = "player.dialog.show"]; Empty clear_dialog = 55 [(rspigot.path) = "player.dialog.clear"];
     RichMessage send_rich_message = 56 [(rspigot.path) = "player.message.send_rich"];
     MetaOrder meta = 57;
+    Empty refresh_commands = 58 [(rspigot.path) = "player.command.refresh"]; PermissionSet set_permission = 59; string unset_permission = 60; string add_group = 61; string remove_group = 62;
+    string grant_advancement = 63 [(rspigot.path) = "player.advancements.grant"]; string revoke_advancement = 64 [(rspigot.path) = "player.advancements.revoke"];
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
@@ -210,14 +218,14 @@ message Question {
     BossBarCreate create_boss_bar = 30; uint64 boss_bar = 31; Empty boss_bars = 32; AttributeQuery attribute_value = 33;
     NpcSpec create_npc = 34; string npc_by_key = 35; Empty npcs = 36; int32 npc = 37;
     MetaQuery meta = 38; FindBlocks find_blocks = 39; EntitiesWithMeta entities_with_meta = 40; EntitiesWithMeta players_with_meta = 41;
-    BlockPos tile = 42; BlockPos block_info = 43;
+    BlockPos tile = 42; BlockPos block_info = 43; Empty permission_groups = 44; AdvancementQuery advancement_progress = 45; string done_advancements = 46;
   }
 }
 message FromPlugin {
   oneof body {
     Hello hello = 1; Decision decision = 2; PlayerOrder player = 3; InventoryOrder inventory = 4; ServerOrder server = 5;
     WorldOrder world = 6; BlockOrder block = 7; EntityOrder entity = 8; CustomInventoryOrder custom_inventory = 9; Question question = 10;
-    ScoreboardOrder scoreboard = 12; BossBarOrder boss_bar = 13; NpcOrder npc = 16;
+    ScoreboardOrder scoreboard = 12; BossBarOrder boss_bar = 13; NpcOrder npc = 16; CommandSpec register_command = 17; string unregister_command = 18;
   }
   optional uint64 origin = 11;
   optional uint64 request = 14;
@@ -296,7 +304,7 @@ message Answer {
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
     Empty done = 22; ActionError failed = 23; string world_created = 24; double attribute_value = 25;
-    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29; TileState tile = 30; BlockInfo block_info = 31;
+    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29; TileState tile = 30; BlockInfo block_info = 31; PermissionGroups permission_groups = 32; AdvancementProgress advancement_progress = 33; AdvancementList advancements = 34;
   }
 }
 message Warning { string message = 1; }

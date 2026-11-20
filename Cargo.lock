@@ -1140,6 +1140,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "market"
+version = "0.1.0"
+dependencies = [
+ "rspigot-plugin",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2007,9 +2017,11 @@ dependencies = [
  "rspigot-nbt",
  "rspigot-plugin-macros",
  "rspigot-plugin-protocol",
+ "tempfile",
  "thiserror",
  "tokio",
  "tokio-stream",
+ "toml",
  "tonic",
  "tracing",
  "trybuild",

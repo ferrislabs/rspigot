@@ -1,0 +1,7 @@
+open-to-all = true
+currency = "levels"
+
+[prices]
+bread = 1
+iron_ingot = 2
+diamond = 5

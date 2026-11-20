@@ -227,6 +227,7 @@ fn argument(name: &str, kind: ArgumentKind, optional: bool, suggested: bool) -> 
         kind,
         optional,
         suggested,
+        choices: Vec::new(),
     }
 }
 
@@ -234,6 +235,7 @@ fn kit() -> CommandSpec {
     CommandSpec {
         id: 1,
         name: "kit".to_owned(),
+        aliases: Vec::new(),
         permission: Some("kit.use".to_owned()),
         arguments: vec![
             argument("target", ArgumentKind::Player, false, false),
@@ -247,6 +249,7 @@ fn warp() -> CommandSpec {
     CommandSpec {
         id: 2,
         name: "warp".to_owned(),
+        aliases: Vec::new(),
         permission: None,
         arguments: vec![argument("place", ArgumentKind::Text, false, true)],
     }

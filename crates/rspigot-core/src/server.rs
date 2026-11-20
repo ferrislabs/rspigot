@@ -545,6 +545,7 @@ impl<L: ClientLink> Server<L> {
             changed |= replaced.commands;
             replaced.outbox.send(ToPlugin::Replaced);
             self.forget_plugin_inventories(replaced.connection);
+            changed |= self.plugins.attachments.forget_plugin(replaced.connection);
             self.plugin_disabled(connection, replaced.plugin);
         }
         self.plugins.send(connection, ToPlugin::Accepted);
@@ -1034,6 +1035,7 @@ impl<L: ClientLink> Server<L> {
         let forgotten = self.decisions.forget(id);
         self.notify_undone(forgotten, crate::plugins::Phase::Settled);
         self.visibility.forget(id);
+        self.forget_attachments_of(id);
         self.forget_sign_editor(id);
         self.leave_bed_for_good(id);
         self.forget_pending_eyes(id);

@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use rspigot_plugin_protocol::v1::{self, argument_value};
 
 use crate::link::Link;
-use crate::{CommandSender, Error, Material, Player};
+use crate::{CommandSender, Entity, Error, Material, Player, Position, ServerCommandHandle};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ArgumentKind {
@@ -12,6 +12,13 @@ pub enum ArgumentKind {
     Integer,
     Text,
     Boolean,
+    Literal,
+    GreedyText,
+    Double,
+    Float,
+    Entities,
+    Location,
+    Choice,
 }
 
 impl ArgumentKind {
@@ -22,6 +29,13 @@ impl ArgumentKind {
             Self::Integer => v1::ArgumentKind::Integer,
             Self::Text => v1::ArgumentKind::Text,
             Self::Boolean => v1::ArgumentKind::Boolean,
+            Self::Literal => v1::ArgumentKind::Literal,
+            Self::GreedyText => v1::ArgumentKind::GreedyText,
+            Self::Double => v1::ArgumentKind::Double,
+            Self::Float => v1::ArgumentKind::Float,
+            Self::Entities => v1::ArgumentKind::Entities,
+            Self::Location => v1::ArgumentKind::Location,
+            Self::Choice => v1::ArgumentKind::Choice,
         }
     }
 }
@@ -32,12 +46,14 @@ pub struct CommandArgument {
     pub kind: ArgumentKind,
     pub optional: bool,
     pub suggested: bool,
+    pub choices: &'static [&'static str],
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandSpec {
     pub id: u32,
     pub name: &'static str,
+    pub aliases: &'static [&'static str],
     pub permission: Option<&'static str>,
     pub arguments: Vec<CommandArgument>,
 }
@@ -47,6 +63,11 @@ impl CommandSpec {
         v1::CommandSpec {
             id: self.id,
             name: self.name.to_owned(),
+            aliases: self
+                .aliases
+                .iter()
+                .map(|alias| (*alias).to_owned())
+                .collect(),
             permission: self.permission.map(str::to_owned),
             arguments: self
                 .arguments
@@ -56,6 +77,11 @@ impl CommandSpec {
                     kind: argument.kind.to_wire() as i32,
                     optional: argument.optional,
                     suggested: argument.suggested,
+                    choices: argument
+                        .choices
+                        .iter()
+                        .map(|choice| (*choice).to_owned())
+                        .collect(),
                 })
                 .collect(),
         }
@@ -103,6 +129,8 @@ impl Arguments {
 pub trait Argument: Sized {
     const KIND: ArgumentKind;
     const OPTIONAL: bool = false;
+    const WIDTH: usize = 1;
+    const CHOICES: &'static [&'static str] = &[];
 
     fn read(arguments: &mut Arguments) -> Result<Self, Error>;
 }
@@ -184,9 +212,93 @@ macro_rules! integer_argument {
 
 integer_argument!(u8, u16, u32, u64, usize, i8, i16, i32, i64);
 
+impl Argument for f64 {
+    const KIND: ArgumentKind = ArgumentKind::Double;
+
+    fn read(arguments: &mut Arguments) -> Result<Self, Error> {
+        match arguments.next() {
+            Some(argument_value::Value::Decimal(number)) => Ok(number),
+            _ => missing(),
+        }
+    }
+}
+
+impl Argument for f32 {
+    const KIND: ArgumentKind = ArgumentKind::Float;
+
+    fn read(arguments: &mut Arguments) -> Result<Self, Error> {
+        match arguments.next() {
+            Some(argument_value::Value::Decimal(number)) => Ok(number as Self),
+            _ => missing(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GreedyText(pub String);
+
+impl Argument for GreedyText {
+    const KIND: ArgumentKind = ArgumentKind::GreedyText;
+
+    fn read(arguments: &mut Arguments) -> Result<Self, Error> {
+        match arguments.next() {
+            Some(argument_value::Value::Text(text)) => Ok(Self(text)),
+            _ => missing(),
+        }
+    }
+}
+
+impl Argument for Vec<Entity> {
+    const KIND: ArgumentKind = ArgumentKind::Entities;
+
+    fn read(arguments: &mut Arguments) -> Result<Self, Error> {
+        match arguments.next() {
+            Some(argument_value::Value::Entities(list)) => list
+                .entities
+                .into_iter()
+                .map(|entity| Entity::from_wire(entity, &arguments.link))
+                .collect(),
+            _ => missing(),
+        }
+    }
+}
+
+impl Argument for Position {
+    const KIND: ArgumentKind = ArgumentKind::Location;
+    const WIDTH: usize = 3;
+
+    fn read(arguments: &mut Arguments) -> Result<Self, Error> {
+        match arguments.next() {
+            Some(argument_value::Value::Location(spot)) => Self::from_wire(Some(spot), "location"),
+            _ => missing(),
+        }
+    }
+}
+
+pub trait ChoiceArgument: Sized {
+    const CHOICES: &'static [&'static str];
+
+    fn from_choice(choice: &str) -> Option<Self>;
+}
+
+impl<T: ChoiceArgument> Argument for T {
+    const KIND: ArgumentKind = ArgumentKind::Choice;
+    const CHOICES: &'static [&'static str] = <T as ChoiceArgument>::CHOICES;
+
+    fn read(arguments: &mut Arguments) -> Result<Self, Error> {
+        match arguments.next() {
+            Some(argument_value::Value::Text(text)) => T::from_choice(&text)
+                .ok_or_else(|| Error::Malformed(format!("`{text}` is not one of the choices"))),
+            _ => missing(),
+        }
+    }
+}
+
 impl<T: Argument> Argument for Option<T> {
     const KIND: ArgumentKind = T::KIND;
     const OPTIONAL: bool = true;
+    const WIDTH: usize = T::WIDTH;
+    const CHOICES: &'static [&'static str] = T::CHOICES;
 
     fn read(arguments: &mut Arguments) -> Result<Self, Error> {
         if arguments.values.is_empty() {
@@ -194,6 +306,18 @@ impl<T: Argument> Argument for Option<T> {
         } else {
             T::read(arguments).map(Some)
         }
+    }
+}
+
+impl ServerCommandHandle {
+    pub fn register(&self, spec: &CommandSpec) {
+        self.link
+            .order(rspigot_plugin_protocol::v1::from_plugin::Body::RegisterCommand(spec.to_wire()));
+    }
+
+    pub fn unregister(&self, name: impl Into<String>) {
+        self.link
+            .order(rspigot_plugin_protocol::v1::from_plugin::Body::UnregisterCommand(name.into()));
     }
 }
 
@@ -240,6 +364,7 @@ impl Invocation {
 #[derive(Debug)]
 pub struct Typing {
     command: String,
+    path: Vec<String>,
     position: usize,
     text: String,
     player: Player,
@@ -253,8 +378,13 @@ impl Typing {
         let mut words: Vec<&str> = buffer.trim_start_matches('/').split(' ').collect();
         let text = words.pop()?.to_owned();
         let command = words.first()?.to_ascii_lowercase();
+        let path = words[1..]
+            .iter()
+            .map(|word| word.to_ascii_lowercase())
+            .collect();
         Some(Self {
             command,
+            path,
             position: words.len() - 1,
             text,
             player: player.clone(),
@@ -267,6 +397,28 @@ impl Typing {
 
     pub const fn position(&self) -> usize {
         self.position
+    }
+
+    pub fn path(&self) -> &[String] {
+        &self.path
+    }
+
+    pub fn is_for(
+        &self,
+        labels: &[&str],
+        literals: &[&str],
+        start: usize,
+        width: usize,
+        open: bool,
+    ) -> bool {
+        labels.iter().any(|label| *label == self.command)
+            && self.path.len() >= literals.len()
+            && literals
+                .iter()
+                .zip(&self.path)
+                .all(|(literal, typed)| typed == literal)
+            && self.position >= start
+            && (open || self.position < start + width)
     }
 
     pub fn text(&self) -> &str {

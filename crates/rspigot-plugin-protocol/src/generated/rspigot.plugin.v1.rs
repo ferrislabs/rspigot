@@ -9216,6 +9216,54 @@ impl VillagerCareerChangeReason {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PermissionSet {
+    #[prost(string, tag = "1")]
+    pub node: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub value: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PermissionGroup {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub permissions: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "3")]
+    pub inherits: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PermissionGroups {
+    #[prost(message, repeated, tag = "1")]
+    pub groups: ::prost::alloc::vec::Vec<PermissionGroup>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdvancementQuery {
+    #[prost(string, tag = "1")]
+    pub player: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub advancement: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdvancementProgress {
+    #[prost(bool, tag = "1")]
+    pub done: bool,
+    #[prost(string, repeated, tag = "2")]
+    pub criteria_done: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "3")]
+    pub criteria_remaining: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AdvancementList {
+    #[prost(string, repeated, tag = "1")]
+    pub ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Transfer {
     #[prost(string, tag = "1")]
     pub host: ::prost::alloc::string::String,
@@ -9500,6 +9548,8 @@ pub struct CommandArgument {
     pub optional: bool,
     #[prost(bool, tag = "4")]
     pub suggested: bool,
+    #[prost(string, repeated, tag = "5")]
+    pub choices: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -9512,11 +9562,13 @@ pub struct CommandSpec {
     pub permission: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(message, repeated, tag = "4")]
     pub arguments: ::prost::alloc::vec::Vec<CommandArgument>,
+    #[prost(string, repeated, tag = "5")]
+    pub aliases: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ArgumentValue {
-    #[prost(oneof = "argument_value::Value", tags = "1, 2, 3, 4, 5")]
+    #[prost(oneof = "argument_value::Value", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
     pub value: ::core::option::Option<argument_value::Value>,
 }
 /// Nested message and enum types in `ArgumentValue`.
@@ -9534,6 +9586,12 @@ pub mod argument_value {
         Text(::prost::alloc::string::String),
         #[prost(bool, tag = "5")]
         Flag(bool),
+        #[prost(double, tag = "6")]
+        Decimal(f64),
+        #[prost(message, tag = "7")]
+        Entities(super::EntityList),
+        #[prost(message, tag = "8")]
+        Location(super::Vec3),
     }
 }
 #[allow(clippy::all)]
@@ -9716,7 +9774,7 @@ pub struct PlayerOrder {
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -9821,6 +9879,20 @@ pub mod player_order {
         SendRichMessage(super::RichMessage),
         #[prost(message, tag = "57")]
         Meta(super::MetaOrder),
+        #[prost(message, tag = "58")]
+        RefreshCommands(super::Empty),
+        #[prost(message, tag = "59")]
+        SetPermission(super::PermissionSet),
+        #[prost(string, tag = "60")]
+        UnsetPermission(::prost::alloc::string::String),
+        #[prost(string, tag = "61")]
+        AddGroup(::prost::alloc::string::String),
+        #[prost(string, tag = "62")]
+        RemoveGroup(::prost::alloc::string::String),
+        #[prost(string, tag = "63")]
+        GrantAdvancement(::prost::alloc::string::String),
+        #[prost(string, tag = "64")]
+        RevokeAdvancement(::prost::alloc::string::String),
     }
 }
 #[allow(clippy::all)]
@@ -10698,7 +10770,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -10775,6 +10847,12 @@ pub mod question {
         Tile(super::BlockPos),
         #[prost(message, tag = "43")]
         BlockInfo(super::BlockPos),
+        #[prost(message, tag = "44")]
+        PermissionGroups(super::Empty),
+        #[prost(message, tag = "45")]
+        AdvancementProgress(super::AdvancementQuery),
+        #[prost(string, tag = "46")]
+        DoneAdvancements(::prost::alloc::string::String),
     }
 }
 #[allow(clippy::all)]
@@ -10788,7 +10866,7 @@ pub struct FromPlugin {
     pub in_world: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(
         oneof = "from_plugin::Body",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 16"
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 16, 17, 18"
     )]
     pub body: ::core::option::Option<from_plugin::Body>,
 }
@@ -10823,6 +10901,10 @@ pub mod from_plugin {
         BossBar(super::BossBarOrder),
         #[prost(message, tag = "16")]
         Npc(super::NpcOrder),
+        #[prost(message, tag = "17")]
+        RegisterCommand(super::CommandSpec),
+        #[prost(string, tag = "18")]
+        UnregisterCommand(::prost::alloc::string::String),
     }
 }
 #[allow(clippy::all)]
@@ -11375,7 +11457,7 @@ pub struct Answer {
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -11444,6 +11526,12 @@ pub mod answer {
         Tile(super::TileState),
         #[prost(message, tag = "31")]
         BlockInfo(super::BlockInfo),
+        #[prost(message, tag = "32")]
+        PermissionGroups(super::PermissionGroups),
+        #[prost(message, tag = "33")]
+        AdvancementProgress(super::AdvancementProgress),
+        #[prost(message, tag = "34")]
+        Advancements(super::AdvancementList),
     }
 }
 #[allow(clippy::all)]
@@ -11866,6 +11954,13 @@ pub enum ArgumentKind {
     Integer = 3,
     Text = 4,
     Boolean = 5,
+    Literal = 6,
+    GreedyText = 7,
+    Double = 8,
+    Float = 9,
+    Entities = 10,
+    Location = 11,
+    Choice = 12,
 }
 impl ArgumentKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -11880,6 +11975,13 @@ impl ArgumentKind {
             Self::Integer => "ARGUMENT_KIND_INTEGER",
             Self::Text => "ARGUMENT_KIND_TEXT",
             Self::Boolean => "ARGUMENT_KIND_BOOLEAN",
+            Self::Literal => "ARGUMENT_KIND_LITERAL",
+            Self::GreedyText => "ARGUMENT_KIND_GREEDY_TEXT",
+            Self::Double => "ARGUMENT_KIND_DOUBLE",
+            Self::Float => "ARGUMENT_KIND_FLOAT",
+            Self::Entities => "ARGUMENT_KIND_ENTITIES",
+            Self::Location => "ARGUMENT_KIND_LOCATION",
+            Self::Choice => "ARGUMENT_KIND_CHOICE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -11891,6 +11993,13 @@ impl ArgumentKind {
             "ARGUMENT_KIND_INTEGER" => Some(Self::Integer),
             "ARGUMENT_KIND_TEXT" => Some(Self::Text),
             "ARGUMENT_KIND_BOOLEAN" => Some(Self::Boolean),
+            "ARGUMENT_KIND_LITERAL" => Some(Self::Literal),
+            "ARGUMENT_KIND_GREEDY_TEXT" => Some(Self::GreedyText),
+            "ARGUMENT_KIND_DOUBLE" => Some(Self::Double),
+            "ARGUMENT_KIND_FLOAT" => Some(Self::Float),
+            "ARGUMENT_KIND_ENTITIES" => Some(Self::Entities),
+            "ARGUMENT_KIND_LOCATION" => Some(Self::Location),
+            "ARGUMENT_KIND_CHOICE" => Some(Self::Choice),
             _ => None,
         }
     }

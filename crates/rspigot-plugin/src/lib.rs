@@ -1,8 +1,10 @@
+mod advancements;
 mod attribute;
 mod block;
 mod color;
 mod commands;
 mod component;
+mod config;
 mod connection;
 mod contract;
 mod custom_inventory;
@@ -44,14 +46,17 @@ mod world;
 #[cfg(test)]
 mod sdk_chain;
 
+pub use advancements::AdvancementProgress;
 pub use attribute::{Attribute, EntityAttributesHandle};
 pub use block::{Block, BlockPos, BlockState};
 pub use boss_bar::{BarColor, BarFlag, BarStyle, BossBar, BossBarState, BossBars};
 pub use color::Color;
 pub use commands::{
-    Argument, ArgumentKind, Arguments, CommandArgument, CommandSpec, Context, Invocation, Typing,
+    Argument, ArgumentKind, Arguments, ChoiceArgument, CommandArgument, CommandSpec, Context,
+    GreedyText, Invocation, Typing,
 };
 pub use component::ComponentValue;
+pub use config::{Config, ConfigError, ConfigValue};
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, CommandSender, DamageSource, DroppedItem,
     EnchantOffer, HolderRef, Input, InventoryOwner, InventoryRef, InventoryView, LecternData,
@@ -84,7 +89,7 @@ pub use location::PlayerLocationHandle;
 pub use meta::{MetaHandle, MetaValue, WorldMetaHandle};
 pub use npc::{DEFAULT_SKIN_LAYERS, Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, NpcState, Npcs};
 pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
-pub use permissions::PlayerPermissionsHandle;
+pub use permissions::{PermissionGroup, PlayerPermissionsHandle, ServerPermissionsHandle};
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
 pub use rich::{Click, Part, RichMessage};
 pub use rspigot_plugin_macros::{Plugin, command, listeners};
@@ -131,6 +136,7 @@ pub mod prelude {
     };
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Click, Part, RichMessage};
+    pub use crate::{Config, ConfigValue};
     pub use crate::{Criteria, DisplaySlot, Objective, Scoreboard, ScoreboardManager, Team};
     pub use crate::{Dialog, DialogButton, DialogInput};
     pub use crate::{Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, Npcs};

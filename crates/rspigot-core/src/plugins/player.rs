@@ -48,6 +48,17 @@ impl<L: ClientLink> Server<L> {
             PlayerOrder::Meta(order) => {
                 self.player_meta_change(id, order).map_err(|e| e.reason)?;
             }
+            PlayerOrder::GrantAdvancement(advancement) => {
+                self.plugin_advancement(id, &advancement, true)?;
+            }
+            PlayerOrder::RevokeAdvancement(advancement) => {
+                self.plugin_advancement(id, &advancement, false)?;
+            }
+            order @ (PlayerOrder::SetPermission { .. }
+            | PlayerOrder::UnsetPermission(_)
+            | PlayerOrder::AddGroup(_)
+            | PlayerOrder::RemoveGroup(_)
+            | PlayerOrder::RefreshCommands) => self.permission_order(connection, id, order)?,
             PlayerOrder::SendMessage(message) => {
                 self.push(
                     Audience::One(id),
