@@ -193,7 +193,7 @@ async fn a_new_scoreboard_has_its_own_id_and_can_be_shown_to_a_player() {
         Box::pin(async move {
             let manager = player.server().scoreboard_manager;
             let own = manager.new_scoreboard().await.unwrap();
-            assert_eq!(own.id(), 7);
+            assert_eq!(own.id, 7);
             assert!(!own.is_main());
             own.register_team("blue");
             player.scoreboard.set(&own);

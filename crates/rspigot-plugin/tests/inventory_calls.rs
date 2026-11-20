@@ -134,7 +134,7 @@ fn close(inventory: u64, by_player: bool) -> event::Payload {
 }
 
 fn custom_id(click: &Clicked) -> Option<u64> {
-    click.inventory.custom().map(CustomInventory::id)
+    click.inventory.custom().map(|inventory| inventory.id)
 }
 
 fn settled(id: u64, handler: u32, payload: event::Payload) -> to_plugin::Body {
@@ -172,7 +172,7 @@ async fn creating_and_opening_an_inventory_wait_for_the_result() {
             let server = player.server();
             let menu = server.create_inventory(1, "§6Menu").await.unwrap();
             let storage = server.create_storage(2, "Box").await.unwrap();
-            assert_ne!(menu.id(), storage.id());
+            assert_ne!(menu.id, storage.id);
             menu.set(4, Some(ItemStack::new(Material::Compass, 1)));
             player.inventory.open(&menu).await.unwrap();
             let full = server.create_inventory(7, "Big").await;
@@ -389,14 +389,14 @@ async fn inventory_events_reach_their_handlers() {
     assert_eq!(by_player.id(), 30);
     assert_eq!(by_player.player().name, "Steve");
     assert_eq!(
-        by_player.inventory().custom().map(CustomInventory::id),
+        by_player.inventory().custom().map(|inventory| inventory.id),
         Some(7)
     );
     assert!(by_player.by_player());
     called.session.say(settled(31, 3, close(8, false)));
     let by_server = closed(&mut called.marks).await;
     assert_eq!(
-        by_server.inventory().custom().map(CustomInventory::id),
+        by_server.inventory().custom().map(|inventory| inventory.id),
         Some(8)
     );
     assert!(!by_server.by_player());
@@ -581,8 +581,8 @@ async fn an_inventory_of_another_plugin_never_equals_mine_and_takes_no_order() {
     let (Some(mine), Some(theirs)) = (mine.inventory.custom(), theirs.inventory.custom()) else {
         panic!("both clicks are in a plugin inventory");
     };
-    assert_eq!(mine.id(), theirs.id());
-    assert_eq!(theirs.plugin(), "shop");
+    assert_eq!(mine.id, theirs.id);
+    assert_eq!(theirs.plugin, "shop");
     assert!(mine.is_mine());
     assert!(!theirs.is_mine());
     assert_ne!(mine, theirs);

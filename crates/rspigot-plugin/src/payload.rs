@@ -253,13 +253,13 @@ impl From<&Player> for String {
 
 impl From<&Scoreboard> for u32 {
     fn from(scoreboard: &Scoreboard) -> Self {
-        scoreboard.id()
+        scoreboard.id
     }
 }
 
 impl From<&CustomInventory> for u64 {
     fn from(inventory: &CustomInventory) -> Self {
-        inventory.id()
+        inventory.id
     }
 }
 

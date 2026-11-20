@@ -216,7 +216,7 @@ impl SheepWars {
             Some(Hit::Struck) => return,
             Some(Hit::NotSheep) | None => {}
         }
-        let victim = event.entity().player();
+        let victim = event.entity().player.as_ref();
         if let (Some(attacker), Some(victim)) = (event.player(), victim)
             && game.blocks_hit(attacker, victim)
         {

@@ -36,7 +36,7 @@ pub struct Entity {
     pub age: EntityAgeHandle,
     pub meta: MetaHandle,
     pub volatile_meta: MetaHandle,
-    player: Option<Box<Player>>,
+    pub player: Option<Player>,
     link: Link,
 }
 
@@ -77,14 +77,10 @@ impl Entity {
             position: Position::from_wire(snapshot.position, "position")?,
             player: snapshot
                 .player
-                .map(|player| Player::from_snapshot(player, link).map(Box::new))
+                .map(|player| Player::from_snapshot(player, link))
                 .transpose()?,
             link: link.clone(),
         })
-    }
-
-    pub fn player(&self) -> Option<&Player> {
-        self.player.as_deref()
     }
 
     pub(crate) fn to_wire(&self) -> v1::EntitySnapshot {
@@ -93,7 +89,7 @@ impl Entity {
             uuid: self.uuid.hyphenated().to_string(),
             kind: self.kind.key().to_owned(),
             position: Some(self.position.to_wire()),
-            player: self.player.as_deref().map(Player::to_snapshot),
+            player: self.player.as_ref().map(Player::to_snapshot),
             meta: Default::default(),
             volatile_meta: Default::default(),
             custom_name: self.custom_name.clone(),
