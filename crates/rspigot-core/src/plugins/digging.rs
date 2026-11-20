@@ -401,6 +401,7 @@ impl<L: ClientLink> Server<L> {
             self.anger_nearby_piglins(id, false);
         }
         let hive = self.hive_snapshot(pos);
+        let entity_data = self.block_entity_data(pos);
         self.piston_will_destroy(pos, step.state, step.game_mode == GameMode::Creative);
         self.set_block(pos, BlockStateId::AIR);
         let actor = self.players.get(&id).map(|player| player.entity_id);
@@ -426,13 +427,27 @@ impl<L: ClientLink> Server<L> {
             self.exhaust(id, MINING_EXHAUSTION, EntityExhaustionReason::BlockMined);
             if self.config.rules.block_drops {
                 let breaker = LootEntity::of(Kind::Player);
-                let context = LootContext::block(step.state, step.held.as_ref(), Some(&breaker));
+                let context = LootContext::block(step.state, step.held.as_ref(), Some(&breaker))
+                    .with_block_entity(entity_data.as_ref());
                 stacks = loot::block_drops(&context, &mut self.rng);
             }
             if let Some(hive) = hive {
                 self.hive_broken(pos, step.state, hive, Some(id), step.held.as_ref());
             }
             self.spawn_after_break(pos, step.state, step.held.as_ref());
+        }
+        if step.game_mode == GameMode::Creative
+            && let Some(data) = entity_data.as_ref().filter(|data| {
+                step.state
+                    .kind()
+                    .is_some_and(|kind| kind.name().ends_with("shulker_box"))
+                    && data
+                        .get_list("Items")
+                        .is_some_and(|items| !items.is_empty())
+            })
+        {
+            let context = LootContext::block(step.state, None, None).with_block_entity(Some(data));
+            stacks = loot::block_drops(&context, &mut self.rng);
         }
         self.ask_drop_items(id, pos, step.state, stacks, exp);
     }

@@ -1175,6 +1175,10 @@ impl<L: ClientLink> Server<L> {
                 self.finish_ignite(step, cancelled);
                 Vec::new()
             }
+            Continuation::Light(step) => {
+                self.finish_light(*step, cancelled);
+                Vec::new()
+            }
             Continuation::Regrow(sheep) => {
                 if !cancelled {
                     self.regrow_wool(sheep);

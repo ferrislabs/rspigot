@@ -130,7 +130,7 @@ impl<L: ClientLink> Server<L> {
             .any(|face| can_burn(self.block_or_air(at(pos, face))))
     }
 
-    fn fire_survives(&self, pos: BlockPos) -> bool {
+    pub(crate) fn fire_survives(&self, pos: BlockPos) -> bool {
         self.block_or_air(at(pos, Face::Down))
             .is_face_sturdy(Face::Up, Support::Full)
             || self.valid_fire_location(pos)
@@ -147,7 +147,7 @@ impl<L: ClientLink> Server<L> {
             .unwrap_or(0)
     }
 
-    fn fire_state_with_age(&self, pos: BlockPos, age: i32) -> BlockStateId {
+    pub(crate) fn fire_state_with_age(&self, pos: BlockPos, age: i32) -> BlockStateId {
         let below_pos = at(pos, Face::Down);
         let below = self.block_or_air(below_pos);
         let base = fire_state_on(below);

@@ -1764,7 +1764,6 @@ fn breaking_a_container_drops_what_it_holds() {
         ("hopper", 32),
         ("dispenser", 36),
         ("furnace", 30),
-        ("shulker_box", 54),
     ];
     for (block, hotbar_0) in containers {
         let mut world = world();
@@ -1779,6 +1778,37 @@ fn breaking_a_container_drops_what_it_holds() {
 
         assert_eq!(on_the_ground(&world, "minecraft:stone"), vec![1], "{block}");
     }
+}
+
+#[test]
+fn breaking_a_shulker_box_drops_one_box_carrying_what_it_holds() {
+    let mut world = world();
+    world.place_storage("shulker_box");
+    world.stock_first_slot(54, "stone");
+    world.step_away();
+    world.break_at(CHEST);
+
+    assert!(on_the_ground(&world, "minecraft:stone").is_empty());
+    let boxes: Vec<_> = world
+        .server
+        .ground_items()
+        .into_iter()
+        .map(|(_, stack)| stack)
+        .filter(|stack| stack.item.0 == item("minecraft:shulker_box"))
+        .collect();
+    assert_eq!(boxes.len(), 1);
+    let entry = boxes[0]
+        .components
+        .get_list("minecraft:container")
+        .and_then(|list| list.first())
+        .and_then(|entry| entry.as_compound())
+        .expect("container component");
+    assert_eq!(
+        entry
+            .get_compound("item")
+            .and_then(|stack| stack.get_str("id")),
+        Some("minecraft:stone")
+    );
 }
 
 #[test]
@@ -2908,6 +2938,92 @@ fn a_spectator_cannot_choose_a_cut() {
     world.console("gamemode spectator Alice");
     world.press(WINDOW, 9);
     assert_eq!(slot_update(&world.alice, WINDOW, 1), None);
+}
+
+const LOOM_HOTBAR_0: i16 = 31;
+
+impl World {
+    fn open_loom_with(&mut self, items: &[(&str, u8)]) {
+        self.place_storage("loom");
+        for (name, count) in items {
+            self.console(&format!("give Alice minecraft:{name} {count}"));
+        }
+        self.open_chest();
+        for (index, _) in items.iter().enumerate() {
+            let hotbar = LOOM_HOTBAR_0 + i16::try_from(index).unwrap();
+            self.click(WINDOW, hotbar, 0, ClickInput::Pickup);
+            self.click(WINDOW, i16::try_from(index).unwrap(), 0, ClickInput::Pickup);
+        }
+    }
+}
+
+#[test]
+fn choosing_a_loom_pattern_shows_the_banner_and_taking_it_uses_one_banner_and_one_dye() {
+    let mut world = world();
+    world.open_loom_with(&[
+        ("white_banner", 3),
+        ("red_dye", 2),
+        ("creeper_banner_pattern", 1),
+    ]);
+    assert_eq!(last_data(&world.alice, WINDOW, 0), Some(0));
+    assert_eq!(
+        slot_update(&world.alice, WINDOW, 3).flatten(),
+        Some((item("minecraft:white_banner"), 1))
+    );
+    world.click(WINDOW, 3, 0, ClickInput::Pickup);
+    assert_eq!(
+        slot_update(&world.alice, WINDOW, 0),
+        Some(Some((item("minecraft:white_banner"), 2)))
+    );
+    assert_eq!(
+        slot_update(&world.alice, WINDOW, 1),
+        Some(Some((item("minecraft:red_dye"), 1)))
+    );
+    assert_eq!(
+        slot_update(&world.alice, WINDOW, 2),
+        Some(Some((item("minecraft:creeper_banner_pattern"), 1)))
+    );
+    assert_eq!(
+        sounds_heard(&world.alice, "minecraft:ui.loom.take_result"),
+        1
+    );
+}
+
+#[test]
+fn a_loom_button_picks_one_of_the_patterns_that_need_no_item() {
+    let mut world = world();
+    world.open_loom_with(&[("white_banner", 1), ("red_dye", 1)]);
+    assert_eq!(last_data(&world.alice, WINDOW, 0), Some(-1));
+    assert_eq!(slot_update(&world.alice, WINDOW, 3), None);
+    world.press(WINDOW, 0);
+    assert!(matches!(
+        slot_update(&world.alice, WINDOW, 3),
+        Some(Some((_, 1)))
+    ));
+    assert_eq!(last_data(&world.alice, WINDOW, 0), Some(0));
+    world.press(WINDOW, 99);
+    assert_eq!(last_data(&world.alice, WINDOW, 0), Some(0));
+}
+
+#[test]
+fn shift_click_on_the_loom_result_moves_the_banner_to_the_inventory() {
+    let mut world = world();
+    world.open_loom_with(&[("white_banner", 1), ("red_dye", 1)]);
+    world.press(WINDOW, 0);
+    world.click(WINDOW, 3, 0, ClickInput::QuickMove);
+    assert_eq!(slot_update(&world.alice, WINDOW, 0), Some(None));
+    assert_eq!(slot_update(&world.alice, WINDOW, 1), Some(None));
+    assert_eq!(slot_update(&world.alice, WINDOW, 3), Some(None));
+    assert_eq!(
+        slot_update(&world.alice, WINDOW, 39)
+            .flatten()
+            .map(|(kind, _)| kind),
+        Some(item("minecraft:white_banner"))
+    );
+    assert_eq!(
+        sounds_heard(&world.alice, "minecraft:ui.loom.take_result"),
+        1
+    );
 }
 
 const SMITHING_HOTBAR_0: i16 = 31;

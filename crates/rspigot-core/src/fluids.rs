@@ -6,6 +6,7 @@ use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, Vec3};
 use rspigot_entities::SoundSource;
 use rustc_hash::FxHashSet;
 
+use crate::campfire;
 use crate::loot::{self, LootContext};
 use crate::plugins::events::{BlockFromTo, FluidLevelChange};
 use crate::plugins::steps::Continuation;
@@ -494,6 +495,14 @@ impl<L: ClientLink> Server<L> {
         let Some(state) = self.world.chunks.block(target) else {
             return;
         };
+        if flow.liquid == Liquid::Water
+            && let Some(wet) = state
+                .with_property("waterlogged", "true")
+                .filter(|_| campfire::can_waterlog(state))
+        {
+            self.set_block(target, wet);
+            return;
+        }
         if let Some(existing) = Flow::of(state) {
             if existing.liquid == Liquid::Water && flow.liquid == Liquid::Lava && face == Face::Down
             {
@@ -518,15 +527,22 @@ impl<L: ClientLink> Server<L> {
             Cell::Fluid(existing) => {
                 face == Face::Down && existing.liquid == Liquid::Water && liquid == Liquid::Lava
             }
-            Cell::Solid => false,
+            Cell::Solid => liquid == Liquid::Water && self.takes_water(target),
         }
+    }
+
+    fn takes_water(&self, pos: BlockPos) -> bool {
+        self.world
+            .chunks
+            .block(pos)
+            .is_some_and(campfire::can_waterlog)
     }
 
     fn can_pass(&self, liquid: Liquid, pos: BlockPos) -> bool {
         match self.cell(pos) {
             Cell::Empty => true,
             Cell::Fluid(other) => !(other.liquid == liquid && other.is_source()),
-            Cell::Solid => false,
+            Cell::Solid => liquid == Liquid::Water && self.takes_water(pos),
         }
     }
 

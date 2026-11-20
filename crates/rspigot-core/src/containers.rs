@@ -13,6 +13,7 @@ use rspigot_domain::{BlockPos, BlockStateId, Identifier, Vec3};
 use rspigot_entities::SoundSource;
 use rspigot_nbt::{Compound, Tag};
 
+use crate::block_components;
 use crate::chests::{self, Oxidation};
 use crate::events::{ClientEvent, ContainerClick};
 use crate::game_events::GameEventContext;
@@ -27,6 +28,7 @@ use rspigot_domain::game_event::GameEvent;
 
 const SMITHING_TABLE_USE: &str = "minecraft:block.smithing_table.use";
 const STONECUTTER_TAKE_RESULT: &str = "minecraft:ui.stonecutter.take_result";
+const LOOM_TAKE_RESULT: &str = "minecraft:ui.loom.take_result";
 const WINDOWS: i32 = 100;
 const MAX_VIEW_DISTANCE_SQUARED: f64 = 64.0;
 const ITEMS: &str = "Items";
@@ -378,6 +380,50 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn block_entity_data(&self, pos: BlockPos) -> Option<Compound> {
+        self.world
+            .chunks
+            .get(pos.chunk())?
+            .block_entity(pos)
+            .map(|entity| entity.data.clone())
+    }
+
+    pub(crate) fn apply_item_components(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        components: &Compound,
+    ) {
+        if components.is_empty() {
+            return;
+        }
+        let Some(block) = state.kind().map(BlockKind::name) else {
+            return;
+        };
+        let existing = self.block_entity_data(pos);
+        let kind = match self
+            .world
+            .chunks
+            .get(pos.chunk())
+            .and_then(|chunk| chunk.block_entity(pos))
+        {
+            Some(entity) => entity.kind.clone(),
+            None => {
+                match block_components::entity_kind_for(block).or_else(|| container_entity(state)) {
+                    Some(name) => Identifier::minecraft(name),
+                    None => return,
+                }
+            }
+        };
+        let mut data = existing.unwrap_or_default();
+        if !block_components::apply(&mut data, components) {
+            return;
+        }
+        if let Some(chunk) = self.world.chunks.chunk_mut(pos.chunk()) {
+            chunk.set_block_entity(BlockEntity { pos, kind, data });
+        }
+    }
+
     pub(crate) fn contents_lost_by(
         &self,
         pos: BlockPos,
@@ -385,6 +431,9 @@ impl<L: ClientLink> Server<L> {
         new: BlockStateId,
     ) -> Vec<ItemStack> {
         if old.kind() == new.kind() {
+            return Vec::new();
+        }
+        if opening_of(old).is_some_and(|opening| opening.kind == MenuKind::ShulkerBox) {
             return Vec::new();
         }
         if campfire::is_campfire(old) {
@@ -934,6 +983,7 @@ impl<L: ClientLink> Server<L> {
         effects: Vec<MenuEffect>,
     ) {
         let cut = effects.contains(&MenuEffect::StonecutterTaken);
+        let woven = effects.contains(&MenuEffect::LoomTaken);
         let smithed = effects.contains(&MenuEffect::SmithingTaken);
         let mut drops = Vec::new();
         let mut taken = Vec::new();
@@ -979,6 +1029,16 @@ impl<L: ClientLink> Server<L> {
                 None,
                 backing.pos.center(),
                 STONECUTTER_TAKE_RESULT,
+                SoundSource::Blocks,
+                1.0,
+                1.0,
+            );
+        }
+        if woven {
+            self.play_sound(
+                None,
+                backing.pos.center(),
+                LOOM_TAKE_RESULT,
                 SoundSource::Blocks,
                 1.0,
                 1.0,
@@ -1185,6 +1245,7 @@ impl<L: ClientLink> Server<L> {
                         || matches!(
                             open.menu.kind(),
                             MenuKind::Stonecutter
+                                | MenuKind::Loom
                                 | MenuKind::Smithing
                                 | MenuKind::Anvil
                                 | MenuKind::Enchantment
@@ -1297,11 +1358,10 @@ impl<L: ClientLink> Server<L> {
         {
             return self.enchant_button(id, window, button);
         }
-        let Some(open) = player
-            .open_menu
-            .as_mut()
-            .filter(|open| open.window == window && open.menu.kind() == MenuKind::Stonecutter)
-        else {
+        let Some(open) = player.open_menu.as_mut().filter(|open| {
+            open.window == window
+                && matches!(open.menu.kind(), MenuKind::Stonecutter | MenuKind::Loom)
+        }) else {
             return false;
         };
         let mut items = open.local.clone();

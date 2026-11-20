@@ -13,6 +13,7 @@ use crate::item::{
     HOTBAR_START, Inventory, ItemStack, Slot, count, max_stack, menu_slot, same_item,
     same_item_same_components, split, stacks_match, with_count,
 };
+use crate::loom;
 use crate::menu::{
     ClickInput, Clicker, HashedSlot, Hold, MenuEffect, OUTSIDE, RemoteUpdate, place_back_or_drop,
 };
@@ -565,6 +566,7 @@ struct Cutter {
     selected: i32,
     input: Option<ItemId>,
     error: bool,
+    loom: loom::Loom,
 }
 
 struct Session<'a> {
@@ -842,6 +844,9 @@ impl Session<'_> {
                 }
                 if self.kind == MenuKind::Stonecutter && index == CUTTER_INPUT {
                     self.refresh_cutter();
+                }
+                if self.kind == MenuKind::Loom && index < loom::INPUTS {
+                    loom::refresh(self.container, &mut self.cutter.loom);
                 }
                 if self.kind == MenuKind::Smithing {
                     self.refresh_smithing(index != smithing::RESULT);
@@ -1126,6 +1131,18 @@ impl Session<'_> {
             }
             return;
         }
+        if self.kind == MenuKind::Loom && slot == loom::RESULT && taken.is_some() {
+            for index in [loom::BANNER, loom::DYE] {
+                if let Some(input) = self.container[index].take() {
+                    self.container[index] = with_count(&input, u32::from(input.count.get()) - 1);
+                }
+            }
+            loom::refresh(self.container, &mut self.cutter.loom);
+            if self.effects.last() != Some(&MenuEffect::LoomTaken) {
+                self.effects.push(MenuEffect::LoomTaken);
+            }
+            return;
+        }
         if self.kind.is_furnace() && slot == furnace::RESULT_SLOT {
             if let Some(stack) = taken {
                 self.effects.push(MenuEffect::FurnaceOutputTaken {
@@ -1388,6 +1405,7 @@ impl Session<'_> {
             self.drop_stack(stack, false, true);
         } else if (self.kind.is_furnace() && slot == furnace::RESULT_SLOT)
             || (self.kind == MenuKind::Smithing && slot == smithing::RESULT)
+            || (self.kind == MenuKind::Loom && slot == loom::RESULT)
             || (self.kind == MenuKind::Anvil && slot == anvil::RESULT)
             || (self.kind == MenuKind::Grindstone && slot == grindstone::RESULT)
         {
@@ -1886,6 +1904,7 @@ impl ContainerMenu {
     pub fn data(&self) -> Vec<i16> {
         match self.kind {
             MenuKind::Stonecutter => vec![i16::try_from(self.cutter.selected).unwrap_or(-1)],
+            MenuKind::Loom => vec![i16::try_from(self.cutter.loom.selected).unwrap_or(-1)],
             MenuKind::Smithing => vec![i16::from(self.cutter.error)],
             MenuKind::Anvil => vec![i16::try_from(self.anvil.cost).unwrap_or(i16::MAX)],
             MenuKind::Enchantment => self.enchant_data(),
@@ -2055,6 +2074,10 @@ impl ContainerMenu {
     }
 
     pub fn press(&mut self, container: &mut Vec<Slot>, button: i32) -> bool {
+        if self.kind == MenuKind::Loom {
+            container.resize(self.kind.container_size(), None);
+            return loom::press(container, &mut self.cutter.loom, button);
+        }
         if self.kind != MenuKind::Stonecutter {
             return false;
         }
@@ -4544,7 +4567,7 @@ mod tests {
         assert!(container[0].is_some());
         assert_eq!(container[1].as_ref().map(|s| s.count.get()), Some(3));
         assert!(container[2].is_some());
-        assert!(container[3].is_none());
+        assert!(container[3].is_some());
         assert_eq!(player.get(HOTBAR_START).map(|s| s.count.get()), Some(1));
         assert!(player.get(MAIN_START + 3).is_none());
     }
@@ -4557,6 +4580,234 @@ mod tests {
             MenuKind::Lectern.protocol_id(),
             i32::try_from(index).expect("small id")
         );
+    }
+
+    fn layered(name: &str, count: u8, layers: usize) -> ItemStack {
+        let mut banner = stack(name, count);
+        if layers > 0 {
+            let layer = rspigot_nbt::Tag::Compound(
+                rspigot_nbt::Compound::new()
+                    .with("pattern", "minecraft:stripe_bottom")
+                    .with("color", "blue"),
+            );
+            banner.components.insert(
+                "minecraft:banner_patterns",
+                rspigot_nbt::Tag::List(vec![layer; layers]),
+            );
+        }
+        banner
+    }
+
+    fn layer_of(stack: &ItemStack, index: usize) -> (String, String) {
+        let layer = stack
+            .components
+            .get_list("minecraft:banner_patterns")
+            .and_then(|layers| layers.get(index))
+            .and_then(rspigot_nbt::Tag::as_compound)
+            .expect("layer");
+        (
+            layer.get_str("pattern").expect("pattern").to_owned(),
+            layer.get_str("color").expect("color").to_owned(),
+        )
+    }
+
+    fn loom_with(
+        banner: ItemStack,
+        dye: ItemStack,
+        pattern: Option<ItemStack>,
+    ) -> (ContainerMenu, Vec<Slot>, Inventory) {
+        let (mut menu, mut container, mut player) = workstation(MenuKind::Loom);
+        for (target, item) in [(0, Some(banner)), (1, Some(dye)), (2, pattern)] {
+            let Some(item) = item else { continue };
+            player.set(MAIN_START, Some(item));
+            click(
+                &mut menu,
+                &mut container,
+                &mut player,
+                4,
+                0,
+                ClickInput::Pickup,
+            );
+            click(
+                &mut menu,
+                &mut container,
+                &mut player,
+                target,
+                0,
+                ClickInput::Pickup,
+            );
+        }
+        (menu, container, player)
+    }
+
+    #[test]
+    fn the_loom_offers_the_patterns_that_need_no_item_and_applies_the_chosen_one() {
+        let (mut menu, mut container, _player) = loom_with(
+            stack("minecraft:white_banner", 3),
+            stack("minecraft:red_dye", 2),
+            None,
+        );
+        assert_eq!(menu.data(), vec![-1]);
+        assert_eq!(container[3], None);
+        assert!(!menu.press(&mut container, 32));
+        assert!(!menu.press(&mut container, -1));
+        assert!(menu.press(&mut container, 0));
+        let result = container[3].clone().expect("result");
+        assert_eq!(result.item, ItemKind::WhiteBanner.id());
+        assert_eq!(result.count.get(), 1);
+        assert_eq!(
+            layer_of(&result, 0),
+            ("minecraft:border".to_owned(), "red".to_owned())
+        );
+        assert_eq!(menu.data(), vec![0]);
+        assert!(menu.press(&mut container, 31));
+        assert_eq!(
+            layer_of(container[3].as_ref().expect("result"), 0).0,
+            "minecraft:triangles_top"
+        );
+    }
+
+    #[test]
+    fn a_pattern_item_replaces_the_list_with_its_own_patterns() {
+        let (mut menu, mut container, _player) = loom_with(
+            stack("minecraft:white_banner", 1),
+            stack("minecraft:black_dye", 1),
+            Some(stack("minecraft:creeper_banner_pattern", 1)),
+        );
+        assert_eq!(menu.data(), vec![0]);
+        let result = container[3].clone().expect("result");
+        assert_eq!(
+            layer_of(&result, 0),
+            ("minecraft:creeper".to_owned(), "black".to_owned())
+        );
+        assert!(!menu.press(&mut container, 1));
+    }
+
+    #[test]
+    fn the_loom_keeps_the_chosen_pattern_when_the_dye_changes_and_forgets_it_without_one() {
+        let (mut menu, mut container, mut player) = loom_with(
+            stack("minecraft:white_banner", 1),
+            stack("minecraft:red_dye", 1),
+            None,
+        );
+        menu.press(&mut container, 4);
+        let before = layer_of(container[3].as_ref().expect("result"), 0).0;
+        player.set(MAIN_START, Some(stack("minecraft:blue_dye", 1)));
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            4,
+            0,
+            ClickInput::Pickup,
+        );
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            1,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(menu.data(), vec![4]);
+        assert_eq!(
+            layer_of(container[3].as_ref().expect("result"), 0),
+            (before, "blue".to_owned())
+        );
+        menu.carried = None;
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            1,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(container[3], None);
+        assert_eq!(menu.data(), vec![-1]);
+    }
+
+    #[test]
+    fn a_banner_with_six_layers_gets_no_more() {
+        let (mut menu, mut container, _player) = loom_with(
+            layered("minecraft:white_banner", 1, 6),
+            stack("minecraft:red_dye", 1),
+            None,
+        );
+        assert!(!menu.press(&mut container, 0));
+        assert_eq!(container[3], None);
+        assert_eq!(menu.data(), vec![-1]);
+        let (mut menu, mut container, _player) = loom_with(
+            layered("minecraft:white_banner", 1, 5),
+            stack("minecraft:red_dye", 1),
+            None,
+        );
+        assert!(menu.press(&mut container, 0));
+        let result = container[3].clone().expect("result");
+        assert_eq!(layer_of(&result, 5).0, "minecraft:border");
+        assert_eq!(layer_of(&result, 0).0, "minecraft:stripe_bottom");
+    }
+
+    #[test]
+    fn taking_the_loom_result_uses_one_banner_and_one_dye_and_keeps_the_pattern_item() {
+        let (mut menu, mut container, mut player) = loom_with(
+            stack("minecraft:white_banner", 3),
+            stack("minecraft:red_dye", 2),
+            Some(stack("minecraft:flower_banner_pattern", 1)),
+        );
+        let effects = click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            3,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(effects, vec![MenuEffect::LoomTaken]);
+        assert_eq!(
+            layer_of(menu.carried().as_ref().expect("carried"), 0).0,
+            "minecraft:flower"
+        );
+        assert_eq!(container[0].as_ref().map(|s| s.count.get()), Some(2));
+        assert_eq!(container[1].as_ref().map(|s| s.count.get()), Some(1));
+        assert_eq!(
+            container[2],
+            Some(stack("minecraft:flower_banner_pattern", 1))
+        );
+        assert!(container[3].is_some());
+        assert_eq!(menu.data(), vec![0]);
+        menu.carried = None;
+        click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            3,
+            0,
+            ClickInput::Pickup,
+        );
+        assert_eq!(container[0], Some(stack("minecraft:white_banner", 1)));
+        assert_eq!(container[1], None);
+        assert_eq!(container[3], None);
+        assert_eq!(menu.data(), vec![-1]);
+        assert!(container[2].is_some());
+    }
+
+    #[test]
+    fn shift_clicking_the_loom_result_sends_it_to_the_inventory_and_consumes_the_inputs() {
+        let (mut menu, mut container, mut player) = loom_with(
+            stack("minecraft:white_banner", 2),
+            stack("minecraft:red_dye", 2),
+            Some(stack("minecraft:skull_banner_pattern", 1)),
+        );
+        let effects = shift(&mut menu, &mut container, &mut player, 3);
+        assert_eq!(effects, vec![MenuEffect::LoomTaken]);
+        assert_eq!(container[0], None);
+        assert_eq!(container[1], None);
+        assert_eq!(container[3], None);
+        assert!(container[2].is_some());
+        let moved = player.get(HOTBAR_START + 8).expect("moved");
+        assert_eq!(moved.count.get(), 2);
+        assert_eq!(layer_of(moved, 0).0, "minecraft:skull");
     }
 
     #[test]

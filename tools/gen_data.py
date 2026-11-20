@@ -1286,6 +1286,12 @@ class LootBuilder:
             if value["item_filter"] != {"predicates": {"minecraft:map_id": {}}}:
                 fail("unsupported filtered item_filter in %s" % self.where)
             body = Atom("FunctionKind::RequireMapId")
+        elif kind == "minecraft:copy_components":
+            expect_keys(value, {"type", "condition", "source", "include", "exclude"}, self.where)
+            if value["source"] != "block_entity" or "exclude" in value:
+                fail("unsupported copy_components in %s" % self.where)
+            include = [rs_str(name) for name in value.get("include", [])]
+            body = rs_struct("FunctionKind::CopyComponents", [("include", rs_slice(include))])
         elif kind in COMPONENT_FUNCTIONS:
             self.note_ignored(kind)
             body = rs_call("FunctionKind::Components", [rs_str(kind)])
