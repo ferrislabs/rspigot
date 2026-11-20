@@ -111,3 +111,31 @@ fn both_commands_need_permission_level_two() {
         );
     }
 }
+
+#[test]
+fn advancement_and_recipe_use_resource_keys_the_client_can_resolve() {
+    let tree = build_tree(2);
+    let key = |registry: &str| ArgumentParser::ResourceKey {
+        registry: registry.to_owned(),
+    };
+    for mode in ["from", "through", "until"] {
+        assert_eq!(
+            parser(
+                &tree,
+                &["advancement", "grant", "targets", mode, "advancement"]
+            ),
+            key("minecraft:advancement")
+        );
+    }
+    assert_eq!(
+        parser(
+            &tree,
+            &["advancement", "revoke", "targets", "only", "advancement"]
+        ),
+        key("minecraft:advancement")
+    );
+    assert_eq!(
+        parser(&tree, &["recipe", "give", "targets", "recipe"]),
+        key("minecraft:recipe")
+    );
+}

@@ -3,11 +3,19 @@ use rspigot_plugin::prelude::*;
 const KIND: &str = "relic:kind";
 const CHARGES: &str = "relic:charges";
 const BOOST_TICKS: i32 = 200;
+const MAX_CHARGES: i64 = 3;
+
+fn lore(charges: i64) -> [String; 2] {
+    [
+        "Right click to ignite your step".to_owned(),
+        format!("{}Charges: {charges}/{MAX_CHARGES}", ChatColor::Gray),
+    ]
+}
 
 fn relic() -> ItemStack {
     ItemStack::new(Material::GoldenSword, 1)
         .name(format!("{}Relic of Fire", ChatColor::Gold))
-        .lore(["Right click to ignite your step"])
+        .lore(lore(MAX_CHARGES))
         .unbreakable(true)
         .hide_flags([ItemFlag::HideUnbreakable, ItemFlag::HideAttributes])
         .attribute_modifier(AttributeModifier::new(
@@ -19,7 +27,7 @@ fn relic() -> ItemStack {
         ))
         .rarity(Rarity::Epic)
         .with_meta(KIND, "fire")
-        .with_meta(CHARGES, 3)
+        .with_meta(CHARGES, MAX_CHARGES)
 }
 
 #[derive(Plugin, Default)]
@@ -50,7 +58,7 @@ impl Relic {
         let charges = item.meta_get(CHARGES).and_then(|value| value.as_i64());
         match charges {
             Some(left) if left > 0 => {
-                let mut spent = item.clone();
+                let mut spent = item.clone().lore(lore(left - 1));
                 spent.meta_set(CHARGES, left - 1);
                 let slot = match event.hand() {
                     Some(EquipmentSlot::OffHand) => Some(InventorySlot::Offhand),
