@@ -51,6 +51,10 @@ impl Compound {
         self.0.iter().map(|(k, v)| (k.as_str(), v))
     }
 
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut Tag> {
+        self.0.values_mut()
+    }
+
     pub fn get_i64(&self, key: &str) -> Option<i64> {
         self.get(key)?.as_i64()
     }

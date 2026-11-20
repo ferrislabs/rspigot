@@ -1,4 +1,5 @@
 pub(crate) mod desert;
+pub(crate) mod fortress;
 pub(crate) mod fossil;
 pub(crate) mod frame;
 pub(crate) mod hut;
@@ -27,6 +28,7 @@ use crate::overworld::features::place::Run;
 #[derive(Debug)]
 pub(crate) enum Shaped {
     Mine(mineshaft::Piece),
+    Fortress(fortress::Piece),
     Stronghold(stronghold::Piece),
     Portal(portal::Piece),
     Treasure(treasure::Piece),
@@ -42,6 +44,7 @@ impl Shaped {
     pub(crate) fn bbox(&self) -> &Bbox {
         match self {
             Self::Mine(piece) => &piece.bbox,
+            Self::Fortress(piece) => &piece.bbox,
             Self::Stronghold(piece) => &piece.bbox,
             Self::Portal(piece) => &piece.bbox,
             Self::Treasure(piece) => &piece.bbox,
@@ -57,6 +60,7 @@ impl Shaped {
     pub(crate) fn place(&self, run: &mut Run, write: &Bbox) {
         match self {
             Self::Mine(piece) => piece.place(run, write),
+            Self::Fortress(piece) => piece.place(run, write),
             Self::Stronghold(piece) => piece.place(run, write),
             Self::Portal(piece) => piece.place(run, write),
             Self::Treasure(piece) => piece.place(run, write),
@@ -73,6 +77,7 @@ impl Shaped {
     pub(crate) fn class(&self) -> String {
         match self {
             Self::Mine(piece) => piece.class().to_owned(),
+            Self::Fortress(piece) => piece.class().to_owned(),
             Self::Stronghold(piece) => piece.class().to_owned(),
             Self::Portal(_) => "RuinedPortalPiece".to_owned(),
             Self::Treasure(_) => "BuriedTreasurePiece".to_owned(),
@@ -95,6 +100,7 @@ impl Shaped {
         use super::blueprint::Dir;
         let facing = match self {
             Self::Mine(piece) => piece.facing,
+            Self::Fortress(piece) => Some(piece.facing),
             Self::Stronghold(piece) => Some(piece.facing),
             Self::Portal(_) => Some(Dir::North),
             Self::Treasure(_) => None,
@@ -150,6 +156,13 @@ impl Shaped {
                 Some(piece.facing),
                 piece.depth,
                 tags(piece.extra()),
+            ),
+            Self::Fortress(piece) => (
+                piece.id(),
+                piece.bbox,
+                Some(piece.facing),
+                piece.depth,
+                piece.extra(),
             ),
             Self::Treasure(piece) => (piece.id(), piece.bbox, None, 0, Vec::new()),
             Self::Monument(piece) => (piece.id(), piece.bbox, Some(piece.facing), 0, Vec::new()),
@@ -274,6 +287,7 @@ pub(crate) enum Other {
     OceanRuin(ocean_ruin::Params),
     Temple(scatter::Temple),
     Monument,
+    Fortress,
 }
 
 impl Other {
@@ -282,6 +296,7 @@ impl Other {
             "buried_treasure" => Self::BuriedTreasure,
             "igloo" => Self::Igloo,
             "ocean_monument" => Self::Monument,
+            "fortress" => Self::Fortress,
             "desert_pyramid" => Self::Temple(scatter::Temple::Desert),
             "jungle_temple" => Self::Temple(scatter::Temple::Jungle),
             "swamp_hut" => Self::Temple(scatter::Temple::SwampHut),
@@ -339,6 +354,8 @@ impl Other {
                 .map(|piece| vec![Shaped::Temple(piece)]),
             Self::Monument => monument::generate(ground, valid, probe, seed, chunk)
                 .map(|piece| vec![Shaped::Monument(piece)]),
+            Self::Fortress => fortress::generate(valid, probe, seed, chunk)
+                .map(|pieces| pieces.into_iter().map(Shaped::Fortress).collect()),
             Self::Igloo => igloo::generate(library, ground, valid, probe, seed, chunk)
                 .map(|pieces| pieces.into_iter().map(Shaped::Igloo).collect()),
             Self::NetherFossil(height) => {

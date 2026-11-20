@@ -238,6 +238,7 @@ def build(pack):
             "temperature_modifier": data.get("temperature_modifier", "none"),
             "has_precipitation": data.get("has_precipitation", True),
             "features": data["features"],
+            "carvers": data.get("carvers", []),
         }
     placed = {name: pack.load("placed_feature", name) for name in pack.names("placed_feature")}
     configured = {name: pack.load("feature", name) for name in pack.names("feature")}
@@ -254,6 +255,7 @@ def build(pack):
         "placed": placed,
         "configured": configured,
         "noises": noise_table,
+        "carvers": {name: pack.load("carver", name) for name in pack.names("carver")},
         "processor_lists": {name: pack.load("processor_list", name) for name in sorted(processor_names)},
         "providers": {name: pack.load("block_state_provider", name) for name in pack.names("block_state_provider")},
     }

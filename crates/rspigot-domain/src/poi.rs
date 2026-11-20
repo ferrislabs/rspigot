@@ -1,7 +1,7 @@
 use rspigot_blocks::{BlockKind, StateId};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::chunk::ChunkColumn;
+use crate::chunk::{ChunkColumn, ChunkSection};
 use crate::pos::{BlockPos, ChunkPos, SectionPos};
 use crate::world::WorldHeight;
 
@@ -84,6 +84,10 @@ impl PoiType {
             Self::TestInstance => "minecraft:test_instance",
             Self::LightningRod => "minecraft:lightning_rod",
         }
+    }
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.iter().copied().find(|kind| kind.name() == name)
     }
 
     pub const fn max_tickets(self) -> i32 {
@@ -215,6 +219,14 @@ impl PoiRecord {
         }
     }
 
+    pub fn with_free_tickets(pos: BlockPos, kind: PoiType, free_tickets: i32) -> Self {
+        Self {
+            pos,
+            kind,
+            free_tickets: free_tickets.clamp(0, kind.max_tickets()),
+        }
+    }
+
     pub const fn pos(&self) -> BlockPos {
         self.pos
     }
@@ -333,9 +345,52 @@ impl PoiSection {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PoiSectionData {
+    pub section_y: i32,
+    pub valid: bool,
+    pub records: Vec<PoiRecord>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PoiChunkData {
+    pub sections: Vec<PoiSectionData>,
+}
+
+impl PoiChunkData {
+    pub fn is_empty(&self) -> bool {
+        self.sections.is_empty()
+    }
+
+    pub fn section(&self, section_y: i32) -> Option<&PoiSectionData> {
+        self.sections
+            .iter()
+            .find(|section| section.section_y == section_y)
+    }
+}
+
+fn scan_section(section: &ChunkSection, key: SectionPos) -> PoiSection {
+    let mut found = PoiSection::default();
+    if !section.blocks().palette().iter().copied().any(has_poi) {
+        return found;
+    }
+    let origin = key.origin();
+    for y in 0..16usize {
+        for z in 0..16usize {
+            for x in 0..16usize {
+                if let Some(kind) = PoiType::of_state(section.block(x, y, z)) {
+                    found.add(origin.offset(x as i32, y as i32, z as i32), kind);
+                }
+            }
+        }
+    }
+    found
+}
+
 #[derive(Debug, Clone)]
 pub struct PoiManager {
     height: WorldHeight,
+    dirty: FxHashSet<ChunkPos>,
     sections: FxHashMap<SectionPos, PoiSection>,
     centers: FxHashSet<SectionPos>,
     levels: FxHashMap<SectionPos, u8>,
@@ -345,6 +400,7 @@ impl PoiManager {
     pub fn new(height: WorldHeight) -> Self {
         Self {
             height,
+            dirty: FxHashSet::default(),
             sections: FxHashMap::default(),
             centers: FxHashSet::default(),
             levels: FxHashMap::default(),
@@ -371,6 +427,7 @@ impl PoiManager {
         let section = SectionPos::of(pos);
         let added = self.sections.entry(section).or_default().add(pos, kind);
         if added {
+            self.dirty.insert(section.chunk());
             self.refresh_center(section);
         }
         added
@@ -386,6 +443,7 @@ impl PoiManager {
             self.sections.remove(&section);
         }
         if removed {
+            self.dirty.insert(section.chunk());
             self.refresh_center(section);
         }
         removed
@@ -406,34 +464,87 @@ impl PoiManager {
     }
 
     pub fn load_chunk(&mut self, chunk: &ChunkColumn) {
+        self.import_chunk(chunk, None);
+    }
+
+    pub fn import_chunk(&mut self, chunk: &ChunkColumn, saved: Option<&PoiChunkData>) {
         let pos = chunk.pos();
         self.unload_chunk(pos);
         let min_section = chunk.height().min_y >> 4;
+        let mut changed = false;
         for (index, section) in chunk.sections().iter().enumerate() {
-            if !section.blocks().palette().iter().copied().any(has_poi) {
-                continue;
-            }
             let sy = min_section + index as i32;
             let key = SectionPos::from_chunk(pos, sy);
-            let origin = key.origin();
+            let stored = saved.and_then(|data| data.section(sy));
             let mut found = PoiSection::default();
-            for y in 0..16usize {
-                for z in 0..16usize {
-                    for x in 0..16usize {
-                        if let Some(kind) = PoiType::of_state(section.block(x, y, z)) {
-                            found.add(origin.offset(x as i32, y as i32, z as i32), kind);
+            if let Some(stored) = stored.filter(|stored| stored.valid) {
+                for record in &stored.records {
+                    if SectionPos::of(record.pos) == key {
+                        found
+                            .records
+                            .insert(SectionPos::relative(record.pos), *record);
+                    }
+                }
+            } else {
+                found = scan_section(section, key);
+                if let Some(stored) = stored {
+                    for record in &stored.records {
+                        let slot = SectionPos::relative(record.pos);
+                        if SectionPos::of(record.pos) == key
+                            && found
+                                .records
+                                .get(&slot)
+                                .is_some_and(|new| new.kind == record.kind)
+                        {
+                            found.records.insert(slot, *record);
                         }
                     }
                 }
+                changed |= !found.is_empty() || stored.is_some();
             }
             if !found.is_empty() {
                 self.sections.insert(key, found);
                 self.refresh_center(key);
             }
         }
+        if changed {
+            self.dirty.insert(pos);
+        }
+    }
+
+    pub fn export_chunk(&self, pos: ChunkPos) -> PoiChunkData {
+        let mut sections: Vec<PoiSectionData> = (self.min_section()..=self.max_section())
+            .filter_map(|sy| {
+                let section = self.sections.get(&SectionPos::from_chunk(pos, sy))?;
+                let mut records = section.records(|_| true, Occupancy::Any);
+                records.sort_unstable_by_key(|record| SectionPos::relative(record.pos));
+                Some(PoiSectionData {
+                    section_y: sy,
+                    valid: true,
+                    records,
+                })
+            })
+            .collect();
+        sections.retain(|section| !section.records.is_empty());
+        PoiChunkData { sections }
+    }
+
+    pub fn dirty_chunks(&self) -> Vec<ChunkPos> {
+        let mut dirty: Vec<ChunkPos> = self.dirty.iter().copied().collect();
+        dirty.sort_unstable();
+        dirty
+    }
+
+    pub fn is_dirty(&self, pos: ChunkPos) -> bool {
+        self.dirty.contains(&pos)
+    }
+
+    pub fn clear_dirty(&mut self, pos: ChunkPos) -> bool {
+        self.dirty.remove(&pos)
     }
 
     pub fn unload_chunk(&mut self, pos: ChunkPos) {
+        self.dirty.remove(&pos);
         for sy in self.min_section()..=self.max_section() {
             let key = SectionPos::from_chunk(pos, sy);
             if self.sections.remove(&key).is_some() {
@@ -560,6 +671,7 @@ impl PoiManager {
             .get_mut(&section)?
             .get_mut(pos)?
             .acquire_ticket();
+        self.dirty.insert(section.chunk());
         self.refresh_center(section);
         Some(pos)
     }
@@ -571,6 +683,9 @@ impl PoiManager {
             .get_mut(&section)?
             .get_mut(pos)?
             .release_ticket();
+        if released {
+            self.dirty.insert(section.chunk());
+        }
         self.refresh_center(section);
         Some(released)
     }

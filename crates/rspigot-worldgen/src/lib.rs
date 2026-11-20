@@ -1,4 +1,5 @@
 mod buffer;
+mod carver;
 mod classify;
 mod climate;
 mod datapack;
@@ -18,6 +19,7 @@ mod structures;
 mod temperature;
 mod terrain;
 mod void;
+mod worldgen_pack;
 
 use rspigot_core::ports::{ChunkGenerator, PlaceFailure, PlaceRequest, PlacedBlock};
 use rspigot_core::worlds::{GeneratorSpec, WorldSpec};
@@ -89,9 +91,16 @@ impl WorldGenerator {
                     "minecraft:overworld" => NoiseOptions::NORMAL,
                     "minecraft:large_biomes" => NoiseOptions::LARGE_BIOMES,
                     "minecraft:amplified" => NoiseOptions::AMPLIFIED,
-                    other => {
-                        return Err(format!("no noise settings and biome source named {other}"));
-                    }
+                    other => match worldgen_pack::alias(other) {
+                        Some("minecraft:overworld") => NoiseOptions::NORMAL,
+                        Some("minecraft:large_biomes") => NoiseOptions::LARGE_BIOMES,
+                        Some("minecraft:amplified") => NoiseOptions::AMPLIFIED,
+                        _ => {
+                            return Err(format!(
+                                "no noise settings and biome source named {other}"
+                            ));
+                        }
+                    },
                 };
                 Ok(Self::noise(seed, options, spec.structures))
             }

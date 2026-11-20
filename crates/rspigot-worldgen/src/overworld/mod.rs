@@ -12,6 +12,7 @@ use rspigot_domain::world::Dimension;
 use rspigot_domain::{BiomeId, BlockPos, ChunkPos, Vec3};
 
 use crate::buffer::ChunkBuffer;
+use crate::carver::{self, Carvers};
 use crate::climate::{BiomeSource, ClimateScratch};
 use crate::resources::{BlockKind, Palette, Resources, biome_id};
 use crate::structures::{Engine, Library};
@@ -67,6 +68,7 @@ impl TerrainCache {
 pub(crate) struct Overworld {
     seed: u64,
     terrain: Arc<Terrain>,
+    carvers: Arc<Carvers>,
     source: Arc<BiomeSource>,
     placed: Arc<[PlacedBiome]>,
     surface: Arc<SurfaceSystem>,
@@ -119,6 +121,7 @@ impl Overworld {
         Self {
             seed,
             terrain: Arc::new(Terrain::new(seed as i64, variant)),
+            carvers: Arc::new(Carvers::overworld()),
             source: source.clone(),
             placed: overworld_biomes()
                 .iter()
@@ -133,6 +136,13 @@ impl Overworld {
             cells: Arc::default(),
             spawned: Arc::default(),
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn with_carvers(mut self, carvers: Carvers) -> Self {
+        self.carvers = Arc::new(carvers);
+        self.cache = Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY)));
+        self
     }
 
     pub(crate) fn column_heights(&self, cx: i32, cz: i32) -> Arc<ColumnHeights> {
@@ -310,6 +320,24 @@ impl Overworld {
                     let (biomes, scratch) = &mut *guard;
                     biomes.get(&self.source, scratch, pos, x, y, z)
                 },
+            });
+        }
+        let context = carver::Context {
+            min_y: terrain.min_y(),
+            depth: terrain.depth(),
+        };
+        let mask = self.carvers.mask(self.seed as i64, context, (pos.x, pos.z));
+        if !mask.is_empty() {
+            let mut sampler = sampler.borrow_mut();
+            let mut carving = terrain.carving(&mut sampler, x0, z0);
+            carver::apply(&mask, &mut buffer, (x0, z0), |x, y, z| {
+                carving
+                    .substance(&mut sampler, x, y, z)
+                    .map(|fluid| match fluid {
+                        crate::terrain::Fluid::Air => palette[BlockKind::Air],
+                        crate::terrain::Fluid::Water => water,
+                        crate::terrain::Fluid::Lava => lava,
+                    })
             });
         }
         buffer
@@ -743,6 +771,45 @@ mod tests {
             assert_eq!(sorted.len(), offsets.len());
             assert!(offsets.iter().all(|(x, z)| x.abs().max(z.abs()) == ring));
         }
+    }
+
+    fn open_cells_below(chunk: &TerrainChunk, limit: i32) -> usize {
+        let mut open = 0;
+        for z in 0..16 {
+            for x in 0..16 {
+                for y in -63..limit {
+                    open += usize::from(chunk.buffer.get(x, y, z).is_air());
+                }
+            }
+        }
+        open
+    }
+
+    #[test]
+    fn carvers_open_caves_and_keep_the_bedrock_floor() {
+        let resources = Resources::resolve();
+        let palette = &resources.blocks;
+        let dimension = Dimension::overworld();
+        let carved = Overworld::new(77, ClimateVariant::Normal, palette);
+        let plain = carved.clone().with_carvers(Carvers::none());
+        let mut scratch = carved.source.scratch();
+        let (mut with, mut without) = (0, 0);
+        for pos in [
+            ChunkPos::new(3, -5),
+            ChunkPos::new(4, -5),
+            ChunkPos::new(3, -4),
+        ] {
+            let after = carved.terrain_cached(&resources, &dimension, pos, &mut scratch);
+            let before = plain.terrain_cached(&resources, &dimension, pos, &mut scratch);
+            with += open_cells_below(&after, 50);
+            without += open_cells_below(&before, 50);
+            for z in 0..16 {
+                for x in 0..16 {
+                    assert_eq!(after.buffer.get(x, -64, z), palette[BlockKind::Bedrock]);
+                }
+            }
+        }
+        assert!(with > without + 500, "carved {with} vs plain {without}");
     }
 
     #[test]

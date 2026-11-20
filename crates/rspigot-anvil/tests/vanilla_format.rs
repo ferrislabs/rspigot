@@ -191,8 +191,9 @@ fn a_hand_built_26_3_world_loads() {
         );
         assert_eq!(chunk.heightmaps.maps.len(), 1);
         assert!(chunk.extra.contains_key("structures"));
-        assert!(chunk.light.sky[0].is_some());
+        assert_eq!(chunk.light.sky[0].is_some(), pos != fourth);
         assert!(chunk.light.sky[25].is_none());
+        assert_eq!(chunk.is_dirty(), pos == fourth);
         assert_eq!(chunk.light.sky.len(), 26);
     }
     assert!(
@@ -278,4 +279,69 @@ fn unknown_compression_ids_are_corrupt() {
         store.load(&overworld(), pos),
         Err(StoreError::Corrupt { .. })
     ));
+}
+
+#[test]
+fn old_entity_files_are_upgraded_on_load_and_pre_1_18_ones_are_refused() {
+    use rspigot_core::ports::EntityStore;
+    let dir = TempDir::new("old-entities");
+    let world = dir.world();
+    let current = ChunkPos::new(0, 0);
+    let ancient = ChunkPos::new(1, 0);
+    let zombie = Compound::new()
+        .with("id", "minecraft:zombie")
+        .with(
+            "HandItems",
+            Tag::List(vec![
+                Tag::Compound(
+                    Compound::new()
+                        .with("id", "minecraft:iron_sword")
+                        .with("count", 1),
+                ),
+                Tag::Compound(Compound::new()),
+            ]),
+        )
+        .with("CustomName", "{\"text\":\"Bob\"}");
+    let file = |pos: ChunkPos, version: i32| {
+        Compound::new()
+            .with("DataVersion", version)
+            .with("Entities", Tag::List(vec![Tag::Compound(zombie.clone())]))
+            .with("Position", Tag::IntArray(vec![pos.x, pos.z]))
+    };
+    let dir_path = DimensionLayout::Spigot
+        .entities_dir(&world, &overworld())
+        .unwrap();
+    std::fs::create_dir_all(&dir_path).unwrap();
+    std::fs::write(
+        dir_path.join("r.0.0.mca"),
+        region_with(&[
+            (current, 2, file(current, 4189)),
+            (ancient, 2, file(ancient, 2586)),
+        ]),
+    )
+    .unwrap();
+    let store = AnvilStore::open(&world, DimensionLayout::Spigot).unwrap();
+    let loaded = store.load_entities(&overworld(), current).unwrap().unwrap();
+    let equipment = loaded[0].get_compound("equipment").unwrap();
+    assert_eq!(
+        equipment.get_compound("mainhand").unwrap().get_str("id"),
+        Some("minecraft:iron_sword")
+    );
+    assert_eq!(
+        loaded[0]
+            .get_compound("CustomName")
+            .unwrap()
+            .get_str("text"),
+        Some("Bob")
+    );
+    let error = store
+        .load_entities(&overworld(), ancient)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        error.contains(
+            "older than the oldest supported version 2860; open it with a vanilla server first"
+        ),
+        "{error}"
+    );
 }

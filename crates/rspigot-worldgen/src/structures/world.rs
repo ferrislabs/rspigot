@@ -423,9 +423,8 @@ impl Engine {
             }
             let chosen = remaining.remove(index.min(remaining.len() - 1));
             total -= chosen.weight;
-            if let Some(def) = self.defs.get(&chosen.structure)
-                && let Some(start) = self.generate(def, ground, probe, chunk)
-            {
+            let def = self.defs.get(&chosen.structure)?;
+            if let Some(start) = self.generate(def, ground, probe, chunk) {
                 return Some(start);
             }
         }

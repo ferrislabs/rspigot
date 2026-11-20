@@ -6,9 +6,22 @@ use serde_json::Value;
 
 const SOURCE: &str = include_str!("../data/worldgen.json");
 
+static DATA: OnceLock<Value> = OnceLock::new();
+
+pub(crate) fn embedded() -> Value {
+    serde_json::from_str(SOURCE).unwrap_or(Value::Null)
+}
+
+pub(crate) fn loaded() -> bool {
+    DATA.get().is_some()
+}
+
 pub(crate) fn worldgen() -> &'static Value {
-    static DATA: OnceLock<Value> = OnceLock::new();
-    DATA.get_or_init(|| serde_json::from_str(SOURCE).unwrap_or(Value::Null))
+    DATA.get_or_init(|| {
+        let mut value = embedded();
+        crate::worldgen_pack::apply(&mut value);
+        value
+    })
 }
 
 pub(crate) fn state_named(name: &str, properties: &[(&str, &str)]) -> Option<BlockStateId> {

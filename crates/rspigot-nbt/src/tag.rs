@@ -128,6 +128,20 @@ impl Tag {
             _ => None,
         }
     }
+
+    pub fn as_compound_mut(&mut self) -> Option<&mut Compound> {
+        match self {
+            Self::Compound(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    pub fn as_list_mut(&mut self) -> Option<&mut Vec<Tag>> {
+        match self {
+            Self::List(l) => Some(l),
+            _ => None,
+        }
+    }
 }
 
 impl From<i8> for Tag {
@@ -307,6 +321,28 @@ mod tests {
 
     fn parsed(text: &str) -> Tag {
         Tag::Compound(crate::parse_compound(text).expect("valid snbt").0)
+    }
+
+    #[test]
+    fn mutable_views_reach_nested_values() {
+        let mut tag = parsed("{a:{b:1},l:[1,2]}");
+        let Tag::Compound(root) = &mut tag else {
+            panic!("compound");
+        };
+        root.get_mut("a")
+            .and_then(Tag::as_compound_mut)
+            .unwrap()
+            .insert("c", 2);
+        root.get_mut("l")
+            .and_then(Tag::as_list_mut)
+            .unwrap()
+            .push(Tag::Int(3));
+        for value in root.values_mut() {
+            if let Some(list) = value.as_list_mut() {
+                list.clear();
+            }
+        }
+        assert_eq!(tag, parsed("{a:{b:1,c:2},l:[]}"));
     }
 
     #[test]

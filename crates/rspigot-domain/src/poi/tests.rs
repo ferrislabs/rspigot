@@ -364,3 +364,69 @@ fn results_come_in_chunk_then_section_then_offset_order() {
         ]
     );
 }
+
+#[test]
+fn export_then_import_keeps_claimed_tickets() {
+    let bed = BlockPos::new(3, 64, 3);
+    let mut chunk = column(0, 0);
+    chunk.set_block(bed, bed_head());
+    let mut poi = manager();
+    poi.load_chunk(&chunk);
+    poi.take(|kind| kind == PoiType::Home, |_, _| true, bed, 4);
+    let data = poi.export_chunk(ChunkPos::new(0, 0));
+    assert_eq!(data.sections.len(), 1);
+    assert_eq!(data.sections[0].section_y, 4);
+    assert_eq!(data.sections[0].records[0].free_tickets(), 0);
+    let mut fresh = manager();
+    fresh.import_chunk(&chunk, Some(&data));
+    assert_eq!(fresh.record_at(bed).map(|r| r.free_tickets()), Some(0));
+    assert!(!fresh.is_dirty(ChunkPos::new(0, 0)));
+}
+
+#[test]
+fn invalid_section_is_rescanned_and_keeps_matching_records() {
+    let bed = BlockPos::new(3, 64, 3);
+    let bell = BlockPos::new(5, 64, 5);
+    let mut chunk = column(0, 0);
+    chunk.set_block(bed, bed_head());
+    chunk.set_block(bell, BlockKind::Bell.default_state());
+    let saved = PoiChunkData {
+        sections: vec![PoiSectionData {
+            section_y: 4,
+            valid: false,
+            records: vec![
+                PoiRecord::with_free_tickets(bed, PoiType::Home, 0),
+                PoiRecord::new(BlockPos::new(9, 64, 9), PoiType::Home),
+            ],
+        }],
+    };
+    let mut poi = manager();
+    poi.import_chunk(&chunk, Some(&saved));
+    assert_eq!(poi.record_at(bed).map(|r| r.free_tickets()), Some(0));
+    assert_eq!(poi.type_at(bell), Some(PoiType::Meeting));
+    assert_eq!(poi.type_at(BlockPos::new(9, 64, 9)), None);
+    assert!(poi.is_dirty(ChunkPos::new(0, 0)));
+}
+
+#[test]
+fn unload_drops_sections_and_dirty_state() {
+    let mut chunk = column(0, 0);
+    chunk.set_block(BlockPos::new(3, 64, 3), bed_head());
+    let mut poi = manager();
+    poi.load_chunk(&chunk);
+    assert!(poi.is_dirty(ChunkPos::new(0, 0)));
+    poi.unload_chunk(ChunkPos::new(0, 0));
+    assert_eq!(poi.section_count(), 0);
+    assert!(poi.dirty_chunks().is_empty());
+}
+
+#[test]
+fn record_tickets_are_clamped_and_names_resolve() {
+    let record = PoiRecord::with_free_tickets(BlockPos::new(0, 0, 0), PoiType::Home, 9);
+    assert_eq!(record.free_tickets(), 1);
+    assert_eq!(
+        PoiType::from_name("minecraft:bee_nest"),
+        Some(PoiType::BeeNest)
+    );
+    assert_eq!(PoiType::from_name("minecraft:nope"), None);
+}
