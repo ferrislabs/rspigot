@@ -325,25 +325,29 @@ fn normalized(name: &str) -> std::borrow::Cow<'_, str> {
 }
 
 fn block_state_from_tag(tag: &Tag) -> BlockStateId {
-    let Some(compound) = tag.as_compound() else {
-        return BlockStateId::AIR;
-    };
-    let name = normalized(
-        compound
+    let (raw_name, props) = if let Some(name) = tag.as_str() {
+        (name, Vec::new())
+    } else if let Some(compound) = tag.as_compound() {
+        let name = compound
             .get_str("Name")
             .or_else(|| compound.get_str("id"))
-            .unwrap_or(AIR_NAME),
-    );
-    let props: Vec<(&str, &str)> = compound
-        .get_compound("Properties")
-        .or_else(|| compound.get_compound("properties"))
-        .map(|properties| {
-            properties
-                .iter()
-                .filter_map(|(key, value)| value.as_str().map(|value| (key, value)))
-                .collect()
-        })
-        .unwrap_or_default();
+            .or_else(|| compound.get_str(""))
+            .unwrap_or(AIR_NAME);
+        let props = compound
+            .get_compound("Properties")
+            .or_else(|| compound.get_compound("properties"))
+            .map(|properties| {
+                properties
+                    .iter()
+                    .filter_map(|(key, value)| value.as_str().map(|value| (key, value)))
+                    .collect()
+            })
+            .unwrap_or_default();
+        (name, props)
+    } else {
+        return BlockStateId::AIR;
+    };
+    let name = normalized(raw_name);
     let Some(kind) = BlockKind::from_name(&name) else {
         tracing::warn!(block = %name, "unknown block in a chunk palette, using air");
         return BlockStateId::AIR;
@@ -360,7 +364,10 @@ fn block_state_from_tag(tag: &Tag) -> BlockStateId {
 }
 
 fn biome_from_tag(tag: &Tag, plains: BiomeId) -> BiomeId {
-    let name = tag.as_str().map(normalized);
+    let name = tag
+        .as_str()
+        .or_else(|| tag.as_compound().and_then(|compound| compound.get_str("")))
+        .map(normalized);
     match name.as_deref().and_then(biome_id) {
         Some(id) => BiomeId(id),
         None => {
@@ -1445,6 +1452,60 @@ mod tests {
         assert_eq!(chunk.block_entities.len(), 1);
         assert_eq!(chunk.block_entities[0].kind.as_str(), "minecraft:sign");
         assert!(chunk.block_entities[0].data.is_empty());
+    }
+
+    #[test]
+    fn bare_string_and_heterogeneous_wrapper_palette_entries_decode() {
+        let palette = Tag::List(vec![
+            Tag::String("minecraft:air".to_owned()),
+            Tag::Compound(Compound::new().with("", "minecraft:stone")),
+            Tag::Compound(
+                Compound::new()
+                    .with("id", "minecraft:oak_stairs")
+                    .with("properties", Compound::new().with("facing", "north")),
+            ),
+        ]);
+        let mut indices = vec![0usize; 4096];
+        indices[1] = 1;
+        indices[2] = 2;
+
+        let mut root = hand_built_chunk();
+        let sections = match root.get_mut("sections") {
+            Some(Tag::List(sections)) => sections,
+            _ => unreachable!(),
+        };
+        if let Some(Tag::Compound(sec0)) = sections.get_mut(1) {
+            sec0.insert(
+                "block_states",
+                container(vec![Tag::String("minecraft:bedrock".to_owned())], None),
+            );
+            sec0.insert(
+                "biomes",
+                container(vec![Tag::Compound(Compound::new().with("", RIVER))], None),
+            );
+        }
+        if let Some(Tag::Compound(sec1)) = sections.get_mut(2) {
+            sec1.insert(
+                "block_states",
+                container(
+                    match palette {
+                        Tag::List(items) => items,
+                        _ => unreachable!(),
+                    },
+                    Some(pack(&indices, 4)),
+                ),
+            );
+        }
+
+        let chunk = load(root);
+        assert_eq!(
+            chunk.sections()[0].blocks().single_value(),
+            Some(state("minecraft:bedrock"))
+        );
+        assert_eq!(chunk.sections()[0].biomes().single_value(), Some(biome(RIVER)));
+        assert_eq!(chunk.sections()[1].block(0, 0, 0), BlockStateId::AIR);
+        assert_eq!(chunk.sections()[1].block(1, 0, 0), state("minecraft:stone"));
+        assert_ne!(chunk.sections()[1].block(2, 0, 0), BlockStateId::AIR);
     }
 
     #[test]
