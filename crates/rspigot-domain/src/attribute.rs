@@ -5,6 +5,11 @@ use crate::effect::{
     player_base,
 };
 use crate::ids::ItemId;
+use crate::item::ItemStack;
+use rspigot_nbt::Tag;
+
+pub const ATTRIBUTE_MODIFIERS: &str = "minecraft:attribute_modifiers";
+const ATTRIBUTE_REGISTRY: &str = "minecraft:attribute";
 
 pub const MAX_HEALTH: &str = "minecraft:max_health";
 pub const MAX_ABSORPTION: &str = "minecraft:max_absorption";
@@ -101,16 +106,95 @@ pub fn equipment_modifiers(
         })
 }
 
+fn registered_attribute(name: &str) -> Option<&'static str> {
+    let name = if name.contains(':') {
+        std::borrow::Cow::Borrowed(name)
+    } else {
+        std::borrow::Cow::Owned(format!("minecraft:{name}"))
+    };
+    rspigot_data::registries::static_entries(ATTRIBUTE_REGISTRY)?
+        .iter()
+        .copied()
+        .find(|known| *known == name)
+}
+
+fn slot_group(name: &str) -> Option<rspigot_items::SlotGroup> {
+    use rspigot_items::SlotGroup as Group;
+    Some(match name {
+        "any" => Group::Any,
+        "mainhand" => Group::Mainhand,
+        "offhand" => Group::Offhand,
+        "hand" => Group::Hand,
+        "feet" => Group::Feet,
+        "legs" => Group::Legs,
+        "chest" => Group::Chest,
+        "head" => Group::Head,
+        "armor" => Group::Armor,
+        "body" => Group::Body,
+        "saddle" => Group::Saddle,
+        _ => return None,
+    })
+}
+
+fn component_modifier(
+    slot: EquipmentSlot,
+    entry: &Tag,
+) -> Option<(&'static str, AttributeModifier)> {
+    let entry = entry.as_compound()?;
+    let attribute = registered_attribute(entry.get_str("type")?)?;
+    let group = slot_group(entry.get_str("slot").unwrap_or("any"))?;
+    if !group.contains(slot) {
+        return None;
+    }
+    let operation = match entry.get_str("operation")? {
+        "add_value" => AttributeOperation::AddValue,
+        "add_multiplied_base" => AttributeOperation::AddMultipliedBase,
+        "add_multiplied_total" => AttributeOperation::AddMultipliedTotal,
+        _ => return None,
+    };
+    Some((
+        attribute,
+        AttributeModifier {
+            id: std::borrow::Cow::Owned(entry.get_str("id")?.to_owned()),
+            amount: entry
+                .get_f64("amount")
+                .filter(|amount| amount.is_finite())?,
+            operation,
+        },
+    ))
+}
+
+pub fn worn_modifiers(
+    slot: EquipmentSlot,
+    item: ItemId,
+    component: Option<&Tag>,
+) -> Vec<(&'static str, AttributeModifier)> {
+    match component {
+        Some(Tag::List(entries)) => entries
+            .iter()
+            .filter_map(|entry| component_modifier(slot, entry))
+            .collect(),
+        _ => equipment_modifiers(slot, item).collect(),
+    }
+}
+
+pub fn stack_modifiers(
+    slot: EquipmentSlot,
+    stack: &ItemStack,
+) -> Vec<(&'static str, AttributeModifier)> {
+    worn_modifiers(slot, stack.item, stack.components.get(ATTRIBUTE_MODIFIERS))
+}
+
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Attributes {
     pub states: Vec<AttributeState>,
 }
 
 impl Attributes {
-    pub fn of(effects: &ActiveEffects, equipment: &[(EquipmentSlot, ItemId)]) -> Self {
+    pub fn of(effects: &ActiveEffects, equipment: &[(EquipmentSlot, &ItemStack)]) -> Self {
         let mut states = effect_attributes(effects);
-        for (slot, item) in equipment {
-            for (attribute, modifier) in equipment_modifiers(*slot, *item) {
+        for (slot, stack) in equipment {
+            for (attribute, modifier) in stack_modifiers(*slot, stack) {
                 match states.iter_mut().find(|s| s.attribute == attribute) {
                     Some(state) => state.modifiers.push(modifier),
                     None => states.push(AttributeState {
@@ -179,6 +263,7 @@ impl Attributes {
 mod tests {
     use super::*;
     use crate::effect::{EffectDuration, EffectId, EffectInstance};
+    use rspigot_nbt::{Compound, Tag};
 
     fn effect(name: &str, amplifier: u8) -> EffectInstance {
         EffectInstance::new(
@@ -189,8 +274,111 @@ mod tests {
         )
     }
 
-    fn item(name: &str) -> ItemId {
-        rspigot_items::ItemKind::from_name(name).unwrap().id()
+    fn item(name: &str) -> ItemStack {
+        ItemStack::new(
+            rspigot_items::ItemKind::from_name(name).unwrap().id(),
+            std::num::NonZeroU8::MIN,
+        )
+    }
+
+    fn with_modifiers(mut stack: ItemStack, entries: Vec<Tag>) -> ItemStack {
+        stack
+            .components
+            .insert(ATTRIBUTE_MODIFIERS, Tag::List(entries));
+        stack
+    }
+
+    fn entry(attribute: &str, amount: f64, operation: &str, slot: &str) -> Tag {
+        Tag::Compound(
+            Compound::new()
+                .with("type", attribute)
+                .with("id", "test:mod")
+                .with("amount", amount)
+                .with("operation", operation)
+                .with("slot", slot),
+        )
+    }
+
+    fn of(effects: &ActiveEffects, worn: &[(EquipmentSlot, ItemStack)]) -> Attributes {
+        let borrowed: Vec<(EquipmentSlot, &ItemStack)> =
+            worn.iter().map(|(slot, stack)| (*slot, stack)).collect();
+        Attributes::of(effects, &borrowed)
+    }
+
+    #[test]
+    fn a_stack_modifier_replaces_the_defaults_of_the_item_for_its_slot() {
+        let relic = with_modifiers(
+            item("diamond_sword"),
+            vec![entry(ATTACK_DAMAGE, 5.0, "add_value", "mainhand")],
+        );
+        let held = [(EquipmentSlot::Mainhand, relic.clone())];
+        let attributes = of(&ActiveEffects::default(), &held);
+        assert_eq!(attributes.get(ATTACK_DAMAGE), 6.0);
+        assert_eq!(attributes.get(ATTACK_SPEED), 4.0);
+        let offhand = [(EquipmentSlot::Offhand, relic)];
+        assert_eq!(
+            of(&ActiveEffects::default(), &offhand).get(ATTACK_DAMAGE),
+            1.0
+        );
+    }
+
+    #[test]
+    fn an_empty_list_removes_the_defaults() {
+        let bare = with_modifiers(item("diamond_chestplate"), Vec::new());
+        let worn = [(EquipmentSlot::Chest, bare)];
+        let attributes = of(&ActiveEffects::default(), &worn);
+        assert_eq!(attributes.get(ARMOR), 0.0);
+        assert_eq!(attributes.get(ARMOR_TOUGHNESS), 0.0);
+    }
+
+    #[test]
+    fn a_stack_replaces_the_default_armor_and_a_slot_mismatch_does_nothing() {
+        let plated = with_modifiers(
+            item("diamond_chestplate"),
+            vec![entry(ARMOR, 2.0, "add_value", "chest")],
+        );
+        let worn = [(EquipmentSlot::Chest, plated)];
+        let attributes = of(&ActiveEffects::default(), &worn);
+        assert_eq!(attributes.get(ARMOR), 2.0);
+        assert_eq!(attributes.get(ARMOR_TOUGHNESS), 0.0);
+        let wrong = with_modifiers(
+            item("diamond_chestplate"),
+            vec![entry(ARMOR, 7.0, "add_value", "feet")],
+        );
+        let worn = [(EquipmentSlot::Chest, wrong)];
+        assert_eq!(of(&ActiveEffects::default(), &worn).get(ARMOR), 0.0);
+    }
+
+    #[test]
+    fn stack_modifiers_apply_their_operations_in_vanilla_order_and_groups_match() {
+        let tool = with_modifiers(
+            item("stick"),
+            vec![
+                entry(ATTACK_DAMAGE, 1.0, "add_value", "hand"),
+                entry(ATTACK_DAMAGE, 0.5, "add_multiplied_base", "any"),
+                entry(ATTACK_DAMAGE, 1.0, "add_multiplied_total", "mainhand"),
+                entry(ATTACK_DAMAGE, 100.0, "add_value", "armor"),
+            ],
+        );
+        let held = [(EquipmentSlot::Mainhand, tool)];
+        let attributes = of(&ActiveEffects::default(), &held);
+        assert_eq!(attributes.get(ATTACK_DAMAGE), 6.0);
+    }
+
+    #[test]
+    fn invalid_stack_entries_are_skipped() {
+        let junk = with_modifiers(
+            item("stick"),
+            vec![
+                entry("minecraft:nope", 1.0, "add_value", "any"),
+                entry(ATTACK_DAMAGE, 1.0, "bad", "any"),
+                entry(ATTACK_DAMAGE, 1.0, "add_value", "bad"),
+                Tag::Int(3),
+                entry(ATTACK_DAMAGE, 2.0, "add_value", "any"),
+            ],
+        );
+        let held = [(EquipmentSlot::Mainhand, junk)];
+        assert_eq!(of(&ActiveEffects::default(), &held).get(ATTACK_DAMAGE), 3.0);
     }
 
     #[test]
@@ -209,12 +397,12 @@ mod tests {
         let mut effects = ActiveEffects::default();
         let _ = effects.apply(effect("strength", 1));
         let held = [(EquipmentSlot::Mainhand, item("diamond_sword"))];
-        let attributes = Attributes::of(&effects, &held);
+        let attributes = of(&effects, &held);
         assert_eq!(attributes.get(ATTACK_DAMAGE), 1.0 + 6.0 + 6.0);
         assert!((attributes.get(ATTACK_SPEED) - 1.6).abs() < 1e-6);
         let offhand = [(EquipmentSlot::Offhand, item("diamond_sword"))];
         assert_eq!(
-            Attributes::of(&ActiveEffects::default(), &offhand).get(ATTACK_DAMAGE),
+            of(&ActiveEffects::default(), &offhand).get(ATTACK_DAMAGE),
             1.0
         );
     }
@@ -236,7 +424,7 @@ mod tests {
             (EquipmentSlot::Chest, item("diamond_chestplate")),
             (EquipmentSlot::Mainhand, item("diamond_helmet")),
         ];
-        let attributes = Attributes::of(&ActiveEffects::default(), &worn);
+        let attributes = of(&ActiveEffects::default(), &worn);
         assert_eq!(attributes.get(ARMOR), 3.0 + 8.0);
         assert_eq!(attributes.get(ARMOR_TOUGHNESS), 4.0);
         let state = AttributeState {
