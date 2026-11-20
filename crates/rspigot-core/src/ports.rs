@@ -2,6 +2,7 @@ use std::net::IpAddr;
 
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::player::{GameProfile, PlayerId};
+use rspigot_domain::poi::PoiChunkData;
 use rspigot_domain::text::Component;
 use rspigot_domain::world::Dimension;
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos, Identifier, Vec3};
@@ -42,6 +43,23 @@ pub trait EntityStore: Send + Sync + 'static {
         pos: ChunkPos,
         entities: &[Compound],
     ) -> Result<(), StoreError>;
+
+    fn load_poi(
+        &self,
+        _dimension: &Identifier,
+        _pos: ChunkPos,
+    ) -> Result<Option<PoiChunkData>, StoreError> {
+        Ok(None)
+    }
+
+    fn save_poi(
+        &self,
+        _dimension: &Identifier,
+        _pos: ChunkPos,
+        _data: &PoiChunkData,
+    ) -> Result<(), StoreError> {
+        Ok(())
+    }
 
     fn load_world_data(
         &self,

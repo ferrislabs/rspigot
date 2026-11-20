@@ -17,6 +17,8 @@ mod template;
 mod world;
 
 #[cfg(test)]
+mod fortress_tests;
+#[cfg(test)]
 mod library_tests;
 #[cfg(test)]
 mod shaped_tests;
@@ -33,11 +35,16 @@ pub(crate) use placement::BiomeProbe;
 pub(crate) use render::{jigsaw_blocks, start_blocks, template_blocks};
 pub(crate) use world::{Engine, Start};
 
+pub(crate) fn install_roots(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    library::Library::discover(dir).0
+}
+
 pub fn install_datapacks(dir: &std::path::Path) -> Vec<LoadIssue> {
     let (packs, mut issues) = library::Library::discover(dir);
     if packs.is_empty() {
         return issues;
     }
+    issues.extend(crate::worldgen_pack::install_from(dir));
     let (library, found) = library::Library::build(&packs);
     issues.extend(found);
     if let Err(reason) = library::Library::install(library) {

@@ -12,6 +12,7 @@ mod reference;
 pub(crate) use biomes::NETHER_BIOMES;
 
 use crate::buffer::ChunkBuffer;
+use crate::carver::{self, Carvers};
 use crate::overworld::{
     Bounds, ChunkBiomes, ColumnInput, Features, Region, SurfaceSystem, TerrainCache, TerrainChunk,
 };
@@ -26,6 +27,7 @@ const CACHE_CAPACITY: usize = 64;
 #[derive(Debug, Clone)]
 pub(crate) struct Nether {
     seed: u64,
+    carvers: Arc<Carvers>,
     density: density::NetherDensity,
     biomes: biomes::NetherBiomes,
     surface: Arc<SurfaceSystem>,
@@ -134,6 +136,7 @@ impl Nether {
             structures,
             structures_on: true,
             seed,
+            carvers: Arc::new(Carvers::nether()),
             density: density::NetherDensity::new(seed as i64),
             biomes,
             surface: Arc::new(SurfaceSystem::nether(seed as i64, palette)),
@@ -339,6 +342,15 @@ impl Nether {
                 biome_at: |_| index,
             });
         }
+        let context = carver::Context {
+            min_y: bottom,
+            depth: (height.height as i32).min(NOISE_HEIGHT),
+        };
+        let mask = self.carvers.mask(self.seed as i64, context, (pos.x, pos.z));
+        let air = palette[BlockKind::Air];
+        carver::apply(&mask, &mut buffer, (x0, z0), |_, y, _| {
+            Some(if y < dimension.sea_level { lava } else { air })
+        });
         TerrainChunk::new(buffer, biomes, [bounds.max_y + 1; 256], height)
     }
 
@@ -431,6 +443,37 @@ fn ring_chunks(ring: i32) -> Vec<(i32, i32)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn nether_caves_open_air_and_fill_low_pockets_with_lava() {
+        let resources = Resources::resolve();
+        let dimension = Dimension::nether();
+        let carved = Nether::new(5, &resources.blocks);
+        let mut plain = carved.clone();
+        plain.carvers = Arc::new(Carvers::none());
+        plain.cache = Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY)));
+        let count = |nether: &Nether, air: bool| -> usize {
+            let mut found = 0;
+            for cx in 0..3 {
+                let chunk = nether.terrain_cached(&resources, &dimension, ChunkPos::new(cx, 1));
+                for z in 0..16 {
+                    for x in 0..16 {
+                        for y in 1..121 {
+                            let state = chunk.buffer.get(x, y, z);
+                            found += usize::from(if air {
+                                state.is_air()
+                            } else {
+                                state == resources.blocks[BlockKind::Lava]
+                            });
+                        }
+                    }
+                }
+            }
+            found
+        };
+        assert!(count(&carved, true) > count(&plain, true));
+        assert!(count(&carved, false) >= count(&plain, false));
+    }
 
     #[test]
     fn ring_chunks_enumerate_the_perimeter() {

@@ -38,6 +38,10 @@ impl DimensionLayout {
         Ok(self.dimension_dir(world_root, dimension)?.join("entities"))
     }
 
+    pub fn poi_dir(self, world_root: &Path, dimension: &Identifier) -> Result<PathBuf, AnvilError> {
+        Ok(self.dimension_dir(world_root, dimension)?.join("poi"))
+    }
+
     pub fn dimension_dir(
         self,
         world_root: &Path,
@@ -171,6 +175,50 @@ mod tests {
                 .entities_dir(Path::new("/srv/world"), &id("minecraft:overworld"))
                 .unwrap(),
             Path::new("/srv/world/entities")
+        );
+    }
+
+    #[test]
+    fn poi_sits_next_to_the_region_folder_in_every_dimension() {
+        let root = Path::new("/srv/world");
+        let poi = |layout: DimensionLayout, dimension: &str| {
+            layout.poi_dir(root, &id(dimension)).unwrap()
+        };
+        assert_eq!(
+            poi(DimensionLayout::Spigot, "minecraft:overworld"),
+            Path::new("/srv/world/dimensions/minecraft/overworld/poi")
+        );
+        assert_eq!(
+            poi(DimensionLayout::Spigot, "minecraft:the_nether"),
+            Path::new("/srv/world_nether/dimensions/minecraft/the_nether/poi")
+        );
+        assert_eq!(
+            poi(DimensionLayout::Spigot, "minecraft:the_end"),
+            Path::new("/srv/world_the_end/dimensions/minecraft/the_end/poi")
+        );
+        assert_eq!(
+            poi(DimensionLayout::Vanilla, "minecraft:the_nether"),
+            Path::new("/srv/world/dimensions/minecraft/the_nether/poi")
+        );
+        assert_eq!(
+            poi(DimensionLayout::LegacyVanilla, "minecraft:overworld"),
+            Path::new("/srv/world/poi")
+        );
+        assert_eq!(
+            poi(DimensionLayout::LegacyVanilla, "minecraft:the_nether"),
+            Path::new("/srv/world/DIM-1/poi")
+        );
+        assert_eq!(
+            poi(DimensionLayout::LegacyVanilla, "minecraft:the_end"),
+            Path::new("/srv/world/DIM1/poi")
+        );
+        assert_eq!(
+            poi(DimensionLayout::LegacySpigot, "minecraft:the_nether"),
+            Path::new("/srv/world_nether/DIM-1/poi")
+        );
+        assert_eq!(
+            poi(DimensionLayout::LegacySpigot, "minecraft:the_end"),
+            Path::new("/srv/world_the_end/DIM1/poi")
         );
     }
 

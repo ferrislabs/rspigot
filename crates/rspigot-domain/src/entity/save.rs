@@ -286,26 +286,27 @@ pub fn item_stack_from_nbt(compound: &Compound) -> Option<ItemStack> {
 
 pub fn block_state_to_nbt(state: BlockStateId) -> Compound {
     let mut out = Compound::new();
-    out.insert(
-        "Name",
-        state.kind().map_or("minecraft:air", BlockKind::name),
-    );
+    out.insert("id", state.kind().map_or("minecraft:air", BlockKind::name));
     let properties: Compound = state
         .properties()
         .map(|(name, value)| (name.to_owned(), Tag::String(value.to_owned())))
         .collect();
     if !properties.is_empty() {
-        out.insert("Properties", properties);
+        out.insert("properties", properties);
     }
     out
 }
 
 pub fn block_state_from_nbt(compound: &Compound) -> BlockStateId {
-    let Some(kind) = compound.get_str("Name").and_then(BlockKind::from_name) else {
+    let name = compound.get_str("id").or_else(|| compound.get_str("Name"));
+    let Some(kind) = name.and_then(BlockKind::from_name) else {
         return BlockStateId::AIR;
     };
     let mut state = kind.default_state();
-    if let Some(properties) = compound.get_compound("Properties") {
+    let properties = compound
+        .get_compound("properties")
+        .or_else(|| compound.get_compound("Properties"));
+    if let Some(properties) = properties {
         for (name, value) in properties.iter() {
             if let Some(value) = value.as_str()
                 && let Some(next) = state.with_property(name, value)
@@ -2107,5 +2108,21 @@ mod tests {
             panic!("not a falling block");
         };
         assert_eq!(state.state.property("facing"), Some("east"));
+        let saved = save_entity(&falling, None).unwrap();
+        let written = saved.get_compound("BlockState").unwrap();
+        assert_eq!(written.get_str("id"), Some("minecraft:anvil"));
+        assert_eq!(
+            written
+                .get_compound("properties")
+                .unwrap()
+                .get_str("facing"),
+            Some("east")
+        );
+        assert!(!written.contains_key("Name") && !written.contains_key("Properties"));
+        let reloaded = load_entity(&saved, EntityId(3), Uuid::from_u128(3)).unwrap();
+        let EntityState::Falling(again) = &reloaded.state else {
+            panic!("not a falling block");
+        };
+        assert_eq!(again.state, state.state);
     }
 }

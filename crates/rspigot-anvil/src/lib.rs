@@ -1,11 +1,13 @@
 mod bitmap;
 mod chunk;
 mod compression;
+mod datafix;
 mod datapacks;
 mod error;
 mod layout;
 mod level;
 mod players;
+mod poi;
 mod region;
 mod store;
 #[cfg(test)]

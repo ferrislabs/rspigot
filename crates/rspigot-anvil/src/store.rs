@@ -5,12 +5,14 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 use rspigot_core::ports::{ChunkStore, EntityStore, StoreError};
 use rspigot_domain::chunk::ChunkColumn;
+use rspigot_domain::poi::PoiChunkData;
 use rspigot_domain::world::WorldHeight;
 use rspigot_domain::{ChunkPos, Identifier};
 use rspigot_nbt::{Compound, Tag, read_named, write_named};
 
 use crate::chunk;
 use crate::compression::Compression;
+use crate::datafix::{self, DataKind};
 use crate::error::AnvilError;
 use crate::layout::DimensionLayout;
 use crate::level::{optional_saved_data, update_saved_data};
@@ -39,6 +41,7 @@ impl Default for AnvilOptions {
 enum Storage {
     Chunks,
     Entities,
+    Poi,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -90,6 +93,9 @@ impl AnvilStore {
                 .map_err(AnvilError::into_store_io)?;
             layout
                 .entities_dir(world_root, &dimension)
+                .map_err(AnvilError::into_store_io)?;
+            layout
+                .poi_dir(world_root, &dimension)
                 .map_err(AnvilError::into_store_io)?;
         }
         Ok(Self {
@@ -247,6 +253,7 @@ impl AnvilStore {
         let dir = match storage {
             Storage::Chunks => self.layout.region_dir(&self.root, dimension)?,
             Storage::Entities => self.layout.entities_dir(&self.root, dimension)?,
+            Storage::Poi => self.layout.poi_dir(&self.root, dimension)?,
         };
         Ok(dir.join(region_file_name(pos)))
     }
@@ -304,13 +311,7 @@ impl AnvilStore {
         };
         let mut input = bytes.as_slice();
         let (_, root) = read_named(&mut input)?;
-        let version = root.get_i32("DataVersion").unwrap_or(0);
-        if version > chunk::DATA_VERSION {
-            return Err(AnvilError::NewerDataVersion {
-                found: version,
-                supported: chunk::DATA_VERSION,
-            });
-        }
+        let root = datafix::upgrade_checked(DataKind::Entity, root)?.compound;
         if let Some([x, z]) = root
             .get_int_array("Position")
             .map(|p| [p.first(), p.get(1)])
@@ -357,6 +358,38 @@ impl AnvilStore {
         let mut bytes = Vec::with_capacity(1024);
         write_named(&mut bytes, "", &root);
         self.write_bytes(Storage::Entities, dimension, pos, &bytes)
+    }
+
+    fn load_poi_chunk(
+        &self,
+        dimension: &Identifier,
+        pos: ChunkPos,
+    ) -> Result<Option<PoiChunkData>, AnvilError> {
+        match self.read_bytes(Storage::Poi, dimension, pos)? {
+            Some(bytes) => crate::poi::decode(&bytes).map(Some),
+            None => Ok(None),
+        }
+    }
+
+    fn save_poi_chunk(
+        &self,
+        dimension: &Identifier,
+        pos: ChunkPos,
+        data: &PoiChunkData,
+    ) -> Result<(), AnvilError> {
+        if data.is_empty() {
+            let region = self.acquire(Storage::Poi, dimension, pos);
+            let mut guard = region.lock();
+            if guard.is_none() {
+                let path = self.region_path(Storage::Poi, dimension, pos)?;
+                *guard = RegionFile::open(&path, false, self.options.sync_writes)?;
+            }
+            return match guard.as_mut() {
+                Some(file) => file.clear(pos),
+                None => Ok(()),
+            };
+        }
+        self.write_bytes(Storage::Poi, dimension, pos, &crate::poi::encode(data))
     }
 
     fn write_bytes(
@@ -498,6 +531,25 @@ impl EntityStore for AnvilStore {
         entities: &[Compound],
     ) -> Result<(), StoreError> {
         self.save_entity_chunk(dimension, pos, entities)
+            .map_err(|error| error.into_store(pos))
+    }
+
+    fn load_poi(
+        &self,
+        dimension: &Identifier,
+        pos: ChunkPos,
+    ) -> Result<Option<PoiChunkData>, StoreError> {
+        self.load_poi_chunk(dimension, pos)
+            .map_err(|error| error.into_store(pos))
+    }
+
+    fn save_poi(
+        &self,
+        dimension: &Identifier,
+        pos: ChunkPos,
+        data: &PoiChunkData,
+    ) -> Result<(), StoreError> {
+        self.save_poi_chunk(dimension, pos, data)
             .map_err(|error| error.into_store(pos))
     }
 

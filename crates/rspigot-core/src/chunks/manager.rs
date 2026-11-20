@@ -221,6 +221,7 @@ impl ChunkManager {
                 source,
                 elapsed,
                 entities,
+                poi,
                 relit,
                 ..
             } => {
@@ -236,7 +237,7 @@ impl ChunkManager {
                     ChunkSource::Generated => self.stats.generated += 1,
                 }
                 self.stats.total_load_time += elapsed;
-                self.poi.load_chunk(&chunk);
+                self.poi.import_chunk(&chunk, poi.as_ref());
                 self.loaded.insert(
                     pos,
                     Loaded {
@@ -260,7 +261,7 @@ impl ChunkManager {
                 tracing::error!(?pos, %error, "chunk job failed");
                 None
             }
-            ChunkResult::DataSaved | ChunkResult::Flushed => None,
+            ChunkResult::PoiSaved { .. } | ChunkResult::DataSaved | ChunkResult::Flushed => None,
         }
     }
 
@@ -298,6 +299,9 @@ impl ChunkManager {
         if save && loaded.dirty {
             self.submit_save(loaded.chunk, workers);
         }
+        if save && self.poi.is_dirty(pos) {
+            self.submit_poi_save(pos, workers);
+        }
         self.poi.unload_chunk(pos);
         self.events.unloaded.push(pos);
         self.stats.unloaded += 1;
@@ -314,6 +318,17 @@ impl ChunkManager {
         );
     }
 
+    fn submit_poi_save(&self, pos: ChunkPos, workers: &ChunkWorkers) {
+        workers.submit(
+            Priority::BACKGROUND,
+            ChunkJob::SavePoi {
+                dimension: Arc::clone(&self.dimension),
+                pos,
+                data: Arc::new(self.poi.export_chunk(pos)),
+            },
+        );
+    }
+
     pub fn save_dirty(&mut self, workers: &ChunkWorkers) -> usize {
         self.save_dirty_except(workers, |_| false)
     }
@@ -323,6 +338,12 @@ impl ChunkManager {
         workers: &ChunkWorkers,
         skipped: impl Fn(ChunkPos) -> bool,
     ) -> usize {
+        for pos in self.poi.dirty_chunks() {
+            if self.loaded.contains_key(&pos) && !skipped(pos) {
+                self.submit_poi_save(pos, workers);
+                self.poi.clear_dirty(pos);
+            }
+        }
         let mut count = 0;
         for (pos, loaded) in &mut self.loaded {
             if loaded.dirty && !skipped(*pos) {

@@ -9,6 +9,7 @@ use rspigot_nbt::{Compound, Tag, read_named, write_named};
 
 use crate::chunk::DATA_VERSION;
 use crate::compression::Compression;
+use crate::datafix::{self, DataKind};
 use crate::error::AnvilError;
 
 pub const GAME_VERSION_NAME: &str = "26.3";
@@ -118,19 +119,6 @@ fn check_data_version(root: &Compound, what: &str) -> Result<(), AnvilError> {
     }
 }
 
-fn require_current_version(root: &Compound, what: &str) -> Result<(), AnvilError> {
-    check_data_version(root, what)?;
-    match root.get_i64("DataVersion") {
-        Some(version) if version == i64::from(DATA_VERSION) => Ok(()),
-        Some(version) => Err(AnvilError::corrupt(format!(
-            "{what} has data version {version} and needs the vanilla upgrader before it can be rewritten"
-        ))),
-        None => Err(AnvilError::corrupt(format!(
-            "{what} has no data version and needs the vanilla upgrader before it can be rewritten"
-        ))),
-    }
-}
-
 fn load_level_root(world_root: &Path) -> Result<Option<(Compound, bool)>, AnvilError> {
     let current = world_root.join(LEVEL_FILE);
     let backup = world_root.join(LEVEL_BACKUP);
@@ -148,27 +136,82 @@ fn load_level_root(world_root: &Path) -> Result<Option<(Compound, bool)>, AnvilE
 }
 
 pub(crate) fn optional_saved_data(world_root: &Path, name: &str) -> Option<Compound> {
-    match read_gzip_nbt(&saved_data_path(world_root, name)) {
-        Ok(Some(mut file)) => match file.remove("data") {
-            Some(Tag::Compound(data)) => Some(data),
-            _ => None,
-        },
-        Ok(None) => None,
+    let file = match read_gzip_nbt(&saved_data_path(world_root, name)) {
+        Ok(Some(file)) => file,
+        Ok(None) => return None,
         Err(error) => {
             tracing::warn!(name, %error, "ignoring unreadable world data file");
+            return None;
+        }
+    };
+    match datafix::upgrade_checked(DataKind::SavedData, file) {
+        Ok(upgraded) => upgraded.compound.get_compound("data").cloned(),
+        Err(error) => {
+            tracing::warn!(name, %error, "ignoring world data file with an unsupported version");
             None
         }
     }
+}
+
+const LEVEL_SAVED_DATA: [(&str, &str); 9] = [
+    ("dragon_fight", "ender_dragon_fight"),
+    ("wandering_trader_migration_data", "wandering_trader"),
+    ("CustomBossEvents", "custom_boss_events"),
+    ("weather_data", "weather"),
+    ("scheduled_events", "scheduled_events"),
+    ("world_border", "world_border"),
+    ("game_rules", "game_rules"),
+    ("world_gen_settings", "world_gen_settings"),
+    ("world_clocks", "world_clocks"),
+];
+
+fn upgrade_level_root(root: Compound) -> Result<Compound, AnvilError> {
+    Ok(datafix::upgrade_checked(DataKind::Level, root)?.compound)
+}
+
+fn migrate_level_root(world_root: &Path, root: Compound) -> Result<Compound, AnvilError> {
+    let old = datafix::stored_version(DataKind::Level, &root).is_some_and(|v| v < DATA_VERSION);
+    let mut root = upgrade_level_root(root)?;
+    if !old {
+        return Ok(root);
+    }
+    let Some(data) = compound_mut(&mut root, "Data") else {
+        return Ok(root);
+    };
+    for (key, file) in LEVEL_SAVED_DATA {
+        let Some(Tag::Compound(extracted)) = data.remove(key) else {
+            continue;
+        };
+        if !saved_data_path(world_root, file).exists() {
+            update_saved_data(world_root, file, |stored| {
+                *stored = extracted;
+                true
+            })?;
+        }
+    }
+    Ok(root)
+}
+
+fn compound_mut<'a>(root: &'a mut Compound, key: &str) -> Option<&'a mut Compound> {
+    root.get_mut(key).and_then(Tag::as_compound_mut)
 }
 
 fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     let Some((root, _)) = load_level_root(world_root)? else {
         return Ok(None);
     };
+    check_data_version(
+        root.get_compound("Data")
+            .ok_or_else(|| AnvilError::corrupt("level.dat has no Data compound"))?,
+        "level.dat",
+    )?;
+    let root = upgrade_level_root(root)?;
     let data = root
         .get_compound("Data")
         .ok_or_else(|| AnvilError::corrupt("level.dat has no Data compound"))?;
-    check_data_version(data, "level.dat")?;
+    let saved = |name: &str, key: &str| {
+        optional_saved_data(world_root, name).or_else(|| data.get_compound(key).cloned())
+    };
     let mut level = LevelData::default();
     if let Some(name) = data.get_str("LevelName") {
         name.clone_into(&mut level.name);
@@ -201,12 +244,12 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     {
         level.seed = seed;
     }
-    if let Some(settings) = optional_saved_data(world_root, "world_gen_settings")
+    if let Some(settings) = saved("world_gen_settings", "world_gen_settings")
         && let Some(seed) = settings.get_i64("seed")
     {
         level.seed = seed;
     }
-    if let Some(rules) = optional_saved_data(world_root, "game_rules") {
+    if let Some(rules) = saved("game_rules", "game_rules") {
         let rule = |key: &str, current: bool| rules.get(key).and_then(flag).unwrap_or(current);
         level.daylight_cycle = rule(ADVANCE_TIME_RULE, level.daylight_cycle);
         level.spawn_mobs = rule(SPAWN_MOBS_RULE, level.spawn_mobs);
@@ -225,7 +268,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
         level.rules = Some(stored);
         level.pvp = rules.get(PVP_RULE).and_then(flag);
     }
-    if let Some(weather) = optional_saved_data(world_root, "weather") {
+    if let Some(weather) = saved("weather", "weather_data") {
         level.raining = weather.get_bool("raining").unwrap_or(level.raining);
         level.thundering = weather.get_bool("thundering").unwrap_or(level.thundering);
         level.clear_weather_time = weather
@@ -236,7 +279,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
             .get_i32("thunder_time")
             .unwrap_or(level.thunder_time);
     }
-    if let Some(clocks) = optional_saved_data(world_root, "world_clocks")
+    if let Some(clocks) = saved("world_clocks", "world_clocks")
         && let Some(ticks) = clocks
             .get_compound(OVERWORLD_CLOCK)
             .and_then(|clock| clock.get_i64("total_ticks"))
@@ -245,11 +288,11 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     }
     level.raids = optional_saved_data(world_root, "raids");
     level.scoreboard = optional_saved_data(world_root, "scoreboard");
-    level.dragon_fight = optional_saved_data(world_root, "ender_dragon_fight");
-    level.custom_boss_events = optional_saved_data(world_root, "custom_boss_events");
+    level.dragon_fight = saved("ender_dragon_fight", "dragon_fight");
+    level.custom_boss_events = saved("custom_boss_events", "CustomBossEvents");
     level.forced_chunks = optional_saved_data(world_root, "chunks");
-    level.world_border = optional_saved_data(world_root, "world_border");
-    level.scheduled_events = optional_saved_data(world_root, "scheduled_events");
+    level.world_border = saved("world_border", "world_border");
+    level.scheduled_events = saved("scheduled_events", "scheduled_events");
     level.data_packs = read_data_packs(data);
     Ok(Some(level))
 }
@@ -324,13 +367,17 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
     let rotate_backup = loaded
         .as_ref()
         .is_some_and(|(_, from_current)| *from_current);
-    let existing = loaded.map(|(root, _)| root);
-    if let Some(root) = &existing {
-        let data = root
-            .get_compound("Data")
-            .ok_or_else(|| AnvilError::corrupt("level.dat has no Data compound"))?;
-        require_current_version(data, "level.dat")?;
-    }
+    let existing = match loaded {
+        Some((root, _)) => {
+            check_data_version(
+                root.get_compound("Data")
+                    .ok_or_else(|| AnvilError::corrupt("level.dat has no Data compound"))?,
+                "level.dat",
+            )?;
+            Some(migrate_level_root(world_root, root)?)
+        }
+        None => None,
+    };
     update_saved_data(world_root, "world_gen_settings", |data| {
         let mut changed = data.get("seed") != Some(&Tag::Long(level.seed));
         data.insert("seed", level.seed);
@@ -570,7 +617,7 @@ pub(crate) fn update_saved_data(
     let existed = existing.is_some();
     let mut root = existing.unwrap_or_default();
     if root.contains_key("DataVersion") {
-        require_current_version(&root, name)?;
+        root = datafix::upgrade_checked(DataKind::SavedData, root)?.compound;
     }
     let mut data = match root.remove("data") {
         Some(Tag::Compound(data)) => data,
@@ -1312,7 +1359,9 @@ mod tests {
                     .with("thundering", false)
                     .with(
                         "GameRules",
-                        Compound::new().with("doDaylightCycle", "false"),
+                        Compound::new()
+                            .with("doDaylightCycle", "false")
+                            .with("keepInventory", "true"),
                     )
                     .with("WorldGenSettings", Compound::new().with("seed", 4242i64)),
             ),
@@ -1327,7 +1376,29 @@ mod tests {
         assert!(!level.daylight_cycle);
         assert!(level.raining);
         assert!(!level.thundering);
-        assert!(write_level_data(dir.path(), &sample()).is_err());
+        assert!(
+            level
+                .rules
+                .as_ref()
+                .unwrap()
+                .values()
+                .iter()
+                .any(|(name, value)| *name == "keep_inventory"
+                    && matches!(value, RuleValue::Flag(true)))
+        );
+        write_level_data(dir.path(), &sample()).unwrap();
+        let file = read_file(dir.path(), "level.dat");
+        let data = file.get_compound("Data").unwrap();
+        assert_eq!(data.get_i32("DataVersion"), Some(5023));
+        assert!(!data.contains_key("GameRules") && !data.contains_key("SpawnX"));
+        assert!(dir.path().join("level.dat_old").exists());
+        let rules = read_file(dir.path(), "data/minecraft/game_rules.dat");
+        assert!(
+            rules
+                .get_compound("data")
+                .unwrap()
+                .contains_key("minecraft:advance_time")
+        );
     }
 
     #[test]

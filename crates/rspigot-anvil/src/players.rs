@@ -5,9 +5,17 @@ use rspigot_domain::player::PlayerId;
 use rspigot_nbt::Compound;
 
 use crate::chunk::DATA_VERSION;
+use crate::datafix::{self, DataKind};
 use crate::error::AnvilError;
 use crate::level::{read_gzip_nbt, write_gzip_nbt};
 use crate::store::AnvilStore;
+
+fn upgrade_player(data: Option<Compound>) -> Result<Option<Compound>, AnvilError> {
+    data.map(|data| {
+        datafix::upgrade_checked(DataKind::Player, data).map(|upgraded| upgraded.compound)
+    })
+    .transpose()
+}
 
 fn player_file(world_root: &Path, player: PlayerId, extension: &str) -> PathBuf {
     world_root
@@ -75,12 +83,12 @@ impl PlayerStore for AnvilStore {
     fn load_player(&self, player: PlayerId) -> Result<Option<Compound>, StoreError> {
         let current = player_file(self.world_root(), player, "dat");
         let backup = player_file(self.world_root(), player, "dat_old");
-        let current_error = match read_gzip_nbt(&current) {
+        let current_error = match read_gzip_nbt(&current).and_then(upgrade_player) {
             Ok(Some(data)) => return Ok(Some(data)),
             Ok(None) => None,
             Err(error) => Some(error),
         };
-        match read_gzip_nbt(&backup) {
+        match read_gzip_nbt(&backup).and_then(upgrade_player) {
             Ok(Some(data)) => {
                 if let Some(error) = current_error {
                     tracing::warn!("Restored player data for {player} from its backup: {error}");
