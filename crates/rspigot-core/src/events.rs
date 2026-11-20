@@ -759,6 +759,10 @@ pub enum ClientEvent {
         level: i32,
         total: i32,
     },
+    Cooldown {
+        group: String,
+        ticks: i32,
+    },
     Commands(Arc<CommandTree>),
     CommandSuggestions {
         id: i32,

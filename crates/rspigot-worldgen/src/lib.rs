@@ -137,4 +137,11 @@ impl ChunkGenerator for WorldGenerator {
             Self::Noise(generator) => generator.structure_entities(dimension, pos),
         }
     }
+
+    fn nearest_stronghold(&self, dimension: &Dimension, from: Vec3) -> Option<Vec3> {
+        match self {
+            Self::Noise(generator) => generator.nearest_stronghold(dimension, from),
+            Self::Flat(_) | Self::Void(_) => None,
+        }
+    }
 }

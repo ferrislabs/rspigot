@@ -1,8 +1,8 @@
 use rspigot_blocks::BlockId;
 
 use crate::{
-    AttributeModifier, CookingKind, Craft, EquipmentSlot, Food, Item, ItemId, ItemSet, Product,
-    Rarity, Tool,
+    AttributeModifier, Consumable, ConsumeAnimation, CookingKind, Craft, EquipmentSlot, Food, Item,
+    ItemId, ItemSet, Product, Rarity, Tool,
 };
 
 pub struct DriedKelp;
@@ -28,6 +28,13 @@ impl Item for DriedKelp {
     const DAMAGE_RESISTANT: Option<&'static str> = None;
     const USE_REMAINDER: Option<ItemId> = None;
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier] = &[];
+    const CONSUMABLE: Option<Consumable> = Some(Consumable {
+        consume_seconds: 0.8,
+        animation: ConsumeAnimation::Eat,
+        sound: "minecraft:entity.generic.eat",
+        has_consume_particles: true,
+        on_consume_effects: &[],
+    });
     const CRAFTS: &'static [Craft] = &[
         Craft::Shapeless {
             id: "minecraft:dried_kelp",

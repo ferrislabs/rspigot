@@ -34,7 +34,8 @@ RESERVED_STRUCTS = {
     "BlockId", "BlockKind", "Tool", "ToolRule", "Food", "Rarity", "EquipmentSlot", "Plain",
     "BlockItem", "Self", "Option", "Some", "None", "Result", "Ok", "Err", "Vec", "Box",
     "AttributeModifier", "ModifierOperation", "SlotGroup", "Craft", "CookingKind", "Fuel", "Product", "ProductComponent",
-    "StewEffect", "FireworkShapes",
+    "StewEffect", "FireworkShapes", "Consumable", "ConsumeAnimation", "ConsumeEffect",
+    "ConsumeMobEffect", "PotionContentsDefault",
 }
 
 RUST_KEYWORDS = {
@@ -51,6 +52,7 @@ STRUCT_NAME = re.compile(r"^[A-Z][A-Za-z0-9]*$")
 CLASS_NAME = re.compile(r"^[A-Za-z_$][A-Za-z0-9_$]*$")
 TAG_NAME = re.compile(r"^minecraft:[a-z0-9_/]+$")
 MODIFIER_NAME = re.compile(r"^minecraft:[a-z0-9_./]+$")
+SOUND_NAME = MODIFIER_NAME
 WIDTH = 100
 
 
@@ -533,6 +535,161 @@ def read_fuels(items, components_dir, datapack):
         if fuel["burn_time"] not in cache:
             cache[fuel["burn_time"]] = burn_times(datapack, fuel["burn_time"])
         item["cooking_fuel"] = cache[fuel["burn_time"]]
+
+
+CONSUMABLE = "minecraft:consumable"
+CONSUME_ANIMATIONS = ["eat", "drink"]
+DEFAULT_CONSUME_SECONDS = 1.6
+DEFAULT_CONSUME_SOUND = "minecraft:entity.generic.eat"
+DEFAULT_TELEPORT_DIAMETER = 16.0
+MOB_EFFECT_KEYS = {"id", "amplifier", "duration", "show_icon"}
+
+
+def consume_sound(value, name):
+    if not isinstance(value, str) or not SOUND_NAME.match(value):
+        fail("%s has an unsupported sound %r" % (name, value))
+    return '"' + value + '"'
+
+
+def mob_effect_node(effect, name):
+    if not isinstance(effect, dict) or not set(effect) <= MOB_EFFECT_KEYS or "id" not in effect:
+        fail("%s has an unsupported mob effect %r" % (name, effect))
+    if not isinstance(effect["id"], str) or not ID_PATTERN.match(effect["id"]):
+        fail("%s has an unsupported effect id %r" % (name, effect["id"]))
+    return struct_node(
+        "ConsumeMobEffect",
+        [
+            ("effect", Atom(rust_string(effect["id"]))),
+            ("amplifier", number(integer(effect.get("amplifier", 0), 0, 255, name + " amplifier"))),
+            ("duration", number(integer(effect.get("duration", 0), -1, 2**31 - 1, name + " duration"))),
+            ("show_icon", flag(boolean(effect.get("show_icon", True), name + " show_icon") == "true")),
+        ],
+    )
+
+
+def consume_effect_node(effect, name):
+    kind = effect.get("type")
+    allowed = {
+        "minecraft:apply_effects": {"type", "effects", "probability"},
+        "minecraft:remove_effects": {"type", "effects"},
+        "minecraft:clear_all_effects": {"type"},
+        "minecraft:teleport_randomly": {"type", "diameter"},
+        "minecraft:play_sound": {"type", "sound"},
+    }
+    if kind not in allowed or not set(effect) <= allowed[kind]:
+        fail("%s has an unsupported consume effect %r" % (name, effect))
+    if kind == "minecraft:apply_effects":
+        effects = effect["effects"]
+        if not isinstance(effects, list):
+            fail("%s apply_effects is not a list" % name)
+        probability = f32_literal(effect.get("probability", 1.0), name + " probability")
+        return struct_node(
+            "ConsumeEffect::ApplyEffects",
+            [
+                ("effects", slice_node([mob_effect_node(entry, name) for entry in effects])),
+                ("probability", Atom(probability)),
+            ],
+        )
+    if kind == "minecraft:remove_effects":
+        effects = effect["effects"]
+        names = [effects] if isinstance(effects, str) else effects
+        if not isinstance(names, list) or not all(
+            isinstance(entry, str) and ID_PATTERN.match(entry) for entry in names
+        ):
+            fail("%s remove_effects has unsupported effects %r" % (name, effects))
+        return call_node("ConsumeEffect::RemoveEffects", [slice_node([Atom(rust_string(entry)) for entry in names])])
+    if kind == "minecraft:clear_all_effects":
+        return Atom("ConsumeEffect::ClearAllEffects")
+    if kind == "minecraft:teleport_randomly":
+        diameter = f32_literal(effect.get("diameter", DEFAULT_TELEPORT_DIAMETER), name + " diameter")
+        return struct_node("ConsumeEffect::TeleportRandomly", [("diameter", Atom(diameter))])
+    return call_node("ConsumeEffect::PlaySound", [Atom(consume_sound(effect["sound"], name))])
+
+
+def consumable_node(component, name):
+    allowed = {"consume_seconds", "animation", "sound", "has_consume_particles", "on_consume_effects"}
+    if not isinstance(component, dict) or not set(component) <= allowed:
+        fail("%s has an unsupported consumable %r" % (name, component))
+    animation = component.get("animation", "eat")
+    if animation not in CONSUME_ANIMATIONS:
+        fail("%s has an unsupported consume animation %r" % (name, animation))
+    seconds = finite(component.get("consume_seconds", DEFAULT_CONSUME_SECONDS), name + " consume seconds")
+    if seconds < 0:
+        fail("%s has a negative consume time" % name)
+    effects = [consume_effect_node(entry, name) for entry in component.get("on_consume_effects", [])]
+    return call_node(
+        "Some",
+        [
+            struct_node(
+                "Consumable",
+                [
+                    ("consume_seconds", Atom(f32_literal(seconds, name + " consume seconds"))),
+                    ("animation", Atom("ConsumeAnimation::" + struct_name(animation))),
+                    ("sound", Atom(consume_sound(component.get("sound", DEFAULT_CONSUME_SOUND), name))),
+                    (
+                        "has_consume_particles",
+                        flag(boolean(component.get("has_consume_particles", True), name) == "true"),
+                    ),
+                    ("on_consume_effects", slice_node(effects)),
+                ],
+            )
+        ],
+    )
+
+
+def potion_contents_node(component, name):
+    if not isinstance(component, dict) or not set(component) <= {"potion", "custom_effects"}:
+        fail("%s has an unsupported potion contents %r" % (name, component))
+    potion = component.get("potion")
+    if potion is not None and (not isinstance(potion, str) or not ID_PATTERN.match(potion)):
+        fail("%s has an unsupported potion %r" % (name, potion))
+    custom = [mob_effect_node(entry, name) for entry in component.get("custom_effects", [])]
+    return call_node(
+        "Some",
+        [
+            struct_node(
+                "PotionContentsDefault",
+                [
+                    ("potion", Atom("None" if potion is None else "Some(%s)" % rust_string(potion))),
+                    ("custom_effects", slice_node(custom)),
+                ],
+            )
+        ],
+    )
+
+
+def stew_effects_node(component, name):
+    if not isinstance(component, list):
+        fail("%s has unsupported stew effects %r" % (name, component))
+    nodes = []
+    for effect in component:
+        expect_keys(effect, {"id", "duration"}, name)
+        nodes.append(
+            struct_node(
+                "StewEffect",
+                [
+                    ("effect", Atom(rust_string(effect["id"]))),
+                    ("duration", number(integer(effect["duration"], 0, 2**31 - 1, name + " duration"))),
+                ],
+            )
+        )
+    return call_node("Some", [Group("&[", nodes, "]")])
+
+
+def read_consumables(items, components_dir):
+    for item in items:
+        report = load_json(os.path.join(components_dir, item["path"] + ".json"))
+        components = report["components"]
+        name = item["name"]
+        item["consumable"] = None
+        item["potion_contents"] = None
+        item["stew_effects"] = None
+        if CONSUMABLE in components:
+            item["consumable"] = consumable_node(components[CONSUMABLE], name)
+        if "minecraft:potion_contents" in components:
+            item["potion_contents"] = potion_contents_node(components["minecraft:potion_contents"], name)
+        if STEW_EFFECTS in components:
+            item["stew_effects"] = stew_effects_node(components[STEW_EFFECTS], name)
 
 
 def weapon_damage(weapon, name):
@@ -1133,6 +1290,15 @@ def item_file(item, behavior, crafts):
     body.extend(modifier_lines(item["attribute_modifiers"], name, used))
     if item["crafting_remainder"] is not None:
         body.append("    const CRAFTING_REMAINDER: Option<ItemId> = Some(ItemId(%d));" % item["crafting_remainder"]["item"])
+    consume_lines = []
+    for key, type_name, constant in (
+        ("consumable", "Option<Consumable>", "CONSUMABLE"),
+        ("potion_contents", "Option<PotionContentsDefault>", "POTION_CONTENTS"),
+        ("stew_effects", "Option<&'static [StewEffect]>", "SUSPICIOUS_STEW_EFFECTS"),
+    ):
+        if item[key] is not None:
+            consume_lines.extend(render(item[key], "    ", "const %s: %s = " % (constant, type_name), ";"))
+    body.extend(consume_lines)
     if item["trim_material"] is not None:
         body.append("    const TRIM_MATERIAL: Option<&'static str> = Some(%s);" % rust_string(item["trim_material"]))
     if item["cooking_fuel"] is not None:
@@ -1157,10 +1323,23 @@ def item_file(item, behavior, crafts):
     )
     if item["cooking_fuel"] is not None:
         names.append("Fuel")
-    craft_text = "\n".join(craft_lines)
+    craft_text = "\n".join(craft_lines + consume_lines)
     names.extend(
         name
-        for name in ("CookingKind", "Craft", "FireworkShapes", "Fuel", "Product", "ProductComponent", "StewEffect")
+        for name in (
+            "Consumable",
+            "ConsumeAnimation",
+            "ConsumeEffect",
+            "ConsumeMobEffect",
+            "CookingKind",
+            "Craft",
+            "FireworkShapes",
+            "Fuel",
+            "PotionContentsDefault",
+            "Product",
+            "ProductComponent",
+            "StewEffect",
+        )
         if re.search(r"\b" + name + r"\b", craft_text)
     )
     if "tags" in used:
@@ -1284,6 +1463,7 @@ def main():
     items = dump["items"]
     by_class, by_item = read_families(args.families, items)
     read_fuels(items, args.components, args.datapack)
+    read_consumables(items, args.components)
     crafts = Crafts(dump, [item["name"] for item in items])
     recipes = crafts.read(args.datapack)
 

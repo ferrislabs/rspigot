@@ -125,4 +125,11 @@ impl ChunkGenerator for NoiseGenerator {
             DimensionKind::Nether => self.state.nether.structure_entities(dimension, pos),
         }
     }
+
+    fn nearest_stronghold(&self, dimension: &Dimension, from: Vec3) -> Option<Vec3> {
+        match DimensionKind::of(dimension) {
+            DimensionKind::Overworld => self.state.overworld.nearest_stronghold(from),
+            DimensionKind::Nether | DimensionKind::End => None,
+        }
+    }
 }

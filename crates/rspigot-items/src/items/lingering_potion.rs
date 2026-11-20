@@ -1,6 +1,9 @@
 use rspigot_blocks::BlockId;
 
-use crate::{AttributeModifier, EquipmentSlot, Food, Item, ItemId, ItemSet, Rarity, Tool};
+use crate::{
+    AttributeModifier, EquipmentSlot, Food, Item, ItemId, ItemSet, PotionContentsDefault, Rarity,
+    Tool,
+};
 
 pub struct LingeringPotion;
 
@@ -21,5 +24,9 @@ impl Item for LingeringPotion {
     const DAMAGE_RESISTANT: Option<&'static str> = None;
     const USE_REMAINDER: Option<ItemId> = None;
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier] = &[];
+    const POTION_CONTENTS: Option<PotionContentsDefault> = Some(PotionContentsDefault {
+        potion: None,
+        custom_effects: &[],
+    });
     type Behavior = crate::family::Plain;
 }

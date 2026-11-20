@@ -435,6 +435,66 @@ pub struct Food {
     pub can_always_eat: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ConsumeAnimation {
+    Eat,
+    Drink,
+}
+
+impl ConsumeAnimation {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Eat => "eat",
+            Self::Drink => "drink",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConsumeMobEffect {
+    pub effect: &'static str,
+    pub amplifier: u8,
+    pub duration: i32,
+    pub show_icon: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ConsumeEffect {
+    ApplyEffects {
+        effects: &'static [ConsumeMobEffect],
+        probability: f32,
+    },
+    RemoveEffects(&'static [&'static str]),
+    ClearAllEffects,
+    TeleportRandomly {
+        diameter: f32,
+    },
+    PlaySound(&'static str),
+}
+
+pub const TICKS_PER_SECOND: f32 = 20.0;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Consumable {
+    pub consume_seconds: f32,
+    pub animation: ConsumeAnimation,
+    pub sound: &'static str,
+    pub has_consume_particles: bool,
+    pub on_consume_effects: &'static [ConsumeEffect],
+}
+
+impl Consumable {
+    pub const fn consume_ticks(&self) -> u64 {
+        (self.consume_seconds * TICKS_PER_SECOND) as u64
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PotionContentsDefault {
+    pub potion: Option<&'static str>,
+    pub custom_effects: &'static [ConsumeMobEffect],
+}
+
 pub trait Item: 'static {
     const NAME: &'static str;
     const ID: ItemId;
@@ -452,6 +512,9 @@ pub trait Item: 'static {
     const DAMAGE_RESISTANT: Option<&'static str>;
     const USE_REMAINDER: Option<ItemId>;
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier];
+    const CONSUMABLE: Option<Consumable> = None;
+    const POTION_CONTENTS: Option<PotionContentsDefault> = None;
+    const SUSPICIOUS_STEW_EFFECTS: Option<&'static [StewEffect]> = None;
     const CRAFTING_REMAINDER: Option<ItemId> = None;
     const COOKING_FUEL: Option<Fuel> = None;
     const TRIM_MATERIAL: Option<&'static str> = None;
@@ -510,5 +573,87 @@ mod tests {
         assert_eq!(direct.tag(), None);
         assert!(direct.contains(ItemId(4)));
         assert!(!direct.contains(ItemId::AIR));
+    }
+
+    #[test]
+    fn consumable_components_come_from_the_reports() {
+        let kelp = ItemKind::DriedKelp.consumable().unwrap();
+        assert_eq!(kelp.consume_seconds, 0.8);
+        assert_eq!(kelp.consume_ticks(), 16);
+        assert_eq!(kelp.animation, ConsumeAnimation::Eat);
+        assert_eq!(kelp.sound, "minecraft:entity.generic.eat");
+        assert!(kelp.has_consume_particles);
+        let honey = ItemKind::HoneyBottle.consumable().unwrap();
+        assert_eq!(honey.consume_ticks(), 40);
+        assert_eq!(honey.animation, ConsumeAnimation::Drink);
+        assert_eq!(honey.sound, "minecraft:item.honey_bottle.drink");
+        assert!(!honey.has_consume_particles);
+        assert_eq!(
+            honey.on_consume_effects,
+            &[ConsumeEffect::RemoveEffects(&["minecraft:poison"])]
+        );
+        let potion = ItemKind::Potion.consumable().unwrap();
+        assert_eq!(potion.consume_ticks(), 32);
+        assert_eq!(potion.animation, ConsumeAnimation::Drink);
+        assert_eq!(potion.sound, "minecraft:entity.generic.drink");
+        assert!(ItemKind::SplashPotion.consumable().is_none());
+        assert!(ItemKind::Stone.consumable().is_none());
+    }
+
+    #[test]
+    fn consume_effects_are_read_whole() {
+        let golden = ItemKind::EnchantedGoldenApple.consumable().unwrap();
+        let [
+            ConsumeEffect::ApplyEffects {
+                effects,
+                probability,
+            },
+        ] = golden.on_consume_effects
+        else {
+            panic!("expected one apply_effects");
+        };
+        assert_eq!(*probability, 1.0);
+        assert_eq!(effects.len(), 4);
+        assert_eq!(
+            effects[0],
+            ConsumeMobEffect {
+                effect: "minecraft:regeneration",
+                amplifier: 1,
+                duration: 400,
+                show_icon: true,
+            }
+        );
+        assert_eq!(
+            ItemKind::ChorusFruit
+                .consumable()
+                .unwrap()
+                .on_consume_effects,
+            &[ConsumeEffect::TeleportRandomly { diameter: 16.0 }]
+        );
+        assert_eq!(
+            ItemKind::MilkBucket
+                .consumable()
+                .unwrap()
+                .on_consume_effects,
+            &[ConsumeEffect::ClearAllEffects]
+        );
+    }
+
+    #[test]
+    fn potions_and_stews_expose_their_default_component() {
+        assert_eq!(
+            ItemKind::Potion.potion_contents(),
+            Some(PotionContentsDefault {
+                potion: None,
+                custom_effects: &[],
+            })
+        );
+        assert!(ItemKind::SplashPotion.potion_contents().is_some());
+        assert!(ItemKind::Apple.potion_contents().is_none());
+        assert_eq!(
+            ItemKind::SuspiciousStew.suspicious_stew_effects(),
+            Some(&[][..])
+        );
+        assert!(ItemKind::MushroomStew.suspicious_stew_effects().is_none());
     }
 }

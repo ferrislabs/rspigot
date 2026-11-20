@@ -81,6 +81,17 @@ impl<L: ClientLink> Server<L> {
             self.tick_spit(id);
             return;
         }
+        match self.entities.store.get(id).map(|entity| entity.base.kind) {
+            Some(Kind::EyeOfEnder) => {
+                self.tick_eye(id);
+                return;
+            }
+            Some(Kind::EnderPearl) if self.pearl_orphaned(id) => {
+                self.drop_orphaned_pearl(id);
+                return;
+            }
+            _ => {}
+        }
         let in_rain = self
             .entities
             .store
@@ -410,6 +421,7 @@ impl<L: ClientLink> Server<L> {
         };
         match kind {
             Kind::Egg => self.egg_hit(id),
+            Kind::EnderPearl => self.pearl_hit(id),
             Kind::ExperienceBottle => {
                 self.bottle_hit(id, hit);
                 return;

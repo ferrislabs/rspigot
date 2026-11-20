@@ -57,6 +57,7 @@ pub struct Player<L> {
     pub vitals: Vitals,
     pub known_movement: Vec3,
     pub portal_cooldown: i32,
+    pub(crate) cooldowns: rustc_hash::FxHashMap<String, u64>,
     pub seen_credits: bool,
     pub recipe_book: crate::recipe_book::RecipeBook,
     pub stats: crate::stats::PlayerStats,
