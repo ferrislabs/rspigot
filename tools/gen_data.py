@@ -1657,6 +1657,66 @@ def build_biome_spawns(datapack, static_registries, synced):
     return table
 
 
+STRUCTURE_BOXES = {"piece": "StructureBox::Piece", "full": "StructureBox::Full"}
+
+
+def build_structure_spawns(datapack, static_registries):
+    entity_ids = {}
+    for registry_id, by_id, _ in static_registries:
+        if registry_id == "minecraft:entity_type":
+            entity_ids = {name: index for index, name in enumerate(by_id)}
+    rows = []
+    directory = os.path.join(datapack, "worldgen", "structure")
+    for name in json_names(directory):
+        where = "minecraft:" + name
+        overrides = load_json(os.path.join(directory, name + ".json")).get("spawn_overrides")
+        if not overrides:
+            continue
+        fields = []
+        for category in SPAWN_CATEGORIES:
+            entry = overrides.get(category)
+            if entry is None:
+                fields.append((category, rs_option(None)))
+                continue
+            expect_keys(entry, ["bounding_box", "spawns"], where)
+            if entry["bounding_box"] not in STRUCTURE_BOXES:
+                fail("unknown bounding box %s in %s" % (entry["bounding_box"], where))
+            spawners = []
+            for spawn in entry["spawns"]:
+                expect_keys(spawn, ["type", "count", "weight"], where)
+                entity = normalize_id(spawn["type"])
+                if entity not in entity_ids:
+                    fail("unknown entity %s in %s" % (entity, where))
+                weight = spawn["weight"]
+                assert isinstance(weight, int) and weight > 0, (where, spawn)
+                spawners.append(
+                    rs_struct(
+                        "Spawner",
+                        [
+                            ("entity", rs_int(entity_ids[entity])),
+                            ("weight", rs_int(weight)),
+                            ("count", int_provider(spawn["count"], where)),
+                        ],
+                    )
+                )
+            fields.append(
+                (
+                    category,
+                    rs_option(
+                        rs_struct(
+                            "StructureOverride",
+                            [
+                                ("bounding_box", Atom(STRUCTURE_BOXES[entry["bounding_box"]])),
+                                ("spawns", rs_slice(spawners)),
+                            ],
+                        )
+                    ),
+                )
+            )
+        rows.append(rs_tuple([rs_str(where), rs_struct("StructureSpawns", fields)]))
+    return rows
+
+
 def build_dimension_spawns(datapack):
     rows = []
     directory = os.path.join(datapack, "dimension_type")
@@ -1684,7 +1744,7 @@ def build_dimension_spawns(datapack):
     return rows
 
 
-def emit_spawns(biome_spawns, dimension_spawns):
+def emit_spawns(biome_spawns, dimension_spawns, structure_spawns):
     body = ["pub(crate) static BIOME_SPAWNS: [BiomeSpawns; %d] = [" % len(biome_spawns)]
     for node in biome_spawns:
         body.extend(render(node, "    ", "", ","))
@@ -1694,8 +1754,22 @@ def emit_spawns(biome_spawns, dimension_spawns):
     for node in dimension_spawns:
         body.extend(render(node, "    ", "", ","))
     body.append("];")
+    body.append("")
+    body.append("pub(crate) static STRUCTURE_SPAWNS: [(&str, StructureSpawns); %d] = [" % len(structure_spawns))
+    for node in structure_spawns:
+        body.extend(render(node, "    ", "", ","))
+    body.append("];")
     text = "\n".join(body) + "\n"
-    names = ["BiomeSpawns", "DimensionSpawns", "SpawnCost", "SpawnCount", "Spawner"]
+    names = [
+        "BiomeSpawns",
+        "DimensionSpawns",
+        "SpawnCost",
+        "SpawnCount",
+        "Spawner",
+        "StructureBox",
+        "StructureOverride",
+        "StructureSpawns",
+    ]
     return "use crate::spawns::{%s};\n\n" % ", ".join(used_imports(text, names)) + text
 
 
@@ -2981,6 +3055,7 @@ def main():
     smelting = build_smelting(args.datapack, static_registries, tag_table)
     biome_spawns = build_biome_spawns(args.datapack, static_registries, synced)
     dimension_spawns = build_dimension_spawns(args.datapack)
+    structure_spawns = build_structure_spawns(args.datapack, static_registries)
     if not args.no_javap:
         verify_spawn_defaults_against_java(args.javap, args.classes)
     mob_variants, sound_variants = build_variants(args.datapack, synced, tag_table)
@@ -3000,7 +3075,7 @@ def main():
         "synced.rs": emit_synced(synced),
         "tags.rs": emit_tags(tag_table),
         "loot.rs": emit_loot(tables, block_tables, entity_tables, predicates, smelting),
-        "spawns.rs": emit_spawns(biome_spawns, dimension_spawns),
+        "spawns.rs": emit_spawns(biome_spawns, dimension_spawns, structure_spawns),
         "variants.rs": emit_variants(mob_variants, sound_variants, dye_mixes),
         "climate.rs": emit_climate(climate),
         "block_transformers.rs": emit_transformers(transformers),
@@ -3034,7 +3109,10 @@ def main():
     print("smelting inputs %d" % len(smelting))
     print("wall variants using floor table %d" % len(wall_mapped))
     print("named predicates %d" % len(predicates))
-    print("biome spawn settings %d, dimension spawn settings %d" % (len(biome_spawns), len(dimension_spawns)))
+    print(
+        "biome spawn settings %d, dimension spawn settings %d, structure spawn overrides %d"
+        % (len(biome_spawns), len(dimension_spawns), len(structure_spawns))
+    )
     for constant, entries in mob_variants + sound_variants:
         print("variants %-24s %3d" % (constant, len(entries)))
     print("dye mixes %d" % len(dye_mixes))

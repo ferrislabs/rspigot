@@ -1069,6 +1069,57 @@ mod tests {
     }
 
     #[test]
+    fn structure_starts_with_piece_boxes_and_references_survive_a_reload() {
+        let mut original = sample_column();
+        let packed = (5_i64 & 0xFFFF_FFFF) | ((-130_i64 & 0xFFFF_FFFF) << 32);
+        let piece = Compound::new()
+            .with("id", "minecraft:jigsaw")
+            .with("BB", Tag::IntArray(vec![80, 40, -2080, 95, 60, -2065]));
+        original.extra.insert(
+            "structures",
+            Compound::new()
+                .with(
+                    "starts",
+                    Compound::new().with(
+                        "minecraft:monument",
+                        Compound::new()
+                            .with("id", "minecraft:monument")
+                            .with("ChunkX", 5)
+                            .with("ChunkZ", -130)
+                            .with("Children", Tag::List(vec![Tag::Compound(piece)])),
+                    ),
+                )
+                .with(
+                    "References",
+                    Compound::new().with("minecraft:monument", Tag::LongArray(vec![packed])),
+                ),
+        );
+        let bytes = encode(&original);
+        let decoded = decode(&bytes, original.pos(), Some(original.height()))
+            .unwrap()
+            .unwrap();
+        assert_eq!(decoded, original);
+        let structures = decoded.extra.get_compound("structures").unwrap();
+        let start = structures
+            .get_compound("starts")
+            .and_then(|starts| starts.get_compound("minecraft:monument"))
+            .unwrap();
+        let child = start.get_list("Children").unwrap()[0]
+            .as_compound()
+            .unwrap();
+        assert_eq!(
+            child.get_int_array("BB"),
+            Some(&[80, 40, -2080, 95, 60, -2065][..])
+        );
+        assert_eq!(
+            structures
+                .get_compound("References")
+                .and_then(|references| references.get_long_array("minecraft:monument")),
+            Some(&[packed][..])
+        );
+    }
+
+    #[test]
     fn block_and_fluid_ticks_round_trip_with_their_fields() {
         let mut original = sample_column();
         original.block_ticks = vec![
