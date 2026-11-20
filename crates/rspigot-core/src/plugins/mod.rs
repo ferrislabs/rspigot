@@ -22,6 +22,7 @@ pub(crate) mod furnaces;
 mod heard;
 mod inputs;
 mod inventory;
+mod item_components;
 mod items;
 mod knockback;
 mod levels;

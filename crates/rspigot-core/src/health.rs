@@ -1,8 +1,8 @@
 use rand::Rng;
 use rspigot_domain::Identifier;
 use rspigot_domain::attribute::{
-    ARMOR, ARMOR_TOUGHNESS, Attributes, MAX_ABSORPTION, MAX_HEALTH, MOVEMENT_SPEED,
-    equipment_modifiers, is_syncable,
+    ARMOR, ARMOR_TOUGHNESS, ATTRIBUTE_MODIFIERS, Attributes, MAX_ABSORPTION, MAX_HEALTH,
+    MOVEMENT_SPEED, is_syncable, worn_modifiers,
 };
 use rspigot_domain::combat::{CombatEntry, CombatTracker};
 use rspigot_domain::damage::{self, DamageTag, DamageType, java_clamp};
@@ -17,6 +17,7 @@ use rspigot_domain::world::Difficulty;
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, ItemId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_items::EquipmentSlot as ItemSlot;
+use rspigot_nbt::Tag;
 
 use crate::config::GameRules;
 use crate::events::{ClientEvent, EntityStatus, GameEvent, MetadataEntry, MetadataValue};
@@ -193,7 +194,7 @@ pub struct Vitals {
     pub death_location: Option<BlockPos>,
     pub death_dimension: Option<rspigot_domain::Identifier>,
     pub hurt_dir: f32,
-    pub equipment: Vec<(ItemSlot, ItemId)>,
+    pub equipment: Vec<WornSignature>,
     pub experience: PlayerExperience,
     pub last_hurt_mob: Option<EntityId>,
     pub last_hurt_mob_at: i32,
@@ -289,7 +290,17 @@ impl Vitals {
     }
 }
 
-pub(crate) fn equipment(inventory: &Inventory) -> Vec<(ItemSlot, ItemId)> {
+pub type WornSignature = (ItemSlot, ItemId, Option<Tag>);
+
+fn signature(slot: ItemSlot, stack: &ItemStack) -> WornSignature {
+    (
+        slot,
+        stack.item,
+        stack.components.get(ATTRIBUTE_MODIFIERS).cloned(),
+    )
+}
+
+pub(crate) fn equipment(inventory: &Inventory) -> Vec<(ItemSlot, &ItemStack)> {
     let main = HOTBAR_START + usize::from(inventory.selected_hotbar);
     [
         (ItemSlot::Mainhand, main),
@@ -300,7 +311,7 @@ pub(crate) fn equipment(inventory: &Inventory) -> Vec<(ItemSlot, ItemId)> {
         (ItemSlot::Feet, FEET_SLOT),
     ]
     .into_iter()
-    .filter_map(|(slot, index)| inventory.get(index).map(|stack| (slot, stack.item)))
+    .filter_map(|(slot, index)| inventory.get(index).map(|stack| (slot, stack)))
     .collect()
 }
 
@@ -1172,13 +1183,18 @@ impl<L: ClientLink> Server<L> {
                 || player.effects.has("minecraft:slow_falling")
                 || player.effects.has("minecraft:levitation");
             let held = player.inventory.held().map(|s| s.item);
-            let worn = equipment(&player.inventory);
+            let worn: Vec<WornSignature> = equipment(&player.inventory)
+                .into_iter()
+                .map(|(slot, stack)| signature(slot, stack))
+                .collect();
             if worn != player.vitals.equipment {
                 let names: Vec<&'static str> = worn
                     .iter()
                     .chain(player.vitals.equipment.iter())
-                    .flat_map(|(slot, item)| {
-                        equipment_modifiers(*slot, *item).map(|(name, _)| name)
+                    .flat_map(|(slot, item, modifiers)| {
+                        worn_modifiers(*slot, *item, modifiers.as_ref())
+                            .into_iter()
+                            .map(|(name, _)| name)
                     })
                     .filter(|name| is_syncable(name))
                     .collect();
