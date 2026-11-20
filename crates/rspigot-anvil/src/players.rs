@@ -7,7 +7,7 @@ use rspigot_nbt::Compound;
 use crate::chunk::DATA_VERSION;
 use crate::datafix::{self, DataKind};
 use crate::error::AnvilError;
-use crate::level::{read_gzip_nbt, write_gzip_nbt};
+use crate::level::{optional_saved_data, read_gzip_nbt, update_saved_data, write_gzip_nbt};
 use crate::store::AnvilStore;
 
 fn upgrade_player(data: Option<Compound>) -> Result<Option<Compound>, AnvilError> {
@@ -52,6 +52,19 @@ fn stamp(json: &str) -> Result<String, StoreError> {
 }
 
 impl PlayerStore for AnvilStore {
+    fn load_saved_data(&self, name: &str) -> Result<Option<Compound>, StoreError> {
+        Ok(optional_saved_data(self.world_root(), name))
+    }
+
+    fn save_saved_data(&self, name: &str, data: &Compound) -> Result<(), StoreError> {
+        update_saved_data(self.world_root(), name, |stored| {
+            stored.clone_from(data);
+            true
+        })
+        .map(drop)
+        .map_err(AnvilError::into_store_io)
+    }
+
     fn load_progress(
         &self,
         player: PlayerId,
@@ -145,6 +158,40 @@ mod tests {
         assert_eq!(document["DataVersion"], DATA_VERSION);
         assert!(document["stats"].is_object());
         assert!(dir.path().join("stats").is_dir());
+    }
+
+    #[test]
+    fn saved_data_files_live_under_data_minecraft_and_round_trip() {
+        let dir = TempDir::new("saved-data");
+        let store = store(&dir);
+        assert_eq!(store.load_saved_data("maps/3").expect("loads"), None);
+        store
+            .save_saved_data("maps/3", &Compound::new().with("xCenter", 64))
+            .expect("saves");
+        store
+            .save_saved_data("maps/last_id", &Compound::new().with("map", 3))
+            .expect("saves");
+        let path = dir.path().join("data").join("minecraft").join("maps");
+        assert!(path.join("3.dat").is_file());
+        assert!(path.join("last_id.dat").is_file());
+        let root = read_gzip_nbt(&path.join("3.dat"))
+            .expect("reads")
+            .expect("present");
+        assert_eq!(root.get_i32("DataVersion"), Some(DATA_VERSION));
+        assert_eq!(
+            root.get_compound("data").and_then(|d| d.get_i32("xCenter")),
+            Some(64)
+        );
+        let loaded = store
+            .load_saved_data("maps/3")
+            .expect("loads")
+            .expect("present");
+        assert_eq!(loaded.get_i32("xCenter"), Some(64));
+        let index = store
+            .load_saved_data("maps/last_id")
+            .expect("loads")
+            .expect("present");
+        assert_eq!(index.get_i32("map"), Some(3));
     }
 
     #[test]

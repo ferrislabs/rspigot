@@ -972,6 +972,7 @@ pub enum ClientEvent {
         duration: i32,
     },
     GameRuleValues(Vec<(String, String)>),
+    MapData(rspigot_domain::map_data::MapUpdate),
     Disconnect(Component),
 }
 

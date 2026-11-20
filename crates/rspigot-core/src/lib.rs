@@ -106,6 +106,7 @@ mod locate;
 pub mod loot;
 mod mace;
 pub mod management;
+mod map_items;
 mod mending;
 mod menu;
 mod minecarts;

@@ -39,6 +39,8 @@ pub mod ids;
 pub mod item;
 pub mod jukebox;
 pub mod loom;
+pub mod map_data;
+pub mod map_render;
 pub mod menu;
 pub mod meta;
 pub mod mth;

@@ -749,6 +749,10 @@ impl<L: ClientLink> Server<L> {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;
         }
+        if self.use_map_on(id, hand, pos) {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+            return;
+        }
         if self.use_armor_stand(id, slot, pos, face, clicked) {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;
