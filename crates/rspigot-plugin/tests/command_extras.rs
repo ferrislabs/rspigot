@@ -95,7 +95,7 @@ impl Market {
     }
 
     async fn on_command(&self, invocation: Invocation) {
-        if invocation.command() != 900 {
+        if invocation.command != 900 {
             return;
         }
         let Some((context, mut arguments)) = invocation.open() else {

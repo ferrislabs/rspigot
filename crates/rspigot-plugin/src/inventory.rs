@@ -78,7 +78,7 @@ impl PlayerInventoryHandle {
                 inventory.generation(),
                 from_plugin::Body::Player(v1::PlayerOrder {
                     player: self.target.to_string(),
-                    order: Some(player_order::Order::OpenInventory(inventory.id())),
+                    order: Some(player_order::Order::OpenInventory(inventory.id)),
                 }),
             )
             .await

@@ -319,7 +319,7 @@ impl ServerCommandHandle {
 
 #[derive(Debug, Clone)]
 pub struct Invocation {
-    command: u32,
+    pub command: u32,
     sender: Option<v1::PlayerSnapshot>,
     arguments: Vec<v1::ArgumentValue>,
     link: Link,
@@ -333,10 +333,6 @@ impl Invocation {
             arguments: invocation.arguments,
             link: link.clone(),
         }
-    }
-
-    pub const fn command(&self) -> u32 {
-        self.command
     }
 
     #[must_use]
@@ -365,11 +361,11 @@ impl Invocation {
 
 #[derive(Debug)]
 pub struct Typing {
-    command: String,
-    path: Vec<String>,
-    position: usize,
-    text: String,
-    player: Player,
+    pub command: String,
+    pub path: Vec<String>,
+    pub position: usize,
+    pub text: String,
+    pub player: Player,
 }
 
 impl Typing {
@@ -393,18 +389,6 @@ impl Typing {
         })
     }
 
-    pub fn command(&self) -> &str {
-        &self.command
-    }
-
-    pub const fn position(&self) -> usize {
-        self.position
-    }
-
-    pub fn path(&self) -> &[String] {
-        &self.path
-    }
-
     pub fn is_for(
         &self,
         labels: &[&str],
@@ -421,14 +405,6 @@ impl Typing {
                 .all(|(literal, typed)| typed == literal)
             && self.position >= start
             && (open || self.position < start + width)
-    }
-
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    pub const fn player(&self) -> &Player {
-        &self.player
     }
 }
 

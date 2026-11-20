@@ -295,7 +295,7 @@ pub(crate) fn expand(input: &DeriveInput, fields: &[Field<'_>], own: bool) -> To
             }
 
             async fn invoke(&self, base: u32, invocation: ::rspigot_plugin::Invocation) {
-                let command = invocation.command();
+                let command = invocation.command;
                 if command > base + <Self as #children>::COMMAND_SLOTS {
                     #(#broadcast_steps)*
                     return;

@@ -309,7 +309,7 @@ pub struct World {
     pub storage: WorldStorageHandle,
     pub time: WorldTimeHandle,
     pub weather: WorldWeatherHandle,
-    name: Option<String>,
+    pub name: Option<String>,
     link: Link,
 }
 
@@ -349,10 +349,6 @@ impl World {
         } else {
             Self::named(name, link.clone())
         }
-    }
-
-    pub fn name(&self) -> Option<&str> {
-        self.name.as_deref()
     }
 
     pub fn id(&self) -> &str {

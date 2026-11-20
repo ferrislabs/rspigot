@@ -70,7 +70,7 @@ impl Welcome {
     async fn on_disable(&self) {
         let Some(lobby) = self.lobby() else { return };
         match lobby.entities.get_entities().await {
-            Ok(entities) if entities.iter().all(|entity| entity.player().is_none()) => {
+            Ok(entities) if entities.iter().all(|entity| entity.player.is_none()) => {
                 if let Err(error) = lobby.delete(true).await {
                     tracing::warn!("Could not delete the lobby: {error}");
                 }

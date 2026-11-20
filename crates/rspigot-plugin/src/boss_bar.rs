@@ -157,7 +157,7 @@ impl BossBars {
             .all()
             .await?
             .into_iter()
-            .find(|bar| bar.key() == Some(key)))
+            .find(|bar| bar.key.as_deref() == Some(key)))
     }
 
     async fn build(
@@ -231,35 +231,27 @@ impl BossBarState {
 
 #[derive(Debug, Clone)]
 pub struct BossBar {
-    bar: u64,
-    key: Option<String>,
+    pub id: u64,
+    pub key: Option<String>,
     link: Link,
 }
 
 impl PartialEq for BossBar {
     fn eq(&self, other: &Self) -> bool {
-        self.bar == other.bar
+        self.id == other.id
     }
 }
 
 impl BossBar {
-    pub(crate) fn new(bar: u64, key: Option<String>, link: Link) -> Self {
-        Self { bar, key, link }
-    }
-
-    pub const fn id(&self) -> u64 {
-        self.bar
-    }
-
-    pub fn key(&self) -> Option<&str> {
-        self.key.as_deref()
+    pub(crate) fn new(id: u64, key: Option<String>, link: Link) -> Self {
+        Self { id, key, link }
     }
 
     pub async fn state(&self) -> Result<BossBarState, Error> {
         let state = self
             .link
             .ask(
-                question::Question::BossBar(self.bar),
+                question::Question::BossBar(self.id),
                 "a boss bar",
                 |body| match body {
                     answer::Body::BossBar(state) => Some(state),
@@ -324,7 +316,7 @@ impl BossBar {
     fn order(&self, order: Order) {
         self.link
             .order(from_plugin::Body::BossBar(v1::BossBarOrder {
-                bar: self.bar,
+                bar: self.id,
                 order: Some(order),
             }));
     }
