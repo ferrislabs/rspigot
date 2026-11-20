@@ -7,6 +7,7 @@ pub mod boss_event;
 pub mod brewing;
 pub mod brushing;
 pub mod campfire;
+pub mod cartography;
 pub mod chat_chain;
 pub mod chunk;
 pub mod click;

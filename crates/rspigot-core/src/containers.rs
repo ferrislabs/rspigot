@@ -1,5 +1,6 @@
 use rand::Rng;
 use rspigot_blocks::{BlockKind, ShapeId};
+use rspigot_domain::cartography;
 use rspigot_domain::chunk::BlockEntity;
 use rspigot_domain::container_menu::{ContainerMenu, MenuKind};
 use rspigot_domain::entity::physics::has_tag;
@@ -933,13 +934,14 @@ impl<L: ClientLink> Server<L> {
         };
         let full = full || click.state_id != open.state_id || lectern;
         self.prepare_enchanting_menu(id);
+        let map_facts = self.map_facts_for(id);
         let player = self.players.get(&id)?;
         let open = player.open_menu.as_ref()?;
         let mut items = self.open_items(open);
         let before = items.clone();
         let player = self.players.get_mut(&id)?;
         let open = player.open_menu.as_mut()?;
-        let (moved, effects) = match act {
+        let (moved, effects) = cartography::with_facts(map_facts, || match act {
             Some(Move::Click) => (
                 None,
                 open.menu.click(
@@ -956,18 +958,24 @@ impl<L: ClientLink> Server<L> {
                     .quick_move_once(&mut items, &mut player.inventory, slot, clicker)
             }
             None => (None, Vec::new()),
-        };
+        });
+        let cartography_taken = open.menu.kind() == MenuKind::CartographyTable
+            && crate::cartography::both_inputs_used(&before, &items);
         for (slot, hash) in &click.changed {
             open.menu.receive_remote(*slot, hash.clone());
         }
         open.menu.receive_remote_carried(click.carried.clone());
-        let resync = full
+        let mut resync = full
             || effects
                 .iter()
                 .any(|effect| matches!(effect, MenuEffect::FullResync));
         self.trigger_brewed_potion(id, backing.block, &before, &items);
         if act.is_some() {
             self.store_open_items(id, &before, items);
+        }
+        resync |= self.resolve_map_post_processing(id);
+        if cartography_taken {
+            self.cartography_taken(backing.pos);
         }
         self.container_effects(id, backing, effects);
         self.sync_open_menu(id, resync);

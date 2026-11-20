@@ -2,6 +2,7 @@ use std::num::NonZeroU8;
 
 use rspigot_blocks::BlockKind;
 use rspigot_data::map_colors::decoration_type_id;
+use rspigot_domain::cartography::{self, MapFacts};
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::dye::DYE_COLORS;
 use rspigot_domain::entity::hanging;
@@ -100,7 +101,7 @@ impl MapTerrain for WorldTerrain<'_> {
 }
 
 fn map_id_of(stack: &ItemStack) -> Option<i32> {
-    if stack.item.kind() != Some(ItemKind::FilledMap) {
+    if !cartography::is_map_item(stack) {
         return None;
     }
     stack.components.get_i32(MAP_ID)
@@ -187,6 +188,32 @@ impl<L: ClientLink> Server<L> {
         }
         self.maps.index = Some(index);
         id
+    }
+
+    pub(crate) fn map_facts(&mut self, id: i32) -> Option<MapFacts> {
+        if !self.load_map(id) {
+            return None;
+        }
+        self.maps.maps.get(&id).map(MapFacts::of)
+    }
+
+    pub(crate) fn new_map(&mut self, data: MapData) -> i32 {
+        let id = self.next_map_id();
+        self.maps.maps.insert(id, data);
+        self.save_maps();
+        id
+    }
+
+    pub(crate) fn derived_map(
+        &mut self,
+        from: i32,
+        derive: impl FnOnce(&MapData) -> Option<MapData>,
+    ) -> Option<i32> {
+        if !self.load_map(from) {
+            return None;
+        }
+        let data = derive(self.maps.maps.get(&from)?)?;
+        Some(self.new_map(data))
     }
 
     pub fn save_maps(&mut self) {
