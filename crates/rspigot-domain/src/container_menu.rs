@@ -1101,14 +1101,19 @@ impl Session<'_> {
             return;
         }
         if self.kind == MenuKind::Smithing && slot == smithing::RESULT && taken.is_some() {
+            let recipe = smithing::recipe_id(
+                &self.container[smithing::TEMPLATE],
+                &self.container[smithing::BASE],
+                &self.container[smithing::ADDITION],
+            );
             for index in 0..smithing::INPUTS {
                 if let Some(input) = self.container[index].take() {
                     self.container[index] = with_count(&input, u32::from(input.count.get()) - 1);
                 }
             }
             self.refresh_smithing(true);
-            if self.effects.last() != Some(&MenuEffect::SmithingTaken) {
-                self.effects.push(MenuEffect::SmithingTaken);
+            if !matches!(self.effects.last(), Some(MenuEffect::SmithingTaken { .. })) {
+                self.effects.push(MenuEffect::SmithingTaken { recipe });
             }
             return;
         }
@@ -1155,13 +1160,15 @@ impl Session<'_> {
         if self.kind != MenuKind::Crafting || slot != CRAFTING_RESULT || taken.is_none() {
             return;
         }
+        let mut cells = self.grid();
         if let Some(stack) = taken {
             self.effects.push(MenuEffect::Crafted {
                 item: stack.item,
                 amount,
+                recipe: crafting::recipe(3, 3, &cells).map(|found| found.id),
+                ingredients: cells.iter().flatten().map(|cell| cell.item).collect(),
             });
         }
-        let mut cells = self.grid();
         let leftovers = crafting::take_result(3, 3, &mut cells);
         for (offset, cell) in cells.into_iter().enumerate() {
             if let Some(entry) = self.container.get_mut(CRAFTING_GRID.start() + offset) {
@@ -2531,6 +2538,39 @@ mod tests {
     }
 
     #[test]
+    fn a_shift_clicked_result_reports_every_craft_with_its_recipe() {
+        let (mut menu, mut container, mut player) = table();
+        load(
+            &mut menu,
+            &mut container,
+            &mut player,
+            5,
+            stack("minecraft:oak_log", 3),
+        );
+        let effects = click(
+            &mut menu,
+            &mut container,
+            &mut player,
+            0,
+            0,
+            ClickInput::QuickMove,
+        );
+        let crafts: Vec<_> = effects
+            .iter()
+            .filter(|effect| {
+                matches!(
+                    effect,
+                    MenuEffect::Crafted {
+                        recipe: Some("minecraft:oak_planks"),
+                        ..
+                    }
+                )
+            })
+            .collect();
+        assert_eq!(crafts.len(), 3);
+    }
+
+    #[test]
     fn what_the_inventory_cannot_hold_of_a_shift_clicked_result_is_dropped() {
         let (mut menu, mut container, mut player) = table();
         for slot in 9..45 {
@@ -2560,6 +2600,8 @@ mod tests {
                 MenuEffect::Crafted {
                     item: stack("minecraft:oak_planks", 1).item,
                     amount: 2,
+                    recipe: Some("minecraft:oak_planks"),
+                    ingredients: vec![stack("minecraft:oak_log", 1).item],
                 },
                 MenuEffect::Drop {
                     stack: stack("minecraft:oak_planks", 2),
@@ -2605,6 +2647,8 @@ mod tests {
                 MenuEffect::Crafted {
                     item: stack("minecraft:oak_planks", 1).item,
                     amount: 1,
+                    recipe: Some("minecraft:oak_planks"),
+                    ingredients: vec![stack("minecraft:oak_log", 1).item],
                 },
                 MenuEffect::Drop {
                     stack: stack("minecraft:oak_planks", 1),
@@ -4385,7 +4429,12 @@ mod tests {
             0,
             ClickInput::Pickup,
         );
-        assert_eq!(effects, vec![MenuEffect::SmithingTaken]);
+        assert_eq!(
+            effects,
+            vec![MenuEffect::SmithingTaken {
+                recipe: Some("minecraft:netherite_sword_smithing")
+            }]
+        );
         assert_eq!(menu.carried(), &Some(stack("minecraft:netherite_sword", 1)));
         assert_eq!(container[0], None);
         assert_eq!(container[1], None);
@@ -4486,7 +4535,12 @@ mod tests {
         let (mut menu, mut container, mut player) = smithing();
         upgrade_inputs(&mut menu, &mut container, &mut player, 1);
         let effects = shift(&mut menu, &mut container, &mut player, 3);
-        assert_eq!(effects, vec![MenuEffect::SmithingTaken]);
+        assert_eq!(
+            effects,
+            vec![MenuEffect::SmithingTaken {
+                recipe: Some("minecraft:netherite_sword_smithing")
+            }]
+        );
         assert_eq!(
             player.get(HOTBAR_START + 8),
             Some(&stack("minecraft:netherite_sword", 1))

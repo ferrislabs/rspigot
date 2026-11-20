@@ -460,6 +460,7 @@ impl<L: ClientLink> Server<L> {
             return None;
         }
         let _ = hand;
+        self.count_talked_to_villager(player, hand);
         let offers = self.merchant_offers_of(target)?;
         if offers.is_empty() {
             return Some(Interaction::Consume);
@@ -693,6 +694,7 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         self.notify_trade(trader, offer);
+        self.award_custom(player, crate::stats::custom::TRADED_WITH_VILLAGER, 1);
         self.send_trading_offers(trader);
         self.trigger_event(player, AdvancementEvent::named("minecraft:villager_trade"));
     }

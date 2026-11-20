@@ -174,6 +174,7 @@ impl<L: ClientLink> Server<L> {
             stacks,
             seed,
         };
+        self.trigger_loot_generated(player, &pending.table);
         self.offer_loot(step, pending.table);
         true
     }

@@ -810,6 +810,7 @@ impl<L: ClientLink> Server<L> {
             });
         }
         player.open_menu = Some(open);
+        self.count_menu_opened(id, &backing, kind);
         let count = self.viewer_count(pos);
         self.viewers_changed(backing, count, true);
     }
@@ -964,6 +965,7 @@ impl<L: ClientLink> Server<L> {
             || effects
                 .iter()
                 .any(|effect| matches!(effect, MenuEffect::FullResync));
+        self.trigger_brewed_potion(id, backing.block, &before, &items);
         if act.is_some() {
             self.store_open_items(id, &before, items);
         }
@@ -984,7 +986,9 @@ impl<L: ClientLink> Server<L> {
     ) {
         let cut = effects.contains(&MenuEffect::StonecutterTaken);
         let woven = effects.contains(&MenuEffect::LoomTaken);
-        let smithed = effects.contains(&MenuEffect::SmithingTaken);
+        let smithed = effects
+            .iter()
+            .any(|effect| matches!(effect, MenuEffect::SmithingTaken { .. }));
         let mut drops = Vec::new();
         let mut taken = Vec::new();
         let mut traded = Vec::new();
@@ -992,11 +996,18 @@ impl<L: ClientLink> Server<L> {
         let mut anvil = Vec::new();
         let mut ground = Vec::new();
         let mut crafted = Vec::new();
+        let mut smithing = Vec::new();
         for effect in effects {
             match effect {
                 MenuEffect::Drop { .. } => drops.push(effect),
                 MenuEffect::FurnaceOutputTaken { item, amount } => taken.push((item, amount)),
-                MenuEffect::Crafted { item, amount } => crafted.push((item, amount)),
+                MenuEffect::Crafted {
+                    item,
+                    amount,
+                    recipe,
+                    ingredients,
+                } => crafted.push((item, amount, recipe, ingredients)),
+                MenuEffect::SmithingTaken { recipe } => smithing.push(recipe),
                 MenuEffect::Traded { offer } => traded.push(offer),
                 MenuEffect::TradeUpdated { valid } => updated.push(valid),
                 MenuEffect::AnvilTaken { levels, wear } => anvil.push((levels, wear)),
@@ -1008,8 +1019,12 @@ impl<L: ClientLink> Server<L> {
             self.count_crafted(id, item, amount);
             self.pay_furnace_experience(id, backing.pos, item, amount);
         }
-        for (item, amount) in crafted {
+        for (item, amount, recipe, ingredients) in crafted {
             self.count_crafted(id, item, amount);
+            self.trigger_recipe_crafted(id, recipe, &ingredients);
+        }
+        for recipe in smithing {
+            self.trigger_recipe_crafted(id, recipe, &[]);
         }
         self.apply_menu_effects(id, drops);
         for offer in traded {

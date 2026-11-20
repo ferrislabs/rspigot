@@ -912,6 +912,7 @@ impl<L: ClientLink> Server<L> {
         );
         let fish = rspigot_domain::entity::item::stack(&item.base)
             .is_some_and(|stack| crate::interact::item_tag(stack.item, "minecraft:fishes"));
+        let caught = rspigot_domain::entity::item::stack(&item.base).map(|stack| stack.item.0);
         self.add_entity(item, CreatureSpawnReason::Default);
         if exp > 0 {
             let at = Vec3::new(position.x, position.y + XP_OFFSET, position.z + XP_OFFSET);
@@ -920,6 +921,7 @@ impl<L: ClientLink> Server<L> {
         if fish {
             self.award_custom(player, custom::FISH_CAUGHT, 1);
         }
+        self.trigger_fishing_rod_hooked(player, caught);
     }
 
     fn pull_entity(&mut self, hook: EntityId, target: EntityId) {

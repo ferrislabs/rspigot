@@ -289,6 +289,7 @@ impl<L: ClientLink> Server<L> {
             self.villager_unhappy(target);
             return Some(Interaction::Predicted);
         }
+        self.count_talked_to_villager(player, hand);
         let empty = self.merchant_offers_empty_after_generation(target);
         if empty && hand == crate::events::Hand::Main {
             self.villager_unhappy(target);

@@ -44,14 +44,16 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn target_hit(&mut self, projectile: EntityId, hit: BlockHit, state: BlockStateId) {
+        self.count_target_hit(projectile);
         let pulse = match self.entities.store.get(projectile) {
             Some(entity) if is_arrow(entity.base.kind) => ARROW_PULSE,
             _ => OTHER_PULSE,
         };
+        let strength = hit_strength(hit.face, hit.location);
+        self.trigger_target_hit(projectile, hit.location, strength);
         if self.has_scheduled(hit.pos, BlockKind::Target) {
             return;
         }
-        let strength = hit_strength(hit.face, hit.location);
         self.set_target_power(hit.pos, state, strength);
         self.schedule(hit.pos, BlockKind::Target, pulse);
     }

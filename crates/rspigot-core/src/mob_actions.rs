@@ -602,6 +602,7 @@ impl<L: ClientLink> Server<L> {
         slots: [Option<(&'static str, EntityFacts<'static>)>; N],
     ) {
         if let Some(player) = breeder.and_then(|entity| self.player_of_entity(entity)) {
+            self.award_custom(player, crate::stats::custom::ANIMALS_BRED, 1);
             let mut event = AdvancementEvent::named("minecraft:bred_animals");
             event.entities = slots.into_iter().flatten().collect();
             self.trigger_event(player, event);

@@ -125,6 +125,7 @@ impl<L: ClientLink> Server<L> {
             Some(Ok(replaced)) => replaced,
             _ => Some(step.result.clone()),
         };
+        let used: Vec<_> = items.iter().flatten().map(|stack| stack.item).collect();
         for cell in &mut items {
             let shrunk: Slot = cell
                 .as_ref()
@@ -141,6 +142,7 @@ impl<L: ClientLink> Server<L> {
             self.crafter_output(step.pos, front, stack);
         }
         self.level_event(CRAFT_EVENT, step.pos, 0);
+        self.trigger_crafter_crafted(step.pos, step.recipe, &used);
     }
 
     fn crafter_output(&mut self, pos: BlockPos, front: Face, stack: ItemStack) {

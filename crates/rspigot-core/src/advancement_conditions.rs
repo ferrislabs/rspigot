@@ -1,11 +1,46 @@
 use rspigot_data::{registries, tags};
 use rspigot_domain::BlockStateId;
+use rspigot_domain::damage::DamageType;
 use serde_json::{Map, Value};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct Distance {
+    pub horizontal: f64,
+    pub absolute: f64,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct EntityFacts<'a> {
     pub kind: &'a str,
     pub baby: bool,
+    pub distance: Option<Distance>,
+    pub vehicle: Option<&'a str>,
+    pub vehicle_passenger: Option<&'a str>,
+    pub passenger: Option<&'a str>,
+    pub mainhand: Option<u16>,
+    pub ominous_banner: bool,
+    pub lightning_fire: Option<i32>,
+    pub looking_at: Option<&'a str>,
+}
+
+impl<'a> EntityFacts<'a> {
+    pub(crate) fn of(kind: &'a str, baby: bool) -> Self {
+        Self {
+            kind,
+            baby,
+            ..Self::default()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct DamageFacts<'a> {
+    pub kind: DamageType,
+    pub dealt: f64,
+    pub taken: f64,
+    pub blocked: bool,
+    pub direct: Option<EntityFacts<'a>>,
+    pub causing: Option<EntityFacts<'a>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -24,6 +59,12 @@ pub(crate) struct Facts<'a, B> {
     pub loot_table: Option<&'a str>,
     pub to: Option<&'a str>,
     pub amounts: Vec<(&'static str, f64)>,
+    pub damage: Option<DamageFacts<'a>>,
+    pub victims: Vec<EntityFacts<'a>>,
+    pub effects: Vec<&'a str>,
+    pub weapon: Option<u16>,
+    pub ingredients: Vec<u16>,
+    pub player_entity: Option<EntityFacts<'a>>,
     pub block_at: B,
 }
 
@@ -53,6 +94,12 @@ impl<B> Facts<'_, B> {
             loot_table: None,
             to: None,
             amounts: Vec::new(),
+            damage: None,
+            victims: Vec::new(),
+            effects: Vec::new(),
+            weapon: None,
+            ingredients: Vec::new(),
+            player_entity: None,
             block_at,
         }
     }
@@ -172,29 +219,181 @@ fn entity_matches(predicate: &Value, facts: Option<EntityFacts>, place: Option<P
     wrapper.iter().all(|(key, value)| match key.as_str() {
         "type" => value.as_str() == Some("minecraft:entity_properties"),
         "entity" => value.as_str() == Some("this"),
-        "predicate" => value.as_object().is_some_and(|properties| {
-            properties
-                .iter()
-                .all(|(property, wanted)| match property.as_str() {
-                    "minecraft:entity_type" => holds(
-                        "minecraft:entity_type",
-                        wanted,
-                        facts.and_then(|entity| {
-                            registries::static_index("minecraft:entity_type", entity.kind)
-                        }),
-                    ),
-                    "minecraft:flags" => wanted.as_object().is_some_and(|flags| {
-                        flags.iter().all(|(flag, expected)| {
-                            flag == "is_baby"
-                                && facts
-                                    .is_some_and(|entity| expected.as_bool() == Some(entity.baby))
-                        })
-                    }),
-                    "minecraft:location" => place_matches(wanted, place),
+        "predicate" => value
+            .as_object()
+            .is_some_and(|properties| properties_match(properties, facts, place)),
+        _ => false,
+    })
+}
+
+fn properties_match(
+    properties: &Map<String, Value>,
+    facts: Option<EntityFacts>,
+    place: Option<Place>,
+) -> bool {
+    properties
+        .iter()
+        .all(|(property, wanted)| match property.as_str() {
+            "minecraft:entity_type" => holds(
+                "minecraft:entity_type",
+                wanted,
+                facts.and_then(|entity| {
+                    registries::static_index("minecraft:entity_type", entity.kind)
+                }),
+            ),
+            "minecraft:flags" => wanted.as_object().is_some_and(|flags| {
+                flags.iter().all(|(flag, expected)| {
+                    flag == "is_baby"
+                        && facts.is_some_and(|entity| expected.as_bool() == Some(entity.baby))
+                })
+            }),
+            "minecraft:location" => place_matches(wanted, place),
+            "minecraft:distance" => distance_matches(wanted, facts.and_then(|e| e.distance)),
+            "minecraft:vehicle" => wanted.as_object().is_some_and(|inner| {
+                facts.and_then(|entity| entity.vehicle).is_some_and(|kind| {
+                    let vehicle = EntityFacts {
+                        passenger: facts.and_then(|entity| entity.vehicle_passenger),
+                        ..EntityFacts::of(kind, false)
+                    };
+                    properties_match(inner, Some(vehicle), None)
+                })
+            }),
+            "minecraft:passenger" => wanted.as_object().is_some_and(|inner| {
+                facts
+                    .and_then(|entity| entity.passenger)
+                    .is_some_and(|kind| {
+                        properties_match(inner, Some(EntityFacts::of(kind, false)), None)
+                    })
+            }),
+            "minecraft:equipment" => wanted.as_object().is_some_and(|slots| {
+                slots.iter().all(|(slot, stack)| match slot.as_str() {
+                    "mainhand" => item_matches(stack, facts.and_then(|entity| entity.mainhand)),
+                    "head" => {
+                        facts.is_some_and(|entity| entity.ominous_banner)
+                            && stack
+                                .pointer("/components/minecraft:banner_patterns")
+                                .is_some()
+                    }
                     _ => false,
                 })
-        }),
+            }),
+            "minecraft:type_specific/lightning" => wanted.as_object().is_some_and(|inner| {
+                inner.iter().all(|(field, expected)| {
+                    field == "blocks_set_on_fire"
+                        && facts
+                            .and_then(|entity| entity.lightning_fire)
+                            .is_some_and(|fires| expected.as_i64() == Some(i64::from(fires)))
+                })
+            }),
+            "minecraft:type_specific/player" => wanted.as_object().is_some_and(|inner| {
+                inner.iter().all(|(field, expected)| {
+                    field == "looking_at"
+                        && expected.as_object().is_some_and(|target| {
+                            facts
+                                .and_then(|entity| entity.looking_at)
+                                .is_some_and(|kind| {
+                                    properties_match(
+                                        target,
+                                        Some(EntityFacts::of(kind, false)),
+                                        None,
+                                    )
+                                })
+                        })
+                })
+            }),
+            _ => false,
+        })
+}
+
+fn distance_matches(wanted: &Value, distance: Option<Distance>) -> bool {
+    let (Some(axes), Some(distance)) = (wanted.as_object(), distance) else {
+        return false;
+    };
+    axes.iter().all(|(axis, range)| match axis.as_str() {
+        "horizontal" => in_range(range, distance.horizontal),
+        "absolute" => in_range(range, distance.absolute),
         _ => false,
+    })
+}
+
+fn tags_hold(tags: &Value, kind: DamageType) -> bool {
+    tags.as_array().is_some_and(|list| {
+        list.iter().all(|entry| {
+            let id = entry.get("id").and_then(Value::as_str);
+            let expected = entry
+                .get("expected")
+                .and_then(Value::as_bool)
+                .unwrap_or(true);
+            id.is_some_and(|id| kind.in_tag(id.trim_start_matches('#')) == expected)
+        })
+    })
+}
+
+fn source_matches(wanted: &Value, damage: Option<DamageFacts>) -> bool {
+    let (Some(map), Some(damage)) = (wanted.as_object(), damage) else {
+        return false;
+    };
+    map.iter().all(|(key, value)| match key.as_str() {
+        "tags" => tags_hold(value, damage.kind),
+        "direct_entity" => value
+            .as_object()
+            .is_some_and(|inner| properties_match(inner, damage.direct, None)),
+        "source_entity" => value
+            .as_object()
+            .is_some_and(|inner| properties_match(inner, damage.causing, None)),
+        _ => false,
+    })
+}
+
+fn damage_matches(wanted: &Value, damage: Option<DamageFacts>) -> bool {
+    let (Some(map), Some(found)) = (wanted.as_object(), damage) else {
+        return false;
+    };
+    map.iter().all(|(key, value)| match key.as_str() {
+        "dealt" => in_range(value, found.dealt),
+        "taken" => in_range(value, found.taken),
+        "blocked" => value.as_bool() == Some(found.blocked),
+        "type" => source_matches(value, damage),
+        "source_entity" => value
+            .as_object()
+            .is_some_and(|inner| properties_match(inner, found.causing, None)),
+        _ => false,
+    })
+}
+
+fn victims_match(wanted: &Value, victims: &[EntityFacts]) -> bool {
+    let Some(list) = wanted.as_array() else {
+        return false;
+    };
+    let mut used = vec![false; victims.len()];
+    list.iter().all(|predicate| {
+        let found = victims
+            .iter()
+            .enumerate()
+            .find(|(at, victim)| !used[*at] && entity_matches(predicate, Some(**victim), None));
+        found.map(|(at, _)| used[at] = true).is_some()
+    })
+}
+
+fn ingredients_match(wanted: &Value, items: &[u16]) -> bool {
+    let Some(list) = wanted.as_array() else {
+        return false;
+    };
+    let mut used = vec![false; items.len()];
+    list.iter().all(|predicate| {
+        let found = items
+            .iter()
+            .enumerate()
+            .find(|(at, item)| !used[*at] && item_matches(predicate, Some(**item)));
+        found.map(|(at, _)| used[at] = true).is_some()
+    })
+}
+
+fn effects_match(wanted: &Value, active: &[&str]) -> bool {
+    wanted.as_object().is_some_and(|map| {
+        map.iter().all(|(name, bounds)| {
+            bounds.as_object().is_some_and(Map::is_empty) && active.contains(&name.as_str())
+        })
     })
 }
 
@@ -206,6 +405,11 @@ fn amount_matches<B>(key: &str, value: &Value, facts: &Facts<B>) -> bool {
             .find(|(known, _)| *known == name)
             .map(|(_, actual)| *actual)
     };
+    if key == "start_position" {
+        return value
+            .pointer("/position/y")
+            .is_some_and(|range| amount("start_position.y").is_some_and(|y| in_range(range, y)));
+    }
     if key == "distance" {
         return value.as_object().is_some_and(|axes| {
             axes.iter().all(|(axis, range)| {
@@ -292,15 +496,27 @@ pub(crate) fn matches<B: Fn(i32, i32, i32) -> Option<BlockStateId>>(
         "location" => term_holds(value, facts),
         "player" => entity_matches(
             value,
-            facts.player.map(|_| EntityFacts {
-                kind: "minecraft:player",
-                baby: false,
+            facts.player.map(|_| {
+                facts
+                    .player_entity
+                    .unwrap_or_else(|| EntityFacts::of("minecraft:player", false))
             }),
             facts.player,
         ),
+        "damage" => damage_matches(value, facts.damage),
+        "killing_blow" => source_matches(value, facts.damage),
+        "victims" => victims_match(value, &facts.victims),
+        "effects" => effects_match(value, &facts.effects),
+        "ingredients" => ingredients_match(value, &facts.ingredients),
+        "fired_from_weapon" => item_matches(value, facts.weapon),
         slot if ENTITY_SLOTS.contains(&slot) => {
-            let found = facts.entities.iter().find(|(name, _)| *name == slot);
-            entity_matches(value, found.map(|(_, entity)| *entity), facts.location)
+            let mut named = facts.entities.iter().filter(|(name, _)| *name == slot);
+            let Some(first) = named.next() else {
+                return entity_matches(value, None, facts.location);
+            };
+            std::iter::once(first)
+                .chain(named)
+                .any(|(_, entity)| entity_matches(value, Some(*entity), facts.location))
         }
         other => amount_matches(other, value, facts),
     })
@@ -310,6 +526,7 @@ pub(crate) fn matches<B: Fn(i32, i32, i32) -> Option<BlockStateId>>(
 mod tests {
     use super::*;
     use rspigot_blocks::BlockKind;
+    use rspigot_domain::damage::DamageType;
 
     fn item(name: &str) -> Option<u16> {
         registries::static_index("minecraft:item", name).map(|id| id as u16)
@@ -341,13 +558,9 @@ mod tests {
     #[test]
     fn an_entity_slot_checks_its_type_and_baby_flag() {
         let mut facts = Facts::bare();
-        facts.entities.push((
-            "child",
-            EntityFacts {
-                kind: "minecraft:cow",
-                baby: true,
-            },
-        ));
+        facts
+            .entities
+            .push(("child", EntityFacts::of("minecraft:cow", true)));
         let cow = r#"{"child":{"type":"minecraft:entity_properties","entity":"this","predicate":{"minecraft:entity_type":"minecraft:cow"}}}"#;
         assert!(matches(Some(cow), &facts));
         assert!(!matches(Some(&cow.replace("cow", "pig")), &facts));
@@ -424,5 +637,178 @@ mod tests {
         let facts = Facts::with_blocks(|_, _, _| Some(BlockKind::Water.default_state()));
         assert!(matches(Some(r#"{"blocks":"minecraft:water"}"#), &facts));
         assert!(!matches(Some(r#"{"blocks":"minecraft:lava"}"#), &facts));
+    }
+
+    fn wrapped(properties: &str) -> String {
+        format!(
+            r#"{{"type":"minecraft:entity_properties","entity":"this","predicate":{properties}}}"#
+        )
+    }
+
+    #[test]
+    fn a_projectile_damage_condition_reads_type_tags_and_the_direct_entity() {
+        let mut facts = Facts::bare();
+        facts.damage = Some(DamageFacts {
+            kind: DamageType::Arrow,
+            dealt: 6.0,
+            taken: 6.0,
+            blocked: false,
+            direct: Some(EntityFacts::of("minecraft:arrow", false)),
+            causing: None,
+        });
+        let shot = r##"{"damage":{"type":{"direct_entity":{"minecraft:entity_type":"#minecraft:arrows"},"tags":[{"expected":true,"id":"#minecraft:is_projectile"}]}}}"##;
+        assert!(matches(Some(shot), &facts));
+        let melee = shot.replace("#minecraft:arrows", "minecraft:trident");
+        assert!(!matches(Some(&melee), &facts));
+        facts.damage = Some(DamageFacts {
+            kind: DamageType::PlayerAttack,
+            dealt: 6.0,
+            taken: 6.0,
+            blocked: false,
+            direct: Some(EntityFacts::of("minecraft:player", false)),
+            causing: None,
+        });
+        assert!(!matches(Some(shot), &facts));
+    }
+
+    #[test]
+    fn damage_amounts_and_the_blocked_flag_are_compared() {
+        let mut facts = Facts::bare();
+        facts.damage = Some(DamageFacts {
+            kind: DamageType::Arrow,
+            dealt: 120.0,
+            taken: 20.0,
+            blocked: true,
+            direct: None,
+            causing: None,
+        });
+        assert!(matches(
+            Some(r#"{"damage":{"dealt":{"min":100.0},"blocked":true}}"#),
+            &facts
+        ));
+        assert!(!matches(
+            Some(r#"{"damage":{"taken":{"min":100.0}}}"#),
+            &facts
+        ));
+        assert!(!matches(Some(r#"{"damage":{"blocked":false}}"#), &facts));
+    }
+
+    #[test]
+    fn a_killing_blow_checks_the_damage_source() {
+        let mut facts = Facts::bare();
+        facts.damage = Some(DamageFacts {
+            kind: DamageType::Arrow,
+            dealt: 1.0,
+            taken: 1.0,
+            blocked: false,
+            direct: Some(EntityFacts::of("minecraft:arrow", false)),
+            causing: None,
+        });
+        let blow =
+            r##"{"killing_blow":{"tags":[{"expected":true,"id":"#minecraft:is_projectile"}]}}"##;
+        assert!(matches(Some(blow), &facts));
+        facts.damage = Some(DamageFacts {
+            kind: DamageType::PlayerAttack,
+            dealt: 1.0,
+            taken: 1.0,
+            blocked: false,
+            direct: None,
+            causing: None,
+        });
+        assert!(!matches(Some(blow), &facts));
+    }
+
+    #[test]
+    fn an_entity_distance_vehicle_and_lightning_are_compared() {
+        let mut facts = Facts::bare();
+        let mut skeleton = EntityFacts::of("minecraft:skeleton", false);
+        skeleton.distance = Some(Distance {
+            horizontal: 60.0,
+            absolute: 61.0,
+        });
+        facts.entities.push(("entity", skeleton));
+        let far = format!(
+            r#"{{"entity":{}}}"#,
+            wrapped(
+                r#"{"minecraft:distance":{"horizontal":{"min":50.0}},"minecraft:entity_type":"minecraft:skeleton"}"#
+            )
+        );
+        assert!(matches(Some(&far), &facts));
+        assert!(!matches(Some(&far.replace("50.0", "70.0")), &facts));
+        let mut player = EntityFacts::of("minecraft:player", false);
+        player.vehicle = Some("minecraft:strider");
+        facts.player_entity = Some(player);
+        facts.player = Some(Place {
+            dimension: "minecraft:overworld",
+            biome: None,
+            y: 64.0,
+        });
+        let riding = format!(
+            r#"{{"player":{}}}"#,
+            wrapped(r#"{"minecraft:vehicle":{"minecraft:entity_type":"minecraft:strider"}}"#)
+        );
+        assert!(matches(Some(&riding), &facts));
+        assert!(!matches(Some(&riding.replace("strider", "pig")), &facts));
+        let mut bolt = EntityFacts::of("minecraft:lightning_bolt", false);
+        bolt.lightning_fire = Some(0);
+        facts.entities.push(("lightning", bolt));
+        let quiet = format!(
+            r#"{{"lightning":{}}}"#,
+            wrapped(r#"{"minecraft:type_specific/lightning":{"blocks_set_on_fire":0}}"#)
+        );
+        assert!(matches(Some(&quiet), &facts));
+        assert!(!matches(Some(&quiet.replace(":0}", ":2}")), &facts));
+    }
+
+    #[test]
+    fn victims_need_one_distinct_entity_per_predicate() {
+        let mut facts = Facts::bare();
+        facts.victims = vec![EntityFacts::of("minecraft:phantom", false)];
+        let two = format!(
+            r#"{{"victims":[{0},{0}]}}"#,
+            wrapped(r#"{"minecraft:entity_type":"minecraft:phantom"}"#)
+        );
+        assert!(!matches(Some(&two), &facts));
+        facts
+            .victims
+            .push(EntityFacts::of("minecraft:phantom", false));
+        assert!(matches(Some(&two), &facts));
+    }
+
+    #[test]
+    fn effects_must_all_be_active() {
+        let mut facts = Facts::bare();
+        facts.effects = vec!["minecraft:speed", "minecraft:poison"];
+        assert!(matches(
+            Some(r#"{"effects":{"minecraft:speed":{},"minecraft:poison":{}}}"#),
+            &facts
+        ));
+        assert!(!matches(
+            Some(r#"{"effects":{"minecraft:speed":{},"minecraft:weakness":{}}}"#),
+            &facts
+        ));
+    }
+
+    #[test]
+    fn a_weapon_and_a_start_height_are_compared() {
+        let mut facts = Facts::bare();
+        facts.weapon = item("minecraft:crossbow");
+        facts.amounts.push(("start_position.y", 330.0));
+        assert!(matches(
+            Some(r#"{"fired_from_weapon":{"items":"minecraft:crossbow"}}"#),
+            &facts
+        ));
+        assert!(!matches(
+            Some(r#"{"fired_from_weapon":{"items":"minecraft:bow"}}"#),
+            &facts
+        ));
+        assert!(matches(
+            Some(r#"{"start_position":{"position":{"y":{"min":319.0}}}}"#),
+            &facts
+        ));
+        assert!(!matches(
+            Some(r#"{"start_position":{"position":{"y":{"min":400.0}}}}"#),
+            &facts
+        ));
     }
 }

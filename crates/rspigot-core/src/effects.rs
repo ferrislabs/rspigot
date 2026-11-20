@@ -258,6 +258,7 @@ impl<L: ClientLink> Server<L> {
             .collect();
         self.sync_attributes(id, &names);
         self.clamp_vitals(id);
+        self.trigger_effects_changed(id);
         if changes_flags(changed) {
             self.broadcast_metadata(id);
             if let Some(player) = self.players.get(&id) {
