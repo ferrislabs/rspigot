@@ -524,7 +524,7 @@ fn the_nearby_push_asks_for_an_attack_knockback_and_a_cancel_keeps_it_still() {
     let near = spawn_at(
         &mut scene,
         "minecraft:cow",
-        Vec3::new(ground.x + 2.5, ground.y, ground.z),
+        Vec3::new(ground.x + 1.5, ground.y, ground.z),
     );
     scene.tick(CHARGE_TICKS);
     let perch = Vec3::new(ground.x, ground.y + 1.0, ground.z);

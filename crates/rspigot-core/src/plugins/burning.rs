@@ -9,6 +9,7 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Combuster {
     Nothing,
     Block(Option<BlockPos>),

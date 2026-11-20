@@ -8,6 +8,7 @@ use crate::npc::Npc;
 use crate::player::Player;
 use crate::{BlockType, Error};
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum Target {
     Player(Player),

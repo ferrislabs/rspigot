@@ -772,6 +772,11 @@ async fn entity_filters_and_orders() {
             on_ground: true,
             custom_name: Some("§cBoss".to_owned()),
             fire_ticks: 20,
+            rotation: Some(v1::Rotation {
+                yaw: 0.0,
+                pitch: 0.0,
+            }),
+            ..Default::default()
         }),
         not_found(),
     ] {

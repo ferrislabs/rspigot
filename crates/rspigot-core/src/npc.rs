@@ -202,6 +202,7 @@ pub(crate) fn view_of(npc: &Npc) -> crate::plugins::EntityView {
         kind: rspigot_entities::EntityKind::Player.name().to_owned(),
         position: npc.position,
         player: None,
+        marks: Default::default(),
     }
 }
 

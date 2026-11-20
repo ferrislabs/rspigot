@@ -102,8 +102,49 @@ message WorldOrder {
   }
 }
 message MetaOrder { bool volatile = 1; oneof change { MetaEntry set = 10; string remove = 11; Empty clear = 12; } }
-message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; MetaOrder meta = 13; } }
-message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; SetAttribute set_attribute = 18; TypedChange change = 19; MetaOrder meta = 20; } }
+message EquipmentEdit { string slot = 1; optional Item item = 2; }
+message DropChanceEdit { string slot = 1; float chance = 2; }
+message EntityEdit {
+  oneof edit {
+    string set_custom_name = 1; Empty clear_custom_name = 2; bool set_custom_name_visible = 3; bool set_glowing = 4; bool set_invisible = 5;
+    bool set_silent = 6; bool set_gravity = 7; bool set_invulnerable = 8; bool set_persistent = 9; int32 set_fire_ticks = 10;
+    int32 set_freeze_ticks = 11; int32 set_air = 12; float set_fall_distance = 13; Rotation set_rotation = 14; Vec3 look_at = 15;
+    int32 set_ticks_lived = 16; string add_tag = 17; string remove_tag = 18;
+    int32 mount = 19; Empty dismount = 20; Empty eject_passengers = 21;
+    float set_health = 22; float set_absorption = 23; bool set_ai = 24; bool set_can_pick_up_loot = 25; bool set_left_handed = 26;
+    EquipmentEdit set_equipment = 27; DropChanceEdit set_drop_chance = 28;
+    int32 set_leash_holder = 29; Empty clear_leash = 30;
+    string set_owner = 31; Empty clear_owner = 32; bool set_tamed = 33; bool set_sitting = 34;
+    int32 set_target = 35; Empty clear_target = 36;
+    int32 set_age = 37; bool set_age_locked = 38; bool set_breeding = 39;
+  }
+}
+message SignLines { bool front = 1; repeated string lines = 2; }
+message SignStyle { bool front = 1; optional string color = 2; optional bool glowing = 3; }
+message FurnaceEdit { optional int32 burn_time = 1; optional int32 cook_time = 2; optional int32 cook_time_total = 3; }
+message SpawnerEdit {
+  optional string entity = 1; optional int32 delay = 2; optional int32 min_delay = 3; optional int32 max_delay = 4; optional int32 spawn_count = 5;
+  optional int32 max_nearby = 6; optional int32 required_player_range = 7; optional int32 spawn_range = 8;
+}
+message SkullOwner { optional string name = 1; optional string uuid = 2; }
+message BannerPattern { string pattern = 1; string color = 2; }
+message BannerPatterns { repeated BannerPattern patterns = 1; }
+message CommandEdit { optional string command = 1; optional string name = 2; }
+message BeaconEffects { optional string primary = 1; optional string secondary = 2; }
+message PotSherds { repeated string sherds = 1; }
+message GatewayExit { BlockPos exit = 1; bool exact = 2; }
+message TileEdit {
+  oneof edit {
+    SignLines sign_lines = 1; SignStyle sign_style = 2; bool sign_waxed = 3;
+    SetSlot inventory_set = 4; Item inventory_add = 5; Empty inventory_clear = 6;
+    FurnaceEdit furnace = 7; SpawnerEdit spawner = 8; SkullOwner skull_owner = 9; BannerPatterns banner_patterns = 10;
+    CommandEdit command_block = 11; BeaconEffects beacon = 12; Item jukebox_disc = 13; Empty jukebox_clear = 14;
+    GatewayExit end_gateway = 15; Item lectern_book = 16; Empty lectern_clear = 17; PotSherds decorated_pot = 18;
+  }
+}
+message BlockDataEdit { repeated Property properties = 1; }
+message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; MetaOrder meta = 13; BlockDataEdit set_data = 14; TileEdit tile = 15; } }
+message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; SetAttribute set_attribute = 18; TypedChange change = 19; MetaOrder meta = 20; EntityEdit edit = 21; } }
 message RegisterObjective { string name = 1; string criteria = 2; string display_name = 3; }
 message ObjectiveText { string objective = 1; string text = 2; }
 message ObjectiveRender { string objective = 1; bool hearts = 2; }
@@ -169,6 +210,7 @@ message Question {
     BossBarCreate create_boss_bar = 30; uint64 boss_bar = 31; Empty boss_bars = 32; AttributeQuery attribute_value = 33;
     NpcSpec create_npc = 34; string npc_by_key = 35; Empty npcs = 36; int32 npc = 37;
     MetaQuery meta = 38; FindBlocks find_blocks = 39; EntitiesWithMeta entities_with_meta = 40; EntitiesWithMeta players_with_meta = 41;
+    BlockPos tile = 42; BlockPos block_info = 43;
   }
 }
 message FromPlugin {
@@ -201,7 +243,13 @@ message BanList { repeated BanEntry entries = 1; }
 message GameRuleValue { GameRule rule = 1; bool value = 2; }
 message WorldState { string name = 1; optional string uuid = 2; int64 seed = 3; int64 day_time = 4; int64 game_time = 5; bool raining = 6; bool thundering = 7; Difficulty difficulty = 8; BlockPos spawn = 9; bool pvp = 10; repeated GameRuleValue rules = 11; }
 message EntityList { repeated EntitySnapshot entities = 1; }
-message EntityState { EntitySnapshot entity = 1; optional float health = 2; Vec3 velocity = 3; bool on_ground = 4; optional string custom_name = 5; int32 fire_ticks = 6; }
+message EquipmentState { string slot = 1; optional Item item = 2; float drop_chance = 3; }
+message LivingExtra {
+  float max_health = 1; float absorption = 2; bool ai = 3; bool can_pick_up_loot = 4; bool left_handed = 5; repeated EquipmentState equipment = 6;
+  optional int32 leash_holder = 7; optional string owner = 8; bool tamed = 9; bool sitting = 10; optional int32 target = 11;
+  int32 age = 12; bool age_locked = 13; bool baby = 14; bool in_love = 15;
+}
+message EntityState { EntitySnapshot entity = 1; optional float health = 2; Vec3 velocity = 3; bool on_ground = 4; optional string custom_name = 5; int32 fire_ticks = 6; bool custom_name_visible = 7; bool glowing = 8; bool invisible = 9; bool silent = 10; bool gravity = 11; bool invulnerable = 12; bool persistent = 13; int32 freeze_ticks = 14; int32 air = 15; float fall_distance = 16; Rotation rotation = 17; int32 ticks_lived = 18; repeated string tags = 19; repeated int32 passengers = 20; optional int32 vehicle = 21; optional LivingExtra living = 22; }
 message CustomInventoryState { repeated Slot slots = 1; repeated PlayerSnapshot viewers = 2; }
 message ObjectiveState { string name = 1; string criteria = 2; string display_name = 3; bool hearts = 4; bool read_only = 5; }
 message ScoreState { string entry = 1; string objective = 2; int32 value = 3; }
@@ -221,6 +269,22 @@ message NpcState {
   int32 entity_id = 1; string uuid = 2; string key = 3; string name = 4; string world = 5; Vec3 position = 6; Rotation rotation = 7;
   optional NpcSkin skin = 8; uint32 skin_layers = 9; string pose = 10; double gaze_range = 11; optional string label = 12; bool walking = 13;
 }
+message SignState { repeated string front = 1; repeated string back = 2; bool waxed = 3; string front_color = 4; string back_color = 5; bool front_glowing = 6; bool back_glowing = 7; }
+message InventoryContents { int32 size = 1; repeated Slot slots = 2; }
+message FurnaceState { int32 burn_time = 1; int32 cook_time = 2; int32 cook_time_total = 3; bool lit = 4; InventoryContents contents = 5; }
+message SpawnerState { string entity = 1; int32 delay = 2; int32 min_delay = 3; int32 max_delay = 4; int32 spawn_count = 5; int32 max_nearby = 6; int32 required_player_range = 7; int32 spawn_range = 8; }
+message CommandState { string command = 1; string name = 2; }
+message BeaconState { int32 levels = 1; optional string primary = 2; optional string secondary = 3; }
+message DiscState { optional Item item = 1; }
+message TileState {
+  string kind = 1;
+  oneof state {
+    SignState sign = 2; InventoryContents inventory = 3; FurnaceState furnace = 4; SpawnerState spawner = 5; SkullOwner skull = 6;
+    BannerPatterns banner = 7; CommandState command_block = 8; BeaconState beacon = 9; DiscState jukebox = 10; DiscState lectern = 11;
+    GatewayExit end_gateway = 12; PotSherds decorated_pot = 13;
+  }
+}
+message BlockInfo { int32 light = 1; int32 sky_light = 2; int32 block_light = 3; int32 power = 4; string biome = 5; }
 message MetaEntries { repeated MetaEntry entries = 1; }
 message BlockPositions { repeated BlockPos positions = 1; }
 message NpcList { repeated NpcState npcs = 1; }
@@ -232,7 +296,7 @@ message Answer {
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
     Empty done = 22; ActionError failed = 23; string world_created = 24; double attribute_value = 25;
-    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29;
+    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29; TileState tile = 30; BlockInfo block_info = 31;
   }
 }
 message Warning { string message = 1; }

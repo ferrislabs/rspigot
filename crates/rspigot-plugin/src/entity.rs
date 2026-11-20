@@ -1,12 +1,19 @@
-use rspigot_plugin_protocol::v1::{self, answer, entity_order, from_plugin, question};
+use rspigot_plugin_protocol::v1::{
+    self, answer, entity_edit::Edit, entity_order, from_plugin, question,
+};
 use uuid::Uuid;
 
 use crate::attribute::EntityAttributesHandle;
+use crate::entity_groups::{
+    EntityAgeHandle, EntityAiHandle, EntityEquipmentHandle, EntityFlagsHandle, EntityLeashHandle,
+    EntityNameHandle, EntityOwnerHandle, EntityPassengersHandle, EntityTagsHandle,
+    EntityVitalsHandle, LivingState, fetch,
+};
 use crate::link::Link;
 use crate::meta::MetaHandle;
 use crate::server::Server;
 use crate::wire::parse_uuid;
-use crate::{Effect, EffectType, EntityType, Error, Player, Position, Vector};
+use crate::{Effect, EffectType, EntityType, Error, Player, Position, Rotation, Vector};
 
 #[derive(Debug, Clone)]
 pub struct Entity {
@@ -14,10 +21,22 @@ pub struct Entity {
     pub uuid: Uuid,
     pub kind: EntityType,
     pub position: Position,
+    pub custom_name: Option<String>,
+    pub tags: Vec<String>,
     pub attributes: EntityAttributesHandle,
+    pub name: EntityNameHandle,
+    pub flags: EntityFlagsHandle,
+    pub vitals: EntityVitalsHandle,
+    pub scoreboard_tags: EntityTagsHandle,
+    pub passengers: EntityPassengersHandle,
+    pub equipment: EntityEquipmentHandle,
+    pub ai: EntityAiHandle,
+    pub leash: EntityLeashHandle,
+    pub owner: EntityOwnerHandle,
+    pub age: EntityAgeHandle,
     pub meta: MetaHandle,
     pub volatile_meta: MetaHandle,
-    player: Option<Player>,
+    player: Option<Box<Player>>,
     link: Link,
 }
 
@@ -28,6 +47,18 @@ impl Entity {
         })?;
         Ok(Self {
             attributes: EntityAttributesHandle::new(snapshot.entity_id, link.clone()),
+            name: EntityNameHandle::new(snapshot.entity_id, link.clone()),
+            flags: EntityFlagsHandle::new(snapshot.entity_id, link.clone()),
+            vitals: EntityVitalsHandle::new(snapshot.entity_id, link.clone()),
+            scoreboard_tags: EntityTagsHandle::new(snapshot.entity_id, link.clone()),
+            passengers: EntityPassengersHandle::new(snapshot.entity_id, link.clone()),
+            equipment: EntityEquipmentHandle::new(snapshot.entity_id, link.clone()),
+            ai: EntityAiHandle::new(snapshot.entity_id, link.clone()),
+            leash: EntityLeashHandle::new(snapshot.entity_id, link.clone()),
+            owner: EntityOwnerHandle::new(snapshot.entity_id, link.clone()),
+            age: EntityAgeHandle::new(snapshot.entity_id, link.clone()),
+            custom_name: snapshot.custom_name,
+            tags: snapshot.tags,
             meta: MetaHandle::of_entity(
                 snapshot.entity_id,
                 false,
@@ -46,14 +77,14 @@ impl Entity {
             position: Position::from_wire(snapshot.position, "position")?,
             player: snapshot
                 .player
-                .map(|player| Player::from_snapshot(player, link))
+                .map(|player| Player::from_snapshot(player, link).map(Box::new))
                 .transpose()?,
             link: link.clone(),
         })
     }
 
     pub fn player(&self) -> Option<&Player> {
-        self.player.as_ref()
+        self.player.as_deref()
     }
 
     pub(crate) fn to_wire(&self) -> v1::EntitySnapshot {
@@ -62,9 +93,11 @@ impl Entity {
             uuid: self.uuid.hyphenated().to_string(),
             kind: self.kind.key().to_owned(),
             position: Some(self.position.to_wire()),
-            player: self.player.as_ref().map(Player::to_snapshot),
+            player: self.player.as_deref().map(Player::to_snapshot),
             meta: Default::default(),
             volatile_meta: Default::default(),
+            custom_name: self.custom_name.clone(),
+            tags: self.tags.clone(),
         }
     }
 
@@ -100,27 +133,34 @@ impl Entity {
         self.order(entity_order::Order::SetVelocity(velocity.to_wire()));
     }
 
+    pub fn set_rotation(&self, rotation: Rotation) {
+        self.edit(Edit::SetRotation(rotation.to_wire()));
+    }
+
+    pub fn look_at(&self, target: Position) {
+        self.edit(Edit::LookAt(target.to_wire()));
+    }
+
+    pub fn set_ticks_lived(&self, ticks: i32) {
+        self.edit(Edit::SetTicksLived(ticks));
+    }
+
     pub fn server(&self) -> Server {
         Server::new(self.link.clone())
     }
 
     pub async fn get_state(&self) -> Result<EntityState, Error> {
-        let state = self
-            .link
-            .ask(
-                question::Question::Entity(self.entity_id),
-                "an entity state",
-                |body| match body {
-                    answer::Body::Entity(state) => Some(state),
-                    _ => None,
-                },
-            )
-            .await?;
-        EntityState::from_wire(state, &self.link)
+        fetch(&self.link, self.entity_id).await
     }
 
     pub(crate) const fn link(&self) -> &Link {
         &self.link
+    }
+
+    fn edit(&self, edit: Edit) {
+        self.order(entity_order::Order::Edit(v1::EntityEdit {
+            edit: Some(edit),
+        }));
     }
 
     pub(crate) fn order(&self, order: entity_order::Order) {
@@ -139,10 +179,26 @@ pub struct EntityState {
     pub on_ground: bool,
     pub custom_name: Option<String>,
     pub fire_ticks: i32,
+    pub custom_name_visible: bool,
+    pub glowing: bool,
+    pub invisible: bool,
+    pub silent: bool,
+    pub gravity: bool,
+    pub invulnerable: bool,
+    pub persistent: bool,
+    pub freeze_ticks: i32,
+    pub air: i32,
+    pub fall_distance: f32,
+    pub rotation: Rotation,
+    pub ticks_lived: i32,
+    pub tags: Vec<String>,
+    pub passengers: Vec<i32>,
+    pub vehicle: Option<i32>,
+    pub living: Option<LivingState>,
 }
 
 impl EntityState {
-    fn from_wire(state: v1::EntityState, link: &Link) -> Result<Self, Error> {
+    pub(crate) fn from_wire(state: v1::EntityState, link: &Link) -> Result<Self, Error> {
         let entity = state
             .entity
             .ok_or_else(|| Error::Malformed("a message without its entity".to_owned()))?;
@@ -153,6 +209,22 @@ impl EntityState {
             on_ground: state.on_ground,
             custom_name: state.custom_name,
             fire_ticks: state.fire_ticks,
+            custom_name_visible: state.custom_name_visible,
+            glowing: state.glowing,
+            invisible: state.invisible,
+            silent: state.silent,
+            gravity: state.gravity,
+            invulnerable: state.invulnerable,
+            persistent: state.persistent,
+            freeze_ticks: state.freeze_ticks,
+            air: state.air,
+            fall_distance: state.fall_distance,
+            rotation: Rotation::from_wire(state.rotation)?,
+            ticks_lived: state.ticks_lived,
+            tags: state.tags,
+            passengers: state.passengers,
+            vehicle: state.vehicle,
+            living: state.living.map(LivingState::from_wire).transpose()?,
         })
     }
 }

@@ -39,7 +39,7 @@ pub(crate) fn is_sign(state: BlockStateId) -> bool {
         .is_some_and(|kind| kind.name().ends_with("_sign"))
 }
 
-fn entity_kind(state: BlockStateId) -> &'static str {
+pub(crate) fn entity_kind(state: BlockStateId) -> &'static str {
     match state.kind() {
         Some(kind) if kind.name().contains("hanging_sign") => "hanging_sign",
         _ => "sign",
@@ -76,7 +76,7 @@ fn filtered(line: &str) -> String {
         .collect()
 }
 
-fn plain_lines(text: Option<&Compound>) -> Vec<String> {
+pub(crate) fn plain_lines(text: Option<&Compound>) -> Vec<String> {
     let mut lines: Vec<String> = text
         .and_then(|text| text.get_list(MESSAGES))
         .map(|messages| {
@@ -93,7 +93,7 @@ fn plain_lines(text: Option<&Compound>) -> Vec<String> {
     lines
 }
 
-fn line_tag(old: Option<&Tag>, line: &str) -> Tag {
+pub(crate) fn line_tag(old: Option<&Tag>, line: &str) -> Tag {
     match old {
         Some(Tag::Compound(style)) => {
             let mut next = style.clone();

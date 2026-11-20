@@ -17,6 +17,13 @@ pub(super) fn order(order: v1::BlockOrder) -> Result<Order, Malformed> {
         },
         Wire::BreakNaturally(_) => BlockOrder::BreakNaturally,
         Wire::Meta(order) => BlockOrder::Meta(super::meta::order(order)?),
+        Wire::SetData(edit) => BlockOrder::SetData(
+            edit.properties
+                .into_iter()
+                .map(|property| (property.name, property.value))
+                .collect(),
+        ),
+        Wire::Tile(edit) => BlockOrder::Tile(super::tiles::edit(edit)?),
     };
     Ok(Order::Block { pos, order })
 }

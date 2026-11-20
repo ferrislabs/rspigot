@@ -336,6 +336,12 @@ impl<L: ClientLink> Server<L> {
                 .get(source.entity)
                 .map(|entity| crate::plugins::MetaSnapshot::of(&entity.base))
                 .unwrap_or_default(),
+            marks: self
+                .entities
+                .store
+                .get(source.entity)
+                .map(|entity| crate::plugins::EntityMarks::of(&entity.base))
+                .unwrap_or_default(),
         }
     }
 }
