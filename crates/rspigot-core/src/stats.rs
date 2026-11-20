@@ -1,12 +1,19 @@
 use std::collections::BTreeMap;
 
 use rspigot_data::registries::static_index;
+use rspigot_domain::attribute::{ARMOR, ARMOR_TOUGHNESS};
+use rspigot_domain::container_menu::MenuKind;
+use rspigot_domain::damage::{self, DamageTag, DamageType};
+use rspigot_domain::entity::living::LivingState;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::{EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use serde_json::{Map, Value};
 
+use crate::containers::{Backing, Lid};
+use crate::health::DamageSource;
+use crate::plugins::events::CauldronLevelChangeReason;
 use crate::plugins::events::{PlayerStatisticIncrement, Statistic};
 use crate::plugins::steps::Continuation;
 use crate::plugins::{EventKind, EventPayload};
@@ -46,6 +53,52 @@ pub mod custom {
     pub const TRADED_WITH_VILLAGER: &str = "minecraft:traded_with_villager";
     pub const SLEEP_IN_BED: &str = "minecraft:sleep_in_bed";
     pub const SLEEP_IN_STRAW_BED: &str = "minecraft:sleep_in_straw_bed";
+    pub const AVIATE_ONE_CM: &str = "minecraft:aviate_one_cm";
+    pub const HAPPY_GHAST_ONE_CM: &str = "minecraft:happy_ghast_one_cm";
+    pub const NAUTILUS_ONE_CM: &str = "minecraft:nautilus_one_cm";
+    pub const DAMAGE_DEALT_ABSORBED: &str = "minecraft:damage_dealt_absorbed";
+    pub const DAMAGE_DEALT_RESISTED: &str = "minecraft:damage_dealt_resisted";
+    pub const DAMAGE_BLOCKED_BY_SHIELD: &str = "minecraft:damage_blocked_by_shield";
+    pub const DAMAGE_ABSORBED: &str = "minecraft:damage_absorbed";
+    pub const DAMAGE_RESISTED: &str = "minecraft:damage_resisted";
+    pub const ANIMALS_BRED: &str = "minecraft:animals_bred";
+    pub const TALKED_TO_VILLAGER: &str = "minecraft:talked_to_villager";
+    pub const EAT_CAKE_SLICE: &str = "minecraft:eat_cake_slice";
+    pub const FILL_CAULDRON: &str = "minecraft:fill_cauldron";
+    pub const USE_CAULDRON: &str = "minecraft:use_cauldron";
+    pub const CLEAN_ARMOR: &str = "minecraft:clean_armor";
+    pub const CLEAN_BANNER: &str = "minecraft:clean_banner";
+    pub const CLEAN_SHULKER_BOX: &str = "minecraft:clean_shulker_box";
+    pub const INTERACT_WITH_BREWINGSTAND: &str = "minecraft:interact_with_brewingstand";
+    pub const INTERACT_WITH_BEACON: &str = "minecraft:interact_with_beacon";
+    pub const INSPECT_DROPPER: &str = "minecraft:inspect_dropper";
+    pub const INSPECT_HOPPER: &str = "minecraft:inspect_hopper";
+    pub const INSPECT_DISPENSER: &str = "minecraft:inspect_dispenser";
+    pub const PLAY_NOTEBLOCK: &str = "minecraft:play_noteblock";
+    pub const TUNE_NOTEBLOCK: &str = "minecraft:tune_noteblock";
+    pub const POT_FLOWER: &str = "minecraft:pot_flower";
+    pub const TRIGGER_TRAPPED_CHEST: &str = "minecraft:trigger_trapped_chest";
+    pub const OPEN_ENDERCHEST: &str = "minecraft:open_enderchest";
+    pub const PLAY_RECORD: &str = "minecraft:play_record";
+    pub const INTERACT_WITH_FURNACE: &str = "minecraft:interact_with_furnace";
+    pub const INTERACT_WITH_CRAFTING_TABLE: &str = "minecraft:interact_with_crafting_table";
+    pub const OPEN_CHEST: &str = "minecraft:open_chest";
+    pub const OPEN_SHULKER_BOX: &str = "minecraft:open_shulker_box";
+    pub const OPEN_BARREL: &str = "minecraft:open_barrel";
+    pub const INTERACT_WITH_BLAST_FURNACE: &str = "minecraft:interact_with_blast_furnace";
+    pub const INTERACT_WITH_SMOKER: &str = "minecraft:interact_with_smoker";
+    pub const INTERACT_WITH_LECTERN: &str = "minecraft:interact_with_lectern";
+    pub const INTERACT_WITH_CAMPFIRE: &str = "minecraft:interact_with_campfire";
+    pub const INTERACT_WITH_CARTOGRAPHY_TABLE: &str = "minecraft:interact_with_cartography_table";
+    pub const INTERACT_WITH_LOOM: &str = "minecraft:interact_with_loom";
+    pub const INTERACT_WITH_STONECUTTER: &str = "minecraft:interact_with_stonecutter";
+    pub const BELL_RING: &str = "minecraft:bell_ring";
+    pub const RAID_TRIGGER: &str = "minecraft:raid_trigger";
+    pub const RAID_WIN: &str = "minecraft:raid_win";
+    pub const INTERACT_WITH_ANVIL: &str = "minecraft:interact_with_anvil";
+    pub const INTERACT_WITH_GRINDSTONE: &str = "minecraft:interact_with_grindstone";
+    pub const TARGET_HIT: &str = "minecraft:target_hit";
+    pub const INTERACT_WITH_SMITHING_TABLE: &str = "minecraft:interact_with_smithing_table";
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -271,6 +324,7 @@ fn is_continuous(statistic: Statistic) -> bool {
             | Statistic::AviateOneCm
             | Statistic::StriderOneCm
             | Statistic::NautilusOneCm
+            | Statistic::HappyGhastOneCm
     )
 }
 
@@ -374,6 +428,7 @@ impl PlayerStats {
 }
 
 const FLY_THRESHOLD: i32 = 25;
+const COOLDOWN_THRESHOLD: f32 = 10.0;
 const HORSES: [&str; 9] = [
     "minecraft:horse",
     "minecraft:donkey",
@@ -388,6 +443,80 @@ const HORSES: [&str; 9] = [
 
 fn centimeters(distance: f64) -> i32 {
     (distance * 100.0).round() as i32
+}
+
+fn tenths(amount: f32) -> i32 {
+    if amount.is_finite() {
+        (amount * 10.0).round() as i32
+    } else {
+        0
+    }
+}
+
+fn menu_stat(backing: &Backing, kind: MenuKind) -> Option<&'static str> {
+    Some(match kind {
+        MenuKind::Furnace => custom::INTERACT_WITH_FURNACE,
+        MenuKind::BlastFurnace => custom::INTERACT_WITH_BLAST_FURNACE,
+        MenuKind::Smoker => custom::INTERACT_WITH_SMOKER,
+        MenuKind::Crafting => custom::INTERACT_WITH_CRAFTING_TABLE,
+        MenuKind::Grindstone => custom::INTERACT_WITH_GRINDSTONE,
+        MenuKind::Stonecutter => custom::INTERACT_WITH_STONECUTTER,
+        MenuKind::CartographyTable => custom::INTERACT_WITH_CARTOGRAPHY_TABLE,
+        MenuKind::Loom => custom::INTERACT_WITH_LOOM,
+        MenuKind::Beacon => custom::INTERACT_WITH_BEACON,
+        MenuKind::Lectern => custom::INTERACT_WITH_LECTERN,
+        MenuKind::Smithing => custom::INTERACT_WITH_SMITHING_TABLE,
+        MenuKind::Anvil => custom::INTERACT_WITH_ANVIL,
+        MenuKind::BrewingStand => custom::INTERACT_WITH_BREWINGSTAND,
+        MenuKind::Hopper => custom::INSPECT_HOPPER,
+        MenuKind::Generic3x3 if backing.block == rspigot_blocks::BlockKind::Dropper => {
+            custom::INSPECT_DROPPER
+        }
+        MenuKind::Generic3x3 => custom::INSPECT_DISPENSER,
+        MenuKind::ShulkerBox => custom::OPEN_SHULKER_BOX,
+        _ => match backing.lid {
+            Lid::Chest if backing.block == rspigot_blocks::BlockKind::TrappedChest => {
+                custom::TRIGGER_TRAPPED_CHEST
+            }
+            Lid::Chest | Lid::CopperChest(_) => custom::OPEN_CHEST,
+            Lid::Ender => custom::OPEN_ENDERCHEST,
+            Lid::Barrel => custom::OPEN_BARREL,
+            Lid::Shulker => custom::OPEN_SHULKER_BOX,
+            Lid::None => return None,
+        },
+    })
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub(crate) struct HurtSplit {
+    pub(crate) dealt: f32,
+    pub(crate) absorbed: f32,
+    pub(crate) resisted: f32,
+}
+
+pub(crate) fn mob_resisted(state: &mut LivingState, kind: DamageType, amount: f32) -> f32 {
+    if kind.is(DamageTag::BypassesEffects) || kind.is(DamageTag::BypassesResistance) {
+        return 0.0;
+    }
+    let Some(level) = state.effect("minecraft:resistance").map(|e| e.amplifier) else {
+        return 0.0;
+    };
+    let mut amount = if state.damage.cooldown as f32 > COOLDOWN_THRESHOLD
+        && !kind.is(DamageTag::BypassesCooldown)
+    {
+        amount - state.last_hurt
+    } else {
+        amount
+    };
+    if amount <= 0.0 {
+        return 0.0;
+    }
+    if !kind.is(DamageTag::BypassesArmor) {
+        let armor = state.attribute(ARMOR).floor() as f32;
+        let toughness = state.attribute(ARMOR_TOUGHNESS) as f32;
+        amount = damage::after_armor_breached(amount, armor, toughness, 1.0 - state.damage.breach);
+    }
+    amount - damage::after_resistance(amount, level)
 }
 
 #[derive(Debug)]
@@ -504,7 +633,11 @@ impl<L: ClientLink> Server<L> {
         let eye_in_water = self.block_has_water(player.eye_position().block());
         let (on_ground, sprinting, sneaking) =
             (player.on_ground, player.sprinting, player.sneaking);
-        let key_and_amount = if eye_in_water {
+        let fall_flying = player.fall_flying;
+        let swimming = sprinting && self.block_has_water(to.block());
+        let key_and_amount = if swimming {
+            Some((custom::SWIM_ONE_CM, full))
+        } else if eye_in_water {
             Some((custom::WALK_UNDER_WATER_ONE_CM, full))
         } else if self.block_has_water(to.block()) {
             Some((custom::WALK_ON_WATER_ONE_CM, flat))
@@ -519,6 +652,8 @@ impl<L: ClientLink> Server<L> {
                 custom::WALK_ONE_CM
             };
             Some((key, flat))
+        } else if fall_flying {
+            Some((custom::AVIATE_ONE_CM, full))
         } else {
             Some((custom::FLY_ONE_CM, flat)).filter(|(_, amount)| *amount > FLY_THRESHOLD)
         };
@@ -542,6 +677,10 @@ impl<L: ClientLink> Server<L> {
             custom::PIG_ONE_CM
         } else if name == "minecraft:strider" {
             custom::STRIDER_ONE_CM
+        } else if name == "minecraft:happy_ghast" {
+            custom::HAPPY_GHAST_ONE_CM
+        } else if name == "minecraft:nautilus" || name == "minecraft:zombie_nautilus" {
+            custom::NAUTILUS_ONE_CM
         } else if HORSES.contains(&name) {
             custom::HORSE_ONE_CM
         } else {
@@ -569,6 +708,94 @@ impl<L: ClientLink> Server<L> {
                         .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
                 })
             })
+    }
+
+    pub(crate) fn count_menu_opened(&mut self, id: PlayerId, backing: &Backing, kind: MenuKind) {
+        if let Some(key) = menu_stat(backing, kind) {
+            self.award_custom(id, key, 1);
+        }
+    }
+
+    pub(crate) fn count_note_attacked(
+        &mut self,
+        id: PlayerId,
+        state: rspigot_domain::BlockStateId,
+    ) {
+        if state.kind() == Some(rspigot_blocks::BlockKind::NoteBlock) {
+            self.award_custom(id, custom::PLAY_NOTEBLOCK, 1);
+        }
+    }
+
+    pub(crate) fn count_bell_ringer(&mut self, ringer: Option<EntityId>) {
+        if let Some(player) = ringer.and_then(|entity| self.player_of_entity(entity)) {
+            self.award_custom(player, custom::BELL_RING, 1);
+        }
+    }
+
+    pub(crate) fn count_target_hit(&mut self, projectile: EntityId) {
+        let Some(entity) = self.entities.store.get(projectile) else {
+            return;
+        };
+        let owner = EntityId(self.projectile_owner_id(entity));
+        if let Some(player) = self.player_of_entity(owner) {
+            self.award_custom(player, custom::TARGET_HIT, 1);
+        }
+    }
+
+    pub(crate) fn count_talked_to_villager(&mut self, id: PlayerId, hand: crate::events::Hand) {
+        if hand == crate::events::Hand::Main {
+            self.award_custom(id, custom::TALKED_TO_VILLAGER, 1);
+        }
+    }
+
+    pub(crate) fn count_shield_block(&mut self, id: PlayerId, amount: f32) {
+        self.award_custom(id, custom::DAMAGE_BLOCKED_BY_SHIELD, tenths(amount));
+    }
+
+    pub(crate) fn count_cauldron_use(&mut self, id: PlayerId, reason: CauldronLevelChangeReason) {
+        let key = match reason {
+            CauldronLevelChangeReason::BucketFill | CauldronLevelChangeReason::BottleFill => {
+                custom::USE_CAULDRON
+            }
+            CauldronLevelChangeReason::BucketEmpty | CauldronLevelChangeReason::BottleEmpty => {
+                custom::FILL_CAULDRON
+            }
+            CauldronLevelChangeReason::ArmorWash => custom::CLEAN_ARMOR,
+            CauldronLevelChangeReason::BannerWash => custom::CLEAN_BANNER,
+            CauldronLevelChangeReason::ShulkerWash => custom::CLEAN_SHULKER_BOX,
+            _ => return,
+        };
+        self.award_custom(id, key, 1);
+    }
+
+    pub(crate) fn count_hurt(
+        &mut self,
+        victim: Option<PlayerId>,
+        source: &DamageSource,
+        split: HurtSplit,
+    ) {
+        if let Some(id) = victim {
+            self.award_custom(id, custom::DAMAGE_ABSORBED, tenths(split.absorbed));
+            self.award_custom(id, custom::DAMAGE_RESISTED, tenths(split.resisted));
+            return;
+        }
+        let Some(attacker) = source.attacker() else {
+            return;
+        };
+        self.award_custom(
+            attacker,
+            custom::DAMAGE_DEALT_ABSORBED,
+            tenths(split.absorbed),
+        );
+        self.award_custom(
+            attacker,
+            custom::DAMAGE_DEALT_RESISTED,
+            tenths(split.resisted),
+        );
+        let direct = source.direct.as_ref().map(|direct| direct.entity);
+        if direct == source.causing.as_ref().map(|cause| cause.entity) {
+            self.award_custom(attacker, custom::DAMAGE_DEALT, tenths(split.dealt));
+        }
     }
 
     pub(crate) fn count_used(&mut self, id: PlayerId, stack: &ItemStack) {
@@ -694,3 +921,7 @@ mod tests {
         assert!(PlayerStats::from_json("{\"stats\":3}").is_empty());
     }
 }
+
+#[cfg(test)]
+#[path = "stats_tests.rs"]
+mod wiring;

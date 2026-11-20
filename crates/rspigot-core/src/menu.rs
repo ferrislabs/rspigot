@@ -163,11 +163,21 @@ impl<L: ClientLink> Server<L> {
                         }
                     }
                 }
-                MenuEffect::Crafted { item, amount } => self.count_crafted(id, item, amount),
+                MenuEffect::Crafted {
+                    item,
+                    amount,
+                    recipe,
+                    ingredients,
+                } => {
+                    self.count_crafted(id, item, amount);
+                    self.trigger_recipe_crafted(id, recipe, &ingredients);
+                }
+                MenuEffect::SmithingTaken { recipe } => {
+                    self.trigger_recipe_crafted(id, recipe, &[])
+                }
                 MenuEffect::FurnaceOutputTaken { .. }
                 | MenuEffect::StonecutterTaken
                 | MenuEffect::LoomTaken
-                | MenuEffect::SmithingTaken
                 | MenuEffect::AnvilTaken { .. }
                 | MenuEffect::GrindstoneTaken { .. }
                 | MenuEffect::Traded { .. }

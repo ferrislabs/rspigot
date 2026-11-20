@@ -41,6 +41,9 @@ impl<L: ClientLink> Server<L> {
         }
         if step.strike {
             self.lightning_strikes_rod(id);
+            if !visual {
+                self.trigger_lightning_strike(id);
+            }
         }
         if step.hit {
             self.lightning_hit_area(id);

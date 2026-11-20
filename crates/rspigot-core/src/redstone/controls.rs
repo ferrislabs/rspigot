@@ -205,6 +205,7 @@ impl<L: ClientLink> Server<L> {
             return self.use_diode(id, pos, state);
         }
         if kind == BlockKind::NoteBlock {
+            self.award_custom(id, crate::stats::custom::TUNE_NOTEBLOCK, 1);
             return self.use_note_block(pos, state);
         }
         if kind == BlockKind::DaylightDetector {

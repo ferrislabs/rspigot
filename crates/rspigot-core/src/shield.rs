@@ -113,6 +113,7 @@ impl<L: ClientLink> Server<L> {
             pitch,
         );
         self.shield_event(id, entity, BLOCK_EVENT);
+        self.count_shield_block(id, amount);
         if amount >= DURABILITY_THRESHOLD {
             self.wear(id, hand, 1 + amount.floor() as i32);
         }

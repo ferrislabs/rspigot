@@ -22,6 +22,7 @@ enum Recipe {
 
 #[derive(Debug, Clone, Copy)]
 struct Entry {
+    id: &'static str,
     recipe: Recipe,
     template: ItemSet,
     base: ItemSet,
@@ -48,6 +49,7 @@ fn entries() -> &'static [Entry] {
                         addition,
                         ..
                     } => Some(Entry {
+                        id: craft.id(),
                         recipe: Recipe::Transform { result: owner },
                         template,
                         base,
@@ -60,6 +62,7 @@ fn entries() -> &'static [Entry] {
                         pattern,
                         ..
                     } => Some(Entry {
+                        id: craft.id(),
                         recipe: Recipe::Trim { pattern },
                         template,
                         base,
@@ -76,6 +79,20 @@ fn trim_of(material: &str, pattern: &str) -> Compound {
     Compound::new()
         .with("material", material)
         .with("pattern", pattern)
+}
+
+pub fn recipe_id(template: &Slot, base: &Slot, addition: &Slot) -> Option<&'static str> {
+    let (Some(template), Some(base), Some(addition)) = (template, base, addition) else {
+        return None;
+    };
+    entries()
+        .iter()
+        .find(|entry| {
+            entry.template.contains(template.item)
+                && entry.base.contains(base.item)
+                && entry.addition.contains(addition.item)
+        })
+        .map(|entry| entry.id)
 }
 
 pub fn craft(template: &Slot, base: &Slot, addition: &Slot) -> Outcome {

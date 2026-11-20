@@ -353,6 +353,7 @@ impl<L: ClientLink> Server<L> {
             Spawned::Pattern(blocks) => {
                 if placed.is_some() {
                     self.clear_pattern_blocks(&blocks);
+                    self.trigger_summoned_near(placed.as_ref().map(|(id, _)| *id));
                 }
             }
             Spawned::TrialSpawner(pos) => self.finish_trial_birth(pos, placed.map(|(id, _)| id)),

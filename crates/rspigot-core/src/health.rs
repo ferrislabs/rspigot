@@ -333,6 +333,7 @@ fn absorb_hurt<L>(
     attributes: &Attributes,
     protection: f32,
     effectiveness: f32,
+    split: &mut stats::HurtSplit,
 ) -> f32 {
     let kind = source.kind;
     let mut amount = amount;
@@ -348,7 +349,9 @@ fn absorb_hurt<L>(
         if let Some(level) = amplifier(player, "minecraft:resistance")
             && !kind.is(DamageTag::BypassesResistance)
         {
+            let before = amount;
             amount = damage::after_resistance(amount, level);
+            split.resisted = before - amount;
         }
         if amount <= 0.0 {
             amount = 0.0;
@@ -358,6 +361,7 @@ fn absorb_hurt<L>(
     }
     let vitals = &mut player.vitals;
     let absorbed = damage::absorb(amount, vitals.absorption);
+    split.absorbed = amount - absorbed.damage;
     vitals.absorption = java_clamp(
         absorbed.absorption,
         0.0,
@@ -512,6 +516,7 @@ impl<L: ClientLink> Server<L> {
                 || player.vitals.is_dead()
         });
         if !immune && self.block_with_shield(id, source, amount) {
+            self.trigger_entity_hurt_player(id, source, amount, 0.0, true);
             return false;
         }
         let protection = self.player_protection(id, source);
@@ -536,6 +541,7 @@ impl<L: ClientLink> Server<L> {
             amount = f32::MAX;
         }
         let attributes = attributes(player);
+        let mut split = stats::HurtSplit::default();
         let (full, dealt) = if player.vitals.damage_cooldown > COOLDOWN_THRESHOLD
             && !kind.is(DamageTag::BypassesCooldown)
         {
@@ -550,6 +556,7 @@ impl<L: ClientLink> Server<L> {
                 &attributes,
                 protection,
                 effectiveness,
+                &mut split,
             );
             player.vitals.last_hurt = amount;
             (false, dealt)
@@ -563,6 +570,7 @@ impl<L: ClientLink> Server<L> {
                 &attributes,
                 protection,
                 effectiveness,
+                &mut split,
             );
             player.vitals.hurt_time = HURT_DURATION;
             (true, dealt)
@@ -581,6 +589,8 @@ impl<L: ClientLink> Server<L> {
                 self.award_custom(attacker, stats::custom::DAMAGE_DEALT, tenths);
             }
         }
+        self.count_hurt(Some(id), source, split);
+        self.trigger_entity_hurt_player(id, source, amount, dealt, false);
         let Some(player) = self.players.get_mut(&id) else {
             return false;
         };

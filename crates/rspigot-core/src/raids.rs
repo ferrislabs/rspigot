@@ -314,6 +314,8 @@ impl<L: ClientLink> RaidWorld for Adapter<'_, L> {
             .find(|player| player.id.0 == uuid)
             .filter(|player| player.game_mode != GameMode::Spectator)?;
         let id = player.id;
+        self.server
+            .award_custom(id, crate::stats::custom::RAID_WIN, 1);
         let mut instance = EffectInstance::new(
             EffectKind::HeroOfTheVillage.id(),
             EffectDuration::Ticks(raid::HERO_OF_THE_VILLAGE_TICKS as u32),
@@ -884,6 +886,9 @@ impl<L: ClientLink> Server<L> {
             )
         });
         self.deliver_raid_outputs(outputs);
+        if matches!(trigger, Trigger::Triggered { .. }) {
+            self.award_custom(id, crate::stats::custom::RAID_TRIGGER, 1);
+        }
         if trigger == Trigger::Refused {
             self.remove_effects(
                 id,

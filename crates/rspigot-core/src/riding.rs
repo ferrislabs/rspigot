@@ -251,6 +251,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.position_rider(vehicle, rider);
         self.send_passengers(vehicle);
+        self.trigger_started_riding(rider);
         if notify && let Some(at) = self.entities.store.get(vehicle).map(|e| e.base.position) {
             self.game_event(
                 GameEvent::EntityMount,
