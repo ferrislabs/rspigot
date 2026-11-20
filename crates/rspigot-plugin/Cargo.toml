@@ -6,6 +6,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+rspigot-nbt = { workspace = true }
 rspigot-plugin-macros = { workspace = true }
 rspigot-plugin-protocol = { workspace = true }
 thiserror = "2"

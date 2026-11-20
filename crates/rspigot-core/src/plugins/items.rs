@@ -9,6 +9,7 @@ use rspigot_domain::text::Component;
 use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
+use crate::plugins::item_components;
 use crate::plugins::resolve::text;
 
 const COUNT: RangeInclusive<u8> = 1..=99;
@@ -62,7 +63,10 @@ pub(crate) fn stack_of(spec: &ItemSpec) -> Result<Option<ItemStack>, String> {
         .map(|(key, level)| enchantment_of(key, *level))
         .collect::<Result<Vec<_>, _>>()?;
     let mut stack = ItemStack::new(kind.id(), count);
-    stack.components = components_of(&spec.components)?;
+    let mut components = components_of(&spec.components)?;
+    item_components::validate(&components)?;
+    item_components::normalize(&mut components);
+    stack.components = components;
     stack.set_custom_name(spec.name.as_deref().map(text).as_ref());
     let lore: Vec<Component> = spec.lore.iter().map(|line| text(line)).collect();
     stack.set_lore(&lore);
@@ -76,6 +80,7 @@ pub(crate) fn spec_of(stack: &ItemStack) -> ItemSpec {
     for typed in [CUSTOM_NAME, LORE, ENCHANTMENTS, CUSTOM_MODEL_DATA] {
         others.remove(typed);
     }
+    item_components::legacy(&mut others);
     let mut components = Vec::new();
     if !others.is_empty() {
         rspigot_nbt::write_network(&mut components, &Tag::Compound(others));

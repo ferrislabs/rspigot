@@ -2,6 +2,7 @@ mod attribute;
 mod block;
 mod color;
 mod commands;
+mod component;
 mod connection;
 mod contract;
 mod custom_inventory;
@@ -16,6 +17,8 @@ mod events;
 mod generated;
 mod inventory;
 mod item;
+mod item_api;
+mod item_meta;
 mod location;
 mod meta;
 #[rustfmt::skip]
@@ -48,6 +51,7 @@ pub use color::Color;
 pub use commands::{
     Argument, ArgumentKind, Arguments, CommandArgument, CommandSpec, Context, Invocation, Typing,
 };
+pub use component::ComponentValue;
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, CommandSender, DamageSource, DroppedItem,
     EnchantOffer, HolderRef, Input, InventoryOwner, InventoryRef, InventoryView, LecternData,
@@ -68,6 +72,12 @@ pub use events::*;
 pub use generated::*;
 pub use inventory::{ArmorSlot, InventorySlot, InventoryState};
 pub use item::{CustomModelData, ItemStack};
+pub use item_api::ItemMeta;
+pub use item_meta::{
+    AttributeModifier, BannerLayer, Equippable, FireworkExplosion, FireworkShape, Fireworks,
+    ItemFlag, LodestoneTarget, LodestoneTracker, Operation, PotionContents, PotionEffect, Profile,
+    ProfileProperty, Rarity, SlotGroup, Tool, ToolRule, Trim, UseCooldown, WrittenBook,
+};
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
 pub use location::PlayerLocationHandle;
@@ -112,6 +122,12 @@ pub mod prelude {
         Listeners, Location, Material, MetaHandle, MetaValue, Particle, Player, PlayerState,
         Plugin, Position, Priority, Rotation, Server, ServerState, Sound, SoundCue, Target, Title,
         Vector, Weather, World, WorldState, command, listeners, run, run_with,
+    };
+    pub use crate::{
+        AttributeModifier, BannerLayer, ComponentValue, Equippable, FireworkExplosion,
+        FireworkShape, Fireworks, ItemFlag, ItemMeta, LodestoneTarget, LodestoneTracker, Operation,
+        PotionContents, PotionEffect, Profile, ProfileProperty, Rarity, SlotGroup, SlotItem, Tool,
+        ToolRule, Trim, UseCooldown, WrittenBook,
     };
     pub use crate::{BarColor, BarFlag, BarStyle, BossBar, BossBars};
     pub use crate::{Click, Part, RichMessage};
