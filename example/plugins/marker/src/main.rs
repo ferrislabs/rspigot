@@ -10,7 +10,7 @@ struct Marker;
 impl Marker {
     #[command("mark")]
     async fn mark(&self, ctx: Context, kind: String) {
-        let player = ctx.sender();
+        let player = &ctx.sender;
         let clearing = kind == "clear";
         if let Ok(Some(Target::Entity(entity))) = player.target_entity(REACH).await {
             if clearing {

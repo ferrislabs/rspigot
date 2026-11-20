@@ -29,7 +29,7 @@ struct Relic;
 impl Relic {
     #[command("relic")]
     async fn relic(&self, ctx: Context) {
-        ctx.sender().inventory.add(relic());
+        ctx.sender.inventory.add(relic());
         ctx.reply("The relic is yours");
     }
 

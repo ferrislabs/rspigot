@@ -52,7 +52,7 @@ impl Market {
 
     #[command("shop buy", permission = "shop.buy")]
     async fn buy(&self, ctx: Context, item: Material, amount: u32) {
-        let player = ctx.sender();
+        let player = &ctx.sender;
         let Some(price) = self.price(item) else {
             ctx.reply("That item is not for sale");
             return;
