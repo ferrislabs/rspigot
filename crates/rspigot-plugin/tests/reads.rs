@@ -192,6 +192,10 @@ async fn get_entities_lists_the_matching_entities() {
                 y: 0.0,
                 z: 0.0,
             }),
+            rotation: Some(v1::Rotation {
+                yaw: 0.0,
+                pitch: 0.0,
+            }),
             ..Default::default()
         }),
     ));

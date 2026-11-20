@@ -75,7 +75,7 @@ impl<L: ClientLink> Server<L> {
             .unwrap_or(0)
     }
 
-    fn store_lectern(&mut self, pos: BlockPos, book: Option<&ItemStack>, page: i32) {
+    pub(crate) fn store_lectern(&mut self, pos: BlockPos, book: Option<&ItemStack>, page: i32) {
         let Some(chunk) = self.world.chunks.chunk_mut(pos.chunk()) else {
             return;
         };

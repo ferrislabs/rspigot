@@ -528,3 +528,34 @@ impl<L: ClientLink> Server<L> {
         }
     }
 }
+
+impl<L: ClientLink> Server<L> {
+    pub(crate) fn tie_leash(&mut self, id: EntityId, holder: EntityId) -> Result<(), String> {
+        if id == holder {
+            return Err("an entity cannot hold its own leash".to_owned());
+        }
+        if !self.leash_target_alive(id) {
+            return Err("only a living mob can be leashed".to_owned());
+        }
+        let uuid = self
+            .entities
+            .store
+            .get(holder)
+            .map(|entity| entity.base.uuid)
+            .or_else(|| {
+                self.players
+                    .values()
+                    .find(|player| player.entity_id == holder)
+                    .map(|player| player.id.0)
+            })
+            .ok_or_else(|| "the leash holder is gone".to_owned())?;
+        self.remove_leash(id);
+        if let Some(entity) = self.entities.store.get_mut(id) {
+            let mut link = Compound::new();
+            link.insert("UUID", uuid_tag(uuid));
+            entity.extra.insert(LEASH, link);
+        }
+        self.announce_leash(id, holder);
+        Ok(())
+    }
+}

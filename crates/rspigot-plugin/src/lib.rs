@@ -9,6 +9,7 @@ mod dialog;
 mod diff;
 mod effect;
 mod entity;
+mod entity_groups;
 mod error;
 mod events;
 #[rustfmt::skip]
@@ -32,6 +33,7 @@ mod scoreboard;
 mod server;
 mod target;
 mod text;
+mod tile;
 mod typed;
 mod wire;
 mod world;
@@ -56,6 +58,11 @@ pub use custom_inventory::{CustomInventory, CustomInventoryState};
 pub use dialog::{Dialog, DialogButton, DialogInput};
 pub use effect::Effect;
 pub use entity::{Entities, Entity, EntityState};
+pub use entity_groups::{
+    EntityAgeHandle, EntityAiHandle, EntityEquipmentHandle, EntityFlagsHandle, EntityLeashHandle,
+    EntityNameHandle, EntityOwnerHandle, EntityPassengersHandle, EntityTagsHandle,
+    EntityVitalsHandle, EquipmentState, LivingState,
+};
 pub use error::{ActionError, ActionErrorKind, Error};
 pub use events::*;
 pub use generated::*;
@@ -79,6 +86,12 @@ pub use scoreboard::{
 pub use server::{BanEntry, IpBanEntry, ListedPlayer, Server, ServerState};
 pub use target::{BlockTarget, Target};
 pub use text::{ChatColor, Title};
+pub use tile::{
+    BeaconState, BlockBannerHandle, BlockBeaconHandle, BlockCommandHandle, BlockData,
+    BlockDataHandle, BlockEndGatewayHandle, BlockFurnaceHandle, BlockInventoryHandle,
+    BlockJukeboxHandle, BlockLecternHandle, BlockPotHandle, BlockSignHandle, BlockSkullHandle,
+    BlockSpawnerHandle, CommandBlockState, FurnaceState, SignContents, SkullOwner, SpawnerState,
+};
 pub use typed::{
     Cat, Creeper, Profession, Rabbit, RabbitVariant, Sheep, Slime, Villager, Wolf, Zombie,
 };

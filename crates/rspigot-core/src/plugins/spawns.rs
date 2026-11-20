@@ -50,6 +50,7 @@ impl Newborn {
             position: self.position,
             player: None,
             meta: crate::plugins::MetaSnapshot::default(),
+            marks: Default::default(),
         }
     }
 }
@@ -73,6 +74,7 @@ pub(crate) fn spawn_kind(entity: &Entity) -> EventKind {
 pub(crate) fn view_of_entity(entity: &Entity) -> EntityView {
     let mut view = Newborn::of(entity).view();
     view.meta = crate::plugins::MetaSnapshot::of(&entity.base);
+    view.marks = crate::plugins::EntityMarks::of(&entity.base);
     view
 }
 
@@ -111,6 +113,7 @@ impl<L: ClientLink> Server<L> {
                 position: player.position,
                 player: Some(self.describe(player)),
                 meta: crate::plugins::MetaSnapshot::default(),
+                marks: Default::default(),
             });
         }
         self.entity_view(id)

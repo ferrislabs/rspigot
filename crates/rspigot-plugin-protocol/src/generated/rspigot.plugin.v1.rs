@@ -147,6 +147,10 @@ pub struct EntitySnapshot {
         ::prost::alloc::string::String,
         MetaValue,
     >,
+    #[prost(string, optional, tag = "8")]
+    pub custom_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "9")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -9951,10 +9955,278 @@ pub mod meta_order {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EquipmentEdit {
+    #[prost(string, tag = "1")]
+    pub slot: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub item: ::core::option::Option<Item>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DropChanceEdit {
+    #[prost(string, tag = "1")]
+    pub slot: ::prost::alloc::string::String,
+    #[prost(float, tag = "2")]
+    pub chance: f32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EntityEdit {
+    #[prost(
+        oneof = "entity_edit::Edit",
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39"
+    )]
+    pub edit: ::core::option::Option<entity_edit::Edit>,
+}
+/// Nested message and enum types in `EntityEdit`.
+pub mod entity_edit {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Edit {
+        #[prost(string, tag = "1")]
+        SetCustomName(::prost::alloc::string::String),
+        #[prost(message, tag = "2")]
+        ClearCustomName(super::Empty),
+        #[prost(bool, tag = "3")]
+        SetCustomNameVisible(bool),
+        #[prost(bool, tag = "4")]
+        SetGlowing(bool),
+        #[prost(bool, tag = "5")]
+        SetInvisible(bool),
+        #[prost(bool, tag = "6")]
+        SetSilent(bool),
+        #[prost(bool, tag = "7")]
+        SetGravity(bool),
+        #[prost(bool, tag = "8")]
+        SetInvulnerable(bool),
+        #[prost(bool, tag = "9")]
+        SetPersistent(bool),
+        #[prost(int32, tag = "10")]
+        SetFireTicks(i32),
+        #[prost(int32, tag = "11")]
+        SetFreezeTicks(i32),
+        #[prost(int32, tag = "12")]
+        SetAir(i32),
+        #[prost(float, tag = "13")]
+        SetFallDistance(f32),
+        #[prost(message, tag = "14")]
+        SetRotation(super::Rotation),
+        #[prost(message, tag = "15")]
+        LookAt(super::Vec3),
+        #[prost(int32, tag = "16")]
+        SetTicksLived(i32),
+        #[prost(string, tag = "17")]
+        AddTag(::prost::alloc::string::String),
+        #[prost(string, tag = "18")]
+        RemoveTag(::prost::alloc::string::String),
+        #[prost(int32, tag = "19")]
+        Mount(i32),
+        #[prost(message, tag = "20")]
+        Dismount(super::Empty),
+        #[prost(message, tag = "21")]
+        EjectPassengers(super::Empty),
+        #[prost(float, tag = "22")]
+        SetHealth(f32),
+        #[prost(float, tag = "23")]
+        SetAbsorption(f32),
+        #[prost(bool, tag = "24")]
+        SetAi(bool),
+        #[prost(bool, tag = "25")]
+        SetCanPickUpLoot(bool),
+        #[prost(bool, tag = "26")]
+        SetLeftHanded(bool),
+        #[prost(message, tag = "27")]
+        SetEquipment(super::EquipmentEdit),
+        #[prost(message, tag = "28")]
+        SetDropChance(super::DropChanceEdit),
+        #[prost(int32, tag = "29")]
+        SetLeashHolder(i32),
+        #[prost(message, tag = "30")]
+        ClearLeash(super::Empty),
+        #[prost(string, tag = "31")]
+        SetOwner(::prost::alloc::string::String),
+        #[prost(message, tag = "32")]
+        ClearOwner(super::Empty),
+        #[prost(bool, tag = "33")]
+        SetTamed(bool),
+        #[prost(bool, tag = "34")]
+        SetSitting(bool),
+        #[prost(int32, tag = "35")]
+        SetTarget(i32),
+        #[prost(message, tag = "36")]
+        ClearTarget(super::Empty),
+        #[prost(int32, tag = "37")]
+        SetAge(i32),
+        #[prost(bool, tag = "38")]
+        SetAgeLocked(bool),
+        #[prost(bool, tag = "39")]
+        SetBreeding(bool),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SignLines {
+    #[prost(bool, tag = "1")]
+    pub front: bool,
+    #[prost(string, repeated, tag = "2")]
+    pub lines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SignStyle {
+    #[prost(bool, tag = "1")]
+    pub front: bool,
+    #[prost(string, optional, tag = "2")]
+    pub color: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, optional, tag = "3")]
+    pub glowing: ::core::option::Option<bool>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct FurnaceEdit {
+    #[prost(int32, optional, tag = "1")]
+    pub burn_time: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "2")]
+    pub cook_time: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "3")]
+    pub cook_time_total: ::core::option::Option<i32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SpawnerEdit {
+    #[prost(string, optional, tag = "1")]
+    pub entity: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int32, optional, tag = "2")]
+    pub delay: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "3")]
+    pub min_delay: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "4")]
+    pub max_delay: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "5")]
+    pub spawn_count: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "6")]
+    pub max_nearby: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "7")]
+    pub required_player_range: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "8")]
+    pub spawn_range: ::core::option::Option<i32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SkullOwner {
+    #[prost(string, optional, tag = "1")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "2")]
+    pub uuid: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BannerPattern {
+    #[prost(string, tag = "1")]
+    pub pattern: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub color: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BannerPatterns {
+    #[prost(message, repeated, tag = "1")]
+    pub patterns: ::prost::alloc::vec::Vec<BannerPattern>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CommandEdit {
+    #[prost(string, optional, tag = "1")]
+    pub command: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "2")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BeaconEffects {
+    #[prost(string, optional, tag = "1")]
+    pub primary: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "2")]
+    pub secondary: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PotSherds {
+    #[prost(string, repeated, tag = "1")]
+    pub sherds: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GatewayExit {
+    #[prost(message, optional, tag = "1")]
+    pub exit: ::core::option::Option<BlockPos>,
+    #[prost(bool, tag = "2")]
+    pub exact: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TileEdit {
+    #[prost(
+        oneof = "tile_edit::Edit",
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
+    )]
+    pub edit: ::core::option::Option<tile_edit::Edit>,
+}
+/// Nested message and enum types in `TileEdit`.
+pub mod tile_edit {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Edit {
+        #[prost(message, tag = "1")]
+        SignLines(super::SignLines),
+        #[prost(message, tag = "2")]
+        SignStyle(super::SignStyle),
+        #[prost(bool, tag = "3")]
+        SignWaxed(bool),
+        #[prost(message, tag = "4")]
+        InventorySet(super::SetSlot),
+        #[prost(message, tag = "5")]
+        InventoryAdd(super::Item),
+        #[prost(message, tag = "6")]
+        InventoryClear(super::Empty),
+        #[prost(message, tag = "7")]
+        Furnace(super::FurnaceEdit),
+        #[prost(message, tag = "8")]
+        Spawner(super::SpawnerEdit),
+        #[prost(message, tag = "9")]
+        SkullOwner(super::SkullOwner),
+        #[prost(message, tag = "10")]
+        BannerPatterns(super::BannerPatterns),
+        #[prost(message, tag = "11")]
+        CommandBlock(super::CommandEdit),
+        #[prost(message, tag = "12")]
+        Beacon(super::BeaconEffects),
+        #[prost(message, tag = "13")]
+        JukeboxDisc(super::Item),
+        #[prost(message, tag = "14")]
+        JukeboxClear(super::Empty),
+        #[prost(message, tag = "15")]
+        EndGateway(super::GatewayExit),
+        #[prost(message, tag = "16")]
+        LecternBook(super::Item),
+        #[prost(message, tag = "17")]
+        LecternClear(super::Empty),
+        #[prost(message, tag = "18")]
+        DecoratedPot(super::PotSherds),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BlockDataEdit {
+    #[prost(message, repeated, tag = "1")]
+    pub properties: ::prost::alloc::vec::Vec<Property>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BlockOrder {
     #[prost(message, optional, tag = "1")]
     pub pos: ::core::option::Option<BlockPos>,
-    #[prost(oneof = "block_order::Order", tags = "10, 11, 12, 13")]
+    #[prost(oneof = "block_order::Order", tags = "10, 11, 12, 13, 14, 15")]
     pub order: ::core::option::Option<block_order::Order>,
 }
 /// Nested message and enum types in `BlockOrder`.
@@ -9970,6 +10242,10 @@ pub mod block_order {
         BreakNaturally(super::Empty),
         #[prost(message, tag = "13")]
         Meta(super::MetaOrder),
+        #[prost(message, tag = "14")]
+        SetData(super::BlockDataEdit),
+        #[prost(message, tag = "15")]
+        Tile(super::TileEdit),
     }
 }
 #[allow(clippy::all)]
@@ -9979,7 +10255,7 @@ pub struct EntityOrder {
     pub entity: i32,
     #[prost(
         oneof = "entity_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
     )]
     pub order: ::core::option::Option<entity_order::Order>,
 }
@@ -10010,6 +10286,8 @@ pub mod entity_order {
         Change(super::TypedChange),
         #[prost(message, tag = "20")]
         Meta(super::MetaOrder),
+        #[prost(message, tag = "21")]
+        Edit(super::EntityEdit),
     }
 }
 #[allow(clippy::all)]
@@ -10420,7 +10698,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -10493,6 +10771,10 @@ pub mod question {
         EntitiesWithMeta(super::EntitiesWithMeta),
         #[prost(message, tag = "41")]
         PlayersWithMeta(super::EntitiesWithMeta),
+        #[prost(message, tag = "42")]
+        Tile(super::BlockPos),
+        #[prost(message, tag = "43")]
+        BlockInfo(super::BlockPos),
     }
 }
 #[allow(clippy::all)]
@@ -10702,6 +10984,50 @@ pub struct EntityList {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EquipmentState {
+    #[prost(string, tag = "1")]
+    pub slot: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub item: ::core::option::Option<Item>,
+    #[prost(float, tag = "3")]
+    pub drop_chance: f32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LivingExtra {
+    #[prost(float, tag = "1")]
+    pub max_health: f32,
+    #[prost(float, tag = "2")]
+    pub absorption: f32,
+    #[prost(bool, tag = "3")]
+    pub ai: bool,
+    #[prost(bool, tag = "4")]
+    pub can_pick_up_loot: bool,
+    #[prost(bool, tag = "5")]
+    pub left_handed: bool,
+    #[prost(message, repeated, tag = "6")]
+    pub equipment: ::prost::alloc::vec::Vec<EquipmentState>,
+    #[prost(int32, optional, tag = "7")]
+    pub leash_holder: ::core::option::Option<i32>,
+    #[prost(string, optional, tag = "8")]
+    pub owner: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "9")]
+    pub tamed: bool,
+    #[prost(bool, tag = "10")]
+    pub sitting: bool,
+    #[prost(int32, optional, tag = "11")]
+    pub target: ::core::option::Option<i32>,
+    #[prost(int32, tag = "12")]
+    pub age: i32,
+    #[prost(bool, tag = "13")]
+    pub age_locked: bool,
+    #[prost(bool, tag = "14")]
+    pub baby: bool,
+    #[prost(bool, tag = "15")]
+    pub in_love: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EntityState {
     #[prost(message, optional, tag = "1")]
     pub entity: ::core::option::Option<EntitySnapshot>,
@@ -10715,6 +11041,38 @@ pub struct EntityState {
     pub custom_name: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(int32, tag = "6")]
     pub fire_ticks: i32,
+    #[prost(bool, tag = "7")]
+    pub custom_name_visible: bool,
+    #[prost(bool, tag = "8")]
+    pub glowing: bool,
+    #[prost(bool, tag = "9")]
+    pub invisible: bool,
+    #[prost(bool, tag = "10")]
+    pub silent: bool,
+    #[prost(bool, tag = "11")]
+    pub gravity: bool,
+    #[prost(bool, tag = "12")]
+    pub invulnerable: bool,
+    #[prost(bool, tag = "13")]
+    pub persistent: bool,
+    #[prost(int32, tag = "14")]
+    pub freeze_ticks: i32,
+    #[prost(int32, tag = "15")]
+    pub air: i32,
+    #[prost(float, tag = "16")]
+    pub fall_distance: f32,
+    #[prost(message, optional, tag = "17")]
+    pub rotation: ::core::option::Option<Rotation>,
+    #[prost(int32, tag = "18")]
+    pub ticks_lived: i32,
+    #[prost(string, repeated, tag = "19")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int32, repeated, tag = "20")]
+    pub passengers: ::prost::alloc::vec::Vec<i32>,
+    #[prost(int32, optional, tag = "21")]
+    pub vehicle: ::core::option::Option<i32>,
+    #[prost(message, optional, tag = "22")]
+    pub living: ::core::option::Option<LivingExtra>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -10853,6 +11211,146 @@ pub struct NpcState {
     pub walking: bool,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SignState {
+    #[prost(string, repeated, tag = "1")]
+    pub front: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "2")]
+    pub back: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bool, tag = "3")]
+    pub waxed: bool,
+    #[prost(string, tag = "4")]
+    pub front_color: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub back_color: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub front_glowing: bool,
+    #[prost(bool, tag = "7")]
+    pub back_glowing: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct InventoryContents {
+    #[prost(int32, tag = "1")]
+    pub size: i32,
+    #[prost(message, repeated, tag = "2")]
+    pub slots: ::prost::alloc::vec::Vec<Slot>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FurnaceState {
+    #[prost(int32, tag = "1")]
+    pub burn_time: i32,
+    #[prost(int32, tag = "2")]
+    pub cook_time: i32,
+    #[prost(int32, tag = "3")]
+    pub cook_time_total: i32,
+    #[prost(bool, tag = "4")]
+    pub lit: bool,
+    #[prost(message, optional, tag = "5")]
+    pub contents: ::core::option::Option<InventoryContents>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct SpawnerState {
+    #[prost(string, tag = "1")]
+    pub entity: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub delay: i32,
+    #[prost(int32, tag = "3")]
+    pub min_delay: i32,
+    #[prost(int32, tag = "4")]
+    pub max_delay: i32,
+    #[prost(int32, tag = "5")]
+    pub spawn_count: i32,
+    #[prost(int32, tag = "6")]
+    pub max_nearby: i32,
+    #[prost(int32, tag = "7")]
+    pub required_player_range: i32,
+    #[prost(int32, tag = "8")]
+    pub spawn_range: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CommandState {
+    #[prost(string, tag = "1")]
+    pub command: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BeaconState {
+    #[prost(int32, tag = "1")]
+    pub levels: i32,
+    #[prost(string, optional, tag = "2")]
+    pub primary: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub secondary: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DiscState {
+    #[prost(message, optional, tag = "1")]
+    pub item: ::core::option::Option<Item>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TileState {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(
+        oneof = "tile_state::State",
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13"
+    )]
+    pub state: ::core::option::Option<tile_state::State>,
+}
+/// Nested message and enum types in `TileState`.
+pub mod tile_state {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum State {
+        #[prost(message, tag = "2")]
+        Sign(super::SignState),
+        #[prost(message, tag = "3")]
+        Inventory(super::InventoryContents),
+        #[prost(message, tag = "4")]
+        Furnace(super::FurnaceState),
+        #[prost(message, tag = "5")]
+        Spawner(super::SpawnerState),
+        #[prost(message, tag = "6")]
+        Skull(super::SkullOwner),
+        #[prost(message, tag = "7")]
+        Banner(super::BannerPatterns),
+        #[prost(message, tag = "8")]
+        CommandBlock(super::CommandState),
+        #[prost(message, tag = "9")]
+        Beacon(super::BeaconState),
+        #[prost(message, tag = "10")]
+        Jukebox(super::DiscState),
+        #[prost(message, tag = "11")]
+        Lectern(super::DiscState),
+        #[prost(message, tag = "12")]
+        EndGateway(super::GatewayExit),
+        #[prost(message, tag = "13")]
+        DecoratedPot(super::PotSherds),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct BlockInfo {
+    #[prost(int32, tag = "1")]
+    pub light: i32,
+    #[prost(int32, tag = "2")]
+    pub sky_light: i32,
+    #[prost(int32, tag = "3")]
+    pub block_light: i32,
+    #[prost(int32, tag = "4")]
+    pub power: i32,
+    #[prost(string, tag = "5")]
+    pub biome: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MetaEntries {
     #[prost(message, repeated, tag = "1")]
@@ -10877,7 +11375,7 @@ pub struct Answer {
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -10942,6 +11440,10 @@ pub mod answer {
         MetaEntries(super::MetaEntries),
         #[prost(message, tag = "29")]
         BlockPositions(super::BlockPositions),
+        #[prost(message, tag = "30")]
+        Tile(super::TileState),
+        #[prost(message, tag = "31")]
+        BlockInfo(super::BlockInfo),
     }
 }
 #[allow(clippy::all)]

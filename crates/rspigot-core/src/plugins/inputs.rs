@@ -263,6 +263,7 @@ impl<L: ClientLink> Server<L> {
                 position: shown.position,
                 player: server.snapshot_of(target),
                 meta: crate::plugins::MetaSnapshot::default(),
+                marks: Default::default(),
             };
             Some(if kind == EventKind::PlayerHideEntity {
                 EventPayload::PlayerHideEntity(PlayerHideEntity { entity, player })

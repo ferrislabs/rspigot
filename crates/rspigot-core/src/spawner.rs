@@ -65,7 +65,7 @@ impl<L: ClientLink> Server<L> {
         Some(data.unwrap_or_default())
     }
 
-    fn store_spawner(&mut self, pos: BlockPos, spawner: &Spawner) {
+    pub(crate) fn store_spawner(&mut self, pos: BlockPos, spawner: &Spawner) {
         let Some(chunk) = self.world.chunks.chunk_mut(pos.chunk()) else {
             return;
         };
@@ -408,7 +408,7 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
-    fn send_spawner_update(&mut self, pos: BlockPos) {
+    pub(crate) fn send_spawner_update(&mut self, pos: BlockPos) {
         let Some(mut data) = self
             .world
             .chunks

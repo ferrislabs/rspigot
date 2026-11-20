@@ -504,6 +504,7 @@ impl<L: ClientLink> Server<L> {
             position: cloud.base.position,
             player: None,
             meta: crate::plugins::MetaSnapshot::of(&cloud.base),
+            marks: crate::plugins::EntityMarks::of(&cloud.base),
         };
         let potion = step.potion;
         let hit = step.hit;

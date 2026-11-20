@@ -52,6 +52,7 @@ impl BlockSnapshot {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum InventoryOwner {
     Custom(CustomInventory),
@@ -419,6 +420,7 @@ impl EnchantOffer {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum OwnerRef {
     Player(Player),
@@ -436,6 +438,7 @@ impl OwnerRef {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum HolderRef {
     Player(Player),
