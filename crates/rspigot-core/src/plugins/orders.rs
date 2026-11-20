@@ -451,6 +451,16 @@ pub enum PlayerOrder {
         port: u32,
     },
     Meta(crate::plugins::meta::MetaOrder),
+    SetPermission {
+        node: String,
+        value: bool,
+    },
+    UnsetPermission(String),
+    AddGroup(String),
+    RemoveGroup(String),
+    RefreshCommands,
+    GrantAdvancement(String),
+    RevokeAdvancement(String),
 }
 
 impl PlayerOrder {
@@ -504,6 +514,13 @@ impl PlayerOrder {
             Self::Ban { .. } => "player.ban",
             Self::Transfer { .. } => "player.transfer",
             Self::Meta(order) => order.name(),
+            Self::SetPermission { .. } => "player.permissions.set",
+            Self::UnsetPermission(_) => "player.permissions.unset",
+            Self::AddGroup(_) => "player.permissions.add_group",
+            Self::RemoveGroup(_) => "player.permissions.remove_group",
+            Self::RefreshCommands => "player.command.refresh",
+            Self::GrantAdvancement(_) => "player.advancements.grant",
+            Self::RevokeAdvancement(_) => "player.advancements.revoke",
         }
     }
 }

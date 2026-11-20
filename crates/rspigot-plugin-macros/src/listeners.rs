@@ -47,6 +47,7 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
         errors.push(Error::new_spanned(&args, "#[listeners] takes no arguments"));
     }
     let mut hooks = Hooks::default();
+    let mut dynamic = false;
     let mut declared: Vec<Command> = Vec::new();
     let handlers: Vec<Handler> = if let Some((_, path, _)) = &block.trait_ {
         errors.push(Error::new_spanned(
@@ -73,6 +74,10 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
                     hook(method, false, &mut hooks.disable, &mut errors);
                     None
                 }
+                ImplItem::Fn(method) if method.sig.ident == "on_command" => {
+                    dynamic = true;
+                    None
+                }
                 ImplItem::Fn(method) if commands::marked(method) => {
                     let cfgs = cfgs(&method.attrs);
                     declared.extend(commands::read(method, id, cfgs, &mut errors));
@@ -95,10 +100,15 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
         .iter()
         .map(arm)
         .chain(suggesting.then(|| commands::suggestion_arm(&declared)));
-    let (command_specs, command_invoke) = if declared.is_empty() {
-        (TokenStream::new(), TokenStream::new())
+    let command_specs = if declared.is_empty() {
+        TokenStream::new()
     } else {
-        (commands::specs(&declared), commands::invoke(&declared))
+        commands::specs(&declared)
+    };
+    let command_invoke = match (declared.is_empty(), dynamic) {
+        (true, true) => commands::invoke_dynamic_only(),
+        (true, false) => TokenStream::new(),
+        (false, _) => commands::invoke(&declared, dynamic),
     };
     let enables = hooks.enable.iter().map(|cfgs| {
         quote! {

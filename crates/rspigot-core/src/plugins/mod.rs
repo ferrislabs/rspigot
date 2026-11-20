@@ -1,5 +1,7 @@
 mod actions;
+mod advancements;
 mod aims;
+mod attachments;
 mod block;
 mod blocks;
 mod boss_bars;
@@ -9,6 +11,7 @@ mod changes;
 mod chat;
 mod chunks;
 pub(crate) mod clicks;
+mod command_args;
 mod commands;
 mod contract;
 mod damage;
@@ -42,6 +45,7 @@ mod potions;
 pub(crate) mod prepare;
 mod registry;
 mod resolve;
+mod rights;
 mod scoreboard;
 mod server;
 mod session;
@@ -153,29 +157,56 @@ pub struct PluginIntro {
     pub commands: Vec<CommandSpec>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ArgumentKind {
     Player,
     Item,
     Integer,
+    #[default]
     Text,
     Boolean,
+    Literal,
+    GreedyText,
+    Double,
+    Float,
+    Entities,
+    Location,
+    Choice,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl ArgumentKind {
+    pub const fn width(self) -> usize {
+        match self {
+            Self::Location => 3,
+            _ => 1,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CommandArgument {
     pub name: String,
     pub kind: ArgumentKind,
     pub optional: bool,
     pub suggested: bool,
+    pub choices: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CommandSpec {
     pub id: u32,
     pub name: String,
+    pub aliases: Vec<String>,
     pub permission: Option<String>,
     pub arguments: Vec<CommandArgument>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct PluginRoot<'a> {
+    pub(crate) name: String,
+    pub(crate) connection: u64,
+    pub(crate) aliases: Vec<String>,
+    pub(crate) specs: Vec<&'a CommandSpec>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -185,6 +216,9 @@ pub enum ArgumentValue {
     Integer(i64),
     Text(String),
     Flag(bool),
+    Decimal(f64),
+    Entities(Vec<EntityView>),
+    Location(Vec3),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -203,6 +237,59 @@ pub enum IntroError {
     UnnamedCommand(u32),
     #[error("command {0} has a required argument after an optional one")]
     MisplacedOptional(u32),
+    #[error("command {0} has an argument that is not named")]
+    UnnamedArgument(u32),
+    #[error("command {0} has a literal that is optional or contains whitespace")]
+    BadLiteral(u32),
+    #[error("command {0} has a greedy text argument that is not the last one")]
+    GreedyNotLast(u32),
+    #[error("command {0} has a choice without any value")]
+    EmptyChoice(u32),
+    #[error("command {0} has an alias that is empty or contains whitespace")]
+    BadAlias(u32),
+}
+
+impl CommandSpec {
+    pub fn validate(&self) -> Result<(), IntroError> {
+        let id = self.id;
+        if self.name.is_empty() || self.name.contains(char::is_whitespace) {
+            return Err(IntroError::UnnamedCommand(id));
+        }
+        if self
+            .aliases
+            .iter()
+            .any(|alias| alias.is_empty() || alias.contains(char::is_whitespace))
+        {
+            return Err(IntroError::BadAlias(id));
+        }
+        let mut rest = self
+            .arguments
+            .iter()
+            .skip_while(|argument| !argument.optional);
+        if rest.any(|argument| !argument.optional) {
+            return Err(IntroError::MisplacedOptional(id));
+        }
+        for (index, argument) in self.arguments.iter().enumerate() {
+            if argument.name.is_empty() {
+                return Err(IntroError::UnnamedArgument(id));
+            }
+            match argument.kind {
+                ArgumentKind::Literal
+                    if argument.optional || argument.name.contains(char::is_whitespace) =>
+                {
+                    return Err(IntroError::BadLiteral(id));
+                }
+                ArgumentKind::GreedyText if index + 1 != self.arguments.len() => {
+                    return Err(IntroError::GreedyNotLast(id));
+                }
+                ArgumentKind::Choice if argument.choices.is_empty() => {
+                    return Err(IntroError::EmptyChoice(id));
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
 }
 
 impl PluginIntro {
@@ -229,16 +316,7 @@ impl PluginIntro {
             if !commands.insert(command.id) {
                 return Err(IntroError::DuplicateCommand(command.id));
             }
-            if command.name.is_empty() || command.name.contains(char::is_whitespace) {
-                return Err(IntroError::UnnamedCommand(command.id));
-            }
-            let mut rest = command
-                .arguments
-                .iter()
-                .skip_while(|argument| !argument.optional);
-            if rest.any(|argument| !argument.optional) {
-                return Err(IntroError::MisplacedOptional(command.id));
-            }
+            command.validate()?;
         }
         Ok(())
     }
@@ -284,6 +362,13 @@ pub struct PlayerState {
     pub locale: String,
     pub address: IpAddr,
     pub hidden: Vec<PlayerId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdvancementView {
+    pub done: bool,
+    pub criteria_done: Vec<String>,
+    pub criteria_remaining: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -444,6 +529,9 @@ pub enum Answer {
     BlockPositions(Vec<BlockPos>),
     Target(Option<TargetHit>),
     CustomInventory(CustomInventoryState),
+    PermissionGroups(Vec<crate::permissions::GroupView>),
+    AdvancementProgress(AdvancementView),
+    Advancements(Vec<String>),
     Refused(String),
     WorldCreated(String),
     Done,
@@ -483,6 +571,8 @@ pub enum FromPlugin {
     Reaction { event: u64, order: Order },
     Question { request: u64, question: Question },
     Action { request: u64, order: Order },
+    RegisterCommand(CommandSpec),
+    UnregisterCommand(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -541,6 +631,12 @@ pub enum Question {
     CreateBossBar(BossBarSpec),
     BossBar(u64),
     BossBars,
+    PermissionGroups,
+    AdvancementProgress {
+        player: PlayerId,
+        advancement: String,
+    },
+    DoneAdvancements(PlayerId),
     CreateNpc(NpcSpec),
     NpcByKey(String),
     Npcs,
@@ -586,6 +682,67 @@ mod tests {
             commands: Vec::new(),
             handlers,
         }
+    }
+
+    fn argument(kind: ArgumentKind) -> CommandArgument {
+        CommandArgument {
+            name: "a".to_owned(),
+            kind,
+            ..CommandArgument::default()
+        }
+    }
+
+    fn command(arguments: Vec<CommandArgument>) -> CommandSpec {
+        CommandSpec {
+            id: 4,
+            name: "shop".to_owned(),
+            arguments,
+            ..CommandSpec::default()
+        }
+    }
+
+    #[test]
+    fn a_command_checks_its_literals_choices_greedy_text_and_aliases() {
+        assert_eq!(command(Vec::new()).validate(), Ok(()));
+        let optional_literal = CommandArgument {
+            optional: true,
+            ..argument(ArgumentKind::Literal)
+        };
+        assert_eq!(
+            command(vec![optional_literal]).validate(),
+            Err(IntroError::BadLiteral(4))
+        );
+        assert_eq!(
+            command(vec![
+                argument(ArgumentKind::GreedyText),
+                argument(ArgumentKind::Text)
+            ])
+            .validate(),
+            Err(IntroError::GreedyNotLast(4))
+        );
+        assert_eq!(
+            command(vec![argument(ArgumentKind::Choice)]).validate(),
+            Err(IntroError::EmptyChoice(4))
+        );
+        let nameless = CommandArgument {
+            name: String::new(),
+            ..argument(ArgumentKind::Text)
+        };
+        assert_eq!(
+            command(vec![nameless]).validate(),
+            Err(IntroError::UnnamedArgument(4))
+        );
+        let aliased = CommandSpec {
+            aliases: vec!["two words".to_owned()],
+            ..command(Vec::new())
+        };
+        assert_eq!(aliased.validate(), Err(IntroError::BadAlias(4)));
+    }
+
+    #[test]
+    fn a_location_takes_three_words_and_the_others_one() {
+        assert_eq!(ArgumentKind::Location.width(), 3);
+        assert_eq!(ArgumentKind::Integer.width(), 1);
     }
 
     #[test]

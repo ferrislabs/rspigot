@@ -130,6 +130,16 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
             port: transfer.port,
         },
         Wire::Meta(order) => PlayerOrder::Meta(super::meta::order(order)?),
+        Wire::RefreshCommands(_) => PlayerOrder::RefreshCommands,
+        Wire::SetPermission(set) => PlayerOrder::SetPermission {
+            node: set.node,
+            value: set.value,
+        },
+        Wire::UnsetPermission(node) => PlayerOrder::UnsetPermission(node),
+        Wire::AddGroup(group) => PlayerOrder::AddGroup(group),
+        Wire::RemoveGroup(group) => PlayerOrder::RemoveGroup(group),
+        Wire::GrantAdvancement(advancement) => PlayerOrder::GrantAdvancement(advancement),
+        Wire::RevokeAdvancement(advancement) => PlayerOrder::RevokeAdvancement(advancement),
     };
     Ok(Order::Player { player, order })
 }
@@ -281,6 +291,45 @@ mod tests {
     use crate::convert::{from_plugin, question, to_plugin};
 
     const STEVE: &str = "00000000-0000-0000-0000-000000000001";
+
+    #[test]
+    fn the_permission_orders_keep_their_arguments() {
+        assert_eq!(
+            convert(player_order::Order::SetPermission(v1::PermissionSet {
+                node: "shop.use".to_owned(),
+                value: false,
+            }))
+            .unwrap(),
+            PlayerOrder::SetPermission {
+                node: "shop.use".to_owned(),
+                value: false
+            }
+        );
+        assert_eq!(
+            convert(player_order::Order::UnsetPermission("a".to_owned())).unwrap(),
+            PlayerOrder::UnsetPermission("a".to_owned())
+        );
+        assert_eq!(
+            convert(player_order::Order::AddGroup("vip".to_owned())).unwrap(),
+            PlayerOrder::AddGroup("vip".to_owned())
+        );
+        assert_eq!(
+            convert(player_order::Order::RemoveGroup("vip".to_owned())).unwrap(),
+            PlayerOrder::RemoveGroup("vip".to_owned())
+        );
+        assert_eq!(
+            convert(player_order::Order::GrantAdvancement("a".to_owned())).unwrap(),
+            PlayerOrder::GrantAdvancement("a".to_owned())
+        );
+        assert_eq!(
+            convert(player_order::Order::RevokeAdvancement("a".to_owned())).unwrap(),
+            PlayerOrder::RevokeAdvancement("a".to_owned())
+        );
+        assert_eq!(
+            convert(player_order::Order::RefreshCommands(v1::Empty {})).unwrap(),
+            PlayerOrder::RefreshCommands
+        );
+    }
 
     fn convert(order: player_order::Order) -> Result<PlayerOrder, Malformed> {
         let converted = super::order(v1::PlayerOrder {

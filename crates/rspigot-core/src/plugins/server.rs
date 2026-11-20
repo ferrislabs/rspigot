@@ -112,6 +112,8 @@ impl<L: ClientLink> Server<L> {
             FromPlugin::Action { request, order } => {
                 self.apply_action(connection, request, order);
             }
+            FromPlugin::RegisterCommand(spec) => self.register_command(connection, spec),
+            FromPlugin::UnregisterCommand(name) => self.unregister_command(connection, &name),
             FromPlugin::Question { request, question } => {
                 if let Some(answer) = self.answer_question(connection, request, question) {
                     self.plugins
@@ -300,6 +302,23 @@ impl<L: ClientLink> Server<L> {
                 .boss_bar_state(bar)
                 .map_or(Answer::NotFound, Answer::BossBar),
             Question::BossBars => Answer::BossBars(self.boss_bar_states()),
+            Question::PermissionGroups => Answer::PermissionGroups(self.permissions.group_views()),
+            Question::AdvancementProgress {
+                player,
+                advancement,
+            } => self
+                .advancement_view(player, &advancement)
+                .map_or(Answer::NotFound, Answer::AdvancementProgress),
+            Question::DoneAdvancements(player) => self
+                .players
+                .contains_key(&player)
+                .then(|| {
+                    self.done_advancements(player)
+                        .into_iter()
+                        .map(str::to_owned)
+                        .collect()
+                })
+                .map_or(Answer::NotFound, Answer::Advancements),
         })
     }
 
@@ -520,8 +539,9 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn plugin_disconnected(&mut self, connection: u64) {
         let departed = self.plugins.disconnect(connection);
         self.forget_plugin_inventories(connection);
+        let attached = self.plugins.attachments.forget_plugin(connection);
         if let Some((plugin, commands)) = departed {
-            if commands {
+            if commands || attached {
                 self.resend_command_trees();
             }
             self.refresh_ping_hook();
@@ -1708,10 +1728,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(super) fn describe(&self, player: &Player<L>) -> PlayerSnapshot {
         PlayerSnapshot {
-            permissions: self
-                .permissions
-                .rights(player.id, player.name(), player.permission_level())
-                .into_nodes(),
+            permissions: self.rights_for(player).into_nodes(),
             id: player.id,
             name: player.profile.name.clone(),
             entity_id: player.entity_id.0,

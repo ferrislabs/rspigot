@@ -952,7 +952,9 @@ impl<L: ClientLink> Server<L> {
             Some((head, last)) => (
                 offset + head.len() as i32 + 1,
                 last,
-                if typing == PluginTyping::Dynamic {
+                if let PluginTyping::Choices(choices) = &typing {
+                    choices.clone()
+                } else if typing == PluginTyping::Dynamic {
                     Vec::new()
                 } else if completes_dimension(head) {
                     self.dimension_names()
@@ -985,7 +987,8 @@ impl<L: ClientLink> Server<L> {
             start,
             length: prefix.len() as i32,
             matches,
-            filter: (typing == PluginTyping::Dynamic).then_some(lower),
+            filter: matches!(typing, PluginTyping::Dynamic | PluginTyping::Choices(_))
+                .then_some(lower),
         };
         self.ask_tab_complete(text, step);
     }

@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::config::PluginSettings;
 use crate::plugins::{
-    Access, CommandSpec, EventKind, HandlerSpec, PluginInfo, PluginIntro, Priority, ToPlugin,
+    Access, CommandSpec, EventKind, HandlerSpec, IntroError, PluginInfo, PluginIntro, Priority,
+    ToPlugin,
 };
 use crate::ports::PluginOutbox;
 
@@ -42,6 +43,7 @@ pub(crate) struct Departed {
 
 #[derive(Default)]
 pub(crate) struct Registry {
+    pub(crate) attachments: crate::plugins::attachments::Attachments,
     connected: BTreeMap<u64, Connected>,
     last_event: u64,
 }
@@ -94,6 +96,40 @@ impl Registry {
                 .iter()
                 .map(|command| (*connection, command))
         })
+    }
+
+    pub(crate) fn add_command(
+        &mut self,
+        connection: u64,
+        command: CommandSpec,
+    ) -> Result<(), IntroError> {
+        command.validate()?;
+        let plugin = self.connected.get_mut(&connection);
+        let Some(plugin) = plugin else {
+            return Ok(());
+        };
+        if plugin
+            .intro
+            .commands
+            .iter()
+            .any(|known| known.id == command.id)
+        {
+            return Err(IntroError::DuplicateCommand(command.id));
+        }
+        plugin.intro.commands.push(command);
+        Ok(())
+    }
+
+    pub(crate) fn remove_command(&mut self, connection: u64, name: &str) -> bool {
+        let Some(plugin) = self.connected.get_mut(&connection) else {
+            return false;
+        };
+        let before = plugin.intro.commands.len();
+        plugin
+            .intro
+            .commands
+            .retain(|command| !command.name.eq_ignore_ascii_case(name));
+        before != plugin.intro.commands.len()
     }
 
     pub(crate) fn next_event_id(&mut self) -> u64 {

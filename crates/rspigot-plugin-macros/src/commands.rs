@@ -4,16 +4,17 @@ use syn::parse::{Parse, ParseStream};
 use syn::{Attribute, Error, FnArg, Ident, ImplItemFn, LitStr, Pat, Path, Receiver, Token, Type};
 
 const BAD_COMMAND: &str = "a command is `async fn name(&self, ctx: Context, argument: Type, ...)`; the argument types give the command's tree";
-const BAD_NAME: &str = "a command name is lowercase, without spaces";
-const BAD_ATTRIBUTE: &str =
-    "`#[command(\"name\")]` or `#[command(\"name\", permission = \"node\")]`";
+const BAD_NAME: &str = "a command name is lowercase words: the command, then its literal sub-commands (`\"shop buy\"`)";
+const BAD_ATTRIBUTE: &str = "`#[command(\"name\")]`, optionally with `permission = \"node\"` and `aliases = [\"a\", \"b\"]`";
 const BAD_SUGGEST: &str = "`#[suggest(path)]` names an `async fn(&self, &Player, &str) -> Vec<String>`, for example `#[suggest(Self::names)]`";
 
 pub(crate) struct Command {
     pub(crate) cfgs: Vec<Attribute>,
     pub(crate) id: u32,
     pub(crate) method: Ident,
-    pub(crate) name: LitStr,
+    pub(crate) root: String,
+    pub(crate) path: Vec<String>,
+    pub(crate) aliases: Vec<LitStr>,
     pub(crate) permission: Option<LitStr>,
     pub(crate) params: Vec<Param>,
 }
@@ -27,22 +28,35 @@ pub(crate) struct Param {
 struct Marked {
     name: LitStr,
     permission: Option<LitStr>,
+    aliases: Vec<LitStr>,
 }
 
 impl Parse for Marked {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name: LitStr = input.parse()?;
         let mut permission = None;
-        if input.parse::<Option<Token![,]>>()?.is_some() && !input.is_empty() {
+        let mut aliases = Vec::new();
+        while input.parse::<Option<Token![,]>>()?.is_some() && !input.is_empty() {
             let key: Ident = input.parse()?;
-            if key != "permission" {
+            input.parse::<Token![=]>()?;
+            if key == "permission" && permission.is_none() {
+                permission = Some(input.parse()?);
+            } else if key == "aliases" && aliases.is_empty() {
+                let list;
+                syn::bracketed!(list in input);
+                aliases = list
+                    .parse_terminated(<LitStr as Parse>::parse, Token![,])?
+                    .into_iter()
+                    .collect();
+            } else {
                 return Err(Error::new_spanned(key, BAD_ATTRIBUTE));
             }
-            input.parse::<Token![=]>()?;
-            permission = Some(input.parse()?);
-            input.parse::<Option<Token![,]>>()?;
         }
-        Ok(Self { name, permission })
+        Ok(Self {
+            name,
+            permission,
+            aliases,
+        })
     }
 }
 
@@ -82,8 +96,19 @@ pub(crate) fn read(
         }
     };
     let name = marked.name.value();
-    if name.is_empty() || name.contains(char::is_whitespace) || name != name.to_lowercase() {
+    let mut words = name.split_whitespace().map(str::to_owned);
+    let root = words.next().unwrap_or_default();
+    let path: Vec<String> = words.collect();
+    if root.is_empty() || name != name.to_lowercase() || name.trim() != name {
         errors.push(Error::new_spanned(&marked.name, BAD_NAME));
+        return None;
+    }
+    if let Some(alias) = marked
+        .aliases
+        .iter()
+        .find(|alias| alias.value().is_empty() || alias.value().contains(char::is_whitespace))
+    {
+        errors.push(Error::new_spanned(alias, BAD_NAME));
         return None;
     }
     let params = params(method, errors)?;
@@ -91,7 +116,9 @@ pub(crate) fn read(
         cfgs,
         id,
         method: method.sig.ident.clone(),
-        name: marked.name,
+        root,
+        path,
+        aliases: marked.aliases,
         permission: marked.permission,
         params,
     })
@@ -153,7 +180,9 @@ pub(crate) fn specs(commands: &[Command]) -> TokenStream {
         let Command {
             cfgs,
             id,
-            name,
+            root,
+            path,
+            aliases,
             permission,
             params,
             ..
@@ -163,6 +192,17 @@ pub(crate) fn specs(commands: &[Command]) -> TokenStream {
             || quote!(::core::option::Option::None),
             |node| quote!(::core::option::Option::Some(#node)),
         );
+        let literals = path.iter().map(|word| {
+            quote! {
+                ::rspigot_plugin::CommandArgument {
+                    name: #word,
+                    kind: ::rspigot_plugin::ArgumentKind::Literal,
+                    optional: false,
+                    suggested: false,
+                    choices: &[],
+                }
+            }
+        });
         let arguments = params.iter().map(|param| {
             let label = param.ident.to_string();
             let ty = &param.ty;
@@ -173,6 +213,7 @@ pub(crate) fn specs(commands: &[Command]) -> TokenStream {
                     kind: <#ty as ::rspigot_plugin::Argument>::KIND,
                     optional: <#ty as ::rspigot_plugin::Argument>::OPTIONAL,
                     suggested: #suggested,
+                    choices: <#ty as ::rspigot_plugin::Argument>::CHOICES,
                 }
             }
         });
@@ -180,9 +221,10 @@ pub(crate) fn specs(commands: &[Command]) -> TokenStream {
             #(#cfgs)*
             ::rspigot_plugin::CommandSpec {
                 id: #id,
-                name: #name,
+                name: #root,
+                aliases: &[#(#aliases),*],
                 permission: #permission,
-                arguments: ::std::vec![#(#arguments),*],
+                arguments: ::std::vec![#(#literals,)* #(#arguments),*],
             }
         }
     });
@@ -193,7 +235,12 @@ pub(crate) fn specs(commands: &[Command]) -> TokenStream {
     }
 }
 
-pub(crate) fn invoke(commands: &[Command]) -> TokenStream {
+pub(crate) fn invoke(commands: &[Command], fallback: bool) -> TokenStream {
+    let rest = if fallback {
+        quote!(_ => self.on_command(invocation).await,)
+    } else {
+        quote!(_ => {})
+    };
     let arms = commands.iter().map(|command| {
         let Command {
             cfgs,
@@ -224,8 +271,16 @@ pub(crate) fn invoke(commands: &[Command]) -> TokenStream {
         async fn invoke(&self, invocation: ::rspigot_plugin::Invocation) {
             match invocation.command() {
                 #(#arms)*
-                _ => {}
+                #rest
             }
+        }
+    }
+}
+
+pub(crate) fn invoke_dynamic_only() -> TokenStream {
+    quote! {
+        async fn invoke(&self, invocation: ::rspigot_plugin::Invocation) {
+            self.on_command(invocation).await;
         }
     }
 }
@@ -251,18 +306,39 @@ pub(crate) fn suggestion_spec() -> TokenStream {
 pub(crate) fn suggestion_arm(commands: &[Command]) -> TokenStream {
     let routes = commands.iter().flat_map(|command| {
         let cfgs = &command.cfgs;
-        let name = &command.name;
+        let root = &command.root;
+        let aliases: Vec<&LitStr> = commands
+            .iter()
+            .filter(|other| other.root == command.root)
+            .flat_map(|other| other.aliases.iter())
+            .collect();
+        let path = &command.path;
+        let depth = path.len();
         command
             .params
             .iter()
             .enumerate()
             .filter_map(move |(index, param)| {
-                param.suggest.as_ref().map(|path| {
+                param.suggest.as_ref().map(|suggest| {
+                    let earlier = command.params[..index].iter().map(|earlier| &earlier.ty);
+                    let ty = &param.ty;
+                    let aliases = aliases.clone();
                     quote! {
                         #(#cfgs)*
-                        (#name, #index) => ::core::option::Option::Some(
-                            #path(self, typing.player(), typing.text()).await
-                        ),
+                        if found.is_none()
+                            && typing.is_for(
+                                &[#root #(, #aliases)*],
+                                &[#(#path),*],
+                                #depth #(+ <#earlier as ::rspigot_plugin::Argument>::WIDTH)*,
+                                <#ty as ::rspigot_plugin::Argument>::WIDTH,
+                                <#ty as ::rspigot_plugin::Argument>::KIND
+                                    == ::rspigot_plugin::ArgumentKind::GreedyText,
+                            )
+                        {
+                            found = ::core::option::Option::Some(
+                                #suggest(self, typing.player(), typing.text()).await
+                            );
+                        }
                     }
                 })
             })
@@ -273,11 +349,9 @@ pub(crate) fn suggestion_arm(commands: &[Command]) -> TokenStream {
             if let ::core::option::Option::Some(typing) =
                 ::rspigot_plugin::Typing::of(&buffer, event.sender())
             {
-                let found: ::core::option::Option<::std::vec::Vec<::std::string::String>> =
-                    match (typing.command(), typing.position()) {
-                        #(#routes)*
-                        _ => ::core::option::Option::None,
-                    };
+                let mut found: ::core::option::Option<::std::vec::Vec<::std::string::String>> =
+                    ::core::option::Option::None;
+                #(#routes)*
                 if let ::core::option::Option::Some(values) = found {
                     event.set_completions(values);
                 }

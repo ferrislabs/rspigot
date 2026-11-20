@@ -2,6 +2,8 @@ mod player_abilities;
 pub use player_abilities::PlayerAbilitiesHandle;
 mod player_action_bar;
 pub use player_action_bar::PlayerActionBarHandle;
+mod player_advancements;
+pub use player_advancements::PlayerAdvancementsHandle;
 mod player_command;
 pub use player_command::PlayerCommandHandle;
 mod player_connection;
