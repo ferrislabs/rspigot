@@ -1,6 +1,9 @@
 use rspigot_blocks::BlockId;
 
-use crate::{AttributeModifier, EquipmentSlot, Food, Item, ItemId, ItemSet, Rarity, Tool};
+use crate::{
+    AttributeModifier, Consumable, ConsumeAnimation, EquipmentSlot, Food, Item, ItemId, ItemSet,
+    PotionContentsDefault, Rarity, Tool,
+};
 
 pub struct Potion;
 
@@ -21,5 +24,16 @@ impl Item for Potion {
     const DAMAGE_RESISTANT: Option<&'static str> = None;
     const USE_REMAINDER: Option<ItemId> = Some(ItemId(1270));
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier] = &[];
+    const CONSUMABLE: Option<Consumable> = Some(Consumable {
+        consume_seconds: 1.6,
+        animation: ConsumeAnimation::Drink,
+        sound: "minecraft:entity.generic.drink",
+        has_consume_particles: false,
+        on_consume_effects: &[],
+    });
+    const POTION_CONTENTS: Option<PotionContentsDefault> = Some(PotionContentsDefault {
+        potion: None,
+        custom_effects: &[],
+    });
     type Behavior = crate::family::Plain;
 }

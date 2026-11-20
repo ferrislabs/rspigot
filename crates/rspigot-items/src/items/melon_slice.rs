@@ -1,6 +1,9 @@
 use rspigot_blocks::BlockId;
 
-use crate::{AttributeModifier, EquipmentSlot, Food, Item, ItemId, ItemSet, Rarity, Tool};
+use crate::{
+    AttributeModifier, Consumable, ConsumeAnimation, EquipmentSlot, Food, Item, ItemId, ItemSet,
+    Rarity, Tool,
+};
 
 pub struct MelonSlice;
 
@@ -25,5 +28,12 @@ impl Item for MelonSlice {
     const DAMAGE_RESISTANT: Option<&'static str> = None;
     const USE_REMAINDER: Option<ItemId> = None;
     const ATTRIBUTE_MODIFIERS: &'static [AttributeModifier] = &[];
+    const CONSUMABLE: Option<Consumable> = Some(Consumable {
+        consume_seconds: 1.6,
+        animation: ConsumeAnimation::Eat,
+        sound: "minecraft:entity.generic.eat",
+        has_consume_particles: true,
+        on_consume_effects: &[],
+    });
     type Behavior = crate::family::Plain;
 }

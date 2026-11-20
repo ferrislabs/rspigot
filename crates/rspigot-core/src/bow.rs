@@ -119,7 +119,8 @@ impl<L: ClientLink> Server<L> {
         if is_bow && find_ammo(player).is_some() {
             player.using_item = Some(UsingItem { hand, since: tick });
         } else if !is_bow {
-            player.using_item = crate::eating::starts_eating(player, hand, tick);
+            player.using_item = crate::shield::starts_raising(player, hand, tick)
+                .or_else(|| crate::eating::starts_eating(player, hand, tick));
         }
     }
 

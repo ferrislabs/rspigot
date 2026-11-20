@@ -4,9 +4,9 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 use crossbeam_channel::{Receiver, Sender, unbounded};
-use rspigot_domain::ChunkPos;
 use rspigot_domain::chunk::ChunkColumn;
 use rspigot_domain::world::Dimension;
+use rspigot_domain::{ChunkPos, Vec3};
 
 use super::queue::{JobQueue, Priority};
 use crate::lighting;
@@ -38,6 +38,11 @@ pub enum ChunkJob {
     },
     Flush,
     Sync(Sender<()>),
+    NearestStronghold {
+        dimension: Arc<Dimension>,
+        from: Vec3,
+        reply: Sender<Option<Vec3>>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,6 +124,23 @@ impl ChunkWorkers {
         wait.recv_timeout(timeout).is_ok()
     }
 
+    pub fn request_stronghold(
+        &self,
+        dimension: &Arc<Dimension>,
+        from: Vec3,
+    ) -> Receiver<Option<Vec3>> {
+        let (reply, answer) = unbounded();
+        self.submit(
+            Priority::URGENT,
+            ChunkJob::NearestStronghold {
+                dimension: Arc::clone(dimension),
+                from,
+                reply,
+            },
+        );
+        answer
+    }
+
     pub fn backlog(&self) -> usize {
         self.queue.len()
     }
@@ -195,6 +217,14 @@ fn execute<S: ChunkStore + EntityStore, G: ChunkGenerator>(
                 tracing::error!(%error, "chunk store flush failed");
             }
             let _ = done.send(());
+            ChunkResult::Flushed
+        }
+        ChunkJob::NearestStronghold {
+            dimension,
+            from,
+            reply,
+        } => {
+            let _ = reply.send(generator.nearest_stronghold(&dimension, from));
             ChunkResult::Flushed
         }
         ChunkJob::Flush => {

@@ -202,10 +202,28 @@ impl Placement {
     }
 
     pub(crate) fn rings(&self, seed: i64, biomes: &impl BiomeProbe) -> &[(i32, i32)] {
-        self.rings.get_or_init(|| self.compute_rings(seed, biomes))
+        self.rings.get_or_init(|| {
+            let (wanted, tasks) = self.ring_tasks(seed, biomes);
+            let mut last = None;
+            tasks
+                .iter()
+                .map(|task| task.resolve(biomes, &wanted, &mut last))
+                .collect()
+        })
     }
 
-    fn compute_rings(&self, seed: i64, biomes: &impl BiomeProbe) -> Vec<(i32, i32)> {
+    pub(crate) fn rings_parallel<P: BiomeProbe>(
+        &self,
+        seed: i64,
+        make_probe: &(impl Fn() -> P + Sync),
+    ) -> &[(i32, i32)] {
+        self.rings.get_or_init(|| {
+            let (wanted, tasks) = self.ring_tasks(seed, &make_probe());
+            resolve_parallel(&tasks, &wanted, make_probe)
+        })
+    }
+
+    fn ring_tasks(&self, seed: i64, biomes: &impl BiomeProbe) -> (Vec<u8>, Vec<RingTask>) {
         let Kind::Rings {
             distance,
             spread,
@@ -213,10 +231,10 @@ impl Placement {
             ref preferred,
         } = self.kind
         else {
-            return Vec::new();
+            return (Vec::new(), Vec::new());
         };
         if count == 0 {
-            return Vec::new();
+            return (Vec::new(), Vec::new());
         }
         let wanted: Vec<u8> = preferred
             .iter()
@@ -225,22 +243,17 @@ impl Placement {
         let mut random = JavaRandom::new(seed);
         let mut angle = random.next_double() * std::f64::consts::PI * 2.0;
         let (mut in_ring, mut ring, mut spread) = (0, 0, spread);
-        let mut out = Vec::with_capacity(count as usize);
-        let mut last = None;
+        let mut tasks = Vec::with_capacity(count as usize);
         for placed in 0..count {
             let base = f64::from(distance * 4 + distance * ring * 6);
             let radius = base + (random.next_double() - 0.5) * f64::from(distance) * 2.5;
             let x = java_round(angle.cos() * radius);
             let z = java_round(angle.sin() * radius);
-            let mut forked = JavaRandom::new(random.next_long());
-            out.push(find_ring_chunk(
-                biomes,
-                &wanted,
+            tasks.push(RingTask {
                 x,
                 z,
-                &mut forked,
-                &mut last,
-            ));
+                fork: random.next_long(),
+            });
             angle += std::f64::consts::PI * 2.0 / f64::from(spread);
             in_ring += 1;
             if in_ring == spread {
@@ -250,7 +263,7 @@ impl Placement {
                 angle += random.next_double() * std::f64::consts::PI * 2.0;
             }
         }
-        out
+        (wanted, tasks)
     }
 
     pub(crate) fn is_structure_chunk(
@@ -275,6 +288,61 @@ impl Placement {
                 .as_ref()
                 .is_none_or(|zone| !others.has_structure_chunk(&zone.other, x, z, zone.chunks))
     }
+}
+
+struct RingTask {
+    x: i32,
+    z: i32,
+    fork: i64,
+}
+
+impl RingTask {
+    fn resolve(
+        &self,
+        biomes: &impl BiomeProbe,
+        wanted: &[u8],
+        last: &mut Option<usize>,
+    ) -> (i32, i32) {
+        let mut forked = JavaRandom::new(self.fork);
+        find_ring_chunk(biomes, wanted, self.x, self.z, &mut forked, last)
+    }
+}
+
+fn resolve_parallel<P: BiomeProbe>(
+    tasks: &[RingTask],
+    wanted: &[u8],
+    make_probe: &(impl Fn() -> P + Sync),
+) -> Vec<(i32, i32)> {
+    let threads = std::thread::available_parallelism()
+        .map_or(1, std::num::NonZero::get)
+        .min(tasks.len().max(1));
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let mut out = vec![(0, 0); tasks.len()];
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..threads)
+            .map(|_| {
+                scope.spawn(|| {
+                    let probe = make_probe();
+                    let mut last = None;
+                    let mut done = Vec::new();
+                    loop {
+                        let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        let Some(task) = tasks.get(index) else {
+                            break;
+                        };
+                        done.push((index, task.resolve(&probe, wanted, &mut last)));
+                    }
+                    done
+                })
+            })
+            .collect();
+        for handle in handles {
+            for (index, pos) in handle.join().unwrap_or_default() {
+                out[index] = pos;
+            }
+        }
+    });
+    out
 }
 
 fn java_round(value: f64) -> i32 {

@@ -112,6 +112,24 @@ macro_rules! item_kinds {
                 }
             }
 
+            pub const fn consumable(self) -> Option<$crate::Consumable> {
+                match self {
+                    $(Self::$kind => <$crate::items::$kind as $crate::Item>::CONSUMABLE,)*
+                }
+            }
+
+            pub const fn potion_contents(self) -> Option<$crate::PotionContentsDefault> {
+                match self {
+                    $(Self::$kind => <$crate::items::$kind as $crate::Item>::POTION_CONTENTS,)*
+                }
+            }
+
+            pub const fn suspicious_stew_effects(self) -> Option<&'static [$crate::StewEffect]> {
+                match self {
+                    $(Self::$kind => <$crate::items::$kind as $crate::Item>::SUSPICIOUS_STEW_EFFECTS,)*
+                }
+            }
+
             pub const fn cooking_fuel(self) -> Option<$crate::Fuel> {
                 match self {
                     $(Self::$kind => <$crate::items::$kind as $crate::Item>::COOKING_FUEL,)*

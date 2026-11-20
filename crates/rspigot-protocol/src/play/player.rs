@@ -197,6 +197,14 @@ wire_struct! {
 
 wire_struct! {
     #[derive(Debug, Clone, PartialEq)]
+    pub struct Cooldown = id::COOLDOWN {
+        pub group: String,
+        pub ticks: i32 as Var,
+    }
+}
+
+wire_struct! {
+    #[derive(Debug, Clone, PartialEq)]
     pub struct TabList = id::TAB_LIST {
         pub header: Text,
         pub footer: Text,
@@ -498,6 +506,13 @@ mod tests {
                 saturation: 5.0
             }),
             vec![0x41, 0xA0, 0, 0, 20, 0x40, 0xA0, 0, 0]
+        );
+        assert_eq!(
+            roundtrip(&Cooldown {
+                group: "a:b".into(),
+                ticks: 300
+            }),
+            vec![3, b'a', b':', b'b', 0xAC, 0x02]
         );
         assert_eq!(
             roundtrip(&SetExperience {

@@ -239,6 +239,9 @@ impl<L: ClientLink> Server<L> {
             self.decisions.forget(step.player)
         };
         self.teleport_player(step.player, position);
+        if step.cause == PlayerTeleportCause::EnderPearl {
+            self.pearl_landed(step.player);
+        }
         dropped
     }
 

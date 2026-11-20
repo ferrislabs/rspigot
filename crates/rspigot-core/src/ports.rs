@@ -100,6 +100,10 @@ pub trait ChunkGenerator: Send + Sync + 'static {
     fn structure_entities(&self, _dimension: &Dimension, _pos: ChunkPos) -> Vec<Compound> {
         Vec::new()
     }
+
+    fn nearest_stronghold(&self, _dimension: &Dimension, _from: Vec3) -> Option<Vec3> {
+        None
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

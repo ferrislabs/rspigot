@@ -100,6 +100,7 @@ pub struct Server<L> {
     pub(crate) config: GameConfig,
     pub(crate) world: World,
     pub(crate) workers: ChunkWorkers,
+    pub(crate) pending_eyes: Vec<crate::eye_of_ender::PendingEye>,
     pub(crate) players: FxHashMap<PlayerId, Player<L>>,
     pub(crate) outbox: Vec<(Audience, ClientEvent)>,
     pub(crate) admin: AdminLists,
@@ -211,6 +212,7 @@ impl<L: ClientLink> Server<L> {
             sign_editors: FxHashMap::default(),
             fluids: crate::fluids::ScheduledFluids::default(),
             rng: StdRng::from_os_rng(),
+            pending_eyes: Vec::new(),
             spawning,
             raids: crate::raids::RaidRuntime::default(),
             trial: crate::trial_spawner::TrialRuntime::default(),
@@ -796,6 +798,7 @@ impl<L: ClientLink> Server<L> {
             window_counter: 0,
             inventory_ids,
             ender_items: vec![None; 27],
+            cooldowns: rustc_hash::FxHashMap::default(),
             kick_leave_message: None,
             last_input: Default::default(),
             mining: None,
@@ -974,6 +977,7 @@ impl<L: ClientLink> Server<L> {
         self.visibility.forget(id);
         self.forget_sign_editor(id);
         self.leave_bed_for_good(id);
+        self.forget_pending_eyes(id);
         let Some(mut player) = self.players.remove(&id) else {
             return;
         };
@@ -1026,6 +1030,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.run_portal_queue();
         self.run_nether_queue();
+        self.expire_pending_eyes();
     }
 
     fn tick_dormant(&mut self, key: &crate::world_state::DimensionKey) {
@@ -1098,6 +1103,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_advancements();
         self.tick_sleeping();
         self.tick_eating();
+        self.tick_cooldowns();
         self.tick_delayed_destroys();
         self.tick_spawning();
         self.tick_patrol_spawner();
@@ -1105,6 +1111,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_trader_spawner();
         self.tick_raids();
         self.tick_dragon_fight();
+        self.tick_pending_eyes();
         self.tick_entities();
         self.tick_portals();
         self.tick_nether_portals();
