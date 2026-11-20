@@ -325,6 +325,7 @@ impl<L: ClientLink> Server<L> {
         campfire.put(step.cooking_slot, &step.held, total);
         self.store_campfire(step.pos, &campfire);
         self.send_campfire_update(step.pos, &campfire);
+        self.award_custom(id, crate::stats::custom::INTERACT_WITH_CAMPFIRE, 1);
         if step.game_mode != GameMode::Creative {
             self.consume_one(id, step.slot, step.held);
         }

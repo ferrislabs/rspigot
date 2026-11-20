@@ -157,6 +157,8 @@ pub enum MenuEffect {
     Crafted {
         item: ItemId,
         amount: u32,
+        recipe: Option<&'static str>,
+        ingredients: Vec<ItemId>,
     },
     FurnaceOutputTaken {
         item: ItemId,
@@ -164,7 +166,9 @@ pub enum MenuEffect {
     },
     StonecutterTaken,
     LoomTaken,
-    SmithingTaken,
+    SmithingTaken {
+        recipe: Option<&'static str>,
+    },
     GrindstoneTaken {
         experience: i32,
     },
@@ -353,13 +357,15 @@ impl Session<'_> {
         if slot != RESULT_SLOT || taken.is_none() {
             return;
         }
+        let mut cells = self.grid();
         if let Some(stack) = taken {
             self.effects.push(MenuEffect::Crafted {
                 item: stack.item,
                 amount: u32::from(stack.count.get()),
+                recipe: crafting::recipe(2, 2, &cells).map(|found| found.id),
+                ingredients: cells.iter().flatten().map(|cell| cell.item).collect(),
             });
         }
-        let mut cells = self.grid();
         let leftovers = crafting::take_result(2, 2, &mut cells);
         for (offset, cell) in cells.into_iter().enumerate() {
             self.put(GRID.start() + offset, cell);

@@ -781,6 +781,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.sync_inventory(id);
         self.broadcast_equipment_changes(id, before);
+        self.trigger_item_durability(id, step.stack.item.0, damage);
         if damage != step.damage {
             self.send_inventory(id);
         }

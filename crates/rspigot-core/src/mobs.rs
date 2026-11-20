@@ -1931,10 +1931,17 @@ impl<L: ClientLink> Server<L> {
         state.damage.protection = protection;
         state.damage.breach = breach;
         let health_before = living::health(base);
+        let absorption_before = state.absorption;
+        let resisted = crate::stats::mob_resisted(state, kind, amount);
         let outcome = living::hurt_settled(base, state, &hurt_source, amount, now);
         if outcome == HurtOutcome::Ignored {
             return false;
         }
+        let split = crate::stats::HurtSplit {
+            dealt: health_before - living::health(base),
+            absorbed: absorption_before - state.absorption,
+            resisted,
+        };
         if living::health(base) < health_before
             && let Some(ageable) = state.mob.as_mut().and_then(|mob| mob.ageable.as_mut())
         {
@@ -1954,6 +1961,8 @@ impl<L: ClientLink> Server<L> {
         state.damage.last_source_entity = causing_living;
         let position = base.position;
         let dead = living::is_dead_or_dying(base, state);
+        self.count_hurt(None, source, split);
+        self.trigger_player_hurt_entity(id, source, amount, split.dealt);
         if let Some(attacker) = source.attacker()
             && let Some(player) = self.players.get_mut(&attacker)
         {
@@ -2122,6 +2131,7 @@ impl<L: ClientLink> Server<L> {
             .map(|player| player.id);
         self.raider_died(id, killer);
         self.count_mob_kill(id, killer.or(credited));
+        self.trigger_player_killed_entity(id, killer.or(credited), source);
         self.stop_mob_brain(id);
         if let Some((owner, message)) = owner_message {
             self.push(Audience::One(owner), ClientEvent::system(message));

@@ -9,11 +9,13 @@ use rspigot_domain::entity::Entity;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::text::{Component, NamedColor};
-use rspigot_domain::{BlockPos, EntityId};
+use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use serde_json::{Map, Value};
 
-use crate::advancement_conditions::{self as conditions, EntityFacts, Facts, Place};
+use crate::advancement_conditions::{
+    self as conditions, DamageFacts, Distance, EntityFacts, Facts, Place,
+};
 use crate::events::ClientEvent;
 use crate::plugins::events::{PlayerAdvancementCriterionGrant, PlayerAdvancementDone};
 use crate::plugins::steps::Continuation;
@@ -119,9 +121,48 @@ pub struct PlayerAdvancements {
     selected_tab: Option<usize>,
     announced: bool,
     inventory_seen: Option<i32>,
+    nether_entry: Option<BlockPos>,
+    levitation_start: Option<u64>,
+    lava_start: Option<(u64, u64)>,
+    inside: BTreeSet<u16>,
 }
 
 impl PlayerAdvancements {
+    pub(crate) fn set_nether_entry(&mut self, at: Option<BlockPos>) {
+        self.nether_entry = at;
+    }
+
+    pub(crate) fn take_nether_entry(&mut self) -> Option<BlockPos> {
+        self.nether_entry.take()
+    }
+
+    pub(crate) fn levitation_height(&mut self, levitating: bool, y: f64) -> Option<f64> {
+        if !levitating {
+            self.levitation_start = None;
+            return None;
+        }
+        let start = f64::from_bits(*self.levitation_start.get_or_insert(y.to_bits()));
+        Some(y - start)
+    }
+
+    pub(crate) fn lava_distance(&mut self, in_lava: bool, x: f64, z: f64) -> Option<f64> {
+        if !in_lava {
+            self.lava_start = None;
+            return None;
+        }
+        let (sx, sz) = self
+            .lava_start
+            .get_or_insert((x.to_bits(), z.to_bits()))
+            .to_owned();
+        Some((x - f64::from_bits(sx)).hypot(z - f64::from_bits(sz)))
+    }
+
+    pub(crate) fn entered_blocks(&mut self, now: BTreeSet<u16>) -> Vec<u16> {
+        let entered = now.difference(&self.inside).copied().collect();
+        self.inside = now;
+        entered
+    }
+
     pub fn has(&self, index: usize, criterion: &str) -> bool {
         self.obtained
             .get(&index)
@@ -236,6 +277,11 @@ pub(crate) struct AdvancementEvent {
     pub(crate) loot_table: Option<String>,
     pub(crate) to: Option<String>,
     pub(crate) amounts: Vec<(&'static str, f64)>,
+    pub(crate) damage: Option<DamageFacts<'static>>,
+    pub(crate) victims: Vec<EntityFacts<'static>>,
+    pub(crate) weapon: Option<u16>,
+    pub(crate) ingredients: Vec<u16>,
+    pub(crate) looking_at: Option<&'static str>,
 }
 
 impl AdvancementEvent {
@@ -504,11 +550,33 @@ impl<L: ClientLink> Server<L> {
     ) -> (&'static str, EntityFacts<'static>) {
         (
             slot,
-            EntityFacts {
-                kind: entity.base.kind.name(),
-                baby: entity.is_baby(),
-            },
+            EntityFacts::of(entity.base.kind.name(), entity.is_baby()),
         )
+    }
+
+    pub(crate) fn slot_near(
+        &self,
+        slot: &'static str,
+        id: EntityId,
+        from: Vec3,
+    ) -> Option<(&'static str, EntityFacts<'static>)> {
+        let (slot, mut facts) = self.slot_of(slot, id)?;
+        facts.distance = self
+            .entity_position(id)
+            .or_else(|| {
+                self.player_of_entity(id)
+                    .and_then(|p| self.players.get(&p))
+                    .map(|p| p.position)
+            })
+            .map(|at| Distance {
+                horizontal: (at.x - from.x).hypot(at.z - from.z),
+                absolute: (at - from).length(),
+            });
+        Some((slot, facts))
+    }
+
+    pub(crate) fn facts_of(&self, id: EntityId, from: Vec3) -> Option<EntityFacts<'static>> {
+        self.slot_near("entity", id, from).map(|(_, facts)| facts)
     }
 
     pub(crate) fn slot_of(
@@ -521,15 +589,8 @@ impl<L: ClientLink> Server<L> {
             .get(id)
             .map(|entity| Self::entity_slot(slot, entity))
             .or_else(|| {
-                self.player_of_entity(id).map(|_| {
-                    (
-                        slot,
-                        EntityFacts {
-                            kind: Kind::Player.name(),
-                            baby: false,
-                        },
-                    )
-                })
+                self.player_of_entity(id)
+                    .map(|_| (slot, EntityFacts::of(Kind::Player.name(), false)))
             })
     }
 
@@ -557,6 +618,30 @@ impl<L: ClientLink> Server<L> {
             facts.loot_table = event.loot_table.as_deref();
             facts.to = event.to.as_deref();
             facts.amounts = event.amounts;
+            facts.damage = event.damage;
+            facts.victims = event.victims;
+            facts.weapon = event.weapon;
+            facts.ingredients = event.ingredients;
+            facts.effects = player
+                .effects
+                .iter()
+                .filter_map(|e| e.effect.name())
+                .collect();
+            let mut own = EntityFacts::of(Kind::Player.name(), false);
+            own.looking_at = event.looking_at;
+            own.mainhand = player.inventory.held().map(|stack| stack.item.0);
+            if let Some(vehicle) = self.entities.rides.vehicle_of(player.entity_id) {
+                own.vehicle = self.kind_of(vehicle).map(Kind::name);
+                own.vehicle_passenger = self
+                    .entities
+                    .rides
+                    .passengers_of(vehicle)
+                    .iter()
+                    .find(|rider| **rider != player.entity_id)
+                    .and_then(|rider| self.kind_of(*rider))
+                    .map(Kind::name);
+            }
+            facts.player_entity = Some(own);
             let name = event.name;
             self.due(id, |trigger| {
                 matches!(trigger, Trigger::Event { name: known, conditions }
@@ -632,6 +717,9 @@ impl<L: ClientLink> Server<L> {
             if periodic {
                 self.trigger_event(id, AdvancementEvent::named("minecraft:location"));
             }
+            self.tick_levitation(id);
+            self.tick_lava_ride(id);
+            self.tick_inside_blocks(id);
         }
     }
 }

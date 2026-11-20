@@ -175,6 +175,7 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         self.note_attacked(pos, state);
+        self.count_note_attacked(id, state);
         match game_mode {
             GameMode::Creative => {
                 let refused = !mines_in_creative(held.as_ref());

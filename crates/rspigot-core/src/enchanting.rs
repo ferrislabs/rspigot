@@ -291,6 +291,7 @@ impl<L: ClientLink> Server<L> {
         self.sync_menu_data();
         self.sync_inventory(id);
         self.after_enchant_slots(id);
+        self.award_custom(id, crate::stats::custom::ENCHANT_ITEM, 1);
         self.trigger_event(id, AdvancementEvent::named("minecraft:enchanted_item"));
     }
 }

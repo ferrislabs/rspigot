@@ -433,6 +433,7 @@ impl<L: ClientLink> Server<L> {
             rotation,
             platform: _,
         } = destination;
+        self.track_nether_travel(id, &dimension, position);
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };

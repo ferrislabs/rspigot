@@ -156,6 +156,7 @@ impl<L: ClientLink> Server<L> {
             {
                 self.cause_player_fall_damage(id, impact, (pos, below));
             }
+            self.trigger_fall_from_height(id, distance, position);
             if let Some(player) = self.players.get_mut(&id) {
                 player.vitals.fall_distance = 0.0;
                 if let Some((_, since)) = player.vitals.impulse

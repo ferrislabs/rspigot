@@ -128,6 +128,7 @@ impl<L: ClientLink> Server<L> {
         }
         let ringing = self.falls.redstone.bells.entry(bell.pos).or_default();
         ringing.ticks = 0;
+        self.count_bell_ringer(bell.entity);
         self.push(
             Audience::Nearby {
                 position: bell.pos.center(),

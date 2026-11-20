@@ -339,6 +339,7 @@ impl<L: ClientLink> Server<L> {
             entity,
             extinguish,
             by,
+            reason,
             ..
         } = step;
         let intact = !cancelled
@@ -359,6 +360,7 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         if intact {
+            self.count_cauldron_use(by.player, reason);
             match by.effect {
                 Effect::Give(result) => {
                     self.deliver_filled_bucket(by.player, by.hand, Some(result))

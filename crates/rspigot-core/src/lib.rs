@@ -1,5 +1,6 @@
 pub mod admin;
 mod advancement_conditions;
+mod advancement_hooks;
 pub mod advancements;
 mod anvil;
 mod armor_stand;
