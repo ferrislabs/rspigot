@@ -37,6 +37,8 @@ pub(crate) struct GameEvents {
 pub(crate) enum TimerKind {
     Sensor,
     Shrieker,
+    Catalyst,
+    CatalystBloom,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -304,7 +306,7 @@ impl<L: ClientLink> Server<L> {
         Some(SourceFacts {
             spectator: false,
             stepping_carefully: false,
-            dampens_vibrations: entity.base.kind == EntityKind::Warden,
+            dampens_vibrations: crate::vibration_avoidance::entity_dampens_vibrations(entity),
         })
     }
 
@@ -334,14 +336,17 @@ impl<L: ClientLink> Server<L> {
         }
         let facts = self.source_facts(context.entity);
         let can_avoid = matches!(listener, Listener::Sensor { .. } | Listener::Warden(_));
-        if validate(
+        let validity = validate(
             event,
             Self::listener_tag(listener),
             facts,
             context.state,
             can_avoid,
-        ) != Validity::Valid
-        {
+        );
+        if validity == Validity::AvoidedBySneaking {
+            self.avoid_vibration(context.entity);
+        }
+        if validity != Validity::Valid {
             return;
         }
         let receivable = self.can_receive_vibration(listener, source.block(), event, context);
@@ -460,6 +465,8 @@ impl<L: ClientLink> Server<L> {
                 match kind {
                     TimerKind::Sensor => self.sensor_tick(pos),
                     TimerKind::Shrieker => self.shrieker_tick(pos),
+                    TimerKind::Catalyst => self.catalyst_tick(pos),
+                    TimerKind::CatalystBloom => self.catalyst_bloom_end(pos),
                 }
             }
         }

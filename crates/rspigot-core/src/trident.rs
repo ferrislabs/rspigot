@@ -4,13 +4,14 @@ use rand::Rng;
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::arrow::{self, ArrowState, Launch, Pickup};
 use rspigot_domain::entity::reward::{DAMAGE_COMPONENT, max_damage};
-use rspigot_domain::entity::{Entity, EntityState, RemovalReason};
+use rspigot_domain::entity::{Aabb, Entity, EntityState, RemovalReason, lightning};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::ItemKind;
 
+use crate::advancements::AdvancementEvent;
 use crate::bow::{UsingItem, hand_slot};
 use crate::events::Hand;
 use crate::health::DamageSource;
@@ -22,6 +23,9 @@ use crate::projectiles::EYE_OFFSET;
 use crate::server::Server;
 
 const LOYALTY: &str = "minecraft:loyalty";
+const CHANNELING: &str = "minecraft:channeling";
+const THUNDER_SOUND: &str = "minecraft:item.trident.thunder";
+const THUNDER_VOLUME: f32 = 5.0;
 const RIPTIDE: &str = "minecraft:riptide";
 const SPIN_TICKS: i32 = 20;
 const SPIN_DAMAGE: f32 = 8.0;
@@ -257,6 +261,69 @@ impl<L: ClientLink> Server<L> {
         let position = player.position;
         self.play_sound(None, position, sound, SoundSource::Players, 1.0, 1.0);
         self.refresh_hands(id);
+    }
+
+    pub(crate) fn trident_channel(&mut self, trident: EntityId, target: EntityId, hurt: bool) {
+        if !hurt || !self.world.level.thundering {
+            return;
+        }
+        let Some(Entity {
+            base,
+            state: EntityState::Arrow(state),
+            ..
+        }) = self.entities.store.get(trident)
+        else {
+            return;
+        };
+        let channeled = base.kind == Kind::Trident
+            && state
+                .weapon
+                .as_ref()
+                .is_some_and(|weapon| level_of(weapon, CHANNELING) > 0);
+        let owner = self.owner_entity(state.owner);
+        if !channeled {
+            return;
+        }
+        let Some(at) = self.sculk_entity_position(target) else {
+            return;
+        };
+        let cell = at.block();
+        if self.motion_blocking_top(cell.x, cell.z) > cell.y {
+            return;
+        }
+        self.spawn_bolt(at, false, CreatureSpawnReason::Enchantment);
+        self.play_sound(
+            None,
+            at,
+            THUNDER_SOUND,
+            SoundSource::Neutral,
+            THUNDER_VOLUME,
+            1.0,
+        );
+        if let Some(player) = owner.and_then(|owner| self.player_of_entity(owner)) {
+            self.trigger_channeled_lightning(player, at);
+        }
+    }
+
+    fn trigger_channeled_lightning(&mut self, player: PlayerId, at: Vec3) {
+        let radius = lightning::HIT_RADIUS;
+        let area = Aabb::new(
+            at.x - radius,
+            at.y - radius,
+            at.z - radius,
+            at.x + radius,
+            at.y + lightning::HIT_HEIGHT + radius,
+            at.z + radius,
+        );
+        let from = self.players.get(&player).map_or(at, |p| p.position);
+        let victims = self
+            .living_in(&area)
+            .into_iter()
+            .filter_map(|victim| self.facts_of(victim, from))
+            .collect();
+        let mut event = AdvancementEvent::named("minecraft:channeled_lightning");
+        event.victims = victims;
+        self.trigger_event(player, event);
     }
 
     pub(crate) fn tick_spin_attacks(&mut self) {

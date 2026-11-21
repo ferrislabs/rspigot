@@ -459,6 +459,7 @@ mod tests {
     const SPAWNER_TABLES: usize = 5;
     const FISHING_TABLES: usize = 3;
     const BRUSH_TABLES: usize = 1;
+    const ARCHAEOLOGY_TABLES: usize = 6;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
     const SHEEP_COLOUR_TABLES: usize = 16;
     const CHARGED_CREEPER_TABLES: usize = 6;
@@ -545,6 +546,7 @@ mod tests {
                 + GAMEPLAY_TABLES
                 + FISHING_TABLES
                 + BRUSH_TABLES
+                + ARCHAEOLOGY_TABLES
                 + SHEEP_COLOUR_TABLES
                 + SNOW_GOLEM_SHEARING_TABLES
                 + CHARGED_CREEPER_TABLES

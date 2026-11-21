@@ -171,6 +171,7 @@ impl<L: ClientLink> Server<L> {
         {
             player.vitals.fall_distance = 0.0;
         }
+        self.tick_honey_slide(id, dy, on_ground);
     }
 
     fn cause_player_fall_damage(

@@ -101,6 +101,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn tick_eating(&mut self) {
+        self.tick_use_effects();
         let tick = self.current_tick();
         let finished: Vec<(PlayerId, Hand)> = self
             .players

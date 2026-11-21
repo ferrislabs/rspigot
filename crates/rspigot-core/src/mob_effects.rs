@@ -1,8 +1,8 @@
 use rspigot_domain::EntityId;
 use rspigot_domain::damage::DamageType;
-use rspigot_domain::effect::{EffectDuration, EffectId, EffectKind};
+use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance, EffectKind};
 use rspigot_domain::entity::Entity;
-use rspigot_domain::entity::living;
+use rspigot_domain::entity::living::{self, MAX_ABSORPTION};
 
 use crate::health::DamageSource;
 use crate::mob_life::type_in_tag;
@@ -16,6 +16,7 @@ const POISON_FLOOR: f32 = 1.0;
 const WITHER_DAMAGE: f32 = 1.0;
 const HEAL_BASE: i32 = 4;
 const HARM_BASE: i32 = 6;
+const ABSORPTION_PER_LEVEL: f32 = 4.0;
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn tick_mob_effects(&mut self, id: EntityId) {
@@ -90,9 +91,47 @@ impl<L: ClientLink> Server<L> {
                     self.hurt_mob(id, &DamageSource::new(DamageType::Magic), amount);
                 }
             }
+            EffectKind::Absorption => {
+                return self
+                    .entities
+                    .store
+                    .get(id)
+                    .and_then(|entity| entity.living())
+                    .is_some_and(|state| state.absorption > 0.0);
+            }
             _ => {}
         }
         true
+    }
+
+    pub(crate) fn mob_effect_started(&mut self, id: EntityId, effect: EffectInstance) {
+        if effect.effect.kind() != Some(EffectKind::Absorption) {
+            return;
+        }
+        let Some(state) = self
+            .entities
+            .store
+            .get_mut(id)
+            .and_then(|entity| entity.living_mut())
+        else {
+            return;
+        };
+        let max = state.attribute(MAX_ABSORPTION) as f32;
+        let wanted = ABSORPTION_PER_LEVEL * (f32::from(effect.amplifier) + 1.0);
+        state.absorption = state.absorption.max(wanted).clamp(0.0, max.max(0.0));
+    }
+
+    pub(crate) fn mob_effect_ended(&mut self, id: EntityId) {
+        let Some(state) = self
+            .entities
+            .store
+            .get_mut(id)
+            .and_then(|entity| entity.living_mut())
+        else {
+            return;
+        };
+        let max = state.attribute(MAX_ABSORPTION) as f32;
+        state.absorption = state.absorption.clamp(0.0, max.max(0.0));
     }
 
     pub(crate) fn mob_health_of(&self, id: EntityId) -> Option<(f32, f32)> {

@@ -173,6 +173,7 @@ impl<L: ClientLink> Server<L> {
         killer: Option<PlayerId>,
         source: &DamageSource,
     ) {
+        self.sculk_catalyst_death(victim, killer);
         let Some(player) = killer else {
             return;
         };
