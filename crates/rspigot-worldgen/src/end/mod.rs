@@ -7,12 +7,14 @@ use rspigot_domain::{BiomeId, BlockPos, ChunkPos, Vec3};
 mod islands;
 #[cfg(test)]
 mod reference;
+mod structures;
 
 use crate::buffer::ChunkBuffer;
 use crate::end_spikes::Pillars;
 use crate::nether::density::{BlendedNoise, Corners, END_BLEND, END_LATTICE, clamped_map, lerp};
 use crate::overworld::{ChunkBiomes, Features, Region, SurfaceSystem, TerrainCache, TerrainChunk};
 use crate::resources::{BlockKind, Palette, Resources, biome_id};
+use crate::structures::{Engine, Library};
 use islands::EndIslands;
 
 pub(crate) const END_BIOMES: [&str; 5] = [
@@ -38,19 +40,55 @@ pub(crate) struct End {
     features: Arc<Features>,
     cache: Arc<Mutex<TerrainCache>>,
     ids: [BiomeId; 5],
+    structures: Arc<Engine>,
+    structures_on: bool,
+    spawned: Arc<Mutex<structures::Spawned>>,
+}
+
+fn islands_biome(islands: &EndIslands, qx: i32, qz: i32) -> u8 {
+    let (block_x, block_z) = (qx * 4, qz * 4);
+    let (section_x, section_z) = (block_x >> 4, block_z >> 4);
+    let central =
+        i64::from(section_x) * i64::from(section_x) + i64::from(section_z) * i64::from(section_z);
+    if central < CENTRAL_SECTIONS + 1 {
+        return 0;
+    }
+    let value = islands.erosion((section_x * 2 + 1) * 8, (section_z * 2 + 1) * 8);
+    if value > 0.25 {
+        1
+    } else if value >= -0.0625 {
+        2
+    } else if value < -0.218_75 {
+        3
+    } else {
+        4
+    }
 }
 
 impl End {
     pub(crate) fn new(seed: u64, palette: &Palette) -> Self {
+        Self::with_library(seed, palette, Library::current())
+    }
+
+    pub(crate) fn with_library(seed: u64, palette: &Palette, library: &'static Library) -> Self {
+        let islands = EndIslands::new(seed as i64);
+        let engine = Engine::new(
+            seed as i64,
+            &structures::EndProbe { islands: &islands },
+            library,
+        );
         Self {
             seed,
             blended: BlendedNoise::new(seed as i64, END_BLEND),
-            islands: EndIslands::new(seed as i64),
+            islands,
             pillars: Pillars::new(seed as i64),
             surface: Arc::new(SurfaceSystem::end(seed as i64, palette)),
             features: Arc::new(Features::compile(&END_BIOMES)),
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
             ids: END_BIOMES.map(biome_id),
+            structures: Arc::new(engine),
+            structures_on: true,
+            spawned: Arc::default(),
         }
     }
 
@@ -99,25 +137,7 @@ impl End {
     }
 
     pub(crate) fn biome_index(&self, qx: i32, qz: i32) -> u8 {
-        let (block_x, block_z) = (qx * 4, qz * 4);
-        let (section_x, section_z) = (block_x >> 4, block_z >> 4);
-        let central = i64::from(section_x) * i64::from(section_x)
-            + i64::from(section_z) * i64::from(section_z);
-        if central < CENTRAL_SECTIONS + 1 {
-            return 0;
-        }
-        let value = self
-            .islands
-            .erosion((section_x * 2 + 1) * 8, (section_z * 2 + 1) * 8);
-        if value > 0.25 {
-            1
-        } else if value >= -0.0625 {
-            2
-        } else if value < -0.218_75 {
-            3
-        } else {
-            4
-        }
+        islands_biome(&self.islands, qx, qz)
     }
 
     fn terrain_cached(
@@ -179,14 +199,27 @@ impl End {
         pos: ChunkPos,
     ) -> ChunkColumn {
         let mut region = Region::for_end(self, resources, dimension, pos);
-        self.features
-            .decorate(&mut region, self.seed as i64, &self.surface, None);
+        let starts = self.starts_near(resources, dimension, pos);
+        self.features.decorate(
+            &mut region,
+            self.seed as i64,
+            &self.surface,
+            Some((&self.structures, &starts)),
+        );
+        let block_entities = std::mem::take(&mut region.block_entities);
+        self.remember_spawned(pos, std::mem::take(&mut region.entities));
         let (buffer, indices) = region.finish();
         let stored: Vec<BiomeId> = indices
             .iter()
             .map(|index| self.ids[usize::from(*index)])
             .collect();
-        buffer.finish_layered(pos, &stored, &resources.classifier)
+        let mut column = buffer.finish_layered(pos, &stored, &resources.classifier);
+        crate::structures::attach(&mut column, &block_entities, &starts, pos);
+        column
+    }
+
+    pub(crate) fn disable_structures(&mut self) {
+        self.structures_on = false;
     }
 
     pub(crate) fn terrain_for_region(

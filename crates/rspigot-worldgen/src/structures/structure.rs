@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
+use super::alias::Alias;
 use super::data::short;
 use super::jigsaw::{Heightmap, JigsawConfig};
 use super::library::Library;
@@ -16,8 +17,8 @@ pub(crate) struct JigsawDef {
     pub(crate) max_horizontal: i32,
     pub(crate) max_vertical: i32,
     pub(crate) padding: (i32, i32),
-    pub(crate) start_height: HeightAnchor,
-    pub(crate) aliased: bool,
+    pub(crate) start_height: StartHeight,
+    pub(crate) aliases: Option<Vec<Alias>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,6 +37,46 @@ impl HeightAnchor {
             Self::BelowTop(offset) => Some(depth - 1 + min_y - offset),
             Self::Unsupported => None,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum StartHeight {
+    Fixed(HeightAnchor),
+    Uniform(HeightAnchor, HeightAnchor),
+}
+
+impl StartHeight {
+    pub(crate) fn sample(
+        self,
+        random: &mut crate::legacy::JavaRandom,
+        min_y: i32,
+        depth: i32,
+    ) -> Option<i32> {
+        match self {
+            Self::Fixed(anchor) => anchor.resolve(min_y, depth),
+            Self::Uniform(low, high) => {
+                let (low, high) = (low.resolve(min_y, depth)?, high.resolve(min_y, depth)?);
+                if low > high {
+                    return Some(low);
+                }
+                Some(random.between(low, high))
+            }
+        }
+    }
+
+    fn parse(value: Option<&Value>) -> Self {
+        let Some(value) = value else {
+            return Self::Fixed(HeightAnchor::Unsupported);
+        };
+        let kind = value.get("type").and_then(Value::as_str).map(short);
+        if kind == Some("uniform") {
+            return Self::Uniform(
+                anchor(value.get("min_inclusive")),
+                anchor(value.get("max_inclusive")),
+            );
+        }
+        Self::Fixed(anchor(Some(value)))
     }
 }
 
@@ -138,17 +179,15 @@ fn jigsaw(value: &Value) -> JigsawDef {
         max_horizontal: horizontal,
         max_vertical: vertical,
         padding: pair(value.get("dimension_padding"), "bottom", "top"),
-        start_height: anchor(value.get("start_height")),
-        aliased: value
-            .get("pool_aliases")
-            .and_then(Value::as_array)
-            .is_some_and(|aliases| !aliases.is_empty()),
+        start_height: StartHeight::parse(value.get("start_height")),
+        aliases: Alias::parse_all(value.get("pool_aliases")),
     }
 }
 
 impl JigsawDef {
-    pub(crate) fn config(&self) -> JigsawConfig<'_> {
+    pub(crate) fn config<'a>(&'a self, aliases: &'a super::alias::Lookup) -> JigsawConfig<'a> {
         JigsawConfig {
+            aliases,
             start_pool: &self.start_pool,
             start_jigsaw: self.start_jigsaw.as_deref(),
             size: self.size,
@@ -248,13 +287,12 @@ pub(crate) fn generate_jigsaw<'a, G: super::jigsaw::Ground>(
 ) -> Option<super::jigsaw::Assembly<'a>> {
     let mut random = crate::legacy::JavaRandom::new(0);
     super::placement::large_feature_seed(&mut random, seed, chunk.0, chunk.1);
-    if def.aliased {
-        return None;
-    }
+    let aliases = def.aliases.as_deref()?;
     let y = def
         .start_height
-        .resolve(ground.min_y(), ground.gen_depth())?;
+        .sample(&mut random, ground.min_y(), ground.gen_depth())?;
     let position = (chunk.0 * 16, y, chunk.1 * 16);
+    let lookup = super::alias::lookup(aliases, position, seed);
     let could_exist = |x: i32, z: i32| {
         (ground.min_y() >> 2..=ground.max_y() >> 2)
             .any(|qy| valid.contains(&probe.at(x >> 2, qy, z >> 2)))
@@ -262,7 +300,7 @@ pub(crate) fn generate_jigsaw<'a, G: super::jigsaw::Ground>(
     let assembly = super::jigsaw::assemble(
         pools,
         ground,
-        &def.config(),
+        &def.config(&lookup),
         &mut random,
         position,
         could_exist,

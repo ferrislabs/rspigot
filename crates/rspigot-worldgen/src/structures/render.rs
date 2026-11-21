@@ -170,7 +170,9 @@ pub(crate) fn jigsaw_blocks(
         min_y: heights.0,
         max_y: heights.1,
     };
+    let no_aliases = super::alias::Lookup::new();
     let config = JigsawConfig {
+        aliases: &no_aliases,
         start_pool: pool,
         start_jigsaw: (target != "minecraft:empty").then_some(target),
         size: max_depth,

@@ -65,6 +65,7 @@ pub(crate) struct Assembly<'a> {
 
 #[derive(Debug, Clone)]
 pub(crate) struct JigsawConfig<'a> {
+    pub(crate) aliases: &'a super::alias::Lookup,
     pub(crate) start_pool: &'a str,
     pub(crate) start_jigsaw: Option<&'a str>,
     pub(crate) size: i32,
@@ -131,6 +132,7 @@ impl Queue {
 
 struct Placer<'a, 'g, G: Ground> {
     pools: &'a Pools,
+    aliases: &'g super::alias::Lookup,
     ground: &'g G,
     max_depth: i32,
     expansion_hack: bool,
@@ -156,7 +158,8 @@ fn shuffled_rotations(random: &mut JavaRandom) -> Vec<Rotation> {
 
 impl<'a, G: Ground> Placer<'a, '_, G> {
     fn pool(&self, name: &str) -> Option<&'a Pool> {
-        self.pools.get(name)
+        self.pools
+            .get(self.aliases.get(name).map_or(name, String::as_str))
     }
 
     fn hack_height(&self, hack_box: &Bbox, jigsaw: &Jigsaw) -> i32 {
@@ -332,7 +335,11 @@ pub(crate) fn assemble<'a, G: Ground>(
     could_exist: impl Fn(i32, i32) -> bool,
 ) -> Option<Assembly<'a>> {
     let rotation = Rotation::ALL[random.next_int(4) as usize];
-    let pool = pools.get(config.start_pool)?;
+    let start_pool = config
+        .aliases
+        .get(config.start_pool)
+        .map_or(config.start_pool, String::as_str);
+    let pool = pools.get(start_pool)?;
     let element = pool.random_element(random)?;
     if element.is_empty() {
         return None;
@@ -402,6 +409,7 @@ pub(crate) fn assemble<'a, G: Ground>(
     };
     let mut placer = Placer {
         pools,
+        aliases: config.aliases,
         ground,
         max_depth: config.size,
         expansion_hack: config.expansion_hack,

@@ -1,3 +1,4 @@
+mod alias;
 mod bbox;
 mod blueprint;
 mod data;
@@ -18,6 +19,8 @@ mod world;
 
 #[cfg(test)]
 mod fortress_tests;
+#[cfg(test)]
+mod l2_tests;
 #[cfg(test)]
 mod library_tests;
 #[cfg(test)]
