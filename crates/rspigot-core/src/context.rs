@@ -2341,6 +2341,7 @@ impl<L: ClientLink> Server<L> {
         }
         living::mark_effect_attributes(state, effect.effect);
         update_invisibility(entity);
+        self.mob_effect_started(id, effect);
         true
     }
 
@@ -2381,6 +2382,7 @@ impl<L: ClientLink> Server<L> {
         if removed {
             living::mark_effect_attributes(state, effect);
             update_invisibility(entity);
+            self.mob_effect_ended(id);
         }
         removed
     }

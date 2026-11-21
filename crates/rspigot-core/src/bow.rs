@@ -109,6 +109,12 @@ impl<L: ClientLink> Server<L> {
             }
             return;
         }
+        if self.use_crossbow(id, hand)
+            || self.begin_spyglass(id, hand)
+            || self.begin_spear(id, hand)
+        {
+            return;
+        }
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
@@ -125,17 +131,21 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn stop_using_main_hand(&mut self, id: PlayerId) {
-        if let Some(player) = self.players.get_mut(&id)
-            && player
+        let main = self.players.get(&id).is_some_and(|player| {
+            player
                 .using_item
                 .is_some_and(|using| using.hand == Hand::Main)
-        {
-            player.using_item = None;
+        });
+        if main {
+            self.stop_using_now(id);
         }
     }
 
     pub(crate) fn release_use_item(&mut self, id: PlayerId) {
-        if self.release_trident(id) {
+        if self.release_trident(id)
+            || self.release_player_crossbow(id)
+            || self.release_status_item(id)
+        {
             return;
         }
         if let Some(shot) = self.take_drawn_shot(id) {

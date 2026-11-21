@@ -742,6 +742,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn finish_trident_hit(&mut self, id: EntityId, target: EntityId, hurt: bool, saved_fire: i32) {
+        self.trident_channel(id, target, hurt);
         if !hurt {
             self.restore_fire_ticks(target, saved_fire);
         }

@@ -1,7 +1,797 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1427] = [
+pub(crate) static TABLES: [(&str, LootTable); 1433] = [
+    (
+        "minecraft:archaeology/desert_pyramid",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1599),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1612),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1615),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1619),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1012),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(853),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1064),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:archaeology/desert_well",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1600),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1602),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1142),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1060),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetStewEffect(&[
+                                (
+                                    "minecraft:night_vision",
+                                    IntProvider::Uniform { min: 7, max: 10 },
+                                ),
+                                ("minecraft:jump_boost", IntProvider::Uniform { min: 7, max: 10 }),
+                                ("minecraft:weakness", IntProvider::Uniform { min: 6, max: 8 }),
+                                ("minecraft:blindness", IntProvider::Uniform { min: 5, max: 7 }),
+                                ("minecraft:poison", IntProvider::Uniform { min: 10, max: 20 }),
+                                ("minecraft:saturation", IntProvider::Uniform { min: 7, max: 10 }),
+                            ]),
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1492),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:archaeology/ocean_ruin_cold",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1601),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1605),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1613),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1614),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1048),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1066),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1029),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1010),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1268),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:archaeology/ocean_ruin_warm",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1598),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1618),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1620),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(754),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1048),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1066),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1029),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1010),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1268),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:archaeology/trail_ruins_common",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1013),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1066),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1029),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(415),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1142),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1203),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1210),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1202),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1199),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1200),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1565),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1564),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1561),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Item(1563),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(623),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(627),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(632),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(624),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(635),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(625),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(631),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1116),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1115),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1268),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1010),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1065),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1439),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(244),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1377),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1062),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1412),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:archaeology/trail_ruins_rare",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1603),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1604),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1607),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1609),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1610),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1611),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1617),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1591),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1594),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1592),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1595),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1477),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
     (
         "minecraft:blocks/acacia_button",
         LootTable {
@@ -52645,89 +53435,90 @@ pub(crate) static TABLES: [(&str, LootTable); 1427] = [
 ];
 
 pub(crate) static BLOCK_TABLES: [u16; 1286] = [
-    65535, 982, 406, 759, 346, 756, 21, 734, 410, 350, 209, 732, 214, 636, 972, 65, 480, 7, 170,
-    296, 704, 696, 584, 776, 41, 38, 638, 974, 67, 482, 9, 172, 298, 698, 586, 778, 65535, 65535,
-    65535, 916, 1030, 886, 411, 1029, 404, 335, 469, 336, 208, 331, 620, 635, 971, 64, 479, 6, 169,
-    295, 695, 583, 775, 587, 612, 32, 1014, 996, 1004, 993, 998, 1002, 1010, 1008, 1006, 1012, 995,
-    644, 980, 73, 488, 15, 178, 304, 593, 784, 1009, 1015, 997, 1005, 994, 999, 1003, 1011, 1007,
-    1013, 634, 970, 63, 478, 5, 168, 294, 694, 582, 885, 659, 1192, 29, 394, 963, 1159, 399, 494,
-    337, 493, 352, 917, 190, 268, 628, 1162, 650, 560, 502, 1183, 541, 710, 413, 519, 271, 840, 97,
-    126, 430, 870, 75, 992, 829, 343, 981, 218, 932, 385, 315, 148, 891, 931, 1032, 929, 1034, 728,
-    65535, 1176, 665, 573, 515, 1197, 554, 725, 426, 532, 284, 853, 112, 141, 443, 897, 88, 1178,
-    667, 575, 517, 1199, 556, 727, 428, 534, 286, 855, 114, 143, 445, 899, 90, 1177, 666, 574, 516,
-    1198, 555, 726, 427, 533, 285, 854, 113, 142, 444, 898, 89, 65535, 288, 405, 1040, 785, 107, 17,
-    30, 896, 664, 1175, 724, 668, 235, 1180, 538, 135, 879, 403, 466, 124, 1038, 116, 181, 10, 44,
-    68, 173, 256, 299, 483, 588, 639, 699, 779, 975, 1074, 599, 646, 1039, 1039, 386, 957, 962, 243,
-    642, 179, 904, 345, 333, 344, 242, 1160, 384, 397, 640, 976, 69, 11, 174, 484, 300, 700, 589,
-    780, 45, 630, 491, 865, 216, 640, 976, 69, 11, 174, 484, 300, 700, 589, 780, 45, 633, 969, 62,
-    4, 167, 477, 293, 693, 250, 1068, 581, 774, 37, 633, 969, 62, 4, 167, 477, 293, 693, 581, 774,
-    250, 1068, 37, 500, 988, 468, 637, 973, 66, 481, 8, 171, 297, 697, 585, 777, 42, 902, 338, 903,
-    903, 987, 954, 457, 955, 149, 150, 205, 1018, 472, 631, 627, 959, 960, 50, 737, 961, 961, 233,
-    233, 402, 621, 159, 471, 151, 906, 1172, 661, 570, 512, 1194, 551, 721, 423, 529, 281, 850, 109,
-    138, 440, 893, 85, 643, 979, 72, 487, 14, 177, 303, 703, 592, 783, 48, 986, 606, 240, 191, 685,
-    611, 463, 459, 464, 462, 460, 458, 136, 880, 613, 465, 223, 371, 1144, 671, 1083, 1098, 1129,
-    1114, 467, 226, 373, 1146, 673, 1086, 1100, 1131, 1116, 400, 837, 595, 27, 26, 838, 596, 1062,
-    401, 912, 632, 122, 984, 609, 614, 539, 907, 911, 909, 908, 910, 189, 619, 615, 617, 624, 361,
-    120, 160, 1081, 497, 828, 65535, 65535, 363, 353, 901, 219, 930, 919, 360, 334, 368, 1045, 1044,
-    359, 978, 71, 486, 65535, 51, 217, 602, 392, 822, 811, 821, 793, 808, 788, 797, 803, 815, 817,
-    810, 805, 802, 807, 818, 794, 789, 791, 820, 813, 825, 816, 814, 799, 809, 826, 819, 795, 804,
-    796, 157, 786, 629, 965, 58, 473, 0, 163, 289, 689, 577, 770, 33, 935, 935, 1181, 1181, 1200,
-    1200, 731, 731, 244, 244, 354, 354, 708, 708, 25, 180, 287, 1042, 535, 450, 220, 308, 900, 622,
-    453, 860, 187, 862, 864, 16, 358, 1174, 663, 572, 514, 1196, 553, 723, 425, 531, 283, 852, 111,
-    140, 442, 895, 87, 1173, 662, 571, 513, 1195, 552, 722, 424, 530, 282, 851, 110, 139, 441, 894,
-    86, 13, 176, 302, 702, 591, 782, 47, 40, 936, 65535, 65535, 470, 830, 833, 305, 835, 832, 307,
-    834, 831, 306, 927, 448, 1165, 653, 563, 505, 1186, 544, 713, 416, 522, 274, 843, 100, 129, 433,
-    873, 78, 1036, 207, 684, 1028, 537, 915, 706, 1033, 496, 1161, 649, 559, 501, 1182, 540, 709,
-    412, 518, 270, 839, 96, 125, 429, 869, 74, 1161, 649, 559, 501, 1182, 540, 709, 412, 518, 270,
-    839, 96, 125, 429, 869, 74, 887, 188, 266, 889, 641, 977, 70, 485, 12, 175, 301, 701, 590, 781,
-    46, 39, 989, 918, 269, 707, 215, 121, 983, 608, 616, 863, 888, 267, 951, 952, 948, 942, 945,
-    968, 61, 476, 3, 166, 292, 692, 580, 773, 36, 967, 60, 475, 2, 165, 291, 691, 579, 772, 35, 966,
-    59, 474, 1, 164, 290, 690, 578, 771, 34, 362, 196, 195, 856, 858, 857, 859, 367, 1041, 729, 730,
-    54, 351, 65535, 65535, 65535, 396, 576, 625, 884, 115, 65535, 645, 934, 1171, 660, 569, 511,
-    1193, 550, 720, 422, 528, 280, 849, 108, 137, 439, 892, 84, 1170, 658, 568, 510, 1191, 549, 718,
-    421, 527, 279, 848, 105, 134, 438, 878, 83, 1166, 654, 564, 506, 1187, 545, 714, 417, 523, 275,
-    844, 101, 130, 434, 874, 79, 1169, 657, 567, 509, 1190, 548, 717, 420, 526, 278, 847, 104, 133,
-    437, 877, 82, 1168, 656, 566, 508, 1189, 547, 716, 419, 525, 277, 846, 103, 132, 436, 876, 81,
-    1167, 655, 565, 507, 1188, 546, 715, 418, 524, 276, 845, 102, 131, 435, 875, 80, 489, 490, 356,
-    1057, 953, 355, 323, 310, 313, 317, 320, 1047, 118, 145, 388, 455, 322, 309, 312, 316, 319,
-    1046, 117, 144, 387, 454, 324, 311, 314, 318, 321, 1048, 119, 146, 389, 456, 324, 311, 314, 318,
-    321, 1048, 119, 146, 389, 456, 928, 106, 222, 43, 31, 792, 65535, 65535, 65535, 761, 947, 604,
-    758, 601, 365, 990, 950, 944, 408, 23, 882, 736, 348, 760, 946, 603, 757, 600, 364, 949, 943,
-    407, 22, 881, 735, 347, 123, 836, 890, 605, 409, 985, 610, 618, 24, 883, 920, 366, 349, 921,
-    558, 49, 940, 95, 158, 391, 446, 499, 939, 991, 55, 492, 958, 231, 378, 1151, 678, 1091, 1105,
-    1136, 1121, 154, 956, 1031, 1078, 1017, 1069, 1016, 1070, 1067, 1080, 1073, 623, 260, 1001, 251,
-    1000, 252, 249, 933, 1157, 1158, 1058, 1059, 255, 253, 1071, 258, 1076, 254, 1072, 247, 1065,
-    261, 1079, 248, 1066, 259, 1077, 245, 1063, 246, 1064, 257, 1075, 257, 1075, 65535, 65535,
-    65535, 65535, 221, 1035, 52, 53, 451, 452, 626, 20, 262, 913, 800, 823, 801, 824, 557, 91, 93,
-    94, 92, 738, 742, 239, 186, 739, 740, 741, 398, 746, 745, 744, 743, 747, 185, 238, 861, 155,
-    1163, 651, 561, 503, 1184, 542, 711, 414, 520, 272, 841, 98, 127, 431, 871, 76, 156, 1164, 652,
-    562, 504, 1185, 543, 712, 415, 521, 273, 842, 99, 128, 432, 872, 77, 18, 147, 19, 495, 594, 937,
-    1049, 1054, 1055, 1056, 766, 767, 768, 769, 193, 1053, 1050, 1051, 1052, 194, 1019, 787, 1024,
-    1026, 1027, 762, 763, 764, 765, 1023, 1020, 1021, 1022, 192, 197, 202, 203, 204, 748, 749, 750,
-    751, 201, 198, 199, 200, 182, 152, 1037, 827, 924, 153, 922, 926, 923, 925, 224, 370, 1143, 670,
-    1084, 1097, 1128, 1113, 232, 332, 263, 380, 1153, 680, 1093, 1107, 1138, 1123, 183, 369, 1142,
-    669, 1082, 1096, 1127, 1112, 265, 382, 1155, 682, 1095, 1109, 1140, 1125, 264, 381, 1154, 681,
-    1094, 1108, 1139, 1124, 228, 375, 1148, 675, 1088, 1102, 1133, 1118, 234, 379, 1152, 679, 1092,
-    1106, 1137, 1122, 230, 377, 1150, 677, 1090, 1104, 1135, 1120, 225, 372, 1145, 672, 1085, 1099,
-    1130, 1115, 227, 374, 1147, 674, 1087, 1101, 1132, 1117, 229, 376, 1149, 676, 1089, 1103, 1134,
-    1119, 536, 383, 1156, 683, 1111, 1110, 1141, 1126, 357, 733, 1025, 161, 162, 964, 28, 393, 598,
-    719, 1179, 498, 597, 56, 57, 938, 447, 914, 607, 326, 210, 212, 211, 213, 752, 754, 753, 755,
-    342, 340, 339, 341, 330, 328, 327, 329, 184, 236, 237, 461, 941, 868, 866, 867, 790, 806, 647,
-    1061, 705, 395, 905, 325, 241, 1043, 1060, 449, 687, 688, 686, 648, 206, 812, 798, 390,
+    65535, 988, 412, 765, 352, 762, 27, 740, 416, 356, 215, 738, 220, 642, 978, 71, 486, 13, 176,
+    302, 710, 702, 590, 782, 47, 44, 644, 980, 73, 488, 15, 178, 304, 704, 592, 784, 65535, 65535,
+    65535, 922, 1036, 892, 417, 1035, 410, 341, 475, 342, 214, 337, 626, 641, 977, 70, 485, 12, 175,
+    301, 701, 589, 781, 593, 618, 38, 1020, 1002, 1010, 999, 1004, 1008, 1016, 1014, 1012, 1018,
+    1001, 650, 986, 79, 494, 21, 184, 310, 599, 790, 1015, 1021, 1003, 1011, 1000, 1005, 1009, 1017,
+    1013, 1019, 640, 976, 69, 484, 11, 174, 300, 700, 588, 891, 665, 1198, 35, 400, 969, 1165, 405,
+    500, 343, 499, 358, 923, 196, 274, 634, 1168, 656, 566, 508, 1189, 547, 716, 419, 525, 277, 846,
+    103, 132, 436, 876, 81, 998, 835, 349, 987, 224, 938, 391, 321, 154, 897, 937, 1038, 935, 1040,
+    734, 65535, 1182, 671, 579, 521, 1203, 560, 731, 432, 538, 290, 859, 118, 147, 449, 903, 94,
+    1184, 673, 581, 523, 1205, 562, 733, 434, 540, 292, 861, 120, 149, 451, 905, 96, 1183, 672, 580,
+    522, 1204, 561, 732, 433, 539, 291, 860, 119, 148, 450, 904, 95, 65535, 294, 411, 1046, 791,
+    113, 23, 36, 902, 670, 1181, 730, 674, 241, 1186, 544, 141, 885, 409, 472, 130, 1044, 122, 187,
+    16, 50, 74, 179, 262, 305, 489, 594, 645, 705, 785, 981, 1080, 605, 652, 1045, 1045, 392, 963,
+    968, 249, 648, 185, 910, 351, 339, 350, 248, 1166, 390, 403, 646, 982, 75, 17, 180, 490, 306,
+    706, 595, 786, 51, 636, 497, 871, 222, 646, 982, 75, 17, 180, 490, 306, 706, 595, 786, 51, 639,
+    975, 68, 10, 173, 483, 299, 699, 256, 1074, 587, 780, 43, 639, 975, 68, 10, 173, 483, 299, 699,
+    587, 780, 256, 1074, 43, 506, 994, 474, 643, 979, 72, 487, 14, 177, 303, 703, 591, 783, 48, 908,
+    344, 909, 909, 993, 960, 463, 961, 155, 156, 211, 1024, 478, 637, 633, 965, 966, 56, 743, 967,
+    967, 239, 239, 408, 627, 165, 477, 157, 912, 1178, 667, 576, 518, 1200, 557, 727, 429, 535, 287,
+    856, 115, 144, 446, 899, 91, 649, 985, 78, 493, 20, 183, 309, 709, 598, 789, 54, 992, 612, 246,
+    197, 691, 617, 469, 465, 470, 468, 466, 464, 142, 886, 619, 471, 229, 377, 1150, 677, 1089,
+    1104, 1135, 1120, 473, 232, 379, 1152, 679, 1092, 1106, 1137, 1122, 406, 843, 601, 33, 32, 844,
+    602, 1068, 407, 918, 638, 128, 990, 615, 620, 545, 913, 917, 915, 914, 916, 195, 625, 621, 623,
+    630, 367, 126, 166, 1087, 503, 834, 65535, 65535, 369, 359, 907, 225, 936, 925, 366, 340, 374,
+    1051, 1050, 365, 984, 77, 492, 65535, 57, 223, 608, 398, 828, 817, 827, 799, 814, 794, 803, 809,
+    821, 823, 816, 811, 808, 813, 824, 800, 795, 797, 826, 819, 831, 822, 820, 805, 815, 832, 825,
+    801, 810, 802, 163, 792, 635, 971, 64, 479, 6, 169, 295, 695, 583, 776, 39, 941, 941, 1187,
+    1187, 1206, 1206, 737, 737, 250, 250, 360, 360, 714, 714, 31, 186, 293, 1048, 541, 456, 226,
+    314, 906, 628, 459, 866, 193, 868, 870, 22, 364, 1180, 669, 578, 520, 1202, 559, 729, 431, 537,
+    289, 858, 117, 146, 448, 901, 93, 1179, 668, 577, 519, 1201, 558, 728, 430, 536, 288, 857, 116,
+    145, 447, 900, 92, 19, 182, 308, 708, 597, 788, 53, 46, 942, 65535, 65535, 476, 836, 839, 311,
+    841, 838, 313, 840, 837, 312, 933, 454, 1171, 659, 569, 511, 1192, 550, 719, 422, 528, 280, 849,
+    106, 135, 439, 879, 84, 1042, 213, 690, 1034, 543, 921, 712, 1039, 502, 1167, 655, 565, 507,
+    1188, 546, 715, 418, 524, 276, 845, 102, 131, 435, 875, 80, 1167, 655, 565, 507, 1188, 546, 715,
+    418, 524, 276, 845, 102, 131, 435, 875, 80, 893, 194, 272, 895, 647, 983, 76, 491, 18, 181, 307,
+    707, 596, 787, 52, 45, 995, 924, 275, 713, 221, 127, 989, 614, 622, 869, 894, 273, 957, 958,
+    954, 948, 951, 974, 67, 482, 9, 172, 298, 698, 586, 779, 42, 973, 66, 481, 8, 171, 297, 697,
+    585, 778, 41, 972, 65, 480, 7, 170, 296, 696, 584, 777, 40, 368, 202, 201, 862, 864, 863, 865,
+    373, 1047, 735, 736, 60, 357, 65535, 65535, 65535, 402, 582, 631, 890, 121, 65535, 651, 940,
+    1177, 666, 575, 517, 1199, 556, 726, 428, 534, 286, 855, 114, 143, 445, 898, 90, 1176, 664, 574,
+    516, 1197, 555, 724, 427, 533, 285, 854, 111, 140, 444, 884, 89, 1172, 660, 570, 512, 1193, 551,
+    720, 423, 529, 281, 850, 107, 136, 440, 880, 85, 1175, 663, 573, 515, 1196, 554, 723, 426, 532,
+    284, 853, 110, 139, 443, 883, 88, 1174, 662, 572, 514, 1195, 553, 722, 425, 531, 283, 852, 109,
+    138, 442, 882, 87, 1173, 661, 571, 513, 1194, 552, 721, 424, 530, 282, 851, 108, 137, 441, 881,
+    86, 495, 496, 362, 1063, 959, 361, 329, 316, 319, 323, 326, 1053, 124, 151, 394, 461, 328, 315,
+    318, 322, 325, 1052, 123, 150, 393, 460, 330, 317, 320, 324, 327, 1054, 125, 152, 395, 462, 330,
+    317, 320, 324, 327, 1054, 125, 152, 395, 462, 934, 112, 228, 49, 37, 798, 65535, 65535, 65535,
+    767, 953, 610, 764, 607, 371, 996, 956, 950, 414, 29, 888, 742, 354, 766, 952, 609, 763, 606,
+    370, 955, 949, 413, 28, 887, 741, 353, 129, 842, 896, 611, 415, 991, 616, 624, 30, 889, 926,
+    372, 355, 927, 564, 55, 946, 101, 164, 397, 452, 505, 945, 997, 61, 498, 964, 237, 384, 1157,
+    684, 1097, 1111, 1142, 1127, 160, 962, 1037, 1084, 1023, 1075, 1022, 1076, 1073, 1086, 1079,
+    629, 266, 1007, 257, 1006, 258, 255, 939, 1163, 1164, 1064, 1065, 261, 259, 1077, 264, 1082,
+    260, 1078, 253, 1071, 267, 1085, 254, 1072, 265, 1083, 251, 1069, 252, 1070, 263, 1081, 263,
+    1081, 65535, 65535, 65535, 65535, 227, 1041, 58, 59, 457, 458, 632, 26, 268, 919, 806, 829, 807,
+    830, 563, 97, 99, 100, 98, 744, 748, 245, 192, 745, 746, 747, 404, 752, 751, 750, 749, 753, 191,
+    244, 867, 161, 1169, 657, 567, 509, 1190, 548, 717, 420, 526, 278, 847, 104, 133, 437, 877, 82,
+    162, 1170, 658, 568, 510, 1191, 549, 718, 421, 527, 279, 848, 105, 134, 438, 878, 83, 24, 153,
+    25, 501, 600, 943, 1055, 1060, 1061, 1062, 772, 773, 774, 775, 199, 1059, 1056, 1057, 1058, 200,
+    1025, 793, 1030, 1032, 1033, 768, 769, 770, 771, 1029, 1026, 1027, 1028, 198, 203, 208, 209,
+    210, 754, 755, 756, 757, 207, 204, 205, 206, 188, 158, 1043, 833, 930, 159, 928, 932, 929, 931,
+    230, 376, 1149, 676, 1090, 1103, 1134, 1119, 238, 338, 269, 386, 1159, 686, 1099, 1113, 1144,
+    1129, 189, 375, 1148, 675, 1088, 1102, 1133, 1118, 271, 388, 1161, 688, 1101, 1115, 1146, 1131,
+    270, 387, 1160, 687, 1100, 1114, 1145, 1130, 234, 381, 1154, 681, 1094, 1108, 1139, 1124, 240,
+    385, 1158, 685, 1098, 1112, 1143, 1128, 236, 383, 1156, 683, 1096, 1110, 1141, 1126, 231, 378,
+    1151, 678, 1091, 1105, 1136, 1121, 233, 380, 1153, 680, 1093, 1107, 1138, 1123, 235, 382, 1155,
+    682, 1095, 1109, 1140, 1125, 542, 389, 1162, 689, 1117, 1116, 1147, 1132, 363, 739, 1031, 167,
+    168, 970, 34, 399, 604, 725, 1185, 504, 603, 62, 63, 944, 453, 920, 613, 332, 216, 218, 217,
+    219, 758, 760, 759, 761, 348, 346, 345, 347, 336, 334, 333, 335, 190, 242, 243, 467, 947, 874,
+    872, 873, 796, 812, 653, 1067, 711, 401, 911, 331, 247, 1049, 1066, 455, 693, 694, 692, 654,
+    212, 818, 804, 396,
 ];
 
 pub(crate) static ENTITY_TABLES: [u16; 161] = [
-    65535, 65535, 1266, 65535, 1267, 1268, 65535, 1269, 65535, 65535, 1270, 1271, 65535, 65535,
-    1272, 65535, 1273, 1274, 65535, 1275, 1276, 1277, 1278, 65535, 65535, 65535, 1279, 1280, 1281,
-    65535, 1282, 1283, 1284, 65535, 65535, 65535, 1285, 1286, 65535, 1287, 65535, 1288, 1290, 1291,
-    1289, 65535, 65535, 1292, 65535, 65535, 65535, 65535, 65535, 65535, 65535, 1293, 1294, 65535,
-    1295, 1300, 1296, 65535, 1297, 1298, 1299, 1301, 65535, 1302, 1303, 1304, 65535, 1305, 65535,
-    65535, 65535, 65535, 65535, 65535, 65535, 1306, 65535, 1307, 65535, 65535, 1308, 65535, 65535,
-    1309, 1310, 1311, 65535, 65535, 1312, 65535, 65535, 65535, 65535, 1313, 1314, 1315, 1316, 1317,
-    1318, 1319, 1320, 1322, 65535, 65535, 65535, 65535, 1323, 1324, 1325, 1326, 1327, 1344, 65535,
-    1345, 1346, 1347, 1348, 65535, 1349, 65535, 1350, 65535, 65535, 1351, 65535, 65535, 1352, 1353,
-    1354, 1355, 1356, 65535, 65535, 65535, 1357, 65535, 1358, 1359, 1360, 1361, 1362, 1363, 1364,
-    65535, 1365, 1366, 1367, 65535, 1368, 1369, 1370, 1371, 1372, 1373, 1374, 1321, 65535,
+    65535, 65535, 1272, 65535, 1273, 1274, 65535, 1275, 65535, 65535, 1276, 1277, 65535, 65535,
+    1278, 65535, 1279, 1280, 65535, 1281, 1282, 1283, 1284, 65535, 65535, 65535, 1285, 1286, 1287,
+    65535, 1288, 1289, 1290, 65535, 65535, 65535, 1291, 1292, 65535, 1293, 65535, 1294, 1296, 1297,
+    1295, 65535, 65535, 1298, 65535, 65535, 65535, 65535, 65535, 65535, 65535, 1299, 1300, 65535,
+    1301, 1306, 1302, 65535, 1303, 1304, 1305, 1307, 65535, 1308, 1309, 1310, 65535, 1311, 65535,
+    65535, 65535, 65535, 65535, 65535, 65535, 1312, 65535, 1313, 65535, 65535, 1314, 65535, 65535,
+    1315, 1316, 1317, 65535, 65535, 1318, 65535, 65535, 65535, 65535, 1319, 1320, 1321, 1322, 1323,
+    1324, 1325, 1326, 1328, 65535, 65535, 65535, 65535, 1329, 1330, 1331, 1332, 1333, 1350, 65535,
+    1351, 1352, 1353, 1354, 65535, 1355, 65535, 1356, 65535, 65535, 1357, 65535, 65535, 1358, 1359,
+    1360, 1361, 1362, 65535, 65535, 65535, 1363, 65535, 1364, 1365, 1366, 1367, 1368, 1369, 1370,
+    65535, 1371, 1372, 1373, 65535, 1374, 1375, 1376, 1377, 1378, 1379, 1380, 1327, 65535,
 ];
 
 pub(crate) static SMELTING: [(u16, u16); 163] = [

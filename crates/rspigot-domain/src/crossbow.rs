@@ -199,6 +199,39 @@ pub fn set_charged(crossbow: &mut ItemStack, projectiles: &[ItemStack]) {
         .insert(CHARGED_PROJECTILES, Tag::List(list));
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Loaded {
+    pub intangible: bool,
+    pub cost: u32,
+}
+
+pub fn draw_plan(count: i32, first_cost: u32, available: u32) -> Vec<Loaded> {
+    (0..count.max(0))
+        .filter_map(|index| {
+            let cost = if index == 0 { first_cost } else { 0 };
+            if cost > available {
+                None
+            } else {
+                Some(Loaded {
+                    intangible: cost == 0,
+                    cost,
+                })
+            }
+        })
+        .collect()
+}
+
+pub fn spent(plan: &[Loaded]) -> u32 {
+    plan.iter().map(|loaded| loaded.cost).sum()
+}
+
+pub fn charge_progress(elapsed: i32, charge_ticks: i32) -> f32 {
+    if charge_ticks <= 0 {
+        return 1.0;
+    }
+    (elapsed as f32 / charge_ticks as f32).min(1.0)
+}
+
 pub fn single(item: ItemKind) -> ItemStack {
     ItemStack::new(item.id(), NonZeroU8::MIN)
 }
@@ -350,6 +383,45 @@ mod tests {
         assert_eq!((projectile_count(&one), projectile_spread(&one)), (3, 10.0));
         let two = enchanted(MULTISHOT, 2);
         assert_eq!((projectile_count(&two), projectile_spread(&two)), (5, 20.0));
+    }
+
+    #[test]
+    fn a_survival_draw_spends_for_the_first_projectile_only() {
+        let plan = draw_plan(3, 1, 8);
+        assert_eq!(
+            plan,
+            vec![
+                Loaded {
+                    intangible: false,
+                    cost: 1
+                },
+                Loaded {
+                    intangible: true,
+                    cost: 0
+                },
+                Loaded {
+                    intangible: true,
+                    cost: 0
+                },
+            ]
+        );
+        assert_eq!(spent(&plan), 1);
+    }
+
+    #[test]
+    fn a_free_first_shot_is_intangible_and_an_unaffordable_one_is_dropped() {
+        assert!(draw_plan(1, 0, 4)[0].intangible);
+        let plan = draw_plan(3, 2, 1);
+        assert_eq!(plan.len(), 2);
+        assert!(plan.iter().all(|loaded| loaded.intangible));
+        assert!(draw_plan(0, 1, 4).is_empty());
+    }
+
+    #[test]
+    fn the_charge_progress_is_clamped_to_one() {
+        assert_eq!(charge_progress(12, 25), 12.0 / 25.0);
+        assert_eq!(charge_progress(40, 25), 1.0);
+        assert_eq!(charge_progress(5, 0), 1.0);
     }
 
     #[test]
