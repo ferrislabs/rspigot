@@ -9,6 +9,7 @@ use rspigot_effects::EffectKind;
 use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
+use crate::cartography::{ExplorationSpec, MapSource, NoMaps};
 use crate::dye::DYE_COLORS;
 use crate::entity::trading::{ItemCost, MerchantOffer};
 use crate::item::ItemStack;
@@ -29,6 +30,7 @@ const RANDOM_ENCHANT_ROLL: i32 = 50;
 const ENCHANTABILITY_SPREAD_DIVISOR: i32 = 4;
 const ENCHANT_COST_JITTER: f32 = 0.15;
 const TICKS_PER_SECOND: i32 = 20;
+const DEFAULT_EXPLORATION_ZOOM: i32 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TradeEnv<'a> {
@@ -434,6 +436,7 @@ pub fn enchant_with_levels(
 
 fn apply_modifier(
     random: &mut impl RandomSource,
+    maps: &mut impl MapSource,
     stack: Option<ItemStack>,
     modifier: &Modifier,
 ) -> Option<ItemStack> {
@@ -464,7 +467,20 @@ fn apply_modifier(
             trials,
             chance,
         } => set_random_dyes(random, stack, base, trials, chance),
-        Modifier::ExplorationMap { .. } => stack,
+        Modifier::ExplorationMap {
+            decoration,
+            destination,
+            search_radius,
+        } => maps.explore(
+            &ExplorationSpec {
+                destination: destination.to_owned(),
+                decoration: decoration.to_owned(),
+                zoom: DEFAULT_EXPLORATION_ZOOM,
+                search_radius,
+                skip_existing_chunks: true,
+            },
+            stack,
+        ),
         Modifier::SetRandomPotion => set_random_potion(random, stack),
         Modifier::SetPotion(potion) => with_potion(stack, potion),
         Modifier::Require(require) => {
@@ -506,6 +522,15 @@ pub fn build_offer(
     env: &TradeEnv<'_>,
     random: &mut impl RandomSource,
 ) -> Option<MerchantOffer> {
+    build_offer_with(trade, env, random, &mut NoMaps)
+}
+
+pub fn build_offer_with(
+    trade: &Trade,
+    env: &TradeEnv<'_>,
+    random: &mut impl RandomSource,
+    maps: &mut impl MapSource,
+) -> Option<MerchantOffer> {
     if !trade.variants.is_empty() {
         let variant = env.variant?;
         if !trade.variants.contains(&variant) {
@@ -518,7 +543,7 @@ pub fn build_offer(
         .and_then(NonZeroU8::new)?;
     let mut stack = Some(ItemStack::new(gives.id(), count));
     for modifier in trade.modifiers {
-        stack = apply_modifier(random, stack, modifier);
+        stack = apply_modifier(random, maps, stack, modifier);
     }
     let mut result = stack?;
     let mut additional = 0;
@@ -557,13 +582,22 @@ pub fn offers_from_set(
     env: &TradeEnv<'_>,
     random: &mut impl RandomSource,
 ) -> Vec<MerchantOffer> {
+    offers_from_set_with(set, env, random, &mut NoMaps)
+}
+
+pub fn offers_from_set_with(
+    set: &TradeSet,
+    env: &TradeEnv<'_>,
+    random: &mut impl RandomSource,
+    maps: &mut impl MapSource,
+) -> Vec<MerchantOffer> {
     let mut pool: Vec<u16> = set.trades.to_vec();
     let mut offers = Vec::new();
     let mut accepted = 0;
     while accepted < set.amount && !pool.is_empty() {
         let index = random.next_int(pool.len() as i32) as usize;
         let trade = rspigot_data::trading::trade(pool[index]);
-        let offer = trade.and_then(|trade| build_offer(trade, env, random));
+        let offer = trade.and_then(|trade| build_offer_with(trade, env, random, maps));
         if set.allow_duplicates {
             match offer {
                 Some(offer) => {
@@ -643,6 +677,61 @@ mod tests {
         };
         let mut random = LegacyRandom::new(1);
         assert!(build_offer(trade, &jungle, &mut random).is_none());
+    }
+
+    struct Cartographer {
+        asked: Vec<ExplorationSpec>,
+        finds: bool,
+    }
+
+    impl MapSource for Cartographer {
+        fn explore(&mut self, spec: &ExplorationSpec, mut stack: ItemStack) -> ItemStack {
+            self.asked.push(spec.clone());
+            if self.finds {
+                stack.components.insert(MAP_ID, 41);
+            }
+            stack
+        }
+    }
+
+    #[test]
+    fn a_located_exploration_map_becomes_the_offer_with_the_datapack_costs() {
+        let trade = trade_named("minecraft:cartographer/3/emerald_and_compass_ocean_monument_map");
+        let mut maps = Cartographer {
+            asked: Vec::new(),
+            finds: true,
+        };
+        let mut random = LegacyRandom::new(1);
+        let offer = build_offer_with(trade, &env(), &mut random, &mut maps).unwrap();
+        assert_eq!(offer.result.item, ItemKind::OceanMonumentMap.id());
+        assert_eq!(offer.result.components.get_i32(MAP_ID), Some(41));
+        assert_eq!(offer.cost_a.item, ItemKind::Emerald.id());
+        assert_eq!(offer.cost_a.count, 13);
+        assert_eq!(offer.cost_b.as_ref().unwrap().item, ItemKind::Compass.id());
+        assert_eq!(offer.max_uses, 12);
+        assert_eq!(offer.xp, 10);
+        assert_eq!(
+            maps.asked,
+            vec![ExplorationSpec {
+                destination: "minecraft:on_ocean_monument_maps".to_owned(),
+                decoration: "minecraft:monument".to_owned(),
+                zoom: 2,
+                search_radius: 100,
+                skip_existing_chunks: true,
+            }]
+        );
+    }
+
+    #[test]
+    fn an_exploration_map_that_finds_nothing_discards_the_offer() {
+        let trade = trade_named("minecraft:cartographer/3/emerald_and_compass_ocean_monument_map");
+        let mut maps = Cartographer {
+            asked: Vec::new(),
+            finds: false,
+        };
+        let mut random = LegacyRandom::new(1);
+        assert!(build_offer_with(trade, &env(), &mut random, &mut maps).is_none());
+        assert_eq!(maps.asked.len(), 1);
     }
 
     #[test]

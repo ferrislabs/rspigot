@@ -7,6 +7,7 @@ pub mod entities;
 #[rustfmt::skip]
 mod generated;
 pub mod loot;
+pub mod map_colors;
 pub mod multi_noise;
 pub mod recipe_book;
 pub mod registries;

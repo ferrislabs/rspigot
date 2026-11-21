@@ -70,10 +70,11 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    pub(crate) fn persist_all_players(&self) {
+    pub(crate) fn persist_all_players(&mut self) {
         for player in self.players.values() {
             self.persist_player(player);
         }
+        self.save_maps();
     }
 
     pub(crate) fn announce_restored(&mut self, id: PlayerId, save: &PlayerSave) {

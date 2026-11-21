@@ -122,6 +122,7 @@ pub struct Server<L> {
     pub(crate) rng: StdRng,
     pub(crate) spawning: Spawning,
     pub(crate) raids: crate::raids::RaidRuntime,
+    pub(crate) maps: crate::map_items::MapRuntime,
     pub(crate) trial: crate::trial_spawner::TrialRuntime,
     pub(crate) scoreboard: crate::scoreboard::ScoreboardState,
     pub(crate) custom_bars: rspigot_domain::custom_boss::CustomBossBars,
@@ -239,6 +240,7 @@ impl<L: ClientLink> Server<L> {
             pending_queries: Vec::new(),
             spawning,
             raids: crate::raids::RaidRuntime::default(),
+            maps: crate::map_items::MapRuntime::default(),
             trial: crate::trial_spawner::TrialRuntime::default(),
             scoreboard: crate::scoreboard::ScoreboardState::default(),
             custom_bars: rspigot_domain::custom_boss::CustomBossBars::default(),
@@ -1212,6 +1214,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_trial_spawners();
         self.tick_vaults();
         self.tick_inventories();
+        self.tick_maps();
         if primary {
             self.players.extend(away.drain(..));
             self.tick_plugins();
@@ -1489,6 +1492,7 @@ impl<L: ClientLink> Server<L> {
         );
         self.handle_chunk_events();
         self.save_all_entities();
+        self.save_maps();
         self.save_raids();
         self.save_scoreboard();
         self.save_custom_boss_bars();

@@ -1860,7 +1860,10 @@ mod tests {
             chunk.sections()[0].blocks().single_value(),
             Some(state("minecraft:bedrock"))
         );
-        assert_eq!(chunk.sections()[0].biomes().single_value(), Some(biome(RIVER)));
+        assert_eq!(
+            chunk.sections()[0].biomes().single_value(),
+            Some(biome(RIVER))
+        );
         assert_eq!(chunk.sections()[1].block(0, 0, 0), BlockStateId::AIR);
         assert_eq!(chunk.sections()[1].block(1, 0, 0), state("minecraft:stone"));
         assert_ne!(chunk.sections()[1].block(2, 0, 0), BlockStateId::AIR);

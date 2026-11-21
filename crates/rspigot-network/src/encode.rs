@@ -1756,6 +1756,37 @@ impl Encoder {
                         .collect(),
                 },
             ),
+            ClientEvent::MapData(update) => Self::queue(
+                writer,
+                &rspigot_protocol::play::map::MapItemData {
+                    map_id: update.map_id,
+                    scale: update.scale as i8,
+                    locked: update.locked,
+                    decorations: update.decorations.as_ref().map(|decorations| {
+                        decorations
+                            .iter()
+                            .map(
+                                |decoration| rspigot_protocol::play::map::MapDecorationData {
+                                    decoration_type: i32::from(decoration.kind),
+                                    x: decoration.x,
+                                    y: decoration.y,
+                                    rot: decoration.rot,
+                                    name: decoration.name.as_ref().map(text),
+                                },
+                            )
+                            .collect()
+                    }),
+                    patch: update.patch.as_ref().map(|patch| {
+                        rspigot_protocol::play::map::MapPatch {
+                            start_x: patch.start_x,
+                            start_y: patch.start_y,
+                            width: patch.width,
+                            height: patch.height,
+                            colors: patch.colors.clone(),
+                        }
+                    }),
+                },
+            ),
             ClientEvent::Border(view) => Self::queue(
                 writer,
                 &cb::InitializeBorder {
@@ -3731,6 +3762,39 @@ mod tests {
             seed: 0,
         };
         assert!(encode(unknown).is_empty());
+    }
+
+    #[test]
+    fn map_data_golden_bytes() {
+        use rspigot_domain::map_data::{MapDecoration, MapPatch, MapUpdate};
+        let event = ClientEvent::MapData(MapUpdate {
+            map_id: 5,
+            scale: 1,
+            locked: false,
+            decorations: Some(vec![MapDecoration::new(0, 4, -4, 18, None)]),
+            patch: Some(MapPatch {
+                start_x: 2,
+                start_y: 3,
+                width: 1,
+                height: 2,
+                colors: vec![7, 8],
+            }),
+        });
+        assert_eq!(
+            encode(event),
+            vec![(
+                id::MAP_ITEM_DATA,
+                vec![5, 1, 0, 1, 1, 0, 4, 252, 2, 0, 1, 2, 2, 3, 2, 7, 8]
+            )]
+        );
+        let bare = ClientEvent::MapData(MapUpdate {
+            map_id: 5,
+            scale: 0,
+            locked: true,
+            decorations: None,
+            patch: None,
+        });
+        assert_eq!(encode(bare), vec![(id::MAP_ITEM_DATA, vec![5, 0, 1, 0, 0])]);
     }
 
     #[test]

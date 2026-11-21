@@ -2,6 +2,7 @@ use rspigot_items::{CookingKind, EquipmentSlot, ItemId, ItemKind};
 
 use crate::anvil;
 use crate::brewing;
+use crate::cartography;
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
 use crate::enchanting;
@@ -843,6 +844,9 @@ impl Session<'_> {
                 if self.kind == MenuKind::Loom && index < loom::INPUTS {
                     loom::refresh(self.container, &mut self.cutter.loom);
                 }
+                if self.kind == MenuKind::CartographyTable && index < cartography::INPUTS {
+                    self.refresh_cartography();
+                }
                 if self.kind == MenuKind::Smithing {
                     self.refresh_smithing(index != smithing::RESULT);
                 }
@@ -1024,6 +1028,13 @@ impl Session<'_> {
         self.anvil.only_renaming = outcome.only_renaming;
     }
 
+    fn refresh_cartography(&mut self) {
+        self.container[cartography::RESULT_SLOT] = cartography::result(
+            &self.container[cartography::MAP_SLOT],
+            &self.container[cartography::MATERIAL_SLOT],
+        );
+    }
+
     fn refresh_grindstone(&mut self) {
         self.container[grindstone::RESULT] = grindstone::compute(
             &self.container[grindstone::FIRST],
@@ -1129,6 +1140,18 @@ impl Session<'_> {
             if self.effects.last() != Some(&MenuEffect::StonecutterTaken) {
                 self.effects.push(MenuEffect::StonecutterTaken);
             }
+            return;
+        }
+        if self.kind == MenuKind::CartographyTable
+            && slot == cartography::RESULT_SLOT
+            && taken.is_some()
+        {
+            for index in [cartography::MAP_SLOT, cartography::MATERIAL_SLOT] {
+                if let Some(input) = self.container[index].take() {
+                    self.container[index] = with_count(&input, u32::from(input.count.get()) - 1);
+                }
+            }
+            self.refresh_cartography();
             return;
         }
         if self.kind == MenuKind::Loom && slot == loom::RESULT && taken.is_some() {
@@ -1408,6 +1431,7 @@ impl Session<'_> {
         } else if (self.kind.is_furnace() && slot == furnace::RESULT_SLOT)
             || (self.kind == MenuKind::Smithing && slot == smithing::RESULT)
             || (self.kind == MenuKind::Loom && slot == loom::RESULT)
+            || (self.kind == MenuKind::CartographyTable && slot == cartography::RESULT_SLOT)
             || (self.kind == MenuKind::Anvil && slot == anvil::RESULT)
             || (self.kind == MenuKind::Grindstone && slot == grindstone::RESULT)
         {
@@ -4579,6 +4603,125 @@ mod tests {
         assert_eq!(container[1].as_ref().map(|s| s.count.get()), Some(2));
         assert!(player.get(MAIN_START + 2).is_none());
         assert_eq!(player.get(HOTBAR_START).map(|s| s.count.get()), Some(2));
+    }
+
+    fn cartography_with(
+        map: ItemStack,
+        material: ItemStack,
+        facts: Vec<(i32, cartography::MapFacts)>,
+    ) -> (ContainerMenu, Vec<Slot>, Inventory) {
+        let (mut menu, mut container, mut player) = workstation(MenuKind::CartographyTable);
+        cartography::with_facts(facts, || {
+            for (target, item) in [(0, map), (1, material)] {
+                player.set(MAIN_START, Some(item));
+                click(
+                    &mut menu,
+                    &mut container,
+                    &mut player,
+                    3,
+                    0,
+                    ClickInput::Pickup,
+                );
+                click(
+                    &mut menu,
+                    &mut container,
+                    &mut player,
+                    target,
+                    0,
+                    ClickInput::Pickup,
+                );
+            }
+        });
+        (menu, container, player)
+    }
+
+    fn map_stack(id: i32, count: u8) -> ItemStack {
+        with_component(stack("minecraft:filled_map", count), "minecraft:map_id", id)
+    }
+
+    fn open_facts(locked: bool, scale: u8) -> Vec<(i32, cartography::MapFacts)> {
+        vec![(3, cartography::MapFacts { locked, scale })]
+    }
+
+    #[test]
+    fn the_cartography_result_follows_the_inputs() {
+        let (mut menu, mut container, mut player) = cartography_with(
+            map_stack(3, 1),
+            stack("minecraft:paper", 2),
+            open_facts(false, 1),
+        );
+        let zoomed = container[2].clone().expect("a zoomed map");
+        assert_eq!(
+            zoomed.components.get_str("minecraft:map_post_processing"),
+            Some("scale")
+        );
+        cartography::with_facts(open_facts(false, 1), || {
+            click(
+                &mut menu,
+                &mut container,
+                &mut player,
+                1,
+                0,
+                ClickInput::Pickup,
+            );
+        });
+        assert_eq!(container[2], None);
+    }
+
+    #[test]
+    fn taking_the_cartography_result_uses_one_map_and_one_material() {
+        let (mut menu, mut container, mut player) = cartography_with(
+            map_stack(3, 2),
+            stack("minecraft:map", 3),
+            open_facts(true, 2),
+        );
+        assert_eq!(container[2].as_ref().map(|s| s.count.get()), Some(2));
+        cartography::with_facts(open_facts(true, 2), || {
+            click(
+                &mut menu,
+                &mut container,
+                &mut player,
+                2,
+                0,
+                ClickInput::Pickup,
+            );
+        });
+        let held = menu.carried().clone().expect("the clones");
+        assert_eq!(held.count.get(), 2);
+        assert_eq!(held.components.get_i32("minecraft:map_id"), Some(3));
+        assert_eq!(container[0].as_ref().map(|s| s.count.get()), Some(1));
+        assert_eq!(container[1].as_ref().map(|s| s.count.get()), Some(2));
+        assert!(container[2].is_some());
+    }
+
+    #[test]
+    fn shift_clicking_the_cartography_result_consumes_the_inputs() {
+        let (mut menu, mut container, mut player) = cartography_with(
+            map_stack(3, 1),
+            stack("minecraft:glass_pane", 1),
+            open_facts(false, 0),
+        );
+        cartography::with_facts(open_facts(false, 0), || {
+            click(
+                &mut menu,
+                &mut container,
+                &mut player,
+                2,
+                0,
+                ClickInput::QuickMove,
+            );
+        });
+        assert_eq!(container[0], None);
+        assert_eq!(container[1], None);
+        assert_eq!(container[2], None);
+        let locked = (0..46)
+            .filter_map(|slot| player.get(slot))
+            .find(|s| s.item.kind() == Some(ItemKind::FilledMap))
+            .expect("the locked map");
+        assert_eq!(
+            locked.components.get_str("minecraft:map_post_processing"),
+            Some("lock")
+        );
     }
 
     #[test]

@@ -7,6 +7,7 @@ use rspigot_data::loot::{
     FunctionKind, IntProvider, ItemPredicate, Leaf, LootTable, NumberProvider, Output, Pool,
 };
 use rspigot_data::{registries, tags};
+use rspigot_domain::cartography::{self, ExplorationSpec, PENDING_EXPLORATION};
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::trade_gen;
 use rspigot_domain::item::ItemStack;
@@ -86,6 +87,7 @@ pub struct LootContext<'a> {
     pub day_time: Option<i64>,
     pub weather: Option<(bool, bool)>,
     pub blocks_at: &'a [([i32; 3], BlockStateId)],
+    pub exploration_maps: bool,
 }
 
 impl<'a> LootContext<'a> {
@@ -719,9 +721,28 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 }
                 stack.components.insert(key, held);
             }
-            FunctionKind::ExplorationMap => {}
+            FunctionKind::ExplorationMap {
+                destination,
+                decoration,
+                zoom,
+                search_radius,
+                skip_existing_chunks,
+            } => {
+                if self.context.exploration_maps && !stack.is_empty() {
+                    let spec = ExplorationSpec {
+                        destination: destination.to_owned(),
+                        decoration: decoration.to_owned(),
+                        zoom,
+                        search_radius,
+                        skip_existing_chunks,
+                    };
+                    cartography::mark_pending_exploration_in(&mut stack.components, &spec);
+                }
+            }
             FunctionKind::RequireMapId => {
-                if !stack.components.contains_key(MAP_ID) {
+                if !stack.components.contains_key(MAP_ID)
+                    && !stack.components.contains_key(PENDING_EXPLORATION)
+                {
                     stack.item = ItemId::AIR.0;
                     stack.count = 0;
                 }

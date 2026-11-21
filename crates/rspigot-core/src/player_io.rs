@@ -26,6 +26,14 @@ enum Job {
         file: ProgressFile,
         json: String,
     },
+    LoadData {
+        name: String,
+        reply: Sender<Result<Option<Compound>, StoreError>>,
+    },
+    SaveData {
+        name: String,
+        data: Compound,
+    },
 }
 
 pub struct PlayerIo {
@@ -85,6 +93,28 @@ impl PlayerIo {
         }
     }
 
+    pub fn load_saved_data(&self, name: &str) -> Result<Option<Compound>, StoreError> {
+        let (reply, answer) = bounded(1);
+        let closed = || std::io::Error::from(std::io::ErrorKind::BrokenPipe);
+        self.jobs
+            .send(Job::LoadData {
+                name: name.to_owned(),
+                reply,
+            })
+            .map_err(|_| closed())?;
+        answer.recv().map_err(|_| closed())?
+    }
+
+    pub fn save_saved_data(&self, name: &str, data: Compound) {
+        let job = Job::SaveData {
+            name: name.to_owned(),
+            data,
+        };
+        if self.jobs.send(job).is_err() {
+            tracing::warn!("Player data writer is gone, {name} was not saved");
+        }
+    }
+
     pub fn shutdown(self) {
         drop(self.jobs);
         if let Some(handle) = self.handle {
@@ -114,6 +144,14 @@ fn run<S: PlayerStore>(store: &S, inbox: &Receiver<Job>) {
             Job::SaveProgress { player, file, json } => {
                 if let Err(error) = store.save_progress(player, file, &json) {
                     tracing::warn!("Failed to save {file:?} for {player}: {error}");
+                }
+            }
+            Job::LoadData { name, reply } => {
+                let _ = reply.send(store.load_saved_data(&name));
+            }
+            Job::SaveData { name, data } => {
+                if let Err(error) = store.save_saved_data(&name, &data) {
+                    tracing::warn!("Failed to save {name}: {error}");
                 }
             }
         }

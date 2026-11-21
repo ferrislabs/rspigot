@@ -7,6 +7,7 @@ pub mod effect;
 pub mod entity;
 pub mod gaps;
 pub mod inventory;
+pub mod map;
 pub mod metadata;
 pub mod player;
 pub mod progress;
@@ -45,6 +46,7 @@ pub mod clientbound {
         RecipeBookRemove, RecipeBookSettings, RecipeDisplay, RecipeDisplayEntry, SetCursorItem,
         SetPlayerInventory, TradeCost, TradeOffer, UpdateRecipes,
     };
+    pub use super::map::{MapDecorationData, MapItemData, MapPatch};
     pub use super::metadata::SetEntityData;
     pub use super::player::{
         BundleDelimiter, ChangeDifficulty, Cooldown, Login, PlayerAbilities, PlayerInfoRemove,
