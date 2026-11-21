@@ -165,9 +165,14 @@ impl<L: ClientLink> Server<L> {
             this: Some(&this),
             luck: LOOT_LUCK,
             biome: biome.as_deref(),
+            exploration_maps: true,
             ..LootContext::default()
         };
         let stacks = loot::table_drops(table, &context, &mut StdRng::seed_from_u64(seed));
+        let stacks = match self.loot_origin(site) {
+            Some(origin) => self.resolve_loot_maps(origin, stacks),
+            None => stacks,
+        };
         let step = LootStep {
             site,
             player,
@@ -177,6 +182,13 @@ impl<L: ClientLink> Server<L> {
         self.trigger_loot_generated(player, &pending.table);
         self.offer_loot(step, pending.table);
         true
+    }
+
+    fn loot_origin(&self, site: LootSite) -> Option<Vec3> {
+        match site {
+            LootSite::Block(pos) => Some(pos.center()),
+            LootSite::Cargo(id) => Some(self.entities.store.get(id)?.base.position),
+        }
     }
 
     fn loot_biome(&self, site: LootSite) -> Option<String> {

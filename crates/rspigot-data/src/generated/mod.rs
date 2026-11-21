@@ -6,6 +6,7 @@ pub mod compostable;
 pub mod enchantment_effects;
 pub mod enchantments;
 pub mod loot;
+pub mod map_colors;
 pub mod multi_noise;
 pub mod recipe_book;
 pub mod spawns;

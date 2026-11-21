@@ -32804,7 +32804,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                     condition: None,
                                     kind: FunctionKind::Components("minecraft:set_name"),
                                 },
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_abandoned_camp_bamboo_jungle",
+                                        decoration: "minecraft:abandoned_camp",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -32824,7 +32833,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                     condition: None,
                                     kind: FunctionKind::Components("minecraft:set_name"),
                                 },
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_abandoned_camp_cherry_grove",
+                                        decoration: "minecraft:abandoned_camp",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -32844,7 +32862,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                     condition: None,
                                     kind: FunctionKind::Components("minecraft:set_name"),
                                 },
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_abandoned_camp_birch_forest",
+                                        decoration: "minecraft:abandoned_camp",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -32864,7 +32891,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                     condition: None,
                                     kind: FunctionKind::Components("minecraft:set_name"),
                                 },
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_abandoned_camp_dappled_forest",
+                                        decoration: "minecraft:abandoned_camp",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -32884,7 +32920,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                     condition: None,
                                     kind: FunctionKind::Components("minecraft:set_name"),
                                 },
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_abandoned_camp_flower_forest",
+                                        decoration: "minecraft:abandoned_camp",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -32904,7 +32949,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                     condition: None,
                                     kind: FunctionKind::Components("minecraft:set_name"),
                                 },
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_abandoned_camp_pale_garden",
+                                        decoration: "minecraft:abandoned_camp",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -32924,7 +32978,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                     condition: None,
                                     kind: FunctionKind::Components("minecraft:set_name"),
                                 },
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_abandoned_camp_swamp",
+                                        decoration: "minecraft:abandoned_camp",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -32944,7 +33007,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                     condition: None,
                                     kind: FunctionKind::Components("minecraft:set_name"),
                                 },
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_abandoned_camp_windswept_forest",
+                                        decoration: "minecraft:abandoned_camp",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -33215,7 +33287,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_ancient_city_maps",
+                                        decoration: "minecraft:ancient_city",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -33227,7 +33308,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_buried_trial_chambers_maps",
+                                        decoration: "minecraft:trial_chambers",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -33239,7 +33329,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_mineshaft_maps",
+                                        decoration: "minecraft:mineshaft",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -33251,7 +33350,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_desert_pyramid_maps",
+                                        decoration: "minecraft:desert_pyramid",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -33263,7 +33371,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_jungle_pyramid_maps",
+                                        decoration: "minecraft:jungle_temple",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -33275,7 +33392,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_ocean_ruin_warm_maps",
+                                        decoration: "minecraft:ocean_ruin_warm",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -33287,7 +33413,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_woodland_mansion_maps",
+                                        decoration: "minecraft:mansion",
+                                        zoom: 2,
+                                        search_radius: 50,
+                                        skip_existing_chunks: true,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -38428,7 +38563,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                     entries: &[Entry {
                         condition: None,
                         modifier: &[
-                            Function { condition: None, kind: FunctionKind::ExplorationMap },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::ExplorationMap {
+                                    destination: "minecraft:on_treasure_maps",
+                                    decoration: "minecraft:red_x",
+                                    zoom: 1,
+                                    search_radius: 50,
+                                    skip_existing_chunks: false,
+                                },
+                            },
                             Function { condition: None, kind: FunctionKind::RequireMapId },
                         ],
                         kind: EntryKind::Leaf(Leaf {
@@ -42265,7 +42409,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_treasure_maps",
+                                        decoration: "minecraft:red_x",
+                                        zoom: 1,
+                                        search_radius: 50,
+                                        skip_existing_chunks: false,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -42477,7 +42630,16 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         Entry {
                             condition: None,
                             modifier: &[
-                                Function { condition: None, kind: FunctionKind::ExplorationMap },
+                                Function {
+                                    condition: None,
+                                    kind: FunctionKind::ExplorationMap {
+                                        destination: "minecraft:on_treasure_maps",
+                                        decoration: "minecraft:red_x",
+                                        zoom: 1,
+                                        search_radius: 50,
+                                        skip_existing_chunks: false,
+                                    },
+                                },
                                 Function { condition: None, kind: FunctionKind::RequireMapId },
                             ],
                             kind: EntryKind::Leaf(Leaf {

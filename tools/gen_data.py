@@ -1283,8 +1283,16 @@ class LootBuilder:
                 {"type", "condition", "decoration", "destination", "zoom", "skip_existing_chunks", "search_radius"},
                 self.where,
             )
-            self.note_ignored(kind)
-            body = Atom("FunctionKind::ExplorationMap")
+            body = rs_struct(
+                "FunctionKind::ExplorationMap",
+                [
+                    ("destination", rs_str(normalize_id(value["destination"][1:]))),
+                    ("decoration", rs_str(normalize_id(value.get("decoration", "minecraft:mansion")))),
+                    ("zoom", rs_int(value.get("zoom", 2))),
+                    ("search_radius", rs_int(value.get("search_radius", 50))),
+                    ("skip_existing_chunks", rs_bool(value.get("skip_existing_chunks", True))),
+                ],
+            )
         elif kind == "minecraft:filtered":
             expect_keys(value, {"type", "condition", "item_filter", "on_fail"}, self.where)
             if value["on_fail"] != {"type": "minecraft:discard"}:
@@ -3012,6 +3020,7 @@ def emit_mod():
             "pub mod enchantment_effects;",
             "pub mod enchantments;",
             "pub mod loot;",
+            "pub mod map_colors;",
             "pub mod multi_noise;",
             "pub mod recipe_book;",
             "pub mod spawns;",

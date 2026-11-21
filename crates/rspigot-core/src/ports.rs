@@ -89,6 +89,14 @@ pub trait PlayerStore: Send + Sync + 'static {
     fn load_player(&self, player: PlayerId) -> Result<Option<Compound>, StoreError>;
     fn save_player(&self, player: PlayerId, data: &Compound) -> Result<(), StoreError>;
 
+    fn load_saved_data(&self, _name: &str) -> Result<Option<Compound>, StoreError> {
+        Ok(None)
+    }
+
+    fn save_saved_data(&self, _name: &str, _data: &Compound) -> Result<(), StoreError> {
+        Ok(())
+    }
+
     fn load_progress(
         &self,
         _player: PlayerId,

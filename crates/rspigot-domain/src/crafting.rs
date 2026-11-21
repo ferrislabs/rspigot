@@ -4,6 +4,7 @@ use std::sync::OnceLock;
 use rspigot_items::{Craft, FireworkShapes, ItemKind, ItemSet, Product, ProductComponent};
 use rspigot_nbt::{Compound, Tag};
 
+use crate::cartography;
 use crate::dye::{DYE_COLORS, of_dye_item};
 use crate::item::{ItemStack, Slot, count, same_item_same_components, with_count};
 use crate::plugin_recipes::{self, Body, PluginRecipe};
@@ -176,6 +177,7 @@ fn matches(owner: ItemKind, craft: &Craft, input: &Input) -> bool {
         Craft::Imbue {
             source, material, ..
         } => imbuable(source, material, input).is_some(),
+        Craft::MapExtending { map, material, .. } => extendable_map(map, material, input).is_some(),
         Craft::BookCloning {
             source, material, ..
         } => input.filled >= 2 && cloning(source, material, input).is_some(),
@@ -726,6 +728,20 @@ fn imbuable<'a>(source: ItemSet, material: ItemSet, input: &Input<'a>) -> Option
     others.then_some(potion)
 }
 
+fn extendable_map<'a>(map: ItemSet, material: ItemSet, input: &Input<'a>) -> Option<&'a ItemStack> {
+    if input.filled != 9 || input.width != 3 || input.height != 3 {
+        return None;
+    }
+    let found = input.cells[4].filter(|stack| map.contains(stack.item))?;
+    let ring = input
+        .cells
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| *index != 4)
+        .all(|(_, cell)| cell.is_some_and(|stack| material.contains(stack.item)));
+    (ring && cartography::facts_of(found)?.extendable()).then_some(found)
+}
+
 struct Cloning<'a> {
     source: &'a ItemStack,
     generation: i32,
@@ -940,6 +956,9 @@ fn assemble(owner: ItemKind, craft: &Craft, input: &Input) -> Slot {
                 count: NonZeroU8::new(count)?,
                 components,
             })
+        }
+        Craft::MapExtending { map, material, .. } => {
+            cartography::extended(extendable_map(map, material, input)?)
         }
         Craft::BookCloning {
             source, material, ..
@@ -2156,6 +2175,36 @@ mod tests {
             None
         );
         assert_eq!(crafted(3, 3, &[(1, ItemKind::BlackDye, 1)]), None);
+    }
+
+    #[test]
+    fn a_paper_ring_around_an_extendable_map_makes_a_pending_zoom() {
+        let mut filled = ItemStack::new(ItemKind::FilledMap.id(), NonZeroU8::MIN);
+        filled.components.insert("minecraft:map_id", 7);
+        let mut slots = vec![stack(ItemKind::Paper, 1); 9];
+        slots[4] = Some(filled);
+        let facts = |locked, scale| vec![(7, cartography::MapFacts { locked, scale })];
+        let zoomed = cartography::with_facts(facts(false, 2), || result(3, 3, &slots))
+            .expect("a zoomed map");
+        assert_eq!(zoomed.item, ItemKind::FilledMap.id());
+        assert_eq!(zoomed.count.get(), 1);
+        assert_eq!(zoomed.components.get_i32("minecraft:map_id"), Some(7));
+        assert_eq!(
+            zoomed.components.get_str("minecraft:map_post_processing"),
+            Some("scale")
+        );
+        assert_eq!(result(3, 3, &slots), None);
+        for (locked, scale) in [(false, 4), (true, 1)] {
+            assert_eq!(
+                cartography::with_facts(facts(locked, scale), || result(3, 3, &slots)),
+                None
+            );
+        }
+        slots[0] = None;
+        assert_eq!(
+            cartography::with_facts(facts(false, 2), || result(3, 3, &slots)),
+            None
+        );
     }
 
     #[test]

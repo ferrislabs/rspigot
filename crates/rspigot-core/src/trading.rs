@@ -1,3 +1,5 @@
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rspigot_data::trading as data;
 use rspigot_domain::container_menu::{ContainerMenu, MenuKind};
 use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
@@ -16,6 +18,7 @@ use rspigot_entities::EntityKind as Kind;
 use crate::advancements::AdvancementEvent;
 use crate::containers::{Backing, Lid, OpenMenu};
 use crate::events::{ClientEvent, EntityStatus};
+use crate::explorer_maps::Explorer;
 use crate::interact::{Interaction, box_distance_squared};
 use crate::mobs::ServerRandom;
 use crate::plugins::events::{
@@ -182,7 +185,22 @@ impl<L: ClientLink> Server<L> {
         };
         let variant = self.villager_type_name(id);
         let env = TradeEnv { variant };
-        let generated = trade_gen::offers_from_set(set, &env, &mut ServerRandom(&mut self.rng));
+        let origin = self
+            .entities
+            .store
+            .get(id)
+            .map_or_else(rspigot_domain::Vec3::default, |entity| entity.base.position);
+        let mut rng = std::mem::replace(&mut self.rng, StdRng::seed_from_u64(0));
+        let generated = trade_gen::offers_from_set_with(
+            set,
+            &env,
+            &mut ServerRandom(&mut rng),
+            &mut Explorer {
+                server: self,
+                origin,
+            },
+        );
+        self.rng = rng;
         for offer in generated {
             if set.allow_duplicates {
                 self.push_offer(id, offer);
