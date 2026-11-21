@@ -21,6 +21,8 @@ TEMPLATE_GROUPS = (
     "minecraft:underwater_ruin/",
     "minecraft:igloo/",
     "minecraft:nether_fossils/",
+    "minecraft:woodland_mansion/",
+    "minecraft:end_city/",
 )
 EMBEDDED_GROUPS = (
     "minecraft:village/",
@@ -30,8 +32,18 @@ EMBEDDED_GROUPS = (
     "minecraft:underwater_ruin/",
     "minecraft:igloo/",
     "minecraft:nether_fossils/",
+    "minecraft:woodland_mansion/",
+    "minecraft:end_city/",
 )
-SHAPED_FOLDERS = ("ruined_portal", "shipwreck", "underwater_ruin", "igloo", "nether_fossils")
+SHAPED_FOLDERS = (
+    "ruined_portal",
+    "shipwreck",
+    "underwater_ruin",
+    "igloo",
+    "nether_fossils",
+    "woodland_mansion",
+    "end_city",
+)
 PACK_NAME = "vanilla-extras"
 PACK_MCMETA = {"pack": {"description": "Vanilla jigsaw structures that rspigot does not embed", "pack_format": 121}}
 DEFAULT_STRUCTURES = os.path.join(DATA, "structures.json")
