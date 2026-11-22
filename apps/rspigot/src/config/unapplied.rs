@@ -8,26 +8,10 @@ struct Property {
     default: &'static str,
 }
 
-const PROPERTIES: [Property; 14] = [
-    Property {
-        key: "generate-structures",
-        default: "true",
-    },
+const PROPERTIES: [Property; 9] = [
     Property {
         key: "max-world-size",
         default: "29999984",
-    },
-    Property {
-        key: "rate-limit",
-        default: "0",
-    },
-    Property {
-        key: "chat-spam-threshold-seconds",
-        default: "10",
-    },
-    Property {
-        key: "command-spam-threshold-seconds",
-        default: "10",
     },
     Property {
         key: "broadcast-console-to-ops",
@@ -56,10 +40,6 @@ const PROPERTIES: [Property; 14] = [
     Property {
         key: "max-chained-neighbor-updates",
         default: "1000000",
-    },
-    Property {
-        key: "enable-code-of-conduct",
-        default: "false",
     },
     Property {
         key: "debug",
@@ -126,6 +106,132 @@ const SPIGOT_NUMBERS: [Number; 10] = [
     },
 ];
 
+#[derive(Clone, Copy)]
+enum Source {
+    Bukkit,
+    Spigot,
+}
+
+struct Scalar {
+    source: Source,
+    path: &'static str,
+    default: &'static str,
+    reason: &'static str,
+}
+
+const fn bukkit(path: &'static str, default: &'static str, reason: &'static str) -> Scalar {
+    Scalar {
+        source: Source::Bukkit,
+        path,
+        default,
+        reason,
+    }
+}
+
+const fn spigot(path: &'static str, default: &'static str, reason: &'static str) -> Scalar {
+    Scalar {
+        source: Source::Spigot,
+        path,
+        default,
+        reason,
+    }
+}
+
+const SCALARS: [Scalar; 17] = [
+    bukkit(
+        "settings.update-folder",
+        "update",
+        "plugins run out of process, there is no update folder",
+    ),
+    bukkit(
+        "settings.plugin-profiling",
+        "false",
+        "plugin timings come from the plugin host",
+    ),
+    bukkit(
+        "settings.query-plugins",
+        "true",
+        "the query plugin list is always empty, plugins run out of process",
+    ),
+    bukkit(
+        "settings.deprecated-verbose",
+        "default",
+        "there is no Bukkit API compatibility layer to report on",
+    ),
+    bukkit(
+        "settings.minimum-api",
+        "none",
+        "there is no Bukkit API compatibility layer to gate",
+    ),
+    bukkit(
+        "settings.use-map-color-cache",
+        "true",
+        "map colors are computed without a cache",
+    ),
+    bukkit(
+        "chunk-gc.period-in-ticks",
+        "600",
+        "chunks unload after a fixed delay",
+    ),
+    spigot(
+        "settings.restart-on-crash",
+        "true",
+        "a crash ends the process, restart-script only runs on /restart",
+    ),
+    spigot(
+        "settings.player-shuffle",
+        "0",
+        "players are always ticked in a fixed order",
+    ),
+    spigot(
+        "settings.moved-wrongly-threshold",
+        "0.0625",
+        "there is no server-side moved-wrongly check",
+    ),
+    spigot(
+        "settings.log-villager-deaths",
+        "true",
+        "villager deaths are not logged",
+    ),
+    spigot(
+        "settings.log-named-deaths",
+        "true",
+        "named mob deaths are not logged",
+    ),
+    spigot(
+        "commands.send-namespaced",
+        "true",
+        "namespaced command aliases are always listed",
+    ),
+    spigot(
+        "commands.silent-commandblock-console",
+        "false",
+        "command block output is governed by the command_block_output gamerule",
+    ),
+    spigot(
+        "world-settings.default.below-zero-generation-in-existing-chunks",
+        "true",
+        "world generation never revisits existing chunks",
+    ),
+    spigot(
+        "world-settings.default.trident-despawn-rate",
+        "1200",
+        "trident despawn time is fixed at 1200 ticks",
+    ),
+    spigot(
+        "world-settings.default.max-tick-time.tile",
+        "50",
+        "there is no per-entity tick watchdog",
+    ),
+];
+
+fn scalar_differs(value: &str, default: &str) -> bool {
+    match (value.parse::<f64>(), default.parse::<f64>()) {
+        (Ok(value), Ok(default)) => differs(value, default),
+        _ => !value.eq_ignore_ascii_case(default),
+    }
+}
+
 fn differs(value: f64, default: f64) -> bool {
     (value - default).abs() > 1e-9
 }
@@ -152,6 +258,22 @@ pub fn warnings(files: &ServerFiles) -> Vec<String> {
             ));
         }
     }
+    for scalar in &SCALARS {
+        let config = match scalar.source {
+            Source::Bukkit => &files.bukkit,
+            Source::Spigot => &files.spigot,
+        };
+        if scalar_differs(&config.string(scalar.path, scalar.default), scalar.default) {
+            let file = match scalar.source {
+                Source::Bukkit => "bukkit.yml",
+                Source::Spigot => "spigot.yml",
+            };
+            found.push(format!(
+                "{file} key \"{}\" is read but has no effect in rspigot: {}",
+                scalar.path, scalar.reason
+            ));
+        }
+    }
     found
 }
 
@@ -161,6 +283,10 @@ mod tests {
     use crate::config::{BUKKIT_DEFAULTS, Properties, SPIGOT_DEFAULTS, YamlConfig};
 
     fn files(properties: &str, spigot: &str) -> ServerFiles {
+        files_with_bukkit(properties, spigot, "{}")
+    }
+
+    fn files_with_bukkit(properties: &str, spigot: &str, bukkit: &str) -> ServerFiles {
         fn deep(root: &mut serde_yaml_ng::Value, user: serde_yaml_ng::Value) {
             match (root, user) {
                 (serde_yaml_ng::Value::Mapping(root), serde_yaml_ng::Value::Mapping(user)) => {
@@ -185,7 +311,7 @@ mod tests {
         ServerFiles {
             properties: Properties::parse(properties),
             spigot: merged(spigot, SPIGOT_DEFAULTS),
-            bukkit: merged("{}", BUKKIT_DEFAULTS),
+            bukkit: merged(bukkit, BUKKIT_DEFAULTS),
             plugins: YamlConfig::from_str(super::super::PLUGINS_DEFAULTS).unwrap(),
         }
     }
@@ -227,6 +353,25 @@ mod tests {
             let found = warnings(&defaults_with(&text));
             assert_eq!(found.len(), 1, "{}", number.path);
             assert!(found[0].contains(number.path), "{}", number.path);
+        }
+    }
+
+    #[test]
+    fn every_ignored_yaml_key_names_its_file_and_path_when_changed() {
+        for scalar in &SCALARS {
+            let tree = nest(scalar.path, "changed-value".into());
+            let text = serde_yaml_ng::to_string(&tree).unwrap();
+            let (spigot, bukkit) = match scalar.source {
+                Source::Spigot => (text.as_str(), "{}"),
+                Source::Bukkit => ("{}", text.as_str()),
+            };
+            let mut files = files_with_bukkit("", spigot, bukkit);
+            for (key, value) in super::super::properties::DEFAULTS {
+                files.properties.set(key, value);
+            }
+            let found = warnings(&files);
+            assert_eq!(found.len(), 1, "{}", scalar.path);
+            assert!(found[0].contains(scalar.path), "{}", scalar.path);
         }
     }
 

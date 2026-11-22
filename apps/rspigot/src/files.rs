@@ -9,6 +9,7 @@ use rspigot_core::admin::{
 };
 use rspigot_core::events::Inbound;
 use rspigot_core::reload::{ReloadData, ReloadRequest};
+use rspigot_core::user_cache::{CachedProfile, UserCache};
 use rspigot_network::NetLink;
 use uuid::Uuid;
 
@@ -221,6 +222,70 @@ pub fn spawn_admin_writer(root: PathBuf, updates: Receiver<AdminLists>) {
     }
 }
 
+const USER_CACHE_FILE: &str = "usercache.json";
+
+pub fn read_user_cache(root: &Path, limit: usize) -> UserCache {
+    let entries = read_entries(&root.join(USER_CACHE_FILE))
+        .iter()
+        .filter_map(|entry| {
+            let name = entry.get("name").and_then(Value::as_str)?.to_owned();
+            let uuid = Uuid::parse_str(entry.get("uuid").and_then(Value::as_str)?).ok()?;
+            let expires = entry
+                .get("expiresOn")
+                .and_then(Value::as_str)
+                .and_then(parse_date)?;
+            Some(CachedProfile {
+                name,
+                uuid,
+                expires,
+            })
+        })
+        .take(limit)
+        .collect();
+    UserCache::new(entries, limit)
+}
+
+fn write_user_cache(root: &Path, entries: &[CachedProfile]) -> std::io::Result<()> {
+    let values = entries
+        .iter()
+        .filter_map(|entry| {
+            let mut object = Map::new();
+            object.insert("name".to_owned(), Value::String(entry.name.clone()));
+            object.insert(
+                "uuid".to_owned(),
+                Value::String(entry.uuid.hyphenated().to_string()),
+            );
+            object.insert(
+                "expiresOn".to_owned(),
+                Value::String(format_date(entry.expires)?),
+            );
+            Some(Value::Object(object))
+        })
+        .collect();
+    write_json(&root.join(USER_CACHE_FILE), values)
+}
+
+pub fn save_user_cache(root: &Path, cache: &UserCache) {
+    if let Err(error) = write_user_cache(root, &cache.snapshot()) {
+        tracing::error!(%error, "could not save usercache.json");
+    }
+}
+
+pub fn spawn_user_cache_writer(root: PathBuf, updates: Receiver<Vec<CachedProfile>>) {
+    let spawned = std::thread::Builder::new()
+        .name("user-cache".to_owned())
+        .spawn(move || {
+            for entries in updates {
+                if let Err(error) = write_user_cache(&root, &entries) {
+                    tracing::error!(%error, "could not save usercache.json");
+                }
+            }
+        });
+    if let Err(error) = spawned {
+        tracing::error!(%error, "user cache writer failed to start");
+    }
+}
+
 pub fn read_favicon(root: &Path) -> Option<String> {
     let bytes = std::fs::read(root.join("server-icon.png")).ok()?;
     if bytes.len() < 24 || &bytes[..8] != b"\x89PNG\r\n\x1a\n" {
@@ -254,6 +319,24 @@ mod tests {
         bytes.extend_from_slice(&width.to_be_bytes());
         bytes.extend_from_slice(&height.to_be_bytes());
         bytes
+    }
+
+    #[test]
+    fn the_user_cache_round_trips_through_usercache_json() {
+        let dir = tempfile::tempdir().unwrap();
+        let entries = vec![CachedProfile {
+            name: "Alice".to_owned(),
+            uuid: Uuid::from_u128(7),
+            expires: UNIX_EPOCH + Duration::from_secs(1_800_000_000),
+        }];
+        write_user_cache(dir.path(), &entries).unwrap();
+        let text = std::fs::read_to_string(dir.path().join("usercache.json")).unwrap();
+        assert!(text.contains("\"expiresOn\": \"2027-01-15 08:00:00 +0000\""));
+        assert_eq!(read_user_cache(dir.path(), 1000).snapshot(), entries);
+        assert!(read_user_cache(dir.path(), 0).snapshot().is_empty());
+        let other = tempfile::tempdir().unwrap();
+        save_user_cache(other.path(), &read_user_cache(dir.path(), 1000));
+        assert_eq!(read_user_cache(other.path(), 1000).snapshot(), entries);
     }
 
     #[test]

@@ -6,7 +6,7 @@ use crate::player_data::PlayerSave;
 use crate::player_io::PlayerIo;
 use crate::ports::{ClientLink, ProgressFile};
 use crate::server::Server;
-use crate::stats::PlayerStats;
+use crate::stats::{PlayerStats, StatKind};
 use rspigot_domain::player::PlayerId;
 
 impl<L: ClientLink> Server<L> {
@@ -29,6 +29,15 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn load_stats(&self, id: PlayerId) -> PlayerStats {
+        let mut stats = self.read_stats(id);
+        for (key, value) in &self.config.forced_stats {
+            let current = stats.get(StatKind::Custom, key);
+            stats.add(StatKind::Custom, key, value.saturating_sub(current));
+        }
+        stats
+    }
+
+    fn read_stats(&self, id: PlayerId) -> PlayerStats {
         let Some(io) = &self.player_io else {
             return PlayerStats::default();
         };
@@ -60,13 +69,19 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn persist_player(&self, player: &Player<L>) {
         if let Some(io) = &self.player_io {
-            io.save(player.id, PlayerSave::capture(player).to_nbt());
-            io.save_progress(player.id, ProgressFile::Stats, player.stats.to_json());
-            io.save_progress(
-                player.id,
-                ProgressFile::Advancements,
-                player.advancements.to_json(),
-            );
+            if self.config.save_players {
+                io.save(player.id, PlayerSave::capture(player).to_nbt());
+            }
+            if self.config.save_stats {
+                io.save_progress(player.id, ProgressFile::Stats, player.stats.to_json());
+            }
+            if self.config.save_advancements {
+                io.save_progress(
+                    player.id,
+                    ProgressFile::Advancements,
+                    player.advancements.to_json(),
+                );
+            }
         }
     }
 

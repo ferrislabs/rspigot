@@ -357,16 +357,18 @@ impl<L: ClientLink> Server<L> {
         }
         match (&player.name, player.id) {
             (Some(name), id) => {
-                let mut entry = ListEntry::named(name);
-                entry.uuid = id;
+                let mut entry = self.offline_entry(name);
+                if id.is_some() {
+                    entry.uuid = id;
+                }
                 Ok(entry)
             }
-            (None, Some(id)) => Ok(ListEntry {
+            (None, Some(id)) => Ok(self.offline_entry_of(id).unwrap_or_else(|| ListEntry {
                 name: id.to_string(),
                 uuid: Some(id),
                 level: None,
                 bypasses_player_limit: false,
-            }),
+            })),
             (None, None) => Err(ManagementFault::InvalidParams(
                 "A player needs an id or a name".to_owned(),
             )),

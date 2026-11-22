@@ -33,6 +33,7 @@ static NEXT_SESSION: AtomicU64 = AtomicU64::new(1);
 #[derive(Clone, Default)]
 pub struct Link {
     events: Arc<Mutex<Vec<ClientEvent>>>,
+    raw: Arc<Mutex<Vec<ClientEvent>>>,
     closed: Arc<AtomicBool>,
     reason: Arc<Mutex<Option<Component>>>,
 }
@@ -45,6 +46,13 @@ impl Link {
             .unwrap_or_default()
     }
 
+    pub fn take_raw(&self) -> Vec<ClientEvent> {
+        self.raw
+            .lock()
+            .map(|mut e| std::mem::take(&mut *e))
+            .unwrap_or_default()
+    }
+
     pub fn disconnected_with(&self) -> Option<Component> {
         self.reason.lock().ok().and_then(|reason| reason.clone())
     }
@@ -52,8 +60,11 @@ impl Link {
 
 impl ClientLink for Link {
     fn send(&self, event: ClientEvent) {
+        if let Ok(mut raw) = self.raw.lock() {
+            raw.push(event.clone());
+        }
         if let Ok(mut events) = self.events.lock() {
-            events.push(event);
+            events.extend(event.expanded());
         }
     }
 

@@ -454,8 +454,20 @@ impl<L: ClientLink> Server<L> {
             .unwrap_or_default()
     }
 
+    pub(crate) fn advancement_disabled(&self, id: &str) -> bool {
+        self.config.disabled_advancements.iter().any(|pattern| {
+            pattern == "*"
+                || pattern
+                    .strip_suffix('*')
+                    .map_or(pattern == id, |prefix| id.starts_with(prefix))
+        })
+    }
+
     pub(crate) fn award_criterion(&mut self, id: PlayerId, index: usize, criterion: &'static str) {
         let found = &advancements::all()[index];
+        if self.advancement_disabled(found.id) {
+            return;
+        }
         let Some(player) = self.players.get(&id) else {
             return;
         };

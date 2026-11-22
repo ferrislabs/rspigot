@@ -347,8 +347,10 @@ impl<L: ClientLink> Server<L> {
                     rotation: None,
                     platform: false,
                 }
-            } else {
+            } else if self.config.allow_end {
                 Destination::end_spawn()
+            } else {
+                continue;
             };
             match traveler {
                 Traveler::Player(id) => self.change_dimension(
@@ -593,6 +595,17 @@ mod tests {
         server.deliver();
         assert_eq!(server.players[&id].dim, overworld());
         assert_eq!(server.players[&id].position, server.world.spawn);
+    }
+
+    #[test]
+    fn a_disabled_end_keeps_the_player_in_the_world() {
+        let (mut server, id) = arrive();
+        server.config.allow_end = false;
+        open(&mut server);
+        walk_in(&mut server, id);
+        server.tick();
+        server.deliver();
+        assert_eq!(server.players[&id].dim, overworld());
     }
 
     #[test]

@@ -16,6 +16,7 @@ use rspigot_domain::{BlockPos, EntityId, ItemId, Rotation, Vec3};
 use rspigot_nbt::Tag;
 use rspigot_protocol::codec::{Position, decode_string};
 use rspigot_protocol::common::ResourcePackAction;
+use rspigot_protocol::configuration::ServerboundConfiguration;
 use rspigot_protocol::play::ServerboundPlay;
 use rspigot_protocol::play::gaps::{
     StructureMirror as WireMirror, StructureMode as WireStructureMode,
@@ -71,6 +72,25 @@ fn tag_json(tag: &Tag) -> serde_json::Value {
 
 const BRAND_CHANNEL: &str = "minecraft:brand";
 const MAX_BRAND_CHARS: usize = 32_767;
+
+pub(crate) fn configuration_input(packet: ServerboundConfiguration) -> Option<PlayerInput> {
+    match packet {
+        ServerboundConfiguration::CookieResponse(p) => Some(PlayerInput::CookieResponse {
+            key: p.key.as_str().to_owned(),
+            payload: p.payload,
+        }),
+        ServerboundConfiguration::CustomClickAction(p) => Some(PlayerInput::CustomClick {
+            id: p.id.to_string(),
+            data: p.payload.as_ref().map(|tag| tag_json(tag).to_string()),
+        }),
+        ServerboundConfiguration::CustomPayload(p) if p.channel.as_str() == BRAND_CHANNEL => {
+            decode_string(&mut p.data.as_slice(), MAX_BRAND_CHARS)
+                .ok()
+                .map(PlayerInput::ClientBrand)
+        }
+        _ => None,
+    }
+}
 
 pub enum Decoded {
     Input(PlayerInput),
@@ -543,6 +563,9 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             entity: EntityId(p.entity_id),
             include_data: p.include_data,
         }),
+        ServerboundPlay::SpectatorAction(p) => input(PlayerInput::SpectatorAction(
+            p.spectate_entity_id.map(EntityId),
+        )),
         ServerboundPlay::KeepAlive(p) => Decoded::KeepAlive(p.id),
         ServerboundPlay::PingRequest(p) => Decoded::Ping(p.time),
         _ => Decoded::Ignored,
@@ -985,6 +1008,19 @@ mod tests {
                 id: uuid::Uuid::from_u128(7),
                 status: ResourcePackStatus::Declined,
             }
+        );
+    }
+
+    #[test]
+    fn a_spectator_action_names_its_entity_or_none() {
+        use rspigot_protocol::ids::play::serverbound as sb;
+        assert_eq!(
+            decoded(sb::SPECTATOR_ACTION, &[6]),
+            PlayerInput::SpectatorAction(Some(EntityId(5)))
+        );
+        assert_eq!(
+            decoded(sb::SPECTATOR_ACTION, &[0]),
+            PlayerInput::SpectatorAction(None)
         );
     }
 

@@ -55,7 +55,7 @@ pub enum CommandOutcome {
     Denied,
 }
 
-pub trait CommandContext {
+pub trait CommandContext: super::surface::Surface {
     fn reply(&mut self, sender: CommandSender, message: Component);
     fn broadcast(&mut self, message: Component);
     fn permission_level(&self, sender: CommandSender) -> u8;
@@ -792,6 +792,10 @@ pub fn execute<C: CommandContext>(
     if !super::permission::may_use(&label, level) {
         return refuse(ctx, sender, line);
     }
+    if let Some(error) = super::named::check_line(ctx, line) {
+        ctx.reply(sender, error);
+        return CommandOutcome::Failure;
+    }
     let rest = line
         .split_once(char::is_whitespace)
         .map_or("", |(_, r)| r.trim());
@@ -838,17 +842,7 @@ pub fn execute<C: CommandContext>(
             );
             CommandOutcome::Success
         }
-        "me" => {
-            let name = ctx.sender_name(sender);
-            ctx.broadcast(Component::text(format!("* {name} {rest}")));
-            CommandOutcome::Success
-        }
-        "say" => {
-            let name = ctx.sender_name(sender);
-            ctx.broadcast(Component::text(format!("[{name}] {rest}")));
-            CommandOutcome::Success
-        }
-        "msg" | "tell" | "w" => private_message(ctx, sender, &args),
+        "me" | "say" | "msg" | "tell" | "w" => super::chat_commands::run(ctx, sender, &label, rest),
         "gamemode" => gamemode(ctx, sender, &args),
         "tp" | "teleport" => teleport(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
         "execute" => super::execute::run(ctx, sender, rest),
@@ -891,6 +885,11 @@ pub fn execute<C: CommandContext>(
         }
         "advancement" | "recipe" | "item" | "loot" | "waypoint" | "stopwatch" | "locate"
         | "place" => super::game_commands::run(ctx, sender, &label, rest),
+        "dialog" | "publish" | "unpublish" | "jfr" | "perf" | "posteffect" | "fetchprofile" => {
+            super::surface_commands::run(ctx, sender, &label, rest)
+        }
+        "compute" => super::compute::run(ctx, sender, rest),
+        "test" => super::test_commands::run(ctx, sender, rest),
         "bossbar" => super::boss_commands::run(ctx, sender, rest),
         "scoreboard" | "trigger" => super::scoreboard_commands::run(ctx, sender, &label, rest),
         "team" | "teammsg" | "tm" => super::team_commands::run(ctx, sender, &label, rest),
@@ -1041,35 +1040,6 @@ fn list<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome
                 Component::text(names.join(", ")),
             ],
         ),
-    );
-    CommandOutcome::Success
-}
-
-fn private_message<C: CommandContext>(
-    ctx: &mut C,
-    sender: CommandSender,
-    args: &[&str],
-) -> CommandOutcome {
-    if args.len() < 2 {
-        return usage(ctx, sender, "/msg <player> <message>");
-    }
-    let Some(target) = ctx.find_player(args[0]) else {
-        return not_found(ctx, sender);
-    };
-    let from = ctx.sender_name(sender);
-    let to = ctx.player_name(target).unwrap_or_default();
-    let message = args[1..].join(" ");
-    ctx.reply(
-        CommandSender::Player(target),
-        Component::text(format!("{from} whispers to you: {message}"))
-            .color(NamedColor::Gray)
-            .italic(true),
-    );
-    ctx.reply(
-        sender,
-        Component::text(format!("You whisper to {to}: {message}"))
-            .color(NamedColor::Gray)
-            .italic(true),
     );
     CommandOutcome::Success
 }
@@ -2413,6 +2383,8 @@ mod tests {
     fn alice() -> PlayerId {
         PlayerId::offline("Alice")
     }
+
+    impl super::super::surface::Surface for FakeContext {}
 
     impl CommandContext for FakeContext {
         fn function_state(&self) -> &crate::functions::FunctionState {

@@ -1302,12 +1302,18 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.disconnect_player(player, reason);
     }
 
+    fn profile_entry(&self, name: &str) -> ListEntry {
+        self.find_player(name)
+            .and_then(|id| self.players.get(&id))
+            .map_or_else(|| self.offline_entry(name), |p| ListEntry::of(&p.profile))
+    }
+
     fn set_operator(&mut self, name: &str, operator: bool) -> bool {
         let online = self.find_player(name);
         let level = self.config.op_permission_level;
         let entry = online
             .and_then(|id| self.players.get(&id))
-            .map_or_else(|| ListEntry::named(name), |p| ListEntry::of(&p.profile))
+            .map_or_else(|| self.offline_entry(name), |p| ListEntry::of(&p.profile))
             .operator(level);
         let changed = if operator {
             AdminLists::add(&mut self.admin.operators, entry)
@@ -1345,7 +1351,7 @@ impl<L: ClientLink> CommandContext for Server<L> {
         let entry = self
             .find_player(name)
             .and_then(|id| self.players.get(&id))
-            .map_or_else(|| ListEntry::named(name), |p| ListEntry::of(&p.profile));
+            .map_or_else(|| self.offline_entry(name), |p| ListEntry::of(&p.profile));
         let changed = AdminLists::add(&mut self.admin.whitelist, entry);
         if changed {
             self.publish_admin();

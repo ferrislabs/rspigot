@@ -485,7 +485,24 @@ fn teammsg_reaches_only_the_team() {
     rig.ok("team join red");
     rig.texts();
     rig.ok("teammsg hello there");
-    assert_eq!(rig.texts(), ["chat.type.team.sent [red] Alice hello there"]);
+    let heard: Vec<_> = rig
+        .link
+        .take()
+        .into_iter()
+        .filter_map(|event| match event {
+            ClientEvent::ChatMessage {
+                chat_type, message, ..
+            } => Some((chat_type, message.plain_text())),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        heard,
+        [(
+            crate::events::ChatKind::TeamOutgoing,
+            "hello there".to_owned()
+        )]
+    );
     rig.ok("tm hi");
 }
 

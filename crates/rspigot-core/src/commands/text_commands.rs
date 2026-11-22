@@ -15,7 +15,7 @@ fn reply_err<C: CommandContext>(
     CommandOutcome::Failure
 }
 
-fn targets<C: CommandContext>(
+pub(super) fn targets<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     selector: &str,
