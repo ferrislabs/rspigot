@@ -1,4 +1,5 @@
 use rand::Rng;
+use rspigot_domain::damage::{DamageTag, DamageType};
 use rspigot_domain::entity::{Entity, EntityState, FLAG_ON_FIRE, ItemState, RemovalReason, item};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
@@ -6,6 +7,7 @@ use rspigot_domain::{BlockPos, EntityId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
 use crate::events::ClientEvent;
+use crate::health::DamageSource;
 use crate::plugins::events::{
     CreatureSpawnReason, EntityPickupItem, EntityRemoveCause, ItemDespawn,
 };
@@ -31,6 +33,32 @@ pub(crate) fn launched(launch: Announced, stack: ItemStack) -> Entity {
     base.velocity = velocity;
     let state = ItemState::new(&mut base, stack, i32::from(PICKUP_DELAY));
     Entity::new(base, EntityState::Item(state))
+}
+
+const DAMAGE_RESISTANT: &str = "minecraft:damage_resistant";
+const ON_FIRE_PERIOD: i32 = 20;
+
+fn resistant_tag(stack: &ItemStack) -> Option<&str> {
+    if let Some(component) = stack.components.get_compound(DAMAGE_RESISTANT) {
+        let types = component.get_str("types")?;
+        return Some(types.strip_prefix('#').unwrap_or(types));
+    }
+    stack.item.kind()?.damage_resistant()
+}
+
+pub(crate) fn item_ignores(base: &rspigot_domain::entity::EntityBase, kind: DamageType) -> bool {
+    if base.invulnerable && !kind.is(DamageTag::BypassesInvulnerability) {
+        return true;
+    }
+    item::stack(base).is_some_and(|stack| {
+        stack_resists(stack, kind)
+            || (stack.item == rspigot_items::ItemKind::NetherStar.id()
+                && kind.in_tag("minecraft:is_explosion"))
+    })
+}
+
+pub(crate) fn stack_resists(stack: &ItemStack, kind: DamageType) -> bool {
+    resistant_tag(stack).is_some_and(|tag| kind.in_tag(tag))
 }
 
 fn touches_player(position: Vec3, player: Vec3) -> bool {
@@ -163,15 +191,19 @@ impl<L: ClientLink> Server<L> {
         let mut discard = item::stack(base)
             .is_none()
             .then_some(EntityRemoveCause::Despawn);
+        let mut burn = false;
         if discard.is_none() {
             base.old_position = base.position;
             base.tick_count = base.tick_count.wrapping_add(1);
+            let fireproof = base.kind.fire_immune()
+                || item::stack(base).is_some_and(|stack| stack_resists(stack, DamageType::InFire));
             if base.remaining_fire_ticks > 0 {
-                base.remaining_fire_ticks = if base.kind.fire_immune() {
-                    0
+                if fireproof {
+                    base.remaining_fire_ticks = 0;
                 } else {
-                    base.remaining_fire_ticks - 1
-                };
+                    burn = base.remaining_fire_ticks % ON_FIRE_PERIOD == 0 && !base.fluid.in_lava();
+                    base.remaining_fire_ticks -= 1;
+                }
             }
             base.set_shared_flag(FLAG_ON_FIRE, base.remaining_fire_ticks > 0);
             if base.position.y < floor {
@@ -185,11 +217,34 @@ impl<L: ClientLink> Server<L> {
                 }
             }
         }
+        if burn {
+            self.hurt_item(id, &DamageSource::new(DamageType::OnFire), 1.0);
+        }
+        if discard.is_none() {
+            self.apply_fire_inside(id);
+        }
         if let Some(cause) = discard {
             self.remove_entity(id, RemovalReason::Discarded, Some(cause));
         } else if self.merge_due(id) {
             self.merge_with_neighbours(id);
         }
+    }
+
+    pub(crate) fn is_item_entity(&self, id: EntityId) -> bool {
+        self.entities
+            .store
+            .get(id)
+            .is_some_and(|entity| matches!(entity.state, EntityState::Item(_)))
+    }
+
+    pub(crate) fn hurt_item(&mut self, id: EntityId, source: &DamageSource, amount: f32) -> bool {
+        self.strike(
+            None,
+            crate::plugins::Struck::Item(id),
+            source,
+            amount,
+            crate::plugins::AfterHurt::Nothing,
+        )
     }
 
     fn ask_item_despawn(&mut self, id: EntityId) {
@@ -306,6 +361,10 @@ impl<L: ClientLink> Server<L> {
         if cancelled || self.item_stack_of(id).as_ref() != Some(&stack) {
             return;
         }
+        let thrower = match self.entities.store.get(id).map(|entity| &entity.state) {
+            Some(EntityState::Item(state)) => state.thrower,
+            _ => None,
+        };
         let Some(player) = self.players.get_mut(&player_id) else {
             return;
         };
@@ -335,6 +394,7 @@ impl<L: ClientLink> Server<L> {
         };
         player.link.send(pickup.clone());
         self.count_picked_up(player_id, &stack, taken);
+        self.trigger_thrown_item_picked_up_by_player(player_id, thrower, stack.item.0);
         self.sync_inventory(player_id);
         self.push(Audience::TrackersExcept(id, player_id), pickup);
         self.broadcast_held_item(player_id);

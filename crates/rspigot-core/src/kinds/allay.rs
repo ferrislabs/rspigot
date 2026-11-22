@@ -167,6 +167,18 @@ impl<L: ClientLink> Server<L> {
             }
             None => store_inventory(entity, None),
         }
+        let at = target.block().offset(0, -1, 0);
+        if self.world.chunks.block(at).and_then(|state| state.kind())
+            == Some(rspigot_blocks::BlockKind::NoteBlock)
+            && let Some(liked) = self.allay_liked_player(id)
+            && let Some(player) = self
+                .players
+                .values()
+                .find(|player| player.profile.id.0 == liked)
+                .map(|player| player.id)
+        {
+            self.trigger_allay_drop_item_on_block(player, at, thrown.item.0);
+        }
         let lifted = Vec3::new(target.x, target.y + allay::THROW_TARGET_LIFT, target.z);
         self.throw_item_from(
             id,
@@ -378,6 +390,7 @@ impl<L: ClientLink> Server<L> {
             ..current.unwrap_or_else(|| stack.clone())
         };
         store_inventory(entity, Some(&merged));
+        self.trigger_thrown_item_picked_up_by_entity(item, collector);
         self.push(
             Audience::Trackers(item),
             ClientEvent::ItemPickup {

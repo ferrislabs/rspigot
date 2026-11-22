@@ -63,8 +63,9 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn respawn_spot(&mut self, id: PlayerId) -> RespawnSpot {
         let current = self.world.dimension.key.clone();
+        let suggestion = self.world.spawn.block();
         let default = RespawnSpot {
-            position: self.world.spawn,
+            position: self.find_spawn(suggestion),
             rotation: Rotation::new(self.world.level.spawn_angle, 0.0),
             dimension: current.clone(),
             bed: false,

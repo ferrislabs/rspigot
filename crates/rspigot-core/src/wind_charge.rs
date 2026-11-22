@@ -189,7 +189,10 @@ impl<L: ClientLink> Server<L> {
             if let Some(player) = target.player
                 && power > 0.0
             {
-                self.begin_impulse(player, center);
+                let cause = source
+                    .and_then(|id| self.entities.store.get(id))
+                    .map(|entity| entity.base.kind.name());
+                self.begin_impulse_from(player, center, cause);
             }
             self.blast_knockback(BlastFollow {
                 target: target.id,

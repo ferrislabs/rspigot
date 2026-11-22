@@ -10,5 +10,5 @@ impl MobEffect for BreathOfTheNautilus {
     const COLOR: u32 = 0x00FFEE;
     const INSTANTANEOUS: bool = false;
     const MODIFIERS: &'static [AttributeTemplate] = &[];
-    type Behavior = crate::family::Plain;
+    type Behavior = crate::family::KeepsAir;
 }

@@ -10,5 +10,5 @@ impl MobEffect for WindCharged {
     const COLOR: u32 = 0xBDC9FF;
     const INSTANTANEOUS: bool = false;
     const MODIFIERS: &'static [AttributeTemplate] = &[];
-    type Behavior = crate::family::Plain;
+    type Behavior = crate::family::BurstOnDeath;
 }

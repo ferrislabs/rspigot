@@ -10,5 +10,5 @@ impl MobEffect for Infested {
     const COLOR: u32 = 0x8C9B8C;
     const INSTANTANEOUS: bool = false;
     const MODIFIERS: &'static [AttributeTemplate] = &[];
-    type Behavior = crate::family::Plain;
+    type Behavior = crate::family::SilverfishOnHurt;
 }

@@ -51,6 +51,13 @@ pub enum DamageType {
     Fireworks,
     OutsideBorder,
     MaceSmash,
+    Cactus,
+    SweetBerryBush,
+    Freeze,
+    HotFloor,
+    InWall,
+    Cramming,
+    Campfire,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -89,7 +96,7 @@ impl DamageTag {
 }
 
 impl DamageType {
-    pub const ALL: [Self; 41] = [
+    pub const ALL: [Self; 48] = [
         Self::Fall,
         Self::EnderPearl,
         Self::OutOfWorld,
@@ -131,6 +138,13 @@ impl DamageType {
         Self::Fireworks,
         Self::OutsideBorder,
         Self::MaceSmash,
+        Self::Cactus,
+        Self::SweetBerryBush,
+        Self::Freeze,
+        Self::HotFloor,
+        Self::InWall,
+        Self::Cramming,
+        Self::Campfire,
     ];
 
     pub fn from_name(name: &str) -> Option<Self> {
@@ -180,6 +194,13 @@ impl DamageType {
             Self::Fireworks => "minecraft:fireworks",
             Self::OutsideBorder => "minecraft:outside_border",
             Self::MaceSmash => "minecraft:mace_smash",
+            Self::Cactus => "minecraft:cactus",
+            Self::SweetBerryBush => "minecraft:sweet_berry_bush",
+            Self::Freeze => "minecraft:freeze",
+            Self::HotFloor => "minecraft:hot_floor",
+            Self::InWall => "minecraft:in_wall",
+            Self::Cramming => "minecraft:cramming",
+            Self::Campfire => "minecraft:campfire",
         }
     }
 
@@ -224,6 +245,13 @@ impl DamageType {
             Self::Fireworks => "fireworks",
             Self::OutsideBorder => "outsideBorder",
             Self::MaceSmash => "mace_smash",
+            Self::Cactus => "cactus",
+            Self::SweetBerryBush => "sweetBerryBush",
+            Self::Freeze => "freeze",
+            Self::HotFloor => "hotFloor",
+            Self::InWall => "inWall",
+            Self::Cramming => "cramming",
+            Self::Campfire => "inFire",
         }
     }
 
@@ -253,7 +281,11 @@ impl DamageType {
             | Self::Spit
             | Self::SulfurCubeHot
             | Self::LightningBolt
-            | Self::Fireworks => 0.1,
+            | Self::Fireworks
+            | Self::Cactus
+            | Self::SweetBerryBush
+            | Self::HotFloor
+            | Self::Campfire => 0.1,
             _ => 0.0,
         }
     }
@@ -352,6 +384,32 @@ mod tests {
         );
         assert_eq!(after_armor_breached(10.0, 20.0, 8.0, 0.0), 10.0);
         assert!(after_armor_breached(10.0, 20.0, 8.0, 0.4) > after_armor(10.0, 20.0, 8.0));
+    }
+
+    #[test]
+    fn the_environment_damage_types_are_synced_with_the_datapack_messages() {
+        let all = [
+            (DamageType::Cactus, "minecraft:cactus", "cactus", 0.1),
+            (
+                DamageType::SweetBerryBush,
+                "minecraft:sweet_berry_bush",
+                "sweetBerryBush",
+                0.1,
+            ),
+            (DamageType::Freeze, "minecraft:freeze", "freeze", 0.0),
+            (DamageType::HotFloor, "minecraft:hot_floor", "hotFloor", 0.1),
+            (DamageType::InWall, "minecraft:in_wall", "inWall", 0.0),
+            (DamageType::Cramming, "minecraft:cramming", "cramming", 0.0),
+            (DamageType::Campfire, "minecraft:campfire", "inFire", 0.1),
+        ];
+        for (kind, name, message, exhaustion) in all {
+            assert!(kind.registry_id().is_some(), "{name}");
+            assert_eq!(kind.name(), name);
+            assert_eq!(kind.message_id(), message);
+            assert_eq!(kind.exhaustion(), exhaustion);
+        }
+        assert!(DamageType::Freeze.is(DamageTag::BypassesArmor));
+        assert!(DamageType::HotFloor.is(DamageTag::IsFire));
     }
 
     #[test]

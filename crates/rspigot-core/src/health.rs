@@ -202,6 +202,7 @@ pub struct Vitals {
     pub last_hurt_by_mob_at: i32,
     pub last_source: Option<(DamageType, i64)>,
     pub fire_ticks: i32,
+    pub ticks_frozen: i32,
     pub arrow_count: i32,
     pub remove_arrow_time: i32,
     pub death_experience: Option<DeathExperience>,
@@ -255,6 +256,7 @@ impl Default for Vitals {
             last_hurt_by_mob_at: 0,
             last_source: None,
             fire_ticks: 0,
+            ticks_frozen: 0,
             arrow_count: 0,
             remove_arrow_time: 0,
             death_experience: None,
@@ -339,6 +341,7 @@ fn amplifier<L>(player: &Player<L>, name: &str) -> Option<u8> {
 fn invulnerable_to<L>(player: &Player<L>, kind: DamageType, rules: &GameRules) -> bool {
     (kind.is(DamageTag::IsFall) && !rules.fall_damage)
         || (kind == DamageType::Drown && !rules.drowning_damage)
+        || (kind == DamageType::Freeze && !rules.freeze_damage)
         || (kind.is(DamageTag::IsFire) && !rules.fire_damage)
         || !player.vitals.client_loaded()
 }
@@ -1167,6 +1170,9 @@ impl<L: ClientLink> Server<L> {
                 self.hurt(id, &DamageSource::new(DamageType::OutOfWorld), VOID_DAMAGE);
             }
         }
+        self.sync_spectator_chunks();
+        self.tick_freezing();
+        self.tick_cramming();
         self.tick_effects();
         let difficulty = self.world.difficulty;
         let regeneration = self.config.rules.natural_regeneration;

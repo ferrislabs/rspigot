@@ -54,6 +54,12 @@ macro_rules! effect_kinds {
                 }
             }
 
+            pub const fn reaction(self) -> $crate::Reaction {
+                match self {
+                    $(Self::$kind => <<$crate::effects::$kind as $crate::MobEffect>::Behavior as $crate::EffectBehavior>::REACTION,)*
+                }
+            }
+
             pub fn should_tick(self, duration: i32, amplifier: u8) -> bool {
                 match self {
                     $(Self::$kind => <<$crate::effects::$kind as $crate::MobEffect>::Behavior as $crate::EffectBehavior>::should_tick(duration, amplifier),)*
@@ -74,6 +80,38 @@ macro_rules! effect_kinds {
 pub(crate) use effect_kinds;
 
 impl EffectKind {
+    pub const fn silverfish_on_hurt(self) -> Option<(f32, i32, i32)> {
+        match self.reaction() {
+            crate::Reaction::SilverfishOnHurt { chance, min, max } => Some((chance, min, max)),
+            _ => None,
+        }
+    }
+
+    pub const fn slimes_on_death(self) -> Option<(i32, i32)> {
+        match self.reaction() {
+            crate::Reaction::SlimesOnDeath { count, size } => Some((count, size)),
+            _ => None,
+        }
+    }
+
+    pub const fn cobwebs_on_death(self) -> Option<(i32, i32)> {
+        match self.reaction() {
+            crate::Reaction::CobwebsOnDeath { min, max } => Some((min, max)),
+            _ => None,
+        }
+    }
+
+    pub const fn burst_on_death(self) -> Option<f32> {
+        match self.reaction() {
+            crate::Reaction::BurstOnDeath { radius } => Some(radius),
+            _ => None,
+        }
+    }
+
+    pub const fn keeps_air(self) -> bool {
+        matches!(self.reaction(), crate::Reaction::KeepsAir)
+    }
+
     pub fn from_id(id: EffectId) -> Option<Self> {
         Self::ALL.get(usize::from(id.0)).copied()
     }

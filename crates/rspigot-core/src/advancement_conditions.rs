@@ -167,6 +167,57 @@ fn item_matches(predicate: &Value, item: Option<u16>) -> bool {
         .all(|(key, value)| key == "items" && holds("minecraft:item", value, item.map(u32::from)))
 }
 
+fn enchantment_held(entry: &Value, amounts: &[(&str, f64)]) -> bool {
+    let Some(wanted) = entry.get("enchantments").and_then(names) else {
+        return amounts.iter().any(|(name, level)| {
+            name.starts_with("minecraft:")
+                && entry
+                    .get("levels")
+                    .is_none_or(|range| in_range(range, *level))
+        });
+    };
+    amounts.iter().any(|(name, level)| {
+        let listed = wanted
+            .iter()
+            .any(|candidate| match candidate.strip_prefix('#') {
+                Some(tag) => {
+                    registries::synced_index("minecraft:enchantment", name).is_some_and(|id| {
+                        tags::tag("minecraft:enchantment", tag)
+                            .is_some_and(|members| members.binary_search(&id).is_ok())
+                    })
+                }
+                None => candidate == name,
+            });
+        listed
+            && entry
+                .get("levels")
+                .is_none_or(|range| in_range(range, *level))
+    })
+}
+
+fn stack_matches(predicate: &Value, item: Option<u16>, amounts: &[(&str, f64)]) -> bool {
+    let Value::Object(map) = predicate else {
+        return false;
+    };
+    let mut plain = map.clone();
+    let predicates = plain.remove("predicates");
+    if !item_matches(&Value::Object(plain), item) {
+        return false;
+    }
+    let Some(predicates) = predicates else {
+        return true;
+    };
+    let Value::Object(predicates) = predicates else {
+        return false;
+    };
+    predicates.iter().all(|(key, value)| match key.as_str() {
+        "minecraft:enchantments" => value
+            .as_array()
+            .is_some_and(|entries| entries.iter().all(|entry| enchantment_held(entry, amounts))),
+        _ => false,
+    })
+}
+
 fn block_matches(predicate: &Value, state: Option<BlockStateId>) -> bool {
     let (Value::Object(map), Some(state)) = (predicate, state) else {
         return false;
@@ -216,6 +267,26 @@ fn entity_matches(predicate: &Value, facts: Option<EntityFacts>, place: Option<P
     let Value::Object(wrapper) = predicate else {
         return false;
     };
+    match wrapper.get("type").and_then(Value::as_str) {
+        Some("minecraft:inverted") => {
+            return wrapper
+                .get("term")
+                .is_some_and(|term| !entity_matches(term, facts, place));
+        }
+        Some("minecraft:any_of") => {
+            return wrapper
+                .get("terms")
+                .and_then(Value::as_array)
+                .is_some_and(|terms| terms.iter().any(|term| entity_matches(term, facts, place)));
+        }
+        Some("minecraft:all_of") => {
+            return wrapper
+                .get("terms")
+                .and_then(Value::as_array)
+                .is_some_and(|terms| terms.iter().all(|term| entity_matches(term, facts, place)));
+        }
+        _ => {}
+    }
     wrapper.iter().all(|(key, value)| match key.as_str() {
         "type" => value.as_str() == Some("minecraft:entity_properties"),
         "entity" => value.as_str() == Some("this"),
@@ -446,7 +517,7 @@ fn term_holds<B: Fn(i32, i32, i32) -> Option<BlockStateId>>(
         }
         "minecraft:match_tool" => map
             .get("predicate")
-            .is_some_and(|predicate| item_matches(predicate, facts.item)),
+            .is_some_and(|predicate| stack_matches(predicate, facts.item, &facts.amounts)),
         "minecraft:location_check" => {
             let offset = |axis: &str| {
                 map.get(axis)
@@ -481,7 +552,7 @@ pub(crate) fn matches<B: Fn(i32, i32, i32) -> Option<BlockStateId>>(
         return false;
     };
     map.iter().all(|(key, value)| match key.as_str() {
-        "item" => item_matches(value, facts.item),
+        "item" => stack_matches(value, facts.item, &facts.amounts),
         "recipes" => facts
             .recipe
             .is_some_and(|recipe| names(value).is_some_and(|wanted| wanted.contains(&recipe))),
@@ -491,7 +562,12 @@ pub(crate) fn matches<B: Fn(i32, i32, i32) -> Option<BlockStateId>>(
         "to" => facts.to.is_some_and(|to| value.as_str() == Some(to)),
         "blocks" => block_matches(
             &Value::Object(Map::from_iter([(key.clone(), value.clone())])),
-            (facts.block_at)(0, 0, 0),
+            facts
+                .amounts
+                .iter()
+                .find(|(name, _)| *name == "block_state")
+                .map(|(_, id)| BlockStateId(*id as _))
+                .or_else(|| (facts.block_at)(0, 0, 0)),
         ),
         "location" => term_holds(value, facts),
         "player" => entity_matches(

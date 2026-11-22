@@ -1211,6 +1211,7 @@ impl<L: ClientLink> Server<L> {
         };
         self.hurt_held(player, hand, 1);
         self.mount_equip(target, EquipmentSlot::Body, None);
+        self.trigger_player_sheared_equipment(player, target, armor.item.0);
         let carpet = armor.item.kind().is_some_and(is_carpet);
         self.drop_at_location(target, height, armor, Vec3::ZERO);
         let sound = if harness {
