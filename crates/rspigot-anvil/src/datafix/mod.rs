@@ -3,9 +3,12 @@ mod entity;
 #[cfg(test)]
 mod eras;
 mod items;
+mod legacy;
+mod legacy_tables;
 mod level;
 mod nbt;
 mod renames;
+mod structures;
 mod text;
 
 use rspigot_nbt::Compound;
@@ -14,6 +17,14 @@ use crate::error::AnvilError;
 
 pub const DATA_VERSION: i32 = crate::chunk::DATA_VERSION;
 pub const OLDEST_SUPPORTED: i32 = 2860;
+pub const OLDEST_SUPPORTED_CHUNK: i32 = 2566;
+
+pub fn oldest_supported(kind: DataKind) -> i32 {
+    match kind {
+        DataKind::Chunk => OLDEST_SUPPORTED_CHUNK,
+        _ => OLDEST_SUPPORTED,
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DataKind {
@@ -57,6 +68,73 @@ const ENTITY_HOLDERS: &[DataKind] = &[DataKind::Chunk, DataKind::Entity, DataKin
 const ITEM_HOLDERS: &[DataKind] = &[DataKind::Chunk, DataKind::Entity, DataKind::Player];
 
 static REGISTRY: &[Fix] = &[
+    fix(2679, CHUNK, "cauldron levels", legacy::cauldron_2679),
+    fix(
+        2680,
+        CHUNK,
+        "grass path blocks to dirt path",
+        legacy::dirt_path_blocks_2680,
+    ),
+    fix(
+        2680,
+        ITEM_HOLDERS,
+        "grass path items to dirt path",
+        legacy::dirt_path_items_2680,
+    ),
+    fix(
+        2831,
+        CHUNK,
+        "spawner data structure",
+        legacy::spawner_data_2831,
+    ),
+    fix(
+        2832,
+        CHUNK,
+        "chunk height and biomes",
+        legacy::height_and_biome_2832,
+    ),
+    fix(
+        2838,
+        CHUNK,
+        "caves and cliffs biome renames",
+        legacy::caves_and_cliffs_biomes_2838,
+    ),
+    fix(
+        2841,
+        CHUNK,
+        "proto chunk tick lists",
+        legacy::proto_ticks_2841,
+    ),
+    fix(
+        2842,
+        CHUNK,
+        "chunk renames and Level removal",
+        legacy::chunk_renames_2842,
+    ),
+    fix(
+        2843,
+        CHUNK,
+        "ticks saved in the wrong chunk",
+        legacy::overreaching_ticks_2843,
+    ),
+    fix(
+        2843,
+        CHUNK,
+        "remove deep warm ocean",
+        legacy::deep_warm_ocean_2843,
+    ),
+    fix(
+        2967,
+        LEVEL,
+        "flatten structure settings",
+        structures::flatten_structure_settings_2967,
+    ),
+    fix(
+        2970,
+        CHUNK,
+        "structures become configured structures",
+        structures::become_configured_2970,
+    ),
     fix(
         3077,
         CHUNK,
@@ -485,10 +563,11 @@ pub fn upgrade_checked(kind: DataKind, root: Compound) -> Result<Upgraded, Anvil
             supported: DATA_VERSION,
         });
     }
-    if from_version < OLDEST_SUPPORTED {
+    let oldest = oldest_supported(kind);
+    if from_version < oldest {
         return Err(AnvilError::TooOldDataVersion {
             found: from_version,
-            oldest: OLDEST_SUPPORTED,
+            oldest,
         });
     }
     let mut compound = upgrade(kind, root, from_version);
@@ -521,7 +600,17 @@ mod tests {
                 .windows(2)
                 .all(|pair| pair[0].version <= pair[1].version)
         );
-        assert!(REGISTRY.iter().all(|fix| fix.version > OLDEST_SUPPORTED));
+        assert!(
+            REGISTRY
+                .iter()
+                .all(|fix| fix.version > OLDEST_SUPPORTED_CHUNK)
+        );
+        assert!(
+            REGISTRY
+                .iter()
+                .filter(|fix| fix.version <= OLDEST_SUPPORTED)
+                .all(|fix| fix.kinds.contains(&DataKind::Chunk) || fix.kinds == ITEM_HOLDERS)
+        );
         assert!(REGISTRY.iter().all(|fix| fix.version <= DATA_VERSION));
     }
 
@@ -536,11 +625,17 @@ mod tests {
 
     #[test]
     fn data_older_than_the_oldest_supported_is_refused_with_a_clear_message() {
-        let root = Compound::new().with("DataVersion", 2586);
-        let error = upgrade_checked(DataKind::Chunk, root).err().unwrap();
+        let root = Compound::new().with("Data", Compound::new().with("DataVersion", 2586));
+        let error = upgrade_checked(DataKind::Level, root).err().unwrap();
         assert_eq!(
             error.to_string(),
             "world data version 2586 is older than the oldest supported version 2860; open it with a vanilla server first"
+        );
+        let chunk = Compound::new().with("DataVersion", 2500);
+        let error = upgrade_checked(DataKind::Chunk, chunk).err().unwrap();
+        assert_eq!(
+            error.to_string(),
+            "world data version 2500 is older than the oldest supported version 2566; open it with a vanilla server first"
         );
     }
 

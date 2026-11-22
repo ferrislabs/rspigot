@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use rand::Rng;
 use rspigot_domain::attribute::{ATTACK_DAMAGE, ATTACK_SPEED};
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::raycast::{clip_blocks, clip_box};
@@ -20,7 +19,7 @@ use crate::events::{ClientEvent, Hand, SwingStyle};
 use crate::health::{DamageSource, attributes};
 use crate::loot::LootContext;
 use crate::plugins::AfterHurt;
-use crate::plugins::events::{EntityExhaustionReason, EntityKnockbackCause};
+use crate::plugins::events::EntityKnockbackCause;
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -36,10 +35,6 @@ pub(crate) fn is_spear(item: ItemId) -> bool {
 
 fn spear_of(stack: &ItemStack) -> Option<Spear> {
     stack.item.kind().and_then(spear::of)
-}
-
-fn lunge_level(stack: &ItemStack) -> i32 {
-    rspigot_domain::crossbow::level_of(stack, spear::LUNGE)
 }
 
 fn memory<L>(player: &crate::player::Player<L>) -> BTreeMap<String, MetaValue> {
@@ -337,43 +332,7 @@ impl<L: ClientLink> Server<L> {
                 duration: spear.attack_ticks,
             },
         );
-        self.lunge(id, &stack);
+        self.run_post_piercing_attack(id);
         true
-    }
-
-    fn lunge(&mut self, id: PlayerId, stack: &ItemStack) {
-        let level = lunge_level(stack);
-        if level <= 0 {
-            return;
-        }
-        let Some(player) = self.players.get(&id) else {
-            return;
-        };
-        let riding = self.entities.rides.vehicle_of(player.entity_id).is_some();
-        let allowed = spear::lunge_allowed(
-            riding,
-            player.fall_flying,
-            self.in_water(player.position),
-            player.vitals.food.food,
-            player.game_mode == GameMode::Creative,
-        );
-        if !allowed {
-            return;
-        }
-        let look = mth::view_vector(player.rotation.pitch, player.rotation.yaw);
-        let push = Vec3::new(look.x, 0.0, look.z).scale(spear::lunge_impulse(level));
-        let position = player.position;
-        self.wear(id, Hand::Main, 1);
-        self.exhaust(
-            id,
-            spear::lunge_exhaustion(level),
-            EntityExhaustionReason::Unknown,
-        );
-        if let Some(player) = self.players.get_mut(&id) {
-            player.vitals.velocity = player.vitals.velocity + push;
-            player.vitals.sync_velocity = true;
-        }
-        let sound = spear::LUNGE_SOUNDS[self.rng.random_range(0..spear::LUNGE_SOUNDS.len())];
-        self.play_sound(None, position, sound, SoundSource::Players, 1.0, 1.0);
     }
 }

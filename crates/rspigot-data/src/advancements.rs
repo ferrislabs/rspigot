@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use crate::generated::advancements::ADVANCEMENTS;
 use crate::tags;
 
@@ -73,15 +75,27 @@ pub struct Advancement {
     pub telemetry: bool,
 }
 
+thread_local! {
+    static ACTIVE: Cell<Option<&'static [Advancement]>> = const { Cell::new(None) };
+}
+
+pub fn activate(overlay: Option<&'static [Advancement]>) {
+    ACTIVE.with(|active| active.set(overlay));
+}
+
 pub fn all() -> &'static [Advancement] {
+    ACTIVE.with(Cell::get).unwrap_or(&ADVANCEMENTS)
+}
+
+pub fn built_in() -> &'static [Advancement] {
     &ADVANCEMENTS
 }
 
 pub fn find(id: &str) -> Option<(usize, &'static Advancement)> {
-    ADVANCEMENTS
-        .binary_search_by(|advancement| advancement.id.cmp(id))
+    let all = all();
+    all.binary_search_by(|advancement| advancement.id.cmp(id))
         .ok()
-        .map(|index| (index, &ADVANCEMENTS[index]))
+        .map(|index| (index, &all[index]))
 }
 
 #[cfg(test)]

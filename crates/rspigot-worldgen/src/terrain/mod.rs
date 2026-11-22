@@ -62,12 +62,34 @@ struct Vein {
     filler_gap: Id,
 }
 
-fn variant_key(variant: ClimateVariant) -> &'static str {
+pub(crate) fn variant_key(variant: ClimateVariant) -> &'static str {
     match variant {
         ClimateVariant::Normal => "normal",
         ClimateVariant::LargeBiomes => "large_biomes",
         ClimateVariant::Amplified => "amplified",
     }
+}
+
+pub(crate) fn climate_of(key: &str) -> ClimateVariant {
+    match key {
+        "normal" => ClimateVariant::Normal,
+        "large_biomes" => ClimateVariant::LargeBiomes,
+        "amplified" => ClimateVariant::Amplified,
+        other => {
+            let router = worldgen()["terrain"]["variants"][other]["router"].to_string();
+            if router.contains("overworld_large_biomes/") {
+                ClimateVariant::LargeBiomes
+            } else if router.contains("overworld_amplified/") {
+                ClimateVariant::Amplified
+            } else {
+                ClimateVariant::Normal
+            }
+        }
+    }
+}
+
+pub(crate) fn surface_rule_of(key: &str) -> Option<&'static Value> {
+    worldgen()["terrain"]["variants"][key].get("surface_rule")
 }
 
 pub(crate) fn check_function(functions: &Value, noises: &Value, name: &str) -> Result<(), String> {
@@ -119,9 +141,14 @@ fn missing_noise(noises: &Value, graph: &graph::Graph, owner: &str) -> Result<()
 }
 
 impl Terrain {
+    #[cfg(test)]
     pub(crate) fn new(seed: i64, variant: ClimateVariant) -> Self {
+        Self::with_key(seed, variant_key(variant))
+    }
+
+    pub(crate) fn with_key(seed: i64, key: &str) -> Self {
         let data = &worldgen()["terrain"];
-        let settings = &data["variants"][variant_key(variant)];
+        let settings = &data["variants"][key];
         let mut compiler = Compiler::new(&data["functions"]);
         let build = |compiler: &mut Compiler<'_>, value: &Value| {
             compiler

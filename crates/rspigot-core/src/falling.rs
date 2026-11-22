@@ -458,6 +458,10 @@ impl<L: ClientLink> Server<L> {
             self.fire_tick(pos, state);
             return;
         }
+        if kind == BlockKind::FrostedIce {
+            self.frosted_ice_tick(pos, state);
+            return;
+        }
         if kind == BlockKind::Sponge {
             self.sponge_tick(pos);
             return;

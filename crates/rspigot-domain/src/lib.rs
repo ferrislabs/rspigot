@@ -4,6 +4,7 @@ pub mod azalea_tree;
 pub mod bed;
 pub mod beehive;
 pub mod biome;
+pub mod block_experience;
 pub mod boss_event;
 pub mod brewing;
 pub mod brushing;

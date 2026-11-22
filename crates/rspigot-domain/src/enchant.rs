@@ -1,4 +1,6 @@
-use rspigot_data::enchantments::{self, EnchantmentDef, EnchantmentEffects, ValueEffect, ValueOp};
+use rspigot_data::enchantments::{
+    self, ChargingSounds, EnchantmentDef, EnchantmentEffects, ValueEffect, ValueOp,
+};
 use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
@@ -119,22 +121,50 @@ pub fn modify_crossbow_charge_time(stack: &ItemStack, base: f32) -> f32 {
     })
 }
 
-pub fn damage_after_unbreaking(
-    level: i32,
-    armor: bool,
-    amount: i32,
-    mut roll: impl FnMut() -> f32,
-) -> i32 {
-    if level <= 0 || amount <= 0 {
-        return amount;
-    }
-    let level = level as f32;
-    let removed = if armor {
-        (2.0 * level) / (10.0 + 5.0 * (level - 1.0))
-    } else {
-        level / (level + 1.0)
-    };
-    (0..amount).filter(|_| roll() >= removed).count() as i32
+pub fn modify_trident_spin_attack_strength(stack: &ItemStack, base: f32) -> f32 {
+    levels(stack)
+        .into_iter()
+        .filter_map(|(name, level)| {
+            let op = enchantments::effects(&name)?.trident_spin_attack_strength?;
+            Some((op, i32::from(level)))
+        })
+        .fold(base, |value, (op, level)| apply_fixed(op, level, value))
+}
+
+fn highest_level_pick<T: Copy>(
+    stack: &ItemStack,
+    select: fn(&'static EnchantmentEffects) -> &'static [T],
+) -> Option<T> {
+    levels(stack)
+        .into_iter()
+        .filter_map(|(name, level)| {
+            let list = select(enchantments::effects(&name)?);
+            (!list.is_empty()).then_some((list, usize::from(level)))
+        })
+        .max_by_key(|(_, level)| *level)
+        .and_then(|(list, level)| list.get(level.clamp(1, list.len()) - 1).copied())
+}
+
+pub fn trident_sound(stack: &ItemStack) -> Option<&'static str> {
+    highest_level_pick(stack, |e| e.trident_sound)
+}
+
+pub fn crossbow_charging_sounds(stack: &ItemStack) -> Option<ChargingSounds> {
+    highest_level_pick(stack, |e| e.crossbow_charging_sounds)
+}
+
+fn carries(stack: &ItemStack, select: fn(&'static EnchantmentEffects) -> bool) -> bool {
+    levels(stack)
+        .into_iter()
+        .any(|(name, level)| level > 0 && enchantments::effects(&name).is_some_and(select))
+}
+
+pub fn prevents_armor_change(stack: &ItemStack) -> bool {
+    carries(stack, |e| e.prevent_armor_change)
+}
+
+pub fn prevents_equipment_drop(stack: &ItemStack) -> bool {
+    carries(stack, |e| e.prevent_equipment_drop)
 }
 
 #[cfg(test)]
@@ -156,18 +186,6 @@ pub(crate) mod tests {
         assert!(!book.components.contains_key(ENCHANTMENTS));
         assert_eq!(levels(&book), vec![("minecraft:sharpness".to_owned(), 3)]);
         assert!(has_any(&book));
-    }
-
-    #[test]
-    fn unbreaking_removes_damage_by_the_enchantment_odds() {
-        assert_eq!(damage_after_unbreaking(0, false, 3, || 0.0), 3);
-        assert_eq!(damage_after_unbreaking(1, false, 4, || 0.49), 0);
-        assert_eq!(damage_after_unbreaking(1, false, 4, || 0.51), 4);
-        assert_eq!(damage_after_unbreaking(3, false, 4, || 0.74), 0);
-        assert_eq!(damage_after_unbreaking(3, false, 4, || 0.76), 4);
-        assert_eq!(damage_after_unbreaking(1, true, 4, || 0.19), 0);
-        assert_eq!(damage_after_unbreaking(1, true, 4, || 0.21), 4);
-        assert_eq!(damage_after_unbreaking(5, true, 0, || 0.0), 0);
     }
 
     #[test]
@@ -200,5 +218,47 @@ pub(crate) mod tests {
         set_levels(&mut quick, &[("minecraft:quick_charge".into(), 3)]);
         assert_eq!(modify_crossbow_charge_time(&quick, 1.25), 0.5);
         assert_eq!(modify_crossbow_charge_time(&bow, 1.25), 1.25);
+    }
+
+    #[test]
+    fn riptide_adds_its_spin_attack_strength_and_picks_its_sound_by_level() {
+        let mut trident = stack("minecraft:trident");
+        assert_eq!(modify_trident_spin_attack_strength(&trident, 0.0), 0.0);
+        assert_eq!(trident_sound(&trident), None);
+        set_levels(&mut trident, &[("minecraft:riptide".into(), 3)]);
+        assert_eq!(modify_trident_spin_attack_strength(&trident, 0.0), 3.0);
+        assert_eq!(
+            trident_sound(&trident),
+            Some("minecraft:item.trident.riptide_3")
+        );
+        set_levels(&mut trident, &[("minecraft:riptide".into(), 1)]);
+        assert_eq!(modify_trident_spin_attack_strength(&trident, 0.0), 1.5);
+        assert_eq!(
+            trident_sound(&trident),
+            Some("minecraft:item.trident.riptide_1")
+        );
+    }
+
+    #[test]
+    fn quick_charge_picks_its_charging_sounds_by_level() {
+        let mut crossbow = stack("minecraft:crossbow");
+        assert_eq!(crossbow_charging_sounds(&crossbow), None);
+        set_levels(&mut crossbow, &[("minecraft:quick_charge".into(), 2)]);
+        let sounds = crossbow_charging_sounds(&crossbow).unwrap();
+        assert_eq!(sounds.start, "minecraft:item.crossbow.quick_charge_2");
+        assert_eq!(sounds.end, "minecraft:item.crossbow.loading_end");
+    }
+
+    #[test]
+    fn the_curses_carry_their_prevent_components() {
+        let mut boots = stack("minecraft:diamond_boots");
+        assert!(!prevents_armor_change(&boots));
+        assert!(!prevents_equipment_drop(&boots));
+        set_levels(&mut boots, &[("minecraft:binding_curse".into(), 1)]);
+        assert!(prevents_armor_change(&boots));
+        assert!(!prevents_equipment_drop(&boots));
+        set_levels(&mut boots, &[("minecraft:vanishing_curse".into(), 1)]);
+        assert!(!prevents_armor_change(&boots));
+        assert!(prevents_equipment_drop(&boots));
     }
 }

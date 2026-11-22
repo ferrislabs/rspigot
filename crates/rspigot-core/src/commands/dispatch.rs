@@ -497,7 +497,9 @@ pub trait CommandContext {
         self.function_state_mut().apply(packs);
         let lists = self.function_state().packs.lists();
         self.datapack_lists_changed(lists);
-        super::function_commands::run_server_tag(self, &Identifier::minecraft("load"));
+        if !self.reload_datapacks() {
+            super::function_commands::run_server_tag(self, &Identifier::minecraft("load"));
+        }
     }
 
     fn player_ids(&self) -> Vec<PlayerId> {

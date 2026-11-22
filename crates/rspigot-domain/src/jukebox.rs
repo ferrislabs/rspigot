@@ -1,4 +1,7 @@
-use rspigot_data::registries::synced_index;
+use std::cell::RefCell;
+use std::sync::Arc;
+
+use rspigot_data::registries::{synced_entries, synced_index};
 use rspigot_nbt::Tag;
 
 use crate::item::ItemStack;
@@ -132,9 +135,55 @@ const SONGS: &[Song] = &[
     },
 ];
 
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SongOverlay {
+    songs: Vec<&'static Song>,
+}
+
+impl SongOverlay {
+    pub fn insert(&mut self, song: Song) {
+        let stored: &'static Song = Box::leak(Box::new(song));
+        match self
+            .songs
+            .iter_mut()
+            .find(|known| known.name == stored.name)
+        {
+            Some(known) => *known = stored,
+            None => self.songs.push(stored),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.songs.is_empty()
+    }
+}
+
+thread_local! {
+    static ACTIVE: RefCell<Option<Arc<SongOverlay>>> = const { RefCell::new(None) };
+}
+
+pub fn activate(overlay: &Arc<SongOverlay>) {
+    ACTIVE.with(|active| {
+        let mut active = active.borrow_mut();
+        let same = match active.as_ref() {
+            Some(current) => Arc::ptr_eq(current, overlay),
+            None => overlay.is_empty(),
+        };
+        if !same {
+            *active = (!overlay.is_empty()).then(|| Arc::clone(overlay));
+        }
+    });
+}
+
 impl Song {
     pub fn named(name: &str) -> Option<&'static Song> {
-        SONGS.iter().find(|song| song.name == name)
+        let overridden = ACTIVE.with(|active| {
+            active
+                .borrow()
+                .as_ref()
+                .and_then(|overlay| overlay.songs.iter().find(|song| song.name == name).copied())
+        });
+        overridden.or_else(|| SONGS.iter().find(|song| song.name == name))
     }
 
     pub fn length_in_ticks(&self) -> i64 {
@@ -146,7 +195,20 @@ impl Song {
     }
 
     pub fn registry_id(&self) -> Option<i32> {
-        synced_index(REGISTRY, self.name).and_then(|index| i32::try_from(index).ok())
+        let index = synced_index(REGISTRY, self.name).or_else(|| {
+            let base = synced_entries(REGISTRY)?.len();
+            let position = ACTIVE.with(|active| {
+                active.borrow().as_ref().and_then(|overlay| {
+                    overlay
+                        .songs
+                        .iter()
+                        .filter(|song| synced_index(REGISTRY, song.name).is_none())
+                        .position(|song| song.name == self.name)
+                })
+            })?;
+            u32::try_from(base + position).ok()
+        });
+        index.and_then(|index| i32::try_from(index).ok())
     }
 }
 
@@ -190,6 +252,31 @@ mod tests {
 
     fn disc(kind: ItemKind) -> ItemStack {
         ItemStack::new(kind.id(), NonZeroU8::MIN)
+    }
+
+    #[test]
+    fn a_datapack_song_overrides_a_built_in_one_and_extends_the_registry() {
+        let mut overlay = SongOverlay::default();
+        overlay.insert(Song {
+            name: "minecraft:13",
+            seconds: 10.0,
+            comparator: 7,
+        });
+        overlay.insert(Song {
+            name: "t:custom",
+            seconds: 3.0,
+            comparator: 4,
+        });
+        activate(&Arc::new(overlay));
+        assert_eq!(Song::named("minecraft:13").unwrap().comparator, 7);
+        assert_eq!(Song::named("t:custom").unwrap().length_in_ticks(), 60);
+        let base = synced_entries(REGISTRY).unwrap().len();
+        assert_eq!(
+            Song::named("t:custom").unwrap().registry_id(),
+            i32::try_from(base).ok()
+        );
+        activate(&Arc::default());
+        assert!(Song::named("t:custom").is_none());
     }
 
     #[test]

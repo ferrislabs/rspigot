@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::sync::Arc;
+
 use rspigot_blocks::{BlockKind, Face, StateFlags};
 use rspigot_entities::EntityKind;
 use rspigot_nbt::{Compound, Tag};
@@ -201,8 +204,60 @@ pub fn set_variant(base: &mut EntityBase, id: u32) {
         .set(DATA_VARIANT, SyncedValue::PaintingVariant(id));
 }
 
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct PaintingOverlay {
+    pub extras: Vec<(&'static str, i32, i32)>,
+    pub resized: Vec<(usize, i32, i32)>,
+    pub placeable: Vec<u32>,
+}
+
+impl PaintingOverlay {
+    pub fn is_empty(&self) -> bool {
+        self.extras.is_empty() && self.resized.is_empty() && self.placeable.is_empty()
+    }
+}
+
+thread_local! {
+    static OVERLAY: RefCell<Option<Arc<PaintingOverlay>>> = const { RefCell::new(None) };
+}
+
+pub fn activate_paintings(overlay: &Arc<PaintingOverlay>) {
+    OVERLAY.with(|active| {
+        let mut active = active.borrow_mut();
+        let same = match active.as_ref() {
+            Some(current) => Arc::ptr_eq(current, overlay),
+            None => overlay.is_empty(),
+        };
+        if !same {
+            *active = (!overlay.is_empty()).then(|| Arc::clone(overlay));
+        }
+    });
+}
+
+fn painting_at(id: u32) -> Option<(&'static str, i32, i32)> {
+    let index = id as usize;
+    OVERLAY.with(|active| {
+        let active = active.borrow();
+        let overlay = active.as_deref();
+        match PAINTINGS.get(index) {
+            Some((name, width, height)) => {
+                let resized = overlay
+                    .and_then(|overlay| overlay.resized.iter().find(|(at, _, _)| *at == index));
+                Some(
+                    resized.map_or((*name, *width, *height), |(_, width, height)| {
+                        (*name, *width, *height)
+                    }),
+                )
+            }
+            None => {
+                overlay.and_then(|overlay| overlay.extras.get(index - PAINTINGS.len()).copied())
+            }
+        }
+    })
+}
+
 pub fn variant_name(id: u32) -> Option<&'static str> {
-    PAINTINGS.get(id as usize).map(|(name, _, _)| *name)
+    painting_at(id).map(|(name, _, _)| name)
 }
 
 pub fn variant_by_name(name: &str) -> Option<u32> {
@@ -210,13 +265,22 @@ pub fn variant_by_name(name: &str) -> Option<u32> {
     PAINTINGS
         .iter()
         .position(|(candidate, _, _)| *candidate == name)
+        .or_else(|| {
+            OVERLAY.with(|active| {
+                active.borrow().as_ref().and_then(|overlay| {
+                    overlay
+                        .extras
+                        .iter()
+                        .position(|(candidate, _, _)| *candidate == name)
+                        .map(|index| PAINTINGS.len() + index)
+                })
+            })
+        })
         .map(|index| index as u32)
 }
 
 pub fn variant_size(id: u32) -> (i32, i32) {
-    PAINTINGS
-        .get(id as usize)
-        .map_or((1, 1), |(_, width, height)| (*width, *height))
+    painting_at(id).map_or((1, 1), |(_, width, height)| (width, height))
 }
 
 pub fn variant_area(id: u32) -> i32 {
@@ -225,9 +289,19 @@ pub fn variant_area(id: u32) -> i32 {
 }
 
 pub fn placeable_variants() -> Vec<u32> {
-    rspigot_data::tags::tag(PAINTING_REGISTRY, PLACEABLE_TAG)
+    let mut ids: Vec<u32> = rspigot_data::tags::tag(PAINTING_REGISTRY, PLACEABLE_TAG)
         .map(|ids| ids.to_vec())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    OVERLAY.with(|active| {
+        if let Some(overlay) = active.borrow().as_ref() {
+            for id in &overlay.placeable {
+                if !ids.contains(id) {
+                    ids.push(*id);
+                }
+            }
+        }
+    });
+    ids
 }
 
 pub fn item(base: &EntityBase) -> Option<&ItemStack> {

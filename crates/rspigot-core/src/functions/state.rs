@@ -1,8 +1,8 @@
 use super::library::FunctionLibrary;
 use super::packs::{DataPackLists, Packs, folder_pack_id};
 use super::schedule::ScheduledEvents;
-use crate::pack_data::PackData;
-use crate::ports::PackContents;
+use crate::pack_data::{PackData, Registries};
+use crate::ports::{PackContents, PackExtras};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Returned {
@@ -46,6 +46,7 @@ pub struct FunctionState {
     pub runtime: FunctionRuntime,
     pub data: PackData,
     contents: Vec<PackContents>,
+    extras: Vec<PackExtras>,
 }
 
 impl FunctionState {
@@ -66,6 +67,16 @@ impl FunctionState {
         self.rebuild();
     }
 
+    pub fn reload_with(&mut self, contents: Vec<PackContents>, extras: Vec<PackExtras>) {
+        self.extras = extras;
+        self.reload(contents);
+    }
+
+    pub fn set_extras(&mut self, extras: Vec<PackExtras>) {
+        self.extras = extras;
+        self.rebuild();
+    }
+
     pub fn apply(&mut self, packs: Packs) {
         self.packs = packs;
         self.rebuild();
@@ -82,7 +93,17 @@ impl FunctionState {
                     .find(|pack| &folder_pack_id(&pack.name) == id)
             })
             .collect();
-        self.data = PackData::build(&enabled);
+        let enabled_extras: Vec<&PackExtras> = self
+            .packs
+            .enabled()
+            .iter()
+            .filter_map(|id| {
+                self.extras
+                    .iter()
+                    .find(|pack| &folder_pack_id(&pack.name) == id)
+            })
+            .collect();
+        self.data = PackData::build(&enabled).with_registries(Registries::build(&enabled_extras));
         self.library = FunctionLibrary::build(enabled);
         self.data.activate();
         self.data.publish();

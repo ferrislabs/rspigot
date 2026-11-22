@@ -1,8 +1,16 @@
+mod advancement_files;
 mod evaluate;
 mod json;
+mod media_files;
 mod modifier;
+pub mod recipe_files;
+mod registries;
+pub mod registry_overlay;
+mod scan;
 mod table;
 mod tags;
+mod trade_files;
+mod trial_files;
 
 use std::sync::Arc;
 
@@ -13,6 +21,8 @@ use crate::ports::PackContents;
 
 pub use json::{DataError, condition, predicate_file};
 pub use modifier::parse_functions;
+pub use registries::Registries;
+pub use scan::scan_root;
 pub use tags::SUPPORTED_REGISTRIES;
 
 #[derive(Debug, Clone, Default)]
@@ -20,6 +30,7 @@ pub struct PackData {
     loot: Arc<LootOverlay>,
     tags: Arc<TagOverlay>,
     item_modifiers: Arc<modifier::ItemModifiers>,
+    registries: Registries,
 }
 
 fn parse_json(text: &str) -> Result<serde_json::Value, DataError> {
@@ -69,16 +80,34 @@ impl PackData {
             loot: Arc::new(loot),
             tags: Arc::new(tags::merge(packs)),
             item_modifiers: Arc::new(item_modifiers),
+            registries: Registries::default(),
         }
+    }
+
+    pub fn with_registries(mut self, registries: Registries) -> Self {
+        self.registries = registries;
+        self
+    }
+
+    pub fn registries(&self) -> &Registries {
+        &self.registries
     }
 
     pub fn activate(&self) {
         rspigot_data::loot::activate(&self.loot);
         rspigot_data::tags::activate(&self.tags);
+        rspigot_data::advancements::activate(self.registries.advancements());
+        rspigot_data::trading::activate(self.registries.trades());
+        rspigot_domain::jukebox::activate(self.registries.songs());
+        rspigot_domain::entity::hanging::activate_paintings(self.registries.paintings());
+        rspigot_data::trial_spawner::activate(self.registries.trials());
     }
 
     pub fn publish(&self) {
         rspigot_data::tags::publish((!self.tags.is_empty()).then(|| Arc::clone(&self.tags)));
+        registry_overlay::publish(
+            (!self.registries.overlay().is_empty()).then(|| Arc::clone(self.registries.overlay())),
+        );
     }
 
     pub fn loot(&self) -> &LootOverlay {
