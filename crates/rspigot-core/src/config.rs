@@ -190,6 +190,22 @@ impl Default for MobSettings {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct CommandSettings {
+    pub aliases: Vec<(String, Vec<String>)>,
+    pub ignore_vanilla_permissions: bool,
+    pub command_block_overrides: Vec<String>,
+}
+
+impl CommandSettings {
+    pub fn alias(&self, label: &str) -> Option<Vec<String>> {
+        self.aliases
+            .iter()
+            .find(|(name, _)| name.eq_ignore_ascii_case(label))
+            .map(|(_, targets)| targets.clone())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PriorityOverride {
     pub plugin: String,
@@ -249,6 +265,9 @@ pub struct GameConfig {
     pub plugins: PluginSettings,
     pub chat: ChatSecurity,
     pub thunder_chance: i32,
+    pub world_keys: crate::world_keys::WorldKeys,
+    pub command_settings: CommandSettings,
+    pub help: crate::commands::help::HelpConfig,
     pub enforce_whitelist: bool,
     pub log_ips: bool,
     pub log_commands: bool,
@@ -261,6 +280,7 @@ pub struct GameConfig {
     pub hunger: rspigot_domain::movement::HungerRates,
     pub messages: ServerMessages,
     pub motd: String,
+    pub server_icon: Option<Vec<u8>>,
     pub hide_online_players: bool,
     pub accepts_transfers: bool,
     pub entity_broadcast_range_percentage: u32,
@@ -335,6 +355,9 @@ impl Default for GameConfig {
             plugins: PluginSettings::default(),
             chat: ChatSecurity::default(),
             thunder_chance: 100_000,
+            world_keys: crate::world_keys::WorldKeys::default(),
+            command_settings: CommandSettings::default(),
+            help: crate::commands::help::HelpConfig::default(),
             enforce_whitelist: false,
             log_ips: true,
             log_commands: true,
@@ -347,6 +370,7 @@ impl Default for GameConfig {
             hunger: rspigot_domain::movement::HungerRates::default(),
             messages: ServerMessages::default(),
             motd: "A Minecraft Server".to_owned(),
+            server_icon: None,
             hide_online_players: false,
             accepts_transfers: false,
             entity_broadcast_range_percentage: 100,

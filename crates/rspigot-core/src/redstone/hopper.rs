@@ -264,12 +264,19 @@ impl<L: ClientLink> Server<L> {
         self.hopper_eject(pos, state);
     }
 
+    fn hopper_amount(&self) -> u32 {
+        self.config.world_keys.hopper_amount.max(1) as u32
+    }
+
     fn hopper_finished(&mut self, hopper: BlockPos, changed: bool) {
         let transfer_cooldown = self.config.hopper_transfer_ticks;
+        let check_cooldown = self.config.world_keys.hopper_check;
         let clock = self.falls.redstone.hoppers.entry(hopper).or_default();
         clock.busy = None;
         if changed {
             clock.cooldown = transfer_cooldown;
+        } else if clock.cooldown <= 0 {
+            clock.cooldown = check_cooldown;
         }
     }
 
@@ -401,11 +408,12 @@ impl<L: ClientLink> Server<L> {
             return self.hopper_start_suck(hopper, search.changed);
         }
         let own = self.holder_items(&me);
+        let amount = self.hopper_amount();
         for slot in 0..HOPPER_SLOTS {
             let Some(one) = own
                 .get(slot)
                 .and_then(Option::as_ref)
-                .and_then(|stack| with_count(stack, 1))
+                .and_then(|stack| with_count(stack, amount.min(u32::from(stack.count.get()))))
             else {
                 continue;
             };
@@ -435,6 +443,7 @@ impl<L: ClientLink> Server<L> {
         };
         let own = self.holder_items(&me);
         let own_slots = me.slots_toward(Face::Down);
+        let amount = self.hopper_amount();
         if let Some(source) = search.found {
             let items = self.holder_items(&source);
             for slot in source.slots_toward(Face::Down) {
@@ -442,7 +451,7 @@ impl<L: ClientLink> Server<L> {
                     .get(slot)
                     .and_then(Option::as_ref)
                     .filter(|stack| source.may_take(slot, stack, Face::Down))
-                    .and_then(|stack| with_count(stack, 1))
+                    .and_then(|stack| with_count(stack, amount.min(u32::from(stack.count.get()))))
                 else {
                     continue;
                 };
@@ -538,9 +547,12 @@ impl<L: ClientLink> Server<L> {
             return proceed(self, changed);
         }
         if let Some(cell) = from.get_mut(slot) {
-            let remaining = cell
-                .as_ref()
-                .and_then(|present| with_count(present, u32::from(present.count.get()) - 1));
+            let remaining = cell.as_ref().and_then(|present| {
+                with_count(
+                    present,
+                    u32::from(present.count.get()).saturating_sub(u32::from(stack.count.get())),
+                )
+            });
             *cell = remaining;
         }
         self.store_holder(&source, &from);

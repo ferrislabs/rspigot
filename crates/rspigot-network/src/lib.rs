@@ -5,6 +5,7 @@ mod connection;
 mod decode;
 mod encode;
 mod extras;
+mod keepalive;
 mod link;
 mod listener;
 mod play;
@@ -41,6 +42,8 @@ pub struct NetworkConfig {
     pub brand: String,
     pub keep_alive_interval: Duration,
     pub keep_alive_timeout: Duration,
+    pub read_timeout: Duration,
+    pub login_timeout: Duration,
     pub connection_throttle: Duration,
     pub outdated_client_message: String,
     pub outdated_server_message: String,
@@ -70,6 +73,8 @@ impl Default for NetworkConfig {
             brand: "Rspigot".to_owned(),
             keep_alive_interval: Duration::from_secs(15),
             keep_alive_timeout: Duration::from_secs(30),
+            read_timeout: Duration::from_secs(30),
+            login_timeout: Duration::from_secs(30),
             connection_throttle: Duration::from_millis(4000),
             outdated_client_message: "Outdated client! Please use {0}".to_owned(),
             outdated_server_message: "Outdated server! I'm still on {0}".to_owned(),

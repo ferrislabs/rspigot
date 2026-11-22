@@ -37,7 +37,14 @@ const RANGES: [(&str, f64, f64); 11] = [
     (MOVEMENT_SPEED, 0.0, 1024.0),
 ];
 
-const SYNCABLE: [&str; 7] = [
+const SYNCABLE: [&str; 14] = [
+    "minecraft:burning_time",
+    "minecraft:explosion_knockback_resistance",
+    "minecraft:mining_efficiency",
+    "minecraft:oxygen_bonus",
+    "minecraft:sneaking_speed",
+    "minecraft:submerged_mining_speed",
+    "minecraft:water_movement_efficiency",
     MAX_HEALTH,
     MAX_ABSORPTION,
     ATTACK_SPEED,
@@ -178,6 +185,146 @@ pub fn worn_modifiers(
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum Amount {
+    Linear {
+        base: f32,
+        per_level_above_first: f32,
+    },
+    LevelsSquared {
+        added: f32,
+    },
+}
+
+impl Amount {
+    fn calculate(self, level: i32) -> f32 {
+        match self {
+            Self::Linear {
+                base,
+                per_level_above_first,
+            } => base + per_level_above_first * (level - 1) as f32,
+            Self::LevelsSquared { added } => (level * level) as f32 + added,
+        }
+    }
+}
+
+struct EnchantmentAttribute {
+    enchantment: &'static str,
+    slot: &'static str,
+    attribute: &'static str,
+    operation: AttributeOperation,
+    amount: Amount,
+}
+
+const THIRD: f32 = 0.333_333_34;
+
+const ENCHANTMENT_ATTRIBUTES: [EnchantmentAttribute; 7] = [
+    EnchantmentAttribute {
+        enchantment: "minecraft:aqua_affinity",
+        slot: "head",
+        attribute: "minecraft:submerged_mining_speed",
+        operation: AttributeOperation::AddMultipliedTotal,
+        amount: Amount::Linear {
+            base: 4.0,
+            per_level_above_first: 4.0,
+        },
+    },
+    EnchantmentAttribute {
+        enchantment: "minecraft:depth_strider",
+        slot: "feet",
+        attribute: "minecraft:water_movement_efficiency",
+        operation: AttributeOperation::AddValue,
+        amount: Amount::Linear {
+            base: THIRD,
+            per_level_above_first: THIRD,
+        },
+    },
+    EnchantmentAttribute {
+        enchantment: "minecraft:respiration",
+        slot: "head",
+        attribute: "minecraft:oxygen_bonus",
+        operation: AttributeOperation::AddValue,
+        amount: Amount::Linear {
+            base: 1.0,
+            per_level_above_first: 1.0,
+        },
+    },
+    EnchantmentAttribute {
+        enchantment: "minecraft:swift_sneak",
+        slot: "legs",
+        attribute: "minecraft:sneaking_speed",
+        operation: AttributeOperation::AddValue,
+        amount: Amount::Linear {
+            base: 0.15,
+            per_level_above_first: 0.15,
+        },
+    },
+    EnchantmentAttribute {
+        enchantment: "minecraft:fire_protection",
+        slot: "armor",
+        attribute: "minecraft:burning_time",
+        operation: AttributeOperation::AddMultipliedBase,
+        amount: Amount::Linear {
+            base: -0.15,
+            per_level_above_first: -0.15,
+        },
+    },
+    EnchantmentAttribute {
+        enchantment: "minecraft:blast_protection",
+        slot: "armor",
+        attribute: "minecraft:explosion_knockback_resistance",
+        operation: AttributeOperation::AddValue,
+        amount: Amount::Linear {
+            base: 0.15,
+            per_level_above_first: 0.15,
+        },
+    },
+    EnchantmentAttribute {
+        enchantment: "minecraft:efficiency",
+        slot: "mainhand",
+        attribute: "minecraft:mining_efficiency",
+        operation: AttributeOperation::AddValue,
+        amount: Amount::LevelsSquared { added: 1.0 },
+    },
+];
+
+pub fn enchantment_modifiers(
+    slot: EquipmentSlot,
+    stack: &ItemStack,
+) -> Vec<(&'static str, AttributeModifier)> {
+    enchantment_modifiers_for(slot, &crate::enchant::levels(stack))
+}
+
+pub fn enchantment_modifiers_for(
+    slot: EquipmentSlot,
+    levels: &[(String, u8)],
+) -> Vec<(&'static str, AttributeModifier)> {
+    let mut out = Vec::new();
+    for (name, level) in levels.iter().map(|(name, level)| (name.clone(), *level)) {
+        for entry in ENCHANTMENT_ATTRIBUTES
+            .iter()
+            .filter(|entry| entry.enchantment == name)
+        {
+            if !slot_group(entry.slot).is_some_and(|group| group.contains(slot)) {
+                continue;
+            }
+            let path = name.strip_prefix("minecraft:").unwrap_or(&name);
+            out.push((
+                entry.attribute,
+                AttributeModifier {
+                    id: std::borrow::Cow::Owned(format!(
+                        "minecraft:enchantment.{path}/{}",
+                        slot.name()
+                    )),
+                    amount: f64::from(entry.amount.calculate(i32::from(level))),
+                    operation: entry.operation,
+                },
+            ));
+        }
+    }
+    out
+}
+
 pub fn stack_modifiers(
     slot: EquipmentSlot,
     stack: &ItemStack,
@@ -194,7 +341,10 @@ impl Attributes {
     pub fn of(effects: &ActiveEffects, equipment: &[(EquipmentSlot, &ItemStack)]) -> Self {
         let mut states = effect_attributes(effects);
         for (slot, stack) in equipment {
-            for (attribute, modifier) in stack_modifiers(*slot, stack) {
+            let modifiers = stack_modifiers(*slot, stack)
+                .into_iter()
+                .chain(enchantment_modifiers(*slot, stack));
+            for (attribute, modifier) in modifiers {
                 match states.iter_mut().find(|s| s.attribute == attribute) {
                     Some(state) => state.modifiers.push(modifier),
                     None => states.push(AttributeState {
@@ -468,5 +618,70 @@ mod tests {
         assert_eq!(still.state(MOVEMENT_SPEED).base, -0.5);
         assert!(still.state(MOVEMENT_SPEED).modifiers.is_empty());
         assert_eq!(still.get(MOVEMENT_SPEED), 0.0);
+    }
+
+    fn enchanted(name: &str, enchantment: &str, level: u8) -> ItemStack {
+        let mut stack = item(name);
+        crate::enchant::set_levels(&mut stack, &[(enchantment.to_owned(), level)]);
+        stack
+    }
+
+    fn worn(slot: EquipmentSlot, stack: &ItemStack) -> Attributes {
+        Attributes::of(&ActiveEffects::default(), &[(slot, stack)])
+    }
+
+    #[test]
+    fn aqua_affinity_multiplies_submerged_mining_speed_by_five() {
+        let helmet = enchanted("iron_helmet", "minecraft:aqua_affinity", 1);
+        let attributes = worn(EquipmentSlot::Head, &helmet);
+        assert!((attributes.get("minecraft:submerged_mining_speed") - 1.0).abs() < 1e-6);
+        let bare = worn(EquipmentSlot::Head, &item("iron_helmet"));
+        assert!((bare.get("minecraft:submerged_mining_speed") - 0.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn enchantment_attributes_only_apply_in_their_slot() {
+        let helmet = enchanted("iron_helmet", "minecraft:aqua_affinity", 1);
+        let in_hand = worn(EquipmentSlot::Mainhand, &helmet);
+        assert!((in_hand.get("minecraft:submerged_mining_speed") - 0.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn depth_strider_respiration_and_swift_sneak_add_their_levels() {
+        let boots = enchanted("iron_boots", "minecraft:depth_strider", 3);
+        let water = worn(EquipmentSlot::Feet, &boots).get("minecraft:water_movement_efficiency");
+        assert!((water - 1.0).abs() < 1e-5, "{water}");
+        let helmet = enchanted("iron_helmet", "minecraft:respiration", 2);
+        assert_eq!(
+            worn(EquipmentSlot::Head, &helmet).get("minecraft:oxygen_bonus"),
+            2.0
+        );
+        let legs = enchanted("iron_leggings", "minecraft:swift_sneak", 2);
+        let sneak = worn(EquipmentSlot::Legs, &legs).get("minecraft:sneaking_speed");
+        assert!((sneak - 0.6).abs() < 1e-6, "{sneak}");
+    }
+
+    #[test]
+    fn fire_and_blast_protection_set_burning_time_and_explosion_resistance() {
+        let fire = enchanted("iron_chestplate", "minecraft:fire_protection", 4);
+        let burning = worn(EquipmentSlot::Chest, &fire).get("minecraft:burning_time");
+        assert!((burning - 0.4).abs() < 1e-6, "{burning}");
+        let blast = enchanted("iron_chestplate", "minecraft:blast_protection", 4);
+        let resistance =
+            worn(EquipmentSlot::Chest, &blast).get("minecraft:explosion_knockback_resistance");
+        assert!((resistance - 0.6).abs() < 1e-6, "{resistance}");
+    }
+
+    #[test]
+    fn efficiency_adds_level_squared_plus_one_to_mining_efficiency() {
+        let pickaxe = enchanted("iron_pickaxe", "minecraft:efficiency", 3);
+        assert_eq!(
+            worn(EquipmentSlot::Mainhand, &pickaxe).get("minecraft:mining_efficiency"),
+            10.0
+        );
+        assert_eq!(
+            worn(EquipmentSlot::Offhand, &pickaxe).get("minecraft:mining_efficiency"),
+            0.0
+        );
     }
 }

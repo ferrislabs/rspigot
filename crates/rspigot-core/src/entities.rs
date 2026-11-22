@@ -487,6 +487,8 @@ impl<L: ClientLink> Server<L> {
                 continue;
             }
             match &entity.state {
+                EntityState::Item(_) if !self.passive_active(id) => self.passive_inactive_tick(id),
+                EntityState::Arrow(_) if !self.passive_active(id) => self.passive_inactive_tick(id),
                 EntityState::Item(_) => self.tick_item_entity(id),
                 EntityState::Falling(_) => self.tick_falling_entity(id),
                 EntityState::Living(_) => {
@@ -962,6 +964,7 @@ impl<L: ClientLink> Server<L> {
                 on_ground: e.base.on_ground,
                 health: e.living().map(|_| living::health(&e.base)),
                 simulated: e.is_simulated(),
+                no_ai: living::is_no_ai(&e.base),
             })
             .collect()
     }
@@ -977,6 +980,7 @@ pub struct EntitySnapshot {
     pub on_ground: bool,
     pub health: Option<f32>,
     pub simulated: bool,
+    pub no_ai: bool,
 }
 
 pub(crate) fn entity_translation_key(kind: Kind) -> String {

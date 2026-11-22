@@ -190,6 +190,9 @@ impl<L: ClientLink> Server<L> {
             PlayerInput::RecipeSeen(display_id) => self.mark_recipe_seen(id, display_id),
             PlayerInput::AdvancementTab(tab) => self.select_advancement_tab(id, tab.as_deref()),
             PlayerInput::SelectTrade(index) => self.select_trade(id, index),
+            PlayerInput::BundleItemSelected { slot, index } => {
+                self.select_bundle_item(id, slot, index);
+            }
             PlayerInput::RenameItem(name) => self.rename_item(id, &name),
             PlayerInput::RecipeBookSettings {
                 kind,
@@ -625,6 +628,10 @@ impl<L: ClientLink> Server<L> {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }
+            if !(sneaking && holding) && self.use_sign_applicator(id, hand, pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
             if !(sneaking && holding) && self.use_sign(id, pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
@@ -717,6 +724,14 @@ impl<L: ClientLink> Server<L> {
             sneaking,
             game_mode,
         };
+        if stack.is_some()
+            && (self.use_honeycomb_on_block(id, hand, pos, clicked)
+                || self.use_water_bottle_on_dirt(id, hand, pos, clicked)
+                || self.use_shears_on_plant(id, hand, pos, clicked))
+        {
+            self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+            return;
+        }
         if let Some(held) = &stack
             && (self.use_fire_starter(id, hand, held, pos, face, sequence)
                 || self.douse_with_shovel(id, held, &usage, sequence))
@@ -787,7 +802,7 @@ impl<L: ClientLink> Server<L> {
             self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
             return;
         };
-        if game_mode == GameMode::Spectator || game_mode == GameMode::Adventure {
+        if crate::adventure::use_restricted_by_mode(game_mode, Some(&stack), clicked) {
             self.refuse_block(id, pos, sequence);
             return;
         }
@@ -1155,6 +1170,7 @@ const fn acts(input: &PlayerInput) -> bool {
             | PlayerInput::ContainerSlotState { .. }
             | PlayerInput::SetBeacon { .. }
             | PlayerInput::SelectTrade(_)
+            | PlayerInput::BundleItemSelected { .. }
             | PlayerInput::RenameItem(_)
     )
 }

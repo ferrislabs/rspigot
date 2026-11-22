@@ -1703,6 +1703,34 @@ impl Encoder {
                     profile_ids: ids.iter().map(|id| id.0).collect(),
                 },
             ),
+            ClientEvent::PlayerInfoLatency(latencies) => Self::queue(
+                writer,
+                &cb::PlayerInfoUpdate {
+                    actions: PlayerInfoActions::UPDATE_LATENCY,
+                    entries: latencies
+                        .iter()
+                        .map(|(player, latency)| PlayerInfoEntry {
+                            profile_id: player.0,
+                            name: String::new(),
+                            properties: Vec::new(),
+                            chat_session: None,
+                            game_mode: game_mode(DomainGameMode::Survival),
+                            listed: true,
+                            latency: *latency,
+                            display_name: None,
+                            list_order: 0,
+                            show_hat: true,
+                        })
+                        .collect(),
+                },
+            ),
+            ClientEvent::ServerData { motd, icon } => Self::queue(
+                writer,
+                &cb::ServerData {
+                    motd: text(motd),
+                    icon: icon.clone(),
+                },
+            ),
             ClientEvent::TabList { header, footer } => Self::queue(
                 writer,
                 &cb::TabList {
@@ -2808,6 +2836,27 @@ mod tests {
         assert_eq!(indexes.3, 0);
     }
 
+    #[test]
+    fn a_latency_refresh_is_an_update_latency_only_packet() {
+        let sent = encode_events(ClientEvent::PlayerInfoLatency(vec![(
+            rspigot_domain::player::PlayerId(uuid::Uuid::from_u128(7)),
+            42,
+        )]));
+        assert_eq!(sent[0].0, id::PLAYER_INFO_UPDATE);
+        assert_eq!(sent[0].1[0], PlayerInfoActions::UPDATE_LATENCY.0);
+        assert_eq!(sent[0].1.last(), Some(&42));
+    }
+
+    #[test]
+    fn server_data_carries_the_motd_and_the_icon() {
+        let sent = encode_events(ClientEvent::ServerData {
+            motd: Component::text("hi"),
+            icon: Some(vec![1, 2]),
+        });
+        assert_eq!(sent[0].0, id::SERVER_DATA);
+        assert!(sent[0].1.ends_with(&[1, 2, 1, 2]));
+    }
+
     #[derive(Default)]
     struct Captured(Vec<(i32, Vec<u8>)>);
 
@@ -2824,6 +2873,10 @@ mod tests {
         }
 
         fn queue_prebuilt(&mut self, _: &[u8]) {}
+    }
+
+    fn encode_events(event: ClientEvent) -> Vec<(i32, Vec<u8>)> {
+        encode(event)
     }
 
     fn encode(event: ClientEvent) -> Vec<(i32, Vec<u8>)> {

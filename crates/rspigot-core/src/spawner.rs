@@ -239,6 +239,9 @@ impl<L: ClientLink> Server<L> {
         let yaw = ServerRandom(&mut self.rng).next_float() * 360.0;
         let position = entity.base.position;
         entity.base.snap_to(position, yaw, 0.0);
+        if self.config.world_keys.nerf_spawner_mobs && entity.living().is_some_and(|s| s.is_mob()) {
+            rspigot_domain::entity::living::set_no_ai(&mut entity.base, true);
+        }
         if entity.living().is_some_and(|state| state.is_mob())
             && !self.mob_fits_spawner(&entity, kind, &data)
         {

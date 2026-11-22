@@ -301,6 +301,11 @@ pub fn read_favicon(root: &Path) -> Option<String> {
     Some(format!("data:image/png;base64,{}", STANDARD.encode(&bytes)))
 }
 
+pub fn icon_bytes(favicon: &str) -> Option<Vec<u8>> {
+    let encoded = favicon.strip_prefix("data:image/png;base64,")?;
+    STANDARD.decode(encoded).ok()
+}
+
 #[cfg(test)]
 mod tests {
     use std::net::IpAddr;
@@ -348,6 +353,16 @@ mod tests {
             read_favicon(dir.path()),
             Some(format!("data:image/png;base64,{}", STANDARD.encode(&bytes)))
         );
+    }
+
+    #[test]
+    fn the_icon_bytes_round_trip_through_the_data_uri() {
+        let dir = tempfile::tempdir().unwrap();
+        let bytes = png_of(64, 64);
+        std::fs::write(dir.path().join("server-icon.png"), &bytes).unwrap();
+        let uri = read_favicon(dir.path()).unwrap();
+        assert_eq!(icon_bytes(&uri), Some(bytes));
+        assert_eq!(icon_bytes("not a data uri"), None);
     }
 
     #[test]

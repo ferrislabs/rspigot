@@ -63,18 +63,10 @@ struct Number {
     default: f64,
 }
 
-const SPIGOT_NUMBERS: [Number; 4] = [
-    Number {
-        path: "settings.timeout-time",
-        default: 60.0,
-    },
+const SPIGOT_NUMBERS: [Number; 2] = [
     Number {
         path: "world-settings.default.merge-radius.exp",
         default: -1.0,
-    },
-    Number {
-        path: "world-settings.default.ticks-per.hopper-check",
-        default: 1.0,
     },
     Number {
         path: "commands.tab-complete",
@@ -113,7 +105,7 @@ const fn spigot(path: &'static str, default: &'static str, reason: &'static str)
     }
 }
 
-const SCALARS: [Scalar; 17] = [
+const SCALARS: [Scalar; 38] = [
     bukkit(
         "settings.update-folder",
         "update",
@@ -148,11 +140,6 @@ const SCALARS: [Scalar; 17] = [
         "chunk-gc.period-in-ticks",
         "600",
         "chunks unload after a fixed delay",
-    ),
-    spigot(
-        "settings.restart-on-crash",
-        "true",
-        "a crash ends the process, restart-script only runs on /restart",
     ),
     spigot(
         "settings.player-shuffle",
@@ -190,14 +177,124 @@ const SCALARS: [Scalar; 17] = [
         "world generation never revisits existing chunks",
     ),
     spigot(
-        "world-settings.default.trident-despawn-rate",
-        "1200",
-        "trident despawn time is fixed at 1200 ticks",
-    ),
-    spigot(
         "world-settings.default.max-tick-time.tile",
         "50",
         "there is no per-entity tick watchdog",
+    ),
+    spigot(
+        "world-settings.default.hopper-can-load-chunks",
+        "false",
+        "hoppers never load chunks",
+    ),
+    spigot(
+        "world-settings.default.hanging-tick-frequency",
+        "100",
+        "hanging entities are checked on a fixed schedule",
+    ),
+    spigot(
+        "world-settings.default.unload-frozen-chunks",
+        "false",
+        "frozen chunks are not unloaded",
+    ),
+    spigot(
+        "world-settings.default.enable-zombie-pigmen-portal-spawns",
+        "true",
+        "portal spawns of zombified piglins are not configurable",
+    ),
+    spigot(
+        "world-settings.default.wither-spawn-sound-radius",
+        "0",
+        "the wither spawn sound is global",
+    ),
+    spigot(
+        "world-settings.default.end-portal-sound-radius",
+        "0",
+        "the end portal sound is global",
+    ),
+    spigot(
+        "world-settings.default.dragon-death-sound-radius",
+        "0",
+        "the dragon death sound is global",
+    ),
+    spigot(
+        "world-settings.default.max-tick-time.entity",
+        "50",
+        "there is no per-entity tick time limit",
+    ),
+    spigot(
+        "world-settings.default.entity-activation-range.tick-inactive-villagers",
+        "true",
+        "inactive villagers are never ticked by their brain",
+    ),
+    spigot(
+        "world-settings.default.seed-village",
+        "10387312",
+        "structure placement does not use the village seed",
+    ),
+    spigot(
+        "world-settings.default.seed-desert",
+        "14357617",
+        "structure placement does not use the desert seed",
+    ),
+    spigot(
+        "world-settings.default.seed-igloo",
+        "14357618",
+        "structure placement does not use the igloo seed",
+    ),
+    spigot(
+        "world-settings.default.seed-jungle",
+        "14357619",
+        "structure placement does not use the jungle seed",
+    ),
+    spigot(
+        "world-settings.default.seed-swamp",
+        "14357620",
+        "structure placement does not use the swamp seed",
+    ),
+    spigot(
+        "world-settings.default.seed-monument",
+        "10387313",
+        "structure placement does not use the monument seed",
+    ),
+    spigot(
+        "world-settings.default.seed-shipwreck",
+        "165745295",
+        "structure placement does not use the shipwreck seed",
+    ),
+    spigot(
+        "world-settings.default.seed-ocean",
+        "14357621",
+        "structure placement does not use the ocean seed",
+    ),
+    spigot(
+        "world-settings.default.seed-outpost",
+        "165745296",
+        "structure placement does not use the outpost seed",
+    ),
+    spigot(
+        "world-settings.default.seed-endcity",
+        "10387313",
+        "structure placement does not use the endcity seed",
+    ),
+    spigot(
+        "world-settings.default.seed-nether",
+        "30084232",
+        "structure placement does not use the nether seed",
+    ),
+    spigot(
+        "world-settings.default.seed-mansion",
+        "10387319",
+        "structure placement does not use the mansion seed",
+    ),
+    spigot(
+        "world-settings.default.seed-fossil",
+        "14357921",
+        "structure placement does not use the fossil seed",
+    ),
+    spigot(
+        "world-settings.default.seed-portal",
+        "34222645",
+        "structure placement does not use the portal seed",
     ),
 ];
 
@@ -257,6 +354,8 @@ pub fn warnings(files: &ServerFiles) -> Vec<String> {
 mod tests {
     use super::*;
     use crate::config::{BUKKIT_DEFAULTS, Properties, SPIGOT_DEFAULTS, YamlConfig};
+    use rspigot_core::commands::help::HelpConfig;
+    use rspigot_core::config::CommandSettings;
 
     fn files(properties: &str, spigot: &str) -> ServerFiles {
         files_with_bukkit(properties, spigot, "{}")
@@ -289,6 +388,8 @@ mod tests {
             spigot: merged(spigot, SPIGOT_DEFAULTS),
             bukkit: merged(bukkit, BUKKIT_DEFAULTS),
             plugins: YamlConfig::from_str(super::super::PLUGINS_DEFAULTS).unwrap(),
+            command_settings: CommandSettings::default(),
+            help: HelpConfig::default(),
         }
     }
 

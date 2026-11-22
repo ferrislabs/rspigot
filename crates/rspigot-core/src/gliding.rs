@@ -1,7 +1,7 @@
 use rspigot_domain::entity::reward::{DAMAGE_COMPONENT, max_damage};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::PlayerId;
-use rspigot_items::ItemKind;
+use rspigot_domain::stack_components;
 
 use crate::events::Hand;
 use crate::plugins::events::EntityToggleGlide;
@@ -15,7 +15,7 @@ const LEVITATION: &str = "minecraft:levitation";
 const WEAR_PERIOD: i32 = 10;
 
 fn is_glider(stack: &ItemStack) -> bool {
-    stack.item == ItemKind::Elytra.id()
+    stack_components::is_glider(stack)
 }
 
 fn next_damage_breaks(stack: &ItemStack) -> bool {

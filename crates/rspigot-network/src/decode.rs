@@ -466,6 +466,10 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
             enabled: p.new_state,
         }),
         ServerboundPlay::SelectTrade(p) => input(PlayerInput::SelectTrade(p.item)),
+        ServerboundPlay::SelectBundleItem(p) => input(PlayerInput::BundleItemSelected {
+            slot: p.slot_id,
+            index: p.selected_item_index,
+        }),
         ServerboundPlay::RenameItem(p) => input(PlayerInput::RenameItem(p.name)),
         ServerboundPlay::SeenAdvancements(action) => {
             input(PlayerInput::AdvancementTab(match action {
@@ -653,14 +657,21 @@ mod tests {
     }
 
     #[test]
-    fn bundle_selection_test_blocks_and_debug_subscriptions_are_ignored() {
+    fn a_bundle_selection_becomes_a_player_input() {
+        assert_eq!(
+            decoded(sb::BUNDLE_ITEM_SELECTED, &[36, 1]),
+            PlayerInput::BundleItemSelected { slot: 36, index: 1 }
+        );
+    }
+
+    #[test]
+    fn test_blocks_and_debug_subscriptions_are_ignored() {
         let ignored = |id: i32, body: &[u8]| {
             matches!(
                 decode(ServerboundPlay::decode(id, body).unwrap()),
                 Decoded::Ignored
             )
         };
-        assert!(ignored(sb::BUNDLE_ITEM_SELECTED, &[36, 1]));
         assert!(ignored(sb::DEBUG_SUBSCRIPTION_REQUEST, &[1, 0]));
         let mut test_block = Vec::new();
         Position { x: 0, y: 0, z: 0 }.encode(&mut test_block);

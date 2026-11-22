@@ -2,6 +2,8 @@ use rspigot_blocks::{BlockKind, StateFlags};
 use rspigot_domain::random::{LegacyRandom, RandomSource};
 use rspigot_domain::{BlockPos, BlockStateId, ChunkPos};
 
+use rand::Rng;
+
 use crate::ground::is_leaves;
 use crate::ports::ClientLink;
 use crate::server::Server;
@@ -73,6 +75,22 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn random_tick_block(&mut self, pos: BlockPos, picked: BlockStateId) {
+        let repeats = match crate::world_keys::Crop::of(picked) {
+            Some(crop) if !self.config.world_keys.growth.is_vanilla(crop) => {
+                let roll: f32 = self.rng.random();
+                self.config.world_keys.growth.repeats(crop, roll)
+            }
+            _ => 1,
+        };
+        for _ in 0..repeats {
+            if self.block_or_air(pos) != picked {
+                break;
+            }
+            self.random_tick_once(pos, picked);
+        }
+    }
+
+    fn random_tick_once(&mut self, pos: BlockPos, picked: BlockStateId) {
         let Some(kind) = picked.kind() else {
             return;
         };

@@ -20,7 +20,7 @@ const LEVELS: &[(&str, u8)] = &[
     ("about", LEVEL_ALL),
     ("plugins", LEVEL_ALL),
     ("pl", LEVEL_ALL),
-    ("tps", LEVEL_ALL),
+    ("tps", LEVEL_MODERATORS),
     ("advancement", LEVEL_GAMEMASTERS),
     ("attribute", LEVEL_GAMEMASTERS),
     ("bossbar", LEVEL_GAMEMASTERS),
@@ -111,6 +111,10 @@ const LEVELS: &[(&str, u8)] = &[
     ("debug", LEVEL_ADMINS),
 ];
 
+pub fn labels() -> impl Iterator<Item = &'static str> {
+    LEVELS.iter().map(|(name, _)| *name)
+}
+
 pub fn required_level(label: &str) -> Option<u8> {
     LEVELS
         .iter()
@@ -119,6 +123,36 @@ pub fn required_level(label: &str) -> Option<u8> {
 
 pub fn may_use(label: &str, level: u8) -> bool {
     required_level(label).is_none_or(|required| level >= required)
+}
+
+const BUKKIT_NODES: &[(&str, &str)] = &[
+    ("help", "help"),
+    ("?", "help"),
+    ("version", "version"),
+    ("ver", "version"),
+    ("about", "version"),
+    ("plugins", "plugins"),
+    ("pl", "plugins"),
+    ("reload", "reload"),
+    ("tps", "tps"),
+    ("timings", "timings"),
+    ("restart", "restart"),
+    ("spigot", "spigot"),
+];
+
+pub const BUKKIT_PREFIX: &str = "bukkit.command.";
+pub const VANILLA_PREFIX: &str = "minecraft.command.";
+
+pub fn node_of(label: &str) -> Option<String> {
+    required_level(label)?;
+    Some(match BUKKIT_NODES.iter().find(|(name, _)| *name == label) {
+        Some((_, node)) => format!("{BUKKIT_PREFIX}{node}"),
+        None => format!("{VANILLA_PREFIX}{label}"),
+    })
+}
+
+pub fn allowed(label: &str, level: u8, decision: Option<bool>) -> bool {
+    decision.unwrap_or_else(|| may_use(label, level))
 }
 
 #[cfg(test)]
@@ -132,6 +166,32 @@ mod tests {
         assert_eq!(required_level("op"), Some(LEVEL_ADMINS));
         assert_eq!(required_level("stop"), Some(LEVEL_OWNERS));
         assert_eq!(required_level("frobnicate"), None);
+    }
+
+    #[test]
+    fn builtin_commands_map_to_bukkit_and_minecraft_nodes() {
+        assert_eq!(node_of("tps").as_deref(), Some("bukkit.command.tps"));
+        assert_eq!(node_of("ver").as_deref(), Some("bukkit.command.version"));
+        assert_eq!(node_of("?").as_deref(), Some("bukkit.command.help"));
+        assert_eq!(
+            node_of("gamemode").as_deref(),
+            Some("minecraft.command.gamemode")
+        );
+        assert_eq!(node_of("frobnicate"), None);
+    }
+
+    #[test]
+    fn a_node_decision_overrides_the_level() {
+        assert!(allowed("ban", 0, Some(true)));
+        assert!(!allowed("msg", 4, Some(false)));
+        assert!(allowed("msg", 0, None));
+        assert!(!allowed("ban", 0, None));
+    }
+
+    #[test]
+    fn tps_is_no_longer_open_to_everyone() {
+        assert!(!may_use("tps", 0));
+        assert!(may_use("tps", 1));
     }
 
     #[test]

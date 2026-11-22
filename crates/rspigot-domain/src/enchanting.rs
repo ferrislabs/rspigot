@@ -94,10 +94,7 @@ pub fn is_book(stack: &ItemStack) -> bool {
 }
 
 fn enchantment_value(stack: &ItemStack) -> i32 {
-    stack
-        .item
-        .kind()
-        .and_then(ItemKind::enchantable)
+    crate::stack_components::enchantable(stack)
         .map_or(0, |value| i32::try_from(value).unwrap_or(i32::MAX))
 }
 

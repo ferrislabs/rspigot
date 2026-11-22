@@ -2,6 +2,7 @@ use rspigot_items::{CookingKind, EquipmentSlot, ItemId, ItemKind};
 
 use crate::anvil;
 use crate::brewing;
+use crate::bundle;
 use crate::cartography;
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
@@ -16,7 +17,8 @@ use crate::item::{
 };
 use crate::loom;
 use crate::menu::{
-    ClickInput, Clicker, HashedSlot, Hold, MenuEffect, OUTSIDE, RemoteUpdate, place_back_or_drop,
+    BundleSound, ClickInput, Clicker, HashedSlot, Hold, MenuEffect, OUTSIDE, RemoteUpdate,
+    place_back_or_drop,
 };
 use crate::recipes;
 use crate::smithing;
@@ -378,12 +380,14 @@ impl MenuKind {
             } => match slot {
                 MOUNT_SADDLE_SLOT => {
                     saddle
-                        && stack.item.kind().and_then(ItemKind::equippable)
+                        && crate::stack_components::equippable(stack)
+                            .map(|equippable| equippable.slot)
                             == Some(EquipmentSlot::Saddle)
                 }
                 MOUNT_ARMOR_SLOT => {
                     armor
-                        && stack.item.kind().and_then(ItemKind::equippable)
+                        && crate::stack_components::equippable(stack)
+                            .map(|equippable| equippable.slot)
                             == Some(EquipmentSlot::Body)
                         && stack
                             .item
@@ -794,6 +798,37 @@ impl ClickView for Look<'_> {
 
     fn instabuild(&self) -> bool {
         self.instabuild
+    }
+}
+
+impl bundle::BundleSession for Session<'_> {
+    fn slot_item(&self, slot: usize) -> Slot {
+        self.item(slot)
+    }
+
+    fn take(&mut self, slot: usize, amount: u32, limit: u32) -> Slot {
+        self.try_remove(slot, amount, limit)
+    }
+
+    fn insert(&mut self, slot: usize, stack: Slot, amount: u32) -> Slot {
+        self.safe_insert(slot, stack, amount)
+    }
+
+    fn store(&mut self, slot: usize, stack: Slot) {
+        self.put(slot, stack);
+    }
+
+    fn cursor(&mut self) -> &mut Slot {
+        self.carried
+    }
+
+    fn sound(&mut self, sound: BundleSound) {
+        self.effects.push(MenuEffect::Bundle(sound));
+    }
+
+    fn is_result(&self, slot: usize) -> bool {
+        let current = self.item(slot);
+        !self.may_place(slot, &current)
     }
 }
 
@@ -1357,6 +1392,9 @@ impl Session<'_> {
             }
             return;
         }
+        if bundle::click(self, target, primary) {
+            return;
+        }
         let in_slot = self.item(target);
         let carried = self.carried.clone();
         match (&in_slot, &carried) {
@@ -1898,6 +1936,32 @@ impl ContainerMenu {
         };
         session.update_sell_item();
         session.effects
+    }
+
+    pub fn select_bundle_item(
+        &mut self,
+        container: &mut [Slot],
+        player: &mut Inventory,
+        slot: usize,
+        index: i32,
+    ) {
+        let stack = match cell(self.kind, slot) {
+            Some(Cell::Container(at)) => container.get_mut(at).and_then(Option::as_mut),
+            Some(Cell::Player(at)) => {
+                let Some(mut stack) = player.get(at).cloned() else {
+                    return;
+                };
+                if bundle::is_bundle(&stack) {
+                    bundle::toggle(&mut stack, index);
+                    player.set(at, Some(stack));
+                }
+                return;
+            }
+            None => None,
+        };
+        if let Some(stack) = stack.filter(|stack| bundle::is_bundle(stack)) {
+            bundle::toggle(stack, index);
+        }
     }
 
     pub fn select_trade(

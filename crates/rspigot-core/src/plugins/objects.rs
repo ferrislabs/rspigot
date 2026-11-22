@@ -4,6 +4,7 @@ use rspigot_domain::entity::item::{THROWN_DROP_BELOW_EYES, thrown_velocity};
 use rspigot_domain::entity::reward::{damage_value, max_damage, set_damage_value};
 use rspigot_domain::item::{HOTBAR_START, ItemStack, OFFHAND_SLOT, same_item_same_components};
 use rspigot_domain::player::{GameMode, PlayerId};
+use rspigot_domain::stack_components;
 use rspigot_domain::{BlockPos, EntityId, Rotation, Vec3};
 
 use crate::events::{Animation, ClientEvent, Direction, EntityStatus, EquipmentSlot, Hand};
@@ -321,7 +322,19 @@ impl<L: ClientLink> Server<L> {
                     || self.use_fishing_rod(step.player, step.hand, step.rotation)
                     || self.use_firework(step.player, step.hand)
                     || self.use_written_book(step.player, step.hand)
-                    || self.use_empty_map(step.player, step.hand))
+                    || self.use_empty_map(step.player, step.hand)
+                    || self.use_glass_bottle(step.player, step.hand, step.rotation)
+                    || self.use_place_on_water(
+                        step.player,
+                        step.hand,
+                        step.rotation,
+                        step.sequence,
+                    )
+                    || self.use_spawn_egg_on_liquid(step.player, step.hand, step.rotation)
+                    || self.use_knowledge_book(step.player, step.hand)
+                    || self.use_bundle(step.player, step.hand)
+                    || self.use_instrument(step.player, step.hand)
+                    || self.use_equippable(step.player, step.hand))
             {
             } else if item_ok {
                 self.start_using_item(step.player, step.hand);
@@ -690,7 +703,7 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn wear_at_head(&mut self, request: &WearRequest) -> Option<WearStep> {
         let player = self.players.get(&request.player)?;
         let stack = player.inventory.get(request.slot).cloned()?;
-        stack.item.kind()?.max_damage()?;
+        stack_components::durability(&stack)?;
         let damage = if player.abilities().instant_build || max_damage(&stack).is_none() {
             0
         } else {

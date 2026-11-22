@@ -63,3 +63,25 @@ impl StatusBoard {
         update(&mut self.0.write());
     }
 }
+
+pub const ANONYMOUS_PLAYER: &str = "Anonymous Player";
+
+pub(crate) fn sample_entry(id: PlayerId, name: &str, allows_listing: bool) -> PlayerSample {
+    if allows_listing {
+        PlayerSample {
+            id,
+            name: name.to_owned(),
+        }
+    } else {
+        PlayerSample {
+            id: PlayerId(uuid::Uuid::nil()),
+            name: ANONYMOUS_PLAYER.to_owned(),
+        }
+    }
+}
+
+pub(crate) fn shuffled(mut sample: Vec<PlayerSample>) -> Vec<PlayerSample> {
+    use rand::seq::SliceRandom;
+    sample.shuffle(&mut rand::rng());
+    sample
+}

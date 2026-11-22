@@ -427,7 +427,16 @@ impl<L: ClientLink> Server<L> {
         if self.tick_trident_return(id) {
             return;
         }
-        let despawn = self.config.mobs.arrow_despawn_rate;
+        let trident = self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|e| e.base.kind == rspigot_entities::EntityKind::Trident);
+        let despawn = if trident {
+            self.config.world_keys.trident_despawn_rate
+        } else {
+            self.config.mobs.arrow_despawn_rate
+        };
         let in_rain = self
             .entities
             .store

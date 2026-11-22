@@ -14,6 +14,7 @@ mod execute;
 mod function_commands;
 mod game_commands;
 mod game_completion;
+pub mod help;
 mod item_commands;
 pub(crate) mod json_text;
 mod locate_commands;
