@@ -24,6 +24,7 @@ pub(super) fn order(order: v1::EntityOrder) -> Result<Order, Malformed> {
         Wire::Change(change) => EntityOrder::Change(typed(required(change.change)?)),
         Wire::Meta(order) => EntityOrder::Meta(super::meta::order(order)?),
         Wire::Edit(edit) => EntityOrder::Edit(super::edits::edit(edit)?),
+        Wire::Object(object) => EntityOrder::Object(super::objects::entity_order(object)?),
     };
     Ok(Order::Entity { entity, order })
 }

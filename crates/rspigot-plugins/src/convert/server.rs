@@ -47,6 +47,8 @@ pub(super) fn order(order: v1::ServerOrder) -> Result<Order, Malformed> {
         Wire::CreateWorld(create) => ServerOrder::CreateWorld(world_spec(create)?),
         Wire::AddRecipe(def) => ServerOrder::AddRecipe(Box::new(super::recipes::spec(def)?)),
         Wire::RemoveRecipe(id) => ServerOrder::RemoveRecipe(id),
+        Wire::SetMotd(motd) => ServerOrder::SetMotd(motd),
+        Wire::SetMaxPlayers(count) => ServerOrder::SetMaxPlayers(count),
     };
     Ok(Order::Server(order))
 }

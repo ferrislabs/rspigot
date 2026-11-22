@@ -254,6 +254,7 @@ pub(crate) struct DropStep {
     pub(crate) launch: Launch,
     pub(crate) thrower: bool,
     pub(crate) predicted: bool,
+    pub(crate) entity: (EntityId, uuid::Uuid),
 }
 
 #[derive(Debug)]
@@ -1700,6 +1701,7 @@ pub(crate) enum Continuation {
     Structure(Box<StructureStep>),
     Fertilize(Box<FertilizeStep>),
     Nature(NatureStep),
+    Gap(Box<crate::plugins::gaps::GapStep>),
     Ignite(IgniteStep),
     Light(Box<crate::fire_starting::LightStep>),
     Regrow(EntityId),
@@ -1939,6 +1941,7 @@ impl Continuation {
                 Nature::Moisture => EventKind::MoistureChange,
                 Nature::Leaves => EventKind::LeavesDecay,
             },
+            Self::Gap(step) => step.kind(),
             Self::Ignite(_) | Self::Light(_) => EventKind::BlockIgnite,
             Self::Regrow(_) => EventKind::SheepRegrowWool,
             Self::SpellCast(_) => EventKind::EntitySpellCast,
@@ -2172,6 +2175,7 @@ impl Continuation {
             (Self::Nature(one), Self::Nature(other)) => {
                 one.nature == other.nature && one.pos == other.pos
             }
+            (Self::Gap(one), Self::Gap(other)) => one.same_as(other),
             (Self::Ignite(one), Self::Ignite(other)) => one.pos == other.pos,
             (Self::Sponge(one), Self::Sponge(other)) => one.pos == other.pos,
             (Self::Piston(one), Self::Piston(other)) => **one == **other,
@@ -2283,6 +2287,7 @@ impl Continuation {
             | Self::BatSleep { .. }
             | Self::Form(_)
             | Self::Nature(_)
+            | Self::Gap(_)
             | Self::Sponge(_)
             | Self::Redstone(_)
             | Self::Piston(_)

@@ -6,10 +6,14 @@ use crate::commands::{CommandSpec, Invocation};
 use crate::compose::{self, CommandModule};
 use crate::events::{Call, EventKind};
 use crate::server::Server;
+use crate::tasks::TaskClock;
 
 pub trait Plugin: Listeners + Send + Sync + 'static {
     const NAME: &'static str;
     const VERSION: &'static str;
+    const DEPENDS: &'static [&'static str] = &[];
+    const SOFT_DEPENDS: &'static [&'static str] = &[];
+    const LOAD_BEFORE: &'static [&'static str] = &[];
 }
 
 #[diagnostic::on_unimplemented(
@@ -39,6 +43,11 @@ pub trait Listeners {
     fn enable(&self, server: &Server) -> impl Future<Output = ()> + Send;
 
     fn disable(&self) -> impl Future<Output = ()> + Send;
+
+    fn run_tasks(&self, server: &Server, clock: &mut TaskClock) -> impl Future<Output = ()> + Send {
+        let _ = (server, clock);
+        async {}
+    }
 
     fn commands() -> Vec<CommandSpec> {
         Vec::new()

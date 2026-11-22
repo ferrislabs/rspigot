@@ -36,6 +36,11 @@ pub enum ChunkJob {
         pos: ChunkPos,
         mobs: Option<super::MobGeneration>,
     },
+    Generate {
+        dimension: Arc<Dimension>,
+        pos: ChunkPos,
+        mobs: Option<super::MobGeneration>,
+    },
     Save {
         dimension: Arc<Dimension>,
         chunk: Arc<ChunkColumn>,
@@ -231,7 +236,12 @@ fn execute<S: ChunkStore + EntityStore, G: ChunkGenerator>(
             dimension,
             pos,
             mobs,
-        } => load(dimension, pos, mobs, store, generator),
+        } => load(dimension, pos, mobs, false, store, generator),
+        ChunkJob::Generate {
+            dimension,
+            pos,
+            mobs,
+        } => load(dimension, pos, mobs, true, store, generator),
         ChunkJob::Save { dimension, chunk } => match store.save(&dimension.key, &chunk) {
             Ok(()) => ChunkResult::Saved { pos: chunk.pos() },
             Err(error) => ChunkResult::Failed {
@@ -321,23 +331,32 @@ fn load<S: ChunkStore + EntityStore, G: ChunkGenerator>(
     dimension: Arc<Dimension>,
     pos: ChunkPos,
     mobs: Option<super::MobGeneration>,
+    fresh: bool,
     store: &S,
     generator: &G,
 ) -> ChunkResult {
     let started = Instant::now();
-    let (mut chunk, source) = match store.load(&dimension.key, pos) {
-        Ok(Some(chunk)) => (chunk, ChunkSource::Disk),
-        Ok(None) => (generator.generate(&dimension, pos), ChunkSource::Generated),
-        Err(error) => {
-            tracing::warn!(?pos, %error, "chunk load failed, regenerating");
-            (generator.generate(&dimension, pos), ChunkSource::Generated)
+    let (mut chunk, source) = if fresh {
+        (generator.generate(&dimension, pos), ChunkSource::Generated)
+    } else {
+        match store.load(&dimension.key, pos) {
+            Ok(Some(chunk)) => (chunk, ChunkSource::Disk),
+            Ok(None) => (generator.generate(&dimension, pos), ChunkSource::Generated),
+            Err(error) => {
+                tracing::warn!(?pos, %error, "chunk load failed, regenerating");
+                (generator.generate(&dimension, pos), ChunkSource::Generated)
+            }
         }
     };
-    let mut entities = match store.load_entities(&dimension.key, pos) {
-        Ok(entities) => entities,
-        Err(error) => {
-            tracing::error!(?pos, %error, "Failed to load entities");
-            None
+    let mut entities = if fresh {
+        None
+    } else {
+        match store.load_entities(&dimension.key, pos) {
+            Ok(entities) => entities,
+            Err(error) => {
+                tracing::error!(?pos, %error, "Failed to load entities");
+                None
+            }
         }
     };
     let poi = match source {

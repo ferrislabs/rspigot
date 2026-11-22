@@ -1,0 +1,17 @@
+error: `every` is a number and a unit, `"500ms"`, `"30s"`, `"5m"` or `"1h"`, of at least 100ms
+ --> tests/ui/task_bad_every.rs:7:20
+  |
+7 |     #[task(every = "5")]
+  |                    ^^^
+
+error: `every` is a number and a unit, `"500ms"`, `"30s"`, `"5m"` or `"1h"`, of at least 100ms
+  --> tests/ui/task_bad_every.rs:10:20
+   |
+10 |     #[task(every = "10ms")]
+   |                    ^^^^^^
+
+error: expected attribute arguments in parentheses: #[task(...)]
+  --> tests/ui/task_bad_every.rs:13:7
+   |
+13 |     #[task]
+   |       ^^^^

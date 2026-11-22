@@ -376,6 +376,14 @@ impl ServerFiles {
         plugins::host_config(&self.plugins, environment_token)
     }
 
+    pub fn plugins_enabled(&self) -> bool {
+        plugins::enabled(&self.plugins)
+    }
+
+    pub fn expected_plugins(&self) -> Vec<rspigot_plugins::ExpectedPlugin> {
+        plugins::expected(&self.plugins)
+    }
+
     pub fn management_config(&self) -> Option<ManagementConfig> {
         let p = &self.properties;
         if !p.bool("management-server-enabled") {

@@ -249,7 +249,10 @@ async fn answer_ping<V>(
     let ping = || StatusPing {
         address,
         hostname: hostname(),
-        motd: shared.config.motd.clone(),
+        motd: snapshot
+            .motd
+            .clone()
+            .unwrap_or_else(|| shared.config.motd.clone()),
         legacy,
     };
     match snapshot.ping {

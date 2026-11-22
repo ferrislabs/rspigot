@@ -228,7 +228,31 @@ impl<L: ClientLink> Server<L> {
         links: Vec<ServerLink>,
     ) -> Result<(), ClientExtraError> {
         self.require_player(player)?;
+        let described = crate::plugins::ServerLinks {
+            links: links
+                .iter()
+                .map(|link| crate::plugins::ServerLinkEntry {
+                    label: match &link.label {
+                        LinkLabel::Known(known) => known.key().to_owned(),
+                        LinkLabel::Custom(text) => text.plain_text(),
+                    },
+                    url: link.url.clone(),
+                })
+                .collect(),
+        };
         self.push(Audience::One(player), ClientEvent::ServerLinks(links));
+        self.fire(
+            crate::plugins::Lane::Player(player),
+            crate::plugins::Continuation::Notice(crate::plugins::EventKind::PlayerLinksSend),
+            move |server| {
+                Some(crate::plugins::EventPayload::PlayerLinksSend(
+                    crate::plugins::events::PlayerLinksSend {
+                        links: described,
+                        player: server.snapshot_of(player)?,
+                    },
+                ))
+            },
+        );
         Ok(())
     }
 

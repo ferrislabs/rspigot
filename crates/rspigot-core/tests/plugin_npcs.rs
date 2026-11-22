@@ -42,7 +42,7 @@ fn act(s: &mut Scene, npc: &NpcView, order: NpcOrder) {
     s.server
         .handle(rspigot_core::events::Inbound::PluginMessage {
             connection: 1,
-            message: FromPlugin::Order(Order::Npc { npc: npc.id, order }),
+            message: Box::new(FromPlugin::Order(Order::Npc { npc: npc.id, order })),
         });
     s.server.deliver();
 }

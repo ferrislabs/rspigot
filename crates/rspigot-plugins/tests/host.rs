@@ -42,6 +42,7 @@ impl ClientLink for NoLink {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 enum Seen {
     Connected {
         connection: u64,
@@ -135,7 +136,7 @@ fn play_the_core(
                 message,
             } => Seen::Message {
                 connection,
-                message,
+                message: *message,
             },
             Inbound::PluginDisconnected { connection } => {
                 outboxes.lock().unwrap().remove(&connection);
@@ -234,6 +235,9 @@ fn hello(name: &str) -> v1::Hello {
         version: "0.1.0".to_owned(),
         token: String::new(),
         commands: Vec::new(),
+        depends: Vec::new(),
+        soft_depends: Vec::new(),
+        load_before: Vec::new(),
         handlers: vec![
             v1::Handler {
                 id: 1,

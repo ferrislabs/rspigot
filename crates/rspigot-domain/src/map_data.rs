@@ -131,10 +131,10 @@ pub struct StackDecoration {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Spot {
-    x: f64,
-    z: f64,
-    rotation: f64,
+pub struct Spot {
+    pub x: f64,
+    pub z: f64,
+    pub rotation: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -300,13 +300,25 @@ impl MapData {
         self.dirty = true;
     }
 
+    pub fn remove_decorations_with_prefix(&mut self, prefix: &str) {
+        let keys: Vec<String> = self
+            .decorations
+            .iter()
+            .filter(|(key, _)| key.starts_with(prefix))
+            .map(|(key, _)| key.clone())
+            .collect();
+        for key in keys {
+            self.remove_decoration(&key);
+        }
+    }
+
     fn mark_decorations(&mut self) {
         for holder in &mut self.holders {
             holder.dirty_decorations = true;
         }
     }
 
-    fn remove_decoration(&mut self, key: &str) {
+    pub fn remove_decoration(&mut self, key: &str) {
         if let Some(index) = self.decorations.iter().position(|(k, _)| k == key) {
             let (_, removed) = self.decorations.remove(index);
             if removed.tracks() {
@@ -399,7 +411,7 @@ impl MapData {
         }
     }
 
-    fn add_decoration(
+    pub fn add_decoration(
         &mut self,
         kind: u8,
         level: &LevelRef,

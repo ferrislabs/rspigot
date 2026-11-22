@@ -164,6 +164,33 @@ impl ChunkManager {
         }
     }
 
+    pub fn regenerate(&mut self, pos: ChunkPos, workers: &ChunkWorkers) -> bool {
+        if self.pending.contains_key(&pos) {
+            return false;
+        }
+        let tickets = self.loaded.remove(&pos).map_or(0, |loaded| {
+            self.poi.unload_chunk(pos);
+            loaded.tickets
+        });
+        let cancel = workers.submit(
+            Priority::URGENT,
+            ChunkJob::Generate {
+                dimension: Arc::clone(&self.dimension),
+                pos,
+                mobs: self.mob_generation,
+            },
+        );
+        self.pending.insert(
+            pos,
+            Pending {
+                tickets: tickets + 1,
+                priority: Priority::URGENT,
+                cancel,
+            },
+        );
+        true
+    }
+
     pub fn set_forced(&mut self, pos: ChunkPos, forced: bool, workers: &ChunkWorkers) -> bool {
         if forced == self.forced.contains(&pos) {
             return false;

@@ -109,6 +109,7 @@ mod interact;
 mod item_merge;
 mod items;
 mod kinds;
+mod lava_fire;
 mod leash;
 mod lectern;
 mod light_updates;

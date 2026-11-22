@@ -115,12 +115,13 @@ impl<L: ClientLink> Server<L> {
                 .map(|()| Outcome::Done),
             Order::World(WorldOrder::Delete { files }) => {
                 let key = self.world.dimension.key.clone();
-                self.delete_world(&key, files).map(|()| Outcome::Done)
+                self.ask_world_unload(key, files, reply)
+                    .map(|()| Outcome::Pending)
             }
             Order::InWorld { world, order } => match *order {
-                Order::World(WorldOrder::Delete { files }) => {
-                    self.delete_world(&world, files).map(|()| Outcome::Done)
-                }
+                Order::World(WorldOrder::Delete { files }) => self
+                    .ask_world_unload(world, files, reply)
+                    .map(|()| Outcome::Pending),
                 Order::Entity {
                     entity,
                     order: EntityOrder::Meta(order),

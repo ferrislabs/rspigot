@@ -3,17 +3,20 @@ use std::net::IpAddr;
 use anyhow::Context;
 use rspigot_core::config::{PluginSettings, PriorityOverride};
 use rspigot_core::plugins::{EventKind, Priority};
-use rspigot_plugins::PluginHostConfig;
+use rspigot_plugins::{ExpectedPlugin, Launch, PluginHostConfig};
 
 use super::yaml::YamlConfig;
 
-pub const PLUGINS_DEFAULTS: &str = r#"host: 127.0.0.1
+pub const PLUGINS_DEFAULTS: &str = r#"enabled: true
+host: 127.0.0.1
 port: 25580
 token: ''
 decision-ticks: 1
 late-cancel-ticks: 20
 order: []
 priorities: {}
+expected: []
+commands: {}
 "#;
 
 pub fn settings(file: &YamlConfig) -> PluginSettings {
@@ -53,9 +56,34 @@ pub fn host_config(
         host: host
             .parse::<IpAddr>()
             .with_context(|| format!("plugins.yml: host `{host}` is not an IP address"))?,
-        port: file.int("port", 25580).clamp(1, 65535) as u16,
+        port: file.int("port", 25580).clamp(0, 65535) as u16,
         token,
     })
+}
+
+pub fn enabled(file: &YamlConfig) -> bool {
+    !file.string("enabled", "true").eq_ignore_ascii_case("false")
+}
+
+pub fn expected(file: &YamlConfig) -> Vec<ExpectedPlugin> {
+    let mut launches: Vec<(String, Option<Launch>)> = Vec::new();
+    for name in file.strings("expected") {
+        launches.push((name, None));
+    }
+    for (name, command) in file.entries("commands") {
+        let Some(launch) = Launch::parse(&command) else {
+            tracing::warn!("plugins.yml: `commands.{name}` is empty, ignoring it");
+            continue;
+        };
+        match launches.iter_mut().find(|(known, _)| *known == name) {
+            Some((_, slot)) => *slot = Some(launch),
+            None => launches.push((name, Some(launch))),
+        }
+    }
+    launches
+        .into_iter()
+        .map(|(name, launch)| ExpectedPlugin { name, launch })
+        .collect()
 }
 
 fn priority_override(key: &str, value: &str) -> Option<PriorityOverride> {
@@ -123,6 +151,51 @@ mod tests {
         );
         assert!(host.validate().is_ok());
         assert_eq!(settings(&defaults), PluginSettings::default());
+    }
+
+    #[test]
+    fn the_host_is_on_by_default_and_enabled_false_turns_it_off() {
+        assert!(enabled(&file(PLUGINS_DEFAULTS)));
+        assert!(enabled(&file("port: 1\n")));
+        assert!(!enabled(&file("enabled: false\n")));
+        assert!(!enabled(&file("enabled: 'False'\n")));
+        assert!(enabled(&file("enabled: true\n")));
+    }
+
+    #[test]
+    fn port_zero_asks_for_an_ephemeral_port() {
+        let host = host_config(&file("port: 0\n"), None).unwrap();
+        assert_eq!(host.port, 0);
+        assert_eq!(host_config(&file("port: -4\n"), None).unwrap().port, 0);
+        assert_eq!(
+            host_config(&file("port: 70000\n"), None).unwrap().port,
+            65535
+        );
+    }
+
+    #[test]
+    fn expected_plugins_come_from_the_list_and_from_declared_commands() {
+        let config = file(
+            "expected: [guard, welcome]\ncommands:\n  welcome: java -jar welcome.jar\n  shop: ./shop\n  empty: ''\n",
+        );
+        assert_eq!(
+            expected(&config),
+            vec![
+                ExpectedPlugin {
+                    name: "guard".to_owned(),
+                    launch: None
+                },
+                ExpectedPlugin {
+                    name: "welcome".to_owned(),
+                    launch: Launch::parse("java -jar welcome.jar"),
+                },
+                ExpectedPlugin {
+                    name: "shop".to_owned(),
+                    launch: Launch::parse("./shop"),
+                },
+            ]
+        );
+        assert!(expected(&file(PLUGINS_DEFAULTS)).is_empty());
     }
 
     #[test]

@@ -512,6 +512,44 @@ pub struct BlockMeta {
     >,
 }
 #[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ServerLinkEntry {
+    #[prost(string, tag = "1")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub url: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ServerLinks {
+    #[prost(message, repeated, tag = "1")]
+    pub links: ::prost::alloc::vec::Vec<ServerLinkEntry>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RaidRef {
+    #[prost(int32, tag = "1")]
+    pub id: i32,
+    #[prost(string, tag = "2")]
+    pub world: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub center: ::core::option::Option<BlockPos>,
+    #[prost(string, tag = "4")]
+    pub status: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub started: bool,
+    #[prost(int64, tag = "6")]
+    pub active_ticks: i64,
+    #[prost(int32, tag = "7")]
+    pub bad_omen_level: i32,
+    #[prost(int32, tag = "8")]
+    pub spawned_groups: i32,
+    #[prost(int32, tag = "9")]
+    pub total_groups: i32,
+    #[prost(float, tag = "10")]
+    pub total_health: f32,
+}
+#[allow(clippy::all)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum GameMode {
@@ -2852,7 +2890,10 @@ pub struct LootGeneratePatch {
 }
 #[allow(clippy::all)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct MapInitialize {}
+pub struct MapInitialize {
+    #[prost(int32, tag = "100")]
+    pub map_id: i32,
+}
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MoistureChange {
@@ -3158,6 +3199,8 @@ pub struct PlayerDeathPatch {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PlayerDropItem {
+    #[prost(message, optional, tag = "1")]
+    pub item_drop: ::core::option::Option<EntitySnapshot>,
     #[prost(message, optional, tag = "2")]
     pub player: ::core::option::Option<PlayerSnapshot>,
     #[prost(message, optional, tag = "100")]
@@ -3480,6 +3523,8 @@ pub struct PlayerLevelChange {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PlayerLinksSend {
+    #[prost(message, optional, tag = "1")]
+    pub links: ::core::option::Option<ServerLinks>,
     #[prost(message, optional, tag = "2")]
     pub player: ::core::option::Option<PlayerSnapshot>,
 }
@@ -3978,6 +4023,8 @@ pub struct ProjectileLaunch {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RaidFinish {
+    #[prost(message, optional, tag = "1")]
+    pub raid: ::core::option::Option<RaidRef>,
     #[prost(message, repeated, tag = "2")]
     pub winners: ::prost::alloc::vec::Vec<PlayerSnapshot>,
     #[prost(string, tag = "3")]
@@ -3988,14 +4035,18 @@ pub struct RaidFinish {
 pub struct RaidSpawnWave {
     #[prost(message, optional, tag = "1")]
     pub patrol_leader: ::core::option::Option<EntitySnapshot>,
+    #[prost(message, optional, tag = "2")]
+    pub raid: ::core::option::Option<RaidRef>,
     #[prost(message, repeated, tag = "3")]
     pub raiders: ::prost::alloc::vec::Vec<EntitySnapshot>,
     #[prost(string, tag = "4")]
     pub world: ::prost::alloc::string::String,
 }
 #[allow(clippy::all)]
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RaidStop {
+    #[prost(message, optional, tag = "1")]
+    pub raid: ::core::option::Option<RaidRef>,
     #[prost(enumeration = "RaidStopReason", tag = "2")]
     pub reason: i32,
     #[prost(string, tag = "3")]
@@ -4006,6 +4057,8 @@ pub struct RaidStop {
 pub struct RaidTrigger {
     #[prost(message, optional, tag = "1")]
     pub player: ::core::option::Option<PlayerSnapshot>,
+    #[prost(message, optional, tag = "2")]
+    pub raid: ::core::option::Option<RaidRef>,
     #[prost(string, tag = "3")]
     pub world: ::prost::alloc::string::String,
 }
@@ -9745,6 +9798,12 @@ pub struct Hello {
     pub handlers: ::prost::alloc::vec::Vec<Handler>,
     #[prost(message, repeated, tag = "6")]
     pub commands: ::prost::alloc::vec::Vec<CommandSpec>,
+    #[prost(string, repeated, tag = "7")]
+    pub depends: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "8")]
+    pub soft_depends: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "9")]
+    pub load_before: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -9900,7 +9959,7 @@ pub struct PlayerOrder {
     pub player: ::prost::alloc::string::String,
     #[prost(
         oneof = "player_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68"
     )]
     pub order: ::core::option::Option<player_order::Order>,
 }
@@ -10023,6 +10082,10 @@ pub mod player_order {
         DiscoverRecipe(::prost::alloc::string::String),
         #[prost(string, tag = "66")]
         UndiscoverRecipe(::prost::alloc::string::String),
+        #[prost(message, tag = "67")]
+        Extra(super::PlayerExtra),
+        #[prost(message, tag = "68")]
+        Object(super::ObjectPlayerOrder),
     }
 }
 #[allow(clippy::all)]
@@ -10055,7 +10118,7 @@ pub mod inventory_order {
 pub struct ServerOrder {
     #[prost(
         oneof = "server_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28"
     )]
     pub order: ::core::option::Option<server_order::Order>,
 }
@@ -10098,6 +10161,10 @@ pub mod server_order {
         AddRecipe(super::RecipeDef),
         #[prost(string, tag = "26")]
         RemoveRecipe(::prost::alloc::string::String),
+        #[prost(string, tag = "27")]
+        SetMotd(::prost::alloc::string::String),
+        #[prost(int32, tag = "28")]
+        SetMaxPlayers(i32),
     }
 }
 #[allow(clippy::all)]
@@ -10105,7 +10172,7 @@ pub mod server_order {
 pub struct WorldOrder {
     #[prost(
         oneof = "world_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24"
     )]
     pub order: ::core::option::Option<world_order::Order>,
 }
@@ -10136,6 +10203,14 @@ pub mod world_order {
         Explode(super::Explode),
         #[prost(message, tag = "20")]
         DeleteWorld(super::DeleteWorld),
+        #[prost(message, tag = "21")]
+        Border(super::WorldBorderOrder),
+        #[prost(message, tag = "22")]
+        StrikeLightning(super::StrikeLightning),
+        #[prost(message, tag = "23")]
+        Chunk(super::ChunkOrder),
+        #[prost(message, tag = "24")]
+        Object(super::ObjectWorldOrder),
     }
 }
 #[allow(clippy::all)]
@@ -10432,7 +10507,7 @@ pub struct BlockDataEdit {
 pub struct BlockOrder {
     #[prost(message, optional, tag = "1")]
     pub pos: ::core::option::Option<BlockPos>,
-    #[prost(oneof = "block_order::Order", tags = "10, 11, 12, 13, 14, 15")]
+    #[prost(oneof = "block_order::Order", tags = "10, 11, 12, 13, 14, 15, 16")]
     pub order: ::core::option::Option<block_order::Order>,
 }
 /// Nested message and enum types in `BlockOrder`.
@@ -10452,6 +10527,8 @@ pub mod block_order {
         SetData(super::BlockDataEdit),
         #[prost(message, tag = "15")]
         Tile(super::TileEdit),
+        #[prost(message, tag = "16")]
+        Pdc(super::PdcChange),
     }
 }
 #[allow(clippy::all)]
@@ -10461,7 +10538,7 @@ pub struct EntityOrder {
     pub entity: i32,
     #[prost(
         oneof = "entity_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22"
     )]
     pub order: ::core::option::Option<entity_order::Order>,
 }
@@ -10494,6 +10571,8 @@ pub mod entity_order {
         Meta(super::MetaOrder),
         #[prost(message, tag = "21")]
         Edit(super::EntityEdit),
+        #[prost(message, tag = "22")]
+        Object(super::ObjectEntityOrder),
     }
 }
 #[allow(clippy::all)]
@@ -10904,7 +10983,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -10991,6 +11070,10 @@ pub mod question {
         Recipes(super::Empty),
         #[prost(string, tag = "48")]
         DiscoveredRecipes(::prost::alloc::string::String),
+        #[prost(message, tag = "49")]
+        Extra(super::ExtraQuestion),
+        #[prost(message, tag = "50")]
+        Object(super::ObjectQuestion),
     }
 }
 #[allow(clippy::all)]
@@ -11595,7 +11678,7 @@ pub struct Answer {
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -11674,6 +11757,10 @@ pub mod answer {
         Recipes(super::RecipeList),
         #[prost(message, tag = "36")]
         RecipeIds(super::RecipeIdList),
+        #[prost(message, tag = "37")]
+        Extra(super::ExtraAnswer),
+        #[prost(message, tag = "38")]
+        Object(super::ObjectAnswer),
     }
 }
 #[allow(clippy::all)]
@@ -11708,6 +11795,866 @@ pub mod to_plugin {
         Replaced(super::Replaced),
         #[prost(message, tag = "6")]
         Invocation(super::Invocation),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BorderResize {
+    #[prost(double, tag = "1")]
+    pub size: f64,
+    #[prost(int64, tag = "2")]
+    pub ticks: i64,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct BorderCenter {
+    #[prost(double, tag = "1")]
+    pub x: f64,
+    #[prost(double, tag = "2")]
+    pub z: f64,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct WorldBorderOrder {
+    #[prost(oneof = "world_border_order::Change", tags = "1, 2, 3, 4, 5, 6")]
+    pub change: ::core::option::Option<world_border_order::Change>,
+}
+/// Nested message and enum types in `WorldBorderOrder`.
+pub mod world_border_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, Copy, PartialEq, ::prost::Oneof)]
+    pub enum Change {
+        #[prost(message, tag = "1")]
+        Resize(super::BorderResize),
+        #[prost(message, tag = "2")]
+        SetCenter(super::BorderCenter),
+        #[prost(double, tag = "3")]
+        SetDamageAmount(f64),
+        #[prost(double, tag = "4")]
+        SetDamageBuffer(f64),
+        #[prost(int32, tag = "5")]
+        SetWarningDistance(i32),
+        #[prost(int32, tag = "6")]
+        SetWarningTimeTicks(i32),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct StrikeLightning {
+    #[prost(message, optional, tag = "1")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(bool, tag = "2")]
+    pub effect_only: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChunkCoords {
+    #[prost(int32, tag = "1")]
+    pub x: i32,
+    #[prost(int32, tag = "2")]
+    pub z: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChunkForce {
+    #[prost(int32, tag = "1")]
+    pub x: i32,
+    #[prost(int32, tag = "2")]
+    pub z: i32,
+    #[prost(bool, tag = "3")]
+    pub forced: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChunkOrder {
+    #[prost(oneof = "chunk_order::Order", tags = "1, 2, 3")]
+    pub order: ::core::option::Option<chunk_order::Order>,
+}
+/// Nested message and enum types in `ChunkOrder`.
+pub mod chunk_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Order {
+        #[prost(message, tag = "1")]
+        Load(super::ChunkCoords),
+        #[prost(message, tag = "2")]
+        SetForceLoaded(super::ChunkForce),
+        #[prost(message, tag = "3")]
+        Regenerate(super::ChunkCoords),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PlayerTime {
+    #[prost(int64, tag = "1")]
+    pub time: i64,
+    #[prost(bool, tag = "2")]
+    pub relative: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StopSound {
+    #[prost(string, optional, tag = "1")]
+    pub sound: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "2")]
+    pub category: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CooldownSet {
+    #[prost(string, tag = "1")]
+    pub item: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub ticks: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StatisticChange {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub amount: i32,
+    #[prost(enumeration = "StatisticMode", tag = "4")]
+    pub mode: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BedSpawnSet {
+    #[prost(message, optional, tag = "1")]
+    pub pos: ::core::option::Option<BlockPos>,
+    #[prost(string, tag = "2")]
+    pub world: ::prost::alloc::string::String,
+    #[prost(float, tag = "3")]
+    pub yaw: f32,
+    #[prost(bool, tag = "4")]
+    pub force: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PlayerExtra {
+    #[prost(oneof = "player_extra::Order", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11")]
+    pub order: ::core::option::Option<player_extra::Order>,
+}
+/// Nested message and enum types in `PlayerExtra`.
+pub mod player_extra {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Order {
+        #[prost(message, tag = "1")]
+        SetPlayerTime(super::PlayerTime),
+        #[prost(message, tag = "2")]
+        ResetPlayerTime(super::Empty),
+        #[prost(enumeration = "super::Weather", tag = "3")]
+        SetPlayerWeather(i32),
+        #[prost(message, tag = "4")]
+        ResetPlayerWeather(super::Empty),
+        #[prost(message, tag = "5")]
+        StopSound(super::StopSound),
+        #[prost(message, tag = "6")]
+        SetCooldown(super::CooldownSet),
+        #[prost(message, tag = "7")]
+        Statistic(super::StatisticChange),
+        #[prost(message, tag = "8")]
+        SetCompassTarget(super::Vec3),
+        #[prost(message, tag = "9")]
+        SetBedSpawn(super::BedSpawnSet),
+        #[prost(message, tag = "10")]
+        ClearBedSpawn(super::Empty),
+        #[prost(message, tag = "11")]
+        OpenBook(super::Item),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CooldownQuery {
+    #[prost(string, tag = "1")]
+    pub player: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub item: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StatisticQuery {
+    #[prost(string, tag = "1")]
+    pub player: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub key: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChunkQuery {
+    #[prost(int32, tag = "1")]
+    pub x: i32,
+    #[prost(int32, tag = "2")]
+    pub z: i32,
+    #[prost(bool, tag = "3")]
+    pub load: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExtraQuestion {
+    #[prost(oneof = "extra_question::Query", tags = "1, 2, 3, 4, 5, 6")]
+    pub query: ::core::option::Option<extra_question::Query>,
+}
+/// Nested message and enum types in `ExtraQuestion`.
+pub mod extra_question {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Query {
+        #[prost(message, tag = "1")]
+        Cooldown(super::CooldownQuery),
+        #[prost(message, tag = "2")]
+        Statistic(super::StatisticQuery),
+        #[prost(string, tag = "3")]
+        BedSpawn(::prost::alloc::string::String),
+        #[prost(string, tag = "4")]
+        CompassTarget(::prost::alloc::string::String),
+        #[prost(string, tag = "5")]
+        PlayerClock(::prost::alloc::string::String),
+        #[prost(message, tag = "6")]
+        Chunk(super::ChunkQuery),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BedSpawnInfo {
+    #[prost(message, optional, tag = "1")]
+    pub spawn: ::core::option::Option<BedSpawnSet>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PlayerClock {
+    #[prost(message, optional, tag = "1")]
+    pub time: ::core::option::Option<PlayerTime>,
+    #[prost(enumeration = "Weather", optional, tag = "2")]
+    pub weather: ::core::option::Option<i32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ChunkInfo {
+    #[prost(int32, tag = "1")]
+    pub x: i32,
+    #[prost(int32, tag = "2")]
+    pub z: i32,
+    #[prost(bool, tag = "3")]
+    pub loaded: bool,
+    #[prost(bool, tag = "4")]
+    pub force_loaded: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExtraAnswer {
+    #[prost(oneof = "extra_answer::Answer", tags = "1, 2, 3, 4, 5")]
+    pub answer: ::core::option::Option<extra_answer::Answer>,
+}
+/// Nested message and enum types in `ExtraAnswer`.
+pub mod extra_answer {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Answer {
+        #[prost(int32, tag = "1")]
+        Count(i32),
+        #[prost(message, tag = "2")]
+        BedSpawn(super::BedSpawnInfo),
+        #[prost(message, tag = "3")]
+        CompassTarget(super::Vec3),
+        #[prost(message, tag = "4")]
+        Clock(super::PlayerClock),
+        #[prost(message, tag = "5")]
+        Chunk(super::ChunkInfo),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PdcList {
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<PdcValue>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PdcContainer {
+    #[prost(map = "string, message", tag = "1")]
+    pub entries: ::std::collections::HashMap<::prost::alloc::string::String, PdcValue>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PdcValue {
+    #[prost(oneof = "pdc_value::Value", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
+    pub value: ::core::option::Option<pdc_value::Value>,
+}
+/// Nested message and enum types in `PdcValue`.
+pub mod pdc_value {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Value {
+        #[prost(string, tag = "1")]
+        Text(::prost::alloc::string::String),
+        #[prost(int32, tag = "2")]
+        Byte(i32),
+        #[prost(int32, tag = "3")]
+        Int(i32),
+        #[prost(int64, tag = "4")]
+        Long(i64),
+        #[prost(double, tag = "5")]
+        Double(f64),
+        #[prost(bytes, tag = "6")]
+        ByteArray(::prost::alloc::vec::Vec<u8>),
+        #[prost(message, tag = "7")]
+        Container(super::PdcContainer),
+        #[prost(message, tag = "8")]
+        List(super::PdcList),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PdcSet {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub value: ::core::option::Option<PdcValue>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PdcChange {
+    #[prost(oneof = "pdc_change::Change", tags = "1, 2, 3")]
+    pub change: ::core::option::Option<pdc_change::Change>,
+}
+/// Nested message and enum types in `PdcChange`.
+pub mod pdc_change {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Change {
+        #[prost(message, tag = "1")]
+        Set(super::PdcSet),
+        #[prost(string, tag = "2")]
+        Remove(::prost::alloc::string::String),
+        #[prost(message, tag = "3")]
+        Clear(super::Empty),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ItemSlotRef {
+    #[prost(string, tag = "1")]
+    pub player: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub slot: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PdcQuery {
+    #[prost(oneof = "pdc_query::Holder", tags = "1, 2, 3")]
+    pub holder: ::core::option::Option<pdc_query::Holder>,
+}
+/// Nested message and enum types in `PdcQuery`.
+pub mod pdc_query {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Holder {
+        #[prost(int32, tag = "1")]
+        Entity(i32),
+        #[prost(message, tag = "2")]
+        Block(super::BlockPos),
+        #[prost(message, tag = "3")]
+        Item(super::ItemSlotRef),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TradeList {
+    #[prost(message, repeated, tag = "1")]
+    pub trades: ::prost::alloc::vec::Vec<Trade>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FrameItem {
+    #[prost(message, optional, tag = "1")]
+    pub item: ::core::option::Option<Item>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct Vec3F {
+    #[prost(float, tag = "1")]
+    pub x: f32,
+    #[prost(float, tag = "2")]
+    pub y: f32,
+    #[prost(float, tag = "3")]
+    pub z: f32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct Quat {
+    #[prost(float, tag = "1")]
+    pub x: f32,
+    #[prost(float, tag = "2")]
+    pub y: f32,
+    #[prost(float, tag = "3")]
+    pub z: f32,
+    #[prost(float, tag = "4")]
+    pub w: f32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DisplayTransformation {
+    #[prost(message, optional, tag = "1")]
+    pub translation: ::core::option::Option<Vec3F>,
+    #[prost(message, optional, tag = "2")]
+    pub scale: ::core::option::Option<Vec3F>,
+    #[prost(message, optional, tag = "3")]
+    pub left_rotation: ::core::option::Option<Quat>,
+    #[prost(message, optional, tag = "4")]
+    pub right_rotation: ::core::option::Option<Quat>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DisplayBrightness {
+    #[prost(int32, tag = "1")]
+    pub block: i32,
+    #[prost(int32, tag = "2")]
+    pub sky: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DisplayProps {
+    #[prost(message, optional, tag = "1")]
+    pub transformation: ::core::option::Option<DisplayTransformation>,
+    #[prost(enumeration = "Billboard", optional, tag = "2")]
+    pub billboard: ::core::option::Option<i32>,
+    #[prost(message, optional, tag = "3")]
+    pub brightness: ::core::option::Option<DisplayBrightness>,
+    #[prost(float, optional, tag = "4")]
+    pub view_range: ::core::option::Option<f32>,
+    #[prost(int32, optional, tag = "5")]
+    pub glow_color: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "6")]
+    pub interpolation_delay: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "7")]
+    pub interpolation_duration: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "8")]
+    pub teleport_duration: ::core::option::Option<i32>,
+    #[prost(float, optional, tag = "9")]
+    pub shadow_radius: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "10")]
+    pub shadow_strength: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "11")]
+    pub width: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "12")]
+    pub height: ::core::option::Option<f32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextDisplayData {
+    #[prost(string, optional, tag = "1")]
+    pub text: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int32, optional, tag = "2")]
+    pub line_width: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "3")]
+    pub background: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "4")]
+    pub opacity: ::core::option::Option<i32>,
+    #[prost(bool, optional, tag = "5")]
+    pub shadow: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "6")]
+    pub see_through: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "7")]
+    pub default_background: ::core::option::Option<bool>,
+    #[prost(enumeration = "TextAlignment", optional, tag = "8")]
+    pub alignment: ::core::option::Option<i32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ItemDisplayData {
+    #[prost(message, optional, tag = "1")]
+    pub item: ::core::option::Option<Item>,
+    #[prost(enumeration = "ItemDisplayContext", optional, tag = "2")]
+    pub context: ::core::option::Option<i32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BlockDisplayData {
+    #[prost(message, optional, tag = "1")]
+    pub state: ::core::option::Option<BlockState>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct InteractionData {
+    #[prost(float, optional, tag = "1")]
+    pub width: ::core::option::Option<f32>,
+    #[prost(float, optional, tag = "2")]
+    pub height: ::core::option::Option<f32>,
+    #[prost(bool, optional, tag = "3")]
+    pub response: ::core::option::Option<bool>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DisplaySpec {
+    #[prost(message, optional, tag = "1")]
+    pub props: ::core::option::Option<DisplayProps>,
+    #[prost(oneof = "display_spec::Body", tags = "2, 3, 4, 5")]
+    pub body: ::core::option::Option<display_spec::Body>,
+}
+/// Nested message and enum types in `DisplaySpec`.
+pub mod display_spec {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Body {
+        #[prost(message, tag = "2")]
+        Text(super::TextDisplayData),
+        #[prost(message, tag = "3")]
+        Item(super::ItemDisplayData),
+        #[prost(message, tag = "4")]
+        Block(super::BlockDisplayData),
+        #[prost(message, tag = "5")]
+        Interaction(super::InteractionData),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MapDecorationInfo {
+    #[prost(uint32, tag = "1")]
+    pub kind: u32,
+    #[prost(int32, tag = "2")]
+    pub x: i32,
+    #[prost(int32, tag = "3")]
+    pub y: i32,
+    #[prost(int32, tag = "4")]
+    pub rotation: i32,
+    #[prost(string, optional, tag = "5")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MapView {
+    #[prost(int32, tag = "1")]
+    pub id: i32,
+    #[prost(string, tag = "2")]
+    pub dimension: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub center_x: i32,
+    #[prost(int32, tag = "4")]
+    pub center_z: i32,
+    #[prost(uint32, tag = "5")]
+    pub scale: u32,
+    #[prost(bool, tag = "6")]
+    pub locked: bool,
+    #[prost(bool, tag = "7")]
+    pub tracking_position: bool,
+    #[prost(bool, tag = "8")]
+    pub unlimited_tracking: bool,
+    #[prost(bytes = "vec", tag = "9")]
+    pub colors: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, repeated, tag = "10")]
+    pub decorations: ::prost::alloc::vec::Vec<MapDecorationInfo>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MapPixel {
+    #[prost(int32, tag = "1")]
+    pub x: i32,
+    #[prost(int32, tag = "2")]
+    pub y: i32,
+    #[prost(uint32, tag = "3")]
+    pub color: u32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MapCenter {
+    #[prost(int32, tag = "1")]
+    pub x: i32,
+    #[prost(int32, tag = "2")]
+    pub z: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MapLiveMarker {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(double, tag = "3")]
+    pub x: f64,
+    #[prost(double, tag = "4")]
+    pub z: f64,
+    #[prost(double, tag = "5")]
+    pub rotation: f64,
+    #[prost(string, optional, tag = "6")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MapEdit {
+    #[prost(int32, tag = "1")]
+    pub map: i32,
+    #[prost(oneof = "map_edit::Edit", tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19")]
+    pub edit: ::core::option::Option<map_edit::Edit>,
+}
+/// Nested message and enum types in `MapEdit`.
+pub mod map_edit {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Edit {
+        #[prost(message, tag = "10")]
+        SetCenter(super::MapCenter),
+        #[prost(uint32, tag = "11")]
+        SetScale(u32),
+        #[prost(bool, tag = "12")]
+        SetLocked(bool),
+        #[prost(bool, tag = "13")]
+        SetTrackingPosition(bool),
+        #[prost(bool, tag = "14")]
+        SetUnlimitedTracking(bool),
+        #[prost(message, tag = "15")]
+        SetPixel(super::MapPixel),
+        #[prost(bytes, tag = "16")]
+        SetCanvas(::prost::alloc::vec::Vec<u8>),
+        #[prost(message, tag = "17")]
+        AddMarker(super::MapLiveMarker),
+        #[prost(string, tag = "18")]
+        RemoveMarker(::prost::alloc::string::String),
+        #[prost(message, tag = "19")]
+        ClearMarkers(super::Empty),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MapMarker {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(double, tag = "2")]
+    pub x: f64,
+    #[prost(double, tag = "3")]
+    pub z: f64,
+    #[prost(double, tag = "4")]
+    pub rotation: f64,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MapDecorationEdit {
+    #[prost(int32, tag = "1")]
+    pub slot: i32,
+    #[prost(string, tag = "2")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(oneof = "map_decoration_edit::Change", tags = "3, 4")]
+    pub change: ::core::option::Option<map_decoration_edit::Change>,
+}
+/// Nested message and enum types in `MapDecorationEdit`.
+pub mod map_decoration_edit {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Change {
+        #[prost(message, tag = "3")]
+        Set(super::MapMarker),
+        #[prost(message, tag = "4")]
+        Remove(super::Empty),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ItemPdc {
+    #[prost(int32, tag = "1")]
+    pub slot: i32,
+    #[prost(message, optional, tag = "2")]
+    pub change: ::core::option::Option<PdcChange>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ObjectPlayerOrder {
+    #[prost(oneof = "object_player_order::Order", tags = "1, 2, 3")]
+    pub order: ::core::option::Option<object_player_order::Order>,
+}
+/// Nested message and enum types in `ObjectPlayerOrder`.
+pub mod object_player_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Order {
+        #[prost(int32, tag = "1")]
+        OpenMerchant(i32),
+        #[prost(message, tag = "2")]
+        ItemPdc(super::ItemPdc),
+        #[prost(message, tag = "3")]
+        MapDecoration(super::MapDecorationEdit),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ObjectWorldOrder {
+    #[prost(oneof = "object_world_order::Order", tags = "1")]
+    pub order: ::core::option::Option<object_world_order::Order>,
+}
+/// Nested message and enum types in `ObjectWorldOrder`.
+pub mod object_world_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Order {
+        #[prost(message, tag = "1")]
+        EditMap(super::MapEdit),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ObjectEntityOrder {
+    #[prost(oneof = "object_entity_order::Order", tags = "1, 2, 3, 4, 5, 6, 7, 8")]
+    pub order: ::core::option::Option<object_entity_order::Order>,
+}
+/// Nested message and enum types in `ObjectEntityOrder`.
+pub mod object_entity_order {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Order {
+        #[prost(message, tag = "1")]
+        SetTrades(super::TradeList),
+        #[prost(message, tag = "2")]
+        EditDisplay(super::DisplaySpec),
+        #[prost(message, tag = "3")]
+        DetonateFirework(super::Empty),
+        #[prost(message, tag = "4")]
+        SetVehicleVelocity(super::Vec3),
+        #[prost(message, tag = "5")]
+        SetFrameItem(super::FrameItem),
+        #[prost(int32, tag = "6")]
+        SetFrameRotation(i32),
+        #[prost(message, tag = "7")]
+        Pdc(super::PdcChange),
+        #[prost(bool, tag = "8")]
+        SetFrameVisible(bool),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LaunchProjectile {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(message, optional, tag = "3")]
+    pub velocity: ::core::option::Option<Vec3>,
+    #[prost(int32, optional, tag = "4")]
+    pub shooter: ::core::option::Option<i32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LaunchFirework {
+    #[prost(message, optional, tag = "1")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(message, optional, tag = "2")]
+    pub item: ::core::option::Option<Item>,
+    #[prost(int32, optional, tag = "3")]
+    pub shooter: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "4")]
+    pub attached: ::core::option::Option<i32>,
+    #[prost(bool, tag = "5")]
+    pub angled: bool,
+    #[prost(message, optional, tag = "6")]
+    pub velocity: ::core::option::Option<Vec3>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpawnVehicle {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(message, optional, tag = "3")]
+    pub velocity: ::core::option::Option<Vec3>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PlaceHanging {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub pos: ::core::option::Option<BlockPos>,
+    #[prost(string, tag = "3")]
+    pub face: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "4")]
+    pub variant: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "5")]
+    pub item: ::core::option::Option<Item>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpawnDisplay {
+    #[prost(message, optional, tag = "1")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(message, optional, tag = "2")]
+    pub spec: ::core::option::Option<DisplaySpec>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ObjectQuestion {
+    #[prost(oneof = "object_question::Query", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10")]
+    pub query: ::core::option::Option<object_question::Query>,
+}
+/// Nested message and enum types in `ObjectQuestion`.
+pub mod object_question {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Query {
+        #[prost(message, tag = "1")]
+        LaunchProjectile(super::LaunchProjectile),
+        #[prost(message, tag = "2")]
+        LaunchFirework(super::LaunchFirework),
+        #[prost(message, tag = "3")]
+        SpawnVehicle(super::SpawnVehicle),
+        #[prost(message, tag = "4")]
+        PlaceHanging(super::PlaceHanging),
+        #[prost(message, tag = "5")]
+        SpawnDisplay(super::SpawnDisplay),
+        #[prost(int32, tag = "6")]
+        Trades(i32),
+        #[prost(int32, tag = "7")]
+        Display(i32),
+        #[prost(int32, tag = "8")]
+        Map(i32),
+        #[prost(message, tag = "9")]
+        Pdc(super::PdcQuery),
+        #[prost(int32, tag = "10")]
+        Hanging(i32),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HangingView {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub pos: ::core::option::Option<BlockPos>,
+    #[prost(string, tag = "3")]
+    pub facing: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub item: ::core::option::Option<Item>,
+    #[prost(int32, tag = "5")]
+    pub rotation: i32,
+    #[prost(bool, tag = "6")]
+    pub visible: bool,
+    #[prost(string, optional, tag = "7")]
+    pub variant: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ObjectAnswer {
+    #[prost(oneof = "object_answer::Answer", tags = "1, 2, 3, 4, 5")]
+    pub answer: ::core::option::Option<object_answer::Answer>,
+}
+/// Nested message and enum types in `ObjectAnswer`.
+pub mod object_answer {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Answer {
+        #[prost(message, tag = "1")]
+        Trades(super::TradeList),
+        #[prost(message, tag = "2")]
+        Display(super::DisplaySpec),
+        #[prost(message, tag = "3")]
+        Map(super::MapView),
+        #[prost(message, tag = "4")]
+        Pdc(super::PdcContainer),
+        #[prost(message, tag = "5")]
+        Hanging(super::HangingView),
     }
 }
 #[allow(clippy::all)]
@@ -12274,6 +13221,167 @@ impl ActionErrorKind {
             "CANCELLED" => Some(Self::Cancelled),
             "NOT_FOUND" => Some(Self::NotFound),
             "LIMIT_REACHED" => Some(Self::LimitReached),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum StatisticMode {
+    Unspecified = 0,
+    Increment = 1,
+    Decrement = 2,
+    Set = 3,
+}
+impl StatisticMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "STATISTIC_MODE_UNSPECIFIED",
+            Self::Increment => "STATISTIC_MODE_INCREMENT",
+            Self::Decrement => "STATISTIC_MODE_DECREMENT",
+            Self::Set => "STATISTIC_MODE_SET",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "STATISTIC_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "STATISTIC_MODE_INCREMENT" => Some(Self::Increment),
+            "STATISTIC_MODE_DECREMENT" => Some(Self::Decrement),
+            "STATISTIC_MODE_SET" => Some(Self::Set),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum Billboard {
+    Unspecified = 0,
+    Fixed = 1,
+    Vertical = 2,
+    Horizontal = 3,
+    Center = 4,
+}
+impl Billboard {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "BILLBOARD_UNSPECIFIED",
+            Self::Fixed => "BILLBOARD_FIXED",
+            Self::Vertical => "BILLBOARD_VERTICAL",
+            Self::Horizontal => "BILLBOARD_HORIZONTAL",
+            Self::Center => "BILLBOARD_CENTER",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "BILLBOARD_UNSPECIFIED" => Some(Self::Unspecified),
+            "BILLBOARD_FIXED" => Some(Self::Fixed),
+            "BILLBOARD_VERTICAL" => Some(Self::Vertical),
+            "BILLBOARD_HORIZONTAL" => Some(Self::Horizontal),
+            "BILLBOARD_CENTER" => Some(Self::Center),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TextAlignment {
+    Unspecified = 0,
+    Center = 1,
+    Left = 2,
+    Right = 3,
+}
+impl TextAlignment {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TEXT_ALIGNMENT_UNSPECIFIED",
+            Self::Center => "TEXT_ALIGNMENT_CENTER",
+            Self::Left => "TEXT_ALIGNMENT_LEFT",
+            Self::Right => "TEXT_ALIGNMENT_RIGHT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TEXT_ALIGNMENT_UNSPECIFIED" => Some(Self::Unspecified),
+            "TEXT_ALIGNMENT_CENTER" => Some(Self::Center),
+            "TEXT_ALIGNMENT_LEFT" => Some(Self::Left),
+            "TEXT_ALIGNMENT_RIGHT" => Some(Self::Right),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ItemDisplayContext {
+    Unspecified = 0,
+    None = 1,
+    ThirdPersonLeftHand = 2,
+    ThirdPersonRightHand = 3,
+    FirstPersonLeftHand = 4,
+    FirstPersonRightHand = 5,
+    Head = 6,
+    Gui = 7,
+    Ground = 8,
+    Fixed = 9,
+}
+impl ItemDisplayContext {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "ITEM_DISPLAY_CONTEXT_UNSPECIFIED",
+            Self::None => "ITEM_DISPLAY_CONTEXT_NONE",
+            Self::ThirdPersonLeftHand => "ITEM_DISPLAY_CONTEXT_THIRD_PERSON_LEFT_HAND",
+            Self::ThirdPersonRightHand => "ITEM_DISPLAY_CONTEXT_THIRD_PERSON_RIGHT_HAND",
+            Self::FirstPersonLeftHand => "ITEM_DISPLAY_CONTEXT_FIRST_PERSON_LEFT_HAND",
+            Self::FirstPersonRightHand => "ITEM_DISPLAY_CONTEXT_FIRST_PERSON_RIGHT_HAND",
+            Self::Head => "ITEM_DISPLAY_CONTEXT_HEAD",
+            Self::Gui => "ITEM_DISPLAY_CONTEXT_GUI",
+            Self::Ground => "ITEM_DISPLAY_CONTEXT_GROUND",
+            Self::Fixed => "ITEM_DISPLAY_CONTEXT_FIXED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "ITEM_DISPLAY_CONTEXT_UNSPECIFIED" => Some(Self::Unspecified),
+            "ITEM_DISPLAY_CONTEXT_NONE" => Some(Self::None),
+            "ITEM_DISPLAY_CONTEXT_THIRD_PERSON_LEFT_HAND" => {
+                Some(Self::ThirdPersonLeftHand)
+            }
+            "ITEM_DISPLAY_CONTEXT_THIRD_PERSON_RIGHT_HAND" => {
+                Some(Self::ThirdPersonRightHand)
+            }
+            "ITEM_DISPLAY_CONTEXT_FIRST_PERSON_LEFT_HAND" => {
+                Some(Self::FirstPersonLeftHand)
+            }
+            "ITEM_DISPLAY_CONTEXT_FIRST_PERSON_RIGHT_HAND" => {
+                Some(Self::FirstPersonRightHand)
+            }
+            "ITEM_DISPLAY_CONTEXT_HEAD" => Some(Self::Head),
+            "ITEM_DISPLAY_CONTEXT_GUI" => Some(Self::Gui),
+            "ITEM_DISPLAY_CONTEXT_GROUND" => Some(Self::Ground),
+            "ITEM_DISPLAY_CONTEXT_FIXED" => Some(Self::Fixed),
             _ => None,
         }
     }

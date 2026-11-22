@@ -1,7 +1,10 @@
 mod config;
 mod convert;
+mod limits;
 mod outbox;
+mod roster;
 mod service;
+mod supervisor;
 
 use std::time::Duration;
 
@@ -16,10 +19,34 @@ use tonic::transport::server::TcpIncoming;
 use tonic_health::ServingStatus;
 
 pub use config::PluginHostConfig;
+pub use limits::{
+    MAX_DEPENDENCIES, MAX_HANDLERS, MAX_NAME_LENGTH, MESSAGE_BURST, MESSAGES_PER_SECOND,
+    OUTBOX_CAPACITY,
+};
+pub use roster::{CONNECT_LIMIT, CONNECT_WINDOW, Dependencies, PluginState, Roster, RosterError};
+pub use supervisor::{ExpectedPlugin, Launch, Launcher, MAX_STARTS, ProcessLauncher, START_WINDOW};
 
-use crate::service::{Health, Host};
+use crate::service::{Health, Host, Timing};
 
 const INTRODUCTION_TIMEOUT: Duration = Duration::from_secs(10);
+const SOFT_WAIT: Duration = Duration::from_secs(5);
+
+#[derive(Clone)]
+pub struct HostOptions {
+    pub token: Option<String>,
+    pub expected: Vec<ExpectedPlugin>,
+    pub soft_wait: Duration,
+}
+
+impl HostOptions {
+    pub fn new(token: Option<String>) -> Self {
+        Self {
+            token,
+            expected: Vec::new(),
+            soft_wait: SOFT_WAIT,
+        }
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum PluginHostError {
@@ -62,20 +89,65 @@ pub async fn serve<L: ClientLink>(
     inbound: Sender<Inbound<L>>,
     stop: watch::Receiver<bool>,
 ) -> Result<(), PluginHostError> {
-    serve_with(listener, token, inbound, stop, INTRODUCTION_TIMEOUT).await
+    let roster = Roster::new(Vec::new());
+    serve_supervised(listener, HostOptions::new(token), roster, inbound, stop).await
+}
+
+pub async fn serve_supervised<L: ClientLink>(
+    listener: TcpListener,
+    options: HostOptions,
+    roster: Roster,
+    inbound: Sender<Inbound<L>>,
+    stop: watch::Receiver<bool>,
+) -> Result<(), PluginHostError> {
+    let timing = Timing {
+        introduction: INTRODUCTION_TIMEOUT,
+        soft_wait: options.soft_wait,
+    };
+    serve_with(listener, options, roster, inbound, stop, timing).await
 }
 
 async fn serve_with<L: ClientLink>(
     listener: TcpListener,
-    token: Option<String>,
+    options: HostOptions,
+    roster: Roster,
     inbound: Sender<Inbound<L>>,
     stop: watch::Receiver<bool>,
-    introduction_timeout: Duration,
+    timing: Timing,
 ) -> Result<(), PluginHostError> {
-    tracing::info!("Starting plugin host on {}", listener.local_addr()?);
+    let address = listener.local_addr()?;
+    tracing::info!("Starting plugin host on {address}");
     let (reporter, health_service) = tonic_health::server::health_reporter();
+    for name in roster.expected() {
+        reporter
+            .set_service_status(&name, ServingStatus::NotServing)
+            .await;
+    }
     let health = Health::new(reporter.clone());
-    let host = Host::new(token, inbound, health, stop.clone(), introduction_timeout);
+    let url = format!(
+        "http://{}",
+        std::net::SocketAddr::new(
+            if address.ip().is_unspecified() {
+                std::net::Ipv4Addr::LOCALHOST.into()
+            } else {
+                address.ip()
+            },
+            address.port()
+        )
+    );
+    let launcher = std::sync::Arc::new(ProcessLauncher {
+        url,
+        token: options.token.clone(),
+    });
+    for plugin in options.expected {
+        if plugin.launch.is_some() {
+            let (launcher, roster, stop) = (launcher.clone(), roster.clone(), stop.clone());
+            tokio::spawn(async move {
+                supervisor::supervise(plugin, launcher.as_ref(), roster, stop).await;
+            });
+        }
+    }
+    let host = Host::new(options.token, inbound, health, stop.clone(), timing, roster);
     let incoming = TcpIncoming::from(listener).with_nodelay(Some(true));
     let mut stopped = stop;
     Server::builder()
@@ -129,7 +201,18 @@ mod tests {
         let (inbound, inbox) = crossbeam_channel::unbounded::<Inbound<NoLink>>();
         let (_stop, stopped) = watch::channel(false);
         let wait = Duration::from_millis(200);
-        tokio::spawn(serve_with(listener, None, inbound, stopped, wait));
+        let timing = Timing {
+            introduction: wait,
+            soft_wait: SOFT_WAIT,
+        };
+        tokio::spawn(serve_with(
+            listener,
+            HostOptions::new(None),
+            Roster::new(Vec::new()),
+            inbound,
+            stopped,
+            timing,
+        ));
         let channel = Endpoint::from_shared(format!("http://{address}"))
             .unwrap()
             .connect()

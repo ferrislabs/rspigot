@@ -142,6 +142,8 @@ pub(super) fn order(order: v1::PlayerOrder) -> Result<Order, Malformed> {
         Wire::RevokeAdvancement(advancement) => PlayerOrder::RevokeAdvancement(advancement),
         Wire::DiscoverRecipe(recipe) => PlayerOrder::DiscoverRecipe(recipe),
         Wire::UndiscoverRecipe(recipe) => PlayerOrder::UndiscoverRecipe(recipe),
+        Wire::Extra(extra) => PlayerOrder::Action(super::extras::player_action(extra)?),
+        Wire::Object(object) => PlayerOrder::Object(super::objects::player_order(object)?),
     };
     Ok(Order::Player { player, order })
 }

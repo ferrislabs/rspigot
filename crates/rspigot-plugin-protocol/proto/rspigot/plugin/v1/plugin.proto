@@ -72,7 +72,7 @@ message CommandArgument { string name = 1; ArgumentKind kind = 2; bool optional 
 message CommandSpec { uint32 id = 1; string name = 2; optional string permission = 3; repeated CommandArgument arguments = 4; repeated string aliases = 5; }
 message ArgumentValue { oneof value { PlayerSnapshot player = 1; string item = 2; int64 integer = 3; string text = 4; bool flag = 5; double decimal = 6; EntityList entities = 7; Vec3 location = 8; } }
 message Invocation { uint32 command = 1; PlayerSnapshot sender = 2; repeated ArgumentValue arguments = 3; }
-message Hello { uint32 protocol_version = 1; string name = 2; string version = 3; string token = 4; repeated Handler handlers = 5; repeated CommandSpec commands = 6; }
+message Hello { uint32 protocol_version = 1; string name = 2; string version = 3; string token = 4; repeated Handler handlers = 5; repeated CommandSpec commands = 6; repeated string depends = 7; repeated string soft_depends = 8; repeated string load_before = 9; }
 message PlayerState {
   PlayerSnapshot player = 1; float health = 2; int32 food = 3; int32 level = 4; float max_health = 5; float absorption = 6;
   float saturation = 7; float exhaustion = 8; float exp = 9; int32 total_exp = 10; bool op = 11; bool allow_flight = 12;
@@ -110,6 +110,8 @@ message PlayerOrder {
     Empty refresh_commands = 58 [(rspigot.path) = "player.command.refresh"]; PermissionSet set_permission = 59; string unset_permission = 60; string add_group = 61; string remove_group = 62;
     string grant_advancement = 63 [(rspigot.path) = "player.advancements.grant"]; string revoke_advancement = 64 [(rspigot.path) = "player.advancements.revoke"];
     string discover_recipe = 65 [(rspigot.path) = "player.recipes.discover"]; string undiscover_recipe = 66 [(rspigot.path) = "player.recipes.undiscover"];
+    PlayerExtra extra = 67;
+    ObjectPlayerOrder object = 68;
   }
 }
 message InventoryOrder { string player = 1; oneof order { Item add = 10 [(rspigot.path) = "player.inventory.add"]; SetSlot set = 11 [(rspigot.path) = "player.inventory.set"]; RemoveItems remove = 12 [(rspigot.path) = "player.inventory.remove"]; Empty clear = 13 [(rspigot.path) = "player.inventory.clear"]; int32 set_held_slot = 14 [(rspigot.path) = "player.inventory.set_held_slot"]; } }
@@ -119,12 +121,15 @@ message ServerOrder {
     string whitelist_add = 15 [(rspigot.path) = "server.whitelist.add"]; string whitelist_remove = 16 [(rspigot.path) = "server.whitelist.remove"]; string operator_add = 17 [(rspigot.path) = "server.operators.add"]; string operator_remove = 18 [(rspigot.path) = "server.operators.remove"];
     Ban ban_add = 19 [(rspigot.path) = "server.bans.add"]; string ban_remove = 20 [(rspigot.path) = "server.bans.remove"]; Ban ip_ban_add = 21 [(rspigot.path) = "server.ip_bans.add"]; string ip_ban_remove = 22 [(rspigot.path) = "server.ip_bans.remove"]; CreateInventory create_inventory = 23; CreateWorld create_world = 24;
     RecipeDef add_recipe = 25; string remove_recipe = 26 [(rspigot.path) = "server.recipes.remove"];
+    string set_motd = 27 [(rspigot.path) = "server.settings.set_motd"]; int32 set_max_players = 28 [(rspigot.path) = "server.settings.set_max_players"];
   }
 }
 message WorldOrder {
   oneof order {
     int64 set_time = 10 [(rspigot.path) = "world.time.set"]; Weather set_weather = 11 [(rspigot.path) = "world.weather.set"]; Difficulty set_difficulty = 12 [(rspigot.path) = "world.difficulty.set"]; BlockPos set_spawn = 13 [(rspigot.path) = "world.spawn_point.set"]; bool set_pvp = 14 [(rspigot.path) = "world.pvp.set"];
     SetGameRule set_game_rule = 15 [(rspigot.path) = "world.game_rule.set"]; Empty save = 16 [(rspigot.path) = "world.storage.save"]; Sound play_sound = 17 [(rspigot.path) = "world.sound.play"]; Particle spawn_particle = 18 [(rspigot.path) = "world.particle.spawn"]; Explode explode = 19 [(rspigot.path) = "world.explosion.create"]; DeleteWorld delete_world = 20;
+    WorldBorderOrder border = 21; StrikeLightning strike_lightning = 22; ChunkOrder chunk = 23;
+    ObjectWorldOrder object = 24;
   }
 }
 message MetaOrder { bool volatile = 1; oneof change { MetaEntry set = 10; string remove = 11; Empty clear = 12; } }
@@ -169,8 +174,8 @@ message TileEdit {
   }
 }
 message BlockDataEdit { repeated Property properties = 1; }
-message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; MetaOrder meta = 13; BlockDataEdit set_data = 14; TileEdit tile = 15; } }
-message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; SetAttribute set_attribute = 18; TypedChange change = 19; MetaOrder meta = 20; EntityEdit edit = 21; } }
+message BlockOrder { BlockPos pos = 1; oneof order { string set = 10; SetBlockWith set_with = 11; Empty break_naturally = 12; MetaOrder meta = 13; BlockDataEdit set_data = 14; TileEdit tile = 15; PdcChange pdc = 16; } }
+message EntityOrder { int32 entity = 1; oneof order { Vec3 teleport = 10; Empty remove = 11; double damage = 12; Empty kill = 13; Effect add_effect = 14; string remove_effect = 15; Empty clear_effects = 16; Vec3 set_velocity = 17; SetAttribute set_attribute = 18; TypedChange change = 19; MetaOrder meta = 20; EntityEdit edit = 21; ObjectEntityOrder object = 22; } }
 message RegisterObjective { string name = 1; string criteria = 2; string display_name = 3; }
 message ObjectiveText { string objective = 1; string text = 2; }
 message ObjectiveRender { string objective = 1; bool hearts = 2; }
@@ -237,6 +242,8 @@ message Question {
     NpcSpec create_npc = 34; string npc_by_key = 35; Empty npcs = 36; int32 npc = 37;
     MetaQuery meta = 38; FindBlocks find_blocks = 39; EntitiesWithMeta entities_with_meta = 40; EntitiesWithMeta players_with_meta = 41;
     BlockPos tile = 42; BlockPos block_info = 43; Empty permission_groups = 44; AdvancementQuery advancement_progress = 45; string done_advancements = 46; Empty recipes = 47; string discovered_recipes = 48;
+    ExtraQuestion extra = 49;
+    ObjectQuestion object = 50;
   }
 }
 message FromPlugin {
@@ -322,9 +329,138 @@ message Answer {
     EntityList entities = 13; EntityState entity = 14; EntitySnapshot spawned = 15; CustomInventoryState custom_inventory = 16;
     ScoreboardState scoreboard = 17; uint32 scoreboard_created = 18; uint64 boss_bar_created = 19; BossBarState boss_bar = 20; BossBarList boss_bars = 21;
     Empty done = 22; ActionError failed = 23; string world_created = 24; double attribute_value = 25;
-    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29; TileState tile = 30; BlockInfo block_info = 31; PermissionGroups permission_groups = 32; AdvancementProgress advancement_progress = 33; AdvancementList advancements = 34; RecipeList recipes = 35; RecipeIdList recipe_ids = 36;
+    NpcState npc = 26; NpcList npcs = 27; MetaEntries meta_entries = 28; BlockPositions block_positions = 29; TileState tile = 30; BlockInfo block_info = 31; PermissionGroups permission_groups = 32; AdvancementProgress advancement_progress = 33; AdvancementList advancements = 34; RecipeList recipes = 35; RecipeIdList recipe_ids = 36; ExtraAnswer extra = 37; ObjectAnswer object = 38;
   }
 }
 message Warning { string message = 1; }
 message Replaced {}
 message ToPlugin { oneof body { Accepted accepted = 1; Event event = 2; Answer answer = 3; Warning warning = 4; Replaced replaced = 5; Invocation invocation = 6; } }
+
+message BorderResize { double size = 1; int64 ticks = 2; }
+message BorderCenter { double x = 1; double z = 2; }
+message WorldBorderOrder {
+  oneof change {
+    BorderResize resize = 1; BorderCenter set_center = 2; double set_damage_amount = 3; double set_damage_buffer = 4;
+    int32 set_warning_distance = 5; int32 set_warning_time_ticks = 6;
+  }
+}
+message StrikeLightning { Vec3 position = 1; bool effect_only = 2; }
+message ChunkCoords { int32 x = 1; int32 z = 2; }
+message ChunkForce { int32 x = 1; int32 z = 2; bool forced = 3; }
+message ChunkOrder { oneof order { ChunkCoords load = 1; ChunkForce set_force_loaded = 2; ChunkCoords regenerate = 3; } }
+
+message PlayerTime { int64 time = 1; bool relative = 2; }
+message StopSound { optional string sound = 1; optional string category = 2; }
+message CooldownSet { string item = 1; int32 ticks = 2; }
+enum StatisticMode { STATISTIC_MODE_UNSPECIFIED = 0; STATISTIC_MODE_INCREMENT = 1; STATISTIC_MODE_DECREMENT = 2; STATISTIC_MODE_SET = 3; }
+message StatisticChange { string kind = 1; string key = 2; int32 amount = 3; StatisticMode mode = 4; }
+message BedSpawnSet { BlockPos pos = 1; string world = 2; float yaw = 3; bool force = 4; }
+message PlayerExtra {
+  oneof order {
+    PlayerTime set_player_time = 1; Empty reset_player_time = 2; Weather set_player_weather = 3; Empty reset_player_weather = 4;
+    StopSound stop_sound = 5; CooldownSet set_cooldown = 6; StatisticChange statistic = 7; Vec3 set_compass_target = 8;
+    BedSpawnSet set_bed_spawn = 9; Empty clear_bed_spawn = 10; Item open_book = 11;
+  }
+}
+
+message CooldownQuery { string player = 1; string item = 2; }
+message StatisticQuery { string player = 1; string kind = 2; string key = 3; }
+message ChunkQuery { int32 x = 1; int32 z = 2; bool load = 3; }
+message ExtraQuestion {
+  oneof query {
+    CooldownQuery cooldown = 1; StatisticQuery statistic = 2; string bed_spawn = 3; string compass_target = 4;
+    string player_clock = 5; ChunkQuery chunk = 6;
+  }
+}
+message BedSpawnInfo { optional BedSpawnSet spawn = 1; }
+message PlayerClock { optional PlayerTime time = 1; optional Weather weather = 2; }
+message ChunkInfo { int32 x = 1; int32 z = 2; bool loaded = 3; bool force_loaded = 4; }
+message ExtraAnswer {
+  oneof answer { int32 count = 1; BedSpawnInfo bed_spawn = 2; Vec3 compass_target = 3; PlayerClock clock = 4; ChunkInfo chunk = 5; }
+}
+
+message PdcList { repeated PdcValue items = 1; }
+message PdcContainer { map<string, PdcValue> entries = 1; }
+message PdcValue {
+  oneof value {
+    string text = 1; int32 byte = 2; int32 int = 3; int64 long = 4; double double = 5; bytes byte_array = 6;
+    PdcContainer container = 7; PdcList list = 8;
+  }
+}
+message PdcSet { string key = 1; PdcValue value = 2; }
+message PdcChange { oneof change { PdcSet set = 1; string remove = 2; Empty clear = 3; } }
+message ItemSlotRef { string player = 1; int32 slot = 2; }
+message PdcQuery { oneof holder { int32 entity = 1; BlockPos block = 2; ItemSlotRef item = 3; } }
+
+message TradeList { repeated Trade trades = 1; }
+message FrameItem { optional Item item = 1; }
+
+enum Billboard { BILLBOARD_UNSPECIFIED = 0; BILLBOARD_FIXED = 1; BILLBOARD_VERTICAL = 2; BILLBOARD_HORIZONTAL = 3; BILLBOARD_CENTER = 4; }
+enum TextAlignment { TEXT_ALIGNMENT_UNSPECIFIED = 0; TEXT_ALIGNMENT_CENTER = 1; TEXT_ALIGNMENT_LEFT = 2; TEXT_ALIGNMENT_RIGHT = 3; }
+enum ItemDisplayContext {
+  ITEM_DISPLAY_CONTEXT_UNSPECIFIED = 0; ITEM_DISPLAY_CONTEXT_NONE = 1; ITEM_DISPLAY_CONTEXT_THIRD_PERSON_LEFT_HAND = 2;
+  ITEM_DISPLAY_CONTEXT_THIRD_PERSON_RIGHT_HAND = 3; ITEM_DISPLAY_CONTEXT_FIRST_PERSON_LEFT_HAND = 4; ITEM_DISPLAY_CONTEXT_FIRST_PERSON_RIGHT_HAND = 5;
+  ITEM_DISPLAY_CONTEXT_HEAD = 6; ITEM_DISPLAY_CONTEXT_GUI = 7; ITEM_DISPLAY_CONTEXT_GROUND = 8; ITEM_DISPLAY_CONTEXT_FIXED = 9;
+}
+message Vec3F { float x = 1; float y = 2; float z = 3; }
+message Quat { float x = 1; float y = 2; float z = 3; float w = 4; }
+message DisplayTransformation { optional Vec3F translation = 1; optional Vec3F scale = 2; optional Quat left_rotation = 3; optional Quat right_rotation = 4; }
+message DisplayBrightness { int32 block = 1; int32 sky = 2; }
+message DisplayProps {
+  optional DisplayTransformation transformation = 1; optional Billboard billboard = 2; optional DisplayBrightness brightness = 3;
+  optional float view_range = 4; optional int32 glow_color = 5; optional int32 interpolation_delay = 6; optional int32 interpolation_duration = 7;
+  optional int32 teleport_duration = 8; optional float shadow_radius = 9; optional float shadow_strength = 10; optional float width = 11; optional float height = 12;
+}
+message TextDisplayData {
+  optional string text = 1; optional int32 line_width = 2; optional int32 background = 3; optional int32 opacity = 4; optional bool shadow = 5;
+  optional bool see_through = 6; optional bool default_background = 7; optional TextAlignment alignment = 8;
+}
+message ItemDisplayData { optional Item item = 1; optional ItemDisplayContext context = 2; }
+message BlockDisplayData { optional BlockState state = 1; }
+message InteractionData { optional float width = 1; optional float height = 2; optional bool response = 3; }
+message DisplaySpec {
+  DisplayProps props = 1;
+  oneof body { TextDisplayData text = 2; ItemDisplayData item = 3; BlockDisplayData block = 4; InteractionData interaction = 5; }
+}
+
+message MapDecorationInfo { uint32 kind = 1; int32 x = 2; int32 y = 3; int32 rotation = 4; optional string name = 5; }
+message MapView {
+  int32 id = 1; string dimension = 2; int32 center_x = 3; int32 center_z = 4; uint32 scale = 5; bool locked = 6; bool tracking_position = 7;
+  bool unlimited_tracking = 8; bytes colors = 9; repeated MapDecorationInfo decorations = 10;
+}
+message MapPixel { int32 x = 1; int32 y = 2; uint32 color = 3; }
+message MapCenter { int32 x = 1; int32 z = 2; }
+message MapLiveMarker { string key = 1; string kind = 2; double x = 3; double z = 4; double rotation = 5; optional string name = 6; }
+message MapEdit {
+  int32 map = 1;
+  oneof edit {
+    MapCenter set_center = 10; uint32 set_scale = 11; bool set_locked = 12; bool set_tracking_position = 13; bool set_unlimited_tracking = 14;
+    MapPixel set_pixel = 15; bytes set_canvas = 16; MapLiveMarker add_marker = 17; string remove_marker = 18; Empty clear_markers = 19;
+  }
+}
+message MapMarker { string kind = 1; double x = 2; double z = 3; double rotation = 4; }
+message MapDecorationEdit { int32 slot = 1; string key = 2; oneof change { MapMarker set = 3; Empty remove = 4; } }
+
+message ItemPdc { int32 slot = 1; PdcChange change = 2; }
+message ObjectPlayerOrder { oneof order { int32 open_merchant = 1; ItemPdc item_pdc = 2; MapDecorationEdit map_decoration = 3; } }
+message ObjectWorldOrder { oneof order { MapEdit edit_map = 1; } }
+message ObjectEntityOrder {
+  oneof order {
+    TradeList set_trades = 1; DisplaySpec edit_display = 2; Empty detonate_firework = 3; Vec3 set_vehicle_velocity = 4;
+    FrameItem set_frame_item = 5; int32 set_frame_rotation = 6; PdcChange pdc = 7; bool set_frame_visible = 8;
+  }
+}
+
+message LaunchProjectile { string kind = 1; Vec3 position = 2; Vec3 velocity = 3; optional int32 shooter = 4; }
+message LaunchFirework { Vec3 position = 1; Item item = 2; optional int32 shooter = 3; optional int32 attached = 4; bool angled = 5; optional Vec3 velocity = 6; }
+message SpawnVehicle { string kind = 1; Vec3 position = 2; optional Vec3 velocity = 3; }
+message PlaceHanging { string kind = 1; BlockPos pos = 2; string face = 3; optional string variant = 4; optional Item item = 5; }
+message SpawnDisplay { Vec3 position = 1; DisplaySpec spec = 2; }
+message ObjectQuestion {
+  oneof query {
+    LaunchProjectile launch_projectile = 1; LaunchFirework launch_firework = 2; SpawnVehicle spawn_vehicle = 3; PlaceHanging place_hanging = 4;
+    SpawnDisplay spawn_display = 5; int32 trades = 6; int32 display = 7; int32 map = 8; PdcQuery pdc = 9; int32 hanging = 10;
+  }
+}
+message HangingView { string kind = 1; BlockPos pos = 2; string facing = 3; optional Item item = 4; int32 rotation = 5; bool visible = 6; optional string variant = 7; }
+message ObjectAnswer { oneof answer { TradeList trades = 1; DisplaySpec display = 2; MapView map = 3; PdcContainer pdc = 4; HangingView hanging = 5; } }

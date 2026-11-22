@@ -79,6 +79,7 @@ impl<L: ClientLink> Server<L> {
             }
             EntityOrder::Change(change) => self.change_entity(id, change)?,
             EntityOrder::Edit(edit) => self.edit_entity(id, edit)?,
+            EntityOrder::Object(order) => self.object_order(id, order)?,
             EntityOrder::SetVelocity(velocity) => {
                 let velocity = resolve::velocity_of(velocity)?;
                 if let Some(entity) = self.entities.store.get_mut(id) {

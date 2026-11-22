@@ -133,7 +133,7 @@ fn act_result(s: &mut Scene, order: Order) -> Answer {
     let request = NEXT_ACTION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     s.server.handle(Inbound::PluginMessage {
         connection: 1,
-        message: FromPlugin::Action { request, order },
+        message: Box::new(FromPlugin::Action { request, order }),
     });
     s.server.deliver();
     s.plugin

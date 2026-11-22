@@ -406,6 +406,7 @@ impl<L: ClientLink> Server<L> {
         let hive = self.hive_snapshot(pos);
         let entity_data = self.block_entity_data(pos);
         self.piston_will_destroy(pos, step.state, step.game_mode == GameMode::Creative);
+        self.tnt_will_destroy(id, pos, step.state, step.game_mode == GameMode::Creative);
         self.set_block(pos, BlockStateId::AIR);
         let actor = self.players.get(&id).map(|player| player.entity_id);
         self.block_game_event(

@@ -151,6 +151,22 @@ impl ChunkGenerator for Flat {
 }
 
 fn server(store: Arc<MemoryStore>) -> Server<Link> {
+    server_at(store, LevelData::default())
+}
+
+fn night_server() -> Server<Link> {
+    server_at(
+        Arc::default(),
+        LevelData {
+            day_time: 18_000,
+            spawn_mobs: false,
+            daylight_cycle: false,
+            ..LevelData::default()
+        },
+    )
+}
+
+fn server_at(store: Arc<MemoryStore>, level: LevelData) -> Server<Link> {
     let config = GameConfig {
         view_distance: 3,
         chunk_workers: 2,
@@ -166,13 +182,7 @@ fn server(store: Arc<MemoryStore>) -> Server<Link> {
         },
         ..GameConfig::default()
     };
-    let mut server = Server::new(
-        config,
-        LevelData::default(),
-        store,
-        Arc::new(Flat),
-        StatusBoard::new(20),
-    );
+    let mut server = Server::new(config, level, store, Arc::new(Flat), StatusBoard::new(20));
     server.wait_for_spawn(Duration::from_secs(10));
     server
 }
@@ -943,7 +953,7 @@ fn geared_zombie(server: &mut Server<Link>, alice: &mut Client, enchantments: &s
 
 #[test]
 fn a_zombie_with_a_thorns_helmet_hurts_its_attacker_and_wears_the_helmet() {
-    let mut server = server(Arc::default());
+    let mut server = night_server();
     let mut alice = join(&mut server, "Alice");
     give_sword(&mut server, &mut alice);
     let zombie = geared_zombie(&mut server, &mut alice, "{\"minecraft:thorns\":10}");

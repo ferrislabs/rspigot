@@ -209,11 +209,7 @@ impl<L: ClientLink> Server<L> {
         Ok(key)
     }
 
-    pub(crate) fn delete_world(
-        &mut self,
-        key: &DimensionKey,
-        files: bool,
-    ) -> Result<(), ActionError> {
+    pub(crate) fn check_world_deletable(&self, key: &DimensionKey) -> Result<(), ActionError> {
         if !self.world_exists(key) {
             return Err(ActionError::new(
                 ActionErrorKind::NotFound,
@@ -232,6 +228,15 @@ impl<L: ClientLink> Server<L> {
                 format!("a player is still in the world {key}"),
             ));
         }
+        Ok(())
+    }
+
+    pub(crate) fn delete_world(
+        &mut self,
+        key: &DimensionKey,
+        files: bool,
+    ) -> Result<(), ActionError> {
+        self.check_world_deletable(key)?;
         let Some(mut state) = self.dormant.remove(key) else {
             return Err(ActionError::new(
                 ActionErrorKind::NotFound,

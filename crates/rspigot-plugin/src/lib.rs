@@ -12,11 +12,13 @@ mod contract;
 mod custom_inventory;
 mod dialog;
 mod diff;
+mod displays;
 mod effect;
 mod entity;
 mod entity_groups;
 mod error;
 mod events;
+mod extras;
 #[rustfmt::skip]
 mod generated;
 mod inventory;
@@ -31,7 +33,9 @@ mod boss_bar;
 mod link;
 mod listener;
 mod npc;
+mod objects;
 mod payload;
+mod pdc;
 mod permissions;
 mod player;
 mod recipes;
@@ -40,9 +44,11 @@ mod runtime;
 mod scoreboard;
 mod server;
 mod target;
+mod tasks;
 mod text;
 mod tile;
 mod typed;
+mod typed_config;
 mod wire;
 mod world;
 
@@ -64,11 +70,15 @@ pub use config::{Config, ConfigError, ConfigValue};
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, CommandSender, DamageSource, DroppedItem,
     EnchantOffer, HolderRef, Input, InventoryOwner, InventoryRef, InventoryView, LecternData,
-    Location, LootContext, MerchantRef, OwnerRef, PluginInfo, SignData, SpawnerData, Trade,
-    TrialSpawnerData,
+    Location, LootContext, MerchantRef, OwnerRef, PluginInfo, RaidRef, ServerLinkEntry,
+    ServerLinks, SignData, SpawnerData, Trade, TrialSpawnerData,
 };
 pub use custom_inventory::{CustomInventory, CustomInventoryState};
 pub use dialog::{Dialog, DialogButton, DialogInput};
+pub use displays::{
+    Billboard, BlockDisplay, DisplayHandle, DisplayProps, DisplaySpec, InteractionBox, ItemDisplay,
+    ItemDisplayContext, TextAlignment, TextDisplay, Transformation,
+};
 pub use effect::Effect;
 pub use entity::{Entities, Entity, EntityState};
 pub use entity_groups::{
@@ -78,6 +88,11 @@ pub use entity_groups::{
 };
 pub use error::{ActionError, ActionErrorKind, Error};
 pub use events::*;
+pub use extras::{
+    BedSpawn, Chunk, ChunkState, PlayerBedHandle, PlayerBookHandle, PlayerClock, PlayerClockHandle,
+    PlayerCompassHandle, PlayerCooldownHandle, PlayerStatisticsHandle, PlayerTime, SoundCategory,
+    StatisticKind, WorldBorderHandle, WorldChunksHandle, WorldLightningHandle,
+};
 pub use generated::*;
 pub use inventory::{ArmorSlot, InventorySlot, InventoryState};
 pub use item::{CustomModelData, ItemStack};
@@ -92,12 +107,18 @@ pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Ve
 pub use location::PlayerLocationHandle;
 pub use meta::{MetaHandle, MetaValue, WorldMetaHandle};
 pub use npc::{DEFAULT_SKIN_LAYERS, Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, NpcState, Npcs};
+pub use objects::{
+    FireworkHandle, FireworkLaunch, FrameHandle, HangingFace, HangingKind, HangingState,
+    MapDecoration, MapHandle, MapMarker, MapView, MerchantHandle, PlayerObjectsHandle,
+    VehicleHandle, WorldObjectsHandle,
+};
 pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, SoundCue, TabList};
+pub use pdc::{NamespacedKey, PdcHandle, PdcValue};
 pub use permissions::{PermissionGroup, PlayerPermissionsHandle, ServerPermissionsHandle};
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
 pub use recipes::{CookingKind, Ingredient, Recipe, RecipeCategory, RecipeInfo, RecipeKind};
 pub use rich::{Click, Part, RichMessage};
-pub use rspigot_plugin_macros::{Module, Plugin, command, listeners};
+pub use rspigot_plugin_macros::{Module, Plugin, command, config, listeners, task};
 pub use runtime::{run, run_with};
 pub use scoreboard::{
     CollisionRule, Criteria, DisplaySlot, Objective, ObjectiveState, RenderType, Score, ScoreEntry,
@@ -105,6 +126,7 @@ pub use scoreboard::{
 };
 pub use server::{BanEntry, IpBanEntry, ListedPlayer, Server, ServerState};
 pub use target::{BlockTarget, Target};
+pub use tasks::{TASK_RESOLUTION, TaskClock};
 pub use text::{ChatColor, Title};
 pub use tile::{
     BeaconState, BlockBannerHandle, BlockBeaconHandle, BlockCommandHandle, BlockData,
@@ -115,6 +137,7 @@ pub use tile::{
 pub use typed::{
     Cat, Creeper, Profession, Rabbit, RabbitVariant, Sheep, Slime, Villager, Wolf, Zombie,
 };
+pub use typed_config::{FromConfig, FromValue, load_typed, load_typed_for, read_field};
 pub use uuid::Uuid;
 pub use world::{
     Difficulty, Dimension, Explosion, GameRule, GameRuleSetting, Generator, Layer, Weather, World,
@@ -131,7 +154,8 @@ pub mod prelude {
         InventoryOwner, InventoryRef, InventorySlot, InventoryState, InventoryView, ItemStack,
         Listeners, Location, Material, MetaHandle, MetaValue, Module, Particle, Player,
         PlayerState, Plugin, Position, Priority, Rotation, Server, ServerState, Sound, SoundCue,
-        Target, Title, Vector, Weather, World, WorldState, command, listeners, run, run_with,
+        Target, Title, Vector, Weather, World, WorldState, command, config, listeners, run,
+        run_with, task,
     };
     pub use crate::{
         AttributeModifier, BannerLayer, ComponentValue, Equippable, FireworkExplosion,

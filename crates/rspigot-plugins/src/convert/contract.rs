@@ -1,8 +1,8 @@
 use rspigot_core::plugins::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, DamageSourceView, DroppedItem, EnchantOffer,
     HolderRef, Input, InventoryOwner, InventoryRef, InventoryView, LecternData, Location,
-    LootContext, MerchantRef, OwnerRef, PluginInfo, SenderView, SignData, SpawnerData, Trade,
-    TrialSpawnerData,
+    LootContext, MerchantRef, OwnerRef, PluginInfo, RaidRef, SenderView, ServerLinks, SignData,
+    SpawnerData, Trade, TrialSpawnerData,
 };
 use rspigot_domain::EntityId;
 use rspigot_plugin_protocol::v1::{
@@ -155,6 +155,38 @@ pub(super) fn wire_plugin_info(plugin: PluginInfo) -> v1::PluginInfo {
     v1::PluginInfo {
         name: plugin.name,
         version: plugin.version,
+    }
+}
+
+pub(super) fn wire_server_links(links: ServerLinks) -> v1::ServerLinks {
+    v1::ServerLinks {
+        links: links
+            .links
+            .into_iter()
+            .map(|link| v1::ServerLinkEntry {
+                label: link.label,
+                url: link.url,
+            })
+            .collect(),
+    }
+}
+
+pub(super) fn wire_raid_ref(raid: RaidRef) -> v1::RaidRef {
+    v1::RaidRef {
+        id: raid.id,
+        world: raid.world,
+        center: Some(v1::BlockPos {
+            x: raid.center.x,
+            y: raid.center.y,
+            z: raid.center.z,
+        }),
+        status: raid.status,
+        started: raid.started,
+        active_ticks: raid.active_ticks,
+        bad_omen_level: raid.bad_omen_level,
+        spawned_groups: raid.spawned_groups,
+        total_groups: raid.total_groups,
+        total_health: raid.total_health,
     }
 }
 

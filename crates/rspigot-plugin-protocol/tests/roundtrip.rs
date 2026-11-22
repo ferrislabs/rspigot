@@ -120,6 +120,9 @@ fn a_hello_and_an_event_survive_encoding() {
             version: "0.1.0".to_owned(),
             token: String::new(),
             commands: Vec::new(),
+            depends: Vec::new(),
+            soft_depends: Vec::new(),
+            load_before: Vec::new(),
             handlers: vec![Handler {
                 id: 1,
                 event: EventKind::EntityDamageByEntity as i32,

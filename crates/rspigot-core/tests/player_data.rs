@@ -277,7 +277,7 @@ fn connect_plugin(server: &mut Server<Link>) {
 fn order(server: &mut Server<Link>, player: PlayerId, order: PlayerOrder) {
     server.handle(Inbound::PluginMessage {
         connection: 1,
-        message: FromPlugin::Order(Order::Player { player, order }),
+        message: Box::new(FromPlugin::Order(Order::Player { player, order })),
     });
     server.deliver();
 }

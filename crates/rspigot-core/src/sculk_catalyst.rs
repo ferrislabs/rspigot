@@ -11,6 +11,9 @@ use rspigot_nbt::{Compound, Tag};
 use crate::advancements::AdvancementEvent;
 use crate::game_events::TimerKind;
 use crate::mobs::ServerRandom;
+use crate::plugins::events::SculkBloom;
+use crate::plugins::gaps::{BloomStep, GapStep};
+use crate::plugins::{EventPayload, Lane};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -61,6 +64,32 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let experience = reward::base_experience_reward(entity, &mut ServerRandom(&mut self.rng));
+        if experience <= 0 {
+            return;
+        }
+        let step = BloomStep {
+            catalyst,
+            at,
+            experience,
+            killer,
+            victim,
+        };
+        self.fire_gap(Lane::Block(catalyst), GapStep::Bloom(step), move |_| {
+            Some(EventPayload::SculkBloom(SculkBloom {
+                block: catalyst,
+                charge: experience,
+            }))
+        });
+    }
+
+    pub(crate) fn finish_catalyst_death(&mut self, step: BloomStep) {
+        let BloomStep {
+            catalyst,
+            at,
+            experience,
+            killer,
+            victim,
+        } = step;
         if experience <= 0 {
             return;
         }

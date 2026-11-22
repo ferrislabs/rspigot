@@ -273,6 +273,64 @@ impl PluginInfo {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServerLinkEntry {
+    pub label: String,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServerLinks {
+    pub links: Vec<ServerLinkEntry>,
+}
+
+impl ServerLinks {
+    pub(crate) fn from_wire(links: v1::ServerLinks, _link: &Link) -> Result<Self, Error> {
+        Ok(Self {
+            links: links
+                .links
+                .into_iter()
+                .map(|link| ServerLinkEntry {
+                    label: link.label,
+                    url: link.url,
+                })
+                .collect(),
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RaidRef {
+    pub id: i32,
+    pub world: String,
+    pub center: (i32, i32, i32),
+    pub status: String,
+    pub started: bool,
+    pub active_ticks: i64,
+    pub bad_omen_level: i32,
+    pub spawned_groups: i32,
+    pub total_groups: i32,
+    pub total_health: f32,
+}
+
+impl RaidRef {
+    pub(crate) fn from_wire(raid: v1::RaidRef, _link: &Link) -> Result<Self, Error> {
+        let center = required(raid.center, "center")?;
+        Ok(Self {
+            id: raid.id,
+            world: raid.world,
+            center: (center.x, center.y, center.z),
+            status: raid.status,
+            started: raid.started,
+            active_ticks: raid.active_ticks,
+            bad_omen_level: raid.bad_omen_level,
+            spawned_groups: raid.spawned_groups,
+            total_groups: raid.total_groups,
+            total_health: raid.total_health,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BoundingBox {
     pub min: Position,

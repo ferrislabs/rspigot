@@ -91,7 +91,7 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
-    fn can_spread_fire_around(&self, pos: BlockPos) -> bool {
+    pub(crate) fn can_spread_fire_around(&self, pos: BlockPos) -> bool {
         let radius = self.config.rules.fire_spread_radius;
         if radius < 0 {
             return true;
