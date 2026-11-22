@@ -87,22 +87,29 @@ impl WorldGenerator {
             }
             GeneratorSpec::Vanilla => Ok(Self::noise(seed, NoiseOptions::NORMAL, spec.structures)),
             GeneratorSpec::Datapack(id) => {
-                let options = match id.as_str() {
-                    "minecraft:overworld" => NoiseOptions::NORMAL,
-                    "minecraft:large_biomes" => NoiseOptions::LARGE_BIOMES,
-                    "minecraft:amplified" => NoiseOptions::AMPLIFIED,
-                    other => match worldgen_pack::alias(other) {
-                        Some("minecraft:overworld") => NoiseOptions::NORMAL,
-                        Some("minecraft:large_biomes") => NoiseOptions::LARGE_BIOMES,
-                        Some("minecraft:amplified") => NoiseOptions::AMPLIFIED,
-                        _ => {
-                            return Err(format!(
-                                "no noise settings and biome source named {other}"
-                            ));
-                        }
-                    },
+                let key = match id.as_str() {
+                    "minecraft:overworld" => "normal".to_owned(),
+                    "minecraft:large_biomes" => "large_biomes".to_owned(),
+                    "minecraft:amplified" => "amplified".to_owned(),
+                    other => worldgen_pack::alias(other).ok_or_else(|| {
+                        format!("no noise settings and biome source named {other}")
+                    })?,
                 };
-                Ok(Self::noise(seed, options, spec.structures))
+                Ok(match key.as_str() {
+                    "normal" => Self::noise(seed, NoiseOptions::NORMAL, spec.structures),
+                    "large_biomes" => {
+                        Self::noise(seed, NoiseOptions::LARGE_BIOMES, spec.structures)
+                    }
+                    "amplified" => Self::noise(seed, NoiseOptions::AMPLIFIED, spec.structures),
+                    custom => {
+                        let generator = NoiseGenerator::with_terrain_key(seed, custom);
+                        Self::Noise(if spec.structures {
+                            generator
+                        } else {
+                            generator.without_structures()
+                        })
+                    }
+                })
             }
         }
     }

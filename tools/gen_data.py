@@ -2202,11 +2202,53 @@ VALUE_OPERATIONS = {
     "minecraft:remove_binomial": "RemoveBinomial",
 }
 
+VALUE_LIST_COMPONENTS = {
+    "minecraft:block_experience": "block_experience",
+    "minecraft:mob_experience": "mob_experience",
+    "minecraft:fishing_luck_bonus": "fishing_luck_bonus",
+    "minecraft:fishing_time_reduction": "fishing_time_reduction",
+    "minecraft:item_damage": "item_damage",
+    "minecraft:repair_with_xp": "repair_with_xp",
+    "minecraft:trident_return_acceleration": "trident_return_acceleration",
+}
+
+CONDITIONAL_COMPONENTS = {
+    "minecraft:post_piercing_attack": "post_piercing_attack",
+    "minecraft:hit_block": "hit_block",
+    "minecraft:location_changed": "location_changed",
+    "minecraft:tick": "tick",
+}
+
 ENTITY_EFFECT_TYPES = {
     "minecraft:ignite",
     "minecraft:apply_mob_effect",
     "minecraft:damage_entity",
     "minecraft:change_item_damage",
+    "minecraft:apply_impulse",
+    "minecraft:apply_exhaustion",
+    "minecraft:explode",
+    "minecraft:summon_entity",
+    "minecraft:replace_disk",
+    "minecraft:spawn_particles",
+    "minecraft:play_sound",
+    "minecraft:attribute",
+}
+
+ENTITY_FLAG_CHECKS = {
+    "is_on_ground": "OnGround",
+    "is_flying": "Flying",
+    "is_fall_flying": "FallFlying",
+    "is_in_water": "InWater",
+}
+
+LOOT_ENTITY_KEYS = {
+    "minecraft:entity_type",
+    "minecraft:equipment",
+    "minecraft:components",
+    "minecraft:type_specific/sheep",
+    "minecraft:type_specific/cube_mob",
+    "minecraft:type_specific/raider",
+    "minecraft:type_specific/fishing_hook",
 }
 
 ENCHANTMENT_ATTRIBUTES = {"minecraft:sweeping_damage_ratio"}
@@ -2250,8 +2292,285 @@ def entity_effect_supported(effect):
     return kind in ENTITY_EFFECT_TYPES
 
 
+def level_value(builder, value):
+    kind = value.get("type") if isinstance(value, dict) else None
+    if kind == "minecraft:lookup":
+        expect_keys(value, {"type", "values", "fallback"}, builder.where)
+        return rs_struct(
+            "LevelValue::Lookup",
+            [
+                ("values", rs_slice([rs_f32(v) for v in value["values"]])),
+                ("fallback", builder.level_based_value(value["fallback"])),
+            ],
+        )
+    if kind == "minecraft:clamped":
+        expect_keys(value, {"type", "value", "min", "max"}, builder.where)
+        return rs_struct(
+            "LevelValue::Clamped",
+            [
+                ("value", rs_ref(level_value(builder, value["value"]))),
+                ("min", rs_f32(value["min"])),
+                ("max", rs_f32(value["max"])),
+            ],
+        )
+    return rs_call("LevelValue::Plain", [builder.level_based_value(value)])
+
+
+def vec3(value, where):
+    if not (isinstance(value, list) and len(value) == 3):
+        fail("expected a 3-vector in %s" % where)
+    return value
+
+
+def one_or_list(value):
+    return [value] if isinstance(value, str) else list(value)
+
+
+def block_condition(builder, value):
+    kind = value.get("type")
+    offset = vec3(value.get("offset", [0, 0, 0]), builder.where)
+    offset_node = rs_array([rs_int(c) for c in offset])
+    if kind == "minecraft:all_of":
+        expect_keys(value, {"type", "predicates"}, builder.where)
+        return rs_call("BlockCondition::AllOf", [rs_slice([block_condition(builder, p) for p in value["predicates"]])])
+    if kind == "minecraft:matching_block_tag":
+        expect_keys(value, {"type", "offset", "tag"}, builder.where)
+        return rs_struct("BlockCondition::MatchingBlockTag", [("offset", offset_node), ("tag", rs_str(normalize_id(value["tag"])))])
+    if kind == "minecraft:matching_blocks":
+        expect_keys(value, {"type", "offset", "blocks"}, builder.where)
+        names = [rs_str(normalize_id(b)) for b in one_or_list(value["blocks"])]
+        return rs_struct("BlockCondition::MatchingBlocks", [("offset", offset_node), ("blocks", rs_slice(names))])
+    if kind == "minecraft:matching_fluids":
+        expect_keys(value, {"type", "offset", "fluids"}, builder.where)
+        names = [rs_str(normalize_id(b)) for b in one_or_list(value["fluids"])]
+        return rs_struct("BlockCondition::MatchingFluids", [("offset", offset_node), ("fluids", rs_slice(names))])
+    if kind == "minecraft:unobstructed":
+        expect_keys(value, {"type", "offset"}, builder.where)
+        return Atom("BlockCondition::Unobstructed")
+    fail("unsupported block predicate %s in %s" % (json.dumps(value), builder.where))
+
+
+def requirement_flag_nodes(target, predicate, builder):
+    nodes = []
+
+    def check(name, args):
+        nodes.append(
+            rs_struct(
+                "Requirement::Entity",
+                [("target", Atom("EntityTarget::" + target)), ("check", rs_call("EntityCheck::" + name, args) if args else Atom("EntityCheck::" + name))],
+            )
+        )
+
+    for key, value in predicate.items():
+        if key == "minecraft:flags":
+            for flag, expected in value.items():
+                if flag not in ENTITY_FLAG_CHECKS:
+                    fail("unsupported entity flag %s in %s" % (flag, builder.where))
+                check(ENTITY_FLAG_CHECKS[flag], [rs_bool(expected)])
+        elif key == "minecraft:vehicle":
+            expect_keys(value, set(), builder.where)
+            check("Vehicle", [rs_bool(True)])
+        elif key == "minecraft:movement":
+            expect_keys(value, {"horizontal_speed", "fall_distance"}, builder.where)
+            for field, variant in (("horizontal_speed", "HorizontalSpeedMin"), ("fall_distance", "FallDistanceMin")):
+                if field in value:
+                    expect_keys(value[field], {"min"}, builder.where)
+                    check(variant, [rs_f32(value[field]["min"])])
+        elif key == "minecraft:movement_affected_by":
+            expect_keys(value, {"block"}, builder.where)
+            blocks = value["block"]["blocks"]
+            if not blocks.startswith("#"):
+                fail("movement_affected_by without a tag in %s" % builder.where)
+            check("MovementAffectedBy", [rs_str(normalize_id(blocks[1:]))])
+        elif key == "minecraft:periodic_tick":
+            check("PeriodicTick", [rs_int(value)])
+        elif key == "minecraft:location":
+            expect_keys(value, {"can_see_sky"}, builder.where)
+            check("CanSeeSky", [rs_bool(value["can_see_sky"])])
+        elif key == "minecraft:type_specific/player":
+            expect_keys(value, {"gamemode", "food"}, builder.where)
+            check("IsPlayer", [rs_bool(True)])
+            if "gamemode" in value:
+                check("Gamemode", [rs_slice([rs_str(g) for g in value["gamemode"]])])
+            if "food" in value:
+                expect_keys(value["food"], {"level"}, builder.where)
+                expect_keys(value["food"]["level"], {"min"}, builder.where)
+                check("FoodMin", [rs_int(value["food"]["level"]["min"])])
+        elif key == "minecraft:entity_type":
+            if not isinstance(value, str) or value.startswith("#"):
+                fail("unsupported entity_type in %s" % builder.where)
+            check("EntityType", [rs_str(normalize_id(value))])
+        else:
+            fail("unsupported entity predicate key %s in %s" % (key, builder.where))
+    return nodes
+
+
+def requirement(builder, value):
+    kind = value.get("type") if isinstance(value, dict) else None
+    if kind in ("minecraft:all_of", "minecraft:any_of"):
+        expect_keys(value, {"type", "terms"}, builder.where)
+        variant = "Requirement::AllOf" if kind == "minecraft:all_of" else "Requirement::AnyOf"
+        return rs_call(variant, [rs_slice([requirement(builder, term) for term in value["terms"]])])
+    if kind == "minecraft:inverted":
+        expect_keys(value, {"type", "term"}, builder.where)
+        return rs_call("Requirement::Not", [rs_ref(requirement(builder, value["term"]))])
+    if kind == "minecraft:enchantment_active_check":
+        expect_keys(value, {"type", "active"}, builder.where)
+        return rs_call("Requirement::ActiveCheck", [rs_bool(value["active"])])
+    if kind == "minecraft:weather_check":
+        expect_keys(value, {"type", "thundering", "raining"}, builder.where)
+        fields = []
+        for key in ("raining", "thundering"):
+            fields.append((key, rs_option(rs_bool(value[key]) if key in value else None)))
+        return rs_call("Requirement::Loot", [rs_struct("Condition::WeatherCheck", fields)])
+    if kind == "minecraft:location_check":
+        expect_keys(value, {"type", "predicate"}, builder.where)
+        predicate = value["predicate"]
+        expect_keys(predicate, {"block", "can_see_sky"}, builder.where)
+        tag = None
+        if "block" in predicate:
+            expect_keys(predicate["block"], {"blocks"}, builder.where)
+            blocks = predicate["block"]["blocks"]
+            if not blocks.startswith("#"):
+                fail("location_check block without a tag in %s" % builder.where)
+            tag = rs_str(normalize_id(blocks[1:]))
+        sky = predicate.get("can_see_sky")
+        return rs_struct(
+            "Requirement::Location",
+            [("block_tag", rs_option(tag)), ("can_see_sky", rs_option(None if sky is None else rs_bool(sky)))],
+        )
+    if kind == "minecraft:entity_properties":
+        expect_keys(value, {"type", "entity", "predicate"}, builder.where)
+        predicate = value.get("predicate", {})
+        flags = predicate.get("minecraft:flags", {})
+        exact_type = (
+            set(predicate) == {"minecraft:entity_type"}
+            and isinstance(predicate["minecraft:entity_type"], str)
+            and not predicate["minecraft:entity_type"].startswith("#")
+        )
+        loot_only = set(predicate) <= LOOT_ENTITY_KEYS and set(flags) <= {"baby", "on_fire"} and not exact_type
+        if loot_only:
+            return rs_call("Requirement::Loot", [builder.condition(value)])
+        nodes = requirement_flag_nodes(ENTITY_TARGETS[value["entity"]], predicate, builder)
+        return nodes[0] if len(nodes) == 1 else rs_call("Requirement::AllOf", [rs_slice(nodes)])
+    return rs_call("Requirement::Loot", [builder.condition(value)])
+
+
 def entity_effect(builder, effect):
     kind = effect["type"]
+    if kind == "minecraft:apply_impulse":
+        expect_keys(effect, {"type", "direction", "coordinate_scale", "magnitude"}, builder.where)
+        return rs_struct(
+            "EntityEffect::ApplyImpulse",
+            [
+                ("direction", rs_array([rs_f32(c) for c in vec3(effect["direction"], builder.where)])),
+                ("coordinate_scale", rs_array([rs_f32(c) for c in vec3(effect["coordinate_scale"], builder.where)])),
+                ("magnitude", level_value(builder, effect["magnitude"])),
+            ],
+        )
+    if kind == "minecraft:apply_exhaustion":
+        expect_keys(effect, {"type", "amount"}, builder.where)
+        return rs_call("EntityEffect::ApplyExhaustion", [level_value(builder, effect["amount"])])
+    if kind == "minecraft:explode":
+        expect_keys(
+            effect,
+            {"type", "block_interaction", "immune_blocks", "knockback_multiplier", "radius", "small_particle", "large_particle", "sound", "create_fire", "attribute_to_user"},
+            builder.where,
+        )
+        immune = effect.get("immune_blocks")
+        small = effect.get("small_particle")
+        large = effect.get("large_particle")
+        return rs_struct(
+            "EntityEffect::Explode",
+            [
+                ("block_interaction", rs_str(effect.get("block_interaction", "trigger"))),
+                ("immune_blocks", rs_option(None if immune is None else rs_str(normalize_id(immune[1:])))),
+                ("knockback_multiplier", level_value(builder, effect.get("knockback_multiplier", 1.0))),
+                ("radius", level_value(builder, effect["radius"])),
+                ("small_particle", rs_option(None if small is None else rs_str(normalize_id(small["type"])))),
+                ("large_particle", rs_option(None if large is None else rs_str(normalize_id(large["type"])))),
+                ("sound", rs_str(normalize_id(effect["sound"]))),
+                ("create_fire", rs_bool(effect.get("create_fire", False))),
+                ("attribute_to_user", rs_bool(effect.get("attribute_to_user", False))),
+            ],
+        )
+    if kind == "minecraft:summon_entity":
+        expect_keys(effect, {"type", "entity", "join_team"}, builder.where)
+        entity = effect["entity"]
+        if not isinstance(entity, str):
+            fail("unsupported summon_entity set in %s" % builder.where)
+        return rs_struct(
+            "EntityEffect::SummonEntity",
+            [("entity", rs_str(normalize_id(entity))), ("join_team", rs_bool(effect.get("join_team", False)))],
+        )
+    if kind == "minecraft:replace_disk":
+        expect_keys(
+            effect,
+            {"type", "radius", "height", "offset", "block_state", "predicate", "trigger_game_event"},
+            builder.where,
+        )
+        state = effect["block_state"]
+        expect_keys(state, {"id", "properties"}, builder.where)
+        properties = state.get("properties", {})
+        pairs = [rs_tuple([rs_str(k), rs_str(properties[k])]) for k in sorted(properties)]
+        predicate = effect.get("predicate")
+        trigger = effect.get("trigger_game_event")
+        return rs_struct(
+            "EntityEffect::ReplaceDisk",
+            [
+                ("radius", level_value(builder, effect["radius"])),
+                ("height", level_value(builder, effect["height"])),
+                ("offset", rs_array([rs_int(c) for c in vec3(effect.get("offset", [0, 0, 0]), builder.where)])),
+                ("block", rs_str(normalize_id(state["id"]))),
+                ("state", rs_slice(pairs)),
+                ("predicate", rs_option(None if predicate is None else block_condition(builder, predicate))),
+                ("trigger_game_event", rs_option(None if trigger is None else rs_str(normalize_id(trigger)))),
+            ],
+        )
+    if kind == "minecraft:spawn_particles":
+        expect_keys(
+            effect,
+            {"type", "particle", "speed", "horizontal_position", "vertical_position", "horizontal_velocity", "vertical_velocity"},
+            builder.where,
+        )
+        return rs_struct(
+            "EntityEffect::SpawnParticles",
+            [
+                ("particle", rs_str(normalize_id(effect["particle"]["type"]))),
+                ("speed", rs_f32(effect["speed"])),
+                ("horizontal_movement_scale", rs_f32(effect["horizontal_velocity"].get("movement_scale", 0.0))),
+                ("vertical_base", rs_f32(effect["vertical_velocity"].get("base", 0.0))),
+                ("vertical_offset", rs_f32(effect["vertical_position"].get("offset", 0.0))),
+            ],
+        )
+    if kind == "minecraft:play_sound":
+        expect_keys(effect, {"type", "sound", "volume", "pitch"}, builder.where)
+        pitch = effect["pitch"]
+        if isinstance(pitch, dict):
+            expect_keys(pitch, {"type", "min_inclusive", "max_exclusive"}, builder.where)
+            low, high = pitch["min_inclusive"], pitch["max_exclusive"]
+        else:
+            low = high = pitch
+        return rs_struct(
+            "EntityEffect::PlaySound",
+            [
+                ("sounds", rs_slice([rs_str(normalize_id(n)) for n in one_or_list(effect["sound"])])),
+                ("volume", rs_f32(effect["volume"])),
+                ("pitch_min", rs_f32(low)),
+                ("pitch_max", rs_f32(high)),
+            ],
+        )
+    if kind == "minecraft:attribute":
+        expect_keys(effect, {"type", "id", "attribute", "amount", "operation"}, builder.where)
+        return rs_struct(
+            "EntityEffect::Attribute",
+            [
+                ("id", rs_str(normalize_id(effect["id"]))),
+                ("attribute", rs_str(normalize_id(effect["attribute"]))),
+                ("amount", level_value(builder, effect["amount"])),
+                ("operation", rs_str(effect["operation"])),
+            ],
+        )
     if kind == "minecraft:all_of":
         expect_keys(effect, {"type", "effects"}, builder.where)
         return rs_call("EntityEffect::AllOf", [rs_slice([entity_effect(builder, child) for child in effect["effects"]])])
@@ -2303,6 +2622,15 @@ def build_enchantment_effects(datapack, synced, loot_builder):
         for component, field in VALUE_COMPONENTS.items():
             entries = effects.get(component, [])
             fields.append((field, rs_slice([value_effect(builder, entry) for entry in entries])))
+        for component, field in VALUE_LIST_COMPONENTS.items():
+            entries = effects.get(component, [])
+            fields.append((field, rs_slice([value_effect(builder, entry) for entry in entries])))
+        spin = effects.get("minecraft:trident_spin_attack_strength")
+        fields.append(
+            ("trident_spin_attack_strength", rs_option(None if spin is None else value_operation(builder, spin)))
+        )
+        sounds = effects.get("minecraft:trident_sound", [])
+        fields.append(("trident_sound", rs_slice([rs_str(normalize_id(sound)) for sound in sounds])))
         charge = effects.get("minecraft:crossbow_charge_time")
         fields.append(
             (
@@ -2310,6 +2638,29 @@ def build_enchantment_effects(datapack, synced, loot_builder):
                 rs_option(None if charge is None else value_operation(builder, charge)),
             )
         )
+        charging = []
+        for entry in effects.get("minecraft:crossbow_charging_sounds", []):
+            expect_keys(entry, {"start", "end"}, where)
+            charging.append(
+                rs_struct(
+                    "ChargingSounds",
+                    [("start", rs_str(normalize_id(entry["start"]))), ("end", rs_str(normalize_id(entry["end"])))],
+                )
+            )
+        fields.append(("crossbow_charging_sounds", rs_slice(charging)))
+        fields.append(("prevent_armor_change", rs_bool("minecraft:prevent_armor_change" in effects)))
+        fields.append(("prevent_equipment_drop", rs_bool("minecraft:prevent_equipment_drop" in effects)))
+        immunities = []
+        for entry in effects.get("minecraft:damage_immunity", []):
+            expect_keys(entry, {"effect", "requirements"}, where)
+            requirements = entry.get("requirements")
+            immunities.append(
+                rs_struct(
+                    "Immunity",
+                    [("requirements", rs_option(None if requirements is None else builder.condition(requirements)))],
+                )
+            )
+        fields.append(("damage_immunity", rs_slice(immunities)))
         targeted = []
         for entry in effects.get("minecraft:post_attack", []):
             if not entity_effect_supported(entry["effect"]):
@@ -2324,27 +2675,35 @@ def build_enchantment_effects(datapack, synced, loot_builder):
                         ("enchanted", Atom("EffectRole::" + EFFECT_ROLES[entry["enchanted"]])),
                         ("affected", Atom("EffectRole::" + EFFECT_ROLES[entry["affected"]])),
                         ("effect", entity_effect(builder, entry["effect"])),
-                        ("requirements", rs_option(None if requirements is None else builder.condition(requirements))),
+                        ("requirements", rs_option(None if requirements is None else requirement(builder, requirements))),
                     ],
                 )
             )
         fields.append(("post_attack", rs_slice(targeted)))
-        spawned = []
-        for entry in effects.get("minecraft:projectile_spawned", []):
-            if not entity_effect_supported(entry["effect"]):
-                continue
-            expect_keys(entry, {"effect", "requirements"}, where)
-            requirements = entry.get("requirements")
-            spawned.append(
-                rs_struct(
-                    "ConditionalEffect",
-                    [
-                        ("effect", entity_effect(builder, entry["effect"])),
-                        ("requirements", rs_option(None if requirements is None else builder.condition(requirements))),
-                    ],
+        for component, field in (
+            ("minecraft:post_piercing_attack", "post_piercing_attack"),
+            ("minecraft:projectile_spawned", "projectile_spawned"),
+            ("minecraft:hit_block", "hit_block"),
+            ("minecraft:location_changed", "location_changed"),
+            ("minecraft:tick", "tick"),
+        ):
+            conditional = []
+            for entry in effects.get(component, []):
+                if not entity_effect_supported(entry["effect"]):
+                    builder.note_ignored(component + ":" + entry["effect"]["type"])
+                    continue
+                expect_keys(entry, {"effect", "requirements"}, where)
+                requirements = entry.get("requirements")
+                conditional.append(
+                    rs_struct(
+                        "ConditionalEffect",
+                        [
+                            ("effect", entity_effect(builder, entry["effect"])),
+                            ("requirements", rs_option(None if requirements is None else requirement(builder, requirements))),
+                        ],
+                    )
                 )
-            )
-        fields.append(("projectile_spawned", rs_slice(spawned)))
+            fields.append((field, rs_slice(conditional)))
         attributes = []
         for entry in effects.get("minecraft:attributes", []):
             expect_keys(entry, {"id", "attribute", "amount", "operation"}, where)
@@ -2373,7 +2732,7 @@ def emit_enchantment_effects(nodes):
     body.append("];")
     text = "\n".join(body) + "\n"
     head = ["use crate::enchantments::{%s};" % ", ".join(
-        used_imports(text, ["AttributeEffect", "ConditionalEffect", "EffectRole", "EnchantmentEffects", "EntityEffect", "TargetedEffect", "ValueEffect", "ValueOp"])
+        used_imports(text, ["AttributeEffect", "BlockCondition", "ChargingSounds", "ConditionalEffect", "EffectRole", "EnchantmentEffects", "EntityCheck", "EntityEffect", "Immunity", "LevelValue", "Requirement", "TargetedEffect", "ValueEffect", "ValueOp"])
     )]
     loot_names = used_imports(text, LOOT_TYPES)
     if loot_names:

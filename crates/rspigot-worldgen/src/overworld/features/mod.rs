@@ -17,6 +17,7 @@ mod large;
 mod magma;
 #[cfg(test)]
 mod margins;
+mod misc;
 mod mossy;
 mod multiface;
 mod mushrooms;

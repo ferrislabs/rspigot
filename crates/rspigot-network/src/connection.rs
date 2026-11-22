@@ -11,6 +11,7 @@ use rspigot_core::status::{PingHook, StatusPing, StatusReply, StatusSnapshot};
 use rspigot_data::tags::TagOverlay;
 use rspigot_domain::player::{ClientSettings, GameProfile, MainHand, PlayerId, ProfileProperty};
 use rspigot_domain::text::Component;
+use rspigot_nbt::Tag;
 use rspigot_protocol::codec::Encode;
 use rspigot_protocol::common::{
     ClientInformation, ClientboundCustomPayload, Identifier, KeepAlive, NetworkTag, RegistryTags,
@@ -582,7 +583,7 @@ fn brand_payload(brand: &str) -> Vec<u8> {
     data
 }
 
-fn update_tags() -> Result<UpdateTags, ConnectionError> {
+pub(crate) fn update_tags() -> Result<UpdateTags, ConnectionError> {
     update_tags_with(rspigot_data::tags::published().as_deref())
 }
 
@@ -875,21 +876,44 @@ async fn send_configuration_disconnect<W: ConfigWire>(
     Ok(())
 }
 
-async fn send_registries<W: ConfigWire>(wire: &mut W) -> Result<(), ConnectionError> {
-    for registry in rspigot_data::registries::SYNCED {
-        let entries = registry
-            .entries
-            .iter()
-            .map(|entry| {
-                Ok(RegistryEntry {
-                    id: identifier(entry)?,
-                    data: None,
-                })
+fn registry_entries(
+    registry: &rspigot_data::registries::SyncedRegistry,
+    overlay: Option<&rspigot_core::pack_data::registry_overlay::RegistryOverlay>,
+) -> Result<Vec<RegistryEntry>, ConnectionError> {
+    let replacement = |entry: &str| {
+        overlay
+            .and_then(|overlay| overlay.get(registry.id, entry))
+            .and_then(|found| found.data.clone())
+            .map(Tag::Compound)
+    };
+    let mut entries = registry
+        .entries
+        .iter()
+        .map(|entry| {
+            Ok(RegistryEntry {
+                id: identifier(entry)?,
+                data: replacement(entry),
             })
-            .collect::<Result<Vec<_>, ConnectionError>>()?;
+        })
+        .collect::<Result<Vec<_>, ConnectionError>>()?;
+    for added in overlay.map_or(&[][..], |overlay| overlay.entries(registry.id)) {
+        if registry.entries.contains(&added.id.as_str()) {
+            continue;
+        }
+        entries.push(RegistryEntry {
+            id: identifier(&added.id)?,
+            data: added.data.clone().map(Tag::Compound),
+        });
+    }
+    Ok(entries)
+}
+
+async fn send_registries<W: ConfigWire>(wire: &mut W) -> Result<(), ConnectionError> {
+    let overlay = rspigot_core::pack_data::registry_overlay::published();
+    for registry in rspigot_data::registries::SYNCED {
         let packet = RegistryData {
             registry: identifier(registry.id)?,
-            entries,
+            entries: registry_entries(registry, overlay.as_deref())?,
         };
         wire.queue(ids::configuration::clientbound::REGISTRY_DATA, &packet)?;
     }
@@ -1102,6 +1126,47 @@ mod tests {
             configured.packs,
             vec![(Uuid::from_u128(5), ResourcePackStatus::Declined)]
         );
+    }
+
+    #[test]
+    fn a_datapack_entry_overrides_or_extends_a_synced_registry() {
+        use rspigot_core::pack_data::registry_overlay::{OverlayEntry, RegistryOverlay};
+        let registry = rspigot_data::registries::SYNCED
+            .iter()
+            .find(|registry| registry.id == "minecraft:trim_pattern")
+            .unwrap();
+        let first = registry.entries[0];
+        let mut overlay = RegistryOverlay::default();
+        let data = |value: i32| Some(rspigot_nbt::Compound::new().with("v", value));
+        overlay.insert(
+            registry.id,
+            OverlayEntry {
+                id: first.to_owned(),
+                json: String::new(),
+                data: data(1),
+            },
+        );
+        overlay.insert(
+            registry.id,
+            OverlayEntry {
+                id: "t:added".to_owned(),
+                json: String::new(),
+                data: data(2),
+            },
+        );
+        let plain = registry_entries(registry, None).unwrap();
+        assert!(plain.iter().all(|entry| entry.data.is_none()));
+        let entries = registry_entries(registry, Some(&overlay)).unwrap();
+        assert_eq!(entries.len(), registry.entries.len() + 1);
+        assert!(entries[0].data.is_some());
+        assert!(
+            entries[1..entries.len() - 1]
+                .iter()
+                .all(|e| e.data.is_none())
+        );
+        let last = entries.last().unwrap();
+        assert_eq!(last.id.to_string(), "t:added");
+        assert!(last.data.is_some());
     }
 
     #[test]

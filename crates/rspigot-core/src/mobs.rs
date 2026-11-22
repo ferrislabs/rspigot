@@ -1903,7 +1903,7 @@ impl<L: ClientLink> Server<L> {
         source: &DamageSource,
         amount: f32,
     ) -> bool {
-        if self.kind_absorbs_hurt(id, source, amount) {
+        if self.kind_absorbs_hurt(id, source, amount) || self.is_enchant_immune(id, source) {
             return false;
         }
         let now = self.current_tick();
@@ -2230,7 +2230,7 @@ impl<L: ClientLink> Server<L> {
             slots = self.planned_equipment_drops(id, killed_by_player, source);
             drops.extend(slots.iter().map(|drop| drop.dropped.clone()));
         }
-        let experience = self.experience_reward(id, killed_by_player, mob_drops);
+        let experience = self.experience_reward(id, killed_by_player, mob_drops, source);
         let step = LootStep {
             victim: id,
             drops,
@@ -2353,7 +2353,13 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn experience_reward(&mut self, id: EntityId, killed_by_player: bool, mob_drops: bool) -> i32 {
+    fn experience_reward(
+        &mut self,
+        id: EntityId,
+        killed_by_player: bool,
+        mob_drops: bool,
+        source: &DamageSource,
+    ) -> i32 {
         let Some(entity) = self.entities.store.get(id) else {
             return 0;
         };
@@ -2363,7 +2369,11 @@ impl<L: ClientLink> Server<L> {
         if !(killed_by_player && reward::should_drop_experience(entity) && mob_drops) {
             return 0;
         }
-        reward::base_experience_reward(entity, &mut ServerRandom(&mut self.rng))
+        let base = reward::base_experience_reward(entity, &mut ServerRandom(&mut self.rng));
+        match source.causing.as_ref() {
+            Some(cause) => self.enchanted_mob_experience(cause.entity, id, base),
+            None => base,
+        }
     }
 
     pub(crate) fn kill_entity(&mut self, id: EntityId) -> bool {

@@ -139,6 +139,10 @@ impl Modifier {
         }
     }
 
+    pub(crate) fn is_supported(&self) -> bool {
+        !matches!(self, Self::Unsupported)
+    }
+
     fn max_offset(&self) -> i32 {
         match self {
             Self::Offset(x, _, z) => max_abs(x).max(max_abs(z)),

@@ -300,8 +300,32 @@ pub struct PackContents {
     pub tags: Vec<PackTag>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackRegistryFile {
+    pub registry: String,
+    pub file: PackFile,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PackExtras {
+    pub name: String,
+    pub registries: Vec<PackRegistryFile>,
+    pub advancements: Vec<PackFile>,
+    pub recipes: Vec<PackFile>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnchantmentEntry {
+    pub id: Identifier,
+    pub json: String,
+}
+
 pub trait DatapackSource: Send + Sync + 'static {
     fn read_packs(&self) -> Result<Vec<PackContents>, DatapackError>;
+
+    fn read_extras(&self) -> Result<Vec<PackExtras>, DatapackError> {
+        Ok(Vec::new())
+    }
 }
 
 pub trait RconExecutor: Send + Sync + 'static {

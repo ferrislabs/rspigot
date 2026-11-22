@@ -2,7 +2,6 @@ use rand::Rng;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rspigot_domain::attribute::KNOCKBACK_RESISTANCE;
-use rspigot_domain::enchant;
 use rspigot_domain::entity::armor_stand;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
@@ -31,12 +30,6 @@ const ON_POS_OFFSET: f64 = 0.2;
 const SOUND_AIR: &str = "minecraft:item.mace.smash_air";
 const SOUND_GROUND: &str = "minecraft:item.mace.smash_ground";
 const SOUND_GROUND_HEAVY: &str = "minecraft:item.mace.smash_ground_heavy";
-const WIND_BURST: &str = "minecraft:wind_burst";
-const WIND_BURST_SOUND: &str = "minecraft:entity.wind_charge.wind_burst";
-const WIND_BURST_RADIUS: f32 = 3.5;
-const WIND_BURST_LOOKUP: [f32; 3] = [1.2, 1.75, 2.2];
-const WIND_BURST_BASE: f32 = 1.5;
-const WIND_BURST_STEP: f32 = 0.35;
 
 pub(crate) fn smashes<L>(player: &crate::player::Player<L>) -> bool {
     player.inventory.held().is_some_and(is_mace)
@@ -79,13 +72,6 @@ pub(crate) fn smash_bonus(
     }
     let per_block = enchant_effects::smash_damage_per_fallen_block(weapon, context, rng);
     fall_bonus(fall_distance) + per_block * fall_distance
-}
-
-pub(crate) fn wind_burst_multiplier(level: i32) -> f32 {
-    usize::try_from(level - 1)
-        .ok()
-        .and_then(|index| WIND_BURST_LOOKUP.get(index).copied())
-        .unwrap_or(WIND_BURST_BASE + WIND_BURST_STEP * (level - 1) as f32)
 }
 
 pub(crate) fn knockback_power(distance: f64, fall_distance: f32, resistance: f64) -> f64 {
@@ -147,19 +133,6 @@ impl<L: ClientLink> Server<L> {
         }
         let attacker = player.entity_id;
         let position = player.position;
-        let flying = player.flying;
-        let burst = player
-            .inventory
-            .held()
-            .map(|stack| {
-                enchant::levels(stack)
-                    .into_iter()
-                    .filter(|(name, _)| name == WIND_BURST)
-                    .map(|(_, level)| i32::from(level))
-                    .max()
-                    .unwrap_or(0)
-            })
-            .unwrap_or(0);
         let grounded = self.smashed_on_ground(victim);
         let sound = if !grounded {
             SOUND_AIR
@@ -174,15 +147,6 @@ impl<L: ClientLink> Server<L> {
             player.vitals.sync_velocity = true;
         }
         self.smash_knockback(attacker, victim, target_position, fall);
-        if burst > 0 && !flying {
-            self.wind_burst(
-                Some(attacker),
-                position,
-                WIND_BURST_RADIUS,
-                wind_burst_multiplier(burst),
-                WIND_BURST_SOUND,
-            );
-        }
         self.begin_impulse(id, position);
         if let Some(player) = self.players.get_mut(&id) {
             player.vitals.fall_distance = 0.0;
@@ -277,14 +241,6 @@ mod tests {
         assert_eq!(fall_bonus(3.0), 12.0);
         assert_eq!(fall_bonus(8.0), 22.0);
         assert_eq!(fall_bonus(10.0), 24.0);
-    }
-
-    #[test]
-    fn wind_burst_multiplier_follows_the_datapack_lookup() {
-        assert_eq!(wind_burst_multiplier(1), 1.2);
-        assert_eq!(wind_burst_multiplier(2), 1.75);
-        assert_eq!(wind_burst_multiplier(3), 2.2);
-        assert!((wind_burst_multiplier(4) - 2.55).abs() < 1e-6);
     }
 
     #[test]

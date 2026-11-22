@@ -231,6 +231,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if step.insta || patch.insta_break == Some(true) {
+            let exp = self.mined_experience(step.state, step.held.as_ref(), GameMode::Survival);
             self.ask_break(BreakStep {
                 player: id,
                 pos,
@@ -239,7 +240,7 @@ impl<L: ClientLink> Server<L> {
                 game_mode: GameMode::Survival,
                 held: step.held,
                 refused: false,
-                exp: 0,
+                exp,
             });
             return;
         }
@@ -332,6 +333,7 @@ impl<L: ClientLink> Server<L> {
             self.refuse_block(id, pos, sequence);
             return;
         }
+        let exp = self.mined_experience(state, held.as_ref(), game_mode);
         self.ask_break(BreakStep {
             player: id,
             pos,
@@ -340,7 +342,7 @@ impl<L: ClientLink> Server<L> {
             game_mode,
             held,
             refused: false,
-            exp: 0,
+            exp,
         });
     }
 

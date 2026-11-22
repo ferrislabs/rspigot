@@ -2,17 +2,19 @@ use std::num::NonZeroU8;
 
 use rand::Rng;
 use rspigot_domain::damage::DamageType;
+use rspigot_domain::enchant;
 use rspigot_domain::entity::arrow::{self, ArrowState, Launch, Pickup};
 use rspigot_domain::entity::reward::{DAMAGE_COMPONENT, max_damage};
 use rspigot_domain::entity::{Aabb, Entity, EntityState, RemovalReason, lightning};
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::{GameMode, PlayerId};
-use rspigot_domain::{EntityId, Vec3};
+use rspigot_domain::{BlockPos, EntityId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::ItemKind;
 
 use crate::advancements::AdvancementEvent;
 use crate::bow::{UsingItem, hand_slot};
+use crate::enchant_effects;
 use crate::events::Hand;
 use crate::health::DamageSource;
 use crate::plugins::events::{CreatureSpawnReason, EntityRemoveCause, PlayerRiptide};
@@ -22,11 +24,7 @@ use crate::ports::ClientLink;
 use crate::projectiles::EYE_OFFSET;
 use crate::server::Server;
 
-const LOYALTY: &str = "minecraft:loyalty";
-const CHANNELING: &str = "minecraft:channeling";
-const THUNDER_SOUND: &str = "minecraft:item.trident.thunder";
-const THUNDER_VOLUME: f32 = 5.0;
-const RIPTIDE: &str = "minecraft:riptide";
+const MAX_LOYALTY: f32 = 127.0;
 const SPIN_TICKS: i32 = 20;
 const SPIN_DAMAGE: f32 = 8.0;
 const SPIN_RECOIL: f64 = -0.2;
@@ -39,12 +37,8 @@ pub(crate) struct SpinAttack {
     pub(crate) damage: f32,
 }
 
-fn level_of(stack: &ItemStack, enchantment: &str) -> i32 {
-    stack
-        .enchantments()
-        .iter()
-        .find(|(name, _)| name == enchantment)
-        .map_or(0, |(_, level)| i32::from(*level))
+fn spin_strength(stack: &ItemStack) -> f32 {
+    enchant::modify_trident_spin_attack_strength(stack, 0.0)
 }
 
 fn damage_of(stack: &ItemStack) -> i32 {
@@ -83,7 +77,7 @@ impl<L: ClientLink> Server<L> {
         else {
             return false;
         };
-        !next_damage_breaks(stack) && (level_of(stack, RIPTIDE) == 0 || self.in_water_or_rain(id))
+        !next_damage_breaks(stack) && (spin_strength(stack) <= 0.0 || self.in_water_or_rain(id))
     }
 
     pub(crate) fn begin_trident(&mut self, id: PlayerId, hand: Hand) {
@@ -125,8 +119,7 @@ impl<L: ClientLink> Server<L> {
         if !alive || tick.saturating_sub(using.since) < arrow::TRIDENT_MIN_CHARGE {
             return true;
         }
-        let riptide = level_of(&stack, RIPTIDE);
-        let strength = arrow::riptide_strength(riptide);
+        let strength = spin_strength(&stack);
         let passenger = self
             .players
             .get(&id)
@@ -175,7 +168,9 @@ impl<L: ClientLink> Server<L> {
         };
         state.item = single(&kept);
         state.weapon = Some(stack.clone());
-        arrow::set_loyalty(&mut base, level_of(&stack, LOYALTY));
+        let acceleration = enchant_effects::trident_return_acceleration(&stack, &mut self.rng)
+            .clamp(0.0, MAX_LOYALTY);
+        arrow::set_loyalty(&mut base, acceleration as i32);
         arrow::set_foil(&mut base, !stack.enchantments().is_empty());
         arrow::shoot_from_rotation(
             &mut base,
@@ -248,7 +243,7 @@ impl<L: ClientLink> Server<L> {
             let damaged = damaged_without_breaking(&stack, 1);
             self.set_held(id, hand, Some(damaged));
         }
-        let sound = arrow::RIPTIDE_SOUNDS[self.rng.random_range(0..arrow::RIPTIDE_SOUNDS.len())];
+        let sound = enchant::trident_sound(&stack).unwrap_or(arrow::TRIDENT_THROW_SOUND);
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
@@ -264,7 +259,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn trident_channel(&mut self, trident: EntityId, target: EntityId, hurt: bool) {
-        if !hurt || !self.world.level.thundering {
+        if !hurt {
             return;
         }
         let Some(Entity {
@@ -275,37 +270,45 @@ impl<L: ClientLink> Server<L> {
         else {
             return;
         };
-        let channeled = base.kind == Kind::Trident
-            && state
-                .weapon
-                .as_ref()
-                .is_some_and(|weapon| level_of(weapon, CHANNELING) > 0);
-        let owner = self.owner_entity(state.owner);
-        if !channeled {
+        if base.kind != Kind::Trident {
             return;
         }
-        let Some(at) = self.sculk_entity_position(target) else {
+        let Some(weapon) = state.weapon.clone() else {
             return;
         };
-        let cell = at.block();
-        if self.motion_blocking_top(cell.x, cell.z) > cell.y {
-            return;
-        }
-        self.spawn_bolt(at, false, CreatureSpawnReason::Enchantment);
-        self.play_sound(
-            None,
-            at,
-            THUNDER_SOUND,
-            SoundSource::Neutral,
-            THUNDER_VOLUME,
-            1.0,
-        );
-        if let Some(player) = owner.and_then(|owner| self.player_of_entity(owner)) {
-            self.trigger_channeled_lightning(player, at);
-        }
+        let causing = self
+            .owner_entity(state.owner)
+            .and_then(|owner| self.source_for(owner));
+        let source = DamageSource {
+            kind: DamageType::Trident,
+            causing,
+            direct: self.mob_source(trident),
+            position: None,
+            knockback: None,
+            direct_block: None,
+        };
+        self.run_weapon_post_attack(&weapon, &source, target);
     }
 
-    fn trigger_channeled_lightning(&mut self, player: PlayerId, at: Vec3) {
+    pub fn trident_hit_block(&mut self, trident: EntityId, pos: BlockPos) {
+        let Some(Entity {
+            base,
+            state: EntityState::Arrow(state),
+            ..
+        }) = self.entities.store.get(trident)
+        else {
+            return;
+        };
+        if base.kind != Kind::Trident {
+            return;
+        }
+        let Some(weapon) = state.weapon.clone() else {
+            return;
+        };
+        self.run_hit_block(&weapon, trident, pos);
+    }
+
+    pub(crate) fn trigger_channeled_lightning(&mut self, player: PlayerId, at: Vec3) {
         let radius = lightning::HIT_RADIUS;
         let area = Aabb::new(
             at.x - radius,

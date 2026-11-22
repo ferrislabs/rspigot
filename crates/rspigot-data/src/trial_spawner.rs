@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
 use crate::generated::trial_spawner::CONFIGS;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -22,16 +26,61 @@ pub struct Config {
     pub items_to_drop_when_ominous: Option<&'static str>,
 }
 
+#[derive(Debug, Default)]
+pub struct ConfigOverlay {
+    configs: BTreeMap<String, &'static Config>,
+}
+
+impl ConfigOverlay {
+    pub fn insert(&mut self, config: Config) {
+        self.configs
+            .insert(config.name.to_owned(), Box::leak(Box::new(config)));
+    }
+
+    pub fn get(&self, name: &str) -> Option<&'static Config> {
+        self.configs.get(name).copied()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.configs.is_empty()
+    }
+}
+
+thread_local! {
+    static ACTIVE: RefCell<Option<Arc<ConfigOverlay>>> = const { RefCell::new(None) };
+}
+
+pub fn activate(overlay: &Arc<ConfigOverlay>) {
+    ACTIVE.with(|active| {
+        let mut active = active.borrow_mut();
+        let same = match active.as_ref() {
+            Some(current) => Arc::ptr_eq(current, overlay),
+            None => overlay.is_empty(),
+        };
+        if !same {
+            *active = (!overlay.is_empty()).then(|| Arc::clone(overlay));
+        }
+    });
+}
+
 pub fn config(name: &str) -> Option<&'static Config> {
     let name = if name.contains(':') {
         name.to_owned()
     } else {
         format!("minecraft:{name}")
     };
-    CONFIGS
-        .binary_search_by(|config| config.name.cmp(name.as_str()))
-        .ok()
-        .map(|index| &CONFIGS[index])
+    let overridden = ACTIVE.with(|active| {
+        active
+            .borrow()
+            .as_ref()
+            .and_then(|overlay| overlay.get(&name))
+    });
+    overridden.or_else(|| {
+        CONFIGS
+            .binary_search_by(|config| config.name.cmp(name.as_str()))
+            .ok()
+            .map(|index| &CONFIGS[index])
+    })
 }
 
 pub fn names() -> impl Iterator<Item = &'static str> {

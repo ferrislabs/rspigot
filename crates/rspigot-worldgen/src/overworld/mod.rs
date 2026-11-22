@@ -2,7 +2,7 @@ pub(crate) mod features;
 mod freeze;
 pub(crate) mod region;
 mod surface_random;
-mod surface_rules;
+pub(crate) mod surface_rules;
 
 use rspigot_domain::chunk::{ChunkColumn, HeightmapKind};
 use std::collections::{HashMap, VecDeque};
@@ -16,7 +16,7 @@ use crate::carver::{self, Carvers};
 use crate::climate::{BiomeSource, ClimateScratch};
 use crate::resources::{BlockKind, Palette, Resources, biome_id};
 use crate::structures::{Engine, Library};
-use crate::terrain::{Cell, Terrain};
+use crate::terrain::{Cell, Terrain, climate_of, surface_rule_of, variant_key};
 use rspigot_data::multi_noise::{ClimateVariant, overworld_biomes};
 use std::cell::RefCell;
 
@@ -113,6 +113,20 @@ impl Overworld {
         palette: &Palette,
         library: &'static Library,
     ) -> Self {
+        Self::build(seed, variant, variant_key(variant), palette, library)
+    }
+
+    pub(crate) fn with_terrain_key(seed: u64, key: &str, palette: &Palette) -> Self {
+        Self::build(seed, climate_of(key), key, palette, Library::current())
+    }
+
+    fn build(
+        seed: u64,
+        variant: ClimateVariant,
+        terrain_key: &str,
+        palette: &Palette,
+        library: &'static Library,
+    ) -> Self {
         let source = Arc::new(BiomeSource::new(seed as i64, variant));
         let probe = OverworldProbe {
             source: &source,
@@ -120,14 +134,18 @@ impl Overworld {
         };
         Self {
             seed,
-            terrain: Arc::new(Terrain::new(seed as i64, variant)),
+            terrain: Arc::new(Terrain::with_key(seed as i64, terrain_key)),
             carvers: Arc::new(Carvers::overworld()),
             source: source.clone(),
             placed: overworld_biomes()
                 .iter()
                 .map(|name| PlacedBiome { id: biome_id(name) })
                 .collect(),
-            surface: Arc::new(SurfaceSystem::new(seed as i64, palette)),
+            surface: Arc::new(SurfaceSystem::with_rule(
+                seed as i64,
+                palette,
+                surface_rule_of(terrain_key),
+            )),
             features: Arc::new(Features::compile(overworld_biomes())),
             cache: Arc::new(Mutex::new(TerrainCache::with_capacity(CACHE_CAPACITY))),
             heights: Arc::new(Mutex::new(HeightCache::default())),

@@ -83,6 +83,9 @@ impl Spawning {
 }
 
 pub(crate) fn dimension_spawns(dimension: &Dimension) -> &'static DimensionSpawns {
+    if let Some(custom) = crate::worlds::dimension_spawns_of(&dimension.dimension_type) {
+        return custom;
+    }
     rspigot_data::spawns::dimension(dimension.dimension_type.as_str())
         .or_else(|| rspigot_data::spawns::dimension(OVERWORLD))
         .unwrap_or(&OVERWORLD_FALLBACK)

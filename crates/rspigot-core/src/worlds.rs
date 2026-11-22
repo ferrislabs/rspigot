@@ -1,5 +1,7 @@
-use std::sync::Arc;
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex, PoisonError};
 
+use rspigot_data::spawns::DimensionSpawns;
 use rspigot_domain::Identifier;
 use rspigot_domain::world::Dimension;
 
@@ -11,6 +13,42 @@ use crate::world_state::DimensionKey;
 pub const MAX_CREATED_WORLDS: usize = 8;
 pub const WORLD_NAMESPACE: &str = "rspigot";
 const MAX_NAME_LENGTH: usize = 48;
+
+static DIMENSION_TEMPLATES: Mutex<BTreeMap<String, Dimension>> = Mutex::new(BTreeMap::new());
+
+pub fn register_dimension_template(id: &Identifier, template: Dimension) {
+    DIMENSION_TEMPLATES
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .insert(id.to_string(), template);
+}
+
+static DIMENSION_SPAWNS: Mutex<BTreeMap<String, &'static DimensionSpawns>> =
+    Mutex::new(BTreeMap::new());
+
+pub fn register_dimension_spawns(type_id: &Identifier, spawns: DimensionSpawns) {
+    let leaked: &'static DimensionSpawns = Box::leak(Box::new(spawns));
+    DIMENSION_SPAWNS
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .insert(type_id.to_string(), leaked);
+}
+
+pub fn dimension_spawns_of(type_id: &Identifier) -> Option<&'static DimensionSpawns> {
+    DIMENSION_SPAWNS
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .get(type_id.as_str())
+        .copied()
+}
+
+pub fn dimension_template(id: &Identifier) -> Option<Dimension> {
+    DIMENSION_TEMPLATES
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .get(id.as_str())
+        .cloned()
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorldKind {
@@ -49,11 +87,15 @@ impl WorldSpec {
     }
 
     pub fn dimension(&self) -> Dimension {
-        let mut dimension = match self.kind {
+        let templated = match &self.generator {
+            GeneratorSpec::Datapack(id) => dimension_template(id),
+            _ => None,
+        };
+        let mut dimension = templated.unwrap_or_else(|| match self.kind {
             WorldKind::Overworld => Dimension::overworld(),
             WorldKind::Nether => Dimension::nether(),
             WorldKind::End => Dimension::end(),
-        };
+        });
         dimension.key = self.key();
         dimension
     }
@@ -235,5 +277,36 @@ impl<L: ClientLink> Server<L> {
             server.drain_world_results();
             run(server)
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rspigot_data::spawns::SpawnCount;
+
+    use super::*;
+
+    #[test]
+    fn a_custom_dimension_type_drives_its_ambient_light_and_monster_light() {
+        let id = Identifier::parse("worlds_tests:glow").expect("an identifier");
+        let mut dimension = Dimension::overworld();
+        dimension.dimension_type = id.clone();
+        assert_eq!(
+            crate::spawning::dimension_spawns(&dimension).ambient_light,
+            0.0
+        );
+        register_dimension_spawns(
+            &id,
+            DimensionSpawns {
+                monster_spawn_light: SpawnCount::Constant(11),
+                monster_spawn_block_light_limit: 2,
+                ambient_light: 0.4,
+                has_ceiling: true,
+            },
+        );
+        let spawns = crate::spawning::dimension_spawns(&dimension);
+        assert_eq!(spawns.ambient_light, 0.4);
+        assert_eq!(spawns.monster_spawn_light, SpawnCount::Constant(11));
+        assert!(spawns.has_ceiling);
     }
 }

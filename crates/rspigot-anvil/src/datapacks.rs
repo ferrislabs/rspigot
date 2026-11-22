@@ -2,9 +2,11 @@ use std::path::{Path, PathBuf};
 
 use rspigot_core::pack_data::SUPPORTED_REGISTRIES;
 use rspigot_core::ports::{
-    DatapackError, DatapackSource, PackContents, PackFile, PackMeta, PackTag,
+    DatapackError, DatapackSource, PackContents, PackExtras, PackFile, PackMeta, PackTag,
 };
 use rspigot_domain::Identifier;
+
+use crate::zip_packs::read_zip;
 
 const MCMETA: &str = "pack.mcmeta";
 const FUNCTION_DIR: &str = "function";
@@ -45,7 +47,7 @@ impl DatapackSource for DirectoryDatapacks {
             };
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().into_owned();
-            if name.starts_with('.') || !path.is_dir() {
+            if name.starts_with('.') || !(path.is_dir() || is_zip(&path)) {
                 continue;
             }
             folders.push((name, path));
@@ -53,12 +55,38 @@ impl DatapackSource for DirectoryDatapacks {
         folders.sort_by(|a, b| a.0.cmp(&b.0));
         let mut packs = Vec::new();
         for (name, path) in folders {
-            if let Some(pack) = read_pack(name, &path) {
-                packs.push(pack);
-            }
+            let pack = if path.is_dir() {
+                read_pack(name, &path)
+            } else {
+                read_zip(name, &path).and_then(|pack| pack.contents(parse_meta))
+            };
+            packs.extend(pack);
         }
         Ok(packs)
     }
+
+    fn read_extras(&self) -> Result<Vec<PackExtras>, DatapackError> {
+        let mut extras = rspigot_core::pack_data::scan_root(&self.root)?;
+        if let Ok(entries) = std::fs::read_dir(&self.root) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let name = entry.file_name().to_string_lossy().into_owned();
+                if !name.starts_with('.') && is_zip(&path) {
+                    extras.extend(read_zip(name, &path).map(|pack| pack.extras()));
+                }
+            }
+        }
+        extras.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(extras)
+    }
+}
+
+fn is_zip(path: &Path) -> bool {
+    path.is_file()
+        && path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("zip"))
 }
 
 fn read_pack(name: String, folder: &Path) -> Option<PackContents> {
@@ -137,7 +165,7 @@ fn read_pack(name: String, folder: &Path) -> Option<PackContents> {
     })
 }
 
-fn parse_meta(text: &str) -> Result<PackMeta, String> {
+pub(crate) fn parse_meta(text: &str) -> Result<PackMeta, String> {
     let root: serde_json::Value = serde_json::from_str(text).map_err(|error| error.to_string())?;
     let pack = root
         .get("pack")

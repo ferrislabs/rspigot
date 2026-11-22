@@ -406,12 +406,30 @@ pub fn stack(slot: &Slot) -> WireStack {
     }
 }
 
+const DIMENSION_TYPE_REGISTRY: &str = "minecraft:dimension_type";
+
+fn dimension_type_index(name: &str) -> i32 {
+    if let Some(id) = rspigot_data::registries::dimension_type_id(name) {
+        return id as i32;
+    }
+    let vanilla = rspigot_data::registries::SYNCED
+        .iter()
+        .find(|registry| registry.id == DIMENSION_TYPE_REGISTRY)
+        .map_or(&[][..], |registry| registry.entries);
+    let Some(overlay) = rspigot_core::pack_data::registry_overlay::published() else {
+        return 0;
+    };
+    overlay
+        .entries(DIMENSION_TYPE_REGISTRY)
+        .iter()
+        .filter(|entry| !vanilla.contains(&entry.id.as_str()))
+        .position(|entry| entry.id == name)
+        .map_or(0, |position| (vanilla.len() + position) as i32)
+}
+
 fn spawn_info(spawn: &SpawnInfo) -> CommonPlayerSpawnInfo {
     CommonPlayerSpawnInfo {
-        dimension_type: rspigot_data::registries::dimension_type_id(
-            spawn.dimension.dimension_type.as_str(),
-        )
-        .map_or(0, |id| id as i32),
+        dimension_type: dimension_type_index(spawn.dimension.dimension_type.as_str()),
         dimension: spawn.dimension.key.to_string(),
         seed: spawn.hashed_seed,
         game_mode: game_mode(spawn.game_mode),
@@ -1182,6 +1200,12 @@ impl Encoder {
             ),
             ClientEvent::Abilities(a) => Self::queue(writer, &abilities(a)),
             ClientEvent::RecipeSync => Self::queue(writer, &update_recipes()),
+            ClientEvent::UpdateTags => {
+                writer.queue(
+                    rspigot_protocol::ids::play::clientbound::UPDATE_TAGS,
+                    &crate::connection::update_tags()?,
+                )
+            }
             ClientEvent::Advancements {
                 reset,
                 added,
@@ -2545,6 +2569,44 @@ mod tests {
 
     use super::*;
 
+    #[test]
+    fn custom_dimension_types_index_after_the_vanilla_entries() {
+        use rspigot_core::pack_data::registry_overlay::{
+            OverlayEntry, RegistryOverlay, publish, published,
+        };
+        let vanilla = rspigot_data::registries::SYNCED
+            .iter()
+            .find(|registry| registry.id == "minecraft:dimension_type")
+            .unwrap()
+            .entries
+            .len();
+        let entry = |id: &str| OverlayEntry {
+            id: id.to_owned(),
+            json: "{}".to_owned(),
+            data: Some(rspigot_nbt::Compound::new()),
+        };
+        let mut overlay = RegistryOverlay::default();
+        overlay.insert("minecraft:dimension_type", entry("minecraft:overworld"));
+        overlay.insert("minecraft:dimension_type", entry("demo:first"));
+        overlay.insert("minecraft:dimension_type", entry("demo:second"));
+        let before = published();
+        publish(Some(std::sync::Arc::new(overlay)));
+        let indexes = (
+            dimension_type_index("minecraft:the_nether"),
+            dimension_type_index("demo:first"),
+            dimension_type_index("demo:second"),
+            dimension_type_index("demo:missing"),
+        );
+        publish(before);
+        assert_eq!(
+            indexes.0,
+            rspigot_data::registries::dimension_type_id("minecraft:the_nether").unwrap() as i32
+        );
+        assert_eq!(indexes.1, vanilla as i32);
+        assert_eq!(indexes.2, vanilla as i32 + 1);
+        assert_eq!(indexes.3, 0);
+    }
+
     #[derive(Default)]
     struct Captured(Vec<(i32, Vec<u8>)>);
 
@@ -3608,6 +3670,9 @@ mod tests {
         expected.extend([1, 0, 0]);
         assert_eq!(bytes, expected);
         assert!(matches!(&first.input, HolderSet::Ids(ids) if ids.len() == 1));
+        let tags = encode(ClientEvent::UpdateTags);
+        assert_eq!(tags.len(), 1);
+        assert_eq!(tags[0].0, id::UPDATE_TAGS);
         let event = encode(ClientEvent::RecipeSync);
         assert_eq!(event.len(), 1);
         assert_eq!(event[0].0, id::UPDATE_RECIPES);

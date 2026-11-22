@@ -1,5 +1,5 @@
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{DateTime, Utc};
@@ -31,24 +31,36 @@ struct Tree {
     roots: Vec<usize>,
 }
 
-fn tree() -> &'static Tree {
-    static TREE: OnceLock<Tree> = OnceLock::new();
-    TREE.get_or_init(|| {
-        let all = advancements::all();
-        let mut children = vec![Vec::new(); all.len()];
-        let mut roots = Vec::new();
-        for (index, advancement) in all.iter().enumerate() {
-            match advancement
-                .parent
-                .and_then(advancements::find)
-                .map(|(parent, _)| parent)
-            {
-                Some(parent) => children[parent].push(index),
-                None => roots.push(index),
-            }
+fn build_tree(all: &[Advancement]) -> Tree {
+    let mut children = vec![Vec::new(); all.len()];
+    let mut roots = Vec::new();
+    for (index, advancement) in all.iter().enumerate() {
+        match advancement
+            .parent
+            .and_then(advancements::find)
+            .map(|(parent, _)| parent)
+        {
+            Some(parent) => children[parent].push(index),
+            None => roots.push(index),
         }
-        Tree { children, roots }
-    })
+    }
+    Tree { children, roots }
+}
+
+fn tree() -> &'static Tree {
+    thread_local! {
+        static CACHE: Cell<Option<(usize, &'static Tree)>> = const { Cell::new(None) };
+    }
+    let all = advancements::all();
+    let key = all.as_ptr() as usize;
+    if let Some((cached, tree)) = CACHE.with(Cell::get)
+        && cached == key
+    {
+        return tree;
+    }
+    let tree: &'static Tree = Box::leak(Box::new(build_tree(all)));
+    CACHE.with(|cache| cache.set(Some((key, tree))));
+    tree
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -128,6 +140,36 @@ pub struct PlayerAdvancements {
 }
 
 impl PlayerAdvancements {
+    pub(crate) fn reindex(&mut self, old: &[Advancement], new: &[Advancement]) {
+        let obtained = std::mem::take(&mut self.obtained);
+        for (index, criteria) in obtained {
+            let Some(found) = old
+                .get(index)
+                .and_then(|advancement| new.iter().position(|one| one.id == advancement.id))
+            else {
+                continue;
+            };
+            for (name, when) in criteria {
+                if let Some(criterion) = new[found]
+                    .criteria
+                    .iter()
+                    .find(|criterion| criterion.name == name)
+                {
+                    self.obtained
+                        .entry(found)
+                        .or_default()
+                        .insert(criterion.name, when);
+                }
+            }
+        }
+        self.selected_tab = self
+            .selected_tab
+            .and_then(|index| old.get(index))
+            .and_then(|advancement| new.iter().position(|one| one.id == advancement.id));
+        self.visible.clear();
+        self.dirty.clear();
+    }
+
     pub(crate) fn set_nether_entry(&mut self, at: Option<BlockPos>) {
         self.nether_entry = at;
     }

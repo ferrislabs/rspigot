@@ -196,6 +196,60 @@ impl Compiler<'_> {
     }
 }
 
+pub(crate) fn unsupported_in_rule(rule: &Value, noises: &Value) -> Vec<String> {
+    let mut found = Vec::new();
+    check_rule(rule, noises, &mut found);
+    found
+}
+
+fn check_rule(rule: &Value, noises: &Value, found: &mut Vec<String>) {
+    let kind = rule.get("type").and_then(Value::as_str).unwrap_or("");
+    match kind {
+        "minecraft:sequence" => {
+            for item in rule
+                .get("sequence")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                check_rule(item, noises, found);
+            }
+        }
+        "minecraft:condition" => {
+            check_condition(rule.get("if_true").unwrap_or(&Value::Null), noises, found);
+            check_rule(rule.get("then_run").unwrap_or(&Value::Null), noises, found);
+        }
+        "minecraft:block" | "minecraft:bandlands" => {}
+        other => found.push(format!("surface rule {other:?}")),
+    }
+}
+
+fn check_condition(condition: &Value, noises: &Value, found: &mut Vec<String>) {
+    let kind = condition.get("type").and_then(Value::as_str).unwrap_or("");
+    match kind {
+        "minecraft:biome"
+        | "minecraft:stone_depth"
+        | "minecraft:y_above"
+        | "minecraft:water"
+        | "minecraft:hole"
+        | "minecraft:steep"
+        | "minecraft:above_preliminary_surface"
+        | "minecraft:vertical_gradient" => {}
+        "minecraft:noise_threshold" => {
+            let name = condition.get("noise").and_then(Value::as_str).unwrap_or("");
+            if noises.get(name).is_none() {
+                found.push(format!("noise {name:?} in a surface rule"));
+            }
+        }
+        "minecraft:not" => check_condition(
+            condition.get("invert").unwrap_or(&Value::Null),
+            noises,
+            found,
+        ),
+        other => found.push(format!("surface condition {other:?}")),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct SurfaceSystem {
     surface: Rule,
@@ -343,19 +397,24 @@ struct ColumnState<'a> {
 }
 
 impl SurfaceSystem {
+    #[cfg(test)]
     pub(crate) fn new(seed: i64, palette: &Palette) -> Self {
-        Self::build(seed, palette, Flavor::Overworld)
+        Self::build(seed, palette, Flavor::Overworld, None)
+    }
+
+    pub(crate) fn with_rule(seed: i64, palette: &Palette, rule: Option<&Value>) -> Self {
+        Self::build(seed, palette, Flavor::Overworld, rule)
     }
 
     pub(crate) fn nether(seed: i64, palette: &Palette) -> Self {
-        Self::build(seed, palette, Flavor::Nether)
+        Self::build(seed, palette, Flavor::Nether, None)
     }
 
     pub(crate) fn end(seed: i64, palette: &Palette) -> Self {
-        Self::build(seed, palette, Flavor::End)
+        Self::build(seed, palette, Flavor::End, None)
     }
 
-    fn build(seed: i64, palette: &Palette, flavor: Flavor) -> Self {
+    fn build(seed: i64, palette: &Palette, flavor: Flavor, custom: Option<&Value>) -> Self {
         let random = Xoroshiro::from_seed(seed).fork_positional();
         let selected = match flavor {
             Flavor::Overworld => SurfaceRandom::modern(seed),
@@ -373,11 +432,17 @@ impl SurfaceSystem {
             seed_random: &selected,
         };
         let rules = data.get("surface_rule").cloned().unwrap_or(Value::Null);
-        let bedrock = match flavor {
-            Flavor::Overworld => compiler.rule(rules.get("bedrock_floor").unwrap_or(&Value::Null)),
-            Flavor::Nether | Flavor::End => Rule::Sequence(Vec::new()),
+        let bedrock = match (flavor, custom) {
+            (Flavor::Overworld, None) => {
+                compiler.rule(rules.get("bedrock_floor").unwrap_or(&Value::Null))
+            }
+            _ => Rule::Sequence(Vec::new()),
         };
         let (surface, underground) = match flavor {
+            Flavor::Overworld if custom.is_some() => {
+                let rule = compiler.rule(custom.unwrap_or(&Value::Null));
+                (rule.clone(), rule)
+            }
             Flavor::Overworld => (
                 compiler.rule(rules.get("surface").unwrap_or(&Value::Null)),
                 compiler.rule(rules.get("underground").unwrap_or(&Value::Null)),

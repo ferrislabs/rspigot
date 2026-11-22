@@ -81,14 +81,31 @@ pub fn from_nbt(
     pos: ChunkPos,
     height: Option<WorldHeight>,
 ) -> Result<Option<ChunkColumn>, AnvilError> {
+    let mut root = root;
+    if root.contains_key("Level") && !root.contains_key("__context") {
+        let overworld = height.is_none_or(|height| height.min_y == WorldHeight::OVERWORLD.min_y);
+        let dimension = if overworld {
+            "minecraft:overworld"
+        } else {
+            "minecraft:the_nether"
+        };
+        root.insert(
+            "__context",
+            Compound::new()
+                .with("dimension", dimension)
+                .with("generator", "minecraft:noise"),
+        );
+    }
     let upgraded = datafix::upgrade_checked(DataKind::Chunk, root)?;
     let version = upgraded.from_version;
     let was_upgraded = upgraded.changed();
     let mut root = upgraded.compound;
+    root.remove("__context");
     if root.contains_key("Level") && !root.contains_key("sections") {
         return Err(AnvilError::LegacyLayout);
     }
-    let status_name = match root.get_str("Status") {
+    let restored = status_after_retrogen(&root);
+    let status_name = match restored.as_deref().or(root.get_str("Status")) {
         Some(name) if !name.is_empty() => name,
         _ => return Ok(None),
     };
@@ -451,6 +468,20 @@ fn biome_from_tag(tag: &Tag, plains: BiomeId) -> BiomeId {
             plains
         }
     }
+}
+
+fn status_after_retrogen(root: &Compound) -> Option<String> {
+    let status = root.get_str("Status")?;
+    if status.strip_prefix("minecraft:").unwrap_or(status) != "empty" {
+        return None;
+    }
+    let target = root
+        .get_compound("below_zero_retrogen")?
+        .get_str("target_status")?;
+    Some(match target.strip_prefix("minecraft:").unwrap_or(target) {
+        "spawn" | "heightmaps" | "full" => "minecraft:full".to_owned(),
+        other => other.to_owned(),
+    })
 }
 
 fn status_from_name(name: &str) -> ChunkStatus {

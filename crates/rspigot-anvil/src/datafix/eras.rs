@@ -297,21 +297,21 @@ fn a_1_18_chunk_loads_with_the_same_fixes() {
 }
 
 #[test]
-fn a_1_16_chunk_is_refused_with_the_open_it_with_vanilla_message() {
+fn a_1_15_chunk_is_refused_with_the_open_it_with_vanilla_message() {
     let root = Compound::new()
-        .with("DataVersion", 2586)
+        .with("DataVersion", 2230)
         .with("Level", Compound::new().with("xPos", 0).with("zPos", 0));
     let error = from_nbt(root, POS, Some(WorldHeight::OVERWORLD)).unwrap_err();
     assert!(matches!(
         error,
         AnvilError::TooOldDataVersion {
-            found: 2586,
-            oldest: 2860
+            found: 2230,
+            oldest: 2566
         }
     ));
     assert_eq!(
         error.to_string(),
-        "world data version 2586 is older than the oldest supported version 2860; open it with a vanilla server first"
+        "world data version 2230 is older than the oldest supported version 2566; open it with a vanilla server first"
     );
 }
 

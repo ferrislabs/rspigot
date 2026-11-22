@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
 use crate::generated::trading::{ENCHANTABILITY, ENCHANTMENTS, TRADE_SETS, TRADES};
 use crate::registries;
 
@@ -91,19 +95,102 @@ impl EnchantmentDef {
     }
 }
 
-pub fn trade_set(name: &str) -> Option<&'static TradeSet> {
+#[derive(Debug, Default)]
+pub struct TradeOverlay {
+    trades: BTreeMap<u16, &'static Trade>,
+    names: BTreeMap<&'static str, u16>,
+    sets: BTreeMap<String, &'static TradeSet>,
+    added: u16,
+}
+
+impl TradeOverlay {
+    pub fn index_of(&self, name: &str) -> Option<u16> {
+        self.names.get(name).copied().or_else(|| {
+            TRADES
+                .iter()
+                .position(|trade| trade.name == name)
+                .and_then(|index| u16::try_from(index).ok())
+        })
+    }
+
+    pub fn add_trade(&mut self, trade: Trade) -> u16 {
+        let index = self.index_of(trade.name).unwrap_or_else(|| {
+            let index = u16::try_from(TRADES.len()).unwrap_or(u16::MAX) + self.added;
+            self.added += 1;
+            index
+        });
+        let stored: &'static Trade = Box::leak(Box::new(trade));
+        self.names.insert(stored.name, index);
+        self.trades.insert(index, stored);
+        index
+    }
+
+    pub fn add_set(&mut self, set: TradeSet) {
+        self.sets
+            .insert(set.name.to_owned(), Box::leak(Box::new(set)));
+    }
+
+    pub fn set(&self, name: &str) -> Option<&'static TradeSet> {
+        self.sets.get(name).copied()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.trades.is_empty() && self.sets.is_empty()
+    }
+}
+
+thread_local! {
+    static ACTIVE: RefCell<Option<Arc<TradeOverlay>>> = const { RefCell::new(None) };
+}
+
+pub fn activate(overlay: &Arc<TradeOverlay>) {
+    ACTIVE.with(|active| {
+        let mut active = active.borrow_mut();
+        let same = match active.as_ref() {
+            Some(current) => Arc::ptr_eq(current, overlay),
+            None => overlay.is_empty(),
+        };
+        if !same {
+            *active = (!overlay.is_empty()).then(|| Arc::clone(overlay));
+        }
+    });
+}
+
+pub fn built_in_trade_set(name: &str) -> Option<&'static TradeSet> {
     TRADE_SETS
         .binary_search_by(|candidate| candidate.name.cmp(name))
         .ok()
         .map(|index| &TRADE_SETS[index])
 }
 
+pub fn trade_set(name: &str) -> Option<&'static TradeSet> {
+    let overridden = ACTIVE.with(|active| {
+        active
+            .borrow()
+            .as_ref()
+            .and_then(|overlay| overlay.sets.get(name).copied())
+    });
+    overridden.or_else(|| built_in_trade_set(name))
+}
+
 pub fn trade(index: u16) -> Option<&'static Trade> {
-    TRADES.get(usize::from(index))
+    let overridden = ACTIVE.with(|active| {
+        active
+            .borrow()
+            .as_ref()
+            .and_then(|overlay| overlay.trades.get(&index).copied())
+    });
+    overridden.or_else(|| TRADES.get(usize::from(index)))
 }
 
 pub fn trade_count() -> usize {
     TRADES.len()
+        + ACTIVE.with(|active| {
+            active
+                .borrow()
+                .as_ref()
+                .map_or(0, |overlay| usize::from(overlay.added))
+        })
 }
 
 pub fn enchantment(index: usize) -> Option<&'static EnchantmentDef> {

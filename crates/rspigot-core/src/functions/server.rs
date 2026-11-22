@@ -9,12 +9,15 @@ use crate::server::Server;
 impl<L: ClientLink> Server<L> {
     pub fn with_datapacks<D: DatapackSource>(mut self, source: Arc<D>) -> Self {
         let loader = DatapackLoader::spawn(source);
-        match loader.read() {
-            Ok(contents) => {
+        match loader.read_all() {
+            Ok((contents, extras)) => {
                 let scheduled = std::mem::take(&mut self.functions.scheduled);
+                let previous = rspigot_data::advancements::all();
                 self.functions =
                     FunctionState::load(contents, self.world.level.data_packs.as_ref());
                 self.functions.scheduled = scheduled;
+                self.functions.set_extras(extras);
+                self.apply_datapack_registries(previous, false);
             }
             Err(error) => tracing::warn!("Could not read the datapacks: {error}"),
         }
@@ -77,14 +80,16 @@ impl<L: ClientLink> Server<L> {
         let Some(loader) = &self.datapacks else {
             return false;
         };
-        let contents = match loader.read() {
-            Ok(contents) => contents,
+        let (contents, extras) = match loader.read_all() {
+            Ok(read) => read,
             Err(error) => {
                 tracing::warn!("Could not reload the datapacks: {error}");
                 return false;
             }
         };
-        self.functions.reload(contents);
+        let previous = rspigot_data::advancements::all();
+        self.functions.reload_with(contents, extras);
+        self.apply_datapack_registries(previous, true);
         self.world.level.data_packs = Some(self.functions.packs.lists());
         self.run_load_functions();
         true
