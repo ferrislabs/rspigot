@@ -161,6 +161,12 @@ fn pairing_events(entity: &Entity, tracker: &EntityTracker, data: i32) -> Vec<Cl
             entries: metadata(&pairing.data),
         });
     }
+    if let EntityState::Hurting(state) = &entity.state {
+        events.push(ClientEvent::ProjectilePower {
+            entity: id,
+            power: state.acceleration_power,
+        });
+    }
     if let EntityState::Stand(state) = &entity.state {
         let slots: Vec<(EquipmentSlot, rspigot_domain::item::Slot)> = EQUIPMENT_SLOTS
             .iter()
@@ -195,6 +201,31 @@ fn pairing_events(entity: &Entity, tracker: &EntityTracker, data: i32) -> Vec<Cl
         }
     }
     events.push(ClientEvent::BundleDelimiter);
+    events
+}
+
+fn minecart_events(id: EntityId, entity: &Entity, updates: Vec<TrackerUpdate>) -> Vec<ClientEvent> {
+    let mut moved = false;
+    let mut rest = Vec::new();
+    for update in updates {
+        match update {
+            TrackerUpdate::Move(_) => moved = true,
+            other => rest.push(other),
+        }
+    }
+    let mut events = Vec::new();
+    if moved {
+        events.push(ClientEvent::MinecartMove {
+            entity: id,
+            steps: vec![crate::events::MinecartStep {
+                position: entity.base.position,
+                movement: entity.base.velocity,
+                rotation: Rotation::new(entity.base.yaw, entity.base.pitch),
+                weight: 1.0,
+            }],
+        });
+    }
+    events.extend(update_events(id, rest));
     events
 }
 
@@ -421,7 +452,12 @@ impl<L: ClientLink> Server<L> {
             };
             if changed || entity.base.needs_sync || ticking {
                 let updates = tracked.tracker.send_changes(entity, riding);
-                for event in update_events(id, updates) {
+                let events = if matches!(entity.state, EntityState::Minecart(_)) {
+                    minecart_events(id, entity, updates)
+                } else {
+                    update_events(id, updates)
+                };
+                for event in events {
                     self.outbox.push((Audience::Trackers(id), event));
                 }
             }

@@ -242,7 +242,7 @@ fn a_console_line_fires_server_command_then_runs() {
             sender: SenderView::Console,
         })]
     );
-    assert_eq!(system_texts(&alice), ["[Server] hi"]);
+    assert_eq!(heard_texts(&alice), ["[Server] hi"]);
 }
 
 #[test]
@@ -273,7 +273,7 @@ fn a_changed_server_command_runs_the_new_line() {
             command: Some("say bye".to_owned()),
         })),
     );
-    assert_eq!(system_texts(&alice), ["[Server] bye"]);
+    assert_eq!(heard_texts(&alice), ["[Server] bye"]);
 }
 
 #[test]
@@ -287,7 +287,7 @@ fn console_lines_run_in_the_order_they_were_typed() {
     rule_on(&mut s.server, 1, asked[1].id, false, None);
     assert!(system_texts(&alice).is_empty());
     rule_on(&mut s.server, 1, asked[0].id, false, None);
-    assert_eq!(system_texts(&alice), ["[Server] one", "[Server] two"]);
+    assert_eq!(heard_texts(&alice), ["[Server] one", "[Server] two"]);
 }
 
 #[test]
@@ -317,7 +317,7 @@ fn neither_a_dispatched_command_nor_a_player_command_fires_server_command() {
         PlayerInput::Command("help".to_owned()),
     );
     assert!(fired(&s.plugin).is_empty());
-    assert!(system_texts(&alice).contains(&"[Server] from a plugin".to_owned()));
+    assert!(heard_texts(&alice).contains(&"[Server] from a plugin".to_owned()));
 }
 
 fn suggest(s: &mut Scene, player: &Player, id: i32, text: &str) {
@@ -504,7 +504,7 @@ fn say_and_me_fire_no_broadcast_message() {
     console(&mut s, "say hi");
     console(&mut s, "me waves");
     assert!(fired(&s.plugin).is_empty());
-    assert_eq!(system_texts(&alice), ["[Server] hi", "* Server waves"]);
+    assert_eq!(heard_texts(&alice), ["[Server] hi", "* Server waves"]);
 }
 
 fn plugin_broadcast(text: &str) -> Order {
@@ -1050,4 +1050,31 @@ fn a_changed_rcon_command_runs_the_new_line() {
         })),
     );
     assert!(answer.try_recv().expect("answered").contains("Alice"));
+}
+
+fn heard_texts(player: &Player) -> Vec<String> {
+    use rspigot_core::events::{ChatKind, ClientEvent};
+    player
+        .link
+        .take()
+        .into_iter()
+        .filter_map(|event| match event {
+            ClientEvent::SystemChat { message, .. } => {
+                Some(rspigot_core::console::console_text(&message))
+            }
+            ClientEvent::ChatMessage {
+                chat_type,
+                sender_name,
+                message,
+                ..
+            } => {
+                let (name, body) = (sender_name.plain_text(), message.plain_text());
+                Some(match chat_type {
+                    ChatKind::EmoteCommand => format!("* {name} {body}"),
+                    _ => format!("[{name}] {body}"),
+                })
+            }
+            _ => None,
+        })
+        .collect()
 }

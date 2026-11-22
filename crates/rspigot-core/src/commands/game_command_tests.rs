@@ -570,15 +570,15 @@ fn loot_kill_rolls_the_entity_table_and_unknown_tables_fail() {
 }
 
 #[test]
-fn the_waypoint_list_is_empty_and_modify_needs_a_waypoint() {
+fn the_waypoint_list_names_the_transmitters_and_modify_edits_their_icon() {
     let mut rig = rig();
     assert_eq!(rig.run("waypoint list"), CommandOutcome::Success);
-    assert!(first_text(&rig).starts_with("commands.waypoint.list.empty"));
+    assert!(first_text(&rig).starts_with("commands.waypoint.list.success 1"));
     assert_eq!(
         rig.run("waypoint modify Alice color red"),
-        CommandOutcome::Failure
+        CommandOutcome::Success
     );
-    assert!(first_text(&rig).starts_with("argument.waypoint.invalid"));
+    assert!(first_text(&rig).starts_with("commands.waypoint.modify.color"));
     assert_eq!(
         rig.run("waypoint modify Alice color nope"),
         CommandOutcome::Failure

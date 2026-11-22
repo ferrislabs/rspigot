@@ -257,6 +257,7 @@ pub enum PlayerInput {
     SetGameRules(Vec<(String, String)>),
     ChatSession(ChatSessionKey),
     ClientBrand(String),
+    SpectatorAction(Option<EntityId>),
     RequestGameRuleValues,
     SetJigsawBlock(Box<crate::block_editors::JigsawEdit>),
     JigsawGenerate {
@@ -293,6 +294,31 @@ pub struct SignedCommand {
     pub salt: i64,
     pub arguments: Vec<(String, MessageSignature)>,
     pub last_seen: LastSeenUpdate,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChatKind {
+    Chat,
+    SayCommand,
+    MsgIncoming,
+    MsgOutgoing,
+    EmoteCommand,
+    TeamIncoming,
+    TeamOutgoing,
+}
+
+impl ChatKind {
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::Chat => "minecraft:chat",
+            Self::SayCommand => "minecraft:say_command",
+            Self::MsgIncoming => "minecraft:msg_command_incoming",
+            Self::MsgOutgoing => "minecraft:msg_command_outgoing",
+            Self::EmoteCommand => "minecraft:emote_command",
+            Self::TeamIncoming => "minecraft:team_msg_command_incoming",
+            Self::TeamOutgoing => "minecraft:team_msg_command_outgoing",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -577,6 +603,14 @@ pub struct BookEntry {
     pub highlight: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct MinecartStep {
+    pub position: Vec3,
+    pub movement: Vec3,
+    pub rotation: Rotation,
+    pub weight: f32,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ClientEvent {
     Join(Box<JoinInfo>),
@@ -680,11 +714,21 @@ pub enum ClientEvent {
         message: String,
     },
     SignedChat(std::sync::Arc<SignedChat>),
+    ChatMessage {
+        chat_type: ChatKind,
+        sender_name: Component,
+        target_name: Option<Component>,
+        message: Component,
+    },
+    PostEffects(Vec<rspigot_domain::Identifier>),
+    TrackedWaypoint(Box<crate::waypoints::WaypointPacket>),
     DeleteChat {
         signature: MessageSignature,
     },
     ChatSessions(Vec<(PlayerId, ChatSessionKey)>),
     ShowDialog(Box<rspigot_domain::dialog::Dialog>),
+    ShowDialogRegistry(String),
+    ShowDialogInline(Box<rspigot_nbt::Tag>),
     ClearDialog,
     PlayerInfo(Vec<PlayerListEntry>),
     PlayerInfoGameMode {
@@ -889,6 +933,31 @@ pub enum ClientEvent {
         duration: i32,
     },
     Camera(EntityId),
+    ProjectilePower {
+        entity: EntityId,
+        power: f64,
+    },
+    MinecartMove {
+        entity: EntityId,
+        steps: Vec<MinecartStep>,
+    },
+    Ping(i32),
+    SectionBlocks {
+        chunk: ChunkPos,
+        section: i32,
+        changes: Vec<(BlockPos, BlockStateId)>,
+    },
+    LightUpdate {
+        chunk: ChunkPos,
+        light: Box<rspigot_domain::chunk::ChunkLight>,
+    },
+    EntityTeleport {
+        entity: EntityId,
+        position: Vec3,
+        velocity: Vec3,
+        rotation: Rotation,
+        on_ground: bool,
+    },
     Transfer {
         host: String,
         port: i32,

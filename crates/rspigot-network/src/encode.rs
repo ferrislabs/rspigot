@@ -186,12 +186,48 @@ fn text(component: &rspigot_domain::text::Component) -> Text {
 }
 
 fn chat_bound(name: &rspigot_domain::text::Component) -> ChatTypeBound {
-    let chat = rspigot_data::registries::synced_index("minecraft:chat_type", "minecraft:chat")
+    chat_bound_of(rspigot_core::events::ChatKind::Chat, name, None)
+}
+
+fn chat_bound_of(
+    kind: rspigot_core::events::ChatKind,
+    name: &rspigot_domain::text::Component,
+    target: Option<&rspigot_domain::text::Component>,
+) -> ChatTypeBound {
+    let chat = rspigot_data::registries::synced_index("minecraft:chat_type", kind.key())
         .map_or(0, |id| id as i32);
     ChatTypeBound {
         chat_type: Holder::Reference(chat),
         name: text(name),
-        target_name: None,
+        target_name: target.map(text),
+    }
+}
+
+fn waypoint_packet(
+    packet: &rspigot_core::waypoints::WaypointPacket,
+) -> rspigot_protocol::play::waypoint::TrackedWaypoint {
+    use rspigot_core::waypoints::{WaypointData as Core, WaypointOperation as Op};
+    use rspigot_protocol::play::waypoint::{
+        TrackedWaypoint, WaypointData, WaypointKey, WaypointOperation,
+    };
+    TrackedWaypoint {
+        operation: match packet.operation {
+            Op::Track => WaypointOperation::Track,
+            Op::Untrack => WaypointOperation::Untrack,
+            Op::Update => WaypointOperation::Update,
+        },
+        key: WaypointKey::Uuid(packet.id),
+        style: rspigot_protocol::common::Identifier::parse(&packet.icon.style.to_string())
+            .unwrap_or_else(|_| {
+                rspigot_protocol::common::Identifier::parse("minecraft:default")
+                    .unwrap_or_else(|_| unreachable!())
+            }),
+        color: packet.icon.color,
+        data: match packet.data {
+            None => WaypointData::Empty,
+            Some(Core::Vec3i(x, y, z)) => WaypointData::Vec3i(x, y, z),
+            Some(Core::Azimuth(angle)) => WaypointData::Azimuth(angle),
+        },
     }
 }
 
@@ -1300,6 +1336,25 @@ impl Encoder {
                     batch_size: *count as i32,
                 },
             ),
+            ClientEvent::LightUpdate { chunk, light } => {
+                let (sky_y_mask, empty_sky_y_mask, sky_updates) = light_data(&light.sky);
+                let (block_y_mask, empty_block_y_mask, block_updates) = light_data(&light.block);
+                Self::queue(
+                    writer,
+                    &cb::LightUpdate {
+                        x: chunk.x,
+                        z: chunk.z,
+                        light: LightData {
+                            sky_y_mask,
+                            block_y_mask,
+                            empty_sky_y_mask,
+                            empty_block_y_mask,
+                            sky_updates,
+                            block_updates,
+                        },
+                    },
+                )
+            }
             ClientEvent::ForgetChunk(pos) => Self::queue(
                 writer,
                 &cb::ForgetLevelChunk {
@@ -1326,6 +1381,31 @@ impl Encoder {
                 &cb::BlockUpdate {
                     pos: position(*pos),
                     state: i32::from(state.0),
+                },
+            ),
+            ClientEvent::SectionBlocks {
+                chunk,
+                section,
+                changes,
+            } => Self::queue(
+                writer,
+                &cb::SectionBlocksUpdate {
+                    section: rspigot_protocol::play::types::SectionPos {
+                        x: chunk.x,
+                        y: *section,
+                        z: chunk.z,
+                    },
+                    changes: changes
+                        .iter()
+                        .map(|(pos, state)| {
+                            cb::SectionBlockChange::new(
+                                (pos.x & 15) as u8,
+                                (pos.y & 15) as u8,
+                                (pos.z & 15) as u8,
+                                i32::from(state.0),
+                            )
+                        })
+                        .collect(),
                 },
             ),
             ClientEvent::BlockEntityUpdate { pos, kind, data } => {
@@ -1453,6 +1533,21 @@ impl Encoder {
                     dialog: rspigot_protocol::common::DialogHolder::Direct(dialog_tag(dialog)),
                 },
             ),
+            ClientEvent::ShowDialogRegistry(id) => writer.queue(
+                rspigot_protocol::ids::play::clientbound::SHOW_DIALOG,
+                &rspigot_protocol::common::ShowDialogHolder {
+                    dialog: rspigot_protocol::common::DialogHolder::Registry(
+                        rspigot_data::registries::synced_index("minecraft:dialog", id)
+                            .map_or(0, |index| index as i32),
+                    ),
+                },
+            ),
+            ClientEvent::ShowDialogInline(tag) => writer.queue(
+                rspigot_protocol::ids::play::clientbound::SHOW_DIALOG,
+                &rspigot_protocol::common::ShowDialogHolder {
+                    dialog: rspigot_protocol::common::DialogHolder::Direct((**tag).clone()),
+                },
+            ),
             ClientEvent::ClearDialog => writer.queue(
                 rspigot_protocol::ids::play::clientbound::CLEAR_DIALOG,
                 &rspigot_protocol::common::ClearDialog,
@@ -1502,6 +1597,33 @@ impl Encoder {
                 self.signatures.push(&chat.last_seen, &chat.signature);
                 Ok(())
             }
+            ClientEvent::ChatMessage {
+                chat_type,
+                sender_name,
+                target_name,
+                message,
+            } => Self::queue(
+                writer,
+                &cb::DisguisedChat {
+                    message: text(message),
+                    chat_type: chat_bound_of(*chat_type, sender_name, target_name.as_ref()),
+                },
+            ),
+            ClientEvent::PostEffects(effects) => writer.queue(
+                rspigot_protocol::ids::play::clientbound::POST_EFFECTS,
+                &rspigot_protocol::common::PostEffects {
+                    effects: effects
+                        .iter()
+                        .filter_map(|id| {
+                            rspigot_protocol::common::Identifier::parse(&id.to_string()).ok()
+                        })
+                        .collect(),
+                },
+            ),
+            ClientEvent::TrackedWaypoint(packet) => writer.queue(
+                rspigot_protocol::ids::play::clientbound::WAYPOINT,
+                &waypoint_packet(packet),
+            ),
             ClientEvent::DeleteChat { signature } => Self::queue(
                 writer,
                 &cb::DeleteChat {
@@ -1839,6 +1961,53 @@ impl Encoder {
             | ClientEvent::CookieRequest(_)
             | ClientEvent::ReportDetails(_)
             | ClientEvent::Reconfigure => crate::extras::encode(event, writer),
+            ClientEvent::ProjectilePower { entity, power } => Self::queue(
+                writer,
+                &cb::ProjectilePower {
+                    entity_id: entity.0,
+                    acceleration_power: *power,
+                },
+            ),
+            ClientEvent::MinecartMove { entity, steps } => Self::queue(
+                writer,
+                &cb::MoveMinecartAlongTrack {
+                    entity_id: entity.0,
+                    steps: steps
+                        .iter()
+                        .map(|step| cb::MinecartStep {
+                            position: wire_vec(step.position),
+                            movement: wire_vec(step.movement),
+                            y_rot: Angle::from_degrees(step.rotation.yaw),
+                            x_rot: Angle::from_degrees(step.rotation.pitch),
+                            weight: step.weight,
+                        })
+                        .collect(),
+                },
+            ),
+            ClientEvent::Ping(value) => writer.queue(
+                rspigot_protocol::ids::play::clientbound::PING,
+                &rspigot_protocol::common::Ping { id: *value },
+            ),
+            ClientEvent::EntityTeleport {
+                entity,
+                position,
+                velocity,
+                rotation,
+                on_ground,
+            } => Self::queue(
+                writer,
+                &cb::TeleportEntity {
+                    entity_id: entity.0,
+                    change: rspigot_protocol::play::types::PositionMoveRotation {
+                        position: wire_vec(*position),
+                        delta: wire_vec(*velocity),
+                        y_rot: rotation.yaw,
+                        x_rot: rotation.pitch,
+                    },
+                    relatives: rspigot_protocol::play::types::Relatives::NONE,
+                    on_ground: *on_ground,
+                },
+            ),
             ClientEvent::Camera(entity) => Self::queue(
                 writer,
                 &cb::SetCamera {
@@ -3178,6 +3347,65 @@ mod tests {
     }
 
     #[test]
+    fn projectile_power_ping_teleport_and_minecart_moves_encode_from_the_wire_layouts() {
+        use rspigot_core::events::MinecartStep;
+        let power = encode(ClientEvent::ProjectilePower {
+            entity: EntityId(300),
+            power: 0.1,
+        });
+        assert_eq!(power[0].0, id::PROJECTILE_POWER);
+        assert_eq!(&power[0].1[..2], &[0xac, 0x02]);
+        assert_eq!(power[0].1.len(), 10);
+        assert_eq!(
+            encode(ClientEvent::Ping(7)),
+            vec![(id::PING, vec![0, 0, 0, 7])]
+        );
+        let teleport = encode(ClientEvent::EntityTeleport {
+            entity: EntityId(5),
+            position: Vec3::new(1.0, 2.0, 3.0),
+            velocity: Vec3::ZERO,
+            rotation: Rotation::new(90.0, 0.0),
+            on_ground: true,
+        });
+        assert_eq!(teleport[0].0, id::TELEPORT_ENTITY);
+        assert_eq!(teleport[0].1.len(), 1 + 24 + 24 + 4 + 4 + 4 + 1);
+        let step = MinecartStep {
+            position: Vec3::new(1.0, 2.0, 3.0),
+            movement: Vec3::ZERO,
+            rotation: Rotation::new(90.0, 0.0),
+            weight: 1.0,
+        };
+        let moved = encode(ClientEvent::MinecartMove {
+            entity: EntityId(9),
+            steps: vec![step, step],
+        });
+        assert_eq!(moved[0].0, id::MOVE_MINECART_ALONG_TRACK);
+        assert_eq!(&moved[0].1[..2], &[9, 2]);
+        assert_eq!(moved[0].1.len(), 2 + 2 * 54);
+    }
+
+    #[test]
+    fn light_updates_and_section_block_batches_encode() {
+        let light = rspigot_domain::chunk::ChunkLight::new(2);
+        let packets = encode(ClientEvent::LightUpdate {
+            chunk: ChunkPos::new(1, -2),
+            light: Box::new(light),
+        });
+        assert_eq!(packets[0].0, id::LIGHT_UPDATE);
+        assert_eq!(&packets[0].1[..2], &[1, 254]);
+        let batch = encode(ClientEvent::SectionBlocks {
+            chunk: ChunkPos::new(0, 0),
+            section: 4,
+            changes: vec![
+                (BlockPos::new(1, 64, 2), rspigot_domain::BlockStateId(1)),
+                (BlockPos::new(3, 65, 4), rspigot_domain::BlockStateId(2)),
+            ],
+        });
+        assert_eq!(batch[0].0, id::SECTION_BLOCKS_UPDATE);
+        assert_eq!(batch[0].1[8], 2);
+    }
+
+    #[test]
     fn swing_camera_and_rotation_golden_bytes() {
         let swing = encode(ClientEvent::EntitySwing {
             entity: EntityId(5),
@@ -4364,6 +4592,92 @@ mod tests {
             line.get("type"),
             Some(&Tag::String("minecraft:plain_message".into()))
         );
+    }
+
+    #[test]
+    fn a_command_chat_message_uses_its_own_chat_type_reference() {
+        use rspigot_core::events::ChatKind;
+        use rspigot_protocol::codec::Decode;
+        let reference = |kind: ChatKind| {
+            let sent = encode(ClientEvent::ChatMessage {
+                chat_type: kind,
+                sender_name: Component::text("Alex"),
+                target_name: Some(Component::text("Bo")),
+                message: Component::text("hi"),
+            });
+            assert_eq!(
+                sent[0].0,
+                rspigot_protocol::ids::play::clientbound::DISGUISED_CHAT
+            );
+            let packet = rspigot_protocol::play::clientbound::DisguisedChat::decode(
+                &mut sent[0].1.as_slice(),
+            )
+            .unwrap();
+            assert!(packet.chat_type.target_name.is_some());
+            packet.chat_type.chat_type
+        };
+        let expected = |kind: ChatKind| {
+            Holder::Reference(
+                rspigot_data::registries::synced_index("minecraft:chat_type", kind.key()).unwrap()
+                    as i32,
+            )
+        };
+        for kind in [
+            ChatKind::SayCommand,
+            ChatKind::MsgIncoming,
+            ChatKind::MsgOutgoing,
+            ChatKind::EmoteCommand,
+            ChatKind::TeamIncoming,
+            ChatKind::TeamOutgoing,
+        ] {
+            assert_eq!(reference(kind), expected(kind), "{kind:?}");
+        }
+        assert_ne!(reference(ChatKind::SayCommand), reference(ChatKind::Chat));
+    }
+
+    #[test]
+    fn post_effects_and_waypoints_use_their_play_packets() {
+        use rspigot_core::waypoints::{
+            WaypointData, WaypointIcon, WaypointOperation, WaypointPacket,
+        };
+        use rspigot_protocol::codec::Decode;
+        let sent = encode(ClientEvent::PostEffects(vec![
+            rspigot_domain::Identifier::parse("minecraft:transparency").unwrap(),
+        ]));
+        assert_eq!(sent[0].0, id::POST_EFFECTS);
+        let sent = encode(ClientEvent::TrackedWaypoint(Box::new(WaypointPacket {
+            operation: WaypointOperation::Track,
+            id: uuid::Uuid::from_u128(9),
+            icon: WaypointIcon {
+                style: rspigot_domain::Identifier::parse("minecraft:bowtie").unwrap(),
+                color: Some(0x112233),
+            },
+            data: Some(WaypointData::Vec3i(1, 2, 3)),
+        })));
+        assert_eq!(sent[0].0, id::WAYPOINT);
+        let decoded =
+            rspigot_protocol::play::waypoint::TrackedWaypoint::decode(&mut sent[0].1.as_slice())
+                .unwrap();
+        assert_eq!(decoded.color, Some(0x112233));
+        assert_eq!(
+            decoded.data,
+            rspigot_protocol::play::waypoint::WaypointData::Vec3i(1, 2, 3)
+        );
+    }
+
+    #[test]
+    fn vanilla_dialogs_are_sent_by_reference_or_inline() {
+        use rspigot_protocol::codec::Decode;
+        use rspigot_protocol::common::{DialogHolder, ShowDialogHolder};
+        let sent = encode(ClientEvent::ShowDialogRegistry(
+            "minecraft:quick_actions".to_owned(),
+        ));
+        let holder = ShowDialogHolder::decode(&mut sent[0].1.as_slice()).unwrap();
+        assert_eq!(holder.dialog, DialogHolder::Registry(1));
+        let tag = rspigot_nbt::parse_tag(r#"{type:"minecraft:notice",title:"Hi"}"#).unwrap();
+        let sent = encode(ClientEvent::ShowDialogInline(Box::new(tag.clone())));
+        let holder = ShowDialogHolder::decode(&mut sent[0].1.as_slice()).unwrap();
+        assert_eq!(holder.dialog, DialogHolder::Direct(tag));
     }
 
     #[test]

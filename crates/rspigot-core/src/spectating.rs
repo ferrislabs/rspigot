@@ -1,3 +1,5 @@
+use crate::commands::{CommandContext, Target};
+use rspigot_domain::EntityId;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::{Rotation, Vec3};
 use uuid::Uuid;
@@ -6,6 +8,8 @@ use crate::plugins::events::PlayerTeleportCause;
 use crate::ports::ClientLink;
 use crate::server::Server;
 use crate::world_state::DimensionKey;
+
+const SPECTATE_REACH: f64 = 6.0;
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn sync_spectator_chunks(&mut self) {
@@ -19,6 +23,37 @@ impl<L: ClientLink> Server<L> {
                 &player.link,
             );
         }
+    }
+
+    pub(crate) fn handle_spectator_action(&mut self, id: PlayerId, target: Option<EntityId>) {
+        let Some(player) = self.players.get(&id) else {
+            return;
+        };
+        if player.game_mode != GameMode::Spectator {
+            return;
+        }
+        let Some(target) = target else {
+            return;
+        };
+        let from = player.position;
+        let target = match self.players.values().find(|p| p.entity_id == target) {
+            Some(other) => Some((Target::Player(other.id), other.position, 0.6)),
+            None => self.entities.store.get(target).map(|entity| {
+                (
+                    Target::Entity(target),
+                    entity.base.position,
+                    f64::from(entity.base.dimensions.width),
+                )
+            }),
+        };
+        let Some((target, at, width)) = target else {
+            return;
+        };
+        let reach = SPECTATE_REACH + width;
+        if from.distance_squared(at) > reach * reach || !self.can_be_camera(target) {
+            return;
+        }
+        self.set_camera_of(id, Some(target));
     }
 
     pub(crate) fn handle_teleport_to_entity(&mut self, id: PlayerId, target: Uuid) {

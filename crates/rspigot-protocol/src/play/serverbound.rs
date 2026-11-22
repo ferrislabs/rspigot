@@ -816,6 +816,7 @@ pub enum ServerboundPlay {
     SetJigsawBlock(SetJigsawBlock),
     SetStructureBlock(SetStructureBlock),
     SetTestBlock(SetTestBlock),
+    SpectatorAction(crate::play::l7::SpectatorAction),
     DebugSubscriptionRequest(DebugSubscriptionRequest),
     Unhandled { id: i32 },
 }
@@ -892,7 +893,8 @@ impl ServerboundPlay {
             sb::SET_JIGSAW_BLOCK => Self::SetJigsawBlock(decode_exact(body)?),
             sb::SET_STRUCTURE_BLOCK => Self::SetStructureBlock(decode_exact(body)?),
             sb::SET_TEST_BLOCK => Self::SetTestBlock(decode_exact(body)?),
-            sb::SPECTATOR_ACTION | sb::TEST_INSTANCE_BLOCK_ACTION => Self::Unhandled { id },
+            sb::SPECTATOR_ACTION => Self::SpectatorAction(decode_exact(body)?),
+            sb::TEST_INSTANCE_BLOCK_ACTION => Self::Unhandled { id },
             other => return Err(DecodeError::UnknownPacket(other)),
         })
     }
@@ -933,10 +935,16 @@ mod tests {
     #[test]
     fn unhandled_ids_skip_body() {
         assert_eq!(
-            ServerboundPlay::decode(sb::SPECTATOR_ACTION, &[1, 0, 9, 9]).unwrap(),
+            ServerboundPlay::decode(sb::TEST_INSTANCE_BLOCK_ACTION, &[1, 0, 9, 9]).unwrap(),
             ServerboundPlay::Unhandled {
-                id: sb::SPECTATOR_ACTION
+                id: sb::TEST_INSTANCE_BLOCK_ACTION
             }
+        );
+        assert_eq!(
+            ServerboundPlay::decode(sb::SPECTATOR_ACTION, &[6]).unwrap(),
+            ServerboundPlay::SpectatorAction(crate::play::l7::SpectatorAction {
+                spectate_entity_id: Some(5)
+            })
         );
     }
 

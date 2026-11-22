@@ -1,6 +1,7 @@
 mod extra;
 mod functions;
 mod game;
+mod surface;
 
 use crate::plugins::{ArgumentKind, CommandArgument, PluginRoot};
 
@@ -278,7 +279,7 @@ pub fn build_tree(level: u8) -> CommandTree {
     let me = b.literal(root, "me", false);
     b.argument(me, "action", ArgumentParser::Message, true);
     let msg = b.literal(root, "msg", false);
-    let target = b.argument(msg, "targets", player_arg(), false);
+    let target = b.argument(msg, "targets", player_targets(), false);
     b.argument(target, "message", ArgumentParser::Message, true);
     b.alias(root, "tell", msg);
     b.alias(root, "w", msg);
@@ -295,6 +296,7 @@ pub fn build_tree(level: u8) -> CommandTree {
         for name in ["save-on", "save-off", "stop", "restart"] {
             b.literal(root, name, true);
         }
+        surface::owner_surface(&mut b, root);
         let spigot = b.literal(root, "spigot", false);
         b.literal(spigot, "reload", true);
         let timings = b.literal(root, "timings", false);
@@ -1150,6 +1152,7 @@ fn gamemaster_commands(b: &mut TreeBuilder, root: usize) {
     extra::extra_commands(b, root);
     functions::function_commands(b, root);
     game::game_commands(b, root);
+    surface::gamemaster_surface(b, root);
     let summon = b.literal(root, "summon", false);
     let entity = b.suggesting(
         summon,

@@ -1,9 +1,12 @@
 use rspigot_domain::scoreboard::{CollisionRule, Team, Visibility};
 use rspigot_domain::text::{Component, NamedColor};
 
-use super::dispatch::{CommandContext, CommandOutcome, CommandSender, fail, next_argument, usage};
+use super::dispatch::{
+    CommandContext, CommandOutcome, CommandSender, Target, fail, next_argument, usage,
+};
 use super::json_text;
 use super::scoreboard_commands::{holders, joined, parse_bool, reply_err, success, text};
+use crate::events::ChatKind;
 
 fn find_team<C: CommandContext>(
     ctx: &mut C,
@@ -546,22 +549,25 @@ fn teammsg<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) ->
         .filter_map(|member| ctx.find_player(member))
         .collect();
     let team_name = team.formatted_display_name();
-    for recipient in &recipients {
-        let key = if *recipient == player {
-            "chat.type.team.sent"
-        } else {
-            "chat.type.team.text"
-        };
-        let line =
-            Component::translatable(key, vec![team_name.clone(), text(&name), text(message)]);
-        ctx.tell_player(*recipient, line, false);
+    let from = ctx.target_name(Target::Player(player));
+    let body = Component::text(message);
+    let mut targets = recipients.clone();
+    if !targets.contains(&player) {
+        targets.push(player);
     }
-    if !recipients.contains(&player) {
-        let line = Component::translatable(
-            "chat.type.team.sent",
-            vec![team_name, text(&name), text(message)],
+    for recipient in &targets {
+        let kind = if *recipient == player {
+            ChatKind::TeamOutgoing
+        } else {
+            ChatKind::TeamIncoming
+        };
+        ctx.send_chat(
+            *recipient,
+            kind,
+            from.clone(),
+            Some(team_name.clone()),
+            body.clone(),
         );
-        ctx.tell_player(player, line, false);
     }
     ctx.record_result(recipients.len() as i32);
     CommandOutcome::Success
