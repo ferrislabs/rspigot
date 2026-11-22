@@ -384,17 +384,9 @@ def emit_tags(tag_table):
     return "\n".join(out) + "\n"
 
 
-COMPONENT_FUNCTIONS = {
-    "minecraft:copy_components",
-    "minecraft:copy_custom_data",
-    "minecraft:copy_name",
-    "minecraft:copy_state",
-    "minecraft:set_components",
-    "minecraft:set_custom_data",
-    "minecraft:set_lore",
-    "minecraft:set_name",
-    "minecraft:toggle_tooltips",
-}
+LIST_MODES = {"replace_all", "replace_section", "insert", "append"}
+MERGE_STRATEGIES = {"replace": "Replace", "append": "Append", "merge": "Merge"}
+NAME_TARGETS = {"custom_name": "CustomName", "item_name": "ItemName"}
 
 ENTITY_TARGETS = {
     "this": "This",
@@ -535,6 +527,8 @@ LOOT_TYPES = [
     "BlockPredicate",
     "BonusFormula",
     "Condition",
+    "CopyOperation",
+    "CustomDataSource",
     "DamageSourcePredicate",
     "EnchantmentPredicate",
     "Entry",
@@ -551,7 +545,10 @@ LOOT_TYPES = [
     "ItemPredicate",
     "LevelBasedValue",
     "Leaf",
+    "ListMode",
     "LootTable",
+    "MergeStrategy",
+    "NameTarget",
     "Output",
     "Pool",
     "TagPredicate",
@@ -636,6 +633,36 @@ def rs_option(node):
 def rs_str(value):
     assert isinstance(value, str) and re.match(r"^[a-z0-9_.:/\-]+$", value), value
     return Atom('"' + value + '"')
+
+
+def rs_text(value):
+    assert isinstance(value, str), value
+    escaped = (
+        value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+    )
+    return Atom('"' + escaped + '"')
+
+
+def snbt_quote(value):
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return '"' + escaped + '"'
+
+
+def to_snbt(value, where):
+    if isinstance(value, bool):
+        return "1b" if value else "0b"
+    if isinstance(value, int):
+        return str(value) if -(2**31) <= value < 2**31 else "%dl" % value
+    if isinstance(value, float):
+        assert math.isfinite(value), (where, value)
+        return repr(value) + "d"
+    if isinstance(value, str):
+        return snbt_quote(value)
+    if isinstance(value, list):
+        return "[" + ",".join(to_snbt(item, where) for item in value) + "]"
+    if isinstance(value, dict):
+        return "{" + ",".join("%s:%s" % (snbt_quote(key), to_snbt(item, where)) for key, item in value.items()) + "}"
+    fail("cannot encode %r as snbt in %s" % (value, where))
 
 
 def rs_bool(value):
@@ -1306,9 +1333,109 @@ class LootBuilder:
                 fail("unsupported copy_components in %s" % self.where)
             include = [rs_str(name) for name in value.get("include", [])]
             body = rs_struct("FunctionKind::CopyComponents", [("include", rs_slice(include))])
-        elif kind in COMPONENT_FUNCTIONS:
-            self.note_ignored(kind)
-            body = rs_call("FunctionKind::Components", [rs_str(kind)])
+        elif kind == "minecraft:copy_name":
+            expect_keys(value, {"type", "condition", "source"}, self.where)
+            if value["source"] != "block_entity":
+                fail("unsupported copy_name source in %s" % self.where)
+            body = rs_struct("FunctionKind::CopyComponents", [("include", rs_slice([rs_str("minecraft:custom_name")]))])
+        elif kind == "minecraft:copy_state":
+            expect_keys(value, {"type", "condition", "block", "properties"}, self.where)
+            block = normalize_id(value["block"])
+            if block not in self.block_properties:
+                fail("unknown block %s in %s" % (block, self.where))
+            properties = value["properties"]
+            for name in properties:
+                if name not in self.block_properties[block]:
+                    fail("unknown property %s of %s in %s" % (name, block, self.where))
+            body = rs_struct(
+                "FunctionKind::CopyState",
+                [("block", rs_str(block)), ("properties", rs_slice([rs_str(name) for name in properties]))],
+            )
+        elif kind == "minecraft:set_name":
+            expect_keys(value, {"type", "condition", "name", "target", "entity"}, self.where)
+            target = value.get("target", "custom_name")
+            if target not in NAME_TARGETS:
+                fail("unsupported set_name target %s in %s" % (target, self.where))
+            body = rs_struct(
+                "FunctionKind::SetName",
+                [
+                    ("name", rs_text(to_snbt(value["name"], self.where))),
+                    ("target", Atom("NameTarget::" + NAME_TARGETS[target])),
+                ],
+            )
+        elif kind == "minecraft:set_lore":
+            expect_keys(value, {"type", "condition", "lore", "mode", "offset", "size", "entity"}, self.where)
+            mode = value.get("mode", "replace_all")
+            if mode not in LIST_MODES:
+                fail("unsupported set_lore mode %s in %s" % (mode, self.where))
+            offset = value.get("offset", 0)
+            if mode == "replace_section":
+                size = value.get("size")
+                mode_node = rs_struct(
+                    "ListMode::ReplaceSection",
+                    [("offset", rs_int(offset)), ("size", rs_option(None if size is None else rs_int(size)))],
+                )
+            elif mode == "insert":
+                mode_node = rs_struct("ListMode::Insert", [("offset", rs_int(offset))])
+            elif mode == "append":
+                mode_node = Atom("ListMode::Append")
+            else:
+                mode_node = Atom("ListMode::ReplaceAll")
+            lines = [rs_text(to_snbt(line, self.where)) for line in value["lore"]]
+            body = rs_struct("FunctionKind::SetLore", [("lines", rs_slice(lines)), ("mode", mode_node)])
+        elif kind == "minecraft:set_custom_data":
+            expect_keys(value, {"type", "condition", "tag"}, self.where)
+            if not isinstance(value["tag"], str):
+                fail("unsupported set_custom_data tag in %s" % self.where)
+            body = rs_struct("FunctionKind::SetCustomData", [("tag", rs_text(value["tag"]))])
+        elif kind == "minecraft:copy_custom_data":
+            expect_keys(value, {"type", "condition", "source", "ops"}, self.where)
+            source = value["source"]
+            if not isinstance(source, dict) or source.get("type") != "minecraft:context":
+                fail("unsupported copy_custom_data source in %s" % self.where)
+            expect_keys(source, {"type", "target"}, self.where)
+            target = source["target"]
+            if target == "block_entity":
+                source_node = Atom("CustomDataSource::BlockEntity")
+            elif target in ENTITY_TARGETS:
+                source_node = Atom("CustomDataSource::Entity(EntityTarget::%s)" % ENTITY_TARGETS[target])
+            else:
+                fail("unsupported copy_custom_data target %s in %s" % (target, self.where))
+            operations = []
+            for op in value["ops"]:
+                expect_keys(op, {"source", "target", "op"}, self.where)
+                if op["op"] not in MERGE_STRATEGIES:
+                    fail("unsupported copy_custom_data op %s in %s" % (op["op"], self.where))
+                operations.append(
+                    rs_struct(
+                        "CopyOperation",
+                        [
+                            ("source", rs_text(op["source"])),
+                            ("target", rs_text(op["target"])),
+                            ("strategy", Atom("MergeStrategy::" + MERGE_STRATEGIES[op["op"]])),
+                        ],
+                    )
+                )
+            body = rs_struct(
+                "FunctionKind::CopyCustomData",
+                [("source", source_node), ("operations", rs_slice(operations))],
+            )
+        elif kind == "minecraft:toggle_tooltips":
+            expect_keys(value, {"type", "condition", "toggles"}, self.where)
+            entries = []
+            for name, shown in value["toggles"].items():
+                if not isinstance(shown, bool):
+                    fail("unsupported toggle %s in %s" % (name, self.where))
+                entries.append(rs_tuple([rs_str(normalize_id(name)), rs_bool(shown)]))
+            body = rs_call("FunctionKind::ToggleTooltips", [rs_slice(entries)])
+        elif kind == "minecraft:set_components":
+            expect_keys(value, {"type", "condition", "components"}, self.where)
+            entries = []
+            for name, component in value["components"].items():
+                entries.append(
+                    rs_tuple([rs_str(normalize_id(name)), rs_text(to_snbt(component, self.where))])
+                )
+            body = rs_call("FunctionKind::SetComponents", [rs_slice(entries)])
         else:
             fail("unsupported function %s in %s" % (json.dumps(value), self.where))
         return rs_struct("Function", [("condition", self.optional_condition(value)), ("kind", body)])

@@ -10,5 +10,5 @@ impl MobEffect for Oozing {
     const COLOR: u32 = 0x99FFA3;
     const INSTANTANEOUS: bool = false;
     const MODIFIERS: &'static [AttributeTemplate] = &[];
-    type Behavior = crate::family::Plain;
+    type Behavior = crate::family::SlimesOnDeath;
 }

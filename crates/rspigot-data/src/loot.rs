@@ -295,10 +295,73 @@ pub enum FunctionKind {
         options: &'static str,
         levels: IntProvider,
     },
-    Components(&'static str),
     CopyComponents {
         include: &'static [&'static str],
     },
+    CopyState {
+        block: &'static str,
+        properties: &'static [&'static str],
+    },
+    SetName {
+        name: &'static str,
+        target: NameTarget,
+    },
+    SetLore {
+        lines: &'static [&'static str],
+        mode: ListMode,
+    },
+    SetCustomData {
+        tag: &'static str,
+    },
+    CopyCustomData {
+        source: CustomDataSource,
+        operations: &'static [CopyOperation],
+    },
+    ToggleTooltips(&'static [(&'static str, bool)]),
+    SetComponents(&'static [(&'static str, &'static str)]),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NameTarget {
+    CustomName,
+    ItemName,
+}
+
+impl NameTarget {
+    pub const fn component(self) -> &'static str {
+        match self {
+            Self::CustomName => "minecraft:custom_name",
+            Self::ItemName => "minecraft:item_name",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ListMode {
+    ReplaceAll,
+    ReplaceSection { offset: i32, size: Option<i32> },
+    Insert { offset: i32 },
+    Append,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CustomDataSource {
+    BlockEntity,
+    Entity(EntityTarget),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MergeStrategy {
+    Replace,
+    Append,
+    Merge,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CopyOperation {
+    pub source: &'static str,
+    pub target: &'static str,
+    pub strategy: MergeStrategy,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

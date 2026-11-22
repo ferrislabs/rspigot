@@ -466,6 +466,7 @@ impl<L: ClientLink> Server<L> {
             .map_or(0.0, |entity| f64::from(entity.base.dimensions.height));
         self.hurt_held(player, hand, 1);
         self.set_body_armor(target, None);
+        self.trigger_player_sheared_equipment(player, target, armor.item.0);
         self.drop_at_location(target, height, armor, Vec3::ZERO);
         self.entity_sound(target, ARMOR_UNEQUIP_SOUND, 1.0, 1.0);
     }

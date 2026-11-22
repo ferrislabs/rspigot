@@ -194,6 +194,7 @@ impl<L: ClientLink> Server<L> {
         if state_at.is_air() {
             return;
         }
+        self.projectile_hits_block(id, hit.pos);
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };

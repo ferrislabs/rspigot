@@ -646,7 +646,7 @@ fn death_broadcasts_sends_combat_kill_and_drops_the_inventory() {
 
 #[test]
 fn respawn_restores_health_at_spawn_and_reappears_for_viewers() {
-    let mut server = server();
+    let mut server = server_with(|config| config.rules.respawn_radius = 0);
     let mut alice = join(&mut server, "Alice");
     let mut bob = join(&mut server, "Bob");
     ticks(&mut server, &mut [&mut alice, &mut bob], 30);

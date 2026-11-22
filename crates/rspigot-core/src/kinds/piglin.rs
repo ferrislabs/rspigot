@@ -753,6 +753,7 @@ impl<L: ClientLink> Server<L> {
             }
             return;
         }
+        self.trigger_thrown_item_picked_up_by_entity(item, id);
         self.push(
             Audience::Trackers(item),
             ClientEvent::ItemPickup {

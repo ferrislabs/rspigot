@@ -138,6 +138,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn tick_minecart(&mut self, id: EntityId) {
         let occupied = self.entities.rides.is_vehicle(id);
+        let speed_rule = self.config.rules.max_minecart_speed;
         let floor = f64::from(self.world.dimension.height.min_y) - VOID_DEPTH;
         let chunks = &self.world.chunks;
         let Some(Entity {
@@ -150,7 +151,7 @@ impl<L: ClientLink> Server<L> {
         };
         let from = (base.position, Rotation::new(base.yaw, base.pitch));
         fluid::update(base, chunks);
-        let outcome = minecart::tick(base, state, chunks, occupied);
+        let outcome = minecart::tick(base, state, chunks, occupied, speed_rule);
         let to = (base.position, Rotation::new(base.yaw, base.pitch));
         base.needs_sync = true;
         if base.position.y < floor {

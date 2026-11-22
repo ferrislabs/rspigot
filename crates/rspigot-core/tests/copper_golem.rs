@@ -491,7 +491,7 @@ fn a_golem_standing_in_a_block_never_turns_into_a_statue() {
     let mut s = ready(Vec::new());
     let golem = summon(
         &mut s,
-        "{NoAI:1b,weather_state:\"oxidized\",next_weather_age:0L}",
+        "{NoAI:1b,Invulnerable:1b,weather_state:\"oxidized\",next_weather_age:0L}",
         Vec3::new(5.5, 62.0, 5.5),
     );
     s.tick(2_000);

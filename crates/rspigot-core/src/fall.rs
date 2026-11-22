@@ -1,6 +1,7 @@
 use rspigot_blocks::{BlockKind, Face, StateFlags};
 use rspigot_domain::attribute::{FALL_DAMAGE_MULTIPLIER, SAFE_FALL_DISTANCE};
 use rspigot_domain::damage::{self, DamageType};
+use rspigot_domain::meta::MetaValue;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::{BlockPos, BlockStateId, Vec3};
 
@@ -17,6 +18,8 @@ const STALAGMITE_MULTIPLIER: f32 = 2.0;
 const BEDS_TAG: &str = "minecraft:beds";
 const BIG_FALL: i32 = 4;
 const IMPULSE_GRACE_TICKS: u32 = 40;
+const EXPLOSION_KEY: &str = "rspigot:explosion_impact";
+const FALLING_KEY: &str = "rspigot:falling_started";
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct FallImpact {
@@ -102,9 +105,30 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn begin_impulse(&mut self, id: PlayerId, at: Vec3) {
+        self.begin_impulse_from(id, at, None);
+    }
+
+    pub(crate) fn begin_impulse_from(
+        &mut self,
+        id: PlayerId,
+        at: Vec3,
+        cause: Option<&'static str>,
+    ) {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
+        let mut remembered = std::collections::BTreeMap::from([
+            ("x".to_owned(), MetaValue::Double(at.x)),
+            ("y".to_owned(), MetaValue::Double(at.y)),
+            ("z".to_owned(), MetaValue::Double(at.z)),
+        ]);
+        if let Some(cause) = cause {
+            remembered.insert("cause".to_owned(), MetaValue::Text(cause.to_owned()));
+        }
+        player
+            .volatile_meta
+            .set(EXPLOSION_KEY, MetaValue::Map(remembered))
+            .ok();
         let kept = player
             .vitals
             .impulse
@@ -129,11 +153,19 @@ impl<L: ClientLink> Server<L> {
         } else if dy < 0.0 {
             vitals.fall_distance -= f64::from(dy as f32);
         }
+        let started = vitals.fall_distance > 0.0;
         if let Some((impact, _)) = vitals.impulse {
             vitals.fall_distance = vitals
                 .fall_distance
                 .min((impact.y - player.position.y).max(0.0));
         }
+        if started {
+            self.track_start_falling(id);
+        }
+        let Some(player) = self.players.get_mut(&id) else {
+            return;
+        };
+        let vitals = &mut player.vitals;
         if player.fall_flying && dy > -0.5 && vitals.fall_distance > 1.0 {
             vitals.fall_distance = 1.0;
         }
@@ -158,6 +190,7 @@ impl<L: ClientLink> Server<L> {
             }
             self.trigger_fall_from_height(id, distance, position);
             if let Some(player) = self.players.get_mut(&id) {
+                player.volatile_meta.remove(FALLING_KEY);
                 player.vitals.fall_distance = 0.0;
                 if let Some((_, since)) = player.vitals.impulse
                     && player.vitals.tick_count.saturating_sub(since) >= IMPULSE_GRACE_TICKS
@@ -172,6 +205,40 @@ impl<L: ClientLink> Server<L> {
             player.vitals.fall_distance = 0.0;
         }
         self.tick_honey_slide(id, dy, on_ground);
+    }
+
+    fn track_start_falling(&mut self, id: PlayerId) {
+        let Some(player) = self.players.get_mut(&id) else {
+            return;
+        };
+        if player.volatile_meta.contains(FALLING_KEY) {
+            return;
+        }
+        player
+            .volatile_meta
+            .set(FALLING_KEY, MetaValue::Bool(true))
+            .ok();
+        let here = player.position;
+        let Some(MetaValue::Map(remembered)) = player.volatile_meta.get(EXPLOSION_KEY) else {
+            return;
+        };
+        player.volatile_meta.remove(EXPLOSION_KEY);
+        let coordinate = |axis: &str| match remembered.get(axis) {
+            Some(MetaValue::Double(value)) => Some(*value),
+            _ => None,
+        };
+        let (Some(x), Some(y), Some(z)) = (coordinate("x"), coordinate("y"), coordinate("z"))
+        else {
+            return;
+        };
+        if y > here.y {
+            return;
+        }
+        let cause = match remembered.get("cause") {
+            Some(MetaValue::Text(name)) => Some(name.clone()),
+            _ => None,
+        };
+        self.trigger_fall_after_explosion(id, Vec3::new(x, y, z), cause.as_deref());
     }
 
     fn cause_player_fall_damage(

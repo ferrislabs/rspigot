@@ -491,6 +491,7 @@ impl<L: ClientLink> Server<L> {
         };
         self.set_sulfur_body(id, Some(single), true);
         self.sulfur_cube_sound(id, sulfur_cube::ABSORB_SOUND);
+        self.trigger_thrown_item_picked_up_by_entity(item_id, id);
         self.push(
             Audience::Trackers(item_id),
             ClientEvent::ItemPickup {

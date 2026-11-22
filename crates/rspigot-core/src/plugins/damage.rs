@@ -159,7 +159,7 @@ impl<L: ClientLink> Server<L> {
         let asked = match victim {
             Struck::Player(id) => self.ask_hurt_player(id, source, amount),
             Struck::Mob(id) => self.ask_hurt_mob(id, source, amount),
-            Struck::Item(id) => self.ask_hurt_item(id, amount),
+            Struck::Item(id) => self.ask_hurt_item(id, source, amount),
             Struck::Projectile(id) => self.ask_hurt_projectile(id, amount),
             Struck::Crystal(id) => self.ask_hurt_crystal(id, source, amount),
             Struck::Hanging(id) => self.ask_hurt_hanging(id, source).then_some(amount),
@@ -391,12 +391,13 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn ask_hurt_item(&self, id: EntityId, amount: f32) -> Option<f32> {
+    fn ask_hurt_item(&self, id: EntityId, source: &DamageSource, amount: f32) -> Option<f32> {
         let entity = self.entities.store.get(id)?;
         (matches!(entity.state, EntityState::Item(_))
             && !entity.base.is_removed()
-            && self.config.rules.mob_griefing)
-            .then_some(floored(amount))
+            && self.config.rules.mob_griefing
+            && !crate::items::item_ignores(&entity.base, source.kind))
+        .then_some(floored(amount))
     }
 
     fn ask_hurt_projectile(&self, id: EntityId, amount: f32) -> Option<f32> {

@@ -22,8 +22,9 @@ const RAILS: &str = "minecraft:rails";
 const GRAVITY: f64 = 0.04;
 const WATER_GRAVITY: f64 = 0.005;
 const SLIDE: f64 = 0.007_812_5;
-const MAX_SPEED: f64 = 0.4;
-const WATER_MAX_SPEED: f64 = 0.2;
+pub const DEFAULT_SPEED_RULE: i32 = 8;
+const SPEED_TICKS: f64 = 20.0;
+const WATER_SPEED_FACTOR: f64 = 0.5;
 const OCCUPIED_FACTOR: f64 = 0.75;
 const OCCUPIED_SLOWDOWN: f64 = 0.997;
 const EMPTY_SLOWDOWN: f64 = 0.96;
@@ -223,12 +224,13 @@ fn slowdown(base: &EntityBase, state: &MinecartState, occupied: bool) -> (f64, f
     )
 }
 
-fn max_speed(base: &EntityBase) -> f64 {
-    if base.fluid.in_water {
-        WATER_MAX_SPEED
+fn max_speed(base: &EntityBase, speed_rule: i32) -> f64 {
+    let factor = if base.fluid.in_water {
+        WATER_SPEED_FACTOR
     } else {
-        MAX_SPEED
-    }
+        1.0
+    };
+    f64::from(speed_rule) * factor / SPEED_TICKS
 }
 
 fn travel(
@@ -243,8 +245,13 @@ fn travel(
     }
 }
 
-fn come_off_track(base: &mut EntityBase, view: &impl BlockView, hit: &mut Option<BlockPos>) {
-    let limit = max_speed(base);
+fn come_off_track(
+    base: &mut EntityBase,
+    view: &impl BlockView,
+    speed_rule: i32,
+    hit: &mut Option<BlockPos>,
+) {
+    let limit = max_speed(base, speed_rule);
     base.velocity = Vec3::new(
         base.velocity.x.clamp(-limit, limit),
         base.velocity.y,
@@ -297,6 +304,7 @@ fn move_along_track(
     state: &MinecartState,
     view: &impl BlockView,
     occupied: bool,
+    speed_rule: i32,
     hit: &mut Option<BlockPos>,
 ) {
     let block = rail_block(base, view);
@@ -367,7 +375,7 @@ fn move_along_track(
     };
     base.position = Vec3::new(xa + dx * progress, y, za + dz * progress);
     let factor = if occupied { OCCUPIED_FACTOR } else { 1.0 };
-    let limit = max_speed(base);
+    let limit = max_speed(base, speed_rule);
     let push = Vec3::new(
         (factor * base.velocity.x).clamp(-limit, limit),
         0.0,
@@ -422,6 +430,7 @@ pub fn tick(
     state: &mut MinecartState,
     view: &impl BlockView,
     occupied: bool,
+    speed_rule: i32,
 ) -> Tick {
     base.old_position = base.position;
     let yaw_before = base.yaw;
@@ -439,9 +448,9 @@ pub fn tick(
     let block = rail_block(base, view);
     state.on_rails = is_rail(view.block_or_air(block));
     if state.on_rails {
-        move_along_track(base, state, view, occupied, &mut hit);
+        move_along_track(base, state, view, occupied, speed_rule, &mut hit);
     } else {
-        come_off_track(base, view, &mut hit);
+        come_off_track(base, view, speed_rule, &mut hit);
     }
     base.pitch = 0.0;
     let dx = base.old_position.x - base.position.x;
@@ -552,7 +561,7 @@ mod tests {
         let (mut base, mut state) = cart(EntityKind::Minecart, Vec3::new(1.5, 64.0625, 0.5));
         base.velocity = Vec3::new(0.3, 0.0, 0.0);
         for _ in 0..20 {
-            tick(&mut base, &mut state, &track, false);
+            tick(&mut base, &mut state, &track, false, DEFAULT_SPEED_RULE);
         }
         assert!(state.on_rails);
         assert!(base.position.x > 3.0, "{}", base.position.x);
@@ -568,8 +577,8 @@ mod tests {
         empty.velocity = Vec3::new(0.3, 0.0, 0.0);
         ridden.velocity = Vec3::new(0.3, 0.0, 0.0);
         for _ in 0..30 {
-            tick(&mut empty, &mut state_a, &track, false);
-            tick(&mut ridden, &mut state_b, &track, true);
+            tick(&mut empty, &mut state_a, &track, false, DEFAULT_SPEED_RULE);
+            tick(&mut ridden, &mut state_b, &track, true, DEFAULT_SPEED_RULE);
         }
         assert!(ridden.velocity.x > empty.velocity.x);
     }
@@ -580,8 +589,19 @@ mod tests {
         let (mut base, mut state) = cart(EntityKind::Minecart, Vec3::new(1.5, 64.0625, 0.5));
         base.velocity = Vec3::new(5.0, 0.0, 0.0);
         let before = base.position.x;
-        tick(&mut base, &mut state, &track, false);
+        tick(&mut base, &mut state, &track, false, DEFAULT_SPEED_RULE);
         assert!(base.position.x - before <= 0.4 + 1.0e-9);
+    }
+
+    #[test]
+    fn the_speed_rule_scales_the_top_speed_of_the_rails() {
+        let track = line("east_west", 0, 200, 64);
+        let (mut base, mut state) = cart(EntityKind::Minecart, Vec3::new(1.5, 64.0625, 0.5));
+        base.velocity = Vec3::new(5.0, 0.0, 0.0);
+        let before = base.position.x;
+        tick(&mut base, &mut state, &track, false, 16);
+        let moved = base.position.x - before;
+        assert!(moved <= 0.8 + 1.0e-9 && moved > 0.4 + 1.0e-3, "{moved}");
     }
 
     #[test]
@@ -597,7 +617,7 @@ mod tests {
         let (mut base, mut state) = cart(EntityKind::Minecart, Vec3::new(5.5, 64.0625, 0.5));
         base.velocity = Vec3::new(-0.35, 0.0, 0.0);
         for _ in 0..60 {
-            tick(&mut base, &mut state, &track, false);
+            tick(&mut base, &mut state, &track, false, DEFAULT_SPEED_RULE);
         }
         assert!(base.position.z > 2.0, "{:?}", base.position);
         assert!(base.position.x < 1.0, "{:?}", base.position);
@@ -619,7 +639,7 @@ mod tests {
         let (mut base, mut state) = cart(EntityKind::Minecart, Vec3::new(0.5, 64.0625, 0.5));
         base.velocity = Vec3::new(0.4, 0.0, 0.0);
         for _ in 0..25 {
-            tick(&mut base, &mut state, &track, false);
+            tick(&mut base, &mut state, &track, false, DEFAULT_SPEED_RULE);
         }
         assert!(base.position.y > 64.9, "{:?}", base.position);
         assert!(state.on_rails);
@@ -631,7 +651,7 @@ mod tests {
         let (mut base, mut state) = cart(EntityKind::Minecart, Vec3::new(0.5, 70.0, 0.5));
         base.velocity = Vec3::new(0.3, 0.0, 0.0);
         for _ in 0..60 {
-            tick(&mut base, &mut state, &track, false);
+            tick(&mut base, &mut state, &track, false, DEFAULT_SPEED_RULE);
         }
         assert!(!state.on_rails);
         assert!((base.position.y - 64.0).abs() < 1.0e-6);
@@ -649,7 +669,9 @@ mod tests {
         base.velocity = Vec3::new(0.4, 0.0, 0.0);
         let mut hit = None;
         for _ in 0..10 {
-            if let Some(pos) = tick(&mut base, &mut state, &track, false).block_collision {
+            if let Some(pos) =
+                tick(&mut base, &mut state, &track, false, DEFAULT_SPEED_RULE).block_collision
+            {
                 hit = Some(pos);
                 break;
             }

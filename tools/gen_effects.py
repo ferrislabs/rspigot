@@ -80,8 +80,9 @@ def registry_order(registries):
     return names
 
 
-def read_families(path, classes):
+def read_families(path, classes, names):
     by_class = {}
+    by_name = {}
     with open(path, encoding="utf-8") as handle:
         lines = handle.read().splitlines()
     for number, raw in enumerate(lines, 1):
@@ -94,6 +95,11 @@ def read_families(path, classes):
         key, family = parts
         if not FAMILY_TYPE.match(family):
             fail("%s:%d: invalid family type %r" % (path, number, family))
+        if key in names:
+            if key in by_name:
+                fail("%s:%d: duplicate effect %r" % (path, number, key))
+            by_name[key] = family
+            continue
         if key not in classes:
             fail("%s:%d: unknown vanilla class %r" % (path, number, key))
         if key in by_class:
@@ -102,7 +108,7 @@ def read_families(path, classes):
     missing = sorted(classes - set(by_class))
     if missing:
         fail("%s: unmapped vanilla classes %s" % (path, ", ".join(missing)))
-    return by_class
+    return by_class, by_name
 
 
 def struct_name(path):
@@ -336,7 +342,9 @@ def main():
     registry = registry_order(load_json(args.registries))
     window = validate_window(dump)
     effects = validate(dump, registry, window)
-    by_class = read_families(args.families, {effect["class"] for effect in effects})
+    by_class, by_name = read_families(
+        args.families, {effect["class"] for effect in effects}, {effect["name"] for effect in effects}
+    )
 
     src = os.path.join(args.crate, "src")
     effects_dir = os.path.join(src, "effects")
@@ -347,7 +355,7 @@ def main():
     expected_files = {"mod.rs"}
     families = {}
     for effect in effects:
-        behavior = by_class[effect["class"]]
+        behavior = by_name.get(effect["name"]) or by_class[effect["class"]]
         families[behavior] = families.get(behavior, 0) + 1
         file_name = effect["path"] + ".rs"
         expected_files.add(file_name)

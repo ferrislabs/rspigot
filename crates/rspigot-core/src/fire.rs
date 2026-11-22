@@ -36,6 +36,7 @@ impl<L: ClientLink> Server<L> {
             }
             self.apply_inside_effect(id, effect);
         }
+        self.apply_wall_and_floor(id);
         let in_rain = self
             .entities
             .store
@@ -54,6 +55,32 @@ impl<L: ClientLink> Server<L> {
         }
         if was_on_fire && !on_fire {
             self.extinguish_sound(id);
+        }
+    }
+
+    fn apply_wall_and_floor(&mut self, id: EntityId) {
+        let chunks = &self.world.chunks;
+        let Some(entity) = self.entities.store.get(id) else {
+            return;
+        };
+        if entity.base.is_removed() || entity.living().is_none() {
+            return;
+        }
+        let in_wall = fire::is_in_wall(&entity.base, chunks);
+        let hot_floor = fire::is_hot_floor(&entity.base, chunks);
+        if in_wall {
+            self.hurt_entity(
+                id,
+                &DamageSource::new(DamageType::InWall),
+                fire::IN_WALL_DAMAGE,
+            );
+        }
+        if hot_floor {
+            self.hurt_entity(
+                id,
+                &DamageSource::new(DamageType::HotFloor),
+                fire::HOT_FLOOR_DAMAGE,
+            );
         }
     }
 
@@ -91,13 +118,13 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             InsideEffect::InFire(damage) => {
-                self.hurt_entity(id, &DamageSource::new(DamageType::InFire), damage);
+                self.hurt_inside(id, &DamageSource::new(DamageType::InFire), damage);
             }
             InsideEffect::LavaIgnite(lava) => {
                 let Some(entity) = self.entities.store.get(id) else {
                     return;
                 };
-                if entity.base.kind.fire_immune() {
+                if entity.base.kind.fire_immune() || self.item_resists_fire(id) {
                     return;
                 }
                 if entity.living().is_some() && entity.base.remaining_fire_ticks <= 0 {
@@ -128,6 +155,9 @@ impl<L: ClientLink> Server<L> {
                     fire::clear_fire(&mut entity.base);
                 }
             }
+            InsideEffect::Hurt(kind, amount) => {
+                self.hurt_inside(id, &DamageSource::new(kind), amount);
+            }
         }
     }
 
@@ -136,11 +166,31 @@ impl<L: ClientLink> Server<L> {
         DamageSource::from_block(DamageType::Lava, Some((pos, state)))
     }
 
+    fn hurt_inside(&mut self, id: EntityId, source: &DamageSource, amount: f32) -> bool {
+        if self.is_item_entity(id) {
+            self.hurt_item(id, source, amount)
+        } else {
+            self.hurt_entity(id, source, amount)
+        }
+    }
+
+    fn item_resists_fire(&self, id: EntityId) -> bool {
+        self.entities.store.get(id).is_some_and(|entity| {
+            rspigot_domain::entity::item::stack(&entity.base)
+                .is_some_and(|stack| crate::items::stack_resists(stack, DamageType::InFire))
+        })
+    }
+
     fn lava_hurt(&mut self, id: EntityId, pos: BlockPos) {
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };
         if entity.base.kind.fire_immune() {
+            return;
+        }
+        if self.is_item_entity(id) {
+            let source = self.lava_source(pos);
+            self.hurt_item(id, &source, fire::LAVA_DAMAGE);
             return;
         }
         let silent = entity.base.is_silent();
@@ -193,6 +243,9 @@ impl<L: ClientLink> Server<L> {
         let was_burning = player.vitals.fire_ticks > 0;
         let mut base = EntityBase::new(player.entity_id, player.profile.id.0, Kind::Player);
         base.position = player.position;
+        base.old_position = player.position - player.known_movement;
+        base.on_ground = player.on_ground;
+        let sneaking = player.sneaking;
         base.remaining_fire_ticks = player.vitals.fire_ticks;
         base.dimensions.height = player.height() as f32;
         rspigot_domain::entity::fluid::update(&mut base, &self.world.chunks);
@@ -214,6 +267,25 @@ impl<L: ClientLink> Server<L> {
                 break;
             }
             self.apply_player_effect(id, effect);
+        }
+        if fire::is_in_wall(&base, &self.world.chunks)
+            && self.players.get(&id).is_some_and(|p| !p.vitals.is_dead())
+        {
+            self.hurt(
+                id,
+                &DamageSource::new(DamageType::InWall),
+                fire::IN_WALL_DAMAGE,
+            );
+        }
+        if !sneaking
+            && fire::is_hot_floor(&base, &self.world.chunks)
+            && self.players.get(&id).is_some_and(|p| !p.vitals.is_dead())
+        {
+            self.hurt(
+                id,
+                &DamageSource::new(DamageType::HotFloor),
+                fire::HOT_FLOOR_DAMAGE,
+            );
         }
         let in_rain = self.is_in_rain(&base);
         let Some(player) = self.players.get_mut(&id) else {
@@ -322,6 +394,9 @@ impl<L: ClientLink> Server<L> {
                 if let Some(entity) = self.players.get(&id).map(|player| player.entity_id) {
                     self.cauldron_extinguishes(entity, pos);
                 }
+            }
+            InsideEffect::Hurt(kind, amount) => {
+                self.hurt(id, &DamageSource::new(kind), amount);
             }
             InsideEffect::Freeze | InsideEffect::ClearFreeze => {}
         }

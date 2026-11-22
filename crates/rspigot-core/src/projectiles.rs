@@ -588,6 +588,7 @@ impl<L: ClientLink> Server<L> {
         if burning {
             self.arrow_lights(id, hit.pos, state_at);
         }
+        self.projectile_hits_block(id, hit.pos);
     }
 
     pub(crate) fn arrow_hit_entity(&mut self, id: EntityId, target: EntityId) {

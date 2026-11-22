@@ -57,6 +57,7 @@ pub struct ChunkStreamer {
     chunks_per_tick: f32,
     batch_quota: f32,
     unacknowledged_batches: u32,
+    skipped: bool,
 }
 
 impl ChunkStreamer {
@@ -70,7 +71,26 @@ impl ChunkStreamer {
             chunks_per_tick: config.initial_chunks_per_tick,
             batch_quota: 0.0,
             unacknowledged_batches: 0,
+            skipped: false,
         }
+    }
+
+    pub fn is_skipped(&self) -> bool {
+        self.skipped
+    }
+
+    pub fn set_skipped(
+        &mut self,
+        skipped: bool,
+        manager: &mut ChunkManager,
+        workers: &ChunkWorkers,
+        link: &impl ClientLink,
+    ) {
+        if self.skipped == skipped {
+            return;
+        }
+        self.skipped = skipped;
+        self.refresh(manager, workers, link);
     }
 
     pub fn center(&self) -> ChunkPos {
@@ -94,7 +114,11 @@ impl ChunkStreamer {
     }
 
     fn wanted(&self, center: ChunkPos) -> impl Iterator<Item = ChunkPos> + '_ {
-        let radius = self.ticket_radius();
+        let radius = if self.skipped {
+            -1
+        } else {
+            self.ticket_radius()
+        };
         let ticket_view = self.view_distance + self.config.prefetch_margin;
         (-radius..=radius).flat_map(move |dx| {
             (-radius..=radius).filter_map(move |dz| {

@@ -4,7 +4,7 @@ use rspigot_blocks::BlockKind;
 use rspigot_domain::item::Slot;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::potion::PotionContents;
-use rspigot_domain::{BlockPos, EntityId, Identifier, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, EntityId, Identifier, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_items::{EquipmentSlot, ItemId, ItemKind};
 
@@ -233,6 +233,7 @@ impl<L: ClientLink> Server<L> {
         dealt: f32,
         taken: f32,
     ) {
+        self.mob_hurt_reactions(victim);
         let Some(player) = source.attacker() else {
             return;
         };
@@ -253,11 +254,142 @@ impl<L: ClientLink> Server<L> {
         taken: f32,
         blocked: bool,
     ) {
+        if !blocked {
+            self.player_hurt_reactions(id);
+        }
         let Some(from) = self.players.get(&id).map(|p| p.position) else {
             return;
         };
         let mut event = AdvancementEvent::named("minecraft:entity_hurt_player");
         event.damage = Some(self.criterion_damage(source, dealt, taken, blocked, from));
+        self.trigger_event(id, event);
+    }
+
+    pub(crate) fn trigger_thrown_item_picked_up_by_player(
+        &mut self,
+        player: PlayerId,
+        thrower: Option<uuid::Uuid>,
+        item: u16,
+    ) {
+        let Some(from) = self.players.get(&player).map(|p| p.position) else {
+            return;
+        };
+        let mut event = AdvancementEvent::named("minecraft:thrown_item_picked_up_by_player");
+        event.item = Some(item);
+        event.entities = thrower
+            .and_then(|uuid| self.entities.store.by_uuid(uuid))
+            .and_then(|id| self.slot_near("entity", id, from))
+            .into_iter()
+            .collect();
+        self.trigger_event(player, event);
+    }
+
+    pub(crate) fn trigger_thrown_item_picked_up_by_entity(
+        &mut self,
+        item: EntityId,
+        picker: EntityId,
+    ) {
+        let Some((thrower, stack)) = self.entities.store.get(item).and_then(|entity| {
+            let rspigot_domain::entity::EntityState::Item(state) = &entity.state else {
+                return None;
+            };
+            Some((
+                state.thrower?,
+                rspigot_domain::entity::item::stack(&entity.base)?.item.0,
+            ))
+        }) else {
+            return;
+        };
+        let Some(player) = self
+            .players
+            .values()
+            .find(|player| player.profile.id.0 == thrower)
+            .map(|player| player.id)
+        else {
+            return;
+        };
+        let Some(from) = self.players.get(&player).map(|p| p.position) else {
+            return;
+        };
+        let mut event = AdvancementEvent::named("minecraft:thrown_item_picked_up_by_entity");
+        event.item = Some(stack);
+        event.entities = self.slot_near("entity", picker, from).into_iter().collect();
+        self.trigger_event(player, event);
+    }
+
+    pub(crate) fn trigger_bee_nest_destroyed(
+        &mut self,
+        player: PlayerId,
+        pos: BlockPos,
+        state: BlockStateId,
+        tool: Option<&rspigot_domain::item::ItemStack>,
+        bees: usize,
+    ) {
+        let mut event = AdvancementEvent::named("minecraft:bee_nest_destroyed");
+        event.at = Some(pos);
+        event.item = tool.map(|stack| stack.item.0);
+        event.amounts.push(("block_state", f64::from(state.0)));
+        event.amounts.push(("num_bees_inside", bees as f64));
+        for (name, level) in tool.map(|stack| stack.enchantments()).unwrap_or_default() {
+            if let Some(held) = rspigot_data::registries::synced_entries("minecraft:enchantment")
+                .and_then(|names| names.iter().find(|known| **known == name))
+            {
+                event.amounts.push((held, f64::from(level)));
+            }
+        }
+        self.trigger_event(player, event);
+    }
+
+    pub(crate) fn trigger_allay_drop_item_on_block(
+        &mut self,
+        player: PlayerId,
+        pos: BlockPos,
+        item: u16,
+    ) {
+        let mut event = AdvancementEvent::named("minecraft:allay_drop_item_on_block");
+        event.at = Some(pos);
+        event.item = Some(item);
+        self.trigger_event(player, event);
+    }
+
+    pub(crate) fn trigger_player_sheared_equipment(
+        &mut self,
+        player: PlayerId,
+        target: EntityId,
+        item: u16,
+    ) {
+        let Some(from) = self.players.get(&player).map(|p| p.position) else {
+            return;
+        };
+        let mut event = AdvancementEvent::named("minecraft:player_sheared_equipment");
+        event.item = Some(item);
+        event.entities = self.slot_near("entity", target, from).into_iter().collect();
+        self.trigger_event(player, event);
+    }
+
+    pub(crate) fn trigger_fall_after_explosion(
+        &mut self,
+        id: PlayerId,
+        impact: Vec3,
+        cause: Option<&str>,
+    ) {
+        let Some(here) = self.players.get(&id).map(|p| p.position) else {
+            return;
+        };
+        let (dx, dy, dz) = (here.x - impact.x, here.y - impact.y, here.z - impact.z);
+        let mut event = AdvancementEvent::named("minecraft:fall_after_explosion");
+        event.amounts.push(("distance.x", dx.abs()));
+        event.amounts.push(("distance.y", dy.abs()));
+        event.amounts.push(("distance.z", dz.abs()));
+        event.amounts.push(("distance.horizontal", dx.hypot(dz)));
+        event
+            .amounts
+            .push(("distance.absolute", (dx * dx + dy * dy + dz * dz).sqrt()));
+        event.entities = cause
+            .and_then(Kind::from_name)
+            .map(|kind| ("cause", EntityFacts::of(kind.name(), false)))
+            .into_iter()
+            .collect();
         self.trigger_event(id, event);
     }
 

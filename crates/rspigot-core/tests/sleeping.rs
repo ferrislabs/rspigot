@@ -474,6 +474,7 @@ fn a_player_respawns_beside_the_bed_it_clicked() {
 #[test]
 fn a_player_whose_bed_is_gone_respawns_at_the_world_spawn_and_is_told() {
     let mut s = bed_spawn_scene();
+    console(&mut s, "gamerule respawn_radius 0");
     set(&mut s, FOOT, "minecraft:air", &[]);
     let events = die_and_respawn(&mut s);
     let spot = teleport_of(&events);
