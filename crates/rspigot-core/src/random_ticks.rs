@@ -24,6 +24,8 @@ fn ticks_randomly(state: BlockStateId) -> bool {
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn tick_random_blocks(&mut self) {
+        self.tick_conduits();
+        self.tick_block_extras();
         let speed = self.config.rules.random_tick_speed;
         if speed <= 0 {
             return;
@@ -77,6 +79,8 @@ impl<L: ClientLink> Server<L> {
         match kind {
             BlockKind::TurtleEgg => self.turtle_egg_random_tick(pos),
             BlockKind::DriedGhast => self.dried_ghast_random_tick(pos),
+            BlockKind::PointedDripstone => self.dripstone_random_tick(pos, picked),
+            BlockKind::ChorusFlower => self.chorus_random_tick(pos, picked),
             BlockKind::GrassBlock | BlockKind::Mycelium => self.spreading_snowy_tick(pos, kind),
             BlockKind::Snow => self.snow_layer_tick(pos),
             BlockKind::Ice => self.ice_tick(pos, picked),

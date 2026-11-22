@@ -175,8 +175,16 @@ impl Config {
                 .iter()
                 .filter_map(|spawn| {
                     let (entity, _) = rspigot_nbt::parse_compound(spawn.entity).ok()?;
+                    let equipment = spawn.equipment.map(|table| {
+                        let mut tag = Compound::new().with("loot_table", table);
+                        if let Some(chance) = spawn.equipment_drop_chance {
+                            tag.insert("slot_drop_chances", f64::from(chance));
+                        }
+                        tag
+                    });
                     let data = SpawnData {
                         entity,
+                        equipment,
                         ..SpawnData::default()
                     };
                     Some((data, spawn.weight))
@@ -660,6 +668,31 @@ mod tests {
             spawn_potentials: vec![(SpawnData::of_entity("minecraft:zombie"), 1)],
             ..Config::default()
         }
+    }
+
+    #[test]
+    fn ominous_melee_potentials_keep_their_equipment_table() {
+        let entry = rspigot_data::trial_spawner::config("trial_chamber/melee/zombie/ominous")
+            .expect("config");
+        let config = Config::of_registry(entry);
+        let equipment = config.spawn_potentials[0]
+            .0
+            .equipment
+            .as_ref()
+            .expect("equipment");
+        assert_eq!(
+            equipment.get_str("loot_table"),
+            Some("minecraft:equipment/trial_chamber_melee")
+        );
+        assert_eq!(equipment.get_f64("slot_drop_chances"), Some(0.0));
+    }
+
+    #[test]
+    fn normal_potentials_have_no_equipment() {
+        let entry = rspigot_data::trial_spawner::config("trial_chamber/melee/zombie/normal")
+            .expect("config");
+        let config = Config::of_registry(entry);
+        assert!(config.spawn_potentials[0].0.equipment.is_none());
     }
 
     #[test]

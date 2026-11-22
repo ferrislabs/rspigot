@@ -726,6 +726,7 @@ fn enum_state(kind: StateKind) -> EnumState {
         StateKind::Armadillo => EnumState::Armadillo,
         StateKind::CopperGolem => EnumState::CopperGolem,
         StateKind::WeatheringCopper => EnumState::WeatheringCopper,
+        StateKind::HumanoidArm => EnumState::HumanoidArm,
     }
 }
 
@@ -1922,6 +1923,29 @@ impl Encoder {
                                 },
                                 MetadataValue::PaintingVariant(id) => {
                                     EntityDataValue::PaintingVariant(*id as i32)
+                                }
+                                MetadataValue::Vector3(v) => EntityDataValue::Vector3(*v),
+                                MetadataValue::Quaternion(v) => EntityDataValue::Quaternion(*v),
+                                MetadataValue::BlockState(state) => {
+                                    EntityDataValue::BlockState(*state as i32)
+                                }
+                                MetadataValue::Profile(tag) => {
+                                    let mut data = Vec::new();
+                                    if crate::components::encode_resolvable_profile(tag, &mut data)
+                                        .is_none()
+                                    {
+                                        data.clear();
+                                        let _ = crate::components::encode_resolvable_profile(
+                                            &rspigot_nbt::Tag::Compound(
+                                                rspigot_nbt::Compound::new(),
+                                            ),
+                                            &mut data,
+                                        );
+                                    }
+                                    EntityDataValue::Raw {
+                                        serializer: rspigot_protocol::play::metadata::serializer::RESOLVABLE_PROFILE,
+                                        data,
+                                    }
                                 }
                             },
                         })

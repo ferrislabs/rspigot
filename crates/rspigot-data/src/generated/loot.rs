@@ -1,7 +1,7 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, NameTarget, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1433] = [
+pub(crate) static TABLES: [(&str, LootTable); 1439] = [
     (
         "minecraft:archaeology/desert_pyramid",
         LootTable {
@@ -50553,6 +50553,442 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             output: Output::Item(1022),
                         }),
                     }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:equipment/trial_chamber",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: 0.0,
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 4,
+                            quality: 0,
+                            output: Output::Table("minecraft:equipment/trial_chamber/inline0"),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 2,
+                            quality: 0,
+                            output: Output::Table("minecraft:equipment/trial_chamber/inline1"),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Table("minecraft:equipment/trial_chamber/inline2"),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:equipment/trial_chamber/inline0",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: Some(Condition::RandomChance(0.5)),
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetComponents(&[(
+                                    "minecraft:trim",
+                                    "{\"material\":\"minecraft:copper\",\"pattern\":\"minecraft:bolt\"}",
+                                )]),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[
+                                        ("minecraft:fire_protection", IntProvider::Constant(4)),
+                                        (
+                                            "minecraft:projectile_protection",
+                                            IntProvider::Constant(4),
+                                        ),
+                                        ("minecraft:protection", IntProvider::Constant(4)),
+                                    ],
+                                    add: false,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1076),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: Some(Condition::RandomChance(0.5)),
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetComponents(&[(
+                                    "minecraft:trim",
+                                    "{\"material\":\"minecraft:copper\",\"pattern\":\"minecraft:bolt\"}",
+                                )]),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[
+                                        ("minecraft:fire_protection", IntProvider::Constant(4)),
+                                        (
+                                            "minecraft:projectile_protection",
+                                            IntProvider::Constant(4),
+                                        ),
+                                        ("minecraft:protection", IntProvider::Constant(4)),
+                                    ],
+                                    add: false,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1077),
+                        }),
+                    }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:equipment/trial_chamber/inline1",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: Some(Condition::RandomChance(0.5)),
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetComponents(&[(
+                                    "minecraft:trim",
+                                    "{\"material\":\"minecraft:copper\",\"pattern\":\"minecraft:flow\"}",
+                                )]),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[
+                                        ("minecraft:fire_protection", IntProvider::Constant(4)),
+                                        (
+                                            "minecraft:projectile_protection",
+                                            IntProvider::Constant(4),
+                                        ),
+                                        ("minecraft:protection", IntProvider::Constant(4)),
+                                    ],
+                                    add: false,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1080),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: Some(Condition::RandomChance(0.5)),
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetComponents(&[(
+                                    "minecraft:trim",
+                                    "{\"material\":\"minecraft:copper\",\"pattern\":\"minecraft:flow\"}",
+                                )]),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[
+                                        ("minecraft:fire_protection", IntProvider::Constant(4)),
+                                        (
+                                            "minecraft:projectile_protection",
+                                            IntProvider::Constant(4),
+                                        ),
+                                        ("minecraft:protection", IntProvider::Constant(4)),
+                                    ],
+                                    add: false,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1081),
+                        }),
+                    }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:equipment/trial_chamber/inline2",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: Some(Condition::RandomChance(0.5)),
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetComponents(&[(
+                                    "minecraft:trim",
+                                    "{\"material\":\"minecraft:copper\",\"pattern\":\"minecraft:flow\"}",
+                                )]),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[
+                                        ("minecraft:fire_protection", IntProvider::Constant(4)),
+                                        (
+                                            "minecraft:projectile_protection",
+                                            IntProvider::Constant(4),
+                                        ),
+                                        ("minecraft:protection", IntProvider::Constant(4)),
+                                    ],
+                                    add: false,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1084),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: Some(Condition::RandomChance(0.5)),
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetComponents(&[(
+                                    "minecraft:trim",
+                                    "{\"material\":\"minecraft:copper\",\"pattern\":\"minecraft:flow\"}",
+                                )]),
+                            },
+                            Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[
+                                        ("minecraft:fire_protection", IntProvider::Constant(4)),
+                                        (
+                                            "minecraft:projectile_protection",
+                                            IntProvider::Constant(4),
+                                        ),
+                                        ("minecraft:protection", IntProvider::Constant(4)),
+                                    ],
+                                    add: false,
+                                },
+                            },
+                        ],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(1085),
+                        }),
+                    }],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:equipment/trial_chamber_melee",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Table("minecraft:equipment/trial_chamber"),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 4,
+                                quality: 0,
+                                output: Output::Item(1045),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[("minecraft:sharpness", IntProvider::Constant(1))],
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1045),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[("minecraft:knockback", IntProvider::Constant(1))],
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1045),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1050),
+                            }),
+                        },
+                    ],
+                },
+            ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:equipment/trial_chamber_ranged",
+        LootTable {
+            pools: &[
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[Entry {
+                        condition: None,
+                        modifier: &[],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Table("minecraft:equipment/trial_chamber"),
+                        }),
+                    }],
+                },
+                Pool {
+                    rolls: IntProvider::Constant(1),
+                    bonus_rolls: 0.0,
+                    condition: None,
+                    modifier: &[],
+                    entries: &[
+                        Entry {
+                            condition: None,
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 2,
+                                quality: 0,
+                                output: Output::Item(1008),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[("minecraft:power", IntProvider::Constant(1))],
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1008),
+                            }),
+                        },
+                        Entry {
+                            condition: None,
+                            modifier: &[Function {
+                                condition: None,
+                                kind: FunctionKind::SetEnchantments {
+                                    levels: &[("minecraft:punch", IntProvider::Constant(1))],
+                                    add: false,
+                                },
+                            }],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Item(1008),
+                            }),
+                        },
+                    ],
                 },
             ],
             modifier: &[],

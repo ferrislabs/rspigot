@@ -418,6 +418,8 @@ EXTRA_TABLES = [
     ("minecraft:archaeology/ocean_ruin_warm", "minecraft:archaeology"),
     ("minecraft:archaeology/trail_ruins_common", "minecraft:archaeology"),
     ("minecraft:archaeology/trail_ruins_rare", "minecraft:archaeology"),
+    ("minecraft:equipment/trial_chamber_melee", "minecraft:equipment"),
+    ("minecraft:equipment/trial_chamber_ranged", "minecraft:equipment"),
     ("minecraft:spawners/trial_chamber/consumables", "minecraft:chest"),
     ("minecraft:spawners/trial_chamber/items_to_drop_when_ominous", "minecraft:chest"),
     ("minecraft:spawners/trial_chamber/key", "minecraft:chest"),
@@ -453,7 +455,13 @@ EXTRA_TABLES = [
     ("minecraft:harvest/cave_vine", "minecraft:block_interact"),
 ]
 
-REFERENCED_TABLE_TYPES = {"minecraft:block", "minecraft:entity", "minecraft:fishing", "minecraft:shearing"}
+REFERENCED_TABLE_TYPES = {
+    "minecraft:block",
+    "minecraft:entity",
+    "minecraft:equipment",
+    "minecraft:fishing",
+    "minecraft:shearing",
+}
 
 FARM_VARIANT_KEYS = {"asset_id", "baby_asset_id", "model", "spawn_conditions"}
 WOLF_VARIANT_KEYS = {"assets", "baby_assets", "spawn_conditions"}
@@ -725,7 +733,9 @@ class LootBuilder:
         self.tag_table = tag_table
         self.where = where
         self.references = set()
+        self.inline_type = "minecraft:equipment"
         self.tables = set()
+        self.inline = []
         self.ignored = {}
 
     def note_ignored(self, construct):
@@ -1492,10 +1502,12 @@ class LootBuilder:
             body = self.leaf(value, rs_call("Output::Dynamic", [rs_str(normalize_id(value["name"]))]))
         elif kind == "minecraft:loot_table":
             expect_keys(value, leaf_keys | {"value"}, self.where)
-            if not isinstance(value["value"], str):
-                fail("inline nested loot table in %s" % self.where)
-            name = normalize_id(value["value"])
-            self.tables.add(name)
+            if isinstance(value["value"], str):
+                name = normalize_id(value["value"])
+                self.tables.add(name)
+            else:
+                name = "%s/inline%d" % (self.where, len(self.inline))
+                self.inline.append((name, dict(value["value"], type=self.inline_type)))
             body = self.leaf(value, rs_call("Output::Table", [rs_str(name)]))
         elif kind in COMPOSITE_ENTRIES:
             expect_keys(value, {"type", "condition", "modifier", "children"}, self.where)
@@ -1569,9 +1581,11 @@ def build_loot(datapack, block_reports, static_registries, synced, tag_table):
     tables = []
     pending = set()
 
-    def add_table(name, path, allowed):
+    def add_table(name, path, allowed, value=None):
         current = builder(name)
-        node = current.table(load_json(path), allowed)
+        node = current.table(load_json(path) if value is None else value, allowed)
+        for inline_name, inline_value in current.inline:
+            add_table(inline_name, None, allowed, inline_value)
         nonlocal references
         references |= current.references
         pending.update(current.tables)
@@ -3087,15 +3101,22 @@ def build_trial_spawners(datapack):
             data = entry["data"]
             expect_keys(data, {"entity", "equipment"}, where)
             equipment = None
+            drop_chance = None
             if "equipment" in data:
                 expect_keys(data["equipment"], {"loot_table", "slot_drop_chances"}, where)
                 equipment = rs_str(normalize_id(data["equipment"]["loot_table"]))
+                chances = data["equipment"].get("slot_drop_chances")
+                if chances is not None:
+                    if isinstance(chances, dict):
+                        fail("per slot drop chances in " + where)
+                    drop_chance = rs_f32(chances)
             potentials.append(
                 rs_struct(
                     "WeightedSpawn",
                     [
                         ("entity", Atom('r#"' + snbt_of(data["entity"], where) + '"#')),
                         ("equipment", rs_option(equipment)),
+                        ("equipment_drop_chance", rs_option(drop_chance)),
                         ("weight", rs_int(entry["weight"])),
                     ],
                 )

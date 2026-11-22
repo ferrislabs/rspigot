@@ -99,6 +99,9 @@ pub(crate) fn readiness_for_shearing(entity: &Entity) -> bool {
     if entity.base.kind == Kind::CopperGolem {
         return super::copper_golem::ready_for_shearing(entity);
     }
+    if entity.base.kind == Kind::Mooshroom {
+        return !entity.is_baby();
+    }
     !rspigot_domain::entity::species::is_sheared(&entity.base) && !entity.is_baby()
 }
 

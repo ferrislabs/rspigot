@@ -73,7 +73,9 @@ pub(crate) fn item_tag(item: ItemId, tag: &str) -> bool {
 
 fn food_tag(kind: Kind) -> Option<&'static str> {
     Some(match kind {
-        Kind::Cow => "minecraft:cow_food",
+        Kind::Cow | Kind::Mooshroom => "minecraft:cow_food",
+        Kind::Strider => "minecraft:strider_food",
+        Kind::Hoglin => "minecraft:hoglin_food",
         Kind::Pig => "minecraft:pig_food",
         Kind::Sheep => "minecraft:sheep_food",
         Kind::Chicken => "minecraft:chicken_food",
@@ -380,6 +382,9 @@ impl<L: ClientLink> Server<L> {
         if let Some(result) = self.minecart_interact(id, target) {
             return result;
         }
+        if let Some(result) = self.interaction_interact(id, target, hand) {
+            return result;
+        }
         let Some(entity) = self.entities.store.get(target) else {
             return Interaction::Pass;
         };
@@ -670,13 +675,15 @@ impl<L: ClientLink> Server<L> {
         if kind == Kind::Creeper && item_tag(stack.item, "minecraft:creeper_igniters") {
             return self.ignite_creeper(id, target, hand, &stack);
         }
-        if matches!(kind, Kind::Cow | Kind::Goat) && stack.item == ItemKind::Bucket.id() {
+        if matches!(kind, Kind::Cow | Kind::Mooshroom | Kind::Goat)
+            && stack.item == ItemKind::Bucket.id()
+        {
             let baby = self.entities.store.get(target).is_some_and(Entity::is_baby);
             if !baby {
                 return self.milk_animal(id, target, hand);
             }
         }
-        if kind == Kind::Sheep && stack.item == ItemKind::Shears.id() {
+        if matches!(kind, Kind::Sheep | Kind::Mooshroom) && stack.item == ItemKind::Shears.id() {
             return self.shear_sheep(id, target, hand);
         }
         let result = self.animal_interact(id, target, hand, &stack);
@@ -786,7 +793,9 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(target) else {
             return Interaction::Pass;
         };
-        if species::is_sheared(&entity.base) || entity.is_baby() {
+        if entity.is_baby()
+            || (entity.base.kind == Kind::Sheep && species::is_sheared(&entity.base))
+        {
             return Interaction::Consume;
         }
         self.ask_shear(id, target, hand)
@@ -868,6 +877,10 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(target) else {
             return;
         };
+        if entity.base.kind == Kind::Mooshroom {
+            self.shear_mooshroom(target);
+            return;
+        }
         let facts = crate::mobs::loot_facts_of(entity);
         self.play_entity_sound(
             target,

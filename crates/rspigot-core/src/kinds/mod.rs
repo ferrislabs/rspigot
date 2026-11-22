@@ -1,6 +1,7 @@
 use rspigot_ai::MobView;
 use rspigot_domain::EntityId;
 use rspigot_domain::entity::Entity;
+use rspigot_domain::entity::mannequin;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::PlayerId;
 use rspigot_entities::EntityKind as Kind;
@@ -24,6 +25,7 @@ mod cat;
 pub(crate) mod copper_golem;
 mod creaking;
 mod cube;
+mod decor;
 mod dolphin;
 mod dried_ghast;
 mod drowned;
@@ -42,6 +44,8 @@ mod hoglin;
 mod illager;
 mod iron_golem;
 mod llama;
+mod loot_pickup;
+mod mooshroom;
 mod nautilus;
 mod ocelot;
 mod panda;
@@ -225,6 +229,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn kind_post_tick(&mut self, id: EntityId) {
+        self.mob_loot_pickup(id);
         match self.kind_of(id) {
             Some(Kind::Wolf) => self.wolf_post_tick(id),
             Some(Kind::Cat) => self.cat_post_tick(id),
@@ -306,6 +311,11 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn kind_is_immobile(&self, id: EntityId) -> bool {
         match self.kind_of(id) {
             Some(Kind::Ravager) => self.ravager_is_immobile(id),
+            Some(Kind::Mannequin) => self
+                .entities
+                .store
+                .get(id)
+                .is_some_and(|entity| mannequin::is_immovable(&entity.base)),
             Some(
                 Kind::Horse
                 | Kind::Donkey
@@ -434,6 +444,7 @@ impl<L: ClientLink> Server<L> {
             Some(Kind::Camel | Kind::CamelHusk) => self.camel_interact(player, target, hand, held),
             Some(Kind::HappyGhast) => self.happy_ghast_interact(player, target, hand, held),
             Some(Kind::SulfurCube) => self.sulfur_cube_interact(player, target, hand, held),
+            Some(Kind::Mooshroom) => self.mooshroom_interact(player, target, hand, held),
             Some(
                 Kind::Horse
                 | Kind::Donkey

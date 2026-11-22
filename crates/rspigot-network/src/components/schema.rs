@@ -794,6 +794,10 @@ fn uuid_tag(input: &mut &[u8]) -> Option<Tag> {
     ))
 }
 
+pub(crate) fn encode_resolvable_profile(tag: &Tag, out: &mut Vec<u8>) -> Option<()> {
+    encode_profile(tag, out)
+}
+
 fn encode_profile(tag: &Tag, out: &mut Vec<u8>) -> Option<()> {
     let empty = Compound::new();
     let named;

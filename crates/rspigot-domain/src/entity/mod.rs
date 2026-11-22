@@ -8,6 +8,7 @@ pub mod bullet;
 pub mod cloud;
 pub mod crystal;
 mod data;
+pub mod decor;
 pub mod falling;
 pub mod fangs;
 pub mod fire;
@@ -21,12 +22,14 @@ pub mod item;
 pub mod leash;
 pub mod lightning;
 pub mod living;
+pub mod mannequin;
 pub mod minecart;
 pub mod neutral;
 pub mod orb;
 pub mod physics;
 #[cfg(test)]
 mod physics_tests;
+pub mod pickup;
 pub mod raycast;
 pub mod reward;
 pub mod riding;
@@ -83,6 +86,7 @@ pub enum EntityState {
     Minecart(Box<minecart::MinecartState>),
     Living(Box<LivingState>),
     Orb(OrbState),
+    Decor(Box<decor::DecorState>),
     Inert(Compound),
 }
 

@@ -12,6 +12,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:breeze"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -28,6 +29,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:breeze"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -47,6 +49,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:husk"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -63,6 +66,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:husk"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_melee"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -82,6 +86,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:spider"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -98,6 +103,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:spider"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -117,6 +123,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:zombie"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -133,6 +140,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:zombie"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_melee"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -152,6 +160,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:bogged"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -168,6 +177,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:bogged"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_ranged"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -187,6 +197,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:skeleton"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -203,6 +214,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:skeleton"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_ranged"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -222,6 +234,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:stray"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -238,6 +251,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:stray"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_ranged"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -257,6 +271,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:bogged"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -273,6 +288,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:bogged"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_ranged"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -292,6 +308,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:skeleton"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -308,6 +325,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:skeleton"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_ranged"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -327,6 +345,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:stray"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -343,6 +362,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:stray"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_ranged"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -362,6 +382,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{IsBaby:1,id:"minecraft:zombie"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -378,6 +399,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{IsBaby:1,id:"minecraft:zombie"}"#,
             equipment: Some("minecraft:equipment/trial_chamber_melee"),
+            equipment_drop_chance: Some(0.0),
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -397,6 +419,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:cave_spider"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -413,6 +436,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:cave_spider"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -432,6 +456,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:silverfish"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: None,
@@ -448,6 +473,7 @@ pub(crate) static CONFIGS: [Config; 28] = [
         spawn_potentials: &[WeightedSpawn {
             entity: r#"{id:"minecraft:silverfish"}"#,
             equipment: None,
+            equipment_drop_chance: None,
             weight: 1,
         }],
         loot_tables_to_eject: Some(&[
@@ -468,11 +494,13 @@ pub(crate) static CONFIGS: [Config; 28] = [
             WeightedSpawn {
                 entity: r#"{Size:1,id:"minecraft:slime"}"#,
                 equipment: None,
+                equipment_drop_chance: None,
                 weight: 3,
             },
             WeightedSpawn {
                 entity: r#"{Size:2,id:"minecraft:slime"}"#,
                 equipment: None,
+                equipment_drop_chance: None,
                 weight: 1,
             },
         ],
@@ -491,11 +519,13 @@ pub(crate) static CONFIGS: [Config; 28] = [
             WeightedSpawn {
                 entity: r#"{Size:1,id:"minecraft:slime"}"#,
                 equipment: None,
+                equipment_drop_chance: None,
                 weight: 3,
             },
             WeightedSpawn {
                 entity: r#"{Size:2,id:"minecraft:slime"}"#,
                 equipment: None,
+                equipment_drop_chance: None,
                 weight: 1,
             },
         ],
