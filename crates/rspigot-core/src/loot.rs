@@ -20,6 +20,9 @@ use rspigot_nbt::{Compound, Tag};
 
 use crate::{block_components, loot_components};
 
+mod extra;
+mod numbers;
+
 const BLOCK_REGISTRY: &str = "minecraft:block";
 const ITEM_REGISTRY: &str = "minecraft:item";
 const ENTITY_REGISTRY: &str = "minecraft:entity_type";
@@ -47,6 +50,8 @@ pub struct LootEntity {
     pub raider: Option<RaiderFacts>,
     pub open_water: Option<bool>,
     pub scores: Vec<(String, i32)>,
+    pub name: Option<String>,
+    pub inventory: Vec<(i32, ItemStack)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -73,6 +78,14 @@ pub struct LootDamage {
     pub is_direct: bool,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct LootWorld<'a> {
+    pub clocks: Vec<(&'static str, i64)>,
+    pub storages: Vec<(&'a str, &'a Compound)>,
+    pub scores: Vec<(String, String, i32)>,
+    pub dimension: &'static str,
+}
+
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LootContext<'a> {
     pub block: Option<BlockStateId>,
@@ -89,6 +102,9 @@ pub struct LootContext<'a> {
     pub weather: Option<(bool, bool)>,
     pub blocks_at: &'a [([i32; 3], BlockStateId)],
     pub exploration_maps: bool,
+    pub world: Option<&'a LootWorld<'a>>,
+    pub container: &'a [(i32, ItemStack)],
+    pub enchantment_active: Option<bool>,
 }
 
 impl<'a> LootContext<'a> {
@@ -119,6 +135,24 @@ impl<'a> LootContext<'a> {
             EntityTarget::DirectAttacker => self.damage.and_then(|d| d.direct.as_ref()),
             EntityTarget::AttackingPlayer => self.player,
             EntityTarget::TargetEntity | EntityTarget::InteractingEntity => None,
+        }
+    }
+
+    fn clock_ticks(&self, clock: Option<&str>) -> Option<i64> {
+        let overworld = rspigot_domain::world_clock::OVERWORLD;
+        let name = clock.map_or_else(
+            || overworld.to_owned(),
+            rspigot_domain::world_clock::normalize,
+        );
+        let name = name.as_str();
+        match self.world {
+            Some(world) => world
+                .clocks
+                .iter()
+                .find(|(known, _)| *known == name)
+                .map(|(_, ticks)| *ticks)
+                .or_else(|| (name == overworld).then_some(self.day_time).flatten()),
+            None => (name == overworld).then_some(self.day_time).flatten(),
         }
     }
 
@@ -381,6 +415,8 @@ enum Produce {
     Item(u16),
     Items(&'static [u32]),
     Table(&'static LootTable),
+    Dynamic(&'static str),
+    Slots(&'static rspigot_data::loot::SlotSource),
     Nothing,
 }
 
@@ -421,7 +457,8 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
         if !self.passes(pool.condition.as_ref()) {
             return;
         }
-        let rolls = self.int(pool.rolls) + (pool.bonus_rolls * self.context.luck).floor() as i32;
+        let bonus = self.float(pool.bonus_rolls);
+        let rolls = self.int(pool.rolls) + (bonus * self.context.luck).floor() as i32;
         for _ in 0..rolls {
             self.roll(pool, tail);
         }
@@ -460,6 +497,23 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 }
             }
             Produce::Table(table) => self.table(table, &chain),
+            Produce::Dynamic(name) => {
+                for item in self.dynamic_items(name) {
+                    self.emit(Working::new(item), &chain);
+                }
+            }
+            Produce::Slots(source) => {
+                for stack in self.slot_stacks(source) {
+                    self.emit(
+                        Working {
+                            item: stack.item.0,
+                            count: i32::from(stack.count.get()),
+                            components: stack.components.clone(),
+                        },
+                        &chain,
+                    );
+                }
+            }
             Produce::Nothing => {}
         }
     }
@@ -525,13 +579,33 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 expand: false,
             } => Produce::Items(items.ids(ITEM_REGISTRY)),
             Output::Table(name) => loot::table(name).map_or(Produce::Nothing, Produce::Table),
-            Output::Empty | Output::Dynamic(_) => Produce::Nothing,
+            Output::Dynamic(name) => Produce::Dynamic(name),
+            Output::Slots(source) => Produce::Slots(source),
+            Output::Empty => Produce::Nothing,
         };
         out.push(Candidate {
             produce,
             weight,
             modifiers,
         });
+    }
+
+    fn dynamic_items(&self, name: &str) -> Vec<u16> {
+        match name {
+            "minecraft:sherds" => self
+                .context
+                .block_entity
+                .and_then(|data| data.get_list("sherds"))
+                .map(|list| {
+                    list.iter()
+                        .filter_map(Tag::as_str)
+                        .filter_map(ItemKind::from_name)
+                        .map(|kind| kind.id().0)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            _ => Vec::new(),
+        }
     }
 
     fn emit(&mut self, stack: Working, chain: &[&'static [Function]]) {
@@ -799,11 +873,21 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                     properties,
                 );
             }
-            FunctionKind::SetName { name, target } => {
-                loot_components::set_name(&mut stack.components, name, target);
+            FunctionKind::SetName {
+                name,
+                target,
+                entity,
+            } => {
+                let found = entity.and_then(|target| self.context.target(target));
+                loot_components::set_name(&mut stack.components, name, target, found);
             }
-            FunctionKind::SetLore { lines, mode } => {
-                loot_components::set_lore(&mut stack.components, lines, mode);
+            FunctionKind::SetLore {
+                lines,
+                mode,
+                entity,
+            } => {
+                let found = entity.and_then(|target| self.context.target(target));
+                loot_components::set_lore(&mut stack.components, lines, mode, found);
             }
             FunctionKind::SetCustomData { tag } => {
                 loot_components::set_custom_data(&mut stack.components, tag);
@@ -820,12 +904,38 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 source: CustomDataSource::Entity(_),
                 ..
             } => {}
+            FunctionKind::CopyCustomData {
+                source: CustomDataSource::Storage(storage),
+                operations,
+            } => {
+                let found = self.context.world.and_then(|world| {
+                    world
+                        .storages
+                        .iter()
+                        .find(|(name, _)| *name == storage)
+                        .map(|(_, data)| *data)
+                });
+                if let Some(data) = found {
+                    loot_components::copy_custom_data(&mut stack.components, data, operations);
+                }
+            }
             FunctionKind::ToggleTooltips(toggles) => {
                 loot_components::toggle_tooltips(&mut stack.components, toggles);
             }
             FunctionKind::SetComponents(values) => {
                 loot_components::set_components(&mut stack.components, values);
             }
+            FunctionKind::SetItem(item) => {
+                stack.item = item;
+            }
+            FunctionKind::SetLootTable { table, seed } => {
+                let mut loot = Compound::new().with("loot_table", table);
+                if seed != 0 {
+                    loot.insert("seed", seed);
+                }
+                stack.components.insert("minecraft:container_loot", loot);
+            }
+            FunctionKind::Extra(extra) => stack = self.apply_extra(&extra, stack),
         }
         stack
     }
@@ -875,6 +985,7 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 }
             }
             IntProvider::Binomial { n, p } => self.successes(n, p),
+            IntProvider::Expr(expr) => self.int_expr(expr),
         }
     }
 
@@ -888,6 +999,7 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                     self.rng.random::<f32>() * (max - min) + min
                 }
             }
+            FloatProvider::Expr(expr) => self.float_expr(expr),
         }
     }
 
@@ -902,6 +1014,8 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 }
             }
             NumberProvider::Binomial { n, p } => self.successes(n, p) as f32,
+            NumberProvider::Int(expr) => self.int_expr(expr) as f32,
+            NumberProvider::Float(expr) => self.float_expr(expr),
         }
     }
 
@@ -943,6 +1057,10 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 damage_matches(predicate, self.context.damage)
             }
             Condition::RandomChance(chance) => self.rng.random::<f32>() < *chance,
+            Condition::RandomChanceRolled(chance) => {
+                let chance = self.number(*chance);
+                self.rng.random::<f32>() < chance
+            }
             Condition::RandomChanceByLevel(chance) => {
                 self.rng.random::<f32>() < chance.calculate(self.context.enchantment_level)
             }
@@ -988,8 +1106,13 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 self.depth -= 1;
                 held
             }
-            Condition::TimeCheck { period, min, max } => {
-                let Some(time) = self.context.day_time else {
+            Condition::TimeCheck {
+                clock,
+                period,
+                min,
+                max,
+            } => {
+                let Some(time) = self.context.clock_ticks(*clock) else {
                     return false;
                 };
                 let time = period.map_or(time, |period| time % period.max(1)) as f32;
@@ -1007,6 +1130,12 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                 let low = min.map(|provider| self.number(provider));
                 let high = max.map(|provider| self.number(provider));
                 low.is_none_or(|low| value >= low) && high.is_none_or(|high| value <= high)
+            }
+            Condition::EnchantmentActive(wanted) => {
+                self.context.enchantment_active == Some(*wanted)
+            }
+            Condition::EnvironmentAttributeCheck { attribute, value } => {
+                self.attribute_value(attribute) == Some(*value)
             }
             Condition::EntityScores { target, scores } => {
                 self.context.target(*target).is_some_and(|entity| {
@@ -1145,7 +1274,7 @@ mod tests {
         Box::leak(Box::new(LootTable {
             pools: Vec::leak(vec![Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: None,
                 modifier: Vec::leak(modifier),
                 entries: Vec::leak(entries),
@@ -1940,7 +2069,7 @@ mod tests {
         let gated = LootTable {
             pools: Vec::leak(vec![Pool {
                 rolls: IntProvider::Constant(1),
-                bonus_rolls: 0.0,
+                bonus_rolls: FloatProvider::Constant(0.0),
                 condition: Some(condition),
                 modifier: &[],
                 entries: Vec::leak(vec![leaf(Output::Item(item("minecraft:stone")), 1)]),
@@ -1974,6 +2103,7 @@ mod tests {
     #[test]
     fn time_and_weather_checks_read_the_context() {
         let time = Condition::TimeCheck {
+            clock: None,
             period: Some(24_000),
             min: Some(0.0),
             max: Some(6_000.0),

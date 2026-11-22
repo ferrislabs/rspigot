@@ -14,6 +14,7 @@ pub mod static_registries;
 pub mod sulfur_cube;
 pub mod synced;
 pub mod tags;
+pub mod timelines;
 pub mod trading;
 pub mod trial_spawner;
 pub mod variants;

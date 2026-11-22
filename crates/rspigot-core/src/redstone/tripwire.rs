@@ -3,6 +3,7 @@ use rspigot_domain::entity::Aabb;
 use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::{BlockPos, BlockStateId};
 use rspigot_entities::SoundSource;
+use rspigot_items::ItemKind;
 
 use super::{MAX_POWER, RedstoneChange, RedstoneStep, facing, step};
 use crate::game_events::GameEventContext;
@@ -91,6 +92,17 @@ impl<L: ClientLink> Server<L> {
             && self
                 .block_or_air(step(pos, toward.opposite()))
                 .is_face_sturdy(toward, Support::Full)
+    }
+
+    pub(crate) fn tripwire_will_destroy(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        tool: Option<&rspigot_domain::item::ItemStack>,
+    ) {
+        if is_wire(state) && tool.is_some_and(|stack| stack.item == ItemKind::Shears.id()) {
+            self.set_block_quiet(pos, with_flag(state, "disarmed", true));
+        }
     }
 
     pub(crate) fn tripwire_changed(&mut self, pos: BlockPos, old: BlockStateId, new: BlockStateId) {

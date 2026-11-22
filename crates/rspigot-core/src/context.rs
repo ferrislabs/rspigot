@@ -45,9 +45,22 @@ impl<L: ClientLink> CommandContext for Server<L> {
         {
             return;
         }
+        let logged = self.functions.runtime.logging
+            && !crate::command_block::is_failure(&message)
+            && !crate::admin_broadcast::is_relay(&message);
         match sender {
-            CommandSender::Console => tracing::info!("{}", crate::console::console_text(&message)),
-            CommandSender::Player(id) => self.push(Audience::One(id), ClientEvent::system(message)),
+            CommandSender::Console => {
+                tracing::info!("{}", crate::console::console_text(&message));
+                if logged {
+                    self.broadcast_to_admins(sender, &message);
+                }
+            }
+            CommandSender::Player(id) => {
+                if logged {
+                    self.broadcast_to_admins(sender, &message);
+                }
+                self.push(Audience::One(id), ClientEvent::system(message));
+            }
         }
     }
 

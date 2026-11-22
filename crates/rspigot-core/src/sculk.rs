@@ -61,6 +61,20 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
+    pub(crate) fn calibrated_accepts(&self, pos: BlockPos, event: GameEvent) -> bool {
+        let Some(facing) = self
+            .world
+            .chunks
+            .block(pos)
+            .and_then(crate::redstone::facing)
+        else {
+            return true;
+        };
+        let back = facing.opposite();
+        let signal = self.signal_toward(crate::redstone::step(pos, back), back, true);
+        signal == 0 || signal == event.frequency()
+    }
+
     pub(crate) fn sensor_receive(
         &mut self,
         pos: BlockPos,
@@ -237,6 +251,15 @@ impl<L: ClientLink> Server<L> {
             Some(BlockKind::SculkShrieker) => {
                 let player = self.shrieker_player(Some(entity));
                 self.shrieker_try_shriek(pos, player);
+            }
+            Some(BlockKind::RedstoneOre | BlockKind::DeepslateRedstoneOre) => {
+                let careful = self
+                    .players
+                    .values()
+                    .any(|player| player.entity_id == entity && player.sneaking);
+                if !careful {
+                    self.redstone_ore_interact(pos);
+                }
             }
             _ => {}
         }

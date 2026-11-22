@@ -73,6 +73,14 @@ impl ChunkGenerator for Cells {
     fn spawn_point(&self, _: &Dimension) -> Vec3 {
         Vec3::new(8.5, 64.0, 8.5)
     }
+
+    fn place(
+        &self,
+        dimension: &Dimension,
+        request: &rspigot_core::ports::PlaceRequest,
+    ) -> Result<Vec<rspigot_core::ports::PlacedBlock>, rspigot_core::ports::PlaceFailure> {
+        rspigot_worldgen::WorldGenerator::from_level_type("void", 1, "").place(dimension, request)
+    }
 }
 
 pub fn scene_of(cells: Cells, seed: u64, random_tick_speed: i32) -> Scene {

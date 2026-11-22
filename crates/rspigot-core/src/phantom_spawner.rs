@@ -15,6 +15,7 @@ use crate::plugins::Birth;
 use crate::plugins::events::CreatureSpawnReason;
 use crate::ports::ClientLink;
 use crate::server::Server;
+use crate::stats::{StatKind, custom};
 
 const INTERVAL_BASE_SECONDS: i32 = 60;
 const INTERVAL_RANDOM_SECONDS: i32 = 60;
@@ -30,32 +31,25 @@ const SIDE_OFFSET: i32 = 10;
 #[derive(Debug, Clone, Default)]
 pub(crate) struct PhantomSpawner {
     next_tick: i32,
-    rest: rustc_hash::FxHashMap<rspigot_domain::player::PlayerId, i32>,
-}
-
-impl PhantomSpawner {
-    pub(crate) fn rest_ticks(&self, player: rspigot_domain::player::PlayerId) -> i32 {
-        self.rest.get(&player).copied().unwrap_or(0)
-    }
 }
 
 impl<L: ClientLink> Server<L> {
     pub fn set_ticks_since_rest(&mut self, player: rspigot_domain::player::PlayerId, ticks: i32) {
-        self.spawning.phantom.rest.insert(player, ticks);
+        if let Some(found) = self.players.get_mut(&player) {
+            found.stats.reset(StatKind::Custom, custom::TIME_SINCE_REST);
+            found
+                .stats
+                .add(StatKind::Custom, custom::TIME_SINCE_REST, ticks);
+        }
     }
 
     pub fn ticks_since_rest(&self, player: rspigot_domain::player::PlayerId) -> i32 {
-        self.spawning.phantom.rest_ticks(player)
+        self.players.get(&player).map_or(0, |found| {
+            found.stats.get(StatKind::Custom, custom::TIME_SINCE_REST)
+        })
     }
 
     pub(crate) fn tick_phantom_spawner(&mut self) {
-        let alive: Vec<_> = self.players.keys().copied().collect();
-        let spawner = &mut self.spawning.phantom;
-        spawner.rest.retain(|player, _| alive.contains(player));
-        for player in &alive {
-            let ticks = spawner.rest.entry(*player).or_insert(0);
-            *ticks = ticks.saturating_add(1);
-        }
         let spawn_enemies = self.world.level.spawn_monsters
             && self.world.level.spawn_mobs
             && self.world.difficulty != Difficulty::Peaceful;
@@ -93,7 +87,7 @@ impl<L: ClientLink> Server<L> {
             if !difficulty.is_harder_than(random.next_float() * DIFFICULTY_ROLL) {
                 continue;
             }
-            let rest = self.spawning.phantom.rest_ticks(id).max(1);
+            let rest = self.ticks_since_rest(id).max(1);
             let mut random = ServerRandom(&mut self.rng);
             if random.next_int(rest) < INSOMNIA_THRESHOLD {
                 continue;

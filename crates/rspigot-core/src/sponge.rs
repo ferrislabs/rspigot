@@ -17,7 +17,6 @@ const MAX_DEPTH: u32 = 6;
 const MAX_COUNT: usize = 65;
 const ABSORB_SOUND: &str = "minecraft:block.sponge.absorb";
 const DRIES_SOUND: &str = "minecraft:block.wet_sponge.dries";
-const THE_NETHER: &str = "minecraft:the_nether";
 const WATERLOGGED: &str = "waterlogged";
 const NEIGHBOURS: [Face; 6] = [
     Face::Down,
@@ -55,7 +54,7 @@ fn absorbed_by_sponge(state: BlockStateId) -> Option<BlockStateId> {
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn wet_sponge_tick(&mut self, pos: BlockPos) {
-        if self.world.dimension.dimension_type.as_str() != THE_NETHER {
+        if !self.water_evaporates() {
             return;
         }
         self.set_block(pos, BlockKind::Sponge.default_state());

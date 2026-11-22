@@ -3,18 +3,13 @@ use std::collections::BTreeMap;
 use rspigot_data::loot::Function;
 use serde_json::Value;
 
-use super::{DataError, table};
+use super::DataError;
 use crate::ports::PackItemModifier;
 
 pub type ItemModifiers = BTreeMap<String, &'static [Function]>;
 
 pub fn parse_functions(value: &Value) -> Result<&'static [Function], DataError> {
-    let list = match value {
-        Value::Array(items) => items.clone(),
-        other => vec![other.clone()],
-    };
-    let wrapped = serde_json::json!({ "functions": list });
-    table::parse(&wrapped).map(|outcome| outcome.table.modifier)
+    super::functions::function_list(value)
 }
 
 pub fn collect(files: &[PackItemModifier], pack: &str, into: &mut ItemModifiers) {

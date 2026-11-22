@@ -217,6 +217,11 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn shear_snow_golem(&mut self, player: PlayerId, target: EntityId, hand: Hand) {
+        self.shear_snow_golem_pumpkin(target);
+        self.hurt_held(player, hand, 1);
+    }
+
+    pub(crate) fn shear_snow_golem_pumpkin(&mut self, target: EntityId) {
         let Some(entity) = self.entities.store.get(target) else {
             return;
         };
@@ -242,7 +247,6 @@ impl<L: ClientLink> Server<L> {
                 self.drop_at_location(target, eye_height, single, Vec3::ZERO);
             }
         }
-        self.hurt_held(player, hand, 1);
     }
 }
 

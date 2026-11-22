@@ -16,6 +16,7 @@ use rspigot_entities::SoundSource;
 use rspigot_items::ItemKind;
 use rspigot_nbt::Compound;
 
+use crate::advancements::AdvancementEvent;
 use crate::events::Hand;
 use crate::game_events::GameEventContext;
 use crate::mobs::ServerRandom;
@@ -683,6 +684,10 @@ impl<L: ClientLink> Server<L> {
         if !used {
             return false;
         }
+        let mut event = AdvancementEvent::named("minecraft:item_used_on_block");
+        event.item = Some(stack.item.0);
+        event.at = Some(pos);
+        self.trigger_event(id, event);
         if self.is_smokey_pos(pos) {
             self.reset_honey_level(pos, clicked);
         } else {

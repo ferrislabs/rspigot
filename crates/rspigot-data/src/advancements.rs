@@ -62,6 +62,8 @@ pub struct Criterion {
 pub struct Rewards {
     pub recipes: &'static [&'static str],
     pub experience: i32,
+    pub loot: &'static [&'static str],
+    pub function: Option<&'static str>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

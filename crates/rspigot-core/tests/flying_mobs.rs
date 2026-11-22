@@ -313,6 +313,7 @@ fn open_air_night(seed: u64) -> Scene {
     let mut s = ready_with(seed, 18_000, true);
     let alice = s.players[0].id;
     s.server.set_ticks_since_rest(alice, 10_000_000);
+    console(&mut s, "gamemode creative Alice");
     s
 }
 

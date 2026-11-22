@@ -1,64 +1,28 @@
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+use crossbeam_channel::{Receiver, TryRecvError};
 use rand::Rng;
 use rspigot_blocks::{BlockKind, Face, StateFlags};
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::{BlockPos, BlockStateId, Rotation, Vec3};
 
+use crate::chunks::{QueryAnswer, WorldQuery};
+use crate::grow_window::GrowWindow;
 use crate::plugins::events::{BlockFertilize, StructureGrow, TreeType};
 use crate::plugins::steps::{FertilizeStep, StructureStep};
 use crate::plugins::{Continuation, EventPayload, Lane, Location, snapshot_of};
-use crate::ports::ClientLink;
+use crate::ports::{ClientLink, PlaceRequest};
 use crate::server::Server;
+use crate::tree_growers::{grower_of, pick, tree_type_of};
+use crate::world_state::DimensionKey;
 
-const SAPLING_ODDS: f32 = 7.0 / 700.0;
+const SAPLING_ODDS: f32 = 1.0 / 7.0;
 const SAPLING_LIGHT: i32 = 9;
 const BONE_MEAL_SAPLING_CHANCE: f32 = 0.45;
-const MAX_LEAF_DISTANCE: i32 = 7;
 const GRASS_ATTEMPTS: i32 = 128;
 const GRASS_RANGE_DIVISOR: i32 = 16;
 const TALL_GRASS_ODDS: i32 = 10;
-const CONIFER_RADII: [i32; 10] = [0, 1, 2, 1, 2, 3, 2, 3, 3, 3];
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Species {
-    Oak,
-    Birch,
-    Spruce,
-}
-
-impl Species {
-    fn of(kind: BlockKind) -> Option<Self> {
-        match kind {
-            BlockKind::OakSapling => Some(Self::Oak),
-            BlockKind::BirchSapling => Some(Self::Birch),
-            BlockKind::SpruceSapling => Some(Self::Spruce),
-            _ => None,
-        }
-    }
-
-    const fn log(self) -> BlockKind {
-        match self {
-            Self::Oak => BlockKind::OakLog,
-            Self::Birch => BlockKind::BirchLog,
-            Self::Spruce => BlockKind::SpruceLog,
-        }
-    }
-
-    const fn leaves(self) -> BlockKind {
-        match self {
-            Self::Oak => BlockKind::OakLeaves,
-            Self::Birch => BlockKind::BirchLeaves,
-            Self::Spruce => BlockKind::SpruceLeaves,
-        }
-    }
-
-    const fn tree_type(self) -> TreeType {
-        match self {
-            Self::Oak => TreeType::Tree,
-            Self::Birch => TreeType::Birch,
-            Self::Spruce => TreeType::Redwood,
-        }
-    }
-}
 
 fn at(pos: BlockPos, face: Face) -> BlockPos {
     let (dx, dy, dz) = face.offset();
@@ -83,132 +47,27 @@ fn stage_of(state: BlockStateId) -> i32 {
         .unwrap_or(0)
 }
 
-struct Crown {
-    logs: Vec<BlockPos>,
-    leaves: Vec<BlockPos>,
-}
+const WINDOW_RADIUS: i32 = 16;
+const WINDOW_BELOW: i32 = 8;
+const WINDOW_ABOVE: i32 = 64;
+const PENDING_LIFETIME: Duration = Duration::from_secs(60);
 
-fn leaf_distances(crown: &Crown) -> Vec<i32> {
-    let mut distances = vec![MAX_LEAF_DISTANCE; crown.leaves.len()];
-    for _ in 0..MAX_LEAF_DISTANCE {
-        for index in 0..crown.leaves.len() {
-            let leaf = crown.leaves[index];
-            let mut best = distances[index];
-            for face in Face::ALL {
-                let neighbour = at(leaf, face);
-                if crown.logs.contains(&neighbour) {
-                    best = best.min(1);
-                } else if let Some(other) = crown.leaves.iter().position(|spot| *spot == neighbour)
-                {
-                    best = best.min(distances[other] + 1);
-                }
-            }
-            distances[index] = best;
-        }
-    }
-    distances
+pub(crate) struct PendingTree {
+    dimension: DimensionKey,
+    player: Option<PlayerId>,
+    origin: BlockPos,
+    saplings: Vec<(BlockPos, BlockStateId)>,
+    tree: Option<TreeType>,
+    started: Instant,
+    answer: Receiver<QueryAnswer>,
 }
 
 impl<L: ClientLink> Server<L> {
-    fn tree_crown(&mut self, species: Species, origin: BlockPos) -> Crown {
-        let trunk = match species {
-            Species::Oak => 4 + self.rng.random_range(0..3),
-            Species::Birch => 5 + self.rng.random_range(0..3),
-            Species::Spruce => 6 + self.rng.random_range(0..4),
-        };
-        let top = origin.y + trunk - 1;
-        let logs: Vec<BlockPos> = (origin.y..=top)
-            .map(|y| BlockPos::new(origin.x, y, origin.z))
-            .collect();
-        let mut leaves = Vec::new();
-        match species {
-            Species::Oak | Species::Birch => {
-                for dy in -2..=1i32 {
-                    let radius: i32 = if dy <= -1 { 2 } else { 1 };
-                    for dz in -radius..=radius {
-                        for dx in -radius..=radius {
-                            let corner = dx.abs() == radius && dz.abs() == radius;
-                            if corner && (dy == 1 || (dy < 0 && self.rng.random_range(0..2) == 0)) {
-                                continue;
-                            }
-                            if dx == 0 && dz == 0 && dy <= 0 {
-                                continue;
-                            }
-                            leaves.push(BlockPos::new(origin.x + dx, top + dy, origin.z + dz));
-                        }
-                    }
-                }
-            }
-            Species::Spruce => {
-                for (level, y) in (origin.y + 2..=top + 1).rev().enumerate() {
-                    let radius = CONIFER_RADII[level.min(CONIFER_RADII.len() - 1)];
-                    let reach = radius + i32::from(radius >= 2);
-                    for dz in -radius..=radius {
-                        for dx in -radius..=radius {
-                            if dx.abs() + dz.abs() > reach || (dx == 0 && dz == 0 && y <= top) {
-                                continue;
-                            }
-                            leaves.push(BlockPos::new(origin.x + dx, y, origin.z + dz));
-                        }
-                    }
-                }
-            }
-        }
-        Crown { logs, leaves }
-    }
-
-    fn free_for_tree(&self, pos: BlockPos) -> bool {
-        let state = self.block_or_air(pos);
-        state.is_air() || tagged(state, "minecraft:replaceable_by_trees")
-    }
-
-    fn plan_tree(
-        &mut self,
-        origin: BlockPos,
-        sapling: BlockStateId,
-    ) -> Option<(Species, Vec<(BlockPos, BlockStateId)>)> {
-        let species = Species::of(sapling.kind()?)?;
-        let crown = self.tree_crown(species, origin);
-        let top = crown.logs.last()?.y;
-        if top + 1 >= self.world.dimension.height.max_y() {
-            return None;
-        }
-        let blocked = crown
-            .logs
-            .iter()
-            .any(|pos| *pos != origin && !self.free_for_tree(*pos));
-        if blocked {
-            return None;
-        }
-        let mut blocks: Vec<(BlockPos, BlockStateId)> = Vec::new();
-        let below = at(origin, Face::Down);
-        if matches!(
-            self.block_or_air(below).kind(),
-            Some(BlockKind::GrassBlock | BlockKind::Mycelium)
-        ) {
-            blocks.push((below, BlockKind::Dirt.default_state()));
-        }
-        let log = species.log().default_state();
-        blocks.extend(crown.logs.iter().map(|pos| (*pos, log)));
-        let distances = leaf_distances(&crown);
-        for (pos, distance) in crown.leaves.iter().zip(distances) {
-            if !self.free_for_tree(*pos) {
-                continue;
-            }
-            let leaves = species
-                .leaves()
-                .state_with(&[
-                    ("distance", &distance.to_string()),
-                    ("persistent", "false"),
-                    ("waterlogged", "false"),
-                ])
-                .unwrap_or_else(|| species.leaves().default_state());
-            blocks.push((*pos, leaves));
-        }
-        Some((species, blocks))
-    }
-
     pub(crate) fn sapling_random_tick(&mut self, pos: BlockPos, state: BlockStateId) {
+        if state.kind() == Some(BlockKind::MangrovePropagule) {
+            self.propagule_random_tick(pos, state);
+            return;
+        }
         if self.raw_brightness(at(pos, Face::Up)) >= SAPLING_LIGHT
             && self.rng.random::<f32>() < SAPLING_ODDS
         {
@@ -216,7 +75,30 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn advance_tree(&mut self, pos: BlockPos, state: BlockStateId, player: Option<PlayerId>) {
+    fn propagule_random_tick(&mut self, pos: BlockPos, state: BlockStateId) {
+        if state.property("hanging") != Some("true") {
+            if self.rng.random::<f32>() < SAPLING_ODDS {
+                self.advance_tree(pos, state, None);
+            }
+            return;
+        }
+        let age: i32 = state
+            .property("age")
+            .and_then(|age| age.parse().ok())
+            .unwrap_or(0);
+        if age < 4
+            && let Some(next) = state.with_property("age", &(age + 1).to_string())
+        {
+            self.set_block(pos, next);
+        }
+    }
+
+    pub(crate) fn advance_tree(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        player: Option<PlayerId>,
+    ) {
         if stage_of(state) == 0 {
             let Some(next) = state.with_property("stage", "1") else {
                 return;
@@ -229,8 +111,161 @@ impl<L: ClientLink> Server<L> {
             }
             return;
         }
-        if let Some((species, blocks)) = self.plan_tree(pos, state) {
-            self.structure_grow(player, pos, species.tree_type(), blocks);
+        self.begin_tree_growth(pos, state, player);
+    }
+
+    fn has_flowers(&self, pos: BlockPos) -> bool {
+        (-2..=2).any(|dx| {
+            (-1..=1).any(|dy| {
+                (-2..=2).any(|dz| {
+                    tagged(
+                        self.block_or_air(pos.offset(dx, dy, dz)),
+                        "minecraft:flowers",
+                    )
+                })
+            })
+        })
+    }
+
+    fn two_by_two_of(&self, pos: BlockPos, state: BlockStateId) -> Option<BlockPos> {
+        for dx in [0, -1] {
+            for dz in [0, -1] {
+                let corner = pos.offset(dx, 0, dz);
+                let all = [(0, 0), (1, 0), (0, 1), (1, 1)].iter().all(|(ox, oz)| {
+                    self.block_or_air(corner.offset(*ox, 0, *oz)).kind() == state.kind()
+                });
+                if all {
+                    return Some(corner);
+                }
+            }
+        }
+        None
+    }
+
+    pub(crate) fn begin_tree_growth(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        player: Option<PlayerId>,
+    ) -> bool {
+        let Some(grower) = state.kind().and_then(grower_of) else {
+            return false;
+        };
+        let mega = pick(grower.megas, |total| self.rng.random_range(0..total));
+        let mut chosen: Option<(&'static str, BlockPos, Vec<BlockPos>)> = None;
+        if let Some(feature) = mega
+            && let Some(corner) = self.two_by_two_of(pos, state)
+        {
+            let cells = [(0, 0), (1, 0), (0, 1), (1, 1)]
+                .iter()
+                .map(|(ox, oz)| corner.offset(*ox, 0, *oz))
+                .collect();
+            chosen = Some((feature, corner, cells));
+        }
+        if chosen.is_none() {
+            let list = if self.has_flowers(pos) && !grower.flowers.is_empty() {
+                grower.flowers
+            } else {
+                grower.trees
+            };
+            let feature = pick(list, |total| self.rng.random_range(0..total));
+            chosen = feature.map(|feature| (feature, pos, vec![pos]));
+        }
+        let Some((feature, origin, cells)) = chosen else {
+            return false;
+        };
+        self.begin_feature_growth(feature, origin, cells, player, Some(tree_type_of(feature)));
+        true
+    }
+
+    pub(crate) fn begin_feature_growth(
+        &mut self,
+        feature: &str,
+        origin: BlockPos,
+        cells: Vec<BlockPos>,
+        player: Option<PlayerId>,
+        tree: Option<TreeType>,
+    ) {
+        let saplings: Vec<(BlockPos, BlockStateId)> = cells
+            .iter()
+            .map(|cell| (*cell, self.block_or_air(*cell)))
+            .collect();
+        let (min, size) = GrowWindow::around(origin, WINDOW_BELOW, WINDOW_ABOVE, WINDOW_RADIUS);
+        let mut window = GrowWindow {
+            min,
+            size,
+            states: Arc::from(Vec::new()),
+        };
+        let states: Vec<BlockStateId> = window
+            .positions()
+            .map(|at| self.world.chunks.block(at).unwrap_or(BlockStateId::AIR))
+            .collect();
+        window.states = states.into();
+        let request = PlaceRequest::Grow {
+            feature: feature.to_owned(),
+            origin,
+            clear: cells,
+            seed: self.rng.random(),
+            window,
+        };
+        let answer = self.workers.request_query(
+            &self.world.dimension,
+            origin.center(),
+            WorldQuery::Place(request),
+        );
+        self.pending_trees.push(PendingTree {
+            dimension: self.world.dimension.key.clone(),
+            player,
+            origin,
+            saplings,
+            tree,
+            started: Instant::now(),
+            answer,
+        });
+    }
+
+    pub(crate) fn tick_tree_growth(&mut self) {
+        if self.pending_trees.is_empty() {
+            return;
+        }
+        let dimension = self.world.dimension.key.clone();
+        let mut ready = Vec::new();
+        let mut waiting = Vec::new();
+        for pending in std::mem::take(&mut self.pending_trees) {
+            if pending.dimension != dimension {
+                if pending.started.elapsed() < PENDING_LIFETIME {
+                    waiting.push(pending);
+                }
+                continue;
+            }
+            match pending.answer.try_recv() {
+                Err(TryRecvError::Empty) if pending.started.elapsed() < PENDING_LIFETIME => {
+                    waiting.push(pending);
+                }
+                Err(_) => {}
+                Ok(answer) => ready.push((pending, answer)),
+            }
+        }
+        self.pending_trees = waiting;
+        for (pending, answer) in ready {
+            let QueryAnswer::Placed(Ok(placed)) = answer else {
+                continue;
+            };
+            let unchanged = pending
+                .saplings
+                .iter()
+                .all(|(pos, state)| self.block_or_air(*pos) == *state);
+            if !unchanged {
+                continue;
+            }
+            let blocks = placed
+                .into_iter()
+                .map(|block| (block.pos, block.state))
+                .collect();
+            match pending.tree {
+                Some(tree) => self.structure_grow(pending.player, pending.origin, tree, blocks),
+                None => self.fertilized(pending.player, pending.origin, blocks),
+            }
         }
     }
 
@@ -352,13 +387,13 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    pub(crate) fn bone_meal_growth(&mut self, player: PlayerId, pos: BlockPos) -> bool {
+    pub(crate) fn bone_meal_growth(&mut self, who: Option<PlayerId>, pos: BlockPos) -> bool {
         let Some(state) = self.world.chunks.block(pos) else {
             return false;
         };
         if is_sapling(state) {
             if self.rng.random::<f32>() < BONE_MEAL_SAPLING_CHANCE {
-                self.advance_tree(pos, state, Some(player));
+                self.advance_tree(pos, state, who);
             }
             return true;
         }
@@ -366,7 +401,7 @@ impl<L: ClientLink> Server<L> {
             && self.block_or_air(at(pos, Face::Up)).is_air()
         {
             let blocks = self.plan_grass(pos);
-            self.fertilize(player, pos, blocks);
+            self.fertilized(who, pos, blocks);
             return true;
         }
         false

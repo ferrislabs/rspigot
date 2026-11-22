@@ -1,16 +1,24 @@
 mod advancement_files;
 mod evaluate;
+#[cfg(test)]
+mod format_tests;
+mod functions;
+mod functions_extra;
 mod json;
 mod media_files;
 mod modifier;
+mod predicates;
 pub mod recipe_files;
 mod registries;
 pub mod registry_overlay;
 mod scan;
+mod slots;
 mod table;
 mod tags;
 mod trade_files;
 mod trial_files;
+#[cfg(test)]
+mod vanilla_pack_tests;
 
 use std::sync::Arc;
 
@@ -57,7 +65,9 @@ impl PackData {
                 }
             }
             for file in &pack.loot_tables {
-                match parse_json(&file.text).and_then(|json| table::parse(&json)) {
+                match parse_json(&file.text)
+                    .and_then(|json| table::parse_named(&json, file.id.as_str()))
+                {
                     Ok(outcome) => {
                         for reason in &outcome.skipped {
                             tracing::warn!(
@@ -65,6 +75,9 @@ impl PackData {
                                 file.id,
                                 pack.name
                             );
+                        }
+                        for (inline, table) in outcome.inline {
+                            loot.insert_table(&inline, json::leak(table));
                         }
                         loot.insert_table(file.id.as_str(), json::leak(outcome.table));
                     }
@@ -85,6 +98,25 @@ impl PackData {
     }
 
     pub fn with_registries(mut self, registries: Registries) -> Self {
+        let overlay = registries.overlay();
+        let mut loot = (*self.loot).clone();
+        for entry in overlay.entries("minecraft:context_int_provider") {
+            match parse_json(&entry.json).and_then(|json| json::int_expr(&json)) {
+                Ok(provider) => loot.insert_int_provider(&entry.id, json::leak(provider)),
+                Err(error) => {
+                    tracing::warn!("Failed to load int provider {}: {error}", entry.id);
+                }
+            }
+        }
+        for entry in overlay.entries("minecraft:context_float_provider") {
+            match parse_json(&entry.json).and_then(|json| json::float_expr(&json)) {
+                Ok(provider) => loot.insert_float_provider(&entry.id, json::leak(provider)),
+                Err(error) => {
+                    tracing::warn!("Failed to load float provider {}: {error}", entry.id);
+                }
+            }
+        }
+        self.loot = Arc::new(loot);
         self.registries = registries;
         self
     }
@@ -196,10 +228,7 @@ mod tests {
                 ("t:ok", r#"{"condition":"minecraft:killed_by_player"}"#),
                 ("t:bad_json", "{nope"),
                 ("t:no_kind", "{}"),
-                (
-                    "t:far",
-                    r#"{"condition":"minecraft:enchantment_active_check"}"#,
-                ),
+                ("t:far", r#"{"condition":"minecraft:from_the_future"}"#),
                 (
                     "t:deep",
                     r#"{"condition":"minecraft:entity_properties","entity":"this","predicate":{"nbt":"{}"}}"#,
@@ -212,7 +241,7 @@ mod tests {
         for id in ["t:bad_json", "t:no_kind", "t:far", "t:deep"] {
             assert!(logged.contains(id), "{id} missing from {logged}");
         }
-        assert!(logged.contains("enchantment_active_check"), "{logged}");
+        assert!(logged.contains("from_the_future"), "{logged}");
         assert!(logged.contains("nbt"), "{logged}");
     }
 
@@ -227,9 +256,10 @@ mod tests {
         ));
         assert!(matches!(
             parse(
-                r#"{"condition":"minecraft:time_check","value":{"min":0,"max":6000},"period":24000}"#
+                r#"{"condition":"minecraft:time_check","clock":"minecraft:overworld","value":{"min":0,"max":6000},"period":24000}"#
             ),
             Condition::TimeCheck {
+                clock: Some("minecraft:overworld"),
                 period: Some(24000),
                 min: Some(0.0),
                 max: Some(6000.0)
@@ -237,7 +267,7 @@ mod tests {
         ));
         assert!(matches!(
             parse(
-                r#"{"condition":"minecraft:value_check","value":{"type":"minecraft:uniform","min":1,"max":2},"range":3}"#
+                r#"{"condition":"minecraft:int_value_check","value":{"type":"minecraft:uniform","min":1,"max":2},"range":3}"#
             ),
             Condition::ValueCheck {
                 value: NumberProvider::Uniform { .. },

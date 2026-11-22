@@ -87,6 +87,7 @@ impl<L: ClientLink> Server<L> {
             kind: Identifier::minecraft(ENTITY),
             data,
         });
+        self.update_neighbour_for_output_signal(pos);
     }
 
     pub(crate) fn shelf_items_lost_by(

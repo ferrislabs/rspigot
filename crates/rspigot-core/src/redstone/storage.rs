@@ -90,6 +90,18 @@ impl Holder {
         self.cart.is_none() && self.block == BlockKind::Jukebox
     }
 
+    pub(crate) fn is_composter(&self) -> bool {
+        self.cart.is_none() && self.block == BlockKind::Composter
+    }
+
+    pub(crate) fn is_pot(&self) -> bool {
+        self.cart.is_none() && self.block == BlockKind::DecoratedPot
+    }
+
+    pub(crate) fn is_bookshelf(&self) -> bool {
+        self.cart.is_none() && self.block == BlockKind::ChiseledBookshelf
+    }
+
     pub(crate) fn is_brewing_stand(&self) -> bool {
         self.cart.is_none() && self.block == BlockKind::BrewingStand
     }
@@ -142,6 +154,16 @@ impl Holder {
         if self.is_crafter() {
             return self.crafter_accepts(slot, items);
         }
+        if self.is_composter() {
+            return direction == Face::Up
+                && self.size > 0
+                && rspigot_domain::composter::is_compostable(stack.item);
+        }
+        if self.is_bookshelf() {
+            return crate::bookshelf::is_book(stack)
+                && stack.count.get() == 1
+                && items.get(slot).is_none_or(Option::is_none);
+        }
         if self.is_jukebox() {
             return rspigot_domain::jukebox::is_playable(stack)
                 && items.get(slot).is_none_or(Option::is_none);
@@ -177,6 +199,9 @@ impl Holder {
     }
 
     pub(crate) fn may_take(&self, slot: usize, stack: &ItemStack, direction: Face) -> bool {
+        if self.is_composter() {
+            return direction == Face::Down && stack.item == ItemKind::BoneMeal.id();
+        }
         if self.is_brewing_stand() && slot == BREWING_INGREDIENT {
             return stack.item == ItemKind::GlassBottle.id();
         }
@@ -269,6 +294,43 @@ impl<L: ClientLink> Server<L> {
                 block,
                 size: 1,
                 backing: None,
+                cart: None,
+                disabled: 0,
+            });
+        }
+        if block == BlockKind::DecoratedPot {
+            return Some(Holder {
+                pos,
+                block,
+                size: 1,
+                backing: None,
+                cart: None,
+                disabled: 0,
+            });
+        }
+        if block == BlockKind::Composter {
+            return Some(Holder {
+                pos,
+                block,
+                size: self.composter_holder_size(state),
+                backing: None,
+                cart: None,
+                disabled: 0,
+            });
+        }
+        if block == BlockKind::ChiseledBookshelf {
+            return Some(Holder {
+                pos,
+                block,
+                size: rspigot_domain::bookshelf::SLOTS,
+                backing: Some(Backing {
+                    pos,
+                    second: None,
+                    entity: Some("chiseled_bookshelf"),
+                    ender: false,
+                    block,
+                    lid: crate::containers::Lid::None,
+                }),
                 cart: None,
                 disabled: 0,
             });
@@ -392,6 +454,12 @@ impl<L: ClientLink> Server<L> {
         if holder.is_jukebox() {
             return vec![self.jukebox_record(holder.pos)];
         }
+        if holder.is_pot() {
+            return vec![self.pot_stack(holder.pos)];
+        }
+        if holder.is_composter() {
+            return self.composter_holder_items(holder);
+        }
         match holder.backing {
             Some(backing) => self.container_items(backing, holder.size),
             None => self
@@ -414,6 +482,17 @@ impl<L: ClientLink> Server<L> {
                     }
                 }
             }
+            return;
+        }
+        if holder.is_pot() {
+            let next = items.first().cloned().flatten();
+            if next != self.pot_stack(holder.pos) {
+                self.set_pot_stack(holder.pos, next.as_ref());
+            }
+            return;
+        }
+        if holder.is_composter() {
+            self.composter_holder_stored(holder, items);
             return;
         }
         if holder.is_jukebox() {

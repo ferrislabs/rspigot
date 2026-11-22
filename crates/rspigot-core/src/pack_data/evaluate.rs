@@ -2,11 +2,14 @@ use rspigot_data::loot::{self, Condition};
 use rspigot_domain::{BlockStateId, Vec3};
 
 use crate::commands::Target;
-use crate::loot::{LootContext, LootEntity, condition_holds};
+use crate::commands::slots::SlotHolder;
+use crate::loot::{LootContext, LootEntity, LootWorld, condition_holds};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
 const MAX_REFERENCE_DEPTH: usize = 32;
+const SLOT_RANGES: [std::ops::Range<i32>; 6] =
+    [0..54, 98..107, 200..227, 300..308, 498..500, 500..515];
 
 fn offsets(condition: &Condition, out: &mut Vec<[i32; 3]>, depth: usize) {
     match condition {
@@ -29,12 +32,67 @@ fn offsets(condition: &Condition, out: &mut Vec<[i32; 3]>, depth: usize) {
 }
 
 impl<L: ClientLink> Server<L> {
-    fn target_loot_facts(&self, target: Target) -> Option<LootEntity> {
+    pub(crate) fn loot_inventory(
+        &self,
+        holder: SlotHolder,
+    ) -> Vec<(i32, rspigot_domain::item::ItemStack)> {
+        SLOT_RANGES
+            .iter()
+            .cloned()
+            .flatten()
+            .filter_map(|slot| {
+                self.read_command_slot(holder, slot)
+                    .flatten()
+                    .map(|stack| (slot, stack))
+            })
+            .collect()
+    }
+
+    pub(crate) fn loot_world(&self) -> LootWorld<'_> {
+        let level = &self.world.level;
+        let mut clocks = vec![(self.default_clock_id(), level.day_time)];
+        if self.default_clock_id() == rspigot_domain::world_clock::OVERWORLD
+            && let Some((ticks, _)) = level.end_clock
+        {
+            clocks.push((rspigot_domain::world_clock::THE_END, ticks));
+        }
+        let board = &self.scoreboard.board;
+        let scores = board
+            .holders()
+            .into_iter()
+            .flat_map(|holder| {
+                board
+                    .holder_scores(holder)
+                    .into_iter()
+                    .map(move |(objective, score)| {
+                        (holder.to_owned(), objective.to_owned(), score.value)
+                    })
+            })
+            .collect();
+        let dimension = match self.world.dimension.key.as_str() {
+            "minecraft:the_nether" => "minecraft:the_nether",
+            "minecraft:the_end" => "minecraft:the_end",
+            _ => "minecraft:overworld",
+        };
+        LootWorld {
+            clocks,
+            storages: self
+                .command_storage
+                .iter()
+                .map(|(id, data)| (id.as_str(), data))
+                .collect(),
+            scores,
+            dimension,
+        }
+    }
+
+    pub(crate) fn target_loot_facts(&self, target: Target) -> Option<LootEntity> {
         let entity = match target {
             Target::Player(id) => self.players.get(&id)?.entity_id,
             Target::Entity(id) => id,
         };
         let mut facts = self.entity_loot_facts(entity)?;
+        facts.inventory = self.loot_inventory(SlotHolder::Entity(target));
         if let Some(holder) = self.score_holder_of(target) {
             let board = &self.scoreboard.board;
             facts.scores = board
@@ -72,7 +130,9 @@ impl<L: ClientLink> Server<L> {
             })
             .collect();
         let biome = rspigot_data::registries::biome_name(self.biome_at(here).0);
+        let world = self.loot_world();
         let context = LootContext {
+            world: Some(&world),
             block: self.world.chunks.block(here),
             this: facts.as_ref(),
             biome,

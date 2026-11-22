@@ -107,6 +107,18 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
+    pub(crate) fn bell_hit_by_projectile(
+        &mut self,
+        pos: BlockPos,
+        state: BlockStateId,
+        clicked: Face,
+        hit_y: f64,
+    ) {
+        if proper_hit(state, clicked, hit_y - f64::from(pos.y)) {
+            self.ring_bell(pos, None, clicked);
+        }
+    }
+
     pub(crate) fn ring_bell(&mut self, pos: BlockPos, entity: Option<EntityId>, direction: Face) {
         let step = BellStep {
             pos,

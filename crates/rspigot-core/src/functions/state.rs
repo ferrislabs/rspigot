@@ -20,6 +20,7 @@ pub struct FunctionRuntime {
     pub limit: u64,
     pub aborted: bool,
     pub silent: bool,
+    pub logging: bool,
     pub permission_cap: Option<u8>,
     pub returned: Option<Returned>,
 }
@@ -32,6 +33,7 @@ impl Default for FunctionRuntime {
             limit: DEFAULT_COMMAND_LIMIT,
             aborted: false,
             silent: false,
+            logging: false,
             permission_cap: None,
             returned: None,
         }

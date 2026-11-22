@@ -26,6 +26,8 @@ fn ticks_randomly(state: BlockStateId) -> bool {
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn tick_random_blocks(&mut self) {
+        self.tick_tree_growth();
+        self.tick_bubble_pushes();
         self.tick_conduits();
         self.tick_block_extras();
         let speed = self.config.rules.random_tick_speed;
@@ -101,6 +103,20 @@ impl<L: ClientLink> Server<L> {
             BlockKind::ChorusFlower => self.chorus_random_tick(pos, picked),
             BlockKind::GrassBlock | BlockKind::Mycelium => self.spreading_snowy_tick(pos, kind),
             BlockKind::Lava => self.lava_random_tick(pos),
+            BlockKind::RedstoneOre | BlockKind::DeepslateRedstoneOre => {
+                self.redstone_ore_random_tick(pos, picked);
+            }
+            BlockKind::BuddingAmethyst => self.budding_amethyst_tick(pos),
+            BlockKind::BrownMushroom | BlockKind::RedMushroom => {
+                self.mushroom_random_tick(pos, picked);
+            }
+            BlockKind::CrimsonNylium | BlockKind::WarpedNylium => self.nylium_random_tick(pos),
+            BlockKind::OpenEyeblossom
+            | BlockKind::ClosedEyeblossom
+            | BlockKind::PottedOpenEyeblossom
+            | BlockKind::PottedClosedEyeblossom => self.eyeblossom_random_tick(pos, picked),
+            BlockKind::NetherPortal => self.nether_portal_random_tick(pos),
+            BlockKind::Cactus if self.cactus_flower_tick(pos, picked) => {}
             BlockKind::Snow => self.snow_layer_tick(pos),
             BlockKind::Ice => self.ice_tick(pos, picked),
             BlockKind::Farmland => self.farmland_tick(pos, picked),

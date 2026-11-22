@@ -244,7 +244,7 @@ impl<L: ClientLink> Server<L> {
         };
         let mut hit = false;
         if deals_damage {
-            let source = DamageSource::by(DamageType::PlayerAttack, source);
+            let source = DamageSource::by(DamageType::Spear, source);
             let struck = self.struck(target);
             hit = self.strike(Some(id), struck, &source, amount, AfterHurt::Nothing);
         }

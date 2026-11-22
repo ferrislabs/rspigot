@@ -172,6 +172,9 @@ impl<L: ClientLink> Server<L> {
             self.set_block(pos, BlockStateId::AIR);
             return true;
         }
+        if kind == BlockKind::RedstoneWire {
+            return self.toggle_wire(id, pos, state);
+        }
         let powered = flag(state, "powered");
         if kind == BlockKind::Lever {
             let (old, new) = if powered {

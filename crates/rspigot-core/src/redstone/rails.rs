@@ -13,6 +13,8 @@ const SEARCH_DEPTH: i32 = 8;
 const DETECTOR_PERIOD: u64 = 20;
 const INSET: f64 = 0.2;
 const HEIGHT: f64 = 0.7;
+const CART_STACK_LIMIT: u32 = 64;
+const COMPARATOR_STEPS: f32 = 14.0;
 
 fn is_ascending(shape: &str) -> bool {
     shape.starts_with("ascending_")
@@ -147,6 +149,39 @@ impl<L: ClientLink> Server<L> {
         if is_ascending(shape) {
             self.update_neighbors_at(step(pos, Face::Up));
         }
+    }
+
+    pub(crate) fn detector_comparator(&self, pos: BlockPos, state: BlockStateId) -> i32 {
+        if !flag(state, "powered") {
+            return 0;
+        }
+        let area = detector_area(pos);
+        let mut carts: Vec<_> = self
+            .entities
+            .store
+            .iter()
+            .filter(|entity| {
+                entity.base.removal.is_none()
+                    && matches!(entity.state, EntityState::Minecart(_))
+                    && entity.base.bounding_box().intersects(&area)
+            })
+            .filter_map(|entity| {
+                crate::vehicles::cargo_of(entity).map(|cargo| (entity.base.id, &cargo.items))
+            })
+            .collect();
+        carts.sort_by_key(|(id, _)| id.0);
+        let Some((_, items)) = carts.first() else {
+            return 0;
+        };
+        let mut fill = 0.0_f32;
+        let mut used = 0;
+        for stack in items.iter().flatten() {
+            let limit = rspigot_domain::item::max_stack(stack).min(CART_STACK_LIMIT);
+            fill += stack.count.get() as f32 / limit as f32;
+            used += 1;
+        }
+        fill /= items.len().max(1) as f32;
+        (fill * COMPARATOR_STEPS).floor() as i32 + i32::from(used > 0)
     }
 
     fn carts_on(&self, pos: BlockPos) -> bool {

@@ -56,16 +56,26 @@ impl EffectInstance {
         }
     }
 
-    fn update(&mut self, other: &Self) -> bool {
+    fn update(&mut self, hidden: &mut Vec<Self>, other: &Self) -> bool {
         let mut changed = false;
         if other.amplifier > self.amplifier {
+            if other.duration.is_shorter_than(self.duration) {
+                hidden.insert(0, *self);
+            }
             self.amplifier = other.amplifier;
             self.duration = other.duration;
             changed = true;
-        } else if self.duration.is_shorter_than(other.duration) && other.amplifier == self.amplifier
-        {
-            self.duration = other.duration;
-            changed = true;
+        } else if self.duration.is_shorter_than(other.duration) {
+            if other.amplifier == self.amplifier {
+                self.duration = other.duration;
+                changed = true;
+            } else if hidden.is_empty() {
+                hidden.push(*other);
+            } else {
+                let mut deeper = hidden.split_off(1);
+                hidden[0].update(&mut deeper, other);
+                hidden.append(&mut deeper);
+            }
         }
         if (!other.ambient && self.ambient) || changed {
             self.ambient = other.ambient;
@@ -81,6 +91,24 @@ impl EffectInstance {
         }
         changed
     }
+
+    fn count_down(&mut self) -> bool {
+        match &mut self.duration {
+            EffectDuration::Infinite => false,
+            EffectDuration::Ticks(ticks) => {
+                *ticks = ticks.saturating_sub(1);
+                *ticks == 0
+            }
+        }
+    }
+
+    fn take_details(&mut self, other: Self) {
+        self.amplifier = other.amplifier;
+        self.duration = other.duration;
+        self.ambient = other.ambient;
+        self.visible = other.visible;
+        self.show_icon = other.show_icon;
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,17 +122,19 @@ pub enum ApplyOutcome {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ActiveEffects {
     effects: Vec<EffectInstance>,
+    hidden: Vec<Vec<EffectInstance>>,
+    restored: Vec<EffectId>,
 }
 
 impl ActiveEffects {
     pub fn apply(&mut self, instance: EffectInstance) -> ApplyOutcome {
         match self
             .effects
-            .iter_mut()
-            .find(|e| e.effect == instance.effect)
+            .iter()
+            .position(|e| e.effect == instance.effect)
         {
-            Some(existing) => {
-                if existing.update(&instance) {
+            Some(index) => {
+                if self.effects[index].update(&mut self.hidden[index], &instance) {
                     ApplyOutcome::Updated
                 } else {
                     ApplyOutcome::Unchanged
@@ -112,6 +142,7 @@ impl ActiveEffects {
             }
             None => {
                 self.effects.push(instance);
+                self.hidden.push(Vec::new());
                 ApplyOutcome::Added
             }
         }
@@ -123,42 +154,45 @@ impl ActiveEffects {
 
     pub fn remove(&mut self, effect: EffectId) -> Option<EffectInstance> {
         let index = self.effects.iter().position(|e| e.effect == effect)?;
+        self.hidden.remove(index);
         Some(self.effects.remove(index))
     }
 
     pub fn clear(&mut self) -> Vec<EffectInstance> {
+        self.hidden.clear();
         std::mem::take(&mut self.effects)
     }
 
     pub fn tick(&mut self) -> Vec<EffectId> {
-        let mut expired = Vec::new();
-        self.effects
-            .retain_mut(|effect| match &mut effect.duration {
-                EffectDuration::Infinite => true,
-                EffectDuration::Ticks(ticks) => {
-                    *ticks = ticks.saturating_sub(1);
-                    if *ticks == 0 {
-                        expired.push(effect.effect);
-                        false
-                    } else {
-                        true
-                    }
-                }
-            });
+        let spent = self.countdown();
+        let expired: Vec<EffectId> = spent.iter().map(|effect| effect.effect).collect();
+        for effect in &expired {
+            self.remove(*effect);
+        }
         expired
     }
 
     pub fn countdown(&mut self) -> Vec<EffectInstance> {
         let mut spent = Vec::new();
-        for effect in &mut self.effects {
-            if let EffectDuration::Ticks(ticks) = &mut effect.duration {
-                *ticks = ticks.saturating_sub(1);
-                if *ticks == 0 {
+        for (index, effect) in self.effects.iter_mut().enumerate() {
+            let hidden = &mut self.hidden[index];
+            for behind in hidden.iter_mut() {
+                behind.count_down();
+            }
+            if effect.count_down() {
+                if hidden.is_empty() {
                     spent.push(*effect);
+                } else {
+                    effect.take_details(hidden.remove(0));
+                    self.restored.push(effect.effect);
                 }
             }
         }
         spent
+    }
+
+    pub fn take_restored(&mut self) -> Vec<EffectId> {
+        std::mem::take(&mut self.restored)
     }
 
     pub fn trial(&self, instance: EffectInstance) -> ApplyOutcome {
@@ -413,5 +447,64 @@ mod tests {
         let states = effect_attributes(&effects);
         assert_eq!(states.len(), 1);
         assert_eq!(states[0].modifiers.len(), 2);
+    }
+
+    #[test]
+    fn a_stronger_shorter_effect_hides_the_weaker_longer_one_until_it_ends() {
+        let mut effects = ActiveEffects::default();
+        let weak = EffectInstance::new(speed(), EffectDuration::Ticks(10), 0, true);
+        let strong = EffectInstance::new(speed(), EffectDuration::Ticks(3), 2, true);
+        let _ = effects.apply(weak);
+        assert_eq!(effects.apply(strong), ApplyOutcome::Updated);
+        assert_eq!(effects.get(speed()).map(|e| e.amplifier), Some(2));
+        assert!(effects.countdown().is_empty());
+        assert!(effects.countdown().is_empty());
+        assert!(effects.countdown().is_empty());
+        assert_eq!(effects.take_restored(), vec![speed()]);
+        let back = effects.get(speed()).copied().expect("restored");
+        assert_eq!(back.amplifier, 0);
+        assert_eq!(back.duration, EffectDuration::Ticks(7));
+        assert!(effects.take_restored().is_empty());
+    }
+
+    #[test]
+    fn a_weaker_longer_effect_waits_behind_the_current_one() {
+        let mut effects = ActiveEffects::default();
+        let _ = effects.apply(EffectInstance::new(
+            speed(),
+            EffectDuration::Ticks(2),
+            1,
+            true,
+        ));
+        assert_eq!(
+            effects.apply(EffectInstance::new(
+                speed(),
+                EffectDuration::Ticks(9),
+                0,
+                true
+            )),
+            ApplyOutcome::Unchanged
+        );
+        let _ = effects.countdown();
+        assert_eq!(effects.countdown(), Vec::new());
+        assert_eq!(effects.take_restored(), vec![speed()]);
+        assert_eq!(effects.get(speed()).map(|e| e.amplifier), Some(0));
+        assert_eq!(
+            effects.get(speed()).map(|e| e.duration),
+            Some(EffectDuration::Ticks(7))
+        );
+    }
+
+    #[test]
+    fn an_effect_without_a_hidden_one_expires_normally() {
+        let mut effects = ActiveEffects::default();
+        let _ = effects.apply(EffectInstance::new(
+            speed(),
+            EffectDuration::Ticks(1),
+            0,
+            true,
+        ));
+        assert_eq!(effects.countdown().len(), 1);
+        assert!(effects.take_restored().is_empty());
     }
 }

@@ -187,6 +187,8 @@ def load(directory, items):
             "requirements": requirements,
             "recipes": rewards.get("recipes", []),
             "experience": rewards.get("experience", 0),
+            "loot": rewards.get("loot", []),
+            "function": rewards.get("function"),
             "telemetry": data.get("sends_telemetry_event", False),
             "children": [],
             "x": 0.0,
@@ -313,6 +315,10 @@ def render(nodes):
         lines.append("        rewards: Rewards {")
         lines.append("            recipes: &[%s]," % recipes)
         lines.append("            experience: %d," % node["experience"])
+        loot = ", ".join(quote(name) for name in node["loot"])
+        lines.append("            loot: &[%s]," % loot)
+        function = "None" if node["function"] is None else "Some(%s)" % quote(node["function"])
+        lines.append("            function: %s," % function)
         lines.append("        },")
         lines.append("        telemetry: %s," % str(node["telemetry"]).lower())
         lines.append("    },")

@@ -154,6 +154,28 @@ pub fn world_configured(
     scene_on(server, &["Alice"], handlers)
 }
 
+pub fn world_with_datapacks<D: rspigot_core::ports::DatapackSource>(
+    seeds: Vec<Seed>,
+    source: Arc<D>,
+) -> Scene {
+    let config = GameConfig {
+        view_distance: 3,
+        chunk_workers: 2,
+        spawn_protection: 0,
+        ..GameConfig::default()
+    };
+    let mut server: Server<Link> = Server::new(
+        config,
+        LevelData::default(),
+        Arc::new(NoStore),
+        Arc::new(Seeded(seeds)),
+        StatusBoard::new(20),
+    )
+    .with_datapacks(source);
+    server.wait_for_spawn(Duration::from_secs(10));
+    scene_on(server, &["Alice"], Vec::new())
+}
+
 pub fn contents(
     s: &mut Scene,
     player: &Player,
