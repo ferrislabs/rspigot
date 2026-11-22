@@ -8,7 +8,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug)]
 pub enum Outgoing {
-    Event(ClientEvent),
+    Event(Box<ClientEvent>),
     Disconnect(Component),
     Pong(i64),
     Packet { id: i32, body: Vec<u8> },
@@ -63,7 +63,7 @@ impl ClientLink for NetLink {
         }
         let reconfigure = matches!(event, ClientEvent::Reconfigure);
         if self.connected.load(Ordering::Acquire)
-            && self.sender.send(Outgoing::Event(event)).is_err()
+            && self.sender.send(Outgoing::Event(Box::new(event))).is_err()
         {
             self.connected.store(false, Ordering::Release);
         } else if reconfigure {
@@ -103,10 +103,9 @@ mod tests {
         assert!(link.is_suspended());
         link.send(ClientEvent::TickingStep(1));
         link.raw(3, vec![]);
-        assert!(matches!(
-            receiver.try_recv(),
-            Ok(Outgoing::Event(ClientEvent::Reconfigure))
-        ));
+        assert!(
+            matches!(receiver.try_recv(), Ok(Outgoing::Event(event)) if *event == ClientEvent::Reconfigure)
+        );
         assert!(matches!(
             receiver.try_recv(),
             Ok(Outgoing::Packet { id: 3, .. })
@@ -114,9 +113,8 @@ mod tests {
         assert!(receiver.try_recv().is_err());
         link.resume();
         link.send(ClientEvent::TickingStep(2));
-        assert!(matches!(
-            receiver.try_recv(),
-            Ok(Outgoing::Event(ClientEvent::TickingStep(2)))
-        ));
+        assert!(
+            matches!(receiver.try_recv(), Ok(Outgoing::Event(event)) if *event == ClientEvent::TickingStep(2))
+        );
     }
 }

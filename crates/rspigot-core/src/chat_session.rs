@@ -135,7 +135,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn handle_chat_message(&mut self, id: PlayerId, message: ChatMessage) {
-        if !self.players.contains_key(&id) {
+        if !self.players.contains_key(&id) || !self.spam_check(id, false) {
             return;
         }
         let Some(seen) = self.apply_last_seen(id, message.last_seen) else {
@@ -191,6 +191,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn handle_unsigned_command(&mut self, id: PlayerId, command: &str) {
+        if !self.spam_check(id, true) {
+            return;
+        }
         if self.config.chat.enforce_secure_profile
             && let Some(player) = self.players.get(&id)
             && !signable_arguments(&self.command_tree(player.permission_level()), command)
@@ -207,7 +210,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn handle_signed_command(&mut self, id: PlayerId, signed: SignedCommand) {
-        if !self.players.contains_key(&id) {
+        if !self.players.contains_key(&id) || !self.spam_check(id, true) {
             return;
         }
         let Some(seen) = self.apply_last_seen(id, signed.last_seen) else {

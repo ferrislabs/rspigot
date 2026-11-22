@@ -105,6 +105,7 @@ pub struct Server<L> {
     pub(crate) players: FxHashMap<PlayerId, Player<L>>,
     pub(crate) outbox: Vec<(Audience, ClientEvent)>,
     pub(crate) extras: crate::client_extras::Extras,
+    pub(crate) surface: crate::server_surface::SurfaceState,
     pub(crate) admin: AdminLists,
     pub(crate) permissions: crate::permissions::Permissions,
     pub(crate) admin_sink: Option<Sender<AdminLists>>,
@@ -220,6 +221,7 @@ impl<L: ClientLink> Server<L> {
             players: FxHashMap::default(),
             outbox: Vec::new(),
             extras: Default::default(),
+            surface: Default::default(),
             admin,
             permissions: crate::permissions::Permissions::default(),
             admin_sink: None,
@@ -415,11 +417,13 @@ impl<L: ClientLink> Server<L> {
                 next_tick += tick_length;
                 let behind = Instant::now().saturating_duration_since(next_tick);
                 if behind > Duration::from_secs(2) {
-                    tracing::warn!(
-                        "Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind",
-                        behind.as_millis(),
-                        behind.as_millis() / u128::from(tick_length.as_millis().max(1) as u64)
-                    );
+                    if self.config.warn_on_overload {
+                        tracing::warn!(
+                            "Can't keep up! Is the server overloaded? Running {}ms or {} ticks behind",
+                            behind.as_millis(),
+                            behind.as_millis() / u128::from(tick_length.as_millis().max(1) as u64)
+                        );
+                    }
                     next_tick = Instant::now();
                 }
                 continue;
@@ -593,6 +597,7 @@ impl<L: ClientLink> Server<L> {
 
     pub fn deliver(&mut self) {
         let active = self.world.dimension.key.clone();
+        crate::block_batches::batch_block_updates(&mut self.outbox);
         for (audience, event) in self.outbox.drain(..) {
             match audience {
                 Audience::One(id) => {
@@ -888,6 +893,7 @@ impl<L: ClientLink> Server<L> {
             position.y,
             position.z
         );
+        self.remember_login(&player.profile);
         self.send_join_sequence(&mut player);
         let entries: Vec<PlayerListEntry> = self
             .players
@@ -1072,7 +1078,7 @@ impl<L: ClientLink> Server<L> {
         let sample: Vec<PlayerSample> = self
             .players
             .values()
-            .take(12)
+            .take(self.config.status_sample_count)
             .map(|p| PlayerSample {
                 id: p.id,
                 name: p.profile.name.clone(),
@@ -1112,6 +1118,9 @@ impl<L: ClientLink> Server<L> {
         self.run_nether_queue();
         self.expire_pending_eyes();
         self.expire_pending_queries();
+        self.sync_waypoints();
+        self.tick_chat_guard();
+        self.finish_perf_run();
     }
 
     fn tick_dormant(&mut self, key: &crate::world_state::DimensionKey) {
@@ -1171,7 +1180,7 @@ impl<L: ClientLink> Server<L> {
         for player in self.players.values_mut().filter(|player| !player.won_game) {
             player.streamer.tick(&self.world.chunks, &player.link);
         }
-        self.world.chunks.relight();
+        self.send_light_updates();
         self.send_entity_changes();
         self.tick_border();
         self.tick_weather();
@@ -1287,7 +1296,7 @@ impl<L: ClientLink> Server<L> {
         for player in self.players.values_mut().filter(|player| !player.won_game) {
             player.streamer.tick(&self.world.chunks, &player.link);
         }
-        self.world.chunks.relight();
+        self.send_light_updates();
         if primary {
             self.players.extend(away.drain(..));
             self.tick_plugins();

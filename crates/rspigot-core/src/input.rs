@@ -255,6 +255,7 @@ impl<L: ClientLink> Server<L> {
             }
             PlayerInput::SetStructureBlock(edit) => self.handle_set_structure_block(id, &edit),
             PlayerInput::TeleportToEntity(target) => self.handle_teleport_to_entity(id, target),
+            PlayerInput::SpectatorAction(target) => self.handle_spectator_action(id, target),
             PlayerInput::BlockTagQuery { transaction, pos } => {
                 self.handle_block_tag_query(id, transaction, pos);
             }
@@ -325,7 +326,9 @@ impl<L: ClientLink> Server<L> {
             let rules = &self.config.rules;
             let checked =
                 rules.player_movement_check && (rules.elytra_movement_check || !player.fall_flying);
-            if checked && from.distance_squared(target) > MAX_MOVE_SQUARED {
+            let limit =
+                MAX_MOVE_SQUARED * (self.config.moved_too_quickly_multiplier / 10.0).powi(2);
+            if checked && from.distance_squared(target) > limit {
                 tracing::warn!(
                     "{} moved too quickly! {:.2},{:.2},{:.2}",
                     player.profile.name,

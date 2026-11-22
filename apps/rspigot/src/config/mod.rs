@@ -85,7 +85,7 @@ impl ServerFiles {
             player_tracking_range: self.spigot.float(
                 "world-settings.default.entity-tracking-range.players",
                 128.0,
-            ),
+            ) * self.broadcast_scale(),
             tracking: self.tracking_ranges(),
             activation: self.activation_ranges(),
             stream: StreamConfig::default(),
@@ -141,6 +141,34 @@ impl ServerFiles {
                 .int("status-heartbeat-interval", 0)
                 .clamp(0, i64::from(u32::MAX)) as u32,
             enable_status: p.bool("enable-status"),
+            save_players: !self.spigot_flag("players.disable-saving", false),
+            save_advancements: !self.spigot_flag("advancements.disable-saving", false),
+            save_stats: !self.spigot_flag("stats.disable-saving", false),
+            forced_stats: self
+                .spigot
+                .entries("stats.forced-stats")
+                .into_iter()
+                .filter_map(|(key, value)| Some((key, value.parse().ok()?)))
+                .collect(),
+            disabled_advancements: self.spigot.strings("advancements.disabled"),
+            allow_end: self.bukkit.string("settings.allow-end", "true") != "false",
+            warn_on_overload: self.bukkit.string("settings.warn-on-overload", "true") != "false",
+            status_sample_count: self.spigot.int("settings.sample-count", 12).clamp(0, 1000)
+                as usize,
+            moved_too_quickly_multiplier: self
+                .spigot
+                .float("settings.moved-too-quickly-multiplier", 10.0)
+                .max(0.0),
+            server_port: p.int("server-port", 25565).clamp(1, 65535) as u16,
+            chat: rspigot_core::config::ChatSecurity {
+                spam_threshold_ticks: (p.int("chat-spam-threshold-seconds", 10).clamp(0, 3600) * 20)
+                    as u32,
+                command_spam_threshold_ticks: (p
+                    .int("command-spam-threshold-seconds", 10)
+                    .clamp(0, 3600)
+                    * 20) as u32,
+                ..Default::default()
+            },
             ..GameConfig::default()
         }
     }
@@ -217,6 +245,52 @@ impl ServerFiles {
                 .spigot
                 .int("world-settings.default.seed-slime", defaults.slime_seed),
         }
+    }
+
+    pub fn code_of_conduct(&self, root: &std::path::Path) -> Option<String> {
+        if !self.properties.bool("enable-code-of-conduct") {
+            return None;
+        }
+        let path = root.join("codeofconduct").join("en_us.txt");
+        match std::fs::read_to_string(&path) {
+            Ok(text) => Some(text),
+            Err(error) => {
+                tracing::warn!(
+                    "enable-code-of-conduct is on but {} cannot be read: {error}",
+                    path.display()
+                );
+                None
+            }
+        }
+    }
+
+    pub fn world_generator(&self, seed: i64) -> rspigot_worldgen::WorldGenerator {
+        let generator = rspigot_worldgen::WorldGenerator::from_level_type(
+            self.properties.string("level-type"),
+            seed,
+            self.properties.string("generator-settings"),
+        );
+        match generator {
+            rspigot_worldgen::WorldGenerator::Noise(noise)
+                if !self.properties.bool("generate-structures") =>
+            {
+                rspigot_worldgen::WorldGenerator::Noise(noise.without_structures())
+            }
+            other => other,
+        }
+    }
+
+    fn spigot_flag(&self, path: &str, fallback: bool) -> bool {
+        self.spigot
+            .string(path, if fallback { "true" } else { "false" })
+            .eq_ignore_ascii_case("true")
+    }
+
+    fn broadcast_scale(&self) -> f64 {
+        self.properties
+            .int("entity-broadcast-range-percentage", 100)
+            .clamp(10, 1000) as f64
+            / 100.0
     }
 
     fn tracking_ranges(&self) -> TrackingRanges {
@@ -403,6 +477,7 @@ impl ServerFiles {
             enforce_secure_profile: false,
             accepts_transfers: p.bool("accepts-transfers"),
             keep_alive_timeout: Duration::from_secs(30),
+            rate_limit: p.int("rate-limit", 0).clamp(0, i64::from(u32::MAX)) as u32,
             connection_throttle: Duration::from_millis(
                 self.bukkit.int("settings.connection-throttle", 4000).max(0) as u64,
             ),
@@ -490,6 +565,16 @@ mod tests {
                 .mob_spawn_range,
             44
         );
+    }
+
+    #[test]
+    fn the_broadcast_percentage_scales_the_player_tracking_range() {
+        let mut files = files("{}", "{}");
+        files
+            .properties
+            .set("entity-broadcast-range-percentage", "50");
+        let config = files.game_config(AdminLists::default());
+        assert_eq!(config.player_tracking_range, 64.0);
     }
 
     #[test]
@@ -622,6 +707,67 @@ mod tests {
         assert!(shipped.log_ips);
         assert_eq!(shipped.max_tick_time_ms, 60_000);
         assert_eq!(shipped.pause_when_empty_seconds, 60);
+    }
+
+    #[test]
+    fn generate_structures_false_removes_the_structures_from_the_noise_generator() {
+        use rspigot_core::ports::ChunkGenerator;
+        let find = |value: &str| {
+            let mut files = files("{}", "{}");
+            files.properties.set("level-type", "minecraft:normal");
+            files.properties.set("generate-structures", value);
+            files.world_generator(1).nearest_structure(
+                &rspigot_domain::world::Dimension::overworld(),
+                rspigot_domain::Vec3::ZERO,
+                "minecraft:village_plains",
+            )
+        };
+        assert!(find("true").is_some());
+        assert!(find("false").is_none());
+    }
+
+    #[test]
+    fn rate_limit_reaches_the_network_config() {
+        let mut files = files("{}", "{}");
+        assert_eq!(files.network_config(None).unwrap().rate_limit, 0);
+        files.properties.set("rate-limit", "500");
+        assert_eq!(files.network_config(None).unwrap().rate_limit, 500);
+    }
+
+    #[test]
+    fn the_code_of_conduct_is_read_from_its_folder_only_when_enabled() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir(dir.path().join("codeofconduct")).unwrap();
+        std::fs::write(dir.path().join("codeofconduct/en_us.txt"), "be nice").unwrap();
+        let mut files = files("{}", "{}");
+        assert_eq!(files.code_of_conduct(dir.path()), None);
+        files.properties.set("enable-code-of-conduct", "true");
+        assert_eq!(
+            files.code_of_conduct(dir.path()).as_deref(),
+            Some("be nice")
+        );
+        let empty = tempfile::tempdir().unwrap();
+        assert_eq!(files.code_of_conduct(empty.path()), None);
+    }
+
+    #[test]
+    fn the_yaml_keys_reach_the_game_config() {
+        let spigot = "settings:\n  sample-count: 3\n  moved-too-quickly-multiplier: 20.0\nadvancements:\n  disable-saving: true\n  disabled:\n  - minecraft:story/root\nplayers:\n  disable-saving: true\nstats:\n  disable-saving: true\n  forced-stats:\n    minecraft:leave_game: 4\n";
+        let bukkit = "settings:\n  allow-end: false\n  warn-on-overload: false\n";
+        let config = files(spigot, bukkit).game_config(AdminLists::default());
+        assert_eq!(config.status_sample_count, 3);
+        assert_eq!(config.moved_too_quickly_multiplier, 20.0);
+        assert!(!config.save_advancements && !config.save_players && !config.save_stats);
+        assert_eq!(config.disabled_advancements, ["minecraft:story/root"]);
+        assert_eq!(
+            config.forced_stats,
+            [("minecraft:leave_game".to_owned(), 4)]
+        );
+        assert!(!config.allow_end);
+        assert!(!config.warn_on_overload);
+        let vanilla = files("{}", "{}").game_config(AdminLists::default());
+        assert!(vanilla.save_players && vanilla.allow_end && vanilla.warn_on_overload);
+        assert_eq!(vanilla.status_sample_count, 12);
     }
 
     #[test]

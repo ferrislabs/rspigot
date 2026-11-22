@@ -69,6 +69,15 @@ impl<L: ClientLink> Server<L> {
                 self.config.max_tnt_per_tick = config.max_tnt_per_tick;
                 self.config.combat_exhaustion = config.combat_exhaustion;
                 self.config.messages = config.messages;
+                self.config.save_players = config.save_players;
+                self.config.save_advancements = config.save_advancements;
+                self.config.save_stats = config.save_stats;
+                self.config.forced_stats = config.forced_stats;
+                self.config.disabled_advancements = config.disabled_advancements;
+                self.config.allow_end = config.allow_end;
+                self.config.warn_on_overload = config.warn_on_overload;
+                self.config.status_sample_count = config.status_sample_count;
+                self.config.moved_too_quickly_multiplier = config.moved_too_quickly_multiplier;
                 self.config.whitelist_message = config.whitelist_message;
                 self.admin = admin;
             }

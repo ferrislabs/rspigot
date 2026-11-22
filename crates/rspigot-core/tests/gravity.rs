@@ -37,7 +37,7 @@ impl Link {
 impl ClientLink for Link {
     fn send(&self, event: ClientEvent) {
         if let Ok(mut events) = self.events.lock() {
-            events.push(event);
+            events.extend(event.expanded());
         }
     }
 

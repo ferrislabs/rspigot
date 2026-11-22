@@ -646,6 +646,7 @@ fn update_tags_with(overlay: Option<&TagOverlay>) -> Result<UpdateTags, Connecti
 pub struct Configured {
     pub settings: ClientSettings,
     pub packs: Vec<(Uuid, ResourcePackStatus)>,
+    pub inputs: Vec<rspigot_core::events::PlayerInput>,
 }
 
 pub(crate) trait ConfigWire {
@@ -796,6 +797,7 @@ pub(crate) async fn configure<W: ConfigWire>(
     wire.flush().await?;
     let mut settings = ClientSettings::default();
     let mut packs = Vec::new();
+    let mut inputs = Vec::new();
     let mut registries_sent = false;
     let mut stage = Stage::Known;
     loop {
@@ -846,10 +848,14 @@ pub(crate) async fn configure<W: ConfigWire>(
                 }
             }
             ServerboundConfiguration::FinishConfiguration(_) if stage == Stage::Finish => {
-                return Ok(Configured { settings, packs });
+                return Ok(Configured {
+                    settings,
+                    packs,
+                    inputs,
+                });
             }
             ServerboundConfiguration::KeepAlive(KeepAlive { .. }) => {}
-            _ => {}
+            other => inputs.extend(crate::decode::configuration_input(other)),
         }
     }
 }
@@ -1062,6 +1068,56 @@ mod tests {
         assert_eq!(
             configured.packs[2],
             (Uuid::from_u128(5), ResourcePackStatus::SuccessfullyLoaded)
+        );
+    }
+
+    #[test]
+    fn configuration_cookie_click_and_brand_packets_are_kept_for_play() {
+        use rspigot_core::events::PlayerInput;
+        use rspigot_protocol::common::{
+            CookieResponse, CustomClickAction, ServerboundCustomPayload,
+        };
+        let config = crate::NetworkConfig::default();
+        let mut wire = Script::new();
+        wire.knows_core();
+        let mut brand = vec![6];
+        brand.extend_from_slice(b"fabric");
+        wire.says(
+            ids::configuration::serverbound::CUSTOM_PAYLOAD,
+            &ServerboundCustomPayload {
+                channel: identifier("minecraft:brand").unwrap(),
+                data: brand,
+            },
+        );
+        wire.says(
+            ids::configuration::serverbound::COOKIE_RESPONSE,
+            &CookieResponse {
+                key: identifier("a:b").unwrap(),
+                payload: Some(vec![1, 2]),
+            },
+        );
+        wire.says(
+            ids::configuration::serverbound::CUSTOM_CLICK_ACTION,
+            &CustomClickAction {
+                id: identifier("shop:buy").unwrap(),
+                payload: None,
+            },
+        );
+        wire.finishes();
+        let configured = run(configure(&config, &mut wire)).unwrap();
+        assert_eq!(
+            configured.inputs,
+            vec![
+                PlayerInput::ClientBrand("fabric".to_owned()),
+                PlayerInput::CookieResponse {
+                    key: "a:b".to_owned(),
+                    payload: Some(vec![1, 2]),
+                },
+                PlayerInput::CustomClick {
+                    id: "shop:buy".to_owned(),
+                    data: None,
+                },
+            ]
         );
     }
 

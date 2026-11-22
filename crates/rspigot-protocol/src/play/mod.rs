@@ -7,6 +7,7 @@ pub mod effect;
 pub mod entity;
 pub mod gaps;
 pub mod inventory;
+pub mod l7;
 pub mod map;
 pub mod metadata;
 pub mod player;
@@ -15,6 +16,7 @@ pub mod scoreboard;
 pub mod serverbound;
 pub mod slot;
 pub mod types;
+pub mod waypoint;
 pub mod wire;
 pub mod world;
 
@@ -46,6 +48,7 @@ pub mod clientbound {
         RecipeBookRemove, RecipeBookSettings, RecipeDisplay, RecipeDisplayEntry, SetCursorItem,
         SetPlayerInventory, TradeCost, TradeOffer, UpdateRecipes,
     };
+    pub use super::l7::{MinecartStep, MoveMinecartAlongTrack, ProjectilePower, SpectatorAction};
     pub use super::map::{MapDecorationData, MapItemData, MapPatch};
     pub use super::metadata::SetEntityData;
     pub use super::player::{
@@ -61,6 +64,7 @@ pub mod clientbound {
     pub use super::scoreboard::{
         ResetScore, SetDisplayObjective, SetObjective, SetPlayerTeam, SetScore,
     };
+    pub use super::world::SectionBlockChange;
     pub use super::world::{
         BlockChangedAck, BlockDestruction, BlockEntityData, BlockEvent, BlockUpdate,
         ChunkBatchFinished, ChunkBatchStart, Explode, ExplosionParticle, GameEvent, GameRuleValues,

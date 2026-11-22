@@ -65,6 +65,7 @@ fn secure_server() -> rspigot_core::server::Server<Link> {
         config.chat = ChatSecurity {
             enforce_secure_profile: true,
             services_keys: vec![public_der(&private(SERVICES_KEY))],
+            ..ChatSecurity::default()
         }
     })
     .with_clock(clock)
@@ -553,6 +554,7 @@ fn a_message_without_a_session_is_relayed_as_plain_chat_when_not_enforced() {
         config.chat = ChatSecurity {
             enforce_secure_profile: false,
             services_keys: vec![public_der(&private(SERVICES_KEY))],
+            ..ChatSecurity::default()
         }
     })
     .with_clock(clock);

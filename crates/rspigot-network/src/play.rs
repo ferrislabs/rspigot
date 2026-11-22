@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use rspigot_core::events::{ClientEvent, Inbound, PlayerInput};
 use rspigot_core::plugins::events::ResourcePackStatus;
-use rspigot_core::ports::SessionVerifier;
+use rspigot_core::ports::{ClientLink, SessionVerifier};
 use rspigot_domain::player::{GameProfile, PlayerId};
 use rspigot_domain::text::Component;
 use rspigot_protocol::common::KeepAlive;
@@ -34,7 +34,11 @@ pub async fn run<V: SessionVerifier>(
     profile: GameProfile,
     configured: Configured,
 ) -> Result<(), ConnectionError> {
-    let Configured { settings, packs } = configured;
+    let Configured {
+        settings,
+        packs,
+        inputs,
+    } = configured;
     let (sender, receiver) = unbounded_channel();
     let connected = Arc::new(AtomicBool::new(true));
     let link = NetLink::new(sender, Arc::clone(&connected));
@@ -58,6 +62,9 @@ pub async fn run<V: SessionVerifier>(
     }
     for (pack, status) in packs {
         let input = PlayerInput::ResourcePack { id: pack, status };
+        let _ = shared.game.send(Inbound::Input { player, input });
+    }
+    for input in inputs {
         let _ = shared.game.send(Inbound::Input { player, input });
     }
     let Session {
@@ -97,6 +104,7 @@ async fn read_loop<V: SessionVerifier>(
     keep_alive: Arc<KeepAliveState>,
     link: NetLink,
 ) {
+    let mut limiter = crate::rate_limit::RateLimiter::new(shared.config.rate_limit, Instant::now());
     loop {
         let packet = match reader.next().await {
             Ok(packet) => packet,
@@ -105,6 +113,13 @@ async fn read_loop<V: SessionVerifier>(
                 return;
             }
         };
+        if limiter.record(Instant::now()) {
+            link.disconnect(Component::translatable(
+                crate::rate_limit::DISCONNECT_KEY,
+                Vec::new(),
+            ));
+            return;
+        }
         let Ok((id, body)) = split_packet_id(&packet) else {
             return;
         };
@@ -127,6 +142,9 @@ async fn read_loop<V: SessionVerifier>(
                         }
                         for (pack, status) in configured.packs {
                             report_pack(&shared, player, pack, status);
+                        }
+                        for input in configured.inputs {
+                            let _ = shared.game.send(Inbound::Input { player, input });
                         }
                         continue;
                     }
@@ -237,15 +255,16 @@ fn handle<V: SessionVerifier>(
     message: Outgoing,
 ) -> Result<Step, ConnectionError> {
     match message {
-        Outgoing::Event(ClientEvent::Disconnect(reason)) | Outgoing::Disconnect(reason) => {
-            Ok(Step::Disconnect(reason))
-        }
+        Outgoing::Disconnect(reason) => Ok(Step::Disconnect(reason)),
         Outgoing::Packet { id, body } => {
             writer.queue(id, &Raw(&body))?;
             Ok(Step::Continue)
         }
         Outgoing::Close => Ok(Step::Close),
         Outgoing::Event(event) => {
+            if let ClientEvent::Disconnect(reason) = *event {
+                return Ok(Step::Disconnect(reason));
+            }
             encoder.encode(
                 &event,
                 writer,

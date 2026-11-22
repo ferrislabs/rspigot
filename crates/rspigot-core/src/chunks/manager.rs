@@ -514,16 +514,20 @@ impl ChunkManager {
     }
 
     pub fn relight(&mut self) -> usize {
+        self.relight_chunks().len()
+    }
+
+    pub fn relight_chunks(&mut self) -> Vec<ChunkPos> {
         let has_skylight = self.dimension.has_skylight;
         let pending: Vec<ChunkPos> = self.relight.drain().collect();
-        let mut count = 0;
+        let mut done = Vec::new();
         for pos in pending {
             if let Some(chunk) = self.chunk_mut(pos) {
                 crate::lighting::compute(chunk, has_skylight);
-                count += 1;
+                done.push(pos);
             }
         }
-        count
+        done
     }
 
     pub fn stats(&self) -> ChunkManagerStats {

@@ -265,6 +265,17 @@ pub struct GameConfig {
     pub entity_broadcast_range_percentage: u32,
     pub status_heartbeat_interval: u32,
     pub enable_status: bool,
+    pub server_port: u16,
+    pub user_cache: crate::user_cache::UserCache,
+    pub save_players: bool,
+    pub save_advancements: bool,
+    pub save_stats: bool,
+    pub forced_stats: Vec<(String, i32)>,
+    pub disabled_advancements: Vec<String>,
+    pub allow_end: bool,
+    pub warn_on_overload: bool,
+    pub status_sample_count: usize,
+    pub moved_too_quickly_multiplier: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -339,6 +350,17 @@ impl Default for GameConfig {
             entity_broadcast_range_percentage: 100,
             status_heartbeat_interval: 0,
             enable_status: true,
+            server_port: 25565,
+            user_cache: crate::user_cache::UserCache::default(),
+            save_players: true,
+            save_advancements: true,
+            save_stats: true,
+            forced_stats: Vec::new(),
+            disabled_advancements: Vec::new(),
+            allow_end: true,
+            warn_on_overload: true,
+            status_sample_count: 12,
+            moved_too_quickly_multiplier: 10.0,
         }
     }
 }
@@ -347,6 +369,8 @@ impl Default for GameConfig {
 pub struct ChatSecurity {
     pub enforce_secure_profile: bool,
     pub services_keys: Vec<Vec<u8>>,
+    pub spam_threshold_ticks: u32,
+    pub command_spam_threshold_ticks: u32,
 }
 
 #[derive(Debug, Clone, PartialEq)]

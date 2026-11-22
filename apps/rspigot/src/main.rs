@@ -22,7 +22,6 @@ use rspigot_core::events::Inbound;
 use rspigot_core::server::Server;
 use rspigot_core::status::StatusBoard;
 use rspigot_network::NetLink;
-use rspigot_worldgen::WorldGenerator;
 use tracing_subscriber::Layer;
 
 use crate::config::ServerFiles;
@@ -161,19 +160,33 @@ fn main() -> anyhow::Result<()> {
     for issue in rspigot_worldgen::install_datapacks(&datapacks) {
         tracing::warn!("Datapack problem in {issue}");
     }
-    let generator = Arc::new(WorldGenerator::from_level_type(
-        files.properties.string("level-type"),
-        level.seed,
-        files.properties.string("generator-settings"),
-    ));
+    let generator = Arc::new(files.world_generator(level.seed));
     dimensions::install(Arc::clone(&store), Arc::clone(&generator));
     let status = StatusBoard::new(0);
     let mut game_config = files.game_config(admin);
+    let user_cache_on_stop_only = files
+        .spigot
+        .string("settings.save-user-cache-on-stop-only", "false")
+        .eq_ignore_ascii_case("true");
+    game_config.user_cache = files::read_user_cache(
+        &args.root,
+        files
+            .spigot
+            .int("settings.user-cache-size", 1000)
+            .clamp(0, 1_000_000) as usize,
+    );
+    if !user_cache_on_stop_only {
+        let (user_cache_updates, user_cache_inbox) = crossbeam_channel::unbounded();
+        files::spawn_user_cache_writer(args.root.clone(), user_cache_inbox);
+        game_config.user_cache = game_config.user_cache.with_sink(user_cache_updates);
+    }
+    let user_cache = game_config.user_cache.clone();
     let mut network_config = files.network_config(files::read_favicon(&args.root))?;
     if network_config.online_mode {
         game_config.chat.services_keys =
             rspigot_auth::fetch_profile_keys(&rspigot_auth::UreqClient::new(), None);
     }
+    network_config.code_of_conduct = files.code_of_conduct(&args.root);
     let enforce_secure_profile =
         files.secure_profile_requested() && !game_config.chat.services_keys.is_empty();
     game_config.chat.enforce_secure_profile = enforce_secure_profile;
@@ -304,6 +317,9 @@ fn main() -> anyhow::Result<()> {
     );
     let level = server.run(&game_inbox);
     drop(game_inbox);
+    if user_cache_on_stop_only {
+        files::save_user_cache(&args.root, &user_cache);
+    }
     let _ = stop.send(true);
     runtime.block_on(async {
         let adapters = async {
