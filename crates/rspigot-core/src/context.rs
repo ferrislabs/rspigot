@@ -154,6 +154,41 @@ impl<L: ClientLink> CommandContext for Server<L> {
         true
     }
 
+    fn place_block_strict(
+        &mut self,
+        pos: BlockPos,
+        state: rspigot_blocks::StateId,
+        nbt: Option<&Compound>,
+    ) -> bool {
+        let changed = match self.world.chunks.set_block(pos, state) {
+            Some(old) if old != state => {
+                self.push(
+                    Audience::ChunkViewers(pos.chunk()),
+                    ClientEvent::BlockUpdate { pos, state },
+                );
+                self.ensure_container_entity(pos, state);
+                self.ensure_command_block_entity(pos, state);
+                self.ensure_spawner_entity(pos, state);
+                true
+            }
+            _ => false,
+        };
+        let Some(nbt) = nbt else {
+            return changed;
+        };
+        let Some(mut data) = self.block_entity_nbt(pos) else {
+            return changed;
+        };
+        for (key, value) in nbt
+            .iter()
+            .filter(|(key, _)| !matches!(*key, "x" | "y" | "z"))
+        {
+            data.insert(key, value.clone());
+        }
+        let _ = self.set_command_data(&DataTarget::Block(pos), data);
+        true
+    }
+
     fn destroy_block(&mut self, pos: BlockPos) -> bool {
         self.break_block_naturally(pos)
     }
@@ -248,6 +283,28 @@ impl<L: ClientLink> CommandContext for Server<L> {
 
     fn random_between(&mut self, min: i32, max: i32) -> i32 {
         rand::Rng::random_range(&mut self.rng, min..=max)
+    }
+
+    fn set_spawn_point_rotated(
+        &mut self,
+        player: PlayerId,
+        dimension: Identifier,
+        pos: BlockPos,
+        yaw: f32,
+        pitch: f32,
+    ) {
+        self.set_respawn_position(
+            player,
+            Some(rspigot_domain::bed::RespawnConfig {
+                dimension,
+                pos,
+                yaw,
+                pitch,
+                forced: true,
+            }),
+            false,
+            crate::plugins::events::PlayerSpawnChangeCause::Command,
+        );
     }
 
     fn set_spawn_point(
@@ -876,6 +933,25 @@ impl<L: ClientLink> CommandContext for Server<L> {
         }
     }
 
+    fn teleport_across(
+        &mut self,
+        target: Target,
+        dimension: &Identifier,
+        position: Vec3,
+        rotation: Option<Rotation>,
+    ) -> bool {
+        match target {
+            Target::Player(id) => {
+                self.teleport_to_dimension(id, dimension.clone(), position, rotation);
+                true
+            }
+            Target::Entity(id) => {
+                self.change_entity_dimension(id, dimension.clone(), position, rotation);
+                true
+            }
+        }
+    }
+
     fn face_target(&mut self, target: Target, facing: &crate::commands::FaceRequest) {
         let Target::Player(id) = target else {
             self.rotate_to(target, facing.rotation.yaw, facing.rotation.pitch);
@@ -970,6 +1046,9 @@ impl<L: ClientLink> CommandContext for Server<L> {
         };
         let camera = target.and_then(|t| self.entity_id_of(t)).unwrap_or(own);
         self.push(Audience::One(player), ClientEvent::Camera(camera));
+        if let Some(watcher) = self.players.get_mut(&player) {
+            watcher.motion.camera = (camera != own).then_some(camera);
+        }
         if camera != own
             && let Some(at) = target.and_then(|t| self.target_position(t))
         {
@@ -1206,6 +1285,22 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.reload_data_packs()
     }
 
+    fn create_datapack(&mut self, name: &str, meta: &str) -> Result<bool, Component> {
+        let failed = |reason: String| {
+            Component::translatable(
+                "commands.datapack.create.io_failure",
+                vec![Component::text(reason)],
+            )
+        };
+        let loader = self
+            .datapacks
+            .as_ref()
+            .ok_or_else(|| failed("no datapack folder".to_owned()))?;
+        loader
+            .create(name, meta)
+            .map_err(|error| failed(error.to_string()))
+    }
+
     fn datapack_lists_changed(&mut self, lists: crate::functions::DataPackLists) {
         self.world.level.data_packs = Some(lists);
     }
@@ -1267,6 +1362,19 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.change_day_time(time, None);
     }
 
+    fn clock_runtime(&self) -> rspigot_domain::world_clock::ClockRuntime {
+        self.world.level.clock
+    }
+
+    fn set_clock_runtime(&mut self, state: rspigot_domain::world_clock::ClockRuntime) {
+        self.world.level.clock = state;
+        let update = self.time_event();
+        self.push(
+            Audience::Dimension(self.world.dimension.key.clone()),
+            update,
+        );
+    }
+
     fn skip_day_time(&mut self, time: i64) {
         self.change_day_time(time, Some(TimeSkipReason::Command));
     }
@@ -1296,6 +1404,34 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.send_inventory(player);
         self.broadcast_held_item(player);
         removed
+    }
+
+    fn inventory_stacks(&self, player: PlayerId) -> Vec<(usize, rspigot_domain::item::ItemStack)> {
+        self.players.get(&player).map_or_else(Vec::new, |p| {
+            p.inventory
+                .slots()
+                .iter()
+                .enumerate()
+                .filter_map(|(slot, stack)| Some((slot, stack.clone()?)))
+                .collect()
+        })
+    }
+
+    fn take_from_slot(&mut self, player: PlayerId, slot: usize, count: u32) {
+        let Some(p) = self.players.get_mut(&player) else {
+            return;
+        };
+        let Some(stack) = p.inventory.get(slot).cloned() else {
+            return;
+        };
+        let left = u32::from(stack.count.get()).saturating_sub(count);
+        let rest = u8::try_from(left)
+            .ok()
+            .and_then(std::num::NonZeroU8::new)
+            .map(|count| rspigot_domain::item::ItemStack { count, ..stack });
+        p.inventory.set(slot, rest);
+        self.send_inventory(player);
+        self.broadcast_held_item(player);
     }
 
     fn kick(&mut self, player: PlayerId, reason: Component) {
@@ -1582,6 +1718,11 @@ impl<L: ClientLink> CommandContext for Server<L> {
         self.change_spawn(pos);
     }
 
+    fn set_world_spawn_rotated(&mut self, pos: BlockPos, yaw: f32, _pitch: f32) {
+        self.change_spawn(pos);
+        self.world.level.spawn_angle = yaw;
+    }
+
     fn save_all(&mut self, flush: bool) -> bool {
         self.world_saving();
         self.save_all_entities();
@@ -1676,7 +1817,11 @@ impl<L: ClientLink> CommandContext for Server<L> {
 
     fn target_name(&self, target: Target) -> Component {
         match target {
-            Target::Player(id) => Component::text(self.player_name(id).unwrap_or_default()),
+            Target::Player(id) => {
+                let name = self.player_name(id).unwrap_or_default();
+                self.holder_display_name(&name)
+                    .unwrap_or_else(|| Component::text(name))
+            }
             Target::Entity(id) => self.entity_name(id).unwrap_or_else(|| Component::text("")),
         }
     }

@@ -63,7 +63,7 @@ struct Number {
     default: f64,
 }
 
-const SPIGOT_NUMBERS: [Number; 10] = [
+const SPIGOT_NUMBERS: [Number; 4] = [
     Number {
         path: "settings.timeout-time",
         default: 60.0,
@@ -75,30 +75,6 @@ const SPIGOT_NUMBERS: [Number; 10] = [
     Number {
         path: "world-settings.default.ticks-per.hopper-check",
         default: 1.0,
-    },
-    Number {
-        path: "world-settings.default.hunger.jump-walk-exhaustion",
-        default: 0.05,
-    },
-    Number {
-        path: "world-settings.default.hunger.jump-sprint-exhaustion",
-        default: 0.2,
-    },
-    Number {
-        path: "world-settings.default.hunger.regen-exhaustion",
-        default: 6.0,
-    },
-    Number {
-        path: "world-settings.default.hunger.swim-multiplier",
-        default: 0.01,
-    },
-    Number {
-        path: "world-settings.default.hunger.sprint-multiplier",
-        default: 0.1,
-    },
-    Number {
-        path: "world-settings.default.hunger.other-multiplier",
-        default: 0.0,
     },
     Number {
         path: "commands.tab-complete",

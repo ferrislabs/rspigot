@@ -74,6 +74,12 @@ fn step(s: &mut Scene, who: usize, position: Vec3, on_ground: bool) {
 
 fn fall_onto(s: &mut Scene, who: usize, end: Vec3, fall: f64) {
     let mut y = end.y + fall;
+    let mut climbed = spot(s, who).y;
+    while y - climbed > 6.0 {
+        climbed += 6.0;
+        step(s, who, Vec3::new(end.x, climbed, end.z), false);
+        s.tick(1);
+    }
     step(s, who, Vec3::new(end.x, y, end.z), false);
     while y - 1.0 > end.y {
         y -= 1.0;
@@ -395,6 +401,16 @@ fn falling_below_the_launch_height_still_counts() {
         PlayerInput::Attack(smash.target),
     );
     let after_hit = player_health(&mut smash.scene, 0);
+    for depth in 0..4 {
+        smash.scene.act(rspigot_core::plugins::Order::Block {
+            pos: rspigot_domain::BlockPos::new(
+                smash.perch.x.floor() as i32,
+                63 - depth,
+                smash.perch.z.floor() as i32,
+            ),
+            order: rspigot_core::plugins::BlockOrder::Set("minecraft:air".to_owned()),
+        });
+    }
     let mut y = smash.perch.y;
     for _ in 0..8 {
         y += 1.0;

@@ -19,6 +19,7 @@ const LEVEL_FILE: &str = "level.dat";
 const LEVEL_BACKUP: &str = "level.dat_old";
 const STORAGE_VERSION: i32 = 19133;
 const OVERWORLD_CLOCK: &str = "minecraft:overworld";
+const END_CLOCK: &str = "minecraft:the_end";
 const ADVANCE_TIME_RULE: &str = "minecraft:advance_time";
 const PVP_RULE: &str = "minecraft:pvp";
 const SPAWN_MOBS_RULE: &str = "minecraft:spawn_mobs";
@@ -298,6 +299,32 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
     {
         level.day_time = ticks;
     }
+    if let Some(clock) = saved("world_clocks", "world_clocks")
+        .as_ref()
+        .and_then(|clocks| clocks.get_compound(OVERWORLD_CLOCK))
+    {
+        level.clock.rate = clock
+            .get_f64("rate")
+            .map_or(level.clock.rate, |rate| rate as f32);
+        level.clock.partial_tick = clock
+            .get_f64("partial_tick")
+            .map_or(level.clock.partial_tick, |partial| partial as f32);
+        level.clock.paused = clock.get_bool("paused").unwrap_or(level.clock.paused);
+    }
+    if let Some(clock) = saved("world_clocks", "world_clocks")
+        .as_ref()
+        .and_then(|clocks| clocks.get_compound(END_CLOCK))
+    {
+        let mut runtime = rspigot_domain::world_clock::ClockRuntime::default();
+        runtime.rate = clock
+            .get_f64("rate")
+            .map_or(runtime.rate, |rate| rate as f32);
+        runtime.partial_tick = clock
+            .get_f64("partial_tick")
+            .map_or(runtime.partial_tick, |partial| partial as f32);
+        runtime.paused = clock.get_bool("paused").unwrap_or(runtime.paused);
+        level.end_clock = Some((clock.get_i64("total_ticks").unwrap_or(0), runtime));
+    }
     level.raids = optional_saved_data(world_root, "raids");
     level.scoreboard = optional_saved_data(world_root, "scoreboard");
     level.dragon_fight = saved("ender_dragon_fight", "dragon_fight");
@@ -459,9 +486,31 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
                 .with("rate", 1.0f32)
                 .with("paused", false),
         };
-        let changed = clock.get("total_ticks") != Some(&Tag::Long(level.day_time));
+        let changed = clock.get("total_ticks") != Some(&Tag::Long(level.day_time))
+            || clock.get("rate") != Some(&Tag::Float(level.clock.rate))
+            || clock.get("partial_tick") != Some(&Tag::Float(level.clock.partial_tick))
+            || clock.get_bool("paused") != Some(level.clock.paused);
         clock.insert("total_ticks", level.day_time);
+        clock.insert("rate", level.clock.rate);
+        clock.insert("partial_tick", level.clock.partial_tick);
+        clock.insert("paused", level.clock.paused);
         data.insert(OVERWORLD_CLOCK, clock);
+        let mut changed = changed;
+        if let Some((ticks, runtime)) = level.end_clock {
+            let mut end = match data.remove(END_CLOCK) {
+                Some(Tag::Compound(end)) => end,
+                _ => Compound::new(),
+            };
+            changed |= end.get("total_ticks") != Some(&Tag::Long(ticks))
+                || end.get("rate") != Some(&Tag::Float(runtime.rate))
+                || end.get("partial_tick") != Some(&Tag::Float(runtime.partial_tick))
+                || end.get_bool("paused") != Some(runtime.paused);
+            end.insert("total_ticks", ticks);
+            end.insert("rate", runtime.rate);
+            end.insert("partial_tick", runtime.partial_tick);
+            end.insert("paused", runtime.paused);
+            data.insert(END_CLOCK, end);
+        }
         changed
     })?;
     if let Some(fight) = &level.dragon_fight {
@@ -662,6 +711,8 @@ mod tests {
             spawn_angle: 90.5,
             game_time: 123_456,
             day_time: 6000,
+            clock: Default::default(),
+            end_clock: None,
             daylight_cycle: false,
             raining: true,
             thundering: true,
@@ -1034,6 +1085,50 @@ mod tests {
     }
 
     #[test]
+    fn the_end_clock_is_written_and_read_back() {
+        let dir = TempDir::new("level-end-clock");
+        let root = dir.path();
+        let mut data = sample();
+        let runtime = rspigot_domain::world_clock::ClockRuntime {
+            rate: 0.5,
+            paused: true,
+            ..Default::default()
+        };
+        data.end_clock = Some((321, runtime));
+        write_level_data(root, &data).unwrap();
+        let back = read_level_data(root).unwrap().unwrap();
+        assert_eq!(back.end_clock, Some((321, runtime)));
+        let clocks = read_file(root, "data/minecraft/world_clocks.dat");
+        let end = clocks
+            .get_compound("data")
+            .unwrap()
+            .get_compound("minecraft:the_end")
+            .unwrap();
+        assert_eq!(end.get("total_ticks"), Some(&Tag::Long(321)));
+    }
+
+    #[test]
+    fn the_overworld_clock_keeps_its_rate_and_pause_across_a_restart() {
+        let dir = TempDir::new("level-clock-state");
+        let root = dir.path();
+        let mut data = sample();
+        data.clock.rate = 2.5;
+        data.clock.paused = true;
+        data.clock.partial_tick = 0.25;
+        write_level_data(root, &data).unwrap();
+        let clocks = read_file(root, "data/minecraft/world_clocks.dat");
+        let overworld = clocks
+            .get_compound("data")
+            .unwrap()
+            .get_compound("minecraft:overworld")
+            .unwrap();
+        assert_eq!(overworld.get("rate"), Some(&Tag::Float(2.5)));
+        assert_eq!(overworld.get("paused"), Some(&Tag::Byte(1)));
+        let back = read_level_data(root).unwrap().unwrap();
+        assert_eq!(back.clock, data.clock);
+    }
+
+    #[test]
     fn files_follow_the_26_3_layout() {
         let dir = TempDir::new("level-layout");
         let root = dir.path();
@@ -1242,6 +1337,7 @@ mod tests {
 
         let untouched_rules = LevelData {
             rules: None,
+            clock: before.clock,
             ..sample()
         };
         write_level_data(root, &untouched_rules).unwrap();

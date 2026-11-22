@@ -281,6 +281,7 @@ pub(crate) struct Due {
     pub(crate) then: Continuation,
 }
 
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Flushed {
     Ready(Box<Ready>),
     Due(Due),

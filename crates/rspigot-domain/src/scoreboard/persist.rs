@@ -1,6 +1,6 @@
 use rspigot_nbt::{Compound, Tag};
 
-use crate::text::{Color, Component, Content, NamedColor, Style};
+use crate::text::{Component, NamedColor};
 
 use super::board::{Objective, Score, Scoreboard};
 use super::{CollisionRule, Criteria, DisplaySlot, NumberFormat, RenderType, Team, Visibility};
@@ -9,105 +9,8 @@ const TYPE_BLANK: &str = "minecraft:blank";
 const TYPE_FIXED: &str = "minecraft:fixed";
 const TYPE_STYLED: &str = "minecraft:styled";
 
-fn style_into(style: &Style, out: &mut Compound) {
-    if let Some(color) = style.color {
-        out.insert("color", color.serialize());
-    }
-    for (key, value) in [
-        ("bold", style.bold),
-        ("italic", style.italic),
-        ("underlined", style.underlined),
-        ("strikethrough", style.strikethrough),
-        ("obfuscated", style.obfuscated),
-    ] {
-        if let Some(value) = value {
-            out.insert(key, value);
-        }
-    }
-}
-
-fn style_from(tag: &Compound) -> Style {
-    let flag = |key: &str| tag.get_bool(key);
-    Style {
-        click: None,
-        hover: None,
-        color: tag.get_str("color").and_then(Color::parse),
-        bold: flag("bold"),
-        italic: flag("italic"),
-        underlined: flag("underlined"),
-        strikethrough: flag("strikethrough"),
-        obfuscated: flag("obfuscated"),
-    }
-}
-
-fn is_plain(component: &Component) -> bool {
-    component.style == Style::default()
-        && component.extra.is_empty()
-        && matches!(component.content, Content::Text(_))
-}
-
-pub(crate) fn component_to_tag(component: &Component) -> Tag {
-    if is_plain(component)
-        && let Content::Text(text) = &component.content
-    {
-        return Tag::String(text.clone());
-    }
-    let mut out = Compound::new();
-    match &component.content {
-        Content::Text(text) => {
-            out.insert("text", text.as_str());
-        }
-        Content::Translatable { key, args } => {
-            out.insert("translate", key.as_str());
-            if !args.is_empty() {
-                out.insert(
-                    "with",
-                    Tag::List(args.iter().map(component_to_tag).collect()),
-                );
-            }
-        }
-    }
-    style_into(&component.style, &mut out);
-    if !component.extra.is_empty() {
-        out.insert(
-            "extra",
-            Tag::List(component.extra.iter().map(component_to_tag).collect()),
-        );
-    }
-    Tag::Compound(out)
-}
-
-pub(crate) fn component_from_tag(tag: &Tag) -> Option<Component> {
-    match tag {
-        Tag::String(text) => Some(Component::text(text.clone())),
-        Tag::List(items) => {
-            let mut parts = items.iter().filter_map(component_from_tag);
-            let mut head = parts.next()?;
-            for part in parts {
-                head = head.append(part);
-            }
-            Some(head)
-        }
-        Tag::Compound(compound) => {
-            let mut component = if let Some(text) = compound.get_str("text") {
-                Component::text(text)
-            } else {
-                let key = compound.get_str("translate")?;
-                let args = compound
-                    .get_list("with")
-                    .map(|items| items.iter().filter_map(component_from_tag).collect())
-                    .unwrap_or_default();
-                Component::translatable(key, args)
-            };
-            component.style = style_from(compound);
-            if let Some(extra) = compound.get_list("extra") {
-                component.extra = extra.iter().filter_map(component_from_tag).collect();
-            }
-            Some(component)
-        }
-        _ => None,
-    }
-}
+pub(crate) use crate::text_nbt::{component_from_tag, component_to_tag};
+use crate::text_nbt::{read_style as style_from, write_style as style_into};
 
 pub(super) fn number_format_to_tag(format: &NumberFormat) -> Tag {
     let mut out = Compound::new();
@@ -361,6 +264,7 @@ fn compounds(list: Option<&[Tag]>) -> impl Iterator<Item = &Compound> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::text::{Color, Style};
 
     fn populated() -> Scoreboard {
         let mut board = Scoreboard::new();

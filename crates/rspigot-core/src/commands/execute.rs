@@ -31,6 +31,19 @@ enum Cond {
     Predicate(Identifier),
     Function(Identifier),
     Data(DataSpec, NbtPath),
+    Items {
+        source: SlotSource,
+        slots: String,
+        predicate: String,
+    },
+    Slots {
+        source: SlotSource,
+        slots: String,
+    },
+    Stopwatch {
+        id: String,
+        range: (Option<f64>, Option<f64>),
+    },
     Score {
         target: String,
         objective: String,
@@ -46,6 +59,34 @@ enum ScoreTest {
         source_objective: String,
     },
     Matches(selector::IntRange),
+}
+
+#[derive(Debug, Clone)]
+enum SlotSource {
+    Entity(String),
+    Block([String; 3]),
+}
+
+fn parse_float_range(token: &str) -> Result<(Option<f64>, Option<f64>), Problem> {
+    let bound = |text: &str| -> Result<Option<f64>, Problem> {
+        if text.is_empty() {
+            Ok(None)
+        } else {
+            text.parse::<f64>()
+                .map(Some)
+                .map_err(|_| message("argument.range.invalid", &[token]))
+        }
+    };
+    match token.split_once("..") {
+        Some((low, high)) if !(low.is_empty() && high.is_empty()) => {
+            Ok((bound(low)?, bound(high)?))
+        }
+        Some(_) => Err(message("argument.range.empty", &[])),
+        None => {
+            let exact = bound(token)?;
+            Ok((exact, exact))
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -281,6 +322,64 @@ fn parse_condition(rest: &str) -> Result<(Cond, &str), Problem> {
             let (spec, rest) = parse_data_spec(rest)?;
             let (path, rest) = take(rest).ok_or(Problem::Unknown)?;
             Ok((Cond::Data(spec, parse_path(path)?), rest))
+        }
+        "items" => {
+            let (kind, rest) = take(rest).ok_or(Problem::Unknown)?;
+            let (source, rest) = match kind {
+                "entity" => {
+                    let (selector, rest) = selector_token(rest)?;
+                    (SlotSource::Entity(selector), rest)
+                }
+                "block" => {
+                    let (pos, rest) = triple(rest)?;
+                    (SlotSource::Block(pos), rest)
+                }
+                _ => return Err(Problem::Unknown),
+            };
+            let (slots, rest) = take(rest).ok_or(Problem::Unknown)?;
+            let (predicate, rest) = take(rest).ok_or(Problem::Unknown)?;
+            super::player_commands::ItemPredicate::parse(predicate)?;
+            Ok((
+                Cond::Items {
+                    source,
+                    slots: slots.to_owned(),
+                    predicate: predicate.to_owned(),
+                },
+                rest,
+            ))
+        }
+        "slots" => {
+            let (kind, rest) = take(rest).ok_or(Problem::Unknown)?;
+            let (source, rest) = match kind {
+                "entity" => {
+                    let (selector, rest) = selector_token(rest)?;
+                    (SlotSource::Entity(selector), rest)
+                }
+                "block" => {
+                    let (pos, rest) = triple(rest)?;
+                    (SlotSource::Block(pos), rest)
+                }
+                _ => return Err(Problem::Unknown),
+            };
+            let (slots, rest) = take(rest).ok_or(Problem::Unknown)?;
+            Ok((
+                Cond::Slots {
+                    source,
+                    slots: slots.to_owned(),
+                },
+                rest,
+            ))
+        }
+        "stopwatch" => {
+            let (id, rest) = take(rest).ok_or(Problem::Unknown)?;
+            let (range, rest) = take(rest).ok_or(Problem::Unknown)?;
+            Ok((
+                Cond::Stopwatch {
+                    id: identifier(id)?.to_string(),
+                    range: parse_float_range(range)?,
+                },
+                rest,
+            ))
         }
         _ => Err(Problem::Unknown),
     }
@@ -679,7 +778,11 @@ fn matches_biome(wanted: &str, actual: &str) -> bool {
 fn counted(condition: &Cond) -> bool {
     matches!(
         condition,
-        Cond::Entity(_) | Cond::Blocks { .. } | Cond::Data(..)
+        Cond::Entity(_)
+            | Cond::Blocks { .. }
+            | Cond::Data(..)
+            | Cond::Items { .. }
+            | Cond::Slots { .. }
     )
 }
 
@@ -730,6 +833,29 @@ fn test<C: CommandContext>(
             )),
         },
         Cond::Function(id) => super::function_commands::probe(ctx, sender, id),
+        Cond::Items {
+            source,
+            slots,
+            predicate,
+        } => test_items(ctx, sender, source, slots, Some(predicate)),
+        Cond::Slots { source, slots } => test_items(ctx, sender, source, slots, None),
+        Cond::Stopwatch { id, range } => {
+            let Some(started) = ctx.stopwatch_started(id) else {
+                return Err(Component::translatable(
+                    "commands.stopwatch.does_not_exist",
+                    vec![Component::text(id.clone())],
+                ));
+            };
+            let elapsed = (std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_or(0, |since| since.as_millis() as i64)
+                - started) as f64
+                / 1000.0;
+            Ok(i32::from(
+                range.0.is_none_or(|low| elapsed >= low)
+                    && range.1.is_none_or(|high| elapsed <= high),
+            ))
+        }
         Cond::Data(spec, path) => {
             let target = data_target(ctx, sender, spec)?;
             let data = Tag::Compound(ctx.read_data(&target)?);
@@ -741,6 +867,47 @@ fn test<C: CommandContext>(
             test,
         } => test_score(ctx, sender, target, objective, test),
     }
+}
+
+fn test_items<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    source: &SlotSource,
+    slots: &str,
+    predicate: Option<&str>,
+) -> Result<i32, Component> {
+    let predicate = predicate
+        .map(super::player_commands::ItemPredicate::parse)
+        .transpose()?;
+    let ids = super::slots::slot_ids(slots).ok_or_else(|| {
+        Component::translatable("slot.unknown", vec![Component::text(slots.to_owned())])
+    })?;
+    let holders = match source {
+        SlotSource::Entity(selector) => ctx
+            .select_entities(sender, selector)?
+            .into_iter()
+            .map(super::slots::SlotHolder::Entity)
+            .collect::<Vec<_>>(),
+        SlotSource::Block(pos) => vec![super::slots::SlotHolder::Block(block_pos(
+            ctx, sender, pos,
+        )?)],
+    };
+    let mut count = 0;
+    for holder in holders {
+        for id in &ids {
+            let Some(slot) = ctx.read_slot(holder, *id) else {
+                continue;
+            };
+            match (&predicate, slot) {
+                (None, _) => count += 1,
+                (Some(predicate), Some(stack)) if predicate.matches(&stack) => {
+                    count += i32::from(stack.count.get());
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(count)
 }
 
 fn test_score<C: CommandContext>(

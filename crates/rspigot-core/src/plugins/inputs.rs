@@ -6,9 +6,10 @@ use crate::commands::{CommandContext, CommandSender};
 use crate::events::{Animation, ClientEvent, Hand, InputState};
 use crate::plugins::decisions::Continuation;
 use crate::plugins::events::{
-    PlayerAnimation, PlayerAnimationType, PlayerGameModeChange, PlayerHideEntity,
-    PlayerInput as Pressed, PlayerItemHeld, PlayerShowEntity, PlayerSwapHandItems,
-    PlayerSwapHandItemsPatch, PlayerToggleFlight, PlayerToggleSneak, PlayerToggleSprint,
+    EntityExhaustionReason, PlayerAnimation, PlayerAnimationType, PlayerGameModeChange,
+    PlayerHideEntity, PlayerInput as Pressed, PlayerItemHeld, PlayerShowEntity,
+    PlayerSwapHandItems, PlayerSwapHandItemsPatch, PlayerToggleFlight, PlayerToggleSneak,
+    PlayerToggleSprint,
 };
 use crate::plugins::steps::{GameModeStep, HeldStep, InputStep, SwapStep, SwingStep, ToggleStep};
 use crate::plugins::{EntityView, EventKind, EventPayload, Input, spec_of, stack_of};
@@ -146,6 +147,18 @@ impl<L: ClientLink> Server<L> {
         player.last_input = step.state;
         if jumped {
             self.award_custom(step.player, crate::stats::custom::JUMP, 1);
+            let sprinting = self.players.get(&step.player).is_some_and(|p| p.sprinting);
+            let (cost, reason) = if sprinting {
+                (
+                    self.config.hunger.jump(true),
+                    EntityExhaustionReason::JumpSprint,
+                )
+            } else {
+                (self.config.hunger.jump(false), EntityExhaustionReason::Jump)
+            };
+            if cost > 0.0 {
+                self.exhaust(step.player, cost, reason);
+            }
         }
     }
 

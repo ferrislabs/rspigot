@@ -8,6 +8,7 @@ use rspigot_domain::damage::{self, DamageTag, DamageType};
 use rspigot_domain::entity::living::LivingState;
 use rspigot_domain::game_event::GameEvent;
 use rspigot_domain::item::ItemStack;
+use rspigot_domain::movement::Gait;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, ItemId, Vec3};
 use rspigot_entities::EntityKind as Kind;
@@ -18,6 +19,7 @@ use crate::events::Hand;
 use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
 use crate::plugins::events::CauldronLevelChangeReason;
+use crate::plugins::events::EntityExhaustionReason;
 use crate::plugins::events::{PlayerStatisticIncrement, Statistic};
 use crate::plugins::steps::Continuation;
 use crate::plugins::{EventKind, EventPayload};
@@ -638,31 +640,62 @@ impl<L: ClientLink> Server<L> {
         let (on_ground, sprinting, sneaking) =
             (player.on_ground, player.sprinting, player.sneaking);
         let fall_flying = player.fall_flying;
-        let swimming = sprinting && self.block_has_water(to.block());
-        let key_and_amount = if swimming {
-            Some((custom::SWIM_ONE_CM, full))
+        let swimming = player.motion.swimming;
+        let feet_in_water = self.block_has_water(to.block());
+        let (key_and_amount, gait) = if swimming {
+            (
+                Some((custom::SWIM_ONE_CM, full)),
+                Some((Gait::Swim, EntityExhaustionReason::Swim)),
+            )
         } else if eye_in_water {
-            Some((custom::WALK_UNDER_WATER_ONE_CM, full))
-        } else if self.block_has_water(to.block()) {
-            Some((custom::WALK_ON_WATER_ONE_CM, flat))
+            (
+                Some((custom::WALK_UNDER_WATER_ONE_CM, full)),
+                Some((Gait::WalkUnderwater, EntityExhaustionReason::WalkUnderwater)),
+            )
+        } else if feet_in_water {
+            (
+                Some((custom::WALK_ON_WATER_ONE_CM, flat)),
+                Some((Gait::WalkOnWater, EntityExhaustionReason::WalkOnWater)),
+            )
         } else if self.is_climbing(to) {
-            (delta.y > 0.0).then(|| (custom::CLIMB_ONE_CM, centimeters(delta.y)))
+            (
+                (delta.y > 0.0).then(|| (custom::CLIMB_ONE_CM, centimeters(delta.y))),
+                None,
+            )
         } else if on_ground {
-            let key = if sprinting {
-                custom::SPRINT_ONE_CM
+            let (key, gait) = if sprinting {
+                (
+                    custom::SPRINT_ONE_CM,
+                    (Gait::Sprint, EntityExhaustionReason::Sprint),
+                )
             } else if sneaking {
-                custom::CROUCH_ONE_CM
+                (
+                    custom::CROUCH_ONE_CM,
+                    (Gait::Crouch, EntityExhaustionReason::Crouch),
+                )
             } else {
-                custom::WALK_ONE_CM
+                (
+                    custom::WALK_ONE_CM,
+                    (Gait::Walk, EntityExhaustionReason::Walk),
+                )
             };
-            Some((key, flat))
+            (Some((key, flat)), Some(gait))
         } else if fall_flying {
-            Some((custom::AVIATE_ONE_CM, full))
+            (Some((custom::AVIATE_ONE_CM, full)), None)
         } else {
-            Some((custom::FLY_ONE_CM, flat)).filter(|(_, amount)| *amount > FLY_THRESHOLD)
+            (
+                Some((custom::FLY_ONE_CM, flat)).filter(|(_, amount)| *amount > FLY_THRESHOLD),
+                None,
+            )
         };
         if let Some((key, amount)) = key_and_amount {
             self.award_custom(id, key, amount);
+            if let Some((gait, reason)) = gait.filter(|_| amount > 0) {
+                let cost = self.config.hunger.travelled(gait, amount);
+                if cost > 0.0 {
+                    self.exhaust(id, cost, reason);
+                }
+            }
         }
         if delta.y < 0.0 && !on_ground {
             self.award_custom(id, custom::FALL_ONE_CM, centimeters(-delta.y));

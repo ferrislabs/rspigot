@@ -150,6 +150,10 @@ impl<L: ClientLink> Server<L> {
         }
         let now = self.now_ms();
         let enforce = self.config.chat.enforce_secure_profile;
+        let display = self
+            .players
+            .get(&id)
+            .and_then(|player| self.holder_display_name(&player.profile.name));
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
@@ -175,7 +179,8 @@ impl<L: ClientLink> Server<L> {
                 player.chat_index = index.saturating_add(1);
                 Some(Box::new(SignedChat {
                     sender: id,
-                    sender_name: Component::text(player.profile.name.clone()),
+                    sender_name: display
+                        .unwrap_or_else(|| Component::text(player.profile.name.clone())),
                     index,
                     signature,
                     content: message.content.clone(),

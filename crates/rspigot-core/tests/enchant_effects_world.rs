@@ -104,16 +104,21 @@ fn give(s: &mut Scene, slot: i32, item: &str, enchantments: &[(&str, i32)]) {
 
 fn walk_to(s: &mut Scene, position: Vec3) {
     let alice = s.players[0].clone();
-    send_input(
-        &mut s.server,
-        &alice,
-        PlayerInput::Move {
-            position: Some(position),
-            rotation: None,
-            on_ground: true,
-        },
-    );
-    s.tick(1);
+    let start = s.server.player_location(alice.id).unwrap_or(position);
+    let legs = ((position - start).length() / 6.0).ceil().max(1.0) as u32;
+    for leg in 1..=legs {
+        let along = start + (position - start).scale(f64::from(leg) / f64::from(legs));
+        send_input(
+            &mut s.server,
+            &alice,
+            PlayerInput::Move {
+                position: Some(along),
+                rotation: None,
+                on_ground: true,
+            },
+        );
+        s.tick(1);
+    }
 }
 
 fn block_kind(s: &mut Scene, pos: BlockPos) -> String {

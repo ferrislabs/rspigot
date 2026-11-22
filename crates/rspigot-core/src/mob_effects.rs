@@ -44,6 +44,7 @@ impl<L: ClientLink> Server<L> {
         let Some(state) = entity.living() else {
             return;
         };
+        let (particles, ambient) = rspigot_domain::effect_particles::synchronized(&state.effects);
         if living::is_dead_or_dying(&entity.base, state) {
             if state.death_time >= DEATH_DURATION && !entity.base.is_removed() {
                 let kinds = kinds_of(state.effects.iter());
@@ -55,6 +56,17 @@ impl<L: ClientLink> Server<L> {
             .effects
             .iter()
             .any(|effect| effect.effect.kind().is_some_and(EffectKind::keeps_air));
+        if let Some(entity) = self.entities.store.get_mut(id) {
+            use rspigot_domain::entity::SyncedValue;
+            entity.base.data.set(
+                living::DATA_EFFECT_PARTICLES,
+                SyncedValue::Particles(particles),
+            );
+            entity
+                .base
+                .data
+                .set(living::DATA_EFFECT_AMBIENCE, SyncedValue::Boolean(ambient));
+        }
         if keeps_air && let Some(entity) = self.entities.store.get_mut(id) {
             let max = entity.base.max_air_ticks;
             entity.base.set_air_supply(max);

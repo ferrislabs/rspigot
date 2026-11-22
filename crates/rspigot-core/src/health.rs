@@ -718,6 +718,10 @@ impl<L: ClientLink> Server<L> {
     fn die(&mut self, id: PlayerId, source: &DamageSource) {
         self.stop_sleep_in_bed(id, true, true);
         let keep_rule = self.config.rules.keep_inventory;
+        let display = self
+            .players
+            .get(&id)
+            .and_then(|player| self.holder_display_name(&player.profile.name));
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
@@ -725,7 +729,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         player.vitals.dying = true;
-        let victim = Component::text(player.profile.name.clone());
+        let victim = display.unwrap_or_else(|| Component::text(player.profile.name.clone()));
         let killer = player.vitals.kill_credit.as_ref().map(|c| c.player);
         let credit = player.vitals.kill_credit.as_ref().map(|c| &c.name);
         let message = player.vitals.combat.death_message(&victim, credit);
@@ -1255,10 +1259,13 @@ impl<L: ClientLink> Server<L> {
             };
             let max = max_health(player);
             let vitals = &mut player.vitals;
-            match vitals
-                .food
-                .tick_regeneration(difficulty, regeneration, vitals.health, max)
-            {
+            match vitals.food.tick_regeneration_costing(
+                difficulty,
+                regeneration,
+                vitals.health,
+                max,
+                self.config.hunger.regen,
+            ) {
                 FoodEffect::None => {}
                 FoodEffect::Heal { amount, exhaustion } => {
                     self.heal_player(id, amount, EntityRegainHealthRegainReason::Satiated);

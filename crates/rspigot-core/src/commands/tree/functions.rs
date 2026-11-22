@@ -48,7 +48,13 @@ pub(super) fn function_commands(b: &mut TreeBuilder, root: usize) {
 
     let schedule = b.literal(root, "schedule", false);
     let scheduled = b.literal(schedule, "function", false);
-    let name = function_argument(b, scheduled, false);
+    let name = b.suggesting(
+        scheduled,
+        "function",
+        ArgumentParser::Named("minecraft:function"),
+        ASK_SERVER,
+        false,
+    );
     let time = b.argument(name, "time", ArgumentParser::Time { min: 0 }, true);
     for mode in ["append", "replace"] {
         b.literal(time, mode, true);
@@ -91,4 +97,12 @@ pub(super) fn function_commands(b: &mut TreeBuilder, root: usize) {
     for kind in ["available", "enabled"] {
         b.literal(list, kind, true);
     }
+    let create = b.literal(datapack, "create", false);
+    let id = b.argument(create, "id", ArgumentParser::QuotedString, false);
+    b.argument(
+        id,
+        "description",
+        ArgumentParser::Named("minecraft:component"),
+        true,
+    );
 }

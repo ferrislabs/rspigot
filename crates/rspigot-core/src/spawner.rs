@@ -174,7 +174,21 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn spawner_round(&mut self, mut round: SpawnerRound) {
+    fn spawner_round(&mut self, round: SpawnerRound) {
+        if let Some(queued) = self.spawner_rounds.as_mut() {
+            queued.push(round);
+            return;
+        }
+        self.spawner_rounds = Some(Vec::new());
+        let mut next = Some(round);
+        while let Some(round) = next {
+            self.run_spawner_round(round);
+            next = self.spawner_rounds.as_mut().and_then(Vec::pop);
+        }
+        self.spawner_rounds = None;
+    }
+
+    fn run_spawner_round(&mut self, mut round: SpawnerRound) {
         while round.left > 0 {
             round.left -= 1;
             let Some(mut spawner) = self.spawner_at(round.pos) else {

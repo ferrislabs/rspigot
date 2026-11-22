@@ -303,6 +303,82 @@ fn split_scale(rest: &str, mode: Mode) -> (String, f64) {
     (rest.to_owned(), 1.0)
 }
 
+pub(super) fn provider_tag<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    rest: &str,
+) -> Result<Tag, CommandOutcome> {
+    let help = "(default|block <pos>|entity <target>) (integer|float) <provider>";
+    let Some((context, rest)) = next_argument(rest) else {
+        return Err(usage(ctx, sender, help));
+    };
+    let (this, rest) = match context {
+        "default" => (None, rest),
+        "block" => {
+            let mut tail = rest;
+            for _ in 0..3 {
+                let Some((_, after)) = next_argument(tail) else {
+                    return Err(fail(ctx, sender, "argument.pos3d.incomplete", Vec::new()));
+                };
+                tail = after;
+            }
+            (None, tail)
+        }
+        "entity" => {
+            let Some((selector, after)) = next_argument(rest) else {
+                return Err(usage(ctx, sender, help));
+            };
+            let target = select_one(ctx, sender, selector)?;
+            (ctx.score_holder_name(target), after)
+        }
+        _ => return Err(usage(ctx, sender, help)),
+    };
+    let Some((kind, rest)) = next_argument(rest) else {
+        return Err(usage(ctx, sender, help));
+    };
+    let mode = match kind {
+        "integer" => Mode::Integer,
+        "float" => Mode::Float,
+        _ => return Err(usage(ctx, sender, help)),
+    };
+    let Some(value) = parse_value(rest.trim()) else {
+        return Err(fail(
+            ctx,
+            sender,
+            "argument.resource_or_id.invalid",
+            Vec::new(),
+        ));
+    };
+    let mut evaluator = Evaluator {
+        ctx,
+        mode,
+        environment: Environment { this },
+    };
+    let raw = match evaluator.eval(&value, 0) {
+        Ok(raw) if raw.is_finite() => raw,
+        Ok(raw) => {
+            return Err(fail(
+                ctx,
+                sender,
+                "command.compute.result.unnamed.invalid",
+                vec![text(raw)],
+            ));
+        }
+        Err(reason) => {
+            return Err(fail(
+                ctx,
+                sender,
+                "command.compute.result.unnamed.invalid",
+                vec![text(reason)],
+            ));
+        }
+    };
+    Ok(match mode {
+        Mode::Integer => Tag::Int(raw as i32),
+        Mode::Float => Tag::Float(raw as f32),
+    })
+}
+
 pub(super) fn run<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,

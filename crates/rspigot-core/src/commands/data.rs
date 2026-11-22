@@ -374,6 +374,7 @@ fn sources<C: CommandContext>(
                 rspigot_nbt::parse_tag(text).map_err(|e| error(ctx, sender, e.key, Vec::new()))?;
             Ok(vec![tag])
         }
+        "compute" => Ok(vec![super::compute::provider_tag(ctx, sender, rest)?]),
         "from" | "string" => {
             let (spec, rest) = target(ctx, sender, rest)?;
             let data = read(ctx, sender, &spec)?;

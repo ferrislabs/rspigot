@@ -73,6 +73,7 @@ fn blame_of(source: &DamageSource) -> (EntityDamageCause, Blame) {
         _ => (
             match kind {
                 DamageType::Fall => EntityDamageCause::Fall,
+                DamageType::FlyIntoWall => EntityDamageCause::FlyIntoWall,
                 DamageType::InFire => EntityDamageCause::Fire,
                 DamageType::Starve => EntityDamageCause::Starvation,
                 DamageType::Drown => EntityDamageCause::Drowning,

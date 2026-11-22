@@ -129,6 +129,7 @@ impl ServerFiles {
                 .spigot
                 .float("world-settings.default.hunger.combat-exhaustion", 0.1)
                 .max(0.0) as f32,
+            hunger: self.hunger(),
             messages: self.messages(),
             motd: p.string("motd").to_owned(),
             hide_online_players: p.bool("hide-online-players"),
@@ -170,6 +171,26 @@ impl ServerFiles {
                 ..Default::default()
             },
             ..GameConfig::default()
+        }
+    }
+
+    fn hunger(&self) -> rspigot_domain::movement::HungerRates {
+        let defaults = rspigot_domain::movement::HungerRates::default();
+        let key = |name: &str, fallback: f32| {
+            self.spigot
+                .float(
+                    &format!("world-settings.default.hunger.{name}"),
+                    f64::from(fallback),
+                )
+                .max(0.0) as f32
+        };
+        rspigot_domain::movement::HungerRates {
+            jump_walk: key("jump-walk-exhaustion", defaults.jump_walk),
+            jump_sprint: key("jump-sprint-exhaustion", defaults.jump_sprint),
+            swim_multiplier: key("swim-multiplier", defaults.swim_multiplier),
+            sprint_multiplier: key("sprint-multiplier", defaults.sprint_multiplier),
+            other_multiplier: key("other-multiplier", defaults.other_multiplier),
+            regen: key("regen-exhaustion", defaults.regen),
         }
     }
 
@@ -776,6 +797,22 @@ mod tests {
         let vanilla = files("{}", "{}").game_config(AdminLists::default());
         assert!(vanilla.save_players && vanilla.allow_end && vanilla.warn_on_overload);
         assert_eq!(vanilla.status_sample_count, 12);
+    }
+
+    #[test]
+    fn the_hunger_keys_reach_the_game_config() {
+        let spigot = "world-settings:\n  default:\n    hunger:\n      jump-walk-exhaustion: 0.5\n      jump-sprint-exhaustion: 0.75\n      regen-exhaustion: 3.0\n      swim-multiplier: 0.02\n      sprint-multiplier: 0.3\n      other-multiplier: 0.04\n";
+        let hunger = files(spigot, "{}")
+            .game_config(AdminLists::default())
+            .hunger;
+        assert_eq!(hunger.jump_walk, 0.5);
+        assert_eq!(hunger.jump_sprint, 0.75);
+        assert_eq!(hunger.regen, 3.0);
+        assert_eq!(hunger.swim_multiplier, 0.02);
+        assert_eq!(hunger.sprint_multiplier, 0.3);
+        assert_eq!(hunger.other_multiplier, 0.04);
+        let vanilla = files("{}", "{}").game_config(AdminLists::default()).hunger;
+        assert_eq!(vanilla, rspigot_domain::movement::HungerRates::default());
     }
 
     #[test]

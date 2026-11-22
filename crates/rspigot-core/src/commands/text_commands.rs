@@ -5,6 +5,7 @@ use super::dispatch::{
     CommandContext, CommandOutcome, CommandSender, Target, TitleAction, fail, next_argument, usage,
 };
 use super::json_text;
+use super::text_resolve;
 
 fn reply_err<C: CommandContext>(
     ctx: &mut C,
@@ -47,7 +48,12 @@ fn tellraw<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) ->
         Err(error) => return reply_err(ctx, sender, error),
     };
     for player in &found {
-        ctx.tell_player(*player, component.clone(), false);
+        let shown =
+            match text_resolve::resolve(ctx, sender, &component, Some(Target::Player(*player))) {
+                Ok(shown) => shown,
+                Err(error) => return reply_err(ctx, sender, error),
+            };
+        ctx.tell_player(*player, shown, false);
     }
     ctx.record_result(found.len() as i32);
     CommandOutcome::Success
@@ -87,16 +93,23 @@ fn title<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -> C
                 Err(error) => return reply_err(ctx, sender, error),
             };
             let key = format!("commands.title.show.{action}.{suffix}");
-            if action == "actionbar" {
-                for player in &found {
-                    ctx.tell_player(*player, component.clone(), true);
+            for player in &found {
+                let shown = match text_resolve::resolve(
+                    ctx,
+                    sender,
+                    &component,
+                    Some(Target::Player(*player)),
+                ) {
+                    Ok(shown) => shown,
+                    Err(error) => return reply_err(ctx, sender, error),
+                };
+                match action {
+                    "actionbar" => ctx.tell_player(*player, shown, true),
+                    "title" => ctx.title_player(*player, TitleAction::Title(shown)),
+                    _ => ctx.title_player(*player, TitleAction::Subtitle(shown)),
                 }
-                (key, None)
-            } else if action == "title" {
-                (key, Some(TitleAction::Title(component)))
-            } else {
-                (key, Some(TitleAction::Subtitle(component)))
             }
+            (key, None)
         }
         "times" => {
             let numbers: Vec<i32> = rest

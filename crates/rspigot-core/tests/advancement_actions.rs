@@ -250,6 +250,9 @@ fn drop_to(s: &mut Scene, from: f64, to: f64) {
     while y - 1.0 > to {
         y -= 1.0;
         walk(s, Vec3::new(8.5, y, 8.5), false);
+        if (from - y) as i64 % 4 == 0 {
+            s.tick(1);
+        }
     }
     walk(s, Vec3::new(8.5, to, 8.5), true);
     s.tick(2);

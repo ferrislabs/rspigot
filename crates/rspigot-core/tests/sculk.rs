@@ -137,6 +137,8 @@ fn walk(s: &mut Scene, from: Vec3, steps: i32, dx: f64) -> Vec3 {
 }
 
 fn step_on_shrieker(s: &mut Scene) {
+    walk(s, Vec3::new(1.5, 64.0, 0.5), 1, 0.0);
+    walk(s, Vec3::new(1.5, 64.0, 4.5), 1, 0.0);
     walk(s, Vec3::new(1.5, 64.0, 8.5), 1, 0.0);
     walk(s, Vec3::new(1.5, 64.0, 8.5), 1, 1.0);
     walk(s, Vec3::new(2.5, 65.0, 8.5), 1, -2.0);

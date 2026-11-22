@@ -79,6 +79,13 @@ impl<L: ClientLink> Server<L> {
         level.thundering = false;
         if dimension.has_fixed_time {
             level.day_time = 0;
+            level.clock = rspigot_domain::world_clock::ClockRuntime::default();
+            if key == Identifier::minecraft("the_end")
+                && let Some((ticks, runtime)) = level.end_clock
+            {
+                level.day_time = ticks;
+                level.clock = runtime;
+            }
         }
         let workers = ChunkWorkers::spawn(self.config.chunk_workers, store, generator);
         let mut chunks = ChunkManager::new(Arc::clone(&dimension), self.config.chunks);

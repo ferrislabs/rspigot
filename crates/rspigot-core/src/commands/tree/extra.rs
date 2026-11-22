@@ -16,10 +16,10 @@ fn sound_commands(b: &mut TreeBuilder, root: usize) {
         "sound",
         ArgumentParser::ResourceLocation,
         "minecraft:available_sounds",
-        false,
+        true,
     );
     for source in SOURCES {
-        let node = b.literal(sound, source, false);
+        let node = b.literal(sound, source, true);
         let targets = b.argument(node, "targets", player_targets(), true);
         let pos = b.argument(targets, "pos", ArgumentParser::Vec3, true);
         let volume = b.argument(pos, "volume", float(Some(0.0), None), true);
@@ -28,7 +28,7 @@ fn sound_commands(b: &mut TreeBuilder, root: usize) {
     }
     let stopsound = b.literal(root, "stopsound", false);
     let targets = b.argument(stopsound, "targets", player_targets(), true);
-    let any = b.literal(targets, "*", true);
+    let any = b.literal(targets, "*", false);
     b.suggesting(
         any,
         "sound",
@@ -173,8 +173,8 @@ fn movement_commands(b: &mut TreeBuilder, root: usize) {
     let target = b.argument(spectate, "target", single_entity(), true);
     b.argument(target, "player", player_targets(), true);
 
-    let swing = b.literal(root, "swing", false);
-    let targets = b.argument(swing, "targets", entities(), false);
+    let swing = b.literal(root, "swing", true);
+    let targets = b.argument(swing, "targets", entities(), true);
     for hand in ["mainhand", "offhand"] {
         let node = b.literal(targets, hand, true);
         let animation = b.argument(
@@ -310,4 +310,12 @@ pub(super) fn admin_extras(b: &mut TreeBuilder, root: usize) {
     let debug = b.literal(root, "debug", false);
     b.literal(debug, "start", true);
     b.literal(debug, "stop", true);
+    let function = b.literal(debug, "function", false);
+    b.suggesting(
+        function,
+        "name",
+        ArgumentParser::Named("minecraft:function"),
+        "minecraft:ask_server",
+        true,
+    );
 }

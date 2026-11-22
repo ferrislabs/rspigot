@@ -86,6 +86,7 @@ pub struct Player<L> {
     pub respawn: Option<rspigot_domain::bed::RespawnConfig>,
     pub meta: rspigot_domain::meta::Metadata,
     pub volatile_meta: rspigot_domain::meta::Metadata,
+    pub(crate) motion: crate::player_movement::MoveState,
 }
 
 impl<L> Player<L> {
@@ -109,6 +110,8 @@ impl<L> Player<L> {
     }
 
     pub fn next_teleport_id(&mut self) -> i32 {
+        self.motion.first_good = None;
+        self.motion.rate.reset();
         self.teleport_counter = self.teleport_counter.wrapping_add(1);
         self.pending_teleport = Some(self.teleport_counter);
         self.teleport_counter
@@ -132,6 +135,9 @@ impl<L> Player<L> {
         if self.sprinting {
             flags |= 0x08;
         }
+        if self.motion.swimming {
+            flags |= 0x10;
+        }
         if self.effects.has("minecraft:invisibility") {
             flags |= 0x20;
         }
@@ -152,23 +158,30 @@ impl<L> Player<L> {
         )
     }
 
-    pub fn eye_height(&self) -> f64 {
-        if self.sleeping.is_some() {
-            rspigot_domain::bed::SLEEPING_SIZE
-        } else if self.sneaking {
-            1.27
-        } else {
-            1.62
+    pub fn pose_input(&self, passenger: bool) -> rspigot_domain::movement::PoseInput {
+        rspigot_domain::movement::PoseInput {
+            fall_flying: self.fall_flying,
+            sleeping: self.sleeping.is_some(),
+            swimming: self.motion.swimming,
+            spin_attack: self.spin.is_some(),
+            sneaking: self.sneaking,
+            flying: self.flying || self.game_mode == GameMode::Spectator,
+            spectator: self.game_mode == GameMode::Spectator,
+            passenger,
         }
     }
 
+    pub fn pose(&self) -> rspigot_domain::entity::Pose {
+        self.motion
+            .squeeze
+            .unwrap_or_else(|| rspigot_domain::movement::wanted_pose(&self.pose_input(false)))
+    }
+
+    pub fn eye_height(&self) -> f64 {
+        rspigot_domain::movement::dimensions(self.pose()).1
+    }
+
     pub fn height(&self) -> f64 {
-        if self.sleeping.is_some() {
-            rspigot_domain::bed::SLEEPING_SIZE
-        } else if self.sneaking {
-            1.5
-        } else {
-            1.8
-        }
+        rspigot_domain::movement::dimensions(self.pose()).0
     }
 }

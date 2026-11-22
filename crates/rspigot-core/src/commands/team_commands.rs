@@ -550,7 +550,7 @@ fn teammsg<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) ->
         .collect();
     let team_name = team.formatted_display_name();
     let from = ctx.target_name(Target::Player(player));
-    let body = Component::text(message);
+    let body = super::chat_commands::with_selectors(ctx, sender, message);
     let mut targets = recipients.clone();
     if !targets.contains(&player) {
         targets.push(player);

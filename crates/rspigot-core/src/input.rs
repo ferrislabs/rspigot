@@ -4,7 +4,6 @@ use rspigot_domain::bed;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::placement;
 use rspigot_domain::player::{GameMode, PlayerId};
-use rspigot_domain::text::Component;
 use rspigot_domain::{BlockPos, BlockStateId, Rotation, Vec3};
 
 use rspigot_blocks::{BlockKind, Face, PlaceContext, StateFlags, UseContext};
@@ -28,7 +27,6 @@ use crate::server::{Audience, Server};
 const CAMPFIRE_DOUSE_EVENT: i32 = 1009;
 const OFFHAND_SLOT: usize = 45;
 const MAX_REACH_SQUARED: f64 = 64.0;
-const MAX_MOVE_SQUARED: f64 = 100.0 * 100.0;
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn handle_input(&mut self, id: PlayerId, input: PlayerInput) {
@@ -309,42 +307,12 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let from = reference.unwrap_or(player.position);
-        if let Some(target) = position {
-            if !target.is_finite()
-                || target.x.abs() > 3.0e7
-                || target.z.abs() > 3.0e7
-                || target.y.abs() > 2.0e7
-            {
-                self.disconnect_player(
-                    id,
-                    Component::translatable(
-                        "multiplayer.disconnect.invalid_player_movement",
-                        Vec::new(),
-                    ),
-                );
-                return;
-            }
-            let rules = &self.config.rules;
-            let checked =
-                rules.player_movement_check && (rules.elytra_movement_check || !player.fall_flying);
-            let limit =
-                MAX_MOVE_SQUARED * (self.config.moved_too_quickly_multiplier / 10.0).powi(2);
-            if checked && from.distance_squared(target) > limit {
-                tracing::warn!(
-                    "{} moved too quickly! {:.2},{:.2},{:.2}",
-                    player.profile.name,
-                    target.x - from.x,
-                    target.y - from.y,
-                    target.z - from.z
-                );
-                let teleport = player.next_teleport_id();
-                player.link.send(ClientEvent::Teleport {
-                    id: teleport,
-                    position: from,
-                    rotation: player.rotation,
-                });
-                return;
-            }
+        let moved = position.is_some_and(|target| target != from);
+        let packets = self.count_move_packet(id, moved);
+        if let Some(target) = position
+            && !self.validate_move(id, from, target, packets)
+        {
+            return;
         }
         match position {
             Some(to) if to != from => self.decide_move(id, from, to, rotation, on_ground),
@@ -370,6 +338,7 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let from = player.position;
+        let previous = player.known_movement;
         if let Some(target) = position {
             player.known_movement = target - from;
             player.moved_this_tick = true;
@@ -403,6 +372,8 @@ impl<L: ClientLink> Server<L> {
         }
         self.check_fall(id, to.y - from.y, on_ground);
         if position.is_some() {
+            self.fly_into_wall(id, from, previous, to - from);
+            self.note_floating(id, from, to, on_ground);
             self.count_movement(id, from, to);
             self.player_step(id, from, to, on_ground);
         }
@@ -466,7 +437,17 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         match action {
-            DigAction::Start => self.start_digging(id, pos, face, sequence),
+            DigAction::Start => {
+                if let Some(player) = self.players.get_mut(&id) {
+                    player.motion.destroy_direction = Some(face);
+                }
+                self.start_digging(id, pos, face, sequence);
+            }
+            DigAction::ChangeDestroyDirection => {
+                if let Some(player) = self.players.get_mut(&id) {
+                    player.motion.destroy_direction = Some(face);
+                }
+            }
             DigAction::Finish => self.fire_deferred(
                 id,
                 Continuation::Finish(FinishStep {
