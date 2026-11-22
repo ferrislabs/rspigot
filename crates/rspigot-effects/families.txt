@@ -1,8 +1,8 @@
 MobEffect Plain
-InfestedMobEffect Plain
-OozingMobEffect Plain
-WeavingMobEffect Plain
-WindChargedMobEffect Plain
+InfestedMobEffect SilverfishOnHurt
+OozingMobEffect SlimesOnDeath
+WeavingMobEffect CobwebsOnDeath
+WindChargedMobEffect BurstOnDeath
 AbsorptionMobEffect EveryTick
 BadOmenMobEffect EveryTick
 HungerMobEffect EveryTick
@@ -12,3 +12,4 @@ PoisonMobEffect Interval<25>
 RegenerationMobEffect Interval<50>
 WitherMobEffect Interval<40>
 RaidOmenMobEffect LastTick
+minecraft:breath_of_the_nautilus KeepsAir

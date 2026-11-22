@@ -20,6 +20,7 @@ const HEAD: BlockPos = BlockPos::new(2, 64, 1);
 fn scene_at(day_time: i64, handlers: Vec<HandlerSpec>) -> Scene {
     let server = configured_level(
         |config| {
+            config.rules.respawn_radius = 0;
             config.plugins = PluginSettings {
                 decision_ticks: 1_000,
                 ..PluginSettings::default()

@@ -553,7 +553,13 @@ impl<L: ClientLink> Server<L> {
         player: Option<PlayerId>,
         tool: Option<&ItemStack>,
     ) {
-        if !is_hive_block(state) || prevents_bee_spawns(tool) {
+        if !is_hive_block(state) {
+            return;
+        }
+        if let Some(breaker) = player {
+            self.trigger_bee_nest_destroyed(breaker, pos, state, tool, hive.bees.len());
+        }
+        if prevents_bee_spawns(tool) {
             return;
         }
         let bees: Vec<Occupant> = std::mem::take(&mut hive.bees);

@@ -289,6 +289,7 @@ fn kill(s: &mut Scene, player: &Player) {
 #[test]
 fn a_respawn_decider_moves_the_respawn_location() {
     let mut s = scene_with(&["Alice"], vec![deciding(1, EventKind::PlayerRespawn)]);
+    console(&mut s, "gamerule respawn_radius 0");
     let alice = s.players[0].clone();
     kill(&mut s, &alice);
     send_input(&mut s.server, &alice, PlayerInput::Respawn);

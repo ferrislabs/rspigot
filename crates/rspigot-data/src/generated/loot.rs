@@ -1,4 +1,4 @@
-use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, Output, Pool, TagPredicate};
+use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, NameTarget, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
 pub(crate) static TABLES: [(&str, LootTable); 1433] = [
@@ -2125,7 +2125,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:bee_nest",
+                                properties: &["honey_level"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -2161,7 +2164,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                                 },
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:copy_state"),
+                                    kind: FunctionKind::CopyState {
+                                        block: "minecraft:beehive",
+                                        properties: &["honey_level"],
+                                    },
                                 },
                             ],
                             kind: EntryKind::Leaf(Leaf {
@@ -6574,7 +6580,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:copper_golem_statue",
+                                properties: &["copper_golem_pose"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -10386,7 +10395,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:exposed_copper_golem_statue",
+                                properties: &["copper_golem_pose"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -18221,7 +18233,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:oxidized_copper_golem_statue",
+                                properties: &["copper_golem_pose"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -29313,7 +29328,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:waxed_copper_golem_statue",
+                                properties: &["copper_golem_pose"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -29636,7 +29654,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:waxed_exposed_copper_golem_statue",
+                                properties: &["copper_golem_pose"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -30001,7 +30022,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:waxed_oxidized_copper_golem_statue",
+                                properties: &["copper_golem_pose"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -30345,7 +30369,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:waxed_weathered_copper_golem_statue",
+                                properties: &["copper_golem_pose"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -30689,7 +30716,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                         },
                         Function {
                             condition: None,
-                            kind: FunctionKind::Components("minecraft:copy_state"),
+                            kind: FunctionKind::CopyState {
+                                block: "minecraft:weathered_copper_golem_statue",
+                                properties: &["copper_golem_pose"],
+                            },
                         },
                     ],
                     kind: EntryKind::Leaf(Leaf {
@@ -32802,7 +32832,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                    kind: FunctionKind::SetName {
+                                        name: "{\"translate\":\"filled_map.bamboo_camp_map\"}",
+                                        target: NameTarget::ItemName,
+                                    },
                                 },
                                 Function {
                                     condition: None,
@@ -32831,7 +32864,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                    kind: FunctionKind::SetName {
+                                        name: "{\"translate\":\"filled_map.cherry_grove_camp_map\"}",
+                                        target: NameTarget::ItemName,
+                                    },
                                 },
                                 Function {
                                     condition: None,
@@ -32860,7 +32896,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                    kind: FunctionKind::SetName {
+                                        name: "{\"translate\":\"filled_map.birch_forest_camp_map\"}",
+                                        target: NameTarget::ItemName,
+                                    },
                                 },
                                 Function {
                                     condition: None,
@@ -32889,7 +32928,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                    kind: FunctionKind::SetName {
+                                        name: "{\"translate\":\"filled_map.dappled_forest_camp_map\"}",
+                                        target: NameTarget::ItemName,
+                                    },
                                 },
                                 Function {
                                     condition: None,
@@ -32918,7 +32960,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                    kind: FunctionKind::SetName {
+                                        name: "{\"translate\":\"filled_map.flower_forest_camp_map\"}",
+                                        target: NameTarget::ItemName,
+                                    },
                                 },
                                 Function {
                                     condition: None,
@@ -32947,7 +32992,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                    kind: FunctionKind::SetName {
+                                        name: "{\"translate\":\"filled_map.pale_garden_camp_map\"}",
+                                        target: NameTarget::ItemName,
+                                    },
                                 },
                                 Function {
                                     condition: None,
@@ -32976,7 +33024,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                    kind: FunctionKind::SetName {
+                                        name: "{\"translate\":\"filled_map.swamp_camp_map\"}",
+                                        target: NameTarget::ItemName,
+                                    },
                                 },
                                 Function {
                                     condition: None,
@@ -33005,7 +33056,10 @@ pub(crate) static TABLES: [(&str, LootTable); 1433] = [
                             modifier: &[
                                 Function {
                                     condition: None,
-                                    kind: FunctionKind::Components("minecraft:set_name"),
+                                    kind: FunctionKind::SetName {
+                                        name: "{\"translate\":\"filled_map.windswept_forest_camp_map\"}",
+                                        target: NameTarget::ItemName,
+                                    },
                                 },
                                 Function {
                                     condition: None,

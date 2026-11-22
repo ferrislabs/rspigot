@@ -93,6 +93,7 @@ fn respawn(s: &mut Scene) -> Vec3 {
 #[test]
 fn a_cancelled_spawn_change_keeps_the_world_spawn_for_the_respawn() {
     let mut s = scene_with(&["Alice"], vec![deciding(1, EventKind::PlayerSpawnChange)]);
+    console(&mut s, "gamerule respawn_radius 0");
     console(&mut s, "spawnpoint Alice 5 64 7");
     let asked = last_asked(&s.plugin, EventKind::PlayerSpawnChange);
     rule_on(&mut s.server, 1, asked.id, true, None);

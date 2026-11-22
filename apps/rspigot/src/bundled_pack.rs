@@ -50,8 +50,25 @@ mod tests {
         assert!(!pack.join("data").exists());
     }
 
+    const FRESH_WORLD_CHILD: &str = "RSPIGOT_FRESH_WORLD_CHILD";
+    const FRESH_WORLD_TEST: &str =
+        "bundled_pack::tests::a_fresh_world_generates_the_extras_structures_without_any_copy";
+
     #[test]
     fn a_fresh_world_generates_the_extras_structures_without_any_copy() {
+        if std::env::var_os(FRESH_WORLD_CHILD).is_some() {
+            fresh_world_generates_the_extras_structures();
+            return;
+        }
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([FRESH_WORLD_TEST, "--exact", "--nocapture"])
+            .env(FRESH_WORLD_CHILD, "1")
+            .status()
+            .unwrap();
+        assert!(status.success());
+    }
+
+    fn fresh_world_generates_the_extras_structures() {
         use rspigot_core::ports::ChunkGenerator;
         use rspigot_domain::Vec3;
         use rspigot_domain::world::Dimension;

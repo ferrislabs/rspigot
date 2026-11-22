@@ -6,7 +6,7 @@ mod kind;
 mod registry;
 
 pub use effects::*;
-pub use family::EffectBehavior;
+pub use family::{EffectBehavior, Reaction};
 pub use kind::EffectKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]

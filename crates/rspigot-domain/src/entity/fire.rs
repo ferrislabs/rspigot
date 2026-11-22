@@ -2,7 +2,11 @@ use rspigot_blocks::{BlockKind, StateFlags};
 
 use super::base::{EntityBase, FLAG_ON_FIRE};
 use super::fluid::lava_height;
-use super::physics::{BlockView, mth_floor, water_height};
+use rspigot_entities::EntityKind;
+
+use super::aabb::Aabb;
+use super::physics::{BlockView, block_colliders, mth_floor, water_height};
+use crate::damage::DamageType;
 use crate::{BlockPos, BlockStateId};
 
 pub const FIRE_DAMAGE_PERIOD: i32 = 20;
@@ -10,6 +14,16 @@ pub const ON_FIRE_DAMAGE: f32 = 1.0;
 pub const FIRE_BLOCK_DAMAGE: f32 = 1.0;
 pub const SOUL_FIRE_BLOCK_DAMAGE: f32 = 2.0;
 pub const LAVA_DAMAGE: f32 = 4.0;
+pub const CACTUS_DAMAGE: f32 = 1.0;
+pub const SWEET_BERRY_DAMAGE: f32 = 1.0;
+pub const CAMPFIRE_DAMAGE: f32 = 1.0;
+pub const SOUL_CAMPFIRE_DAMAGE: f32 = 2.0;
+pub const HOT_FLOOR_DAMAGE: f32 = 1.0;
+pub const IN_WALL_DAMAGE: f32 = 1.0;
+const BERRY_MOVEMENT: f64 = 0.003;
+const STEP_ON_OFFSET: f32 = 0.2;
+const IN_WALL_WIDTH: f32 = 0.8;
+const IN_WALL_HEIGHT: f64 = 1.0e-6;
 pub const LAVA_SECONDS: f32 = 15.0;
 pub const FIRE_SECONDS: f32 = 8.0;
 pub const SUN_SECONDS: f32 = 8.0;
@@ -78,6 +92,7 @@ pub enum InsideEffect {
     MeltPowderSnow(BlockPos),
     Cauldron(BlockPos),
     Extinguish,
+    Hurt(DamageType, f32),
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -91,6 +106,7 @@ struct StepEffects {
     melt: Vec<BlockPos>,
     cauldrons: Vec<BlockPos>,
     extinguish: bool,
+    hurts: Vec<(DamageType, f32)>,
 }
 
 impl StepEffects {
@@ -115,6 +131,11 @@ impl StepEffects {
         }
         out.extend(self.melt.into_iter().map(InsideEffect::MeltPowderSnow));
         out.extend(self.cauldrons.into_iter().map(InsideEffect::Cauldron));
+        out.extend(
+            self.hurts
+                .into_iter()
+                .map(|(kind, amount)| InsideEffect::Hurt(kind, amount)),
+        );
         if self.extinguish {
             out.push(InsideEffect::Extinguish);
         }
@@ -141,6 +162,63 @@ fn fire_damage(state: BlockStateId) -> Option<f32> {
     }
 }
 
+fn contact_damage(base: &EntityBase, state: BlockStateId) -> Option<(DamageType, f32)> {
+    let living = base.kind.living();
+    match state.kind()? {
+        BlockKind::Cactus => Some((DamageType::Cactus, CACTUS_DAMAGE)),
+        BlockKind::SweetBerryBush
+            if living
+                && !matches!(base.kind, EntityKind::Fox | EntityKind::Bee)
+                && state.property("age").is_some_and(|age| age != "0")
+                && moved_sideways(base) =>
+        {
+            Some((DamageType::SweetBerryBush, SWEET_BERRY_DAMAGE))
+        }
+        BlockKind::Campfire if living && state.property("lit") == Some("true") => {
+            Some((DamageType::Campfire, CAMPFIRE_DAMAGE))
+        }
+        BlockKind::SoulCampfire if living && state.property("lit") == Some("true") => {
+            Some((DamageType::Campfire, SOUL_CAMPFIRE_DAMAGE))
+        }
+        _ => None,
+    }
+}
+
+fn moved_sideways(base: &EntityBase) -> bool {
+    let dx = (base.position.x - base.old_position.x).abs();
+    let dz = (base.position.z - base.old_position.z).abs();
+    dx >= BERRY_MOVEMENT || dz >= BERRY_MOVEMENT
+}
+
+pub fn is_in_wall(base: &EntityBase, view: &impl BlockView) -> bool {
+    if base.no_physics {
+        return false;
+    }
+    let half = f64::from(base.dimensions.width * IN_WALL_WIDTH) / 2.0;
+    let eye = base.eye_y();
+    let query = Aabb::new(
+        base.position.x - half,
+        eye - IN_WALL_HEIGHT / 2.0,
+        base.position.z - half,
+        base.position.x + half,
+        eye + IN_WALL_HEIGHT / 2.0,
+        base.position.z + half,
+    );
+    block_colliders(view, &query).iter().any(|collider| {
+        let flags = view.block_or_air(collider.pos).flags();
+        flags.contains(StateFlags::BLOCKS_MOTION) && flags.contains(StateFlags::FULL_COLLISION_CUBE)
+    })
+}
+
+pub fn is_hot_floor(base: &EntityBase, view: &impl BlockView) -> bool {
+    base.on_ground
+        && base.kind.living()
+        && view
+            .block_or_air(super::physics::on_pos(base, view, STEP_ON_OFFSET))
+            .kind()
+            == Some(BlockKind::MagmaBlock)
+}
+
 pub fn inside_effects(base: &mut EntityBase, view: &impl BlockView) -> Vec<InsideEffect> {
     base.in_powder_snow = false;
     if base.is_removed() || base.no_physics {
@@ -157,6 +235,9 @@ pub fn inside_effects(base: &mut EntityBase, view: &impl BlockView) -> Vec<Insid
                 let state = view.block_or_air(pos);
                 if state.is_air() {
                     continue;
+                }
+                if let Some(hurt) = contact_damage(base, state) {
+                    step.hurts.push(hurt);
                 }
                 if let Some(damage) = fire_damage(state) {
                     step.clear_freeze = true;
@@ -262,6 +343,87 @@ mod tests {
                 InsideEffect::Extinguish,
             ]
         );
+    }
+
+    #[test]
+    fn a_cactus_hurts_with_the_cactus_damage() {
+        let mut base = zombie();
+        let mut blocks = HashMap::new();
+        blocks.insert(BlockPos::new(0, 64, 0), BlockKind::Cactus.default_state());
+        let effects = inside_effects(&mut base, &Blocks(blocks));
+        assert_eq!(effects, vec![InsideEffect::Hurt(DamageType::Cactus, 1.0)]);
+    }
+
+    #[test]
+    fn berries_hurt_only_after_a_sideways_step_and_only_when_grown() {
+        let grown = BlockKind::SweetBerryBush
+            .state_with(&[("age", "2")])
+            .unwrap();
+        let young = BlockKind::SweetBerryBush
+            .state_with(&[("age", "0")])
+            .unwrap();
+        let at = |state| {
+            let mut blocks = HashMap::new();
+            blocks.insert(BlockPos::new(0, 64, 0), state);
+            Blocks(blocks)
+        };
+        let mut base = zombie();
+        base.old_position = base.position;
+        assert!(inside_effects(&mut base, &at(grown)).is_empty());
+        base.old_position = base.position - Vec3::new(0.01, 0.0, 0.0);
+        assert_eq!(
+            inside_effects(&mut base, &at(grown)),
+            vec![InsideEffect::Hurt(DamageType::SweetBerryBush, 1.0)]
+        );
+        assert!(inside_effects(&mut base, &at(young)).is_empty());
+    }
+
+    #[test]
+    fn a_lit_campfire_burns_and_a_soul_campfire_burns_harder() {
+        let lit = |kind: BlockKind| {
+            let mut blocks = HashMap::new();
+            blocks.insert(
+                BlockPos::new(0, 64, 0),
+                kind.state_with(&[("lit", "true")]).unwrap(),
+            );
+            Blocks(blocks)
+        };
+        let mut base = zombie();
+        assert_eq!(
+            inside_effects(&mut base, &lit(BlockKind::Campfire)),
+            vec![InsideEffect::Hurt(DamageType::Campfire, 1.0)]
+        );
+        assert_eq!(
+            inside_effects(&mut base, &lit(BlockKind::SoulCampfire)),
+            vec![InsideEffect::Hurt(DamageType::Campfire, 2.0)]
+        );
+    }
+
+    #[test]
+    fn a_full_block_at_the_eyes_is_a_wall() {
+        let mut base = zombie();
+        let mut blocks = HashMap::new();
+        assert!(!is_in_wall(&base, &Blocks(blocks.clone())));
+        blocks.insert(BlockPos::new(0, 65, 0), BlockKind::Stone.default_state());
+        assert!(is_in_wall(&base, &Blocks(blocks)));
+        base.no_physics = true;
+        let mut inside = HashMap::new();
+        inside.insert(BlockPos::new(0, 65, 0), BlockKind::Stone.default_state());
+        assert!(!is_in_wall(&base, &Blocks(inside)));
+    }
+
+    #[test]
+    fn standing_on_magma_is_a_hot_floor() {
+        let mut base = zombie();
+        base.on_ground = true;
+        let mut blocks = HashMap::new();
+        blocks.insert(
+            BlockPos::new(0, 63, 0),
+            BlockKind::MagmaBlock.default_state(),
+        );
+        assert!(is_hot_floor(&base, &Blocks(blocks.clone())));
+        base.on_ground = false;
+        assert!(!is_hot_floor(&base, &Blocks(blocks)));
     }
 
     #[test]

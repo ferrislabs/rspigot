@@ -641,6 +641,7 @@ impl<L: ClientLink> Server<L> {
                 slots: vec![(WireSlot::Saddle, None)],
             },
         );
+        self.trigger_player_sheared_equipment(id, target, saddle.item.0);
         self.drop_at_location(target, height, saddle, Vec3::ZERO);
         self.entity_sound(target, "minecraft:item.saddle.unequip", 1.0, 1.0);
     }

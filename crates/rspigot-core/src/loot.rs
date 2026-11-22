@@ -2,9 +2,10 @@ use std::num::NonZeroU8;
 
 use rand::Rng;
 use rspigot_data::loot::{
-    self, BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate,
-    EntityPredicate, EntitySubPredicate, EntityTarget, Entry, EntryKind, FloatProvider, Function,
-    FunctionKind, IntProvider, ItemPredicate, Leaf, LootTable, NumberProvider, Output, Pool,
+    self, BlockPredicate, BonusFormula, Condition, CustomDataSource, DamageSourcePredicate,
+    EnchantmentPredicate, EntityPredicate, EntitySubPredicate, EntityTarget, Entry, EntryKind,
+    FloatProvider, Function, FunctionKind, IntProvider, ItemPredicate, Leaf, LootTable,
+    NumberProvider, Output, Pool,
 };
 use rspigot_data::{registries, tags};
 use rspigot_domain::cartography::{self, ExplorationSpec, PENDING_EXPLORATION};
@@ -17,7 +18,7 @@ use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 use rspigot_nbt::{Compound, Tag};
 
-use crate::block_components;
+use crate::{block_components, loot_components};
 
 const BLOCK_REGISTRY: &str = "minecraft:block";
 const ITEM_REGISTRY: &str = "minecraft:item";
@@ -791,7 +792,41 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
                     }
                 }
             }
-            FunctionKind::Components(_) => {}
+            FunctionKind::CopyState { block, properties } => {
+                loot_components::copy_state(
+                    &mut stack.components,
+                    self.context.block,
+                    block,
+                    properties,
+                );
+            }
+            FunctionKind::SetName { name, target } => {
+                loot_components::set_name(&mut stack.components, name, target);
+            }
+            FunctionKind::SetLore { lines, mode } => {
+                loot_components::set_lore(&mut stack.components, lines, mode);
+            }
+            FunctionKind::SetCustomData { tag } => {
+                loot_components::set_custom_data(&mut stack.components, tag);
+            }
+            FunctionKind::CopyCustomData {
+                source: CustomDataSource::BlockEntity,
+                operations,
+            } => {
+                if let Some(data) = self.context.block_entity {
+                    loot_components::copy_custom_data(&mut stack.components, data, operations);
+                }
+            }
+            FunctionKind::CopyCustomData {
+                source: CustomDataSource::Entity(_),
+                ..
+            } => {}
+            FunctionKind::ToggleTooltips(toggles) => {
+                loot_components::toggle_tooltips(&mut stack.components, toggles);
+            }
+            FunctionKind::SetComponents(values) => {
+                loot_components::set_components(&mut stack.components, values);
+            }
         }
         stack
     }

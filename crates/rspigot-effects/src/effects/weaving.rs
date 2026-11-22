@@ -10,5 +10,5 @@ impl MobEffect for Weaving {
     const COLOR: u32 = 0x78695A;
     const INSTANTANEOUS: bool = false;
     const MODIFIERS: &'static [AttributeTemplate] = &[];
-    type Behavior = crate::family::Plain;
+    type Behavior = crate::family::CobwebsOnDeath;
 }

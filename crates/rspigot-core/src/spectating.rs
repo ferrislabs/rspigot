@@ -8,6 +8,19 @@ use crate::server::Server;
 use crate::world_state::DimensionKey;
 
 impl<L: ClientLink> Server<L> {
+    pub(crate) fn sync_spectator_chunks(&mut self) {
+        let generate = self.config.rules.spectators_generate_chunks;
+        for player in self.players.values_mut() {
+            let skipped = !generate && player.game_mode == GameMode::Spectator;
+            player.streamer.set_skipped(
+                skipped,
+                &mut self.world.chunks,
+                &self.workers,
+                &player.link,
+            );
+        }
+    }
+
     pub(crate) fn handle_teleport_to_entity(&mut self, id: PlayerId, target: Uuid) {
         if self
             .players
