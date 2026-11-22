@@ -48,6 +48,7 @@ pub(crate) struct BlendedParameters {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum Node {
     Constant(f32),
+    Beardifier,
     Noise {
         noise: usize,
         xz_scale: f64,
@@ -238,7 +239,8 @@ impl<'a> Compiler<'a> {
             "cache" | "blend_density" => self.build(field(value, "input")?),
             "constant" => Ok(self.push(Node::Constant(f32_of(value, "argument")?))),
             "blend_alpha" => Ok(self.push(Node::Constant(1.0))),
-            "blend_offset" | "beardifier" => Ok(self.push(Node::Constant(0.0))),
+            "blend_offset" => Ok(self.push(Node::Constant(0.0))),
+            "beardifier" => Ok(self.push(Node::Beardifier)),
             "noise" => {
                 let name = field(value, "noise")?
                     .as_str()
@@ -437,7 +439,10 @@ impl Graph {
                     shift_z,
                     ..
                 } => *y_scale != 0.0 || any(&flags, &[*shift_x, *shift_z]),
-                Node::Gradient { .. } | Node::Interpolated { .. } | Node::Blended(_) => true,
+                Node::Gradient { .. }
+                | Node::Interpolated { .. }
+                | Node::Blended(_)
+                | Node::Beardifier => true,
                 Node::Binary(_, a, b) => any(&flags, &[*a, *b]),
                 Node::Unary(_, a) => any(&flags, &[*a]),
                 Node::Clamp { input, .. } => any(&flags, &[*input]),
@@ -479,6 +484,7 @@ impl Graph {
                 | Node::ShiftA(_)
                 | Node::ShiftB(_)
                 | Node::Gradient { .. }
+                | Node::Beardifier
                 | Node::Blended(_) => {}
                 Node::Noise {
                     shift_x, shift_z, ..

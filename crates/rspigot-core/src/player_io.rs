@@ -34,6 +34,10 @@ enum Job {
         name: String,
         data: Compound,
     },
+    ListNamespaces {
+        leaf: String,
+        reply: Sender<Result<Vec<String>, StoreError>>,
+    },
 }
 
 pub struct PlayerIo {
@@ -105,6 +109,18 @@ impl PlayerIo {
         answer.recv().map_err(|_| closed())?
     }
 
+    pub fn saved_data_namespaces(&self, leaf: &str) -> Result<Vec<String>, StoreError> {
+        let (reply, answer) = bounded(1);
+        let closed = || std::io::Error::from(std::io::ErrorKind::BrokenPipe);
+        self.jobs
+            .send(Job::ListNamespaces {
+                leaf: leaf.to_owned(),
+                reply,
+            })
+            .map_err(|_| closed())?;
+        answer.recv().map_err(|_| closed())?
+    }
+
     pub fn save_saved_data(&self, name: &str, data: Compound) {
         let job = Job::SaveData {
             name: name.to_owned(),
@@ -148,6 +164,9 @@ fn run<S: PlayerStore>(store: &S, inbox: &Receiver<Job>) {
             }
             Job::LoadData { name, reply } => {
                 let _ = reply.send(store.load_saved_data(&name));
+            }
+            Job::ListNamespaces { leaf, reply } => {
+                let _ = reply.send(store.saved_data_namespaces(&leaf));
             }
             Job::SaveData { name, data } => {
                 if let Err(error) = store.save_saved_data(&name, &data) {

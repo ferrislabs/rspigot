@@ -425,10 +425,16 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn ticking_chunks_near_players(&self) -> Vec<ChunkPos> {
-        spawn_candidates(&self.spawning.players)
+        let mut chunks: Vec<ChunkPos> = spawn_candidates(&self.spawning.players)
             .into_iter()
             .filter(|chunk| self.chunk_ticking(*chunk))
-            .collect()
+            .collect();
+        for chunk in self.world.chunks.simulated_chunks() {
+            if !chunks.contains(&chunk) {
+                chunks.push(chunk);
+            }
+        }
+        chunks
     }
 
     fn chunk_ticking(&self, chunk: ChunkPos) -> bool {

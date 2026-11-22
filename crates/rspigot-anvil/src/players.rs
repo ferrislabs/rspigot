@@ -31,14 +31,32 @@ fn corrupt(player: PlayerId, error: &AnvilError) -> StoreError {
     }
 }
 
-fn progress_file(world_root: &Path, player: PlayerId, file: ProgressFile) -> PathBuf {
-    let folder = match file {
+fn progress_folder(file: ProgressFile) -> &'static str {
+    match file {
         ProgressFile::Stats => "stats",
         ProgressFile::Advancements => "advancements",
-    };
+    }
+}
+
+fn progress_file(world_root: &Path, player: PlayerId, file: ProgressFile) -> PathBuf {
     world_root
-        .join(folder)
+        .join("players")
+        .join(progress_folder(file))
         .join(format!("{}.json", player.0.hyphenated()))
+}
+
+fn legacy_progress_file(world_root: &Path, player: PlayerId, file: ProgressFile) -> PathBuf {
+    world_root
+        .join(progress_folder(file))
+        .join(format!("{}.json", player.0.hyphenated()))
+}
+
+fn read_optional(path: &Path) -> Result<Option<String>, StoreError> {
+    match std::fs::read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(StoreError::Io(error)),
+    }
 }
 
 fn stamp(json: &str) -> Result<String, StoreError> {
@@ -65,16 +83,19 @@ impl PlayerStore for AnvilStore {
         .map_err(AnvilError::into_store_io)
     }
 
+    fn saved_data_namespaces(&self, leaf: &str) -> Result<Vec<String>, StoreError> {
+        Ok(crate::level::saved_data_namespaces(self.world_root(), leaf))
+    }
+
     fn load_progress(
         &self,
         player: PlayerId,
         file: ProgressFile,
     ) -> Result<Option<String>, StoreError> {
-        match std::fs::read_to_string(progress_file(self.world_root(), player, file)) {
-            Ok(text) => Ok(Some(text)),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(error) => Err(StoreError::Io(error)),
+        if let Some(text) = read_optional(&progress_file(self.world_root(), player, file))? {
+            return Ok(Some(text));
         }
+        read_optional(&legacy_progress_file(self.world_root(), player, file))
     }
 
     fn save_progress(
@@ -157,7 +178,33 @@ mod tests {
         let document: serde_json::Value = serde_json::from_str(&text).expect("json");
         assert_eq!(document["DataVersion"], DATA_VERSION);
         assert!(document["stats"].is_object());
-        assert!(dir.path().join("stats").is_dir());
+        assert!(dir.path().join("players").join("stats").is_dir());
+        assert!(!dir.path().join("stats").exists());
+    }
+
+    #[test]
+    fn progress_falls_back_to_the_legacy_world_folders() {
+        let dir = TempDir::new("player-progress-legacy");
+        let store = store(&dir);
+        let alice = PlayerId::offline("Alice");
+        for (file, folder) in [
+            (ProgressFile::Stats, "stats"),
+            (ProgressFile::Advancements, "advancements"),
+        ] {
+            let path = legacy_progress_file(dir.path(), alice, file);
+            std::fs::create_dir_all(path.parent().expect("parent")).expect("dirs");
+            std::fs::write(&path, format!("{{\"old\":\"{folder}\"}}")).expect("writes");
+            let text = store.load_progress(alice, file).expect("loads");
+            assert_eq!(text, Some(format!("{{\"old\":\"{folder}\"}}")));
+            store
+                .save_progress(alice, file, "{\"new\":1}")
+                .expect("saves");
+            let text = store
+                .load_progress(alice, file)
+                .expect("loads")
+                .expect("present");
+            assert!(text.contains("\"new\""));
+        }
     }
 
     #[test]
@@ -192,6 +239,33 @@ mod tests {
             .expect("loads")
             .expect("present");
         assert_eq!(index.get_i32("map"), Some(3));
+    }
+
+    #[test]
+    fn namespaced_saved_data_lives_under_its_own_data_folder() {
+        let dir = TempDir::new("saved-data-namespace");
+        let store = store(&dir);
+        store
+            .save_saved_data("pack:command_storage", &Compound::new().with("a", 1))
+            .expect("saves");
+        assert!(
+            dir.path()
+                .join("data")
+                .join("pack")
+                .join("command_storage.dat")
+                .is_file()
+        );
+        assert_eq!(
+            store
+                .saved_data_namespaces("command_storage")
+                .expect("lists"),
+            vec!["pack".to_owned()]
+        );
+        let loaded = store
+            .load_saved_data("pack:command_storage")
+            .expect("loads")
+            .expect("present");
+        assert_eq!(loaded.get_i32("a"), Some(1));
     }
 
     #[test]

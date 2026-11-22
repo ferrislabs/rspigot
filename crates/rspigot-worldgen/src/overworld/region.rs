@@ -159,8 +159,15 @@ pub(crate) struct TerrainChunk {
 
 pub(crate) type Slot = TerrainChunk;
 
+#[derive(Debug, Clone)]
+pub(crate) struct FlatTerrain {
+    pub(crate) table: Vec<u16>,
+    pub(crate) biome: u8,
+}
+
 pub(crate) enum Provider<'a> {
     Overworld(&'a Overworld, ClimateScratch),
+    Flat(&'a FlatTerrain),
     Nether(&'a Nether),
     End(&'a End),
     #[cfg_attr(not(test), allow(dead_code))]
@@ -198,6 +205,17 @@ impl<'a> Region<'a> {
             dimension,
             center,
         )
+    }
+
+    pub(crate) fn for_flat(
+        flat: &'a FlatTerrain,
+        resources: &'a Resources,
+        dimension: &'a Dimension,
+        center: ChunkPos,
+    ) -> Self {
+        let mut region = Self::with_provider(Provider::Flat(flat), resources, dimension, center);
+        region.fixed_biome = flat.biome;
+        region
     }
 
     pub(crate) fn for_nether(
@@ -336,6 +354,21 @@ impl<'a> Region<'a> {
             }
             Provider::Nether(nether) => nether.terrain_cached(self.resources, self.dimension, pos),
             Provider::End(end) => end.terrain_for_region(self.resources, self.dimension, pos),
+            Provider::Flat(flat) => {
+                let height = self.dimension.height;
+                let mut buffer = ChunkBuffer::new(height);
+                for (offset, state) in flat.table.iter().enumerate() {
+                    if *state != 0 {
+                        buffer.fill_layer(height.min_y + offset as i32, BlockStateId(*state));
+                    }
+                }
+                TerrainChunk::new(
+                    buffer,
+                    ChunkBiomes::new(height),
+                    [height.max_y() + 1; 256],
+                    height,
+                )
+            }
             Provider::Fixture => return,
         };
         self.slots[index] = Some(Box::new(terrain));
@@ -424,7 +457,7 @@ impl<'a> Region<'a> {
             Provider::End(end) => slot
                 .biomes
                 .get_with(pos, lx, y, lz, |qx, _, qz| end.biome_index(qx, qz)),
-            Provider::Fixture => fixed,
+            Provider::Fixture | Provider::Flat(_) => fixed,
         }
     }
 
@@ -446,7 +479,7 @@ impl<'a> Region<'a> {
             Provider::End(end) => slot
                 .biomes
                 .complete_with(center, |qx, _, qz| end.biome_index(qx, qz)),
-            Provider::Fixture => vec![fixed; slot.biomes.cells.len()],
+            Provider::Fixture | Provider::Flat(_) => vec![fixed; slot.biomes.cells.len()],
         };
         (slot.buffer, indices)
     }

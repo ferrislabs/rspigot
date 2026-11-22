@@ -1,4 +1,9 @@
-use rspigot_domain::EntityId;
+use rspigot_domain::entity::save;
+use rspigot_domain::{ChunkPos, EntityId, Vec3};
+use rspigot_entities::EntityKind;
+use rspigot_nbt::{Compound, Tag};
+use uuid::Uuid;
+
 use rspigot_domain::damage::DamageType;
 use rspigot_domain::entity::{EntityState, RemovalReason};
 use rspigot_domain::player::PlayerId;
@@ -11,6 +16,8 @@ use crate::server::Server;
 
 pub(crate) const PEARL_DAMAGE: f32 = 5.0;
 const TELEPORT_SOUND: &str = "minecraft:entity.player.teleport";
+const PEARL_TICKET_TICKS: u64 = 40;
+const PEARL_DIMENSION: &str = "ender_pearl_dimension";
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn pearl_orphaned(&self, id: EntityId) -> bool {
@@ -84,4 +91,103 @@ impl<L: ClientLink> Server<L> {
             1.0,
         );
     }
+
+    pub(crate) fn pearl_saves(&self, owner: Uuid) -> Vec<Compound> {
+        let world = self.world.level.uuid;
+        let dimension = self.world.dimension.key.to_string();
+        self.entities
+            .store
+            .iter()
+            .filter(|entity| entity.base.kind == EntityKind::EnderPearl)
+            .filter(|entity| !entity.base.is_removed())
+            .filter(|entity| {
+                matches!(&entity.state, EntityState::Thrown(state) if state.owner == Some(owner))
+            })
+            .filter_map(|entity| self.entity_nbt(entity, world))
+            .map(|mut nbt| {
+                nbt.insert(PEARL_DIMENSION, dimension.as_str());
+                nbt
+            })
+            .collect()
+    }
+
+    pub(crate) fn hold_pearl_chunks(&mut self, id: EntityId) {
+        if self.thrown_owner_player(id).is_none() {
+            return;
+        }
+        let Some(chunk) = self
+            .entities
+            .store
+            .get(id)
+            .map(|entity| entity.base.position.chunk())
+        else {
+            return;
+        };
+        self.hold_chunks_around(chunk);
+    }
+
+    fn hold_chunks_around(&mut self, chunk: ChunkPos) {
+        for dx in -1..=1 {
+            for dz in -1..=1 {
+                let at = ChunkPos::new(chunk.x + dx, chunk.z + dz);
+                self.world.chunks.hold_timed(
+                    at,
+                    PEARL_TICKET_TICKS,
+                    dx == 0 && dz == 0,
+                    &self.workers,
+                );
+            }
+        }
+    }
+
+    pub(crate) fn queue_saved_pearls(&mut self, pearls: &[Compound]) {
+        let here = self.world.dimension.key.to_string();
+        for nbt in pearls {
+            if nbt.get_str(PEARL_DIMENSION).is_some_and(|key| key != here) {
+                tracing::warn!("Skipping a saved ender pearl from another dimension");
+                continue;
+            }
+            let Some(position) = pearl_position(nbt) else {
+                continue;
+            };
+            let chunk = position.chunk();
+            self.hold_chunks_around(chunk);
+            self.pending_pearls.push((chunk, nbt.clone()));
+        }
+    }
+
+    pub(crate) fn spawn_pending_pearls(&mut self) {
+        if self.pending_pearls.is_empty() {
+            return;
+        }
+        let pending = std::mem::take(&mut self.pending_pearls);
+        for (chunk, nbt) in pending {
+            if !self.world.chunks.is_loaded(chunk) {
+                self.hold_chunks_around(chunk);
+                self.pending_pearls.push((chunk, nbt));
+                continue;
+            }
+            let id = self.allocate_entity_id_for(EntityKind::EnderPearl);
+            let uuid = self.random_uuid();
+            match save::load_entity(&nbt, id, uuid) {
+                Ok(entity) => {
+                    let _ = self.place_entity(entity);
+                    self.hold_chunks_around(chunk);
+                }
+                Err(error) => tracing::warn!(%error, "Skipping a saved ender pearl"),
+            }
+        }
+    }
+}
+
+fn pearl_position(nbt: &Compound) -> Option<Vec3> {
+    let list = nbt.get_list("Pos").filter(|list| list.len() == 3)?;
+    let mut axes = [0.0; 3];
+    for (axis, tag) in axes.iter_mut().zip(list) {
+        match tag {
+            Tag::Double(value) => *axis = *value,
+            _ => return None,
+        }
+    }
+    Some(Vec3::new(axes[0], axes[1], axes[2]))
 }

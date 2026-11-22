@@ -190,6 +190,7 @@ pub(crate) enum Anchor {
     Absolute(i32),
     AboveBottom(i32),
     BelowTop(i32),
+    SeaLevel(i32),
 }
 
 impl Anchor {
@@ -198,6 +199,8 @@ impl Anchor {
             Self::Absolute(n as i32)
         } else if let Some(n) = value.get("above_bottom").and_then(Value::as_i64) {
             Self::AboveBottom(n as i32)
+        } else if let Some(n) = value.get("relative_to_sea_level").and_then(Value::as_i64) {
+            Self::SeaLevel(n as i32)
         } else {
             Self::BelowTop(value.get("below_top").and_then(Value::as_i64).unwrap_or(0) as i32)
         }
@@ -208,6 +211,14 @@ impl Anchor {
             Self::Absolute(n) => n,
             Self::AboveBottom(n) => min_y + n,
             Self::BelowTop(n) => max_y - n,
+            Self::SeaLevel(n) => n,
+        }
+    }
+
+    pub(crate) fn resolve_at(self, min_y: i32, max_y: i32, sea_level: i32) -> i32 {
+        match self {
+            Self::SeaLevel(n) => sea_level + n,
+            other => other.resolve(min_y, max_y),
         }
     }
 }
@@ -498,6 +509,7 @@ pub(crate) enum Pred {
     Solid(Pos),
     Replaceable(Pos),
     InsideWorld(Pos),
+    HeightRange(Anchor, Anchor),
     Volume {
         inner: Box<Pred>,
         min: Pos,
@@ -572,6 +584,10 @@ impl Pred {
             "solid" => Self::Solid(offset(value)),
             "replaceable" => Self::Replaceable(offset(value)),
             "inside_world_bounds" => Self::InsideWorld(offset(value)),
+            "height_range" => Self::HeightRange(
+                Anchor::compile(value.get("min_inclusive").unwrap_or(&Value::Null)),
+                Anchor::compile(value.get("max_inclusive").unwrap_or(&Value::Null)),
+            ),
             "volume_match" => {
                 let corner = |key: &str| {
                     value
@@ -623,6 +639,12 @@ impl Pred {
                 is_replaceable(region.get(pos.0 + off.0, pos.1 + off.1, pos.2 + off.2))
             }
             Self::InsideWorld(off) => region.height().contains(pos.1 + off.1),
+            Self::HeightRange(min, max) => {
+                let height = region.height();
+                let (bottom, top, sea) = (height.min_y, height.max_y(), region.sea_level());
+                pos.1 >= min.resolve_at(bottom, top, sea)
+                    && pos.1 <= max.resolve_at(bottom, top, sea)
+            }
             Self::Volume { inner, min, max } => (min.0..=max.0).all(|dx| {
                 (min.2..=max.2).all(|dz| {
                     (min.1..=max.1)
@@ -720,7 +742,9 @@ impl State {
                 .unwrap_or_default()
         };
         match short(value) {
-            "simple_state_provider" => Self::compile(value.get("state").unwrap_or(&Value::Null)),
+            "simple_state_provider" | "simple" => {
+                Self::compile(value.get("state").unwrap_or(&Value::Null))
+            }
             "noise" | "noise_provider" => {
                 Self::Noise(NoiseBlocks::compile(value, states("states")))
             }

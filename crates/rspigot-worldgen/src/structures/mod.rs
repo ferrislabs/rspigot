@@ -9,7 +9,7 @@ mod pack;
 mod place;
 mod placement;
 mod pool;
-mod processors;
+pub(crate) mod processors;
 mod render;
 mod sets;
 mod shaped;
@@ -24,6 +24,8 @@ mod l2_tests;
 #[cfg(test)]
 mod library_tests;
 #[cfg(test)]
+mod processor_tests;
+#[cfg(test)]
 mod shaped_tests;
 #[cfg(test)]
 mod tests;
@@ -36,7 +38,7 @@ pub use pack::LoadIssue;
 pub(crate) use place::place_start;
 pub(crate) use placement::BiomeProbe;
 pub(crate) use render::{jigsaw_blocks, start_blocks, template_blocks};
-pub(crate) use world::{Engine, Start};
+pub(crate) use world::{Engine, STEP_NAMES, Start};
 
 pub(crate) fn install_roots(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
     library::Library::discover(dir).0
