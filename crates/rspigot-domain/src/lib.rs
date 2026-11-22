@@ -52,6 +52,7 @@ pub mod mth;
 pub mod npc;
 pub mod particle;
 pub mod piston;
+pub mod placement;
 pub mod player;
 pub mod plugin_recipes;
 pub mod poi;
