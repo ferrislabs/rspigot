@@ -36,8 +36,6 @@ use crate::server::{Audience, Server};
 use crate::spawner::{fixed_position, middle};
 use rspigot_domain::entity::RemovalReason;
 
-const ITEM_SPAWNER_DELAY: (i32, i32) = (60, 120);
-const ABOUT_TO_SPAWN_LEAD: i64 = 36;
 const PLAYER_HEIGHT: f64 = 1.8;
 const STATE: &str = "trial_spawner_state";
 const OMINOUS: &str = "ominous";
@@ -77,19 +75,6 @@ pub(crate) struct TrialRun {
 pub(crate) struct TrialSpawnStep {
     pos: BlockPos,
     entity: Entity,
-}
-
-#[derive(Debug)]
-pub(crate) struct OminousItem {
-    position: Vec3,
-    stack: ItemStack,
-    age: i64,
-    delay: i64,
-}
-
-#[derive(Debug, Default)]
-pub(crate) struct TrialRuntime {
-    items: Vec<OminousItem>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -200,7 +185,6 @@ impl<L: ClientLink> Server<L> {
         for pos in found {
             self.tick_trial_spawner(pos);
         }
-        self.tick_ominous_items();
     }
 
     fn tick_trial_spawner(&mut self, pos: BlockPos) {
@@ -635,6 +619,7 @@ impl<L: ClientLink> Server<L> {
         let (mut entity, _) = self
             .summon_entity(kind, at, nbt, SpawnReason::TrialSpawner)
             .ok()?;
+        self.equip_from_spawn_data(&mut entity, data);
         let yaw = ServerRandom(&mut self.rng).next_float() * 360.0;
         let position = entity.base.position;
         entity.base.snap_to(position, yaw, 0.0);
@@ -647,6 +632,28 @@ impl<L: ClientLink> Server<L> {
             return None;
         }
         Some(entity)
+    }
+
+    fn equip_from_spawn_data(&mut self, entity: &mut Entity, data: &SpawnData) {
+        let Some(equipment) = &data.equipment else {
+            return;
+        };
+        let Some(table) = equipment
+            .get_str("loot_table")
+            .and_then(rspigot_data::loot::table)
+        else {
+            return;
+        };
+        let chance = equipment.get_f64("slot_drop_chances").map(|c| c as f32);
+        let facts = crate::mobs::loot_facts_of(entity);
+        let context = LootContext {
+            this: Some(&facts),
+            ..LootContext::default()
+        };
+        let stacks = loot::table_drops(table, &context, &mut self.rng);
+        if let Some(living) = entity.living_mut() {
+            rspigot_domain::entity::spawn::equip_from_table(living, stacks, chance);
+        }
     }
 
     fn offer_trial_spawn(&mut self, pos: BlockPos, ominous: bool, entity: Entity) {
@@ -841,16 +848,7 @@ impl<L: ClientLink> Server<L> {
         let Some(position) = self.ominous_item_position(run) else {
             return;
         };
-        let delay = i64::from(
-            self.rng
-                .random_range(ITEM_SPAWNER_DELAY.0..=ITEM_SPAWNER_DELAY.1),
-        );
-        self.trial.items.push(OminousItem {
-            position,
-            stack,
-            age: 0,
-            delay,
-        });
+        self.spawn_ominous_item_spawner(position, stack);
         let pitch = (self.rng.random::<f32>() - self.rng.random::<f32>()) * 0.2 + 1.0;
         self.play_sound(
             None,
@@ -930,47 +928,6 @@ impl<L: ClientLink> Server<L> {
             .block(spot.block())
             .is_none_or(|state| state.collision_shape().is_empty());
         empty.then_some(spot)
-    }
-
-    fn tick_ominous_items(&mut self) {
-        if self.trial.items.is_empty() {
-            return;
-        }
-        let mut due: Vec<OminousItem> = Vec::new();
-        let mut waiting: Vec<OminousItem> = Vec::new();
-        for mut item in std::mem::take(&mut self.trial.items) {
-            if item.age == item.delay - ABOUT_TO_SPAWN_LEAD {
-                self.play_sound(
-                    None,
-                    item.position,
-                    trial::ABOUT_TO_SPAWN_ITEM_SOUND,
-                    SoundSource::Neutral,
-                    1.0,
-                    1.0,
-                );
-            }
-            if item.age >= item.delay {
-                due.push(item);
-            } else {
-                item.age += 1;
-                waiting.push(item);
-            }
-        }
-        self.trial.items = waiting;
-        for item in due {
-            self.spawn_item_entity(
-                item.position,
-                Vec3::new(0.0, 0.0, 0.0),
-                PICKUP_DELAY,
-                item.stack,
-            );
-            self.level_event(trial::ITEM_SPAWNED_EVENT, item.position.block(), 1);
-            self.game_event(
-                GameEvent::EntityPlace,
-                item.position,
-                GameEventContext::of(None),
-            );
-        }
     }
 
     pub(crate) fn use_egg_on_trial_spawner(&mut self, pos: BlockPos, kind: Kind) -> bool {

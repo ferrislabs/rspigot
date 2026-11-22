@@ -4,6 +4,7 @@ use crate::generated::trial_spawner::CONFIGS;
 pub struct WeightedSpawn {
     pub entity: &'static str,
     pub equipment: Option<&'static str>,
+    pub equipment_drop_chance: Option<f32>,
     pub weight: i32,
 }
 

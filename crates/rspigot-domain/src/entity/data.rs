@@ -20,6 +20,7 @@ pub enum StateKind {
     Armadillo,
     CopperGolem,
     WeatheringCopper,
+    HumanoidArm,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,6 +58,7 @@ pub enum SyncedValue {
     Int(i32),
     Float(f32),
     OptionalComponent(Option<Component>),
+    Component(Component),
     Boolean(bool),
     Pose(Pose),
     Item(Option<ItemStack>),
@@ -77,6 +79,10 @@ pub enum SyncedValue {
     },
     Rotations(f32, f32, f32),
     PaintingVariant(u32),
+    Vector3([f32; 3]),
+    Quaternion([f32; 4]),
+    BlockState(BlockStateId),
+    Profile(rspigot_nbt::Tag),
 }
 
 impl SyncedValue {

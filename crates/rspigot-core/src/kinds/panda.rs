@@ -470,6 +470,13 @@ impl<L: ClientLink> Server<L> {
             self.finish_allay_pickup(step, cancelled);
             return;
         }
+        if self
+            .kind_of(step.collector)
+            .is_some_and(|kind| !rspigot_domain::entity::pickup::handled_elsewhere(kind))
+        {
+            self.finish_loot_pickup(step, cancelled);
+            return;
+        }
         let MobPickupStep {
             collector,
             item,

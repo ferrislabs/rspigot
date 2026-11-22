@@ -462,7 +462,7 @@ fn entities_of_unsimulated_types_round_trip_byte_for_byte() {
     let store = Arc::new(MemoryStore::default());
     let chunk = ChunkPos::new(6, 6);
     let display = Compound::new()
-        .with("id", "minecraft:block_display")
+        .with("id", "minecraft:marker")
         .with(
             "Pos",
             Tag::List(vec![
@@ -485,12 +485,12 @@ fn entities_of_unsimulated_types_round_trip_byte_for_byte() {
     let mut alice = join(&mut server, "Alice");
     server.handle(Inbound::Console("tp Alice 100 64 104".to_owned()));
     pump(&mut server, &mut [&mut alice], 40);
-    let displays = server.entities_of(Kind::BlockDisplay);
+    let displays = server.entities_of(Kind::Marker);
     assert_eq!(displays.len(), 1);
     assert!(!displays[0].simulated);
     server.handle(Inbound::Console("tp Alice 2000 64 2000".to_owned()));
     pump(&mut server, &mut [&mut alice], 40);
-    assert!(server.entities_of(Kind::BlockDisplay).is_empty());
+    assert!(server.entities_of(Kind::Marker).is_empty());
     assert_eq!(store.stored(chunk), Some(original));
 }
 

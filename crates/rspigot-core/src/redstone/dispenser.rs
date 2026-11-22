@@ -131,6 +131,13 @@ pub(crate) enum Behavior {
     ShearHive,
 }
 
+pub(crate) fn shot_of(stack: &ItemStack) -> Option<Shot> {
+    match behavior_of(stack) {
+        Behavior::Shoot(shot) => Some(shot),
+        _ => None,
+    }
+}
+
 fn behavior_of(stack: &ItemStack) -> Behavior {
     let Some(kind) = stack.item.kind() else {
         return Behavior::Drop;
@@ -1285,7 +1292,7 @@ impl<L: ClientLink> Server<L> {
         );
     }
 
-    fn launch_shot(&mut self, shot: Shot, at: Vec3, velocity: Vec3, stack: &ItemStack) {
+    pub(crate) fn launch_shot(&mut self, shot: Shot, at: Vec3, velocity: Vec3, stack: &ItemStack) {
         let seed = self.rng.random::<i64>();
         if matches!(shot, Shot::Firework | Shot::Fire | Shot::Wind) {
             self.launch_charge(shot, at, velocity, stack, seed);

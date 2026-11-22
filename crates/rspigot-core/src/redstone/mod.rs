@@ -4,7 +4,7 @@ mod controls;
 mod crafter;
 mod daylight;
 mod diode;
-mod dispenser;
+pub(crate) mod dispenser;
 mod event;
 mod hopper;
 mod jukebox;

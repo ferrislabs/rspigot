@@ -13,6 +13,7 @@ use super::arrow::{self, ArrowState};
 use super::base::{EntityBase, MAX_AIR_SUPPLY, RemovalReason};
 use super::boat;
 use super::bullet::{self, BulletState};
+use super::decor;
 use super::falling::FallingState;
 use super::fangs::{self, FangsState};
 use super::firework;
@@ -24,6 +25,7 @@ use super::living::{
     self, EQUIPMENT_SLOTS, LivingState, MobState, health, is_left_handed, is_no_ai, set_health,
     set_left_handed, set_no_ai,
 };
+use super::mannequin;
 use super::minecart;
 use super::orb::{self, OrbState};
 use super::species::{self, Species};
@@ -206,7 +208,9 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::AreaEffectCloud
             | EntityKind::LightningBolt
             | EntityKind::FireworkRocket
-    ) || hurting::is_hurting_projectile(kind)
+            | EntityKind::Mannequin
+    ) || decor::is_decor(kind)
+        || hurting::is_hurting_projectile(kind)
         || kind.extends("Mob")
         || kind.extends("AbstractBoat")
         || kind.extends("AbstractMinecart")
@@ -824,6 +828,7 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         }
         Species::Goat(state) => species::goat::read(nbt, base, state),
         Species::Armadillo(state) => species::armadillo::read(nbt, base, state),
+        Species::Mooshroom(state) => species::mooshroom::read(nbt, base, state),
         Species::Llama(state) => species::llama::read(nbt, base, state),
         Species::Camel(_) => {
             let baby = mob
@@ -1115,6 +1120,7 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Piglin(_) => species::piglin::KEYS,
         Species::Goat(_) => species::goat::KEYS,
         Species::Armadillo(_) => species::armadillo::KEYS,
+        Species::Mooshroom(_) => species::mooshroom::KEYS,
         Species::Llama(_) => species::llama::KEYS,
         Species::Camel(_) => species::camel::KEYS,
         Species::HappyGhast(_) => species::happy_ghast::KEYS,
@@ -1206,6 +1212,11 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityKind::LightningBolt => EntityState::Lightning(lightning::LightningState::new(
             (fallback_uuid.as_u64_pair().0 % 3) as i32 + 1,
         )),
+        _ if decor::is_decor(kind) => EntityState::Decor(Box::new(decor::define(&mut base))),
+        EntityKind::Mannequin => {
+            mannequin::define(&mut base);
+            EntityState::Living(Box::new(LivingState::new(&mut base, 0.0)))
+        }
         _ => EntityState::Living(Box::new(LivingState::new(&mut base, 0.0))),
     };
     read_base(nbt, &mut base)?;
@@ -1241,6 +1252,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Living(living_state) => {
             read_living(nbt, &mut base, living_state);
             let mut known: Vec<&[&str]> = vec![&ENTITY_KEYS, &LIVING_KEYS];
+            if base.kind == EntityKind::Mannequin {
+                mannequin::read(nbt, &mut base);
+                known.push(mannequin::KEYS);
+            }
             if let Some(mob) = &living_state.mob {
                 known.extend(species_keys(mob, base.kind));
             }
@@ -1311,6 +1326,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityState::Minecart(cart_state) => {
             minecart::read(nbt, cart_state);
             &[&ENTITY_KEYS, minecart::KEYS]
+        }
+        EntityState::Decor(decor_state) => {
+            decor::read(nbt, &mut base, decor_state);
+            &[&ENTITY_KEYS, decor::keys(kind)]
         }
         EntityState::Lightning(_) | EntityState::Hook(_) | EntityState::Inert(_) => &[],
     };
@@ -1655,6 +1674,7 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Piglin(state) => species::piglin::write(base, state, out),
         Species::Goat(state) => species::goat::write(base, state, out),
         Species::Armadillo(state) => species::armadillo::write(base, state, out),
+        Species::Mooshroom(state) => species::mooshroom::write(base, state, out),
         Species::Llama(state) => species::llama::write(base, state, out),
         Species::Camel(_) => species::camel::write(base, out),
         Species::HappyGhast(state) => species::happy_ghast::write(state, out),
@@ -1719,7 +1739,12 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
             }
             out.insert("CancelDrop", bool_tag(falling.cancel_drop));
         }
-        EntityState::Living(living_state) => write_living(&entity.base, living_state, &mut out),
+        EntityState::Living(living_state) => {
+            write_living(&entity.base, living_state, &mut out);
+            if entity.base.kind == EntityKind::Mannequin {
+                mannequin::write(&entity.base, &mut out);
+            }
+        }
         EntityState::Orb(orb_state) => {
             out.insert("Health", orb_state.health as i16);
             out.insert("Age", orb_state.age as i16);
@@ -1754,6 +1779,7 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
         }
         EntityState::Boat(boat_state) => boat::write(boat_state, &mut out),
         EntityState::Minecart(cart_state) => minecart::write(cart_state, &mut out),
+        EntityState::Decor(decor_state) => decor::write(&entity.base, decor_state, &mut out),
         EntityState::Lightning(_) | EntityState::Hook(_) | EntityState::Inert(_) => {}
     }
     for (key, value) in entity.extra.iter() {
@@ -2022,7 +2048,7 @@ mod tests {
     #[test]
     fn unknown_types_are_kept_verbatim() {
         let nbt = Compound::new()
-            .with("id", "minecraft:block_display")
+            .with("id", "minecraft:marker")
             .with("Pos", doubles(Vec3::new(0.0, 70.0, 0.0)))
             .with("transformation", Tag::List(Vec::new()))
             .with("Glow", Compound::new().with("Head", Tag::List(Vec::new())));

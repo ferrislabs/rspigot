@@ -526,6 +526,7 @@ mod tests {
     const GAMEPLAY_TABLES: usize = 22;
     const CHEST_TABLE_FILES: usize = 58;
     const SPAWNER_TABLES: usize = 5;
+    const EQUIPMENT_TABLES: usize = 6;
     const FISHING_TABLES: usize = 3;
     const BRUSH_TABLES: usize = 1;
     const ARCHAEOLOGY_TABLES: usize = 6;
@@ -612,6 +613,7 @@ mod tests {
                 + REFERENCED_TABLES
                 + CHEST_TABLE_FILES
                 + SPAWNER_TABLES
+                + EQUIPMENT_TABLES
                 + GAMEPLAY_TABLES
                 + FISHING_TABLES
                 + BRUSH_TABLES

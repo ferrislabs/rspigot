@@ -565,6 +565,7 @@ impl Node {
 }
 
 pub(crate) use hash::component_hash;
+pub(crate) use schema::encode_resolvable_profile;
 
 pub(crate) fn component_type(name: &str) -> Option<i32> {
     Reg::Static(DATA_COMPONENT_TYPE).index(name)
