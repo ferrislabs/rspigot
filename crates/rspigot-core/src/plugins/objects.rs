@@ -5,7 +5,6 @@ use rspigot_domain::entity::reward::{damage_value, max_damage, set_damage_value}
 use rspigot_domain::item::{HOTBAR_START, ItemStack, OFFHAND_SLOT, same_item_same_components};
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::{BlockPos, EntityId, Rotation, Vec3};
-use rspigot_items::{EquipmentSlot as ItemSlot, ItemKind};
 
 use crate::events::{Animation, ClientEvent, Direction, EntityStatus, EquipmentSlot, Hand};
 use crate::plugins::decisions::Continuation;
@@ -23,7 +22,6 @@ use crate::plugins::{Access, EventKind, EventPayload, LecternData, spec_of, stac
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
-const UNBREAKING: &str = "minecraft:unbreaking";
 const STANDING_EYES: f32 = 1.62;
 const CROUCHING_EYES: f32 = 1.27;
 
@@ -688,22 +686,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn unbroken_damage(&mut self, stack: &ItemStack, amount: i32) -> i32 {
-        let level = stack
-            .enchantments()
-            .iter()
-            .find(|(name, _)| name == UNBREAKING)
-            .map_or(0, |(_, level)| i32::from(*level));
-        if level <= 0 || amount <= 0 {
-            return amount;
-        }
-        let armor = matches!(
-            stack.item.kind().and_then(ItemKind::equippable),
-            Some(ItemSlot::Head | ItemSlot::Chest | ItemSlot::Legs | ItemSlot::Feet)
-        );
-        let rng = &mut self.rng;
-        rspigot_domain::enchant::damage_after_unbreaking(level, armor, amount, || {
-            rng.random::<f32>()
-        })
+        self.enchanted_item_damage(stack, amount)
     }
 
     pub(crate) fn wear_payload(&self, step: &WearStep) -> Option<EventPayload> {

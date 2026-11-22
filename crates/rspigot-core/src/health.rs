@@ -448,6 +448,7 @@ impl<L: ClientLink> Server<L> {
         let kind = source.kind;
         let player = self.players.get(&id)?;
         if invulnerable_to(player, kind, &self.config.rules)
+            || self.is_enchant_immune(player.entity_id, source)
             || (source.attacker().is_some() && !self.config.pvp)
             || source
                 .attacker()
@@ -546,10 +547,15 @@ impl<L: ClientLink> Server<L> {
         let effectiveness = self.players.get(&id).map_or(1.0, |player| {
             self.armor_effectiveness_against(player.entity_id, source)
         });
+        let enchant_immune = self
+            .players
+            .get(&id)
+            .is_some_and(|player| self.is_enchant_immune(player.entity_id, source));
         let Some(player) = self.players.get_mut(&id) else {
             return false;
         };
         if invulnerable_to(player, kind, &rules)
+            || enchant_immune
             || (player.abilities().invulnerable && !kind.is(DamageTag::BypassesInvulnerability))
             || player.vitals.is_dead()
             || amount == 0.0
@@ -746,6 +752,7 @@ impl<L: ClientLink> Server<L> {
                     player.inventory.slots()[..PLAYER_INVENTORY_SIZE]
                         .iter()
                         .flatten()
+                        .filter(|stack| !rspigot_domain::enchant::prevents_equipment_drop(stack))
                         .map(spec_of)
                         .collect()
                 };
@@ -826,6 +833,7 @@ impl<L: ClientLink> Server<L> {
         let drops = patch.drops.apply_with(
             dropped
                 .iter()
+                .filter(|(_, stack)| !rspigot_domain::enchant::prevents_equipment_drop(stack))
                 .map(|(_, stack)| (stack.clone(), true))
                 .collect(),
             |(_, from_inventory), spec| {

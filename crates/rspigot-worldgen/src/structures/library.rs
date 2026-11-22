@@ -210,6 +210,13 @@ impl Library {
 
     fn apply(&mut self, root: &Path, pack: Pack, tags: &BiomeTags, issues: &mut Vec<LoadIssue>) {
         for (name, mut value) in pack.structures {
+            if let Err(reason) = super::structure::validate(&value) {
+                issues.push(LoadIssue::new(
+                    root,
+                    format!("structure {name} was not installed: {reason}"),
+                ));
+                continue;
+            }
             let biomes = tags.resolve(value.get("biomes").unwrap_or(&Value::Null));
             value["biomes"] = json!(biomes);
             self.structures.insert(short_key(&name), value);

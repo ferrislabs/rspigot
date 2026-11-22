@@ -255,3 +255,61 @@ fn an_invalid_structure_set_is_reported() {
     let (_, issues) = Library::build(&[dir]);
     assert!(issues.iter().any(|issue| issue.path.ends_with("odd.json")));
 }
+
+fn structure_file(dir: &Path, name: &str, body: &serde_json::Value) {
+    write(
+        &dir.join(format!("data/mine/worldgen/structure/{name}.json")),
+        &body.to_string(),
+    );
+}
+
+#[test]
+fn an_unknown_structure_type_is_reported_and_not_installed() {
+    let scratch = Scratch::new("unknown-structure");
+    let dir = pack(&scratch.0, "mine");
+    structure_file(
+        &dir,
+        "odd",
+        &json!({"type": "mine:castle", "biomes": [], "step": "surface_structures", "spawn_overrides": {}}),
+    );
+    let (library, issues) = Library::build(&[dir]);
+    assert!(
+        issues
+            .iter()
+            .any(|issue| issue.reason.contains("unknown structure type mine:castle")),
+        "{issues:?}"
+    );
+    assert!(library.structures().get("mine:odd").is_none());
+}
+
+#[test]
+fn a_known_structure_type_loads_without_an_issue() {
+    let scratch = Scratch::new("known-structure");
+    let dir = pack(&scratch.0, "mine");
+    structure_file(
+        &dir,
+        "hut",
+        &json!({"type": "minecraft:swamp_hut", "biomes": [], "step": "surface_structures", "spawn_overrides": {}}),
+    );
+    let (library, issues) = Library::build(&[dir]);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert!(library.structures().get("mine:hut").is_some());
+}
+
+#[test]
+fn a_nether_fossil_without_its_height_is_reported() {
+    let scratch = Scratch::new("fossil-structure");
+    let dir = pack(&scratch.0, "mine");
+    structure_file(
+        &dir,
+        "fossil",
+        &json!({"type": "minecraft:nether_fossil", "biomes": [], "step": "underground_decoration", "spawn_overrides": {}}),
+    );
+    let (_, issues) = Library::build(&[dir]);
+    assert!(
+        issues
+            .iter()
+            .any(|issue| issue.reason.contains("nether_fossil")),
+        "{issues:?}"
+    );
+}

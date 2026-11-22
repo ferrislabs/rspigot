@@ -72,6 +72,19 @@ impl NoiseGenerator {
 }
 
 impl NoiseGenerator {
+    pub(crate) fn with_terrain_key(seed: i64, key: &str) -> Self {
+        let seed = seed as u64;
+        let resources = Resources::resolve();
+        Self {
+            state: Box::new(NoiseState {
+                overworld: Overworld::with_terrain_key(seed, key, &resources.blocks),
+                nether: Nether::new(seed, &resources.blocks),
+                end: End::new(seed, &resources.blocks),
+                resources,
+            }),
+        }
+    }
+
     #[must_use]
     pub fn without_structures(mut self) -> Self {
         self.state.overworld.disable_structures();

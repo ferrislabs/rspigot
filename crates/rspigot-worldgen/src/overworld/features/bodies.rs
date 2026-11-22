@@ -148,6 +148,9 @@ pub(crate) enum Feature {
     Blob(Blob),
     Bamboo(f32),
     Vines,
+    Pile(State),
+    BonusChest,
+    VoidPlatform,
     Mushroom(Box<super::mushrooms::Mushroom>),
     Fallen(Box<super::fallen::Fallen>),
     Magma(super::magma::Magma),
@@ -258,6 +261,10 @@ impl<'a> Compiler<'a> {
             .unwrap_or_default()
     }
 
+    pub(crate) fn is_supported(&mut self, value: &Value) -> bool {
+        !matches!(self.feature(value), Feature::Unsupported)
+    }
+
     fn feature(&mut self, value: &Value) -> Feature {
         let kind = short(value);
         match kind {
@@ -349,6 +356,11 @@ impl<'a> Compiler<'a> {
             }),
             "bamboo" => Feature::Bamboo(number(value, "probability", 0.0) as f32),
             "vines" => Feature::Vines,
+            "block_pile" => Feature::Pile(State::compile(
+                value.get("state_provider").unwrap_or(&Value::Null),
+            )),
+            "bonus_chest" => Feature::BonusChest,
+            "void_start_platform" => Feature::VoidPlatform,
             "spike" => Feature::Spike(Box::new(super::ice::Spike::compile(value))),
             "iceberg" => Feature::Iceberg(super::ice::Iceberg::compile(value)),
             "blue_ice" => Feature::BlueIce(super::ice::BlueIce),
@@ -487,6 +499,8 @@ impl Feature {
             Self::Blob(_) => 6,
             Self::Bamboo(_) => 5,
             Self::Vines => 1,
+            Self::Pile(_) => 5,
+            Self::BonusChest | Self::VoidPlatform => super::misc::REACH,
             Self::Mushroom(mushroom) => mushroom.reach(),
             Self::Fallen(fallen) => fallen.reach(),
             Self::Magma(magma) => magma.reach(),
@@ -541,6 +555,9 @@ impl Feature {
             Self::Blob(blob) => place_blob(blob, run, pos),
             Self::Bamboo(probability) => place_bamboo(*probability, run, pos),
             Self::Vines => place_vines(run, pos),
+            Self::Pile(provider) => super::misc::place_pile(provider, run, pos),
+            Self::BonusChest => super::misc::place_bonus_chest(run, pos),
+            Self::VoidPlatform => super::misc::place_void_platform(run, pos),
             Self::Mushroom(mushroom) => mushroom.place(run, pos),
             Self::Fallen(fallen) => fallen.place(run, pos),
             Self::Magma(magma) => magma.place(run, pos),

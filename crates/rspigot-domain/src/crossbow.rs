@@ -27,11 +27,6 @@ pub const HIT_SOUND: &str = "minecraft:item.crossbow.hit";
 pub const LOADING_END_SOUND: &str = "minecraft:item.crossbow.loading_end";
 pub const LOADING_MIDDLE_SOUND: &str = "minecraft:item.crossbow.loading_middle";
 pub const LOADING_START_SOUND: &str = "minecraft:item.crossbow.loading_start";
-pub const QUICK_CHARGE_SOUNDS: [&str; 3] = [
-    "minecraft:item.crossbow.quick_charge_1",
-    "minecraft:item.crossbow.quick_charge_2",
-    "minecraft:item.crossbow.quick_charge_3",
-];
 pub const START_SOUND_PROGRESS: f32 = 0.2;
 pub const MID_SOUND_PROGRESS: f32 = 0.5;
 pub const CHARGING_SOUND_VOLUME: f32 = 0.5;
@@ -121,16 +116,11 @@ pub struct ChargingSounds {
 }
 
 pub fn charging_sounds(crossbow: &ItemStack) -> ChargingSounds {
-    let level = level_of(crossbow, QUICK_CHARGE);
-    let start = if level > 0 {
-        QUICK_CHARGE_SOUNDS[(level as usize - 1).min(QUICK_CHARGE_SOUNDS.len() - 1)]
-    } else {
-        LOADING_START_SOUND
-    };
+    let picked = crate::enchant::crossbow_charging_sounds(crossbow);
     ChargingSounds {
-        start,
+        start: picked.map_or(LOADING_START_SOUND, |sounds| sounds.start),
         mid: LOADING_MIDDLE_SOUND,
-        end: LOADING_END_SOUND,
+        end: picked.map_or(LOADING_END_SOUND, |sounds| sounds.end),
     }
 }
 
@@ -469,11 +459,11 @@ mod tests {
         );
         assert_eq!(
             charging_sounds(&enchanted(QUICK_CHARGE, 2)).start,
-            QUICK_CHARGE_SOUNDS[1]
+            "minecraft:item.crossbow.quick_charge_2"
         );
         assert_eq!(
             charging_sounds(&enchanted(QUICK_CHARGE, 9)).start,
-            QUICK_CHARGE_SOUNDS[2]
+            "minecraft:item.crossbow.quick_charge_3"
         );
     }
 

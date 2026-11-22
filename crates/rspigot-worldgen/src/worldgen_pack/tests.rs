@@ -225,16 +225,16 @@ fn noise_settings_with_a_broken_router_are_rejected() {
 }
 
 #[test]
-fn custom_noise_settings_ids_are_reported() {
+fn vanilla_noise_settings_the_server_cannot_override_are_reported() {
     let root = pack(
         "settings-custom",
         &[(
-            "data/demo/worldgen/noise_settings/wild.json",
+            "data/minecraft/worldgen/noise_settings/nether.json",
             text(embedded_settings()),
         )],
     );
     let (_, issues) = load(&[root]);
-    assert!(mentions(&issues, "demo:wild"), "{issues:?}");
+    assert!(mentions(&issues, "minecraft:nether"), "{issues:?}");
 }
 
 #[test]
@@ -369,4 +369,321 @@ fn unsupported_worldgen_folders_are_reported() {
             || mentions(&issues, "biome climate parameters")
     );
     assert!(mentions(&issues, "dimension type demo:y"), "{issues:?}");
+}
+
+fn overworld_dimension(kind: Value, settings: Value) -> String {
+    text(json!({
+        "type": kind,
+        "generator": {
+            "type": "minecraft:noise",
+            "settings": settings,
+            "biome_source": {"type": "minecraft:multi_noise", "preset": "minecraft:overworld"},
+        },
+    }))
+}
+
+fn short_settings() -> Value {
+    let mut settings = embedded_settings();
+    settings["noise"] = json!({"min_y": 0, "height": 128});
+    settings
+}
+
+fn short_type() -> String {
+    text(json!({
+        "has_skylight": true,
+        "has_ceiling": true,
+        "has_fixed_time": true,
+        "min_y": 0,
+        "height": 128,
+        "ambient_light": 0.5,
+        "monster_spawn_block_light_limit": 3,
+        "monster_spawn_light_level": {"type": "minecraft:uniform", "min_inclusive": 1, "max_inclusive": 9},
+        "attributes": {"minecraft:gameplay/piglins_zombify": false},
+    }))
+}
+
+#[test]
+fn inline_noise_settings_become_a_terrain_variant_of_their_dimension() {
+    let root = pack(
+        "inline",
+        &[
+            (
+                "data/demo/dimension/caves.json",
+                overworld_dimension(json!("demo:short"), short_settings()),
+            ),
+            ("data/demo/dimension_type/short.json", short_type()),
+        ],
+    );
+    let (overlay, mut issues) = load(&[root]);
+    assert!(issues.is_empty(), "{issues:?}");
+    let aliases = overlay.aliases(&mut issues);
+    assert_eq!(
+        aliases.get("demo:caves").map(String::as_str),
+        Some("inline:demo:caves")
+    );
+    let variant = &overlay.merged()["terrain"]["variants"]["inline:demo:caves"];
+    assert_eq!(variant["min_y"], 0);
+    assert_eq!(variant["height"], 128);
+    assert_eq!(variant["sea_level"], 40);
+    assert!(issues.is_empty(), "{issues:?}");
+}
+
+#[test]
+fn a_named_custom_noise_settings_file_is_installed_beside_the_vanilla_ones() {
+    let root = pack(
+        "named-settings",
+        &[
+            (
+                "data/demo/worldgen/noise_settings/short.json",
+                text(short_settings()),
+            ),
+            (
+                "data/demo/dimension/caves.json",
+                overworld_dimension(json!("minecraft:overworld"), json!("demo:short")),
+            ),
+        ],
+    );
+    let (overlay, mut issues) = load(&[root]);
+    assert!(issues.is_empty(), "{issues:?}");
+    let aliases = overlay.aliases(&mut issues);
+    assert_eq!(
+        aliases.get("demo:caves").map(String::as_str),
+        Some("demo:short")
+    );
+    assert_eq!(terrain_key("demo:short"), "demo:short");
+    assert_eq!(terrain_key("minecraft:large_biomes"), "large_biomes");
+    let merged = overlay.merged();
+    assert_eq!(merged["terrain"]["variants"]["demo:short"]["height"], 128);
+    assert_eq!(
+        merged["terrain"]["variants"]["normal"],
+        datapack::embedded()["terrain"]["variants"]["normal"]
+    );
+    assert!(issues.is_empty(), "{issues:?}");
+}
+
+#[test]
+fn invalid_inline_noise_settings_are_reported_and_the_dimension_is_skipped() {
+    let mut broken = short_settings();
+    broken["noise_router"] = Value::Null;
+    let root = pack(
+        "inline-broken",
+        &[(
+            "data/demo/dimension/bad.json",
+            overworld_dimension(json!("minecraft:overworld"), broken),
+        )],
+    );
+    let (overlay, mut issues) = load(&[root]);
+    assert!(mentions(&issues, "inline:demo:bad"), "{issues:?}");
+    let aliases = overlay.aliases(&mut issues);
+    assert!(aliases.is_empty());
+}
+
+#[test]
+fn a_custom_dimension_type_gives_the_dimension_its_own_height_and_flags() {
+    let root = pack(
+        "type-template",
+        &[
+            (
+                "data/demo/dimension/caves.json",
+                overworld_dimension(json!("demo:short"), short_settings()),
+            ),
+            ("data/demo/dimension_type/short.json", short_type()),
+        ],
+    );
+    let (overlay, mut issues) = load(&[root]);
+    let aliases = overlay.aliases(&mut issues);
+    let templates = overlay.templates(&aliases, &mut issues);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert_eq!(templates.len(), 1);
+    let (id, template, spawns) = &templates[0];
+    assert_eq!(id, "demo:caves");
+    assert_eq!(template.height.min_y, 0);
+    assert_eq!(template.height.height, 128);
+    assert!(template.has_skylight && template.has_ceiling && template.has_fixed_time);
+    assert!(!template.piglins_zombify);
+    assert_eq!(template.sea_level, 40);
+    assert_eq!(template.dimension_type.as_str(), "demo:short");
+    assert_eq!(spawns.ambient_light, 0.5);
+    assert_eq!(spawns.monster_spawn_block_light_limit, 3);
+    assert_eq!(
+        spawns.monster_spawn_light,
+        rspigot_data::spawns::SpawnCount::Uniform { min: 1, max: 9 }
+    );
+    assert!(spawns.has_ceiling);
+}
+
+#[test]
+fn an_inline_dimension_type_is_read_and_a_vanilla_one_needs_no_template() {
+    let inline = overworld_dimension(
+        serde_json::from_str(&short_type()).unwrap_or_default(),
+        short_settings(),
+    );
+    let vanilla = overworld_dimension(json!("minecraft:overworld"), short_settings());
+    let root = pack(
+        "type-inline",
+        &[
+            ("data/demo/dimension/inline.json", inline),
+            ("data/demo/dimension/plain.json", vanilla),
+        ],
+    );
+    let (overlay, mut issues) = load(&[root]);
+    let aliases = overlay.aliases(&mut issues);
+    let templates = overlay.templates(&aliases, &mut issues);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert_eq!(templates.len(), 1);
+    assert_eq!(templates[0].0, "demo:inline");
+    assert_eq!(templates[0].1.height.height, 128);
+}
+
+#[test]
+fn bad_dimension_types_are_reported_by_name() {
+    let root = pack(
+        "type-bad",
+        &[
+            (
+                "data/demo/dimension_type/odd.json",
+                text(json!({"min_y": 5, "height": 100})),
+            ),
+            ("data/minecraft/dimension_type/overworld.json", short_type()),
+            (
+                "data/demo/dimension/ghost.json",
+                overworld_dimension(json!("demo:missing"), short_settings()),
+            ),
+        ],
+    );
+    let (overlay, mut issues) = load(&[root]);
+    assert!(mentions(&issues, "dimension type demo:odd"), "{issues:?}");
+    assert!(
+        mentions(&issues, "dimension type minecraft:overworld"),
+        "{issues:?}"
+    );
+    let aliases = overlay.aliases(&mut issues);
+    let templates = overlay.templates(&aliases, &mut issues);
+    assert!(templates.is_empty());
+    assert!(mentions(&issues, "unknown dimension type demo:missing"));
+}
+
+#[test]
+fn features_and_modifiers_of_an_unknown_type_are_reported() {
+    let root = pack(
+        "features-unknown",
+        &[
+            (
+                "data/demo/worldgen/feature/odd.json",
+                text(json!({"type": "demo:sparkle", "config": {}})),
+            ),
+            (
+                "data/demo/worldgen/feature/fine.json",
+                text(
+                    json!({"type": "minecraft:block_pile", "state_provider": {"Name": "minecraft:hay_block"}}),
+                ),
+            ),
+            (
+                "data/demo/worldgen/placed_feature/odd.json",
+                text(
+                    json!({"feature": "demo:fine", "placement": [{"type": "demo:warp"}, {"type": "minecraft:count", "count": 2}]}),
+                ),
+            ),
+        ],
+    );
+    let (_, issues) = load(&[root]);
+    assert!(
+        mentions(&issues, "configured feature demo:odd"),
+        "{issues:?}"
+    );
+    assert!(
+        mentions(&issues, "placement modifier \"demo:warp\""),
+        "{issues:?}"
+    );
+    assert!(!mentions(&issues, "demo:fine"), "{issues:?}");
+    assert_eq!(issues.len(), 2, "{issues:?}");
+}
+
+fn rule_settings(rule: Value) -> String {
+    let mut settings = short_settings();
+    settings["surface_rule"] = rule;
+    text(settings)
+}
+
+#[test]
+fn a_surface_rule_in_noise_settings_reaches_the_terrain_variant() {
+    let rule = json!({
+        "type": "minecraft:sequence",
+        "sequence": [{
+            "type": "minecraft:condition",
+            "if_true": {"type": "minecraft:above_preliminary_surface"},
+            "then_run": {"type": "minecraft:block", "result_state": {"Name": "minecraft:sand"}},
+        }],
+    });
+    let root = pack(
+        "surface-rule",
+        &[(
+            "data/demo/worldgen/noise_settings/dunes.json",
+            rule_settings(rule.clone()),
+        )],
+    );
+    let (overlay, issues) = load(&[root]);
+    assert!(issues.is_empty(), "{issues:?}");
+    assert_eq!(
+        overlay.merged()["terrain"]["variants"]["demo:dunes"]["surface_rule"],
+        rule
+    );
+}
+
+#[test]
+fn a_surface_rule_with_unsupported_parts_is_reported_and_not_applied() {
+    let rule = json!({
+        "type": "minecraft:sequence",
+        "sequence": [
+            {"type": "minecraft:condition",
+             "if_true": {"type": "minecraft:temperature"},
+             "then_run": {"type": "minecraft:block", "result_state": {"Name": "minecraft:ice"}}},
+            {"type": "minecraft:condition",
+             "if_true": {"type": "minecraft:noise_threshold", "noise": "demo:ghost", "min_threshold": 0.0, "max_threshold": 1.0},
+             "then_run": {"type": "minecraft:block", "result_state": {"Name": "minecraft:sand"}}},
+            {"type": "demo:magic"},
+        ],
+    });
+    let root = pack(
+        "surface-rule-bad",
+        &[(
+            "data/demo/worldgen/noise_settings/dunes.json",
+            rule_settings(rule),
+        )],
+    );
+    let (overlay, issues) = load(&[root]);
+    assert!(
+        mentions(&issues, "surface condition \"minecraft:temperature\""),
+        "{issues:?}"
+    );
+    assert!(mentions(&issues, "noise \"demo:ghost\""), "{issues:?}");
+    assert!(
+        mentions(&issues, "surface rule \"demo:magic\""),
+        "{issues:?}"
+    );
+    assert!(
+        overlay.merged()["terrain"]["variants"]["demo:dunes"]
+            .get("surface_rule")
+            .is_none()
+    );
+    assert_eq!(
+        overlay.merged()["terrain"]["variants"]["demo:dunes"]["height"],
+        128
+    );
+}
+
+#[test]
+fn a_custom_router_of_large_biomes_functions_uses_the_large_biomes_climate() {
+    let mut settings = short_settings();
+    settings["noise_router"]["continents"] = json!("minecraft:overworld_large_biomes/continents");
+    let root = pack(
+        "climate",
+        &[(
+            "data/demo/worldgen/noise_settings/wide.json",
+            text(settings),
+        )],
+    );
+    let (overlay, _) = load(&[root]);
+    let router = overlay.merged()["terrain"]["variants"]["demo:wide"]["router"].to_string();
+    assert!(router.contains("overworld_large_biomes/"));
 }

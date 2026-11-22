@@ -588,6 +588,7 @@ impl<L: ClientLink> Server<L> {
         if burning {
             self.arrow_lights(id, hit.pos, state_at);
         }
+        self.trident_hit_block(id, hit.pos);
         self.projectile_hits_block(id, hit.pos);
     }
 

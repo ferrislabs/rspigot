@@ -720,8 +720,11 @@ impl State {
                 .unwrap_or_default()
         };
         match short(value) {
-            "noise" => Self::Noise(NoiseBlocks::compile(value, states("states"))),
-            "dual_noise" => {
+            "simple_state_provider" => Self::compile(value.get("state").unwrap_or(&Value::Null)),
+            "noise" | "noise_provider" => {
+                Self::Noise(NoiseBlocks::compile(value, states("states")))
+            }
+            "dual_noise" | "dual_noise_provider" => {
                 let range = value.get("variety").and_then(Value::as_array);
                 let bound = |index: usize| {
                     range
@@ -739,7 +742,7 @@ impl State {
                     fast: NoiseBlocks::compile(value, states("states")),
                 }
             }
-            "noise_threshold" => Self::Threshold {
+            "noise_threshold" | "noise_threshold_provider" => Self::Threshold {
                 noise: NoiseBlocks::compile(value, Vec::new()),
                 threshold: number(value, "threshold", 0.0) as f32,
                 chance: number(value, "high_chance", 0.0) as f32,
@@ -760,14 +763,14 @@ impl State {
                         .collect(),
                 )
             }
-            "rotated" => Self::Rotated {
+            "rotated" | "rotated_block_provider" => Self::Rotated {
                 source: Box::new(Self::compile(value.get("state").unwrap_or(&Value::Null))),
                 direction: DIRECTIONS
                     .iter()
                     .find(|name| Some(**name) == value.get("direction").and_then(Value::as_str))
                     .copied(),
             },
-            "weighted" => Self::Weighted(
+            "weighted" | "weighted_state_provider" => Self::Weighted(
                 value
                     .get("entries")
                     .and_then(Value::as_array)
@@ -802,7 +805,7 @@ impl State {
                     })
                     .unwrap_or_default(),
             },
-            "randomized_int" => Self::RandomizedInt {
+            "randomized_int" | "randomized_int_state_provider" => Self::RandomizedInt {
                 source: Box::new(Self::compile(value.get("source").unwrap_or(&Value::Null))),
                 property: text(value, "property").to_owned(),
                 values: Int::compile(value.get("values").unwrap_or(&Value::Null)),

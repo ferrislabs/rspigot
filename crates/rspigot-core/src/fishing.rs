@@ -10,6 +10,7 @@ use rspigot_domain::{BlockPos, EntityId, Rotation, Vec3, mth};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::ItemKind;
 
+use crate::enchant_effects;
 use crate::events::{ClientEvent, EntityStatus, Hand};
 use crate::loot::{self, LootContext, LootEntity};
 use crate::plugins::events::{
@@ -23,9 +24,7 @@ use crate::server::{Audience, Server};
 use crate::stats::custom;
 
 const FISHING_TABLE: &str = "minecraft:gameplay/fishing";
-const LUCK_OF_THE_SEA: &str = "minecraft:luck_of_the_sea";
-const LURE: &str = "minecraft:lure";
-const LURE_TICKS_PER_LEVEL: i32 = 100;
+const TICKS_PER_SECOND: f32 = 20.0;
 const THROW_SOUND: &str = "minecraft:entity.fishing_bobber.throw";
 const RETRIEVE_SOUND: &str = "minecraft:entity.fishing_bobber.retrieve";
 const SPLASH_SOUND: &str = "minecraft:entity.fishing_bobber.splash";
@@ -59,13 +58,6 @@ fn slot_of(hand: Hand) -> EquipmentSlot {
         Hand::Main => EquipmentSlot::Hand,
         Hand::Off => EquipmentSlot::OffHand,
     }
-}
-
-fn level_of(rod: &ItemStack, enchantment: &str) -> i32 {
-    rod.enchantments()
-        .iter()
-        .find(|(name, _)| name == enchantment)
-        .map_or(0, |(_, level)| i32::from(*level))
 }
 
 enum HookOf {
@@ -112,8 +104,11 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let (owner, eye) = (player.profile.id.0, player.eye_position());
-        let luck = level_of(rod, LUCK_OF_THE_SEA);
-        let lure = level_of(rod, LURE) * LURE_TICKS_PER_LEVEL;
+        let luck = (enchant_effects::fishing_luck_bonus(rod, &mut self.rng) as i32).max(0);
+        let lure =
+            ((enchant_effects::fishing_time_reduction(rod, &mut self.rng) * TICKS_PER_SECOND)
+                as i32)
+                .max(0);
         let mut base = self.new_entity_base(Kind::FishingBobber);
         let seed = self.rng.random::<i64>();
         let mut state = HookState::new(&mut base, seed, luck, lure);

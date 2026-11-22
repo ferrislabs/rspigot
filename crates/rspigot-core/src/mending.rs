@@ -3,14 +3,12 @@ use rspigot_domain::entity::reward::{damage_value, max_damage, set_damage_value}
 use rspigot_domain::item::{HOTBAR_START, OFFHAND_SLOT};
 use rspigot_domain::player::PlayerId;
 
+use crate::enchant_effects;
 use crate::plugins::events::{EquipmentSlot, PlayerItemMend, PlayerItemMendPatch};
 use crate::plugins::steps::OrbStep;
 use crate::plugins::{Continuation, EventKind, EventPayload, spec_of};
 use crate::ports::ClientLink;
 use crate::server::Server;
-
-const MENDING: &str = "minecraft:mending";
-const DURABILITY_PER_XP: i32 = 2;
 
 #[derive(Debug)]
 pub(crate) struct MendStep {
@@ -39,10 +37,7 @@ impl<L: ClientLink> Server<L> {
             player.inventory.get(*slot).is_some_and(|stack| {
                 max_damage(stack).is_some()
                     && damage_value(stack) > 0
-                    && stack
-                        .enchantments()
-                        .iter()
-                        .any(|(name, level)| name == MENDING && *level > 0)
+                    && enchant_effects::repairs_with_xp(stack)
             })
         })
         .collect()
@@ -64,7 +59,11 @@ impl<L: ClientLink> Server<L> {
             self.ask_orb_experience(orb);
             return;
         };
-        let modified = orb.amount.saturating_mul(DURABILITY_PER_XP);
+        let modified = enchant_effects::modify_repair_from_xp(&stack, orb.amount, &mut self.rng);
+        if modified <= 0 {
+            self.ask_orb_experience(orb);
+            return;
+        }
         let repair = modified.min(damage_value(&stack));
         let step = MendStep {
             orb,

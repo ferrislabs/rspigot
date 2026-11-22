@@ -11,8 +11,6 @@ pub const GUARANTEED_DROP_CHANCE: f32 = 2.0;
 pub const DROP_CURRENT_BIAS: f32 = 0.1;
 
 const DAMAGE: &str = "minecraft:damage";
-const ENCHANTMENTS: &str = "minecraft:enchantments";
-const BINDING_CURSE: &str = "minecraft:binding_curse";
 const SKELETON_PREFERRED: &str = "minecraft:skeleton_preferred_weapons";
 const DROWNED_PREFERRED: &str = "minecraft:drowned_preferred_weapons";
 const PILLAGER_PREFERRED: &str = "minecraft:pillager_preferred_weapons";
@@ -139,13 +137,6 @@ fn can_replace_equal(new: &ItemStack, current: &ItemStack) -> bool {
         || (has_extra_components(new) && !has_extra_components(current))
 }
 
-fn prevents_armor_change(stack: &ItemStack) -> bool {
-    stack
-        .components
-        .get_compound(ENCHANTMENTS)
-        .is_some_and(|enchantments| enchantments.get(BINDING_CURSE).is_some())
-}
-
 fn can_replace(
     kind: EntityKind,
     living: &LivingState,
@@ -154,7 +145,7 @@ fn can_replace(
     slot: EquipmentSlot,
 ) -> bool {
     if is_armor(slot) {
-        if prevents_armor_change(current) {
+        if crate::enchant::prevents_armor_change(current) {
             return false;
         }
         let defense = |stack| approximate(kind, living, stack, ARMOR, slot);
@@ -205,6 +196,8 @@ pub fn plan(kind: EntityKind, living: &LivingState, stack: &ItemStack) -> Option
 
 #[cfg(test)]
 mod tests {
+    const ENCHANTMENTS: &str = "minecraft:enchantments";
+    const BINDING_CURSE: &str = "minecraft:binding_curse";
     use std::num::NonZeroU8;
 
     use rspigot_nbt::Compound;

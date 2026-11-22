@@ -8,7 +8,6 @@ use rspigot_domain::entity::living::slot_index;
 use rspigot_domain::entity::species::{piglin, pillager};
 use rspigot_domain::entity::{Entity, EntityState};
 use rspigot_domain::item::ItemStack;
-use rspigot_domain::random::RandomSource;
 use rspigot_domain::{EntityId, Vec3};
 use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::{EquipmentSlot, ItemKind};
@@ -23,7 +22,6 @@ use crate::projectiles::EYE_OFFSET;
 use crate::server::{Audience, Server};
 
 const INTANGIBLE_PROJECTILE: &str = "minecraft:intangible_projectile";
-const UNBREAKING: &str = "minecraft:unbreaking";
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct ChargingSoundFlags {
@@ -47,10 +45,6 @@ const fn slot_of(hand: AiHand) -> EquipmentSlot {
 
 fn is_crossbow(stack: &ItemStack) -> bool {
     stack.item == ItemKind::Crossbow.id()
-}
-
-fn survival_odds(level: i32) -> f32 {
-    level as f32 / (level + 1) as f32
 }
 
 impl<L: ClientLink> Server<L> {
@@ -398,23 +392,17 @@ impl<L: ClientLink> Server<L> {
             Hand::Main => EquipmentSlot::Mainhand,
             Hand::Off => EquipmentSlot::Offhand,
         };
-        let level = self
+        let held = self
             .entities
             .store
             .get(id)
             .and_then(|entity| entity.living())
             .and_then(|living| living.equipment(slot))
-            .map_or(0, |stack| crossbow::level_of(stack, UNBREAKING));
-        let mut remaining = amount;
-        if level > 0 && amount > 0 {
-            let odds = survival_odds(level);
-            let mut random = crate::mobs::ServerRandom(&mut self.rng);
-            for _ in 0..amount {
-                if random.next_float() < odds {
-                    remaining -= 1;
-                }
-            }
-        }
+            .cloned();
+        let remaining = match held {
+            Some(stack) => self.enchanted_item_damage(&stack, amount),
+            None => amount,
+        };
         self.damage_mob_equipment(id, slot, remaining);
     }
 }

@@ -562,6 +562,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn activate_data(&self) {
         self.functions.data.activate();
+        crate::enchant_pack::activate(self.functions.data.registries().overlay());
         rspigot_domain::plugin_recipes::activate(&self.plugin_recipes);
     }
 
@@ -1177,6 +1178,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_idle_players();
         self.tick_health();
         self.tick_spin_attacks();
+        self.tick_enchantment_effects();
         self.tick_fall_flying();
         self.tick_stat_clocks();
         self.tick_scoreboard_criteria();

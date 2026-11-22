@@ -200,6 +200,37 @@ impl JigsawDef {
     }
 }
 
+const KNOWN_TYPES: [&str; 16] = [
+    "jigsaw",
+    "mineshaft",
+    "stronghold",
+    "ruined_portal",
+    "buried_treasure",
+    "igloo",
+    "ocean_monument",
+    "fortress",
+    "woodland_mansion",
+    "end_city",
+    "desert_pyramid",
+    "jungle_temple",
+    "swamp_hut",
+    "ocean_ruin",
+    "shipwreck",
+    "nether_fossil",
+];
+
+pub(crate) fn validate(value: &Value) -> Result<(), String> {
+    let written = value.get("type").and_then(Value::as_str).unwrap_or("");
+    let kind = short(written);
+    if !KNOWN_TYPES.contains(&kind) {
+        return Err(format!("unknown structure type {written}"));
+    }
+    if kind == "nether_fossil" && value.get("height").is_none() {
+        return Err("nether_fossil structure has no height".to_owned());
+    }
+    Ok(())
+}
+
 impl Structures {
     pub(crate) fn load(library: &Library) -> Self {
         let mut defs = HashMap::new();

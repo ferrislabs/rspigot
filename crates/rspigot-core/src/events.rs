@@ -591,6 +591,7 @@ pub enum ClientEvent {
     Abilities(Abilities),
     HeldSlot(u8),
     RecipeSync,
+    UpdateTags,
     Advancements {
         reset: bool,
         added: Vec<&'static rspigot_data::advancements::Advancement>,

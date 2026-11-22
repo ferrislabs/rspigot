@@ -1,28 +1,44 @@
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use rspigot_data::enchantments::{EffectRole, EntityEffect};
-use rspigot_domain::Vec3;
+use rspigot_blocks::BlockKind;
+use rspigot_data::enchantments::{
+    self, BlockCondition, EffectRole, EnchantmentEffects, EntityEffect,
+};
 use rspigot_domain::damage::DamageType;
-use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
+use rspigot_domain::effect::{
+    AttributeModifier, AttributeOperation, EffectDuration, EffectId, EffectInstance,
+};
 use rspigot_domain::entity::{Entities, Entity, EntityState, arrow};
+use rspigot_domain::particle::Particle;
+use rspigot_domain::player::GameMode;
+use rspigot_domain::{BlockPos, BlockStateId, Vec3, mth};
 use rspigot_domain::{EntityId, player::PlayerId};
-use rspigot_entities::EntityKind as Kind;
+use rspigot_entities::{EntityKind as Kind, SoundSource};
 use rspigot_items::EquipmentSlot;
 use rustc_hash::FxHashMap;
 
 use crate::enchant_effects::{self, EquipSlot, Planned, Worn};
-use crate::events::Hand;
-use crate::health::{CHEST_SLOT, DamageSource, FEET_SLOT, HEAD_SLOT, LEGS_SLOT, OFFHAND_SLOT};
+use crate::enchant_scene::{EffectScene, EntityFacts, LocationFacts, PlayerFacts};
+use crate::events::{ClientEvent, Hand};
+use crate::game_events::GameEventContext;
+use crate::health::{
+    CHEST_SLOT, DamageSource, FEET_SLOT, HEAD_SLOT, LEGS_SLOT, OFFHAND_SLOT, attributes,
+};
 use crate::loot::{LootContext, LootDamage};
 use crate::player::Player;
-use crate::plugins::events::EntityPotionEffectCause;
-use crate::plugins::{Combuster, Holder};
+use crate::plugins::events::{
+    CreatureSpawnReason, EntityExhaustionReason, EntityPotionEffectCause,
+};
+use crate::plugins::{Birth, Combuster, Holder};
 use crate::ports::ClientLink;
-use crate::server::Server;
+use crate::server::{Audience, Server};
 
 const TICKS_PER_SECOND: f32 = 20.0;
 const PUNCH_SCALE: f64 = 0.6;
 const PUNCH_LIFT: f64 = 0.1;
+const PARTICLE_RANGE: f64 = 32.0;
+const MOVEMENT_BLOCK_DEPTH: f64 = 0.500_001;
+const LIGHTNING_BOLT: &str = "minecraft:lightning_bolt";
 
 pub(crate) fn worn_gear<L>(player: &Player<L>) -> Vec<Worn<'_>> {
     let inventory = &player.inventory;
@@ -75,6 +91,41 @@ fn gear_in<'a, L>(
         .collect()
 }
 
+struct ReplaceDisk<'a> {
+    radius: f32,
+    height: f32,
+    offset: [i32; 3],
+    block: &'a str,
+    state: &'a [(&'a str, &'a str)],
+    predicate: Option<&'a BlockCondition>,
+    trigger_game_event: Option<&'a str>,
+}
+
+fn collect_attribute_grants(effect: &EntityEffect, out: &mut Vec<(&'static str, &'static str)>) {
+    match effect {
+        EntityEffect::Attribute { id, attribute, .. } => out.push((attribute, id)),
+        EntityEffect::AllOf(effects) => {
+            for effect in *effects {
+                collect_attribute_grants(effect, out);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn local_vector(yaw: f32, pitch: f32, direction: [f32; 3]) -> Vec3 {
+    let forward = mth::view_vector(pitch, yaw);
+    let up = mth::view_vector(pitch - 90.0, yaw);
+    let left = Vec3::new(
+        forward.y * up.z - forward.z * up.y,
+        forward.z * up.x - forward.x * up.z,
+        forward.x * up.y - forward.y * up.x,
+    );
+    forward.scale(f64::from(direction[2]))
+        + up.scale(f64::from(direction[1]))
+        + left.scale(f64::from(direction[0]))
+}
+
 fn between(rng: &mut impl Rng, min: f32, max: f32) -> f32 {
     rng.random::<f32>() * (max - min) + min
 }
@@ -125,6 +176,10 @@ impl<L: ClientLink> Server<L> {
         let damage = self.damage_facts(source);
         let attacker = source.causing.as_ref().map(|c| c.entity);
         let direct = source.direct.as_ref().map(|d| d.entity);
+        let victim_state = self.enchant_facts(victim);
+        let attacker_state = attacker.and_then(|entity| self.enchant_facts(entity));
+        let direct_state = direct.and_then(|entity| self.enchant_facts(entity));
+        let weather = Some((self.world.level.raining, self.world.level.thundering));
         let planned = {
             let gear_of = |entity: Option<EntityId>| {
                 entity
@@ -136,16 +191,370 @@ impl<L: ClientLink> Server<L> {
             if attacker_gear.is_empty() && victim_gear.is_empty() {
                 return;
             }
-            let context = LootContext {
-                this: Some(&facts),
-                damage: Some(&damage),
-                ..LootContext::default()
+            let scene = EffectScene {
+                loot: LootContext {
+                    this: Some(&facts),
+                    damage: Some(&damage),
+                    weather,
+                    ..LootContext::default()
+                },
+                this: victim_state.as_ref(),
+                attacker: attacker_state.as_ref(),
+                direct_attacker: direct_state.as_ref(),
+                location: None,
+                active: true,
             };
-            enchant_effects::post_attack(&attacker_gear, &victim_gear, &context, &mut self.rng)
+            enchant_effects::post_attack_in(&attacker_gear, &victim_gear, &scene, &mut self.rng)
         };
         for plan in planned {
             self.apply_planned(&plan, victim, attacker, direct);
         }
+    }
+
+    pub(crate) fn run_weapon_post_attack(
+        &mut self,
+        weapon: &rspigot_domain::item::ItemStack,
+        source: &DamageSource,
+        victim: EntityId,
+    ) {
+        let Some(facts) = self.entity_loot_facts(victim) else {
+            return;
+        };
+        let damage = self.damage_facts(source);
+        let attacker = source.causing.as_ref().map(|c| c.entity);
+        let direct = source.direct.as_ref().map(|d| d.entity);
+        let victim_state = self.enchant_facts(victim);
+        let attacker_state = attacker.and_then(|entity| self.enchant_facts(entity));
+        let direct_state = direct.and_then(|entity| self.enchant_facts(entity));
+        let weather = Some((self.world.level.raining, self.world.level.thundering));
+        let held = [Worn {
+            stack: weapon,
+            slot: EquipSlot::Mainhand,
+        }];
+        let scene = EffectScene {
+            loot: LootContext {
+                this: Some(&facts),
+                damage: Some(&damage),
+                weather,
+                ..LootContext::default()
+            },
+            this: victim_state.as_ref(),
+            attacker: attacker_state.as_ref(),
+            direct_attacker: direct_state.as_ref(),
+            location: None,
+            active: true,
+        };
+        let planned = enchant_effects::post_attack_in(&held, &[], &scene, &mut self.rng);
+        for plan in planned {
+            self.apply_planned(&plan, victim, attacker, direct);
+        }
+    }
+
+    pub(crate) fn enchant_facts(&self, entity: EntityId) -> Option<EntityFacts> {
+        if let Some(player) = self.players.values().find(|p| p.entity_id == entity) {
+            let position = player.position;
+            let cell = position.block();
+            let gamemode = match player.game_mode {
+                GameMode::Survival => "survival",
+                GameMode::Creative => "creative",
+                GameMode::Adventure => "adventure",
+                GameMode::Spectator => "spectator",
+            };
+            return Some(EntityFacts {
+                kind: Some("minecraft:player"),
+                on_ground: player.on_ground,
+                flying: player.flying,
+                fall_flying: player.fall_flying,
+                in_water: self.in_water(position),
+                has_vehicle: self.entities.rides.vehicle_of(entity).is_some(),
+                movement_block: self.movement_block_below(position),
+                age: i64::from(player.vitals.tick_count),
+                horizontal_speed: player.known_movement.horizontal_distance_sqr().sqrt() as f32,
+                fall_distance: player.vitals.fall_distance as f32,
+                player: Some(PlayerFacts {
+                    gamemode,
+                    food: player.vitals.food.food,
+                }),
+                sees_sky: self.motion_blocking_top(cell.x, cell.z) <= cell.y,
+            });
+        }
+        let found = self.entities.store.get(entity)?;
+        let base = &found.base;
+        let cell = base.position.block();
+        Some(EntityFacts {
+            kind: Some(base.kind.name()),
+            on_ground: base.on_ground,
+            flying: false,
+            fall_flying: false,
+            in_water: self.in_water(base.position),
+            has_vehicle: self.entities.rides.vehicle_of(entity).is_some(),
+            movement_block: self.movement_block_below(base.position),
+            age: i64::from(base.tick_count),
+            horizontal_speed: base.velocity.horizontal_distance_sqr().sqrt() as f32,
+            fall_distance: base.fall_distance as f32,
+            player: None,
+            sees_sky: self.motion_blocking_top(cell.x, cell.z) <= cell.y,
+        })
+    }
+
+    fn movement_block_below(&self, position: Vec3) -> Option<u32> {
+        let below = Vec3::new(position.x, position.y - MOVEMENT_BLOCK_DEPTH, position.z).block();
+        self.world
+            .chunks
+            .block(below)
+            .and_then(BlockStateId::kind)
+            .map(|kind| u32::from(kind.id().0))
+    }
+
+    fn position_of(&self, entity: EntityId) -> Option<Vec3> {
+        self.players
+            .values()
+            .find(|player| player.entity_id == entity)
+            .map(|player| player.position)
+            .or_else(|| {
+                self.entities
+                    .store
+                    .get(entity)
+                    .map(|found| found.base.position)
+            })
+    }
+
+    fn scene_effects(
+        &mut self,
+        entity: EntityId,
+        select: fn(&'static EnchantmentEffects) -> &'static [enchantments::ConditionalEffect],
+        active: bool,
+    ) -> Vec<Planned> {
+        let Some(facts) = self.enchant_facts(entity) else {
+            return Vec::new();
+        };
+        let weather = Some((self.world.level.raining, self.world.level.thundering));
+        let location = self.position_of(entity).map(|position| {
+            let cell = position.block();
+            LocationFacts {
+                block: self
+                    .world
+                    .chunks
+                    .block(cell)
+                    .and_then(BlockStateId::kind)
+                    .map(|kind| u32::from(kind.id().0)),
+                sees_sky: facts.sees_sky,
+            }
+        });
+        let loot_facts = self.entity_loot_facts(entity);
+        let scene = EffectScene {
+            loot: LootContext {
+                this: loot_facts.as_ref(),
+                weather,
+                ..LootContext::default()
+            },
+            this: Some(&facts),
+            attacker: None,
+            direct_attacker: Some(&facts),
+            location,
+            active,
+        };
+        let gear = gear_in(&self.players, &self.entities.store, entity);
+        enchant_effects::conditional(&gear, select, EffectRole::Attacker, &scene, &mut self.rng)
+    }
+
+    fn run_own_effects(
+        &mut self,
+        entity: EntityId,
+        select: fn(&'static EnchantmentEffects) -> &'static [enchantments::ConditionalEffect],
+    ) -> Vec<Planned> {
+        let planned = self.scene_effects(entity, select, true);
+        for plan in &planned {
+            self.apply_entity_effect_plan(plan.effect, plan.level, entity, entity, Some(plan.slot));
+        }
+        planned
+    }
+
+    pub(crate) fn tick_enchantment_effects(&mut self) {
+        let ids: Vec<(EntityId, bool)> = self
+            .players
+            .values()
+            .filter(|player| !player.vitals.is_dead() && player.game_mode != GameMode::Spectator)
+            .map(|player| {
+                let before = (player.position - player.known_movement).block();
+                (
+                    player.entity_id,
+                    player.moved_this_tick && before != player.position.block(),
+                )
+            })
+            .collect();
+        for (entity, moved_block) in ids {
+            self.run_own_effects(entity, |e| e.tick);
+            if moved_block {
+                self.run_location_changed(entity);
+            }
+        }
+    }
+
+    pub(crate) fn run_location_changed(&mut self, entity: EntityId) {
+        let planned = self.run_own_effects(entity, |e| e.location_changed);
+        let Some(player) = self.player_of(entity) else {
+            return;
+        };
+        let mut granted: Vec<(&'static str, &'static str)> = Vec::new();
+        for plan in &planned {
+            collect_attribute_grants(plan.effect, &mut granted);
+        }
+        let mut stale: Vec<(&'static str, &'static str)> = Vec::new();
+        for def in enchantments::all() {
+            if let Some(effects) = enchantments::effects(def.name) {
+                for entry in effects.location_changed {
+                    collect_attribute_grants(&entry.effect, &mut stale);
+                }
+            }
+        }
+        for (attribute, id) in stale {
+            if !granted.contains(&(attribute, id)) {
+                self.remove_enchant_modifier(player, attribute, id);
+            }
+        }
+    }
+
+    pub fn run_post_piercing_attack(&mut self, player: PlayerId) {
+        let Some(entity) = self.players.get(&player).map(|p| p.entity_id) else {
+            return;
+        };
+        let Some(facts) = self.enchant_facts(entity) else {
+            return;
+        };
+        let weather = Some((self.world.level.raining, self.world.level.thundering));
+        let loot_facts = self.entity_loot_facts(entity);
+        let planned = {
+            let Some(held) = self.players.get(&player).and_then(|p| {
+                p.inventory.held().map(|stack| Worn {
+                    stack,
+                    slot: EquipSlot::Mainhand,
+                })
+            }) else {
+                return;
+            };
+            let scene = EffectScene {
+                loot: LootContext {
+                    this: loot_facts.as_ref(),
+                    weather,
+                    ..LootContext::default()
+                },
+                this: Some(&facts),
+                attacker: Some(&facts),
+                direct_attacker: Some(&facts),
+                location: None,
+                active: true,
+            };
+            enchant_effects::conditional(
+                &[held],
+                |e| e.post_piercing_attack,
+                EffectRole::Attacker,
+                &scene,
+                &mut self.rng,
+            )
+        };
+        for plan in planned {
+            self.apply_entity_effect_plan(plan.effect, plan.level, entity, entity, Some(plan.slot));
+        }
+    }
+
+    pub(crate) fn run_hit_block(
+        &mut self,
+        weapon: &rspigot_domain::item::ItemStack,
+        projectile: EntityId,
+        pos: BlockPos,
+    ) {
+        let Some(facts) = self.enchant_facts(projectile) else {
+            return;
+        };
+        let weather = Some((self.world.level.raining, self.world.level.thundering));
+        let top = self.motion_blocking_top(pos.x, pos.z);
+        let location = LocationFacts {
+            block: self
+                .world
+                .chunks
+                .block(pos)
+                .and_then(BlockStateId::kind)
+                .map(|kind| u32::from(kind.id().0)),
+            sees_sky: top <= pos.y + 1,
+        };
+        let loot_facts = self.entity_loot_facts(projectile);
+        let held = [Worn {
+            stack: weapon,
+            slot: EquipSlot::Mainhand,
+        }];
+        let scene = EffectScene {
+            loot: LootContext {
+                this: loot_facts.as_ref(),
+                weather,
+                ..LootContext::default()
+            },
+            this: Some(&facts),
+            attacker: None,
+            direct_attacker: Some(&facts),
+            location: Some(location),
+            active: true,
+        };
+        let planned = enchant_effects::conditional(
+            &held,
+            |e| e.hit_block,
+            EffectRole::DamagingEntity,
+            &scene,
+            &mut self.rng,
+        );
+        for plan in planned {
+            self.apply_entity_effect_plan(plan.effect, plan.level, projectile, projectile, None);
+        }
+    }
+
+    fn remove_enchant_modifier(&mut self, player: PlayerId, attribute: &'static str, id: &str) {
+        let Some(entry) = self.players.get_mut(&player) else {
+            return;
+        };
+        let Some(edit) = entry
+            .attribute_edits
+            .iter_mut()
+            .find(|edit| edit.attribute == attribute)
+        else {
+            return;
+        };
+        let before = edit.modifiers.len();
+        edit.modifiers.retain(|modifier| modifier.id != id);
+        if edit.modifiers.len() != before {
+            self.clamp_vitals(player);
+            self.sync_attributes(player, &[attribute]);
+        }
+    }
+
+    fn add_enchant_modifier(
+        &mut self,
+        player: PlayerId,
+        attribute: &'static str,
+        modifier: AttributeModifier,
+    ) {
+        let Some(entry) = self.players.get_mut(&player) else {
+            return;
+        };
+        let base = attributes(entry).state(attribute).base;
+        match entry
+            .attribute_edits
+            .iter_mut()
+            .find(|edit| edit.attribute == attribute)
+        {
+            Some(edit) => {
+                edit.modifiers.retain(|existing| existing.id != modifier.id);
+                edit.modifiers.push(modifier);
+            }
+            None => entry
+                .attribute_edits
+                .push(rspigot_domain::entity::living::AttributeInstance {
+                    attribute,
+                    base,
+                    modifiers: vec![modifier],
+                }),
+        }
+        self.clamp_vitals(player);
+        self.sync_attributes(player, &[attribute]);
     }
 
     fn entity_for(
@@ -261,6 +670,313 @@ impl<L: ClientLink> Server<L> {
                     self.wear_enchanted(owner, slot, amount.calculate(level) as i32);
                 }
             }
+            EntityEffect::ApplyImpulse {
+                direction,
+                coordinate_scale,
+                magnitude,
+            } => {
+                self.apply_impulse(
+                    target,
+                    *direction,
+                    *coordinate_scale,
+                    magnitude.calculate(level),
+                );
+            }
+            EntityEffect::ApplyExhaustion(amount) => {
+                if let Some(player) = self.player_of(target) {
+                    self.exhaust(
+                        player,
+                        amount.calculate(level),
+                        EntityExhaustionReason::Unknown,
+                    );
+                }
+            }
+            EntityEffect::PlaySound {
+                sounds,
+                volume,
+                pitch_min,
+                pitch_max,
+            } => {
+                let Some(position) = self.position_of(target) else {
+                    return;
+                };
+                if sounds.is_empty() {
+                    return;
+                }
+                let sound = sounds[self.rng.random_range(0..sounds.len())];
+                let pitch = between(&mut self.rng, *pitch_min, *pitch_max);
+                let source = if self.player_of(target).is_some() {
+                    SoundSource::Players
+                } else {
+                    SoundSource::Neutral
+                };
+                self.play_sound(None, position, sound, source, *volume, pitch);
+            }
+            EntityEffect::SummonEntity { entity, .. } => {
+                self.summon_by_effect(entity, target, owner);
+            }
+            EntityEffect::SpawnParticles {
+                particle,
+                speed,
+                horizontal_movement_scale,
+                vertical_base,
+                vertical_offset,
+            } => {
+                self.spawn_effect_particles(
+                    particle,
+                    target,
+                    *speed,
+                    *horizontal_movement_scale,
+                    *vertical_base,
+                    *vertical_offset,
+                );
+            }
+            EntityEffect::Explode {
+                knockback_multiplier,
+                radius,
+                sound,
+                ..
+            } => {
+                let Some(center) = self.position_of(target) else {
+                    return;
+                };
+                self.wind_burst(
+                    Some(owner),
+                    center,
+                    radius.calculate(level),
+                    knockback_multiplier.calculate(level),
+                    sound,
+                );
+            }
+            EntityEffect::ReplaceDisk {
+                radius,
+                height,
+                offset,
+                block,
+                state,
+                predicate,
+                trigger_game_event,
+            } => {
+                self.replace_disk(
+                    target,
+                    ReplaceDisk {
+                        radius: radius.calculate(level),
+                        height: height.calculate(level),
+                        offset: *offset,
+                        block,
+                        state,
+                        predicate: predicate.as_ref(),
+                        trigger_game_event: *trigger_game_event,
+                    },
+                );
+            }
+            EntityEffect::Attribute {
+                id,
+                attribute,
+                amount,
+                operation,
+            } => {
+                let Some(player) = self.player_of(target) else {
+                    return;
+                };
+                let operation = match *operation {
+                    "add_multiplied_base" => AttributeOperation::AddMultipliedBase,
+                    "add_multiplied_total" => AttributeOperation::AddMultipliedTotal,
+                    _ => AttributeOperation::AddValue,
+                };
+                let modifier = AttributeModifier {
+                    id: std::borrow::Cow::Borrowed(id),
+                    amount: f64::from(amount.calculate(level)),
+                    operation,
+                };
+                self.add_enchant_modifier(player, attribute, modifier);
+            }
+        }
+    }
+
+    fn apply_impulse(
+        &mut self,
+        target: EntityId,
+        direction: [f32; 3],
+        scale: [f32; 3],
+        magnitude: f32,
+    ) {
+        let (yaw, pitch) = match self.players.values().find(|p| p.entity_id == target) {
+            Some(player) => (player.rotation.yaw, player.rotation.pitch),
+            None => match self.entities.store.get(target) {
+                Some(found) => (found.base.yaw, found.base.pitch),
+                None => return,
+            },
+        };
+        let local = local_vector(yaw, pitch, direction);
+        let push = Vec3::new(
+            local.x * f64::from(scale[0]),
+            local.y * f64::from(scale[1]),
+            local.z * f64::from(scale[2]),
+        )
+        .scale(f64::from(magnitude));
+        if let Some(player) = self.players.values_mut().find(|p| p.entity_id == target) {
+            player.vitals.velocity = player.vitals.velocity + push;
+            player.vitals.sync_velocity = true;
+        } else if let Some(found) = self.entities.store.get_mut(target) {
+            found.base.velocity = found.base.velocity + push;
+            found.base.needs_sync = true;
+        }
+    }
+
+    fn summon_by_effect(&mut self, name: &str, target: EntityId, owner: EntityId) {
+        let Some(at) = self.position_of(target) else {
+            return;
+        };
+        if name == LIGHTNING_BOLT {
+            self.spawn_bolt(at, false, CreatureSpawnReason::Enchantment);
+            if let Some(player) = self.player_of(owner) {
+                self.trigger_channeled_lightning(player, at);
+            }
+            return;
+        }
+        let Some(kind) = Kind::from_name(name) else {
+            return;
+        };
+        let id = self.allocate_entity_id_for(kind);
+        let uuid = self.random_uuid();
+        let compound = rspigot_nbt::Compound::new().with("id", kind.name());
+        let Ok(mut entity) = rspigot_domain::entity::save::load_entity(&compound, id, uuid) else {
+            return;
+        };
+        entity.base.snap_to(at, 0.0, 0.0);
+        self.spawn_entity(entity, Birth::of(CreatureSpawnReason::Enchantment));
+    }
+
+    fn spawn_effect_particles(
+        &mut self,
+        particle: &'static str,
+        target: EntityId,
+        speed: f32,
+        movement_scale: f32,
+        vertical_base: f32,
+        vertical_offset: f32,
+    ) {
+        let (position, movement, width) =
+            match self.players.values().find(|p| p.entity_id == target) {
+                Some(player) => (player.position, player.known_movement, 0.6),
+                None => match self.entities.store.get(target) {
+                    Some(found) => (
+                        found.base.position,
+                        found.base.velocity,
+                        f64::from(found.base.dimensions.width),
+                    ),
+                    None => return,
+                },
+            };
+        let x = position.x + (f64::from(self.rng.random::<f32>()) - 0.5) * width;
+        let z = position.z + (f64::from(self.rng.random::<f32>()) - 0.5) * width;
+        let at = Vec3::new(x, position.y + f64::from(vertical_offset), z);
+        let velocity = Vec3::new(
+            movement.x * f64::from(movement_scale),
+            f64::from(vertical_base),
+            movement.z * f64::from(movement_scale),
+        );
+        self.push(
+            Audience::Nearby {
+                position: at,
+                range: PARTICLE_RANGE,
+                except: None,
+            },
+            ClientEvent::Particle(Particle {
+                count: 0,
+                spread: velocity,
+                speed: f64::from(speed),
+                ..Particle::single(particle, at)
+            }),
+        );
+    }
+
+    fn replace_disk(&mut self, target: EntityId, disk: ReplaceDisk<'_>) {
+        let Some(position) = self.position_of(target) else {
+            return;
+        };
+        let Some(kind) = BlockKind::from_name(disk.block) else {
+            return;
+        };
+        let Some(replacement) = kind.state_with(disk.state) else {
+            return;
+        };
+        let origin = position
+            .block()
+            .offset(disk.offset[0], disk.offset[1], disk.offset[2]);
+        let radius = disk.radius as i32;
+        let layers = (disk.height as i32 - 1).min(0);
+        let limit = f64::from(radius) * f64::from(radius);
+        let mut cells = Vec::new();
+        for x in -radius..=radius {
+            for z in -radius..=radius {
+                for y in layers..=0 {
+                    let pos = origin.offset(x, y, z);
+                    let dx = f64::from(pos.x) + 0.5 - position.x;
+                    let dz = f64::from(pos.z) + 0.5 - position.z;
+                    if dx * dx + dz * dz < limit {
+                        cells.push(pos);
+                    }
+                }
+            }
+        }
+        for pos in cells {
+            if disk
+                .predicate
+                .is_some_and(|predicate| !self.block_condition_holds(predicate, pos))
+            {
+                continue;
+            }
+            if !self.set_block(pos, replacement) {
+                continue;
+            }
+            if kind == BlockKind::FrostedIce {
+                self.schedule_frosted_ice(pos, crate::frosted_ice::FORM_DELAY);
+            }
+            if let Some(event) = disk
+                .trigger_game_event
+                .and_then(rspigot_domain::game_event::GameEvent::from_name)
+            {
+                self.game_event(event, pos.center(), GameEventContext::of(Some(target)));
+            }
+        }
+    }
+
+    fn block_condition_holds(&self, condition: &BlockCondition, pos: BlockPos) -> bool {
+        let state_at = |offset: &[i32; 3]| {
+            self.world
+                .chunks
+                .block(pos.offset(offset[0], offset[1], offset[2]))
+        };
+        match condition {
+            BlockCondition::AllOf(terms) => terms
+                .iter()
+                .all(|term| self.block_condition_holds(term, pos)),
+            BlockCondition::MatchingBlockTag { offset, tag } => state_at(offset)
+                .and_then(BlockStateId::kind)
+                .is_some_and(|kind| {
+                    rspigot_data::tags::tag("minecraft:block", tag)
+                        .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
+                }),
+            BlockCondition::MatchingBlocks { offset, blocks } => state_at(offset)
+                .and_then(BlockStateId::kind)
+                .is_some_and(|kind| {
+                    blocks.iter().any(|name| {
+                        name.trim_start_matches("minecraft:")
+                            == kind.name().trim_start_matches("minecraft:")
+                    })
+                }),
+            BlockCondition::MatchingFluids { offset, fluids } => {
+                let source = state_at(offset).is_some_and(|state| {
+                    state.kind() == Some(BlockKind::Water) && state.property("level") == Some("0")
+                });
+                source
+                    && fluids
+                        .iter()
+                        .any(|name| name.trim_start_matches("minecraft:") == "water")
+            }
+            BlockCondition::Unobstructed => true,
         }
     }
 
@@ -276,6 +992,17 @@ impl<L: ClientLink> Server<L> {
             };
             self.wear_slot(player, Hand::Main, armor, amount);
         } else if let Some((worn, _)) = MOB_GEAR.iter().find(|(_, equip)| *equip == slot) {
+            let worn_stack = self
+                .entities
+                .store
+                .get(owner)
+                .and_then(Entity::living)
+                .and_then(|living| living.equipment(*worn))
+                .cloned();
+            let amount = match worn_stack {
+                Some(stack) => enchant_effects::modify_item_damage(&stack, amount, &mut self.rng),
+                None => amount,
+            };
             self.damage_mob_equipment(owner, *worn, amount);
         }
     }
@@ -295,6 +1022,40 @@ impl<L: ClientLink> Server<L> {
             ..LootContext::default()
         };
         enchant_effects::equipment_drop_bonus(&gear, 0.0, &context, &mut self.rng)
+    }
+
+    pub fn enchanted_mob_experience(
+        &mut self,
+        attacker: EntityId,
+        victim: EntityId,
+        base: i32,
+    ) -> i32 {
+        let Some(facts) = self.entity_loot_facts(victim) else {
+            return base;
+        };
+        let context = LootContext {
+            this: Some(&facts),
+            ..LootContext::default()
+        };
+        let gear = gear_in(&self.players, &self.entities.store, attacker);
+        enchant_effects::modify_mob_experience(&gear, base, &context, &mut self.rng)
+    }
+
+    pub fn is_enchant_immune(&self, entity: EntityId, source: &DamageSource) -> bool {
+        let Some(facts) = self.entity_loot_facts(entity) else {
+            return false;
+        };
+        let damage = self.damage_facts(source);
+        let context = LootContext {
+            this: Some(&facts),
+            damage: Some(&damage),
+            ..LootContext::default()
+        };
+        enchant_effects::damage_immune(
+            &gear_in(&self.players, &self.entities.store, entity),
+            &context,
+            &mut StdRng::seed_from_u64(0),
+        )
     }
 
     pub(crate) fn arrow_enchantments(&mut self, arrow: EntityId, target: EntityId) -> (f64, f32) {

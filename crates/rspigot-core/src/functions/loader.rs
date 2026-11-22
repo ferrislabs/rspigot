@@ -2,12 +2,14 @@ use std::sync::Arc;
 
 use crossbeam_channel::{Receiver, Sender};
 
-use crate::ports::{DatapackError, DatapackSource, PackContents};
+use crate::ports::{DatapackError, DatapackSource, PackContents, PackExtras};
+
+pub type Read = (Vec<PackContents>, Vec<PackExtras>);
 
 #[derive(Debug)]
 pub struct DatapackLoader {
     requests: Sender<()>,
-    results: Receiver<Result<Vec<PackContents>, DatapackError>>,
+    results: Receiver<Result<Read, DatapackError>>,
 }
 
 impl DatapackLoader {
@@ -18,7 +20,10 @@ impl DatapackLoader {
             .name("datapack-reader".to_owned())
             .spawn(move || {
                 while wanted.recv().is_ok() {
-                    if sender.send(source.read_packs()).is_err() {
+                    let read = source
+                        .read_packs()
+                        .and_then(|packs| Ok((packs, source.read_extras()?)));
+                    if sender.send(read).is_err() {
                         break;
                     }
                 }
@@ -30,6 +35,10 @@ impl DatapackLoader {
     }
 
     pub fn read(&self) -> Result<Vec<PackContents>, DatapackError> {
+        self.read_all().map(|(packs, _)| packs)
+    }
+
+    pub fn read_all(&self) -> Result<Read, DatapackError> {
         let gone = || {
             DatapackError::Io(std::io::Error::new(
                 std::io::ErrorKind::BrokenPipe,

@@ -526,6 +526,35 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
+    pub(crate) fn mined_experience(
+        &mut self,
+        state: rspigot_domain::BlockStateId,
+        held: Option<&rspigot_domain::item::ItemStack>,
+        game_mode: rspigot_domain::player::GameMode,
+    ) -> i32 {
+        if game_mode != rspigot_domain::player::GameMode::Survival
+            || !crate::loot::tool_is_correct(held, state)
+        {
+            return 0;
+        }
+        let Some(drop) = state
+            .kind()
+            .and_then(|kind| rspigot_domain::block_experience::drop_of(kind.name()))
+        else {
+            return 0;
+        };
+        let base = drop.sample(&mut crate::mobs::ServerRandom(&mut self.rng));
+        self.enchanted_block_experience(held, base)
+    }
+
+    pub fn enchanted_block_experience(
+        &mut self,
+        tool: Option<&rspigot_domain::item::ItemStack>,
+        base: i32,
+    ) -> i32 {
+        crate::enchant_effects::modify_block_experience(tool, base, &mut self.rng)
+    }
+
     pub fn give_experience(&mut self, id: PlayerId, amount: i32) {
         if let Some(player) = self.players.get_mut(&id) {
             let tick_count = player.vitals.tick_count as i32;

@@ -12,6 +12,7 @@ mod region;
 mod store;
 #[cfg(test)]
 mod testutil;
+mod zip_packs;
 
 pub use compression::Compression;
 pub use datapacks::DirectoryDatapacks;
