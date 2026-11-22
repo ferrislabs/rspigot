@@ -101,6 +101,8 @@ impl<L: ClientLink> Server<L> {
                 return Err("server.recipes.add reports a result".to_owned());
             }
             ServerOrder::RemoveRecipe(id) => self.remove_plugin_recipe(connection, &id)?,
+            ServerOrder::SetMotd(motd) => self.set_motd(motd)?,
+            ServerOrder::SetMaxPlayers(count) => self.set_max_players(count)?,
         }
         Ok(())
     }
@@ -154,6 +156,8 @@ impl<L: ClientLink> Server<L> {
             WorldOrder::Delete { .. } => {
                 return Err("world.delete reports a result".to_owned());
             }
+            WorldOrder::Action(action) => self.world_action(action)?,
+            WorldOrder::Object(order) => self.world_object_order(order)?,
             WorldOrder::Explode {
                 position,
                 power,

@@ -44,6 +44,7 @@ pub(crate) struct Departed {
 #[derive(Default)]
 pub(crate) struct Registry {
     pub(crate) attachments: crate::plugins::attachments::Attachments,
+    pub(crate) views: crate::plugins::extras::PlayerViews,
     connected: BTreeMap<u64, Connected>,
     last_event: u64,
 }

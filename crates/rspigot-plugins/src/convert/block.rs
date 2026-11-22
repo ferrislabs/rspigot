@@ -24,6 +24,7 @@ pub(super) fn order(order: v1::BlockOrder) -> Result<Order, Malformed> {
                 .collect(),
         ),
         Wire::Tile(edit) => BlockOrder::Tile(super::tiles::edit(edit)?),
+        Wire::Pdc(change) => BlockOrder::Pdc(super::objects::pdc_change(change)?),
     };
     Ok(Order::Block { pos, order })
 }

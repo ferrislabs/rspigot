@@ -56,6 +56,8 @@ impl<L: ClientLink> Server<L> {
             }
             PlayerOrder::DiscoverRecipe(recipe) => self.plugin_discover(id, &recipe)?,
             PlayerOrder::UndiscoverRecipe(recipe) => self.plugin_undiscover(id, &recipe)?,
+            PlayerOrder::Action(action) => self.player_action(id, action)?,
+            PlayerOrder::Object(order) => self.player_object_order(id, order)?,
             order @ (PlayerOrder::SetPermission { .. }
             | PlayerOrder::UnsetPermission(_)
             | PlayerOrder::AddGroup(_)

@@ -3163,10 +3163,10 @@ fn breaking_a_furnace_asks_block_exp_after_the_break_and_pays_the_settled_amount
     let broken = common::last_asked(&mailbox, EventKind::BlockBreak);
     world.server.handle(Inbound::PluginMessage {
         connection: 1,
-        message: FromPlugin::Decision {
+        message: Box::new(FromPlugin::Decision {
             event: broken.id,
             verdicts: Vec::new(),
-        },
+        }),
     });
     let asked = common::last_asked(&mailbox, EventKind::BlockExp);
     assert_eq!(
@@ -3178,7 +3178,7 @@ fn breaking_a_furnace_asks_block_exp_after_the_break_and_pays_the_settled_amount
     );
     world.server.handle(Inbound::PluginMessage {
         connection: 1,
-        message: FromPlugin::Decision {
+        message: Box::new(FromPlugin::Decision {
             event: asked.id,
             verdicts: vec![Verdict {
                 handler: 1,
@@ -3187,7 +3187,7 @@ fn breaking_a_furnace_asks_block_exp_after_the_break_and_pays_the_settled_amount
                     exp_to_drop: Some(5),
                 })),
             }],
-        },
+        }),
     });
     world.wait(40);
     assert_eq!(experience_of_everyone(&world) - before, 5);

@@ -30,6 +30,7 @@ use crate::advancements::AdvancementEvent;
 use crate::events::ClientEvent;
 use crate::mob_actions::new_mob;
 use crate::mobs::{ServerRandom, sky_darken};
+use crate::plugins::RaidRef;
 use crate::plugins::events::{
     CreatureSpawnReason, EntityPotionEffectCause, EntityRemoveCause, RaidFinish, RaidSpawnWave,
     RaidStop, RaidStopReason, RaidTrigger,
@@ -390,7 +391,7 @@ impl<L: ClientLink> Server<L> {
         for output in outputs {
             self.deliver_bar_messages(output.bar_id, output.messages);
             for event in output.events {
-                self.deliver_raid_event(output.bar_id, event);
+                self.deliver_raid_event(output.bar_id, output.raid, event);
             }
         }
     }
@@ -399,8 +400,39 @@ impl<L: ClientLink> Server<L> {
         self.send_boss_messages(bar, messages);
     }
 
-    fn deliver_raid_event(&mut self, bar: Uuid, event: RaidEvent) {
+    pub(crate) fn raid_ref(&self, id: i32, center: BlockPos) -> RaidRef {
         let world = self.world_name();
+        match self.raids.set.get(id) {
+            Some(raid) => RaidRef {
+                id,
+                world,
+                center: raid.center(),
+                status: raid.status().name().to_owned(),
+                started: raid.is_started(),
+                active_ticks: raid.ticks_active(),
+                bad_omen_level: raid.raid_omen_level(),
+                spawned_groups: raid.groups_spawned(),
+                total_groups: raid.num_groups(),
+                total_health: raid.total_health(),
+            },
+            None => RaidRef {
+                id,
+                world,
+                center,
+                status: "ongoing".to_owned(),
+                started: false,
+                active_ticks: 0,
+                bad_omen_level: 0,
+                spawned_groups: 0,
+                total_groups: 0,
+                total_health: 0.0,
+            },
+        }
+    }
+
+    fn deliver_raid_event(&mut self, bar: Uuid, raid_id: i32, event: RaidEvent) {
+        let world = self.world_name();
+        let raid = self.raid_ref(raid_id, BlockPos::new(0, 0, 0));
         match event {
             RaidEvent::Horn(origin) => self.raid_horn(bar, origin),
             RaidEvent::Finish { winners } => {
@@ -408,10 +440,15 @@ impl<L: ClientLink> Server<L> {
                     .into_iter()
                     .filter_map(|player| self.snapshot_of(player))
                     .collect();
-                self.notify_now(EventPayload::RaidFinish(RaidFinish { winners, world }));
+                self.notify_now(EventPayload::RaidFinish(RaidFinish {
+                    raid,
+                    winners,
+                    world,
+                }));
             }
             RaidEvent::Stop(reason) => {
                 self.notify_now(EventPayload::RaidStop(RaidStop {
+                    raid,
                     reason: stop_reason(reason),
                     world,
                 }));
@@ -426,6 +463,7 @@ impl<L: ClientLink> Server<L> {
                 let raiders = raiders.iter().filter_map(|id| view(self, *id)).collect();
                 self.notify_now(EventPayload::RaidSpawnWave(RaidSpawnWave {
                     patrol_leader,
+                    raid,
                     raiders,
                     world,
                 }));
@@ -840,6 +878,8 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn raid_trigger(&mut self, id: PlayerId, pos: BlockPos, amplifier: u8) {
         let world = self.world_name();
         let snapshot = self.snapshot_of(id);
+        let known = self.raids.set.nearby_raid(pos, 9216);
+        let raid = self.raid_ref(known.unwrap_or(0), pos);
         self.fire(
             id,
             Continuation::RaidTrigger {
@@ -848,7 +888,13 @@ impl<L: ClientLink> Server<L> {
                 amplifier,
             },
             move |_| {
-                snapshot.map(|player| EventPayload::RaidTrigger(RaidTrigger { player, world }))
+                snapshot.map(|player| {
+                    EventPayload::RaidTrigger(RaidTrigger {
+                        player,
+                        raid,
+                        world,
+                    })
+                })
             },
         );
     }

@@ -277,6 +277,8 @@ LEAVES = {
     "org.bukkit.command.CommandSender": contract("CommandSender", "SenderView", "CommandSender"),
     "org.bukkit.inventory.MerchantRecipe": contract("Trade", "Trade"),
     "org.bukkit.plugin.Plugin": contract("PluginInfo", "PluginInfo"),
+    "org.bukkit.ServerLinks": contract("ServerLinks", "ServerLinks"),
+    "org.bukkit.Raid": contract("RaidRef", "RaidRef"),
     "org.bukkit.util.BoundingBox": contract("BoundingBox", "BoundingBox", sdk_copy=True, wire_copy=True),
     "org.bukkit.Input": contract("Input", "Input", sdk_copy=True, wire_copy=True),
     "org.bukkit.block.CreatureSpawner": contract("SpawnerData", "SpawnerData"),
@@ -1960,6 +1962,8 @@ def emit_doc(model):
             state = "fired" + (f": {e.state_note}" if e.state_note else "")
         elif e.state == "ready":
             state = "not fired yet: its fire point comes with its domain"
+        elif e.state_note.startswith("never: "):
+            state = f"never fired: {e.state_note[len('never: '):]}"
         else:
             state = f"not fired yet: needs {e.state_note}"
         w(f"| `{e.bukkit}Event` | `{e.name}` | {'yes' if e.cancellable else 'no'} | {setters} | {also} | {state} |")

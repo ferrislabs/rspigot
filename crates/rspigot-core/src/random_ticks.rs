@@ -19,7 +19,7 @@ fn sampler_seed(game_time: i64) -> i64 {
 }
 
 fn ticks_randomly(state: BlockStateId) -> bool {
-    state.flags().contains(StateFlags::RANDOMLY_TICKS)
+    state.flags().contains(StateFlags::RANDOMLY_TICKS) || crate::lava_fire::is_lava(state)
 }
 
 impl<L: ClientLink> Server<L> {
@@ -82,6 +82,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::PointedDripstone => self.dripstone_random_tick(pos, picked),
             BlockKind::ChorusFlower => self.chorus_random_tick(pos, picked),
             BlockKind::GrassBlock | BlockKind::Mycelium => self.spreading_snowy_tick(pos, kind),
+            BlockKind::Lava => self.lava_random_tick(pos),
             BlockKind::Snow => self.snow_layer_tick(pos),
             BlockKind::Ice => self.ice_tick(pos, picked),
             BlockKind::Farmland => self.farmland_tick(pos, picked),

@@ -7,6 +7,7 @@ use syn::{
 
 use crate::commands::{self, Command};
 use crate::events::EVENTS;
+use crate::tasks::{self, Task};
 
 const NOT_A_HANDLER: &str = "a #[listeners] block only holds handlers: `async fn name(&self, event: &Event)`; put helpers in another impl block";
 const MUT_SELF: &str = "handlers take `&self`; keep state in fields behind a `Mutex` or atomics";
@@ -49,6 +50,7 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
     let mut hooks = Hooks::default();
     let mut dynamic = false;
     let mut declared: Vec<Command> = Vec::new();
+    let mut scheduled: Vec<Task> = Vec::new();
     let handlers: Vec<Handler> = if let Some((_, path, _)) = &block.trait_ {
         errors.push(Error::new_spanned(
             path,
@@ -76,6 +78,10 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
                 }
                 ImplItem::Fn(method) if method.sig.ident == "on_command" => {
                     dynamic = true;
+                    None
+                }
+                ImplItem::Fn(method) if tasks::marked(method) => {
+                    scheduled.extend(tasks::read(method, &mut errors));
                     None
                 }
                 ImplItem::Fn(method) if commands::marked(method) => {
@@ -139,6 +145,7 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
     });
     let errors = errors.iter().map(Error::to_compile_error);
     let plugin = &block.self_ty;
+    let task_runs = tasks::runs(&scheduled, &quote!(#plugin));
     let (impl_generics, _, where_clause) = block.generics.split_for_impl();
     let kids_trait = quote!(<_ as ::rspigot_plugin::compose::Kids<Self>>);
     quote! {
@@ -188,6 +195,16 @@ pub(crate) fn expand(args: TokenStream, mut block: ItemImpl) -> TokenStream {
                 async fn disable(&self) {
                     #kids_trait::disable(#kids, self).await;
                     #(#disables)*
+                }
+
+                async fn run_tasks(
+                    &self,
+                    server: &::rspigot_plugin::Server,
+                    clock: &mut ::rspigot_plugin::TaskClock,
+                ) {
+                    let _ = (server, &clock);
+                    #(#task_runs)*
+                    #kids_trait::run_tasks(#kids, self, server, clock).await;
                 }
 
                 fn commands() -> ::std::vec::Vec<::rspigot_plugin::CommandSpec> {
@@ -292,7 +309,7 @@ fn hook(
     }
 }
 
-fn cfgs(attrs: &[Attribute]) -> Vec<Attribute> {
+pub(crate) fn cfgs(attrs: &[Attribute]) -> Vec<Attribute> {
     attrs
         .iter()
         .filter(|attr| attr.path().is_ident("cfg"))
@@ -304,6 +321,7 @@ fn is_mark(attr: &Attribute) -> bool {
     attr.path().is_ident("priority")
         || attr.path().is_ident("ignore_cancelled")
         || attr.path().is_ident("command")
+        || attr.path().is_ident("task")
 }
 
 fn take_marks(attrs: &mut Vec<Attribute>, errors: &mut Vec<Error>) -> Marks {
@@ -397,7 +415,7 @@ fn event_type(ty: &Type) -> Option<(&'static str, bool, bool)> {
     Some((*name, *decidable, mutable))
 }
 
-fn referenced(ty: &Type) -> Option<(&Ident, bool)> {
+pub(crate) fn referenced(ty: &Type) -> Option<(&Ident, bool)> {
     let Type::Reference(reference) = ty else {
         return None;
     };

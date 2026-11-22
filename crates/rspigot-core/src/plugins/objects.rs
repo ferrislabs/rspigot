@@ -492,8 +492,10 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let dropped = step.stack.clone();
+        let item_drop = dropping_view(&step);
         self.fire(id, Continuation::Drop(Box::new(step)), move |server| {
             Some(EventPayload::PlayerDropItem(PlayerDropItem {
+                item_drop,
                 item: spec_of(&dropped),
                 player: server.snapshot_of(id)?,
             }))
@@ -509,7 +511,9 @@ impl<L: ClientLink> Server<L> {
         predicted: bool,
     ) -> Option<DropStep> {
         let launch = self.launch_from(id)?;
+        let entity = (self.allocate_entity_id(), self.random_uuid());
         Some(DropStep {
+            entity,
             player: id,
             stack,
             source,
@@ -521,6 +525,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn drop_payload_of(&self, step: &DropStep) -> Option<EventPayload> {
         Some(EventPayload::PlayerDropItem(PlayerDropItem {
+            item_drop: dropping_view(step),
             item: spec_of(&step.stack),
             player: self.snapshot_of(step.player)?,
         }))
@@ -560,7 +565,12 @@ impl<L: ClientLink> Server<L> {
             if !matches!(step.source, DropSource::Selected { .. })
                 && let Some(thrown) = settled_drop(patch, step.stack)
             {
-                self.throw(step.launch, thrown, step.thrower.then_some(id.0));
+                self.throw_as(
+                    step.launch,
+                    thrown,
+                    step.thrower.then_some(id.0),
+                    Some(step.entity),
+                );
             }
             return;
         };
@@ -590,7 +600,12 @@ impl<L: ClientLink> Server<L> {
             self.swing_for_drop(id, step.predicted);
             self.count_dropped(id, &step.stack);
             if let Some(thrown) = settled_drop(patch, step.stack) {
-                self.throw(step.launch, thrown, step.thrower.then_some(id.0));
+                self.throw_as(
+                    step.launch,
+                    thrown,
+                    step.thrower.then_some(id.0),
+                    Some(step.entity),
+                );
             }
             self.broadcast_equipment_changes(id, before);
             return;
@@ -598,7 +613,12 @@ impl<L: ClientLink> Server<L> {
         self.swing_for_drop(id, step.predicted);
         self.count_dropped(id, &step.stack);
         if let Some(thrown) = settled_drop(patch, step.stack) {
-            self.throw(step.launch, thrown, step.thrower.then_some(id.0));
+            self.throw_as(
+                step.launch,
+                thrown,
+                step.thrower.then_some(id.0),
+                Some(step.entity),
+            );
         }
     }
 
@@ -808,5 +828,17 @@ impl<L: ClientLink> Server<L> {
         if open && self.lectern_book(step.pos).as_ref() == Some(&step.book) {
             self.take_book_now(step.player, step.pos, step.book);
         }
+    }
+}
+
+fn dropping_view(step: &DropStep) -> crate::plugins::EntityView {
+    crate::plugins::EntityView {
+        id: step.entity.0,
+        uuid: step.entity.1,
+        kind: "minecraft:item".to_owned(),
+        position: step.launch.position,
+        player: None,
+        meta: Default::default(),
+        marks: Default::default(),
     }
 }

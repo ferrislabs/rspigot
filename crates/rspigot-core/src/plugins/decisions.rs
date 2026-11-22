@@ -7,6 +7,9 @@ use rustc_hash::FxHashMap;
 pub(crate) use crate::plugins::steps::{Continuation, Held, MoveStep, Undo};
 use crate::plugins::{EventKind, EventPatch, EventPayload, Verdict};
 
+pub(crate) const MAX_PENDING_MOVES: usize = 64;
+pub(crate) const MAX_REMEMBERED_PER_LANE: usize = 128;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub(crate) enum Lane {
     Player(PlayerId),
@@ -351,6 +354,7 @@ impl Queued {
 pub(crate) struct Decisions {
     lanes: FxHashMap<Lane, VecDeque<Queued>>,
     settled: BTreeMap<u64, Record>,
+    remembered: FxHashMap<Lane, VecDeque<u64>>,
     heads: Vec<(Lane, usize)>,
 }
 
@@ -593,11 +597,42 @@ impl Decisions {
     }
 
     pub(crate) fn remember(&mut self, event: u64, record: Record) {
+        let ids = self.remembered.entry(record.lane).or_default();
+        ids.push_back(event);
+        while ids.len() > MAX_REMEMBERED_PER_LANE {
+            if let Some(oldest) = ids.pop_front() {
+                self.settled.remove(&oldest);
+            }
+        }
         self.settled.insert(event, record);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn remembered_in(&self, lane: impl Into<Lane>) -> usize {
+        let lane = lane.into();
+        self.settled
+            .values()
+            .filter(|record| record.lane == lane)
+            .count()
+    }
+
+    pub(crate) fn pending_moves(&self, lane: impl Into<Lane>) -> usize {
+        self.lanes.get(&lane.into()).map_or(0, |queue| {
+            queue.iter().filter(|queued| queued.moving()).count()
+        })
+    }
+
+    pub(crate) fn refuses_move(&self, lane: impl Into<Lane>, then: &Continuation) -> bool {
+        then.is_move() && self.pending_moves(lane) >= MAX_PENDING_MOVES
     }
 
     pub(crate) fn expire(&mut self, tick: u64) {
         self.settled.retain(|_, record| record.kept(tick));
+        let settled = &self.settled;
+        self.remembered.retain(|_, ids| {
+            ids.retain(|id| settled.contains_key(id));
+            !ids.is_empty()
+        });
     }
 
     pub(crate) fn drop_pending(&mut self, lane: impl Into<Lane>) -> Undone {
@@ -626,6 +661,10 @@ impl Decisions {
         self.settled.retain(|_, record| {
             record.lane != lane || record.undo.is_none() || record.applied.is_none()
         });
+        let settled = &self.settled;
+        if let Some(ids) = self.remembered.get_mut(&lane) {
+            ids.retain(|id| settled.contains_key(id));
+        }
         self.drop_pending(lane)
     }
 }
@@ -1021,6 +1060,62 @@ mod tests {
         let settled: Vec<Vec<Held>> =
             std::iter::from_fn(|| decisions.next_settled(0).map(|ready| ready.held)).collect();
         assert_eq!(settled, [Vec::new(), vec![turn]]);
+    }
+
+    #[test]
+    fn a_lane_remembers_a_bounded_number_of_settled_moves_and_drops_the_oldest() {
+        let alice = PlayerId::offline("Alice");
+        let bob = PlayerId::offline("Bob");
+        let mut decisions = Decisions::default();
+        decisions.remember(1, record(bob, &[1], 1000));
+        for event in 2..(2 + 3 * MAX_REMEMBERED_PER_LANE as u64) {
+            decisions.remember(event, record(alice, &[1], 1000));
+        }
+        assert_eq!(decisions.remembered_in(alice), MAX_REMEMBERED_PER_LANE);
+        assert_eq!(decisions.remembered_in(bob), 1);
+        let (taken, _) = taken_late(&mut decisions, alice, 2);
+        assert!(matches!(taken, Taken::TooLate("cancel")));
+        let newest = 1 + 3 * MAX_REMEMBERED_PER_LANE as u64;
+        let (taken, _) = taken_late(&mut decisions, alice, newest);
+        assert!(matches!(taken, Taken::RolledBack(_)));
+    }
+
+    fn taken_late(
+        decisions: &mut Decisions,
+        _player: PlayerId,
+        event: u64,
+    ) -> (Taken, Vec<String>) {
+        decisions.decide(1, event, cancel(true), 0)
+    }
+
+    #[test]
+    fn pending_moves_are_counted_per_lane() {
+        let alice = PlayerId::offline("Alice");
+        let bob = PlayerId::offline("Bob");
+        let mut decisions = Decisions::default();
+        for event in 1..=3 {
+            decisions.queue(event, pending(alice, event as f64, &[]));
+        }
+        decisions.queue(9, pending(bob, 1.0, &[]));
+        decisions.queue(10, notice(alice, &[]));
+        assert_eq!(decisions.pending_moves(alice), 3);
+        assert_eq!(decisions.pending_moves(bob), 1);
+    }
+
+    #[test]
+    fn a_move_beyond_the_pending_cap_is_refused_for_that_lane_only() {
+        let alice = PlayerId::offline("Alice");
+        let bob = PlayerId::offline("Bob");
+        let at = Vec3::new(0.0, 64.0, 0.0);
+        let mut decisions = Decisions::default();
+        for event in 0..MAX_PENDING_MOVES as u64 {
+            assert!(!decisions.refuses_move(alice, &step(alice, at, at)));
+            decisions.queue(event, pending(alice, 1.0, &[]));
+        }
+        assert!(decisions.refuses_move(alice, &step(alice, at, at)));
+        assert!(!decisions.refuses_move(bob, &step(bob, at, at)));
+        let join = Continuation::Notice(EventKind::PlayerJoin);
+        assert!(!decisions.refuses_move(alice, &join));
     }
 
     #[test]

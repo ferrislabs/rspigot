@@ -454,7 +454,7 @@ fn a_spectator_click_is_asked_denied_and_a_later_handler_can_let_it_through() {
     s.server
         .handle(rspigot_core::events::Inbound::PluginMessage {
             connection: 1,
-            message: rspigot_core::plugins::FromPlugin::Decision {
+            message: Box::new(rspigot_core::plugins::FromPlugin::Decision {
                 event: asked.id,
                 verdicts: vec![
                     rspigot_core::plugins::Verdict {
@@ -471,7 +471,7 @@ fn a_spectator_click_is_asked_denied_and_a_later_handler_can_let_it_through() {
                         })),
                     },
                 ],
-            },
+            }),
         });
     s.server.deliver();
     refresh(&alice, &mut own);

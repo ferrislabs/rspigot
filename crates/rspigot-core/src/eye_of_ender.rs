@@ -15,7 +15,7 @@ use crate::server::Server;
 const SIGNAL_RANGE: f64 = 12.0;
 const SIGNAL_RISE: f64 = 8.0;
 const LIFE_TICKS: i32 = 80;
-const START_SPEED: f64 = 0.3;
+pub(crate) const START_SPEED: f64 = 0.3;
 const SPEED_LERP: f64 = 0.0025;
 const HOVER_RANGE: f64 = 1.0;
 const HOVER_DAMPING: f64 = 0.8;

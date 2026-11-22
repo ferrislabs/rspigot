@@ -30,6 +30,8 @@ use crate::MerchantRef;
 use crate::OwnerRef;
 use crate::Player;
 use crate::PluginInfo;
+use crate::RaidRef;
+use crate::ServerLinks;
 use crate::SignData;
 use crate::SpawnerData;
 use crate::Trade;
@@ -11077,15 +11079,23 @@ impl From<LootGenerate> for Verdict {
 #[derive(Debug, Clone)]
 pub struct MapInitialize {
     id: u64,
+    map_id: i32,
 }
 
 impl MapInitialize {
-    fn from_wire(_message: v1::MapInitialize, meta: Meta, _link: &Link) -> Result<Self, Error> {
-        Ok(Self { id: meta.id })
+    fn from_wire(message: v1::MapInitialize, meta: Meta, _link: &Link) -> Result<Self, Error> {
+        Ok(Self {
+            id: meta.id,
+            map_id: message.map_id,
+        })
     }
 
     pub const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub fn map_id(&self) -> i32 {
+        self.map_id
     }
 }
 
@@ -12498,6 +12508,7 @@ pub struct PlayerDropItem {
     id: u64,
     cancelled: bool,
     rolled_back: bool,
+    item_drop: Entity,
     player: Player,
     item: ItemStack,
     patch: v1::PlayerDropItemPatch,
@@ -12509,6 +12520,7 @@ impl PlayerDropItem {
             id: meta.id,
             cancelled: meta.cancelled,
             rolled_back: meta.rolled_back,
+            item_drop: Entity::from_wire(required(message.item_drop, "item_drop")?, link)?,
             player: Player::from_snapshot(required(message.player, "player")?, link)?,
             item: ItemStack::from_wire(required(message.item, "item")?)?,
             patch: v1::PlayerDropItemPatch::default(),
@@ -12517,6 +12529,10 @@ impl PlayerDropItem {
 
     pub const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub fn item_drop(&self) -> &Entity {
+        &self.item_drop
     }
 
     pub fn player(&self) -> &Player {
@@ -14018,6 +14034,7 @@ impl PlayerLevelChange {
 #[derive(Debug, Clone)]
 pub struct PlayerLinksSend {
     id: u64,
+    links: ServerLinks,
     player: Player,
 }
 
@@ -14025,12 +14042,17 @@ impl PlayerLinksSend {
     fn from_wire(message: v1::PlayerLinksSend, meta: Meta, link: &Link) -> Result<Self, Error> {
         Ok(Self {
             id: meta.id,
+            links: ServerLinks::from_wire(required(message.links, "links")?, link)?,
             player: Player::from_snapshot(required(message.player, "player")?, link)?,
         })
     }
 
     pub const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub fn links(&self) -> &ServerLinks {
+        &self.links
     }
 
     pub fn player(&self) -> &Player {
@@ -16356,6 +16378,7 @@ impl From<ProjectileLaunch> for Verdict {
 #[derive(Debug, Clone)]
 pub struct RaidFinish {
     id: u64,
+    raid: RaidRef,
     winners: Vec<Player>,
     world: World,
 }
@@ -16364,6 +16387,7 @@ impl RaidFinish {
     fn from_wire(message: v1::RaidFinish, meta: Meta, link: &Link) -> Result<Self, Error> {
         Ok(Self {
             id: meta.id,
+            raid: RaidRef::from_wire(required(message.raid, "raid")?, link)?,
             winners: message
                 .winners
                 .into_iter()
@@ -16375,6 +16399,10 @@ impl RaidFinish {
 
     pub const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub fn raid(&self) -> &RaidRef {
+        &self.raid
     }
 
     pub fn winners(&self) -> &[Player] {
@@ -16390,6 +16418,7 @@ impl RaidFinish {
 pub struct RaidSpawnWave {
     id: u64,
     patrol_leader: Option<Entity>,
+    raid: RaidRef,
     raiders: Vec<Entity>,
     world: World,
 }
@@ -16402,6 +16431,7 @@ impl RaidSpawnWave {
                 .patrol_leader
                 .map(|value| Entity::from_wire(value, link))
                 .transpose()?,
+            raid: RaidRef::from_wire(required(message.raid, "raid")?, link)?,
             raiders: message
                 .raiders
                 .into_iter()
@@ -16419,6 +16449,10 @@ impl RaidSpawnWave {
         self.patrol_leader.as_ref()
     }
 
+    pub fn raid(&self) -> &RaidRef {
+        &self.raid
+    }
+
     pub fn raiders(&self) -> &[Entity] {
         &self.raiders
     }
@@ -16431,6 +16465,7 @@ impl RaidSpawnWave {
 #[derive(Debug, Clone)]
 pub struct RaidStop {
     id: u64,
+    raid: RaidRef,
     reason: RaidStopReason,
     world: World,
 }
@@ -16439,6 +16474,7 @@ impl RaidStop {
     fn from_wire(message: v1::RaidStop, meta: Meta, link: &Link) -> Result<Self, Error> {
         Ok(Self {
             id: meta.id,
+            raid: RaidRef::from_wire(required(message.raid, "raid")?, link)?,
             reason: RaidStopReason::from_wire(message.reason)?,
             world: world(message.world, link),
         })
@@ -16446,6 +16482,10 @@ impl RaidStop {
 
     pub const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub fn raid(&self) -> &RaidRef {
+        &self.raid
     }
 
     pub fn reason(&self) -> RaidStopReason {
@@ -16463,6 +16503,7 @@ pub struct RaidTrigger {
     cancelled: bool,
     rolled_back: bool,
     player: Player,
+    raid: RaidRef,
     world: World,
 }
 
@@ -16473,6 +16514,7 @@ impl RaidTrigger {
             cancelled: meta.cancelled,
             rolled_back: meta.rolled_back,
             player: Player::from_snapshot(required(message.player, "player")?, link)?,
+            raid: RaidRef::from_wire(required(message.raid, "raid")?, link)?,
             world: world(message.world, link),
         })
     }
@@ -16483,6 +16525,10 @@ impl RaidTrigger {
 
     pub fn player(&self) -> &Player {
         &self.player
+    }
+
+    pub fn raid(&self) -> &RaidRef {
+        &self.raid
     }
 
     pub fn world(&self) -> &World {

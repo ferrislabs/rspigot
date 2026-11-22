@@ -202,6 +202,10 @@ impl<L: ClientLink> Server<L> {
             Question::Bans => Answer::Bans(self.ban_entries()),
             Question::IpBans => Answer::IpBans(self.ip_ban_entries()),
             Question::World => Answer::World(self.world_state()),
+            Question::Extra(question) => self.extra_answer(question),
+            Question::Object(question) => {
+                return self.object_answer(connection, request, question);
+            }
             Question::InWorld { world, question } => {
                 return self
                     .within_world(&world, |server| {
@@ -443,6 +447,9 @@ impl<L: ClientLink> Server<L> {
         }
         let deciding = self.deciding(&then);
         let busy = self.decisions.busy(lane);
+        if busy && self.decisions.refuses_move(lane, &then) {
+            return;
+        }
         if !decided && !busy {
             if let Some(payload) = describe(self) {
                 let event = order.unwrap_or_else(|| self.next_event_id());
@@ -1312,6 +1319,10 @@ impl<L: ClientLink> Server<L> {
             }
             Continuation::Nature(step) => {
                 self.finish_nature(step, cancelled);
+                Vec::new()
+            }
+            Continuation::Gap(step) => {
+                self.finish_gap(*step, cancelled, patch);
                 Vec::new()
             }
             Continuation::DoorOpen { mob, pos } => {

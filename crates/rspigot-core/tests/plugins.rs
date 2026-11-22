@@ -1214,10 +1214,10 @@ impl PluginOutbox for CancelThenStall {
         {
             let _ = self.inbound.send(Inbound::PluginMessage {
                 connection: self.connection,
-                message: FromPlugin::Decision {
+                message: Box::new(FromPlugin::Decision {
                     event: id,
                     verdicts: vec![verdict(1, true, None)],
-                },
+                }),
             });
             std::thread::sleep(self.stall);
         }

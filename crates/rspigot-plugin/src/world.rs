@@ -309,6 +309,10 @@ pub struct World {
     pub storage: WorldStorageHandle,
     pub time: WorldTimeHandle,
     pub weather: WorldWeatherHandle,
+    pub border: crate::WorldBorderHandle,
+    pub chunks: crate::WorldChunksHandle,
+    pub lightning: crate::WorldLightningHandle,
+    pub objects: crate::WorldObjectsHandle,
     pub name: Option<String>,
     link: Link,
 }
@@ -330,6 +334,10 @@ impl World {
             storage: WorldStorageHandle::new(link.clone()),
             time: WorldTimeHandle::new(link.clone()),
             weather: WorldWeatherHandle::new(link.clone()),
+            border: crate::WorldBorderHandle::new(link.clone()),
+            chunks: crate::WorldChunksHandle::new(link.clone()),
+            lightning: crate::WorldLightningHandle::new(link.clone()),
+            objects: crate::WorldObjectsHandle::new(link.clone()),
             name: None,
             link,
         }

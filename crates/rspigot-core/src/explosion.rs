@@ -15,8 +15,8 @@ use crate::health::DamageSource;
 use crate::loot::{self, LootContext, LootEntity};
 use crate::mobs::ServerRandom;
 use crate::plugins::events::{
-    EntityExplode, EntityExplodePatch, EntityRemoveCause, ExplosionPrime, ExplosionPrimePatch,
-    ExplosionResult,
+    BlockIgniteCause, EntityExplode, EntityExplodePatch, EntityRemoveCause, ExplosionPrime,
+    ExplosionPrimePatch, ExplosionResult,
 };
 use crate::plugins::steps::{ExplodeStep, PrimeKind, PrimeStep};
 use crate::plugins::{AfterHurt, BlastFollow, Holder, Struck};
@@ -325,7 +325,7 @@ impl<L: ClientLink> Server<L> {
         self.settle_explosion(step, cancelled, patch.block_list, patch.explosion_yield);
     }
 
-    pub(crate) fn create_fire(&mut self, blocks: &[BlockPos]) {
+    pub(crate) fn create_fire(&mut self, blocks: &[BlockPos], igniter: Option<EntityId>) {
         for pos in blocks {
             if self.rng.random_range(0..3) != 0 {
                 continue;
@@ -339,7 +339,12 @@ impl<L: ClientLink> Server<L> {
             if !here.is_air() || !below.flags().contains(StateFlags::SOLID_RENDER) {
                 continue;
             }
-            self.set_block(*pos, fire_state_on(below));
+            self.ignite_by(
+                *pos,
+                fire_state_on(below),
+                BlockIgniteCause::Explosion,
+                igniter,
+            );
         }
     }
 

@@ -277,7 +277,7 @@ message LightningStrike { LightningStrikeCause cause = 1; EntitySnapshot lightni
 message LingeringPotionSplash { EntitySnapshot area_effect_cloud = 1; EntitySnapshot entity = 2; string entity_type = 3; BlockPos hit_block = 4; optional Face hit_block_face = 5; EntitySnapshot hit_entity = 6; }
 message LootGenerate { EntitySnapshot entity = 1; HolderRef inventory_holder = 2; repeated Item loot = 3; LootContext loot_context = 4; string loot_table = 5; bool plugin = 6; string world = 7; }
 message LootGeneratePatch { ItemListDiff loot = 1003; reserved 3; }
-message MapInitialize {}
+message MapInitialize { int32 map_id = 100; }
 message MoistureChange { BlockPos block = 1; BlockSnapshot new_state = 2; }
 message NotePlay { BlockPos block = 1; Instrument instrument = 2; int32 note = 3; }
 message PigZap { EntitySnapshot entity = 1; string entity_type = 2; EntitySnapshot lightning = 3; EntityTransformReason transform_reason = 5; repeated EntitySnapshot transformed_entities = 6; EntitySnapshot transformed_entity = 7; }
@@ -306,7 +306,7 @@ message PlayerCommandSendPatch { StringListDiff commands = 1001; reserved 1; }
 message PlayerCustomClick { optional string data = 1; string click_id = 2; PlayerSnapshot player = 3; }
 message PlayerDeath { DamageSource damage_source = 1; optional string death_message = 2; int32 dropped_exp = 3; repeated Item drops = 4; PlayerSnapshot entity = 5; string entity_type = 6; bool keep_inventory = 7; bool keep_level = 8; int32 new_exp = 9; int32 new_level = 10; int32 new_total_exp = 11; }
 message PlayerDeathPatch { NullableString death_message = 2; optional int32 dropped_exp = 3; ItemListDiff drops = 1004; optional bool keep_inventory = 7; optional bool keep_level = 8; optional int32 new_exp = 9; optional int32 new_level = 10; optional int32 new_total_exp = 11; reserved 4; }
-message PlayerDropItem { PlayerSnapshot player = 2; Item item = 100; }
+message PlayerDropItem { EntitySnapshot item_drop = 1; PlayerSnapshot player = 2; Item item = 100; }
 message PlayerDropItemPatch { Item item = 100; }
 message PlayerEditBook { BookMeta new_book_meta = 1; PlayerSnapshot player = 2; BookMeta previous_book_meta = 3; bool signing = 4; }
 message PlayerEditBookPatch { BookMeta new_book_meta = 1; optional bool signing = 4; }
@@ -339,7 +339,7 @@ message PlayerKick { string leave_message = 1; PlayerSnapshot player = 2; string
 message PlayerKickPatch { optional string leave_message = 1; optional string reason = 3; }
 message PlayerLeashEntity { EntitySnapshot entity = 1; EquipmentSlot hand = 2; EntitySnapshot leash_holder = 3; PlayerSnapshot player = 4; }
 message PlayerLevelChange { int32 new_level = 1; int32 old_level = 2; PlayerSnapshot player = 3; }
-message PlayerLinksSend { PlayerSnapshot player = 2; }
+message PlayerLinksSend { ServerLinks links = 1; PlayerSnapshot player = 2; }
 message PlayerLocaleChange { string locale = 1; PlayerSnapshot player = 2; }
 message PlayerLogin { string address = 1; string hostname = 4; string kick_message = 5; PlayerSnapshot player = 6; string real_address = 7; PlayerLoginResult result = 8; }
 message PlayerLoginPatch { optional string kick_message = 5; optional PlayerLoginResult result = 8; }
@@ -387,10 +387,10 @@ message PrepareSmithing { InventoryRef inventory = 1; Item result = 2; Inventory
 message PrepareSmithingPatch { NullableItem result = 2; }
 message ProjectileHit { EntitySnapshot entity = 1; string entity_type = 2; BlockPos hit_block = 3; optional Face hit_block_face = 4; EntitySnapshot hit_entity = 5; }
 message ProjectileLaunch { EntitySnapshot entity = 1; string entity_type = 2; Location location = 3; }
-message RaidFinish { repeated PlayerSnapshot winners = 2; string world = 3; }
-message RaidSpawnWave { EntitySnapshot patrol_leader = 1; repeated EntitySnapshot raiders = 3; string world = 4; }
-message RaidStop { RaidStopReason reason = 2; string world = 3; }
-message RaidTrigger { PlayerSnapshot player = 1; string world = 3; }
+message RaidFinish { RaidRef raid = 1; repeated PlayerSnapshot winners = 2; string world = 3; }
+message RaidSpawnWave { EntitySnapshot patrol_leader = 1; RaidRef raid = 2; repeated EntitySnapshot raiders = 3; string world = 4; }
+message RaidStop { RaidRef raid = 1; RaidStopReason reason = 2; string world = 3; }
+message RaidTrigger { PlayerSnapshot player = 1; RaidRef raid = 2; string world = 3; }
 message RemoteServerCommand { string command = 1; CommandSender sender = 2; }
 message RemoteServerCommandPatch { optional string command = 1; }
 message SculkBloom { BlockPos block = 1; int32 charge = 2; }

@@ -82,6 +82,31 @@ pub struct PluginInfo {
     pub version: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServerLinkEntry {
+    pub label: String,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ServerLinks {
+    pub links: Vec<ServerLinkEntry>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RaidRef {
+    pub id: i32,
+    pub world: String,
+    pub center: BlockPos,
+    pub status: String,
+    pub started: bool,
+    pub active_ticks: i64,
+    pub bad_omen_level: i32,
+    pub spawned_groups: i32,
+    pub total_groups: i32,
+    pub total_health: f32,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BoundingBox {
     pub min: Vec3,

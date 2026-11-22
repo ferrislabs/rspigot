@@ -1310,7 +1310,9 @@ pub(super) fn wire_payload(payload: EventPayload) -> event::Payload {
             plugin: event.plugin,
             world: event.world,
         }),
-        EventPayload::MapInitialize(_) => event::Payload::MapInitialize(v1::MapInitialize {}),
+        EventPayload::MapInitialize(event) => event::Payload::MapInitialize(v1::MapInitialize {
+            map_id: event.map_id,
+        }),
         EventPayload::MoistureChange(event) => event::Payload::MoistureChange(v1::MoistureChange {
             block: Some(shared::wire_block_pos(event.block)),
             new_state: Some(contract::wire_block_snapshot(event.new_state)),
@@ -1460,6 +1462,7 @@ pub(super) fn wire_payload(payload: EventPayload) -> event::Payload {
             new_total_exp: event.new_total_exp,
         }),
         EventPayload::PlayerDropItem(event) => event::Payload::PlayerDropItem(v1::PlayerDropItem {
+            item_drop: Some(entity::wire_view(event.item_drop)),
             player: Some(player::wire_player(event.player)),
             item: Some(shared::wire_item(event.item)),
         }),
@@ -1617,6 +1620,7 @@ pub(super) fn wire_payload(payload: EventPayload) -> event::Payload {
         }
         EventPayload::PlayerLinksSend(event) => {
             event::Payload::PlayerLinksSend(v1::PlayerLinksSend {
+                links: Some(contract::wire_server_links(event.links)),
                 player: Some(player::wire_player(event.player)),
             })
         }
@@ -1888,20 +1892,24 @@ pub(super) fn wire_payload(payload: EventPayload) -> event::Payload {
             })
         }
         EventPayload::RaidFinish(event) => event::Payload::RaidFinish(v1::RaidFinish {
+            raid: Some(contract::wire_raid_ref(event.raid)),
             winners: event.winners.into_iter().map(player::wire_player).collect(),
             world: event.world,
         }),
         EventPayload::RaidSpawnWave(event) => event::Payload::RaidSpawnWave(v1::RaidSpawnWave {
             patrol_leader: event.patrol_leader.map(entity::wire_view),
+            raid: Some(contract::wire_raid_ref(event.raid)),
             raiders: event.raiders.into_iter().map(entity::wire_view).collect(),
             world: event.world,
         }),
         EventPayload::RaidStop(event) => event::Payload::RaidStop(v1::RaidStop {
+            raid: Some(contract::wire_raid_ref(event.raid)),
             reason: raid_stop_reason_to_wire(event.reason) as i32,
             world: event.world,
         }),
         EventPayload::RaidTrigger(event) => event::Payload::RaidTrigger(v1::RaidTrigger {
             player: Some(player::wire_player(event.player)),
+            raid: Some(contract::wire_raid_ref(event.raid)),
             world: event.world,
         }),
         EventPayload::RemoteServerCommand(event) => {

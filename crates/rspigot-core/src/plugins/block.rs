@@ -43,6 +43,9 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             BlockOrder::Tile(edit) => self.apply_tile(pos, edit)?,
+            BlockOrder::Pdc(change) => self
+                .pdc_change(crate::plugins::PdcHolder::Block(pos), change)
+                .map_err(|error| error.reason)?,
         }
         Ok(())
     }

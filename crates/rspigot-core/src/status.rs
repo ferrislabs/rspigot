@@ -24,6 +24,7 @@ pub struct StatusSnapshot {
     pub max_players: u32,
     pub sample: Vec<PlayerSample>,
     pub ping: PingHook,
+    pub motd: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

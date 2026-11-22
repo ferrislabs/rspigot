@@ -56,6 +56,8 @@ mod server_operators;
 pub use server_operators::ServerOperatorsHandle;
 mod server_recipes;
 pub use server_recipes::ServerRecipesHandle;
+mod server_settings;
+pub use server_settings::ServerSettingsHandle;
 mod server_whitelist;
 pub use server_whitelist::ServerWhitelistHandle;
 mod world_difficulty;

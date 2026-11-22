@@ -4,6 +4,7 @@ use crate::commands::{CommandSpec, Invocation};
 use crate::events::Call;
 use crate::listener::{HandlerSpec, Outcome};
 use crate::server::Server;
+use crate::tasks::TaskClock;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommandModule {
@@ -55,6 +56,8 @@ pub trait Children {
 
     fn disable(&self) -> impl Future<Output = ()> + Send;
 
+    fn run_tasks(&self, server: &Server, clock: &mut TaskClock) -> impl Future<Output = ()> + Send;
+
     fn invoke(&self, base: u32, invocation: Invocation) -> impl Future<Output = ()> + Send;
 }
 
@@ -80,6 +83,13 @@ pub trait Kids<T> {
     fn enable(&self, owner: &T, server: &Server) -> impl Future<Output = ()> + Send;
 
     fn disable(&self, owner: &T) -> impl Future<Output = ()> + Send;
+
+    fn run_tasks(
+        &self,
+        owner: &T,
+        server: &Server,
+        clock: &mut TaskClock,
+    ) -> impl Future<Output = ()> + Send;
 
     fn invoke(
         &self,
@@ -136,6 +146,15 @@ impl<T: Children> Kids<T> for Present {
         owner.disable()
     }
 
+    fn run_tasks(
+        &self,
+        owner: &T,
+        server: &Server,
+        clock: &mut TaskClock,
+    ) -> impl Future<Output = ()> + Send {
+        owner.run_tasks(server, clock)
+    }
+
     fn invoke(
         &self,
         owner: &T,
@@ -172,6 +191,15 @@ impl<T> Kids<T> for Absent {
     }
 
     fn disable(&self, _owner: &T) -> impl Future<Output = ()> + Send {
+        std::future::ready(())
+    }
+
+    fn run_tasks(
+        &self,
+        _owner: &T,
+        _server: &Server,
+        _clock: &mut TaskClock,
+    ) -> impl Future<Output = ()> + Send {
         std::future::ready(())
     }
 

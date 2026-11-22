@@ -509,7 +509,7 @@ impl<L: ClientLink> Server<L> {
             Inbound::PluginMessage {
                 connection,
                 message,
-            } => self.plugin_message(connection, message),
+            } => self.plugin_message(connection, *message),
             Inbound::PluginDisconnected { connection } => self.plugin_disconnected(connection),
             Inbound::Shutdown => self.running = false,
         }
@@ -1249,8 +1249,7 @@ impl<L: ClientLink> Server<L> {
         self.notify_poses();
         self.sync_vitals();
         if self.tick.is_multiple_of(20) {
-            let time = self.time_event();
-            self.push(Audience::Dimension(self.world.dimension.key.clone()), time);
+            self.sync_world_time();
         }
         let disconnected: Vec<PlayerId> = self
             .players

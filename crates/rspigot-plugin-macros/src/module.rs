@@ -66,7 +66,7 @@ pub(crate) fn own_attribute(input: &DeriveInput, name: &str) -> Result<bool, Err
                 own = true;
                 Ok(())
             } else if name == "plugin" {
-                meta.value()?.parse::<syn::LitStr>().map(drop)
+                meta.value()?.parse::<syn::Expr>().map(drop)
             } else {
                 Err(meta.error(BAD_OWN))
             }
@@ -157,6 +157,9 @@ pub(crate) fn expand(input: &DeriveInput, fields: &[Field<'_>], own: bool) -> To
                 let at = at + #slots;
             }
         });
+    let task_steps = tys.iter().zip(&members).zip(&on).map(
+        |((ty, member), on)| quote_spanned!(ty.span()=> #on::run_tasks(&self.#member, server, clock).await;),
+    );
     let invoke_steps =
         tys.iter()
             .zip(&members)
@@ -235,6 +238,14 @@ pub(crate) fn expand(input: &DeriveInput, fields: &[Field<'_>], own: bool) -> To
                     <Self as #children>::disable(self).await;
                 }
 
+                async fn run_tasks(
+                    &self,
+                    server: &::rspigot_plugin::Server,
+                    clock: &mut ::rspigot_plugin::TaskClock,
+                ) {
+                    <Self as #children>::run_tasks(self, server, clock).await;
+                }
+
                 async fn invoke(&self, invocation: ::rspigot_plugin::Invocation) {
                     <Self as #children>::invoke(self, 0, invocation).await;
                 }
@@ -292,6 +303,14 @@ pub(crate) fn expand(input: &DeriveInput, fields: &[Field<'_>], own: bool) -> To
 
             async fn disable(&self) {
                 #(#disables)*
+            }
+
+            async fn run_tasks(
+                &self,
+                server: &::rspigot_plugin::Server,
+                clock: &mut ::rspigot_plugin::TaskClock,
+            ) {
+                #(#task_steps)*
             }
 
             async fn invoke(&self, base: u32, invocation: ::rspigot_plugin::Invocation) {
