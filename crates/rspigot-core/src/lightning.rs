@@ -166,6 +166,9 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         self.lightning_burn(bolt, victim, kind);
+        if kind == Kind::Mooshroom {
+            self.mooshroom_struck(bolt, victim);
+        }
         if kind == Kind::Creeper {
             self.ask_empower(bolt, victim);
         }

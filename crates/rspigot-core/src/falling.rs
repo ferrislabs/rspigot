@@ -470,6 +470,9 @@ impl<L: ClientLink> Server<L> {
             self.leaves_distance_tick(pos, state);
             return;
         }
+        if self.extra_block_tick(pos, state, kind) {
+            return;
+        }
         match kind.gravity() {
             Gravity::Falling | Gravity::ConcretePowder => self.try_fall(pos, state, None),
             Gravity::Anvil => self.try_fall(pos, state, Some(FallHurt::ANVIL)),

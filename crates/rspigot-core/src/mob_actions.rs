@@ -411,6 +411,9 @@ impl<L: ClientLink> Server<L> {
                 | Kind::Axolotl
                 | Kind::Nautilus
                 | Kind::HappyGhast
+                | Kind::Mooshroom
+                | Kind::Strider
+                | Kind::Hoglin
         ) {
             return None;
         }
@@ -491,6 +494,9 @@ impl<L: ClientLink> Server<L> {
         }
         if kind == Kind::Nautilus {
             self.nautilus_offspring(&mut child, parent, random);
+        }
+        if kind == Kind::Mooshroom {
+            self.mooshroom_offspring(&mut child, parent, partner, random);
         }
         Some(child)
     }

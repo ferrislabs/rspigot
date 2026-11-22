@@ -488,6 +488,10 @@ pub enum MetadataValue {
     },
     Rotations(f32, f32, f32),
     PaintingVariant(u32),
+    Vector3([f32; 3]),
+    Quaternion([f32; 4]),
+    BlockState(u32),
+    Profile(rspigot_nbt::Tag),
 }
 
 pub use rspigot_domain::entity::{StateKind, VariantKind};

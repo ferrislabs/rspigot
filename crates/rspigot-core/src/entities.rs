@@ -79,6 +79,7 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 SyncedValue::Int(v) => MetadataValue::VarInt(*v),
                 SyncedValue::Float(v) => MetadataValue::Float(*v),
                 SyncedValue::OptionalComponent(c) => MetadataValue::OptionalComponent(c.clone()),
+                SyncedValue::Component(c) => MetadataValue::Component(c.clone()),
                 SyncedValue::Boolean(v) => MetadataValue::Boolean(*v),
                 SyncedValue::Pose(p) => MetadataValue::Pose(*p),
                 SyncedValue::Item(stack) => MetadataValue::Item(stack.clone()),
@@ -105,6 +106,10 @@ pub(crate) fn metadata(values: &[(u8, SyncedValue)]) -> Vec<MetadataEntry> {
                 },
                 SyncedValue::Rotations(x, y, z) => MetadataValue::Rotations(*x, *y, *z),
                 SyncedValue::PaintingVariant(id) => MetadataValue::PaintingVariant(*id),
+                SyncedValue::Vector3(v) => MetadataValue::Vector3(*v),
+                SyncedValue::Quaternion(v) => MetadataValue::Quaternion(*v),
+                SyncedValue::BlockState(state) => MetadataValue::BlockState(u32::from(state.0)),
+                SyncedValue::Profile(tag) => MetadataValue::Profile(tag.clone()),
             },
         })
         .collect()
@@ -461,6 +466,7 @@ impl<L: ClientLink> Server<L> {
                 EntityState::Boat(_) => self.tick_boat(id),
                 EntityState::Minecart(_) => self.tick_minecart(id),
                 EntityState::Cloud(_) => self.tick_cloud(id),
+                EntityState::Decor(_) => self.tick_decor(id),
                 EntityState::Inert(_) => {}
             }
             self.tick_passengers(id);

@@ -40,6 +40,7 @@ pub mod hoglin;
 pub mod illusioner;
 pub mod iron_golem;
 pub mod llama;
+pub mod mooshroom;
 pub mod nautilus;
 pub mod ocelot;
 pub mod panda;
@@ -262,6 +263,7 @@ pub enum Species {
     Piglin(piglin::PiglinState),
     Goat(goat::GoatState),
     Armadillo(armadillo::ArmadilloState),
+    Mooshroom(mooshroom::MooshroomState),
     Sniffer(sniffer::SnifferState),
     Frog(frog::FrogState),
     Creaking(creaking::CreakingState),
@@ -550,6 +552,9 @@ impl Species {
         }
         if kind == EntityKind::Armadillo {
             return Self::Armadillo(armadillo::define(base));
+        }
+        if kind == EntityKind::Mooshroom {
+            return Self::Mooshroom(mooshroom::define(base));
         }
         if llama::is_llama(kind) {
             return Self::Llama(llama::define(base));

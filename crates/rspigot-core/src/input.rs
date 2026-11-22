@@ -509,9 +509,12 @@ impl<L: ClientLink> Server<L> {
         if before.is_some_and(|old| campfire::is_lit(old) && campfire::is_waterlogged(state)) {
             self.level_event(CAMPFIRE_DOUSE_EVENT, pos, 0);
         }
-        let lost = before
+        let mut lost = before
             .map(|old| self.contents_lost_by(pos, old, state))
             .unwrap_or_default();
+        if let Some(old) = before {
+            lost.extend(self.shelf_items_lost_by(pos, old, state));
+        }
         let book = before.and_then(|old| self.lectern_book_lost_by(pos, old, state));
         let jukebox = before
             .filter(|old| old.kind() == Some(BlockKind::Jukebox) && old.kind() != state.kind());
@@ -547,6 +550,8 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_gateway_entity(pos, state);
                 self.ensure_beehive_entity(pos, state);
                 self.ensure_jukebox_entity(pos, state);
+                self.ensure_conduit_entity(pos, state);
+                self.ensure_shelf_entity(pos, state);
                 self.ensure_command_block_entity(pos, state);
                 self.ensure_spawner_entity(pos, state);
                 self.ensure_trial_spawner_entity(pos, state);
@@ -626,6 +631,9 @@ impl<L: ClientLink> Server<L> {
             }
             if !(sneaking && holding) && self.use_sign(id, pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
+            if !(sneaking && holding) && self.use_shelf(step) {
                 return;
             }
             if !(sneaking && holding) && self.place_book_on_lectern(id, slot, pos, clicked) {
@@ -729,6 +737,15 @@ impl<L: ClientLink> Server<L> {
             && !matches!(game_mode, GameMode::Adventure | GameMode::Spectator)
             && self.within_reach(id, pos)
             && !self.is_protected(id, pos)
+            && self.use_plant_bone_meal(id, hand, pos, sequence)
+        {
+            return;
+        }
+        if let Some(held) = &stack
+            && crops::is_bone_meal(held.item)
+            && !matches!(game_mode, GameMode::Adventure | GameMode::Spectator)
+            && self.within_reach(id, pos)
+            && !self.is_protected(id, pos)
             && self.use_bone_meal(id, hand, pos, sequence)
         {
             return;
@@ -776,6 +793,25 @@ impl<L: ClientLink> Server<L> {
         };
         if game_mode == GameMode::Spectator || game_mode == GameMode::Adventure {
             self.refuse_block(id, pos, sequence);
+            return;
+        }
+        if kind == BlockKind::SeaPickle
+            && !sneaking
+            && rspigot_domain::sea_pickle::merged(clicked).is_some()
+        {
+            self.stack_sea_pickle(
+                UseItem {
+                    player: id,
+                    hand,
+                    slot,
+                    stack,
+                    against: pos,
+                    sequence,
+                    game_mode,
+                },
+                pos,
+                clicked,
+            );
             return;
         }
         let (dx, dy, dz) = face.offset();

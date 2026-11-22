@@ -37,6 +37,7 @@ const EXACT_TELEPORT: &str = "ExactTeleport";
 const FURNACE_SLOTS: usize = 3;
 const BREWING_SLOTS: usize = 5;
 const BOOKSHELF_SLOTS: usize = 6;
+const SHELF_SLOTS: usize = rspigot_domain::shelf::SLOTS;
 const MAX_SIGN_LINES: usize = 4;
 const POT_SHERDS: usize = 4;
 const DYES: [&str; 16] = [
@@ -312,6 +313,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::Furnace | BlockKind::BlastFurnace | BlockKind::Smoker => Tile::Furnace,
             BlockKind::BrewingStand => Tile::Plain("brewing_stand", BREWING_SLOTS),
             BlockKind::ChiseledBookshelf => Tile::Plain("chiseled_bookshelf", BOOKSHELF_SLOTS),
+            kind if crate::shelf::is_shelf_kind(kind) => Tile::Plain("shelf", SHELF_SLOTS),
             BlockKind::Spawner => Tile::Spawner,
             BlockKind::CommandBlock
             | BlockKind::ChainCommandBlock

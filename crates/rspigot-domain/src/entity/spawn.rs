@@ -113,6 +113,25 @@ pub(crate) fn ageable_finalize(
     mob_finalize(base, living, Some(group), level)
 }
 
+pub fn equip_from_table(
+    living: &mut LivingState,
+    stacks: Vec<ItemStack>,
+    drop_chance: Option<f32>,
+) {
+    for stack in stacks {
+        let slot = stack
+            .item
+            .kind()
+            .and_then(ItemKind::equippable)
+            .unwrap_or(EquipmentSlot::Mainhand);
+        let index = slot_index(slot);
+        living.equipment[index] = Some(stack);
+        if let (Some(mob), Some(chance)) = (living.mob.as_mut(), drop_chance) {
+            mob.drop_chances[index] = chance;
+        }
+    }
+}
+
 pub fn equipment_for_slot(slot: EquipmentSlot, tier: i32) -> Option<ItemKind> {
     let row = match slot {
         EquipmentSlot::Head => [
@@ -694,6 +713,32 @@ mod tests {
             halloween: false,
             moon_brightness: 0.0,
         }
+    }
+
+    #[test]
+    fn table_items_land_in_their_equippable_slot_with_the_requested_drop_chance() {
+        let mut zombie = mob(EntityKind::Zombie);
+        let EntityState::Living(living) = &mut zombie.state else {
+            panic!("living");
+        };
+        equip_from_table(
+            living,
+            vec![stack(ItemKind::IronSword), stack(ItemKind::ChainmailHelmet)],
+            Some(0.0),
+        );
+        assert_eq!(
+            living.equipment(EquipmentSlot::Mainhand).map(|s| s.item),
+            Some(ItemKind::IronSword.id())
+        );
+        assert_eq!(
+            living.equipment(EquipmentSlot::Head).map(|s| s.item),
+            Some(ItemKind::ChainmailHelmet.id())
+        );
+        let chances = living.mob.as_ref().map(|m| m.drop_chances);
+        assert_eq!(
+            chances.map(|c| c[slot_index(EquipmentSlot::Head)]),
+            Some(0.0)
+        );
     }
 
     #[test]
