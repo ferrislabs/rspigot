@@ -797,7 +797,11 @@ impl<L: ClientLink> Server<L> {
             Continuation::Respawn(step) => {
                 let player = step.player;
                 let patch = patch_of!(patch, PlayerRespawn);
-                self.in_player_dimension(player, |server| server.finish_respawn(step, patch));
+                if step.credits {
+                    self.finish_respawn(step, patch);
+                } else {
+                    self.in_player_dimension(player, |server| server.finish_respawn(step, patch));
+                }
                 Vec::new()
             }
             Continuation::Death(step) => {
