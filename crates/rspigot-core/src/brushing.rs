@@ -16,6 +16,9 @@ use crate::bow::{UsingItem, hand_slot};
 use crate::events::Hand;
 use crate::loot::{self, LootContext, LootEntity};
 use crate::mobs::ServerRandom;
+use crate::plugins::events::BlockBrush;
+use crate::plugins::gaps::GapStep;
+use crate::plugins::{EventPayload, Lane, snapshot_of};
 use crate::ports::ClientLink;
 use crate::server::Server;
 
@@ -174,8 +177,42 @@ impl<L: ClientLink> Server<L> {
             1.0,
         );
         if brushable(kind) {
-            self.brush_block(id, using.hand, hit);
+            self.ask_brush(id, using.hand, hit);
         }
+    }
+
+    fn ask_brush(&mut self, id: PlayerId, hand: Hand, hit: BlockHit) {
+        let pos = hit.pos;
+        let Some(state) = self.world.chunks.block(pos) else {
+            return;
+        };
+        let now = self.current_tick() as i64;
+        let mut progress = read_state(&self.brush_data(pos));
+        progress.catch_up(now);
+        let becomes = match progress.brush(now) {
+            Brushed::Completed => state
+                .kind()
+                .map_or(BlockKind::Sand, turns_into)
+                .default_state(),
+            Brushed::Ignored | Brushed::Progress { .. } => state
+                .with_property(DUSTED, &progress.completion().to_string())
+                .unwrap_or(state),
+        };
+        self.fire_gap(
+            Lane::Block(pos),
+            GapStep::Brush {
+                player: id,
+                hand,
+                hit,
+            },
+            move |server| {
+                Some(EventPayload::BlockBrush(BlockBrush {
+                    block: pos,
+                    new_state: snapshot_of(pos, becomes),
+                    player: server.snapshot_of(id)?,
+                }))
+            },
+        );
     }
 
     fn brush_data(&self, pos: BlockPos) -> Compound {

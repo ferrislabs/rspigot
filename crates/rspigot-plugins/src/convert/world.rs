@@ -32,6 +32,10 @@ pub(super) fn order(order: v1::WorldOrder) -> Result<Order, Malformed> {
             breaks_blocks,
         },
         Wire::DeleteWorld(v1::DeleteWorld { files }) => WorldOrder::Delete { files },
+        Wire::Border(border) => WorldOrder::Action(super::extras::border(border)?),
+        Wire::StrikeLightning(strike) => WorldOrder::Action(super::extras::lightning(strike)?),
+        Wire::Chunk(chunk) => WorldOrder::Action(super::extras::chunk(chunk)?),
+        Wire::Object(object) => WorldOrder::Object(super::objects::world_order(object)?),
     };
     Ok(Order::World(order))
 }

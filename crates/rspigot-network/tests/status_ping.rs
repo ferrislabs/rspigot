@@ -433,14 +433,14 @@ async fn a_status_ping_over_the_network_waits_for_a_deciding_plugin_and_shows_it
             };
             game.send(Inbound::PluginMessage {
                 connection: 1,
-                message: FromPlugin::Decision {
+                message: Box::new(FromPlugin::Decision {
                     event,
                     verdicts: vec![Verdict {
                         handler: 1,
                         cancel: false,
                         patch: Some(EventPatch::ServerListPing(patch)),
                     }],
-                },
+                }),
             })
             .expect("the core listens");
         }

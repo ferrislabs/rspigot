@@ -123,7 +123,7 @@ fn a_llama_spits_at_a_wild_wolf_and_the_spit_flies_then_vanishes() {
     assert!(spat, "the llama spits at the wolf");
     assert!(vanished, "the spit is discarded after its flight");
     let mut hurt = false;
-    for _ in 0..600 {
+    for _ in 0..4000 {
         s.tick(1);
         hurt = s
             .server

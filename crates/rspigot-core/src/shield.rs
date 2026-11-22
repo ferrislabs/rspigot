@@ -131,7 +131,7 @@ impl<L: ClientLink> Server<L> {
                 holder,
                 BLOCK_KNOCKBACK,
                 away,
-                EntityKnockbackCause::EntityAttack,
+                EntityKnockbackCause::ShieldBlock,
                 Some(entity),
             );
             if self.melee_weapon(direct).is_some_and(is_axe) {

@@ -117,13 +117,26 @@ impl<L: ClientLink> Server<L> {
         self.ask_drop(id, stack, DropSource::Released, thrower, predicted);
     }
 
-    pub(crate) fn throw(&mut self, launch: Launch, stack: ItemStack, thrower: Option<Uuid>) {
+    pub(crate) fn throw_as(
+        &mut self,
+        launch: Launch,
+        stack: ItemStack,
+        thrower: Option<Uuid>,
+        reserved: Option<(rspigot_domain::EntityId, Uuid)>,
+    ) {
         let Launch {
             position,
             velocity,
             yaw,
         } = launch;
-        let mut base = self.new_entity_base(rspigot_entities::EntityKind::Item);
+        let mut base = match reserved {
+            Some((id, uuid)) => rspigot_domain::entity::EntityBase::new(
+                id,
+                uuid,
+                rspigot_entities::EntityKind::Item,
+            ),
+            None => self.new_entity_base(rspigot_entities::EntityKind::Item),
+        };
         base.position = position;
         base.old_position = position;
         base.set_yaw(yaw);

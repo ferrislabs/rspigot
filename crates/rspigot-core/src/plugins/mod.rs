@@ -17,25 +17,33 @@ mod contract;
 mod damage;
 mod decisions;
 mod digging;
+mod displays;
 mod edits;
 mod entity;
 mod entity_edits;
 pub mod events;
+pub(crate) mod extras;
 pub(crate) mod furnaces;
+pub(crate) mod gaps;
 mod heard;
 mod inputs;
 mod inventory;
 mod item_components;
 mod items;
 mod knockback;
+mod launches;
 mod levels;
 mod lifecycle;
+mod map_views;
 mod menus;
+mod merchants;
 pub mod meta;
 mod npcs;
+mod object_actions;
 mod objects;
 mod orders;
 mod patch;
+pub(crate) mod pdc;
 mod ping;
 mod placing;
 mod player;
@@ -83,20 +91,35 @@ pub(crate) use commands::PluginTyping;
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, DamageSourceView, DroppedItem, EnchantOffer,
     HolderRef, Input, InventoryOwner, InventoryRef, InventoryView, LecternData, Location,
-    LootContext, MerchantRef, OwnerRef, PluginInfo, SenderView, SignData, SpawnerData, Trade,
-    TrialSpawnerData,
+    LootContext, MerchantRef, OwnerRef, PluginInfo, RaidRef, SenderView, ServerLinkEntry,
+    ServerLinks, SignData, SpawnerData, Trade, TrialSpawnerData,
 };
 pub(crate) use damage::Impacts;
 pub(crate) use decisions::{Continuation, Decisions, Held, Lane};
 pub(crate) use digging::Mining;
+pub use displays::{
+    Billboard, BlockDisplayData, DisplayBody, DisplayContext, DisplayProps, DisplaySpec,
+    InteractionData, ItemDisplayData, TextAlignment, TextData, Transformation,
+};
 pub use edits::{EntityEdit, EquipmentView, LivingDetails};
 pub use events::{EventKind, EventPatch, EventPayload};
+pub use extras::{
+    BedSpawn, BorderOrder, ChunkOrder, ExtraAnswer, ExtraQuestion, PlayerAction, StatisticMode,
+    WorldAction,
+};
 pub use items::ItemSpec;
 pub(crate) use items::{spec_of, stack_of};
+pub use launches::HangingView;
+pub use map_views::{
+    MapDecorationEdit, MapDecorationView, MapEdit, MapMarker, MapMarkerChange, MapView,
+};
 pub use menus::MAX_PLUGIN_INVENTORIES;
 pub(crate) use menus::{PluginInventories, PluginMenu};
 pub use meta::{BlockMetaView, MetaChange, MetaEntries, MetaHolder, MetaOrder, MetaSnapshot};
 pub use npcs::{NpcOrder, NpcSpec, NpcView};
+pub use object_actions::{
+    ObjectAnswer, ObjectOrder, ObjectQuestion, PlayerObjectOrder, WorldObjectOrder,
+};
 pub(crate) use objects::{UseMemo, slot_of};
 pub use orders::{
     BlockOrder, ClickSpec, CustomInventoryOrder, DialogButtonSpec, DialogInputSpec, DialogSpec,
@@ -104,6 +127,7 @@ pub use orders::{
     ParticleSpec, PlayerOrder, RichPartSpec, ServerOrder, SoundSpec, TitleSpec, WorldOrder,
 };
 pub use patch::{ListDiff, SetDiff, Verdict};
+pub use pdc::{PdcChange, PdcHolder, PdcValue};
 pub use recipes::{
     CookingKind, IngredientSpec, MAX_PLUGIN_RECIPES, MAX_RECIPE_LIST, RecipeKind, RecipeShape,
     RecipeSpec, RecipeView,
@@ -516,6 +540,8 @@ pub enum Answer {
     Bans(Vec<BanEntry>),
     IpBans(Vec<IpBanEntry>),
     World(WorldState),
+    Extra(ExtraAnswer),
+    Object(ObjectAnswer),
     Block(BlockState),
     Tile(TileView),
     BlockInfo(BlockInfo),
@@ -602,6 +628,8 @@ pub enum Question {
     Bans,
     IpBans,
     World,
+    Extra(ExtraQuestion),
+    Object(ObjectQuestion),
     InWorld {
         world: rspigot_domain::Identifier,
         question: Box<Question>,

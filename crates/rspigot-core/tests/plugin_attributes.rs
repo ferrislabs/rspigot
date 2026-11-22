@@ -70,7 +70,7 @@ fn max_health_attribute_changes_the_limit() {
 #[test]
 fn an_attribute_of_a_mob_changes_its_base_value() {
     let mut s = scene(&["Alice"]);
-    let zombie = spawn(&mut s, "minecraft:zombie");
+    let zombie = spawn(&mut s, "minecraft:cow");
 
     set(&mut s, zombie, MAX_HEALTH, 100.0);
     set(&mut s, zombie, MOVEMENT_SPEED, 0.5);

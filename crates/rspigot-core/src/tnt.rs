@@ -130,6 +130,46 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn tnt_will_destroy(
+        &mut self,
+        id: PlayerId,
+        pos: BlockPos,
+        state: BlockStateId,
+        creative: bool,
+    ) {
+        if creative
+            || state.kind() != Some(BlockKind::Tnt)
+            || state.property("unstable") != Some("true")
+        {
+            return;
+        }
+        let Some(player) = self.players.get(&id) else {
+            return;
+        };
+        let (entity, owner) = (player.entity_id, player.profile.id.0);
+        self.prime_tnt(TntPrimeStep {
+            remove: false,
+            by_entity: Some(entity),
+            owner: Some(owner),
+            ..TntPrimeStep::of(pos, TNTPrimeCause::BlockBreak)
+        });
+    }
+
+    pub(crate) fn arrow_primes_tnt(&mut self, arrow: EntityId, pos: BlockPos, state: BlockStateId) {
+        if state.kind() != Some(BlockKind::Tnt) {
+            return;
+        }
+        let owner = match self.entities.store.get(arrow).map(|entity| &entity.state) {
+            Some(EntityState::Arrow(state)) => state.owner,
+            _ => None,
+        };
+        self.prime_tnt(TntPrimeStep {
+            by_entity: Some(arrow),
+            owner,
+            ..TntPrimeStep::of(pos, TNTPrimeCause::Projectile)
+        });
+    }
+
     pub(crate) fn prime_exploded_tnt(&mut self, pos: BlockPos, igniter: Option<EntityId>) {
         let owner = igniter.and_then(|id| {
             self.players

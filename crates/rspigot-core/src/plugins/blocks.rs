@@ -127,6 +127,7 @@ impl<L: ClientLink> Server<L> {
         let explosion_yield = explosion_yield.unwrap_or(step.explosion_yield);
         let fire = step.fire;
         let discard = step.discard;
+        let igniter = step.source;
         let burning = if fire { blocks.clone() } else { Vec::new() };
         if !cancelled {
             self.blast(ExplodeStep {
@@ -136,7 +137,7 @@ impl<L: ClientLink> Server<L> {
             });
         }
         if fire {
-            self.create_fire(&burning);
+            self.create_fire(&burning, igniter);
         }
         if let Some(source) = discard {
             let cause = self.discard_cause(source);

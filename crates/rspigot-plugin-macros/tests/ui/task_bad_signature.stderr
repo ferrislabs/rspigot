@@ -1,0 +1,11 @@
+error: a task is `async fn name(&self)` or `async fn name(&self, server: &Server)`, declared `#[task(every = "30s")]`
+ --> tests/ui/task_bad_signature.rs:8:5
+  |
+8 |     async fn takes_a_number(&self, count: u32) {
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: a task is `async fn name(&self)` or `async fn name(&self, server: &Server)`, declared `#[task(every = "30s")]`
+  --> tests/ui/task_bad_signature.rs:13:5
+   |
+13 |     fn not_async(&self) {}
+   |     ^^^^^^^^^^^^^^^^^^^

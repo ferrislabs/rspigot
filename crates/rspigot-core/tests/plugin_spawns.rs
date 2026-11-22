@@ -48,7 +48,7 @@ fn drop_item(s: &mut Scene, position: Vec3) -> EntityView {
 fn question(s: &mut Scene, request: u64, question: Question) {
     s.server.handle(Inbound::PluginMessage {
         connection: 1,
-        message: FromPlugin::Question { request, question },
+        message: Box::new(FromPlugin::Question { request, question }),
     });
     s.server.deliver();
 }

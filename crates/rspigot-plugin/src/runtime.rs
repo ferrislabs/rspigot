@@ -17,11 +17,13 @@ use crate::events::EventKind;
 use crate::link::{ANSWER_TIMEOUT, Link, Outbound, handling, message};
 use crate::listener::{HandlerSpec, Listeners, Outcome, Plugin, Verdict};
 use crate::server::Server;
+use crate::tasks::{TASK_RESOLUTION, TaskClock};
 
 const DEFAULT_URL: &str = "http://127.0.0.1:25580";
 const FIRST_RETRY: Duration = Duration::from_secs(1);
 const LAST_RETRY: Duration = Duration::from_secs(30);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+const HELD_TIMEOUT: Duration = Duration::from_secs(600);
 const KEEP_ALIVE_INTERVAL: Duration = Duration::from_secs(10);
 const KEEP_ALIVE_TIMEOUT: Duration = Duration::from_secs(20);
 
@@ -104,12 +106,19 @@ pub async fn run_with<P: Plugin>(
         token: token.unwrap_or_default(),
         handlers: specs.into_iter().map(HandlerSpec::to_wire).collect(),
         commands: commands.iter().map(CommandSpec::to_wire).collect(),
+        depends: names(P::DEPENDS),
+        soft_depends: names(P::SOFT_DEPENDS),
+        load_before: names(P::LOAD_BEFORE),
     };
     let (error, ()) = tokio::join!(
         keep_connected(endpoint, url, hello, &link, queue),
         handle_events(&plugin, &link, &kinds, queued),
     );
     Err(error)
+}
+
+fn names(list: &[&str]) -> Vec<String> {
+    list.iter().map(|name| (*name).to_owned()).collect()
 }
 
 fn command_path(spec: &CommandSpec) -> Vec<&'static str> {
@@ -203,7 +212,7 @@ async fn connect(
         Ok(response) => response.into_inner(),
         Err(status) => return ended(status),
     };
-    if let Err(ended) = accepted(hears.message()).await {
+    if let Err(ended) = accepted(&mut hears).await {
         return ended;
     }
     backoff.reset();
@@ -217,21 +226,42 @@ async fn connect(
     }
 }
 
-async fn accepted(
-    first: impl Future<Output = Result<Option<v1::ToPlugin>, Status>>,
-) -> Result<(), Ended> {
-    match tokio::time::timeout(ANSWER_TIMEOUT, first).await {
-        Ok(Ok(Some(v1::ToPlugin {
-            body: Some(to_plugin::Body::Accepted(_)),
-        }))) => Ok(()),
-        Ok(Ok(Some(_))) => Err(Ended::Lost(
-            "rspigot spoke before accepting the plugin".to_owned(),
-        )),
-        Ok(Ok(None)) => Err(Ended::Lost("rspigot closed the stream".to_owned())),
-        Ok(Err(status)) => Err(ended(status)),
-        Err(_) => Err(Ended::Lost(
-            "rspigot did not accept the plugin in time".to_owned(),
-        )),
+trait Hear {
+    fn hear(&mut self) -> impl Future<Output = Result<Option<v1::ToPlugin>, Status>>;
+}
+
+impl Hear for Streaming<v1::ToPlugin> {
+    fn hear(&mut self) -> impl Future<Output = Result<Option<v1::ToPlugin>, Status>> {
+        self.message()
+    }
+}
+
+async fn accepted(hears: &mut impl Hear) -> Result<(), Ended> {
+    let mut wait = ANSWER_TIMEOUT;
+    loop {
+        match tokio::time::timeout(wait, hears.hear()).await {
+            Ok(Ok(Some(v1::ToPlugin {
+                body: Some(to_plugin::Body::Accepted(_)),
+            }))) => return Ok(()),
+            Ok(Ok(Some(v1::ToPlugin {
+                body: Some(to_plugin::Body::Warning(warning)),
+            }))) => {
+                tracing::warn!("rspigot: {}", warning.message);
+                wait = HELD_TIMEOUT;
+            }
+            Ok(Ok(Some(_))) => {
+                return Err(Ended::Lost(
+                    "rspigot spoke before accepting the plugin".to_owned(),
+                ));
+            }
+            Ok(Ok(None)) => return Err(Ended::Lost("rspigot closed the stream".to_owned())),
+            Ok(Err(status)) => return Err(ended(status)),
+            Err(_) => {
+                return Err(Ended::Lost(
+                    "rspigot did not accept the plugin in time".to_owned(),
+                ));
+            }
+        }
     }
 }
 
@@ -318,12 +348,35 @@ async fn handle_events<P: Listeners>(
     kinds: &[(u32, EventKind)],
     mut queued: mpsc::UnboundedReceiver<Queued>,
 ) {
-    while let Some(next) = queued.recv().await {
+    let mut tasks: Option<(Server, TaskClock)> = None;
+    let mut poll = tokio::time::interval(TASK_RESOLUTION);
+    poll.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    loop {
+        let next = tokio::select! {
+            next = queued.recv() => match next {
+                Some(next) => next,
+                None => return,
+            },
+            _ = poll.tick(), if tasks.is_some() => {
+                if let Some((server, clock)) = tasks.as_mut() {
+                    clock.advance(std::time::Instant::now());
+                    plugin.run_tasks(server, clock).await;
+                }
+                continue;
+            }
+        };
         match next {
             Queued::Event { event, reply } => handle(plugin, link, kinds, *event, reply).await,
             Queued::Invocation(invocation) => plugin.invoke(invocation).await,
-            Queued::Enable(connected) => plugin.enable(&Server::new(connected)).await,
-            Queued::Disable => plugin.disable().await,
+            Queued::Enable(connected) => {
+                let server = Server::new(connected);
+                plugin.enable(&server).await;
+                tasks = Some((server, TaskClock::new(std::time::Instant::now())));
+            }
+            Queued::Disable => {
+                tasks = None;
+                plugin.disable().await;
+            }
         }
     }
 }
@@ -624,10 +677,70 @@ mod tests {
     async fn no_acceptance_within_ten_seconds_is_a_lost_connection() {
         let started = Instant::now();
 
-        let accepted = accepted(std::future::pending()).await;
+        let accepted = accepted(&mut Silent).await;
 
         assert!(matches!(accepted, Err(Ended::Lost(_))));
         assert!(started.elapsed() >= ANSWER_TIMEOUT);
+    }
+
+    struct Silent;
+
+    impl Hear for Silent {
+        fn hear(&mut self) -> impl Future<Output = Result<Option<v1::ToPlugin>, Status>> {
+            std::future::pending()
+        }
+    }
+
+    struct Told(std::collections::VecDeque<v1::ToPlugin>);
+
+    impl Hear for Told {
+        fn hear(&mut self) -> impl Future<Output = Result<Option<v1::ToPlugin>, Status>> {
+            let next = self.0.pop_front();
+            async move {
+                match next {
+                    Some(next) => Ok(Some(next)),
+                    None => std::future::pending().await,
+                }
+            }
+        }
+    }
+
+    fn told(body: to_plugin::Body) -> v1::ToPlugin {
+        v1::ToPlugin { body: Some(body) }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_warning_before_the_acceptance_holds_the_plugin_instead_of_failing() {
+        let mut hears = Told(
+            [
+                told(to_plugin::Body::Warning(v1::Warning {
+                    message: "shop is held until base connect".to_owned(),
+                })),
+                told(to_plugin::Body::Accepted(v1::Accepted {})),
+            ]
+            .into(),
+        );
+        assert!(accepted(&mut hears).await.is_ok());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_held_plugin_waits_far_longer_than_the_usual_acceptance_timeout() {
+        let started = Instant::now();
+        let mut hears = Told(
+            [told(to_plugin::Body::Warning(v1::Warning {
+                message: "held".to_owned(),
+            }))]
+            .into(),
+        );
+        let ended = accepted(&mut hears).await;
+        assert!(matches!(ended, Err(Ended::Lost(_))));
+        assert!(started.elapsed() >= HELD_TIMEOUT);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn any_other_message_before_the_acceptance_is_a_lost_connection() {
+        let mut hears = Told([told(to_plugin::Body::Replaced(v1::Replaced {}))].into());
+        assert!(matches!(accepted(&mut hears).await, Err(Ended::Lost(_))));
     }
 
     #[tokio::test]

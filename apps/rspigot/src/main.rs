@@ -191,8 +191,11 @@ fn main() -> anyhow::Result<()> {
         files.secure_profile_requested() && !game_config.chat.services_keys.is_empty();
     game_config.chat.enforce_secure_profile = enforce_secure_profile;
     network_config.enforce_secure_profile = enforce_secure_profile;
+    let plugins_enabled = files.plugins_enabled();
     let plugin_host = files.plugin_host_config(std::env::var("RSPIGOT_PLUGIN_TOKEN").ok())?;
-    plugin_host.validate()?;
+    if plugins_enabled {
+        plugin_host.validate()?;
+    }
     let verifier = Arc::new(MojangSessionVerifier::new(
         network_config.prevent_proxy_connections,
     ));
@@ -204,24 +207,33 @@ fn main() -> anyhow::Result<()> {
         .thread_name("netty-worker")
         .enable_all()
         .build()?;
-    let plugin_address = SocketAddr::from((plugin_host.host, plugin_host.port));
-    let plugin_listener = runtime
-        .block_on(tokio::net::TcpListener::bind(plugin_address))
-        .with_context(|| format!("binding the plugin port {plugin_address}"))?;
     let (stop, stopped) = tokio::sync::watch::channel(false);
-    let plugins = runtime.spawn({
-        let serve = rspigot_plugins::serve(
+    let plugins = if plugins_enabled {
+        let plugin_address = SocketAddr::from((plugin_host.host, plugin_host.port));
+        let plugin_listener = runtime
+            .block_on(tokio::net::TcpListener::bind(plugin_address))
+            .with_context(|| format!("binding the plugin port {plugin_address}"))?;
+        let expected = files.expected_plugins();
+        let roster =
+            rspigot_plugins::Roster::new(expected.iter().map(|plugin| plugin.name.clone()));
+        let mut options = rspigot_plugins::HostOptions::new(plugin_host.token);
+        options.expected = expected;
+        let serve = rspigot_plugins::serve_supervised(
             plugin_listener,
-            plugin_host.token,
+            options,
+            roster,
             inbound.clone(),
             stopped.clone(),
         );
-        async move {
+        Some(runtime.spawn(async move {
             if let Err(error) = serve.await {
                 tracing::error!("The plugin host stopped: {error}");
             }
-        }
-    });
+        }))
+    } else {
+        tracing::info!("The plugin host is disabled (`enabled: false` in plugins.yml)");
+        None
+    };
     let management_config = files.management_config();
     let management_notices = management_config.as_ref().map(|config| {
         config.validate()?;
@@ -324,7 +336,9 @@ fn main() -> anyhow::Result<()> {
     runtime.block_on(async {
         let adapters = async {
             let _ = network.await;
-            let _ = plugins.await;
+            if let Some(plugins) = plugins {
+                let _ = plugins.await;
+            }
             if let Some(query) = query {
                 let _ = query.await;
             }

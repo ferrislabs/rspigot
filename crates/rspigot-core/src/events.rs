@@ -397,7 +397,7 @@ pub enum Inbound<L> {
     },
     PluginMessage {
         connection: u64,
-        message: FromPlugin,
+        message: Box<FromPlugin>,
     },
     PluginDisconnected {
         connection: u64,

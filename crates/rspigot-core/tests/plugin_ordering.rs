@@ -9,16 +9,16 @@ fn position_asked_after(s: &mut Scene, player: &Player, orders: &[PlayerOrder]) 
     for order in orders {
         s.server.handle(Inbound::PluginMessage {
             connection: 1,
-            message: FromPlugin::Order(to(player, order.clone())),
+            message: Box::new(FromPlugin::Order(to(player, order.clone()))),
         });
     }
     let request = 9_000_001;
     s.server.handle(Inbound::PluginMessage {
         connection: 1,
-        message: FromPlugin::Question {
+        message: Box::new(FromPlugin::Question {
             request,
             question: Question::Player(player.id),
-        },
+        }),
     });
     s.server.deliver();
     let answer = s

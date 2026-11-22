@@ -23,6 +23,8 @@ use rustc_hash::FxHashMap;
 use crate::bow::hand_slot;
 use crate::chunks::ChunkManager;
 use crate::events::{ClientEvent, Hand};
+use crate::plugins::events::MapInitialize;
+use crate::plugins::{Continuation, EventKind, EventPayload, Lane};
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
@@ -157,6 +159,7 @@ impl<L: ClientLink> Server<L> {
             Ok(Some(nbt)) => match MapData::from_nbt(&nbt) {
                 Some(data) => {
                     self.maps.maps.insert(id, data);
+                    self.announce_map(id);
                     true
                 }
                 None => {
@@ -197,11 +200,27 @@ impl<L: ClientLink> Server<L> {
         self.maps.maps.get(&id).map(MapFacts::of)
     }
 
+    pub(crate) fn map_data_mut(&mut self, id: i32) -> Option<&mut MapData> {
+        if !self.load_map(id) {
+            return None;
+        }
+        self.maps.maps.get_mut(&id)
+    }
+
     pub(crate) fn new_map(&mut self, data: MapData) -> i32 {
         let id = self.next_map_id();
         self.maps.maps.insert(id, data);
+        self.announce_map(id);
         self.save_maps();
         id
+    }
+
+    fn announce_map(&mut self, map_id: i32) {
+        self.fire(
+            Lane::World,
+            Continuation::Notice(EventKind::MapInitialize),
+            move |_| Some(EventPayload::MapInitialize(MapInitialize { map_id })),
+        );
     }
 
     pub(crate) fn derived_map(
@@ -247,6 +266,7 @@ impl<L: ClientLink> Server<L> {
         let map_id = self.next_map_id();
         let data = MapData::fresh(x, z, 0, true, false, self.world.dimension.key.as_str());
         self.maps.maps.insert(map_id, data);
+        self.announce_map(map_id);
         let mut filled = ItemStack::new(ItemKind::FilledMap.id(), NonZeroU8::MIN);
         filled.components.insert(MAP_ID, map_id);
         if self.held(id, hand).is_none() {

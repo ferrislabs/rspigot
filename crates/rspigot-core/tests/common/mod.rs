@@ -356,7 +356,7 @@ pub fn heard(mailbox: &Mailbox) -> Vec<ToPlugin> {
 pub fn order(server: &mut Server<Link>, connection: u64, message: FromPlugin) {
     server.handle(Inbound::PluginMessage {
         connection,
-        message,
+        message: Box::new(message),
     });
     server.deliver();
 }
@@ -525,7 +525,7 @@ impl Scene {
     pub fn act(&mut self, order: Order) {
         self.server.handle(Inbound::PluginMessage {
             connection: 1,
-            message: FromPlugin::Order(order),
+            message: Box::new(FromPlugin::Order(order)),
         });
         self.server.deliver();
     }
@@ -538,7 +538,7 @@ impl Scene {
         let request = NEXT_REQUEST.fetch_add(1, Ordering::Relaxed);
         self.server.handle(Inbound::PluginMessage {
             connection,
-            message: FromPlugin::Question { request, question },
+            message: Box::new(FromPlugin::Question { request, question }),
         });
         self.server.deliver();
         self.plugin
@@ -683,14 +683,14 @@ pub fn judge(
 ) {
     server.handle(Inbound::PluginMessage {
         connection,
-        message: FromPlugin::Decision {
+        message: Box::new(FromPlugin::Decision {
             event,
             verdicts: vec![Verdict {
                 handler,
                 cancel,
                 patch,
             }],
-        },
+        }),
     });
     server.deliver();
 }

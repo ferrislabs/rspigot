@@ -20,7 +20,9 @@ use crate::plugins::MerchantRef;
 use crate::plugins::OwnerRef;
 use crate::plugins::PlayerSnapshot;
 use crate::plugins::PluginInfo;
+use crate::plugins::RaidRef;
 use crate::plugins::SenderView;
+use crate::plugins::ServerLinks;
 use crate::plugins::SignData;
 use crate::plugins::SpawnerData;
 use crate::plugins::Trade;
@@ -3629,7 +3631,9 @@ pub struct LootGenerate {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct MapInitialize;
+pub struct MapInitialize {
+    pub map_id: i32,
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MoistureChange {
@@ -3793,6 +3797,7 @@ pub struct PlayerDeath {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlayerDropItem {
+    pub item_drop: EntityView,
     pub player: PlayerSnapshot,
     pub item: ItemSpec,
 }
@@ -3967,6 +3972,7 @@ pub struct PlayerLevelChange {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PlayerLinksSend {
+    pub links: ServerLinks,
     pub player: PlayerSnapshot,
 }
 
@@ -4246,6 +4252,7 @@ pub struct ProjectileLaunch {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RaidFinish {
+    pub raid: RaidRef,
     pub winners: Vec<PlayerSnapshot>,
     pub world: String,
 }
@@ -4253,12 +4260,14 @@ pub struct RaidFinish {
 #[derive(Debug, Clone, PartialEq)]
 pub struct RaidSpawnWave {
     pub patrol_leader: Option<EntityView>,
+    pub raid: RaidRef,
     pub raiders: Vec<EntityView>,
     pub world: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RaidStop {
+    pub raid: RaidRef,
     pub reason: RaidStopReason,
     pub world: String,
 }
@@ -4266,6 +4275,7 @@ pub struct RaidStop {
 #[derive(Debug, Clone, PartialEq)]
 pub struct RaidTrigger {
     pub player: PlayerSnapshot,
+    pub raid: RaidRef,
     pub world: String,
 }
 

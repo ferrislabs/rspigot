@@ -143,6 +143,8 @@ pub enum ServerOrder {
     CreateWorld(crate::worlds::WorldSpec),
     AddRecipe(Box<crate::plugins::RecipeSpec>),
     RemoveRecipe(String),
+    SetMotd(String),
+    SetMaxPlayers(i32),
 }
 
 impl ServerOrder {
@@ -165,6 +167,8 @@ impl ServerOrder {
             Self::CreateWorld(_) => "server.create_world",
             Self::AddRecipe(_) => "server.recipes.add",
             Self::RemoveRecipe(_) => "server.recipes.remove",
+            Self::SetMotd(_) => "server.set_motd",
+            Self::SetMaxPlayers(_) => "server.set_max_players",
         }
     }
 }
@@ -222,6 +226,8 @@ pub enum WorldOrder {
     Delete {
         files: bool,
     },
+    Action(crate::plugins::extras::WorldAction),
+    Object(crate::plugins::object_actions::WorldObjectOrder),
 }
 
 impl WorldOrder {
@@ -238,6 +244,8 @@ impl WorldOrder {
             Self::SpawnParticle(_) => "world.spawn_particle",
             Self::Explode { .. } => "world.explode",
             Self::Delete { .. } => "world.delete",
+            Self::Action(action) => action.name(),
+            Self::Object(order) => order.name(),
         }
     }
 }
@@ -253,6 +261,7 @@ pub enum BlockOrder {
     Meta(crate::plugins::meta::MetaOrder),
     SetData(Vec<(String, String)>),
     Tile(crate::plugins::TileEdit),
+    Pdc(crate::plugins::pdc::PdcChange),
 }
 
 impl BlockOrder {
@@ -264,6 +273,7 @@ impl BlockOrder {
             Self::Meta(order) => order.name(),
             Self::SetData(_) => "block.set_data",
             Self::Tile(edit) => edit.name(),
+            Self::Pdc(change) => change.name(),
         }
     }
 }
@@ -282,6 +292,7 @@ pub enum EntityOrder {
     Change(EntityTrait),
     Meta(crate::plugins::meta::MetaOrder),
     Edit(crate::plugins::EntityEdit),
+    Object(crate::plugins::object_actions::ObjectOrder),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -327,6 +338,7 @@ impl EntityOrder {
             Self::Change(_) => "entity.change",
             Self::Meta(order) => order.name(),
             Self::Edit(edit) => edit.name(),
+            Self::Object(order) => order.name(),
         }
     }
 }
@@ -467,6 +479,8 @@ pub enum PlayerOrder {
     RevokeAdvancement(String),
     DiscoverRecipe(String),
     UndiscoverRecipe(String),
+    Action(crate::plugins::extras::PlayerAction),
+    Object(crate::plugins::object_actions::PlayerObjectOrder),
 }
 
 impl PlayerOrder {
@@ -529,6 +543,8 @@ impl PlayerOrder {
             Self::RevokeAdvancement(_) => "player.advancements.revoke",
             Self::DiscoverRecipe(_) => "player.recipes.discover",
             Self::UndiscoverRecipe(_) => "player.recipes.undiscover",
+            Self::Action(action) => action.name(),
+            Self::Object(order) => order.name(),
         }
     }
 }

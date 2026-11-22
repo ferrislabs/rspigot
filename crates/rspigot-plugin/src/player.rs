@@ -120,6 +120,13 @@ pub struct Player {
     pub tab_list: PlayerTabListHandle,
     pub title: PlayerTitleHandle,
     pub visibility: PlayerVisibilityHandle,
+    pub bed: crate::PlayerBedHandle,
+    pub book: crate::PlayerBookHandle,
+    pub clock: crate::PlayerClockHandle,
+    pub compass: crate::PlayerCompassHandle,
+    pub cooldown: crate::PlayerCooldownHandle,
+    pub statistics: crate::PlayerStatisticsHandle,
+    pub objects: crate::PlayerObjectsHandle,
     pub meta: MetaHandle,
     pub volatile_meta: MetaHandle,
     link: Link,
@@ -241,6 +248,34 @@ impl Player {
             visibility: {
                 let (target, link) = handle();
                 PlayerVisibilityHandle::new(target, link)
+            },
+            bed: {
+                let (target, link) = handle();
+                crate::PlayerBedHandle::new(target, link)
+            },
+            book: {
+                let (target, link) = handle();
+                crate::PlayerBookHandle::new(target, link)
+            },
+            clock: {
+                let (target, link) = handle();
+                crate::PlayerClockHandle::new(target, link)
+            },
+            compass: {
+                let (target, link) = handle();
+                crate::PlayerCompassHandle::new(target, link)
+            },
+            cooldown: {
+                let (target, link) = handle();
+                crate::PlayerCooldownHandle::new(target, link)
+            },
+            statistics: {
+                let (target, link) = handle();
+                crate::PlayerStatisticsHandle::new(target, link)
+            },
+            objects: {
+                let (target, link) = handle();
+                crate::PlayerObjectsHandle::new(target, link)
             },
             meta: MetaHandle::of_player(
                 Arc::clone(&target),

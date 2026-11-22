@@ -105,6 +105,10 @@ impl ChunkStreamer {
         self.sent.contains(&pos)
     }
 
+    pub fn resend(&mut self, pos: ChunkPos) -> bool {
+        self.sent.remove(&pos)
+    }
+
     pub fn sent_count(&self) -> usize {
         self.sent.len()
     }

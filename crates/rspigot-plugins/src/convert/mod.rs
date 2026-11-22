@@ -7,9 +7,11 @@ mod decision;
 mod edits;
 mod entity;
 mod events;
+mod extras;
 mod inventory;
 mod meta;
 mod npc;
+mod objects;
 mod player;
 mod recipes;
 mod scoreboard;
@@ -227,6 +229,8 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
         question::Question::DoneAdvancements(player) => {
             Question::DoneAdvancements(player::id(player)?)
         }
+        question::Question::Extra(extra) => Question::Extra(extras::question(extra)?),
+        question::Question::Object(object) => objects::question(object)?,
         question::Question::Recipes(_) => Question::Recipes,
         question::Question::DiscoveredRecipes(player) => {
             Question::DiscoveredRecipes(player::id(player)?)
@@ -334,6 +338,8 @@ fn wire_answer(answer: Answer) -> answer::Body {
             })
         }
         Answer::Advancements(ids) => answer::Body::Advancements(v1::AdvancementList { ids }),
+        Answer::Extra(extra) => answer::Body::Extra(extras::wire_answer(extra)),
+        Answer::Object(object) => answer::Body::Object(objects::wire_answer(object)),
         Answer::Recipes(views) => answer::Body::Recipes(recipes::wire_list(views)),
         Answer::RecipeIds(ids) => answer::Body::RecipeIds(v1::RecipeIdList { ids }),
         Answer::PermissionGroups(groups) => {

@@ -19,7 +19,7 @@ pub struct Shown<'a> {
 impl<'a> Shown<'a> {
     pub fn board(config: &'a NetworkConfig, snapshot: &'a StatusSnapshot) -> Self {
         Self {
-            motd: &config.motd,
+            motd: snapshot.motd.as_deref().unwrap_or(&config.motd),
             max_players: i64::from(snapshot.max_players),
             online: i64::from(snapshot.online),
             sample: &snapshot.sample,

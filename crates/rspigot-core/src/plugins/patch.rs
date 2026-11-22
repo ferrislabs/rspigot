@@ -252,7 +252,7 @@ mod tests {
         }
     }
 
-    const ELSEWHERE: EventPayload = EventPayload::MapInitialize(MapInitialize);
+    const ELSEWHERE: EventPayload = EventPayload::MapInitialize(MapInitialize { map_id: 0 });
 
     fn moving(to: Option<Location>) -> EventPatch {
         EventPatch::PlayerMove(PlayerMovePatch { to })
