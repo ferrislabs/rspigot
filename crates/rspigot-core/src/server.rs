@@ -3,8 +3,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime};
 
 use crossbeam_channel::{Receiver, Sender, select};
-use rspigot_domain::item::HOTBAR_START;
-use rspigot_domain::player::{ClientSettings, GameProfile, PlayerId};
+use rspigot_domain::player::{ClientSettings, GameMode, GameProfile, PlayerId};
 use rspigot_domain::text::Component;
 use rspigot_domain::world::{Difficulty, Dimension};
 use rspigot_domain::{ChunkPos, EntityId, Identifier, Rotation, Vec3};
@@ -20,7 +19,7 @@ use rand::rngs::StdRng;
 use crate::entities::EntityWorld;
 use crate::events::{
     ClientEvent, EntityKind, EquipmentSlot, GameEvent, Inbound, JoinInfo, MetadataEntry,
-    MetadataValue, PlayerListEntry, Pose, SpawnInfo,
+    MetadataValue, PlayerListEntry, SpawnInfo,
 };
 use crate::falling::ScheduledFalls;
 use crate::player::Player;
@@ -160,6 +159,7 @@ pub struct Server<L> {
     pub(crate) pending_pearls: Vec<(ChunkPos, rspigot_nbt::Compound)>,
     pub(crate) command_storage_dirty: std::collections::BTreeSet<String>,
     pub(crate) stopwatches: std::collections::BTreeMap<String, i64>,
+    pub(crate) spawner_rounds: Option<Vec<crate::plugins::steps::SpawnerRound>>,
     pub(crate) portal_queue: Vec<(
         crate::world_state::DimensionKey,
         crate::end_portal::Traveler,
@@ -279,6 +279,7 @@ impl<L: ClientLink> Server<L> {
             pending_pearls: Vec::new(),
             command_storage_dirty: std::collections::BTreeSet::new(),
             stopwatches: std::collections::BTreeMap::new(),
+            spawner_rounds: None,
             portal_queue: Vec::new(),
             nether_queue: Vec::new(),
             nether_time: FxHashMap::default(),
@@ -876,6 +877,7 @@ impl<L: ClientLink> Server<L> {
             respawn: None,
             meta: Default::default(),
             volatile_meta: Default::default(),
+            motion: Default::default(),
         };
         if let Some(save) = &saved {
             save.restore(&mut player, self.world.spawn, self.world.level.spawn_angle);
@@ -1027,11 +1029,22 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn default_clock_id(&self) -> &'static str {
+        if self.world.dimension.key == rspigot_domain::Identifier::minecraft("the_end") {
+            rspigot_domain::world_clock::THE_END
+        } else {
+            rspigot_domain::world_clock::OVERWORLD
+        }
+    }
+
     pub(crate) fn time_event(&self) -> ClientEvent {
         ClientEvent::Time {
             game_time: self.world.level.game_time,
             day_time: self.world.level.day_time,
             advance_time: self.world.level.daylight_cycle && !self.world.dimension.has_fixed_time,
+            clock: self.default_clock_id(),
+            rate: self.world.level.clock.network_rate(),
+            partial_tick: self.world.level.clock.partial_tick,
         }
     }
 
@@ -1177,7 +1190,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.world.level.game_time += 1;
         if self.world.level.daylight_cycle && !self.world.dimension.has_fixed_time {
-            self.world.level.day_time += 1;
+            self.world.level.day_time += self.world.level.clock.advance();
         }
         for pos in self.world.chunks.tick() {
             self.ask_chunk_unload(pos);
@@ -1195,6 +1208,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_spin_attacks();
         self.tick_enchantment_effects();
         self.tick_fall_flying();
+        self.tick_player_movement();
         self.tick_stat_clocks();
         self.tick_scoreboard_criteria();
         self.tick_advancements();
@@ -1347,6 +1361,35 @@ impl<L: ClientLink> Server<L> {
         self.deliver();
     }
 
+    fn paired_attributes(player: &Player<L>) -> Vec<rspigot_domain::effect::AttributeState> {
+        let current = crate::health::attributes(player);
+        crate::player_movement::PAIRED_ATTRIBUTES
+            .iter()
+            .copied()
+            .filter(|name| rspigot_domain::entity::living::is_client_syncable(name))
+            .map(|name| current.state(name))
+            .collect()
+    }
+
+    pub(crate) fn effect_particle_entries(
+        effects: &rspigot_domain::effect::ActiveEffects,
+    ) -> Vec<MetadataEntry> {
+        let (particles, ambient) = rspigot_domain::effect_particles::synchronized(effects);
+        if particles.is_empty() && !ambient {
+            return Vec::new();
+        }
+        vec![
+            MetadataEntry {
+                index: crate::player_movement::EFFECT_PARTICLES_INDEX,
+                value: MetadataValue::Particles(particles),
+            },
+            MetadataEntry {
+                index: crate::player_movement::EFFECT_AMBIENCE_INDEX,
+                value: MetadataValue::Boolean(ambient),
+            },
+        ]
+    }
+
     pub(crate) fn metadata(player: &Player<L>) -> Vec<MetadataEntry> {
         vec![
             MetadataEntry {
@@ -1355,20 +1398,12 @@ impl<L: ClientLink> Server<L> {
             },
             MetadataEntry {
                 index: 6,
-                value: MetadataValue::Pose(if player.sleeping.is_some() {
-                    Pose::Sleeping
-                } else if player.fall_flying {
-                    Pose::FallFlying
-                } else if player.spin.is_some() {
-                    Pose::SpinAttack
-                } else if player.sneaking && !player.flying {
-                    Pose::Crouching
-                } else {
-                    Pose::Standing
-                }),
+                value: MetadataValue::Pose(player.pose()),
             },
         ]
         .into_iter()
+        .chain(crate::player_movement::options_entries(&player.settings))
+        .chain(Self::effect_particle_entries(&player.effects))
         .chain((player.vitals.arrow_count > 0).then(|| MetadataEntry {
             index: 12,
             value: MetadataValue::VarInt(player.vitals.arrow_count),
@@ -1389,7 +1424,11 @@ impl<L: ClientLink> Server<L> {
             chunk: ChunkPos,
             dim: crate::world_state::DimensionKey,
             metadata: Vec<MetadataEntry>,
-            held: Option<rspigot_domain::item::ItemStack>,
+            equipment: Vec<(EquipmentSlot, rspigot_domain::item::ItemStack)>,
+            attributes: Vec<rspigot_domain::effect::AttributeState>,
+            effects: Vec<rspigot_domain::effect::EffectInstance>,
+            spectator: bool,
+            watching: bool,
         }
         let targets: Vec<Target> = self
             .players
@@ -1406,10 +1445,14 @@ impl<L: ClientLink> Server<L> {
                     .into_iter()
                     .chain(Self::health_metadata(p))
                     .collect(),
-                held: p
-                    .inventory
-                    .get(HOTBAR_START + usize::from(p.inventory.selected_hotbar))
-                    .cloned(),
+                equipment: crate::health::equipment(&p.inventory)
+                    .into_iter()
+                    .map(|(slot, stack)| (crate::entities::wire_slot(slot), stack.clone()))
+                    .collect(),
+                attributes: Self::paired_attributes(p),
+                effects: p.effects.iter().copied().collect(),
+                spectator: p.game_mode == GameMode::Spectator,
+                watching: p.motion.camera.is_some(),
             })
             .collect();
         let range = self.config.player_tracking_range * self.config.player_tracking_range;
@@ -1420,7 +1463,13 @@ impl<L: ClientLink> Server<L> {
                 if target.id == viewer.id {
                     continue;
                 }
+                let seen_by_mode = if viewer.game_mode == GameMode::Spectator {
+                    !target.watching
+                } else {
+                    !target.spectator
+                };
                 let visible = viewer.dim == target.dim
+                    && seen_by_mode
                     && viewer.position.distance_squared(target.position) <= range
                     && viewer.streamer.has_sent(target.chunk)
                     && !visibility.hides(viewer.id, target.id);
@@ -1451,10 +1500,27 @@ impl<L: ClientLink> Server<L> {
                             passengers: rides.passengers_of(vehicle).to_vec(),
                         });
                     }
-                    if target.held.is_some() {
+                    if !target.attributes.is_empty() {
+                        viewer.link.send(ClientEvent::Attributes {
+                            entity: target.entity,
+                            attributes: target.attributes.clone(),
+                        });
+                    }
+                    if !target.equipment.is_empty() {
                         viewer.link.send(ClientEvent::EntityEquipment {
                             entity: target.entity,
-                            slots: vec![(EquipmentSlot::MainHand, target.held.clone())],
+                            slots: target
+                                .equipment
+                                .iter()
+                                .map(|(slot, stack)| (*slot, Some(stack.clone())))
+                                .collect(),
+                        });
+                    }
+                    for effect in &target.effects {
+                        viewer.link.send(ClientEvent::EffectApplied {
+                            entity: target.entity,
+                            effect: *effect,
+                            blend: false,
                         });
                     }
                 } else if !visible && tracking {

@@ -325,15 +325,20 @@ fn dig(server: &mut Server<Link>, player: PlayerId, pos: BlockPos) {
 }
 
 fn walk(server: &mut Server<Link>, player: PlayerId, position: Vec3) {
-    input(
-        server,
-        player,
-        PlayerInput::Move {
-            position: Some(position),
-            rotation: None,
-            on_ground: false,
-        },
-    );
+    let start = server.player_location(player).unwrap_or(position);
+    let legs = ((position - start).length() / 8.0).ceil().max(1.0) as u32;
+    for leg in 1..=legs {
+        let along = start + (position - start).scale(f64::from(leg) / f64::from(legs));
+        input(
+            server,
+            player,
+            PlayerInput::Move {
+                position: Some(along),
+                rotation: None,
+                on_ground: false,
+            },
+        );
+    }
 }
 
 fn creative(server: &mut Server<Link>) -> (PlayerId, Link) {

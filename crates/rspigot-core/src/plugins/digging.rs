@@ -51,6 +51,19 @@ const NEIGHBOURS: [Direction; 6] = [
 pub(crate) struct Mining {
     pub(crate) pos: BlockPos,
     pub(crate) since: u64,
+    pub(crate) stage: i32,
+}
+
+const DESTROY_STAGE_SCALE: f32 = 10.0;
+const DESTROY_STAGE_RANGE: f64 = 32.0;
+const HIT_EVENT: i32 = 2019;
+const HIT_EVENT_ACCENT: i32 = 2020;
+const HIT_EVENT_PERIOD: u64 = 4;
+const HIT_EVENT_RANGE: f64 = 64.0;
+const MAX_STAGE: i32 = 127;
+
+fn stage_of(progress: f32) -> i32 {
+    ((progress * DESTROY_STAGE_SCALE + 0.5).floor() as i32).clamp(0, MAX_STAGE)
 }
 
 pub(crate) fn hand_spec(held: Option<&ItemStack>) -> ItemSpec {
@@ -245,9 +258,11 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let since = self.current_tick();
+        let stage = stage_of(self.destroy_progress(id, step.state));
         if let Some(player) = self.players.get_mut(&id) {
-            player.mining = Some(Mining { pos, since });
+            player.mining = Some(Mining { pos, since, stage });
         }
+        self.broadcast_destroy_stage(id, pos, stage);
         self.ack_block(id, step.sequence);
     }
 
@@ -264,10 +279,14 @@ impl<L: ClientLink> Server<L> {
             .zip(started)
             .filter(|_| game_mode == GameMode::Survival)
         else {
+            if started.is_some() {
+                self.broadcast_destroy_stage(id, pos, -1);
+            }
             self.refuse_block(id, pos, sequence);
             return;
         };
         if state.is_air() {
+            self.broadcast_destroy_stage(id, pos, -1);
             self.ack_block(id, sequence);
             return;
         }
@@ -281,10 +300,83 @@ impl<L: ClientLink> Server<L> {
             self.ack_block(id, sequence);
             return;
         }
+        self.broadcast_destroy_stage(id, pos, -1);
         self.break_mined(id, pos, sequence, state);
     }
 
+    fn broadcast_destroy_stage(&mut self, id: PlayerId, pos: BlockPos, stage: i32) {
+        let Some(entity) = self.players.get(&id).map(|player| player.entity_id) else {
+            return;
+        };
+        self.push(
+            Audience::Nearby {
+                position: Vec3::new(f64::from(pos.x), f64::from(pos.y), f64::from(pos.z)),
+                range: DESTROY_STAGE_RANGE,
+                except: Some(id),
+            },
+            ClientEvent::BlockDestruction {
+                entity,
+                pos,
+                stage: stage as i8,
+            },
+        );
+    }
+
+    fn tick_mining_progress(&mut self) {
+        let now = self.current_tick();
+        let active: Vec<(PlayerId, Mining)> = self
+            .players
+            .values()
+            .filter_map(|player| Some((player.id, player.mining?)))
+            .collect();
+        for (id, mining) in active {
+            let Some(state) = self
+                .world
+                .chunks
+                .block(mining.pos)
+                .filter(|state| !state.is_air())
+            else {
+                if let Some(player) = self.players.get_mut(&id) {
+                    player.mining = None;
+                }
+                self.broadcast_destroy_stage(id, mining.pos, -1);
+                continue;
+            };
+            let elapsed = now.saturating_sub(mining.since);
+            let stage = stage_of(self.destroy_progress(id, state) * (elapsed as f32 + 1.0));
+            if stage != mining.stage {
+                if let Some(Some(held)) = self.players.get_mut(&id).map(|p| p.mining.as_mut()) {
+                    held.stage = stage;
+                }
+                self.broadcast_destroy_stage(id, mining.pos, stage);
+            }
+            let direction = self
+                .players
+                .get(&id)
+                .and_then(|player| player.motion.destroy_direction)
+                .unwrap_or(Direction::Down);
+            let event = if elapsed.is_multiple_of(HIT_EVENT_PERIOD) {
+                HIT_EVENT_ACCENT
+            } else {
+                HIT_EVENT
+            };
+            self.push(
+                Audience::Nearby {
+                    position: mining.pos.center(),
+                    range: HIT_EVENT_RANGE,
+                    except: Some(id),
+                },
+                ClientEvent::LevelEvent {
+                    event,
+                    pos: mining.pos,
+                    data: direction as i32,
+                },
+            );
+        }
+    }
+
     pub(crate) fn tick_delayed_destroys(&mut self) {
+        self.tick_mining_progress();
         let now = self.current_tick();
         let delayed: Vec<(PlayerId, Mining)> = self
             .players
@@ -306,6 +398,7 @@ impl<L: ClientLink> Server<L> {
                     if let Some(player) = self.players.get_mut(&id) {
                         player.delayed_destroy = None;
                     }
+                    self.broadcast_destroy_stage(id, mining.pos, -1);
                     if self
                         .players
                         .get(&id)
@@ -564,8 +657,11 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
-        let destroying = player.mining.take().is_some();
-        if !destroying && !self.within_reach(id, pos) {
+        let destroying = player.mining.take();
+        if let Some(mining) = destroying {
+            self.broadcast_destroy_stage(id, mining.pos, -1);
+        }
+        if destroying.is_none() && !self.within_reach(id, pos) {
             self.ack_block(id, step.sequence);
             return;
         }

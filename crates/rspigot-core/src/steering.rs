@@ -1,17 +1,20 @@
 use rspigot_domain::entity::species::{Species, strider};
 use rspigot_domain::entity::{Entity, EntityBase, EntityState};
+use rspigot_domain::movement::{Checks, rejects_boxes};
 use rspigot_domain::player::PlayerId;
+use rspigot_domain::text::Component;
 use rspigot_domain::{EntityId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 use rspigot_items::{EquipmentSlot, ItemKind};
 
-use crate::events::Hand;
+use crate::events::{ClientEvent, Hand};
 use crate::plugins::EventPayload;
 use crate::plugins::events::VehicleMove;
 use crate::ports::ClientLink;
-use crate::server::Server;
+use crate::server::{Audience, Server};
 
 const MAX_VEHICLE_STEP_SQUARED: f64 = 100.0;
+const VEHICLE_STEP: f32 = 1.0;
 const RIDDEN_PITCH_SCALE: f32 = 0.5;
 
 fn steering_item(kind: Kind) -> Option<ItemKind> {
@@ -145,15 +148,48 @@ impl<L: ClientLink> Server<L> {
         if vehicle == rider || self.controlling_player(vehicle) != Some(id) {
             return;
         }
+        if crate::player_movement::invalid_coordinates(position) {
+            self.disconnect_player(
+                id,
+                Component::translatable(
+                    "multiplayer.disconnect.invalid_vehicle_movement",
+                    Vec::new(),
+                ),
+            );
+            return;
+        }
+        let Some(entity) = self.entities.store.get(vehicle) else {
+            return;
+        };
+        let base = &entity.base;
+        let spirited = base.position.distance_squared(position) - base.velocity.length_sqr()
+            > MAX_VEHICLE_STEP_SQUARED;
+        let too_quick = self.config.rules.player_movement_check && spirited;
+        let wrongly = rejects_boxes(
+            &self.world.chunks,
+            &base.bounding_box(),
+            &base.bounding_box_at(position),
+            VEHICLE_STEP,
+            base.on_ground,
+            Checks {
+                moved_wrongly: true,
+                collisions: true,
+            },
+        );
+        if too_quick || wrongly {
+            tracing::warn!("{} (vehicle of {}) moved wrongly!", vehicle.0, id.0);
+            let correction = ClientEvent::MoveVehicle {
+                position: base.position,
+                velocity: base.velocity,
+                rotation: Rotation::new(base.yaw, base.pitch),
+            };
+            self.push(Audience::One(id), correction);
+            return;
+        }
         let Some(entity) = self.entities.store.get_mut(vehicle) else {
             return;
         };
         let base = &mut entity.base;
-        if !position.is_finite()
-            || base.position.distance_squared(position) > MAX_VEHICLE_STEP_SQUARED
-        {
-            return;
-        }
         let from = (base.position, Rotation::new(base.yaw, base.pitch));
         base.old_position = base.position;
         base.velocity = position - base.position;

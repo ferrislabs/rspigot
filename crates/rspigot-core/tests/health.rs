@@ -254,6 +254,12 @@ fn walk(server: &mut Server<Link>, client: &Client, position: Vec3, on_ground: b
 }
 
 fn fall(server: &mut Server<Link>, client: &Client, x: f64, z: f64, from: f64, to: f64) {
+    let mut climbed = server.player_location(client.id).map_or(from, |at| at.y);
+    while from - climbed > 6.0 {
+        climbed += 6.0;
+        walk(server, client, Vec3::new(x, climbed, z), false);
+        server.tick();
+    }
     walk(server, client, Vec3::new(x, from, z), false);
     let mut y = from;
     while y - 1.0 > to {
@@ -396,6 +402,13 @@ fn anvil_dropped_on_a_player_hurts_them() {
     let mut alice = join(&mut server, "Alice");
     settle(&mut server, &mut [&mut alice]);
     let (x, z) = ANVIL;
+    walk(
+        &mut server,
+        &alice,
+        Vec3::new(f64::from(x) + 0.5, 64.0, 0.5),
+        true,
+    );
+    server.tick();
     walk(
         &mut server,
         &alice,

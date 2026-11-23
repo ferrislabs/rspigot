@@ -117,7 +117,9 @@ impl<L: ClientLink> Server<L> {
                     Audience::All,
                     ClientEvent::PlayerChat {
                         sender: step.player,
-                        sender_name: Component::text(name),
+                        sender_name: self
+                            .holder_display_name(&name)
+                            .unwrap_or_else(|| Component::text(name)),
                         message: step.message,
                     },
                 ),

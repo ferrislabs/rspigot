@@ -55,7 +55,7 @@ const LEVELS: &[(&str, u8)] = &[
     ("particle", LEVEL_GAMEMASTERS),
     ("place", LEVEL_GAMEMASTERS),
     ("playsound", LEVEL_GAMEMASTERS),
-    ("random", LEVEL_GAMEMASTERS),
+    ("random", LEVEL_ALL),
     ("recipe", LEVEL_GAMEMASTERS),
     ("reload", LEVEL_GAMEMASTERS),
     ("return", LEVEL_GAMEMASTERS),

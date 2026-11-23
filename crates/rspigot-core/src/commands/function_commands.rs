@@ -16,7 +16,7 @@ use crate::functions::{
 
 const FUNCTION_USAGE: &str = "/function <name> [arguments]";
 const SCHEDULE_USAGE: &str = "/schedule <function|clear> ...";
-const DATAPACK_USAGE: &str = "/datapack <enable|disable|list> ...";
+const DATAPACK_USAGE: &str = "/datapack <enable|disable|list|create> ...";
 const GAMEMASTER_CAP: u8 = 2;
 const LIMIT_RULE: &str = "max_command_sequence_length";
 
@@ -307,6 +307,57 @@ fn run_functions<C: CommandContext>(
         }
         None => CommandOutcome::Success,
     }
+}
+
+pub(super) fn debug_function<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    token: &str,
+) -> CommandOutcome {
+    let functions = match parse_target(ctx, token) {
+        Ok(Target::Function(found)) => vec![found],
+        Ok(Target::Tag(_, members)) => members,
+        Err(message) => return red(ctx, sender, message),
+    };
+    let mut trace = String::new();
+    for function in &functions {
+        trace.push_str(&format!("# {}\n", function.id()));
+        for command in function.commands(None).unwrap_or_default() {
+            trace.push_str(&command);
+            trace.push('\n');
+        }
+    }
+    let name = format!(
+        "commands-{}.txt",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.as_secs())
+    );
+    let written = std::fs::create_dir_all("debug")
+        .and_then(|()| std::fs::write(std::path::Path::new("debug").join(&name), trace));
+    if let Err(error) = written {
+        return fail(
+            ctx,
+            sender,
+            "commands.debug.function.noRecursion",
+            vec![text(error)],
+        );
+    }
+    let before = ctx.function_state().runtime.executed;
+    let outcome = run_functions(ctx, sender, &functions, None);
+    let executed = ctx.function_state().runtime.executed.saturating_sub(before);
+    let message = match functions.as_slice() {
+        [only] => Component::translatable(
+            "commands.debug.function.success.single",
+            vec![text(executed), text(only.id()), text(&name)],
+        ),
+        many => Component::translatable(
+            "commands.debug.function.success.multiple",
+            vec![text(executed), text(many.len()), text(&name)],
+        ),
+    };
+    ctx.reply(sender, message);
+    outcome
 }
 
 fn run_as_server<C: CommandContext>(ctx: &mut C, functions: &[Arc<Function>]) {
@@ -635,7 +686,96 @@ fn datapack<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -
                 packs.disable(id)
             })
         }
+        "create" => create_pack(ctx, sender, rest),
         _ => usage(ctx, sender, DATAPACK_USAGE),
+    }
+}
+
+fn tag_json(tag: &Tag) -> serde_json::Value {
+    use serde_json::Value;
+    match tag {
+        Tag::String(text) => Value::String(text.clone()),
+        Tag::Byte(v) => Value::from(*v),
+        Tag::Short(v) => Value::from(*v),
+        Tag::Int(v) => Value::from(*v),
+        Tag::Long(v) => Value::from(*v),
+        Tag::Float(v) => Value::from(f64::from(*v)),
+        Tag::Double(v) => Value::from(*v),
+        Tag::List(items) => Value::Array(items.iter().map(tag_json).collect()),
+        Tag::Compound(compound) => Value::Object(
+            compound
+                .iter()
+                .map(|(key, value)| {
+                    let flag = matches!(
+                        key,
+                        "bold" | "italic" | "underlined" | "strikethrough" | "obfuscated"
+                    );
+                    let json = match (flag, value) {
+                        (true, Tag::Byte(byte)) => Value::Bool(*byte != 0),
+                        _ => tag_json(value),
+                    };
+                    (key.to_owned(), json)
+                })
+                .collect(),
+        ),
+        _ => Value::Null,
+    }
+}
+
+fn create_pack<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    rest: &str,
+) -> CommandOutcome {
+    let Some((id, rest)) = next_argument(rest) else {
+        return usage(ctx, sender, "/datapack create <id> <description>");
+    };
+    let description = match super::json_text::parse(rest.trim())
+        .and_then(|component| super::text_resolve::resolve_for_source(ctx, sender, &component))
+    {
+        Ok(component) => component,
+        Err(error) => return red(ctx, sender, error),
+    };
+    let id = unquote(id);
+    let invalid = id.is_empty()
+        || id.starts_with('.')
+        || id.contains(['/', '\\', '<', '>', ':', '"', '|', '?', '*'])
+        || id.contains("..");
+    if invalid {
+        return fail(
+            ctx,
+            sender,
+            "commands.datapack.create.invalid_name",
+            vec![Component::text(id)],
+        );
+    }
+    let meta = serde_json::json!({
+        "pack": {
+            "description": tag_json(&rspigot_domain::text_nbt::component_to_tag(&description)),
+            "min_format": [121, 0],
+            "max_format": [121, 0],
+        }
+    });
+    let text = serde_json::to_string_pretty(&meta).unwrap_or_default();
+    match ctx.create_datapack(&id, &text) {
+        Ok(true) => {
+            ctx.reload_datapacks();
+            ctx.reply(
+                sender,
+                Component::translatable(
+                    "commands.datapack.create.success",
+                    vec![Component::text(id)],
+                ),
+            );
+            CommandOutcome::Success
+        }
+        Ok(false) => fail(
+            ctx,
+            sender,
+            "commands.datapack.create.already_exists",
+            vec![Component::text(id)],
+        ),
+        Err(error) => red(ctx, sender, error),
     }
 }
 

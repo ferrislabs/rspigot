@@ -55,7 +55,7 @@ fn announced(player: &Player) -> Vec<String> {
         })
         .map(|message| match &message.content {
             Content::Translatable { key, .. } => key.clone(),
-            Content::Text(_) => console_text(&message),
+            _ => console_text(&message),
         })
         .collect()
 }

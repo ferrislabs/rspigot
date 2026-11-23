@@ -73,7 +73,9 @@ fn add<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -> Com
     if rest.trim().is_empty() {
         return usage(ctx, sender, "/bossbar add <id> <name>");
     }
-    let name = match json_text::parse(rest.trim()) {
+    let name = match json_text::parse(rest.trim())
+        .and_then(|name| super::text_resolve::resolve_for_source(ctx, sender, &name))
+    {
         Ok(name) => name,
         Err(error) => return reply_err(ctx, sender, error),
     };
@@ -320,7 +322,9 @@ fn set<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -> Com
             if value.is_empty() {
                 return usage(ctx, sender, "/bossbar set <id> name <name>");
             }
-            let name = match json_text::parse(value) {
+            let name = match json_text::parse(value)
+                .and_then(|name| super::text_resolve::resolve_for_source(ctx, sender, &name))
+            {
                 Ok(name) => name,
                 Err(error) => return reply_err(ctx, sender, error),
             };

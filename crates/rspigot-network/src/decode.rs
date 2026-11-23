@@ -356,7 +356,7 @@ pub fn decode(packet: ServerboundPlay) -> Decoded {
                 PlayerActionKind::ReleaseUseItem => DigAction::ReleaseUseItem,
                 PlayerActionKind::SwapItemWithOffhand => DigAction::SwapHands,
                 PlayerActionKind::Stab => DigAction::Stab,
-                PlayerActionKind::ChangeDestroyDirection => return Decoded::Ignored,
+                PlayerActionKind::ChangeDestroyDirection => DigAction::ChangeDestroyDirection,
             };
             input(PlayerInput::Dig {
                 action,

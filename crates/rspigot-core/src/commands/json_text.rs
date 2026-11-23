@@ -1,4 +1,6 @@
-use rspigot_domain::text::{Color, Component};
+use rspigot_domain::text::{Component, Style};
+use rspigot_domain::text_nbt::{component_from_tag, read_style};
+use rspigot_nbt::{Compound, Tag};
 use serde_json::Value;
 
 fn invalid(reason: &str) -> Component {
@@ -8,87 +10,52 @@ fn invalid(reason: &str) -> Component {
     )
 }
 
-fn style(mut component: Component, object: &serde_json::Map<String, Value>) -> Component {
-    if let Some(color) = object
-        .get("color")
-        .and_then(Value::as_str)
-        .and_then(Color::parse)
-    {
-        component.style.color = Some(color);
-    }
-    let flag = |key: &str| object.get(key).and_then(Value::as_bool);
-    component.style.bold = flag("bold");
-    component.style.italic = flag("italic");
-    component.style.underlined = flag("underlined");
-    component.style.strikethrough = flag("strikethrough");
-    component.style.obfuscated = flag("obfuscated");
-    component
-}
-
-fn convert(value: &Value, depth: usize) -> Result<Component, Component> {
-    if depth > 32 {
-        return Err(invalid("too deep"));
-    }
+fn json_to_tag(value: &Value) -> Tag {
     match value {
-        Value::String(text) => Ok(Component::text(text.clone())),
-        Value::Number(number) => Ok(Component::text(number.to_string())),
-        Value::Bool(flag) => Ok(Component::text(flag.to_string())),
-        Value::Array(items) => {
-            let mut parts = items.iter().map(|item| convert(item, depth + 1));
-            let Some(first) = parts.next() else {
-                return Ok(Component::text(""));
-            };
-            let mut head = first?;
-            for part in parts {
-                head = head.append(part?);
-            }
-            Ok(head)
-        }
+        Value::Null => Tag::String(String::new()),
+        Value::Bool(flag) => Tag::Byte(i8::from(*flag)),
+        Value::Number(number) => match number.as_i64() {
+            Some(int) => i32::try_from(int).map_or(Tag::Long(int), Tag::Int),
+            None => Tag::Double(number.as_f64().unwrap_or(0.0)),
+        },
+        Value::String(text) => Tag::String(text.clone()),
+        Value::Array(items) => Tag::List(items.iter().map(json_to_tag).collect()),
         Value::Object(object) => {
-            let base = if let Some(text) = object.get("text") {
-                Component::text(match text {
-                    Value::String(s) => s.clone(),
-                    other => other.to_string(),
-                })
-            } else if let Some(key) = object.get("translate").and_then(Value::as_str) {
-                let args = match object.get("with") {
-                    Some(Value::Array(items)) => items
-                        .iter()
-                        .map(|item| convert(item, depth + 1))
-                        .collect::<Result<Vec<_>, _>>()?,
-                    _ => Vec::new(),
-                };
-                Component::translatable(key, args)
-            } else {
-                return Err(invalid("no text or translate"));
-            };
-            let mut component = style(base, object);
-            if let Some(Value::Array(extra)) = object.get("extra") {
-                for item in extra {
-                    component = component.append(convert(item, depth + 1)?);
-                }
+            let mut compound = Compound::new();
+            for (key, item) in object {
+                compound.insert(key.as_str(), json_to_tag(item));
             }
-            Ok(component)
+            Tag::Compound(compound)
         }
-        Value::Null => Err(invalid("null")),
     }
 }
 
-pub fn parse_style(input: &str) -> Result<rspigot_domain::text::Style, Component> {
-    let value: Value = serde_json::from_str(input.trim()).map_err(|e| invalid(&e.to_string()))?;
-    let Value::Object(object) = value else {
-        return Err(invalid("a style is an object"));
-    };
-    Ok(style(Component::text(""), &object).style)
+pub fn parse_tag(input: &str) -> Result<Tag, Component> {
+    let trimmed = input.trim();
+    match rspigot_nbt::parse_tag(trimmed) {
+        Ok(tag) => Ok(tag),
+        Err(error) => serde_json::from_str::<Value>(trimmed)
+            .map(|value| json_to_tag(&value))
+            .map_err(|_| invalid(error.key)),
+    }
+}
+
+pub fn parse_style(input: &str) -> Result<Style, Component> {
+    match parse_tag(input)? {
+        Tag::Compound(compound) => Ok(read_style(&compound)),
+        _ => Err(invalid("a style is an object")),
+    }
 }
 
 pub fn parse(input: &str) -> Result<Component, Component> {
-    let value: Value = serde_json::from_str(input.trim()).map_err(|e| invalid(&e.to_string()))?;
-    convert(&value, 0)
+    let tag = parse_tag(input)?;
+    component_from_tag(&tag).ok_or_else(|| invalid("not a component"))
 }
 
 #[cfg(test)]
 mod tests {
+    use rspigot_domain::text::{ClickEvent, Content};
+
     use super::*;
 
     #[test]
@@ -108,5 +75,26 @@ mod tests {
         assert!(style.color.is_some());
         assert!(parse_style("[1]").is_err());
         assert!(parse(r#"{"color":"red"}"#).is_err());
+    }
+
+    #[test]
+    fn snbt_components_parse_like_vanilla() {
+        let snbt = parse("{text:'hi',bold:true,color:'red'}").unwrap();
+        assert_eq!(snbt.plain_text(), "hi");
+        assert_eq!(snbt.style.bold, Some(true));
+        assert_eq!(parse("'plain'").unwrap().plain_text(), "plain");
+        assert_eq!(parse("[{text:'a'},'b']").unwrap().plain_text(), "ab");
+        let score = parse("{score:{name:'@s',objective:'o'}}").unwrap();
+        assert!(matches!(score.content, Content::Score { .. }));
+        let clicked =
+            parse("{text:'x',click_event:{action:'change_page',page:2},insertion:'i'}").unwrap();
+        assert_eq!(
+            clicked.style.click.as_deref(),
+            Some(&ClickEvent::ChangePage(2))
+        );
+        assert_eq!(clicked.style.insertion(), Some("i"));
+        let style = parse_style("{shadow_color:-1,font:'minecraft:uniform'}").unwrap();
+        assert_eq!(style.shadow_color(), Some(u32::MAX));
+        assert_eq!(style.font(), Some("minecraft:uniform"));
     }
 }

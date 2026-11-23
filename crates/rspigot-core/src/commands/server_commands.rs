@@ -321,12 +321,32 @@ fn random<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str) -> 
     let Some((mode, rest)) = next_argument(rest) else {
         return usage(ctx, sender, help);
     };
+    let privileged = ctx.permission_level(sender) >= super::permission::LEVEL_GAMEMASTERS;
+    if mode == "reset" {
+        if !privileged {
+            return super::dispatch::refuse(ctx, sender, &format!("random reset {rest}"));
+        }
+        let Some((sequence, _)) = next_argument(rest) else {
+            return usage(ctx, sender, "/random reset <*|sequence> [seed]");
+        };
+        let (key, args) = if sequence == "*" {
+            ("commands.random.reset.all.success", vec![text(0)])
+        } else {
+            ("commands.random.reset.success", vec![text(sequence)])
+        };
+        ctx.record_result(0);
+        ctx.reply(sender, Component::translatable(key, args));
+        return CommandOutcome::Success;
+    }
     if !matches!(mode, "value" | "roll") {
         return usage(ctx, sender, help);
     }
-    let Some((range, _)) = next_argument(rest) else {
+    let Some((range, after)) = next_argument(rest) else {
         return usage(ctx, sender, help);
     };
+    if !privileged && next_argument(after).is_some() {
+        return super::dispatch::refuse(ctx, sender, &format!("random {mode} {rest}"));
+    }
     let (min, max) = match parse_int_range(range) {
         Ok((min, max)) => (min.unwrap_or(i32::MIN), max.unwrap_or(i32::MAX)),
         Err(error) => return reply_err(ctx, sender, error),
@@ -407,12 +427,22 @@ fn spawnpoint<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str)
         }
         None => ctx.sender_origin(sender),
     };
-    let angle = match next_argument(cursor) {
-        Some((token, _)) => match token.parse::<f32>() {
-            Ok(angle) => angle,
-            Err(_) => return fail(ctx, sender, "parsing.float.invalid", vec![text(token)]),
-        },
-        None => 0.0,
+    let (angle, pitch) = match next_argument(cursor) {
+        Some((yaw, after)) => {
+            let Some((pitch, _)) = next_argument(after) else {
+                return usage(ctx, sender, "/spawnpoint [targets] [pos] [yaw pitch]");
+            };
+            match (yaw.parse::<f32>(), pitch.parse::<f32>()) {
+                (Ok(yaw), Ok(pitch)) => (yaw, pitch.clamp(-90.0, 90.0)),
+                (Err(_), _) => {
+                    return fail(ctx, sender, "parsing.float.invalid", vec![text(yaw)]);
+                }
+                (_, Err(_)) => {
+                    return fail(ctx, sender, "parsing.float.invalid", vec![text(pitch)]);
+                }
+            }
+        }
+        None => (0.0, 0.0),
     };
     let pos = rspigot_domain::BlockPos::new(
         position.x.floor() as i32,
@@ -423,7 +453,7 @@ fn spawnpoint<C: CommandContext>(ctx: &mut C, sender: CommandSender, rest: &str)
         .current_dimension()
         .unwrap_or_else(|| rspigot_domain::Identifier::minecraft("overworld"));
     for player in &targets {
-        ctx.set_spawn_point(*player, dimension.clone(), pos, angle);
+        ctx.set_spawn_point_rotated(*player, dimension.clone(), pos, angle, pitch);
     }
     let suffix = if targets.len() == 1 {
         "single"

@@ -72,6 +72,7 @@ pub enum SyncedValue {
     OptionalBlockState(Option<BlockStateId>),
     OptionalBlockPos(Option<BlockPos>),
     Particle(ParticleSetting),
+    Particles(Vec<ParticleSetting>),
     VillagerData {
         kind: u32,
         profession: u32,

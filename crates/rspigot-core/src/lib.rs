@@ -148,6 +148,7 @@ pub mod player;
 mod player_crossbow;
 pub mod player_data;
 mod player_io;
+mod player_movement;
 pub mod plugins;
 pub mod ports;
 mod potions;

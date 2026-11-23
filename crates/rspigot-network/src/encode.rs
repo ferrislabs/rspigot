@@ -803,7 +803,7 @@ fn registry_variant(kind: VariantKind) -> RegistryVariant {
     }
 }
 
-fn particle_metadata(setting: &ParticleSetting) -> EntityDataValue {
+fn encode_particle_setting(setting: &ParticleSetting, bytes: &mut Vec<u8>) {
     let (name, data) = match setting {
         ParticleSetting::Named(name) => (name.as_str(), Vec::new()),
         ParticleSetting::Power { name, power } => (name.as_str(), power.to_be_bytes().to_vec()),
@@ -812,10 +812,26 @@ fn particle_metadata(setting: &ParticleSetting) -> EntityDataValue {
     let kind = rspigot_data::registries::static_index("minecraft:particle_type", name)
         .and_then(|id| i32::try_from(id).ok())
         .unwrap_or(0);
+    cb::ParticleOptions { kind, data }.encode(bytes);
+}
+
+fn particle_metadata(setting: &ParticleSetting) -> EntityDataValue {
     let mut bytes = Vec::new();
-    cb::ParticleOptions { kind, data }.encode(&mut bytes);
+    encode_particle_setting(setting, &mut bytes);
     EntityDataValue::Raw {
         serializer: rspigot_protocol::play::metadata::serializer::PARTICLE,
+        data: bytes,
+    }
+}
+
+fn particles_metadata(settings: &[ParticleSetting]) -> EntityDataValue {
+    let mut bytes = Vec::new();
+    write_var(i32::try_from(settings.len()).unwrap_or(0), &mut bytes);
+    for setting in settings {
+        encode_particle_setting(setting, &mut bytes);
+    }
+    EntityDataValue::Raw {
+        serializer: rspigot_protocol::play::metadata::serializer::PARTICLES,
         data: bytes,
     }
 }
@@ -1467,11 +1483,11 @@ impl Encoder {
                 game_time,
                 day_time,
                 advance_time,
+                clock,
+                rate,
+                partial_tick,
             } => {
-                let clock = rspigot_data::registries::synced_index(
-                    "minecraft:world_clock",
-                    "minecraft:overworld",
-                )
+                let clock = rspigot_data::registries::synced_index("minecraft:world_clock", clock)
                 .map_or(0, |id| id as i32);
                 Self::queue(
                     writer,
@@ -1481,8 +1497,8 @@ impl Encoder {
                             clock,
                             state: ClockState {
                                 total_ticks: *day_time,
-                                partial_tick: 0.0,
-                                rate: if *advance_time { 1.0 } else { 0.0 },
+                                partial_tick: *partial_tick,
+                                rate: if *advance_time { *rate } else { 0.0 },
                             },
                         }],
                     },
@@ -2014,6 +2030,21 @@ impl Encoder {
                     camera_id: entity.0,
                 },
             ),
+            ClientEvent::MoveVehicle {
+                position,
+                velocity,
+                rotation,
+            } => Self::queue(
+                writer,
+                &cb::MoveVehicle {
+                    change: rspigot_protocol::play::types::PositionMoveRotation {
+                        position: wire_vec(*position),
+                        delta: wire_vec(*velocity),
+                        y_rot: rotation.yaw,
+                        x_rot: rotation.pitch,
+                    },
+                },
+            ),
             ClientEvent::PlayerRotation { yaw, pitch } => Self::queue(
                 writer,
                 &cb::PlayerRotation {
@@ -2079,6 +2110,7 @@ impl Encoder {
                                     EntityDataValue::OptionalBlockPos(pos.map(position))
                                 }
                                 MetadataValue::Particle(setting) => particle_metadata(setting),
+                                MetadataValue::Particles(list) => particles_metadata(list),
                                 MetadataValue::Variant(kind, id) => EntityDataValue::Variant {
                                     kind: registry_variant(*kind),
                                     id: *id as i32,
@@ -3425,6 +3457,42 @@ mod tests {
         assert_eq!(turned.len(), 1);
         assert_eq!(turned[0].0, id::PLAYER_ROTATION);
         assert_eq!(turned[0].1[4], 0);
+    }
+
+    #[test]
+    fn move_vehicle_correction_encodes_position_delta_and_rotation() {
+        let packets = encode(ClientEvent::MoveVehicle {
+            position: Vec3::new(1.0, 2.0, 3.0),
+            velocity: Vec3::ZERO,
+            rotation: Rotation::new(90.0, 10.0),
+        });
+        assert_eq!(packets.len(), 1);
+        assert_eq!(packets[0].0, id::MOVE_VEHICLE);
+        assert_eq!(packets[0].1.len(), 24 + 24 + 8);
+        assert_eq!(&packets[0].1[..8], &1.0f64.to_be_bytes());
+    }
+
+    #[test]
+    fn effect_particle_list_metadata_golden_bytes() {
+        let effect = rspigot_data::registries::static_index(
+            "minecraft:particle_type",
+            "minecraft:entity_effect",
+        )
+        .unwrap();
+        let event = ClientEvent::EntityMetadata {
+            entity: EntityId(5),
+            entries: vec![MetadataEntry {
+                index: 10,
+                value: MetadataValue::Particles(vec![ParticleSetting::Color {
+                    name: "minecraft:entity_effect".to_owned(),
+                    argb: -1,
+                }]),
+            }],
+        };
+        let mut expected = vec![5, 10, 17, 1, u8::try_from(effect).unwrap()];
+        expected.extend_from_slice(&(-1i32).to_be_bytes());
+        expected.push(0xFF);
+        assert_eq!(encode(event), vec![(id::SET_ENTITY_DATA, expected)]);
     }
 
     #[test]

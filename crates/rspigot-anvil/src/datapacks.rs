@@ -79,6 +79,18 @@ impl DatapackSource for DirectoryDatapacks {
         extras.sort_by(|a, b| a.name.cmp(&b.name));
         Ok(extras)
     }
+
+    fn create_pack(&self, name: &str, meta: &str) -> Result<bool, DatapackError> {
+        let folder = self.root.join(name);
+        if folder.exists() {
+            return Ok(false);
+        }
+        std::fs::create_dir_all(&self.root)?;
+        std::fs::create_dir(&folder)?;
+        std::fs::create_dir(folder.join("data"))?;
+        std::fs::write(folder.join(MCMETA), meta)?;
+        Ok(true)
+    }
 }
 
 fn is_zip(path: &Path) -> bool {
@@ -275,6 +287,16 @@ mod tests {
             &format!("{pack}/pack.mcmeta"),
             br#"{"pack":{"description":"Pack","min_format":[94,1],"max_format":[95,0]}}"#,
         );
+    }
+
+    #[test]
+    fn create_pack_writes_a_folder_once() {
+        let dir = TempDir::new("create-pack");
+        let source = DirectoryDatapacks::new(dir.path());
+        assert!(source.create_pack("mine", r#"{"pack":{}}"#).unwrap());
+        assert!(!source.create_pack("mine", "{}").unwrap());
+        assert!(dir.path().join("mine/pack.mcmeta").is_file());
+        assert!(dir.path().join("mine/data").is_dir());
     }
 
     #[derive(Default, Clone)]
