@@ -326,6 +326,7 @@ pub(crate) struct HatchStep {
     pub(crate) hatching: bool,
     pub(crate) kind: rspigot_entities::EntityKind,
     pub(crate) count: i8,
+    pub(crate) variant: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy)]

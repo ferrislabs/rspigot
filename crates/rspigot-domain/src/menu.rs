@@ -1,6 +1,7 @@
 use rspigot_items::{EquipmentSlot, ItemId};
 use rspigot_nbt::{Compound, Tag};
 
+use crate::bundle;
 use crate::click::{self, Classified, ClickView, Drag};
 use crate::crafting;
 use crate::item::{
@@ -188,6 +189,14 @@ pub enum MenuEffect {
         slot: usize,
         stack: ItemStack,
     },
+    Bundle(BundleSound),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BundleSound {
+    Insert,
+    InsertFail,
+    RemoveOne,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -291,7 +300,7 @@ fn kind(slot: usize) -> SlotKind {
 }
 
 fn equippable(stack: &ItemStack) -> Option<EquipmentSlot> {
-    stack.item.kind().and_then(|kind| kind.equippable())
+    crate::stack_components::equippable(stack).map(|equippable| equippable.slot)
 }
 
 fn armor_menu_slot(slot: EquipmentSlot) -> Option<usize> {
@@ -315,6 +324,36 @@ struct Session<'a> {
     carried: &'a mut Slot,
     infinite: bool,
     effects: Vec<MenuEffect>,
+}
+
+impl bundle::BundleSession for Session<'_> {
+    fn slot_item(&self, slot: usize) -> Slot {
+        self.item(slot)
+    }
+
+    fn take(&mut self, slot: usize, amount: u32, limit: u32) -> Slot {
+        self.try_remove(slot, amount, limit)
+    }
+
+    fn insert(&mut self, slot: usize, stack: Slot, amount: u32) -> Slot {
+        self.safe_insert(slot, stack, amount)
+    }
+
+    fn store(&mut self, slot: usize, stack: Slot) {
+        self.put(slot, stack);
+    }
+
+    fn cursor(&mut self) -> &mut Slot {
+        self.carried
+    }
+
+    fn sound(&mut self, sound: BundleSound) {
+        self.effects.push(MenuEffect::Bundle(sound));
+    }
+
+    fn is_result(&self, slot: usize) -> bool {
+        slot == RESULT_SLOT
+    }
 }
 
 impl Session<'_> {
@@ -396,6 +435,10 @@ impl Session<'_> {
 
     fn slot_max_for(&self, slot: usize, stack: &ItemStack) -> u32 {
         self.slot_max(slot).min(max_stack(stack))
+    }
+
+    fn armor_locked(&self, slot: usize) -> bool {
+        armor_locked(self.inventory, slot, self.infinite)
     }
 
     fn try_remove(&mut self, slot: usize, amount: u32, decrement: u32) -> Slot {
@@ -566,6 +609,12 @@ impl Session<'_> {
         let Some(target) = index(slot) else {
             return;
         };
+        if self.armor_locked(target) {
+            return;
+        }
+        if !quick_move && bundle::click(self, target, primary) {
+            return;
+        }
         if quick_move {
             let mut moved = self.quick_move_stack(target);
             while moved.is_some() && same_item(&self.item(target), &moved) {
@@ -623,6 +672,9 @@ impl Session<'_> {
     }
 
     fn quick_move_stack(&mut self, slot: usize) -> Slot {
+        if self.armor_locked(slot) {
+            return None;
+        }
         let copy = self.item(slot)?;
         let mut stack = Some(copy.clone());
         let equipment = Self::equipment_slot_for(&copy);
@@ -712,6 +764,9 @@ impl Session<'_> {
         let Some(hotbar) = usize::try_from(button).ok().and_then(menu_slot) else {
             return;
         };
+        if self.armor_locked(target) {
+            return;
+        }
         let held = self.item(hotbar);
         let in_slot = self.item(target);
         match (&held, &in_slot) {
@@ -775,6 +830,9 @@ impl Session<'_> {
         let Some(target) = index(slot) else {
             return;
         };
+        if self.armor_locked(target) {
+            return;
+        }
         let amount = if button == 0 {
             1
         } else {
@@ -817,7 +875,10 @@ impl Session<'_> {
                 let Some(existing) = self.item(source) else {
                     continue;
                 };
-                if source == RESULT_SLOT || !self.can_quick_replace(source, &carried) {
+                if source == RESULT_SLOT
+                    || self.armor_locked(source)
+                    || !self.can_quick_replace(source, &carried)
+                {
                     continue;
                 }
                 if pass == 0 && u32::from(existing.count.get()) == max_stack(&existing) {
@@ -830,6 +891,14 @@ impl Session<'_> {
             }
         }
     }
+}
+
+fn armor_locked(inventory: &Inventory, slot: usize, instabuild: bool) -> bool {
+    matches!(kind(slot), SlotKind::Armor(_))
+        && !instabuild
+        && inventory
+            .get(slot)
+            .is_some_and(crate::enchant::prevents_armor_change)
 }
 
 struct Look<'a> {
@@ -851,8 +920,8 @@ impl ClickView for Look<'_> {
         self.carried
     }
 
-    fn may_pickup(&self, _: usize) -> bool {
-        true
+    fn may_pickup(&self, slot: usize) -> bool {
+        !armor_locked(self.inventory, slot, self.instabuild)
     }
 
     fn may_place(&self, slot: usize, stack: &ItemStack) -> bool {
@@ -910,6 +979,21 @@ impl InventoryMenu {
 
     pub fn quick_crafting(&self) -> bool {
         self.quick_craft.status != 0
+    }
+
+    pub fn select_bundle_item(&mut self, inventory: &mut Inventory, slot: usize, index: i32) {
+        if let Some(mut stack) = inventory
+            .get(slot)
+            .filter(|stack| bundle::is_bundle(stack))
+            .cloned()
+        {
+            bundle::toggle(&mut stack, index);
+            inventory.set(slot, Some(stack));
+        }
+    }
+
+    pub fn selected_bundle_item(&self, inventory: &Inventory, slot: usize) -> i32 {
+        inventory.get(slot).map_or(-1, bundle::selected)
     }
 
     pub fn click(
@@ -1309,6 +1393,32 @@ mod tests {
         click(&mut menu, &mut inv, 5, 0, ClickInput::QuickMove);
         assert_eq!(inv.get(5), None);
         assert_eq!(inv.get(9), Some(&stack(ItemKind::IronHelmet, 1)));
+    }
+
+    fn cursed(kind: ItemKind) -> ItemStack {
+        let mut piece = stack(kind, 1);
+        crate::enchant::set_levels(&mut piece, &[("minecraft:binding_curse".to_owned(), 1)]);
+        piece
+    }
+
+    #[test]
+    fn a_survival_player_cannot_take_off_armor_with_the_binding_curse() {
+        let mut inv = inventory(&[(5, cursed(ItemKind::IronHelmet))]);
+        let mut menu = InventoryMenu::default();
+        click(&mut menu, &mut inv, 5, 0, ClickInput::Pickup);
+        assert_eq!(inv.get(5), Some(&cursed(ItemKind::IronHelmet)));
+        assert_eq!(menu.carried(), &None);
+        click(&mut menu, &mut inv, 5, 0, ClickInput::QuickMove);
+        assert_eq!(inv.get(5), Some(&cursed(ItemKind::IronHelmet)));
+    }
+
+    #[test]
+    fn a_creative_player_can_take_off_armor_with_the_binding_curse() {
+        let mut inv = inventory(&[(5, cursed(ItemKind::IronHelmet))]);
+        let mut menu = InventoryMenu::default();
+        menu.click(&mut inv, 5, 0, ClickInput::Pickup, CREATIVE);
+        assert_eq!(inv.get(5), None);
+        assert_eq!(menu.carried(), &Some(cursed(ItemKind::IronHelmet)));
     }
 
     #[test]

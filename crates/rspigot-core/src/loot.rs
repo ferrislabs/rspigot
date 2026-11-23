@@ -133,8 +133,7 @@ pub fn tool_is_correct(tool: Option<&ItemStack>, state: BlockStateId) -> bool {
     };
     !kind.settings().requires_correct_tool
         || tool
-            .and_then(|stack| stack.item.kind())
-            .and_then(ItemKind::tool)
+            .and_then(rspigot_domain::stack_components::tool)
             .is_some_and(|rules| rules.is_correct_for_drops(kind.id()))
 }
 
@@ -766,10 +765,10 @@ impl<R: Rng + ?Sized> Roller<'_, '_, R> {
             }
             FunctionKind::SetDamage(fraction) => {
                 let fraction = self.float(fraction);
-                let max = ItemId(stack.item)
-                    .kind()
-                    .and_then(|kind| kind.max_damage())
-                    .and_then(|max| i32::try_from(max).ok());
+                let max = rspigot_domain::stack_components::durability_of(
+                    ItemId(stack.item),
+                    &stack.components,
+                );
                 if let Some(max) = max {
                     let damage = ((1.0 - fraction) * max as f32).floor() as i32;
                     stack.components.insert(DAMAGE, damage.clamp(0, max));

@@ -187,7 +187,7 @@ pub fn attribute_template(effect: &str) -> Option<AttributeTemplate> {
         .copied()
 }
 
-pub const PLAYER_ATTRIBUTE_BASES: [(&str, f64); 9] = [
+pub const PLAYER_ATTRIBUTE_BASES: [(&str, f64); 13] = [
     ("minecraft:movement_speed", 0.100_000_001_490_116_12),
     ("minecraft:attack_speed", 4.0),
     ("minecraft:attack_damage", 1.0),
@@ -197,6 +197,10 @@ pub const PLAYER_ATTRIBUTE_BASES: [(&str, f64); 9] = [
     ("minecraft:max_health", 20.0),
     ("minecraft:max_absorption", 0.0),
     ("minecraft:luck", 0.0),
+    ("minecraft:block_break_speed", 1.0),
+    ("minecraft:submerged_mining_speed", 0.2),
+    ("minecraft:sneaking_speed", 0.3),
+    ("minecraft:burning_time", 1.0),
 ];
 
 #[derive(Debug, Clone, PartialEq)]

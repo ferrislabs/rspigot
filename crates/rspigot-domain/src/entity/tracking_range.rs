@@ -14,10 +14,10 @@ pub struct TrackingRanges {
 impl Default for TrackingRanges {
     fn default() -> Self {
         Self {
-            players: 128,
-            animals: 96,
-            monsters: 96,
-            misc: 96,
+            players: 48,
+            animals: 48,
+            monsters: 48,
+            misc: 32,
             display: 128,
             other: 64,
             monster_activation: 32,
@@ -81,14 +81,14 @@ mod tests {
     #[test]
     fn spigot_groups_follow_the_class_hierarchy() {
         let ranges = TrackingRanges::default();
-        assert_eq!(tracking_range(EntityKind::Cow, &ranges), 96);
-        assert_eq!(tracking_range(EntityKind::Zombie, &ranges), 96);
-        assert_eq!(tracking_range(EntityKind::Pillager, &ranges), 96);
-        assert_eq!(tracking_range(EntityKind::Item, &ranges), 96);
+        assert_eq!(tracking_range(EntityKind::Cow, &ranges), 48);
+        assert_eq!(tracking_range(EntityKind::Zombie, &ranges), 48);
+        assert_eq!(tracking_range(EntityKind::Pillager, &ranges), 48);
+        assert_eq!(tracking_range(EntityKind::Item, &ranges), 32);
         assert_eq!(tracking_range(EntityKind::FallingBlock, &ranges), 64);
         assert_eq!(tracking_range(EntityKind::BlockDisplay, &ranges), 128);
-        assert_eq!(tracking_range(EntityKind::Player, &ranges), 128);
-        assert_eq!(tracking_range(EntityKind::Bat, &ranges), 96);
+        assert_eq!(tracking_range(EntityKind::Player, &ranges), 48);
+        assert_eq!(tracking_range(EntityKind::Bat, &ranges), 48);
         let wide = TrackingRanges {
             monster_activation: 200,
             ..ranges

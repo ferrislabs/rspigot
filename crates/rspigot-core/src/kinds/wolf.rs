@@ -383,7 +383,7 @@ impl<L: ClientLink> Server<L> {
     fn use_player_item(&mut self, player: PlayerId, hand: Hand, stack: &ItemStack) {
         let count = stack.count.get();
         self.consume_held(player, hand, 1);
-        let Some(remainder) = stack.item.kind().and_then(ItemKind::use_remainder) else {
+        let Some(remainder) = rspigot_domain::stack_components::use_remainder(stack) else {
             return;
         };
         if self.infinite_materials(player) {
@@ -519,10 +519,7 @@ impl<L: ClientLink> Server<L> {
         if facts.tame {
             if is_food && facts.health < facts.max_health {
                 let stack = held?.clone();
-                let nutrition = stack
-                    .item
-                    .kind()
-                    .and_then(ItemKind::food)
+                let nutrition = rspigot_domain::stack_components::food(&stack)
                     .map(|food| food.nutrition as f32);
                 self.use_player_item(player, hand, &stack);
                 let heal = nutrition.map_or(FOOD_DEFAULT_HEAL, |value| FOOD_HEAL_FACTOR * value);

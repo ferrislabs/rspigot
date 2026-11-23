@@ -195,10 +195,7 @@ impl<L: ClientLink> Server<L> {
             count,
             ..held.clone()
         });
-        let replacement = held
-            .item
-            .kind()
-            .and_then(ItemKind::use_remainder)
+        let replacement = rspigot_domain::stack_components::use_remainder(&held)
             .map(|item| ItemStack::new(item, NonZeroU8::MIN));
         self.fox_set_mouth(id, remaining.or(replacement));
     }

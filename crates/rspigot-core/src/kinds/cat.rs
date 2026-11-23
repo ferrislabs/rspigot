@@ -10,7 +10,6 @@ use rspigot_domain::random::RandomSource;
 use rspigot_domain::spawn::rules;
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Vec3, mth};
 use rspigot_entities::EntityKind as Kind;
-use rspigot_items::ItemKind;
 use rspigot_nbt::Tag;
 
 use crate::events::Hand;
@@ -185,8 +184,7 @@ impl<L: ClientLink> Server<L> {
         held: Option<&ItemStack>,
     ) {
         let nutrition = held
-            .and_then(|stack| stack.item.kind())
-            .and_then(ItemKind::food)
+            .and_then(rspigot_domain::stack_components::food)
             .map(|food| food.nutrition as f32);
         self.consume_held(player, hand, 1);
         self.heal_mob(
@@ -442,6 +440,7 @@ impl<L: ClientLink> Server<L> {
 
 #[cfg(test)]
 mod tests {
+    use rspigot_items::ItemKind;
     use std::sync::Arc;
     use std::time::Duration;
 

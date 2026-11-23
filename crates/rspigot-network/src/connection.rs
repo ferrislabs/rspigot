@@ -9,7 +9,9 @@ use rspigot_core::plugins::events::ResourcePackStatus;
 use rspigot_core::ports::SessionVerifier;
 use rspigot_core::status::{PingHook, StatusPing, StatusReply, StatusSnapshot};
 use rspigot_data::tags::TagOverlay;
-use rspigot_domain::player::{ClientSettings, GameProfile, MainHand, PlayerId, ProfileProperty};
+use rspigot_domain::player::{
+    ChatVisibility, ClientSettings, GameProfile, MainHand, PlayerId, ProfileProperty,
+};
 use rspigot_domain::text::Component;
 use rspigot_nbt::Tag;
 use rspigot_protocol::codec::Encode;
@@ -38,6 +40,7 @@ use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 
 use crate::NetworkConfig;
 use crate::decode::pack_status;
+use crate::keepalive::ConfigAlive;
 use crate::link::NetLink;
 use crate::listener::Shared;
 use crate::play;
@@ -58,6 +61,8 @@ pub enum ConnectionError {
     Decode(#[from] DecodeError),
     #[error("closed by peer")]
     Closed,
+    #[error("read timed out")]
+    TimedOut,
     #[error("{0}")]
     Rejected(String),
 }
@@ -66,6 +71,7 @@ pub struct PacketReader {
     stream: OwnedReadHalf,
     pub decoder: FrameDecoder,
     buffer: Box<[u8]>,
+    timeout: Duration,
 }
 
 impl PacketReader {
@@ -74,7 +80,9 @@ impl PacketReader {
             if let Some(packet) = self.decoder.next_packet()? {
                 return Ok(packet);
             }
-            let read = self.stream.read(&mut self.buffer).await?;
+            let read = tokio::time::timeout(self.timeout, self.stream.read(&mut self.buffer))
+                .await
+                .map_err(|_| ConnectionError::TimedOut)??;
             if read == 0 {
                 return Err(ConnectionError::Closed);
             }
@@ -163,6 +171,7 @@ pub async fn handle<V: SessionVerifier>(
             stream: read,
             decoder: FrameDecoder::new(),
             buffer: vec![0u8; 16 * 1024].into_boxed_slice(),
+            timeout: shared.config.read_timeout,
         },
         writer: PacketWriter {
             stream: write,
@@ -341,13 +350,40 @@ async fn login<V: SessionVerifier>(
     transferred: bool,
     bungee: Option<Forwarded>,
 ) -> Result<(), ConnectionError> {
-    let ServerboundLogin::Hello(hello) = next_login(&mut session).await? else {
+    let limit = shared.config.login_timeout;
+    let admitted =
+        tokio::time::timeout(limit, admit(&shared, &mut session, transferred, bungee)).await;
+    let profile = match admitted {
+        Ok(admitted) => match admitted? {
+            Some(profile) => profile,
+            None => return Ok(()),
+        },
+        Err(_) => {
+            reject(
+                &mut session,
+                Component::translatable("multiplayer.disconnect.slow_login", Vec::new()),
+            )
+            .await?;
+            return Err(ConnectionError::TimedOut);
+        }
+    };
+    let configured = configure(&shared.config, &mut session).await?;
+    play::run(shared, session, profile, configured).await
+}
+
+async fn admit<V: SessionVerifier>(
+    shared: &Arc<Shared<V>>,
+    session: &mut Session,
+    transferred: bool,
+    bungee: Option<Forwarded>,
+) -> Result<Option<GameProfile>, ConnectionError> {
+    let ServerboundLogin::Hello(hello) = next_login(session).await? else {
         return Err(ConnectionError::Rejected("expected hello".to_owned()));
     };
     let forwarded = match (&shared.config.proxy, bungee) {
-        (ProxyForwarding::Velocity(secret), _) => match velocity(&mut session, secret).await? {
+        (ProxyForwarding::Velocity(secret), _) => match velocity(session, secret).await? {
             Some(forwarded) => Some(forwarded),
-            None => return Ok(()),
+            None => return Ok(None),
         },
         (_, forwarded) => forwarded,
     };
@@ -355,18 +391,20 @@ async fn login<V: SessionVerifier>(
         session.addr.set_ip(forwarded.address);
     }
     if !valid_name(&hello.name) {
-        return reject(
-            &mut session,
+        reject(
+            session,
             Component::translatable("multiplayer.disconnect.invalid_player_data", Vec::new()),
         )
-        .await;
+        .await?;
+        return Ok(None);
     }
     if shared.throttled(session.addr.ip()) {
-        return reject(
-            &mut session,
+        reject(
+            session,
             Component::text("Connection throttled! Please wait before reconnecting."),
         )
-        .await;
+        .await?;
+        return Ok(None);
     }
     let profile = if let Some(forwarded) = forwarded {
         GameProfile {
@@ -375,9 +413,9 @@ async fn login<V: SessionVerifier>(
             properties: forwarded.properties,
         }
     } else if shared.config.online_mode {
-        match authenticate(&shared, &mut session, &hello.name).await? {
+        match authenticate(shared, session, &hello.name).await? {
             Some(profile) => profile,
-            None => return Ok(()),
+            None => return Ok(None),
         }
     } else {
         GameProfile {
@@ -388,9 +426,10 @@ async fn login<V: SessionVerifier>(
     };
     tracing::info!("UUID of player {} is {}", profile.name, profile.id);
     if let PreLoginVerdict::Refused(message) =
-        pre_login(&shared, &profile, session.addr.ip(), transferred).await?
+        pre_login(shared, &profile, session.addr.ip(), transferred).await?
     {
-        return reject(&mut session, Component::text(message)).await;
+        reject(session, Component::text(message)).await?;
+        return Ok(None);
     }
     if let Some(threshold) = shared.config.compression_threshold {
         session
@@ -417,7 +456,7 @@ async fn login<V: SessionVerifier>(
         .send(ids::login::clientbound::LOGIN_FINISHED, &finished)
         .await?;
     loop {
-        match next_login(&mut session).await? {
+        match next_login(session).await? {
             ServerboundLogin::LoginAcknowledged(_) => break,
             ServerboundLogin::CustomQueryAnswer(_) | ServerboundLogin::CookieResponse(_) => {}
             _ => {
@@ -427,8 +466,7 @@ async fn login<V: SessionVerifier>(
             }
         }
     }
-    let configured = configure(&shared.config, &mut session).await?;
-    play::run(shared, session, profile, configured).await
+    Ok(Some(profile))
 }
 
 async fn velocity(
@@ -577,6 +615,12 @@ pub fn client_settings(info: &ClientInformation) -> ClientSettings {
             rspigot_protocol::common::MainHand::Left => MainHand::Left,
             rspigot_protocol::common::MainHand::Right => MainHand::Right,
         },
+        chat_visibility: match info.chat_visibility {
+            rspigot_protocol::common::ChatVisibility::Full => ChatVisibility::Full,
+            rspigot_protocol::common::ChatVisibility::System => ChatVisibility::System,
+            rspigot_protocol::common::ChatVisibility::Hidden => ChatVisibility::Hidden,
+        },
+        allows_listing: info.allows_listing,
     }
 }
 
@@ -803,8 +847,13 @@ pub(crate) async fn configure<W: ConfigWire>(
     let mut inputs = Vec::new();
     let mut registries_sent = false;
     let mut stage = Stage::Known;
+    let mut alive = ConfigAlive::new(config);
     loop {
-        let packet = wire.read().await?;
+        alive.pulse(wire).await?;
+        let packet = match tokio::time::timeout(alive.wait(), wire.read()).await {
+            Ok(packet) => packet?,
+            Err(_) => continue,
+        };
         let (id, body) = split_packet_id(&packet)?;
         match ServerboundConfiguration::decode(id, body)? {
             ServerboundConfiguration::ClientInformation(info) => settings = client_settings(&info),
@@ -857,7 +906,7 @@ pub(crate) async fn configure<W: ConfigWire>(
                     inputs,
                 });
             }
-            ServerboundConfiguration::KeepAlive(KeepAlive { .. }) => {}
+            ServerboundConfiguration::KeepAlive(KeepAlive { id }) => alive.answer(wire, id).await?,
             other => inputs.extend(crate::decode::configuration_input(other)),
         }
     }
@@ -872,7 +921,7 @@ pub(crate) async fn reconfigure<V>(
     configure(&shared.config, &mut relay).await
 }
 
-async fn send_configuration_disconnect<W: ConfigWire>(
+pub(crate) async fn send_configuration_disconnect<W: ConfigWire>(
     wire: &mut W,
     reason: &Component,
 ) -> Result<(), ConnectionError> {
@@ -941,6 +990,7 @@ mod tests {
         incoming: std::collections::VecDeque<Vec<u8>>,
         sent: Vec<(i32, Vec<u8>)>,
         closed: bool,
+        stall: bool,
     }
 
     impl Script {
@@ -949,6 +999,7 @@ mod tests {
                 incoming: std::collections::VecDeque::new(),
                 sent: Vec::new(),
                 closed: false,
+                stall: false,
             }
         }
 
@@ -996,7 +1047,11 @@ mod tests {
 
     impl ConfigWire for Script {
         async fn read(&mut self) -> Result<Vec<u8>, ConnectionError> {
-            self.incoming.pop_front().ok_or(ConnectionError::Closed)
+            match self.incoming.pop_front() {
+                Some(packet) => Ok(packet),
+                None if self.stall => std::future::pending().await,
+                None => Err(ConnectionError::Closed),
+            }
         }
 
         fn queue<P: Encode + ?Sized>(
@@ -1034,9 +1089,82 @@ mod tests {
 
     fn run<T>(future: impl std::future::Future<Output = T>) -> T {
         tokio::runtime::Builder::new_current_thread()
+            .enable_all()
             .build()
             .unwrap()
             .block_on(future)
+    }
+
+    #[test]
+    fn client_information_keeps_chat_visibility_and_listing() {
+        use rspigot_protocol::common as wire;
+        let info = wire::ClientInformation {
+            language: "fr_fr".to_owned(),
+            view_distance: 6,
+            chat_visibility: wire::ChatVisibility::Hidden,
+            chat_colors: true,
+            model_customisation: 0,
+            main_hand: wire::MainHand::Right,
+            text_filtering_enabled: false,
+            allows_listing: false,
+            particle_status: wire::ParticleStatus::All,
+        };
+        let settings = client_settings(&info);
+        assert_eq!(settings.chat_visibility, ChatVisibility::Hidden);
+        assert!(!settings.allows_listing);
+    }
+
+    #[test]
+    fn a_stalled_configuration_gets_keep_alives_then_a_timeout_kick() {
+        use ids::configuration::clientbound as cb;
+        let config = crate::NetworkConfig {
+            keep_alive_interval: Duration::from_millis(20),
+            keep_alive_timeout: Duration::from_millis(60),
+            ..crate::NetworkConfig::default()
+        };
+        let mut wire = Script::new();
+        wire.stall = true;
+        wire.knows_core();
+        let result = run(configure(&config, &mut wire));
+        assert!(matches!(result, Err(ConnectionError::TimedOut)));
+        let ids = wire.ids();
+        assert!(ids.contains(&cb::KEEP_ALIVE));
+        assert_eq!(ids.last(), Some(&cb::DISCONNECT));
+        assert!(wire.closed);
+    }
+
+    #[test]
+    fn a_configuration_keep_alive_answer_keeps_the_client() {
+        use ids::configuration::clientbound as cb;
+        let config = crate::NetworkConfig {
+            keep_alive_interval: Duration::from_millis(20),
+            keep_alive_timeout: Duration::from_millis(60),
+            ..crate::NetworkConfig::default()
+        };
+        let mut wire = Script::new();
+        wire.stall = true;
+        let mut alive = ConfigAlive::new(&config);
+        run(async {
+            tokio::time::sleep(Duration::from_millis(25)).await;
+            alive.pulse(&mut wire).await.unwrap();
+            let id = wire
+                .sent
+                .iter()
+                .find(|(id, _)| *id == cb::KEEP_ALIVE)
+                .unwrap();
+            let id = i64::from_be_bytes(id.1[..8].try_into().unwrap());
+            alive.answer(&mut wire, id).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(25)).await;
+            alive.pulse(&mut wire).await.unwrap();
+        });
+        assert_eq!(
+            wire.ids()
+                .iter()
+                .filter(|id| **id == cb::KEEP_ALIVE)
+                .count(),
+            2
+        );
+        assert!(!wire.closed);
     }
 
     #[test]

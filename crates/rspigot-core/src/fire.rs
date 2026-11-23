@@ -223,7 +223,8 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
-        let ticks = fire::seconds_to_ticks(seconds);
+        let burning = crate::health::attributes(player).get("minecraft:burning_time");
+        let ticks = fire::scaled_ticks(fire::seconds_to_ticks(seconds), burning);
         if player.vitals.fire_ticks < ticks {
             player.vitals.fire_ticks = ticks;
             if player.abilities().invulnerable {

@@ -37,11 +37,7 @@ pub fn valid_name(name: &str) -> Option<&str> {
 }
 
 fn is_repair_material(input: &ItemStack, addition: &ItemStack) -> bool {
-    input
-        .item
-        .kind()
-        .and_then(|kind| kind.repairable())
-        .is_some_and(|set| set.contains(addition.item))
+    crate::stack_components::repairs_with(input, addition.item)
 }
 
 fn blank(name: &str) -> bool {

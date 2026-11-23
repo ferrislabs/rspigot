@@ -3,11 +3,11 @@ use rspigot_domain::Vec3;
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::mth::view_vector;
 use rspigot_domain::player::PlayerId;
+use rspigot_domain::stack_components::{self, BlocksAttacks};
 use rspigot_entities::SoundSource;
-use rspigot_items::{EquipmentSlot, ItemKind};
+use rspigot_items::EquipmentSlot;
 
 use crate::bow::{UsingItem, hand_slot};
-use crate::cooldown::SHIELD_DISABLE_TICKS;
 use crate::events::{ClientEvent, EntityStatus, Hand};
 use crate::health::{DamageSource, SourceEntity};
 use crate::player::Player;
@@ -16,31 +16,13 @@ use crate::plugins::events::EntityKnockbackCause;
 use crate::ports::ClientLink;
 use crate::server::{Audience, Server};
 
-pub(crate) const BLOCK_DELAY_TICKS: u64 = 5;
-const DURABILITY_THRESHOLD: f32 = 3.0;
 const BLOCK_KNOCKBACK: f64 = 0.5;
-const BYPASSES_SHIELD: &str = "minecraft:bypasses_shield";
 const IS_PROJECTILE: &str = "minecraft:is_projectile";
-const BLOCK_SOUND: &str = "minecraft:item.shield.block";
-const BREAK_SOUND: &str = "minecraft:item.shield.break";
 const BLOCK_EVENT: i8 = 29;
 const BREAK_EVENT: i8 = 30;
 
 pub(crate) fn is_shield(stack: &ItemStack) -> bool {
-    stack.item == ItemKind::Shield.id()
-}
-
-pub(crate) fn is_axe(item: ItemKind) -> bool {
-    matches!(
-        item,
-        ItemKind::WoodenAxe
-            | ItemKind::CopperAxe
-            | ItemKind::StoneAxe
-            | ItemKind::GoldenAxe
-            | ItemKind::IronAxe
-            | ItemKind::DiamondAxe
-            | ItemKind::NetheriteAxe
-    )
+    stack_components::blocks_attacks(stack).is_some()
 }
 
 pub(crate) fn starts_raising<L>(player: &Player<L>, hand: Hand, since: u64) -> Option<UsingItem> {
@@ -60,25 +42,25 @@ pub(crate) fn faces_source(yaw: f32, victim: Vec3, source: Vec3) -> bool {
 }
 
 impl<L: ClientLink> Server<L> {
-    fn raised_shield(&self, id: PlayerId) -> Option<(Hand, ItemKind)> {
+    fn raised_shield(&self, id: PlayerId) -> Option<(Hand, ItemStack, BlocksAttacks)> {
         let player = self.players.get(&id)?;
         let using = player.using_item?;
         let stack = player.inventory.get(hand_slot(player, using.hand))?;
-        let raised = self.current_tick().saturating_sub(using.since) >= BLOCK_DELAY_TICKS;
-        (is_shield(stack) && raised).then_some((using.hand, ItemKind::Shield))
+        let blocking = stack_components::blocks_attacks(stack)?;
+        let raised = self.current_tick().saturating_sub(using.since) >= blocking.block_delay_ticks;
+        raised.then(|| (using.hand, stack.clone(), blocking))
     }
 
-    fn melee_weapon(&self, direct: &SourceEntity) -> Option<ItemKind> {
+    fn melee_weapon(&self, direct: &SourceEntity) -> Option<ItemStack> {
         match direct.player {
-            Some(player) => self.players.get(&player)?.inventory.held()?.item.kind(),
+            Some(player) => self.players.get(&player)?.inventory.held().cloned(),
             None => self
                 .entities
                 .store
                 .get(direct.entity)?
                 .living()?
-                .equipment(EquipmentSlot::Mainhand)?
-                .item
-                .kind(),
+                .equipment(EquipmentSlot::Mainhand)
+                .cloned(),
         }
     }
 
@@ -88,12 +70,19 @@ impl<L: ClientLink> Server<L> {
         source: &DamageSource,
         amount: f32,
     ) -> bool {
-        if amount <= 0.0 || source.kind.in_tag(BYPASSES_SHIELD) {
+        if amount <= 0.0 {
             return false;
         }
-        let Some((hand, shield)) = self.raised_shield(id) else {
+        let Some((hand, shield, blocking)) = self.raised_shield(id) else {
             return false;
         };
+        if blocking
+            .bypassed_by
+            .as_deref()
+            .is_some_and(|tag| source.kind.in_tag(tag))
+        {
+            return false;
+        }
         let Some(player) = self.players.get(&id) else {
             return false;
         };
@@ -104,18 +93,14 @@ impl<L: ClientLink> Server<L> {
             return false;
         }
         let pitch = 0.8 + self.rng.random::<f32>() * 0.4;
-        self.play_sound(
-            None,
-            position,
-            BLOCK_SOUND,
-            SoundSource::Players,
-            1.0,
-            pitch,
-        );
+        if let Some(sound) = &blocking.block_sound {
+            self.play_named_sound(None, position, sound, SoundSource::Players, 1.0, pitch);
+        }
         self.shield_event(id, entity, BLOCK_EVENT);
         self.count_shield_block(id, amount);
-        if amount >= DURABILITY_THRESHOLD {
-            self.wear(id, hand, 1 + amount.floor() as i32);
+        if amount >= blocking.damage_threshold {
+            let cost = blocking.damage_base + blocking.damage_factor * amount;
+            self.wear(id, hand, cost.floor() as i32);
         }
         if !source.kind.in_tag(IS_PROJECTILE)
             && let Some(direct) = source.direct.as_ref().filter(|d| d.kind.living())
@@ -134,21 +119,35 @@ impl<L: ClientLink> Server<L> {
                 EntityKnockbackCause::ShieldBlock,
                 Some(entity),
             );
-            if self.melee_weapon(direct).is_some_and(is_axe) {
-                self.disable_shield(id, shield);
+            let disable = self
+                .melee_weapon(direct)
+                .and_then(|stack| stack_components::weapon(&stack))
+                .map_or(0.0, |weapon| weapon.disable_blocking_seconds);
+            if disable > 0.0 {
+                self.disable_shield(id, &shield, &blocking, (disable * 20.0) as i32);
             }
         }
         true
     }
 
-    fn disable_shield(&mut self, id: PlayerId, shield: ItemKind) {
-        self.start_cooldown(id, shield.id(), SHIELD_DISABLE_TICKS);
+    fn disable_shield(
+        &mut self,
+        id: PlayerId,
+        shield: &ItemStack,
+        blocking: &BlocksAttacks,
+        ticks: i32,
+    ) {
+        if let Some(group) = stack_components::cooldown_group(shield) {
+            self.start_group_cooldown(id, group, ticks);
+        }
         let Some(player) = self.players.get_mut(&id) else {
             return;
         };
         player.using_item = None;
         let (entity, position) = (player.entity_id, player.position);
-        self.play_sound(None, position, BREAK_SOUND, SoundSource::Players, 0.8, 0.8);
+        if let Some(sound) = &blocking.disabled_sound {
+            self.play_named_sound(None, position, sound, SoundSource::Players, 0.8, 0.8);
+        }
         self.shield_event(id, entity, BREAK_EVENT);
     }
 
@@ -176,6 +175,7 @@ mod tests {
     use rspigot_domain::text::Component;
     use rspigot_domain::world::Difficulty;
     use rspigot_entities::EntityKind as Kind;
+    use rspigot_items::ItemKind;
 
     use super::*;
     use crate::config::{GameConfig, LevelData};
@@ -446,5 +446,105 @@ mod tests {
         }
         server.players.get_mut(&id).unwrap().position = Vec3::new(0.5, 64.0, 0.5);
         assert!(!server.hurt(id, &zombie(2.5), 4.0));
+    }
+
+    fn blocker(seconds: f32, base: f32, factor: f32) -> ItemStack {
+        use rspigot_nbt::Compound;
+        let mut stack = ItemStack::new(ItemKind::Stick.id(), NonZeroU8::MIN);
+        stack.components.insert(
+            "minecraft:blocks_attacks",
+            Compound::new().with("block_delay_seconds", seconds).with(
+                "item_damage",
+                Compound::new()
+                    .with("threshold", 1.0f32)
+                    .with("base", base)
+                    .with("factor", factor),
+            ),
+        );
+        stack
+    }
+
+    fn hold(server: &mut Server<Record>, id: PlayerId, stack: ItemStack) {
+        let player = server.players.get_mut(&id).unwrap();
+        let slot = HOTBAR_START + usize::from(player.inventory.selected_hotbar);
+        player.inventory.set(slot, Some(stack));
+        server.start_using_item(id, Hand::Main);
+    }
+
+    #[test]
+    fn a_blocks_attacks_component_makes_any_item_a_shield_with_its_own_delay() {
+        let (mut server, id, _) = arrive();
+        hold(&mut server, id, blocker(0.5, 1.0, 1.0));
+        for _ in 0..5 {
+            server.tick();
+        }
+        server.players.get_mut(&id).unwrap().vitals.damage_cooldown = 0;
+        server.players.get_mut(&id).unwrap().position = Vec3::new(0.5, 64.0, 0.5);
+        assert!(server.hurt(id, &zombie(2.5), 4.0));
+        for _ in 0..6 {
+            server.tick();
+        }
+        let player = server.players.get_mut(&id).unwrap();
+        player.vitals.damage_cooldown = 0;
+        player.position = Vec3::new(0.5, 64.0, 0.5);
+        let before = server.player_health(id).unwrap();
+        assert!(!server.hurt(id, &zombie(2.5), 4.0));
+        assert_eq!(server.player_health(id), Some(before));
+    }
+
+    #[test]
+    fn the_item_damage_of_blocks_attacks_is_base_plus_factor_times_damage() {
+        let (mut server, id, _) = arrive();
+        hold(&mut server, id, blocker(0.0, 2.0, 0.0));
+        for _ in 0..2 {
+            server.tick();
+        }
+        let player = server.players.get_mut(&id).unwrap();
+        player.vitals.damage_cooldown = 0;
+        player.position = Vec3::new(0.5, 64.0, 0.5);
+        let mut stack = blocker(0.0, 2.0, 0.0);
+        stack.components.insert("minecraft:max_damage", 100);
+        let slot = HOTBAR_START + usize::from(player.inventory.selected_hotbar);
+        player.inventory.set(slot, Some(stack));
+        assert!(!server.hurt(id, &zombie(2.5), 6.0));
+        assert_eq!(shield_damage(&server, id), 2);
+    }
+
+    #[test]
+    fn a_weapon_component_sets_how_long_a_blocked_shield_is_disabled() {
+        let (mut server, id, _) = arrive();
+        raise(&mut server, id, 5);
+        let bob = PlayerId::offline("Bob");
+        server.handle(Inbound::Join {
+            profile: GameProfile {
+                id: bob,
+                name: "Bob".to_owned(),
+                properties: Vec::new(),
+            },
+            settings: ClientSettings::default(),
+            link: Record::default(),
+            address: [127, 0, 0, 1].into(),
+            session: 2,
+        });
+        server.deliver();
+        let player = server.players.get_mut(&bob).unwrap();
+        player.position = Vec3::new(0.5, 64.0, 2.5);
+        player.vitals.load_timeout = 0;
+        let slot = HOTBAR_START + usize::from(player.inventory.selected_hotbar);
+        let mut club = ItemStack::new(ItemKind::Stick.id(), NonZeroU8::MIN);
+        club.components.insert(
+            "minecraft:weapon",
+            rspigot_nbt::Compound::new().with("disable_blocking_for_seconds", 2.0f32),
+        );
+        player.inventory.set(slot, Some(club));
+        let source = DamageSource::by(DamageType::PlayerAttack, server.source_of(bob).unwrap());
+        assert!(!server.hurt(id, &source, 5.0));
+        for _ in 0..39 {
+            server.tick();
+        }
+        assert!(server.is_on_cooldown(id, ItemKind::Shield.id()));
+        server.tick();
+        server.tick();
+        assert!(!server.is_on_cooldown(id, ItemKind::Shield.id()));
     }
 }

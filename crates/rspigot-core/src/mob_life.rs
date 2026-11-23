@@ -182,6 +182,8 @@ fn base_ambient_interval(kind: Kind) -> i32 {
     }
 }
 
+const BURNING_TIME: &str = "minecraft:burning_time";
+
 impl<L: ClientLink> Server<L> {
     pub(crate) fn mob_random(&mut self, id: EntityId) -> LegacyRandom {
         self.entities.mobs.entries.get(&id).map_or_else(
@@ -661,7 +663,8 @@ impl<L: ClientLink> Server<L> {
             }
             return;
         };
-        let burning = state.attribute("minecraft:burning_time");
+        let plain = state.attribute(BURNING_TIME);
+        let burning = crate::enchant_attributes::with_worn_enchantments(plain, BURNING_TIME, state);
         let ticks = fire::scaled_ticks(fire::seconds_to_ticks(seconds), burning);
         fire::ignite_for_ticks(base, ticks);
     }

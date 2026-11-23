@@ -96,8 +96,10 @@ pub(crate) fn write_gzip_nbt(
     root: &Compound,
     backup: Option<&Path>,
 ) -> Result<(), AnvilError> {
+    let mut root = root.clone();
+    rspigot_domain::bundle::strip_runtime_selection(&mut root);
     let mut raw = Vec::new();
-    write_named(&mut raw, "", root);
+    write_named(&mut raw, "", &root);
     let packed = Compression::Gzip.compress(&raw)?;
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     std::fs::create_dir_all(parent)?;

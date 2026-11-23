@@ -292,13 +292,14 @@ impl Vitals {
     }
 }
 
-pub type WornSignature = (ItemSlot, ItemId, Option<Tag>);
+pub type WornSignature = (ItemSlot, ItemId, Option<Tag>, Vec<(String, u8)>);
 
 fn signature(slot: ItemSlot, stack: &ItemStack) -> WornSignature {
     (
         slot,
         stack.item,
         stack.components.get(ATTRIBUTE_MODIFIERS).cloned(),
+        rspigot_domain::enchant::levels(stack),
     )
 }
 
@@ -1209,9 +1210,13 @@ impl<L: ClientLink> Server<L> {
                 let names: Vec<&'static str> = worn
                     .iter()
                     .chain(player.vitals.equipment.iter())
-                    .flat_map(|(slot, item, modifiers)| {
+                    .flat_map(|(slot, item, modifiers, enchantments)| {
                         worn_modifiers(*slot, *item, modifiers.as_ref())
                             .into_iter()
+                            .chain(rspigot_domain::attribute::enchantment_modifiers_for(
+                                *slot,
+                                enchantments,
+                            ))
                             .map(|(name, _)| name)
                     })
                     .filter(|name| is_syncable(name))

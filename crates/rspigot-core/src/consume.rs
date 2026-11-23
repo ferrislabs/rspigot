@@ -8,18 +8,20 @@ use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::potion::{self, PotionContents};
 use rspigot_domain::spawn::rules;
+use rspigot_domain::stack_components::{self, StackConsumable, StackConsumeEffect, StackMobEffect};
 use rspigot_domain::{BlockPos, Vec3};
 use rspigot_entities::SoundSource;
-use rspigot_items::{Consumable, ConsumeAnimation, ConsumeEffect, ConsumeMobEffect, ItemKind};
+use rspigot_items::ConsumeAnimation;
 use rspigot_nbt::Tag;
 
+use crate::events::ClientEvent;
 use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
 use crate::plugins::events::{
     EntityPotionEffectCause, EntityRegainHealthRegainReason, PlayerTeleportCause,
 };
 use crate::ports::ClientLink;
-use crate::server::Server;
+use crate::server::{Audience, Server};
 
 const STEW_EFFECTS: &str = "minecraft:suspicious_stew_effects";
 const TELEPORT_ATTEMPTS: u32 = 16;
@@ -30,8 +32,8 @@ pub(crate) fn passes(probability: f32, roll: f32) -> bool {
     roll < probability
 }
 
-pub(crate) fn instance_of(spec: &ConsumeMobEffect) -> Option<EffectInstance> {
-    let effect = EffectId::from_name(spec.effect)?;
+pub(crate) fn instance_of(spec: &StackMobEffect) -> Option<EffectInstance> {
+    let effect = EffectId::from_name(&spec.effect)?;
     let duration = match spec.duration {
         -1 => EffectDuration::Infinite,
         ticks => EffectDuration::Ticks(u32::try_from(ticks).unwrap_or(0)),
@@ -90,7 +92,7 @@ impl<L: ClientLink> Server<L> {
         &mut self,
         id: PlayerId,
         stack: &ItemStack,
-        consumable: &Consumable,
+        consumable: &StackConsumable,
     ) {
         let Some(kind) = stack.item.kind() else {
             return;
@@ -103,9 +105,42 @@ impl<L: ClientLink> Server<L> {
                 self.add_player_effect(id, effect, EntityPotionEffectCause::Food);
             }
         }
-        for effect in consumable.on_consume_effects {
+        for effect in &consumable.on_consume_effects {
             self.consume_effect(id, effect);
         }
+    }
+
+    pub(crate) fn play_named_sound(
+        &mut self,
+        except: Option<PlayerId>,
+        position: Vec3,
+        sound: &str,
+        source: SoundSource,
+        volume: f32,
+        pitch: f32,
+    ) {
+        if let Some(known) = rspigot_data::registries::static_entries("minecraft:sound_event")
+            .and_then(|entries| entries.iter().copied().find(|entry| *entry == sound))
+        {
+            self.play_sound(except, position, known, source, volume, pitch);
+            return;
+        }
+        let seed = self.rng.random::<i64>();
+        self.push(
+            Audience::Nearby {
+                position,
+                range: crate::sound::sound_range(volume),
+                except,
+            },
+            ClientEvent::NamedSound {
+                sound: sound.to_owned(),
+                source,
+                position,
+                volume,
+                pitch,
+                seed,
+            },
+        );
     }
 
     fn add_player_effect(
@@ -142,9 +177,9 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn consume_effect(&mut self, id: PlayerId, effect: &ConsumeEffect) {
+    fn consume_effect(&mut self, id: PlayerId, effect: &StackConsumeEffect) {
         match effect {
-            ConsumeEffect::ApplyEffects {
+            StackConsumeEffect::ApplyEffects {
                 effects,
                 probability,
             } => {
@@ -152,28 +187,28 @@ impl<L: ClientLink> Server<L> {
                 if !passes(*probability, roll) {
                     return;
                 }
-                for spec in *effects {
+                for spec in effects {
                     if let Some(instance) = instance_of(spec) {
                         self.add_player_effect(id, instance, EntityPotionEffectCause::Food);
                     }
                 }
             }
-            ConsumeEffect::RemoveEffects(names) => {
+            StackConsumeEffect::RemoveEffects(names) => {
                 for effect in names.iter().filter_map(|name| EffectId::from_name(name)) {
                     self.remove_effects(id, Some(effect), EntityPotionEffectCause::Food);
                 }
             }
-            ConsumeEffect::ClearAllEffects => {
+            StackConsumeEffect::ClearAllEffects => {
                 self.remove_effects(id, None, EntityPotionEffectCause::Milk);
             }
-            ConsumeEffect::TeleportRandomly { diameter } => {
+            StackConsumeEffect::TeleportRandomly { diameter } => {
                 self.teleport_randomly(id, *diameter);
             }
-            ConsumeEffect::PlaySound(sound) => {
+            StackConsumeEffect::PlaySound(sound) => {
                 let Some(position) = self.players.get(&id).map(|player| player.position) else {
                     return;
                 };
-                self.play_sound(None, position, sound, SoundSource::Players, 1.0, 1.0);
+                self.play_named_sound(None, position, sound, SoundSource::Players, 1.0, 1.0);
             }
         }
     }
@@ -255,14 +290,15 @@ impl<L: ClientLink> Server<L> {
     }
 }
 
-pub(crate) fn consumable_of(stack: &ItemStack) -> Option<Consumable> {
-    stack.item.kind().and_then(ItemKind::consumable)
+pub(crate) fn consumable_of(stack: &ItemStack) -> Option<StackConsumable> {
+    stack_components::consumable(stack)
 }
 
 #[cfg(test)]
 mod tests {
     use std::num::NonZeroU8;
 
+    use rspigot_items::ItemKind;
     use rspigot_nbt::Compound;
 
     use super::*;
@@ -278,8 +314,8 @@ mod tests {
 
     #[test]
     fn an_effect_spec_becomes_an_instance_with_its_icon_flag() {
-        let spec = ConsumeMobEffect {
-            effect: "minecraft:poison",
+        let spec = StackMobEffect {
+            effect: "minecraft:poison".to_owned(),
             amplifier: 1,
             duration: 1200,
             show_icon: false,
@@ -289,7 +325,7 @@ mod tests {
         assert_eq!(instance.duration, EffectDuration::Ticks(1200));
         assert!(!instance.show_icon);
         assert!(instance.visible);
-        let forever = ConsumeMobEffect {
+        let forever = StackMobEffect {
             duration: -1,
             ..spec
         };

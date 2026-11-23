@@ -717,10 +717,12 @@ impl<L: ClientLink> Server<L> {
                 }
                 (Setting::ViewDistance, SettingValue::Int(n)) => {
                     self.config.view_distance = distance(n).ok_or_else(|| invalid("2 to 32"))?;
+                    self.propagate_view_distance();
                 }
                 (Setting::SimulationDistance, SettingValue::Int(n)) => {
                     self.config.simulation_distance =
                         distance(n).ok_or_else(|| invalid("2 to 32"))?;
+                    self.propagate_simulation_distance();
                 }
                 (Setting::PlayerIdleTimeout, SettingValue::Int(n)) => {
                     self.config.player_idle_timeout =

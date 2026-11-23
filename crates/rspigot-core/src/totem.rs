@@ -1,8 +1,10 @@
+use rspigot_domain::EntityId;
 use rspigot_domain::damage::DamageTag;
-use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
+use rspigot_domain::effect::EffectId;
 use rspigot_domain::entity::living::{self, slot_index};
 use rspigot_domain::item::ItemStack;
-use rspigot_domain::{EntityId, ItemId};
+use rspigot_domain::player::PlayerId;
+use rspigot_domain::stack_components::{self, StackConsumeEffect};
 use rspigot_items::{EquipmentSlot, ItemKind};
 
 use crate::bucket::slot_of;
@@ -16,15 +18,10 @@ use crate::server::{Audience, Server};
 
 const TOTEM_STATUS: i8 = 35;
 const HEALTH_AFTER: f32 = 1.0;
-const EFFECTS: [(&str, u32, u8); 3] = [
-    ("minecraft:regeneration", 900, 1),
-    ("minecraft:fire_resistance", 800, 0),
-    ("minecraft:absorption", 100, 1),
-];
 const HANDS: [Hand; 2] = [Hand::Main, Hand::Off];
 
-fn is_totem(item: ItemId) -> bool {
-    item == ItemKind::TotemOfUndying.id()
+fn is_totem(stack: &ItemStack) -> bool {
+    stack_components::death_effects(stack).is_some()
 }
 
 fn mob_slot(hand: Hand) -> EquipmentSlot {
@@ -47,7 +44,7 @@ impl<L: ClientLink> Server<L> {
                     .equipment(mob_slot(hand))
                     .cloned(),
             }?;
-            is_totem(stack.item).then_some((hand, stack))
+            is_totem(&stack).then_some((hand, stack))
         })
     }
 
@@ -116,10 +113,10 @@ impl<L: ClientLink> Server<L> {
             }
             return;
         }
-        if let (Some(hand), Some(totem)) = (hand, totem) {
-            self.use_up_totem(holder, hand, &totem);
+        if let (Some(hand), Some(totem)) = (hand, totem.as_ref()) {
+            self.use_up_totem(holder, hand, totem);
         }
-        self.restore_after_totem(holder);
+        self.restore_after_totem(holder, totem.as_ref());
         let Some(entity) = self.resurrectee_entity(holder) else {
             return;
         };
@@ -162,16 +159,57 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    fn restore_after_totem(&mut self, holder: Holder) {
+    fn apply_totem_effect(&mut self, id: PlayerId, effect: &StackConsumeEffect) {
         let cause = EntityPotionEffectCause::Totem;
+        match effect {
+            StackConsumeEffect::ClearAllEffects => {
+                self.remove_effects(id, None, cause);
+            }
+            StackConsumeEffect::ApplyEffects { effects, .. } => {
+                for instance in effects.iter().filter_map(crate::consume::instance_of) {
+                    self.apply_effect(id, instance, Some(cause));
+                }
+            }
+            StackConsumeEffect::RemoveEffects(names) => {
+                for effect in names.iter().filter_map(|name| EffectId::from_name(name)) {
+                    self.remove_effects(id, Some(effect), cause);
+                }
+            }
+            StackConsumeEffect::TeleportRandomly { .. } | StackConsumeEffect::PlaySound(_) => {}
+        }
+    }
+
+    fn apply_mob_totem_effect(&mut self, id: EntityId, effect: &StackConsumeEffect) {
+        let cause = EntityPotionEffectCause::Totem;
+        match effect {
+            StackConsumeEffect::ClearAllEffects => {
+                self.remove_entity_effects(id, None, cause);
+            }
+            StackConsumeEffect::ApplyEffects { effects, .. } => {
+                for instance in effects.iter().filter_map(crate::consume::instance_of) {
+                    self.apply_entity_effect(id, instance, cause);
+                }
+            }
+            StackConsumeEffect::RemoveEffects(names) => {
+                for effect in names.iter().filter_map(|name| EffectId::from_name(name)) {
+                    self.remove_entity_effects(id, Some(effect), cause);
+                }
+            }
+            StackConsumeEffect::TeleportRandomly { .. } | StackConsumeEffect::PlaySound(_) => {}
+        }
+    }
+
+    fn restore_after_totem(&mut self, holder: Holder, totem: Option<&ItemStack>) {
+        let effects = totem
+            .and_then(stack_components::death_effects)
+            .unwrap_or_else(default_death_effects);
         match holder {
             Holder::Player(id) => {
                 if let Some(player) = self.players.get_mut(&id) {
                     player.vitals.health = HEALTH_AFTER;
                 }
-                self.remove_effects(id, None, cause);
-                for instance in totem_effects() {
-                    self.apply_effect(id, instance, Some(cause));
+                for effect in effects {
+                    self.apply_totem_effect(id, &effect);
                 }
             }
             Holder::Mob(id) => {
@@ -180,22 +218,17 @@ impl<L: ClientLink> Server<L> {
                 {
                     living::set_health(&mut entity.base, state, HEALTH_AFTER);
                 }
-                self.remove_entity_effects(id, None, cause);
-                for instance in totem_effects() {
-                    self.apply_entity_effect(id, instance, cause);
+                for effect in effects {
+                    self.apply_mob_totem_effect(id, &effect);
                 }
             }
         }
     }
 }
 
-fn totem_effects() -> impl Iterator<Item = EffectInstance> {
-    EFFECTS.into_iter().filter_map(|(name, ticks, amplifier)| {
-        Some(EffectInstance::new(
-            EffectId::from_name(name)?,
-            EffectDuration::Ticks(ticks),
-            amplifier,
-            true,
-        ))
-    })
+fn default_death_effects() -> Vec<StackConsumeEffect> {
+    ItemKind::TotemOfUndying
+        .death_effects()
+        .map(|effects| effects.iter().map(StackConsumeEffect::from).collect())
+        .unwrap_or_default()
 }

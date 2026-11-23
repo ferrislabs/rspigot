@@ -58,6 +58,21 @@ pub trait CommandContext: super::surface::Surface {
     fn reply(&mut self, sender: CommandSender, message: Component);
     fn broadcast(&mut self, message: Component);
     fn permission_level(&self, sender: CommandSender) -> u8;
+    fn permission_decision(&self, _sender: CommandSender, _node: &str) -> Option<bool> {
+        None
+    }
+    fn ignores_vanilla_permissions(&self) -> bool {
+        false
+    }
+    fn command_alias(&self, _label: &str) -> Option<Vec<String>> {
+        None
+    }
+    fn help_config(&self) -> super::help::HelpConfig {
+        super::help::HelpConfig::default()
+    }
+    fn plugin_help_topics(&self, _sender: CommandSender) -> Vec<super::help::HelpTopic> {
+        Vec::new()
+    }
     fn sender_name(&self, sender: CommandSender) -> String;
     fn find_player(&self, name: &str) -> Option<PlayerId>;
     fn player_name(&self, player: PlayerId) -> Option<String>;
@@ -813,10 +828,175 @@ pub trait CommandContext: super::surface::Surface {
     }
 }
 
+const MAX_ALIAS_DEPTH: u8 = 8;
+
+#[inline(never)]
+fn tps_report<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome {
+    let mut line = Component::text("TPS from last 1m, 5m, 15m: ").color(NamedColor::Gold);
+    for (index, value) in ctx.tps().into_iter().enumerate() {
+        if index > 0 {
+            line = line.append(Component::text(", ").color(NamedColor::Gold));
+        }
+        let (color, text) = format_tps(value);
+        line = line.append(Component::text(text).color(color));
+    }
+    ctx.reply(sender, line);
+    if let Some((used, total, max)) = memory_megabytes() {
+        ctx.reply(
+            sender,
+            Component::text("Current Memory Usage: ")
+                .color(NamedColor::Gold)
+                .append(
+                    Component::text(format!("{used}/{total} mb (Max: {max} mb)"))
+                        .color(NamedColor::Green),
+                ),
+        );
+    }
+    CommandOutcome::Success
+}
+
+#[inline(never)]
+fn plugins_report<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome {
+    let names = ctx.plugin_names();
+    let mut line = Component::text(format!("Plugins ({}): ", names.len())).color(NamedColor::White);
+    for (index, name) in names.iter().enumerate() {
+        if index > 0 {
+            line = line.append(Component::text(", ").color(NamedColor::White));
+        }
+        line = line.append(Component::text(name.clone()).color(NamedColor::Green));
+    }
+    ctx.reply(sender, line);
+    CommandOutcome::Success
+}
+
+pub(crate) fn format_tps(tps: f64) -> (NamedColor, String) {
+    let color = if tps > 18.0 {
+        NamedColor::Green
+    } else if tps > 16.0 {
+        NamedColor::Yellow
+    } else {
+        NamedColor::Red
+    };
+    let star = if tps > 20.0 { "*" } else { "" };
+    let rounded = ((tps * 100.0).round() / 100.0).min(20.0);
+    let mut number = format!("{rounded:.2}");
+    while number.ends_with('0') && !number.ends_with(".0") {
+        number.pop();
+    }
+    (color, format!("{star}{number}"))
+}
+
+#[cfg(target_os = "linux")]
+fn memory_megabytes() -> Option<(u64, u64, u64)> {
+    let page = 4096_u64;
+    let statm = std::fs::read_to_string("/proc/self/statm").ok()?;
+    let mut fields = statm.split_whitespace();
+    let total = fields.next()?.parse::<u64>().ok()? * page;
+    let resident = fields.next()?.parse::<u64>().ok()? * page;
+    let meminfo = std::fs::read_to_string("/proc/meminfo").ok()?;
+    let max = meminfo
+        .lines()
+        .find_map(|line| line.strip_prefix("MemTotal:"))?
+        .split_whitespace()
+        .next()?
+        .parse::<u64>()
+        .ok()?
+        * 1024;
+    Some((resident >> 20, total >> 20, max >> 20))
+}
+
+#[cfg(not(target_os = "linux"))]
+fn memory_megabytes() -> Option<(u64, u64, u64)> {
+    None
+}
+
+fn expand_alias(template: &str, args: &[&str]) -> Option<String> {
+    let mut out = String::new();
+    let mut rest = template;
+    while let Some(at) = rest.find('$') {
+        out.push_str(&rest[..at]);
+        let tail = &rest[at + 1..];
+        let digits = tail.chars().take_while(char::is_ascii_digit).count();
+        if digits == 0 {
+            out.push('$');
+            rest = tail;
+            continue;
+        }
+        let index: usize = tail[..digits].parse().ok()?;
+        let open = tail[digits..].starts_with('-');
+        let consumed = digits + usize::from(open);
+        if index == 0 {
+            return None;
+        }
+        if open {
+            out.push_str(
+                &args
+                    .iter()
+                    .skip(index - 1)
+                    .copied()
+                    .collect::<Vec<_>>()
+                    .join(" "),
+            );
+        } else {
+            out.push_str(args.get(index - 1)?);
+        }
+        rest = &tail[consumed..];
+    }
+    out.push_str(rest);
+    Some(out.trim().to_owned())
+}
+
+#[inline(never)]
+fn node_decision<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    label: &str,
+) -> Option<bool> {
+    if ctx.function_state().runtime.permission_cap.is_some() {
+        return None;
+    }
+    let node = super::permission::node_of(label)?;
+    if ctx.ignores_vanilla_permissions() && node.starts_with(super::permission::VANILLA_PREFIX) {
+        return None;
+    }
+    ctx.permission_decision(sender, &node)
+}
+
+#[inline(never)]
+fn run_alias<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    targets: &[String],
+    args: &[&str],
+    depth: u8,
+) -> CommandOutcome {
+    let mut last = CommandOutcome::Failure;
+    for template in targets {
+        let Some(expanded) = expand_alias(template, args) else {
+            ctx.reply(
+                sender,
+                Component::text("Missing argument for this command alias").color(NamedColor::Red),
+            );
+            return CommandOutcome::Failure;
+        };
+        last = execute_at(ctx, sender, &expanded, depth + 1);
+    }
+    last
+}
+
 pub fn execute<C: CommandContext>(
     ctx: &mut C,
     sender: CommandSender,
     line: &str,
+) -> CommandOutcome {
+    execute_at(ctx, sender, line, 0)
+}
+
+fn execute_at<C: CommandContext>(
+    ctx: &mut C,
+    sender: CommandSender,
+    line: &str,
+    depth: u8,
 ) -> CommandOutcome {
     let line = line.trim().trim_start_matches('/');
     let mut parts = line.split_whitespace();
@@ -836,7 +1016,14 @@ pub fn execute<C: CommandContext>(
         .runtime
         .permission_cap
         .map_or(level, |cap| level.min(cap));
-    if !super::permission::may_use(&label, level) {
+    if depth < MAX_ALIAS_DEPTH
+        && super::permission::required_level(&label).is_none()
+        && let Some(targets) = ctx.command_alias(&label)
+    {
+        return run_alias(ctx, sender, &targets, &args, depth);
+    }
+    let decision = node_decision(ctx, sender, &label);
+    if !super::permission::allowed(&label, level, decision) {
         return refuse(ctx, sender, line);
     }
     if let Some(error) = super::named::check_line(ctx, line) {
@@ -847,13 +1034,7 @@ pub fn execute<C: CommandContext>(
         .split_once(char::is_whitespace)
         .map_or("", |(_, r)| r.trim());
     let outcome = match label.as_str() {
-        "help" | "?" => {
-            if rest.trim().is_empty() {
-                help(ctx, sender)
-            } else {
-                help_command(ctx, sender, rest.trim())
-            }
-        }
+        "help" | "?" => help(ctx, sender, rest.trim()),
         "list" => list(ctx, sender, rest.trim() == "uuids"),
         "seed" => {
             let seed = ctx.seed();
@@ -877,24 +1058,8 @@ pub fn execute<C: CommandContext>(
             );
             CommandOutcome::Success
         }
-        "plugins" | "pl" => {
-            let names = ctx.plugin_names();
-            ctx.reply(
-                sender,
-                Component::text(format!("Plugins ({}): {}", names.len(), names.join(", ")))
-                    .color(NamedColor::White),
-            );
-            CommandOutcome::Success
-        }
-        "tps" => {
-            let [a, b, c] = ctx.tps();
-            ctx.reply(
-                sender,
-                Component::text(format!("TPS from last 1m, 5m, 15m: {a:.1}, {b:.1}, {c:.1}"))
-                    .color(NamedColor::Gold),
-            );
-            CommandOutcome::Success
-        }
+        "plugins" | "pl" => plugins_report(ctx, sender),
+        "tps" => tps_report(ctx, sender),
         "me" | "say" | "msg" | "tell" | "w" => super::chat_commands::run(ctx, sender, &label, rest),
         "gamemode" => super::player_commands::gamemode(ctx, sender, rest),
         "tp" | "teleport" => teleport(ctx, sender, rest).unwrap_or_else(|outcome| outcome),
@@ -1064,13 +1229,9 @@ fn usage_lines(tree: &super::tree::CommandTree, node: usize, prefix: &str, out: 
     }
 }
 
-fn help_command<C: CommandContext>(
-    ctx: &mut C,
-    sender: CommandSender,
-    command: &str,
-) -> CommandOutcome {
+fn tree_usage(level: u8, command: &str) -> Vec<String> {
     use super::tree::{CommandNodeKind, build_tree};
-    let tree = build_tree(ctx.permission_level(sender));
+    let tree = build_tree(level);
     let mut node = tree.root;
     let mut trail = Vec::new();
     for word in command.split_whitespace() {
@@ -1080,64 +1241,56 @@ fn help_command<C: CommandContext>(
             .copied()
             .find(|child| matches!(&tree.nodes[*child].kind, CommandNodeKind::Literal(name) if name == word));
         let Some(next) = next else {
-            return fail(ctx, sender, "commands.help.failed", Vec::new());
+            return Vec::new();
         };
         trail.push(word);
         node = next;
     }
     let mut lines = Vec::new();
     usage_lines(&tree, node, &trail.join(" "), &mut lines);
-    if lines.is_empty() {
-        return fail(ctx, sender, "commands.help.failed", Vec::new());
-    }
-    for line in &lines {
-        ctx.reply(sender, Component::text(line.clone()));
-    }
-    ctx.record_result(lines.len() as i32);
-    CommandOutcome::Success
+    lines
 }
 
-fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender) -> CommandOutcome {
-    let mut lines = vec![
-        "/help",
-        "/list",
-        "/me <action>",
-        "/msg <player> <message>",
-        "/tps",
-        "/version",
-        "/plugins",
-    ];
+#[inline(never)]
+fn help<C: CommandContext>(ctx: &mut C, sender: CommandSender, request: &str) -> CommandOutcome {
+    use super::help::{CONSOLE_PAGE, PLAYER_PAGE, builtin_topics, help_lines, visible_topics};
     let level = ctx.permission_level(sender);
-    if level >= super::permission::LEVEL_GAMEMASTERS {
-        lines.extend([
-            "/seed",
-            "/say <message>",
-            "/gamemode <mode> [player]",
-            "/tp <x> <y> <z> | <player> [target]",
-            "/time set|add|query <value>",
-            "/give <player> <item> [count]",
-            "/clear [player]",
-            "/kill [targets]",
-            "/summon <entity> [pos] [nbt]",
-            "/difficulty [level]",
-            "/weather <clear|rain|thunder> [duration]",
-            "/setworldspawn [x y z]",
-        ]);
+    let config = ctx.help_config();
+    let mut commands = builtin_topics(level, |node| ctx.permission_decision(sender, node));
+    commands.extend(ctx.plugin_help_topics(sender));
+    let topics = visible_topics(commands, &config, |node| {
+        level >= super::permission::LEVEL_OWNERS
+            || (node.eq_ignore_ascii_case("op") && level > 0)
+            || ctx.permission_decision(sender, node) == Some(true)
+    });
+    let height = match sender {
+        CommandSender::Console => CONSOLE_PAGE,
+        CommandSender::Player(_) => PLAYER_PAGE,
+    };
+    match help_lines(request, &topics, &config, height, |name| {
+        tree_usage(level, name)
+    }) {
+        Ok(lines) => {
+            let count = lines.len() as i32;
+            for line in lines {
+                ctx.reply(sender, line);
+            }
+            ctx.record_result(count);
+            CommandOutcome::Success
+        }
+        Err(message) => {
+            let usage = tree_usage(level, request);
+            if usage.is_empty() {
+                ctx.reply(sender, Component::text(message).color(NamedColor::Red));
+                return CommandOutcome::Failure;
+            }
+            for line in &usage {
+                ctx.reply(sender, Component::text(line.clone()));
+            }
+            ctx.record_result(usage.len() as i32);
+            CommandOutcome::Success
+        }
     }
-    if level >= super::permission::LEVEL_ADMINS {
-        lines.extend(["/kick <player> [reason]", "/op <player>", "/deop <player>"]);
-    }
-    if level >= super::permission::LEVEL_OWNERS {
-        lines.extend(["/save-all", "/stop"]);
-    }
-    ctx.reply(
-        sender,
-        Component::text("--------- Help ---------").color(NamedColor::Yellow),
-    );
-    for line in lines {
-        ctx.reply(sender, Component::text(line).color(NamedColor::Gold));
-    }
-    CommandOutcome::Success
 }
 
 fn list<C: CommandContext>(ctx: &mut C, sender: CommandSender, uuids: bool) -> CommandOutcome {
@@ -2411,6 +2564,9 @@ mod tests {
 
     #[derive(Default)]
     struct FakeContext {
+        aliases: Vec<(String, Vec<String>)>,
+        decisions: Vec<(String, bool)>,
+        ignore_vanilla: bool,
         replies: Vec<(CommandSender, String)>,
         broadcasts: Vec<String>,
         operator: bool,
@@ -2482,6 +2638,21 @@ mod tests {
         }
         fn permission_level(&self, _: CommandSender) -> u8 {
             self.level.unwrap_or(if self.operator { 4 } else { 0 })
+        }
+        fn permission_decision(&self, _: CommandSender, node: &str) -> Option<bool> {
+            self.decisions
+                .iter()
+                .find(|(name, _)| name == node)
+                .map(|(_, value)| *value)
+        }
+        fn ignores_vanilla_permissions(&self) -> bool {
+            self.ignore_vanilla
+        }
+        fn command_alias(&self, label: &str) -> Option<Vec<String>> {
+            self.aliases
+                .iter()
+                .find(|(name, _)| name == label)
+                .map(|(_, targets)| targets.clone())
         }
         fn sender_name(&self, sender: CommandSender) -> String {
             match sender {
@@ -2631,6 +2802,160 @@ mod tests {
         fn stop(&mut self) {
             self.stopped = true;
         }
+    }
+
+    #[test]
+    fn tps_values_are_colored_and_capped_like_spigot() {
+        assert_eq!(format_tps(20.0), (NamedColor::Green, "20.0".to_owned()));
+        assert_eq!(format_tps(20.4), (NamedColor::Green, "*20.0".to_owned()));
+        assert_eq!(format_tps(17.5), (NamedColor::Yellow, "17.5".to_owned()));
+        assert_eq!(format_tps(12.345), (NamedColor::Red, "12.35".to_owned()));
+        assert_eq!(format_tps(18.0), (NamedColor::Yellow, "18.0".to_owned()));
+        assert_eq!(format_tps(16.0), (NamedColor::Red, "16.0".to_owned()));
+    }
+
+    #[test]
+    fn a_command_alias_runs_its_targets_with_the_arguments() {
+        let mut ctx = FakeContext {
+            operator: true,
+            aliases: vec![("icanhasbukkit".to_owned(), vec!["version $1-".to_owned()])],
+            ..FakeContext::default()
+        };
+        let outcome = execute(&mut ctx, CommandSender::Player(alice()), "/icanhasbukkit");
+        assert_eq!(outcome, CommandOutcome::Success);
+        assert!(!ctx.replies.is_empty());
+    }
+
+    #[test]
+    fn alias_templates_substitute_arguments() {
+        assert_eq!(
+            expand_alias("say $1 and $2-", &["a", "b", "c"]).as_deref(),
+            Some("say a and b c")
+        );
+        assert_eq!(expand_alias("version $1-", &[]).as_deref(), Some("version"));
+        assert_eq!(expand_alias("say $2", &["a"]), None);
+        assert_eq!(
+            expand_alias("say cost $", &[]).as_deref(),
+            Some("say cost $")
+        );
+    }
+
+    #[test]
+    fn an_alias_cannot_shadow_a_builtin_or_loop_forever() {
+        let mut ctx = FakeContext {
+            operator: true,
+            aliases: vec![
+                ("seed".to_owned(), vec!["say hijacked".to_owned()]),
+                ("a".to_owned(), vec!["b".to_owned()]),
+                ("b".to_owned(), vec!["a".to_owned()]),
+            ],
+            ..FakeContext::default()
+        };
+        execute(&mut ctx, CommandSender::Player(alice()), "seed");
+        assert!(ctx.broadcasts.is_empty());
+        let outcome = execute(&mut ctx, CommandSender::Player(alice()), "a");
+        assert_ne!(outcome, CommandOutcome::Success);
+    }
+
+    #[test]
+    fn a_permission_node_grants_or_denies_beyond_the_level() {
+        let mut ctx = FakeContext {
+            decisions: vec![("minecraft.command.gamemode".to_owned(), true)],
+            ..FakeContext::default()
+        };
+        assert_eq!(
+            execute(
+                &mut ctx,
+                CommandSender::Player(alice()),
+                "gamemode creative"
+            ),
+            CommandOutcome::Success
+        );
+        let mut denied = FakeContext {
+            operator: true,
+            decisions: vec![("minecraft.command.seed".to_owned(), false)],
+            ..FakeContext::default()
+        };
+        assert_eq!(
+            execute(&mut denied, CommandSender::Player(alice()), "seed"),
+            CommandOutcome::Denied
+        );
+    }
+
+    #[test]
+    fn ignore_vanilla_permissions_skips_minecraft_nodes_only() {
+        let mut ctx = FakeContext {
+            operator: true,
+            ignore_vanilla: true,
+            decisions: vec![
+                ("minecraft.command.seed".to_owned(), false),
+                ("bukkit.command.version".to_owned(), false),
+            ],
+            ..FakeContext::default()
+        };
+        assert_eq!(
+            execute(&mut ctx, CommandSender::Player(alice()), "seed"),
+            CommandOutcome::Success
+        );
+        assert_eq!(
+            execute(&mut ctx, CommandSender::Player(alice()), "version"),
+            CommandOutcome::Denied
+        );
+    }
+
+    #[test]
+    fn help_is_dynamic_paginated_and_depends_on_the_sender() {
+        let mut player = FakeContext::default();
+        execute(&mut player, CommandSender::Player(alice()), "help");
+        let lines: Vec<&str> = player.replies.iter().map(|(_, l)| l.as_str()).collect();
+        assert!(lines[0].contains("Help: Index (1/1)"));
+        assert!(lines.iter().any(|l| l.starts_with("Bukkit: ")));
+        assert!(!lines.iter().any(|l| l.starts_with("/ban")));
+        let mut operator = FakeContext {
+            operator: true,
+            ..FakeContext::default()
+        };
+        execute(
+            &mut operator,
+            CommandSender::Player(alice()),
+            "help Minecraft",
+        );
+        let listed: Vec<&str> = operator.replies.iter().map(|(_, l)| l.as_str()).collect();
+        assert!(listed[0].contains("Help: Minecraft (1/"));
+        assert_eq!(listed.len(), super::super::help::PLAYER_PAGE + 1);
+        let mut last = FakeContext {
+            operator: true,
+            ..FakeContext::default()
+        };
+        execute(
+            &mut last,
+            CommandSender::Player(alice()),
+            "help Minecraft 99",
+        );
+        assert!(last.replies[0].1.contains("Help: Minecraft ("));
+    }
+
+    #[test]
+    fn help_for_a_command_shows_its_usage_and_an_unknown_one_fails() {
+        let mut ctx = FakeContext {
+            operator: true,
+            ..FakeContext::default()
+        };
+        assert_eq!(
+            execute(&mut ctx, CommandSender::Player(alice()), "help gamemode"),
+            CommandOutcome::Success
+        );
+        assert!(
+            ctx.replies
+                .iter()
+                .any(|(_, l)| l.starts_with("Description: "))
+        );
+        let mut none = FakeContext::default();
+        assert_eq!(
+            execute(&mut none, CommandSender::Player(alice()), "help nonsense"),
+            CommandOutcome::Failure
+        );
+        assert_eq!(none.replies[0].1, "No help for nonsense");
     }
 
     #[test]

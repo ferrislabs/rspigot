@@ -66,6 +66,54 @@ impl<L: ClientLink> CommandContext for Server<L> {
         }
     }
 
+    fn permission_decision(&self, sender: CommandSender, node: &str) -> Option<bool> {
+        match sender {
+            CommandSender::Console => None,
+            CommandSender::Player(id) => self
+                .players
+                .get(&id)
+                .and_then(|player| self.rights_for(player).decision(node)),
+        }
+    }
+
+    fn ignores_vanilla_permissions(&self) -> bool {
+        self.config.command_settings.ignore_vanilla_permissions
+    }
+
+    fn command_alias(&self, label: &str) -> Option<Vec<String>> {
+        self.config.command_settings.alias(label)
+    }
+
+    fn help_config(&self) -> crate::commands::help::HelpConfig {
+        self.config.help.clone()
+    }
+
+    fn plugin_help_topics(&self, sender: CommandSender) -> Vec<crate::commands::help::HelpTopic> {
+        let names: rustc_hash::FxHashMap<u64, String> = self.plugins.connection_names();
+        let player = match sender {
+            CommandSender::Player(id) => self.players.get(&id),
+            CommandSender::Console => None,
+        };
+        let rights = player.map(|player| self.rights_for(player));
+        self.plugins
+            .commands()
+            .filter(|(_, spec)| match (&spec.permission, &rights) {
+                (Some(node), Some(rights)) => rights.has(node),
+                _ => true,
+            })
+            .map(|(connection, spec)| {
+                let owner = names.get(&connection).map_or("Plugins", String::as_str);
+                let mut topic = crate::commands::help::HelpTopic::command(
+                    &spec.name,
+                    &format!("A command from {owner}"),
+                    owner,
+                );
+                topic.permission = spec.permission.clone();
+                topic
+            })
+            .collect()
+    }
+
     fn sender_name(&self, sender: CommandSender) -> String {
         match sender {
             CommandSender::Console => self.running_command_name().unwrap_or("Server").to_owned(),

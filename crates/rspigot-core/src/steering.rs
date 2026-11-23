@@ -184,6 +184,7 @@ impl<L: ClientLink> Server<L> {
                 rotation: Rotation::new(base.yaw, base.pitch),
             };
             self.push(Audience::One(id), correction);
+            self.clear_vehicle_floating(id);
             return;
         }
         let Some(entity) = self.entities.store.get_mut(vehicle) else {
@@ -191,6 +192,7 @@ impl<L: ClientLink> Server<L> {
         };
         let base = &mut entity.base;
         let from = (base.position, Rotation::new(base.yaw, base.pitch));
+        let dy = position.y - base.position.y;
         base.old_position = base.position;
         base.velocity = position - base.position;
         base.position = position;
@@ -201,6 +203,7 @@ impl<L: ClientLink> Server<L> {
         self.entities.store.reindex(vehicle);
         self.position_riders(vehicle);
         self.count_vehicle_movement(id, vehicle, position - from.0);
+        self.note_vehicle_floating(id, vehicle, dy);
         self.vehicle_moved(vehicle, from, (position, rotation));
     }
 

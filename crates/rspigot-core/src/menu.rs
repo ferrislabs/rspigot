@@ -182,6 +182,7 @@ impl<L: ClientLink> Server<L> {
                 | MenuEffect::GrindstoneTaken { .. }
                 | MenuEffect::Traded { .. }
                 | MenuEffect::TradeUpdated { .. } => {}
+                MenuEffect::Bundle(sound) => self.play_bundle_sound(id, sound),
                 MenuEffect::FullResync => self.send_inventory(id),
                 MenuEffect::PlacedBack { slot, stack } => {
                     if let Some(player) = self.players.get(&id) {

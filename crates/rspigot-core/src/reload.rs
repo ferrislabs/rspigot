@@ -66,6 +66,10 @@ impl<L: ClientLink> Server<L> {
                 self.config.item_despawn_ticks = config.item_despawn_ticks;
                 self.config.item_merge_radius = config.item_merge_radius;
                 self.config.hopper_transfer_ticks = config.hopper_transfer_ticks;
+                self.config.world_keys = config.world_keys;
+                self.config.command_settings = config.command_settings;
+                self.config.help = config.help;
+                self.config.thunder_chance = config.thunder_chance;
                 self.config.max_tnt_per_tick = config.max_tnt_per_tick;
                 self.config.combat_exhaustion = config.combat_exhaustion;
                 self.config.hunger = config.hunger;

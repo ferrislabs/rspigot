@@ -182,6 +182,9 @@ fn immune(entity: &Entity, target: Option<EntityId>) -> bool {
             return true;
         }
     }
+    if kind == Kind::Villager && crate::kinds::villager::villager_facts(entity).can_breed {
+        return true;
+    }
     kind == Kind::Creeper && species::is_ignited(base)
 }
 

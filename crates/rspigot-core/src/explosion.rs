@@ -467,14 +467,24 @@ impl<L: ClientLink> Server<L> {
             if orb {
                 self.damage_orb(target.id, amount);
             }
-            let resistance = self
-                .entities
-                .store
-                .get_mut(target.id)
-                .and_then(|e| e.living_mut())
-                .map_or(0.0, |living| {
-                    living.attribute(EXPLOSION_KNOCKBACK_RESISTANCE)
-                });
+            let resistance = match target.player.and_then(|id| self.players.get(&id)) {
+                Some(player) => {
+                    crate::health::attributes(player).get(EXPLOSION_KNOCKBACK_RESISTANCE)
+                }
+                None => self
+                    .entities
+                    .store
+                    .get_mut(target.id)
+                    .and_then(|e| e.living_mut())
+                    .map_or(0.0, |living| {
+                        let base = living.attribute(EXPLOSION_KNOCKBACK_RESISTANCE);
+                        crate::enchant_attributes::with_worn_enchantments(
+                            base,
+                            EXPLOSION_KNOCKBACK_RESISTANCE,
+                            living,
+                        )
+                    }),
+            };
             let knockback = explosion::knockback(
                 radius,
                 center,

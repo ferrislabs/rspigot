@@ -1,5 +1,6 @@
 use rspigot_domain::item::ItemStack;
 use rspigot_domain::player::PlayerId;
+use rspigot_domain::stack_components;
 
 use crate::events::Hand;
 use crate::ports::ClientLink;
@@ -22,9 +23,8 @@ impl<L: ClientLink> Server<L> {
             .players
             .get(&id)
             .and_then(|player| player.inventory.held())
-            .and_then(|stack| stack.item.kind())
-            .and_then(|kind| kind.tool())
-            .and_then(|tool| i32::try_from(tool.damage_per_block).ok());
+            .and_then(stack_components::tool)
+            .and_then(|tool| i32::try_from(tool.damage_per_block()).ok());
         if let Some(amount) = amount {
             self.hurt_and_break(id, Hand::Main, amount);
         }

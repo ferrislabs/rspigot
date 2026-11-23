@@ -119,11 +119,8 @@ pub fn equip_from_table(
     drop_chance: Option<f32>,
 ) {
     for stack in stacks {
-        let slot = stack
-            .item
-            .kind()
-            .and_then(ItemKind::equippable)
-            .unwrap_or(EquipmentSlot::Mainhand);
+        let slot = crate::stack_components::equippable(&stack)
+            .map_or(EquipmentSlot::Mainhand, |found| found.slot);
         let index = slot_index(slot);
         living.equipment[index] = Some(stack);
         if let (Some(mob), Some(chance)) = (living.mob.as_mut(), drop_chance) {
@@ -1006,5 +1003,29 @@ mod tests {
             None
         );
         assert_eq!(jockey_of(EntityKind::Zombie, vec![0.9; 12], 5), None);
+    }
+
+    fn stick_for(slot_name: &str) -> ItemStack {
+        let mut stack = ItemStack::new(
+            rspigot_items::ItemKind::Stick.id(),
+            std::num::NonZeroU8::MIN,
+        );
+        stack.components.insert(
+            "minecraft:equippable",
+            rspigot_nbt::Compound::new().with("slot", slot_name),
+        );
+        stack
+    }
+
+    #[test]
+    fn equipment_tables_honour_the_equippable_component() {
+        let mut base = EntityBase::new(
+            EntityId(1),
+            Uuid::nil(),
+            rspigot_entities::EntityKind::Zombie,
+        );
+        let mut living = crate::entity::living::LivingState::new(&mut base, 0.0);
+        equip_from_table(&mut living, vec![stick_for("legs")], None);
+        assert!(living.equipment(EquipmentSlot::Legs).is_some());
     }
 }

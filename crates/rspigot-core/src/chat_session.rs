@@ -148,6 +148,9 @@ impl<L: ClientLink> Server<L> {
             );
             return;
         }
+        if self.refuse_hidden_chat(id) {
+            return;
+        }
         let now = self.now_ms();
         let enforce = self.config.chat.enforce_secure_profile;
         let display = self

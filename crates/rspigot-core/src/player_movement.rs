@@ -29,6 +29,8 @@ pub(crate) struct MoveState {
     pub(crate) first_good: Option<Vec3>,
     pub(crate) floating: bool,
     pub(crate) above_ground: i32,
+    pub(crate) vehicle_floating: bool,
+    pub(crate) vehicle_above_ground: i32,
     pub(crate) swimming: bool,
     pub(crate) squeeze: Option<Pose>,
     pub(crate) sent_stance: Option<(bool, Option<Pose>)>,
@@ -269,6 +271,7 @@ impl<L: ClientLink> Server<L> {
                 Component::translatable("multiplayer.disconnect.flying", Vec::new()),
             );
         }
+        self.tick_vehicle_floating();
         for id in &ids {
             self.resend_stale_teleport(*id);
             self.follow_camera(*id);
