@@ -2,6 +2,7 @@ use std::num::NonZeroU8;
 
 use rspigot_domain::bed;
 use rspigot_domain::item::ItemStack;
+use rspigot_domain::placement;
 use rspigot_domain::player::{GameMode, PlayerId};
 use rspigot_domain::text::Component;
 use rspigot_domain::{BlockPos, BlockStateId, Rotation, Vec3};
@@ -390,6 +391,16 @@ impl<L: ClientLink> Server<L> {
         let entity = player.entity_id;
         let to = player.position;
         let yaw = player.rotation.yaw;
+        if on_ground {
+            let carried = self
+                .players
+                .get(&id)
+                .map_or(0.0, |p| p.vitals.fall_distance);
+            let landed = carried + (from.y - to.y).max(0.0);
+            if landed > 0.0 {
+                self.trample_farmland(id, landed);
+            }
+        }
         self.check_fall(id, to.y - from.y, on_ground);
         if position.is_some() {
             self.count_movement(id, from, to);
@@ -566,6 +577,7 @@ impl<L: ClientLink> Server<L> {
                     }
                 }
                 self.try_spawn_copper_golem(pos, old, state);
+                self.rail_placed(pos, old, state);
                 self.redstone_block_changed(pos, old, state);
                 true
             }
@@ -818,13 +830,27 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let (dx, dy, dz) = face.offset();
-        let target = if is_replaceable(clicked) {
+        let click_on = |replacing_clicked: bool| placement::Click {
+            face: block_face(face),
+            cursor_y: cursor.y,
+            look: placement::Look {
+                yaw: rotation.yaw,
+                pitch: rotation.pitch,
+            },
+            sneaking,
+            replacing_clicked,
+        };
+        let view = |at: BlockPos| self.shape_view(at);
+        let replacing_clicked =
+            placement::can_be_replaced(clicked, pos, kind, &click_on(true), &view);
+        let target = if replacing_clicked {
             pos
         } else {
             pos.offset(dx, dy, dz)
         };
-        let target_ok = self.world.chunks.block(target).is_some_and(is_replaceable)
-            && self.world.dimension.height.contains(target.y);
+        let target_ok = self.world.chunks.block(target).is_some_and(|existing| {
+            placement::can_be_replaced(existing, target, kind, &click_on(replacing_clicked), &view)
+        }) && self.world.dimension.height.contains(target.y);
         let Some(old) = self.world.chunks.block(target).filter(|_| target_ok) else {
             self.refuse_block(id, target, sequence);
             return;
@@ -853,9 +879,20 @@ impl<L: ClientLink> Server<L> {
         let state = campfire::placed(state, old);
         let chunks = &self.world.chunks;
         let state = chests::placed_state(state, target, face, sneaking, |at| chunks.block(at));
-        let mut linked = placement
-            .linked
-            .map(|linked| (target.offset(0, i32::from(linked.dy), 0), linked.state));
+        let Some(adjusted) = placement::adjust(state, target, &click_on(replacing_clicked), &view)
+        else {
+            self.refuse_block(id, target, sequence);
+            return;
+        };
+        let state = adjusted.state;
+        let mut linked = adjusted
+            .upper
+            .map(|upper| (target.offset(0, 1, 0), upper))
+            .or_else(|| {
+                placement
+                    .linked
+                    .map(|linked| (target.offset(0, i32::from(linked.dy), 0), linked.state))
+            });
         if bed::bed_of(state).is_some() {
             let head = bed::head_pos(target, state).filter(|head| {
                 self.world.chunks.block(*head).is_some_and(is_replaceable)
@@ -871,7 +908,7 @@ impl<L: ClientLink> Server<L> {
             };
             linked = Some((head, head_state));
         }
-        let buildable = !self.intersects_player(target);
+        let buildable = !self.obstructed(target, state);
         self.ask_can_build(BuildStep {
             using: UseItem {
                 player: id,

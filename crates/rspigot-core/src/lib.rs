@@ -10,6 +10,7 @@ mod beehive;
 mod block_batches;
 mod block_components;
 pub mod block_editors;
+mod block_shapes;
 mod block_tools;
 mod boats;
 mod books;
