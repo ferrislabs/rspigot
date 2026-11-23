@@ -230,6 +230,19 @@ impl ChunkGenerator for WorldGenerator {
         }
     }
 
+    fn template_names(&self) -> Vec<String> {
+        structures::Library::current().blueprint_names()
+    }
+
+    fn template_info(&self, id: &str) -> Option<rspigot_core::ports::TemplateInfo> {
+        let blueprint = structures::Library::current().blueprint(id)?;
+        let (x, y, z) = blueprint.size;
+        Some(rspigot_core::ports::TemplateInfo {
+            size: [x, y, z],
+            blocks: i32::try_from(blueprint.blocks.len()).unwrap_or(i32::MAX),
+        })
+    }
+
     fn place(
         &self,
         dimension: &Dimension,

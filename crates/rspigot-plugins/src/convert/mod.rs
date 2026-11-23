@@ -9,6 +9,7 @@ mod entity;
 mod events;
 mod extras;
 mod inventory;
+mod lookups;
 mod meta;
 mod npc;
 mod objects;
@@ -18,6 +19,8 @@ mod scoreboard;
 mod server;
 mod shared;
 mod tiles;
+#[cfg(test)]
+mod w31_tests;
 mod world;
 
 use rspigot_core::plugins::{
@@ -230,6 +233,7 @@ fn question(asked: v1::Question) -> Result<FromPlugin, Malformed> {
             Question::DoneAdvancements(player::id(player)?)
         }
         question::Question::Extra(extra) => Question::Extra(extras::question(extra)?),
+        question::Question::Lookup(lookup) => lookups::question(lookup)?,
         question::Question::Object(object) => objects::question(object)?,
         question::Question::Recipes(_) => Question::Recipes,
         question::Question::DiscoveredRecipes(player) => {
@@ -281,6 +285,7 @@ pub(crate) fn to_plugin(message: ToPlugin) -> v1::ToPlugin {
         }),
         ToPlugin::Warning(message) => to_plugin::Body::Warning(v1::Warning { message }),
         ToPlugin::Replaced => to_plugin::Body::Replaced(v1::Replaced {}),
+        ToPlugin::TaskDue(id) => to_plugin::Body::TaskDue(v1::TaskDue { id }),
         ToPlugin::Invocation {
             command,
             sender,
@@ -339,6 +344,7 @@ fn wire_answer(answer: Answer) -> answer::Body {
         }
         Answer::Advancements(ids) => answer::Body::Advancements(v1::AdvancementList { ids }),
         Answer::Extra(extra) => answer::Body::Extra(extras::wire_answer(extra)),
+        Answer::Lookup(lookup) => answer::Body::Lookup(lookups::wire_answer(lookup)),
         Answer::Object(object) => answer::Body::Object(objects::wire_answer(object)),
         Answer::Recipes(views) => answer::Body::Recipes(recipes::wire_list(views)),
         Answer::RecipeIds(ids) => answer::Body::RecipeIds(v1::RecipeIdList { ids }),

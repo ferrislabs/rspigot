@@ -178,18 +178,12 @@ impl<L: ClientLink> Server<L> {
         true
     }
 
-    pub(crate) fn begin_feature_growth(
+    pub(crate) fn grow_request(
         &mut self,
         feature: &str,
         origin: BlockPos,
         cells: Vec<BlockPos>,
-        player: Option<PlayerId>,
-        tree: Option<TreeType>,
-    ) {
-        let saplings: Vec<(BlockPos, BlockStateId)> = cells
-            .iter()
-            .map(|cell| (*cell, self.block_or_air(*cell)))
-            .collect();
+    ) -> PlaceRequest {
         let (min, size) = GrowWindow::around(origin, WINDOW_BELOW, WINDOW_ABOVE, WINDOW_RADIUS);
         let mut window = GrowWindow {
             min,
@@ -201,13 +195,35 @@ impl<L: ClientLink> Server<L> {
             .map(|at| self.world.chunks.block(at).unwrap_or(BlockStateId::AIR))
             .collect();
         window.states = states.into();
-        let request = PlaceRequest::Grow {
+        PlaceRequest::Grow {
             feature: feature.to_owned(),
             origin,
             clear: cells,
             seed: self.rng.random(),
             window,
-        };
+        }
+    }
+
+    pub(crate) fn begin_feature_growth(
+        &mut self,
+        feature: &str,
+        origin: BlockPos,
+        cells: Vec<BlockPos>,
+        player: Option<PlayerId>,
+        tree: Option<TreeType>,
+    ) {
+        let dimension = &self.world.dimension.key;
+        if self.pending_trees.iter().any(|pending| {
+            &pending.dimension == dimension
+                && pending.saplings.iter().any(|(pos, _)| cells.contains(pos))
+        }) {
+            return;
+        }
+        let saplings: Vec<(BlockPos, BlockStateId)> = cells
+            .iter()
+            .map(|cell| (*cell, self.block_or_air(*cell)))
+            .collect();
+        let request = self.grow_request(feature, origin, cells);
         let answer = self.workers.request_query(
             &self.world.dimension,
             origin.center(),

@@ -59,6 +59,8 @@ pub struct PlayerSave {
     pub sleep_timer: i16,
     pub meta: rspigot_domain::meta::Metadata,
     pub ender_pearls: Vec<Compound>,
+    pub shoulder_left: Option<Compound>,
+    pub shoulder_right: Option<Compound>,
 }
 
 impl PlayerSave {
@@ -88,6 +90,8 @@ impl PlayerSave {
             sleep_timer: player.sleep_counter.clamp(0, i32::from(i16::MAX)) as i16,
             meta: player.meta.clone(),
             ender_pearls: Vec::new(),
+            shoulder_left: player.shoulders.left.clone(),
+            shoulder_right: player.shoulders.right.clone(),
         }
     }
 
@@ -110,6 +114,8 @@ impl PlayerSave {
         player.respawn = self.respawn.clone();
         player.meta = self.meta.clone();
         player.sleep_counter = i32::from(self.sleep_timer);
+        player.shoulders.left = self.shoulder_left.clone();
+        player.shoulders.right = self.shoulder_right.clone();
         if self.is_dead() {
             player.position = spawn;
             player.rotation = Rotation::new(spawn_angle, 0.0);
@@ -211,6 +217,12 @@ impl PlayerSave {
         write_items_at(&mut out, ENDER_ITEMS, &self.ender_items);
         if !self.meta.is_empty() {
             out.insert("BukkitValues", self.meta.to_nbt());
+        }
+        if let Some(left) = &self.shoulder_left {
+            out.insert("ShoulderEntityLeft", Tag::Compound(left.clone()));
+        }
+        if let Some(right) = &self.shoulder_right {
+            out.insert("ShoulderEntityRight", Tag::Compound(right.clone()));
         }
         if !self.ender_pearls.is_empty() {
             out.insert(
@@ -326,6 +338,14 @@ impl PlayerSave {
                 .filter_map(Tag::as_compound)
                 .cloned()
                 .collect(),
+            shoulder_left: data
+                .get_compound("ShoulderEntityLeft")
+                .filter(|tag| !tag.is_empty())
+                .cloned(),
+            shoulder_right: data
+                .get_compound("ShoulderEntityRight")
+                .filter(|tag| !tag.is_empty())
+                .cloned(),
         })
     }
 }
@@ -431,6 +451,8 @@ mod tests {
             }),
             sleep_timer: 7,
             ender_pearls: Vec::new(),
+            shoulder_left: None,
+            shoulder_right: None,
             meta: {
                 let mut meta = rspigot_domain::meta::Metadata::from_nbt(
                     &Compound::new().with("plugin:count", Tag::Int(3)),

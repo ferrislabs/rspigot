@@ -98,7 +98,10 @@ fn plugin_made(
                     addition: wanted_addition,
                 } if wanted_template.contains(template.item)
                     && wanted_base.contains(base.item)
-                    && wanted_addition.contains(addition.item) =>
+                    && wanted_addition.contains(addition.item)
+                    && recipe.accepts_exact(0, template)
+                    && recipe.accepts_exact(1, base)
+                    && recipe.accepts_exact(2, addition) =>
                 {
                     let mut components = base.components.clone();
                     for (name, value) in recipe.result.components.iter() {
@@ -112,6 +115,28 @@ fn plugin_made(
                             components,
                         },
                     ))
+                }
+                Body::SmithingTrim {
+                    template: wanted_template,
+                    base: wanted_base,
+                    addition: wanted_addition,
+                    pattern,
+                } if wanted_template.contains(template.item)
+                    && wanted_base.contains(base.item)
+                    && wanted_addition.contains(addition.item)
+                    && recipe.accepts_exact(0, template)
+                    && recipe.accepts_exact(1, base)
+                    && recipe.accepts_exact(2, addition) =>
+                {
+                    let material = addition.item.kind().and_then(ItemKind::trim_material)?;
+                    let trim = trim_of(material, pattern);
+                    if base.components.get_compound(TRIM) == Some(&trim) {
+                        return None;
+                    }
+                    let mut made = base.clone();
+                    made.count = NonZeroU8::MIN;
+                    made.components.insert(TRIM, trim);
+                    Some((recipe.id, made))
                 }
                 _ => None,
             })
@@ -393,6 +418,7 @@ mod tests {
             category: plugin_recipes::Category::Misc,
             override_vanilla: overriding,
             auto_discover: false,
+            exact: Vec::new(),
         });
         plugin_recipes::activate(&std::sync::Arc::new(set));
     }

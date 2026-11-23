@@ -139,6 +139,66 @@ impl<L: ClientLink> Server<L> {
         });
     }
 
+    pub(crate) fn tick_spawner_minecart(&mut self, id: EntityId) {
+        if !self.config.rules.spawner_blocks_work {
+            return;
+        }
+        let Some(entity) = self.entities.store.get(id) else {
+            return;
+        };
+        let pos = entity.base.position.block();
+        let Some(mut spawner) = (match &entity.state {
+            rspigot_domain::entity::EntityState::Minecart(state) => {
+                state.spawner.as_deref().cloned()
+            }
+            _ => None,
+        }) else {
+            return;
+        };
+        if !self.player_near_spawner(pos, spawner.player_range) {
+            return;
+        }
+        let mut reset = spawner.delay == -1;
+        if !reset && spawner.delay >= 1 {
+            spawner.delay -= 1;
+            self.store_cart_spawner(id, spawner);
+            return;
+        }
+        if !reset {
+            let mut spawned = false;
+            for _ in 0..spawner.count {
+                match self.spawner_attempt(pos, &mut spawner) {
+                    Attempt::Skip => {}
+                    Attempt::Abort => {
+                        reset = true;
+                        break;
+                    }
+                    Attempt::Candidate(entity) => {
+                        self.spawn_entity(*entity, Birth::of(CreatureSpawnReason::Spawner));
+                        spawned = true;
+                    }
+                }
+            }
+            reset |= spawned;
+        }
+        if reset {
+            spawner.reset_delay(&mut ServerRandom(&mut self.rng));
+            self.mob_entity_event_all(id, spawner::BLOCK_EVENT as i8);
+        }
+        self.store_cart_spawner(id, spawner);
+    }
+
+    fn store_cart_spawner(&mut self, id: EntityId, spawner: Spawner) {
+        if let Some(rspigot_domain::entity::EntityState::Minecart(state)) = self
+            .entities
+            .store
+            .get_mut(id)
+            .map(|entity| &mut entity.state)
+        {
+            state.spawner = Some(Box::new(spawner));
+        }
+    }
+
     fn player_near_spawner(&self, pos: BlockPos, range: i32) -> bool {
         let center = middle(pos);
         let reach = f64::from(range);

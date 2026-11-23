@@ -4,7 +4,7 @@ use rspigot_ai::{
     GlobalPos, GoalSettings, HoglinSensor, ItemWish, Living, MemoryModuleType, MemoryValue,
     MobAction, MobAi, MobBody, MobControl, MobTrigger, MobView, NearestItemSensor,
     NearestVisibleLivingEntities, PackedMemories, PiglinAction, PiglinBruteSensor, PiglinSensor,
-    RememberIfHoglinWasKilled, Sensor, SensorKind, StartAdmiringItemIfSeen,
+    RememberIfHoglinWasKilled, Sensor, SensorKind, SpearStatus, StartAdmiringItemIfSeen,
     StartCelebratingIfTargetDead, StartHuntingHoglin, Status, StopAdmiringIfItemTooFarAway,
     StopAdmiringIfTiredOfTryingToReachItem, StopHoldingItemIfNoLongerAdmiring, TargetKind,
     UniformInt,
@@ -277,7 +277,10 @@ fn behaviors(kind: EntityKind, activity: Activity) -> Vec<(i32, String)> {
 }
 
 fn names(list: &[(i32, String)]) -> Vec<(i32, Vec<&'static str>)> {
-    const KNOWN: [&str; 43] = [
+    const KNOWN: [&str; 46] = [
+        "SpearApproach",
+        "SpearAttack",
+        "SpearRetreat",
         "Mount",
         "DismountOrSkipMounting",
         "InteractWithDoor",
@@ -506,6 +509,9 @@ fn piglin_activities_follow_the_vanilla_priorities() {
             (10, "StopAttackingIfTargetInvalid"),
             (11, "BackUpIfTooClose"),
             (12, "SetWalkTargetFromAttackTargetIfTargetOutOfReach"),
+            (13, "SpearApproach"),
+            (14, "SpearAttack"),
+            (15, "SpearRetreat"),
             (16, "MeleeAttack"),
             (17, "CrossbowAttack"),
             (18, "RememberIfHoglinWasKilled"),
@@ -2352,4 +2358,187 @@ fn crossbow_attack_stops_when_the_target_leaves_the_crossbow_range_and_clears_it
 #[test]
 fn the_item_id_helper_compiles_for_every_tag_lookup() {
     let _: ItemId = ItemKind::GoldIngot.id();
+}
+
+fn spear_bench(distance: f64) -> Bench {
+    let target = living(7, EntityKind::Player, Vec3::new(0.5, 64.0, 0.5 + distance));
+    let mut bench = Bench::new(
+        EntityKind::Piglin,
+        &[
+            MemoryModuleType::LookTarget,
+            MemoryModuleType::AttackTarget,
+            MemoryModuleType::WalkTarget,
+            MemoryModuleType::SpearStatus,
+            MemoryModuleType::SpearEngageTime,
+            MemoryModuleType::SpearChargePosition,
+            MemoryModuleType::SpearFleeingTime,
+            MemoryModuleType::SpearFleeingPosition,
+        ],
+    );
+    bench.world.players.push(target);
+    bench.set(MemoryModuleType::AttackTarget, entity(7));
+    bench.mob.main_hand = Some(ItemKind::IronSpear.id());
+    bench
+}
+
+fn status_of(bench: &Bench) -> Option<i32> {
+    bench
+        .get(MemoryModuleType::SpearStatus)
+        .and_then(MemoryValue::as_int)
+}
+
+fn spear_tick(bench: &mut Bench, control: &mut MobControl, at: i64) {
+    bench.with(|cx| control.tick_or_stop(cx, at));
+}
+
+#[test]
+fn spear_approach_starts_without_a_status_and_walks_until_ten_blocks_away() {
+    let mut approach = MobControl::spear_approach(1.0, 10.0);
+    let mut bench = spear_bench(14.0);
+    assert!(bench.start(&mut approach, NOW));
+    assert_eq!(status_of(&bench), Some(SpearStatus::Approach as i32));
+    assert!(bench.body.aggressive);
+    spear_tick(&mut bench, &mut approach, NOW + 1);
+    assert_eq!(approach.status(), Status::Running);
+    assert!(bench.get(MemoryModuleType::LookTarget).is_some());
+    bench.world.players = vec![living(7, EntityKind::Player, Vec3::new(0.5, 64.0, 8.5))];
+    spear_tick(&mut bench, &mut approach, NOW + 2);
+    assert_eq!(approach.status(), Status::Stopped);
+    assert_eq!(status_of(&bench), Some(SpearStatus::Charging as i32));
+}
+
+#[test]
+fn spear_approach_needs_a_spear_a_target_and_a_free_hand_and_no_status() {
+    let mut bench = spear_bench(14.0);
+    bench.mob.main_hand = Some(ItemKind::IronSword.id());
+    assert!(!bench.start(&mut MobControl::spear_approach(1.0, 10.0), NOW));
+    let mut bench = spear_bench(14.0);
+    bench.body.using_item = Some(rspigot_ai::Hand::Main);
+    assert!(!bench.start(&mut MobControl::spear_approach(1.0, 10.0), NOW));
+    let mut bench = spear_bench(14.0);
+    bench.set(
+        MemoryModuleType::SpearStatus,
+        MemoryValue::Int(SpearStatus::Retreat as i32),
+    );
+    assert!(!bench.start(&mut MobControl::spear_approach(1.0, 10.0), NOW));
+}
+
+#[test]
+fn spear_attack_raises_the_spear_for_the_full_use_duration_then_hands_over_to_the_retreat() {
+    let mut attack = MobControl::spear_attack(1.0, 1.0, 2.0);
+    let mut bench = spear_bench(6.0);
+    bench.set(
+        MemoryModuleType::SpearStatus,
+        MemoryValue::Int(SpearStatus::Charging as i32),
+    );
+    assert!(bench.start(&mut attack, NOW));
+    assert_eq!(bench.body.using_item, Some(rspigot_ai::Hand::Main));
+    assert_eq!(
+        bench
+            .get(MemoryModuleType::SpearEngageTime)
+            .and_then(MemoryValue::as_int),
+        Some(237)
+    );
+    spear_tick(&mut bench, &mut attack, NOW + 1);
+    assert_eq!(
+        bench
+            .get(MemoryModuleType::SpearEngageTime)
+            .and_then(MemoryValue::as_int),
+        Some(236)
+    );
+    assert!(!bench.body.using_item.is_none());
+    bench.set(MemoryModuleType::SpearEngageTime, MemoryValue::Int(0));
+    spear_tick(&mut bench, &mut attack, NOW + 2);
+    assert_eq!(attack.status(), Status::Stopped);
+    assert!(bench.body.using_item.is_none());
+    assert_eq!(status_of(&bench), Some(SpearStatus::Retreat as i32));
+    assert!(bench.get(MemoryModuleType::SpearEngageTime).is_none());
+}
+
+#[test]
+fn spear_attack_only_runs_while_charging() {
+    let mut bench = spear_bench(6.0);
+    assert!(!bench.start(&mut MobControl::spear_attack(1.0, 1.0, 2.0), NOW));
+    bench.set(
+        MemoryModuleType::SpearStatus,
+        MemoryValue::Int(SpearStatus::Approach as i32),
+    );
+    assert!(!bench.start(&mut MobControl::spear_attack(1.0, 1.0, 2.0), NOW));
+}
+
+#[test]
+fn spear_attack_remembers_a_pass_through_point_once_the_target_is_close() {
+    let mut found = 0;
+    for seed in 0..30 {
+        let mut attack = MobControl::spear_attack(1.0, 1.0, 2.0);
+        let mut bench = spear_bench(1.5);
+        bench.controls.random = rspigot_ai::MobRandom::new(seed);
+        bench.set(
+            MemoryModuleType::SpearStatus,
+            MemoryValue::Int(SpearStatus::Charging as i32),
+        );
+        assert!(bench.start(&mut attack, NOW));
+        spear_tick(&mut bench, &mut attack, NOW + 1);
+        if bench.get(MemoryModuleType::SpearChargePosition).is_some() {
+            found += 1;
+        }
+    }
+    assert!(found > 0);
+}
+
+#[test]
+fn spear_retreat_picks_a_fleeing_point_counts_up_and_erases_everything_when_done() {
+    let mut found = None;
+    for seed in 0..30 {
+        let mut retreat = MobControl::spear_retreat(1.0);
+        let mut bench = spear_bench(8.0);
+        bench.controls.random = rspigot_ai::MobRandom::new(seed);
+        bench.set(
+            MemoryModuleType::SpearStatus,
+            MemoryValue::Int(SpearStatus::Retreat as i32),
+        );
+        if bench.start(&mut retreat, NOW) {
+            found = Some((bench, retreat));
+            break;
+        }
+    }
+    let (mut bench, mut retreat) = found.expect("a retreat point");
+    assert!(bench.get(MemoryModuleType::SpearFleeingPosition).is_some());
+    assert_eq!(
+        bench
+            .get(MemoryModuleType::SpearFleeingTime)
+            .and_then(MemoryValue::as_int),
+        Some(0)
+    );
+    assert!(bench.body.aggressive);
+    let away = bench
+        .get(MemoryModuleType::SpearFleeingPosition)
+        .and_then(MemoryValue::as_position)
+        .unwrap();
+    bench.with(|cx| cx.ai.move_to_pos(away, 1.0));
+    spear_tick(&mut bench, &mut retreat, NOW + 1);
+    assert_eq!(
+        bench
+            .get(MemoryModuleType::SpearFleeingTime)
+            .and_then(MemoryValue::as_int),
+        Some(1)
+    );
+    bench.set(MemoryModuleType::SpearFleeingTime, MemoryValue::Int(100));
+    spear_tick(&mut bench, &mut retreat, NOW + 2);
+    assert_eq!(retreat.status(), Status::Stopped);
+    assert!(status_of(&bench).is_none());
+    assert!(bench.get(MemoryModuleType::SpearFleeingTime).is_none());
+    assert!(bench.get(MemoryModuleType::SpearFleeingPosition).is_none());
+    assert!(!bench.body.aggressive);
+}
+
+#[test]
+fn spear_retreat_needs_the_retreat_status() {
+    let mut bench = spear_bench(8.0);
+    assert!(!bench.start(&mut MobControl::spear_retreat(1.0), NOW));
+    bench.set(
+        MemoryModuleType::SpearStatus,
+        MemoryValue::Int(SpearStatus::Charging as i32),
+    );
+    assert!(!bench.start(&mut MobControl::spear_retreat(1.0), NOW));
 }

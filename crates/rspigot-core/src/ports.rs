@@ -136,6 +136,12 @@ pub enum TemplateMirror {
     FrontBack,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TemplateInfo {
+    pub size: [i32; 3],
+    pub blocks: i32,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum PlaceRequest {
     Structure {
@@ -240,6 +246,14 @@ pub trait ChunkGenerator: Send + Sync + 'static {
         _request: &PlaceRequest,
     ) -> Result<Vec<PlacedBlock>, PlaceFailure> {
         Err(PlaceFailure::Failed)
+    }
+
+    fn template_names(&self) -> Vec<String> {
+        Vec::new()
+    }
+
+    fn template_info(&self, _id: &str) -> Option<TemplateInfo> {
+        None
     }
 }
 

@@ -332,11 +332,11 @@ impl<L: ClientLink> Server<L> {
         power: f32,
         pierce: i32,
     ) {
-        let mut base = self.new_entity_base(Kind::Arrow);
+        let mut base = self.new_entity_base(arrow::kind_for(stack));
         base.position = Vec3::new(gun.eye.x, gun.eye.y - EYE_OFFSET, gun.eye.z);
         base.old_position = base.position;
         let seed = self.rng.random::<i64>();
-        let mut state = ArrowState::new(&mut base, seed);
+        let mut state = ArrowState::for_base(&mut base, seed);
         state.set_owner(Some(gun.owner), true);
         state.item = ItemStack {
             count: NonZeroU8::MIN,

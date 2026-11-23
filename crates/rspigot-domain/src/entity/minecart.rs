@@ -10,13 +10,50 @@ use crate::{BlockPos, BlockStateId, Vec3};
 pub const DATA_DISPLAY_BLOCK: u8 = 11;
 pub const DATA_DISPLAY_OFFSET: u8 = 12;
 pub const HOPPER_SIZE: usize = 5;
+pub const DATA_HAS_FUEL: u8 = 13;
 pub const KEYS: &[&str] = &[
     "FlippedRotation",
     "HasTicked",
     "Items",
     "LootTable",
     "LootTableSeed",
+    "fuse",
+    "explosion_power",
+    "explosion_speed_factor",
+    "PushX",
+    "PushZ",
+    "Fuel",
+    "Delay",
+    "MinSpawnDelay",
+    "MaxSpawnDelay",
+    "SpawnCount",
+    "MaxNearbyEntities",
+    "RequiredPlayerRange",
+    "SpawnRange",
+    "SpawnData",
+    "SpawnPotentials",
 ];
+pub const TNT_FUSE: i32 = 80;
+pub const TNT_POWER: f32 = 4.0;
+pub const TNT_SPEED_FACTOR: f32 = 1.0;
+pub const TNT_MAX_POWER: f32 = 128.0;
+pub const TNT_FALL_THRESHOLD: f64 = 3.0;
+pub const TNT_FALL_SCALE: f64 = 10.0;
+pub const TNT_COLLISION_SPEED_SQR: f64 = 0.01;
+pub const TNT_SPEED_CAP: f64 = 5.0;
+pub const TNT_PRIMED_SOUND: &str = "minecraft:entity.tnt.primed";
+pub const TNT_PRIMED_EVENT: u8 = 70;
+pub const FUEL_PER_ITEM: i32 = 3600;
+pub const FUEL_LIMIT: i32 = 32_000;
+pub const FUEL_TAG: &str = "minecraft:furnace_minecart_fuel";
+const FURNACE_PUSH_SLOWDOWN: f64 = 0.8;
+const FURNACE_FREE_SLOWDOWN: f64 = 0.98;
+const FURNACE_WATER_SCALE: f64 = 0.1;
+const FURNACE_DRY_SPEED: f64 = 0.5;
+const FURNACE_WET_SPEED: f64 = 0.75;
+const FURNACE_PUSH_EPSILON: f64 = 1.0e-7;
+const FURNACE_PUSH_HORIZONTAL: f64 = 0.0001;
+const FURNACE_MOTION_HORIZONTAL: f64 = 0.001;
 
 const RAILS: &str = "minecraft:rails";
 const GRAVITY: f64 = 0.04;
@@ -49,11 +86,19 @@ pub struct MinecartState {
     pub first_tick: bool,
     pub enabled: bool,
     pub cargo: Option<Cargo>,
+    pub fuse: i32,
+    pub explosion_power: f32,
+    pub explosion_speed: f32,
+    pub ignited_by: Option<crate::EntityId>,
+    pub fuel: i32,
+    pub push: Vec3,
+    pub spawner: Option<Box<crate::spawner::Spawner>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Tick {
     pub block_collision: Option<BlockPos>,
+    pub fell: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -122,12 +167,24 @@ pub fn define(base: &mut EntityBase) -> MinecartState {
         EntityKind::HopperMinecart => Some(Cargo::new(HOPPER_SIZE)),
         _ => None,
     };
+    if base.kind == EntityKind::FurnaceMinecart {
+        base.data.define(DATA_HAS_FUEL, SyncedValue::Boolean(false));
+    }
+    let spawner = (base.kind == EntityKind::SpawnerMinecart)
+        .then(|| Box::new(crate::spawner::Spawner::default()));
     MinecartState {
         flipped: false,
         on_rails: false,
         first_tick: false,
         enabled: true,
         cargo,
+        fuse: -1,
+        explosion_power: TNT_POWER,
+        explosion_speed: TNT_SPEED_FACTOR,
+        ignited_by: None,
+        fuel: 0,
+        push: Vec3::ZERO,
+        spawner,
     }
 }
 
@@ -230,7 +287,17 @@ fn max_speed(base: &EntityBase, speed_rule: i32) -> f64 {
     } else {
         1.0
     };
-    f64::from(speed_rule) * factor / SPEED_TICKS
+    let limit = f64::from(speed_rule) * factor / SPEED_TICKS;
+    if base.kind == EntityKind::FurnaceMinecart {
+        limit
+            * if base.fluid.in_water {
+                FURNACE_WET_SPEED
+            } else {
+                FURNACE_DRY_SPEED
+            }
+    } else {
+        limit
+    }
 }
 
 fn travel(
@@ -238,11 +305,64 @@ fn travel(
     view: &impl BlockView,
     movement: Vec3,
     hit: &mut Option<BlockPos>,
+    fell: &mut Option<f64>,
 ) {
-    let found = vehicle::travel(base, view, movement, GRAVITY);
+    let (found, landing) = vehicle::travel_landing(base, view, movement, GRAVITY);
     if hit.is_none() {
         *hit = found;
     }
+    if fell.is_none() {
+        *fell = landing;
+    }
+}
+
+fn furnace_slowdown(base: &mut EntityBase, state: &mut MinecartState) {
+    let motion = base.velocity;
+    if state.push.length_sqr() > FURNACE_PUSH_EPSILON {
+        if state.push.horizontal_distance_sqr() > FURNACE_PUSH_HORIZONTAL
+            && motion.horizontal_distance_sqr() > FURNACE_MOTION_HORIZONTAL
+        {
+            let along = motion.length_sqr();
+            let dot = state.push.x * motion.x + state.push.y * motion.y + state.push.z * motion.z;
+            let projected = if along == 0.0 {
+                Vec3::ZERO
+            } else {
+                motion.scale(dot / along)
+            };
+            state.push = projected.normalize().scale(state.push.length());
+        }
+        let mut next =
+            motion.multiply(FURNACE_PUSH_SLOWDOWN, 0.0, FURNACE_PUSH_SLOWDOWN) + state.push;
+        if base.fluid.in_water {
+            next = next.scale(FURNACE_WATER_SCALE);
+        }
+        base.velocity = next;
+    } else {
+        base.velocity = motion.multiply(FURNACE_FREE_SLOWDOWN, 0.0, FURNACE_FREE_SLOWDOWN);
+    }
+}
+
+pub fn furnace_tick(base: &mut EntityBase, state: &mut MinecartState) {
+    if state.fuel > 0 {
+        state.fuel -= 1;
+    }
+    if state.fuel < 1 {
+        state.push = Vec3::ZERO;
+    }
+    base.data
+        .set(DATA_HAS_FUEL, SyncedValue::Boolean(state.fuel > 0));
+}
+
+pub fn add_fuel(state: &mut MinecartState, from: Vec3, at: Vec3) -> bool {
+    if state.fuel + FUEL_PER_ITEM > FUEL_LIMIT {
+        return false;
+    }
+    state.fuel += FUEL_PER_ITEM;
+    if state.fuel > 0 {
+        let away = at - from;
+        state.push = Vec3::new(away.x, 0.0, away.z);
+    }
+    true
 }
 
 fn come_off_track(
@@ -250,6 +370,7 @@ fn come_off_track(
     view: &impl BlockView,
     speed_rule: i32,
     hit: &mut Option<BlockPos>,
+    fell: &mut Option<f64>,
 ) {
     let limit = max_speed(base, speed_rule);
     base.velocity = Vec3::new(
@@ -260,7 +381,7 @@ fn come_off_track(
     if base.on_ground {
         base.velocity = base.velocity.multiply(DERAILED, DERAILED, DERAILED);
     }
-    travel(base, view, base.velocity, hit);
+    travel(base, view, base.velocity, hit, fell);
     if !base.on_ground {
         base.velocity = base.velocity.multiply(FLYING, FLYING, FLYING);
     }
@@ -301,11 +422,12 @@ fn boost_on_powered_rail(
 
 fn move_along_track(
     base: &mut EntityBase,
-    state: &MinecartState,
+    state: &mut MinecartState,
     view: &impl BlockView,
     occupied: bool,
     speed_rule: i32,
     hit: &mut Option<BlockPos>,
+    fell: &mut Option<f64>,
 ) {
     let block = rail_block(base, view);
     let Some((exits, shape)) = rail_exits(view.block_or_air(block)) else {
@@ -381,7 +503,7 @@ fn move_along_track(
         0.0,
         (factor * base.velocity.z).clamp(-limit, limit),
     );
-    travel(base, view, push, hit);
+    travel(base, view, push, hit, fell);
     let (cx, cy, cz) = (base.position.x, base.position.y, base.position.z);
     let relative = |at: (i32, i32, i32)| {
         (cx.floor() as i32 - block.x == at.0) && (cz.floor() as i32 - block.z == at.2)
@@ -390,6 +512,9 @@ fn move_along_track(
         base.position = Vec3::new(cx, cy + f64::from(exits.first.1), cz);
     } else if exits.second.1 != 0 && relative(exits.second) {
         base.position = Vec3::new(cx, cy + f64::from(exits.second.1), cz);
+    }
+    if base.kind == EntityKind::FurnaceMinecart {
+        furnace_slowdown(base, state);
     }
     let (factor, water) = slowdown(base, state, occupied);
     base.velocity = base.velocity.multiply(factor, 0.0, factor);
@@ -445,12 +570,13 @@ pub fn tick(
         base.velocity.y -= gravity;
     }
     let mut hit = None;
+    let mut fell = None;
     let block = rail_block(base, view);
     state.on_rails = is_rail(view.block_or_air(block));
     if state.on_rails {
-        move_along_track(base, state, view, occupied, speed_rule, &mut hit);
+        move_along_track(base, state, view, occupied, speed_rule, &mut hit, &mut fell);
     } else {
-        come_off_track(base, view, speed_rule, &mut hit);
+        come_off_track(base, view, speed_rule, &mut hit, &mut fell);
     }
     base.pitch = 0.0;
     let dx = base.old_position.x - base.position.x;
@@ -470,6 +596,7 @@ pub fn tick(
     state.first_tick = false;
     Tick {
         block_collision: hit,
+        fell,
     }
 }
 
@@ -479,13 +606,48 @@ pub fn read(nbt: &Compound, state: &mut MinecartState) {
     if let Some(cargo) = state.cargo.as_mut() {
         cargo.read(nbt);
     }
+    state.fuse = nbt.get_i32("fuse").unwrap_or(-1);
+    state.explosion_power = nbt
+        .get_f64("explosion_power")
+        .map_or(TNT_POWER, |power| (power as f32).clamp(0.0, TNT_MAX_POWER));
+    state.explosion_speed = nbt
+        .get_f64("explosion_speed_factor")
+        .map_or(TNT_SPEED_FACTOR, |factor| {
+            (factor as f32).clamp(0.0, TNT_MAX_POWER)
+        });
+    state.fuel = nbt.get_i64("Fuel").map_or(0, |fuel| i32::from(fuel as i16));
+    state.push = Vec3::new(
+        nbt.get_f64("PushX").unwrap_or(0.0),
+        0.0,
+        nbt.get_f64("PushZ").unwrap_or(0.0),
+    );
+    if state.spawner.is_some() {
+        state.spawner = Some(Box::new(crate::spawner::Spawner::read(nbt)));
+    }
 }
 
-pub fn write(state: &MinecartState, out: &mut Compound) {
+pub fn write(kind: EntityKind, state: &MinecartState, out: &mut Compound) {
     out.insert("FlippedRotation", state.flipped);
     out.insert("HasTicked", state.first_tick);
     if let Some(cargo) = &state.cargo {
         cargo.write(out);
+    }
+    if kind == EntityKind::TntMinecart {
+        out.insert("fuse", state.fuse);
+    }
+    if state.explosion_power != TNT_POWER {
+        out.insert("explosion_power", state.explosion_power);
+    }
+    if state.explosion_speed != TNT_SPEED_FACTOR {
+        out.insert("explosion_speed_factor", state.explosion_speed);
+    }
+    if kind == EntityKind::FurnaceMinecart {
+        out.insert("PushX", state.push.x);
+        out.insert("PushZ", state.push.z);
+        out.insert("Fuel", state.fuel as i16);
+    }
+    if let Some(spawner) = &state.spawner {
+        spawner.write(out);
     }
 }
 
@@ -694,9 +856,54 @@ mod tests {
         let (_, mut state) = cart(EntityKind::ChestMinecart, Vec3::ZERO);
         state.flipped = true;
         let mut nbt = Compound::new();
-        write(&state, &mut nbt);
+        write(EntityKind::ChestMinecart, &state, &mut nbt);
         let (_, mut loaded) = cart(EntityKind::ChestMinecart, Vec3::ZERO);
         read(&nbt, &mut loaded);
         assert_eq!(loaded, state);
+    }
+
+    #[test]
+    fn a_tnt_minecart_always_saves_its_fuse_and_only_non_default_power() {
+        let (_, mut state) = cart(EntityKind::TntMinecart, Vec3::ZERO);
+        let mut nbt = Compound::new();
+        write(EntityKind::TntMinecart, &state, &mut nbt);
+        assert_eq!(nbt.get_i32("fuse"), Some(-1));
+        assert!(nbt.get("explosion_power").is_none());
+        state.fuse = 40;
+        state.explosion_power = 9.0;
+        let mut nbt = Compound::new();
+        write(EntityKind::TntMinecart, &state, &mut nbt);
+        let (_, mut loaded) = cart(EntityKind::TntMinecart, Vec3::ZERO);
+        read(&nbt, &mut loaded);
+        assert_eq!(loaded.fuse, 40);
+        assert_eq!(loaded.explosion_power, 9.0);
+    }
+
+    #[test]
+    fn a_furnace_minecart_burns_one_fuel_tick_and_loses_its_push_when_empty() {
+        let (mut base, mut state) = cart(EntityKind::FurnaceMinecart, Vec3::ZERO);
+        assert!(add_fuel(
+            &mut state,
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(2.0, 0.0, 0.0)
+        ));
+        assert_eq!(state.fuel, FUEL_PER_ITEM);
+        assert_eq!(state.push, Vec3::new(2.0, 0.0, 0.0));
+        furnace_tick(&mut base, &mut state);
+        assert_eq!(state.fuel, FUEL_PER_ITEM - 1);
+        assert!(base.data.boolean(DATA_HAS_FUEL));
+        state.fuel = 1;
+        furnace_tick(&mut base, &mut state);
+        assert_eq!(state.push, Vec3::ZERO);
+        assert!(!base.data.boolean(DATA_HAS_FUEL));
+    }
+
+    #[test]
+    fn fuel_is_refused_past_32000_ticks() {
+        let (_, mut state) = cart(EntityKind::FurnaceMinecart, Vec3::ZERO);
+        state.fuel = 29_000;
+        assert!(!add_fuel(&mut state, Vec3::ZERO, Vec3::ZERO));
+        state.fuel = 28_400;
+        assert!(add_fuel(&mut state, Vec3::ZERO, Vec3::ZERO));
     }
 }

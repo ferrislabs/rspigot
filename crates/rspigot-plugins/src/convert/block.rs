@@ -25,6 +25,11 @@ pub(super) fn order(order: v1::BlockOrder) -> Result<Order, Malformed> {
         ),
         Wire::Tile(edit) => BlockOrder::Tile(super::tiles::edit(edit)?),
         Wire::Pdc(change) => BlockOrder::Pdc(super::objects::pdc_change(change)?),
+        Wire::SetBiome(biome) => BlockOrder::SetBiome(biome),
+        Wire::SetLootTable(table) => BlockOrder::SetLootTable {
+            table: table.table,
+            seed: table.seed,
+        },
     };
     Ok(Order::Block { pos, order })
 }

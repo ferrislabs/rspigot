@@ -500,6 +500,16 @@ pub fn table(name: &str) -> Option<&'static LootTable> {
     overlaid(|overlay| overlay.tables.get(name).copied()).or_else(|| static_table(name))
 }
 
+pub fn table_names() -> Vec<String> {
+    let mut names: std::collections::BTreeSet<String> =
+        TABLES.iter().map(|(name, _)| (*name).to_owned()).collect();
+    overlaid(|overlay| {
+        names.extend(overlay.table_names().map(str::to_owned));
+        Some(())
+    });
+    names.into_iter().collect()
+}
+
 pub fn static_table(name: &str) -> Option<&'static LootTable> {
     TABLES
         .binary_search_by(|(candidate, _)| (*candidate).cmp(name))
@@ -575,6 +585,18 @@ mod tests {
     use crate::registries;
     use crate::tags::HolderSet;
 
+    #[test]
+    fn the_table_names_list_every_builtin_table_sorted() {
+        let names = table_names();
+        assert!(names.len() > 1000);
+        assert!(names.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(
+            names
+                .iter()
+                .any(|name| name == "minecraft:chests/spawn_bonus_chest")
+        );
+    }
+
     const BLOCK_TABLE_FILES: usize = 1201;
     const ENTITY_TABLE_FILES: usize = 109;
     const REFERENCED_TABLES: usize = 1;
@@ -586,6 +608,8 @@ mod tests {
     const BRUSH_TABLES: usize = 1;
     const ARCHAEOLOGY_TABLES: usize = 6;
     const SNOW_GOLEM_SHEARING_TABLES: usize = 1;
+    const BOGGED_SHEARING_TABLES: usize = 1;
+    const MOOSHROOM_SHEARING_TABLES: usize = 3;
     const SHEEP_COLOUR_TABLES: usize = 16;
     const CHARGED_CREEPER_TABLES: usize = 6;
     const TILL_TABLES: usize = 1;
@@ -675,6 +699,8 @@ mod tests {
                 + ARCHAEOLOGY_TABLES
                 + SHEEP_COLOUR_TABLES
                 + SNOW_GOLEM_SHEARING_TABLES
+                + BOGGED_SHEARING_TABLES
+                + MOOSHROOM_SHEARING_TABLES
                 + CHARGED_CREEPER_TABLES
                 + TILL_TABLES
                 + HARVEST_TABLES

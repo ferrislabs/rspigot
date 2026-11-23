@@ -22,12 +22,16 @@ pub enum WorldQuery {
     Structures(Vec<String>),
     Biomes(Vec<String>),
     Place(PlaceRequest),
+    Templates,
+    TemplateInfo(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum QueryAnswer {
     Located(Option<(String, Vec3)>),
     Placed(Result<Vec<PlacedBlock>, PlaceFailure>),
+    Templates(Vec<String>),
+    TemplateInfo(Option<crate::ports::TemplateInfo>),
 }
 
 pub enum ChunkJob {
@@ -313,6 +317,10 @@ fn execute<S: ChunkStore + EntityStore, G: ChunkGenerator>(
                 }
                 WorldQuery::Place(request) => {
                     QueryAnswer::Placed(generator.place(&dimension, &request))
+                }
+                WorldQuery::Templates => QueryAnswer::Templates(generator.template_names()),
+                WorldQuery::TemplateInfo(id) => {
+                    QueryAnswer::TemplateInfo(generator.template_info(&id))
                 }
             };
             let _ = reply.send(answer);

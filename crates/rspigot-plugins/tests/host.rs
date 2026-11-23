@@ -750,3 +750,127 @@ async fn a_plugin_disable_the_core_sends_before_a_stop_reaches_the_plugin_before
     );
     assert!(matches!(within(plugin.hears.message()).await, Ok(None)));
 }
+
+#[tokio::test]
+async fn a_scheduled_task_reaches_the_core_and_its_due_notice_reaches_the_plugin() {
+    use rspigot_core::plugins::{Order, SchedulerOrder, ServerOrder};
+
+    let mut host = Host::start(None).await;
+    let mut plugin = Plugin::accepted(host.address, hello("welcome")).await;
+    assert!(matches!(
+        host.next().await,
+        Seen::Connected { connection: 1, .. }
+    ));
+
+    plugin.say(from_plugin::Body::Server(v1::ServerOrder {
+        order: Some(v1::server_order::Order::ScheduleTask(v1::ScheduleTask {
+            id: 7,
+            delay: 20,
+            period: 10,
+        })),
+    }));
+    plugin.say(from_plugin::Body::Server(v1::ServerOrder {
+        order: Some(v1::server_order::Order::CancelTask(7)),
+    }));
+
+    for expected in [
+        SchedulerOrder::Schedule {
+            id: 7,
+            delay: 20,
+            period: 10,
+        },
+        SchedulerOrder::Cancel(7),
+    ] {
+        let Seen::Message { message, .. } = host.next().await else {
+            panic!("expected a message");
+        };
+        assert_eq!(
+            message,
+            FromPlugin::Order(Order::Server(ServerOrder::Schedule(expected)))
+        );
+    }
+
+    host.tell(1, ToPlugin::TaskDue(7));
+    assert_eq!(
+        plugin.hear().await,
+        Some(to_plugin::Body::TaskDue(v1::TaskDue { id: 7 }))
+    );
+}
+
+#[tokio::test]
+async fn a_typed_inventory_a_client_change_and_a_lookup_cross_the_host() {
+    use rspigot_core::plugins::{
+        InventorySpec, InventoryType, LookupQuestion, Order, PlayerAction, PlayerOrder, Question,
+        ServerOrder,
+    };
+
+    let mut host = Host::start(None).await;
+    let plugin = Plugin::accepted(host.address, hello("welcome")).await;
+    assert!(matches!(
+        host.next().await,
+        Seen::Connected { connection: 1, .. }
+    ));
+
+    plugin.say(from_plugin::Body::Server(v1::ServerOrder {
+        order: Some(v1::server_order::Order::CreateInventory(
+            v1::CreateInventory {
+                id: 4,
+                title: "Hop".to_owned(),
+                locked: true,
+                kind: v1::InventoryKind::Hopper as i32,
+                ..Default::default()
+            },
+        )),
+    }));
+    plugin.say(from_plugin::Body::Player(v1::PlayerOrder {
+        player: "00000000-0000-0000-0000-000000000001".to_owned(),
+        order: Some(player_order::Order::Extra(v1::PlayerExtra {
+            order: Some(v1::player_extra::Order::SendHurtAnimation(v1::ClientHurt {
+                entity: 12,
+                yaw: 30.0,
+            })),
+        })),
+    }));
+    plugin.say(from_plugin::Body::Question(v1::Question {
+        request: 9,
+        question: Some(v1::question::Question::Lookup(v1::LookupQuestion {
+            query: Some(v1::lookup_question::Query::Structures(v1::Empty {})),
+        })),
+    }));
+
+    let mut messages = Vec::new();
+    for _ in 0..3 {
+        let Seen::Message { message, .. } = host.next().await else {
+            panic!("expected a message");
+        };
+        messages.push(message);
+    }
+    assert_eq!(
+        messages[0],
+        FromPlugin::Order(Order::Server(ServerOrder::CreateTypedInventory {
+            id: 4,
+            spec: InventorySpec {
+                progress: None,
+                ty: InventoryType::Hopper,
+                slots: 0,
+                title: "Hop".to_owned(),
+                locked: true,
+                trades: Vec::new(),
+            },
+        }))
+    );
+    assert!(matches!(
+        &messages[1],
+        FromPlugin::Order(Order::Player {
+            order: PlayerOrder::Action(PlayerAction::Client(_)),
+            ..
+        })
+    ));
+    assert_eq!(
+        messages[2],
+        FromPlugin::Question {
+            request: 9,
+            question: Question::Lookup(LookupQuestion::Structures),
+        }
+    );
+}

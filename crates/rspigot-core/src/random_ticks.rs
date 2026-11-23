@@ -29,6 +29,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_tree_growth();
         self.tick_bubble_pushes();
         self.tick_conduits();
+        self.tick_potent_sulfur();
         self.tick_block_extras();
         let speed = self.config.rules.random_tick_speed;
         if speed <= 0 {
@@ -100,6 +101,7 @@ impl<L: ClientLink> Server<L> {
             BlockKind::TurtleEgg => self.turtle_egg_random_tick(pos),
             BlockKind::DriedGhast => self.dried_ghast_random_tick(pos),
             BlockKind::PointedDripstone => self.dripstone_random_tick(pos, picked),
+            BlockKind::SulfurSpike => self.sulfur_spike_random_tick(pos, picked),
             BlockKind::ChorusFlower => self.chorus_random_tick(pos, picked),
             BlockKind::GrassBlock | BlockKind::Mycelium => self.spreading_snowy_tick(pos, kind),
             BlockKind::Lava => self.lava_random_tick(pos),

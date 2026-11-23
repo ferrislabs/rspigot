@@ -119,7 +119,7 @@ const TRANSIENT_MODIFIERS: &[&str] = &[
     species::enderman::ATTACKING_MODIFIER,
     species::witch::DRINK_MODIFIER,
 ];
-const ARROW_KEYS: [&str; 15] = [
+const ARROW_KEYS: [&str; 16] = [
     "Owner",
     "LeftOwner",
     "HasBeenShot",
@@ -135,6 +135,7 @@ const ARROW_KEYS: [&str; 15] = [
     "item",
     "weapon",
     "DealtDamage",
+    "Duration",
 ];
 const THROWN_KEYS: [&str; 4] = ["Owner", "LeftOwner", "HasBeenShot", "Item"];
 const HURTING_KEYS: [&str; 7] = [
@@ -182,6 +183,7 @@ pub fn is_simulated(kind: EntityKind) -> bool {
             | EntityKind::FallingBlock
             | EntityKind::ExperienceOrb
             | EntityKind::Arrow
+            | EntityKind::SpectralArrow
             | EntityKind::Trident
             | EntityKind::Snowball
             | EntityKind::SplashPotion
@@ -773,7 +775,11 @@ fn read_species(nbt: &Compound, base: &mut EntityBase, living: &mut LivingState)
         Species::Warden(state) => species::warden::read(nbt, base, state),
         Species::CopperGolem(state) => species::copper_golem::read(nbt, base, state),
         Species::Cube(state) => species::cube::read(nbt, base, state),
-        Species::Plain | Species::Cow | Species::Pig => {}
+        Species::Plain | Species::Cow | Species::Pig => {
+            if base.kind == EntityKind::Bogged {
+                species::bogged::read(nbt, base);
+            }
+        }
     }
 }
 
@@ -799,6 +805,9 @@ fn read_arrow(nbt: &Compound, base: &mut EntityBase, state: &mut ArrowState) {
     state.weapon = nbt.get_compound("weapon").and_then(item_stack_from_nbt);
     if base.kind == EntityKind::Trident {
         state.dealt_damage = nbt.get_bool("DealtDamage").unwrap_or(false);
+    }
+    if base.kind == EntityKind::SpectralArrow {
+        state.duration = nbt.get_i32("Duration").unwrap_or(arrow::SPECTRAL_DURATION);
     }
 }
 
@@ -962,6 +971,9 @@ fn write_arrow(base: &EntityBase, state: &ArrowState, out: &mut Compound) {
     if base.kind == EntityKind::Trident {
         out.insert("DealtDamage", bool_tag(state.dealt_damage));
     }
+    if base.kind == EntityKind::SpectralArrow {
+        out.insert("Duration", state.duration);
+    }
 }
 
 fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static str]> {
@@ -1050,6 +1062,7 @@ fn species_keys(mob: &MobState, base_kind: EntityKind) -> Vec<&'static [&'static
         Species::Warden(_) => species::warden::KEYS,
         Species::Cube(_) => species::cube::keys(base_kind),
         Species::CopperGolem(_) => species::copper_golem::KEYS,
+        Species::Plain if base_kind == EntityKind::Bogged => species::bogged::KEYS,
         Species::Plain => &[],
     });
     keys
@@ -1089,6 +1102,10 @@ pub fn load_entity(nbt: &Compound, id: EntityId, fallback_uuid: Uuid) -> Result<
         EntityKind::Arrow => {
             let seed = fallback_uuid.as_u64_pair().0 as i64;
             EntityState::Arrow(Box::new(ArrowState::new(&mut base, seed)))
+        }
+        EntityKind::SpectralArrow => {
+            let seed = fallback_uuid.as_u64_pair().0 as i64;
+            EntityState::Arrow(Box::new(ArrowState::new_spectral(&mut base, seed)))
         }
         EntityKind::Trident => {
             let seed = fallback_uuid.as_u64_pair().0 as i64;
@@ -1610,7 +1627,11 @@ fn write_species(base: &EntityBase, mob: &MobState, out: &mut Compound) {
         Species::Warden(state) => species::warden::write(base, state, out),
         Species::CopperGolem(state) => species::copper_golem::write(base, state, out),
         Species::Cube(state) => species::cube::write(base, state, out),
-        Species::Plain | Species::Cow | Species::Pig => {}
+        Species::Plain | Species::Cow | Species::Pig => {
+            if base.kind == EntityKind::Bogged {
+                species::bogged::write(base, out);
+            }
+        }
     }
 }
 
@@ -1695,7 +1716,9 @@ pub fn save_entity(entity: &Entity, world: Option<Uuid>) -> Option<Compound> {
             armor_stand::write(&entity.base, stand_state, &mut out);
         }
         EntityState::Boat(boat_state) => boat::write(boat_state, &mut out),
-        EntityState::Minecart(cart_state) => minecart::write(cart_state, &mut out),
+        EntityState::Minecart(cart_state) => {
+            minecart::write(entity.base.kind, cart_state, &mut out)
+        }
         EntityState::Decor(decor_state) => decor::write(&entity.base, decor_state, &mut out),
         EntityState::Lightning(_) | EntityState::Hook(_) | EntityState::Inert(_) => {}
     }

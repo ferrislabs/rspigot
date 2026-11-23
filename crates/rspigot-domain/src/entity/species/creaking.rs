@@ -15,11 +15,18 @@ pub const ATTACK_ANIMATION_TICKS: i32 = 15;
 pub const HURT_EVENT: i8 = 66;
 pub const ATTACK_EVENT: i8 = 4;
 pub const FIRE_IMMUNE_WHEN_BOUND: bool = true;
+pub const TEARDOWN_TICKS: i32 = 46;
+pub const STUCK_LIMIT: i32 = 4;
+pub const CRUMBLE_WOOD_COUNT: i32 = 100;
+pub const CRUMBLE_HEART_COUNT: i32 = 10;
+pub const CRUMBLE_SPREAD: f64 = 0.3;
+pub const TWITCH_SOUND: &str = "minecraft:entity.creaking.twitch";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CreakingState {
     pub invulnerability_ticks: i32,
     pub attack_ticks: i32,
+    pub stuck_counter: i32,
 }
 
 pub fn define(base: &mut EntityBase) -> CreakingState {
@@ -74,7 +81,24 @@ pub fn is_heart_bound(base: &EntityBase) -> bool {
     home_pos(base).is_some()
 }
 
+pub fn death_duration(base: &EntityBase) -> i32 {
+    if is_heart_bound(base) && is_tearing_down(base) {
+        TEARDOWN_TICKS
+    } else {
+        crate::entity::living::DEATH_DURATION
+    }
+}
+
 impl CreakingState {
+    pub fn player_is_stuck(&mut self, eyes_inside: &[bool]) -> bool {
+        if !eyes_inside.iter().any(|inside| *inside) {
+            self.stuck_counter = 0;
+            return false;
+        }
+        self.stuck_counter += 1;
+        self.stuck_counter > STUCK_LIMIT
+    }
+
     pub fn tick(&mut self) {
         if self.invulnerability_ticks > 0 {
             self.invulnerability_ticks -= 1;
@@ -139,11 +163,57 @@ mod tests {
         let mut state = CreakingState {
             invulnerability_ticks: INVULNERABILITY_TICKS,
             attack_ticks: ATTACK_ANIMATION_TICKS,
+            stuck_counter: 0,
         };
         for _ in 0..20 {
             state.tick();
         }
         assert_eq!(state, CreakingState::default());
+    }
+
+    #[test]
+    fn a_player_with_the_eyes_inside_the_body_is_stuck_after_five_checks() {
+        let mut state = CreakingState::default();
+        for _ in 0..4 {
+            assert!(!state.player_is_stuck(&[true]));
+        }
+        assert!(state.player_is_stuck(&[true]));
+        assert!(state.player_is_stuck(&[false, true]));
+    }
+
+    #[test]
+    fn the_stuck_counter_resets_when_nobody_is_inside_or_nobody_is_near() {
+        let mut state = CreakingState::default();
+        for _ in 0..3 {
+            state.player_is_stuck(&[true]);
+        }
+        assert!(!state.player_is_stuck(&[false]));
+        assert_eq!(state.stuck_counter, 0);
+        for _ in 0..3 {
+            state.player_is_stuck(&[true]);
+        }
+        assert!(!state.player_is_stuck(&[]));
+        assert_eq!(state.stuck_counter, 0);
+    }
+
+    #[test]
+    fn a_heart_bound_creaking_that_is_tearing_down_twitches_for_forty_six_ticks() {
+        let mut base = base();
+        define(&mut base);
+        assert_eq!(death_duration(&base), 20);
+        set_tearing_down(&mut base);
+        assert_eq!(death_duration(&base), 20);
+        set_home_pos(&mut base, BlockPos::new(1, 2, 3));
+        assert_eq!(death_duration(&base), TEARDOWN_TICKS);
+        assert_eq!(TEARDOWN_TICKS, 46);
+    }
+
+    #[test]
+    fn the_twitch_and_crumble_effects_use_the_vanilla_numbers() {
+        assert_eq!(CRUMBLE_WOOD_COUNT, 100);
+        assert_eq!(CRUMBLE_HEART_COUNT, 10);
+        assert_eq!(CRUMBLE_SPREAD, 0.3);
+        assert_eq!(TWITCH_SOUND, "minecraft:entity.creaking.twitch");
     }
 
     #[test]

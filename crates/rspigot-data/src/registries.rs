@@ -35,6 +35,10 @@ pub(crate) fn static_registry(registry: &str) -> Option<&'static StaticRegistry>
         .map(|position| &STATIC[position])
 }
 
+pub fn static_registry_ids() -> impl Iterator<Item = &'static str> {
+    STATIC.iter().map(|registry| registry.id)
+}
+
 pub fn synced_entries(registry: &str) -> Option<&'static [&'static str]> {
     SYNCED
         .iter()
@@ -71,4 +75,17 @@ fn index_in(entries: &[&str], entry: &str) -> Option<u32> {
         .binary_search_by(|candidate| (*candidate).cmp(entry))
         .ok()
         .and_then(|index| u32::try_from(index).ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_static_registry_is_listed_with_its_entries() {
+        let ids: Vec<&str> = static_registry_ids().collect();
+        assert_eq!(ids.len(), 95);
+        assert!(ids.contains(&"minecraft:activity"));
+        assert!(ids.iter().all(|id| static_entries(id).is_some()));
+    }
 }

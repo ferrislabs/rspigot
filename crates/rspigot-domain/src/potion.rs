@@ -101,6 +101,26 @@ pub fn stack(item: ItemKind, potion: &str) -> ItemStack {
     stack
 }
 
+pub fn add_custom_effect(stack: &mut ItemStack, effect: &str, ticks: i32) {
+    let mut contents = stack
+        .components
+        .get_compound(CONTENTS)
+        .cloned()
+        .unwrap_or_default();
+    let mut list: Vec<Tag> = contents
+        .get_list("custom_effects")
+        .map(<[Tag]>::to_vec)
+        .unwrap_or_default();
+    list.push(Tag::Compound(
+        Compound::new()
+            .with("id", effect)
+            .with("amplifier", 0_i8)
+            .with("duration", ticks),
+    ));
+    contents.insert("custom_effects", Tag::List(list));
+    stack.components.insert(CONTENTS, contents);
+}
+
 pub fn duration_scale(stack: &ItemStack) -> f32 {
     stack
         .components
@@ -267,6 +287,17 @@ pub fn effects_color(effects: &[EffectInstance]) -> Option<i32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_custom_effect_added_to_a_plain_arrow_is_read_back_as_a_potion_effect() {
+        let mut arrow = ItemStack::new(ItemKind::Arrow.id(), NonZeroU8::MIN);
+        add_custom_effect(&mut arrow, "minecraft:poison", 100);
+        let contents = PotionContents::of(&arrow);
+        let effects = contents.effects();
+        assert_eq!(effects.len(), 1);
+        assert_eq!(effects[0].duration, EffectDuration::Ticks(100));
+        assert!(effects_color(&effects).is_some());
+    }
 
     #[test]
     fn the_table_lists_every_registered_potion_in_registry_order() {

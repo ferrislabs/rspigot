@@ -114,12 +114,14 @@ pub(crate) fn plugin_group(group: &str) -> i32 {
 fn plugin_category(recipe: &PluginRecipe) -> i32 {
     let building = recipe.category == Category::Building;
     match &recipe.body {
-        Body::Shaped { .. } | Body::Shapeless { .. } => match recipe.category {
-            Category::Building => 0,
-            Category::Redstone => 1,
-            Category::Equipment => 2,
-            Category::Misc | Category::Food => 3,
-        },
+        Body::Shaped { .. } | Body::Shapeless { .. } | Body::Transmute { .. } => {
+            match recipe.category {
+                Category::Building => 0,
+                Category::Redstone => 1,
+                Category::Equipment => 2,
+                Category::Misc | Category::Food => 3,
+            }
+        }
         Body::Cooking { kind, .. } => match kind {
             CookingKind::Smelting if recipe.category == Category::Food => 4,
             CookingKind::Smelting if building => 5,
@@ -129,7 +131,7 @@ fn plugin_category(recipe: &PluginRecipe) -> i32 {
             CookingKind::Smoking => 9,
             CookingKind::Campfire => 6,
         },
-        Body::Stonecutting { .. } | Body::Smithing { .. } => 3,
+        Body::Stonecutting { .. } | Body::Smithing { .. } | Body::SmithingTrim { .. } => 3,
     }
 }
 
@@ -158,7 +160,10 @@ impl CatalogRecipe {
                 duration: *time,
                 experience: *experience,
             },
-            Body::Stonecutting { .. } | Body::Smithing { .. } => Shape::Other,
+            Body::Transmute { input, material } => Shape::Shapeless(vec![*input, *material]),
+            Body::Stonecutting { .. } | Body::Smithing { .. } | Body::SmithingTrim { .. } => {
+                Shape::Other
+            }
         };
         Self {
             id: recipe.id,

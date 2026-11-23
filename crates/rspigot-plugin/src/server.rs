@@ -6,9 +6,12 @@ use uuid::Uuid;
 
 use crate::Error;
 use crate::boss_bar::BossBars;
-use crate::custom_inventory::CustomInventory;
+use crate::contract::Trade;
+use crate::custom_inventory::{CustomInventory, InventoryType};
 use crate::link::Link;
+use crate::lookups::{ServerLootHandle, ServerProfilesHandle, ServerRegistriesHandle};
 use crate::player::Player;
+use crate::scheduler::Scheduler;
 use crate::scoreboard::ScoreboardManager;
 use crate::wire::{from_millis, parse_address, parse_uuid};
 use crate::world::World;
@@ -24,10 +27,14 @@ pub struct Server {
     pub command: ServerCommandHandle,
     pub ip_bans: ServerIpBansHandle,
     pub lifecycle: ServerLifecycleHandle,
+    pub loot: ServerLootHandle,
+    pub profiles: ServerProfilesHandle,
     pub message: ServerMessageHandle,
     pub operators: ServerOperatorsHandle,
     pub permissions: crate::ServerPermissionsHandle,
     pub recipes: crate::ServerRecipesHandle,
+    pub registries: ServerRegistriesHandle,
+    pub scheduler: Scheduler,
     pub scoreboard_manager: ScoreboardManager,
     pub settings: crate::ServerSettingsHandle,
     pub whitelist: ServerWhitelistHandle,
@@ -43,10 +50,14 @@ impl Server {
             command: ServerCommandHandle::new(link.clone()),
             ip_bans: ServerIpBansHandle::new(link.clone()),
             lifecycle: ServerLifecycleHandle::new(link.clone()),
+            loot: ServerLootHandle::new(link.clone()),
+            profiles: ServerProfilesHandle::new(link.clone()),
             message: ServerMessageHandle::new(link.clone()),
             operators: ServerOperatorsHandle::new(link.clone()),
             permissions: crate::ServerPermissionsHandle::new(link.clone()),
             recipes: crate::ServerRecipesHandle::new(link.clone()),
+            registries: ServerRegistriesHandle::new(link.clone()),
+            scheduler: Scheduler::new(link.clone()),
             scoreboard_manager: ScoreboardManager::new(link.clone()),
             settings: crate::ServerSettingsHandle::new(link.clone()),
             whitelist: ServerWhitelistHandle::new(link.clone()),
@@ -69,6 +80,67 @@ impl Server {
         title: impl Into<String>,
     ) -> Result<CustomInventory, Error> {
         CustomInventory::create(&self.link, rows, title.into(), false).await
+    }
+
+    pub async fn create_inventory_of(
+        &self,
+        kind: InventoryType,
+        title: impl Into<String>,
+    ) -> Result<CustomInventory, Error> {
+        let slots = if kind == InventoryType::Chest { 27 } else { 0 };
+        CustomInventory::create_typed(&self.link, kind, slots, title.into(), true, &[], None).await
+    }
+
+    pub async fn create_chest(
+        &self,
+        slots: u16,
+        title: impl Into<String>,
+    ) -> Result<CustomInventory, Error> {
+        CustomInventory::create_typed(
+            &self.link,
+            InventoryType::Chest,
+            slots,
+            title.into(),
+            true,
+            &[],
+            None,
+        )
+        .await
+    }
+
+    pub async fn create_merchant(
+        &self,
+        title: impl Into<String>,
+        trades: &[Trade],
+    ) -> Result<CustomInventory, Error> {
+        CustomInventory::create_typed(
+            &self.link,
+            InventoryType::Merchant,
+            0,
+            title.into(),
+            false,
+            trades,
+            None,
+        )
+        .await
+    }
+
+    pub async fn create_merchant_with_progress(
+        &self,
+        title: impl Into<String>,
+        trades: &[Trade],
+        progress: crate::MerchantProgress,
+    ) -> Result<CustomInventory, Error> {
+        CustomInventory::create_typed(
+            &self.link,
+            InventoryType::Merchant,
+            0,
+            title.into(),
+            false,
+            trades,
+            Some(progress),
+        )
+        .await
     }
 
     pub async fn get_players(&self) -> Result<Vec<Player>, Error> {

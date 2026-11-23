@@ -1,5 +1,6 @@
 use std::num::NonZeroU8;
 
+use rspigot_entities::EntityKind;
 use rspigot_items::ItemKind;
 use uuid::Uuid;
 
@@ -44,6 +45,7 @@ pub const FLAG_CRIT: u8 = 1;
 pub const FLAG_NO_PHYSICS: u8 = 2;
 pub const BASE_DAMAGE: f64 = 2.0;
 pub const SHAKE_TIME: i32 = 7;
+pub const SPECTRAL_DURATION: i32 = 200;
 pub const WATER_INERTIA: f32 = 0.6;
 pub const AIR_DRAG: f32 = 0.99;
 pub const GRAVITY: f64 = 0.05;
@@ -101,6 +103,7 @@ pub struct ArrowState {
     pub item: ItemStack,
     pub weapon: Option<ItemStack>,
     pub pierced: Vec<crate::EntityId>,
+    pub duration: i32,
     pub dealt_damage: bool,
     pub return_ticks: i32,
     pub random: LegacyRandom,
@@ -108,6 +111,50 @@ pub struct ArrowState {
 
 pub fn trident_item() -> ItemStack {
     ItemStack::new(ItemKind::Trident.id(), NonZeroU8::MIN)
+}
+
+pub fn variant_effect(kind: EntityKind) -> Option<(&'static str, i32)> {
+    match kind {
+        EntityKind::Stray => Some(("minecraft:slowness", 600)),
+        EntityKind::Bogged => Some(("minecraft:poison", 100)),
+        EntityKind::Parched => Some(("minecraft:weakness", 600)),
+        _ => None,
+    }
+}
+
+pub const WITHER_SKELETON_ARROW_FIRE_SECONDS: f32 = 100.0;
+
+pub fn spectral_item() -> ItemStack {
+    ItemStack::new(ItemKind::SpectralArrow.id(), NonZeroU8::MIN)
+}
+
+pub fn kind_for(item: &ItemStack) -> EntityKind {
+    if item.item == ItemKind::SpectralArrow.id() {
+        EntityKind::SpectralArrow
+    } else {
+        EntityKind::Arrow
+    }
+}
+
+pub fn effect_color_of(item: &ItemStack) -> i32 {
+    let contents = crate::potion::PotionContents::of(item);
+    if contents.potion.is_none()
+        && contents.custom_effects.is_empty()
+        && contents.custom_color.is_none()
+    {
+        return -1;
+    }
+    contents.color()
+}
+
+pub fn sync_effect_color(base: &mut EntityBase, arrow: &ArrowState) {
+    if base.kind != EntityKind::Arrow {
+        return;
+    }
+    let color = effect_color_of(&arrow.item);
+    if base.data.int(DATA_EFFECT_COLOR) != color {
+        base.data.set(DATA_EFFECT_COLOR, SyncedValue::Int(color));
+    }
 }
 
 pub fn default_item() -> ItemStack {
@@ -122,6 +169,25 @@ impl ArrowState {
             .define(DATA_IN_GROUND, SyncedValue::Boolean(false));
         base.data.define(DATA_EFFECT_COLOR, SyncedValue::Int(-1));
         Self::unsynced(seed)
+    }
+
+    pub fn for_base(base: &mut EntityBase, seed: i64) -> Self {
+        if base.kind == EntityKind::SpectralArrow {
+            Self::new_spectral(base, seed)
+        } else {
+            Self::new(base, seed)
+        }
+    }
+
+    pub fn new_spectral(base: &mut EntityBase, seed: i64) -> Self {
+        base.data.define(DATA_FLAGS, SyncedValue::Byte(0));
+        base.data.define(DATA_PIERCE_LEVEL, SyncedValue::Byte(0));
+        base.data
+            .define(DATA_IN_GROUND, SyncedValue::Boolean(false));
+        Self {
+            item: spectral_item(),
+            ..Self::unsynced(seed)
+        }
     }
 
     pub fn new_trident(base: &mut EntityBase, seed: i64) -> Self {
@@ -154,6 +220,7 @@ impl ArrowState {
             item: default_item(),
             weapon: None,
             pierced: Vec::new(),
+            duration: SPECTRAL_DURATION,
             dealt_damage: false,
             return_ticks: 0,
             random: LegacyRandom::new(seed),

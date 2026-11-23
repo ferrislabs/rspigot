@@ -272,10 +272,12 @@ async fn inventory_orders_and_resolve_use_menu_slots() {
         answer::Body::CustomInventory(v1::CustomInventoryState {
             slots: vec![slot(0, None), slot(1, Some(item("minecraft:diamond", 3)))],
             viewers: vec![steve(), alex()],
+            ..Default::default()
         }),
         answer::Body::CustomInventory(v1::CustomInventoryState {
             slots: vec![slot(1, None), slot(0, None)],
             viewers: Vec::new(),
+            ..Default::default()
         }),
         answer::Body::NotFound(v1::NotFound {}),
     ] {

@@ -2,8 +2,8 @@ use std::num::NonZeroU8;
 
 use rspigot_domain::entity::species::Species;
 use rspigot_domain::entity::species::mooshroom::{
-    self, EAT_SOUND, MILK_SOUND, MILK_SUSPICIOUSLY_SOUND, MUSHROOMS_PER_SHEARING, MooshroomState,
-    SHEAR_SOUND, SMALL_FLOWERS, StewEffect, Variant,
+    self, EAT_SOUND, MILK_SOUND, MILK_SUSPICIOUSLY_SOUND, MooshroomState, SHEAR_SOUND,
+    SMALL_FLOWERS, StewEffect, Variant,
 };
 use rspigot_domain::entity::{Entity, EntityState};
 use rspigot_domain::item::ItemStack;
@@ -15,10 +15,13 @@ use rspigot_items::{Craft, ItemKind, ItemSet, ProductComponent, StewEffect as Fl
 
 use crate::events::Hand;
 use crate::interact::{Interaction, item_tag};
+use crate::loot::{self, LootContext};
+use crate::plugins::steps::Follow;
 use crate::ports::ClientLink;
 use crate::server::Server;
 
 const STEW_EFFECTS: &str = "minecraft:suspicious_stew_effects";
+const SHEAR_TABLE: &str = "minecraft:shearing/mooshroom";
 
 fn mooshroom_state(entity: &mut Entity) -> Option<&mut MooshroomState> {
     match entity
@@ -176,26 +179,38 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn shear_mooshroom(&mut self, target: EntityId) {
+        self.play_entity_sound(target, SHEAR_SOUND, SoundSource::Players, 1.0, 1.0);
+        self.convert_with(target, Kind::Cow, None, Follow::Shear);
+    }
+
+    pub(crate) fn drop_mooshroom_shearings(&mut self, target: EntityId) {
         let Some(entity) = self.entities.store.get(target) else {
             return;
         };
-        let variant = mooshroom::variant(&entity.base);
-        let height = f64::from(Kind::Mooshroom.dimensions().height);
-        self.play_entity_sound(target, SHEAR_SOUND, SoundSource::Players, 1.0, 1.0);
-        let Some(item) = ItemKind::from_name(variant.mushroom()) else {
-            return;
-        };
-        for _ in 0..MUSHROOMS_PER_SHEARING {
-            let mut random = self.mob_random(target);
-            let push = Vec3::new(
-                f64::from((random.next_float() - random.next_float()) * 0.1),
-                f64::from(random.next_float() * 0.05),
-                f64::from((random.next_float() - random.next_float()) * 0.1),
-            );
-            self.store_mob_random(target, random);
-            let single = ItemStack::new(item.id(), NonZeroU8::MIN);
-            self.drop_at_location(target, height, single, push);
+        let facts = crate::mobs::loot_facts_of(entity);
+        let height = f64::from(entity.base.dimensions.height);
+        let drops = rspigot_data::loot::table(SHEAR_TABLE).map_or_else(Vec::new, |table| {
+            let context = LootContext {
+                this: Some(&facts),
+                ..LootContext::default()
+            };
+            loot::table_drops(table, &context, &mut self.rng)
+        });
+        for stack in drops {
+            for _ in 0..stack.count.get() {
+                let single = ItemStack {
+                    count: NonZeroU8::MIN,
+                    ..stack.clone()
+                };
+                let mut random = self.mob_random(target);
+                let push = Vec3::new(
+                    f64::from((random.next_float() - random.next_float()) * 0.1),
+                    f64::from(random.next_float() * 0.05),
+                    f64::from((random.next_float() - random.next_float()) * 0.1),
+                );
+                self.store_mob_random(target, random);
+                self.drop_at_location(target, height, single, push);
+            }
         }
-        self.convert_mob(target, Kind::Cow, None);
     }
 }

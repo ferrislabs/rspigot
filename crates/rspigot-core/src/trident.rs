@@ -254,6 +254,7 @@ impl<L: ClientLink> Server<L> {
             damage: SPIN_DAMAGE,
         });
         let position = player.position;
+        self.remove_entities_on_shoulder(id);
         self.play_sound(None, position, sound, SoundSource::Players, 1.0, 1.0);
         self.refresh_hands(id);
     }

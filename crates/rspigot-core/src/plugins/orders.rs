@@ -140,6 +140,11 @@ pub enum ServerOrder {
         title: String,
         locked: bool,
     },
+    CreateTypedInventory {
+        id: u64,
+        spec: crate::plugins::InventorySpec,
+    },
+    Schedule(crate::plugins::SchedulerOrder),
     CreateWorld(crate::worlds::WorldSpec),
     AddRecipe(Box<crate::plugins::RecipeSpec>),
     RemoveRecipe(String),
@@ -164,6 +169,8 @@ impl ServerOrder {
             Self::IpBanAdd { .. } => "server.ip_ban_add",
             Self::IpBanRemove(_) => "server.ip_ban_remove",
             Self::CreateInventory { .. } => "server.create_inventory",
+            Self::CreateTypedInventory { .. } => "server.create_inventory",
+            Self::Schedule(order) => order.name(),
             Self::CreateWorld(_) => "server.create_world",
             Self::AddRecipe(_) => "server.recipes.add",
             Self::RemoveRecipe(_) => "server.recipes.remove",
@@ -262,6 +269,11 @@ pub enum BlockOrder {
     SetData(Vec<(String, String)>),
     Tile(crate::plugins::TileEdit),
     Pdc(crate::plugins::pdc::PdcChange),
+    SetLootTable {
+        table: Option<String>,
+        seed: i64,
+    },
+    SetBiome(String),
 }
 
 impl BlockOrder {
@@ -274,6 +286,8 @@ impl BlockOrder {
             Self::SetData(_) => "block.set_data",
             Self::Tile(edit) => edit.name(),
             Self::Pdc(change) => change.name(),
+            Self::SetLootTable { .. } => "block.set_loot_table",
+            Self::SetBiome(_) => "block.set_biome",
         }
     }
 }
@@ -293,6 +307,7 @@ pub enum EntityOrder {
     Meta(crate::plugins::meta::MetaOrder),
     Edit(crate::plugins::EntityEdit),
     Object(crate::plugins::object_actions::ObjectOrder),
+    SetLootTable { table: Option<String>, seed: i64 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -339,6 +354,7 @@ impl EntityOrder {
             Self::Meta(order) => order.name(),
             Self::Edit(edit) => edit.name(),
             Self::Object(order) => order.name(),
+            Self::SetLootTable { .. } => "entity.set_loot_table",
         }
     }
 }
@@ -549,9 +565,11 @@ impl PlayerOrder {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CustomInventoryOrder {
     Set { slot: i32, item: Option<ItemSpec> },
+    SetTrades(Vec<crate::plugins::Trade>),
+    SetProgress(crate::plugins::MerchantProgress),
     Clear,
     Close,
     Discard,
@@ -561,6 +579,8 @@ impl CustomInventoryOrder {
     pub const fn name(&self) -> &'static str {
         match self {
             Self::Set { .. } => "custom_inventory.set",
+            Self::SetTrades(_) => "custom_inventory.set_trades",
+            Self::SetProgress(_) => "custom_inventory.set_progress",
             Self::Clear => "custom_inventory.clear",
             Self::Close => "custom_inventory.close",
             Self::Discard => "custom_inventory.discard",

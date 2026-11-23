@@ -14,6 +14,7 @@ use crate::game_events::GameEventContext;
 use crate::health::DamageSource;
 use crate::loot::{self, LootContext, LootEntity};
 use crate::mobs::ServerRandom;
+use crate::plugins::events::CreatureSpawnReason;
 use crate::plugins::events::{
     BlockIgniteCause, EntityExplode, EntityExplodePatch, EntityRemoveCause, ExplosionPrime,
     ExplosionPrimePatch, ExplosionResult,
@@ -142,6 +143,7 @@ impl<L: ClientLink> Server<L> {
         let interaction = self.mob_block_interaction();
         let radius = patch.radius.unwrap_or(step.radius);
         let fire = patch.fire.unwrap_or(step.fire);
+        let effects = self.creeper_effects(id);
         self.explode(
             Some(id),
             &damage,
@@ -151,6 +153,47 @@ impl<L: ClientLink> Server<L> {
             fire,
             Some(id),
         );
+        self.spawn_creeper_cloud(id, center, &effects);
+    }
+
+    fn creeper_effects(&self, id: EntityId) -> Vec<rspigot_domain::effect::EffectInstance> {
+        self.entities
+            .store
+            .get(id)
+            .and_then(|entity| entity.living())
+            .map(|living| living.effects.iter().copied().collect())
+            .unwrap_or_default()
+    }
+
+    fn spawn_creeper_cloud(
+        &mut self,
+        id: EntityId,
+        center: Vec3,
+        effects: &[rspigot_domain::effect::EffectInstance],
+    ) {
+        if effects.is_empty() {
+            return;
+        }
+        let owner = self.subject_view(id).map(|view| view.uuid);
+        let mut cloud = self.new_cloud(center);
+        if let EntityState::Cloud(state) = &mut cloud.state {
+            state.owner = owner;
+            state.radius_on_use = rspigot_domain::entity::cloud::CREEPER_RADIUS_ON_USE;
+            state.wait_time = rspigot_domain::entity::cloud::CREEPER_WAIT_TIME;
+            state.duration = rspigot_domain::entity::cloud::CREEPER_DURATION;
+            state.potion_duration_scale = rspigot_domain::entity::cloud::CREEPER_DURATION_SCALE;
+            state.radius_per_tick = -rspigot_domain::entity::cloud::CREEPER_RADIUS
+                / rspigot_domain::entity::cloud::CREEPER_DURATION as f32;
+            for effect in effects {
+                state.add_effect(effect);
+            }
+            state.refresh_particle(&mut cloud.base);
+        }
+        rspigot_domain::entity::cloud::set_radius(
+            &mut cloud.base,
+            rspigot_domain::entity::cloud::CREEPER_RADIUS,
+        );
+        self.add_entity(cloud, CreatureSpawnReason::Explosion);
     }
 
     pub(crate) fn mob_block_interaction(&self) -> BlockInteraction {

@@ -32,7 +32,7 @@ fn cost_of(stack: &ItemStack) -> ItemCost {
     cost
 }
 
-fn offer_of(trade: &Trade) -> Result<MerchantOffer, ActionError> {
+pub(super) fn offer_of(trade: &Trade) -> Result<MerchantOffer, ActionError> {
     if trade.ingredients.is_empty() || trade.ingredients.len() > MAX_INGREDIENTS {
         return Err(invalid("a trade takes one or two ingredients"));
     }
@@ -74,7 +74,7 @@ fn offer_of(trade: &Trade) -> Result<MerchantOffer, ActionError> {
     Ok(offer)
 }
 
-fn trade_of(offer: &MerchantOffer) -> Trade {
+pub(super) fn trade_of(offer: &MerchantOffer) -> Trade {
     let mut ingredients = Vec::new();
     ingredients.extend(offer.cost_a.item_stack().as_ref().map(spec_of));
     ingredients.extend(offer.cost_b_stack().as_ref().map(spec_of));

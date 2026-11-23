@@ -313,6 +313,7 @@ async fn listen(
             Some(to_plugin::Body::Warning(warning)) => {
                 tracing::warn!("rspigot: {}", warning.message);
             }
+            Some(to_plugin::Body::TaskDue(due)) => link.task_due(due.id),
             Some(to_plugin::Body::Replaced(_)) => return Ended::Replaced,
             Some(to_plugin::Body::Accepted(_)) | None => {}
         }
@@ -375,6 +376,7 @@ async fn handle_events<P: Listeners>(
             }
             Queued::Disable => {
                 tasks = None;
+                link.cancel_all_tasks();
                 plugin.disable().await;
             }
         }

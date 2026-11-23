@@ -3928,6 +3928,7 @@ mod tests {
         let mut plugin = PluginRecipes::default();
         let template = || plugin_recipes::intern_items(&[named("minecraft:stick")]);
         plugin.add(PluginRecipe {
+            exact: Vec::new(),
             id,
             display_id,
             owner: "t".to_owned(),
@@ -3944,6 +3945,7 @@ mod tests {
             auto_discover: false,
         });
         plugin.add(PluginRecipe {
+            exact: Vec::new(),
             id,
             display_id,
             owner: "t".to_owned(),

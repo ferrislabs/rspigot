@@ -6,6 +6,7 @@ use crate::{Error, ItemStack, Material, PlayerRecipesHandle, ServerRecipesHandle
 pub enum Ingredient {
     Items(Vec<Material>),
     Tag(String),
+    Exact(ItemStack),
 }
 
 impl Ingredient {
@@ -21,6 +22,10 @@ impl Ingredient {
         Self::Tag(tag.into())
     }
 
+    pub fn exact(stack: ItemStack) -> Self {
+        Self::Exact(stack)
+    }
+
     fn into_wire(self) -> v1::RecipeIngredient {
         v1::RecipeIngredient {
             choice: Some(match self {
@@ -31,6 +36,7 @@ impl Ingredient {
                         .collect(),
                 }),
                 Self::Tag(tag) => v1::recipe_ingredient::Choice::Tag(tag),
+                Self::Exact(stack) => v1::recipe_ingredient::Choice::Exact(stack.into_wire()),
             }),
         }
     }
@@ -129,6 +135,16 @@ enum Body {
         ticks: u32,
     },
     Stonecutting(Ingredient),
+    SmithingTrim {
+        template: Ingredient,
+        base: Ingredient,
+        addition: Ingredient,
+        pattern: String,
+    },
+    Transmute {
+        input: Ingredient,
+        material: Ingredient,
+    },
     Smithing {
         template: Ingredient,
         base: Ingredient,
@@ -241,6 +257,41 @@ impl Recipe {
         )
     }
 
+    pub fn smithing_trim(
+        id: impl Into<String>,
+        template: Ingredient,
+        base: Ingredient,
+        addition: Ingredient,
+        pattern: impl Into<String>,
+        result: ItemStack,
+    ) -> Self {
+        Self::of(
+            id,
+            result,
+            Body::SmithingTrim {
+                template,
+                base,
+                addition,
+                pattern: pattern.into(),
+            },
+            RecipeCategory::Misc,
+        )
+    }
+
+    pub fn transmute(
+        id: impl Into<String>,
+        input: Ingredient,
+        material: Ingredient,
+        result: ItemStack,
+    ) -> Self {
+        Self::of(
+            id,
+            result,
+            Body::Transmute { input, material },
+            RecipeCategory::Misc,
+        )
+    }
+
     pub fn group(self, group: impl Into<String>) -> Self {
         Self {
             group: group.into(),
@@ -300,6 +351,23 @@ impl Recipe {
             }),
             Body::Stonecutting(ingredient) => {
                 recipe_def::Body::Stonecutting(ingredient.into_wire())
+            }
+            Body::SmithingTrim {
+                template,
+                base,
+                addition,
+                pattern,
+            } => recipe_def::Body::SmithingTrim(v1::SmithingTrimRecipe {
+                template: Some(template.into_wire()),
+                base: Some(base.into_wire()),
+                addition: Some(addition.into_wire()),
+                pattern,
+            }),
+            Body::Transmute { input, material } => {
+                recipe_def::Body::Transmute(v1::TransmuteRecipe {
+                    input: Some(input.into_wire()),
+                    material: Some(material.into_wire()),
+                })
             }
             Body::Smithing {
                 template,

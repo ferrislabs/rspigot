@@ -21,6 +21,7 @@ uuid = "1"
 [dev-dependencies]
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "test-util"] }
 rspigot-plugin = { workspace = true }
+rspigot-nbt = { workspace = true }
 tempfile = "3"
 
 [lints]

@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::ops::RangeInclusive;
 
 use rspigot_domain::container_menu::{ContainerMenu, MenuKind};
+use rspigot_domain::entity::trading::MerchantOffers;
 use rspigot_domain::item::{Inventory, OFFHAND_SLOT, Slot};
 use rspigot_domain::menu::{Clicker, MenuEffect};
 use rspigot_domain::player::{GameMode, PlayerId};
@@ -9,7 +10,9 @@ use rspigot_domain::text::Component;
 
 use crate::containers::{next_window, sync_menu_view};
 use crate::events::{ClientEvent, ContainerClick};
+use crate::plugins::inventory_types::{InventoryType, MerchantProgress};
 use crate::plugins::items::{spec_of, stack_of};
+use crate::plugins::merchants::trade_of;
 use crate::plugins::resolve::text;
 use crate::plugins::views::Window;
 use crate::plugins::{
@@ -24,18 +27,21 @@ const ROWS: RangeInclusive<u8> = 1..=6;
 const ROW_SLOTS: usize = 9;
 const OFFHAND: i32 = 40;
 
-type Key = (u64, u64);
+pub(super) type Key = (u64, u64);
 
-struct PluginInventory {
-    rows: u8,
-    title: Component,
-    locked: bool,
-    items: Vec<Slot>,
+pub(super) struct PluginInventory {
+    pub(super) kind: MenuKind,
+    pub(super) ty: InventoryType,
+    pub(super) title: Component,
+    pub(super) locked: bool,
+    pub(super) items: Vec<Slot>,
+    pub(super) offers: MerchantOffers,
+    pub(super) progress: MerchantProgress,
 }
 
 #[derive(Default)]
 pub(crate) struct PluginInventories {
-    held: BTreeMap<Key, PluginInventory>,
+    pub(super) held: BTreeMap<Key, PluginInventory>,
 }
 
 impl PluginInventories {
@@ -84,7 +90,25 @@ impl<L: ClientLink> Server<L> {
                     ROWS.end()
                 ))
             })?;
+        self.reserve_inventory(connection, id)?;
         let inventories = &mut self.plugin_inventories;
+        inventories.held.insert(
+            (connection, id),
+            PluginInventory {
+                kind: MenuKind::Generic { rows },
+                ty: InventoryType::Chest,
+                title: text(title),
+                locked,
+                items: vec![None; usize::from(rows) * ROW_SLOTS],
+                offers: MerchantOffers::new(),
+                progress: MerchantProgress::default(),
+            },
+        );
+        Ok(())
+    }
+
+    pub(super) fn reserve_inventory(&self, connection: u64, id: u64) -> Result<(), ActionError> {
+        let inventories = &self.plugin_inventories;
         if inventories.held.contains_key(&(connection, id)) {
             return Err(ActionError::new(
                 ActionErrorKind::IncompatibleState,
@@ -97,15 +121,6 @@ impl<L: ClientLink> Server<L> {
                 format!("the plugin already holds {MAX_PLUGIN_INVENTORIES} inventories"),
             ));
         }
-        inventories.held.insert(
-            (connection, id),
-            PluginInventory {
-                rows,
-                title: text(title),
-                locked,
-                items: vec![None; usize::from(rows) * ROW_SLOTS],
-            },
-        );
         Ok(())
     }
 
@@ -133,12 +148,12 @@ impl<L: ClientLink> Server<L> {
     pub(crate) fn show_plugin_menu(&mut self, connection: u64, id: PlayerId, inventory: u64) {
         let key = (connection, inventory);
         let (Some(held), Some(player)) = (
-            self.plugin_inventories.held.get(&key),
+            self.plugin_inventories.held.get_mut(&key),
             self.players.get_mut(&id),
         ) else {
             return;
         };
-        let kind = MenuKind::Generic { rows: held.rows };
+        let kind = held.kind;
         let window = next_window(player);
         let mut open = PluginMenu {
             window,
@@ -152,6 +167,11 @@ impl<L: ClientLink> Server<L> {
             menu: kind.protocol_id(),
             title: held.title.clone(),
         });
+        let merchant = (kind == MenuKind::Merchant).then(|| (held.offers.clone(), held.progress));
+        if let Some((offers, _)) = merchant.clone() {
+            open.menu
+                .set_offers(&mut held.items, &mut player.inventory, offers);
+        }
         sync_menu_view(
             &player.link,
             window,
@@ -161,6 +181,16 @@ impl<L: ClientLink> Server<L> {
             &player.inventory,
             true,
         );
+        if let Some((offers, progress)) = merchant {
+            player.link.send(ClientEvent::MerchantOffers {
+                window,
+                offers: offers.iter().cloned().collect(),
+                level: progress.level,
+                xp: progress.xp,
+                show_progress: progress.show_progress,
+                can_restock: progress.can_restock,
+            });
+        }
         player.plugin_menu = Some(open);
     }
 
@@ -205,6 +235,13 @@ impl<L: ClientLink> Server<L> {
             || !act
             || click.state_id != open.state_id
             || effects.contains(&MenuEffect::FullResync);
+        let traded: Vec<usize> = effects
+            .iter()
+            .filter_map(|effect| match effect {
+                MenuEffect::Traded { offer } => Some(*offer),
+                _ => None,
+            })
+            .collect();
         let drops = effects
             .into_iter()
             .filter(|effect| matches!(effect, MenuEffect::Drop { .. }))
@@ -218,6 +255,7 @@ impl<L: ClientLink> Server<L> {
                 }
             }
         }
+        self.plugin_trades_taken(id, &traded);
         self.sync_inventory(id);
     }
 
@@ -282,7 +320,10 @@ impl<L: ClientLink> Server<L> {
             size: held.map_or(0, |held| {
                 i32::try_from(held.items.len()).unwrap_or(i32::MAX)
             }),
-            kind: "CHEST".to_owned(),
+            kind: held
+                .map_or(InventoryType::Chest, |held| held.ty)
+                .bukkit_name()
+                .to_owned(),
             id: key.1,
         };
         let bottom = self.player_inventory(player.id);
@@ -375,6 +416,10 @@ impl<L: ClientLink> Server<L> {
                 };
                 self.sync_plugin_viewers(key);
             }
+            CustomInventoryOrder::SetTrades(trades) => self.set_inventory_trades(key, &trades)?,
+            CustomInventoryOrder::SetProgress(progress) => {
+                self.set_inventory_progress(key, progress)?;
+            }
             CustomInventoryOrder::Clear => {
                 held.items.fill(None);
                 self.sync_plugin_viewers(key);
@@ -402,6 +447,9 @@ impl<L: ClientLink> Server<L> {
             .collect();
         viewers.sort_by_key(|viewer| viewer.entity_id);
         Some(CustomInventoryState {
+            inventory_type: held.ty,
+            trades: held.offers.iter().map(trade_of).collect(),
+            progress: (held.ty == InventoryType::Merchant).then_some(held.progress),
             items: held
                 .items
                 .iter()

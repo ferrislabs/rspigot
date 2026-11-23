@@ -42,10 +42,21 @@ pub enum Body {
         base: ItemSet,
         addition: ItemSet,
     },
+    SmithingTrim {
+        template: ItemSet,
+        base: ItemSet,
+        addition: ItemSet,
+        pattern: String,
+    },
+    Transmute {
+        input: ItemSet,
+        material: ItemSet,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PluginRecipe {
+    pub exact: Vec<Option<ItemStack>>,
     pub id: &'static str,
     pub display_id: i32,
     pub owner: String,
@@ -59,7 +70,10 @@ pub struct PluginRecipe {
 
 impl PluginRecipe {
     pub fn uses_crafting_grid(&self) -> bool {
-        matches!(self.body, Body::Shaped { .. } | Body::Shapeless { .. })
+        matches!(
+            self.body,
+            Body::Shaped { .. } | Body::Shapeless { .. } | Body::Transmute { .. }
+        )
     }
 
     pub fn ingredients(&self) -> Vec<ItemSet> {
@@ -73,9 +87,24 @@ impl PluginRecipe {
                 template,
                 base,
                 addition,
+            }
+            | Body::SmithingTrim {
+                template,
+                base,
+                addition,
+                ..
             } => vec![*template, *base, *addition],
+            Body::Transmute { input, material } => vec![*input, *material],
         }
     }
+
+    pub fn accepts_exact(&self, index: usize, stack: &ItemStack) -> bool {
+        exact_matches(self.exact.get(index).and_then(Option::as_ref), stack)
+    }
+}
+
+pub fn exact_matches(wanted: Option<&ItemStack>, stack: &ItemStack) -> bool {
+    wanted.is_none_or(|wanted| crate::item::same_item_same_components(wanted, stack))
 }
 
 #[derive(Debug, Clone, Default)]
@@ -140,13 +169,19 @@ impl PluginRecipes {
                 Body::Cooking {
                     kind, ingredient, ..
                 } if crate::recipes::cooking_key(*kind) == key => vec![*ingredient],
-                Body::Smithing { template, .. } if key == crate::recipes::SMITHING_TEMPLATE => {
+                Body::Smithing { template, .. } | Body::SmithingTrim { template, .. }
+                    if key == crate::recipes::SMITHING_TEMPLATE =>
+                {
                     vec![*template]
                 }
-                Body::Smithing { base, .. } if key == crate::recipes::SMITHING_BASE => {
+                Body::Smithing { base, .. } | Body::SmithingTrim { base, .. }
+                    if key == crate::recipes::SMITHING_BASE =>
+                {
                     vec![*base]
                 }
-                Body::Smithing { addition, .. } if key == crate::recipes::SMITHING_ADDITION => {
+                Body::Smithing { addition, .. } | Body::SmithingTrim { addition, .. }
+                    if key == crate::recipes::SMITHING_ADDITION =>
+                {
                     vec![*addition]
                 }
                 _ => Vec::new(),
@@ -252,6 +287,7 @@ mod tests {
             category: Category::Misc,
             override_vanilla: false,
             auto_discover: false,
+            exact: Vec::new(),
         }
     }
 

@@ -97,6 +97,9 @@ impl<L: ClientLink> Server<L> {
             }) => self
                 .create_plugin_inventory(connection, id, rows, &title, locked)
                 .map(|()| Outcome::Done),
+            Order::Server(ServerOrder::CreateTypedInventory { id, spec }) => self
+                .create_typed_inventory(connection, id, &spec)
+                .map(|()| Outcome::Done),
             Order::Server(ServerOrder::CreateWorld(spec)) => match self.create_world(spec) {
                 Ok(key) => {
                     self.plugins.send(

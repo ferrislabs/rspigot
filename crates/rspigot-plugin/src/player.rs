@@ -122,6 +122,11 @@ pub struct Player {
     pub visibility: PlayerVisibilityHandle,
     pub bed: crate::PlayerBedHandle,
     pub book: crate::PlayerBookHandle,
+    pub client: crate::PlayerClientHandle,
+    pub cookies: crate::PlayerCookieHandle,
+    pub criteria: crate::PlayerCriteriaHandle,
+    pub links: crate::PlayerLinksHandle,
+    pub view: crate::PlayerViewHandle,
     pub clock: crate::PlayerClockHandle,
     pub compass: crate::PlayerCompassHandle,
     pub cooldown: crate::PlayerCooldownHandle,
@@ -256,6 +261,26 @@ impl Player {
             book: {
                 let (target, link) = handle();
                 crate::PlayerBookHandle::new(target, link)
+            },
+            cookies: {
+                let (target, link) = handle();
+                crate::PlayerCookieHandle::new(target, link)
+            },
+            criteria: {
+                let (target, link) = handle();
+                crate::PlayerCriteriaHandle::new(target, link)
+            },
+            links: {
+                let (target, link) = handle();
+                crate::PlayerLinksHandle::new(target, link)
+            },
+            view: {
+                let (target, link) = handle();
+                crate::PlayerViewHandle::new(target, link)
+            },
+            client: {
+                let (target, link) = handle();
+                crate::PlayerClientHandle::new(target, snapshot.entity_id, link)
             },
             clock: {
                 let (target, link) = handle();

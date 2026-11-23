@@ -94,6 +94,10 @@ impl<L: ClientLink> Server<L> {
             } => self
                 .create_plugin_inventory(connection, id, rows, &title, locked)
                 .map_err(|error| error.reason)?,
+            ServerOrder::CreateTypedInventory { id, spec } => self
+                .create_typed_inventory(connection, id, &spec)
+                .map_err(|error| error.reason)?,
+            ServerOrder::Schedule(order) => self.scheduler_order(connection, order),
             ServerOrder::CreateWorld(_) => {
                 return Err("server.create_world reports a result".to_owned());
             }

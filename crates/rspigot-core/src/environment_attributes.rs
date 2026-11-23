@@ -11,7 +11,7 @@ const DEFAULTS: [(&str, AttributeValue); 17] = [
     ),
     (
         "minecraft:gameplay/can_pillager_patrol_spawn",
-        AttributeValue::Bool(false),
+        AttributeValue::Bool(true),
     ),
     (
         "minecraft:gameplay/can_start_raid",
@@ -235,6 +235,18 @@ mod tests {
 
     fn at(attribute: &str, dimension: &str, ticks: i64) -> Option<AttributeValue> {
         value(attribute, dimension, &[(CLOCK, ticks)])
+    }
+
+    #[test]
+    fn pillager_patrols_may_spawn_once_the_early_game_is_over() {
+        assert_eq!(
+            at(
+                "minecraft:gameplay/can_pillager_patrol_spawn",
+                "minecraft:overworld",
+                10_000_000
+            ),
+            Some(AttributeValue::Bool(true))
+        );
     }
 
     #[test]

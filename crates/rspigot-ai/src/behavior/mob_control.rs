@@ -31,9 +31,10 @@ use crate::copper_golem::TransportItemsBetweenContainers;
 use crate::frog::{Croak, ShootTongue, TryFindLand};
 use crate::piglin::{
     BackUpIfTooClose, BecomePassiveIfMemoryPresent, CROSSBOW_ATTACK_DURATION, CopyMemoryWithExpiry,
-    CrossbowAttack, RememberIfHoglinWasKilled, StartAdmiringItemIfSeen,
-    StartCelebratingIfTargetDead, StartHuntingHoglin, StopAdmiringIfItemTooFarAway,
-    StopAdmiringIfTiredOfTryingToReachItem, StopHoldingItemIfNoLongerAdmiring,
+    CrossbowAttack, RememberIfHoglinWasKilled, SPEAR_RETREAT_DURATION, SpearApproach, SpearAttack,
+    SpearRetreat, StartAdmiringItemIfSeen, StartCelebratingIfTargetDead, StartHuntingHoglin,
+    StopAdmiringIfItemTooFarAway, StopAdmiringIfTiredOfTryingToReachItem,
+    StopHoldingItemIfNoLongerAdmiring,
 };
 use crate::sniffer::{
     Digging as SnifferDigging, FeelingHappy as SnifferFeelingHappy,
@@ -188,6 +189,9 @@ mob_behaviors! {
     AnimalMakeLove(AnimalMakeLove),
     FollowTemptation(FollowTemptation),
     CrossbowAttack(CrossbowAttack),
+    SpearApproach(SpearApproach),
+    SpearAttack(SpearAttack),
+    SpearRetreat(SpearRetreat),
     LongJumpMidJump(LongJumpMidJump),
     LongJumpToRandomPos(LongJumpToRandomPos),
     RamTarget(RamTarget),
@@ -456,6 +460,33 @@ impl MobControl {
             MobBehavior::CrossbowAttack(CrossbowAttack::new()),
             CROSSBOW_ATTACK_DURATION,
             CROSSBOW_ATTACK_DURATION,
+        )
+    }
+
+    pub fn spear_approach(speed_modifier_when_repositioning: f64, approach_distance: f32) -> Self {
+        Self::behavior(MobBehavior::SpearApproach(SpearApproach::new(
+            speed_modifier_when_repositioning,
+            approach_distance,
+        )))
+    }
+
+    pub fn spear_attack(
+        speed_modifier_when_charging: f64,
+        speed_modifier_when_repositioning: f64,
+        target_in_range_radius: f32,
+    ) -> Self {
+        Self::behavior(MobBehavior::SpearAttack(SpearAttack::new(
+            speed_modifier_when_charging,
+            speed_modifier_when_repositioning,
+            target_in_range_radius,
+        )))
+    }
+
+    pub fn spear_retreat(speed_modifier_when_repositioning: f64) -> Self {
+        Self::behavior_for(
+            MobBehavior::SpearRetreat(SpearRetreat::new(speed_modifier_when_repositioning)),
+            SPEAR_RETREAT_DURATION,
+            SPEAR_RETREAT_DURATION,
         )
     }
 

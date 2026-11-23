@@ -129,6 +129,7 @@ pub(crate) enum Behavior {
     Brush,
     Chest,
     Release(Kind),
+    ReleaseCube,
     ShearHive,
 }
 
@@ -157,6 +158,7 @@ fn behavior_of(stack: &ItemStack) -> Behavior {
         ItemKind::Chest => Behavior::Chest,
         ItemKind::WitherSkeletonSkull => Behavior::Skull,
         ItemKind::CarvedPumpkin => Behavior::Pumpkin,
+        ItemKind::SulfurCubeBucket => Behavior::ReleaseCube,
         ItemKind::SalmonBucket
         | ItemKind::CodBucket
         | ItemKind::PufferfishBucket
@@ -520,7 +522,7 @@ impl<L: ClientLink> Server<L> {
                     self.entities.store.get(*id).is_some_and(|entity| {
                         matches!(
                             entity.base.kind,
-                            Kind::Sheep | Kind::Mooshroom | Kind::SnowGolem
+                            Kind::Sheep | Kind::Mooshroom | Kind::SnowGolem | Kind::Bogged
                         ) && crate::kinds::readiness_for_shearing(entity)
                     })
                 });
@@ -628,6 +630,20 @@ impl<L: ClientLink> Server<L> {
             }
             Behavior::Release(_) => {
                 if self.empty_contents(front, None, false).is_some() {
+                    Some((behavior, None, Vec3::ZERO))
+                } else {
+                    self.plan_dispense(pos, direction, Behavior::Drop, stack)
+                }
+            }
+            Behavior::ReleaseCube => {
+                let open = {
+                    let state = self.block_or_air(front);
+                    state.is_air()
+                        || !state
+                            .flags()
+                            .contains(rspigot_blocks::StateFlags::HAS_COLLISION)
+                };
+                if open {
                     Some((behavior, None, Vec3::ZERO))
                 } else {
                     self.plan_dispense(pos, direction, Behavior::Drop, stack)
@@ -1197,6 +1213,24 @@ impl<L: ClientLink> Server<L> {
                     wear: 0,
                 })
             }
+            Behavior::ReleaseCube => {
+                self.play_sound(
+                    None,
+                    front.center(),
+                    rspigot_domain::entity::species::sulfur_cube::BUCKET_EMPTY_SOUND,
+                    rspigot_entities::SoundSource::Blocks,
+                    1.0,
+                    1.0,
+                );
+                self.spawn_bucketed_fish(None, Kind::SulfurCube, stack, front);
+                Some(Outcome {
+                    remainder: Some(ItemStack::new(
+                        ItemKind::Bucket.id(),
+                        std::num::NonZeroU8::MIN,
+                    )),
+                    wear: 0,
+                })
+            }
             Behavior::Egg(kind) => {
                 let at = Vec3::new(
                     f64::from(front.x) + 0.5,
@@ -1342,7 +1376,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         let kind = match shot {
-            Shot::Arrow => Kind::Arrow,
+            Shot::Arrow => arrow::kind_for(stack),
             Shot::Egg => Kind::Egg,
             Shot::Snowball => Kind::Snowball,
             Shot::Bottle => Kind::ExperienceBottle,
@@ -1354,7 +1388,7 @@ impl<L: ClientLink> Server<L> {
         base.position = at;
         base.old_position = at;
         let entity = if shot == Shot::Arrow {
-            let mut state = ArrowState::new(&mut base, seed);
+            let mut state = ArrowState::for_base(&mut base, seed);
             state.pickup = Pickup::Allowed;
             state.item = stack.clone();
             arrow::shoot(

@@ -20,6 +20,7 @@ use crate::random::RandomSource;
 use crate::spawn::{SpawnGroupData, SpawnReason};
 use crate::world::Difficulty;
 
+pub const WITHER_SKELETON_ATTACK_DAMAGE: f64 = 4.0;
 const SPAWN_BONUS_SPREAD: f64 = 0.114_850_000_000_000_01;
 const LEFT_HANDED_CHANCE: f32 = 0.05;
 const PICK_UP_LOOT_CHANCE: f32 = 0.55;
@@ -254,6 +255,7 @@ pub enum Jockey {
     StriderBaby,
     ZombieHorseRider,
     CamelHuskRider,
+    NautilusRider,
 }
 
 pub fn skeleton_jockey_roll(random: &mut impl RandomSource) -> bool {
@@ -444,6 +446,17 @@ fn zombie_finalize(
     zombie_handle_attributes(base, living, special, reason, own);
     if base.kind == EntityKind::Drowned {
         species::drowned::roll_nautilus_shell(living, level);
+        if matches!(reason, SpawnReason::Natural | SpawnReason::Structure)
+            && species::drowned::rolls_nautilus_jockey(
+                living,
+                matches!(group, SpawnGroupData::Zombie { baby: true, .. }),
+                species::drowned::is_frequent_drowned_biome(environment.biome),
+                level,
+            )
+            && let Some(mob) = living.mob.as_mut()
+        {
+            mob.jockey = Some(Jockey::NautilusRider);
+        }
     }
     if base.kind == EntityKind::Husk && reason != SpawnReason::Conversion {
         set_can_pick_up_loot(living, level.next_float() < PICK_UP_LOOT_CHANCE * special);
@@ -467,14 +480,28 @@ fn skeleton_finalize(
 ) -> Option<SpawnGroupData> {
     let group = mob_finalize(base, living, group, level);
     let difficulty = environment.difficulty;
-    populate_armor(living, &difficulty, level);
-    set_item_slot(living, EquipmentSlot::Mainhand, Some(stack(ItemKind::Bow)));
-    enchantment_rolls(living, &difficulty, level);
+    let wither = base.kind == EntityKind::WitherSkeleton;
+    if wither {
+        set_item_slot(
+            living,
+            EquipmentSlot::Mainhand,
+            Some(stack(ItemKind::StoneSword)),
+        );
+    } else {
+        populate_armor(living, &difficulty, level);
+        set_item_slot(living, EquipmentSlot::Mainhand, Some(stack(ItemKind::Bow)));
+        enchantment_rolls(living, &difficulty, level);
+    }
     set_can_pick_up_loot(
         living,
         level.next_float() < PICK_UP_LOOT_CHANCE * difficulty.special_multiplier(),
     );
     halloween_head(living, environment, level);
+    if wither {
+        living
+            .attributes
+            .set_base(living::ATTACK_DAMAGE, WITHER_SKELETON_ATTACK_DAMAGE);
+    }
     group
 }
 
@@ -681,6 +708,9 @@ pub fn finalize_spawn(
             species::copper_golem::finalize(base, living, group, level)
         }
         Some(Species::Cube(_)) => species::cube::finalize(base, living, environment, group, level),
+        _ if kind.extends("AbstractSkeleton") => {
+            skeleton_finalize(base, living, environment, group, level)
+        }
         _ if kind == EntityKind::Spider => spider_finalize(base, living, environment, group, level),
         _ if kind.extends("AgeableMob") => ageable_finalize(base, living, group, level),
         _ => mob_finalize(base, living, group, level),
@@ -837,6 +867,63 @@ mod tests {
         assert_eq!(
             living.equipment(EquipmentSlot::Mainhand).map(|s| s.item),
             Some(ItemKind::Bow.id())
+        );
+    }
+
+    fn finalized(kind: EntityKind) -> Entity {
+        let mut entity = mob(kind);
+        let env = environment("minecraft:plains", Difficulty::Easy);
+        let mut level = LegacyRandom::new(3);
+        let mut own = LegacyRandom::new(4);
+        finalize_spawn(
+            &mut entity,
+            &env,
+            SpawnReason::Command,
+            None,
+            &mut level,
+            &mut own,
+        );
+        entity
+    }
+
+    #[test]
+    fn stray_bogged_and_parched_hold_a_bow() {
+        for kind in [EntityKind::Stray, EntityKind::Bogged, EntityKind::Parched] {
+            let entity = finalized(kind);
+            assert_eq!(
+                entity
+                    .living()
+                    .unwrap()
+                    .equipment(EquipmentSlot::Mainhand)
+                    .map(|s| s.item),
+                Some(ItemKind::Bow.id()),
+                "{kind:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_wither_skeleton_holds_a_stone_sword_wears_nothing_and_hits_for_four() {
+        let mut entity = finalized(EntityKind::WitherSkeleton);
+        let EntityState::Living(living) = &mut entity.state else {
+            panic!("living");
+        };
+        assert_eq!(
+            living.equipment(EquipmentSlot::Mainhand).map(|s| s.item),
+            Some(ItemKind::StoneSword.id())
+        );
+        for slot in [
+            EquipmentSlot::Head,
+            EquipmentSlot::Chest,
+            EquipmentSlot::Legs,
+            EquipmentSlot::Feet,
+        ] {
+            assert!(living.equipment(slot).is_none());
+        }
+        let effects = crate::effect::ActiveEffects::default();
+        assert_eq!(
+            living.attributes.value(living::ATTACK_DAMAGE, &effects),
+            4.0
         );
     }
 

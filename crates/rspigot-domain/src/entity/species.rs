@@ -17,6 +17,7 @@ pub mod axolotl;
 pub mod bat;
 pub mod bee;
 pub mod blaze;
+pub mod bogged;
 pub mod camel;
 pub mod cat;
 pub mod copper_golem;
@@ -393,6 +394,10 @@ impl Species {
                 VariantFamily::Chicken => Self::Chicken(ChickenState::default()),
                 VariantFamily::Wolf | VariantFamily::Cat | VariantFamily::Frog => Self::Plain,
             };
+        }
+        if kind == EntityKind::Bogged {
+            bogged::define(base);
+            return Self::Plain;
         }
         if kind == EntityKind::Sheep {
             base.data.define(DATA_WOOL, SyncedValue::Byte(0));

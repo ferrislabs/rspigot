@@ -4,6 +4,7 @@ use crate::combat::{HurtByTargetGoal, MeleeAttackGoal};
 use crate::goals::{MobGoal, NearestAttackableTargetGoal, TargetFilter};
 use crate::neutral::ResetUniversalAngerGoal;
 use crate::registry::Goals;
+use crate::spear_use::SpearUseGoal;
 use crate::world::TargetKind;
 
 const LAVA_MALUS: f32 = 8.0;
@@ -17,6 +18,7 @@ pub(crate) fn register(add: &mut Goals<'_>) {
     );
     add.look(8, 8.0);
     add.look_around(8);
+    add.goal(1, MobGoal::SpearUse(SpearUseGoal::new(1.0, 1.0, 10.0, 2.0)));
     add.goal(2, MobGoal::MeleeAttack(MeleeAttackGoal::zombie(1.0)));
     add.stroll(7, 1.0);
     add.target_goal(1, MobGoal::HurtByTarget(HurtByTargetGoal::alerting(&[])));

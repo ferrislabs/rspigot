@@ -59,6 +59,8 @@ pub(crate) struct Spawning {
     pub(crate) phantom: crate::phantom_spawner::PhantomSpawner,
     pub(crate) trader: crate::trader_spawner::TraderSpawner,
     pub(crate) siege: crate::village_siege::Siege,
+    pub(crate) cat: crate::cat_spawner::CatSpawner,
+    pub(crate) hearts: crate::creaking_heart::Hearts,
 }
 
 impl Spawning {
@@ -78,6 +80,8 @@ impl Spawning {
             phantom: crate::phantom_spawner::PhantomSpawner::default(),
             trader: crate::trader_spawner::TraderSpawner::default(),
             siege: crate::village_siege::Siege::default(),
+            cat: crate::cat_spawner::CatSpawner::default(),
+            hearts: crate::creaking_heart::Hearts::default(),
         }
     }
 }

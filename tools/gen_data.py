@@ -449,6 +449,10 @@ EXTRA_TABLES = [
     ("minecraft:gameplay/fishing", "minecraft:fishing"),
     ("minecraft:shearing/sheep", "minecraft:shearing"),
     ("minecraft:shearing/snow_golem", "minecraft:shearing"),
+    ("minecraft:shearing/bogged", "minecraft:shearing"),
+    ("minecraft:shearing/mooshroom", "minecraft:shearing"),
+    ("minecraft:shearing/mooshroom/brown", "minecraft:shearing"),
+    ("minecraft:shearing/mooshroom/red", "minecraft:shearing"),
     ("minecraft:till/rooted_dirt", "minecraft:block_interact"),
     ("minecraft:harvest/beehive", "minecraft:block_interact"),
     ("minecraft:harvest/sweet_berry_bush", "minecraft:block_interact"),
@@ -529,7 +533,10 @@ COMPONENT_PREDICATES = {
     "minecraft:sheep/color": "dye",
     "minecraft:frog/variant": "minecraft:frog_variant",
     "minecraft:chicken/variant": "minecraft:chicken_variant",
+    "minecraft:mooshroom/variant": "mooshroom_variant",
 }
+
+MOOSHROOM_VARIANTS = {"red", "brown"}
 
 LOOT_TYPES = [
     "BlockPredicate",
@@ -862,6 +869,10 @@ class LootBuilder:
         if kind == "dye":
             if value not in self.ids["dye"]:
                 fail("unknown dye colour %s in %s" % (value, self.where))
+            return rs_str(value)
+        if kind == "mooshroom_variant":
+            if value not in MOOSHROOM_VARIANTS:
+                fail("unknown mooshroom variant %s in %s" % (value, self.where))
             return rs_str(value)
         name = normalize_id(value)
         if name not in self.synced_names[kind]:

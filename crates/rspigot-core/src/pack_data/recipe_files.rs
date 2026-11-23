@@ -228,6 +228,7 @@ pub fn compile(file: &PackFile) -> Result<PluginRecipe, DataError> {
         body,
         override_vanilla: true,
         auto_discover: false,
+        exact: Vec::new(),
     })
 }
 

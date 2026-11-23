@@ -502,6 +502,7 @@ impl<L: ClientLink> Server<L> {
         self.piston_will_destroy(pos, step.state, step.game_mode == GameMode::Creative);
         self.tnt_will_destroy(id, pos, step.state, step.game_mode == GameMode::Creative);
         self.tripwire_will_destroy(pos, step.state, step.held.as_ref());
+        self.creaking_heart_will_destroy(pos, step.state);
         self.set_block(pos, crate::block_shapes::left_behind(step.state));
         self.ice_melt(
             pos,

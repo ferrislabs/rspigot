@@ -1046,7 +1046,12 @@ pub fn base_tick(base: &mut EntityBase, living: &mut LivingState) -> LivingTick 
     }
     if is_dead_or_dying(base, living) && !living.dying && base.kind != EntityKind::EnderDragon {
         living.death_time += 1;
-        if living.death_time >= DEATH_DURATION && !base.is_removed() {
+        let duration = if base.kind == EntityKind::Creaking {
+            super::species::creaking::death_duration(base)
+        } else {
+            DEATH_DURATION
+        };
+        if living.death_time >= duration && !base.is_removed() {
             outcome.removed = true;
         }
     }

@@ -61,6 +61,7 @@ impl<L: ClientLink> Server<L> {
             }
             BlockKind::EndPortalFrame => Some(if flag(state, "eye") { 15 } else { 0 }),
             BlockKind::DetectorRail => Some(self.detector_comparator(pos, state)),
+            BlockKind::CreakingHeart => Some(self.creaking_heart_signal(pos)),
             BlockKind::ChiseledBookshelf => Some(self.bookshelf_comparator(pos)),
             BlockKind::DecoratedPot => Some(self.pot_comparator(pos)),
             BlockKind::Lectern => Some(self.lectern_signal(pos)),

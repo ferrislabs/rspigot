@@ -553,9 +553,11 @@ impl<L: ClientLink> Server<L> {
                 self.ensure_beehive_entity(pos, state);
                 self.ensure_jukebox_entity(pos, state);
                 self.ensure_conduit_entity(pos, state);
+                self.ensure_potent_sulfur_entity(pos, state);
                 self.ensure_shelf_entity(pos, state);
                 self.ensure_command_block_entity(pos, state);
                 self.ensure_spawner_entity(pos, state);
+                self.ensure_creaking_heart_entity(pos, state);
                 self.ensure_trial_spawner_entity(pos, state);
                 self.ensure_vault_entity(pos, state);
                 if state.kind() == Some(BlockKind::Fire) {

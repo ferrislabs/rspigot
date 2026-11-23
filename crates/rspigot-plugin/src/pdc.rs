@@ -243,6 +243,8 @@ enum Holder {
     Entity(i32),
     Block(BlockPos),
     Item { player: Arc<str>, slot: i32 },
+    Chunk { x: i32, z: i32 },
+    World,
 }
 
 #[derive(Debug, Clone)]
@@ -262,6 +264,20 @@ impl PdcHandle {
     pub(crate) fn of_block(pos: BlockPos, link: Link) -> Self {
         Self {
             holder: Holder::Block(pos),
+            link,
+        }
+    }
+
+    pub(crate) fn of_chunk(x: i32, z: i32, link: Link) -> Self {
+        Self {
+            holder: Holder::Chunk { x, z },
+            link,
+        }
+    }
+
+    pub(crate) fn of_world(link: Link) -> Self {
+        Self {
+            holder: Holder::World,
             link,
         }
     }
@@ -287,6 +303,22 @@ impl PdcHandle {
             Holder::Block(pos) => from_plugin::Body::Block(v1::BlockOrder {
                 pos: Some(pos.to_wire()),
                 order: Some(block_order::Order::Pdc(change)),
+            }),
+            Holder::Chunk { x, z } => from_plugin::Body::World(v1::WorldOrder {
+                order: Some(v1::world_order::Order::Object(v1::ObjectWorldOrder {
+                    order: Some(v1::object_world_order::Order::ChunkPdc(
+                        v1::ChunkPdcChange {
+                            x: *x,
+                            z: *z,
+                            change: Some(change),
+                        },
+                    )),
+                })),
+            }),
+            Holder::World => from_plugin::Body::World(v1::WorldOrder {
+                order: Some(v1::world_order::Order::Object(v1::ObjectWorldOrder {
+                    order: Some(v1::object_world_order::Order::WorldPdc(change)),
+                })),
             }),
             Holder::Item { player, slot } => from_plugin::Body::Player(v1::PlayerOrder {
                 player: player.to_string(),
@@ -320,6 +352,8 @@ impl PdcHandle {
         let holder = match &self.holder {
             Holder::Entity(entity) => pdc_query::Holder::Entity(*entity),
             Holder::Block(pos) => pdc_query::Holder::Block(pos.to_wire()),
+            Holder::Chunk { x, z } => pdc_query::Holder::Chunk(v1::ChunkCoords { x: *x, z: *z }),
+            Holder::World => pdc_query::Holder::World(v1::Empty {}),
             Holder::Item { player, slot } => pdc_query::Holder::Item(v1::ItemSlotRef {
                 player: player.to_string(),
                 slot: *slot,
