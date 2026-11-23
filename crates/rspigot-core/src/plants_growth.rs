@@ -1,19 +1,16 @@
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use rspigot_blocks::BlockKind;
-use rspigot_domain::azalea_tree::{self, BONE_MEAL_SUCCESS};
+use rspigot_domain::azalea_tree::BONE_MEAL_SUCCESS;
 use rspigot_domain::chorus;
 use rspigot_domain::composter::BONE_MEAL_EVENT;
 use rspigot_domain::player::PlayerId;
-use rspigot_domain::{BlockPos, BlockStateId, Rotation, Vec3};
+use rspigot_domain::{BlockPos, BlockStateId, Vec3};
 use rspigot_entities::SoundSource;
 
 use crate::crops::BONE_MEAL_EVENT_DATA;
 use crate::events::Hand;
 use crate::mobs::ServerRandom;
-use crate::plugins::events::{StructureGrow, TreeType};
-use crate::plugins::steps::StructureStep;
-use crate::plugins::{Continuation, EventPayload, Lane, Location, snapshot_of};
 use crate::ports::ClientLink;
 use crate::sea_pickle::is_sea_pickle;
 use crate::server::Server;
@@ -26,15 +23,6 @@ const FULL_DELAY: u64 = 100;
 const LEAF_SURFACE: f64 = 0.6875;
 const EDGE: f64 = 1.0e-5;
 const PLAYER_HALF_WIDTH: f64 = 0.3;
-const REPLACEABLE_BY_TREES: &str = "minecraft:replaceable_by_trees";
-const DIRT: &str = "minecraft:dirt";
-
-fn tagged(state: BlockStateId, tag: &str) -> bool {
-    state.kind().is_some_and(|kind| {
-        rspigot_data::tags::tag("minecraft:block", tag)
-            .is_some_and(|ids| ids.binary_search(&u32::from(kind.id().0)).is_ok())
-    })
-}
 
 fn tilt_of(state: BlockStateId) -> &'static str {
     match state.property("tilt") {
@@ -175,6 +163,13 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn leaf_projectile_hit(&mut self, pos: BlockPos) {
+        let state = self.block_or_air(pos);
+        if state.kind() == Some(BlockKind::BigDripleaf) {
+            self.set_leaf_tilt(pos, state, "full", Some(TILT_DOWN_SOUND), FULL_DELAY);
+        }
+    }
+
     fn reset_leaf_tilt(&mut self, pos: BlockPos, state: BlockStateId) {
         let tilted = tilt_of(state) != "none";
         self.set_leaf_tilt(pos, state, "none", None, 0);
@@ -282,66 +277,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn grow_azalea_tree(&mut self, player: PlayerId, origin: BlockPos) {
-        let seed: u64 = self.rng.random();
-        let tree = {
-            let free = |at: BlockPos| {
-                let state = self.block_or_air(at);
-                state.is_air() || is_azalea(state) || tagged(state, REPLACEABLE_BY_TREES)
-            };
-            let dirt = tagged(self.block_or_air(origin.offset(0, -1, 0)), DIRT);
-            let mut rng = StdRng::seed_from_u64(seed);
-            azalea_tree::plan(
-                origin,
-                self.world.dimension.height.max_y(),
-                &free,
-                dirt,
-                &mut ServerRandom(&mut rng),
-            )
-        };
-        if let Some(tree) = tree {
-            self.azalea_structure_grow(player, origin, tree.blocks);
-        }
-    }
-
-    fn azalea_structure_grow(
-        &mut self,
-        player: PlayerId,
-        origin: BlockPos,
-        blocks: Vec<(BlockPos, BlockStateId)>,
-    ) {
-        let step = StructureStep {
-            player: Some(player),
-            origin,
-            blocks: blocks.clone(),
-        };
-        self.fire(
-            Lane::Block(origin),
-            Continuation::Structure(Box::new(step)),
-            move |server| {
-                let world = server.world_name();
-                Some(EventPayload::StructureGrow(StructureGrow {
-                    blocks: blocks
-                        .iter()
-                        .map(|(pos, state)| snapshot_of(*pos, *state))
-                        .collect(),
-                    from_bonemeal: true,
-                    location: Location {
-                        world: world.clone(),
-                        position: Vec3::new(
-                            f64::from(origin.x),
-                            f64::from(origin.y),
-                            f64::from(origin.z),
-                        ),
-                        rotation: Rotation {
-                            yaw: 0.0,
-                            pitch: 0.0,
-                        },
-                    },
-                    player: server.snapshot_of(player),
-                    species: TreeType::Azalea,
-                    world,
-                }))
-            },
-        );
+        let state = self.block_or_air(origin);
+        self.begin_tree_growth(origin, state, Some(player));
     }
 }

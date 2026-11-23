@@ -1371,6 +1371,7 @@ class LootBuilder:
                 [
                     ("name", rs_text(to_snbt(value["name"], self.where))),
                     ("target", Atom("NameTarget::" + NAME_TARGETS[target])),
+                    ("entity", self.optional_entity_target(value)),
                 ],
             )
         elif kind == "minecraft:set_lore":
@@ -1392,7 +1393,10 @@ class LootBuilder:
             else:
                 mode_node = Atom("ListMode::ReplaceAll")
             lines = [rs_text(to_snbt(line, self.where)) for line in value["lore"]]
-            body = rs_struct("FunctionKind::SetLore", [("lines", rs_slice(lines)), ("mode", mode_node)])
+            body = rs_struct(
+                "FunctionKind::SetLore",
+                [("lines", rs_slice(lines)), ("mode", mode_node), ("entity", self.optional_entity_target(value))],
+            )
         elif kind == "minecraft:set_custom_data":
             expect_keys(value, {"type", "condition", "tag"}, self.where)
             if not isinstance(value["tag"], str):
@@ -1449,6 +1453,14 @@ class LootBuilder:
         else:
             fail("unsupported function %s in %s" % (json.dumps(value), self.where))
         return rs_struct("Function", [("condition", self.optional_condition(value)), ("kind", body)])
+
+    def optional_entity_target(self, owner):
+        target = owner.get("entity")
+        if target is None:
+            return rs_option(None)
+        if target not in ENTITY_TARGETS:
+            fail("unknown entity target %s in %s" % (target, self.where))
+        return rs_option(Atom("EntityTarget::" + ENTITY_TARGETS[target]))
 
     def modifiers(self, owner):
         value = owner.get("modifier")
@@ -1530,7 +1542,7 @@ class LootBuilder:
             "Pool",
             [
                 ("rolls", self.int_provider(value["rolls"])),
-                ("bonus_rolls", self.float_constant(value.get("bonus_rolls", 0.0))),
+                ("bonus_rolls", rs_call("FloatProvider::Constant", [self.float_constant(value.get("bonus_rolls", 0.0))])),
                 ("condition", self.optional_condition(value)),
                 ("modifier", self.modifiers(value)),
                 ("entries", rs_slice([self.entry(entry) for entry in value["entries"]])),
@@ -3516,6 +3528,149 @@ def emit_trial_spawners(configs):
     return "use crate::trial_spawner::{%s};\n\n" % ", ".join(used_imports(text, names)) + text
 
 
+TIMELINE_MODIFIERS = {
+    "or": "Or",
+    "and": "And",
+    "maximum": "Maximum",
+    "minimum": "Minimum",
+    "multiply": "Multiply",
+    "add": "Add",
+}
+
+
+def attribute_value_node(value, where):
+    if isinstance(value, bool):
+        return rs_call("AttributeValue::Bool", [rs_bool(value)])
+    if isinstance(value, (int, float)):
+        return rs_call("AttributeValue::Float", [rs_f32(value)])
+    if isinstance(value, str) and not value.startswith("#"):
+        return rs_call("AttributeValue::Text", [rs_str(value)])
+    return None
+
+
+def timeline_ease(ease, where):
+    if ease is None:
+        return Atom("Easing::Linear")
+    if ease == "constant":
+        return Atom("Easing::Constant")
+    if isinstance(ease, dict) and set(ease) == {"cubic_bezier"} and len(ease["cubic_bezier"]) == 4:
+        return rs_call("Easing::CubicBezier", [rs_array([rs_f32(point) for point in ease["cubic_bezier"]])])
+    fail("unsupported timeline ease in %s: %r" % (where, ease))
+
+
+def build_timeline_tracks(timeline_id, tracks):
+    nodes = []
+    skipped = []
+    for attribute in sorted(tracks):
+        track = tracks[attribute]
+        expect_keys(track, {"keyframes", "ease", "modifier"}, timeline_id + " " + attribute)
+        keyframes = []
+        for keyframe in track["keyframes"]:
+            expect_keys(keyframe, {"ticks", "value"}, timeline_id + " " + attribute)
+            value = attribute_value_node(keyframe["value"], timeline_id)
+            if value is None:
+                keyframes = None
+                break
+            keyframes.append(rs_struct("Keyframe", [("ticks", Atom(str(keyframe["ticks"]))), ("value", value)]))
+        if keyframes is None:
+            skipped.append(attribute)
+            continue
+        modifier = track.get("modifier")
+        if modifier is not None and modifier not in TIMELINE_MODIFIERS:
+            fail("unsupported timeline modifier in %s %s: %r" % (timeline_id, attribute, modifier))
+        nodes.append(
+            rs_struct(
+                "Track",
+                [
+                    ("attribute", rs_str(attribute)),
+                    ("ease", timeline_ease(track.get("ease"), timeline_id)),
+                    (
+                        "modifier",
+                        rs_option(None if modifier is None else Atom("Modifier::" + TIMELINE_MODIFIERS[modifier])),
+                    ),
+                    ("keyframes", rs_slice(keyframes)),
+                ],
+            )
+        )
+    return nodes, skipped
+
+
+def resolve_timeline_tag(datapack, tag, seen=()):
+    assert tag not in seen, tag
+    name = tag.split(":", 1)[1]
+    values = load_json(os.path.join(datapack, "tags", "timeline", name + ".json"))["values"]
+    out = []
+    for value in values:
+        if value.startswith("#"):
+            out.extend(resolve_timeline_tag(datapack, value[1:], seen + (tag,)))
+        else:
+            out.append(value)
+    return out
+
+
+def build_timelines(datapack):
+    timelines = []
+    skipped = {}
+    root = os.path.join(datapack, "timeline")
+    for relative in json_names(root):
+        timeline_id = "minecraft:" + relative
+        value = load_json(os.path.join(root, relative + ".json"))
+        expect_keys(value, {"clock", "period_ticks", "time_markers", "tracks"}, timeline_id)
+        tracks, dropped = build_timeline_tracks(timeline_id, value.get("tracks", {}))
+        if dropped:
+            skipped[timeline_id] = dropped
+        period = value.get("period_ticks")
+        timelines.append(
+            rs_struct(
+                "TimelineData",
+                [
+                    ("id", rs_str(timeline_id)),
+                    ("clock", rs_str(value["clock"])),
+                    ("period_ticks", rs_option(None if period is None else Atom(str(period)))),
+                    ("tracks", rs_slice(tracks)),
+                ],
+            )
+        )
+    dimensions = []
+    dimension_root = os.path.join(datapack, "dimension_type")
+    for relative in json_names(dimension_root):
+        value = load_json(os.path.join(dimension_root, relative + ".json"))
+        attributes = []
+        for attribute in sorted(value.get("attributes", {})):
+            node = attribute_value_node(value["attributes"][attribute], relative)
+            if node is not None and not isinstance(value["attributes"][attribute], str):
+                attributes.append(rs_tuple([rs_str(attribute), node]))
+        listed = value.get("timelines")
+        names = resolve_timeline_tag(datapack, listed[1:]) if isinstance(listed, str) else list(listed or [])
+        dimensions.append(
+            rs_struct(
+                "DimensionData",
+                [
+                    ("id", rs_str("minecraft:" + relative)),
+                    ("timelines", rs_slice([rs_str(name) for name in sorted(names)])),
+                    ("attributes", rs_slice(attributes)),
+                ],
+            )
+        )
+    return timelines, dimensions, skipped
+
+
+def emit_timelines(timelines, dimensions):
+    body = ["pub(crate) static TIMELINES: [TimelineData; %d] = [" % len(timelines)]
+    for node in timelines:
+        body.extend(render(node, "    ", "", ","))
+    body.append("];")
+    body.append("")
+    body.append("pub(crate) static DIMENSIONS: [DimensionData; %d] = [" % len(dimensions))
+    for node in dimensions:
+        body.extend(render(node, "    ", "", ","))
+    body.append("];")
+    text = "\n".join(body) + "\n"
+    names = ["DimensionData", "Easing", "Keyframe", "Modifier", "TimelineData", "Track"]
+    head = "use crate::environment::{%s};\nuse crate::loot::AttributeValue;\n\n" % ", ".join(used_imports(text, names))
+    return head + text
+
+
 def emit_mod():
     return "\n".join(
         [
@@ -3535,6 +3690,7 @@ def emit_mod():
             "pub mod sulfur_cube;",
             "pub mod synced;",
             "pub mod tags;",
+            "pub mod timelines;",
             "pub mod trading;",
             "pub mod trial_spawner;",
             "pub mod variants;",
@@ -3588,6 +3744,7 @@ def main():
     trading = build_trading(args.datapack, args.reports, static_registries, synced, tag_table)
     sulfur_cube = build_sulfur_cube_archetypes(args.datapack, tag_table)
     trial_spawners = build_trial_spawners(args.datapack)
+    timelines, timeline_dimensions, timeline_skipped = build_timelines(args.datapack)
     enchantment_defs = build_enchantments(args.datapack, synced)
     effect_nodes, _ = build_enchantment_effects(args.datapack, synced, loot_builder)
 
@@ -3607,6 +3764,7 @@ def main():
         "trading.rs": emit_trading(*trading),
         "sulfur_cube.rs": emit_sulfur_cube_archetypes(sulfur_cube),
         "trial_spawner.rs": emit_trial_spawners(trial_spawners),
+        "timelines.rs": emit_timelines(timelines, timeline_dimensions),
     }
     write_files(args.out, files)
 
@@ -3640,6 +3798,9 @@ def main():
     print("dye mixes %d" % len(dye_mixes))
     print("sulfur cube archetypes %d" % len(sulfur_cube))
     print("trial spawner configs %d" % len(trial_spawners))
+    print("timelines %d, dimension types %d" % (len(timelines), len(timeline_dimensions)))
+    for timeline_id in sorted(timeline_skipped):
+        print("timeline tracks without a supported value type in %s: %s" % (timeline_id, ", ".join(timeline_skipped[timeline_id])))
     print("compostable items %d" % len(compostables))
     print("enchantments %d, trades %d, trade sets %d" % (len(trading[0]), len(trading[2]), len(trading[3])))
     for construct in sorted(ignored):

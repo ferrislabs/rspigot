@@ -41,6 +41,7 @@ impl<L: ClientLink> Server<L> {
         if state.kind() == Some(BlockKind::Target) {
             self.target_hit(projectile, hit, state);
         }
+        self.projectile_block_effects(projectile, hit);
     }
 
     fn target_hit(&mut self, projectile: EntityId, hit: BlockHit, state: BlockStateId) {

@@ -111,7 +111,10 @@ impl<L: ClientLink> Server<L> {
         sequence: i32,
     ) -> bool {
         let lane = Lane::Player(id);
-        if !self.grow_crop(lane, Some(id), pos) && !self.bone_meal_growth(id, pos) {
+        if !self.grow_crop(lane, Some(id), pos)
+            && !self.bone_meal_apply(Some(id), pos)
+            && !self.bone_meal_growth(Some(id), pos)
+        {
             return false;
         }
         self.consume_held(id, hand, 1);

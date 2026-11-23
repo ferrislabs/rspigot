@@ -8,6 +8,7 @@ use crate::ports::ClientLink;
 use crate::server::Server;
 
 const CRACKED: &str = "cracked";
+const TRIDENT_BREAK_SPEED: f64 = 0.6;
 
 const fn is_impact_projectile(kind: Kind) -> bool {
     matches!(
@@ -46,6 +47,15 @@ impl<L: ClientLink> Server<L> {
             self.set_block(pos, cracked);
         }
         self.break_block_naturally(pos);
+    }
+
+    pub(crate) fn trident_breaks_dripstone(&mut self, projectile: EntityId, pos: BlockPos) {
+        let fast_trident = self.entities.store.get(projectile).is_some_and(|entity| {
+            entity.base.kind == Kind::Trident && entity.base.velocity.length() > TRIDENT_BREAK_SPEED
+        });
+        if fast_trident && self.projectile_may_interact(projectile) {
+            self.break_block_naturally(pos);
+        }
     }
 
     pub(crate) fn projectile_may_break(&self, projectile: EntityId) -> bool {

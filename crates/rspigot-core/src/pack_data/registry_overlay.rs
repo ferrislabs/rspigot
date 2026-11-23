@@ -37,6 +37,8 @@ pub const SYNCED_DIRECTORIES: &[&str] = &[
 ];
 
 pub const RUNTIME_DIRECTORIES: &[&str] = &[
+    "context_int_provider",
+    "context_float_provider",
     "trial_spawner",
     "villager_trade",
     "trade_set",

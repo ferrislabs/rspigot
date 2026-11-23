@@ -2,7 +2,7 @@ use rspigot_blocks::BlockKind;
 use rspigot_domain::chunk::BlockEntity;
 use rspigot_domain::player::PlayerId;
 use rspigot_domain::text::Component;
-use rspigot_domain::{BlockPos, Identifier};
+use rspigot_domain::{BlockPos, BlockStateId, Identifier};
 use rspigot_nbt::Compound;
 
 use crate::chunks::WorldQuery;
@@ -16,6 +16,8 @@ use crate::server::{Audience, Server};
 const JIGSAW: &str = "jigsaw";
 const STRUCTURE: &str = "structure_block";
 const MAX_LEVELS: i32 = 20;
+const SCAN_RADIUS: i32 = 80;
+const MIN_SCAN_SPAN: i32 = 1;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JigsawEdit {
@@ -89,6 +91,32 @@ const fn mirror_name(mirror: TemplateMirror) -> &'static str {
         TemplateMirror::None => "NONE",
         TemplateMirror::LeftRight => "LEFT_RIGHT",
         TemplateMirror::FrontBack => "FRONT_BACK",
+    }
+}
+
+struct TemplateLoad {
+    name: String,
+    at: BlockPos,
+    rotation: TemplateRotation,
+    mirror: TemplateMirror,
+    integrity: f32,
+    seed: i32,
+}
+
+fn rotation_of(name: Option<&str>) -> TemplateRotation {
+    match name {
+        Some("CLOCKWISE_90") => TemplateRotation::Clockwise90,
+        Some("CLOCKWISE_180") => TemplateRotation::Clockwise180,
+        Some("COUNTERCLOCKWISE_90") => TemplateRotation::Counterclockwise90,
+        _ => TemplateRotation::None,
+    }
+}
+
+fn mirror_of(name: Option<&str>) -> TemplateMirror {
+    match name {
+        Some("LEFT_RIGHT") => TemplateMirror::LeftRight,
+        Some("FRONT_BACK") => TemplateMirror::FrontBack,
+        _ => TemplateMirror::None,
     }
 }
 
@@ -218,11 +246,87 @@ impl<L: ClientLink> Server<L> {
         let key = match edit.update {
             StructureUpdate::UpdateData => return,
             StructureUpdate::SaveArea => "structure_block.save_failure",
-            StructureUpdate::ScanArea => return,
+            StructureUpdate::ScanArea => {
+                self.scan_structure(id, edit);
+                return;
+            }
             StructureUpdate::LoadArea => {
                 self.load_structure(id, edit);
                 return;
             }
+        };
+        self.push(
+            Audience::One(id),
+            ClientEvent::system(Component::translatable(
+                key,
+                vec![Component::text(edit.name.as_str())],
+            )),
+        );
+    }
+
+    fn matching_corners(&self, origin: BlockPos, name: &str) -> Vec<BlockPos> {
+        let mut found = Vec::new();
+        for chunk_pos in self.world.chunks.loaded_positions() {
+            let Some(chunk) = self.world.chunks.get(chunk_pos) else {
+                continue;
+            };
+            found.extend(
+                chunk
+                    .block_entities
+                    .iter()
+                    .filter(|entity| {
+                        entity.kind.as_str() == "minecraft:structure_block"
+                            && entity.data.get_str("mode") == Some("CORNER")
+                            && entity.data.get_str("name") == Some(name)
+                            && (entity.pos.x - origin.x).abs() <= SCAN_RADIUS
+                            && (entity.pos.z - origin.z).abs() <= SCAN_RADIUS
+                    })
+                    .map(|entity| entity.pos),
+            );
+        }
+        found
+    }
+
+    fn scan_structure(&mut self, id: PlayerId, edit: &StructureEdit) {
+        let corners = if edit.mode == StructureMode::Save {
+            self.matching_corners(edit.pos, edit.name.as_str())
+        } else {
+            Vec::new()
+        };
+        let (mut low, mut high) = (edit.pos, edit.pos);
+        for corner in &corners {
+            low = BlockPos::new(
+                low.x.min(corner.x),
+                low.y.min(corner.y),
+                low.z.min(corner.z),
+            );
+            high = BlockPos::new(
+                high.x.max(corner.x),
+                high.y.max(corner.y),
+                high.z.max(corner.z),
+            );
+        }
+        let measured = !corners.is_empty()
+            && high.x - low.x > MIN_SCAN_SPAN
+            && high.y - low.y > MIN_SCAN_SPAN
+            && high.z - low.z > MIN_SCAN_SPAN;
+        if measured {
+            let mut data = self
+                .block_entity_compound(edit.pos, STRUCTURE)
+                .cloned()
+                .unwrap_or_default();
+            data.insert("posX", low.x - edit.pos.x + 1);
+            data.insert("posY", low.y - edit.pos.y + 1);
+            data.insert("posZ", low.z - edit.pos.z + 1);
+            data.insert("sizeX", high.x - low.x - 1);
+            data.insert("sizeY", high.y - low.y - 1);
+            data.insert("sizeZ", high.z - low.z - 1);
+            self.store_block_entity(edit.pos, STRUCTURE, data);
+        }
+        let key = if measured {
+            "structure_block.size_success"
+        } else {
+            "structure_block.size_failure"
         };
         self.push(
             Audience::One(id),
@@ -239,20 +343,65 @@ impl<L: ClientLink> Server<L> {
             edit.pos.y + edit.offset[1],
             edit.pos.z + edit.offset[2],
         );
-        let name = edit.name.clone();
+        self.begin_template_load(
+            CommandSender::Player(id),
+            TemplateLoad {
+                name: edit.name.clone(),
+                at,
+                rotation: edit.rotation,
+                mirror: edit.mirror,
+                integrity: edit.integrity,
+                seed: edit.seed as i32,
+            },
+        );
+    }
+
+    fn begin_template_load(&mut self, sender: CommandSender, load: TemplateLoad) {
         let request = PlaceRequest::Template {
-            id: name.clone(),
-            pos: at,
-            rotation: edit.rotation,
-            mirror: edit.mirror,
-            integrity: edit.integrity,
-            seed: edit.seed as i32,
+            id: load.name.clone(),
+            pos: load.at,
+            rotation: load.rotation,
+            mirror: load.mirror,
+            integrity: load.integrity,
+            seed: load.seed,
         };
         self.begin_world_query(
-            CommandSender::Player(id),
+            sender,
             WorldQuery::Place(request),
-            QueryKind::Place(PlaceKind::Template, at),
-            name,
+            QueryKind::Place(PlaceKind::Template, load.at),
+            load.name,
+        );
+    }
+
+    pub(crate) fn structure_block_neighbor_changed(&mut self, pos: BlockPos, state: BlockStateId) {
+        let powered = self.has_neighbor_signal(pos);
+        let Some(mut data) = self.block_entity_compound(pos, STRUCTURE).cloned() else {
+            return;
+        };
+        if data.get_bool("powered").unwrap_or(false) == powered {
+            return;
+        }
+        data.insert("powered", powered);
+        self.store_block_entity(pos, STRUCTURE, data.clone());
+        let name = data.get_str("name").unwrap_or_default().trim().to_owned();
+        if !powered || name.is_empty() || state.property("mode") != Some("load") {
+            return;
+        }
+        let at = BlockPos::new(
+            pos.x + data.get_i32("posX").unwrap_or(0),
+            pos.y + data.get_i32("posY").unwrap_or(0),
+            pos.z + data.get_i32("posZ").unwrap_or(0),
+        );
+        self.begin_template_load(
+            CommandSender::Console,
+            TemplateLoad {
+                name,
+                at,
+                rotation: rotation_of(data.get_str("rotation")),
+                mirror: mirror_of(data.get_str("mirror")),
+                integrity: data.get_f64("integrity").map_or(1.0, |value| value as f32),
+                seed: data.get_i64("seed").unwrap_or(0) as i32,
+            },
         );
     }
 }
@@ -426,6 +575,88 @@ mod tests {
             _ => false,
         });
         assert!(reported);
+    }
+
+    fn corner(server: &mut Server<Tap>, at: BlockPos, name: &str) {
+        server.set_block(
+            at,
+            BlockKind::StructureBlock
+                .state_with(&[("mode", "corner")])
+                .unwrap_or(BlockKind::StructureBlock.default_state()),
+        );
+        server.store_block_entity(
+            at,
+            STRUCTURE,
+            Compound::new().with("name", name).with("mode", "CORNER"),
+        );
+    }
+
+    fn scan_message(link: &Tap) -> Option<String> {
+        link.take().into_iter().find_map(|event| match event {
+            ClientEvent::SystemChat { message, .. } => {
+                let text = message.plain_text();
+                text.starts_with("structure_block.size").then_some(text)
+            }
+            _ => None,
+        })
+    }
+
+    fn scan(server: &mut Server<Tap>, id: PlayerId) {
+        let mut edit = structure_edit(StructureUpdate::ScanArea);
+        edit.mode = StructureMode::Save;
+        server.handle_input(id, PlayerInput::SetStructureBlock(Box::new(edit)));
+        server.deliver();
+    }
+
+    #[test]
+    fn scanning_a_save_block_measures_the_box_to_the_corner_blocks_of_the_same_name() {
+        let (mut server, id, link) = rig(true);
+        place(&mut server, BlockKind::StructureBlock, &[("mode", "save")]);
+        corner(&mut server, POS.offset(5, 4, 5), "minecraft:igloo/top");
+        corner(&mut server, POS.offset(-3, 9, 1), "minecraft:other");
+        link.take();
+        scan(&mut server, id);
+        let data = server
+            .block_entity_compound(POS, STRUCTURE)
+            .expect("structure entity");
+        assert_eq!(
+            [
+                data.get_i32("posX"),
+                data.get_i32("posY"),
+                data.get_i32("posZ")
+            ],
+            [Some(1), Some(1), Some(1)]
+        );
+        assert_eq!(
+            [
+                data.get_i32("sizeX"),
+                data.get_i32("sizeY"),
+                data.get_i32("sizeZ")
+            ],
+            [Some(4), Some(3), Some(4)]
+        );
+        assert!(
+            scan_message(&link)
+                .is_some_and(|text| text.starts_with("structure_block.size_success"))
+        );
+    }
+
+    #[test]
+    fn scanning_with_no_matching_corner_reports_a_failure_and_keeps_the_size() {
+        let (mut server, id, link) = rig(true);
+        place(&mut server, BlockKind::StructureBlock, &[("mode", "save")]);
+        corner(&mut server, POS.offset(5, 4, 5), "minecraft:other");
+        link.take();
+        scan(&mut server, id);
+        let data = server
+            .block_entity_compound(POS, STRUCTURE)
+            .expect("structure entity");
+        assert_eq!(data.get_i32("sizeX"), Some(4));
+        assert_eq!(data.get_i32("sizeY"), Some(5));
+        assert!(
+            scan_message(&link)
+                .is_some_and(|text| text.starts_with("structure_block.size_failure"))
+        );
     }
 
     #[test]

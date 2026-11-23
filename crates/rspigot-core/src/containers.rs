@@ -522,7 +522,16 @@ impl<L: ClientLink> Server<L> {
             return i32::try_from(signal).ok();
         }
         let opening = opening_of(state).filter(|opening| opening.entity.is_some())?;
-        let items = self.half_items(pos, opening.kind.container_size());
+        let size = opening.kind.container_size();
+        let chunks = &self.world.chunks;
+        let items = match chests::pair_of(pos, state, |at| chunks.block(at)) {
+            Some((right, left)) => {
+                let mut both = self.half_items(right, size);
+                both.extend(self.half_items(left, size));
+                both
+            }
+            None => self.half_items(pos, size),
+        };
         let mut fill = 0.0_f32;
         let mut used = 0;
         for stack in items.iter().flatten() {
@@ -580,6 +589,10 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = backing.entity else {
             return;
         };
+        if backing.block == BlockKind::ChiseledBookshelf {
+            self.store_bookshelf(backing.pos, items);
+            return;
+        }
         let items = if backing.block == BlockKind::Crafter {
             &items[..items.len().min(CRAFTER_SLOTS)]
         } else {
@@ -913,6 +926,12 @@ impl<L: ClientLink> Server<L> {
                 LID_VOLUME,
                 pitch,
             );
+        }
+        if backing.block == BlockKind::TrappedChest {
+            for half in backing.positions() {
+                self.update_neighbors_at(half);
+                self.update_neighbors_at(half.offset(0, -1, 0));
+            }
         }
     }
 

@@ -68,6 +68,7 @@ pub(crate) fn standalone(
                 (dimension.height.min_y, dimension.height.max_y()),
             )?,
         ),
+        PlaceRequest::Grow { .. } => crate::growth::grow(dimension, request),
         PlaceRequest::Structure { .. } | PlaceRequest::Feature { .. } => Err(PlaceFailure::Failed),
     }
 }

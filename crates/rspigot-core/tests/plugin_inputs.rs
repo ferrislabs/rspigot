@@ -203,6 +203,7 @@ fn a_cancelled_game_mode_change_keeps_the_mode_and_sends_no_reply() {
     );
     let alice = s.players[0].clone();
     s.server.handle(Inbound::Console("op Alice".to_owned()));
+    s.tick(1);
     alice.link.take();
     send_input(
         &mut s.server,

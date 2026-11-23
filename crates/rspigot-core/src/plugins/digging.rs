@@ -501,7 +501,14 @@ impl<L: ClientLink> Server<L> {
         let entity_data = self.block_entity_data(pos);
         self.piston_will_destroy(pos, step.state, step.game_mode == GameMode::Creative);
         self.tnt_will_destroy(id, pos, step.state, step.game_mode == GameMode::Creative);
+        self.tripwire_will_destroy(pos, step.state, step.held.as_ref());
         self.set_block(pos, crate::block_shapes::left_behind(step.state));
+        self.ice_melt(
+            pos,
+            step.state,
+            mines_like_survival(step.game_mode),
+            step.held.as_ref(),
+        );
         let actor = self.players.get(&id).map(|player| player.entity_id);
         self.block_game_event(
             GameEvent::BlockDestroy,
@@ -524,7 +531,8 @@ impl<L: ClientLink> Server<L> {
         if survival && loot::tool_is_correct(step.held.as_ref(), step.state) {
             self.exhaust(id, MINING_EXHAUSTION, EntityExhaustionReason::BlockMined);
             if self.config.rules.block_drops {
-                let breaker = LootEntity::of(Kind::Player);
+                let mut breaker = LootEntity::of(Kind::Player);
+                breaker.name = self.players.get(&id).map(|player| player.name().to_owned());
                 let context = LootContext::block(step.state, step.held.as_ref(), Some(&breaker))
                     .with_block_entity(entity_data.as_ref());
                 stacks = loot::block_drops(&context, &mut self.rng);

@@ -7,6 +7,7 @@ use rspigot_domain::player::PlayerId;
 use rspigot_domain::{BlockPos, BlockStateId, EntityId, Rotation, Vec3};
 use rspigot_entities::EntityKind as Kind;
 
+use crate::commands::Target;
 use crate::containers::opening_of;
 use crate::loot::{self, LootContext, LootEntity};
 use crate::plugins::events::{LootGenerate, LootGeneratePatch};
@@ -159,10 +160,14 @@ impl<L: ClientLink> Server<L> {
         } else {
             pending.seed.cast_unsigned()
         };
-        let this = LootEntity::of(Kind::Player);
+        let this = self
+            .target_loot_facts(Target::Player(player))
+            .unwrap_or_else(|| LootEntity::of(Kind::Player));
         let biome = self.loot_biome(site);
+        let world = self.loot_world();
         let context = LootContext {
             this: Some(&this),
+            world: Some(&world),
             luck: LOOT_LUCK,
             biome: biome.as_deref(),
             exploration_maps: true,

@@ -38,7 +38,6 @@ const AXOLOTL_EMPTY_SOUND: &str = "minecraft:item.bucket.empty_axolotl";
 const TADPOLE_PICKUP_SOUND: &str = "minecraft:item.bucket.fill_tadpole";
 const TADPOLE_EMPTY_SOUND: &str = "minecraft:item.bucket.empty_tadpole";
 pub(crate) const FIZZ_SOUND: &str = "minecraft:block.fire.extinguish";
-const THE_NETHER: &str = "minecraft:the_nether";
 const WATERLOGGED: &str = "waterlogged";
 
 pub(crate) fn bucket_item_of(kind: Kind) -> Option<ItemKind> {
@@ -313,7 +312,7 @@ impl<L: ClientLink> Server<L> {
         lava: bool,
     ) -> Option<(BlockPos, Placement)> {
         let state = self.world.chunks.block(target)?;
-        let ultra_warm = self.world.dimension.dimension_type.as_str() == THE_NETHER;
+        let ultra_warm = self.water_evaporates();
         let free = state.is_air() || replaceable_by_water(state) || (!lava && can_waterlog(state));
         if !free {
             let (pos, face) = hit?;

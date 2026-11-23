@@ -327,6 +327,7 @@ impl PlayerAdvancements {
 pub(crate) struct AdvancementEvent {
     pub(crate) name: &'static str,
     pub(crate) item: Option<u16>,
+    pub(crate) inventory: Vec<u16>,
     pub(crate) entities: Vec<(&'static str, EntityFacts<'static>)>,
     pub(crate) at: Option<BlockPos>,
     pub(crate) recipe: Option<String>,
@@ -531,12 +532,47 @@ impl<L: ClientLink> Server<L> {
         if found.rewards.experience > 0 {
             self.give_experience(id, found.rewards.experience);
         }
+        self.grant_reward_loot(id, found.rewards.loot);
+        if let Some(function) = found.rewards.function {
+            self.run_reward_function(id, function);
+        }
         if let Some(display) = &found.display
             && display.announce_to_chat
             && self.config.rules.show_advancement_messages
         {
             self.announce_advancement(id, display);
         }
+    }
+
+    fn grant_reward_loot(&mut self, id: PlayerId, tables: &[&str]) {
+        if tables.is_empty() {
+            return;
+        }
+        let mut me = crate::loot::LootEntity::of(Kind::Player);
+        me.name = self.players.get(&id).map(|player| player.name().to_owned());
+        let mut drops = Vec::new();
+        for name in tables {
+            let Some(table) = rspigot_data::loot::table(name) else {
+                continue;
+            };
+            let context = crate::loot::LootContext {
+                this: Some(&me),
+                player: Some(&me),
+                ..crate::loot::LootContext::default()
+            };
+            drops.extend(crate::loot::table_drops(table, &context, &mut self.rng));
+        }
+        for stack in drops {
+            self.give_or_drop(id, stack);
+        }
+    }
+
+    fn run_reward_function(&mut self, id: PlayerId, function: &str) {
+        let Some(name) = self.players.get(&id).map(|player| player.name().to_owned()) else {
+            return;
+        };
+        let line = format!("execute as {name} at {name} run function {function}");
+        crate::commands::execute(self, crate::commands::CommandSender::Console, &line);
     }
 
     fn announce_advancement(
@@ -667,10 +703,10 @@ impl<L: ClientLink> Server<L> {
         slot: &'static str,
         entity: &Entity,
     ) -> (&'static str, EntityFacts<'static>) {
-        (
-            slot,
-            EntityFacts::of(entity.base.kind.name(), entity.is_baby()),
-        )
+        let mut facts = EntityFacts::of(entity.base.kind.name(), entity.is_baby());
+        facts.component = crate::advancement_facts::variant_component(&entity.base);
+        facts.body = crate::advancement_facts::body_stack(entity);
+        (slot, facts)
     }
 
     pub(crate) fn slot_near(
@@ -719,17 +755,29 @@ impl<L: ClientLink> Server<L> {
                 return;
             };
             let dimension = self.world.dimension.key.to_string();
+            let here = player.position.block();
+            let anchor = event.at.unwrap_or(here);
+            let structures_here = self.structures_at(here);
+            let structures_there = self.structures_at(anchor);
             let place = |pos: BlockPos, y: f64| Place {
                 dimension: &dimension,
                 biome: registries::biome_name(self.biome_at(pos).0),
                 y,
+                structures: if pos == here {
+                    &structures_here
+                } else {
+                    &structures_there
+                },
+                smokey: event.at.is_some() && self.is_smokey_pos(pos),
             };
-            let here = player.position.block();
-            let anchor = event.at.unwrap_or(here);
             let chunks = &self.world.chunks;
             let mut facts =
                 Facts::with_blocks(|dx, dy, dz| chunks.block(anchor.offset(dx, dy, dz)));
             facts.item = event.item;
+            facts.inventory = event.inventory;
+            facts.playable = event
+                .item
+                .is_some_and(crate::advancement_facts::is_playable);
             facts.entities = event.entities;
             facts.player = Some(place(here, player.position.y));
             facts.location = Some(place(anchor, f64::from(anchor.y)));
@@ -776,6 +824,24 @@ impl<L: ClientLink> Server<L> {
         let Some(player) = self.players.get(&id) else {
             return;
         };
+        let (_, occupied) = item_ids(player.inventory.slots());
+        let slots = player.inventory.slots();
+        let full = slots
+            .iter()
+            .flatten()
+            .filter(|stack| i32::from(stack.count.get()) >= i32::from(stack.item.max_stack_size()))
+            .count();
+        let mut event = AdvancementEvent::named("minecraft:inventory_changed");
+        event.inventory = slots.iter().flatten().map(|stack| stack.item.0).collect();
+        event.amounts.push(("slots.occupied", f64::from(occupied)));
+        event.amounts.push(("slots.full", full as f64));
+        event
+            .amounts
+            .push(("slots.empty", (slots.len() as i32 - occupied) as f64));
+        self.trigger_event(id, event);
+        let Some(player) = self.players.get(&id) else {
+            return;
+        };
         let (items, occupied) = item_ids(player.inventory.slots());
         self.trigger(id, |trigger| match trigger {
             Trigger::InventoryChanged {
@@ -788,6 +854,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn trigger_consume_item(&mut self, id: PlayerId, stack: &ItemStack) {
         let item = stack.item.0;
+        self.trigger_item(id, "minecraft:consume_item", stack);
         self.trigger(id, |trigger| match trigger {
             Trigger::ConsumeItem(wanted) => wanted.as_ref().is_none_or(|one| one.matches(item)),
             _ => false,

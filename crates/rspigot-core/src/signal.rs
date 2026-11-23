@@ -55,6 +55,11 @@ pub(crate) fn signal(state: BlockStateId, direction: Face) -> i32 {
             MAX_SIGNAL
         }
         BlockKind::DaylightDetector | BlockKind::Target => level(state, "power"),
+        BlockKind::SculkSensor | BlockKind::CalibratedSculkSensor
+            if state.property("sculk_sensor_phase") == Some("active") =>
+        {
+            level(state, "power")
+        }
         _ if name.ends_with("_button") && flag(state, "powered") => MAX_SIGNAL,
         _ if name.ends_with("lightning_rod") && flag(state, "powered") => MAX_SIGNAL,
         _ if name.ends_with("_pressure_plate") => {
@@ -131,6 +136,24 @@ mod tests {
             .with_property("power", "7")
             .unwrap();
         assert_eq!(signal(heavy, Face::Up), 7);
+    }
+
+    #[test]
+    fn an_active_sculk_sensor_gives_its_power_on_every_side_and_an_idle_one_none() {
+        for kind in [BlockKind::SculkSensor, BlockKind::CalibratedSculkSensor] {
+            let active = state(kind)
+                .with_property("sculk_sensor_phase", "active")
+                .and_then(|state| state.with_property("power", "9"))
+                .unwrap();
+            for face in Face::ALL {
+                assert_eq!(signal(active, face), 9);
+            }
+            let cooling = active
+                .with_property("sculk_sensor_phase", "cooldown")
+                .unwrap();
+            assert_eq!(signal(cooling, Face::North), 0);
+            assert_eq!(signal(state(kind), Face::North), 0);
+        }
     }
 
     #[test]

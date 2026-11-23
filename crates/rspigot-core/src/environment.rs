@@ -51,6 +51,13 @@ impl<L: ClientLink> Server<L> {
         SpawnLevel::biome(self, pos)
     }
 
+    pub fn inhabited_time(&self, chunk: rspigot_domain::ChunkPos) -> Option<i64> {
+        self.world
+            .chunks
+            .get(chunk)
+            .map(|loaded| loaded.inhabited_time)
+    }
+
     pub(crate) fn difficulty_at(&self, pos: BlockPos) -> DifficultyInstance {
         let (inhabited, moon) = match self.world.chunks.get(pos.chunk()) {
             Some(chunk) => (

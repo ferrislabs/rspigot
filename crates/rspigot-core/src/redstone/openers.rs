@@ -135,6 +135,30 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn explosion_toggle_opener(&mut self, pos: BlockPos, state: BlockStateId) {
+        let (Some(opener), Some(kind)) = (opener_of(state), state.kind()) else {
+            return;
+        };
+        if flag(state, "powered") || kind.name().contains("iron") {
+            return;
+        }
+        match opener {
+            Opener::Door => {
+                if state.property("half") == Some("lower") {
+                    self.set_door_open(pos, !flag(state, "open"));
+                }
+            }
+            Opener::Trapdoor | Opener::Gate => {
+                let open = !flag(state, "open");
+                if let Some(next) = state.with_property("open", if open { "true" } else { "false" })
+                {
+                    self.set_block(pos, next);
+                    self.play_opener_sound(pos, kind, opener, open);
+                }
+            }
+        }
+    }
+
     pub(crate) fn finish_opener(&mut self, pos: BlockPos, new: i32) {
         self.apply_opener(pos, new > 0);
     }

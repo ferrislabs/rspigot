@@ -127,6 +127,37 @@ impl<L: ClientLink> Server<L> {
         state
     }
 
+    pub(crate) fn toggle_wire(
+        &mut self,
+        id: rspigot_domain::player::PlayerId,
+        pos: BlockPos,
+        state: BlockStateId,
+    ) -> bool {
+        use rspigot_domain::player::GameMode;
+        let may_build = self.players.get(&id).is_some_and(|player| {
+            !matches!(player.game_mode, GameMode::Adventure | GameMode::Spectator)
+        });
+        if !may_build || !(is_dot(state) || is_cross(state)) {
+            return false;
+        }
+        let power = power_of(state);
+        let toggled = if is_cross(state) {
+            with_power(WIRE.default_state(), power)
+        } else {
+            Face::HORIZONTAL
+                .iter()
+                .fold(with_power(WIRE.default_state(), power), |next, face| {
+                    with_side(next, *face, "side")
+                })
+        };
+        let next = self.connection_state(pos, toggled);
+        if next == state {
+            return false;
+        }
+        self.set_block(pos, next);
+        true
+    }
+
     pub(crate) fn wire_placement(&self, pos: BlockPos, state: BlockStateId) -> BlockStateId {
         self.connection_state(pos, state)
     }

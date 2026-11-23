@@ -15,6 +15,7 @@ pub(crate) struct RespawnSpot {
     pub(crate) rotation: Rotation,
     pub(crate) dimension: DimensionKey,
     pub(crate) bed: bool,
+    pub(crate) anchor: bool,
     pub(crate) missing: bool,
 }
 
@@ -24,7 +25,10 @@ fn possible_to_respawn_in(state: BlockStateId) -> bool {
 }
 
 impl<L: ClientLink> Server<L> {
-    fn find_respawn_here(&mut self, config: &RespawnConfig) -> Option<(Vec3, Rotation, bool)> {
+    fn find_respawn_here(
+        &mut self,
+        config: &RespawnConfig,
+    ) -> Option<(Vec3, Rotation, bool, bool)> {
         self.load_chunks_now(&[config.pos.chunk()]);
         let state = self.block_or_air(config.pos);
         if let Some(kind) = bed::bed_of(state)
@@ -41,10 +45,28 @@ impl<L: ClientLink> Server<L> {
                             spot,
                             Rotation::new(bed::look_at_yaw(spot, config.pos), 0.0),
                             true,
+                            false,
                         )
                     },
                 );
             }
+        }
+        if state.kind() == Some(rspigot_blocks::BlockKind::RespawnAnchor)
+            && (config.forced || crate::signal::level(state, "charges") > 0)
+            && self.respawn_anchor_works()
+        {
+            let spot = self.anchor_stand_up(config.pos);
+            if spot.is_some() {
+                self.use_anchor_charge(config.pos, state);
+            }
+            return spot.map(|spot| {
+                (
+                    spot,
+                    Rotation::new(bed::look_at_yaw(spot, config.pos), 0.0),
+                    false,
+                    true,
+                )
+            });
         }
         if !config.forced {
             return None;
@@ -58,7 +80,7 @@ impl<L: ClientLink> Server<L> {
             f64::from(config.pos.y) + FORCED_RESPAWN_LIFT,
             f64::from(config.pos.z) + 0.5,
         );
-        Some((spot, Rotation::new(config.yaw, config.pitch), false))
+        Some((spot, Rotation::new(config.yaw, config.pitch), false, false))
     }
 
     pub(crate) fn respawn_spot(&mut self, id: PlayerId) -> RespawnSpot {
@@ -69,6 +91,7 @@ impl<L: ClientLink> Server<L> {
             rotation: Rotation::new(self.world.level.spawn_angle, 0.0),
             dimension: current.clone(),
             bed: false,
+            anchor: false,
             missing: false,
         };
         let Some(config) = self.players.get(&id).and_then(|p| p.respawn.clone()) else {
@@ -84,11 +107,12 @@ impl<L: ClientLink> Server<L> {
             return default;
         };
         match found {
-            Some((position, rotation, bed)) => RespawnSpot {
+            Some((position, rotation, bed, anchor)) => RespawnSpot {
                 position,
                 rotation,
                 dimension: config.dimension,
                 bed,
+                anchor,
                 missing: false,
             },
             None => RespawnSpot {

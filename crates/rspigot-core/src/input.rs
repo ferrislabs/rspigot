@@ -444,6 +444,8 @@ impl<L: ClientLink> Server<L> {
                 if let Some(player) = self.players.get_mut(&id) {
                     player.motion.destroy_direction = Some(face);
                 }
+                self.redstone_ore_interact(pos);
+                self.dragon_egg_teleport(pos);
                 self.start_digging(id, pos, face, sequence);
             }
             DigAction::ChangeDestroyDirection => {
@@ -512,6 +514,8 @@ impl<L: ClientLink> Server<L> {
             .unwrap_or_default();
         if let Some(old) = before {
             lost.extend(self.shelf_items_lost_by(pos, old, state));
+            lost.extend(self.bookshelf_items_lost_by(pos, old, state));
+            lost.extend(self.pot_items_lost_by(pos, old, state));
         }
         let book = before.and_then(|old| self.lectern_book_lost_by(pos, old, state));
         let jukebox = before
@@ -563,6 +567,7 @@ impl<L: ClientLink> Server<L> {
                 self.try_spawn_copper_golem(pos, old, state);
                 self.rail_placed(pos, old, state);
                 self.redstone_block_changed(pos, old, state);
+                self.snowy_changed(pos, old, state);
                 true
             }
             _ => false,
@@ -639,6 +644,12 @@ impl<L: ClientLink> Server<L> {
             if !(sneaking && holding) && self.use_shelf(step) {
                 return;
             }
+            if !(sneaking && holding) && self.use_chiseled_bookshelf(step) {
+                return;
+            }
+            if !(sneaking && holding) && self.use_decorated_pot(step) {
+                return;
+            }
             if !(sneaking && holding) && self.place_book_on_lectern(id, slot, pos, clicked) {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
@@ -670,6 +681,7 @@ impl<L: ClientLink> Server<L> {
             if !(sneaking && holding)
                 && self.use_jukebox(id, hand, stack.as_ref(), pos, clicked, sequence)
             {
+                self.item_used_on_block(id, stack.as_ref(), pos);
                 return;
             }
             if !(sneaking && holding)
@@ -684,6 +696,30 @@ impl<L: ClientLink> Server<L> {
                 return;
             }
             if !(sneaking && holding) && self.use_bed(id, pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
+            if !(sneaking && holding)
+                && self.use_respawn_anchor(id, hand, stack.as_ref(), pos, clicked)
+            {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
+            if !(sneaking && holding) && self.use_redstone_ore(stack.as_ref(), pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
+            if !(sneaking && holding) && self.use_light_block(id, stack.as_ref(), pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
+            if !(sneaking && holding) && self.use_dragon_egg(pos, clicked) {
+                self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
+                return;
+            }
+            if !(sneaking && holding)
+                && self.use_pumpkin_shears(id, hand, stack.as_ref(), pos, clicked, face)
+            {
                 self.push(Audience::One(id), ClientEvent::BlockChangedAck(sequence));
                 return;
             }

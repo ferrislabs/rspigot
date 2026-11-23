@@ -10,9 +10,18 @@ pub(crate) struct Distance {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct StackFacts {
+    pub item: u16,
+    pub damage: Option<i32>,
+    pub playable: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct EntityFacts<'a> {
     pub kind: &'a str,
     pub baby: bool,
+    pub component: Option<(&'a str, &'a str)>,
+    pub body: Option<StackFacts>,
     pub distance: Option<Distance>,
     pub vehicle: Option<&'a str>,
     pub vehicle_passenger: Option<&'a str>,
@@ -43,15 +52,19 @@ pub(crate) struct DamageFacts<'a> {
     pub causing: Option<EntityFacts<'a>>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Place<'a> {
     pub dimension: &'a str,
     pub biome: Option<&'a str>,
     pub y: f64,
+    pub structures: &'a [String],
+    pub smokey: bool,
 }
 
 pub(crate) struct Facts<'a, B> {
     pub item: Option<u16>,
+    pub playable: bool,
+    pub inventory: Vec<u16>,
     pub entities: Vec<(&'static str, EntityFacts<'a>)>,
     pub player: Option<Place<'a>>,
     pub location: Option<Place<'a>>,
@@ -84,9 +97,19 @@ impl Facts<'_, NoBlocks> {
 }
 
 impl<B> Facts<'_, B> {
+    fn held(&self) -> Option<StackFacts> {
+        self.item.map(|item| StackFacts {
+            item,
+            damage: None,
+            playable: self.playable,
+        })
+    }
+
     pub(crate) fn with_blocks(block_at: B) -> Self {
         Self {
             item: None,
+            playable: false,
+            inventory: Vec::new(),
             entities: Vec::new(),
             player: None,
             location: None,
@@ -195,13 +218,32 @@ fn enchantment_held(entry: &Value, amounts: &[(&str, f64)]) -> bool {
     })
 }
 
-fn stack_matches(predicate: &Value, item: Option<u16>, amounts: &[(&str, f64)]) -> bool {
+fn components_match(wanted: &Value, stack: Option<StackFacts>) -> bool {
+    let (Value::Object(map), Some(stack)) = (wanted, stack) else {
+        return false;
+    };
+    map.iter()
+        .all(|(component, value)| match component.as_str() {
+            "minecraft:damage" => stack
+                .damage
+                .is_some_and(|damage| value.as_i64() == Some(i64::from(damage))),
+            _ => false,
+        })
+}
+
+fn stack_matches(predicate: &Value, stack: Option<StackFacts>, amounts: &[(&str, f64)]) -> bool {
     let Value::Object(map) = predicate else {
         return false;
     };
     let mut plain = map.clone();
     let predicates = plain.remove("predicates");
-    if !item_matches(&Value::Object(plain), item) {
+    let components = plain.remove("components");
+    if !item_matches(&Value::Object(plain), stack.map(|found| found.item)) {
+        return false;
+    }
+    if let Some(components) = components
+        && !components_match(&components, stack)
+    {
         return false;
     }
     let Some(predicates) = predicates else {
@@ -214,6 +256,7 @@ fn stack_matches(predicate: &Value, item: Option<u16>, amounts: &[(&str, f64)]) 
         "minecraft:enchantments" => value
             .as_array()
             .is_some_and(|entries| entries.iter().all(|entry| enchantment_held(entry, amounts))),
+        "minecraft:jukebox_playable" => stack.is_some_and(|found| found.playable),
         _ => false,
     })
 }
@@ -244,6 +287,21 @@ fn state_matches(value: &Value, state: BlockStateId) -> bool {
     })
 }
 
+fn structure_listed(wanted: &Value, structures: &[String]) -> bool {
+    let Some(wanted) = names(wanted) else {
+        return false;
+    };
+    wanted.iter().any(|name| match name.strip_prefix('#') {
+        Some(tag) => structures.iter().any(|held| {
+            registries::synced_index("minecraft:worldgen/structure", held).is_some_and(|id| {
+                tags::tag("minecraft:worldgen/structure", tag)
+                    .is_some_and(|members| members.binary_search(&id).is_ok())
+            })
+        }),
+        None => structures.iter().any(|held| held == name),
+    })
+}
+
 fn place_matches(predicate: &Value, place: Option<Place>) -> bool {
     let (Value::Object(map), Some(place)) = (predicate, place) else {
         return false;
@@ -255,6 +313,8 @@ fn place_matches(predicate: &Value, place: Option<Place>) -> bool {
             place.biome.and_then(registries::biome_id).map(u32::from),
         ),
         "dimension" => value.as_str() == Some(place.dimension),
+        "structures" => structure_listed(value, place.structures),
+        "smokey" => value.as_bool() == Some(place.smokey),
         "position" => value.as_object().is_some_and(|axes| {
             axes.iter()
                 .all(|(axis, range)| axis == "y" && in_range(range, place.y))
@@ -319,6 +379,14 @@ fn properties_match(
                 })
             }),
             "minecraft:location" => place_matches(wanted, place),
+            "minecraft:components" => wanted.as_object().is_some_and(|map| {
+                facts
+                    .and_then(|entity| entity.component)
+                    .is_some_and(|(key, value)| {
+                        map.iter()
+                            .all(|(name, found)| name == key && found.as_str() == Some(value))
+                    })
+            }),
             "minecraft:distance" => distance_matches(wanted, facts.and_then(|e| e.distance)),
             "minecraft:vehicle" => wanted.as_object().is_some_and(|inner| {
                 facts.and_then(|entity| entity.vehicle).is_some_and(|kind| {
@@ -339,6 +407,7 @@ fn properties_match(
             "minecraft:equipment" => wanted.as_object().is_some_and(|slots| {
                 slots.iter().all(|(slot, stack)| match slot.as_str() {
                     "mainhand" => item_matches(stack, facts.and_then(|entity| entity.mainhand)),
+                    "body" => stack_matches(stack, facts.and_then(|entity| entity.body), &[]),
                     "head" => {
                         facts.is_some_and(|entity| entity.ominous_banner)
                             && stack
@@ -517,7 +586,7 @@ fn term_holds<B: Fn(i32, i32, i32) -> Option<BlockStateId>>(
         }
         "minecraft:match_tool" => map
             .get("predicate")
-            .is_some_and(|predicate| stack_matches(predicate, facts.item, &facts.amounts)),
+            .is_some_and(|predicate| stack_matches(predicate, facts.held(), &facts.amounts)),
         "minecraft:location_check" => {
             let offset = |axis: &str| {
                 map.get(axis)
@@ -530,7 +599,11 @@ fn term_holds<B: Fn(i32, i32, i32) -> Option<BlockStateId>>(
             };
             predicate.iter().all(|(key, value)| match key.as_str() {
                 "block" => block_matches(value, at),
-                "biomes" | "dimension" | "position" => place_matches(
+                "smokey" => place_matches(
+                    &Value::Object(Map::from_iter([(key.clone(), value.clone())])),
+                    facts.location,
+                ),
+                "biomes" | "dimension" | "position" | "structures" => place_matches(
                     &Value::Object(Map::from_iter([(key.clone(), value.clone())])),
                     facts.location,
                 ),
@@ -552,7 +625,24 @@ pub(crate) fn matches<B: Fn(i32, i32, i32) -> Option<BlockStateId>>(
         return false;
     };
     map.iter().all(|(key, value)| match key.as_str() {
-        "item" => stack_matches(value, facts.item, &facts.amounts),
+        "item" => stack_matches(value, facts.held(), &facts.amounts),
+        "items" => value.as_array().is_some_and(|wanted| {
+            wanted.iter().all(|predicate| {
+                facts
+                    .inventory
+                    .iter()
+                    .any(|held| item_matches(predicate, Some(*held)))
+            })
+        }),
+        "slots" => value.as_object().is_some_and(|ranges| {
+            ranges.iter().all(|(name, range)| {
+                facts
+                    .amounts
+                    .iter()
+                    .find(|(known, _)| *known == format!("slots.{name}"))
+                    .is_some_and(|(_, actual)| in_range(range, *actual))
+            })
+        }),
         "recipes" => facts
             .recipe
             .is_some_and(|recipe| names(value).is_some_and(|wanted| wanted.contains(&recipe))),
@@ -654,6 +744,7 @@ mod tests {
             dimension: "minecraft:overworld",
             biome: Some("minecraft:plains"),
             y: 70.0,
+            ..Place::default()
         });
         let plains = r#"{"player":{"type":"minecraft:entity_properties","entity":"this","predicate":{"minecraft:location":{"biomes":"minecraft:plains"}}}}"#;
         assert!(matches(Some(plains), &facts));
@@ -818,6 +909,7 @@ mod tests {
             dimension: "minecraft:overworld",
             biome: None,
             y: 64.0,
+            ..Place::default()
         });
         let riding = format!(
             r#"{{"player":{}}}"#,
@@ -884,6 +976,114 @@ mod tests {
         ));
         assert!(!matches(
             Some(r#"{"start_position":{"position":{"y":{"min":400.0}}}}"#),
+            &facts
+        ));
+    }
+
+    #[test]
+    fn an_entity_components_predicate_reads_the_variant() {
+        let mut facts = Facts::bare();
+        let mut cat = EntityFacts::of("minecraft:cat", false);
+        cat.component = Some(("minecraft:cat/variant", "minecraft:black"));
+        facts.entities.push(("entity", cat));
+        let black = format!(
+            r#"{{"entity":{}}}"#,
+            wrapped(r#"{"minecraft:components":{"minecraft:cat/variant":"minecraft:black"}}"#)
+        );
+        assert!(matches(Some(&black), &facts));
+        assert!(!matches(Some(&black.replace("black", "calico")), &facts));
+        assert!(!matches(
+            Some(&black.replace("cat/variant", "frog/variant")),
+            &facts
+        ));
+    }
+
+    #[test]
+    fn a_location_predicate_reads_structures_and_smoke() {
+        let structures = ["minecraft:fortress".to_owned()];
+        let mut facts = Facts::bare();
+        facts.player = Some(Place {
+            dimension: "minecraft:the_nether",
+            structures: &structures,
+            ..Place::default()
+        });
+        let inside = format!(
+            r#"{{"player":{}}}"#,
+            wrapped(r#"{"minecraft:location":{"structures":"minecraft:fortress"}}"#)
+        );
+        assert!(matches(Some(&inside), &facts));
+        assert!(matches(
+            Some(&inside.replace(
+                "\"minecraft:fortress\"",
+                "[\"minecraft:bastion_remnant\",\"minecraft:fortress\"]"
+            )),
+            &facts
+        ));
+        assert!(!matches(
+            Some(&inside.replace("fortress", "bastion_remnant")),
+            &facts
+        ));
+        facts.location = Some(Place {
+            smokey: true,
+            ..Place::default()
+        });
+        let honey =
+            r#"{"location":{"type":"minecraft:location_check","predicate":{"smokey":true}}}"#;
+        assert!(matches(Some(honey), &facts));
+        facts.location = Some(Place::default());
+        assert!(!matches(Some(honey), &facts));
+    }
+
+    #[test]
+    fn a_body_slot_and_item_components_compare_the_stack() {
+        let mut facts = Facts::bare();
+        let mut wolf = EntityFacts::of("minecraft:wolf", false);
+        wolf.body = Some(StackFacts {
+            item: item("minecraft:wolf_armor").unwrap(),
+            damage: Some(0),
+            playable: false,
+        });
+        facts.entities.push(("entity", wolf));
+        let repaired = format!(
+            r#"{{"entity":{}}}"#,
+            wrapped(
+                r#"{"minecraft:equipment":{"body":{"components":{"minecraft:damage":0},"items":"minecraft:wolf_armor"}}}"#
+            )
+        );
+        assert!(matches(Some(&repaired), &facts));
+        assert!(!matches(
+            Some(&repaired.replace("\"minecraft:damage\":0", "\"minecraft:damage\":5")),
+            &facts
+        ));
+        facts.entities.clear();
+        facts
+            .entities
+            .push(("entity", EntityFacts::of("minecraft:wolf", false)));
+        assert!(!matches(Some(&repaired), &facts));
+    }
+
+    #[test]
+    fn a_jukebox_playable_item_predicate_reads_the_stack() {
+        let mut facts = Facts::bare();
+        facts.item = item("minecraft:music_disc_cat");
+        facts.playable = true;
+        let tool = r#"{"location":{"type":"minecraft:match_tool","predicate":{"predicates":{"minecraft:jukebox_playable":{}}}}}"#;
+        assert!(matches(Some(tool), &facts));
+        facts.playable = false;
+        assert!(!matches(Some(tool), &facts));
+    }
+
+    #[test]
+    fn an_inventory_condition_reads_items_and_slot_counts() {
+        let mut facts = Facts::bare();
+        facts.inventory = vec![item("minecraft:diamond").unwrap()];
+        facts.amounts.push(("slots.occupied", 1.0));
+        facts.amounts.push(("slots.empty", 35.0));
+        let held = r#"{"items":[{"items":"minecraft:diamond"}],"slots":{"occupied":{"min":1},"empty":{"max":35}}}"#;
+        assert!(matches(Some(held), &facts));
+        assert!(!matches(Some(&held.replace("diamond", "emerald")), &facts));
+        assert!(!matches(
+            Some(&held.replace("\"max\":35", "\"max\":3")),
             &facts
         ));
     }

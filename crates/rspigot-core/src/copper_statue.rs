@@ -315,6 +315,9 @@ impl<L: ClientLink> Server<L> {
         if !is_pumpkin(new) || old.kind() == new.kind() {
             return;
         }
+        if self.try_build_snow_or_iron_golem(pos) {
+            return;
+        }
         let below = pos.offset(0, -1, 0);
         let Some(base) = self
             .world

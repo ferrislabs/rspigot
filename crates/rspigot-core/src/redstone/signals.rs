@@ -47,9 +47,10 @@ impl<L: ClientLink> Server<L> {
                     0
                 }
             }
+            Some(BlockKind::TrappedChest) => i32::from(self.viewer_count(pos)).min(MAX_POWER),
             Some(BlockKind::Comparator) => {
                 if flag(state, "powered") && facing(state) == Some(direction) {
-                    self.falls.redstone.outputs.get(&pos).copied().unwrap_or(0)
+                    self.comparator_stored(pos)
                 } else {
                     0
                 }
@@ -98,6 +99,9 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             BlockKind::Observer | BlockKind::Repeater | BlockKind::Comparator => {
+                self.state_signal(state, pos, direction, wires)
+            }
+            BlockKind::TrappedChest if direction == Face::Up => {
                 self.state_signal(state, pos, direction, wires)
             }
             BlockKind::RedstoneWire => {

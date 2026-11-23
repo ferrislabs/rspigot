@@ -475,11 +475,13 @@ impl<L: ClientLink> Server<L> {
         (outcome == CommandOutcome::Success, output)
     }
 
-    fn inform_operators(&mut self, name: &str, message: Component) {
+    pub(crate) fn inform_operators(&mut self, name: &str, message: Component) {
         let line = Component::translatable("chat.type.admin", vec![Component::text(name), message])
             .color(NamedColor::Gray)
             .italic(true);
-        tracing::info!("{}", console_text(&line));
+        if self.config.rules.log_admin_commands {
+            tracing::info!("{}", console_text(&line));
+        }
         let operators: Vec<PlayerId> = self
             .players
             .values()

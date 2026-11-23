@@ -3,6 +3,11 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::generated::loot::{BLOCK_TABLES, ENTITY_TABLES, PREDICATES, SMELTING, TABLES};
+pub use crate::loot_extra::{
+    Aggregate, AttributeModifier, AttributeValue, BannerLayer, Binary, ContainerComponent,
+    CustomModelEdit, Explosion, ExtraFunction, FloatExpr, IntExpr, ListEdit, PageKind, ScoreHolder,
+    SlotContainer, SlotSource, Unary,
+};
 use crate::registries;
 use crate::tags::HolderSet;
 
@@ -15,7 +20,7 @@ pub struct LootTable {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pool {
     pub rolls: IntProvider,
-    pub bonus_rolls: f32,
+    pub bonus_rolls: FloatProvider,
     pub condition: Option<Condition>,
     pub modifier: &'static [Function],
     pub entries: &'static [Entry],
@@ -50,6 +55,7 @@ pub enum Output {
     Empty,
     Dynamic(&'static str),
     Table(&'static str),
+    Slots(&'static SlotSource),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -70,6 +76,7 @@ pub enum Condition {
     DamageSourceProperties(&'static DamageSourcePredicate),
     RandomChance(f32),
     RandomChanceByLevel(LevelBasedValue),
+    RandomChanceRolled(NumberProvider),
     RandomChanceWithEnchantedBonus {
         enchantment: &'static str,
         unenchanted_chance: f32,
@@ -84,6 +91,7 @@ pub enum Condition {
     AllOf(&'static [Condition]),
     Reference(&'static str),
     TimeCheck {
+        clock: Option<&'static str>,
         period: Option<i64>,
         min: Option<f32>,
         max: Option<f32>,
@@ -101,6 +109,11 @@ pub enum Condition {
         target: EntityTarget,
         scores: &'static [(&'static str, IntRange)],
     },
+    EnchantmentActive(bool),
+    EnvironmentAttributeCheck {
+        attribute: &'static str,
+        value: AttributeValue,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -108,6 +121,8 @@ pub enum NumberProvider {
     Constant(f32),
     Uniform { min: f32, max: f32 },
     Binomial { n: i32, p: f32 },
+    Int(&'static IntExpr),
+    Float(&'static FloatExpr),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -305,10 +320,12 @@ pub enum FunctionKind {
     SetName {
         name: &'static str,
         target: NameTarget,
+        entity: Option<EntityTarget>,
     },
     SetLore {
         lines: &'static [&'static str],
         mode: ListMode,
+        entity: Option<EntityTarget>,
     },
     SetCustomData {
         tag: &'static str,
@@ -319,6 +336,12 @@ pub enum FunctionKind {
     },
     ToggleTooltips(&'static [(&'static str, bool)]),
     SetComponents(&'static [(&'static str, &'static str)]),
+    SetItem(u16),
+    SetLootTable {
+        table: &'static str,
+        seed: i64,
+    },
+    Extra(ExtraFunction),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -347,6 +370,7 @@ pub enum ListMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CustomDataSource {
     BlockEntity,
+    Storage(&'static str),
     Entity(EntityTarget),
 }
 
@@ -375,6 +399,7 @@ pub enum BonusFormula {
 pub enum FloatProvider {
     Constant(f32),
     Uniform { min: f32, max: f32 },
+    Expr(&'static FloatExpr),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -382,16 +407,19 @@ pub enum IntProvider {
     Constant(i32),
     Uniform { min: i32, max: i32 },
     Binomial { n: i32, p: f32 },
+    Expr(&'static IntExpr),
 }
 
 pub fn tables() -> &'static [(&'static str, LootTable)] {
     &TABLES
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct LootOverlay {
     tables: BTreeMap<String, &'static LootTable>,
     predicates: BTreeMap<String, &'static Condition>,
+    int_providers: BTreeMap<String, &'static IntExpr>,
+    float_providers: BTreeMap<String, &'static FloatExpr>,
 }
 
 impl LootOverlay {
@@ -403,8 +431,27 @@ impl LootOverlay {
         self.predicates.insert(name.to_owned(), condition);
     }
 
+    pub fn insert_int_provider(&mut self, name: &str, provider: &'static IntExpr) {
+        self.int_providers.insert(name.to_owned(), provider);
+    }
+
+    pub fn insert_float_provider(&mut self, name: &str, provider: &'static FloatExpr) {
+        self.float_providers.insert(name.to_owned(), provider);
+    }
+
+    pub fn int_provider_names(&self) -> impl Iterator<Item = &str> {
+        self.int_providers.keys().map(String::as_str)
+    }
+
+    pub fn float_provider_names(&self) -> impl Iterator<Item = &str> {
+        self.float_providers.keys().map(String::as_str)
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.tables.is_empty() && self.predicates.is_empty()
+        self.tables.is_empty()
+            && self.predicates.is_empty()
+            && self.int_providers.is_empty()
+            && self.float_providers.is_empty()
     }
 
     pub fn table_names(&self) -> impl Iterator<Item = &str> {
@@ -439,6 +486,14 @@ fn overlaid<T>(look: impl FnOnce(&LootOverlay) -> Option<T>) -> Option<T> {
 
 fn overlay_active() -> bool {
     ACTIVE.with(|active| active.borrow().is_some())
+}
+
+pub fn int_provider(name: &str) -> Option<&'static IntExpr> {
+    overlaid(|overlay| overlay.int_providers.get(name).copied())
+}
+
+pub fn float_provider(name: &str) -> Option<&'static FloatExpr> {
+    overlaid(|overlay| overlay.float_providers.get(name).copied())
 }
 
 pub fn table(name: &str) -> Option<&'static LootTable> {
@@ -937,7 +992,7 @@ mod tests {
         }]);
         let pools: &'static [Pool] = Vec::leak(vec![Pool {
             rolls: IntProvider::Constant(1),
-            bonus_rolls: 0.0,
+            bonus_rolls: FloatProvider::Constant(0.0),
             condition: None,
             modifier: &[],
             entries: entry,

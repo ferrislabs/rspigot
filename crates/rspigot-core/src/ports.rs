@@ -160,6 +160,13 @@ pub enum PlaceRequest {
         id: String,
         pos: BlockPos,
     },
+    Grow {
+        feature: String,
+        origin: BlockPos,
+        clear: Vec<BlockPos>,
+        seed: i64,
+        window: crate::grow_window::GrowWindow,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

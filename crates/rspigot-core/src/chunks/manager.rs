@@ -464,6 +464,12 @@ impl ChunkManager {
         self.loaded.contains_key(&pos)
     }
 
+    pub fn add_inhabited_time(&mut self, pos: ChunkPos, ticks: i64) {
+        if let Some(loaded) = self.loaded.get_mut(&pos) {
+            Arc::make_mut(&mut loaded.chunk).inhabited_time += ticks;
+        }
+    }
+
     pub fn load_unhandled(&self, pos: ChunkPos) -> bool {
         self.events.loaded.iter().any(|(loaded, _)| *loaded == pos)
     }

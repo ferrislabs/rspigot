@@ -912,6 +912,7 @@ impl<L: ClientLink> Server<L> {
             rotation: spot.rotation,
         };
         let bed_spawn = spot.bed;
+        let anchor_spawn = spot.anchor;
         let step = RespawnStep {
             player: id,
             credits: false,
@@ -920,7 +921,7 @@ impl<L: ClientLink> Server<L> {
         self.fire(id, Continuation::Respawn(step), move |server| {
             server.snapshot_of(id).map(|player| {
                 EventPayload::PlayerRespawn(PlayerRespawn {
-                    anchor_spawn: false,
+                    anchor_spawn,
                     bed_spawn,
                     player,
                     respawn_location: location,

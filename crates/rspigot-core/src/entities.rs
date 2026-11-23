@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use rand::Rng;
 use rspigot_domain::damage::DamageType;
+use rspigot_domain::effect::EffectInstance;
 use rspigot_domain::entity::living::{self, EQUIPMENT_SLOTS};
 use rspigot_domain::entity::tracker::{TrackerUpdate, unpack_degrees};
 use rspigot_domain::entity::{
@@ -629,6 +630,22 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let spent = state.effects.countdown();
+        let restored: Vec<EffectInstance> = state
+            .effects
+            .take_restored()
+            .into_iter()
+            .filter_map(|effect| state.effects.get(effect).copied())
+            .collect();
+        for effect in restored {
+            self.push(
+                Audience::Trackers(id),
+                ClientEvent::EffectApplied {
+                    entity: id,
+                    effect,
+                    blend: false,
+                },
+            );
+        }
         for effect in spent {
             self.potion(
                 Holder::Mob(id),

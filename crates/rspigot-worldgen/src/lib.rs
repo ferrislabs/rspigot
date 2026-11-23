@@ -9,6 +9,7 @@ mod end;
 mod end_spikes;
 mod flat;
 mod flat_structures;
+mod growth;
 mod legacy;
 mod locate;
 mod nether;
