@@ -13,6 +13,12 @@ The server creates `server.properties`, `spigot.yml`, `bukkit.yml`, `ops.json`, 
 
 Options: `--port <n>`, `--world-dir <dir>`, `--online-mode <true|false>`. Type `help` in the console for commands; `stop` or Ctrl-C saves the world and exits.
 
+Pushing a tag `x.x.x` publishes the image `ghcr.io/ferrislabs/rspigot` for amd64 and arm64, tagged `x.x.x`, `x.x`, `x` and `latest`. The configuration and the world live in `/data`; `docker stop` saves the world. Plugins in other containers need `host: 0.0.0.0` in `plugins.yml` and a `token`.
+
+```
+docker run -it -p 25565:25565 -v rspigot:/data ghcr.io/ferrislabs/rspigot:0.1.0
+```
+
 ## Plugins
 
 A plugin is a separate program, never loaded into the server. It connects to the server's plugin port when it starts, so it can crash, restart or be redeployed while the server keeps running. Plugins are written in Rust with the `rspigot-plugin` crate; [`example/plugins/welcome`](example/plugins/welcome) is a complete one. The `plugins` console command lists the connected plugins.

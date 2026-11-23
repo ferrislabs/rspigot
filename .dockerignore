@@ -1,0 +1,10 @@
+target
+tools/*/target
+docs
+run
+world*
+logs
+example/server
+**/.DS_Store
+**/__pycache__
+.env
