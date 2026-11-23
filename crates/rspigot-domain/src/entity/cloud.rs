@@ -38,6 +38,12 @@ pub const DRAGON_BREATH: &str = "minecraft:dragon_breath";
 pub const OPAQUE: i32 = 0xFF00_0000_u32 as i32;
 const DEFAULT_WAIT: i32 = 20;
 
+pub const CREEPER_RADIUS: f32 = 2.5;
+pub const CREEPER_RADIUS_ON_USE: f32 = -0.5;
+pub const CREEPER_WAIT_TIME: i32 = 10;
+pub const CREEPER_DURATION: i32 = 300;
+pub const CREEPER_DURATION_SCALE: f32 = 0.25;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CloudState {
     pub duration: i32,

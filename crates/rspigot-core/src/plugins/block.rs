@@ -43,6 +43,10 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             BlockOrder::Tile(edit) => self.apply_tile(pos, edit)?,
+            BlockOrder::SetLootTable { table, seed } => {
+                self.set_block_loot_table(pos, table, seed)?;
+            }
+            BlockOrder::SetBiome(biome) => self.set_block_biome(pos, &biome)?,
             BlockOrder::Pdc(change) => self
                 .pdc_change(crate::plugins::PdcHolder::Block(pos), change)
                 .map_err(|error| error.reason)?,

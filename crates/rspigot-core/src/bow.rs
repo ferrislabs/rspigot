@@ -8,7 +8,7 @@ use rspigot_domain::entity::fire;
 use rspigot_domain::entity::{Entity, EntityState};
 use rspigot_domain::item::{HOTBAR_START, ItemStack, OFFHAND_SLOT, menu_slot};
 use rspigot_domain::player::{GameMode, PlayerId};
-use rspigot_entities::{EntityKind as Kind, SoundSource};
+use rspigot_entities::SoundSource;
 use rspigot_items::ItemKind;
 
 use crate::enchant_effects::{self, EquipSlot, Worn};
@@ -210,11 +210,11 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn fire_arrow(&mut self, id: PlayerId, shot: &Shot, intangible: bool) {
-        let mut base = self.new_entity_base(Kind::Arrow);
+        let mut base = self.new_entity_base(arrow::kind_for(&shot.ammo.stack));
         base.position = Vec3::new(shot.eye.x, shot.eye.y - EYE_OFFSET, shot.eye.z);
         base.old_position = base.position;
         let seed = self.rng.random::<i64>();
-        let mut state = ArrowState::new(&mut base, seed);
+        let mut state = ArrowState::for_base(&mut base, seed);
         state.set_owner(Some(shot.owner), true);
         state.item = ItemStack {
             count: NonZeroU8::MIN,

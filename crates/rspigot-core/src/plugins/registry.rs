@@ -45,6 +45,9 @@ pub(crate) struct Departed {
 pub(crate) struct Registry {
     pub(crate) attachments: crate::plugins::attachments::Attachments,
     pub(crate) views: crate::plugins::extras::PlayerViews,
+    pub(crate) tasks: crate::plugins::scheduler::Tasks,
+    pub(crate) cookie_waits: crate::plugins::cookies::CookieWaits,
+    pub(crate) viewer_state: crate::plugins::viewer_state::ViewerState,
     connected: BTreeMap<u64, Connected>,
     last_event: u64,
 }

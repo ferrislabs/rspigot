@@ -24,11 +24,11 @@ pub(crate) enum Punched {
     Entity,
 }
 
-struct Sight {
-    from: Vec3,
-    to: Vec3,
-    length: f64,
-    block: Option<BlockHit>,
+pub(super) struct Sight {
+    pub(super) from: Vec3,
+    pub(super) to: Vec3,
+    pub(super) length: f64,
+    pub(super) block: Option<BlockHit>,
 }
 
 enum Struck {
@@ -37,9 +37,9 @@ enum Struck {
     Npc(EntityId),
 }
 
-struct Sightline<'a> {
-    chunks: &'a ChunkManager,
-    eyes: BlockPos,
+pub(super) struct Sightline<'a> {
+    pub(super) chunks: &'a ChunkManager,
+    pub(super) eyes: BlockPos,
 }
 
 impl BlockView for Sightline<'_> {
@@ -154,7 +154,7 @@ impl<L: ClientLink> Server<L> {
         })
     }
 
-    fn entity_target(&self, viewer: PlayerId, sight: &Sight) -> Option<TargetHit> {
+    pub(super) fn entity_target(&self, viewer: PlayerId, sight: &Sight) -> Option<TargetHit> {
         let limit = sight
             .block
             .map_or(sight.length, |hit| (hit.location - sight.from).length());
@@ -215,7 +215,7 @@ pub(crate) fn ray_end(from: Vec3, rotation: Rotation, max_distance: f64) -> Vec3
     from + direction.scale(max_distance.min(MAX_TARGET_DISTANCE))
 }
 
-fn sight_shape(state: BlockStateId) -> &'static [rspigot_blocks::Aabb] {
+pub(super) fn sight_shape(state: BlockStateId) -> &'static [rspigot_blocks::Aabb] {
     let passed = matches!(
         state.kind(),
         Some(BlockKind::Light | BlockKind::Water | BlockKind::Lava | BlockKind::BubbleColumn)
@@ -229,7 +229,7 @@ fn sight_shape(state: BlockStateId) -> &'static [rspigot_blocks::Aabb] {
     }
 }
 
-fn source_shape(state: BlockStateId) -> &'static [rspigot_blocks::Aabb] {
+pub(super) fn source_shape(state: BlockStateId) -> &'static [rspigot_blocks::Aabb] {
     let source = matches!(state.kind(), Some(BlockKind::Water | BlockKind::Lava))
         && state.property("level") == Some("0");
     if source

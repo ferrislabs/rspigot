@@ -122,6 +122,25 @@ impl Block {
         }));
     }
 
+    pub fn set_biome(&self, biome: &str) {
+        self.order(block_order::Order::SetBiome(biome.to_owned()));
+    }
+
+    pub fn set_loot_table(&self, table: Option<&str>, seed: i64) {
+        self.order(block_order::Order::SetLootTable(v1::LootTableSet {
+            table: table.map(str::to_owned),
+            seed,
+        }));
+    }
+
+    pub async fn get_loot_table(&self) -> Result<Option<(String, i64)>, Error> {
+        crate::lookups::lootable(
+            &self.link,
+            v1::loot_target::Target::Block(self.pos.to_wire()),
+        )
+        .await
+    }
+
     pub fn break_naturally(&self) {
         self.order(block_order::Order::BreakNaturally(v1::Empty {}));
     }

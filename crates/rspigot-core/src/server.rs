@@ -569,6 +569,7 @@ impl<L: ClientLink> Server<L> {
             changed |= replaced.commands;
             replaced.outbox.send(ToPlugin::Replaced);
             self.forget_plugin_inventories(replaced.connection);
+            self.forget_plugin_tasks(replaced.connection);
             self.forget_plugin_recipes(&replaced.plugin.name);
             changed |= self.plugins.attachments.forget_plugin(replaced.connection);
             self.plugin_disabled(connection, replaced.plugin);
@@ -890,6 +891,7 @@ impl<L: ClientLink> Server<L> {
             meta: Default::default(),
             volatile_meta: Default::default(),
             motion: Default::default(),
+            shoulders: Default::default(),
         };
         if let Some(save) = &saved {
             save.restore(&mut player, self.world.spawn, self.world.level.spawn_angle);
@@ -1227,6 +1229,7 @@ impl<L: ClientLink> Server<L> {
         self.tick_scoreboard_criteria();
         self.tick_advancements();
         self.tick_sleeping();
+        self.tick_shoulders();
         self.tick_eating();
         self.tick_cooldowns();
         self.tick_delayed_destroys();
@@ -1234,6 +1237,8 @@ impl<L: ClientLink> Server<L> {
         self.tick_patrol_spawner();
         self.tick_phantom_spawner();
         self.tick_trader_spawner();
+        self.tick_cat_spawner();
+        self.tick_creaking_hearts();
         self.tick_raids();
         self.tick_dragon_fight();
         self.tick_pending_eyes();
@@ -1426,6 +1431,7 @@ impl<L: ClientLink> Server<L> {
             index: 14,
             value: MetadataValue::OptionalBlockPos(Some(pos)),
         }))
+        .chain(crate::shoulder::shoulder_entries(&player.shoulders))
         .collect()
     }
 

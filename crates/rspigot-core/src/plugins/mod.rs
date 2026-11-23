@@ -2,6 +2,7 @@ mod actions;
 mod advancements;
 mod aims;
 mod attachments;
+mod biomes;
 mod block;
 mod blocks;
 mod boss_bars;
@@ -11,9 +12,11 @@ mod changes;
 mod chat;
 mod chunks;
 pub(crate) mod clicks;
+mod client_changes;
 mod command_args;
 mod commands;
 mod contract;
+mod cookies;
 mod damage;
 mod decisions;
 mod digging;
@@ -28,12 +31,15 @@ pub(crate) mod gaps;
 mod heard;
 mod inputs;
 mod inventory;
+mod inventory_types;
 mod item_components;
 mod items;
 mod knockback;
 mod launches;
 mod levels;
 mod lifecycle;
+mod lookups;
+mod lootables;
 mod map_views;
 mod menus;
 mod merchants;
@@ -51,10 +57,12 @@ mod poses;
 mod position;
 mod potions;
 pub(crate) mod prepare;
+mod ray_traces;
 mod recipes;
 mod registry;
 mod resolve;
 mod rights;
+mod scheduler;
 mod scoreboard;
 mod server;
 mod session;
@@ -64,6 +72,7 @@ pub(crate) mod steps;
 mod targets;
 mod tiles;
 mod traits;
+mod viewer_state;
 pub(crate) mod views;
 mod visibility;
 mod vitals;
@@ -87,6 +96,7 @@ pub(crate) use block::{block_state_of, data_of, material_of, snapshot_of};
 pub use boss_bars::{BossBarOrder, BossBarSpec, BossBarView};
 pub(crate) use broadcast::Broadcasts;
 pub(crate) use burning::Combuster;
+pub use client_changes::ClientChange;
 pub(crate) use commands::PluginTyping;
 pub use contract::{
     BlockSnapshot, BookMeta, BoundingBox, ChunkRef, DamageSourceView, DroppedItem, EnchantOffer,
@@ -107,9 +117,14 @@ pub use extras::{
     BedSpawn, BorderOrder, ChunkOrder, ExtraAnswer, ExtraQuestion, PlayerAction, StatisticMode,
     WorldAction,
 };
+pub use inventory_types::{InventorySpec, InventoryType, MerchantProgress};
 pub use items::ItemSpec;
 pub(crate) use items::{spec_of, stack_of};
 pub use launches::HangingView;
+pub use lookups::{
+    LookupAnswer, LookupQuestion, LootRequest, ProfileInfo, ProfileLookup, StructureSize,
+};
+pub use lootables::LootTarget;
 pub use map_views::{
     MapDecorationEdit, MapDecorationView, MapEdit, MapMarker, MapMarkerChange, MapView,
 };
@@ -128,11 +143,13 @@ pub use orders::{
 };
 pub use patch::{ListDiff, SetDiff, Verdict};
 pub use pdc::{PdcChange, PdcHolder, PdcValue};
+pub use ray_traces::{FluidMode, RayHit, RayTraceQuery};
 pub use recipes::{
     CookingKind, IngredientSpec, MAX_PLUGIN_RECIPES, MAX_RECIPE_LIST, RecipeKind, RecipeShape,
     RecipeSpec, RecipeView,
 };
 pub(crate) use registry::Registry;
+pub use scheduler::SchedulerOrder;
 pub use scoreboard::{
     ObjectiveView, ScoreView, ScoreboardOrder, ScoreboardView, TeamOptionSpec, TeamView,
 };
@@ -410,6 +427,9 @@ pub struct InventoryState {
 pub struct CustomInventoryState {
     pub items: Vec<Option<ItemSpec>>,
     pub viewers: Vec<PlayerSnapshot>,
+    pub inventory_type: InventoryType,
+    pub trades: Vec<Trade>,
+    pub progress: Option<MerchantProgress>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -541,6 +561,7 @@ pub enum Answer {
     IpBans(Vec<IpBanEntry>),
     World(WorldState),
     Extra(ExtraAnswer),
+    Lookup(LookupAnswer),
     Object(ObjectAnswer),
     Block(BlockState),
     Tile(TileView),
@@ -590,6 +611,7 @@ pub enum ToPlugin {
     },
     Warning(String),
     Replaced,
+    TaskDue(u64),
     Invocation {
         command: u32,
         sender: PlayerSnapshot,
@@ -629,6 +651,7 @@ pub enum Question {
     IpBans,
     World,
     Extra(ExtraQuestion),
+    Lookup(LookupQuestion),
     Object(ObjectQuestion),
     InWorld {
         world: rspigot_domain::Identifier,

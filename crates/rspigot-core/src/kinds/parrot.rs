@@ -102,34 +102,50 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
-    pub(crate) fn parrot_imitate_nearby_mobs(&mut self, id: EntityId) {
+    pub(crate) fn parrot_imitate_nearby_mobs(&mut self, id: EntityId) -> bool {
         let Some(entity) = self.entities.store.get(id) else {
-            return;
+            return false;
         };
         if !self.living_entity_alive(id) || entity.base.is_silent() {
-            return;
+            return false;
         }
+        let bounds = entity.base.bounding_box();
+        let position = entity.base.position;
+        let source = entity
+            .base
+            .kind
+            .sounds()
+            .map_or(rspigot_entities::SoundSource::Neutral, |sounds| {
+                sounds.source
+            });
+        self.imitate_nearby_mobs(id, bounds, position, source)
+    }
+
+    pub(crate) fn imitate_nearby_mobs(
+        &mut self,
+        speaker: EntityId,
+        bounds: Aabb,
+        position: Vec3,
+        source: rspigot_entities::SoundSource,
+    ) -> bool {
         let mut random = ServerRandom(&mut self.rng);
         if random.next_int(2) != 0 {
-            return;
+            return false;
         }
-        let area = {
-            let bounds = entity.base.bounding_box();
-            Aabb::new(
-                bounds.min_x - parrot::IMITATE_AREA,
-                bounds.min_y - parrot::IMITATE_AREA,
-                bounds.min_z - parrot::IMITATE_AREA,
-                bounds.max_x + parrot::IMITATE_AREA,
-                bounds.max_y + parrot::IMITATE_AREA,
-                bounds.max_z + parrot::IMITATE_AREA,
-            )
-        };
+        let area = Aabb::new(
+            bounds.min_x - parrot::IMITATE_AREA,
+            bounds.min_y - parrot::IMITATE_AREA,
+            bounds.min_z - parrot::IMITATE_AREA,
+            bounds.max_x + parrot::IMITATE_AREA,
+            bounds.max_y + parrot::IMITATE_AREA,
+            bounds.max_z + parrot::IMITATE_AREA,
+        );
         let candidates: Vec<(Kind, bool)> = self
             .entities
             .store
             .iter()
             .filter(|other| {
-                other.base.id != id
+                other.base.id != speaker
                     && other.base.kind.extends("Mob")
                     && other.base.kind != Kind::Parrot
                     && rspigot_ai::PARROT_IMITATIONS
@@ -140,27 +156,14 @@ impl<L: ClientLink> Server<L> {
             .map(|other| (other.base.kind, other.base.is_silent()))
             .collect();
         if candidates.is_empty() {
-            return;
+            return false;
         }
         let mut random = ServerRandom(&mut self.rng);
         let (kind, silent) = candidates[random.next_int(candidates.len() as i32) as usize];
         if silent {
-            return;
+            return false;
         }
         let pitch = (random.next_float() - random.next_float()) * 0.2 + 1.0;
-        let position = self
-            .entities
-            .store
-            .get(id)
-            .map_or(Vec3::ZERO, |entity| entity.base.position);
-        let source = self
-            .entities
-            .store
-            .get(id)
-            .and_then(|entity| entity.base.kind.sounds())
-            .map_or(rspigot_entities::SoundSource::Neutral, |sounds| {
-                sounds.source
-            });
         self.play_sound(
             None,
             position,
@@ -169,6 +172,19 @@ impl<L: ClientLink> Server<L> {
             parrot::IMITATE_VOLUME,
             pitch,
         );
+        true
+    }
+
+    pub(crate) fn parrot_ambient_sound_for(&mut self) -> &'static str {
+        let peaceful = self.world.difficulty == rspigot_domain::world::Difficulty::Peaceful;
+        let mut random = ServerRandom(&mut self.rng);
+        if !peaceful && random.next_int(parrot::AMBIENT_IMITATE_ODDS) == 0 {
+            let imitations = rspigot_ai::PARROT_IMITATIONS;
+            let pick = random.next_int(imitations.len() as i32) as usize;
+            imitations[pick].1
+        } else {
+            rspigot_ai::PARROT_AMBIENT_SOUND
+        }
     }
 
     pub(crate) fn parrot_post_tick(&mut self, id: EntityId) {

@@ -102,6 +102,9 @@ pub(crate) fn readiness_for_shearing(entity: &Entity) -> bool {
     if entity.base.kind == Kind::Mooshroom {
         return !entity.is_baby();
     }
+    if entity.base.kind == Kind::Bogged {
+        return !rspigot_domain::entity::species::bogged::is_sheared(&entity.base);
+    }
     !rspigot_domain::entity::species::is_sheared(&entity.base) && !entity.is_baby()
 }
 
@@ -192,6 +195,10 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn finish_snow_trail(&mut self, step: FormStep) {
+        if step.state == BlockKind::WitherRose.default_state() {
+            self.finish_wither_rose(step);
+            return;
+        }
         let alive = self.entities.store.get(step.entity).is_some();
         if alive && self.snow_fits(step.pos) {
             self.set_block(step.pos, step.state);

@@ -272,6 +272,11 @@ impl<L: ClientLink> Server<L> {
         match follow {
             Follow::Nothing | Follow::Zap { .. } => {}
             Follow::Metamorphosis => self.tadpole_metamorphosed(old, placed),
+            Follow::Shear => {
+                if placed.is_some() {
+                    self.drop_mooshroom_shearings(old);
+                }
+            }
             Follow::Infection { at } => {
                 if let Some(pos) = at {
                     self.level_event(INFECTION_EVENT, pos, 0);

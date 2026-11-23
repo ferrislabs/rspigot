@@ -2068,6 +2068,7 @@ dependencies = [
  "crossbeam-channel",
  "rspigot-core",
  "rspigot-domain",
+ "rspigot-nbt",
  "rspigot-plugin",
  "rspigot-plugin-protocol",
  "tempfile",

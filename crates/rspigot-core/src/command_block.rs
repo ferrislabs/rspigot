@@ -660,6 +660,13 @@ impl<L: ClientLink> Server<L> {
             && self.can_use_game_master_blocks(id)
     }
 
+    pub(crate) fn command_minecart_success(&self, id: EntityId) -> i32 {
+        self.entities
+            .store
+            .get(id)
+            .map_or(0, |cart| Fields::read(&cart.extra).success_count)
+    }
+
     pub(crate) fn tick_command_minecart(&mut self, id: EntityId) {
         let Some(cart) = self.entities.store.get(id) else {
             return;

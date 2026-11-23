@@ -1,6 +1,6 @@
 use rspigot_core::admin::{Ban, BanEntry, IpBanEntry, ListEntry};
 use rspigot_core::permissions::GroupView;
-use rspigot_core::plugins::{Order, ServerOrder, ServerState};
+use rspigot_core::plugins::{Order, SchedulerOrder, ServerOrder, ServerState};
 use rspigot_core::worlds::{GeneratorSpec, LayerSpec, WorldKind, WorldSpec};
 use rspigot_domain::Identifier;
 use rspigot_plugin_protocol::v1::{
@@ -33,17 +33,13 @@ pub(super) fn order(order: v1::ServerOrder) -> Result<Order, Malformed> {
             expires: expiry(ban.expires_ms)?,
         },
         Wire::IpBanRemove(address) => ServerOrder::IpBanRemove(address),
-        Wire::CreateInventory(v1::CreateInventory {
-            id,
-            rows,
-            title,
-            locked,
-        }) => ServerOrder::CreateInventory {
-            id,
-            rows,
-            title,
-            locked,
-        },
+        Wire::CreateInventory(create) => super::custom_inventory::create(create)?,
+        Wire::ScheduleTask(task) => ServerOrder::Schedule(SchedulerOrder::Schedule {
+            id: task.id,
+            delay: task.delay,
+            period: task.period,
+        }),
+        Wire::CancelTask(id) => ServerOrder::Schedule(SchedulerOrder::Cancel(id)),
         Wire::CreateWorld(create) => ServerOrder::CreateWorld(world_spec(create)?),
         Wire::AddRecipe(def) => ServerOrder::AddRecipe(Box::new(super::recipes::spec(def)?)),
         Wire::RemoveRecipe(id) => ServerOrder::RemoveRecipe(id),

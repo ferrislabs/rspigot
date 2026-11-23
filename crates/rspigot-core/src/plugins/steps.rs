@@ -885,6 +885,7 @@ pub(crate) enum Follow {
     Infection { at: Option<BlockPos> },
     Cure { starter: Option<uuid::Uuid> },
     Metamorphosis,
+    Shear,
     Zap { bolt: EntityId },
 }
 

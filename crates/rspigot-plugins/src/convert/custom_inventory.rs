@@ -1,9 +1,122 @@
-use rspigot_core::plugins::{CustomInventoryOrder, CustomInventoryState, Order};
+use rspigot_core::plugins::{
+    CustomInventoryOrder, CustomInventoryState, InventorySpec, InventoryType, MerchantProgress,
+    Order, ServerOrder,
+};
 use rspigot_plugin_protocol::v1::{self, custom_inventory_order::Order as Wire};
 
-use super::Malformed;
 use super::player::wire_player;
 use super::shared::{self, required};
+use super::{Malformed, contract};
+
+pub(super) fn inventory_type(value: i32) -> Result<InventoryType, Malformed> {
+    use v1::InventoryKind as Kind;
+    match Kind::try_from(value) {
+        Ok(Kind::Unspecified | Kind::Chest) => Ok(InventoryType::Chest),
+        Ok(Kind::Dispenser) => Ok(InventoryType::Dispenser),
+        Ok(Kind::Dropper) => Ok(InventoryType::Dropper),
+        Ok(Kind::Furnace) => Ok(InventoryType::Furnace),
+        Ok(Kind::BlastFurnace) => Ok(InventoryType::BlastFurnace),
+        Ok(Kind::Smoker) => Ok(InventoryType::Smoker),
+        Ok(Kind::Workbench) => Ok(InventoryType::Workbench),
+        Ok(Kind::Enchanting) => Ok(InventoryType::Enchanting),
+        Ok(Kind::Brewing) => Ok(InventoryType::Brewing),
+        Ok(Kind::Anvil) => Ok(InventoryType::Anvil),
+        Ok(Kind::Beacon) => Ok(InventoryType::Beacon),
+        Ok(Kind::Hopper) => Ok(InventoryType::Hopper),
+        Ok(Kind::ShulkerBox) => Ok(InventoryType::ShulkerBox),
+        Ok(Kind::Barrel) => Ok(InventoryType::Barrel),
+        Ok(Kind::EnderChest) => Ok(InventoryType::EnderChest),
+        Ok(Kind::Grindstone) => Ok(InventoryType::Grindstone),
+        Ok(Kind::Loom) => Ok(InventoryType::Loom),
+        Ok(Kind::Cartography) => Ok(InventoryType::Cartography),
+        Ok(Kind::Smithing) => Ok(InventoryType::Smithing),
+        Ok(Kind::Stonecutter) => Ok(InventoryType::Stonecutter),
+        Ok(Kind::Crafter) => Ok(InventoryType::Crafter),
+        Ok(Kind::Merchant) => Ok(InventoryType::Merchant),
+        Err(_) => Err(Malformed::Enum {
+            field: "inventory kind",
+            value,
+        }),
+    }
+}
+
+const fn wire_inventory_type(kind: InventoryType) -> v1::InventoryKind {
+    use v1::InventoryKind as Kind;
+    match kind {
+        InventoryType::Chest => Kind::Chest,
+        InventoryType::Dispenser => Kind::Dispenser,
+        InventoryType::Dropper => Kind::Dropper,
+        InventoryType::Furnace => Kind::Furnace,
+        InventoryType::BlastFurnace => Kind::BlastFurnace,
+        InventoryType::Smoker => Kind::Smoker,
+        InventoryType::Workbench => Kind::Workbench,
+        InventoryType::Enchanting => Kind::Enchanting,
+        InventoryType::Brewing => Kind::Brewing,
+        InventoryType::Anvil => Kind::Anvil,
+        InventoryType::Beacon => Kind::Beacon,
+        InventoryType::Hopper => Kind::Hopper,
+        InventoryType::ShulkerBox => Kind::ShulkerBox,
+        InventoryType::Barrel => Kind::Barrel,
+        InventoryType::EnderChest => Kind::EnderChest,
+        InventoryType::Grindstone => Kind::Grindstone,
+        InventoryType::Loom => Kind::Loom,
+        InventoryType::Cartography => Kind::Cartography,
+        InventoryType::Smithing => Kind::Smithing,
+        InventoryType::Stonecutter => Kind::Stonecutter,
+        InventoryType::Crafter => Kind::Crafter,
+        InventoryType::Merchant => Kind::Merchant,
+    }
+}
+
+const fn progress(value: v1::MerchantProgress) -> MerchantProgress {
+    MerchantProgress {
+        level: value.level,
+        xp: value.xp,
+        show_progress: value.show_progress,
+        can_restock: value.can_restock,
+    }
+}
+
+const fn wire_progress(value: MerchantProgress) -> v1::MerchantProgress {
+    v1::MerchantProgress {
+        level: value.level,
+        xp: value.xp,
+        show_progress: value.show_progress,
+        can_restock: value.can_restock,
+    }
+}
+
+pub(super) fn create(create: v1::CreateInventory) -> Result<ServerOrder, Malformed> {
+    let ty = inventory_type(create.kind)?;
+    if ty == InventoryType::Chest && create.slots == 0 && create.trades.is_empty() {
+        return Ok(ServerOrder::CreateInventory {
+            id: create.id,
+            rows: create.rows,
+            title: create.title,
+            locked: create.locked,
+        });
+    }
+    let slots = if ty == InventoryType::Chest && create.slots == 0 {
+        create.rows.saturating_mul(9)
+    } else {
+        create.slots
+    };
+    Ok(ServerOrder::CreateTypedInventory {
+        id: create.id,
+        spec: InventorySpec {
+            progress: create.progress.map(progress),
+            ty,
+            slots,
+            title: create.title,
+            locked: create.locked,
+            trades: create
+                .trades
+                .into_iter()
+                .map(contract::trade)
+                .collect::<Result<_, _>>()?,
+        },
+    })
+}
 
 pub(super) fn order(order: v1::CustomInventoryOrder) -> Result<Order, Malformed> {
     let inventory = order.inventory;
@@ -15,6 +128,13 @@ pub(super) fn order(order: v1::CustomInventoryOrder) -> Result<Order, Malformed>
         Wire::Clear(_) => CustomInventoryOrder::Clear,
         Wire::Close(_) => CustomInventoryOrder::Close,
         Wire::Discard(_) => CustomInventoryOrder::Discard,
+        Wire::SetProgress(value) => CustomInventoryOrder::SetProgress(progress(value)),
+        Wire::SetTrades(list) => CustomInventoryOrder::SetTrades(
+            list.trades
+                .into_iter()
+                .map(contract::trade)
+                .collect::<Result<_, _>>()?,
+        ),
     };
     Ok(Order::CustomInventory { inventory, order })
 }
@@ -29,6 +149,9 @@ pub(super) fn wire_state(state: CustomInventoryState) -> v1::CustomInventoryStat
             })
             .collect(),
         viewers: state.viewers.into_iter().map(wire_player).collect(),
+        kind: wire_inventory_type(state.inventory_type) as i32,
+        trades: state.trades.into_iter().map(contract::wire_trade).collect(),
+        progress: state.progress.map(wire_progress),
     }
 }
 
@@ -213,6 +336,117 @@ mod tests {
     }
 
     #[test]
+    fn typed_inventories_and_trades_convert() {
+        use rspigot_core::plugins::{InventorySpec, InventoryType, SchedulerOrder, Trade};
+
+        let create = |create: v1::CreateInventory| {
+            convert(from_plugin::Body::Server(v1::ServerOrder {
+                order: Some(server_order::Order::CreateInventory(create)),
+            }))
+        };
+        assert_eq!(
+            create(v1::CreateInventory {
+                id: 1,
+                kind: v1::InventoryKind::Anvil as i32,
+                title: "Forge".into(),
+                ..Default::default()
+            }),
+            FromPlugin::Order(Order::Server(ServerOrder::CreateTypedInventory {
+                id: 1,
+                spec: InventorySpec {
+                    progress: None,
+                    ty: InventoryType::Anvil,
+                    slots: 0,
+                    title: "Forge".into(),
+                    locked: false,
+                    trades: Vec::new(),
+                },
+            }))
+        );
+        assert_eq!(
+            create(v1::CreateInventory {
+                id: 2,
+                rows: 3,
+                kind: v1::InventoryKind::Chest as i32,
+                trades: vec![v1::Trade {
+                    result: Some(wire_diamond()),
+                    ingredients: vec![wire_diamond()],
+                    max_uses: 2,
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }),
+            FromPlugin::Order(Order::Server(ServerOrder::CreateTypedInventory {
+                id: 2,
+                spec: InventorySpec {
+                    progress: None,
+                    ty: InventoryType::Chest,
+                    slots: 27,
+                    title: String::new(),
+                    locked: false,
+                    trades: vec![Trade {
+                        result: ItemSpec::of("minecraft:diamond", 1),
+                        ingredients: vec![ItemSpec::of("minecraft:diamond", 1)],
+                        uses: 0,
+                        max_uses: 2,
+                        experience_reward: false,
+                        villager_experience: 0,
+                        price_multiplier: 0.0,
+                        demand: 0,
+                        special_price: 0,
+                    }],
+                },
+            }))
+        );
+        assert_eq!(
+            create(v1::CreateInventory {
+                id: 3,
+                rows: 2,
+                ..Default::default()
+            }),
+            FromPlugin::Order(Order::Server(ServerOrder::CreateInventory {
+                id: 3,
+                rows: 2,
+                title: String::new(),
+                locked: false,
+            }))
+        );
+        assert!(
+            from_plugin(
+                v1::FromPlugin {
+                    body: Some(from_plugin::Body::Server(v1::ServerOrder {
+                        order: Some(server_order::Order::CreateInventory(v1::CreateInventory {
+                            kind: 99,
+                            ..Default::default()
+                        })),
+                    })),
+                    origin: None,
+                    request: None,
+                    in_world: None,
+                },
+                &mut Vec::new()
+            )
+            .is_err()
+        );
+        assert_eq!(
+            convert(from_plugin::Body::Server(v1::ServerOrder {
+                order: Some(server_order::Order::ScheduleTask(v1::ScheduleTask {
+                    id: 5,
+                    delay: 1,
+                    period: 2
+                })),
+            })),
+            FromPlugin::Order(Order::Server(ServerOrder::Schedule(
+                SchedulerOrder::Schedule {
+                    id: 5,
+                    delay: 1,
+                    period: 2
+                }
+            )))
+        );
+    }
+
+    #[test]
     fn custom_inventory_calls_convert() {
         assert_eq!(
             convert(from_plugin::Body::Server(v1::ServerOrder {
@@ -221,6 +455,7 @@ mod tests {
                     rows: 2,
                     title: "§6Menu".into(),
                     locked: true,
+                    ..Default::default()
                 })),
             })),
             FromPlugin::Order(Order::Server(ServerOrder::CreateInventory {
@@ -322,6 +557,9 @@ mod tests {
             answer: Answer::CustomInventory(CustomInventoryState {
                 items: vec![None, Some(ItemSpec::of("minecraft:diamond", 1))],
                 viewers: vec![steve()],
+                inventory_type: rspigot_core::plugins::InventoryType::Merchant,
+                trades: Vec::new(),
+                progress: None,
             }),
         })
         .body
@@ -342,6 +580,9 @@ mod tests {
                     },
                 ],
                 viewers: vec![wire_player(steve())],
+                kind: v1::InventoryKind::Merchant as i32,
+                trades: Vec::new(),
+                progress: None,
             })
         );
     }

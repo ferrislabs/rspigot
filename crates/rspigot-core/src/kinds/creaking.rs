@@ -1,7 +1,7 @@
 use rspigot_ai::{CreakingAction, MobView};
 use rspigot_blocks::BlockKind;
 use rspigot_domain::EntityId;
-use rspigot_domain::damage::{DamageTag, DamageType};
+use rspigot_domain::damage::DamageTag;
 use rspigot_domain::entity::Entity;
 use rspigot_domain::entity::species::{Species, creaking};
 use rspigot_entities::EntityKind;
@@ -57,8 +57,13 @@ impl<L: ClientLink> Server<L> {
             .chunks
             .block(home)
             .is_some_and(|state| state.kind() == Some(BlockKind::CreakingHeart));
-        if !has_heart {
-            self.hurt_mob(id, &DamageSource::new(DamageType::GenericKill), f32::MAX);
+        let twitching = self
+            .entities
+            .store
+            .get(id)
+            .is_some_and(|entity| creaking::is_tearing_down(&entity.base));
+        if !has_heart && !twitching {
+            self.creaking_tear_down(id);
         }
     }
 
@@ -77,6 +82,14 @@ impl<L: ClientLink> Server<L> {
                 status: EntityStatus::Event(event),
             },
         );
+    }
+
+    pub(crate) fn creaking_is_twitching(&self, id: EntityId) -> bool {
+        self.entities.store.get(id).is_some_and(|entity| {
+            entity.base.kind == EntityKind::Creaking
+                && creaking::is_heart_bound(&entity.base)
+                && creaking::is_tearing_down(&entity.base)
+        })
     }
 
     pub(crate) fn creaking_can_move(&self, id: EntityId) -> bool {
@@ -135,6 +148,7 @@ impl<L: ClientLink> Server<L> {
         if let Some(state) = self.entities.store.get_mut(id).and_then(state_of) {
             state.invulnerability_ticks = creaking::INVULNERABILITY_TICKS;
         }
+        self.creaking_heart_hurt(id);
         self.broadcast_creaking_event(id, creaking::HURT_EVENT);
         self.entity_sound(id, HURT_SOUND, 1.0, 1.0);
         None

@@ -890,6 +890,9 @@ pub fn piglin_activities() -> Vec<ActivityData<MobControl>> {
                 16,
                 MobControl::one_shot(MobTrigger::MeleeAttack(MeleeAttack::new(20))),
             ),
+            (13, MobControl::spear_approach(1.0, 10.0)),
+            (14, MobControl::spear_attack(1.0, 1.0, 2.0)),
+            (15, MobControl::spear_retreat(1.0)),
             (17, MobControl::crossbow_attack()),
             (
                 18,
@@ -998,5 +1001,6 @@ pub fn piglin_memories() -> &'static [MemoryModuleType] {
         MemoryModuleType::SpearFleeingPosition,
         MemoryModuleType::SpearChargePosition,
         MemoryModuleType::SpearEngageTime,
+        MemoryModuleType::SpearStatus,
     ]
 }

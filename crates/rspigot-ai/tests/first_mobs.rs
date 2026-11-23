@@ -105,6 +105,7 @@ fn label(goal: &MobGoal) -> &'static str {
         MobGoal::Stroll(_) => "stroll",
         MobGoal::LookAtPlayer(_) => "look",
         MobGoal::RandomLookAround(_) => "look_around",
+        MobGoal::SpearUse(_) => "spear",
         MobGoal::Tempt(_) => "tempt",
         MobGoal::NearestAttackableTarget(_) => "nearest_target",
         MobGoal::Panic(_) => "panic",
@@ -220,6 +221,7 @@ fn monster_goals_follow_vanilla_priorities() {
             (4, "turtle_egg"),
             (8, "look"),
             (8, "look_around"),
+            (2, "spear"),
             (3, "melee"),
             (6, "village"),
             (7, "stroll")

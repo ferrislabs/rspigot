@@ -89,9 +89,21 @@ pub fn travel(
     movement: Vec3,
     gravity: f64,
 ) -> Option<BlockPos> {
+    travel_landing(base, view, movement, gravity).0
+}
+
+pub fn travel_landing(
+    base: &mut EntityBase,
+    view: &impl BlockView,
+    movement: Vec3,
+    gravity: f64,
+) -> (Option<BlockPos>, Option<f64>) {
     let before = base.position;
-    move_entity(base, view, movement, &MoveTraits::plain(gravity));
-    blocked_block(base, movement, base.position - before, view)
+    let landing = move_entity(base, view, movement, &MoveTraits::plain(gravity));
+    (
+        blocked_block(base, movement, base.position - before, view),
+        landing.map(|landing| landing.distance),
+    )
 }
 
 #[derive(Debug, Clone, PartialEq)]

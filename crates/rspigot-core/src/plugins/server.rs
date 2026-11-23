@@ -202,7 +202,11 @@ impl<L: ClientLink> Server<L> {
             Question::Bans => Answer::Bans(self.ban_entries()),
             Question::IpBans => Answer::IpBans(self.ip_ban_entries()),
             Question::World => Answer::World(self.world_state()),
+            Question::Extra(crate::plugins::ExtraQuestion::RetrieveCookie { player, key }) => {
+                return self.begin_cookie_wait(connection, request, player, &key);
+            }
             Question::Extra(question) => self.extra_answer(question),
+            Question::Lookup(question) => self.lookup_answer(question),
             Question::Object(question) => {
                 return self.object_answer(connection, request, question);
             }
@@ -544,14 +548,20 @@ impl<L: ClientLink> Server<L> {
 
     pub(crate) fn tick_plugins(&mut self) {
         self.decisions.expire(self.current_tick());
+        self.tick_plugin_tasks();
+        self.expire_cookie_waits();
+        self.prune_viewer_state();
         self.settle_events();
     }
 
     pub(crate) fn plugin_disconnected(&mut self, connection: u64) {
         let departed = self.plugins.disconnect(connection);
         self.forget_plugin_inventories(connection);
+        self.forget_plugin_tasks(connection);
+        self.forget_cookie_waits(connection);
         let attached = self.plugins.attachments.forget_plugin(connection);
         if let Some((plugin, commands)) = departed {
+            self.release_hidden_entities(&plugin.name);
             self.forget_plugin_recipes(&plugin.name);
             if commands || attached {
                 self.resend_command_trees();

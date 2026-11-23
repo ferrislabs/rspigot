@@ -99,12 +99,17 @@ fn plugin_recipe_for(
                     ingredient,
                     experience,
                     time,
-                } if *wanted == kind && ingredient.contains(input.item) => Some(CookingRecipe {
-                    id: recipe.id,
-                    result: recipe.result.clone(),
-                    experience: *experience,
-                    cooking_time: *time,
-                }),
+                } if *wanted == kind
+                    && ingredient.contains(input.item)
+                    && recipe.accepts_exact(0, input) =>
+                {
+                    Some(CookingRecipe {
+                        id: recipe.id,
+                        result: recipe.result.clone(),
+                        experience: *experience,
+                        cooking_time: *time,
+                    })
+                }
                 _ => None,
             })
     })
@@ -991,6 +996,7 @@ mod tests {
             category: plugin_recipes::Category::Misc,
             override_vanilla: overriding,
             auto_discover: false,
+            exact: Vec::new(),
         });
         plugin_recipes::activate(&std::sync::Arc::new(set));
     }

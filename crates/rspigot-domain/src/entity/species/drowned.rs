@@ -49,6 +49,29 @@ pub fn populate_equipment(living: &mut LivingState, random: &mut impl RandomSour
     );
 }
 
+pub const NAUTILUS_JOCKEY_CHANCE: f32 = 0.5;
+const FREQUENT_BIOMES_TAG: &str = "minecraft:more_frequent_drowned_spawns";
+const BIOME_REGISTRY: &str = "minecraft:worldgen/biome";
+
+pub fn is_frequent_drowned_biome(biome: crate::BiomeId) -> bool {
+    rspigot_data::tags::tag(BIOME_REGISTRY, FREQUENT_BIOMES_TAG)
+        .is_some_and(|ids| ids.binary_search(&u32::from(biome.0)).is_ok())
+}
+
+pub fn rolls_nautilus_jockey(
+    living: &LivingState,
+    baby: bool,
+    frequent_biome: bool,
+    random: &mut impl RandomSource,
+) -> bool {
+    living
+        .equipment(EquipmentSlot::Mainhand)
+        .is_some_and(|held| held.item == ItemKind::Trident.id())
+        && random.next_float() < NAUTILUS_JOCKEY_CHANCE
+        && !baby
+        && !frequent_biome
+}
+
 pub fn roll_nautilus_shell(living: &mut LivingState, random: &mut impl RandomSource) {
     if living.equipment(EquipmentSlot::Offhand).is_some() || random.next_float() >= SHELL_CHANCE {
         return;
@@ -94,6 +117,79 @@ mod tests {
         base.position = Vec3::new(0.5, 64.0, 0.5);
         let living = LivingState::new(&mut base, 0.0);
         (base, living)
+    }
+
+    fn armed(item: ItemKind) -> LivingState {
+        let (_, mut living) = drowned();
+        set_item_slot(
+            &mut living,
+            EquipmentSlot::Mainhand,
+            Some(ItemStack::new(item.id(), std::num::NonZeroU8::MIN)),
+        );
+        living
+    }
+
+    #[test]
+    fn a_trident_drowned_rides_a_zombie_nautilus_half_the_time_outside_frequent_biomes() {
+        let living = armed(ItemKind::Trident);
+        let mut low = Script(0.49);
+        assert!(rolls_nautilus_jockey(&living, false, false, &mut low));
+        let mut high = Script(0.5);
+        assert!(!rolls_nautilus_jockey(&living, false, false, &mut high));
+    }
+
+    #[test]
+    fn babies_other_weapons_and_frequent_drowned_biomes_never_ride() {
+        let trident = armed(ItemKind::Trident);
+        assert!(!rolls_nautilus_jockey(
+            &trident,
+            true,
+            false,
+            &mut Script(0.0)
+        ));
+        assert!(!rolls_nautilus_jockey(
+            &trident,
+            false,
+            true,
+            &mut Script(0.0)
+        ));
+        let rod = armed(ItemKind::FishingRod);
+        assert!(!rolls_nautilus_jockey(&rod, false, false, &mut Script(0.0)));
+        let (_, bare) = drowned();
+        assert!(!rolls_nautilus_jockey(
+            &bare,
+            false,
+            false,
+            &mut Script(0.0)
+        ));
+    }
+
+    #[test]
+    fn the_frequent_drowned_biomes_are_river_and_the_like() {
+        let river = rspigot_data::registries::biome_id("minecraft:river").unwrap();
+        let desert = rspigot_data::registries::biome_id("minecraft:desert").unwrap();
+        assert!(is_frequent_drowned_biome(crate::BiomeId(river)));
+        assert!(!is_frequent_drowned_biome(crate::BiomeId(desert)));
+    }
+
+    struct Script(f32);
+
+    impl RandomSource for Script {
+        fn next_float(&mut self) -> f32 {
+            self.0
+        }
+        fn next_int(&mut self, _: i32) -> i32 {
+            0
+        }
+        fn next_double(&mut self) -> f64 {
+            0.0
+        }
+        fn next_boolean(&mut self) -> bool {
+            false
+        }
+        fn next_gaussian(&mut self) -> f64 {
+            0.0
+        }
     }
 
     #[test]

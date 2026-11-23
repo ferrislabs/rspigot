@@ -372,6 +372,7 @@ impl<L: ClientLink> Server<L> {
         if self.extras.cookie_replies.len() >= MAX_COOKIE_REPLIES {
             self.extras.cookie_replies.pop_front();
         }
+        self.answer_cookie_waits(id, &key, payload.as_ref());
         self.extras.cookie_replies.push_back(CookieReply {
             player: id,
             key,

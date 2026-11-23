@@ -39,3 +39,17 @@ fn single_biome_surface_fills_the_overworld_with_one_biome_over_normal_terrain()
         assert!(solid > 4, "terrain still generates ({solid} sections)");
     }
 }
+
+#[test]
+fn the_generator_lists_templates_and_reads_their_size() {
+    let generator = WorldGenerator::from_level_type("void", 1, "");
+    let names = generator.template_names();
+    assert!(names.iter().any(|name| name == "minecraft:igloo/top"));
+    assert!(names.windows(2).all(|pair| pair[0] < pair[1]));
+    let info = generator
+        .template_info("minecraft:igloo/top")
+        .expect("a template");
+    assert!(info.size.iter().all(|side| *side > 0));
+    assert!(info.blocks > 0);
+    assert!(generator.template_info("minecraft:nope").is_none());
+}

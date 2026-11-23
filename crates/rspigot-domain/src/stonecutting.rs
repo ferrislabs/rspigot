@@ -149,6 +149,7 @@ mod tests {
             category: plugin_recipes::Category::Misc,
             override_vanilla: false,
             auto_discover: false,
+            exact: Vec::new(),
         });
         plugin_recipes::activate(&std::sync::Arc::new(set));
         let offers = offers_for(ItemKind::Stone.id());

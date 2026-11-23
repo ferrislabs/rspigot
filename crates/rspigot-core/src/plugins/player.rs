@@ -56,7 +56,7 @@ impl<L: ClientLink> Server<L> {
             }
             PlayerOrder::DiscoverRecipe(recipe) => self.plugin_discover(id, &recipe)?,
             PlayerOrder::UndiscoverRecipe(recipe) => self.plugin_undiscover(id, &recipe)?,
-            PlayerOrder::Action(action) => self.player_action(id, action)?,
+            PlayerOrder::Action(action) => self.player_action(connection, id, action)?,
             PlayerOrder::Object(order) => self.player_object_order(id, order)?,
             order @ (PlayerOrder::SetPermission { .. }
             | PlayerOrder::UnsetPermission(_)
@@ -327,7 +327,7 @@ impl<L: ClientLink> Server<L> {
         Ok(())
     }
 
-    fn hide_player(
+    pub(super) fn hide_player(
         &mut self,
         connection: u64,
         viewer: PlayerId,
@@ -360,7 +360,7 @@ impl<L: ClientLink> Server<L> {
         Ok(())
     }
 
-    fn show_player(
+    pub(super) fn show_player(
         &mut self,
         connection: u64,
         viewer: PlayerId,

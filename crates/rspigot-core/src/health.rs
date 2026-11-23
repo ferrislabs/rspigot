@@ -678,6 +678,7 @@ impl<L: ClientLink> Server<L> {
                 self.indicate_damage(id, dx, dz);
             }
         }
+        self.remove_entities_on_shoulder(id);
         if dead {
             if self.ask_resurrect(Holder::Player(id), source, full) {
                 return true;
@@ -718,6 +719,7 @@ impl<L: ClientLink> Server<L> {
 
     fn die(&mut self, id: PlayerId, source: &DamageSource) {
         self.stop_sleep_in_bed(id, true, true);
+        self.remove_entities_on_shoulder(id);
         let keep_rule = self.config.rules.keep_inventory;
         let display = self
             .players

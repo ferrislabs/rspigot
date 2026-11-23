@@ -230,6 +230,8 @@ impl<L: ClientLink> CommandContext for Server<L> {
                 self.ensure_container_entity(pos, state);
                 self.ensure_command_block_entity(pos, state);
                 self.ensure_spawner_entity(pos, state);
+                self.ensure_creaking_heart_entity(pos, state);
+                self.ensure_potent_sulfur_entity(pos, state);
                 true
             }
             _ => false,

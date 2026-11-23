@@ -25,6 +25,8 @@ pub const UPDATE_GOAL_SELECTOR_EVERY_N_TICKS: i32 = 2;
 pub const CONTROL_FLAG_INTERVAL: i32 = 5;
 const HARD_BOW_INTERVAL: i32 = 20;
 const NORMAL_BOW_INTERVAL: i32 = 40;
+const BOGGED_HARD_BOW_INTERVAL: i32 = 50;
+const BOGGED_NORMAL_BOW_INTERVAL: i32 = 70;
 const BOW_ATTACK_RADIUS: f32 = 15.0;
 const SKELETON_MELEE_SPEED: f64 = 1.2;
 const WARDEN_CONVERSION_DELAYS: i32 = 3;
@@ -682,10 +684,15 @@ impl MobAi {
     }
 
     pub fn reassess_weapon(&mut self, bow: bool, hard: bool) {
-        let interval = if hard {
-            HARD_BOW_INTERVAL
-        } else {
-            NORMAL_BOW_INTERVAL
+        self.reassess_weapon_slow(bow, hard, false);
+    }
+
+    pub fn reassess_weapon_slow(&mut self, bow: bool, hard: bool, slow: bool) {
+        let interval = match (slow, hard) {
+            (true, true) => BOGGED_HARD_BOW_INTERVAL,
+            (true, false) => BOGGED_NORMAL_BOW_INTERVAL,
+            (false, true) => HARD_BOW_INTERVAL,
+            (false, false) => NORMAL_BOW_INTERVAL,
         };
         self.pending.push(GoalChange::Weapon { bow, interval });
     }

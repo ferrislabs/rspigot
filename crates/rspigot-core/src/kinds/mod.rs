@@ -19,6 +19,7 @@ mod axolotl;
 mod bat;
 mod bee;
 mod blaze;
+mod bogged;
 mod breeze;
 mod camel;
 mod cat;

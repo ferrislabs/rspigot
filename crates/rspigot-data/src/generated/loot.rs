@@ -1,7 +1,7 @@
 use crate::loot::{BlockPredicate, BonusFormula, Condition, DamageSourcePredicate, EnchantmentPredicate, Entry, EntryKind, EntityFlags, EntityPredicate, EntitySubPredicate, EntityTarget, FloatProvider, Function, FunctionKind, IntProvider, IntRange, ItemPredicate, LevelBasedValue, Leaf, LootTable, NameTarget, Output, Pool, TagPredicate};
 use crate::tags::HolderSet;
 
-pub(crate) static TABLES: [(&str, LootTable); 1439] = [
+pub(crate) static TABLES: [(&str, LootTable); 1443] = [
     (
         "minecraft:archaeology/desert_pyramid",
         LootTable {
@@ -52881,6 +52881,148 @@ pub(crate) static TABLES: [(&str, LootTable); 1439] = [
                     }],
                 },
             ],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:shearing/bogged",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(2),
+                bonus_rolls: FloatProvider::Constant(0.0),
+                condition: None,
+                modifier: &[],
+                entries: &[
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(317),
+                        }),
+                    },
+                    Entry {
+                        condition: None,
+                        modifier: &[Function {
+                            condition: None,
+                            kind: FunctionKind::SetCount {
+                                count: IntProvider::Constant(1),
+                                add: false,
+                            },
+                        }],
+                        kind: EntryKind::Leaf(Leaf {
+                            weight: 1,
+                            quality: 0,
+                            output: Output::Item(318),
+                        }),
+                    },
+                ],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:shearing/mooshroom",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(1),
+                bonus_rolls: FloatProvider::Constant(0.0),
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Alternatives(&[
+                        Entry {
+                            condition: Some(Condition::EntityProperties {
+                                target: EntityTarget::This,
+                                predicate: Some(&EntityPredicate {
+                                    kind: None,
+                                    flags: EntityFlags { baby: None, on_fire: None },
+                                    mainhand: None,
+                                    vehicle: None,
+                                    components: &[("minecraft:mooshroom/variant", "red")],
+                                    sub: &[],
+                                }),
+                            }),
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Table("minecraft:shearing/mooshroom/red"),
+                            }),
+                        },
+                        Entry {
+                            condition: Some(Condition::EntityProperties {
+                                target: EntityTarget::This,
+                                predicate: Some(&EntityPredicate {
+                                    kind: None,
+                                    flags: EntityFlags { baby: None, on_fire: None },
+                                    mainhand: None,
+                                    vehicle: None,
+                                    components: &[("minecraft:mooshroom/variant", "brown")],
+                                    sub: &[],
+                                }),
+                            }),
+                            modifier: &[],
+                            kind: EntryKind::Leaf(Leaf {
+                                weight: 1,
+                                quality: 0,
+                                output: Output::Table("minecraft:shearing/mooshroom/brown"),
+                            }),
+                        },
+                    ]),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:shearing/mooshroom/brown",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(5),
+                bonus_rolls: FloatProvider::Constant(0.0),
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(317),
+                    }),
+                }],
+            }],
+            modifier: &[],
+        },
+    ),
+    (
+        "minecraft:shearing/mooshroom/red",
+        LootTable {
+            pools: &[Pool {
+                rolls: IntProvider::Constant(5),
+                bonus_rolls: FloatProvider::Constant(0.0),
+                condition: None,
+                modifier: &[],
+                entries: &[Entry {
+                    condition: None,
+                    modifier: &[],
+                    kind: EntryKind::Leaf(Leaf {
+                        weight: 1,
+                        quality: 0,
+                        output: Output::Item(318),
+                    }),
+                }],
+            }],
             modifier: &[],
         },
     ),

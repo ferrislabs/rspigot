@@ -338,7 +338,16 @@ pub(super) fn player_order(order: v1::ObjectPlayerOrder) -> Result<PlayerObjectO
 
 pub(super) fn world_order(order: v1::ObjectWorldOrder) -> Result<WorldObjectOrder, Malformed> {
     use object_world_order::Order;
-    let Order::EditMap(edit) = required(order.order)?;
+    let edit = match required(order.order)? {
+        Order::EditMap(edit) => edit,
+        Order::ChunkPdc(change) => {
+            return Ok(WorldObjectOrder::ChunkPdc {
+                chunk: rspigot_domain::ChunkPos::new(change.x, change.z),
+                change: pdc_change(required(change.change)?)?,
+            });
+        }
+        Order::WorldPdc(change) => return Ok(WorldObjectOrder::WorldPdc(pdc_change(change)?)),
+    };
     let change = match required(edit.edit)? {
         map_edit::Edit::SetCenter(center) => MapEdit::SetCenter {
             x: center.x,
@@ -427,6 +436,10 @@ pub(super) fn question(question: v1::ObjectQuestion) -> Result<Question, Malform
                 player: player::id(item.player)?,
                 slot: item.slot,
             },
+            pdc_query::Holder::Chunk(at) => {
+                PdcHolder::Chunk(rspigot_domain::ChunkPos::new(at.x, at.z))
+            }
+            pdc_query::Holder::World(_) => PdcHolder::World,
         }),
     }))
 }

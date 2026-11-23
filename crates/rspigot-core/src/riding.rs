@@ -898,6 +898,7 @@ impl<L: ClientLink> Server<L> {
                 },
             ),
             Some(Jockey::CamelHuskRider) => self.try_camel_husk_ride(id),
+            Some(Jockey::NautilusRider) => self.spawn_nautilus_for(id),
             Some(Jockey::StriderBaby) => self.spawn_rider_on(
                 id,
                 JockeyRider {
@@ -907,6 +908,24 @@ impl<L: ClientLink> Server<L> {
             ),
             None => {}
         }
+    }
+
+    fn spawn_nautilus_for(&mut self, drowned: EntityId) {
+        let Some(position) = self
+            .entities
+            .store
+            .get(drowned)
+            .map(|entity| entity.base.position)
+        else {
+            return;
+        };
+        let mut nautilus = new_mob(self.new_entity_base(Kind::ZombieNautilus));
+        nautilus.base.snap_to(position, 0.0, 0.0);
+        self.finalize_part(&mut nautilus, SpawnReason::Jockey, None);
+        self.spawn_entity(
+            nautilus,
+            Birth::of(CreatureSpawnReason::Jockey).then(Spawned::Mounted { rider: drowned }),
+        );
     }
 
     fn try_camel_husk_ride(&mut self, husk: EntityId) {

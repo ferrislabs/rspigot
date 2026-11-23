@@ -226,6 +226,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn bullet_hit_entity(&mut self, id: EntityId, target: EntityId) {
+        if self.deflected_on_hit(id, target) {
+            return;
+        }
         let Some(entity) = self.entities.store.get(id) else {
             return;
         };

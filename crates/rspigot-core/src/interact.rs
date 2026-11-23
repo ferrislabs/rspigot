@@ -683,7 +683,9 @@ impl<L: ClientLink> Server<L> {
                 return self.milk_animal(id, target, hand);
             }
         }
-        if matches!(kind, Kind::Sheep | Kind::Mooshroom) && stack.item == ItemKind::Shears.id() {
+        if matches!(kind, Kind::Sheep | Kind::Mooshroom | Kind::Bogged)
+            && stack.item == ItemKind::Shears.id()
+        {
             return self.shear_sheep(id, target, hand);
         }
         let result = self.animal_interact(id, target, hand, &stack);
@@ -793,6 +795,12 @@ impl<L: ClientLink> Server<L> {
         let Some(entity) = self.entities.store.get(target) else {
             return Interaction::Pass;
         };
+        if entity.base.kind == Kind::Bogged {
+            if species::bogged::is_sheared(&entity.base) {
+                return Interaction::Pass;
+            }
+            return self.ask_shear(id, target, hand);
+        }
         if entity.is_baby()
             || (entity.base.kind == Kind::Sheep && species::is_sheared(&entity.base))
         {
@@ -879,6 +887,10 @@ impl<L: ClientLink> Server<L> {
         };
         if entity.base.kind == Kind::Mooshroom {
             self.shear_mooshroom(target);
+            return;
+        }
+        if entity.base.kind == Kind::Bogged {
+            self.shear_bogged(target);
             return;
         }
         let facts = crate::mobs::loot_facts_of(entity);

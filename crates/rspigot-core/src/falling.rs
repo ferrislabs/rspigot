@@ -315,6 +315,10 @@ impl<L: ClientLink> Server<L> {
             self.frogspawn_neighbour_changed(pos);
             return;
         }
+        if kind == BlockKind::PotentSulfur {
+            self.potent_sulfur_neighbour_changed(pos);
+            return;
+        }
         if kind == BlockKind::Sponge {
             self.schedule(pos, kind, 0);
             return;

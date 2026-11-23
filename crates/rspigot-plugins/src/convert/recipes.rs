@@ -11,6 +11,7 @@ fn ingredient(wire: v1::RecipeIngredient) -> Result<IngredientSpec, Malformed> {
     Ok(match required(wire.choice)? {
         recipe_ingredient::Choice::Items(items) => IngredientSpec::Items(items.keys),
         recipe_ingredient::Choice::Tag(tag) => IngredientSpec::Tag(tag),
+        recipe_ingredient::Choice::Exact(exact) => IngredientSpec::Exact(item(exact)),
     })
 }
 
@@ -83,6 +84,16 @@ pub(super) fn spec(def: v1::RecipeDef) -> Result<RecipeSpec, Malformed> {
             template: required_ingredient(smithing.template)?,
             base: required_ingredient(smithing.base)?,
             addition: required_ingredient(smithing.addition)?,
+        },
+        recipe_def::Body::SmithingTrim(trim) => RecipeShape::SmithingTrim {
+            template: required_ingredient(trim.template)?,
+            base: required_ingredient(trim.base)?,
+            addition: required_ingredient(trim.addition)?,
+            pattern: trim.pattern,
+        },
+        recipe_def::Body::Transmute(transmute) => RecipeShape::Transmute {
+            input: required_ingredient(transmute.input)?,
+            material: required_ingredient(transmute.material)?,
         },
     };
     Ok(RecipeSpec {

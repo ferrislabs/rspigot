@@ -114,6 +114,7 @@ impl<L: ClientLink> Server<L> {
             return false;
         }
         let attacker = source.causing.as_ref().map(|causing| causing.entity);
+        self.tnt_cart_struck(id, source);
         let lane = self.lane_for(source.attacker(), id);
         let step = VehicleHurtStep {
             vehicle: id,
@@ -168,6 +169,9 @@ impl<L: ClientLink> Server<L> {
         let destroys = total > vehicle::BREAK_DAMAGE;
         self.after_hurt(then, Outcome::Hurt);
         self.impacts.last = Some(true);
+        if destroys && !creative && self.tnt_cart_breaks(id, &source, attacker) {
+            return;
+        }
         if destroys || creative {
             let lane = self.lane_for(source.attacker(), id);
             let step = VehicleDestroyStep {
