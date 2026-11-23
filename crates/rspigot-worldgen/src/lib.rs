@@ -3,10 +3,12 @@ mod carver;
 mod classify;
 mod climate;
 mod datapack;
+mod debug;
 mod dimension;
 mod end;
 mod end_spikes;
 mod flat;
+mod flat_structures;
 mod legacy;
 mod locate;
 mod nether;
@@ -28,7 +30,8 @@ use rspigot_domain::world::Dimension;
 use rspigot_domain::{ChunkPos, Vec3};
 use rspigot_nbt::Compound;
 
-pub use flat::{FlatGenerator, FlatLayer, FlatSettings, FlatSettingsError};
+pub use debug::DebugGenerator;
+pub use flat::{FlatGenerator, FlatLayer, FlatSettings, FlatSettingsError, StructureOverrides};
 pub use noise::{NoiseGenerator, NoiseOptions};
 pub use structures::{LoadIssue, install_datapacks};
 pub use void::VoidGenerator;
@@ -38,6 +41,7 @@ pub enum WorldGenerator {
     Flat(FlatGenerator),
     Void(VoidGenerator),
     Noise(NoiseGenerator),
+    Debug(DebugGenerator),
 }
 
 impl WorldGenerator {
@@ -55,6 +59,21 @@ impl WorldGenerator {
                 Self::Flat(flat)
             }
             "void" => Self::Void(VoidGenerator::new(seed)),
+            "debug_all_block_states" | "debug" => Self::Debug(DebugGenerator::new(seed)),
+            "single_biome_surface" => {
+                let biome = serde_json::from_str::<serde_json::Value>(generator_settings)
+                    .ok()
+                    .and_then(|settings| {
+                        settings
+                            .get("biome")
+                            .and_then(serde_json::Value::as_str)
+                            .map(str::to_owned)
+                    })
+                    .unwrap_or_else(|| "minecraft:plains".to_owned());
+                NoiseGenerator::single_biome(seed, &biome)
+                    .or_else(|| NoiseGenerator::single_biome(seed, "minecraft:plains"))
+                    .map_or_else(|| Self::Noise(NoiseGenerator::new(seed)), Self::Noise)
+            }
             "large_biomes" | "largebiomes" => Self::Noise(NoiseGenerator::with_options(
                 seed,
                 NoiseOptions::LARGE_BIOMES,
@@ -80,9 +99,17 @@ impl WorldGenerator {
                             height: layer.height,
                         })
                         .collect(),
+                    structure_overrides: FlatSettings::vanilla().structure_overrides,
                 };
                 FlatGenerator::new(&settings, seed)
-                    .map(|flat| Self::Flat(flat.in_every_dimension()))
+                    .map(|flat| {
+                        let flat = flat.in_every_dimension();
+                        Self::Flat(if spec.structures {
+                            flat
+                        } else {
+                            flat.without_structures()
+                        })
+                    })
                     .map_err(|error| error.to_string())
             }
             GeneratorSpec::Vanilla => Ok(Self::noise(seed, NoiseOptions::NORMAL, spec.structures)),
@@ -130,6 +157,7 @@ impl ChunkGenerator for WorldGenerator {
             Self::Flat(generator) => generator.generate(dimension, pos),
             Self::Void(generator) => generator.generate(dimension, pos),
             Self::Noise(generator) => generator.generate(dimension, pos),
+            Self::Debug(generator) => generator.generate(dimension, pos),
         }
     }
 
@@ -138,13 +166,14 @@ impl ChunkGenerator for WorldGenerator {
             Self::Flat(generator) => generator.spawn_point(dimension),
             Self::Void(generator) => generator.spawn_point(dimension),
             Self::Noise(generator) => generator.spawn_point(dimension),
+            Self::Debug(generator) => generator.spawn_point(dimension),
         }
     }
 
     fn spawns_original_mobs(&self, dimension: &Dimension) -> bool {
         match self {
             Self::Noise(generator) => generator.spawns_original_mobs(dimension),
-            Self::Flat(_) | Self::Void(_) => false,
+            Self::Flat(_) | Self::Void(_) | Self::Debug(_) => false,
         }
     }
 
@@ -153,6 +182,7 @@ impl ChunkGenerator for WorldGenerator {
             Self::Flat(generator) => generator.structure_entities(dimension, pos),
             Self::Void(generator) => generator.structure_entities(dimension, pos),
             Self::Noise(generator) => generator.structure_entities(dimension, pos),
+            Self::Debug(generator) => generator.structure_entities(dimension, pos),
         }
     }
 
@@ -164,7 +194,7 @@ impl ChunkGenerator for WorldGenerator {
     ) -> Option<(String, Vec3)> {
         match self {
             Self::Noise(generator) => generator.nearest_structure(dimension, from, structure_id),
-            Self::Flat(_) | Self::Void(_) => None,
+            Self::Flat(_) | Self::Void(_) | Self::Debug(_) => None,
         }
     }
 
@@ -176,14 +206,14 @@ impl ChunkGenerator for WorldGenerator {
     ) -> Option<(String, Vec3)> {
         match self {
             Self::Noise(generator) => generator.nearest_structures(dimension, from, structure_ids),
-            Self::Flat(_) | Self::Void(_) => None,
+            Self::Flat(_) | Self::Void(_) | Self::Debug(_) => None,
         }
     }
 
     fn knows_structure(&self, dimension: &Dimension, structure_id: &str) -> bool {
         match self {
             Self::Noise(generator) => generator.knows_structure(dimension, structure_id),
-            Self::Flat(_) | Self::Void(_) => false,
+            Self::Flat(_) | Self::Void(_) | Self::Debug(_) => false,
         }
     }
 
@@ -195,7 +225,7 @@ impl ChunkGenerator for WorldGenerator {
     ) -> Option<(String, Vec3)> {
         match self {
             Self::Noise(generator) => generator.nearest_biome(dimension, from, biomes),
-            Self::Flat(_) | Self::Void(_) => None,
+            Self::Flat(_) | Self::Void(_) | Self::Debug(_) => None,
         }
     }
 
@@ -206,14 +236,19 @@ impl ChunkGenerator for WorldGenerator {
     ) -> Result<Vec<PlacedBlock>, PlaceFailure> {
         match self {
             Self::Noise(generator) => generator.place(dimension, request),
-            Self::Flat(_) | Self::Void(_) => placing::standalone(dimension, request),
+            Self::Flat(_) | Self::Void(_) | Self::Debug(_) => {
+                placing::standalone(dimension, request)
+            }
         }
     }
 
     fn nearest_stronghold(&self, dimension: &Dimension, from: Vec3) -> Option<Vec3> {
         match self {
             Self::Noise(generator) => generator.nearest_stronghold(dimension, from),
-            Self::Flat(_) | Self::Void(_) => None,
+            Self::Flat(_) | Self::Void(_) | Self::Debug(_) => None,
         }
     }
 }
+
+#[cfg(test)]
+mod world_types_tests;

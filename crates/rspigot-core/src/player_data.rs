@@ -58,6 +58,7 @@ pub struct PlayerSave {
     pub respawn: Option<rspigot_domain::bed::RespawnConfig>,
     pub sleep_timer: i16,
     pub meta: rspigot_domain::meta::Metadata,
+    pub ender_pearls: Vec<Compound>,
 }
 
 impl PlayerSave {
@@ -86,6 +87,7 @@ impl PlayerSave {
             respawn: player.respawn.clone(),
             sleep_timer: player.sleep_counter.clamp(0, i32::from(i16::MAX)) as i16,
             meta: player.meta.clone(),
+            ender_pearls: Vec::new(),
         }
     }
 
@@ -210,6 +212,18 @@ impl PlayerSave {
         if !self.meta.is_empty() {
             out.insert("BukkitValues", self.meta.to_nbt());
         }
+        if !self.ender_pearls.is_empty() {
+            out.insert(
+                "ender_pearls",
+                Tag::List(
+                    self.ender_pearls
+                        .iter()
+                        .cloned()
+                        .map(Tag::Compound)
+                        .collect(),
+                ),
+            );
+        }
         out
     }
 
@@ -305,6 +319,13 @@ impl PlayerSave {
                 .get_compound("BukkitValues")
                 .map(rspigot_domain::meta::Metadata::from_nbt)
                 .unwrap_or_default(),
+            ender_pearls: data
+                .get_list("ender_pearls")
+                .unwrap_or_default()
+                .iter()
+                .filter_map(Tag::as_compound)
+                .cloned()
+                .collect(),
         })
     }
 }
@@ -409,6 +430,7 @@ mod tests {
                 forced: false,
             }),
             sleep_timer: 7,
+            ender_pearls: Vec::new(),
             meta: {
                 let mut meta = rspigot_domain::meta::Metadata::from_nbt(
                     &Compound::new().with("plugin:count", Tag::Int(3)),

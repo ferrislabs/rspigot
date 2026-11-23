@@ -157,6 +157,8 @@ pub struct Server<L> {
     pub(crate) plugin_recipes: std::sync::Arc<rspigot_domain::plugin_recipes::PluginRecipes>,
     pub(crate) datapacks: Option<crate::functions::DatapackLoader>,
     pub(crate) command_storage: FxHashMap<Identifier, rspigot_nbt::Compound>,
+    pub(crate) pending_pearls: Vec<(ChunkPos, rspigot_nbt::Compound)>,
+    pub(crate) command_storage_dirty: std::collections::BTreeSet<String>,
     pub(crate) stopwatches: std::collections::BTreeMap<String, i64>,
     pub(crate) portal_queue: Vec<(
         crate::world_state::DimensionKey,
@@ -274,6 +276,8 @@ impl<L: ClientLink> Server<L> {
             plugin_recipes: std::sync::Arc::default(),
             datapacks: None,
             command_storage: FxHashMap::default(),
+            pending_pearls: Vec::new(),
+            command_storage_dirty: std::collections::BTreeSet::new(),
             stopwatches: std::collections::BTreeMap::new(),
             portal_queue: Vec::new(),
             nether_queue: Vec::new(),
@@ -314,6 +318,7 @@ impl<L: ClientLink> Server<L> {
 
     pub fn with_player_store<S: PlayerStore>(mut self, store: Arc<S>) -> Self {
         self.player_io = Some(PlayerIo::spawn(store));
+        self.load_command_storage();
         self
     }
 
@@ -923,6 +928,7 @@ impl<L: ClientLink> Server<L> {
         self.send_initial_advancements(id);
         if let Some(save) = &saved {
             self.announce_restored(id, save);
+            self.queue_saved_pearls(&save.ender_pearls);
         }
         self.refresh_status();
         self.announce_settings(id, &initial);
@@ -1501,6 +1507,7 @@ impl<L: ClientLink> Server<L> {
         self.handle_chunk_events();
         self.save_all_entities();
         self.save_maps();
+        self.save_command_storage();
         self.save_raids();
         self.save_scoreboard();
         self.save_custom_boss_bars();

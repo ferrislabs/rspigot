@@ -1,5 +1,8 @@
+use std::sync::{Arc, OnceLock};
+
 use rspigot_blocks::BlockKind;
 use rspigot_core::ports::ChunkGenerator;
+use rspigot_data::multi_noise::overworld_biomes;
 use rspigot_data::registries;
 use rspigot_domain::chunk::{ChunkColumn, ChunkSection, PalettedContainer};
 use rspigot_domain::world::{Dimension, WorldHeight};
@@ -10,7 +13,9 @@ use serde::Deserialize;
 use crate::buffer::{LAYER, SECTION, block_container};
 use crate::classify::Classifier;
 use crate::dimension::DimensionKind;
+use crate::flat_structures::FlatStructures;
 use crate::noise::NoiseGenerator;
+use crate::overworld::region::FlatTerrain;
 use crate::resources::biome_id;
 
 #[derive(Debug, thiserror::Error)]
@@ -34,10 +39,28 @@ fn default_biome() -> String {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(untagged)]
+pub enum StructureOverrides {
+    One(String),
+    Many(Vec<String>),
+}
+
+impl StructureOverrides {
+    fn names(&self) -> Vec<String> {
+        match self {
+            Self::One(name) => vec![name.clone()],
+            Self::Many(names) => names.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct FlatSettings {
     #[serde(default = "default_biome")]
     pub biome: String,
     pub layers: Vec<FlatLayer>,
+    #[serde(default)]
+    pub structure_overrides: Option<StructureOverrides>,
 }
 
 impl FlatSettings {
@@ -53,6 +76,10 @@ impl FlatSettings {
                 layer("minecraft:dirt", 2),
                 layer("minecraft:grass_block", 1),
             ],
+            structure_overrides: Some(StructureOverrides::Many(vec![
+                "minecraft:strongholds".to_owned(),
+                "minecraft:villages".to_owned(),
+            ])),
         }
     }
 
@@ -76,6 +103,10 @@ pub struct FlatGenerator {
     classifier: Classifier,
     other_dimensions: Box<NoiseGenerator>,
     every_dimension: bool,
+    seed: i64,
+    overrides: Option<Vec<String>>,
+    structures: bool,
+    world: Arc<OnceLock<FlatStructures>>,
 }
 
 impl FlatGenerator {
@@ -94,7 +125,13 @@ impl FlatGenerator {
                     .ok_or(FlatSettingsError::UnknownBlock(name))
             })
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self::assemble(layers, biome, seed))
+        let mut generator = Self::assemble(layers, biome, seed);
+        generator.overrides = settings
+            .structure_overrides
+            .as_ref()
+            .map(StructureOverrides::names);
+        generator.structures = true;
+        Ok(generator)
     }
 
     pub fn from_json(json: &str, seed: i64) -> Result<Self, FlatSettingsError> {
@@ -111,7 +148,19 @@ impl FlatGenerator {
                 (state, layer.height)
             })
             .collect();
-        Self::assemble(layers, biome_id("minecraft:plains"), seed)
+        let mut generator = Self::assemble(layers, biome_id("minecraft:plains"), seed);
+        generator.overrides = FlatSettings::vanilla()
+            .structure_overrides
+            .as_ref()
+            .map(StructureOverrides::names);
+        generator.structures = true;
+        generator
+    }
+
+    #[must_use]
+    pub fn without_structures(mut self) -> Self {
+        self.structures = false;
+        self
     }
 
     #[must_use]
@@ -127,7 +176,35 @@ impl FlatGenerator {
             classifier: Classifier::new(),
             other_dimensions: Box::new(NoiseGenerator::new(seed)),
             every_dimension: false,
+            seed,
+            overrides: None,
+            structures: false,
+            world: Arc::new(OnceLock::new()),
         }
+    }
+
+    fn terrain(&self, dimension: &Dimension) -> FlatTerrain {
+        FlatTerrain {
+            table: self.column_table(dimension.height),
+            biome: self.biome_index(),
+        }
+    }
+
+    fn biome_index(&self) -> u8 {
+        let plains = overworld_biomes()
+            .iter()
+            .position(|name| *name == "minecraft:plains")
+            .unwrap_or(0);
+        overworld_biomes()
+            .iter()
+            .position(|name| registries::biome_id(name) == Some(self.biome.0))
+            .unwrap_or(plains) as u8
+    }
+
+    fn structures_world(&self) -> &FlatStructures {
+        self.world.get_or_init(|| {
+            FlatStructures::new(self.seed, self.biome_index(), self.overrides.as_deref())
+        })
     }
 
     fn column_table(&self, height: WorldHeight) -> Vec<u16> {
@@ -180,7 +257,17 @@ impl FlatGenerator {
 impl ChunkGenerator for FlatGenerator {
     fn generate(&self, dimension: &Dimension, pos: ChunkPos) -> ChunkColumn {
         if self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld {
-            self.flat_column(dimension, pos)
+            let column = self.flat_column(dimension, pos);
+            if !self.structures {
+                return column;
+            }
+            self.structures_world().column(
+                &self.terrain(dimension),
+                dimension,
+                pos,
+                column,
+                self.biome,
+            )
         } else {
             self.other_dimensions.generate(dimension, pos)
         }
@@ -195,6 +282,13 @@ impl ChunkGenerator for FlatGenerator {
     }
 
     fn structure_entities(&self, dimension: &Dimension, pos: ChunkPos) -> Vec<Compound> {
+        if self.structures
+            && (self.every_dimension || DimensionKind::of(dimension) == DimensionKind::Overworld)
+        {
+            return self
+                .structures_world()
+                .entities(&self.terrain(dimension), dimension, pos);
+        }
         self.other_dimensions.structure_entities(dimension, pos)
     }
 }
@@ -213,7 +307,7 @@ mod tests {
     fn parses_vanilla_preset_json() {
         let json = r#"{"biome":"minecraft:plains","features":false,"lakes":false,
             "layers":[{"block":"minecraft:bedrock","height":1},{"block":"minecraft:dirt","height":2},
-            {"block":"minecraft:grass_block","height":1}],"structure_overrides":"minecraft:villages"}"#;
+            {"block":"minecraft:grass_block","height":1}],"structure_overrides":["minecraft:strongholds","minecraft:villages"]}"#;
         assert_eq!(
             FlatSettings::from_json(json).unwrap(),
             FlatSettings::vanilla()
@@ -281,5 +375,78 @@ mod tests {
                 .get(0, 0),
             384
         );
+    }
+
+    fn village_chunk(generator: &FlatGenerator) -> Option<ChunkPos> {
+        let dimension = Dimension::overworld();
+        for radius in 0..40_i32 {
+            for cx in -radius..=radius {
+                for cz in -radius..=radius {
+                    if cx.abs().max(cz.abs()) != radius {
+                        continue;
+                    }
+                    let pos = ChunkPos::new(cx, cz);
+                    let column = generator.generate(&dimension, pos);
+                    let found = column
+                        .extra
+                        .get_compound("structures")
+                        .and_then(|tag| tag.get_compound("starts"))
+                        .is_some_and(|starts| starts.contains_key("minecraft:village_plains"));
+                    if found {
+                        return Some(pos);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn the_default_superflat_builds_villages_and_without_structures_it_does_not() {
+        let with = FlatGenerator::vanilla(1);
+        let at = village_chunk(&with).expect("a village in range");
+        let dimension = Dimension::overworld();
+        let mut buildings = 0;
+        for dx in -2..=2 {
+            for dz in -2..=2 {
+                let pos = ChunkPos::new(at.x + dx, at.z + dz);
+                let column = with.generate(&dimension, pos);
+                for y in -61..-55 {
+                    for z in 0..16 {
+                        for x in 0..16 {
+                            let block =
+                                BlockPos::new(pos.min_block_x() + x, y, pos.min_block_z() + z);
+                            if column.block(block).is_some_and(|state| {
+                                matches!(
+                                    state.kind(),
+                                    Some(BlockKind::OakPlanks | BlockKind::Cobblestone)
+                                )
+                            }) {
+                                buildings += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert!(buildings > 50, "only {buildings} village blocks");
+        let without = FlatGenerator::vanilla(1).without_structures();
+        let column = without.generate(&dimension, at);
+        assert!(
+            column
+                .extra
+                .get_compound("structures")
+                .and_then(|tag| tag.get_compound("starts"))
+                .is_none_or(|starts| starts.is_empty())
+        );
+    }
+
+    #[test]
+    fn structure_overrides_pick_which_sets_generate() {
+        let json = r#"{"layers":[{"block":"minecraft:bedrock","height":1},
+            {"block":"minecraft:dirt","height":2},{"block":"minecraft:grass_block","height":1}],
+            "structure_overrides":"minecraft:strongholds"}"#;
+        let generator = FlatGenerator::from_json(json, 1).unwrap();
+        assert!(village_chunk(&generator).is_none());
     }
 }

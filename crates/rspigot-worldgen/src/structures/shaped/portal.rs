@@ -382,8 +382,9 @@ impl Piece {
             let mut subject = Subject {
                 local: block.pos,
                 at: (rx + self.origin.0, ry + self.origin.1, rz + self.origin.2),
+                reference: self.origin,
                 state: block.state,
-                nbt: block.nbt.as_ref(),
+                nbt: block.nbt.as_ref().map(std::borrow::Cow::Borrowed),
             };
             if !steps.iter().all(|step| step.process(run, &mut subject)) {
                 continue;
@@ -393,7 +394,7 @@ impl Piece {
             }
             placed.push((subject.at, mirrored(subject.state, self.mirror)));
             if let Some(nbt) = subject.nbt {
-                loot.push((subject.at, nbt.clone()));
+                loot.push((subject.at, nbt.into_owned()));
             }
         }
         commit(run, placed, self.rotation, true);

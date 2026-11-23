@@ -1,3 +1,4 @@
+use super::beardifier::Beardifier;
 use super::graph::{Binary, BlendedParameters, Graph, Id, NONE, Node, SplineValue, Unary};
 use crate::climate::{NoiseStack, SmearedStack, Xoroshiro};
 use crate::datapack::noise_parameters;
@@ -159,6 +160,7 @@ pub(crate) struct Sampler<'a> {
     column: Vec<ColumnEntry>,
     volume: Option<Volume>,
     dense: Vec<Option<Box<[f32]>>>,
+    beardifier: Beardifier,
 }
 
 impl<'a> Sampler<'a> {
@@ -187,6 +189,17 @@ impl<'a> Sampler<'a> {
             ],
             volume: None,
             dense: vec![None; n],
+            beardifier: Beardifier::default(),
+        }
+    }
+
+    pub(crate) fn set_beardifier(&mut self, beardifier: Beardifier) {
+        self.beardifier = beardifier;
+        for entry in &mut self.point {
+            entry.valid = false;
+        }
+        for entry in &mut self.column {
+            entry.valid = false;
         }
     }
 
@@ -239,6 +252,7 @@ impl<'a> Sampler<'a> {
         let compiled = self.compiled;
         match &compiled.graph.nodes[i] {
             Node::Constant(value) => *value,
+            Node::Beardifier => self.beardifier.sample(x, y, z),
             Node::Noise {
                 noise,
                 xz_scale,

@@ -5,11 +5,14 @@ use serde_json::Value;
 use super::super::place::Run;
 use super::super::prov::{BlockSet, Pos, number, text};
 use crate::datapack::block_state;
+use crate::legacy::JavaRandom;
+use crate::structures::processors::{Modifier, position_seed};
 
 #[derive(Debug, Clone)]
 pub(crate) struct Rule {
     input: Kind,
     output: BlockStateId,
+    modifier: Modifier,
 }
 
 #[derive(Debug, Clone)]
@@ -40,6 +43,7 @@ fn rule(value: &Value) -> Option<Rule> {
     Some(Rule {
         input: Kind::from_name(text(input, "block"))?,
         output: block_state(value.get("output_state")?)?,
+        modifier: Modifier::compile(value.get("block_entity_modifier")),
     })
 }
 
@@ -76,16 +80,19 @@ impl Processor {
         run: &mut Run,
         (x, y, z): Pos,
         state: BlockStateId,
+        entity: &mut Option<Value>,
     ) -> Option<BlockStateId> {
         match self {
             Self::BlockRot(integrity) => (run.rng.next_float() <= *integrity).then_some(state),
             Self::Protected(set) => (!set.contains(run.region.get(x, y, z))).then_some(state),
-            Self::Rules(rules) => Some(
-                rules
-                    .iter()
-                    .find(|rule| state.kind() == Some(rule.input))
-                    .map_or(state, |rule| rule.output),
-            ),
+            Self::Rules(rules) => {
+                let Some(rule) = rules.iter().find(|rule| state.kind() == Some(rule.input)) else {
+                    return Some(state);
+                };
+                let mut random = JavaRandom::new(position_seed((x, y, z)));
+                *entity = rule.modifier.apply(&mut random, rule.output, entity.take());
+                Some(rule.output)
+            }
         }
     }
 }

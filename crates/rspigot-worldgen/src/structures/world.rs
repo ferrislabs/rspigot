@@ -5,13 +5,14 @@ use super::bbox::Bbox;
 use super::jigsaw::{Ground, Piece};
 use super::library::Library;
 use super::placement::{BiomeProbe, Kind as PlacementKind, large_feature_seed};
-use super::pool::{Element, Pools};
+use super::pool::{Element, Pools, Projection};
 use super::sets::{Chunks, StructureSet, StructureSets};
 use super::shaped::{Shaped, mineshaft, portal, stronghold};
 use super::structure::{Kind, StructureDef, Structures, generate_jigsaw, valid_biomes};
 use crate::legacy::JavaRandom;
 use crate::overworld::features::compile_placed;
 use crate::overworld::features::place::Placed;
+use crate::terrain::beardifier::{Adjustment, Beardifier};
 
 pub(crate) const STEP_NAMES: [&str; 11] = [
     "raw_generation",
@@ -290,6 +291,14 @@ impl Engine {
         self.features.get(name)
     }
 
+    pub(crate) fn restrict_to(&mut self, names: &[String]) {
+        let short = |name: &str| name.strip_prefix("minecraft:").unwrap_or(name).to_owned();
+        let wanted: Vec<String> = names.iter().map(|name| short(name)).collect();
+        let sets = self.sets.all();
+        self.active
+            .retain(|index| wanted.contains(&short(&sets[*index].name)));
+    }
+
     pub(crate) fn structures_at(&self, step: usize) -> &[String] {
         &self.order[step]
     }
@@ -495,5 +504,59 @@ impl Engine {
             }
         }
         out
+    }
+
+    pub(crate) fn beardifier<G: Ground, B: BiomeProbe>(
+        &self,
+        ground: &G,
+        probe: &B,
+        chunk: (i32, i32),
+    ) -> Beardifier {
+        let (min_x, min_z) = (chunk.0 * 16, chunk.1 * 16);
+        let near = |bbox: &Bbox| {
+            bbox.min.0 <= min_x + 15 + ADAPTATION_MARGIN
+                && bbox.max.0 >= min_x - ADAPTATION_MARGIN
+                && bbox.min.2 <= min_z + 15 + ADAPTATION_MARGIN
+                && bbox.max.2 >= min_z - ADAPTATION_MARGIN
+        };
+        let mut beardifier = Beardifier::default();
+        for start in self.starts_near(ground, probe, chunk) {
+            let adjustment = self.defs.get(&start.name).map_or(Adjustment::None, |def| {
+                Adjustment::parse(&def.terrain_adaptation)
+            });
+            if adjustment == Adjustment::None {
+                continue;
+            }
+            for piece in &start.pieces {
+                if !near(&piece.bbox) {
+                    continue;
+                }
+                if piece.element.projection() == Projection::Rigid {
+                    beardifier.add_piece(
+                        piece.bbox.min,
+                        piece.bbox.max,
+                        adjustment,
+                        piece.ground_level_delta,
+                    );
+                }
+                for junction in &piece.junctions {
+                    let (x, _, z) = junction.source;
+                    if min_x - ADAPTATION_MARGIN < x
+                        && min_z - ADAPTATION_MARGIN < z
+                        && x < min_x + 15 + ADAPTATION_MARGIN
+                        && z < min_z + 15 + ADAPTATION_MARGIN
+                    {
+                        beardifier.add_junction(junction.source);
+                    }
+                }
+            }
+            for shape in &start.shapes {
+                let bbox = shape.bbox();
+                if near(bbox) {
+                    beardifier.add_piece(bbox.min, bbox.max, adjustment, 0);
+                }
+            }
+        }
+        beardifier
     }
 }

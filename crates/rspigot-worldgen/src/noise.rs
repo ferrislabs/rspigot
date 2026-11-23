@@ -72,6 +72,19 @@ impl NoiseGenerator {
 }
 
 impl NoiseGenerator {
+    pub fn single_biome(seed: i64, biome: &str) -> Option<Self> {
+        let resources = Resources::resolve();
+        let overworld = Overworld::with_fixed_biome(seed as u64, biome, &resources.blocks)?;
+        Some(Self {
+            state: Box::new(NoiseState {
+                overworld,
+                nether: Nether::new(seed as u64, &resources.blocks),
+                end: End::new(seed as u64, &resources.blocks),
+                resources,
+            }),
+        })
+    }
+
     pub(crate) fn with_terrain_key(seed: i64, key: &str) -> Self {
         let seed = seed as u64;
         let resources = Resources::resolve();

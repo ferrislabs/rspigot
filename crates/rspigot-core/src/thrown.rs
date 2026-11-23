@@ -90,6 +90,7 @@ impl<L: ClientLink> Server<L> {
                 self.drop_orphaned_pearl(id);
                 return;
             }
+            Some(Kind::EnderPearl) => self.hold_pearl_chunks(id),
             _ => {}
         }
         let in_rain = self

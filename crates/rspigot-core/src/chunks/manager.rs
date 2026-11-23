@@ -81,10 +81,18 @@ pub struct ChunkManager {
     now: u64,
     stats: ChunkManagerStats,
     events: ChunkEvents,
-    relight: FxHashSet<ChunkPos>,
+    relight: FxHashMap<ChunkPos, u8>,
+    stitch: FxHashSet<ChunkPos>,
     mob_generation: Option<super::MobGeneration>,
     poi: PoiManager,
     forced: std::collections::BTreeSet<ChunkPos>,
+    timed: std::collections::BTreeMap<ChunkPos, TimedTicket>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct TimedTicket {
+    expires: u64,
+    simulates: bool,
 }
 
 impl ChunkManager {
@@ -98,10 +106,12 @@ impl ChunkManager {
             now: 0,
             stats: ChunkManagerStats::default(),
             events: ChunkEvents::default(),
-            relight: FxHashSet::default(),
+            relight: FxHashMap::default(),
+            stitch: FxHashSet::default(),
             mob_generation: None,
             poi,
             forced: std::collections::BTreeSet::new(),
+            timed: std::collections::BTreeMap::new(),
         }
     }
 
@@ -205,6 +215,50 @@ impl ChunkManager {
         true
     }
 
+    pub fn simulates(&self, pos: ChunkPos) -> bool {
+        self.loaded.contains_key(&pos)
+            && (self.forced.contains(&pos) || self.timed.get(&pos).is_some_and(|t| t.simulates))
+    }
+
+    pub fn simulated_chunks(&self) -> Vec<ChunkPos> {
+        let mut found: Vec<ChunkPos> = self
+            .forced
+            .iter()
+            .chain(
+                self.timed
+                    .iter()
+                    .filter(|(_, ticket)| ticket.simulates)
+                    .map(|(pos, _)| pos),
+            )
+            .copied()
+            .filter(|pos| self.loaded.contains_key(pos))
+            .collect();
+        found.sort_unstable();
+        found.dedup();
+        found
+    }
+
+    pub fn hold_timed(
+        &mut self,
+        pos: ChunkPos,
+        ticks: u64,
+        simulates: bool,
+        workers: &ChunkWorkers,
+    ) {
+        let expires = self.now + ticks;
+        if let Some(ticket) = self.timed.get_mut(&pos) {
+            ticket.expires = ticket.expires.max(expires);
+            ticket.simulates |= simulates;
+            return;
+        }
+        self.timed.insert(pos, TimedTicket { expires, simulates });
+        self.add_ticket(pos, Priority::URGENT, workers);
+    }
+
+    pub fn is_held(&self, pos: ChunkPos) -> bool {
+        self.timed.contains_key(&pos)
+    }
+
     pub fn is_forced(&self, pos: ChunkPos) -> bool {
         self.forced.contains(&pos)
     }
@@ -268,6 +322,7 @@ impl ChunkManager {
                 self.poi.import_chunk(&chunk, poi.as_ref());
                 let mut chunk = chunk;
                 chunk.block_meta.drop_volatile();
+                self.stitch.insert(pos);
                 self.loaded.insert(
                     pos,
                     Loaded {
@@ -298,6 +353,16 @@ impl ChunkManager {
     pub fn tick(&mut self) -> Vec<ChunkPos> {
         self.now += 1;
         let now = self.now;
+        let lapsed: Vec<ChunkPos> = self
+            .timed
+            .iter()
+            .filter(|(_, ticket)| ticket.expires <= now)
+            .map(|(pos, _)| *pos)
+            .collect();
+        for pos in lapsed {
+            self.timed.remove(&pos);
+            self.remove_ticket(pos);
+        }
         let mut expired: Vec<ChunkPos> = self
             .loaded
             .iter()
@@ -535,7 +600,7 @@ impl ChunkManager {
         }
         self.poi.on_block_change(pos, current, state);
         if crate::lighting::affects_light(current, state) {
-            self.relight.insert(pos.chunk());
+            *self.relight.entry(pos.chunk()).or_default() |= reach_mask(pos);
         }
         old
     }
@@ -546,11 +611,54 @@ impl ChunkManager {
 
     pub fn relight_chunks(&mut self) -> Vec<ChunkPos> {
         let has_skylight = self.dimension.has_skylight;
-        let pending: Vec<ChunkPos> = self.relight.drain().collect();
+        let mut edited: Vec<ChunkPos> = Vec::new();
+        let mut recompute: Vec<ChunkPos> = Vec::new();
+        for (pos, mask) in self.relight.drain() {
+            edited.push(pos);
+            recompute.push(pos);
+            for (bit, (dx, dz)) in NEIGHBOURS.iter().enumerate() {
+                if mask & (1 << bit) != 0 {
+                    recompute.push(ChunkPos::new(pos.x + dx, pos.z + dz));
+                }
+            }
+        }
+        recompute.sort_unstable();
+        recompute.dedup();
+        recompute.retain(|pos| self.loaded.contains_key(pos));
+        let before: Vec<(ChunkPos, rspigot_domain::chunk::ChunkLight)> = recompute
+            .iter()
+            .filter(|pos| !edited.contains(pos))
+            .filter_map(|pos| Some((*pos, self.loaded.get(pos)?.chunk.light.clone())))
+            .collect();
         let mut done = Vec::new();
-        for pos in pending {
-            if let Some(chunk) = self.chunk_mut(pos) {
+        for pos in &recompute {
+            if let Some(chunk) = self.chunk_mut(*pos) {
                 crate::lighting::compute(chunk, has_skylight);
+                if edited.contains(pos) {
+                    done.push(*pos);
+                }
+            }
+        }
+        let mut stitch: Vec<ChunkPos> = self.stitch.drain().collect();
+        stitch.extend(recompute);
+        stitch.sort_unstable();
+        stitch.dedup();
+        for pos in stitch {
+            if !self.loaded.contains_key(&pos) {
+                continue;
+            }
+            for changed in crate::lighting::stitch(self, pos, has_skylight) {
+                if !done.contains(&changed) {
+                    done.push(changed);
+                }
+            }
+        }
+        for (pos, light) in before {
+            let differs = self
+                .loaded
+                .get(&pos)
+                .is_some_and(|loaded| loaded.chunk.light != light);
+            if differs && !done.contains(&pos) {
                 done.push(pos);
             }
         }
@@ -568,6 +676,49 @@ impl ChunkManager {
     pub fn loaded_positions(&self) -> impl Iterator<Item = ChunkPos> + '_ {
         self.loaded.keys().copied()
     }
+}
+
+impl crate::lighting::LightWorld for ChunkManager {
+    fn light_chunk(&self, pos: ChunkPos) -> Option<&ChunkColumn> {
+        self.loaded.get(&pos).map(|loaded| &*loaded.chunk)
+    }
+
+    fn light_chunk_mut(&mut self, pos: ChunkPos) -> Option<&mut ChunkColumn> {
+        self.chunk_mut(pos)
+    }
+}
+
+const NEIGHBOURS: [(i32, i32); 8] = [
+    (-1, 0),
+    (1, 0),
+    (0, -1),
+    (0, 1),
+    (-1, -1),
+    (1, -1),
+    (-1, 1),
+    (1, 1),
+];
+
+const LIGHT_REACH: i32 = 14;
+
+fn reach_mask(pos: BlockPos) -> u8 {
+    let (x, z) = (pos.x & 15, pos.z & 15);
+    let (west, east, north, south) = (x + 1, 16 - x, z + 1, 16 - z);
+    let reaches = [
+        west,
+        east,
+        north,
+        south,
+        west + north,
+        east + north,
+        west + south,
+        east + south,
+    ];
+    reaches
+        .iter()
+        .enumerate()
+        .filter(|(_, distance)| **distance <= LIGHT_REACH)
+        .fold(0, |mask, (bit, _)| mask | (1 << bit))
 }
 
 impl rspigot_domain::entity::BlockView for ChunkManager {
@@ -786,6 +937,31 @@ mod tests {
     }
 
     #[test]
+    fn a_timed_ticket_simulates_then_lapses_unless_refreshed() {
+        let (mut manager, workers, _store) = setup();
+        let pos = ChunkPos::new(7, 7);
+        manager.hold_timed(pos, 5, true, &workers);
+        assert!(manager.is_held(pos));
+        assert_eq!(drain(&mut manager, &workers, 1), vec![pos]);
+        assert!(manager.simulates(pos));
+        assert_eq!(manager.simulated_chunks(), vec![pos]);
+        for _ in 0..3 {
+            manager.tick();
+        }
+        manager.hold_timed(pos, 5, true, &workers);
+        for _ in 0..3 {
+            manager.tick();
+        }
+        assert!(manager.is_held(pos));
+        for _ in 0..3 {
+            manager.tick();
+        }
+        assert!(!manager.is_held(pos));
+        assert!(!manager.simulates(pos));
+        workers.shutdown();
+    }
+
+    #[test]
     fn a_forced_chunk_keeps_its_ticket_until_it_is_released() {
         let (mut manager, workers, _store) = setup();
         let pos = ChunkPos::new(-3, 4);
@@ -946,6 +1122,34 @@ mod tests {
             assert_eq!(manager.accept(result), None);
         }
         assert!(!manager.is_loaded(pos));
+        workers.shutdown();
+    }
+
+    #[test]
+    fn light_crosses_chunk_borders_when_a_neighbour_loads_and_when_a_source_goes() {
+        let (mut manager, workers, _) = setup();
+        let (west, east) = (ChunkPos::new(0, 0), ChunkPos::new(1, 0));
+        manager.add_ticket(west, Priority(1), &workers);
+        drain(&mut manager, &workers, 1);
+        let torch = BlockPos::new(15, 64, 8);
+        manager.set_block(torch, rspigot_blocks::Torch::DEFAULT_STATE);
+        manager.relight();
+        manager.add_ticket(east, Priority(1), &workers);
+        drain(&mut manager, &workers, 1);
+        let beyond = BlockPos::new(17, 64, 8);
+        let level = |manager: &ChunkManager| {
+            manager
+                .get(east)
+                .map(|chunk| crate::lighting::light_level(chunk, beyond, false))
+        };
+        assert_eq!(level(&manager), Some(0));
+        let done = manager.relight_chunks();
+        assert!(done.contains(&east));
+        assert_eq!(level(&manager), Some(12));
+        manager.set_block(torch, BlockStateId::AIR);
+        let done = manager.relight_chunks();
+        assert!(done.contains(&east));
+        assert_eq!(level(&manager), Some(0));
         workers.shutdown();
     }
 
