@@ -625,6 +625,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn select_trade(&mut self, player: PlayerId, index: i32) {
+        if self.plugin_select_trade(player, index) {
+            return;
+        }
         let Some(open) = self
             .players
             .get(&player)

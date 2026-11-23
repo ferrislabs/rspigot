@@ -739,7 +739,7 @@ impl<L: ClientLink> Server<L> {
             ..LootEntity::of(Kind::FishingBobber)
         };
         let biome = rspigot_data::registries::biome_name(self.biome_at(base.position.block()).0);
-        let luck = (state.luck + self.player_luck(player)) as f32;
+        let luck = state.luck as f32 + self.player_luck(player);
         let context = LootContext {
             tool: Some(rod),
             this: Some(&this),
@@ -750,8 +750,10 @@ impl<L: ClientLink> Server<L> {
         loot::table_drops(table, &context, &mut self.rng)
     }
 
-    fn player_luck(&self, _player: PlayerId) -> i32 {
-        0
+    fn player_luck(&self, player: PlayerId) -> f32 {
+        self.players.get(&player).map_or(0.0, |player| {
+            crate::health::attributes(player).get(rspigot_domain::attribute::LUCK) as f32
+        })
     }
 
     fn next_fish(&mut self, id: PlayerId, hand: Hand, hook_id: EntityId, loot: Vec<ItemStack>) {

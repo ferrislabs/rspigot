@@ -761,6 +761,33 @@ fn bone_meal_on_a_young_sapling_advances_its_stage_without_a_handler() {
 }
 
 #[test]
+fn bone_meal_on_a_sapling_already_growing_starts_no_second_tree() {
+    let mut s = growing(8, vec![deciding(1, EventKind::StructureGrow)]);
+    set_with(&mut s, SOIL_TOP, "minecraft:oak_sapling", &[("stage", "1")]);
+    give_bone_meal(&mut s);
+    for _ in 0..20 {
+        bone_meal(&mut s, SOIL_TOP);
+    }
+    let mut asked = None;
+    for _ in 0..100 {
+        s.tick(1);
+        if let Some(fired) = asked_for(&s.plugin, EventKind::StructureGrow).pop() {
+            asked = Some(fired);
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let asked = asked.expect("a structure grow was asked");
+    rule_on(&mut s.server, 1, asked.id, true, None);
+    for _ in 0..40 {
+        s.tick(1);
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert_eq!(asked_for(&s.plugin, EventKind::StructureGrow).len(), 1);
+    assert_eq!(kind_at(&mut s, SOIL_TOP), "minecraft:oak_sapling");
+}
+
+#[test]
 fn a_cancelled_structure_grow_of_a_bone_meal_still_reports_a_refused_fertilize() {
     let mut s = growing(
         8,

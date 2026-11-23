@@ -977,6 +977,7 @@ pub enum MobGoal {
     Shulker(crate::shulker::ShulkerGoal),
     Raider(crate::raider::RaiderGoal),
     Crossbow(crate::crossbow::CrossbowGoal),
+    SpearUse(crate::spear_use::SpearUseGoal),
     WitchTarget(crate::raider::NearestAttackableWitchTargetGoal),
     Trader(crate::villager::TraderGoal),
     Air(crate::air::AirGoal),
@@ -1038,6 +1039,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Shulker(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Raider(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Crossbow(goal) => Goal::<AiContext<'_, W>>::flags(goal),
+            Self::SpearUse(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::WitchTarget(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Trader(goal) => Goal::<AiContext<'_, W>>::flags(goal),
             Self::Air(goal) => Goal::<AiContext<'_, W>>::flags(goal),
@@ -1098,6 +1100,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Shulker(goal) => Goal::can_use(goal, context),
             Self::Raider(goal) => Goal::can_use(goal, context),
             Self::Crossbow(goal) => Goal::can_use(goal, context),
+            Self::SpearUse(goal) => Goal::can_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_use(goal, context),
             Self::Trader(goal) => Goal::can_use(goal, context),
             Self::Air(goal) => Goal::can_use(goal, context),
@@ -1157,6 +1160,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Shulker(goal) => Goal::can_continue_to_use(goal, context),
             Self::Raider(goal) => Goal::can_continue_to_use(goal, context),
             Self::Crossbow(goal) => Goal::can_continue_to_use(goal, context),
+            Self::SpearUse(goal) => Goal::can_continue_to_use(goal, context),
             Self::WitchTarget(goal) => Goal::can_continue_to_use(goal, context),
             Self::Trader(goal) => Goal::can_continue_to_use(goal, context),
             Self::Air(goal) => Goal::can_continue_to_use(goal, context),
@@ -1245,6 +1249,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Shulker(goal) => Goal::start(goal, context),
             Self::Raider(goal) => Goal::start(goal, context),
             Self::Crossbow(goal) => Goal::start(goal, context),
+            Self::SpearUse(goal) => Goal::start(goal, context),
             Self::WitchTarget(goal) => Goal::start(goal, context),
             Self::Trader(goal) => Goal::start(goal, context),
             Self::Air(goal) => Goal::start(goal, context),
@@ -1305,6 +1310,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Shulker(goal) => Goal::stop(goal, context),
             Self::Raider(goal) => Goal::stop(goal, context),
             Self::Crossbow(goal) => Goal::stop(goal, context),
+            Self::SpearUse(goal) => Goal::stop(goal, context),
             Self::WitchTarget(goal) => Goal::stop(goal, context),
             Self::Trader(goal) => Goal::stop(goal, context),
             Self::Air(goal) => Goal::stop(goal, context),
@@ -1365,6 +1371,7 @@ impl<W: AiWorld> Goal<AiContext<'_, W>> for MobGoal {
             Self::Shulker(goal) => Goal::tick(goal, context),
             Self::Raider(goal) => Goal::tick(goal, context),
             Self::Crossbow(goal) => Goal::tick(goal, context),
+            Self::SpearUse(goal) => Goal::tick(goal, context),
             Self::WitchTarget(goal) => Goal::tick(goal, context),
             Self::BlazeAttack(goal) => Goal::tick(goal, context),
             Self::Trader(goal) => Goal::tick(goal, context),
@@ -1438,6 +1445,7 @@ impl MobGoal {
             | Self::Shulker(_)
             | Self::Raider(_)
             | Self::Crossbow(_)
+            | Self::SpearUse(_)
             | Self::WitchTarget(_)
             | Self::Trader(_)
             | Self::Air(_)

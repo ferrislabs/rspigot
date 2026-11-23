@@ -38,10 +38,12 @@ pub const INTERACT_SOUND_VOLUME: f32 = 2.0;
 pub const INVENTORY_KEY: &str = "Inventory";
 pub const LISTENER_KEY: &str = "listener";
 pub const LISTENER_RADIUS: i32 = 16;
+pub const JUKEBOX_RADIUS: f64 = 10.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct AllayState {
     pub duplication_cooldown: i64,
+    pub jukebox_pos: Option<crate::BlockPos>,
 }
 
 pub fn define(base: &mut EntityBase) -> AllayState {

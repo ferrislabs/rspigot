@@ -34,6 +34,28 @@ impl<L: ClientLink> Server<L> {
         Ok(())
     }
 
+    pub(super) fn plugin_criterion(
+        &mut self,
+        id: PlayerId,
+        advancement: &str,
+        criterion: &str,
+        grant: bool,
+    ) -> Result<(), String> {
+        let key = namespaced(advancement);
+        let Some((_, found)) = advancements::find(&key) else {
+            return Err(format!("there is no advancement {key}"));
+        };
+        if !found.criteria.iter().any(|known| known.name == criterion) {
+            return Err(format!("{key} has no criterion {criterion}"));
+        }
+        if grant {
+            self.grant_advancement_criterion(id, &key, criterion);
+        } else {
+            self.revoke_advancement_criterion(id, &key, criterion);
+        }
+        Ok(())
+    }
+
     pub(super) fn advancement_view(
         &self,
         id: PlayerId,

@@ -297,6 +297,12 @@ impl Library {
         self.blueprints.get(name)
     }
 
+    pub(crate) fn blueprint_names(&self) -> Vec<String> {
+        let mut names: Vec<String> = self.blueprints.keys().cloned().collect();
+        names.sort_unstable();
+        names
+    }
+
     pub(crate) fn pools(&'static self) -> &'static Pools {
         self.compiled_pools.get_or_init(|| Pools::load(self))
     }

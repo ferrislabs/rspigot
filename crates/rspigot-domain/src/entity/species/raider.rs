@@ -58,6 +58,17 @@ pub struct RaiderState {
     pub ticks_outside_raid: i32,
 }
 
+pub fn is_ominous_banner(stack: &ItemStack) -> bool {
+    let reference = ominous_banner();
+    stack.item == reference.item
+        && stack.components.get("minecraft:banner_patterns")
+            == reference.components.get("minecraft:banner_patterns")
+}
+
+pub fn is_captain(state: &RaiderState, head: Option<&ItemStack>) -> bool {
+    state.patrol_leader && head.is_some_and(is_ominous_banner)
+}
+
 pub fn ominous_banner() -> ItemStack {
     let mut banner = ItemStack::new(ItemKind::WhiteBanner.id(), NonZeroU8::MIN);
     let layers = OMINOUS_BANNER_LAYERS

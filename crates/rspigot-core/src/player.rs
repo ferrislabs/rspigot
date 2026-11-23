@@ -87,6 +87,7 @@ pub struct Player<L> {
     pub meta: rspigot_domain::meta::Metadata,
     pub volatile_meta: rspigot_domain::meta::Metadata,
     pub(crate) motion: crate::player_movement::MoveState,
+    pub(crate) shoulders: crate::shoulder::Shoulders,
 }
 
 impl<L> Player<L> {

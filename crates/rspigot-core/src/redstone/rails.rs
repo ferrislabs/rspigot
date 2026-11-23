@@ -156,6 +156,21 @@ impl<L: ClientLink> Server<L> {
             return 0;
         }
         let area = detector_area(pos);
+        let mut commands: Vec<EntityId> = self
+            .entities
+            .store
+            .iter()
+            .filter(|entity| {
+                entity.base.removal.is_none()
+                    && entity.base.kind == EntityKind::CommandBlockMinecart
+                    && entity.base.bounding_box().intersects(&area)
+            })
+            .map(|entity| entity.base.id)
+            .collect();
+        commands.sort_by_key(|id| id.0);
+        if let Some(first) = commands.first() {
+            return self.command_minecart_success(*first);
+        }
         let mut carts: Vec<_> = self
             .entities
             .store
@@ -262,7 +277,10 @@ impl<L: ClientLink> Server<L> {
                             }
                             Some(BlockKind::ActivatorRail)
                                 if flag(state, "powered")
-                                    && entity.base.kind == EntityKind::Minecart =>
+                                    && matches!(
+                                        entity.base.kind,
+                                        EntityKind::Minecart | EntityKind::TntMinecart
+                                    ) =>
                             {
                                 activated.push(entity.base.id);
                             }
@@ -276,7 +294,11 @@ impl<L: ClientLink> Server<L> {
             self.detector_check(pos);
         }
         for cart in activated {
-            self.eject_passengers(cart);
+            if self.kind_of(cart) == Some(EntityKind::TntMinecart) {
+                self.cart_activated(cart);
+            } else {
+                self.eject_passengers(cart);
+            }
         }
         for (cart, enabled) in gated {
             if let Some(EntityState::Minecart(state)) = self

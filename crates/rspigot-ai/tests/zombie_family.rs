@@ -161,6 +161,7 @@ fn name(goal: &MobGoal) -> &'static str {
         MobGoal::HurtByTarget(_) => "hurt_by",
         MobGoal::NearestAttackableTarget(_) => "nearest",
         MobGoal::ResetUniversalAnger(_) => "reset_anger",
+        MobGoal::SpearUse(_) => "spear",
         _ => "other",
     }
 }
@@ -184,6 +185,7 @@ fn a_zombified_piglin_has_no_village_golem_or_turtle_goals() {
     assert_eq!(
         listed(ai.goals().goals()),
         vec![
+            (1, "spear"),
             (2, "melee"),
             (4, "turtle_egg"),
             (7, "stroll"),
@@ -303,4 +305,58 @@ fn a_hurt_zombie_never_calls_zombified_piglins_but_calls_other_zombies() {
         ],
     );
     assert_eq!(called, vec![EntityId(3), EntityId(4)]);
+}
+
+fn spear_user(kind: EntityKind, distance: f64) -> (MobAi, EntityBase, LivingState, World) {
+    let (base, state) = mob(kind, Vec3::new(0.5, 64.0, 0.5));
+    let mut ai = ai_of(kind);
+    ai.set_target(Some(PLAYER));
+    let mut world = World::new();
+    world.players = vec![player_at(Vec3::new(0.5 + distance, 64.0, 0.5))];
+    (ai, base, state, world)
+}
+
+fn raises_spear(kind: EntityKind, distance: f64, ticks: usize) -> bool {
+    let (mut ai, mut base, state, world) = spear_user(kind, distance);
+    let mut raised = false;
+    for _ in 0..ticks {
+        base.tick_count += 1;
+        world.time.set(world.time.get() + 1);
+        let mut view = MobView::of(&base, &state);
+        view.main_hand = Some(rspigot_items::ItemKind::IronSpear.id());
+        let mut body = MobBody::of(&view);
+        ai.think(&view, &world, &mut body);
+        raised |= body.using_item.is_some();
+    }
+    raised
+}
+
+#[test]
+fn a_zombie_a_husk_and_a_zombified_piglin_raise_their_spear_inside_ten_blocks() {
+    for kind in [
+        EntityKind::Zombie,
+        EntityKind::Husk,
+        EntityKind::ZombieVillager,
+        EntityKind::ZombifiedPiglin,
+    ] {
+        assert!(raises_spear(kind, 6.0, 40), "{kind:?}");
+    }
+}
+
+#[test]
+fn a_spear_zombie_beyond_ten_blocks_keeps_walking_with_the_spear_down() {
+    assert!(!raises_spear(EntityKind::Zombie, 14.0, 4));
+}
+
+#[test]
+fn a_zombie_without_a_spear_never_raises_anything() {
+    let (mut ai, mut base, state, world) = spear_user(EntityKind::Zombie, 6.0);
+    for _ in 0..40 {
+        base.tick_count += 1;
+        world.time.set(world.time.get() + 1);
+        let view = MobView::of(&base, &state);
+        let mut body = MobBody::of(&view);
+        ai.think(&view, &world, &mut body);
+        assert!(body.using_item.is_none());
+    }
 }

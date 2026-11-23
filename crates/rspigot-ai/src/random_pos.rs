@@ -284,10 +284,30 @@ pub fn direction_within_radians_offset(
     direction: (f64, f64),
     max_radians: f64,
 ) -> Option<BlockPos> {
+    direction_within_radians_between(
+        random,
+        0.0,
+        max_horizontal,
+        vertical,
+        y_offset,
+        direction,
+        max_radians,
+    )
+}
+
+pub fn direction_within_radians_between(
+    random: &mut MobRandom,
+    min_horizontal: f64,
+    max_horizontal: f64,
+    vertical: i32,
+    y_offset: i32,
+    direction: (f64, f64),
+    max_radians: f64,
+) -> Option<BlockPos> {
     let center = mth::atan2(direction.1, direction.0) - HALF_PI;
     let yaw = center + f64::from(2.0 * random.next_float() - 1.0) * max_radians;
-    let distance =
-        mth::lerp(random.next_double().sqrt(), 0.0, max_horizontal) * f64::from(SQRT_OF_TWO);
+    let distance = mth::lerp(random.next_double().sqrt(), min_horizontal, max_horizontal)
+        * f64::from(SQRT_OF_TWO);
     let x = -distance * yaw.sin();
     let z = distance * yaw.cos();
     if x.abs() > max_horizontal || z.abs() > max_horizontal {
@@ -368,7 +388,7 @@ pub fn land_pos_towards<W: AiWorld>(
     towards: Vec3,
 ) -> Option<Vec3> {
     let direction = towards - context.mob.position;
-    land_pos_in_direction(context, horizontal, vertical, direction)
+    land_pos_in_direction(context, 0.0, f64::from(horizontal), vertical, direction)
 }
 
 pub fn land_pos_away<W: AiWorld>(
@@ -377,29 +397,49 @@ pub fn land_pos_away<W: AiWorld>(
     vertical: i32,
     away_from: Vec3,
 ) -> Option<Vec3> {
-    let direction = context.mob.position - away_from;
-    land_pos_in_direction(context, horizontal, vertical, direction)
+    land_pos_away_between(context, 0.0, f64::from(horizontal), vertical, away_from)
+}
+
+pub fn land_pos_away_between<W: AiWorld>(
+    context: &mut AiContext<'_, W>,
+    min_horizontal: f64,
+    max_horizontal: f64,
+    vertical: i32,
+    away_from: Vec3,
+) -> Option<Vec3> {
+    let mut direction = context.mob.position - away_from;
+    if direction.length() == 0.0 {
+        direction = Vec3::new(
+            context.brain.random.next_double() - 0.5,
+            0.0,
+            context.brain.random.next_double() - 0.5,
+        );
+    }
+    land_pos_in_direction(context, min_horizontal, max_horizontal, vertical, direction)
 }
 
 fn land_pos_in_direction<W: AiWorld>(
     context: &mut AiContext<'_, W>,
-    horizontal: i32,
+    min_horizontal: f64,
+    max_horizontal: f64,
     vertical: i32,
     direction: Vec3,
 ) -> Option<Vec3> {
-    let restricted = context.mob.is_restricted(f64::from(horizontal));
+    let restricted = context.mob.is_restricted(max_horizontal);
     generate(context, |context| {
-        let offset = direction_within_radians(
+        let offset = direction_within_radians_between(
             &mut context.brain.random,
-            f64::from(horizontal),
+            min_horizontal,
+            max_horizontal,
             vertical,
+            0,
             (direction.x, direction.z),
             HALF_PI,
         )?;
         let pos = toward_direction(
             context.mob,
             &mut context.brain.random,
-            f64::from(horizontal),
+            max_horizontal,
             offset,
         );
         if is_outside_limits(context.world, pos)

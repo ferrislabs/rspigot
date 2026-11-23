@@ -321,8 +321,8 @@ fn sub_matches(predicate: &EntitySubPredicate, entity: &LootEntity) -> bool {
             entity.cube_size.is_some_and(|value| size.contains(value))
         }
         EntitySubPredicate::Raider { has_raid, captain } => entity.raider.is_some_and(|raider| {
-            raider.has_raid == has_raid.unwrap_or(false)
-                && raider.captain == captain.unwrap_or(false)
+            has_raid.is_none_or(|wanted| wanted == raider.has_raid)
+                && captain.is_none_or(|wanted| wanted == raider.captain)
         }),
         EntitySubPredicate::FishingHook { in_open_water } => entity
             .open_water

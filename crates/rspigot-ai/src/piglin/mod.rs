@@ -5,6 +5,7 @@ mod crossbow;
 mod facts;
 mod hoglin;
 mod sensors;
+mod spear;
 mod targets;
 mod zoglin;
 
@@ -35,6 +36,7 @@ pub use crossbow::{CROSSBOW_ATTACK_DURATION, CrossbowAttack};
 pub use facts::{HoglinFacts, PIGLIN_INVENTORY_SIZE, PiglinFacts};
 pub use hoglin::{HoglinCondition, is_pos_near_nearest_repellent};
 pub use sensors::{HoglinSensor, PiglinBruteSensor, PiglinSensor, is_player_holding_loved_item};
+pub use spear::{SPEAR_RETREAT_DURATION, SpearApproach, SpearAttack, SpearRetreat, SpearStatus};
 pub use targets::NetherFinder;
 
 pub fn deliver<W: AiWorld>(cx: &mut BehaviorCx<'_, '_, W>, message: BrainMessage) {

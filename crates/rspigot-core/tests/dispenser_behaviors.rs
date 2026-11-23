@@ -221,7 +221,7 @@ fn the_projectile_items_each_launch_their_entity() {
         ("minecraft:fire_charge", "minecraft:small_fireball"),
         ("minecraft:wind_charge", "minecraft:wind_charge"),
         ("minecraft:firework_rocket", "minecraft:firework_rocket"),
-        ("minecraft:spectral_arrow", "minecraft:arrow"),
+        ("minecraft:spectral_arrow", "minecraft:spectral_arrow"),
         ("minecraft:tipped_arrow", "minecraft:arrow"),
         ("minecraft:blue_egg", "minecraft:egg"),
         ("minecraft:brown_egg", "minecraft:egg"),

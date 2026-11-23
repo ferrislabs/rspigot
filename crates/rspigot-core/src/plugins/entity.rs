@@ -48,6 +48,9 @@ impl<L: ClientLink> Server<L> {
                 let position = resolve::position_of(position)?;
                 self.relocate(id, position, false);
             }
+            EntityOrder::SetLootTable { table, seed } => {
+                self.set_entity_loot_table(id, table, seed)?;
+            }
             EntityOrder::Remove => {
                 self.remove_entity(
                     id,

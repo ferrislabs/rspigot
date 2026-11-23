@@ -118,6 +118,11 @@ fn owner_uuid(entity: &Entity) -> Option<Uuid> {
 
 impl<L: ClientLink> Server<L> {
     pub(crate) fn game_event(&mut self, event: GameEvent, at: Vec3, context: GameEventContext) {
+        match event {
+            GameEvent::JukeboxPlay => self.allays_hear_jukebox(true, at),
+            GameEvent::JukeboxStopPlay => self.allays_hear_jukebox(false, at),
+            _ => {}
+        }
         let step = GameStep { event, at, context };
         self.fire(Lane::World, Continuation::Game(step), move |server| {
             let origin = at.block();

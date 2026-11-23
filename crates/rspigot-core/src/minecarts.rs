@@ -107,6 +107,9 @@ impl<L: ClientLink> Server<L> {
                 Interaction::Pass
             });
         }
+        if kind == Kind::FurnaceMinecart {
+            return Some(self.furnace_cart_interact(id, target));
+        }
         let rider = self.players.get(&id)?.entity_id;
         if chest {
             return Some(if self.open_cargo(id, target) {
@@ -168,6 +171,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.crowd_minecart(id);
         self.tick_command_minecart(id);
+        self.tick_special_minecart(id, &outcome);
     }
 
     fn crowd_minecart(&mut self, id: EntityId) {

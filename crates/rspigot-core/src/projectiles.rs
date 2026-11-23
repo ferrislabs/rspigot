@@ -1,5 +1,6 @@
 use rand::Rng;
 use rspigot_domain::damage::DamageType;
+use rspigot_domain::effect::{EffectDuration, EffectId, EffectInstance};
 use rspigot_domain::entity::arrow::{self, ArrowState, Pickup};
 use rspigot_domain::entity::fire;
 use rspigot_domain::entity::living;
@@ -17,7 +18,8 @@ use crate::events::{ClientEvent, GameEvent};
 use crate::game_events::GameEventContext;
 use crate::health::{DamageSource, SourceEntity};
 use crate::plugins::events::{
-    ArrowBodyCountChange, CreatureSpawnReason, EntityRemoveCause, PlayerPickupArrow,
+    ArrowBodyCountChange, CreatureSpawnReason, EntityPotionEffectCause, EntityRemoveCause,
+    PlayerPickupArrow,
 };
 use crate::plugins::steps::{ArrowCountStep, ArrowStep};
 use crate::plugins::steps::{Draw, Shooter};
@@ -143,20 +145,32 @@ impl<L: ClientLink> Server<L> {
             .cloned();
         let projectile = held.unwrap_or_else(arrow::default_item);
         let weapon_view = weapon.clone();
+        let shooter_kind = entity.base.kind;
         let origin = entity.base.position;
         let eye = entity.base.eye_y();
         let owner_uuid = entity.base.uuid;
-        let mut base = self.new_entity_base(Kind::Arrow);
+        let mut base = self.new_entity_base(arrow::kind_for(&projectile));
         base.position = Vec3::new(origin.x, eye - EYE_OFFSET, origin.z);
         base.old_position = base.position;
         let seed = self.rng.random::<i64>();
-        let mut state = ArrowState::new(&mut base, seed);
+        let mut state = ArrowState::for_base(&mut base, seed);
         state.set_owner(Some(owner_uuid), false);
         state.item = ItemStack {
             count: std::num::NonZeroU8::MIN,
             ..projectile
         };
         state.weapon = weapon;
+        if base.kind == Kind::Arrow
+            && let Some((effect, ticks)) = arrow::variant_effect(shooter_kind)
+        {
+            rspigot_domain::potion::add_custom_effect(&mut state.item, effect, ticks);
+        }
+        if shooter_kind == Kind::WitherSkeleton {
+            fire::ignite_for_ticks(
+                &mut base,
+                fire::seconds_to_ticks(arrow::WITHER_SKELETON_ARROW_FIRE_SECONDS),
+            );
+        }
         let difficulty = self.world.difficulty.id();
         state.base_damage = arrow::mob_base_damage(power, difficulty, &mut state.random);
         let dx = target.0.x - origin.x;
@@ -318,6 +332,7 @@ impl<L: ClientLink> Server<L> {
                 e.base.kind == Kind::EndCrystal
                     || matches!(e.state, EntityState::Hanging(_))
                     || matches!(e.state, EntityState::Stand(_))
+                    || crate::vehicles::is_vehicle_state(&e.state)
                     || e.living()
                         .is_some_and(|state| !living::is_dead_or_dying(&e.base, state))
             })
@@ -453,6 +468,7 @@ impl<L: ClientLink> Server<L> {
         };
         base.old_position = base.position;
         base.tick_count = base.tick_count.wrapping_add(1);
+        arrow::sync_effect_color(base, state);
         fluid::update(base, chunks);
         let movement = base.velocity;
         let trident = base.kind == Kind::Trident;
@@ -549,7 +565,11 @@ impl<L: ClientLink> Server<L> {
                 if self.entities.store.get(id).is_none() {
                     return;
                 }
-                self.ask_projectile_hit(id, hit.target);
+                if self.is_vehicle_entity(hit.target) {
+                    self.arrow_hit_entity(id, hit.target);
+                } else {
+                    self.ask_projectile_hit(id, hit.target);
+                }
                 if self.projectile_waits(id) {
                     return;
                 }
@@ -603,6 +623,13 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn arrow_hit_entity(&mut self, id: EntityId, target: EntityId) {
+        if self.deflected_on_hit(id, target) {
+            return;
+        }
+        if self.arrow_pierce_spent(id, target) {
+            self.remove_entity(id, RemovalReason::Killed, Some(EntityRemoveCause::Hit));
+            return;
+        }
         let (enchanted_base, punch) = self.arrow_enchantments(id, target);
         let Some(Entity {
             base,
@@ -678,6 +705,61 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    fn arrow_pierce_spent(&mut self, id: EntityId, target: EntityId) -> bool {
+        let Some(Entity {
+            base,
+            state: EntityState::Arrow(state),
+            ..
+        }) = self.entities.store.get_mut(id)
+        else {
+            return false;
+        };
+        if base.kind == Kind::Trident {
+            return false;
+        }
+        let level = arrow::pierce_level(base);
+        if level <= 0 {
+            return false;
+        }
+        if state.pierced.len() as i32 > i32::from(level) {
+            return true;
+        }
+        state.pierced.push(target);
+        false
+    }
+
+    fn arrow_post_hurt_effects(&mut self, id: EntityId, target: EntityId) {
+        let Some(Entity {
+            base,
+            state: EntityState::Arrow(state),
+            ..
+        }) = self.entities.store.get(id)
+        else {
+            return;
+        };
+        let effects: Vec<EffectInstance> = if base.kind == Kind::SpectralArrow {
+            EffectId::from_name("minecraft:glowing")
+                .map(|glowing| {
+                    EffectInstance::new(
+                        glowing,
+                        EffectDuration::Ticks(state.duration.max(0) as u32),
+                        0,
+                        true,
+                    )
+                })
+                .into_iter()
+                .collect()
+        } else if base.kind == Kind::Arrow {
+            let scale = rspigot_domain::potion::duration_scale(&state.item);
+            rspigot_domain::potion::PotionContents::of(&state.item).scaled_effects(scale)
+        } else {
+            Vec::new()
+        };
+        for effect in effects {
+            self.add_effect_to(target, effect, EntityPotionEffectCause::Arrow);
+        }
+    }
+
     pub(crate) fn finish_arrow_hit(&mut self, follow: ArrowFollow, hurt: bool) {
         let ArrowFollow {
             arrow: id,
@@ -699,8 +781,16 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         if hurt {
+            let pierce = self
+                .entities
+                .store
+                .get(id)
+                .map_or(0, |entity| arrow::pierce_level(&entity.base));
             self.push_by_arrow(target, heading, punch);
-            self.ask_arrow_count(target, 1);
+            if pierce <= 0 {
+                self.ask_arrow_count(target, 1);
+            }
+            self.arrow_post_hurt_effects(id, target);
             if let (Some(_), Some(owner)) = (target_player, owner_id)
                 && let Some(shooter) = self.player_of_entity(owner)
                 && Some(shooter) != target_player
@@ -726,7 +816,9 @@ impl<L: ClientLink> Server<L> {
                     sound_pitch,
                 );
             }
-            self.remove_entity(id, RemovalReason::Killed, Some(EntityRemoveCause::Hit));
+            if pierce <= 0 {
+                self.remove_entity(id, RemovalReason::Killed, Some(EntityRemoveCause::Hit));
+            }
         } else {
             self.restore_fire_ticks(target, saved_fire);
             let Some(Entity {

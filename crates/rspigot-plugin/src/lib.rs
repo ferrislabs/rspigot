@@ -30,17 +30,22 @@ mod meta;
 #[rustfmt::skip]
 pub mod keys;
 mod boss_bar;
+mod client_changes;
 mod link;
 mod listener;
+mod lookups;
 mod npc;
 mod objects;
 mod payload;
 mod pdc;
 mod permissions;
 mod player;
+mod player_extras;
+mod rays;
 mod recipes;
 mod rich;
 mod runtime;
+mod scheduler;
 mod scoreboard;
 mod server;
 mod target;
@@ -59,6 +64,7 @@ pub use advancements::AdvancementProgress;
 pub use attribute::{Attribute, EntityAttributesHandle};
 pub use block::{Block, BlockPos, BlockState};
 pub use boss_bar::{BarColor, BarFlag, BarStyle, BossBar, BossBarState, BossBars};
+pub use client_changes::{PlayerClientHandle, ResourcePack};
 pub use color::Color;
 pub use commands::{
     Argument, ArgumentKind, Arguments, ChoiceArgument, CommandArgument, CommandSpec, Context,
@@ -73,7 +79,9 @@ pub use contract::{
     Location, LootContext, MerchantRef, OwnerRef, PluginInfo, RaidRef, ServerLinkEntry,
     ServerLinks, SignData, SpawnerData, Trade, TrialSpawnerData,
 };
-pub use custom_inventory::{CustomInventory, CustomInventoryState};
+pub use custom_inventory::{
+    CustomInventory, CustomInventoryState, InventoryType, MerchantProgress,
+};
 pub use dialog::{Dialog, DialogButton, DialogInput};
 pub use displays::{
     Billboard, BlockDisplay, DisplayHandle, DisplayProps, DisplaySpec, InteractionBox, ItemDisplay,
@@ -105,6 +113,11 @@ pub use item_meta::{
 pub use keys::{BlockType, EffectType, Enchantment, EntityType, Material, Particle, Sound};
 pub use listener::{Access, HandlerSpec, Listeners, Outcome, Plugin, Priority, Verdict};
 pub use location::PlayerLocationHandle;
+pub use lookups::{
+    LootRequest, PlaceOptions, PlayerProfile, ServerLootHandle, ServerProfilesHandle,
+    ServerRegistriesHandle, StructureMirror, StructureRotation, StructureSize, TreeKind,
+    WorldStructuresHandle,
+};
 pub use meta::{MetaHandle, MetaValue, WorldMetaHandle};
 pub use npc::{DEFAULT_SKIN_LAYERS, Npc, NpcPose, NpcSkin, NpcSlot, NpcSpec, NpcState, Npcs};
 pub use objects::{
@@ -116,10 +129,15 @@ pub use payload::{Ban, BanTerms, Facing, ItemRemoval, ParticleBurst, SlotItem, S
 pub use pdc::{NamespacedKey, PdcHandle, PdcValue};
 pub use permissions::{PermissionGroup, PlayerPermissionsHandle, ServerPermissionsHandle};
 pub use player::{GameMode, Player, PlayerState, Position, Rotation, Vector};
+pub use player_extras::{
+    PlayerCookieHandle, PlayerCriteriaHandle, PlayerLinksHandle, PlayerViewHandle,
+};
+pub use rays::{FluidCollisionMode, RayHit, RayTraceOptions};
 pub use recipes::{CookingKind, Ingredient, Recipe, RecipeCategory, RecipeInfo, RecipeKind};
 pub use rich::{Click, Part, RichMessage};
 pub use rspigot_plugin_macros::{Module, Plugin, command, config, listeners, task};
 pub use runtime::{run, run_with};
+pub use scheduler::{Scheduler, Task, Ticker};
 pub use scoreboard::{
     CollisionRule, Criteria, DisplaySlot, Objective, ObjectiveState, RenderType, Score, ScoreEntry,
     Scoreboard, ScoreboardManager, ScoreboardState, Team, TeamColor, TeamState, Visibility,

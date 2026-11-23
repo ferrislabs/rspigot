@@ -312,6 +312,7 @@ pub struct World {
     pub border: crate::WorldBorderHandle,
     pub chunks: crate::WorldChunksHandle,
     pub lightning: crate::WorldLightningHandle,
+    pub structures: crate::WorldStructuresHandle,
     pub objects: crate::WorldObjectsHandle,
     pub name: Option<String>,
     link: Link,
@@ -337,10 +338,24 @@ impl World {
             border: crate::WorldBorderHandle::new(link.clone()),
             chunks: crate::WorldChunksHandle::new(link.clone()),
             lightning: crate::WorldLightningHandle::new(link.clone()),
+            structures: crate::WorldStructuresHandle::new(link.clone()),
             objects: crate::WorldObjectsHandle::new(link.clone()),
             name: None,
             link,
         }
+    }
+
+    pub fn pdc(&self) -> crate::PdcHandle {
+        crate::PdcHandle::of_world(self.link.clone())
+    }
+
+    pub async fn ray_trace(
+        &self,
+        origin: Position,
+        direction: Vector,
+        options: &crate::RayTraceOptions,
+    ) -> Result<crate::RayHit, Error> {
+        crate::rays::trace(&self.link, origin, direction, options).await
     }
 
     pub(crate) fn named(name: String, link: Link) -> Self {

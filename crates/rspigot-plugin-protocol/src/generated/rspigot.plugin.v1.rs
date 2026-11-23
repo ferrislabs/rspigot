@@ -9322,24 +9322,26 @@ pub struct ItemKeys {
     pub keys: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[allow(clippy::all)]
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RecipeIngredient {
-    #[prost(oneof = "recipe_ingredient::Choice", tags = "1, 2")]
+    #[prost(oneof = "recipe_ingredient::Choice", tags = "1, 2, 3")]
     pub choice: ::core::option::Option<recipe_ingredient::Choice>,
 }
 /// Nested message and enum types in `RecipeIngredient`.
 pub mod recipe_ingredient {
     #[allow(clippy::all)]
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Choice {
         #[prost(message, tag = "1")]
         Items(super::ItemKeys),
         #[prost(string, tag = "2")]
         Tag(::prost::alloc::string::String),
+        #[prost(message, tag = "3")]
+        Exact(super::Item),
     }
 }
 #[allow(clippy::all)]
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RecipeKey {
     #[prost(string, tag = "1")]
     pub symbol: ::prost::alloc::string::String,
@@ -9375,7 +9377,7 @@ pub struct CookingRecipe {
     pub time: u32,
 }
 #[allow(clippy::all)]
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SmithingRecipe {
     #[prost(message, optional, tag = "1")]
     pub template: ::core::option::Option<RecipeIngredient>,
@@ -9383,6 +9385,26 @@ pub struct SmithingRecipe {
     pub base: ::core::option::Option<RecipeIngredient>,
     #[prost(message, optional, tag = "3")]
     pub addition: ::core::option::Option<RecipeIngredient>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SmithingTrimRecipe {
+    #[prost(message, optional, tag = "1")]
+    pub template: ::core::option::Option<RecipeIngredient>,
+    #[prost(message, optional, tag = "2")]
+    pub base: ::core::option::Option<RecipeIngredient>,
+    #[prost(message, optional, tag = "3")]
+    pub addition: ::core::option::Option<RecipeIngredient>,
+    #[prost(string, tag = "4")]
+    pub pattern: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransmuteRecipe {
+    #[prost(message, optional, tag = "1")]
+    pub input: ::core::option::Option<RecipeIngredient>,
+    #[prost(message, optional, tag = "2")]
+    pub material: ::core::option::Option<RecipeIngredient>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -9399,7 +9421,7 @@ pub struct RecipeDef {
     pub override_vanilla: bool,
     #[prost(bool, tag = "6")]
     pub auto_discover: bool,
-    #[prost(oneof = "recipe_def::Body", tags = "10, 11, 12, 13, 14")]
+    #[prost(oneof = "recipe_def::Body", tags = "10, 11, 12, 13, 14, 15, 16")]
     pub body: ::core::option::Option<recipe_def::Body>,
 }
 /// Nested message and enum types in `RecipeDef`.
@@ -9417,6 +9439,10 @@ pub mod recipe_def {
         Stonecutting(super::RecipeIngredient),
         #[prost(message, tag = "14")]
         Smithing(super::SmithingRecipe),
+        #[prost(message, tag = "15")]
+        SmithingTrim(super::SmithingTrimRecipe),
+        #[prost(message, tag = "16")]
+        Transmute(super::TransmuteRecipe),
     }
 }
 #[allow(clippy::all)]
@@ -9665,7 +9691,7 @@ pub struct DeleteWorld {
     pub files: bool,
 }
 #[allow(clippy::all)]
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateInventory {
     #[prost(uint64, tag = "1")]
     pub id: u64,
@@ -9675,6 +9701,14 @@ pub struct CreateInventory {
     pub title: ::prost::alloc::string::String,
     #[prost(bool, tag = "4")]
     pub locked: bool,
+    #[prost(enumeration = "InventoryKind", tag = "5")]
+    pub kind: i32,
+    #[prost(int32, tag = "6")]
+    pub slots: i32,
+    #[prost(message, repeated, tag = "7")]
+    pub trades: ::prost::alloc::vec::Vec<Trade>,
+    #[prost(message, optional, tag = "8")]
+    pub progress: ::core::option::Option<MerchantProgress>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -10118,7 +10152,7 @@ pub mod inventory_order {
 pub struct ServerOrder {
     #[prost(
         oneof = "server_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30"
     )]
     pub order: ::core::option::Option<server_order::Order>,
 }
@@ -10165,6 +10199,10 @@ pub mod server_order {
         SetMotd(::prost::alloc::string::String),
         #[prost(int32, tag = "28")]
         SetMaxPlayers(i32),
+        #[prost(message, tag = "29")]
+        ScheduleTask(super::ScheduleTask),
+        #[prost(uint64, tag = "30")]
+        CancelTask(u64),
     }
 }
 #[allow(clippy::all)]
@@ -10507,7 +10545,7 @@ pub struct BlockDataEdit {
 pub struct BlockOrder {
     #[prost(message, optional, tag = "1")]
     pub pos: ::core::option::Option<BlockPos>,
-    #[prost(oneof = "block_order::Order", tags = "10, 11, 12, 13, 14, 15, 16")]
+    #[prost(oneof = "block_order::Order", tags = "10, 11, 12, 13, 14, 15, 16, 17, 18")]
     pub order: ::core::option::Option<block_order::Order>,
 }
 /// Nested message and enum types in `BlockOrder`.
@@ -10529,6 +10567,10 @@ pub mod block_order {
         Tile(super::TileEdit),
         #[prost(message, tag = "16")]
         Pdc(super::PdcChange),
+        #[prost(string, tag = "17")]
+        SetBiome(::prost::alloc::string::String),
+        #[prost(message, tag = "18")]
+        SetLootTable(super::LootTableSet),
     }
 }
 #[allow(clippy::all)]
@@ -10538,7 +10580,7 @@ pub struct EntityOrder {
     pub entity: i32,
     #[prost(
         oneof = "entity_order::Order",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
     )]
     pub order: ::core::option::Option<entity_order::Order>,
 }
@@ -10573,6 +10615,8 @@ pub mod entity_order {
         Edit(super::EntityEdit),
         #[prost(message, tag = "22")]
         Object(super::ObjectEntityOrder),
+        #[prost(message, tag = "23")]
+        SetLootTable(super::LootTableSet),
     }
 }
 #[allow(clippy::all)]
@@ -10777,7 +10821,7 @@ pub struct BossBarCreate {
 pub struct CustomInventoryOrder {
     #[prost(uint64, tag = "1")]
     pub inventory: u64,
-    #[prost(oneof = "custom_inventory_order::Order", tags = "10, 11, 12, 13")]
+    #[prost(oneof = "custom_inventory_order::Order", tags = "10, 11, 12, 13, 14, 15")]
     pub order: ::core::option::Option<custom_inventory_order::Order>,
 }
 /// Nested message and enum types in `CustomInventoryOrder`.
@@ -10793,6 +10837,10 @@ pub mod custom_inventory_order {
         Close(super::Empty),
         #[prost(message, tag = "13")]
         Discard(super::Empty),
+        #[prost(message, tag = "14")]
+        SetTrades(super::TradeList),
+        #[prost(message, tag = "15")]
+        SetProgress(super::MerchantProgress),
     }
 }
 #[allow(clippy::all)]
@@ -10983,7 +11031,7 @@ pub struct Question {
     pub request: u64,
     #[prost(
         oneof = "question::Question",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51"
     )]
     pub question: ::core::option::Option<question::Question>,
 }
@@ -11074,6 +11122,8 @@ pub mod question {
         Extra(super::ExtraQuestion),
         #[prost(message, tag = "50")]
         Object(super::ObjectQuestion),
+        #[prost(message, tag = "51")]
+        Lookup(super::LookupQuestion),
     }
 }
 #[allow(clippy::all)]
@@ -11384,6 +11434,12 @@ pub struct CustomInventoryState {
     pub slots: ::prost::alloc::vec::Vec<Slot>,
     #[prost(message, repeated, tag = "2")]
     pub viewers: ::prost::alloc::vec::Vec<PlayerSnapshot>,
+    #[prost(enumeration = "InventoryKind", tag = "3")]
+    pub kind: i32,
+    #[prost(message, repeated, tag = "4")]
+    pub trades: ::prost::alloc::vec::Vec<Trade>,
+    #[prost(message, optional, tag = "5")]
+    pub progress: ::core::option::Option<MerchantProgress>,
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -11678,7 +11734,7 @@ pub struct Answer {
     pub request: u64,
     #[prost(
         oneof = "answer::Body",
-        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38"
+        tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39"
     )]
     pub body: ::core::option::Option<answer::Body>,
 }
@@ -11761,6 +11817,8 @@ pub mod answer {
         Extra(super::ExtraAnswer),
         #[prost(message, tag = "38")]
         Object(super::ObjectAnswer),
+        #[prost(message, tag = "39")]
+        Lookup(super::LookupAnswer),
     }
 }
 #[allow(clippy::all)]
@@ -11773,9 +11831,15 @@ pub struct Warning {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Replaced {}
 #[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TaskDue {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+}
+#[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ToPlugin {
-    #[prost(oneof = "to_plugin::Body", tags = "1, 2, 3, 4, 5, 6")]
+    #[prost(oneof = "to_plugin::Body", tags = "1, 2, 3, 4, 5, 6, 7")]
     pub body: ::core::option::Option<to_plugin::Body>,
 }
 /// Nested message and enum types in `ToPlugin`.
@@ -11795,6 +11859,8 @@ pub mod to_plugin {
         Replaced(super::Replaced),
         #[prost(message, tag = "6")]
         Invocation(super::Invocation),
+        #[prost(message, tag = "7")]
+        TaskDue(super::TaskDue),
     }
 }
 #[allow(clippy::all)]
@@ -11934,7 +12000,10 @@ pub struct BedSpawnSet {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PlayerExtra {
-    #[prost(oneof = "player_extra::Order", tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11")]
+    #[prost(
+        oneof = "player_extra::Order",
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25"
+    )]
     pub order: ::core::option::Option<player_extra::Order>,
 }
 /// Nested message and enum types in `PlayerExtra`.
@@ -11964,6 +12033,34 @@ pub mod player_extra {
         ClearBedSpawn(super::Empty),
         #[prost(message, tag = "11")]
         OpenBook(super::Item),
+        #[prost(message, tag = "12")]
+        SendBlockChanges(super::ClientBlocks),
+        #[prost(message, tag = "13")]
+        SendSignChange(super::ClientSign),
+        #[prost(message, tag = "14")]
+        SendEquipmentChange(super::ClientEquipment),
+        #[prost(message, tag = "15")]
+        SendHurtAnimation(super::ClientHurt),
+        #[prost(message, tag = "16")]
+        SendResourcePack(super::PackOffer),
+        #[prost(message, tag = "17")]
+        RemoveResourcePack(super::PackRemoval),
+        #[prost(message, tag = "18")]
+        AwardCriterion(super::CriterionOrder),
+        #[prost(message, tag = "19")]
+        RevokeCriterion(super::CriterionOrder),
+        #[prost(int32, tag = "20")]
+        HideEntity(i32),
+        #[prost(int32, tag = "21")]
+        ShowEntity(i32),
+        #[prost(message, tag = "22")]
+        SetPlayerBorder(super::WorldBorderOrder),
+        #[prost(message, tag = "23")]
+        ResetPlayerBorder(super::Empty),
+        #[prost(message, tag = "24")]
+        StoreCookie(super::CookieStore),
+        #[prost(message, tag = "25")]
+        SendLinks(super::LinkList),
     }
 }
 #[allow(clippy::all)]
@@ -11997,7 +12094,7 @@ pub struct ChunkQuery {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ExtraQuestion {
-    #[prost(oneof = "extra_question::Query", tags = "1, 2, 3, 4, 5, 6")]
+    #[prost(oneof = "extra_question::Query", tags = "1, 2, 3, 4, 5, 6, 7")]
     pub query: ::core::option::Option<extra_question::Query>,
 }
 /// Nested message and enum types in `ExtraQuestion`.
@@ -12017,6 +12114,8 @@ pub mod extra_question {
         PlayerClock(::prost::alloc::string::String),
         #[prost(message, tag = "6")]
         Chunk(super::ChunkQuery),
+        #[prost(message, tag = "7")]
+        RetrieveCookie(super::CookieQuery),
     }
 }
 #[allow(clippy::all)]
@@ -12048,7 +12147,7 @@ pub struct ChunkInfo {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExtraAnswer {
-    #[prost(oneof = "extra_answer::Answer", tags = "1, 2, 3, 4, 5")]
+    #[prost(oneof = "extra_answer::Answer", tags = "1, 2, 3, 4, 5, 6")]
     pub answer: ::core::option::Option<extra_answer::Answer>,
 }
 /// Nested message and enum types in `ExtraAnswer`.
@@ -12066,6 +12165,8 @@ pub mod extra_answer {
         Clock(super::PlayerClock),
         #[prost(message, tag = "5")]
         Chunk(super::ChunkInfo),
+        #[prost(message, tag = "6")]
+        Cookie(super::CookieValue),
     }
 }
 #[allow(clippy::all)]
@@ -12147,7 +12248,7 @@ pub struct ItemSlotRef {
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PdcQuery {
-    #[prost(oneof = "pdc_query::Holder", tags = "1, 2, 3")]
+    #[prost(oneof = "pdc_query::Holder", tags = "1, 2, 3, 4, 5")]
     pub holder: ::core::option::Option<pdc_query::Holder>,
 }
 /// Nested message and enum types in `PdcQuery`.
@@ -12161,6 +12262,10 @@ pub mod pdc_query {
         Block(super::BlockPos),
         #[prost(message, tag = "3")]
         Item(super::ItemSlotRef),
+        #[prost(message, tag = "4")]
+        Chunk(super::ChunkCoords),
+        #[prost(message, tag = "5")]
+        World(super::Empty),
     }
 }
 #[allow(clippy::all)]
@@ -12481,8 +12586,18 @@ pub mod object_player_order {
 }
 #[allow(clippy::all)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChunkPdcChange {
+    #[prost(int32, tag = "1")]
+    pub x: i32,
+    #[prost(int32, tag = "2")]
+    pub z: i32,
+    #[prost(message, optional, tag = "3")]
+    pub change: ::core::option::Option<PdcChange>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ObjectWorldOrder {
-    #[prost(oneof = "object_world_order::Order", tags = "1")]
+    #[prost(oneof = "object_world_order::Order", tags = "1, 2, 3")]
     pub order: ::core::option::Option<object_world_order::Order>,
 }
 /// Nested message and enum types in `ObjectWorldOrder`.
@@ -12492,6 +12607,10 @@ pub mod object_world_order {
     pub enum Order {
         #[prost(message, tag = "1")]
         EditMap(super::MapEdit),
+        #[prost(message, tag = "2")]
+        ChunkPdc(super::ChunkPdcChange),
+        #[prost(message, tag = "3")]
+        WorldPdc(super::PdcChange),
     }
 }
 #[allow(clippy::all)]
@@ -12655,6 +12774,393 @@ pub mod object_answer {
         Pdc(super::PdcContainer),
         #[prost(message, tag = "5")]
         Hanging(super::HangingView),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ClientBlock {
+    #[prost(message, optional, tag = "1")]
+    pub pos: ::core::option::Option<BlockPos>,
+    #[prost(message, optional, tag = "2")]
+    pub state: ::core::option::Option<BlockState>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ClientBlocks {
+    #[prost(message, repeated, tag = "1")]
+    pub changes: ::prost::alloc::vec::Vec<ClientBlock>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ClientSign {
+    #[prost(message, optional, tag = "1")]
+    pub pos: ::core::option::Option<BlockPos>,
+    #[prost(string, repeated, tag = "2")]
+    pub lines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub color: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "4")]
+    pub glowing: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ClientEquipment {
+    #[prost(int32, tag = "1")]
+    pub entity: i32,
+    #[prost(message, repeated, tag = "2")]
+    pub slots: ::prost::alloc::vec::Vec<EquipmentEdit>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct ClientHurt {
+    #[prost(int32, tag = "1")]
+    pub entity: i32,
+    #[prost(float, tag = "2")]
+    pub yaw: f32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PackOffer {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub url: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub hash: ::prost::alloc::string::String,
+    #[prost(bool, tag = "4")]
+    pub required: bool,
+    #[prost(string, optional, tag = "5")]
+    pub prompt: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PackRemoval {
+    #[prost(string, optional, tag = "1")]
+    pub id: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScheduleTask {
+    #[prost(uint64, tag = "1")]
+    pub id: u64,
+    #[prost(uint32, tag = "2")]
+    pub delay: u32,
+    #[prost(uint32, tag = "3")]
+    pub period: u32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PlaceStructure {
+    #[prost(string, tag = "1")]
+    pub template: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub pos: ::core::option::Option<BlockPos>,
+    #[prost(string, tag = "3")]
+    pub rotation: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub mirror: ::prost::alloc::string::String,
+    #[prost(float, tag = "5")]
+    pub integrity: f32,
+    #[prost(int32, tag = "6")]
+    pub seed: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocateStructure {
+    #[prost(string, tag = "1")]
+    pub structure: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub from: ::core::option::Option<Vec3>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LootQuery {
+    #[prost(string, tag = "1")]
+    pub table: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(string, optional, tag = "3")]
+    pub looter: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(float, tag = "4")]
+    pub luck: f32,
+    #[prost(int64, optional, tag = "5")]
+    pub seed: ::core::option::Option<i64>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TagQuery {
+    #[prost(string, tag = "1")]
+    pub registry: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub tag: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LookupQuestion {
+    #[prost(
+        oneof = "lookup_question::Query",
+        tags = "1, 2, 3, 4, 5, 10, 11, 14, 12, 13, 6, 7, 8, 9"
+    )]
+    pub query: ::core::option::Option<lookup_question::Query>,
+}
+/// Nested message and enum types in `LookupQuestion`.
+pub mod lookup_question {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Query {
+        #[prost(message, tag = "1")]
+        Structures(super::Empty),
+        #[prost(string, tag = "2")]
+        Structure(::prost::alloc::string::String),
+        #[prost(message, tag = "3")]
+        PlaceStructure(super::PlaceStructure),
+        #[prost(message, tag = "4")]
+        LocateStructure(super::LocateStructure),
+        #[prost(message, tag = "5")]
+        GenerateLoot(super::LootQuery),
+        #[prost(message, tag = "10")]
+        LootTables(super::Empty),
+        #[prost(message, tag = "11")]
+        GenerateTree(super::GenerateTree),
+        #[prost(message, tag = "14")]
+        Lootable(super::LootTarget),
+        #[prost(message, tag = "12")]
+        RayTrace(super::RayTrace),
+        #[prost(message, tag = "13")]
+        Profile(super::ProfileQuery),
+        #[prost(message, tag = "6")]
+        Registries(super::Empty),
+        #[prost(string, tag = "7")]
+        RegistryEntries(::prost::alloc::string::String),
+        #[prost(string, tag = "8")]
+        Tags(::prost::alloc::string::String),
+        #[prost(message, tag = "9")]
+        TagMembers(super::TagQuery),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct NameList {
+    #[prost(string, repeated, tag = "1")]
+    pub names: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StructureSize {
+    #[prost(int32, tag = "1")]
+    pub x: i32,
+    #[prost(int32, tag = "2")]
+    pub y: i32,
+    #[prost(int32, tag = "3")]
+    pub z: i32,
+    #[prost(int32, tag = "4")]
+    pub blocks: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StructurePlaced {
+    #[prost(int32, tag = "1")]
+    pub blocks: i32,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StructureLocation {
+    #[prost(string, optional, tag = "1")]
+    pub structure: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "2")]
+    pub position: ::core::option::Option<Vec3>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LootItems {
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<Item>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LookupAnswer {
+    #[prost(oneof = "lookup_answer::Answer", tags = "1, 2, 3, 4, 5, 6, 8, 7")]
+    pub answer: ::core::option::Option<lookup_answer::Answer>,
+}
+/// Nested message and enum types in `LookupAnswer`.
+pub mod lookup_answer {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Answer {
+        #[prost(message, tag = "1")]
+        Names(super::NameList),
+        #[prost(message, tag = "2")]
+        Structure(super::StructureSize),
+        #[prost(message, tag = "3")]
+        Placed(super::StructurePlaced),
+        #[prost(message, tag = "4")]
+        Located(super::StructureLocation),
+        #[prost(message, tag = "5")]
+        Loot(super::LootItems),
+        #[prost(message, tag = "6")]
+        RayHit(super::RayHit),
+        #[prost(message, tag = "8")]
+        Lootable(super::LootTableSet),
+        #[prost(message, tag = "7")]
+        Profile(super::ProfileInfo),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CriterionOrder {
+    #[prost(string, tag = "1")]
+    pub advancement: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub criterion: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CookieStore {
+    #[prost(string, tag = "1")]
+    pub key: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "2")]
+    pub payload: ::prost::alloc::vec::Vec<u8>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CookieQuery {
+    #[prost(string, tag = "1")]
+    pub player: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub key: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CookieValue {
+    #[prost(bytes = "vec", optional, tag = "1")]
+    pub payload: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LinkEntry {
+    #[prost(string, tag = "1")]
+    pub label: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub url: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LinkList {
+    #[prost(message, repeated, tag = "1")]
+    pub links: ::prost::alloc::vec::Vec<LinkEntry>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LootTableSet {
+    #[prost(string, optional, tag = "1")]
+    pub table: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int64, tag = "2")]
+    pub seed: i64,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MerchantProgress {
+    #[prost(int32, tag = "1")]
+    pub level: i32,
+    #[prost(int32, tag = "2")]
+    pub xp: i32,
+    #[prost(bool, tag = "3")]
+    pub show_progress: bool,
+    #[prost(bool, tag = "4")]
+    pub can_restock: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GenerateTree {
+    #[prost(message, optional, tag = "1")]
+    pub pos: ::core::option::Option<BlockPos>,
+    #[prost(string, tag = "2")]
+    pub feature: ::prost::alloc::string::String,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct RayTrace {
+    #[prost(message, optional, tag = "1")]
+    pub origin: ::core::option::Option<Vec3>,
+    #[prost(message, optional, tag = "2")]
+    pub direction: ::core::option::Option<Vec3>,
+    #[prost(double, tag = "3")]
+    pub max_distance: f64,
+    #[prost(bool, tag = "4")]
+    pub blocks: bool,
+    #[prost(bool, tag = "5")]
+    pub entities: bool,
+    #[prost(enumeration = "FluidMode", tag = "6")]
+    pub fluid: i32,
+    #[prost(bool, tag = "7")]
+    pub ignore_passable: bool,
+    #[prost(double, tag = "8")]
+    pub ray_size: f64,
+    #[prost(int32, optional, tag = "9")]
+    pub ignore_entity: ::core::option::Option<i32>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RayHit {
+    #[prost(message, optional, tag = "1")]
+    pub hit: ::core::option::Option<Target>,
+    #[prost(message, optional, tag = "2")]
+    pub position: ::core::option::Option<Vec3>,
+    #[prost(double, tag = "3")]
+    pub distance: f64,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProfileQuery {
+    #[prost(oneof = "profile_query::By", tags = "1, 2")]
+    pub by: ::core::option::Option<profile_query::By>,
+}
+/// Nested message and enum types in `ProfileQuery`.
+pub mod profile_query {
+    #[allow(clippy::all)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum By {
+        #[prost(string, tag = "1")]
+        Name(::prost::alloc::string::String),
+        #[prost(string, tag = "2")]
+        Uuid(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProfileTextures {
+    #[prost(string, tag = "1")]
+    pub value: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub signature: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::all)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ProfileInfo {
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub uuid: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub textures: ::core::option::Option<ProfileTextures>,
+    #[prost(bool, tag = "4")]
+    pub online: bool,
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LootTarget {
+    #[prost(oneof = "loot_target::Target", tags = "1, 2")]
+    pub target: ::core::option::Option<loot_target::Target>,
+}
+/// Nested message and enum types in `LootTarget`.
+pub mod loot_target {
+    #[allow(clippy::all)]
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Target {
+        #[prost(message, tag = "1")]
+        Block(super::BlockPos),
+        #[prost(int32, tag = "2")]
+        Entity(i32),
     }
 }
 #[allow(clippy::all)]
@@ -13126,6 +13632,96 @@ impl WorldDimension {
 #[allow(clippy::all)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum InventoryKind {
+    Unspecified = 0,
+    Chest = 1,
+    Dispenser = 2,
+    Dropper = 3,
+    Furnace = 4,
+    BlastFurnace = 5,
+    Smoker = 6,
+    Workbench = 7,
+    Enchanting = 8,
+    Brewing = 9,
+    Anvil = 10,
+    Beacon = 11,
+    Hopper = 12,
+    ShulkerBox = 13,
+    Barrel = 14,
+    EnderChest = 15,
+    Grindstone = 16,
+    Loom = 17,
+    Cartography = 18,
+    Smithing = 19,
+    Stonecutter = 20,
+    Crafter = 21,
+    Merchant = 22,
+}
+impl InventoryKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "INVENTORY_KIND_UNSPECIFIED",
+            Self::Chest => "INVENTORY_KIND_CHEST",
+            Self::Dispenser => "INVENTORY_KIND_DISPENSER",
+            Self::Dropper => "INVENTORY_KIND_DROPPER",
+            Self::Furnace => "INVENTORY_KIND_FURNACE",
+            Self::BlastFurnace => "INVENTORY_KIND_BLAST_FURNACE",
+            Self::Smoker => "INVENTORY_KIND_SMOKER",
+            Self::Workbench => "INVENTORY_KIND_WORKBENCH",
+            Self::Enchanting => "INVENTORY_KIND_ENCHANTING",
+            Self::Brewing => "INVENTORY_KIND_BREWING",
+            Self::Anvil => "INVENTORY_KIND_ANVIL",
+            Self::Beacon => "INVENTORY_KIND_BEACON",
+            Self::Hopper => "INVENTORY_KIND_HOPPER",
+            Self::ShulkerBox => "INVENTORY_KIND_SHULKER_BOX",
+            Self::Barrel => "INVENTORY_KIND_BARREL",
+            Self::EnderChest => "INVENTORY_KIND_ENDER_CHEST",
+            Self::Grindstone => "INVENTORY_KIND_GRINDSTONE",
+            Self::Loom => "INVENTORY_KIND_LOOM",
+            Self::Cartography => "INVENTORY_KIND_CARTOGRAPHY",
+            Self::Smithing => "INVENTORY_KIND_SMITHING",
+            Self::Stonecutter => "INVENTORY_KIND_STONECUTTER",
+            Self::Crafter => "INVENTORY_KIND_CRAFTER",
+            Self::Merchant => "INVENTORY_KIND_MERCHANT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "INVENTORY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "INVENTORY_KIND_CHEST" => Some(Self::Chest),
+            "INVENTORY_KIND_DISPENSER" => Some(Self::Dispenser),
+            "INVENTORY_KIND_DROPPER" => Some(Self::Dropper),
+            "INVENTORY_KIND_FURNACE" => Some(Self::Furnace),
+            "INVENTORY_KIND_BLAST_FURNACE" => Some(Self::BlastFurnace),
+            "INVENTORY_KIND_SMOKER" => Some(Self::Smoker),
+            "INVENTORY_KIND_WORKBENCH" => Some(Self::Workbench),
+            "INVENTORY_KIND_ENCHANTING" => Some(Self::Enchanting),
+            "INVENTORY_KIND_BREWING" => Some(Self::Brewing),
+            "INVENTORY_KIND_ANVIL" => Some(Self::Anvil),
+            "INVENTORY_KIND_BEACON" => Some(Self::Beacon),
+            "INVENTORY_KIND_HOPPER" => Some(Self::Hopper),
+            "INVENTORY_KIND_SHULKER_BOX" => Some(Self::ShulkerBox),
+            "INVENTORY_KIND_BARREL" => Some(Self::Barrel),
+            "INVENTORY_KIND_ENDER_CHEST" => Some(Self::EnderChest),
+            "INVENTORY_KIND_GRINDSTONE" => Some(Self::Grindstone),
+            "INVENTORY_KIND_LOOM" => Some(Self::Loom),
+            "INVENTORY_KIND_CARTOGRAPHY" => Some(Self::Cartography),
+            "INVENTORY_KIND_SMITHING" => Some(Self::Smithing),
+            "INVENTORY_KIND_STONECUTTER" => Some(Self::Stonecutter),
+            "INVENTORY_KIND_CRAFTER" => Some(Self::Crafter),
+            "INVENTORY_KIND_MERCHANT" => Some(Self::Merchant),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum ArgumentKind {
     Unspecified = 0,
     Player = 1,
@@ -13382,6 +13978,39 @@ impl ItemDisplayContext {
             "ITEM_DISPLAY_CONTEXT_GUI" => Some(Self::Gui),
             "ITEM_DISPLAY_CONTEXT_GROUND" => Some(Self::Ground),
             "ITEM_DISPLAY_CONTEXT_FIXED" => Some(Self::Fixed),
+            _ => None,
+        }
+    }
+}
+#[allow(clippy::all)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum FluidMode {
+    Unspecified = 0,
+    Never = 1,
+    SourceOnly = 2,
+    Always = 3,
+}
+impl FluidMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "FLUID_MODE_UNSPECIFIED",
+            Self::Never => "FLUID_MODE_NEVER",
+            Self::SourceOnly => "FLUID_MODE_SOURCE_ONLY",
+            Self::Always => "FLUID_MODE_ALWAYS",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "FLUID_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "FLUID_MODE_NEVER" => Some(Self::Never),
+            "FLUID_MODE_SOURCE_ONLY" => Some(Self::SourceOnly),
+            "FLUID_MODE_ALWAYS" => Some(Self::Always),
             _ => None,
         }
     }

@@ -22,6 +22,7 @@ pub const SAFE_FALL_DISTANCE: &str = "minecraft:safe_fall_distance";
 pub const FALL_DAMAGE_MULTIPLIER: &str = "minecraft:fall_damage_multiplier";
 pub const KNOCKBACK_RESISTANCE: &str = "minecraft:knockback_resistance";
 pub const MOVEMENT_SPEED: &str = "minecraft:movement_speed";
+pub const LUCK: &str = "minecraft:luck";
 
 const RANGES: [(&str, f64, f64); 11] = [
     (MAX_HEALTH, 1.0, 1024.0),
@@ -453,6 +454,17 @@ mod tests {
         let borrowed: Vec<(EquipmentSlot, &ItemStack)> =
             worn.iter().map(|(slot, stack)| (*slot, stack)).collect();
         Attributes::of(effects, &borrowed)
+    }
+
+    #[test]
+    fn the_luck_effects_raise_and_lower_the_luck_attribute() {
+        let mut effects = ActiveEffects::default();
+        assert_eq!(of(&effects, &[]).get(LUCK), 0.0);
+        let _ = effects.apply(effect("minecraft:luck", 2));
+        assert_eq!(of(&effects, &[]).get(LUCK), 3.0);
+        let mut unlucky = ActiveEffects::default();
+        let _ = unlucky.apply(effect("minecraft:unluck", 1));
+        assert_eq!(of(&unlucky, &[]).get(LUCK), -2.0);
     }
 
     #[test]

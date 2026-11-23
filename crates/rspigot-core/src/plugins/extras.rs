@@ -108,6 +108,24 @@ pub enum PlayerAction {
     SetBedSpawn(BedSpawn),
     ClearBedSpawn,
     OpenBook(ItemSpec),
+    Client(crate::plugins::ClientChange),
+    AwardCriterion {
+        advancement: String,
+        criterion: String,
+    },
+    RevokeCriterion {
+        advancement: String,
+        criterion: String,
+    },
+    HideEntity(rspigot_domain::EntityId),
+    ShowEntity(rspigot_domain::EntityId),
+    SetBorder(BorderOrder),
+    ResetBorder,
+    StoreCookie {
+        key: String,
+        payload: Vec<u8>,
+    },
+    SendLinks(Vec<(String, String)>),
 }
 
 impl PlayerAction {
@@ -124,6 +142,15 @@ impl PlayerAction {
             Self::SetBedSpawn(_) => "player.bed_spawn.set",
             Self::ClearBedSpawn => "player.bed_spawn.clear",
             Self::OpenBook(_) => "player.book.open",
+            Self::Client(change) => change.name(),
+            Self::AwardCriterion { .. } => "player.advancements.award_criterion",
+            Self::RevokeCriterion { .. } => "player.advancements.revoke_criterion",
+            Self::HideEntity(_) => "player.visibility.hide_entity",
+            Self::ShowEntity(_) => "player.visibility.show_entity",
+            Self::SetBorder(_) => "player.border.set",
+            Self::ResetBorder => "player.border.reset",
+            Self::StoreCookie { .. } => "player.cookie.store",
+            Self::SendLinks(_) => "player.links.send",
         }
     }
 }
@@ -146,6 +173,10 @@ pub enum ExtraQuestion {
         pos: ChunkPos,
         load: bool,
     },
+    RetrieveCookie {
+        player: PlayerId,
+        key: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -162,6 +193,7 @@ pub enum ExtraAnswer {
         loaded: bool,
         force_loaded: bool,
     },
+    Cookie(Option<Vec<u8>>),
 }
 
 #[derive(Debug, Default)]
@@ -322,6 +354,7 @@ impl<L: ClientLink> Server<L> {
 
     pub(super) fn player_action(
         &mut self,
+        connection: u64,
         id: PlayerId,
         action: PlayerAction,
     ) -> Result<(), String> {
@@ -396,6 +429,30 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             PlayerAction::OpenBook(spec) => self.open_book(id, &spec)?,
+            PlayerAction::Client(change) => self.client_change(id, change)?,
+            PlayerAction::AwardCriterion {
+                advancement,
+                criterion,
+            } => self.plugin_criterion(id, &advancement, &criterion, true)?,
+            PlayerAction::RevokeCriterion {
+                advancement,
+                criterion,
+            } => self.plugin_criterion(id, &advancement, &criterion, false)?,
+            PlayerAction::HideEntity(entity) => self.hide_entity_for(connection, id, entity)?,
+            PlayerAction::ShowEntity(entity) => self.show_entity_for(connection, id, entity)?,
+            PlayerAction::SetBorder(order) => self.set_player_border(id, order)?,
+            PlayerAction::ResetBorder => self.reset_player_border(id),
+            PlayerAction::StoreCookie { key, payload } => self
+                .store_cookie(id, &key, payload)
+                .map_err(|error| error.to_string())?,
+            PlayerAction::SendLinks(links) => {
+                let links = links
+                    .iter()
+                    .map(|(label, url)| crate::client_extras::ServerLink::labelled(label, url))
+                    .collect();
+                self.send_server_links(id, links)
+                    .map_err(|error| error.to_string())?;
+            }
         }
         Ok(())
     }
@@ -599,6 +656,9 @@ impl<L: ClientLink> Server<L> {
                     time: view.and_then(|view| view.time),
                     weather: view.and_then(|view| view.weather),
                 }
+            }
+            ExtraQuestion::RetrieveCookie { .. } => {
+                return Answer::Refused("a cookie is retrieved asynchronously".to_owned());
             }
             ExtraQuestion::Chunk { pos, load } => {
                 if load {

@@ -51,6 +51,7 @@ struct Affectable {
 struct SplashFacts {
     hurts_water: bool,
     extinguishes: bool,
+    rehydrates: bool,
 }
 
 fn state_is_lit(state: BlockStateId) -> bool {
@@ -235,7 +236,7 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn affect_entities_around(&mut self, id: EntityId, facts: SplashFacts) {
-        if !facts.hurts_water && !facts.extinguishes {
+        if !facts.hurts_water && !facts.extinguishes && !facts.rehydrates {
             return;
         }
         let Some(entity) = self.entities.store.get(id) else {
@@ -247,6 +248,12 @@ impl<L: ClientLink> Server<L> {
             potion::NEARBY_HEIGHT,
             potion::NEARBY_WIDTH,
         );
+        if facts.rehydrates {
+            self.rehydrate_axolotls_in(&area);
+        }
+        if !facts.hurts_water && !facts.extinguishes {
+            return;
+        }
         let owner = self.potion_owner(id);
         let candidates = self.affectables_in(&area);
         for candidate in candidates {
@@ -271,6 +278,29 @@ impl<L: ClientLink> Server<L> {
                 && self.entity_alive(candidate.id)
             {
                 self.extinguish_entity(candidate.id);
+            }
+        }
+    }
+
+    fn rehydrate_axolotls_in(&mut self, area: &Aabb) {
+        let axolotls: Vec<EntityId> = self
+            .entities
+            .store
+            .iter()
+            .filter(|entity| {
+                entity.base.kind == rspigot_entities::EntityKind::Axolotl
+                    && !entity.base.is_removed()
+                    && entity.base.bounding_box().intersects(area)
+            })
+            .map(|entity| entity.base.id)
+            .collect();
+        for id in axolotls {
+            if let Some(entity) = self.entities.store.get_mut(id) {
+                let air = entity.base.air_supply()
+                    + rspigot_domain::entity::species::axolotl::REHYDRATE_AIR;
+                entity.base.set_air_supply(
+                    air.min(rspigot_domain::entity::species::axolotl::MAX_AIR_SUPPLY),
+                );
             }
         }
     }
@@ -315,6 +345,7 @@ impl<L: ClientLink> Server<L> {
         let facts = SplashFacts {
             hurts_water: contents.is_in(potion::HURTS_WATER_SENSITIVE),
             extinguishes: contents.is_in(potion::EXTINGUISHES_ENTITIES),
+            rehydrates: contents.is_in(potion::REHYDRATES_AXOLOTLS),
         };
         let effects = contents.effects();
         let scale = potion::duration_scale(&stack);

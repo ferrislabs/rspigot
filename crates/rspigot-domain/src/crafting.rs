@@ -98,10 +98,46 @@ fn plugin_matches(recipe: &PluginRecipe, input: &Input) -> bool {
             height,
             mirror,
             cells,
-        } => shaped_matches(*width, *height, !*mirror, cells, input),
-        Body::Shapeless { ingredients } => shapeless_matches(ingredients, input),
+        } => shaped_matches(*width, *height, !*mirror, cells, &recipe.exact, input),
+        Body::Shapeless { ingredients } => shapeless_matches(ingredients, &recipe.exact, input),
+        Body::Transmute { .. } => plugin_transmute(recipe, input).is_some(),
         _ => false,
     }
+}
+
+fn plugin_transmute(recipe: &PluginRecipe, input: &Input) -> Option<ItemStack> {
+    let Body::Transmute {
+        input: wanted,
+        material,
+    } = &recipe.body
+    else {
+        return None;
+    };
+    if input.filled != 2 {
+        return None;
+    }
+    let stacks = input.stacks();
+    let (first, second) = (stacks[0], stacks[1]);
+    let source = [(first, second), (second, first)]
+        .into_iter()
+        .find(|(base, extra)| {
+            wanted.contains(base.item)
+                && material.contains(extra.item)
+                && recipe.accepts_exact(0, base)
+                && recipe.accepts_exact(1, extra)
+        })
+        .map(|(base, _)| base)?;
+    let mut made = recipe.result.clone();
+    let mut components = source.components.clone();
+    for (name, value) in made.components.iter() {
+        components.insert(name.to_owned(), value.clone());
+    }
+    made.components = components;
+    Some(made)
+}
+
+fn plugin_result(recipe: &PluginRecipe, input: &Input) -> ItemStack {
+    plugin_transmute(recipe, input).unwrap_or_else(|| recipe.result.clone())
 }
 
 fn find_plugin(overriding: bool, input: &Input) -> Option<Found> {
@@ -110,7 +146,7 @@ fn find_plugin(overriding: bool, input: &Input) -> Option<Found> {
             .precedence(overriding)
             .filter(|recipe| recipe.uses_crafting_grid())
             .find(|recipe| plugin_matches(recipe, input))
-            .map(|recipe| Found::Plugin(recipe.id, recipe.result.clone()))
+            .map(|recipe| Found::Plugin(recipe.id, plugin_result(recipe, input)))
     })
 }
 
@@ -138,9 +174,10 @@ fn matches(owner: ItemKind, craft: &Craft, input: &Input) -> bool {
             usize::from(height),
             symmetrical,
             cells,
+            &[],
             input,
         ),
-        Craft::Shapeless { ingredients, .. } => shapeless_matches(ingredients, input),
+        Craft::Shapeless { ingredients, .. } => shapeless_matches(ingredients, &[], input),
         Craft::Dye { dye, .. } => dyeable(owner, dye, input).is_some(),
         Craft::FireworkStar {
             dye,
@@ -207,6 +244,7 @@ fn shaped_matches(
     height: usize,
     symmetrical: bool,
     cells: &[Option<ItemSet>],
+    exact: &[Option<ItemStack>],
     input: &Input,
 ) -> bool {
     if input.filled != cells.iter().flatten().count()
@@ -215,13 +253,30 @@ fn shaped_matches(
     {
         return false;
     }
+    let order: Vec<usize> = cells
+        .iter()
+        .scan(0, |filled, cell| {
+            let index = *filled;
+            if cell.is_some() {
+                *filled += 1;
+            }
+            Some(index)
+        })
+        .collect();
     let lays_over = |mirrored: bool| {
         (0..height).all(|y| {
             (0..width).all(|x| {
                 let column = if mirrored { width - 1 - x } else { x };
-                match (cells[y * width + column], input.cells[y * width + x]) {
+                let at = y * width + column;
+                match (cells[at], input.cells[y * width + x]) {
                     (None, None) => true,
-                    (Some(set), Some(stack)) => set.contains(stack.item),
+                    (Some(set), Some(stack)) => {
+                        set.contains(stack.item)
+                            && plugin_recipes::exact_matches(
+                                exact.get(order[at]).and_then(Option::as_ref),
+                                stack,
+                            )
+                    }
                     _ => false,
                 }
             })
@@ -230,7 +285,7 @@ fn shaped_matches(
     (!symmetrical && lays_over(true)) || lays_over(false)
 }
 
-fn shapeless_matches(ingredients: &[ItemSet], input: &Input) -> bool {
+fn shapeless_matches(ingredients: &[ItemSet], exact: &[Option<ItemStack>], input: &Input) -> bool {
     if input.filled != ingredients.len() {
         return false;
     }
@@ -238,25 +293,36 @@ fn shapeless_matches(ingredients: &[ItemSet], input: &Input) -> bool {
     let mut claimed: Vec<Option<usize>> = vec![None; stacks.len()];
     (0..ingredients.len()).all(|ingredient| {
         let mut seen = vec![false; stacks.len()];
-        claim(ingredient, ingredients, &stacks, &mut claimed, &mut seen)
+        claim(
+            ingredient,
+            ingredients,
+            exact,
+            &stacks,
+            &mut claimed,
+            &mut seen,
+        )
     })
 }
 
 fn claim(
     ingredient: usize,
     ingredients: &[ItemSet],
+    exact: &[Option<ItemStack>],
     stacks: &[&ItemStack],
     claimed: &mut [Option<usize>],
     seen: &mut [bool],
 ) -> bool {
     for (slot, stack) in stacks.iter().enumerate() {
-        if seen[slot] || !ingredients[ingredient].contains(stack.item) {
+        if seen[slot]
+            || !ingredients[ingredient].contains(stack.item)
+            || !plugin_recipes::exact_matches(exact.get(ingredient).and_then(Option::as_ref), stack)
+        {
             continue;
         }
         seen[slot] = true;
         let free = match claimed[slot] {
             None => true,
-            Some(other) => claim(other, ingredients, stacks, claimed, seen),
+            Some(other) => claim(other, ingredients, exact, stacks, claimed, seen),
         };
         if free {
             claimed[slot] = Some(ingredient);
@@ -1295,11 +1361,11 @@ mod tests {
             vec![Some(granite.clone()), Some(stone.clone())],
         ] {
             let input = Input::of(2, 1, &slots).unwrap();
-            assert!(shapeless_matches(&ingredients, &input));
+            assert!(shapeless_matches(&ingredients, &[], &input));
         }
         let slots = vec![Some(granite.clone()), Some(granite)];
         let input = Input::of(2, 1, &slots).unwrap();
-        assert!(!shapeless_matches(&ingredients, &input));
+        assert!(!shapeless_matches(&ingredients, &[], &input));
     }
 
     #[test]
@@ -2338,6 +2404,7 @@ mod tests {
             category: crate::plugin_recipes::Category::Misc,
             override_vanilla,
             auto_discover: false,
+            exact: Vec::new(),
         }
     }
 

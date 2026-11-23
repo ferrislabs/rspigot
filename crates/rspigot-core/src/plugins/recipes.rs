@@ -14,6 +14,8 @@ use crate::ports::ClientLink;
 use crate::recipe_catalog;
 use crate::server::{Audience, Server};
 
+type Cell = Option<(ItemSet, Option<ItemStack>)>;
+
 pub const MAX_PLUGIN_RECIPES: usize = 1024;
 pub const MAX_RECIPE_LIST: usize = 8192;
 const MAX_ID_LENGTH: usize = 256;
@@ -23,10 +25,11 @@ const MAX_SHAPELESS: usize = 9;
 const MAX_INGREDIENT_ITEMS: usize = 512;
 const ITEM_REGISTRY: &str = "minecraft:item";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum IngredientSpec {
     Items(Vec<String>),
     Tag(String),
+    Exact(ItemSpec),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,6 +51,16 @@ pub enum RecipeShape {
         template: IngredientSpec,
         base: IngredientSpec,
         addition: IngredientSpec,
+    },
+    SmithingTrim {
+        template: IngredientSpec,
+        base: IngredientSpec,
+        addition: IngredientSpec,
+        pattern: String,
+    },
+    Transmute {
+        input: IngredientSpec,
+        material: IngredientSpec,
     },
 }
 
@@ -114,6 +127,12 @@ fn ingredient(spec: &IngredientSpec) -> Result<ItemSet, ActionError> {
                 })
                 .collect::<Result<_, _>>()?
         }
+        IngredientSpec::Exact(item) => {
+            let stack = stack_of(item)
+                .map_err(invalid)?
+                .ok_or_else(|| invalid("an exact ingredient cannot be air"))?;
+            vec![stack.item]
+        }
         IngredientSpec::Tag(name) => {
             let bare = name.trim_start_matches('#');
             let key = if bare.contains(':') {
@@ -134,6 +153,40 @@ fn ingredient(spec: &IngredientSpec) -> Result<ItemSet, ActionError> {
     Ok(plugin_recipes::intern_items(&ids))
 }
 
+fn exact_of(spec: &IngredientSpec) -> Result<Option<ItemStack>, ActionError> {
+    match spec {
+        IngredientSpec::Exact(item) => {
+            Ok(Some(stack_of(item).map_err(invalid)?.ok_or_else(|| {
+                invalid("an exact ingredient cannot be air")
+            })?))
+        }
+        _ => Ok(None),
+    }
+}
+
+fn exacts(specs: &[&IngredientSpec]) -> Result<Vec<Option<ItemStack>>, ActionError> {
+    let found = specs
+        .iter()
+        .map(|spec| exact_of(spec))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(if found.iter().all(Option::is_none) {
+        Vec::new()
+    } else {
+        found
+    })
+}
+
+fn pattern_id(pattern: &str) -> Result<(), ActionError> {
+    let parsed = Identifier::parse(pattern)
+        .map_err(|_| invalid(format!("{pattern} is not a valid trim pattern id")))?;
+    if !pattern.contains(':') || parsed.as_str() != pattern {
+        return Err(invalid(format!(
+            "{pattern} is not a namespace:key trim pattern id"
+        )));
+    }
+    Ok(())
+}
+
 fn result(spec: &ItemSpec) -> Result<ItemStack, ActionError> {
     stack_of(spec)
         .map_err(invalid)?
@@ -144,7 +197,7 @@ fn shaped(
     pattern: &[String],
     keys: &[(char, IngredientSpec)],
     mirror: bool,
-) -> Result<Body, ActionError> {
+) -> Result<(Body, Vec<Option<ItemStack>>), ActionError> {
     if pattern.is_empty() {
         return Err(invalid("the pattern is empty"));
     }
@@ -163,20 +216,20 @@ fn shaped(
     if rows.iter().any(|row| row.len() != width) {
         return Err(invalid("the pattern rows are not all the same width"));
     }
-    let mut sets: Vec<(char, ItemSet)> = Vec::new();
+    let mut sets: Vec<(char, ItemSet, Option<ItemStack>)> = Vec::new();
     for (symbol, spec) in keys {
         if *symbol == ' ' {
             return Err(invalid("the space cannot be an ingredient key"));
         }
-        if sets.iter().any(|(known, _)| known == symbol) {
+        if sets.iter().any(|(known, _, _)| known == symbol) {
             return Err(invalid(format!("the key '{symbol}' is set twice")));
         }
         if !rows.iter().flatten().any(|cell| cell == symbol) {
             return Err(invalid(format!("the key '{symbol}' is not in the pattern")));
         }
-        sets.push((*symbol, ingredient(spec)?));
+        sets.push((*symbol, ingredient(spec)?, exact_of(spec)?));
     }
-    let mut cells: Vec<Vec<Option<ItemSet>>> = Vec::with_capacity(rows.len());
+    let mut cells: Vec<Vec<Cell>> = Vec::with_capacity(rows.len());
     for row in &rows {
         let mut cell_row = Vec::with_capacity(width);
         for symbol in row {
@@ -186,8 +239,8 @@ fn shaped(
             }
             let set = sets
                 .iter()
-                .find(|(known, _)| known == symbol)
-                .map(|(_, set)| *set)
+                .find(|(known, _, _)| known == symbol)
+                .map(|(_, set, exact)| (*set, exact.clone()))
                 .ok_or_else(|| {
                     invalid(format!("the pattern uses '{symbol}' with no ingredient"))
                 })?;
@@ -195,7 +248,7 @@ fn shaped(
         }
         cells.push(cell_row);
     }
-    let filled = |row: &Vec<Option<ItemSet>>| row.iter().any(Option::is_some);
+    let filled = |row: &Vec<Cell>| row.iter().any(Option::is_some);
     let top = cells
         .iter()
         .position(filled)
@@ -211,16 +264,32 @@ fn shaped(
     let right = (0..width)
         .rfind(|x| column(*x))
         .ok_or_else(|| invalid("the pattern has no ingredient"))?;
-    let trimmed: Vec<Option<ItemSet>> = cells[top..=bottom]
+    let trimmed: Vec<Cell> = cells[top..=bottom]
         .iter()
-        .flat_map(|row| row[left..=right].iter().copied())
+        .flat_map(|row| row[left..=right].iter().cloned())
         .collect();
-    Ok(Body::Shaped {
-        width: right - left + 1,
-        height: bottom - top + 1,
-        mirror,
-        cells: trimmed,
-    })
+    let exact: Vec<Option<ItemStack>> = trimmed
+        .iter()
+        .flatten()
+        .map(|(_, exact)| exact.clone())
+        .collect();
+    let exact = if exact.iter().all(Option::is_none) {
+        Vec::new()
+    } else {
+        exact
+    };
+    Ok((
+        Body::Shaped {
+            width: right - left + 1,
+            height: bottom - top + 1,
+            mirror,
+            cells: trimmed
+                .iter()
+                .map(|cell| cell.as_ref().map(|(set, _)| *set))
+                .collect(),
+        },
+        exact,
+    ))
 }
 
 pub(crate) fn compile(spec: &RecipeSpec, owner: &str) -> Result<PluginRecipe, ActionError> {
@@ -230,18 +299,24 @@ pub(crate) fn compile(spec: &RecipeSpec, owner: &str) -> Result<PluginRecipe, Ac
             "the group is longer than {MAX_GROUP_LENGTH} characters"
         )));
     }
+    let mut exact = Vec::new();
     let body = match &spec.shape {
         RecipeShape::Shaped {
             pattern,
             keys,
             mirror,
-        } => shaped(pattern, keys, *mirror)?,
+        } => {
+            let (body, found) = shaped(pattern, keys, *mirror)?;
+            exact = found;
+            body
+        }
         RecipeShape::Shapeless(ingredients) => {
             if ingredients.is_empty() || ingredients.len() > MAX_SHAPELESS {
                 return Err(invalid(format!(
                     "a shapeless recipe takes 1 to {MAX_SHAPELESS} ingredients"
                 )));
             }
+            exact = exacts(&ingredients.iter().collect::<Vec<_>>())?;
             Body::Shapeless {
                 ingredients: ingredients
                     .iter()
@@ -262,6 +337,7 @@ pub(crate) fn compile(spec: &RecipeSpec, owner: &str) -> Result<PluginRecipe, Ac
                 .ok()
                 .filter(|time| *time > 0)
                 .ok_or_else(|| invalid("the cooking time is not 1 to 65535 ticks"))?;
+            exact = exacts(&[choice])?;
             Body::Cooking {
                 kind: *kind,
                 ingredient: ingredient(choice)?,
@@ -269,18 +345,48 @@ pub(crate) fn compile(spec: &RecipeSpec, owner: &str) -> Result<PluginRecipe, Ac
                 time,
             }
         }
-        RecipeShape::Stonecutting(choice) => Body::Stonecutting {
-            ingredient: ingredient(choice)?,
-        },
+        RecipeShape::Stonecutting(choice) => {
+            if matches!(choice, IngredientSpec::Exact(_)) {
+                return Err(invalid("a stonecutting recipe cannot take an exact item"));
+            }
+            Body::Stonecutting {
+                ingredient: ingredient(choice)?,
+            }
+        }
         RecipeShape::Smithing {
             template,
             base,
             addition,
-        } => Body::Smithing {
-            template: ingredient(template)?,
-            base: ingredient(base)?,
-            addition: ingredient(addition)?,
-        },
+        } => {
+            exact = exacts(&[template, base, addition])?;
+            Body::Smithing {
+                template: ingredient(template)?,
+                base: ingredient(base)?,
+                addition: ingredient(addition)?,
+            }
+        }
+        RecipeShape::SmithingTrim {
+            template,
+            base,
+            addition,
+            pattern,
+        } => {
+            pattern_id(pattern)?;
+            exact = exacts(&[template, base, addition])?;
+            Body::SmithingTrim {
+                template: ingredient(template)?,
+                base: ingredient(base)?,
+                addition: ingredient(addition)?,
+                pattern: pattern.clone(),
+            }
+        }
+        RecipeShape::Transmute { input, material } => {
+            exact = exacts(&[input, material])?;
+            Body::Transmute {
+                input: ingredient(input)?,
+                material: ingredient(material)?,
+            }
+        }
     };
     let (id, display_id) = plugin_recipes::intern_id(&spec.id);
     Ok(PluginRecipe {
@@ -293,6 +399,7 @@ pub(crate) fn compile(spec: &RecipeSpec, owner: &str) -> Result<PluginRecipe, Ac
         category: spec.category,
         override_vanilla: spec.override_vanilla,
         auto_discover: spec.auto_discover,
+        exact,
     })
 }
 
@@ -307,7 +414,8 @@ fn kind_of(recipe: &PluginRecipe) -> RecipeKind {
             CookingKind::Campfire => RecipeKind::Campfire,
         },
         Body::Stonecutting { .. } => RecipeKind::Stonecutting,
-        Body::Smithing { .. } => RecipeKind::Smithing,
+        Body::Smithing { .. } | Body::SmithingTrim { .. } => RecipeKind::Smithing,
+        Body::Transmute { .. } => RecipeKind::Special,
     }
 }
 

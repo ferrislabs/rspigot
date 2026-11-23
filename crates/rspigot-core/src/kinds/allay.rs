@@ -234,6 +234,41 @@ impl<L: ClientLink> Server<L> {
         self.add_entity(item, CreatureSpawnReason::Default);
     }
 
+    pub(crate) fn allays_hear_jukebox(&mut self, playing: bool, at: Vec3) {
+        let pos = at.block();
+        let radius_sqr = allay::JUKEBOX_RADIUS * allay::JUKEBOX_RADIUS;
+        let allays: Vec<EntityId> = self
+            .entities
+            .store
+            .iter()
+            .filter(|e| e.base.kind == Kind::Allay)
+            .filter(|e| e.base.position.distance_squared(at) < radius_sqr)
+            .map(|e| e.base.id)
+            .collect();
+        for id in allays {
+            let Some(entity) = self.entities.store.get_mut(id) else {
+                continue;
+            };
+            let dancing = allay::is_dancing(&entity.base);
+            let Some(Species::Allay(state)) = entity
+                .living_mut()
+                .and_then(|l| l.mob.as_mut())
+                .map(|m| &mut m.species)
+            else {
+                continue;
+            };
+            if playing {
+                if !dancing {
+                    state.jukebox_pos = Some(pos);
+                    allay::set_dancing(&mut entity.base, true);
+                }
+            } else if state.jukebox_pos.is_none() || state.jukebox_pos == Some(pos) {
+                state.jukebox_pos = None;
+                allay::set_dancing(&mut entity.base, false);
+            }
+        }
+    }
+
     pub(crate) fn allay_ai_step(&mut self, id: EntityId) {
         let alive = self.living_entity_alive(id);
         let panicking = self.allay_has_brain_memory(id, MemoryModuleType::IsPanicking);
@@ -241,8 +276,39 @@ impl<L: ClientLink> Server<L> {
             return;
         };
         let tick_count = entity.base.tick_count;
-        if allay::is_dancing(&entity.base) && (panicking || tick_count % 20 == 0) {
+        let position = entity.base.position;
+        let jukebox = match entity
+            .living()
+            .and_then(|l| l.mob.as_ref())
+            .map(|m| &m.species)
+        {
+            Some(Species::Allay(state)) => state.jukebox_pos,
+            _ => None,
+        };
+        let playing =
+            jukebox.is_some_and(|pos| {
+                let center = Vec3::new(
+                    f64::from(pos.x) + 0.5,
+                    f64::from(pos.y) + 0.5,
+                    f64::from(pos.z) + 0.5,
+                );
+                center.distance_squared(position) < allay::JUKEBOX_RADIUS * allay::JUKEBOX_RADIUS
+                    && self.world.chunks.block(pos).is_some_and(|state| {
+                        state.kind() == Some(rspigot_blocks::BlockKind::Jukebox)
+                    })
+            });
+        let Some(entity) = self.entities.store.get_mut(id) else {
+            return;
+        };
+        if allay::is_dancing(&entity.base) && (panicking || (!playing && tick_count % 20 == 0)) {
             allay::set_dancing(&mut entity.base, false);
+            if let Some(Species::Allay(state)) = entity
+                .living_mut()
+                .and_then(|l| l.mob.as_mut())
+                .map(|m| &mut m.species)
+            {
+                state.jukebox_pos = None;
+            }
         }
         if let rspigot_domain::entity::Entity {
             base,

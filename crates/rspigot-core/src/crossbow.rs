@@ -330,11 +330,11 @@ impl<L: ClientLink> Server<L> {
         let pierce = crossbow::piercing_level(weapon);
         let power = crossbow::MOB_POWER;
         for (index, (stack, angle)) in projectiles.into_iter().zip(angles).enumerate() {
-            let mut base = self.new_entity_base(Kind::Arrow);
+            let mut base = self.new_entity_base(arrow::kind_for(&stack));
             base.position = Vec3::new(origin.x, eye - EYE_OFFSET, origin.z);
             base.old_position = base.position;
             let seed = self.rng.random::<i64>();
-            let mut state = ArrowState::new(&mut base, seed);
+            let mut state = ArrowState::for_base(&mut base, seed);
             state.set_owner(Some(owner), false);
             state.pickup = if stack.components.contains_key(INTANGIBLE_PROJECTILE) {
                 Pickup::CreativeOnly

@@ -47,6 +47,20 @@ pub struct Entity {
 }
 
 impl Entity {
+    pub fn set_loot_table(&self, table: Option<&str>, seed: i64) {
+        self.link.order(from_plugin::Body::Entity(v1::EntityOrder {
+            entity: self.entity_id,
+            order: Some(entity_order::Order::SetLootTable(v1::LootTableSet {
+                table: table.map(str::to_owned),
+                seed,
+            })),
+        }));
+    }
+
+    pub async fn get_loot_table(&self) -> Result<Option<(String, i64)>, Error> {
+        crate::lookups::lootable(&self.link, v1::loot_target::Target::Entity(self.entity_id)).await
+    }
+
     pub(crate) fn from_wire(snapshot: v1::EntitySnapshot, link: &Link) -> Result<Self, Error> {
         let kind = EntityType::from_key(&snapshot.kind).ok_or_else(|| {
             Error::Malformed(format!("an unknown entity type `{}`", snapshot.kind))

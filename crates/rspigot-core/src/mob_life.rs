@@ -33,6 +33,10 @@ use crate::server::{Audience, Server};
 const ZOMBIE_IGNITE_CHANCE: f32 = 0.3;
 const ZOMBIE_IGNITE_SECONDS: i32 = 2;
 const HUSK_HUNGER_TICKS: i32 = 140;
+const WITHER_SKELETON_HIT_TICKS: u32 = 200;
+const CAVE_SPIDER_NORMAL_SECONDS: u32 = 7;
+const CAVE_SPIDER_HARD_SECONDS: u32 = 15;
+const TICKS_PER_SECOND: u32 = 20;
 const CREEPER_PRIMED: &str = "minecraft:entity.creeper.primed";
 const CHICKEN_EGG: &str = "minecraft:entity.chicken.egg";
 const CHICKEN_LAY: &str = "minecraft:gameplay/chicken_lay";
@@ -550,6 +554,54 @@ impl<L: ClientLink> Server<L> {
         }
     }
 
+    pub(crate) fn variant_attack_effects(&mut self, attacker: EntityId, target: Target) {
+        let Some(kind) = self.kind_of(attacker) else {
+            return;
+        };
+        let living_target = match target {
+            Target::Player(_) => true,
+            Target::Entity(entity) => self
+                .entities
+                .store
+                .get(entity)
+                .is_some_and(|e| e.living().is_some()),
+        };
+        if !living_target {
+            return;
+        }
+        let ticks = match kind {
+            Kind::WitherSkeleton => WITHER_SKELETON_HIT_TICKS,
+            Kind::CaveSpider => match self.world.difficulty {
+                rspigot_domain::world::Difficulty::Normal => {
+                    CAVE_SPIDER_NORMAL_SECONDS * TICKS_PER_SECOND
+                }
+                rspigot_domain::world::Difficulty::Hard => {
+                    CAVE_SPIDER_HARD_SECONDS * TICKS_PER_SECOND
+                }
+                _ => return,
+            },
+            _ => return,
+        };
+        let name = if kind == Kind::WitherSkeleton {
+            "minecraft:wither"
+        } else {
+            "minecraft:poison"
+        };
+        let Some(effect) = EffectId::from_name(name) else {
+            return;
+        };
+        let instance = EffectInstance::new(effect, EffectDuration::Ticks(ticks), 0, true);
+        let cause = EntityPotionEffectCause::Attack;
+        match target {
+            Target::Player(player) => {
+                self.apply_effect(player, instance, Some(cause));
+            }
+            Target::Entity(entity) => {
+                self.apply_entity_effect(entity, instance, cause);
+            }
+        }
+    }
+
     pub(crate) fn zombie_attack_effects(&mut self, attacker: EntityId, target: Target) {
         let Some(entity) = self.entities.store.get(attacker) else {
             return;
@@ -729,7 +781,7 @@ impl<L: ClientLink> Server<L> {
         fire::set_on_fire_flag(&mut base, fire::is_on_fire(&old_base));
         for slot in EQUIPMENT_SLOTS
             .into_iter()
-            .filter(|_| kind != Kind::Villager)
+            .filter(|_| !matches!(kind, Kind::Villager | Kind::Witch))
         {
             if let Some(stack) = old_living.equipment(slot) {
                 state.equipment[slot_index(slot)] = Some(stack.clone());
@@ -795,6 +847,10 @@ impl<L: ClientLink> Server<L> {
                     EntityTransformReason::PiglinZombified,
                 )
             }
+            (Kind::Villager, Kind::Witch) => (
+                CreatureSpawnReason::Lightning,
+                EntityTransformReason::Lightning,
+            ),
             (Kind::Villager, Kind::ZombieVillager) => (
                 CreatureSpawnReason::Infection,
                 EntityTransformReason::Infection,
@@ -842,6 +898,22 @@ impl<L: ClientLink> Server<L> {
         }
         let mut converted = Entity::new(base, EntityState::Living(Box::new(state)));
         converted.extra = extra;
+        if kind == Kind::Witch && old_base.kind == Kind::Villager {
+            let environment = self.spawn_environment(old_base.position);
+            let mut own = LegacyRandom::new(self.rng.random());
+            rspigot_domain::entity::spawn::finalize_spawn(
+                &mut converted,
+                &environment,
+                SpawnReason::Conversion,
+                None,
+                &mut crate::mobs::ServerRandom(&mut self.rng),
+                &mut own,
+            );
+            if let Some(mob) = converted.living_mut().and_then(|l| l.mob.as_mut()) {
+                mob.persistence_required = true;
+                mob.can_pick_up_loot = false;
+            }
+        }
         if kind == Kind::Frog && old_base.kind == Kind::Tadpole {
             let environment = self.spawn_environment(old_base.position);
             let mut own = LegacyRandom::new(self.rng.random());

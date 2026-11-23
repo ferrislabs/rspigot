@@ -184,6 +184,10 @@ pub struct Chunk {
 }
 
 impl Chunk {
+    pub fn pdc(&self) -> crate::PdcHandle {
+        crate::PdcHandle::of_chunk(self.x, self.z, self.link.clone())
+    }
+
     fn order(&self, order: chunk_order::Order) {
         world_order(
             &self.link,

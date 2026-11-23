@@ -37,6 +37,7 @@ use crate::raider::{
 use crate::ranged::RangedAttackGoal;
 use crate::restriction::MoveTowardsRestrictionGoal;
 use crate::shulker::{ShulkerAttackGoal, ShulkerGoal, ShulkerPeekGoal};
+use crate::spear_use::SpearUseGoal;
 use crate::spell::{CastingGoal, SpellGoal, UseSpellGoal};
 use crate::strider::{self, StriderGoToLavaGoal};
 use crate::swimmers::{
@@ -559,6 +560,7 @@ pub fn register_goals(
             );
             add.look(8, 8.0);
             add.look_around(8);
+            add.goal(2, MobGoal::SpearUse(SpearUseGoal::new(1.0, 1.0, 10.0, 2.0)));
             add.goal(3, MobGoal::MeleeAttack(MeleeAttackGoal::zombie(1.0)));
             add.goal(
                 6,

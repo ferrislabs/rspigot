@@ -135,6 +135,7 @@ pub(crate) struct MobTable {
     pub open_chests: Vec<(EntityId, crate::containers::Backing)>,
     pub golem_chests: FxHashMap<BlockPos, crate::containers::GolemOpening>,
     pub charging_sounds: crate::crossbow::ChargingSoundFlags,
+    pub stabbed: FxHashMap<EntityId, Vec<(EntityId, i64)>>,
 }
 
 fn range_of(activation: ActivationType, ranges: &ActivationRanges) -> i32 {
@@ -1151,7 +1152,17 @@ impl<L: ClientLink> Server<L> {
                 Some(Species::Chicken(chicken)) if chicken.egg_time.is_none() => {
                     chicken.egg_time = Some(species::next_egg_time(&mut ai.brain_mut().random));
                 }
-                Some(Species::Skeleton(_)) => ai.reassess_weapon(bow, hard),
+                Some(Species::Skeleton(_)) => {
+                    ai.reassess_weapon_slow(bow, hard, kind == Kind::Bogged)
+                }
+                Some(_)
+                    if matches!(
+                        kind,
+                        Kind::Stray | Kind::Bogged | Kind::WitherSkeleton | Kind::Parched
+                    ) =>
+                {
+                    ai.reassess_weapon_slow(bow, hard, kind == Kind::Bogged)
+                }
                 Some(Species::Fox(fox)) if fox.hunts => {
                     ai.fox_target_goals(fox_red);
                 }
@@ -1355,6 +1366,11 @@ impl<L: ClientLink> Server<L> {
         view.panic = state.damage.last_source.is_some_and(|(kind, at)| {
             self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY && kind.in_tag(PANIC_CAUSES)
         });
+        if matches!(base.kind, Kind::Horse | Kind::Donkey | Kind::Mule)
+            && self.controlling_mob(id).is_some()
+        {
+            view.panic = false;
+        }
         view.panic_environmental = state.damage.last_source.is_some_and(|(kind, at)| {
             self.world.level.game_time - at <= DAMAGE_SOURCE_MEMORY
                 && kind.in_tag(PANIC_ENVIRONMENTAL_CAUSES)
@@ -1798,6 +1814,12 @@ fn loot_facts(entity: &Entity) -> LootEntity {
                 .to_owned(),
         ));
     }
+    if kind == Kind::Mooshroom {
+        facts.components.push((
+            "minecraft:mooshroom/variant",
+            species::mooshroom::variant(&entity.base).name().to_owned(),
+        ));
+    }
     if kind == Kind::Frog {
         facts.components.push((
             "minecraft:frog/variant",
@@ -1808,9 +1830,16 @@ fn loot_facts(entity: &Entity) -> LootEntity {
         facts.cube_size = Some(reward::cube_size(entity));
     }
     if kind.extends("Raider") {
+        let raider = entity
+            .living()
+            .and_then(|living| living.mob.as_ref())
+            .and_then(|mob| mob.species.raider());
+        let head = entity
+            .living()
+            .and_then(|living| living.equipment(EquipmentSlot::Head));
         facts.raider = Some(RaiderFacts {
-            has_raid: false,
-            captain: false,
+            has_raid: raider.is_some_and(|state| state.raid_id.is_some()),
+            captain: raider.is_some_and(|state| species::raider::is_captain(state, head)),
         });
     }
     facts
@@ -2141,6 +2170,7 @@ impl<L: ClientLink> Server<L> {
             self.push(Audience::One(owner), ClientEvent::system(message));
         }
         self.drop_all_death_loot(id, source);
+        self.create_wither_rose(id, source);
     }
 
     fn owner_death_message(
@@ -2634,6 +2664,7 @@ impl<L: ClientLink> Server<L> {
         }
         self.kind_attack_sound(attacker);
         self.zombie_attack_effects(attacker, target);
+        self.variant_attack_effects(attacker, target);
     }
 
     pub fn mob_damage(&self, id: EntityId) -> Option<MobDamageSnapshot> {

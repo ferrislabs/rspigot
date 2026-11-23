@@ -1,9 +1,9 @@
 use rspigot_core::commands::Weather;
 use rspigot_core::plugins::{
-    BedSpawn, BorderOrder, ChunkOrder, ExtraAnswer, ExtraQuestion, PlayerAction, StatisticMode,
-    WorldAction,
+    BedSpawn, BorderOrder, ChunkOrder, ClientChange, ExtraAnswer, ExtraQuestion, PlayerAction,
+    StatisticMode, WorldAction,
 };
-use rspigot_domain::ChunkPos;
+use rspigot_domain::{ChunkPos, EntityId};
 use rspigot_plugin_protocol::v1::{
     self, chunk_order, extra_answer, extra_question, player_extra, world_border_order,
 };
@@ -72,7 +72,77 @@ pub(super) fn player_action(extra: v1::PlayerExtra) -> Result<PlayerAction, Malf
         Order::SetBedSpawn(spawn) => PlayerAction::SetBedSpawn(bed_spawn(spawn)?),
         Order::ClearBedSpawn(_) => PlayerAction::ClearBedSpawn,
         Order::OpenBook(item) => PlayerAction::OpenBook(shared::item(item)),
+        Order::SendBlockChanges(blocks) => PlayerAction::Client(ClientChange::Blocks(
+            blocks
+                .changes
+                .into_iter()
+                .map(|change| {
+                    Ok((
+                        shared::block_pos(required(change.pos)?),
+                        super::block::state(required(change.state)?),
+                    ))
+                })
+                .collect::<Result<_, Malformed>>()?,
+        )),
+        Order::SendSignChange(sign) => PlayerAction::Client(ClientChange::Sign {
+            pos: shared::block_pos(required(sign.pos)?),
+            lines: sign.lines,
+            color: sign.color,
+            glowing: sign.glowing,
+        }),
+        Order::SendEquipmentChange(change) => PlayerAction::Client(ClientChange::Equipment {
+            entity: EntityId(change.entity),
+            slots: change
+                .slots
+                .into_iter()
+                .map(|edit| (edit.slot, edit.item.map(shared::item)))
+                .collect(),
+        }),
+        Order::SendHurtAnimation(hurt) => PlayerAction::Client(ClientChange::Hurt {
+            entity: EntityId(hurt.entity),
+            yaw: hurt.yaw,
+        }),
+        Order::SendResourcePack(offer) => PlayerAction::Client(ClientChange::ResourcePack {
+            id: pack_id(&offer.id)?,
+            url: offer.url,
+            hash: offer.hash,
+            required: offer.required,
+            prompt: offer.prompt,
+        }),
+        Order::AwardCriterion(order) => PlayerAction::AwardCriterion {
+            advancement: order.advancement,
+            criterion: order.criterion,
+        },
+        Order::RevokeCriterion(order) => PlayerAction::RevokeCriterion {
+            advancement: order.advancement,
+            criterion: order.criterion,
+        },
+        Order::HideEntity(entity) => PlayerAction::HideEntity(EntityId(entity)),
+        Order::ShowEntity(entity) => PlayerAction::ShowEntity(EntityId(entity)),
+        Order::SetPlayerBorder(order) => match border(order)? {
+            WorldAction::Border(order) => PlayerAction::SetBorder(order),
+            _ => return Err(Malformed::Empty),
+        },
+        Order::ResetPlayerBorder(_) => PlayerAction::ResetBorder,
+        Order::StoreCookie(cookie) => PlayerAction::StoreCookie {
+            key: cookie.key,
+            payload: cookie.payload,
+        },
+        Order::SendLinks(links) => PlayerAction::SendLinks(
+            links
+                .links
+                .into_iter()
+                .map(|link| (link.label, link.url))
+                .collect(),
+        ),
+        Order::RemoveResourcePack(removal) => PlayerAction::Client(
+            ClientChange::RemoveResourcePack(removal.id.as_deref().map(pack_id).transpose()?),
+        ),
     })
+}
+
+fn pack_id(text: &str) -> Result<uuid::Uuid, Malformed> {
+    uuid::Uuid::parse_str(text).map_err(|_| Malformed::Uuid(text.to_owned()))
 }
 
 fn bed_spawn(spawn: v1::BedSpawnSet) -> Result<BedSpawn, Malformed> {
@@ -144,6 +214,10 @@ pub(super) fn question(extra: v1::ExtraQuestion) -> Result<ExtraQuestion, Malfor
         Query::BedSpawn(target) => ExtraQuestion::BedSpawn(player::id(target)?),
         Query::CompassTarget(target) => ExtraQuestion::CompassTarget(player::id(target)?),
         Query::PlayerClock(target) => ExtraQuestion::PlayerClock(player::id(target)?),
+        Query::RetrieveCookie(query) => ExtraQuestion::RetrieveCookie {
+            player: player::id(query.player)?,
+            key: query.key,
+        },
         Query::Chunk(query) => ExtraQuestion::Chunk {
             pos: ChunkPos::new(query.x, query.z),
             load: query.load,
@@ -164,6 +238,7 @@ pub(super) fn wire_answer(answer: ExtraAnswer) -> v1::ExtraAnswer {
                 time: time.map(|(time, relative)| v1::PlayerTime { time, relative }),
                 weather: weather.map(|weather| wire_weather(weather) as i32),
             }),
+            ExtraAnswer::Cookie(payload) => Answer::Cookie(v1::CookieValue { payload }),
             ExtraAnswer::Chunk {
                 pos,
                 loaded,
@@ -229,6 +304,98 @@ mod tests {
         assert_eq!(
             chunk(regenerate).unwrap(),
             WorldAction::Chunk(ChunkOrder::Regenerate(ChunkPos::new(-2, 5)))
+        );
+    }
+
+    #[test]
+    fn client_side_changes_convert_and_a_bad_pack_id_is_malformed() {
+        use rspigot_core::plugins::{BlockState, ClientChange, ItemSpec};
+        use rspigot_domain::BlockPos;
+
+        let stone = v1::BlockState {
+            block: "minecraft:stone".to_owned(),
+            properties: Vec::new(),
+        };
+        assert_eq!(
+            player_action(extra(player_extra::Order::SendBlockChanges(
+                v1::ClientBlocks {
+                    changes: vec![v1::ClientBlock {
+                        pos: Some(v1::BlockPos { x: 1, y: 2, z: 3 }),
+                        state: Some(stone.clone()),
+                    }]
+                }
+            )))
+            .unwrap(),
+            PlayerAction::Client(ClientChange::Blocks(vec![(
+                BlockPos::new(1, 2, 3),
+                BlockState {
+                    kind: "minecraft:stone".to_owned(),
+                    properties: Vec::new(),
+                }
+            )]))
+        );
+        assert!(
+            player_action(extra(player_extra::Order::SendBlockChanges(
+                v1::ClientBlocks {
+                    changes: vec![v1::ClientBlock {
+                        pos: None,
+                        state: Some(stone),
+                    }]
+                }
+            )))
+            .is_err()
+        );
+        assert_eq!(
+            player_action(extra(player_extra::Order::SendEquipmentChange(
+                v1::ClientEquipment {
+                    entity: 4,
+                    slots: vec![v1::EquipmentEdit {
+                        slot: "head".to_owned(),
+                        item: Some(v1::Item {
+                            key: "minecraft:stick".to_owned(),
+                            count: 1,
+                            ..Default::default()
+                        }),
+                    }],
+                }
+            )))
+            .unwrap(),
+            PlayerAction::Client(ClientChange::Equipment {
+                entity: EntityId(4),
+                slots: vec![("head".to_owned(), Some(ItemSpec::of("minecraft:stick", 1)))],
+            })
+        );
+        let offer = |id: &str| v1::PackOffer {
+            id: id.to_owned(),
+            url: "https://x.org/p.zip".to_owned(),
+            hash: "h".to_owned(),
+            required: true,
+            prompt: Some("p".to_owned()),
+        };
+        assert!(
+            player_action(extra(player_extra::Order::SendResourcePack(offer("nope")))).is_err()
+        );
+        assert!(matches!(
+            player_action(extra(player_extra::Order::SendResourcePack(offer(
+                "00000000-0000-0000-0000-000000000009"
+            ))))
+            .unwrap(),
+            PlayerAction::Client(ClientChange::ResourcePack { required: true, .. })
+        ));
+        assert_eq!(
+            player_action(extra(player_extra::Order::RemoveResourcePack(
+                v1::PackRemoval { id: None }
+            )))
+            .unwrap(),
+            PlayerAction::Client(ClientChange::RemoveResourcePack(None))
+        );
+        assert!(
+            player_action(extra(player_extra::Order::RemoveResourcePack(
+                v1::PackRemoval {
+                    id: Some("nope".to_owned())
+                }
+            )))
+            .is_err()
         );
     }
 

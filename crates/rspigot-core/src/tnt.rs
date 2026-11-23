@@ -308,6 +308,10 @@ impl<L: ClientLink> Server<L> {
         if entity.base.is_removed() {
             return;
         }
+        if matches!(entity.state, EntityState::Minecart(_)) {
+            self.finish_cart_explosion(step, cancelled, patch);
+            return;
+        }
         let center = tnt::explosion_center(&entity.base);
         let owner = match &entity.state {
             EntityState::Tnt(state) => state.owner,

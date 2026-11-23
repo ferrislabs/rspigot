@@ -16,6 +16,7 @@ const CUSTOM_DATA: &str = "minecraft:custom_data";
 const ITEM_KEY: &str = "PublicBukkitValues";
 const MAX_NESTED_KEY: usize = meta::MAX_KEY_LENGTH;
 const SPIGOT_SLOTS: usize = 41;
+const CHUNK_KEY: &str = "ChunkBukkitValues";
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PdcValue {
@@ -51,6 +52,8 @@ pub enum PdcHolder {
     Entity(EntityId),
     Block(BlockPos),
     Item { player: PlayerId, slot: i32 },
+    Chunk(rspigot_domain::ChunkPos),
+    World,
 }
 
 fn invalid(reason: impl Into<String>) -> ActionError {
@@ -253,6 +256,30 @@ impl<L: ClientLink> Server<L> {
                 }
             }
             PdcHolder::Item { player, slot } => self.item_pdc_change(player, slot, change),
+            PdcHolder::Chunk(pos) => {
+                let column = self.world.chunks.chunk_mut(pos).ok_or_else(|| {
+                    ActionError::new(ActionErrorKind::NotFound, "the chunk is not loaded")
+                })?;
+                let mut compound = column
+                    .extra
+                    .get_compound(CHUNK_KEY)
+                    .cloned()
+                    .unwrap_or_default();
+                change_compound(&mut compound, change)?;
+                if compound.is_empty() {
+                    column.extra.remove(CHUNK_KEY);
+                } else {
+                    column.extra.insert(CHUNK_KEY, compound);
+                }
+                column.touch();
+                Ok(())
+            }
+            PdcHolder::World => {
+                let mut compound = self.world.level.plugin_data.take().unwrap_or_default();
+                let outcome = change_compound(&mut compound, change);
+                self.world.level.plugin_data = Some(compound);
+                outcome
+            }
         }
     }
 
@@ -327,6 +354,23 @@ impl<L: ClientLink> Server<L> {
                         .and_then(|held| held.persistent.get(HOLDER_KEY)),
                 )))
             }
+            PdcHolder::Chunk(pos) => {
+                let column = self.world.chunks.get(*pos).ok_or_else(|| {
+                    ActionError::new(ActionErrorKind::NotFound, "the chunk is not loaded")
+                })?;
+                Ok(column
+                    .extra
+                    .get_compound(CHUNK_KEY)
+                    .map(entries_of)
+                    .unwrap_or_default())
+            }
+            PdcHolder::World => Ok(self
+                .world
+                .level
+                .plugin_data
+                .as_ref()
+                .map(entries_of)
+                .unwrap_or_default()),
             PdcHolder::Item { player, slot } => {
                 let menu = Self::item_slot(*slot)?;
                 let stack = self

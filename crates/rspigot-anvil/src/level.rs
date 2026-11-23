@@ -328,6 +328,7 @@ fn read_level(world_root: &Path) -> Result<Option<LevelData>, AnvilError> {
         level.end_clock = Some((clock.get_i64("total_ticks").unwrap_or(0), runtime));
     }
     level.raids = optional_saved_data(world_root, "raids");
+    level.plugin_data = optional_saved_data(world_root, "rspigot_plugin_data");
     level.scoreboard = optional_saved_data(world_root, "scoreboard");
     level.dragon_fight = saved("ender_dragon_fight", "dragon_fight");
     level.custom_boss_events = saved("custom_boss_events", "CustomBossEvents");
@@ -519,6 +520,13 @@ fn write_level(world_root: &Path, level: &LevelData) -> Result<(), AnvilError> {
         update_saved_data(world_root, "ender_dragon_fight", |data| {
             let changed = data != fight;
             data.clone_from(fight);
+            changed
+        })?;
+    }
+    if let Some(held) = &level.plugin_data {
+        update_saved_data(world_root, "rspigot_plugin_data", |data| {
+            let changed = data != held;
+            data.clone_from(held);
             changed
         })?;
     }
@@ -733,6 +741,7 @@ mod tests {
             forced_chunks: None,
             world_border: None,
             scheduled_events: None,
+            plugin_data: None,
             data_packs: Some(DataPackLists {
                 enabled: vec!["vanilla".to_owned()],
                 disabled: Vec::new(),
@@ -939,6 +948,21 @@ mod tests {
         write_level_data(&root, &without).unwrap();
         let kept = read_level_data(&root).unwrap().unwrap();
         assert_eq!(kept.raids, Some(raids));
+    }
+
+    #[test]
+    fn plugin_data_is_saved_in_its_own_data_file_and_read_back() {
+        let dir = TempDir::new("level-plugin-data");
+        let root = dir.path().join("world");
+        let held = Compound::new().with("plugin:mode", "arena");
+        let level = LevelData {
+            plugin_data: Some(held.clone()),
+            ..sample()
+        };
+        write_level_data(&root, &level).unwrap();
+        let file = read_file(&root, "data/minecraft/rspigot_plugin_data.dat");
+        assert_eq!(file.get_compound("data"), Some(&held));
+        assert_eq!(read_level_data(&root).unwrap(), Some(level));
     }
 
     #[test]

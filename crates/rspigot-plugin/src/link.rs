@@ -35,10 +35,17 @@ struct Scope {
 
 #[derive(Default)]
 struct Shared {
+    tasks: Mutex<HashMap<u64, Ticking>>,
+    last_task: AtomicU64,
     current: Mutex<Option<Connection>>,
     generation: AtomicU64,
     last_request: AtomicU64,
     name: Mutex<String>,
+}
+
+struct Ticking {
+    fired: mpsc::UnboundedSender<()>,
+    repeats: bool,
 }
 
 struct Connection {
@@ -50,6 +57,7 @@ pub(crate) struct Attached(Link);
 
 impl Drop for Attached {
     fn drop(&mut self) {
+        self.0.tasks().clear();
         let gone = self.0.lock().take();
         if let Some(Connection { outbound, waiting }) = gone {
             drop(outbound);
@@ -68,6 +76,64 @@ impl Link {
         });
         drop(current);
         Attached(self.clone())
+    }
+
+    fn tasks(&self) -> MutexGuard<'_, HashMap<u64, Ticking>> {
+        self.0
+            .shared
+            .tasks
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+    }
+
+    pub(crate) fn schedule_task(
+        &self,
+        delay: u32,
+        period: u32,
+    ) -> (u64, mpsc::UnboundedReceiver<()>) {
+        let id = self.0.shared.last_task.fetch_add(1, Ordering::Relaxed) + 1;
+        let (fired, receiver) = mpsc::unbounded_channel();
+        self.tasks().insert(
+            id,
+            Ticking {
+                fired,
+                repeats: period > 0,
+            },
+        );
+        self.order(from_plugin::Body::Server(v1::ServerOrder {
+            order: Some(v1::server_order::Order::ScheduleTask(v1::ScheduleTask {
+                id,
+                delay,
+                period,
+            })),
+        }));
+        (id, receiver)
+    }
+
+    pub(crate) fn cancel_task(&self, id: u64) {
+        if self.tasks().remove(&id).is_some() {
+            self.order(from_plugin::Body::Server(v1::ServerOrder {
+                order: Some(v1::server_order::Order::CancelTask(id)),
+            }));
+        }
+    }
+
+    pub(crate) fn cancel_all_tasks(&self) {
+        let ids: Vec<u64> = self.tasks().keys().copied().collect();
+        for id in ids {
+            self.cancel_task(id);
+        }
+    }
+
+    pub(crate) fn task_due(&self, id: u64) {
+        let mut tasks = self.tasks();
+        let Some(task) = tasks.get(&id) else {
+            return;
+        };
+        let delivered = task.fired.send(()).is_ok();
+        if !delivered || !task.repeats {
+            tasks.remove(&id);
+        }
     }
 
     pub(crate) fn generation(&self) -> u64 {

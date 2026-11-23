@@ -165,6 +165,10 @@ impl<L: ClientLink> Server<L> {
             self.convert_with(victim, Kind::ZombifiedPiglin, None, Follow::Zap { bolt });
             return;
         }
+        if kind == Kind::Villager && self.world.difficulty != Difficulty::Peaceful {
+            self.convert_with(victim, Kind::Witch, None, Follow::Nothing);
+            return;
+        }
         self.lightning_burn(bolt, victim, kind);
         if kind == Kind::Mooshroom {
             self.mooshroom_struck(bolt, victim);

@@ -57,13 +57,22 @@ impl PlayerObjectOrder {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum WorldObjectOrder {
-    EditMap { map: i32, edit: MapEdit },
+    EditMap {
+        map: i32,
+        edit: MapEdit,
+    },
+    ChunkPdc {
+        chunk: rspigot_domain::ChunkPos,
+        change: PdcChange,
+    },
+    WorldPdc(PdcChange),
 }
 
 impl WorldObjectOrder {
     pub const fn name(&self) -> &'static str {
         match self {
             Self::EditMap { .. } => "world.map.edit",
+            Self::ChunkPdc { change, .. } | Self::WorldPdc(change) => change.name(),
         }
     }
 }
@@ -156,6 +165,10 @@ impl<L: ClientLink> Server<L> {
     pub(super) fn world_object_order(&mut self, order: WorldObjectOrder) -> Result<(), String> {
         match order {
             WorldObjectOrder::EditMap { map, edit } => self.edit_map(map, edit),
+            WorldObjectOrder::ChunkPdc { chunk, change } => {
+                self.pdc_change(PdcHolder::Chunk(chunk), change)
+            }
+            WorldObjectOrder::WorldPdc(change) => self.pdc_change(PdcHolder::World, change),
         }
         .map_err(|error| error.reason)
     }

@@ -428,6 +428,7 @@ pub struct LevelData {
     pub world_border: Option<rspigot_nbt::Compound>,
     pub scheduled_events: Option<rspigot_nbt::Compound>,
     pub data_packs: Option<crate::functions::DataPackLists>,
+    pub plugin_data: Option<rspigot_nbt::Compound>,
 }
 
 impl Default for LevelData {
@@ -460,6 +461,7 @@ impl Default for LevelData {
             world_border: None,
             scheduled_events: None,
             data_packs: None,
+            plugin_data: None,
         }
     }
 }

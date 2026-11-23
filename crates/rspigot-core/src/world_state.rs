@@ -21,6 +21,7 @@ pub(crate) type DimensionKey = Identifier;
 
 const RAIDS_DATA: &str = "raids";
 const DRAGON_FIGHT_DATA: &str = "ender_dragon_fight";
+pub(crate) const PLUGIN_DATA: &str = "rspigot_plugin_data";
 
 fn stored_data<S: EntityStore>(store: &S, key: &DimensionKey, name: &str) -> Option<Compound> {
     match store.load_world_data(key, name) {
@@ -72,6 +73,7 @@ impl<L: ClientLink> Server<L> {
         }
         level.spawn = Some(spawn.block());
         level.raids = stored_data(&*store, &key, RAIDS_DATA);
+        level.plugin_data = stored_data(&*store, &key, PLUGIN_DATA);
         level.dragon_fight = stored_data(&*store, &key, DRAGON_FIGHT_DATA);
         level.forced_chunks = stored_data(&*store, &key, crate::forceload::FORCED_DATA);
         level.world_border = stored_data(&*store, &key, crate::border::BORDER_DATA);
@@ -138,6 +140,16 @@ impl<L: ClientLink> Server<L> {
     }
 
     pub(crate) fn save_world_data(&mut self) {
+        if let Some(data) = &self.world.level.plugin_data {
+            self.workers.submit(
+                Priority::BACKGROUND,
+                ChunkJob::SaveData {
+                    dimension: Arc::clone(&self.world.dimension),
+                    name: PLUGIN_DATA,
+                    data: Arc::new(data.clone()),
+                },
+            );
+        }
         if self.world.dimension.key == Identifier::minecraft("overworld") {
             self.save_scoreboard_data();
             self.save_custom_boss_bars_data();

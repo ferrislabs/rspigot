@@ -354,10 +354,19 @@ impl<L: ClientLink> Server<L> {
         let range = f64::from(range.min(self.view_distance_blocks(player)));
         let dx = player.position.x - entity.base.position.x;
         let dz = player.position.z - entity.base.position.z;
-        dx * dx + dz * dz <= range * range && player.streamer.has_sent(entity.base.chunk())
+        dx * dx + dz * dz <= range * range
+            && player.streamer.has_sent(entity.base.chunk())
+            && !self
+                .plugins
+                .viewer_state
+                .hides_entity(player.id, entity.base.id)
     }
 
-    fn update_viewer(&mut self, id: EntityId, player_id: rspigot_domain::player::PlayerId) {
+    pub(crate) fn update_viewer(
+        &mut self,
+        id: EntityId,
+        player_id: rspigot_domain::player::PlayerId,
+    ) {
         let (Some(entity), Some(tracked), Some(player)) = (
             self.entities.store.get(id),
             self.entities.tracked.get(&id),
@@ -659,6 +668,10 @@ impl<L: ClientLink> Server<L> {
         if outcome.drown {
             self.hurt_mob(id, &DamageSource::new(DamageType::Drown), DROWN_DAMAGE);
         }
+        if outcome.removed && self.creaking_is_twitching(id) {
+            self.creaking_tear_down(id);
+            return;
+        }
         if outcome.removed {
             self.push(
                 Audience::Trackers(id),
@@ -681,6 +694,7 @@ impl<L: ClientLink> Server<L> {
             return;
         }
         self.crossbow_use_tick(id);
+        self.mob_spear_tick(id);
         let mut shed_arrow = 0;
         if let Some(Entity {
             base,
