@@ -137,7 +137,10 @@ pub(crate) struct Flow {
 
 impl Flow {
     fn of(state: BlockStateId) -> Option<Self> {
-        let liquid = Liquid::of(state)?;
+        let Some(liquid) = Liquid::of(state) else {
+            return (state.property("waterlogged") == Some("true"))
+                .then(|| Self::source(Liquid::Water));
+        };
         let level = state.property("level")?.parse().ok()?;
         Some(Self { liquid, level })
     }
@@ -498,7 +501,7 @@ impl<L: ClientLink> Server<L> {
         if flow.liquid == Liquid::Water
             && let Some(wet) = state
                 .with_property("waterlogged", "true")
-                .filter(|_| campfire::can_waterlog(state))
+                .filter(|_| crate::bucket::can_waterlog(state))
         {
             self.set_block(target, wet);
             return;
@@ -532,10 +535,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn takes_water(&self, pos: BlockPos) -> bool {
-        self.world
-            .chunks
-            .block(pos)
-            .is_some_and(campfire::can_waterlog)
+        self.world.chunks.block(pos).is_some_and(|state| {
+            campfire::can_waterlog(state) || crate::bucket::can_waterlog(state)
+        })
     }
 
     fn can_pass(&self, liquid: Liquid, pos: BlockPos) -> bool {

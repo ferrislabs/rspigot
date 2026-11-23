@@ -407,7 +407,7 @@ impl<L: ClientLink> Server<L> {
         let entity_data = self.block_entity_data(pos);
         self.piston_will_destroy(pos, step.state, step.game_mode == GameMode::Creative);
         self.tnt_will_destroy(id, pos, step.state, step.game_mode == GameMode::Creative);
-        self.set_block(pos, BlockStateId::AIR);
+        self.set_block(pos, crate::block_shapes::left_behind(step.state));
         let actor = self.players.get(&id).map(|player| player.entity_id);
         self.block_game_event(
             GameEvent::BlockDestroy,

@@ -160,7 +160,7 @@ impl<L: ClientLink> Server<L> {
             || step
                 .changes
                 .last()
-                .is_some_and(|target| !self.intersects_player(target.pos));
+                .is_some_and(|target| !self.obstructed(target.pos, target.new));
         if cancelled || !build || !unchanged || !clear || !self.still_using(&step.using) {
             self.refuse_place(&step);
             return;

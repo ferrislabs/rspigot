@@ -302,6 +302,9 @@ impl<L: ClientLink> Server<L> {
         let Some(kind) = state.kind() else {
             return;
         };
+        if self.apply_shape(pos, state, direction) {
+            return;
+        }
         self.redstone_shape(pos, state, direction);
         if kind == BlockKind::NetherPortal {
             let neighbour = self.block_or_air(step(pos, direction));
@@ -435,6 +438,9 @@ impl<L: ClientLink> Server<L> {
     }
 
     fn block_tick(&mut self, pos: BlockPos, state: BlockStateId, kind: BlockKind) {
+        if self.survival_tick(pos, state) {
+            return;
+        }
         if self.redstone_tick(pos, state, kind) {
             return;
         }
